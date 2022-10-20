@@ -1,9 +1,10 @@
-# used for mem, sql & kafkasql.
+# used for mem, sql, mssql & kafkasql.
 # 'override' keyword prevents the variable from being overrideen
 override DOCKERFILE_LOCATION := ./distro/docker/target/docker
 
 MEM_DOCKERFILE ?= Dockerfile.jvm
 SQL_DOCKERFILE ?= Dockerfile.sql.jvm
+MSSQL_DOCKERFILE ?= Dockerfile.mssql.jvm
 KAFKASQL_DOCKERFILE ?= Dockerfile.kafkasql.jvm
 DOCKER_BUILD_WORKSPACE ?= $(DOCKERFILE_LOCATION)
 
@@ -53,7 +54,7 @@ build-all:
 	@echo "----------------------------------------------------------------------"
 	@echo "                   Building All Modules                               "
 	@echo "----------------------------------------------------------------------"
-	./mvnw clean install -Pprod -Psql -Pkafkasql -DskipTests=$(SKIP_TESTS) $(BUILD_FLAGS)
+	./mvnw clean install -Pprod -Psql -Pmssql -Pkafkasql -DskipTests=$(SKIP_TESTS) $(BUILD_FLAGS)
 
 .PHONY: build-mem-native ## Builds mem storage variant native executable. Variables available for override [SKIP_TESTS, BUILD_FLAGS]
 build-mem-native:
@@ -68,6 +69,13 @@ build-sql-native:
 	@echo "             Building SQL Storage Variant Natively                    "
 	@echo "----------------------------------------------------------------------"
 	./mvnw package -Pnative -Dquarkus.native.container-build=true -Pprod -Psql -pl storage/sql -DskipTests=$(SKIP_TESTS) $(BUILD_FLAGS)
+
+.PHONY: build-mssql-native ## Builds mssql storage variant native executable. Variables available for override [SKIP_TESTS, BUILD_FLAGS]
+build-mssql-native:
+	@echo "----------------------------------------------------------------------"
+	@echo "             Building SQL Server Storage Variant Natively             "
+	@echo "----------------------------------------------------------------------"
+	./mvnw package -Pnative -Dquarkus.native.container-build=true -Pprod -Pmssql -pl storage/mssql -DskipTests=$(SKIP_TESTS) $(BUILD_FLAGS)
 
 .PHONY: build-kafkasql-native ## Builds kafkasql storage variant native executable. Variables available for override [SKIP_TESTS, BUILD_FLAGS]
 build-kafkasql-native:
@@ -154,6 +162,42 @@ push-sql-native-image:
 	@echo "------------------------------------------------------------------------"
 	docker push $(IMAGE_REPO)/apicurio/apicurio-registry-sql-native:$(IMAGE_TAG)
 
+.PHONY: build-mssql-image ## Builds docker image for 'mssql' storage variant. Variables available for override [MSSQL_DOCKERFILE, IMAGE_REPO, IMAGE_TAG, DOCKER_BUILD_WORKSPACE]
+build-mssql-image:
+	@echo "------------------------------------------------------------------------"
+	@echo " Building Image For SQL Server Storage Variant "
+	@echo " Repository: $(IMAGE_REPO)"
+	@echo " Tag: $(IMAGE_TAG)"
+	@echo "------------------------------------------------------------------------"
+	docker build -f $(DOCKERFILE_LOCATION)/$(MSSQL_DOCKERFILE) -t $(IMAGE_REPO)/apicurio/apicurio-registry-mssql:$(IMAGE_TAG) $(DOCKER_BUILD_WORKSPACE)
+
+.PHONY: push-mssql-image ## Pushes docker image for 'mssql' storage variant. Variables available for override [IMAGE_REPO, IMAGE_TAG]
+push-mssql-image:
+	@echo "------------------------------------------------------------------------"
+	@echo " Pushing Image For SQL Server Storage Variant"
+	@echo " Repository: $(IMAGE_REPO)"
+	@echo " Tag: $(IMAGE_TAG)"
+	@echo "------------------------------------------------------------------------"
+	docker push $(IMAGE_REPO)/apicurio/apicurio-registry-mssql:$(IMAGE_TAG)
+
+.PHONY: build-mssql-native-image ## Builds native docker image for 'mssql' storage variant. Variables available for override [IMAGE_REPO, IMAGE_TAG]
+build-mssql-native-image:
+	@echo "------------------------------------------------------------------------"
+	@echo " Building Image For SQL Server Storage Variant (using Native Executable)"
+	@echo " Repository: $(IMAGE_REPO)"
+	@echo " Tag: $(IMAGE_TAG)"
+	@echo "------------------------------------------------------------------------"
+	docker build -f $(DOCKERFILE_LOCATION)/Dockerfile.native -t $(IMAGE_REPO)/apicurio/apicurio-registry-mssql-native:$(IMAGE_TAG) storage/mssql
+
+.PHONY: push-mssql-native-image ## Pushes native docker image for 'mssql' storage variant. Variables available for override [IMAGE_REPO, IMAGE_TAG]
+push-mssql-native-image:
+	@echo "------------------------------------------------------------------------"
+	@echo " Pushing Image For SQL Server Storage Variant (using Native Executable)"
+	@echo " Repository: $(IMAGE_REPO)"
+	@echo " Tag: $(IMAGE_TAG)"
+	@echo "------------------------------------------------------------------------"
+	docker push $(IMAGE_REPO)/apicurio/apicurio-registry-mssql-native:$(IMAGE_TAG)
+
 .PHONY: build-kafkasql-image ## Builds docker image for kafkasql storage variant. Variables available for override [KAFKASQL_DOCKERFILE, IMAGE_REPO, IMAGE_TAG, DOCKER_BUILD_WORKSPACE]
 build-kafkasql-image:
 	@echo "------------------------------------------------------------------------"
@@ -193,10 +237,10 @@ push-kafkasql-native-image:
 	docker push $(IMAGE_REPO)/apicurio/apicurio-registry-kafkasql-native:$(IMAGE_TAG)
 
 .PHONY: build-all-images ## Builds all the Images. Variables available for override [IMAGE_REPO, IMAGE_TAG]
-build-all-images: build-mem-image build-sql-image build-kafkasql-image
+build-all-images: build-mem-image build-sql-image build-mssql-image build-kafkasql-image
 
 .PHONY: push-all-images ## Pushes all the Images. Variables available for override [IMAGE_REPO, IMAGE_TAG]
-push-all-images: push-mem-image push-sql-image push-kafkasql-image
+push-all-images: push-mem-image push-sql-image push-mssql-image push-kafkasql-image
 
 
 .PHONY: mem-multiarch-images ## Builds and pushes multi-arch images for 'in-memory' storage variant. Variables available for override [MEM_DOCKERFILE, IMAGE_REPO, IMAGE_TAG, DOCKER_BUILD_WORKSPACE]
@@ -220,6 +264,15 @@ sql-multiarch-images:
 	@echo "------------------------------------------------------------------------"
 	docker buildx build --push -f $(DOCKERFILE_LOCATION)/$(SQL_DOCKERFILE) -t $(IMAGE_REPO)/apicurio/apicurio-registry-sql:$(IMAGE_TAG) --platform $(IMAGE_PLATFORMS) $(DOCKER_BUILD_WORKSPACE)
 
+.PHONY: mssql-multiarch-images ## Builds and pushes multi-arch images for 'mssql' storage variant. Variables available for override [MSSQL_DOCKERFILE, IMAGE_REPO, IMAGE_TAG, DOCKER_BUILD_WORKSPACE]
+mssql-multiarch-images:
+	@echo "------------------------------------------------------------------------"
+	@echo " Building Multi-arch Images For SQL Server Storage Variant "
+	@echo " Supported Platforms: $(IMAGE_PLATFORMS)"
+	@echo " Repository: $(IMAGE_REPO)"
+	@echo " Tag: $(IMAGE_TAG)"
+	@echo "------------------------------------------------------------------------"
+	docker buildx build --push -f $(DOCKERFILE_LOCATION)/$(MSSQL_DOCKERFILE) -t $(IMAGE_REPO)/apicurio/apicurio-registry-mssql:$(IMAGE_TAG) --platform $(IMAGE_PLATFORMS) $(DOCKER_BUILD_WORKSPACE)
 
 .PHONY: kafkasql-multiarch-images ## Builds and pushes multi-arch images for kafkasql storage variant. Variables available for override [KAFKASQL_DOCKERFILE, IMAGE_REPO, IMAGE_TAG, DOCKER_BUILD_WORKSPACE]
 kafkasql-multiarch-images:
@@ -232,7 +285,7 @@ kafkasql-multiarch-images:
 	docker buildx build --push -f $(DOCKERFILE_LOCATION)/$(KAFKASQL_DOCKERFILE) -t $(IMAGE_REPO)/apicurio/apicurio-registry-kafkasql:$(IMAGE_TAG) --platform $(IMAGE_PLATFORMS) $(DOCKER_BUILD_WORKSPACE)
 
 .PHONY: multiarch-registry-images ## Builds and pushes multi-arch registry images for all variants. Variables available for override [IMAGE_REPO, IMAGE_TAG]
-multiarch-registry-images: mem-multiarch-images sql-multiarch-images kafkasql-multiarch-images
+multiarch-registry-images: mem-multiarch-images sql-multiarch-images mssql-multiarch-images kafkasql-multiarch-images
 
 
 
@@ -290,6 +343,20 @@ run-sql-clustered-integration-tests: build-integration-tests-common
 	@echo "----------------------------------------------------------------------"
 	./mvnw verify -Pintegration-tests -Pclustered -Psql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress
 
+.PHONY: run-mssql-integration-tests ## Runs mssql integration tests
+run-mssql-integration-tests: build-integration-tests-common
+	@echo "----------------------------------------------------------------------"
+	@echo "                 Running SQL Server Integration Tests                 "
+	@echo "----------------------------------------------------------------------"
+	./mvnw verify -Pintegration-tests -P$(INTEGRATION_TESTS_PROFILE) -Pmssql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress
+
+.PHONY: run-mssql-clustered-integration-tests ## Runs mssql clustered integration tests
+run-mssql-clustered-integration-tests: build-integration-tests-common
+	@echo "----------------------------------------------------------------------"
+	@echo "               Running SQL Server clustered Integration Tests         "
+	@echo "----------------------------------------------------------------------"
+	./mvnw verify -Pintegration-tests -Pclustered -Pmssql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress
+
 .PHONY: run-kafkasql-integration-tests ## Runs kafkasql integration tests
 run-kafkasql-integration-tests: build-integration-tests-common
 	@echo "----------------------------------------------------------------------"
@@ -318,6 +385,13 @@ run-sql-migration-integration-tests: build-integration-tests-common
 	@echo "----------------------------------------------------------------------"
 	./mvnw verify -Pintegration-tests -Pmigration -Psql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress
 
+.PHONY: run-mssql-migration-integration-tests ## Runs mssql migration integration tests
+run-mssql-migration-integration-tests: build-integration-tests-common
+	@echo "----------------------------------------------------------------------"
+	@echo "             Running SQL Server Migration Integration Tests           "
+	@echo "----------------------------------------------------------------------"
+	./mvnw verify -Pintegration-tests -Pmigration -mssql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress
+
 .PHONY: run-kafkasql-migration-integration-tests ## Runs kafkasql migration integration tests
 run-kafkasql-migration-integration-tests: build-integration-tests-common
 	@echo "----------------------------------------------------------------------"
@@ -332,6 +406,13 @@ run-sql-auth-integration-tests: build-integration-tests-common
 	@echo "----------------------------------------------------------------------"
 	./mvnw verify -Pintegration-tests -Pauth -Psql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress
 
+.PHONY: run-mssql-auth-integration-tests ## Runs mssql auth integration tests
+run-mssql-auth-integration-tests: build-integration-tests-common
+	@echo "----------------------------------------------------------------------"
+	@echo "                Running SQL Server Auth Integration Tests             "
+	@echo "----------------------------------------------------------------------"
+	./mvnw verify -Pintegration-tests -Pauth -mssql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress
+
 .PHONY: run-kafkasql-auth-integration-tests ## Runs kafkasql auth integration tests
 run-kafkasql-auth-integration-tests: build-integration-tests-common
 	@echo "----------------------------------------------------------------------"
@@ -344,17 +425,24 @@ run-sql-legacy-tests: build-integration-tests-common
 	@echo "----------------------------------------------------------------------"
 	@echo "                        Running SQL Legacy Tests                      "
 	@echo "----------------------------------------------------------------------"
-	./mvnw verify -Pintegration-tests -P$(INTEGRATION_TESTS_PROFILE) -Pkafkasql -pl integration-tests/legacy-tests -Dmaven.javadoc.skip=true --no-transfer-progress
+	./mvnw verify -Pintegration-tests -P$(INTEGRATION_TESTS_PROFILE) -Psql -pl integration-tests/legacy-tests -Dmaven.javadoc.skip=true --no-transfer-progress
+
+.PHONY: run-mssql-legacy-tests ## Runs mssql legacy tests
+run-mssql-legacy-tests: build-integration-tests-common
+	@echo "----------------------------------------------------------------------"
+	@echo "                     Running SQL Server Legacy Tests                  "
+	@echo "----------------------------------------------------------------------"
+	./mvnw verify -Pintegration-tests -P$(INTEGRATION_TESTS_PROFILE) -mssql -pl integration-tests/legacy-tests -Dmaven.javadoc.skip=true --no-transfer-progress
 
 .PHONY: run-kafkasql-legacy-tests ## Runs kafkasql legacy tests
 run-kafkasql-legacy-tests: build-integration-tests-common
 	@echo "----------------------------------------------------------------------"
 	@echo "                     Running KafkaSQL Legacy Tests                    "
 	@echo "----------------------------------------------------------------------"
-	./mvnw verify -Pintegration-tests -P$(INTEGRATION_TESTS_PROFILE) -Psql -pl integration-tests/legacy-tests -Dmaven.javadoc.skip=true --no-transfer-progress
+	./mvnw verify -Pintegration-tests -P$(INTEGRATION_TESTS_PROFILE) -Pkafkasql -pl integration-tests/legacy-tests -Dmaven.javadoc.skip=true --no-transfer-progress
 
 .PHONY: integration-tests ## Runs all integration tests [SKIP_TESTS, BUILD_FLAGS]
-integration-tests: build-all build-integration-tests-common run-ui-tests run-sql-integration-tests run-sql-clustered-integration-tests run-kafkasql-integration-tests run-kafkasql-clustered-integration-tests run-multitenancy-integration-tests run-sql-migration-integration-tests run-kafkasql-migration-integration-tests run-sql-auth-integration-tests run-kafkasql-auth-integration-tests run-sql-legacy-tests run-kafkasql-legacy-tests
+integration-tests: build-all build-integration-tests-common run-ui-tests run-sql-integration-tests run-sql-clustered-integration-tests run-mssql-integration-tests run-mssql-clustered-integration-tests run-kafkasql-integration-tests run-kafkasql-clustered-integration-tests run-multitenancy-integration-tests run-sql-migration-integration-tests run-mssql-migration-integration-tests run-kafkasql-migration-integration-tests run-sql-auth-integration-tests run-mssql-auth-integration-tests run-kafkasql-auth-integration-tests run-sql-legacy-tests run-mssql-legacy-tests run-kafkasql-legacy-tests
 
 # Please declare your targets as .PHONY in the format shown below, so that the 'make help' parses the information correctly.
 #

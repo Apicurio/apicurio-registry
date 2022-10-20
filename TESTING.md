@@ -33,7 +33,7 @@ This is the normal mode used when you execute the testsuite. Because Apicurio Re
 The configuration is provided via maven profiles. You can find all the available maven profiles [here](integration-tests/testsuite/pom.xml)
 When executing the testsuite you normally provide two profiles:
 + test profile (which determines the tests that will be executed), some options are acceptance , multitenancy ,...
-+ storage variant to test (which determines the storage backend that will be deployed, and therefore tested), the available options are: inmemory , sql , kafkasql .
++ storage variant to test (which determines the storage backend that will be deployed, and therefore tested), the available options are: inmemory , sql, mssql , kafkasql .
 
 You can find multiple examples of how to run the testsuite in this mode in our [Github Actions Workflows](.github/workflows/integration-tests.yaml)
 

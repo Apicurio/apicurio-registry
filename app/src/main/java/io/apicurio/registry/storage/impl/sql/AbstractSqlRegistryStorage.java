@@ -643,7 +643,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
         String sql;
         Long contentId;
         boolean insertReferences = true;
-        if ("postgresql".equals(sqlStatements.dbType())) {
+        if (Set.of("mssql", "postgresql").contains(sqlStatements.dbType())) {
             sql = sqlStatements.upsertContent();
             handle.createUpdate(sql)
                     .bind(0, tenantContext.tenantId())
@@ -1232,7 +1232,11 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
             orderByQuery.append(orderDirection.name());
 
             // Add limit and offset to artifact query
-            limitOffset.append(" LIMIT ? OFFSET ?");
+            if ("sqlserver".equals(sqlStatements.dbType())) {
+                limitOffset.append(" OFFSET ? ROWS FETCH NEXT ? ROWS ONLY");
+            } else {
+                limitOffset.append(" LIMIT ? OFFSET ?");
+            }
 
             // Query for the artifacts
             String artifactsQuerySql = select.toString() + where.toString() + orderByQuery.toString() + limitOffset.toString();
@@ -1253,8 +1257,14 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                 binder.bind(countQuery, idx);
                 idx++;
             }
-            artifactsQuery.bind(idx++, limit);
-            artifactsQuery.bind(idx++, offset);
+            // TODO find a better way to swap arguments
+            if ("sqlserver".equals(sqlStatements.dbType())) {
+                artifactsQuery.bind(idx++, offset);
+                artifactsQuery.bind(idx++, limit);
+            } else {
+                artifactsQuery.bind(idx++, limit);
+                artifactsQuery.bind(idx++, offset);
+            }
 
             // Execute artifact query
             List<SearchedArtifactDto> artifacts = artifactsQuery.map(SearchedArtifactMapper.instance).list();
@@ -2272,7 +2282,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
             Update query = handle.createUpdate(sql)
                     .bind(0, logConfiguration.getLogger())
                     .bind(1, logConfiguration.getLogLevel().value());
-            if ("postgresql".equals(sqlStatements.dbType())) {
+            if (Set.of("mssql", "postgresql").contains(sqlStatements.dbType())) {
                 query.bind(2, logConfiguration.getLogLevel().value());
             }
             query.execute();
@@ -3183,7 +3193,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
             log.info("Resetting {} sequence", sequenceName);
             long id = maxId.get();
 
-            if ("postgresql".equals(sqlStatements.dbType())) {
+            if (Set.of("mssql", "postgresql").contains(sqlStatements.dbType())) {
                 handle.createUpdate(sqlStatements.resetSequenceValue())
                     .bind(0, tenantContext.tenantId())
                     .bind(1, sequenceName)
@@ -3457,7 +3467,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     }
 
     private long nextSequenceValue(Handle handle, String sequenceName) {
-        if ("postgresql".equals(sqlStatements.dbType())) {
+        if (Set.of("mssql", "postgresql").contains(sqlStatements.dbType())) {
             return handle.createQuery(sqlStatements.getNextSequenceValue())
                     .bind(0, tenantContext.tenantId())
                     .bind(1, sequenceName)

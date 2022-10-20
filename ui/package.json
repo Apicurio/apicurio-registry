@@ -16,7 +16,7 @@
   },
   "devDependencies": {
     "@apicurio/eslint-config": "0.2.0",
-    "@redhat-cloud-services/frontend-components-config": "4.6.6",
+    "@redhat-cloud-services/frontend-components-config": "4.6.22",
     "@types/node": "^11.9.6",
     "@types/react": "17.0.1",
     "@types/react-dom": "17.0.1",

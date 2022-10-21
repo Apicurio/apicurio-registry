@@ -18,7 +18,6 @@ import React from "react";
 import "./uploadForm.css";
 import { PureComponent, PureComponentProps, PureComponentState, UrlUpload } from "../../../../components";
 import {
-    debounce,
     Dropdown,
     DropdownItem,
     DropdownSeparator,
@@ -69,7 +68,6 @@ export interface UploadArtifactFormState extends PureComponentState {
     formValid: boolean;
     idValid: boolean;
     groupValid: boolean;
-    debouncedOnChange: ((data: CreateArtifactData) => void) | null;
 }
 
 /**
@@ -160,7 +158,7 @@ export class UploadArtifactForm extends PureComponent<UploadArtifactFormProps, U
                         activeKey={this.state.tabKey}
                         onSelect={(_event, eventKey) => {
                             this.setSingleState("tabKey", eventKey);
-                            this.onContentChange(undefined, undefined, {});
+                            this.onContentChange(undefined);
                             _event.preventDefault();
                             _event.stopPropagation();
                         }}
@@ -176,7 +174,9 @@ export class UploadArtifactForm extends PureComponent<UploadArtifactFormProps, U
                                 value={this.state.content!}
                                 isRequired={false}
                                 allowEditingUploadedText={true}
-                                onChange={this.onContentChange}
+                                onDataChange={this.onContentChange}
+                                onTextChange={this.onContentChange}
+                                onClearClick={() => this.onContentChange("")}
                                 onReadStarted={this.onFileReadStarted}
                                 onReadFinished={this.onFileReadFinished}
                                 isLoading={this.state.contentIsLoading}
@@ -187,7 +187,7 @@ export class UploadArtifactForm extends PureComponent<UploadArtifactFormProps, U
                                 id="artifact-content-url"
                                 urlPlaceholder="Enter a valid and accessible URL"
                                 onChange={(value, url) => {
-                                    this.onContentChange(value, url, {});
+                                    this.onContentChange(value);
                                 }}
                             />
                         </Tab>
@@ -202,7 +202,6 @@ export class UploadArtifactForm extends PureComponent<UploadArtifactFormProps, U
             content: null,
             contentFilename: "",
             contentIsLoading: false,
-            debouncedOnChange: debounce(this.props.onChange, 200),
             id: "",
             group: "",
             type: "",
@@ -249,7 +248,7 @@ export class UploadArtifactForm extends PureComponent<UploadArtifactFormProps, U
         });
     };
 
-    private onContentChange = (value: any, filename: string | undefined, event: any): void => {
+    private onContentChange = (value: string | undefined): void => {
         this.setSingleState("content", value, () => {
             this.fireOnChange();
             this.checkFormValid();
@@ -310,9 +309,9 @@ export class UploadArtifactForm extends PureComponent<UploadArtifactFormProps, U
     }
 
     private fireOnChange(): void {
-        if (this.state.debouncedOnChange) {
+        if (this.props.onChange) {
             const data: CreateArtifactData = this.currentData();
-            this.state.debouncedOnChange(data);
+            this.props.onChange(data);
         }
     }
 

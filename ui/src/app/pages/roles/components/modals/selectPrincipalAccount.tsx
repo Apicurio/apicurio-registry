@@ -24,7 +24,7 @@ import { RoleMapping } from "../../../../../models";
 export interface SelectPrincipalAccountProps extends PureComponentProps {
     id: string | undefined;
     onIdUpdate: (id: string) => void;
-    initialOptions: Principal[];
+    initialOptions: () => Principal[];
     onToggle: (isOpen: boolean) => void;
     isUpdateAccess: boolean;
     isUsersOnly?: boolean;
@@ -79,7 +79,7 @@ export class SelectPrincipalAccount extends PureComponent<SelectPrincipalAccount
     }
 
     public render(): React.ReactElement {
-        const {isUpdateAccess, defaultRole} = this.props;
+        const { isUpdateAccess, defaultRole } = this.props;
         const children: React.ReactElement[] = this.filter(null, "");
 
         return (
@@ -103,7 +103,7 @@ export class SelectPrincipalAccount extends PureComponent<SelectPrincipalAccount
                 isDisabled={isUpdateAccess}
             />
         );
-    };
+    }
 
     private filter = (event: any, criteria: string): React.ReactElement[] => {
         const principalToSelectOption: (p: Principal, index: number) => React.ReactElement = (principal: Principal, index: number): React.ReactElement => {
@@ -115,10 +115,10 @@ export class SelectPrincipalAccount extends PureComponent<SelectPrincipalAccount
                 >
                     {principal.id}
                 </SelectOption>
-            )
+            );
         };
 
-        const filteredSAs: Principal[] = this.props.initialOptions.filter(
+        const filteredSAs: Principal[] = this.props.initialOptions().filter(
             (principal) =>
                 principal.principalType === "SERVICE_ACCOUNT"
         ).filter(
@@ -128,7 +128,7 @@ export class SelectPrincipalAccount extends PureComponent<SelectPrincipalAccount
                     principal.displayName?.toLowerCase().includes(criteria.toLowerCase())
                 )
         );
-        const filteredUsers: Principal[] = this.props.initialOptions.filter(
+        const filteredUsers: Principal[] = this.props.initialOptions().filter(
             (principal) =>
                 principal.principalType === "USER_ACCOUNT"
         ).filter(
@@ -137,7 +137,7 @@ export class SelectPrincipalAccount extends PureComponent<SelectPrincipalAccount
                 principal.displayName?.toLowerCase().includes(criteria.toLowerCase())
         );
 
-        let rval: React.ReactElement[] = [];
+        const rval: React.ReactElement[] = [];
 
         if (filteredSAs.length > 0) {
             rval.push(
@@ -167,6 +167,6 @@ export class SelectPrincipalAccount extends PureComponent<SelectPrincipalAccount
         }
 
         return rval;
-    }
+    };
 
 }

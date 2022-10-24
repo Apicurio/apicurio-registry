@@ -101,9 +101,12 @@ export class GrantAccessModal extends PureComponent<GrantAccessModalProps, Grant
     }
 
     public render(): React.ReactElement {
-        const {isFetchingMappingRole, accountId} = this.state;
-        const {isUpdateAccess, defaultRole} = this.props;
-        const principals: Principal[] | undefined = Services.getConfigService().principals();
+        const { isFetchingMappingRole, accountId } = this.state;
+        const { isUpdateAccess, defaultRole } = this.props;
+        const principals: Principal[] | (() => Principal[]) | undefined = Services.getConfigService().principals();
+        const getPrincipals: () => Principal[] = (typeof principals === "function") ? (principals as () => Principal[]) : () => {
+            return principals || [];
+        };
 
         return (
             <Modal
@@ -155,9 +158,9 @@ export class GrantAccessModal extends PureComponent<GrantAccessModalProps, Grant
                             id={this.state.accountId}
                             onToggle={this.onAccountSelectToggle}
                             onIdUpdate={(id: string) => {
-                                this.onAccountIDSelect(null, id, false);
+                                this.onAccountIDSelect(getPrincipals, null, id, false);
                             }}
-                            initialOptions={principals || []}
+                            initialOptions={getPrincipals}
                             isUpdateAccess={isUpdateAccess}
                             defaultRole={defaultRole}
                             />:
@@ -199,7 +202,7 @@ export class GrantAccessModal extends PureComponent<GrantAccessModalProps, Grant
                             onChange={this.handleRoleChange}
                             isChecked={this.state.role == RoleTypes.DEVELOPER}
                             isDisabled={isFetchingMappingRole}
-                            />
+                        />
 
                         <Radio id="grant-access-role-viewer"
                             className="grant-access-radio-button"
@@ -210,7 +213,7 @@ export class GrantAccessModal extends PureComponent<GrantAccessModalProps, Grant
                             onChange={this.handleRoleChange}
                             isChecked={this.state.role == RoleTypes.READ_ONLY}
                             isDisabled={isFetchingMappingRole}
-                            />
+                        />
                     </FormGroup>
                    }
                 </Form>
@@ -286,20 +289,20 @@ export class GrantAccessModal extends PureComponent<GrantAccessModalProps, Grant
         }
     };
 
-    private onAccountIDSelect = (_event: any, selection: string | SelectOptionObject, isPlaceholder: boolean | undefined) => {
+    private onAccountIDSelect = (getPrincipals: () => Principal[], _event: any, selection: string | SelectOptionObject, isPlaceholder: boolean | undefined) => {
         if (isPlaceholder) {
             this.onAccountIDClearSelection();
         } else {
             const newState: any = {
                 accountId: selection,
-                accountName: this.getAccountName(selection as string),
+                accountName: this.getAccountName(getPrincipals, selection as string),
                 isAccountIDSelectOpen: false
             };
             this.setMultiState(newState, () => {
                 this.getRoleMapping();
             });
         }
-      };
+    };
 
 
     private handleRoleChange = (isChecked: boolean, event: any): void => {
@@ -319,7 +322,7 @@ export class GrantAccessModal extends PureComponent<GrantAccessModalProps, Grant
             this.state.role as string,
             this.props.roles?.find(role => role.principalId == this.state.accountId) !== undefined);
         this.reset();
-    }
+    };
 
     private checkValid(accountId: SelectOptionObject | string | undefined, role: string | undefined): boolean {
         if (!accountId || !role) {
@@ -328,8 +331,8 @@ export class GrantAccessModal extends PureComponent<GrantAccessModalProps, Grant
         return true;
     }
 
-    private getAccountName(accountId: string): string | undefined {
-        const principals: Principal[] | undefined = Services.getConfigService().principals();
+    private getAccountName(getPrincipals: () => Principal[], accountId: string): string | undefined {
+        const principals: Principal[] = getPrincipals();
         if (principals) {
             for (const principal of principals) {
                 if (principal.id === accountId) {
@@ -350,7 +353,7 @@ export class GrantAccessModal extends PureComponent<GrantAccessModalProps, Grant
 
     private escapePressed = (): void => {
         if (this.state.escapeClosesModal) {
-           this.closeModal();
+            this.closeModal();
         }
     };
 

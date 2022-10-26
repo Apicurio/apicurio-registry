@@ -16,17 +16,6 @@
 
 package io.apicurio.registry.ccompat.store;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.function.Function;
-import java.util.regex.Pattern;
-import java.util.Collections;
-import java.util.stream.Collectors;
-
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
-
 import io.apicurio.registry.ccompat.dto.CompatibilityCheckResponse;
 import io.apicurio.registry.ccompat.dto.Schema;
 import io.apicurio.registry.ccompat.dto.SchemaContent;
@@ -66,6 +55,16 @@ import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 import io.apicurio.registry.util.ArtifactTypeUtil;
 import io.apicurio.registry.util.VersionUtil;
 import org.slf4j.Logger;
+
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
 
 /**
  * @author Ales Justin
@@ -364,8 +363,10 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
 
     /**
      * Given a version string:
-     * - if it's an <b>integer</b>, use that;
+     * - if it's a <b>non-negative integer</b>, use that;
      * - if it's a string "latest", find out and use the subject's (artifact's) latest version;
+     * - if it's <b>-1</b>, do the same as "latest", even though this behavior is undocumented.
+     * See https://github.com/Apicurio/apicurio-registry/issues/2851
      * - otherwise throw an IllegalArgumentException.
      * On success, call the "then" function with the parsed version (MUST NOT be null) and return it's result.
      * Optionally provide an "else" function that will receive the exception that would be otherwise thrown.
@@ -373,19 +374,28 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
     @Override
     public <T> T parseVersionString(String subject, String versionString, Function<String, T> then) {
         String version;
-        // TODO possibly need to ignore
         if ("latest".equals(versionString)) {
-            ArtifactMetaDataDto latest = storage.getArtifactMetaData(null, subject);
-            version = latest.getVersion();
+            version = getLatestArtifactVersionForSubject(subject);
         } else {
             try {
-                Integer.parseUnsignedInt(versionString); // required by the spec, ignoring the possible leading "+"
+                var numericVersion = Integer.parseInt(versionString);
+                if (numericVersion >= 0) {
+                    version = versionString;
+                } else if (numericVersion == -1) {
+                    version = getLatestArtifactVersionForSubject(subject);
+                } else {
+                    throw new ArtifactNotFoundException("Illegal version format: " + versionString);
+                }
             } catch (NumberFormatException e) {
-                throw new IllegalArgumentException("Illegal version format: " + versionString, e);
+                throw new ArtifactNotFoundException("Illegal version format: " + versionString);
             }
-            version = versionString;
         }
         return then.apply(version);
+    }
+
+    private String getLatestArtifactVersionForSubject(String subject) {
+        ArtifactMetaDataDto latest = storage.getArtifactMetaData(null, subject);
+        return latest.getVersion();
     }
 
     @Override

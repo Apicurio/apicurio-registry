@@ -38,6 +38,10 @@
         </dependency>
         <dependency>
             <groupId>io.apicurio</groupId>
+            <artifactId>apicurio-registry-schema-util-bigquery</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.apicurio</groupId>
             <artifactId>apicurio-registry-schema-util-graphql</artifactId>
         </dependency>
         <dependency>

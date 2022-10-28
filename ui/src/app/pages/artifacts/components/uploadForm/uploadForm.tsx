@@ -43,6 +43,7 @@ const artifactTypes: any[] = [
     { id: ArtifactTypes.KCONNECT, label: "Kafka Connect Schema" },
     { id: ArtifactTypes.WSDL, label: "WSDL" },
     { id: ArtifactTypes.XSD, label: "XML Schema" },
+    { id: ArtifactTypes.BIGQUERY, label: "Bigquery Schema" },
 ];
 
 /**

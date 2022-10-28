@@ -35,6 +35,7 @@ public class ArtifactTypeUtilProviderImpl implements ArtifactTypeUtilProviderFac
                 List.of(
                         new AsyncApiArtifactTypeUtilProvider(),
                         new AvroArtifactTypeUtilProvider(),
+                        new BigQueryArtifactTypeUtilProvider(),
                         new GraphQLArtifactTypeUtilProvider(),
                         new JsonArtifactTypeUtilProvider(),
                         new KConnectArtifactTypeUtilProvider(),

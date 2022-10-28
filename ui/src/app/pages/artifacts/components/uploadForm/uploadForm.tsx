@@ -249,6 +249,7 @@ export class UploadArtifactForm extends PureComponent<UploadArtifactFormProps, U
     };
 
     private onContentChange = (value: string | undefined): void => {
+        console.debug("File upload content (change event): ", value);
         this.setSingleState("content", value, () => {
             this.fireOnChange();
             this.checkFormValid();

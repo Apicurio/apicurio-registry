@@ -36,6 +36,7 @@ import io.apicurio.registry.storage.dto.ContentWrapperDto;
 import io.apicurio.registry.storage.dto.DownloadContextDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.GroupMetaDataDto;
+import io.apicurio.registry.storage.dto.GroupSearchResultsDto;
 import io.apicurio.registry.storage.dto.LogConfigurationDto;
 import io.apicurio.registry.storage.dto.OrderBy;
 import io.apicurio.registry.storage.dto.OrderDirection;
@@ -750,4 +751,13 @@ public interface RegistryStorage extends DynamicConfigStorage {
      */
     public boolean isArtifactVersionExists(String groupId, String artifactId, String version) throws RegistryStorageException;
 
+    /**
+     * Search groups by given criteria
+     * @param filters the set of filters to apply when searching
+     * @param orderBy the field to order by
+     * @param orderDirection the direction to order the results
+     * @param offset the number of artifacts to skip
+     * @param limit the result size limit
+     */
+    public GroupSearchResultsDto searchGroups(Set<SearchFilter> filters, OrderBy orderBy, OrderDirection orderDirection, Integer offset, Integer limit);
 }

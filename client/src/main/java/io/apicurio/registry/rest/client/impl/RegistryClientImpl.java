@@ -328,6 +328,13 @@ public class RegistryClientImpl implements RegistryClient {
     }
 
     @Override
+    public GroupSearchResults listGroups(SortBy orderBy, SortOrder order, Integer offset, Integer limit) {
+        final Map<String, List<String>> queryParams = new HashMap<>();
+        checkCommonQueryParams(orderBy, order, limit, offset, queryParams);
+        return apicurioHttpClient.sendRequest(GroupRequestsProvider.listGroups(queryParams));
+    }
+
+    @Override
     public InputStream getContentById(long contentId) {
         return apicurioHttpClient.sendRequest(IdRequestsProvider.getContentById(contentId));
     }

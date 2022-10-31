@@ -37,6 +37,7 @@ import io.apicurio.registry.rest.v2.beans.ContentCreateRequest;
 import io.apicurio.registry.rest.v2.beans.CreateGroupMetaData;
 import io.apicurio.registry.rest.v2.beans.EditableMetaData;
 import io.apicurio.registry.rest.v2.beans.GroupMetaData;
+import io.apicurio.registry.rest.v2.beans.GroupSearchResults;
 import io.apicurio.registry.rest.v2.beans.IfExists;
 import io.apicurio.registry.rest.v2.beans.Rule;
 import io.apicurio.registry.rest.v2.beans.SortBy;
@@ -59,6 +60,7 @@ import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.GroupMetaDataDto;
+import io.apicurio.registry.storage.dto.GroupSearchResultsDto;
 import io.apicurio.registry.storage.dto.OrderBy;
 import io.apicurio.registry.storage.dto.OrderDirection;
 import io.apicurio.registry.storage.dto.RuleConfigurationDto;
@@ -345,8 +347,24 @@ public class GroupsResourceImpl implements GroupsResource {
 
     @Override
     @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Read)
-    public List<String> listGroups(Integer limit, Integer offset, SortOrder order, SortBy orderby) {
-        return storage.getGroupIds(GET_GROUPS_LIMIT);
+    public GroupSearchResults listGroups(Integer limit, Integer offset, SortOrder order, SortBy orderby) {
+        if (orderby == null) {
+            orderby = SortBy.name;
+        }
+        if (offset == null) {
+            offset = 0;
+        }
+        if (limit == null) {
+            limit = 20;
+        }
+
+        final OrderBy oBy = OrderBy.valueOf(orderby.name());
+        final OrderDirection oDir = order == null || order == SortOrder.asc ? OrderDirection.asc : OrderDirection.desc;
+
+        Set<SearchFilter> filters = Collections.emptySet();
+
+        GroupSearchResultsDto resultsDto = storage.searchGroups(filters, oBy, oDir, offset, limit);
+        return V2ApiUtil.dtoToSearchResults(resultsDto);
     }
 
     @Override
@@ -355,7 +373,6 @@ public class GroupsResourceImpl implements GroupsResource {
         GroupMetaDataDto.GroupMetaDataDtoBuilder group = GroupMetaDataDto.builder()
                 .groupId(data.getId())
                 .description(data.getDescription())
-                .artifactsType(data.getType() != null ? ArtifactType.fromValue(data.getType().value()) : null)
                 .properties(data.getProperties());
 
         String user = securityIdentity.getPrincipal().getName();

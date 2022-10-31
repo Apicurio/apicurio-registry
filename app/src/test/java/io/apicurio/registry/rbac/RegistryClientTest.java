@@ -43,6 +43,8 @@ import javax.inject.Inject;
 
 import io.apicurio.registry.rest.client.exception.GroupNotFoundException;
 import io.apicurio.registry.rest.v2.beans.GroupMetaData;
+import io.apicurio.registry.rest.v2.beans.GroupSearchResults;
+import io.apicurio.registry.rest.v2.beans.SearchedGroup;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.IOUtils;
 import org.junit.Assert;
@@ -166,7 +168,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
     @Test
     public void groupsCrud() throws Exception {
         //Preparation
-        final String groupId = "groupsCrud";
+        final String groupId =  UUID.randomUUID().toString();
         GroupMetaData groupMetaData = new GroupMetaData();
         groupMetaData.setId(groupId);
         groupMetaData.setDescription("Groups test crud");
@@ -179,6 +181,26 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         assertEquals(groupMetaData.getDescription(), artifactGroup.getDescription());
         assertEquals(groupMetaData.getProperties(), artifactGroup.getProperties());
 
+
+        String group1Id = UUID.randomUUID().toString();
+        String group2Id = UUID.randomUUID().toString();
+        String group3Id = UUID.randomUUID().toString();
+
+        groupMetaData.setId(group1Id);
+        clientV2.createArtifactGroup(groupMetaData);
+        groupMetaData.setId(group2Id);
+        clientV2.createArtifactGroup(groupMetaData);
+        groupMetaData.setId(group3Id);
+        clientV2.createArtifactGroup(groupMetaData);
+
+
+        GroupSearchResults groupSearchResults = clientV2.listGroups(SortBy.name, SortOrder.asc, 0, 100);
+        assertTrue(groupSearchResults.getCount() >= 4);
+
+        final List<String> groupIds = groupSearchResults.getGroups().stream().map(SearchedGroup::getId)
+                .collect(Collectors.toList());
+
+        assertTrue(groupIds.containsAll(List.of(groupId, group1Id, group2Id, group3Id)));
         clientV2.deleteArtifactGroup(groupId);
 
         Assert.assertThrows(GroupNotFoundException.class, () -> clientV2.getArtifactGroup(groupId));

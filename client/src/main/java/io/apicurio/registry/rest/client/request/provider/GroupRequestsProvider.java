@@ -409,4 +409,14 @@ public class GroupRequestsProvider {
                 })
                 .build();
     }
+
+    public static Request<GroupSearchResults> listGroups(Map<String, List<String>> queryParams) {
+        return new Request.RequestBuilder<GroupSearchResults>()
+                .operation(Operation.GET)
+                .path(Routes.GROUPS_BASE_PATH)
+                .queryParams(queryParams)
+                .responseType(new TypeReference<GroupSearchResults>() {
+                })
+                .build();
+    }
 }

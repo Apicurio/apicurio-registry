@@ -1457,12 +1457,12 @@
                                 }
                             }
                         },
-                        "description": "A list containing all the references for the artifact identified by the content hash."
+                        "description": "A list containing all the references for the artifact with the given content hash."
                     }
                 },
                 "operationId": "referencesByContentHash",
                 "summary": "List artifact references by hash",
-                "description": "Returns a list containing all the artifact references for the artifact identified by the content hash.\n\nThis operation may fail for one of the following reasons:\n\n* A server error occurred (HTTP error `500`)\n"
+                "description": "Returns a list containing all the artifact references using the artifact content hash.\n\nThis operation may fail for one of the following reasons:\n\n* A server error occurred (HTTP error `500`)\n"
             },
             "parameters": [
                 {
@@ -1493,12 +1493,12 @@
                                 }
                             }
                         },
-                        "description": "A list containing all the references for the artifact identified by content id."
+                        "description": "A list containing all the references for the artifact with the given content id."
                     }
                 },
                 "operationId": "referencesByContentId",
                 "summary": "List artifact references by content ID",
-                "description": "Returns a list containing all the artifact references identified by content id.\n\nThis operation may fail for one of the following reasons:\n\n* A server error occurred (HTTP error `500`)"
+                "description": "Returns a list containing all the artifact references using the artifact content ID.\n\nThis operation may fail for one of the following reasons:\n\n* A server error occurred (HTTP error `500`)"
             },
             "parameters": [
                 {
@@ -1530,12 +1530,12 @@
                                 }
                             }
                         },
-                        "description": "A list containing all the references for the artifact identified by global id."
+                        "description": "A list containing all the references for the artifact with the given global id."
                     }
                 },
                 "operationId": "referencesByGlobalId",
                 "summary": "List artifact references by global ID",
-                "description": "Returns a list containing all the artifact references for the artifact identified by global id..\n\nThis operation may fail for one of the following reasons:\n\n* A server error occurred (HTTP error `500`)"
+                "description": "Returns a list containing all the artifact references using the artifact global ID.\n\nThis operation may fail for one of the following reasons:\n\n* A server error occurred (HTTP error `500`)"
             },
             "parameters": [
                 {
@@ -1568,7 +1568,7 @@
                                 }
                             }
                         },
-                        "description": "List of all the artifact references for this artifact version."
+                        "description": "List of all the artifact references for this artifact."
                     },
                     "404": {
                         "$ref": "#/components/responses/NotFound"

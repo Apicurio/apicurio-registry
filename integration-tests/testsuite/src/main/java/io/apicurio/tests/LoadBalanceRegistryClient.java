@@ -25,6 +25,8 @@ import java.util.concurrent.ThreadLocalRandom;
 
 import io.apicurio.registry.rest.v2.beans.ArtifactOwner;
 import io.apicurio.registry.rest.v2.beans.ArtifactReference;
+import io.apicurio.registry.rest.v2.beans.GroupMetaData;
+import io.apicurio.registry.rest.v2.beans.GroupSearchResults;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -498,6 +500,26 @@ public class LoadBalanceRegistryClient implements RegistryClient {
     @Override
     public void deleteArtifactsInGroup(String groupId) {
         getTarget().deleteArtifactsInGroup(groupId);
+    }
+
+    @Override
+    public void createArtifactGroup(GroupMetaData groupMetaData) {
+        getTarget().createArtifactGroup(groupMetaData);
+    }
+
+    @Override
+    public void deleteArtifactGroup(String groupId) {
+        getTarget().deleteArtifactGroup(groupId);
+    }
+
+    @Override
+    public GroupMetaData getArtifactGroup(String groupId) {
+        return getTarget().getArtifactGroup(groupId);
+    }
+
+    @Override
+    public GroupSearchResults listGroups(SortBy orderBy, SortOrder order, Integer offset, Integer limit) {
+        return getTarget().listGroups(orderBy, order, offset, limit);
     }
 
     /**

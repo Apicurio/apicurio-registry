@@ -301,12 +301,12 @@ public class AdminResourceImpl implements AdminResource {
     }
 
     /**
-     * @see io.apicurio.registry.rest.v2.AdminResource#exportData(java.lang.Boolean)
+     * @see io.apicurio.registry.rest.v2.AdminResource#exportData(java.lang.String, java.lang.Boolean)
      */
     @Override
     @Audited(extractParameters = {"0", KEY_FOR_BROWSER})
     @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
-    public Response exportData(Boolean forBrowser) {
+    public Response exportData(@HeaderParam("Accept") String ignored, Boolean forBrowser) {
         if (forBrowser != null && forBrowser) {
             long expires = System.currentTimeMillis() + (downloadHrefTtl.get() * 1000);
             DownloadContextDto downloadCtx = DownloadContextDto.builder().type(DownloadContextType.EXPORT).expires(expires).build();

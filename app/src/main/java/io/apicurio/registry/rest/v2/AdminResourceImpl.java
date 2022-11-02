@@ -307,7 +307,8 @@ public class AdminResourceImpl implements AdminResource {
     @Audited(extractParameters = {"0", KEY_FOR_BROWSER})
     @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
     public Response exportData(Boolean forBrowser) {
-        if (forBrowser != null && forBrowser) {
+        String acceptHeader = request.getHeader("Accept");
+        if ((forBrowser != null && forBrowser) || (acceptHeader != null && MediaType.APPLICATION_JSON.equals(acceptHeader))) {
             long expires = System.currentTimeMillis() + (downloadHrefTtl.get() * 1000);
             DownloadContextDto downloadCtx = DownloadContextDto.builder().type(DownloadContextType.EXPORT).expires(expires).build();
             String downloadId = storage.createDownload(downloadCtx);

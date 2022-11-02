@@ -688,6 +688,14 @@
                 ],
                 "parameters": [
                     {
+                        "name": "Accept",
+                        "description": "Use either `application/zip` or `application/json`, based on the `forBrowser` parameter.",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "in": "header"
+                    },
+                    {
                         "name": "forBrowser",
                         "description": "Indicates if the operation is done for a browser.  If true, the response will be a JSON payload with a property called `href`.  This `href` will be a single-use, naked download link suitable for use by a web browser to download the content.",
                         "schema": {

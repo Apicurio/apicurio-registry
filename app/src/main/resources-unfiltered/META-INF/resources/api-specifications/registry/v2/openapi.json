@@ -703,6 +703,11 @@
                                 "schema": {
                                     "$ref": "#/components/schemas/FileContent"
                                 }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/DownloadRef"
+                                }
                             }
                         },
                         "description": "Response when the export is successful."

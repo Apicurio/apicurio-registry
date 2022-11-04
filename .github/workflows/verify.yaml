@@ -185,6 +185,14 @@ jobs:
       - name: List All The Images
         run: docker images
 
+      - name: Google Chat Notification
+        uses: Co-qn/google-chat-notification@b9227d9daa4638c9782a5bd16c4abb86268127a1
+        if: always()
+        with:
+          name: "Apicurio registry Container image released"
+          url: ${{ secrets.GOOGLE_CHAT_WEBHOOK }}
+          status: ${{ job.status }}
+
   notify-sdk:
     if: github.repository_owner == 'Apicurio' && github.event_name == 'push' && github.ref == 'refs/heads/main' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
     runs-on: ubuntu-20.04

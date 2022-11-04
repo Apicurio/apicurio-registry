@@ -152,7 +152,7 @@
         <node.version>16.17.0</node.version>
         
         <!-- Quarkus Version -->
-        <quarkus.version>2.9.0.Final</quarkus.version>
+        <quarkus.version>2.10.1.Final</quarkus.version>
 
         <!-- Jandex -->
         <jandex.version>1.1.1</jandex.version>
@@ -163,6 +163,7 @@
         <wire-schema.version>4.3.0</wire-schema.version>
         <wire-compiler.version>4.3.0</wire-compiler.version>
         <okio-jvm.version>3.2.0</okio-jvm.version>
+        <okio.version>3.0.0</okio.version>
         <okio-fake-file-system.version>3.2.0</okio-fake-file-system.version>
         <icu4j.version>72.1</icu4j.version>
         <protobuf.version>3.21.9</protobuf.version>
@@ -531,6 +532,11 @@
                 <groupId>com.ibm.icu</groupId>
                 <artifactId>icu4j</artifactId>
                 <version>${icu4j.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.squareup.okio</groupId>
+                <artifactId>okio</artifactId>
+                <version>${okio.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.squareup.okio</groupId>

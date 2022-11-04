@@ -1064,12 +1064,14 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
      */
     @Override
     public Set<String> getArtifactIds(Integer limit) {
+        //Set limit to max integer in case limit is null (not allowed)
+        final Integer adjustedLimit = limit == null ? Integer.MAX_VALUE : limit;
         log.debug("Getting the set of all artifact IDs");
         return handles.withHandleNoException( handle -> {
             String sql = sqlStatements.selectArtifactIds();
             List<String> ids = handle.createQuery(sql)
                     .bind(0, tenantContext.tenantId())
-                    .bind(1, limit)
+                    .bind(1, adjustedLimit)
                     .mapTo(String.class)
                     .list();
             return new TreeSet<String>(ids);

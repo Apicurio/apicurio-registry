@@ -34,7 +34,10 @@ import io.apicurio.registry.rest.v2.beans.ArtifactOwner;
 import io.apicurio.registry.rest.v2.beans.ArtifactReference;
 import io.apicurio.registry.rest.v2.beans.ArtifactSearchResults;
 import io.apicurio.registry.rest.v2.beans.ContentCreateRequest;
+import io.apicurio.registry.rest.v2.beans.CreateGroupMetaData;
 import io.apicurio.registry.rest.v2.beans.EditableMetaData;
+import io.apicurio.registry.rest.v2.beans.GroupMetaData;
+import io.apicurio.registry.rest.v2.beans.GroupSearchResults;
 import io.apicurio.registry.rest.v2.beans.IfExists;
 import io.apicurio.registry.rest.v2.beans.Rule;
 import io.apicurio.registry.rest.v2.beans.SortBy;
@@ -56,6 +59,8 @@ import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
+import io.apicurio.registry.storage.dto.GroupMetaDataDto;
+import io.apicurio.registry.storage.dto.GroupSearchResultsDto;
 import io.apicurio.registry.storage.dto.OrderBy;
 import io.apicurio.registry.storage.dto.OrderDirection;
 import io.apicurio.registry.storage.dto.RuleConfigurationDto;
@@ -67,13 +72,13 @@ import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.types.RuleType;
-import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 import io.apicurio.registry.util.ArtifactIdGenerator;
 import io.apicurio.registry.util.ArtifactTypeUtil;
 import io.apicurio.registry.util.ContentTypeUtil;
 import io.apicurio.registry.utils.ArtifactIdValidator;
 import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.JAXRSClientUtil;
+import io.quarkus.security.identity.SecurityIdentity;
 import org.jose4j.base64url.Base64;
 
 import javax.enterprise.context.ApplicationScoped;
@@ -95,6 +100,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -131,6 +137,7 @@ import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_OWNER;
 public class GroupsResourceImpl implements GroupsResource {
 
     private static final String EMPTY_CONTENT_ERROR_MESSAGE = "Empty content is not allowed.";
+    private static final Integer GET_GROUPS_LIMIT = 1000;
 
     @Inject
     @Current
@@ -146,10 +153,10 @@ public class GroupsResourceImpl implements GroupsResource {
     HttpServletRequest request;
 
     @Inject
-    ArtifactTypeUtilProviderFactory factory;
+    RestConfig restConfig;
 
     @Inject
-    RestConfig restConfig;
+    SecurityIdentity securityIdentity;
 
     /**
      * @see io.apicurio.registry.rest.v2.GroupsResource#getLatestArtifact(java.lang.String, java.lang.String, java.lang.Boolean)
@@ -323,6 +330,57 @@ public class GroupsResourceImpl implements GroupsResource {
 
         ArtifactOwnerDto dto = new ArtifactOwnerDto(data.getOwner());
         storage.updateArtifactOwner(gidOrNull(groupId), artifactId, dto);
+    }
+
+    @Override
+    @Authorized(style=AuthorizedStyle.GroupAndArtifact, level=AuthorizedLevel.Read)
+    public GroupMetaData getGroupById(String groupId) {
+        GroupMetaDataDto group = storage.getGroupMetaData(groupId);
+        return V2ApiUtil.groupDtoToGroup(group);
+    }
+
+    @Override
+    @Authorized(style=AuthorizedStyle.GroupOnly, level=AuthorizedLevel.Write)
+    public void deleteGroupById(String groupId) {
+        storage.deleteGroup(groupId);
+    }
+
+    @Override
+    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Read)
+    public GroupSearchResults listGroups(Integer limit, Integer offset, SortOrder order, SortBy orderby) {
+        if (orderby == null) {
+            orderby = SortBy.name;
+        }
+        if (offset == null) {
+            offset = 0;
+        }
+        if (limit == null) {
+            limit = 20;
+        }
+
+        final OrderBy oBy = OrderBy.valueOf(orderby.name());
+        final OrderDirection oDir = order == null || order == SortOrder.asc ? OrderDirection.asc : OrderDirection.desc;
+
+        Set<SearchFilter> filters = Collections.emptySet();
+
+        GroupSearchResultsDto resultsDto = storage.searchGroups(filters, oBy, oDir, offset, limit);
+        return V2ApiUtil.dtoToSearchResults(resultsDto);
+    }
+
+    @Override
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Write)
+    public GroupMetaData createGroup(CreateGroupMetaData data) {
+        GroupMetaDataDto.GroupMetaDataDtoBuilder group = GroupMetaDataDto.builder()
+                .groupId(data.getId())
+                .description(data.getDescription())
+                .properties(data.getProperties());
+
+        String user = securityIdentity.getPrincipal().getName();
+        group.createdBy(user).createdOn(new Date().getTime());
+
+        storage.createGroup(group.build());
+
+        return V2ApiUtil.groupDtoToGroup(storage.getGroupMetaData(data.getId()));
     }
 
     /**

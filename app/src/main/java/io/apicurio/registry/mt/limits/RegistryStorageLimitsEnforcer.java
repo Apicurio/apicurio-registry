@@ -26,12 +26,17 @@ import io.apicurio.registry.storage.decorator.RegistryStorageDecorator;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
+import io.apicurio.registry.storage.dto.GroupSearchResultsDto;
+import io.apicurio.registry.storage.dto.OrderBy;
+import io.apicurio.registry.storage.dto.OrderDirection;
+import io.apicurio.registry.storage.dto.SearchFilter;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RegistryException;
 import org.eclipse.microprofile.context.ThreadContext;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Supplier;
 import javax.enterprise.context.ApplicationScoped;
@@ -195,6 +200,14 @@ public class RegistryStorageLimitsEnforcer extends RegistryStorageDecorator {
     @Override
     public Map<String, ContentHandle> resolveReferences(List<ArtifactReferenceDto> references) {
         return delegate.resolveReferences(references);
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.decorator.RegistryStorageDecorator#searchGroups(Set, OrderBy, OrderDirection, Integer, Integer)
+     */
+    @Override
+    public GroupSearchResultsDto searchGroups(Set<SearchFilter> filters, OrderBy orderBy, OrderDirection orderDirection, Integer offset, Integer limit) {
+        return delegate.searchGroups(filters, orderBy, orderDirection, offset, limit);
     }
 
     /**

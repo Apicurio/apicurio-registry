@@ -166,7 +166,7 @@
         <okio-jvm.version>3.2.0</okio-jvm.version>
         <okio-fake-file-system.version>3.2.0</okio-fake-file-system.version>
         <icu4j.version>72.1</icu4j.version>
-        <protobuf.version>3.21.8</protobuf.version>
+        <protobuf.version>3.21.9</protobuf.version>
         <xmlsec.version>3.0.1</xmlsec.version>
         <protobuf.googleapi.types.version>2.9.6</protobuf.googleapi.types.version>
         <wsdl4j.version>1.6.3</wsdl4j.version>
@@ -204,7 +204,7 @@
         <apicurio-common-rest-client.version>0.1.13.Final</apicurio-common-rest-client.version>
         <apicurio-common-app-components.version>0.1.14.Final</apicurio-common-app-components.version>
         <sentry.version>1.7.30</sentry.version>
-        <kafka-oauth-client.version>0.10.0</kafka-oauth-client.version>
+        <kafka-oauth-client.version>0.11.0</kafka-oauth-client.version>
         <kafka-clients.version>2.8.1</kafka-clients.version>
         <snakeyaml.version>1.33</snakeyaml.version>
 
@@ -244,7 +244,7 @@
         <!-- Test containers version, should be aligned with version used in Quarkus -->
         <test-containers.version>1.16.3</test-containers.version>
         <keycloak.testcontainers.version>1.9.0</keycloak.testcontainers.version>
-        <keycloak-admin-client.version>19.0.3</keycloak-admin-client.version>
+        <keycloak-admin-client.version>20.0.0</keycloak-admin-client.version>
         <embedded-postgres.version>2.0.1</embedded-postgres.version>
         <strimzi.version>0.102.0</strimzi.version>
         <wiremock-jre8.version>2.34.0</wiremock-jre8.version>

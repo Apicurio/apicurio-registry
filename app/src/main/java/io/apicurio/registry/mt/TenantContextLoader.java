@@ -83,33 +83,21 @@ public class TenantContextLoader {
     }
 
     /**
-     * Used for user requests where there is a JWT token in the request
-     * This method enforces authorization and uses JWT token information to verify if the tenant
-     * is authorized to access the organization indicated in the JWT
-     * @param tenantId
-     * @return
-     */
-    public RegistryTenantContext loadRequestContext(String tenantId) {
-        return loadContext(tenantId, mtProperties.isMultitenancyAuthorizationEnabled());
-    }
-
-    /**
      * Used for internal stuff where there isn't a JWT token from the user request available
      * This won't perform any authorization check.
      * @param tenantId
      * @return
      */
     public RegistryTenantContext loadBatchJobContext(String tenantId) {
-        return loadContext(tenantId, false);
+        return loadRequestContext(tenantId, false);
     }
 
     /**
      * Loads the tenant context from the cache or computes it
-     *
      * @param tenantId
      * @param checkTenantAuthorization , enable/disable authorization check using information from a required JWT token
      */
-    private RegistryTenantContext loadContext(String tenantId, boolean checkTenantAuthorization) {
+    public RegistryTenantContext loadRequestContext(String tenantId, boolean checkTenantAuthorization) {
         if (tenantId.equals(TenantContext.DEFAULT_TENANT_ID)) {
             return defaultTenantContext();
         }

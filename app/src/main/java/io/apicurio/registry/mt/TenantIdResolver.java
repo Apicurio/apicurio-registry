@@ -84,7 +84,7 @@ public class TenantIdResolver {
      * @param afterSuccessfullUrlResolution
      */
     public boolean resolveTenantId(String uri, Function<String, String> headerProvider, Supplier<String> serverNameProvider,
-            Consumer<String> afterSuccessfullUrlResolution) {
+            Consumer<String> afterSuccessfullUrlResolution, boolean checkAuthorization) {
 
         if (mtProperties.isMultitenancyEnabled()) {
             log.trace("Resolving tenantId...");
@@ -98,7 +98,7 @@ public class TenantIdResolver {
                     // 1 is t
                     // 2 is the tenantId
                     String tenantId = tokens[TENANT_ID_POSITION];
-                    RegistryTenantContext context = contextLoader.loadRequestContext(tenantId);
+                    RegistryTenantContext context = contextLoader.loadRequestContext(tenantId, checkAuthorization);
                     tenantContext.setContext(context);
                     if (afterSuccessfullUrlResolution != null) {
                         afterSuccessfullUrlResolution.accept(tenantId);
@@ -132,7 +132,7 @@ public class TenantIdResolver {
                 if (matcher.matches()) {
                     String tenantId = matcher.group(1);
                     if (tenantId != null) {
-                        RegistryTenantContext context = contextLoader.loadRequestContext(tenantId);
+                        RegistryTenantContext context = contextLoader.loadRequestContext(tenantId, checkAuthorization);
                         tenantContext.setContext(context);
                         return true;
                     }
@@ -147,7 +147,7 @@ public class TenantIdResolver {
                 log.trace("Resolving tenantId from request header named: {}", headerName);
                 String tenantId = headerProvider.apply(headerName);
                 if (tenantId != null) {
-                    RegistryTenantContext context = contextLoader.loadRequestContext(tenantId);
+                    RegistryTenantContext context = contextLoader.loadRequestContext(tenantId, checkAuthorization);
                     tenantContext.setContext(context);
                     return true;
                 } else {
@@ -159,6 +159,11 @@ public class TenantIdResolver {
         //apply default tenant context
         tenantContext.setContext(contextLoader.defaultTenantContext());
         return false;
+    }
+
+    public boolean resolveTenantId(String uri, Function<String, String> headerProvider, Supplier<String> serverNameProvider,
+                                   Consumer<String> afterSuccessfullUrlResolution) {
+        return resolveTenantId(uri, headerProvider, serverNameProvider, afterSuccessfullUrlResolution, true);
     }
 
     public int tenantPrefixLength(String tenantId) {

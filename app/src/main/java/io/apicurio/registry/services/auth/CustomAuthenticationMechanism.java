@@ -21,6 +21,8 @@ import io.apicurio.common.apps.config.Info;
 import io.apicurio.common.apps.logging.audit.AuditHttpRequestContext;
 import io.apicurio.common.apps.logging.audit.AuditHttpRequestInfo;
 import io.apicurio.common.apps.logging.audit.AuditLogService;
+import io.apicurio.registry.mt.TenantContext;
+import io.apicurio.registry.mt.TenantIdResolver;
 import io.apicurio.rest.client.JdkHttpClientProvider;
 import io.apicurio.rest.client.auth.OidcAuth;
 import io.apicurio.rest.client.auth.exception.AuthErrorHandler;
@@ -40,6 +42,7 @@ import io.quarkus.vertx.http.runtime.security.HttpAuthenticationMechanism;
 import io.quarkus.vertx.http.runtime.security.HttpCredentialTransport;
 import io.quarkus.vertx.http.runtime.security.QuarkusHttpUser;
 import io.smallrye.mutiny.Uni;
+import io.vertx.core.http.HttpServerRequest;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.tuple.Pair;
@@ -102,6 +105,12 @@ public class CustomAuthenticationMechanism implements HttpAuthenticationMechanis
     @Inject
     Logger log;
 
+    @Inject
+    TenantContext tenantContext;
+
+    @Inject
+    TenantIdResolver tenantIdResolver;
+
     private BearerAuthenticationMechanism bearerAuth;
 
     private ApicurioHttpClient httpClient;
@@ -122,8 +131,11 @@ public class CustomAuthenticationMechanism implements HttpAuthenticationMechanis
     @Override
     public Uni<SecurityIdentity> authenticate(RoutingContext context, IdentityProviderManager identityProviderManager) {
         if (authEnabled) {
+            checkTenantContextLoaded(context);
             setAuditLogger(context);
             if (fakeBasicAuthEnabled.get()) {
+                //Once we're done with it in the auth layer, the context must be cleared.
+                tenantContext.clearContext();
                 final Pair<String, String> clientCredentials = CredentialsHelper.extractCredentialsFromContext(context);
                 if (null != clientCredentials) {
                     try {
@@ -136,10 +148,27 @@ public class CustomAuthenticationMechanism implements HttpAuthenticationMechanis
                     return customAuthentication(context, identityProviderManager);
                 }
             } else {
+                //Once we're done with it in the auth layer, the context must be cleared.
+                tenantContext.clearContext();
                 return customAuthentication(context, identityProviderManager);
             }
         } else {
             return Uni.createFrom().nullItem();
+        }
+    }
+
+    private void checkTenantContextLoaded(RoutingContext routingContext) {
+        final HttpServerRequest req = routingContext.request();
+        String requestURI = req.uri();
+        if (!tenantContext.isLoaded()) {
+            //Load the context without checking authorization since the check cannot be performed only with basic credentials (the jwt is required).
+            tenantIdResolver.resolveTenantId(
+                    // Request URI
+                    requestURI,
+                    // Function to get an HTTP request header value
+                    req::getHeader,
+                    // Function to get the serverName from the HTTP request
+                    req::host, null, false);
         }
     }
 

@@ -3,6 +3,7 @@ package io.apicurio.registry.rules.compatibility;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.rules.BigqueryGsonBuilder;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -10,7 +11,11 @@ import java.util.Set;
 public class BigqueryCompatibilityChecker extends BigqueryGsonBuilder implements CompatibilityChecker {
     @Override
     public CompatibilityExecutionResult testCompatibility(CompatibilityLevel compatibilityLevel, List<ContentHandle> existingArtifacts, ContentHandle proposedArtifact) {
-        return testCompatibility(compatibilityLevel, existingArtifacts.stream().map(ContentHandle::content).toList(),
+        // existingArtifacts is implemented as a LazyContentList, which does not support the spliterator interface.
+        // This means we cannot call stream() on it in java version 11 (does work in version 17)
+        final List<String> existingArtifactsContent = new ArrayList<>();
+        existingArtifacts.forEach(ch -> existingArtifactsContent.add(ch.content()));
+        return testCompatibility(compatibilityLevel, existingArtifactsContent,
                 proposedArtifact.content());
     }
 
@@ -22,27 +27,28 @@ public class BigqueryCompatibilityChecker extends BigqueryGsonBuilder implements
         ComparableSchema proposedSchema = toSchema(proposedArtifact);
         Set<CompatibilityDifference> differences = new HashSet<>();
         switch (compatibilityLevel) {
-            case FORWARD -> {
+            case FORWARD: {
                 toSchema(existingArtifacts.get(0)).checkCompatibilityWith(proposedSchema, differences);
+                break;
             }
-            case BACKWARD -> {
+            case BACKWARD: {
                 proposedSchema.checkCompatibilityWith(toSchema(existingArtifacts.get(0)), differences);
+                break;
             }
-            case FULL -> {
+            case FULL: {
                 toSchema(existingArtifacts.get(0)).checkCompatibilityWith(proposedSchema, differences);
                 proposedSchema.checkCompatibilityWith(toSchema(existingArtifacts.get(0)), differences);
+                break;
             }
-            case FORWARD_TRANSITIVE -> {
-                existingArtifacts.forEach(content -> {
-                    toSchema(content).checkCompatibilityWith(proposedSchema, differences);
-                });
+            case FORWARD_TRANSITIVE: {
+                existingArtifacts.forEach(content -> toSchema(content).checkCompatibilityWith(proposedSchema, differences));
+                break;
             }
-            case BACKWARD_TRANSITIVE -> {
-                existingArtifacts.forEach(content -> {
-                    proposedSchema.checkCompatibilityWith(toSchema(content), differences);
-                });
+            case BACKWARD_TRANSITIVE: {
+                existingArtifacts.forEach(content -> proposedSchema.checkCompatibilityWith(toSchema(content), differences));
+                break;
             }
-            case FULL_TRANSITIVE -> {
+            case FULL_TRANSITIVE: {
                 existingArtifacts.forEach(content -> {
                     toSchema(content).checkCompatibilityWith(proposedSchema, differences);
                     proposedSchema.checkCompatibilityWith(toSchema(content), differences);

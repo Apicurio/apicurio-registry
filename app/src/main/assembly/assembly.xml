@@ -15,6 +15,8 @@
         <include>apicurio-registry-*-runner.jar</include>
         <include>lib</include>
         <include>lib/*</include>
+        <include>meta</include>
+        <include>meta/*</include>
       </includes>
     </fileSet>
   </fileSets>

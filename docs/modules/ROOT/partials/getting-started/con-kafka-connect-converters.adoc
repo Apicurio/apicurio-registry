@@ -31,7 +31,7 @@ The Avro and JSON Schema serializers and deserializers (SerDes) provided by {reg
 
 * link:https://kafka.apache.org/documentation/#connect[Apache Kafka Connect documentation]
 ifdef::rh-service-registry,rh-openshift-sr[]
-* link:https://access.redhat.com/documentation/en-us/red_hat_integration/2021.q3/html-single/debezium_user_guide/index#configuring-debezium-connectors-to-use-avro-serialization[Configuring Debezium to use Apache Avro serialization with Service Registry] 
+* link:https://access.redhat.com/documentation/en-us/red_hat_integration/2021.q3/html-single/debezium_user_guide/index#configuring-debezium-connectors-to-use-avro-serialization[Configuring Debezium to use Apache Avro serialization] 
 endif::[] 
 ifdef::rh-service-registry[]
 * link:https://access.redhat.com/documentation/en-us/red_hat_integration/2021.q1/html-single/getting_started_with_camel_kafka_connector/index[Getting Started with Camel Kafka Connector]

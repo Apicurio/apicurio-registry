@@ -30,7 +30,7 @@ ifdef::apicurio-registry[]
 . In the *Filter by keyword* text box, enter `registry` to find the *{registry} Operator*.
 endif::[]
 ifdef::rh-service-registry[]
-. In the *Filter by keyword* text box, enter `registry` to find the *{prodnamefull} - {registry} Operator*.
+. In the *Filter by keyword* text box, enter `registry` to find the *Red Hat Integration - Service Registry Operator*.
 endif::[]
 . Read the information about the Operator, and click *Install* to display the Operator subscription page.
 

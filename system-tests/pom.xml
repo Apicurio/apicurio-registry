@@ -28,7 +28,7 @@
         <version.eclipse.jgit>6.3.0.202209071007-r</version.eclipse.jgit>
         <version.org.json>20220924</version.org.json>
         <version.apache.commons>3.12.0</version.apache.commons>
-        <version.apache.httpcomponents>5.1.4</version.apache.httpcomponents>
+        <version.apache.httpcomponents>5.2</version.apache.httpcomponents>
         <version.apache.maven.artifact>3.8.6</version.apache.maven.artifact>
     </properties>
 

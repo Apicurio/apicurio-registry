@@ -26,10 +26,14 @@ public interface TenantContext {
 
     String DEFAULT_TENANT_ID = "_";
 
+    void load();
+
     /**
      * Get tenant ID.
      */
     String tenantId();
+
+    RegistryTenantContext currentContext();
 
     String tenantOwner();
 

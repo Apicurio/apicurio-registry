@@ -51,7 +51,6 @@ public class TenantContextImpl implements TenantContext {
     @Inject
     MultitenancyProperties multitenancyProperties;
 
-    @Override
     @PostConstruct
     public void load() {
         RegistryTenantContext loadedContext;

@@ -42,8 +42,10 @@ import java.util.Optional;
 /**
  * This class implements authorization logic for the registry.  It is driven by a combination of the
  * security identity (authenticated user) and configured security level of the operation the user is
- * attempting to perform.  This interceptor will be triggered for any method that is annotated with
- * the {@link Authorized} annotation.  Please ensure that all JAX-RS operations are propertly annotated.
+ * attempting to perform. In a multitenant deployment, this authorization interceptor also checks if
+ * the user accessing the tenant has the proper permission level. This interceptor will be triggered
+ * for any method that is annotated with the {@link Authorized} annotation. Please ensure that all
+ * JAX-RS operations are propertly annotated.
  *
  * @author eric.wittmann@gmail.com
  */

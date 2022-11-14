@@ -49,7 +49,6 @@ import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
-import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderImpl;
 import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.impexp.ArtifactRuleEntity;
 import io.apicurio.registry.utils.impexp.ArtifactVersionEntity;
@@ -75,7 +74,8 @@ public class Export implements QuarkusApplication {
     @Inject
     Logger log;
 
-    ArtifactTypeUtilProviderFactory factory = new ArtifactTypeUtilProviderImpl();
+    @Inject
+    ArtifactTypeUtilProviderFactory factory;
 
     private boolean matchContentId = false;
 

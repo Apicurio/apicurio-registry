@@ -17,6 +17,8 @@
 package io.apicurio.registry.types.provider;
 
 import io.apicurio.registry.types.ArtifactType;
+import javax.enterprise.inject.Default;
+import javax.enterprise.context.ApplicationScoped;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -27,6 +29,8 @@ import java.util.concurrent.ConcurrentHashMap;
  * @author Ales Justin
  * @author famartin
  */
+@Default
+@ApplicationScoped
 public class ArtifactTypeUtilProviderImpl implements ArtifactTypeUtilProviderFactory {
 
     private Map<ArtifactType, ArtifactTypeUtilProvider> map = new ConcurrentHashMap<>();
@@ -45,6 +49,7 @@ public class ArtifactTypeUtilProviderImpl implements ArtifactTypeUtilProviderFac
                         new XsdArtifactTypeUtilProvider())
             );
 
+    
     @Override
     public ArtifactTypeUtilProvider getArtifactTypeProvider(ArtifactType type) {
         return map.computeIfAbsent(type, t ->

@@ -59,19 +59,19 @@ ifdef::rh-service-registry[]
 |Location
 |Release category
 |Example custom resource definitions for installation
-|link:{download-url-registry-distribution}[Software Downloads for {prodnamefull}]
+|link:{download-url-registry-distribution}[{org-name} Software Downloads]
 |General Availability
 |{registry} v1 to v2 migration tool 
-|link:{download-url-registry-distribution}[Software Downloads for {prodnamefull}]
+|link:{download-url-registry-distribution}[{org-name} Software Downloads]
 |General Availability
 |Maven repository
-|link:{download-url-registry-distribution}[Software Downloads for {prodnamefull}]
+|link:{download-url-registry-distribution}[{org-name} Software Downloads]
 |General Availability
 |Source code 
-|link:{download-url-registry-distribution}[Software Downloads for {prodnamefull}]
+|link:{download-url-registry-distribution}[{org-name} Software Downloads]
 |General Availability
 |Kafka Connect converters 
-|link:{download-url-registry-distribution}[Software Downloads for {prodnamefull}]
+|link:{download-url-registry-distribution}[{org-name} Software Downloads]
 |General Availability
 |===
 

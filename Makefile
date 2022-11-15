@@ -55,6 +55,13 @@ build-all:
 	@echo "----------------------------------------------------------------------"
 	./mvnw clean install -Pprod -Psql -Pkafkasql -DskipTests=$(SKIP_TESTS) $(BUILD_FLAGS)
 
+.PHONY: build-mem-native ## Builds mem storage variant native executable. Variables available for override [SKIP_TESTS, BUILD_FLAGS]
+build-mem-native:
+	@echo "----------------------------------------------------------------------"
+	@echo "             Building In-Memory Storage Variant Natively               "
+	@echo "----------------------------------------------------------------------"
+	./mvnw package -Pnative -Dquarkus.native.container-build=true -Pprod -DskipTests=$(SKIP_TESTS) $(BUILD_FLAGS)
+
 .PHONY: build-sql-native ## Builds sql storage variant native executable. Variables available for override [SKIP_TESTS, BUILD_FLAGS]
 build-sql-native:
 	@echo "----------------------------------------------------------------------"
@@ -90,6 +97,25 @@ push-mem-image:
 	@echo "------------------------------------------------------------------------"
 	docker push $(IMAGE_REPO)/apicurio/apicurio-registry-mem:$(IMAGE_TAG)
 
+
+.PHONY: build-mem-native-image ## Builds native docker image for 'mem' storage variant. Variables available for override [IMAGE_REPO, IMAGE_TAG]
+build-mem-native-image:
+	@echo "------------------------------------------------------------------------"
+	@echo " Building Image For In-Memory Storage Variant (using Native Executable)"
+	@echo " Repository: $(IMAGE_REPO)"
+	@echo " Tag: $(IMAGE_TAG)"
+	@echo "------------------------------------------------------------------------"
+	docker build -f $(DOCKERFILE_LOCATION)/Dockerfile.native -t $(IMAGE_REPO)/apicurio/apicurio-registry-mem-native:$(IMAGE_TAG) app/
+
+
+.PHONY: push-mem-native-image ## Pushes native docker image for 'mem' storage variant. Variables available for override [IMAGE_REPO, IMAGE_TAG]
+push-mem-native-image:
+	@echo "------------------------------------------------------------------------"
+	@echo " Pushing Image For In-Memory Storage Variant (using Native Executable)"
+	@echo " Repository: $(IMAGE_REPO)"
+	@echo " Tag: $(IMAGE_TAG)"
+	@echo "------------------------------------------------------------------------"
+	docker push $(IMAGE_REPO)/apicurio/apicurio-registry-mem-native:$(IMAGE_TAG)
 
 
 .PHONY: build-sql-image ## Builds docker image for 'sql' storage variant. Variables available for override [SQL_DOCKERFILE, IMAGE_REPO, IMAGE_TAG, DOCKER_BUILD_WORKSPACE]

@@ -83,15 +83,32 @@ public class H2SqlStatements extends CommonSqlStatements {
      */
     @Override
     public String getNextSequenceValue() {
-        return "UPDATE sequences sa SET value = (SELECT sb.value + 1 FROM sequences sb WHERE sb.tenantId = sa.tenantId AND sb.name = sa.name) WHERE sa.tenantId = ? AND sa.name = ?";
+        return "UPDATE sequences sa SET seq_value = (SELECT sb.seq_value + 1 FROM sequences sb WHERE sb.tenantId = sa.tenantId AND sb.name = sa.name) WHERE sa.tenantId = ? AND sa.name = ?";
     }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectCurrentSequenceValue()
+     */
+    @Override
+    public String selectCurrentSequenceValue() {
+        return "SELECT seq_value FROM sequences WHERE name = ? AND tenantId = ? ";
+    }
+
 
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#resetSequenceValue()
      */
     @Override
     public String resetSequenceValue() {
-        return "MERGE INTO sequences (tenantId, name, value) KEY (tenantId, name) VALUES(?, ?, ?)";
+        return "MERGE INTO sequences (tenantId, name, seq_value) KEY (tenantId, name) VALUES(?, ?, ?)";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#insertSequenceValue()
+     */
+    @Override
+    public String insertSequenceValue() {
+        return "INSERT INTO sequences (tenantId, name, seq_value) VALUES (?, ?, ?)";
     }
 
     /**

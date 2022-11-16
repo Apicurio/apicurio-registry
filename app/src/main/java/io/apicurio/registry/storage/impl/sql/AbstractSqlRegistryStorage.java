@@ -41,6 +41,9 @@ import javax.transaction.Transactional;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.VersionAlreadyExistsException;
 import io.apicurio.registry.storage.dto.ArtifactOwnerDto;
+import io.apicurio.registry.storage.dto.GroupSearchResultsDto;
+import io.apicurio.registry.storage.dto.SearchedGroupDto;
+import io.apicurio.registry.storage.impl.sql.mappers.SearchedGroupMapper;
 import io.apicurio.registry.util.DataImporter;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.tuple.Pair;
@@ -1061,12 +1064,14 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
      */
     @Override
     public Set<String> getArtifactIds(Integer limit) {
+        //Set limit to max integer in case limit is null (not allowed)
+        final Integer adjustedLimit = limit == null ? Integer.MAX_VALUE : limit;
         log.debug("Getting the set of all artifact IDs");
         return handles.withHandleNoException( handle -> {
             String sql = sqlStatements.selectArtifactIds();
             List<String> ids = handle.createQuery(sql)
                     .bind(0, tenantContext.tenantId())
-                    .bind(1, limit)
+                    .bind(1, adjustedLimit)
                     .mapTo(String.class)
                     .list();
             return new TreeSet<String>(ids);
@@ -2374,7 +2379,11 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
             if (rows == 0) {
                 throw new GroupNotFoundException(groupId);
             }
-            deleteArtifacts(groupId);
+            try {
+                deleteArtifacts(groupId);
+            } catch (ArtifactNotFoundException anfe) {
+                //Just ignore, group with no artifacts
+            }
             return null;
         });
     }
@@ -2995,6 +3004,107 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
         }
     }
 
+    @Override
+    public GroupSearchResultsDto searchGroups(Set<SearchFilter> filters, OrderBy orderBy, OrderDirection orderDirection, Integer offset, Integer limit) {
+
+        return handles.withHandleNoException( handle -> {
+            List<SqlStatementVariableBinder> binders = new LinkedList<>();
+
+            StringBuilder select = new StringBuilder();
+            StringBuilder where = new StringBuilder();
+            StringBuilder orderByQuery = new StringBuilder();
+            StringBuilder limitOffset = new StringBuilder();
+
+            // Formulate the SELECT clause for the artifacts query
+            select.append(
+                    "SELECT * FROM groups g ");
+
+            where.append("WHERE g.tenantId = ?");
+            binders.add((query, idx) -> {
+                query.bind(idx, tenantContext.tenantId());
+            });
+            // Formulate the WHERE clause for both queries
+
+            for (SearchFilter filter : filters) {
+                where.append(" AND (");
+                switch (filter.getType()) {
+                    case description:
+                        where.append("g.description LIKE ?");
+                        binders.add((query, idx) -> {
+                            query.bind(idx, "%" + filter.getStringValue() + "%");
+                        });
+                        break;
+                    case everything:
+                        where.append("("
+                                + "g.groupId LIKE ? OR "
+                                + "g.description LIKE ? "
+                                + ")");
+                        binders.add((query, idx) -> {
+                            query.bind(idx, "%" + filter.getStringValue() + "%");
+                        });
+                        binders.add((query, idx) -> {
+                            query.bind(idx, "%" + filter.getStringValue() + "%");
+                        });
+                        break;
+                    case group:
+                        where.append("(g.groupId = ?)");
+                        binders.add((query, idx) -> {
+                            query.bind(idx, normalizeGroupId(filter.getStringValue()));
+                        });
+                        break;
+                    default :
+                        break;
+                }
+                where.append(")");
+            }
+
+            // Add order by to artifact query
+            switch (orderBy) {
+                case name:
+                    orderByQuery.append(" ORDER BY g.groupId ");
+                    break;
+                case createdOn:
+                    orderByQuery.append(" ORDER BY g." + orderBy.name() + " ");
+                    break;
+                default:
+                    break;
+            }
+            orderByQuery.append(orderDirection.name());
+
+            // Add limit and offset to artifact query
+            limitOffset.append(" LIMIT ? OFFSET ?");
+
+            // Query for the artifacts
+            String groupsQuerySql = select + where.toString() + orderByQuery + limitOffset.toString();
+            Query groupsQuery = handle.createQuery(groupsQuerySql);
+            // Query for the total row count
+            String countSelect = "SELECT count(g.groupId) "
+                    + "FROM groups g ";
+
+            Query countQuery = handle.createQuery(countSelect + where.toString());
+
+            // Bind all query parameters
+            int idx = 0;
+            for (SqlStatementVariableBinder binder : binders) {
+                binder.bind(groupsQuery, idx);
+                binder.bind(countQuery, idx);
+                idx++;
+            }
+            groupsQuery.bind(idx++, limit);
+            groupsQuery.bind(idx++, offset);
+
+            // Execute artifact query
+            List<SearchedGroupDto> groups = groupsQuery.map(SearchedGroupMapper.instance).list();
+            // Execute count query
+            Integer count = countQuery.mapTo(Integer.class).one();
+
+            GroupSearchResultsDto results = new GroupSearchResultsDto();
+            results.setGroups(groups);
+            results.setCount(count);
+            return results;
+        });
+    }
+
     private void resolveReferences(Map<String, ContentHandle> resolvedReferences, List<ArtifactReferenceDto> references) {
         if (references != null && !references.isEmpty()) {
             for (ArtifactReferenceDto reference : references) {
@@ -3414,4 +3524,6 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
         }
         return globalId;
     }
+
+
 }

@@ -24,11 +24,11 @@
         <operator.version>1.0.0-v2.0.0.final</operator.version>
         <version.hamcrest>2.2</version.hamcrest>
         <version.slf4.simple>2.0.3</version.slf4.simple>
-        <version.strimzi.api>0.31.1</version.strimzi.api>
+        <version.strimzi.api>0.32.0</version.strimzi.api>
         <version.eclipse.jgit>6.3.0.202209071007-r</version.eclipse.jgit>
         <version.org.json>20220924</version.org.json>
         <version.apache.commons>3.12.0</version.apache.commons>
-        <version.apache.httpcomponents>5.1.4</version.apache.httpcomponents>
+        <version.apache.httpcomponents>5.2</version.apache.httpcomponents>
         <version.apache.maven.artifact>3.8.6</version.apache.maven.artifact>
     </properties>
 

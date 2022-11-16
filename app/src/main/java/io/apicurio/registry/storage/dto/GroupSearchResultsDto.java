@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Red Hat
+ * Copyright 2022 Red Hat
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,9 +16,28 @@
 
 package io.apicurio.registry.storage.dto;
 
-/**
- * @author eric.wittmann@gmail.com
- */
-public enum OrderBy {
-    name, createdOn, id
+import java.util.ArrayList;
+import java.util.List;
+
+public class GroupSearchResultsDto {
+
+    private List<SearchedGroupDto> groups = new ArrayList<SearchedGroupDto>();
+
+    private Integer count;
+
+    public List<SearchedGroupDto> getGroups() {
+        return groups;
+    }
+
+    public void setGroups(List<SearchedGroupDto> groups) {
+        this.groups = groups;
+    }
+
+    public Integer getCount() {
+        return count;
+    }
+
+    public void setCount(Integer count) {
+        this.count = count;
+    }
 }

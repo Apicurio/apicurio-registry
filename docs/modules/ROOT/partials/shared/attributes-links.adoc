@@ -146,16 +146,28 @@
 :LinkCamelKafkaConnectorGetStart: https://access.redhat.com/documentation/en-us/red_hat_integration/2021.q1/html-single/getting_started_with_camel_kafka_connector/index
 :NameCamelKafkaConnectorGetStart: Getting Started with Camel Kafka Connector
 
+
 // Service Registry titles
+:ServiceRegistryURLVersion: 2022.q3
+:RegistryProductURL: service_registry 
 
-:LinkServiceRegistryInstall: https://access.redhat.com/documentation/en-us/red_hat_integration/{version}/html-single/installing_and_deploying_service_registry_on_openshift/index
-:NameServiceRegistryInstall: Installing and deploying Service Registry on OpenShift
+ifdef::RHAF[]
+:productpkg: apicurio_registry
+:RegistryProductURL: red_hat_build_of_apicurio_registry
+:ServiceRegistryURLVersion: 2.3
+endif::[]
 
-:LinkServiceRegistryUser: https://access.redhat.com/documentation/en-us/red_hat_integration/{version}/html-single/service_registry_user_guide/index
-:NameServiceRegistryUser: Service Registry User Guide
+:LinkServiceRegistryInstall: https://access.redhat.com/documentation/en-us/{productpkg}/{ServiceRegistryURLVersion}/html-single/installing_and_deploying_{RegistryProductURL}_on_openshift/index
+:NameServiceRegistryInstall: Installing and deploying {registry-name-full} on OpenShift
 
-:LinkServiceRegistryMigration: https://access.redhat.com/documentation/en-us/red_hat_integration/{version}/html-single/migrating_service_registry_deployments/index
-:NameServiceRegistryMigration: Migrating Service Registry deployments
+:LinkServiceRegistryUser: https://access.redhat.com/documentation/en-us/{productpkg}/{ServiceRegistryURLVersion}/html-single/{RegistryProductURL}_user_guide/index
+:NameServiceRegistryUser: {registry-name-full} User Guide
+
+:LinkServiceRegistryMigration: https://access.redhat.com/documentation/en-us/{productpkg}/{ServiceRegistryURLVersion}/html-single/migrating_{RegistryProductURL}_deployments/index
+:NameServiceRegistryMigration: Migrating {registry-name-full} deployments
+
+:LinkServiceRegistryRESTAPI: https://access.redhat.com/webassets/avalon/d/Red_Hat_Integration-2022.q3-Service_Registry_User_Guide-en-US/files/registry-rest-api.htm
+:NameServiceRegistryRESTAPI: Apicurio Registry v2 core REST API documentation
 
 :LinkOpenShiftAddOperator: https://docs.openshift.com/container-platform/{registry-ocp-version}/operators/admin/olm-adding-operators-to-cluster.html
 :NameOpenShiftAddOperator: Adding Operators to an OpenShift cluster

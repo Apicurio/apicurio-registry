@@ -21,10 +21,10 @@ public class SerdeConfig {
    public static final String ID_HANDLER = "apicurio.registry.id-handler"; <2>
    public static final String ENABLE_CONFLUENT_ID_HANDLER = "apicurio.registry.as-confluent"; <3>
 ----
-<1> The required URL of {registry}.
-<2> Extends ID handling to support other ID formats and make them compatible with {registry} SerDe services.
+. The required URL of {registry}.
+. Extends ID handling to support other ID formats and make them compatible with {registry} SerDe services.
 For example, changing the default ID format from `Long` to `Integer` supports the Confluent ID format.
-<3> Simplifies the handling of Confluent IDs. If set to `true`, an `Integer` is used for the global ID lookup.
+. Simplifies the handling of Confluent IDs. If set to `true`, an `Integer` is used for the global ID lookup.
 The setting should not be used with the `ID_HANDLER` option.
 
 [role="_additional-resources"]
@@ -44,8 +44,8 @@ public class SerdeConfig {
    public static final String SCHEMA_RESOLVER = "apicurio.registry.schema-resolver"; <2>
 ...      
 ----
-<1> Java class that implements the artifact resolver strategy and maps between the Kafka SerDe and artifact ID.  Defaults to the topic ID strategy. This is only used by the serializer class.
-<2> Java class that implements the schema resolver. Defaults to `DefaultSchemaResolver`. This is used by the serializer and deserializer classes.
+. Java class that implements the artifact resolver strategy and maps between the Kafka SerDe and artifact ID.  Defaults to the topic ID strategy. This is only used by the serializer class.
+. Java class that implements the schema resolver. Defaults to `DefaultSchemaResolver`. This is used by the serializer and deserializer classes.
 
 [role="_additional-resources"]
 .Additional resources
@@ -63,8 +63,8 @@ public class SerdeBasedConverter<S, T> extends SchemaResolverConfigurer<S, T> im
    public static final String REGISTRY_CONVERTER_SERIALIZER_PARAM = "apicurio.registry.converter.serializer"; <1>
    public static final String REGISTRY_CONVERTER_DESERIALIZER_PARAM = "apicurio.registry.converter.deserializer"; <2>   
 ----
-<1> The required serializer to use with the {registry} Kafka converter.
-<2> The required deserializer to use with the {registry} Kafka converter.
+. The required serializer to use with the {registry} Kafka converter.
+. The required deserializer to use with the {registry} Kafka converter.
 
 [role="_additional-resources"]
 .Additional resources

@@ -28,9 +28,12 @@ https://console.redhat.com/application-services/service-accounts
 +
 [source,bash, subs="+quotes,attributes"]
 ----
-$ curl -X POST \
-  -d "grant_type=client_credentials&client_id=MY-CLIENT-ID&client_secret=MY-CLIENT-SECRET" \ 
-  {sso-token-url}
+$ curl --location --request POST '{sso-token-url}' \
+ --header 'Content-Type: application/x-www-form-urlencoded' \
+ --data-urlencode 'client_id=MY_SERVICE_ACCOUNT' \
+ --data-urlencode 'client_secret=MY_SERVICE_ACCOUNT_SECRET' \
+ --data-urlencode 'scope=email' \
+ --data-urlencode 'grant_type=client_credentials'  
 ---- 
 +
 .  Copy the contents of the access token generated in the response to a secure location:

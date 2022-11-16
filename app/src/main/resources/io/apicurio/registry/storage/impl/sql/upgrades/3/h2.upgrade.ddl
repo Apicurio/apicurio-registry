@@ -6,7 +6,7 @@
 UPDATE apicurio SET prop_value = 3 WHERE prop_name = 'db_version';
 
 -- create sequences table
-CREATE TABLE sequences (tenantId VARCHAR(128) NOT NULL, name VARCHAR(32) NOT NULL, value BIGINT NOT NULL);
+CREATE TABLE sequences (tenantId VARCHAR(128) NOT NULL, name VARCHAR(32) NOT NULL, seq_value BIGINT NOT NULL);
 ALTER TABLE sequences ADD PRIMARY KEY (tenantId, name);
 
 -- remove old sequences

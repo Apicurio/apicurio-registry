@@ -17,6 +17,7 @@
 package io.apicurio.registry.rbac;
 
 import static io.apicurio.registry.utils.tests.TestUtils.retry;
+import static org.junit.Assert.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -40,8 +41,13 @@ import java.util.stream.Collectors;
 
 import javax.inject.Inject;
 
+import io.apicurio.registry.rest.client.exception.GroupNotFoundException;
+import io.apicurio.registry.rest.v2.beans.GroupMetaData;
+import io.apicurio.registry.rest.v2.beans.GroupSearchResults;
+import io.apicurio.registry.rest.v2.beans.SearchedGroup;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.IOUtils;
+import org.junit.Assert;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
@@ -157,6 +163,47 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         assertEquals(name, created.getName());
         assertEquals(description, created.getDescription());
         assertEquals(ARTIFACT_CONTENT, IoUtil.toString(clientV2.getLatestArtifact(groupId, artifactId)));
+    }
+
+    @Test
+    public void groupsCrud() throws Exception {
+        //Preparation
+        final String groupId =  UUID.randomUUID().toString();
+        GroupMetaData groupMetaData = new GroupMetaData();
+        groupMetaData.setId(groupId);
+        groupMetaData.setDescription("Groups test crud");
+        groupMetaData.setProperties(Map.of("p1", "v1", "p2", "v2"));
+
+        clientV2.createArtifactGroup(groupMetaData);
+
+        final GroupMetaData artifactGroup = clientV2.getArtifactGroup(groupId);
+        assertEquals(groupMetaData.getId(), artifactGroup.getId());
+        assertEquals(groupMetaData.getDescription(), artifactGroup.getDescription());
+        assertEquals(groupMetaData.getProperties(), artifactGroup.getProperties());
+
+
+        String group1Id = UUID.randomUUID().toString();
+        String group2Id = UUID.randomUUID().toString();
+        String group3Id = UUID.randomUUID().toString();
+
+        groupMetaData.setId(group1Id);
+        clientV2.createArtifactGroup(groupMetaData);
+        groupMetaData.setId(group2Id);
+        clientV2.createArtifactGroup(groupMetaData);
+        groupMetaData.setId(group3Id);
+        clientV2.createArtifactGroup(groupMetaData);
+
+
+        GroupSearchResults groupSearchResults = clientV2.listGroups(SortBy.name, SortOrder.asc, 0, 100);
+        assertTrue(groupSearchResults.getCount() >= 4);
+
+        final List<String> groupIds = groupSearchResults.getGroups().stream().map(SearchedGroup::getId)
+                .collect(Collectors.toList());
+
+        assertTrue(groupIds.containsAll(List.of(groupId, group1Id, group2Id, group3Id)));
+        clientV2.deleteArtifactGroup(groupId);
+
+        Assert.assertThrows(GroupNotFoundException.class, () -> clientV2.getArtifactGroup(groupId));
     }
 
     @Test

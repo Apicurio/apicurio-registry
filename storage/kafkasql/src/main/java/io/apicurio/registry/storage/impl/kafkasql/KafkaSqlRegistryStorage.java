@@ -48,6 +48,7 @@ import io.apicurio.registry.storage.dto.ContentWrapperDto;
 import io.apicurio.registry.storage.dto.DownloadContextDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.GroupMetaDataDto;
+import io.apicurio.registry.storage.dto.GroupSearchResultsDto;
 import io.apicurio.registry.storage.dto.LogConfigurationDto;
 import io.apicurio.registry.storage.dto.OrderBy;
 import io.apicurio.registry.storage.dto.OrderDirection;
@@ -1237,6 +1238,14 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
     @Override
     public boolean isArtifactVersionExists(String groupId, String artifactId, String version) throws RegistryStorageException {
         return sqlStore.isArtifactVersionExists(groupId, artifactId, version);
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#searchGroups(Set, OrderBy, OrderDirection, Integer, Integer)
+     */
+    @Override
+    public GroupSearchResultsDto searchGroups(Set<SearchFilter> filters, OrderBy orderBy, OrderDirection orderDirection, Integer offset, Integer limit) {
+        return sqlStore.searchGroups(filters, orderBy, orderDirection, offset, limit);
     }
 
     protected void importEntity(Entity entity) throws RegistryStorageException {

@@ -19,6 +19,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 
@@ -43,7 +44,11 @@ import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.dto.ContentWrapperDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.GroupMetaDataDto;
+import io.apicurio.registry.storage.dto.GroupSearchResultsDto;
+import io.apicurio.registry.storage.dto.OrderBy;
+import io.apicurio.registry.storage.dto.OrderDirection;
 import io.apicurio.registry.storage.dto.RuleConfigurationDto;
+import io.apicurio.registry.storage.dto.SearchFilter;
 import io.apicurio.registry.storage.dto.StoredArtifactDto;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
@@ -339,5 +344,13 @@ public class EventSourcedRegistryStorage extends RegistryStorageDecorator {
     @Override
     public boolean isArtifactExists(String groupId, String artifactId) throws RegistryStorageException {
         return delegate.isArtifactExists(groupId, artifactId);
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#searchGroups(Set, OrderBy, OrderDirection, Integer, Integer)
+     */
+    @Override
+    public GroupSearchResultsDto searchGroups(Set<SearchFilter> filters, OrderBy orderBy, OrderDirection orderDirection, Integer offset, Integer limit) {
+        return delegate.searchGroups(filters, orderBy, orderDirection, offset, limit);
     }
 }

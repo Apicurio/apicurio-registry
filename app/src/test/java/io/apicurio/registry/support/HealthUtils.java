@@ -40,11 +40,11 @@ public class HealthUtils {
         }
     }
 
-    public static void assertIsReady() throws Exception {
-        assertHealthCheck(8081, Type.READY, HealthResponse.Status.UP);
+    public static void assertIsReady(int port) throws Exception {
+        assertHealthCheck(port, Type.READY, HealthResponse.Status.UP);
     }
 
-    public static void assertIsLive() throws Exception {
-        assertHealthCheck(8081, Type.LIVE, HealthResponse.Status.UP);
+    public static void assertIsLive(int port) throws Exception {
+        assertHealthCheck(port, Type.LIVE, HealthResponse.Status.UP);
     }
 }

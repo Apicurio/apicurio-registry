@@ -2156,7 +2156,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .pathParam("groupId", GROUP)
                 .header("X-Registry-ArtifactId", "testCreateArtifactFromURL/Empty")
                 .header("X-Registry-ArtifactType", ArtifactType.JSON.name())
-                .body("{ \"content\" : \"http://localhost:8081/health/group\" }")
+                .body("{ \"content\" : \"http://localhost:" + testPort + "/health/group\" }")
                 .post("/registry/v2/groups/{groupId}/artifacts")
             .then()
                 .statusCode(400)
@@ -2170,7 +2170,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .header("X-Registry-ArtifactId", "testCreateArtifactFromURL/OpenApi2")
                 .header("X-Registry-ArtifactType", ArtifactType.JSON.name())
                 .header("X-Registry-Content-Hash", "123")
-                .body("{ \"content\" : \"http://localhost:8081/api-specifications/registry/v2/openapi.json\" }")
+                .body("{ \"content\" : \"http://localhost:" + testPort + "/api-specifications/registry/v2/openapi.json\" }")
                 .post("/registry/v2/groups/{groupId}/artifacts")
             .then()
                 .statusCode(400)
@@ -2185,7 +2185,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .header("X-Registry-ArtifactType", ArtifactType.JSON.name())
                 .header("X-Registry-Hash-Algorithm", "ASH652")
                 .header("X-Registry-Content-Hash", "123")
-                .body("{ \"content\" : \"http://localhost:8081/api-specifications/registry/v2/openapi.json\" }")
+                .body("{ \"content\" : \"http://localhost:" + testPort + "/api-specifications/registry/v2/openapi.json\" }")
                 .post("/registry/v2/groups/{groupId}/artifacts")
             .then()
                 .statusCode(400)
@@ -2193,7 +2193,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
 
         // Calculate the SHA on the fly to avoid mismatches on update
         String content = given()
-                .get("http://localhost:8081/api-specifications/registry/v2/openapi.json")
+                .get("http://localhost:" + testPort + "/api-specifications/registry/v2/openapi.json")
                 .body()
                 .print();
         String artifactSHA = Hashing.sha256().hashString(content, StandardCharsets.UTF_8).toString();
@@ -2206,7 +2206,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .header("X-Registry-ArtifactId", "testCreateArtifactFromURL/OpenApi3")
                 .header("X-Registry-ArtifactType", ArtifactType.JSON.name())
                 .header("X-Registry-Content-Hash", artifactSHA)
-                .body("{ \"content\" : \"http://localhost:8081/api-specifications/registry/v2/openapi.json\" }")
+                .body("{ \"content\" : \"http://localhost:" + testPort + "/api-specifications/registry/v2/openapi.json\" }")
                 .post("/registry/v2/groups/{groupId}/artifacts")
             .then()
                 .statusCode(200);

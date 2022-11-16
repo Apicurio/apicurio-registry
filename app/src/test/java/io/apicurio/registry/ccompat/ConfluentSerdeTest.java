@@ -22,6 +22,7 @@ import io.confluent.kafka.serializers.protobuf.KafkaProtobufDeserializer;
 import io.confluent.kafka.serializers.protobuf.KafkaProtobufSerializer;
 import io.confluent.kafka.serializers.protobuf.KafkaProtobufSerializerConfig;
 import io.quarkus.test.junit.QuarkusTest;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.junit.jupiter.api.Test;
 
 import java.util.Properties;
@@ -30,11 +31,16 @@ import java.util.Properties;
 @QuarkusTest
 public class ConfluentSerdeTest extends AbstractResourceTestBase {
 
+    @ConfigProperty(name = "quarkus.http.test-port")
+    int testPort;
+
     @SuppressWarnings({ "rawtypes", "unchecked", "resource" })
     @Test
     public void testProtobufSchemaWithReferences() {
         Properties properties = new Properties();
-        properties.setProperty(KafkaProtobufSerializerConfig.SCHEMA_REGISTRY_URL_CONFIG, "http://localhost:8081/apis/ccompat/v6");
+        String serverUrl = "http://localhost:%s/apis/ccompat/v6";
+        properties.setProperty(KafkaProtobufSerializerConfig.SCHEMA_REGISTRY_URL_CONFIG, String.format(serverUrl, testPort));
+
         properties.setProperty(KafkaProtobufSerializerConfig.AUTO_REGISTER_SCHEMAS, "true");
 
         KafkaProtobufSerializer kafkaProtobufSerializer = new KafkaProtobufSerializer();

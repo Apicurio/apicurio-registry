@@ -25,6 +25,7 @@ import java.util.function.Supplier;
 
 import javax.inject.Inject;
 
+import io.apicurio.registry.AbstractRegistryTestBase;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -49,9 +50,7 @@ import io.quarkus.test.junit.TestProfile;
  */
 @QuarkusTest
 @TestProfile(MultitenancyLimitsTestProfile.class)
-public class MultitenancyLimitsTest {
-
-//    private static final Logger LOGGER = LoggerFactory.getLogger(MultitenancyLimitsTest.class);
+public class MultitenancyLimitsTest extends AbstractRegistryTestBase {
 
     @Inject
     @Current
@@ -83,8 +82,8 @@ public class MultitenancyLimitsTest {
 
         //TODO add testcase configuring limits via metadata service
 
-        RegistryClient clientTenant1 = RegistryClientFactory.create("http://localhost:8081/t/" + tenantId1 + "/apis/registry/v2" );
-        RegistryClient clientTenant2 = RegistryClientFactory.create("http://localhost:8081/t/" + tenantId2 + "/apis/registry/v2" );
+        RegistryClient clientTenant1 = RegistryClientFactory.create("http://localhost:" + testPort + "/t/" + tenantId1 + "/apis/registry/v2" );
+        RegistryClient clientTenant2 = RegistryClientFactory.create("http://localhost:" + testPort + "/t/" + tenantId2 + "/apis/registry/v2" );
 
         checkTenantLimits(clientTenant1);
         checkTenantLimits(clientTenant2);

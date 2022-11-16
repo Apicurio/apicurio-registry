@@ -60,7 +60,7 @@ public class DisableApisFlagsTest extends AbstractResourceTestBase {
         doTestDisabledApis(false);
     }
 
-    public static void doTestDisabledApis(boolean disabledDirectAccess) throws Exception {
+    public void doTestDisabledApis(boolean disabledDirectAccess) throws Exception {
         doTestDisabledSubPathRegexp(disabledDirectAccess);
 
         doTestDisabledPathExactMatch();
@@ -70,9 +70,9 @@ public class DisableApisFlagsTest extends AbstractResourceTestBase {
         doTestUIDisabled();
     }
 
-    private static void doTestUIDisabled() {
+    private void doTestUIDisabled() {
         given()
-            .baseUri("http://localhost:8081")
+            .baseUri("http://localhost:" + this.testPort )
             .when()
                 .get("/ui")
             .then()

@@ -82,6 +82,10 @@ public class TestUtils {
         return getRegistryBaseUrl().concat("/apis");
     }
 
+    public static String getRegistryApiUrl(int port) {
+        return getRegistryBaseUrl(port).concat("/apis");
+    }
+
     public static String getRegistryV1ApiUrl() {
         return getRegistryApiUrl().concat("/registry/v1");
     }
@@ -90,11 +94,23 @@ public class TestUtils {
         return getRegistryApiUrl().concat("/registry/v2");
     }
 
+    public static String getRegistryV2ApiUrl(int testPort) {
+        return getRegistryApiUrl(testPort).concat("/registry/v2");
+    }
+
     public static String getRegistryBaseUrl() {
         if (isExternalRegistry()) {
             return String.format("http://%s:%s", REGISTRY_HOST, REGISTRY_PORT);
         } else {
             return String.format("http://%s:%s", DEFAULT_REGISTRY_HOST, DEFAULT_REGISTRY_PORT);
+        }
+    }
+
+    public static String getRegistryBaseUrl(int port) {
+        if (isExternalRegistry()) {
+            return String.format("http://%s:%s", REGISTRY_HOST, port);
+        } else {
+            return String.format("http://%s:%s", DEFAULT_REGISTRY_HOST, port);
         }
     }
 

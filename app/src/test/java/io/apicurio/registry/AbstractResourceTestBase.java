@@ -22,8 +22,11 @@ import static org.hamcrest.Matchers.equalTo;
 import io.apicurio.registry.rest.client.AdminClientFactory;
 import io.apicurio.registry.rest.v2.beans.ArtifactReference;
 import io.apicurio.registry.rest.v2.beans.ContentCreateRequest;
+import io.apicurio.registry.storage.RegistryStorage;
+import io.apicurio.registry.types.Current;
 import io.apicurio.rest.client.auth.Auth;
 import io.restassured.http.ContentType;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -42,6 +45,7 @@ import io.restassured.RestAssured;
 import io.restassured.parsing.Parser;
 import io.restassured.response.ValidatableResponse;
 
+import javax.inject.Inject;
 import java.util.Collections;
 import java.util.List;
 
@@ -58,20 +62,30 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
     protected static final String CT_XML = "application/xml";
     public static final String CT_JSON_EXTENDED = "application/create.extended+json";
 
-
-    protected String registryApiBaseUrl;
+    public String registryApiBaseUrl;
     protected String registryV1ApiUrl;
     protected String registryV2ApiUrl;
     protected RegistryClient clientV2;
     protected AdminClient adminClientV2;
 
+    @Inject
+    @Current
+    RegistryStorage storage;
+
     @BeforeAll
     protected void beforeAll() throws Exception {
-        registryApiBaseUrl = "http://localhost:8081/apis";
+        String serverUrl = "http://localhost:%s/apis";
+        registryApiBaseUrl = String.format(serverUrl, testPort);
         registryV1ApiUrl = registryApiBaseUrl + "/registry/v1";
         registryV2ApiUrl = registryApiBaseUrl + "/registry/v2";
         clientV2 = createRestClientV2();
         adminClientV2 = createAdminClientV2();
+    }
+
+    @AfterAll
+    protected void afterAll() {
+        //delete data to
+        //storage.deleteAllUserData();
     }
 
     protected RegistryClient createRestClientV2() {

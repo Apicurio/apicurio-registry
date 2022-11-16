@@ -80,7 +80,7 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
 
     @BeforeEach
     public void createIsolatedClient() {
-        restClient = RegistryClientFactory.create(TestUtils.getRegistryV2ApiUrl());
+        restClient = RegistryClientFactory.create(TestUtils.getRegistryV2ApiUrl(testPort));
     }
 
     @Test
@@ -96,7 +96,7 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
         this.waitForGlobalId(globalId);
 
         Map<String, Object> config = new HashMap<>();
-        config.put(SerdeConfig.REGISTRY_URL, TestUtils.getRegistryV2ApiUrl());
+        config.put(SerdeConfig.REGISTRY_URL, TestUtils.getRegistryV2ApiUrl(testPort));
         config.put(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, groupId);
         config.put(SerdeConfig.EXPLICIT_ARTIFACT_VERSION, "1");
         config.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, TopicRecordIdStrategy.class.getName());
@@ -113,7 +113,7 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
             byte[] bytes = serializer.serialize(topic, record);
 
             Map<String, Object> deserializerConfig = new HashMap<>();
-            deserializerConfig.put(SerdeConfig.REGISTRY_URL, TestUtils.getRegistryV2ApiUrl());
+            deserializerConfig.put(SerdeConfig.REGISTRY_URL, TestUtils.getRegistryV2ApiUrl(testPort));
             deserializer.configure(deserializerConfig, true);
 
             GenericData.Record deserializedRecord = deserializer.deserialize(topic, bytes);
@@ -350,7 +350,7 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
     }
 
     private SchemaRegistryClient buildClient() {
-        return new CachedSchemaRegistryClient("http://localhost:8081/apis/ccompat/v6", 3);
+        return new CachedSchemaRegistryClient("http://localhost:" + testPort + "/apis/ccompat/v6", 3);
     }
 
     @Test

@@ -45,6 +45,7 @@ import io.confluent.kafka.schemaregistry.json.JsonSchemaProvider;
 import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchemaProvider;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.opentest4j.TestAbortedException;
@@ -78,6 +79,9 @@ public class MultitenancyNoAuthTest extends AbstractRegistryTestBase {
     @Inject
     MockTenantMetadataService tenantMetadataService;
 
+    @ConfigProperty(name = "quarkus.http.test-port")
+    public int testPort;
+
     @Test
     public void testTenantErrorExceptions() throws Exception {
 
@@ -90,8 +94,8 @@ public class MultitenancyNoAuthTest extends AbstractRegistryTestBase {
         String tenantId2 = UUID.randomUUID().toString();
         tenantMetadataService.addToUnauthorizedList(tenantId2);
 
-        String tenant1BaseUrl = "http://localhost:8081/t/" + tenantId1;
-        String tenant2BaseUrl = "http://localhost:8081/t/" + tenantId2;
+        String tenant1BaseUrl = "http://localhost:" + testPort + "/t/" + tenantId1;
+        String tenant2BaseUrl = "http://localhost:" + testPort + "/t/" + tenantId2;
 
         AdminClient clientTenant1 = AdminClientFactory.create(tenant1BaseUrl);
         AdminClient clientTenant2 = AdminClientFactory.create(tenant2BaseUrl);
@@ -128,8 +132,8 @@ public class MultitenancyNoAuthTest extends AbstractRegistryTestBase {
         tenant2.setStatus(TenantStatusValue.READY);
         tenantMetadataService.createTenant(tenant2);
 
-        String tenant1BaseUrl = "http://localhost:8081/t/" + tenantId1;
-        String tenant2BaseUrl = "http://localhost:8081/t/" + tenantId2;
+        String tenant1BaseUrl = "http://localhost:" + testPort + "/t/" + tenantId1;
+        String tenant2BaseUrl = "http://localhost:" + testPort + "/t/" + tenantId2;
 
         AdminClient adminClientTenant1 = AdminClientFactory.create(tenant1BaseUrl);
         AdminClient adminClientTenant2 = AdminClientFactory.create(tenant2BaseUrl);

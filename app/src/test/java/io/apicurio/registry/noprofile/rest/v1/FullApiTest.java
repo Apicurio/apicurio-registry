@@ -147,7 +147,7 @@ public class FullApiTest extends AbstractResourceTestBase {
         rule.setType(RuleType.VALIDITY);
         rule.setConfig("FULL");
         given()
-            .baseUri("http://localhost:8081/api")
+            .baseUri("http://localhost:" + testPort + "/api")
             .when()
                 .contentType(CT_JSON).body(rule)
                 .post("/rules")
@@ -158,7 +158,7 @@ public class FullApiTest extends AbstractResourceTestBase {
         // Verify the rule was added.
         TestUtils.retry(() -> {
             given()
-                .baseUri("http://localhost:8081/api")
+                    .baseUri("http://localhost:" + testPort + "/api")
                 .when()
                     .get("/rules/VALIDITY")
                 .then()
@@ -170,7 +170,7 @@ public class FullApiTest extends AbstractResourceTestBase {
 
         // Delete all rules
         given()
-            .baseUri("http://localhost:8081/api")
+                .baseUri("http://localhost:" + testPort + "/api")
             .when()
                 .delete("/rules")
             .then()
@@ -179,7 +179,7 @@ public class FullApiTest extends AbstractResourceTestBase {
         // Get the list of rules (no rules now)
         TestUtils.retry(() -> {
             given()
-                .baseUri("http://localhost:8081/api")
+                    .baseUri("http://localhost:" + testPort + "/api")
                 .when()
                     .get("/rules")
                 .then()
@@ -190,7 +190,7 @@ public class FullApiTest extends AbstractResourceTestBase {
 
         // Get the other (deleted) rule by name (should fail with a 404)
         given()
-            .baseUri("http://localhost:8081/api")
+                .baseUri("http://localhost:" + testPort + "/api")
             .when()
                 .get("/rules/VALIDITY")
             .then()

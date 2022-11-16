@@ -95,7 +95,7 @@ public class AuthTestNoRoles extends AbstractResourceTestBase {
         String artifactId = TestUtils.generateArtifactId();
         try {
             client.listArtifactsInGroup(groupId);
-            client.createArtifactWithType(groupId, artifactId, "JSON", new ByteArrayInputStream("{}".getBytes()));
+            client.createArtifact(groupId, artifactId, "JSON", new ByteArrayInputStream("{}".getBytes()));
             TestUtils.retry(() -> client.getArtifactMetaData(groupId, artifactId));
             assertNotNull(client.getLatestArtifact(groupId, artifactId));
             Rule ruleConfig = new Rule();

@@ -90,7 +90,7 @@ public class AuthTestAuthenticatedReadAccess extends AbstractResourceTestBase {
                 "    \"fields\" : [{\"name\" : \"age\", \"type\" : \"int\"}]\r\n" +
                 "}").getBytes(StandardCharsets.UTF_8));
         Assertions.assertThrows(ForbiddenException.class, () -> {
-            client.createArtifactWithType(groupId, "testReadOperationWithNoRole", "AVRO", data);
+            client.createArtifact(groupId, "testReadOperationWithNoRole", "AVRO", data);
         });
     }
 }

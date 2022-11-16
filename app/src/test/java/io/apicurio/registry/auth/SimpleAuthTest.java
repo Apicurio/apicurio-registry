@@ -109,12 +109,12 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
         Assertions.assertThrows(ArtifactNotFoundException.class, () -> client.getArtifactMetaData(groupId, artifactId));
         Assertions.assertThrows(ArtifactNotFoundException.class, () -> client.getLatestArtifact("abc", artifactId));
         Assertions.assertThrows(ForbiddenException.class, () -> {
-            client.createArtifactWithType("testReadOnly", artifactId, "JSON", new ByteArrayInputStream("{}".getBytes()));
+            client.createArtifact("testReadOnly", artifactId, "JSON", new ByteArrayInputStream("{}".getBytes()));
         });
         {
             Auth devAuth = new OidcAuth(httpClient, JWKSMockServer.DEVELOPER_CLIENT_ID, "test1");
             RegistryClient devClient = createClient(devAuth);
-            ArtifactMetaData meta = devClient.createArtifactWithType(groupId, artifactId, "JSON", new ByteArrayInputStream("{}".getBytes()));
+            ArtifactMetaData meta = devClient.createArtifact(groupId, artifactId, "JSON", new ByteArrayInputStream("{}".getBytes()));
             TestUtils.retry(() -> devClient.getArtifactMetaData(groupId, meta.getId()));
         }
         assertNotNull(client.getLatestArtifact(groupId, artifactId));
@@ -168,7 +168,7 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
         String artifactId = TestUtils.generateArtifactId();
         try {
             client.listArtifactsInGroup(groupId);
-            client.createArtifactWithType(groupId, artifactId, "JSON", new ByteArrayInputStream("{}".getBytes()));
+            client.createArtifact(groupId, artifactId, "JSON", new ByteArrayInputStream("{}".getBytes()));
             TestUtils.retry(() -> client.getArtifactMetaData(groupId, artifactId));
             assertNotNull(client.getLatestArtifact(groupId, artifactId));
             Rule ruleConfig = new Rule();

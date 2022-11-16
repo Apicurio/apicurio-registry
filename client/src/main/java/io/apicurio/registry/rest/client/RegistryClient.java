@@ -142,15 +142,17 @@ public interface RegistryClient extends Closeable {
         return createArtifact(groupId, artifactId, null, null, null, null, null, null, null, null, null, data, artifactReferences);
     }
 
-    default ArtifactMetaData createArtifact(String groupId, String artifactId, String version, InputStream data) {
-        return createArtifact(groupId, artifactId, version, null, null, null, null, null, null, null, null, data);
-    }
-    default ArtifactMetaData createArtifactWithType(String groupId, String artifactId, String artifactType, IfExists ifExists, InputStream data) {
+    default ArtifactMetaData createArtifact(String groupId, String artifactId, String artifactType, IfExists ifExists, InputStream data) {
         return createArtifact(groupId, artifactId, null, artifactType, ifExists, null, null, null, null, null, null, data);
     }
-    default ArtifactMetaData createArtifactWithType(String groupId, String artifactId, String artifactType, InputStream data) {
+    default ArtifactMetaData createArtifact(String groupId, String artifactId, String artifactType, InputStream data) {
         return createArtifact(groupId, artifactId, null, artifactType, null, null, null, null, null, null, null, data);
     }
+
+    default ArtifactMetaData createArtifactWithVersion(String groupId, String artifactId, String version, InputStream data) {
+        return createArtifact(groupId, artifactId, version, null, null, null, null, null, null, null, null, data);
+    }
+
 
     void deleteArtifactsInGroup(String groupId);
 

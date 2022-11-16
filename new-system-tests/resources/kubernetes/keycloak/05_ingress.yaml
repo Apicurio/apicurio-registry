@@ -1,0 +1,19 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  labels:
+    app: keycloak
+  name: keycloak-http
+  namespace: keycloak
+spec:
+  rules:
+    - host: registry-keycloak.127.0.0.1.nip.io
+      http:
+        paths:
+          - backend:
+              service:
+                name: keycloak-http
+                port:
+                  number: 8080
+            path: /
+            pathType: Prefix

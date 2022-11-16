@@ -1,0 +1,10 @@
+kind: Route
+apiVersion: route.openshift.io/v1
+metadata:
+  name: keycloak-http
+  namespace: keycloak
+spec:
+  to:
+    kind: Service
+    name: keycloak-http
+    weight: 100

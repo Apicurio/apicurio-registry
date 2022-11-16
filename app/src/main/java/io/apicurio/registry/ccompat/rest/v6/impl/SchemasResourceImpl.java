@@ -25,7 +25,6 @@ import io.apicurio.registry.ccompat.rest.v6.SchemasResource;
 import io.apicurio.common.apps.logging.Logged;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
-import io.apicurio.registry.types.ArtifactType;
 
 import javax.interceptor.Interceptors;
 import java.util.Arrays;
@@ -54,6 +53,6 @@ public class SchemasResourceImpl extends AbstractResource implements SchemasReso
     @Override
     @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Read)
     public List<String> getRegisteredTypes() {
-        return Arrays.asList(ArtifactType.JSON.value(), ArtifactType.PROTOBUF.value(), ArtifactType.AVRO.value());
+        return Arrays.asList("JSON", "PROTOBUF", "AVRO");
     }
 }

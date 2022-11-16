@@ -29,7 +29,7 @@ import io.apicurio.registry.rest.v2.beans.SortOrder;
 import io.apicurio.registry.rest.v2.beans.UpdateState;
 import io.apicurio.registry.rest.v2.beans.VersionMetaData;
 import io.apicurio.registry.types.ArtifactState;
-import io.apicurio.registry.types.ArtifactType;
+
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.tests.TestUtils;
@@ -89,7 +89,7 @@ class ArtifactsIT extends ApicurioV2BaseIT {
 
         ByteArrayInputStream artifactData = new ByteArrayInputStream("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}".getBytes(StandardCharsets.UTF_8));
 
-        ArtifactMetaData amd1 = createArtifact(groupId, artifactId, ArtifactType.AVRO, artifactData);
+        ArtifactMetaData amd1 = createArtifact(groupId, artifactId, "AVRO", artifactData);
         LOGGER.info("Created artifact {} with metadata {}", artifactId, amd1.toString());
 
         InputStream latest = registryClient.getLatestArtifact(groupId, artifactId);
@@ -103,7 +103,7 @@ class ArtifactsIT extends ApicurioV2BaseIT {
 
         LOGGER.info("Invalid artifact sent {}", invalidArtifactDefinition);
         ByteArrayInputStream iad = artifactData;
-        assertClientError(RuleViolationException.class.getSimpleName(), 409, () -> registryClient.createArtifact(groupId, invalidArtifactId, ArtifactType.AVRO, iad), errorCodeExtractor);
+        assertClientError(RuleViolationException.class.getSimpleName(), 409, () -> registryClient.createArtifact(groupId, invalidArtifactId, "AVRO", iad), errorCodeExtractor);
 
         artifactData = new ByteArrayInputStream("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"bar\",\"type\":\"long\"}]}".getBytes(StandardCharsets.UTF_8));
         ArtifactMetaData metaData = registryClient.updateArtifact(groupId, artifactId, artifactData);
@@ -139,7 +139,7 @@ class ArtifactsIT extends ApicurioV2BaseIT {
             .mapToObj(i -> {
                 String artifactId = TestUtils.generateSubject();
                 try {
-                    return super.createArtifact(groupId, artifactId, ArtifactType.AVRO, new AvroGenericRecordSchemaFactory(groupId, artifactId, List.of("foo")).generateSchemaStream());
+                    return super.createArtifact(groupId, artifactId, "AVRO", new AvroGenericRecordSchemaFactory(groupId, artifactId, List.of("foo")).generateSchemaStream());
                 } catch (Exception e) {
                     throw new RuntimeException(e);
                 }
@@ -163,7 +163,7 @@ class ArtifactsIT extends ApicurioV2BaseIT {
         ByteArrayInputStream artifactData = new ByteArrayInputStream("{\"type\":\"INVALID\",\"config\":\"invalid\"}".getBytes(StandardCharsets.UTF_8));
         String artifactId = TestUtils.generateArtifactId();
 
-        ArtifactMetaData amd = createArtifact(groupId, artifactId, ArtifactType.JSON, artifactData);
+        ArtifactMetaData amd = createArtifact(groupId, artifactId, "JSON", artifactData);
 
         LOGGER.info("Created artifact {} with metadata {}", artifactId, amd);
 
@@ -180,7 +180,7 @@ class ArtifactsIT extends ApicurioV2BaseIT {
         String groupId = TestUtils.generateGroupId();
         ByteArrayInputStream artifactData = new ByteArrayInputStream("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}".getBytes(StandardCharsets.UTF_8));
         String artifactId = TestUtils.generateArtifactId();
-        ArtifactMetaData metaData = createArtifact(groupId, artifactId, ArtifactType.AVRO, artifactData);
+        ArtifactMetaData metaData = createArtifact(groupId, artifactId, "AVRO", artifactData);
         LOGGER.info("Created artifact {} with metadata {}", artifactId, metaData);
 
         artifactData = new ByteArrayInputStream("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}".getBytes(StandardCharsets.UTF_8));
@@ -199,11 +199,11 @@ class ArtifactsIT extends ApicurioV2BaseIT {
         ByteArrayInputStream artifactData = new ByteArrayInputStream("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}".getBytes(StandardCharsets.UTF_8));
         String groupId = TestUtils.generateGroupId();
         String artifactId = TestUtils.generateArtifactId();
-        ArtifactMetaData metaData = createArtifact(groupId, artifactId, ArtifactType.AVRO, artifactData);
+        ArtifactMetaData metaData = createArtifact(groupId, artifactId, "AVRO", artifactData);
         LOGGER.info("Created artifact {} with metadata {}", artifactId, metaData.toString());
 
         ByteArrayInputStream iad = new ByteArrayInputStream("{\"type\":\"record\",\"name\":\"alreadyExistArtifact\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}".getBytes(StandardCharsets.UTF_8));
-        assertClientError(ArtifactAlreadyExistsException.class.getSimpleName(), 409, () -> createArtifact(groupId, artifactId, ArtifactType.AVRO, iad), true, errorCodeExtractor);
+        assertClientError(ArtifactAlreadyExistsException.class.getSimpleName(), 409, () -> createArtifact(groupId, artifactId, "AVRO", iad), true, errorCodeExtractor);
     }
 
     @Test
@@ -212,12 +212,12 @@ class ArtifactsIT extends ApicurioV2BaseIT {
         ByteArrayInputStream artifactData = new ByteArrayInputStream("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}".getBytes(StandardCharsets.UTF_8));
         String groupId = TestUtils.generateGroupId();
         String artifactId = TestUtils.generateArtifactId();
-        ArtifactMetaData metaData = createArtifact(groupId, artifactId, "1.1", IfExists.FAIL, ArtifactType.AVRO, artifactData);
+        ArtifactMetaData metaData = createArtifact(groupId, artifactId, "1.1", IfExists.FAIL, "AVRO", artifactData);
         LOGGER.info("Created artifact {} with metadata {}", artifactId, metaData.toString());
 
         ByteArrayInputStream sameArtifactData = new ByteArrayInputStream("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}".getBytes(StandardCharsets.UTF_8));
 
-        assertClientError(VersionAlreadyExistsException.class.getSimpleName(), 409, () -> createArtifact(groupId, artifactId, "1.1", IfExists.UPDATE, ArtifactType.AVRO, sameArtifactData), true, errorCodeExtractor);
+        assertClientError(VersionAlreadyExistsException.class.getSimpleName(), 409, () -> createArtifact(groupId, artifactId, "1.1", IfExists.UPDATE, "AVRO", sameArtifactData), true, errorCodeExtractor);
     }
 
     @Test
@@ -228,7 +228,7 @@ class ArtifactsIT extends ApicurioV2BaseIT {
         String artifactData = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
 
         // Create the artifact
-        ArtifactMetaData metaData = createArtifact(groupId, artifactId , ArtifactType.AVRO, IoUtil.toStream(artifactData));
+        ArtifactMetaData metaData = createArtifact(groupId, artifactId , "AVRO", IoUtil.toStream(artifactData));
         LOGGER.info("Created artifact {} with metadata {}", artifactId, metaData.toString());
 
         // Disable the artifact
@@ -265,7 +265,7 @@ class ArtifactsIT extends ApicurioV2BaseIT {
         String artifactDataV3 = "{\"type\":\"record\",\"name\":\"myrecord3\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
 
         // Create the artifact
-        ArtifactMetaData v1MD = createArtifact(groupId, artifactId, ArtifactType.AVRO, IoUtil.toStream(artifactData));
+        ArtifactMetaData v1MD = createArtifact(groupId, artifactId, "AVRO", IoUtil.toStream(artifactData));
         LOGGER.info("Created artifact {} with metadata {}", artifactId, v1MD.toString());
 
         // Update the artifact (v2)
@@ -325,7 +325,7 @@ class ArtifactsIT extends ApicurioV2BaseIT {
         String artifactData = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
 
         // Create the artifact
-        ArtifactMetaData metaData = createArtifact(groupId, artifactId, ArtifactType.AVRO, IoUtil.toStream(artifactData));
+        ArtifactMetaData metaData = createArtifact(groupId, artifactId, "AVRO", IoUtil.toStream(artifactData));
         LOGGER.info("Created artifact {} with metadata {}", artifactId, metaData.toString());
 
         retryOp((rc) -> {
@@ -357,7 +357,7 @@ class ArtifactsIT extends ApicurioV2BaseIT {
         String artifactDataV3 = "{\"type\":\"record\",\"name\":\"myrecord3\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
 
         // Create the artifact
-        ArtifactMetaData v1MD = createArtifact(groupId, artifactId, ArtifactType.AVRO, IoUtil.toStream(artifactData));
+        ArtifactMetaData v1MD = createArtifact(groupId, artifactId, "AVRO", IoUtil.toStream(artifactData));
         LOGGER.info("Created artifact {} with metadata {}", artifactId, v1MD.toString());
 
         // Update the artifact (v2)
@@ -405,7 +405,7 @@ class ArtifactsIT extends ApicurioV2BaseIT {
         ByteArrayInputStream artifactData = new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8));
 
         Assertions.assertThrows(InvalidArtifactIdException.class, () -> {
-            registryClient.createArtifact(groupId, artifactId, ArtifactType.AVRO, artifactData);
+            registryClient.createArtifact(groupId, artifactId, "AVRO", artifactData);
         });
 
         ArtifactUtils.createArtifact(groupId, artifactId, content, 400);
@@ -419,7 +419,7 @@ class ArtifactsIT extends ApicurioV2BaseIT {
 
         String content = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
         ByteArrayInputStream artifactData = new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8));
-        createArtifact(groupId, artifactId, ArtifactType.AVRO, artifactData);
+        createArtifact(groupId, artifactId, "AVRO", artifactData);
 
         registryClient.getArtifactMetaData(groupId, artifactId);
 
@@ -471,7 +471,7 @@ class ArtifactsIT extends ApicurioV2BaseIT {
         for (int idx = 0; idx < 5; idx++) {
             String artifactId = "test-" + idx;
             Thread.sleep(idx == 0 ? 0 : 1500/idx);
-            this.createArtifact(group, artifactId, ArtifactType.OPENAPI, new ByteArrayInputStream(content.getBytes()));
+            this.createArtifact(group, artifactId, "OPENAPI", new ByteArrayInputStream(content.getBytes()));
         }
 
         ArtifactSearchResults results = registryClient.searchArtifacts(group, null, null, null, null, SortBy.createdOn, SortOrder.asc, 0, 10);

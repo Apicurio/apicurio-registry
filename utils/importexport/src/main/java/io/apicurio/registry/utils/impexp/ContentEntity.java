@@ -18,7 +18,6 @@ package io.apicurio.registry.utils.impexp;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
-import io.apicurio.registry.types.ArtifactType;
 import io.quarkus.runtime.annotations.RegisterForReflection;
 
 /**
@@ -30,7 +29,7 @@ public class ContentEntity extends Entity {
     public long contentId;
     public String canonicalHash;
     public String contentHash;
-    public ArtifactType artifactType;
+    public String artifactType;
     @JsonIgnore
     public byte[] contentBytes;
     public String serializedReferences;

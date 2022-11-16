@@ -31,7 +31,7 @@ import io.apicurio.registry.serde.jsonschema.JsonSchemaKafkaDeserializer;
 import io.apicurio.registry.serde.jsonschema.JsonSchemaKafkaSerializer;
 import io.apicurio.registry.serde.strategy.SimpleTopicIdStrategy;
 import io.apicurio.registry.serde.strategy.TopicIdStrategy;
-import io.apicurio.registry.types.ArtifactType;
+
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.tests.ApicurioV2BaseIT;
 import io.apicurio.tests.common.Constants;
@@ -69,7 +69,7 @@ public class JsonSchemaSerdeIT extends ApicurioV2BaseIT {
 
         JsonSchemaMsgFactory schema = new JsonSchemaMsgFactory();
 
-        createArtifact(null, artifactId, ArtifactType.JSON, schema.getSchemaStream());
+        createArtifact(null, artifactId, "JSON", schema.getSchemaStream());
 
         new SimpleSerdesTesterBuilder<ValidMessage, ValidMessage>()
             .withTopic(topicName)
@@ -90,7 +90,7 @@ public class JsonSchemaSerdeIT extends ApicurioV2BaseIT {
 
         JsonSchemaMsgFactory schema = new JsonSchemaMsgFactory();
 
-        createArtifact(null, artifactId, ArtifactType.JSON, schema.getSchemaStream());
+        createArtifact(null, artifactId, "JSON", schema.getSchemaStream());
 
         new SimpleSerdesTesterBuilder<ValidMessage, ValidMessage>()
             .withTopic(topicName)
@@ -144,7 +144,7 @@ public class JsonSchemaSerdeIT extends ApicurioV2BaseIT {
 
         JsonSchemaMsgFactory schema = new JsonSchemaMsgFactory();
 
-        createArtifact(null, artifactId, ArtifactType.JSON, schema.getSchemaStream());
+        createArtifact(null, artifactId, "JSON", schema.getSchemaStream());
 
         new SimpleSerdesTesterBuilder<ValidMessage, Map<String, Object>>()
             .withTopic(topicName)
@@ -169,7 +169,7 @@ public class JsonSchemaSerdeIT extends ApicurioV2BaseIT {
         JsonSchemaMsgFactory schema = new JsonSchemaMsgFactory();
 //        ProtobufUUIDTestMessage schemaB = new ProtobufUUIDTestMessage();
 
-        createArtifact(groupId, artifactId, ArtifactType.JSON, schema.getSchemaStream());
+        createArtifact(groupId, artifactId, "JSON", schema.getSchemaStream());
 
         new WrongConfiguredSerdesTesterBuilder<InvalidMessage>()
             .withTopic(topicName)
@@ -214,7 +214,7 @@ public class JsonSchemaSerdeIT extends ApicurioV2BaseIT {
         String artifactId = TestUtils.generateSubject();
         JsonSchemaMsgFactory schema = new JsonSchemaMsgFactory();
 
-        createArtifact(groupId, artifactId, ArtifactType.JSON, schema.getSchemaStream());
+        createArtifact(groupId, artifactId, "JSON", schema.getSchemaStream());
 
         //this test will produce messages using JsonSerializer, which does nothing with the registry and just serializes as json
         //the produced messages won't have the id of the artifact

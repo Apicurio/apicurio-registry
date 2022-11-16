@@ -39,7 +39,7 @@ import io.apicurio.registry.rest.client.RegistryClientFactory;
 import io.apicurio.registry.rest.client.exception.LimitExceededException;
 import io.apicurio.registry.rest.v2.beans.EditableMetaData;
 import io.apicurio.registry.storage.RegistryStorage;
-import io.apicurio.registry.types.ArtifactType;
+
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
@@ -127,7 +127,7 @@ public class MultitenancyLimitsTest extends AbstractRegistryTestBase {
 
         //schema number 3 , exceeds the max number of schemas
         Assertions.assertThrows(LimitExceededException.class, () -> {
-            client.createArtifact(null, artifactId, ArtifactType.JSON, new ByteArrayInputStream("{}".getBytes()));
+            client.createArtifact(null, artifactId, "JSON", new ByteArrayInputStream("{}".getBytes()));
         });
     }
 

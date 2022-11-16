@@ -47,7 +47,7 @@ import io.apicurio.registry.storage.dto.StoredArtifactDto;
 import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
 import io.apicurio.registry.storage.impexp.EntityInputStream;
 import io.apicurio.registry.types.ArtifactState;
-import io.apicurio.registry.types.ArtifactType;
+
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.impexp.Entity;
 
@@ -131,7 +131,7 @@ public interface RegistryStorage extends DynamicConfigStorage {
      * @throws ArtifactAlreadyExistsException
      * @throws RegistryStorageException
      */
-    public ArtifactMetaDataDto createArtifact(String groupId, String artifactId, String version, ArtifactType artifactType,
+    public ArtifactMetaDataDto createArtifact(String groupId, String artifactId, String version, String artifactType,
                                               ContentHandle content, List<ArtifactReferenceDto> references) throws ArtifactAlreadyExistsException, RegistryStorageException;
 
     /**
@@ -148,7 +148,7 @@ public interface RegistryStorage extends DynamicConfigStorage {
      * @throws RegistryStorageException
      */
     public ArtifactMetaDataDto createArtifactWithMetadata(String groupId, String artifactId, String version,
-            ArtifactType artifactType, ContentHandle content, EditableArtifactMetaDataDto metaData, List<ArtifactReferenceDto> references) throws ArtifactAlreadyExistsException, RegistryStorageException;
+            String artifactType, ContentHandle content, EditableArtifactMetaDataDto metaData, List<ArtifactReferenceDto> references) throws ArtifactAlreadyExistsException, RegistryStorageException;
 
     /**
      * Deletes an artifact by its group and unique id. Returns list of artifact versions.
@@ -224,7 +224,7 @@ public interface RegistryStorage extends DynamicConfigStorage {
      * @throws RegistryStorageException
      */
     public ArtifactMetaDataDto updateArtifact(String groupId, String artifactId, String version,
-            ArtifactType artifactType, ContentHandle content, List<ArtifactReferenceDto> references) throws ArtifactNotFoundException, RegistryStorageException;
+            String artifactType, ContentHandle content, List<ArtifactReferenceDto> references) throws ArtifactNotFoundException, RegistryStorageException;
 
     /**
      * Updates the artifact value by storing the given value and metadata as a new version of the artifact.  Previous value
@@ -241,7 +241,7 @@ public interface RegistryStorage extends DynamicConfigStorage {
      * @throws RegistryStorageException
      */
     public ArtifactMetaDataDto updateArtifactWithMetadata(String groupId, String artifactId, String version,
-            ArtifactType artifactType, ContentHandle content, EditableArtifactMetaDataDto metaData, List<ArtifactReferenceDto> references) throws ArtifactNotFoundException, RegistryStorageException;
+            String artifactType, ContentHandle content, EditableArtifactMetaDataDto metaData, List<ArtifactReferenceDto> references) throws ArtifactNotFoundException, RegistryStorageException;
 
     /**
      * Get all artifact ids.

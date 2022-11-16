@@ -19,7 +19,7 @@ package io.apicurio.registry.noprofile.content;
 import io.apicurio.registry.AbstractRegistryTestBase;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.canon.ContentCanonicalizer;
-import io.apicurio.registry.types.ArtifactType;
+
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 import io.quarkus.test.junit.QuarkusTest;
@@ -38,14 +38,14 @@ public class ContentCanonicalizerTest extends AbstractRegistryTestBase {
     @Inject
     ArtifactTypeUtilProviderFactory factory;
 
-    private ContentCanonicalizer getContentCanonicalizer(ArtifactType type) {
+    private ContentCanonicalizer getContentCanonicalizer(String type) {
         ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(type);
         return provider.getContentCanonicalizer();
     }
 
     @Test
     void testOpenAPI() {
-        ContentCanonicalizer canonicalizer = getContentCanonicalizer(ArtifactType.OPENAPI);
+        ContentCanonicalizer canonicalizer = getContentCanonicalizer("OPENAPI");
         
         String before = "{\r\n" + 
                 "    \"openapi\": \"3.0.2\",\r\n" + 
@@ -67,7 +67,7 @@ public class ContentCanonicalizerTest extends AbstractRegistryTestBase {
 
     @Test
     void testAvro() {
-        ContentCanonicalizer canonicalizer = getContentCanonicalizer(ArtifactType.AVRO);
+        ContentCanonicalizer canonicalizer = getContentCanonicalizer("AVRO");
         
         String before = "{\r\n" + 
                 "     \"type\": \"record\",\r\n" + 
@@ -88,7 +88,7 @@ public class ContentCanonicalizerTest extends AbstractRegistryTestBase {
 
     @Test
     void testProtobuf() {
-        ContentCanonicalizer canonicalizer = getContentCanonicalizer(ArtifactType.PROTOBUF);
+        ContentCanonicalizer canonicalizer = getContentCanonicalizer("PROTOBUF");
 
         String before = "message SearchRequest {\r\n" +
                 "  required string query = 1;\r\n" +
@@ -113,7 +113,7 @@ public class ContentCanonicalizerTest extends AbstractRegistryTestBase {
 
     @Test
     void testGraphQL() {
-        ContentCanonicalizer canonicalizer = getContentCanonicalizer(ArtifactType.GRAPHQL);
+        ContentCanonicalizer canonicalizer = getContentCanonicalizer("GRAPHQL");
         
         String before = "type Query {\r\n" + 
                 "  bookById(id: ID): Book \r\n" + 
@@ -156,7 +156,7 @@ public class ContentCanonicalizerTest extends AbstractRegistryTestBase {
     
     @Test
     void testKafkaConnect() {
-        ContentCanonicalizer canonicalizer = getContentCanonicalizer(ArtifactType.KCONNECT);
+        ContentCanonicalizer canonicalizer = getContentCanonicalizer("KCONNECT");
         
         String before = "{\r\n" + 
                 "    \"type\": \"struct\",\r\n" + 
@@ -181,7 +181,7 @@ public class ContentCanonicalizerTest extends AbstractRegistryTestBase {
     */
     @Test
     void testXsd() {
-       ContentCanonicalizer canonicalizer = getContentCanonicalizer(ArtifactType.XSD);
+       ContentCanonicalizer canonicalizer = getContentCanonicalizer("XSD");
 
        ContentHandle content = resourceToContentHandle("xml-schema-before.xsd");
        String expected = resourceToString("xml-schema-expected.xsd");
@@ -195,7 +195,7 @@ public class ContentCanonicalizerTest extends AbstractRegistryTestBase {
      */
      @Test
      void testWsdl() {
-        ContentCanonicalizer canonicalizer = getContentCanonicalizer(ArtifactType.WSDL);
+        ContentCanonicalizer canonicalizer = getContentCanonicalizer("WSDL");
 
         ContentHandle content = resourceToContentHandle("wsdl-before.wsdl");
         String expected = resourceToString("wsdl-expected.wsdl");
@@ -209,7 +209,7 @@ public class ContentCanonicalizerTest extends AbstractRegistryTestBase {
       */
       @Test
       void testXml() {
-         ContentCanonicalizer canonicalizer = getContentCanonicalizer(ArtifactType.XML);
+         ContentCanonicalizer canonicalizer = getContentCanonicalizer("XML");
         
          ContentHandle content = resourceToContentHandle("xml-before.xml");
          String expected = resourceToString("xml-expected.xml");

@@ -35,7 +35,7 @@ import io.apicurio.registry.rest.v2.beans.Rule;
 import io.apicurio.registry.rest.v2.beans.SortBy;
 import io.apicurio.registry.rest.v2.beans.SortOrder;
 import io.apicurio.registry.rest.v2.beans.VersionSearchResults;
-import io.apicurio.registry.types.ArtifactType;
+
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.tests.ApicurioV2BaseIT;
@@ -66,7 +66,7 @@ public class ClusteredRegistryIT  extends ApicurioV2BaseIT {
 
         String artifactId = UUID.randomUUID().toString();
         ByteArrayInputStream stream = new ByteArrayInputStream("{\"name\":\"redhat\"}".getBytes(StandardCharsets.UTF_8));
-        client1.createArtifact(groupId, artifactId, ArtifactType.JSON, stream).getGlobalId();
+        client1.createArtifact(groupId, artifactId, "JSON", stream).getGlobalId();
         try {
             TestUtils.retry(() -> {
                 ArtifactMetaData amd = client2.getArtifactMetaData(groupId, artifactId);
@@ -160,7 +160,7 @@ public class ClusteredRegistryIT  extends ApicurioV2BaseIT {
 
         String artifactId = UUID.randomUUID().toString();
         ByteArrayInputStream stream = new ByteArrayInputStream(("{\"name\":\"redhat\"}").getBytes(StandardCharsets.UTF_8));
-        client1.createArtifact(groupId, artifactId, ArtifactType.JSON, stream);
+        client1.createArtifact(groupId, artifactId, "JSON", stream);
         try {
             String name = UUID.randomUUID().toString();
             String desc = UUID.randomUUID().toString();
@@ -212,9 +212,9 @@ public class ClusteredRegistryIT  extends ApicurioV2BaseIT {
         ByteArrayInputStream first = new ByteArrayInputStream(("{\"name\":\"redhat\"}").getBytes(StandardCharsets.UTF_8));
         ByteArrayInputStream second = new ByteArrayInputStream(("{\"name\":\"ibm\"}").getBytes(StandardCharsets.UTF_8));
         ByteArrayInputStream third = new ByteArrayInputStream(("{\"name\":\"company\"}").getBytes(StandardCharsets.UTF_8));
-        final ArtifactMetaData firstArtifact = client1.createArtifact(groupId, artifactId, ArtifactType.JSON, first);
-        final ArtifactMetaData secondArtifact = client2.createArtifact(groupId, secondId, ArtifactType.JSON, second);
-        final ArtifactMetaData thirdArtifact = client1.createArtifact(groupId, thirdId, ArtifactType.JSON, third);
+        final ArtifactMetaData firstArtifact = client1.createArtifact(groupId, artifactId, "JSON", first);
+        final ArtifactMetaData secondArtifact = client2.createArtifact(groupId, secondId, "JSON", second);
+        final ArtifactMetaData thirdArtifact = client1.createArtifact(groupId, thirdId, "JSON", third);
 
         try {
             String name = UUID.randomUUID().toString();

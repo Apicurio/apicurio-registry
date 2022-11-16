@@ -31,7 +31,7 @@ import io.apicurio.registry.rest.v2.beans.ArtifactSearchResults;
 import io.apicurio.registry.rest.v2.beans.EditableMetaData;
 import io.apicurio.registry.rest.v2.beans.SortBy;
 import io.apicurio.registry.rest.v2.beans.SortOrder;
-import io.apicurio.registry.types.ArtifactType;
+
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
 
@@ -62,7 +62,7 @@ public class ArtifactSearchTest extends AbstractResourceTestBase {
         String content = OPENAPI_CONTENT_TEMPLATE.replace("TITLE", title).replace("DESCRIPTION", description);
         ByteArrayInputStream artifactData = new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8));
 
-        ArtifactMetaData amd = clientV2.createArtifact(groupId, artifactId, ArtifactType.OPENAPI, artifactData);
+        ArtifactMetaData amd = clientV2.createArtifact(groupId, artifactId, "OPENAPI", artifactData);
         long id = amd.getGlobalId();
 
         this.waitForGlobalId(id);

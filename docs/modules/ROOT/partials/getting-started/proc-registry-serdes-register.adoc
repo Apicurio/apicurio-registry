@@ -103,7 +103,7 @@ try (RegistryService service = RegistryClient.create(registryUrl_node1)) {
         service.getArtifactMetaData(artifactId); <2>
     } catch (WebApplicationException e) {
         CompletionStage <ArtifactMetaData> csa = service.createArtifact(
-            ArtifactType.AVRO,
+            "AVRO",
             artifactId,
             new ByteArrayInputStream(LogInput.SCHEMA$.toString().getBytes())
         );

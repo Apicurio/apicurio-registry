@@ -18,7 +18,7 @@ package io.apicurio.tests.utils.subUtils;
 
 import io.apicurio.registry.client.RegistryRestClient;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
-import io.apicurio.registry.types.ArtifactType;
+
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.tests.common.utils.BaseHttpUtils;
 import io.apicurio.tests.common.utils.subUtils.RestConstants;
@@ -82,7 +82,7 @@ public class ArtifactUtils {
         return  BaseHttpUtils.artifactPostRequest(artifactId, RestConstants.JSON, artifact, "/artifacts", returnCode);
     }
 
-    public static ArtifactMetaData createArtifact(RegistryRestClient client, ArtifactType atype, String artifactId, InputStream artifactData) {
+    public static ArtifactMetaData createArtifact(RegistryRestClient client, String atype, String artifactId, InputStream artifactData) {
         return client.createArtifact(artifactId, atype, null, artifactData);
     }
 
@@ -98,7 +98,7 @@ public class ArtifactUtils {
         return BaseHttpUtils.putRequest(RestConstants.JSON, artifact, "/artifacts/" + encodeURIComponent(artifactId), returnCode);
     }
 
-    public static ArtifactMetaData updateArtifact(RegistryRestClient client, ArtifactType atype, String artifactId, InputStream artifactData) {
+    public static ArtifactMetaData updateArtifact(RegistryRestClient client, String atype, String artifactId, InputStream artifactData) {
         return client.updateArtifact(artifactId, atype, artifactData);
     }
 

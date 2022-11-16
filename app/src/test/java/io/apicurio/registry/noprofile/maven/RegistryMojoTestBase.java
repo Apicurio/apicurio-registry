@@ -19,7 +19,7 @@ package io.apicurio.registry.noprofile.maven;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.maven.RegisterArtifact;
 import io.apicurio.registry.maven.RegisterRegistryMojo;
-import io.apicurio.registry.types.ArtifactType;
+
 import org.apache.avro.Schema;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
@@ -83,14 +83,14 @@ public class RegistryMojoTestBase extends AbstractResourceTestBase {
         RegisterArtifact keySchemaArtifact = new RegisterArtifact();
         keySchemaArtifact.setGroupId(groupId);
         keySchemaArtifact.setArtifactId(keySubject);
-        keySchemaArtifact.setType(ArtifactType.AVRO);
+        keySchemaArtifact.setType("AVRO");
         keySchemaArtifact.setFile(keySchemaFile);
         artifacts.add(keySchemaArtifact);
 
         RegisterArtifact valueSchemaArtifact = new RegisterArtifact();
         valueSchemaArtifact.setGroupId(groupId);
         valueSchemaArtifact.setArtifactId(valueSubject);
-        valueSchemaArtifact.setType(ArtifactType.AVRO);
+        valueSchemaArtifact.setType("AVRO");
         valueSchemaArtifact.setFile(valueSchemaFile);
         artifacts.add(valueSchemaArtifact);
 

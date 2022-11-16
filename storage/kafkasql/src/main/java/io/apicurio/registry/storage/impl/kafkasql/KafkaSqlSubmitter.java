@@ -67,7 +67,7 @@ import io.apicurio.registry.storage.impl.kafkasql.values.LogConfigValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.MessageValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.RoleMappingValue;
 import io.apicurio.registry.types.ArtifactState;
-import io.apicurio.registry.types.ArtifactType;
+
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.kafka.ProducerActions;
 
@@ -135,7 +135,7 @@ public class KafkaSqlSubmitter {
      * Artifact
      * ****************************************************************************************** */
     public CompletableFuture<UUID> submitArtifact(String tenantId, String groupId, String artifactId, String version, ActionType action,
-            Long globalId, ArtifactType artifactType, String contentHash, String createdBy, Date createdOn,
+            Long globalId, String artifactType, String contentHash, String createdBy, Date createdOn,
             EditableArtifactMetaDataDto metaData, Integer versionId, ArtifactState state, Long contentId, Boolean latest) {
         ArtifactKey key = ArtifactKey.create(tenantId, groupId, artifactId);
         ArtifactValue value = ArtifactValue.create(action, globalId, version, artifactType, contentHash, createdBy, createdOn, metaData,
@@ -143,7 +143,7 @@ public class KafkaSqlSubmitter {
         return send(key, value);
     }
     public CompletableFuture<UUID> submitArtifact(String tenantId, String groupId, String artifactId, String version, ActionType action,
-            Long globalId, ArtifactType artifactType, String contentHash, String createdBy, Date createdOn,
+            Long globalId, String artifactType, String contentHash, String createdBy, Date createdOn,
             EditableArtifactMetaDataDto metaData) {
         return submitArtifact(tenantId, groupId, artifactId, version, action, globalId, artifactType, contentHash, createdBy, createdOn,
                 metaData, null, null, null, null);

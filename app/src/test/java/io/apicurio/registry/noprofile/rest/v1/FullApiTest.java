@@ -19,7 +19,7 @@ package io.apicurio.registry.noprofile.rest.v1;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.rest.v1.beans.Rule;
 import io.apicurio.registry.rules.validity.ValidityLevel;
-import io.apicurio.registry.types.ArtifactType;
+
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
@@ -44,7 +44,7 @@ public class FullApiTest extends AbstractResourceTestBase {
 
     @Test
     public void testGlobalRuleApplicationOpenAPI() throws Exception {
-        ArtifactType artifactType = ArtifactType.OPENAPI;
+        String artifactType = "OPENAPI";
         String artifactContent = resourceToString("openapi-invalid-syntax.json");
 
         // First, create an artifact without the rule installed.  Should work.
@@ -81,7 +81,7 @@ public class FullApiTest extends AbstractResourceTestBase {
             .when()
                 .contentType(CT_JSON)
                 .header("X-Registry-ArtifactId", artifactId)
-                .header("X-Registry-ArtifactType", artifactType.name())
+                .header("X-Registry-ArtifactType", artifactType)
                 .body(artifactContent)
                 .post("/registry/v1/artifacts")
             .then()
@@ -93,7 +93,7 @@ public class FullApiTest extends AbstractResourceTestBase {
 
     @Test
     public void testGlobalRuleApplicationProtobuf() throws Exception {
-        ArtifactType artifactType = ArtifactType.PROTOBUF;
+        String artifactType = "PROTOBUF";
         String artifactContent = resourceToString("protobuf-invalid-syntax.proto");
 
         // First, create an artifact without the rule installed.  Should work.
@@ -130,7 +130,7 @@ public class FullApiTest extends AbstractResourceTestBase {
             .when()
                 .contentType(CT_PROTO)
                 .header("X-Registry-ArtifactId", artifactId)
-                .header("X-Registry-ArtifactType", artifactType.name())
+                .header("X-Registry-ArtifactType", artifactType)
                 .body(artifactContent)
                 .post("/registry/v1/artifacts")
             .then()

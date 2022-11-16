@@ -48,7 +48,7 @@ import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
 import io.apicurio.registry.storage.dto.OrderBy;
 import io.apicurio.registry.storage.dto.OrderDirection;
 import io.apicurio.registry.storage.dto.SearchFilter;
-import io.apicurio.registry.types.ArtifactType;
+
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
@@ -154,7 +154,7 @@ public class SearchResourceImpl implements SearchResource {
      */
     @Override
     @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Read)
-    public ArtifactSearchResults searchArtifactsByContent(Boolean canonical, ArtifactType artifactType, Integer offset, Integer limit,
+    public ArtifactSearchResults searchArtifactsByContent(Boolean canonical, String artifactType, Integer offset, Integer limit,
             SortOrder order, SortBy orderby, InputStream data) {
 
         if (orderby == null) {
@@ -213,14 +213,14 @@ public class SearchResourceImpl implements SearchResource {
         return groupId;
     }
 
-    protected ContentHandle canonicalizeContent(ArtifactType artifactType, ContentHandle content) {
+    protected ContentHandle canonicalizeContent(String artifactType, ContentHandle content) {
         try {
             ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(artifactType);
             ContentCanonicalizer canonicalizer = provider.getContentCanonicalizer();
             ContentHandle canonicalContent = canonicalizer.canonicalize(content, Collections.emptyMap());
             return canonicalContent;
         } catch (Exception e) {
-            log.debug("Failed to canonicalize content of type: {}", artifactType.name());
+            log.debug("Failed to canonicalize content of type: {}", artifactType);
             return content;
         }
     }

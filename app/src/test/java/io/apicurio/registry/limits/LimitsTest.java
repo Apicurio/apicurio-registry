@@ -30,7 +30,7 @@ import io.apicurio.registry.AbstractRegistryTestBase;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.rest.client.exception.LimitExceededException;
 import io.apicurio.registry.rest.v2.beans.EditableMetaData;
-import io.apicurio.registry.types.ArtifactType;
+
 import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
@@ -53,8 +53,8 @@ public class LimitsTest extends AbstractResourceTestBase {
 
         String artifactId = TestUtils.generateArtifactId();
 
-        createArtifact(artifactId, ArtifactType.JSON, content);
-        createArtifactVersion(artifactId, ArtifactType.JSON, content);
+        createArtifact(artifactId, "JSON", content);
+        createArtifactVersion(artifactId, "JSON", content);
 
         //valid metadata
         EditableMetaData meta = new EditableMetaData();
@@ -82,7 +82,7 @@ public class LimitsTest extends AbstractResourceTestBase {
 
         //schema number 3 , exceeds the max number of schemas
         Assertions.assertThrows(LimitExceededException.class, () -> {
-            clientV2.createArtifact(null, artifactId, ArtifactType.JSON, new ByteArrayInputStream("{}".getBytes()));
+            clientV2.createArtifact(null, artifactId, "JSON", new ByteArrayInputStream("{}".getBytes()));
         });
 
     }

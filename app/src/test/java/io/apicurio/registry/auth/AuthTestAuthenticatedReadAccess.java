@@ -25,7 +25,7 @@ import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.rest.client.AdminClient;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.v2.beans.ArtifactSearchResults;
-import io.apicurio.registry.types.ArtifactType;
+
 import io.apicurio.registry.utils.tests.ApicurioTestTags;
 import io.apicurio.registry.utils.tests.AuthTestProfileAuthenticatedReadAccess;
 import io.apicurio.registry.utils.tests.JWKSMockServer;
@@ -90,7 +90,7 @@ public class AuthTestAuthenticatedReadAccess extends AbstractResourceTestBase {
                 "    \"fields\" : [{\"name\" : \"age\", \"type\" : \"int\"}]\r\n" +
                 "}").getBytes(StandardCharsets.UTF_8));
         Assertions.assertThrows(ForbiddenException.class, () -> {
-            client.createArtifact(groupId, "testReadOperationWithNoRole", ArtifactType.AVRO, data);
+            client.createArtifactWithType(groupId, "testReadOperationWithNoRole", "AVRO", data);
         });
     }
 }

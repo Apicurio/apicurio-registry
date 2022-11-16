@@ -23,7 +23,7 @@ import io.apicurio.registry.client.RegistryService;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.beans.EditableMetaData;
 import io.apicurio.registry.rest.beans.IfExistsType;
-import io.apicurio.registry.types.ArtifactType;
+
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.tests.common.ApicurioRegistryBaseIT;
 import io.apicurio.tests.common.Constants;
@@ -111,7 +111,7 @@ public abstract class BaseIT extends ApicurioRegistryBaseIT {
 
             String artifactDefinition = "{\"type\":\"record\",\"name\":\"" + name + "\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
             ByteArrayInputStream artifactData = new ByteArrayInputStream(artifactDefinition.getBytes(StandardCharsets.UTF_8));
-            ArtifactMetaData amd = apicurioService.createArtifact(artifactId, ArtifactType.AVRO, IfExistsType.FAIL, artifactData);
+            ArtifactMetaData amd = apicurioService.createArtifact(artifactId, "AVRO", IfExistsType.FAIL, artifactData);
 
             // Make sure artifact is fully registered
             TestUtils.retry(() -> apicurioService.getArtifactMetaDataByGlobalId(amd.getGlobalId()));
@@ -133,7 +133,7 @@ public abstract class BaseIT extends ApicurioRegistryBaseIT {
     public void createArtifactViaApicurioClient(RegistryRestClient client, Schema schema, String artifactName) throws TimeoutException {
         ArtifactMetaData artifactMetadata = client.createArtifact(
                 artifactName,
-                ArtifactType.AVRO,
+                "AVRO",
                 null,
                 new ByteArrayInputStream(schema.toString().getBytes(StandardCharsets.UTF_8))
         );
@@ -153,7 +153,7 @@ public abstract class BaseIT extends ApicurioRegistryBaseIT {
     public void updateArtifactViaApicurioClient(RegistryRestClient client, Schema schema, String artifactName) throws TimeoutException {
         ArtifactMetaData artifactMetadata = client.updateArtifact(
                 artifactName,
-                ArtifactType.AVRO,
+                "AVRO",
                 new ByteArrayInputStream(schema.toString().getBytes(StandardCharsets.UTF_8))
         );
         EditableMetaData editableMetaData = new EditableMetaData();

@@ -24,7 +24,7 @@ import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.RegistryClientFactory;
 import io.apicurio.registry.rest.v2.beans.Rule;
 import io.apicurio.registry.rules.validity.ValidityLevel;
-import io.apicurio.registry.types.ArtifactType;
+
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.tests.ApicurioTestTags;
 import io.apicurio.registry.utils.tests.AuthTestProfile;
@@ -97,7 +97,7 @@ public class AuthTestProfileBasicClientCredentials extends AbstractResourceTestB
         String artifactId = TestUtils.generateArtifactId();
         try {
             client.listArtifactsInGroup(groupId);
-            client.createArtifact(groupId, artifactId, ArtifactType.JSON, new ByteArrayInputStream("{}".getBytes()));
+            client.createArtifactWithType(groupId, artifactId, "JSON", new ByteArrayInputStream("{}".getBytes()));
             TestUtils.retry(() -> client.getArtifactMetaData(groupId, artifactId));
             assertNotNull(client.getLatestArtifact(groupId, artifactId));
             Rule ruleConfig = new Rule();

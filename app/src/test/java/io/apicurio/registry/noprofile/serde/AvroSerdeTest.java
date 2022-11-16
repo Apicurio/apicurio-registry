@@ -60,7 +60,7 @@ import io.apicurio.registry.serde.avro.strategy.QualifiedRecordIdStrategy;
 import io.apicurio.registry.serde.avro.strategy.RecordIdStrategy;
 import io.apicurio.registry.serde.avro.strategy.TopicRecordIdStrategy;
 import io.apicurio.registry.support.Tester;
-import io.apicurio.registry.types.ArtifactType;
+
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.avro.AvroSchema;
@@ -91,7 +91,7 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
         String groupId = TestUtils.generateGroupId();
         String topic = generateArtifactId();
 
-        final Integer globalId = createArtifact(groupId, topic + "-" + recordName, ArtifactType.AVRO, schema.toString());
+        final Integer globalId = createArtifact(groupId, topic + "-" + recordName, "AVRO", schema.toString());
 
         this.waitForGlobalId(globalId);
 

@@ -3046,18 +3046,6 @@
             },
             "ArtifactType": {
                 "description": "",
-                "enum": [
-                    "AVRO",
-                    "PROTOBUF",
-                    "JSON",
-                    "OPENAPI",
-                    "ASYNCAPI",
-                    "GRAPHQL",
-                    "KCONNECT",
-                    "WSDL",
-                    "XSD",
-                    "XML"
-                ],
                 "type": "string",
                 "example": "AVRO",
                 "x-codegen-package": "io.apicurio.registry.types"

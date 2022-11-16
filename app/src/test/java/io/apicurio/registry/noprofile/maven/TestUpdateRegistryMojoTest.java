@@ -31,7 +31,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import io.apicurio.registry.rest.v2.beans.Rule;
-import io.apicurio.registry.types.ArtifactType;
+
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
@@ -62,7 +62,7 @@ public class TestUpdateRegistryMojoTest extends RegistryMojoTestBase {
                                                   "     {\"name\": \"favorite_number\",  \"type\": \"int\"}" +
                                                   " ]" +
                                                   "}");
-        clientV2.createArtifact(groupId, artifactId, ArtifactType.AVRO, new ByteArrayInputStream(schema.toString().getBytes(StandardCharsets.UTF_8)));
+        clientV2.createArtifact(groupId, artifactId, "AVRO", new ByteArrayInputStream(schema.toString().getBytes(StandardCharsets.UTF_8)));
         this.waitForArtifact(groupId, artifactId);
 
         Rule rule = new Rule();

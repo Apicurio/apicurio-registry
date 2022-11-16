@@ -34,7 +34,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.apicurio.registry.rest.client.RegistryClientFactory;
-import io.apicurio.registry.types.ArtifactType;
+
 import io.apicurio.registry.utils.tests.SimpleDisplayName;
 import io.apicurio.tests.ApicurioV2BaseIT;
 import io.apicurio.tests.common.Constants;
@@ -97,9 +97,9 @@ public class KafkaSqlLogCompactionIT implements TestSeparator, Constants {
 
             var registryClient = RegistryClientFactory.create("http://localhost:8081");
 
-            createArtifact(registryClient, ArtifactType.AVRO, ApicurioV2BaseIT.resourceToString("artifactTypes/" + "avro/multi-field_v1.json"));
-            var artifactdata = createArtifact(registryClient, ArtifactType.JSON, ApicurioV2BaseIT.resourceToString("artifactTypes/" + "jsonSchema/person_v1.json"));
-            createArtifact(registryClient, ArtifactType.PROTOBUF, ApicurioV2BaseIT.resourceToString("artifactTypes/" + "protobuf/tutorial_v1.proto"));
+            createArtifact(registryClient, "AVRO", ApicurioV2BaseIT.resourceToString("artifactTypes/" + "avro/multi-field_v1.json"));
+            var artifactdata = createArtifact(registryClient, "JSON", ApicurioV2BaseIT.resourceToString("artifactTypes/" + "jsonSchema/person_v1.json"));
+            createArtifact(registryClient, "PROTOBUF", ApicurioV2BaseIT.resourceToString("artifactTypes/" + "protobuf/tutorial_v1.proto"));
 
             assertEquals(3, registryClient.listArtifactsInGroup(null).getCount());
 
@@ -126,7 +126,7 @@ public class KafkaSqlLogCompactionIT implements TestSeparator, Constants {
 
             String test2content = ApicurioV2BaseIT.resourceToString("artifactTypes/" + "protobuf/tutorial_v2.proto");
             String originalHash = DigestUtils.sha256Hex(test2content);
-            var artifact = createArtifact(registryClient, ArtifactType.PROTOBUF, test2content);
+            var artifact = createArtifact(registryClient, "PROTOBUF", test2content);
 
             assertEquals(originalHash, artifact.contentHash);
 

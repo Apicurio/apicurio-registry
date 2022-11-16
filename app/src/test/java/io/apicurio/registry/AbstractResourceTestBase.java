@@ -38,7 +38,7 @@ import io.apicurio.registry.rest.client.AdminClient;
 import io.apicurio.registry.rest.client.RegistryClientFactory;
 import io.apicurio.registry.types.ArtifactMediaTypes;
 import io.apicurio.registry.types.ArtifactState;
-import io.apicurio.registry.types.ArtifactType;
+
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.restassured.RestAssured;
@@ -123,18 +123,18 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
         });
     }
 
-    protected Integer createArtifact(String artifactId, ArtifactType artifactType, String artifactContent) throws Exception {
+    protected Integer createArtifact(String artifactId, String artifactType, String artifactContent) throws Exception {
         ValidatableResponse response = given()
             .when()
                 .contentType(CT_JSON)
                 .header("X-Registry-ArtifactId", artifactId)
-                .header("X-Registry-ArtifactType", artifactType.name())
+                .header("X-Registry-ArtifactType", artifactType)
                 .body(artifactContent)
             .post("/registry/v1/artifacts")
             .then()
                 .statusCode(200)
                 .body("id", equalTo(artifactId))
-                .body("type", equalTo(artifactType.name()));
+                .body("type", equalTo(artifactType));
 
         waitForArtifact(artifactId);
 
@@ -142,26 +142,26 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
     }
 
 
-    protected Integer createArtifact(String groupId, String artifactId, ArtifactType artifactType, String artifactContent) throws Exception {
+    protected Integer createArtifact(String groupId, String artifactId, String artifactType, String artifactContent) throws Exception {
         ValidatableResponse response = given()
             .when()
                 .contentType(CT_JSON)
                 .pathParam("groupId", groupId)
                 .header("X-Registry-ArtifactId", artifactId)
-                .header("X-Registry-ArtifactType", artifactType.name())
+                .header("X-Registry-ArtifactType", artifactType)
                 .body(artifactContent)
             .post("/registry/v2/groups/{groupId}/artifacts")
             .then()
                 .statusCode(200)
                 .body("id", equalTo(artifactId))
-                .body("type", equalTo(artifactType.name()));
+                .body("type", equalTo(artifactType));
 
         waitForArtifact(groupId, artifactId);
 
         return response.extract().body().path("globalId");
     }
 
-    protected Integer createArtifactWithReferences(String groupId, String artifactId, ArtifactType artifactType, String artifactContent, List<ArtifactReference> artifactReferences) throws Exception {
+    protected Integer createArtifactWithReferences(String groupId, String artifactId, String artifactType, String artifactContent, List<ArtifactReference> artifactReferences) throws Exception {
 
         ContentCreateRequest contentCreateRequest = new ContentCreateRequest();
         contentCreateRequest.setContent(artifactContent);
@@ -172,48 +172,48 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
                 .contentType(CT_JSON_EXTENDED)
                 .pathParam("groupId", groupId)
                 .header("X-Registry-ArtifactId", artifactId)
-                .header("X-Registry-ArtifactType", artifactType.name())
+                .header("X-Registry-ArtifactType", artifactType)
                 .body(contentCreateRequest)
                 .post("/registry/v2/groups/{groupId}/artifacts")
                 .then()
                 .statusCode(200)
                 .body("id", equalTo(artifactId))
-                .body("type", equalTo(artifactType.name()));
+                .body("type", equalTo(artifactType));
 
         waitForArtifact(groupId, artifactId);
 
         return response.extract().body().path("globalId");
     }
 
-    protected Integer createArtifactVersion(String artifactId, ArtifactType artifactType, String artifactContent) throws Exception {
+    protected Integer createArtifactVersion(String artifactId, String artifactType, String artifactContent) throws Exception {
         ValidatableResponse response = given()
             .when()
                 .contentType(CT_JSON)
                 .pathParam("artifactId", artifactId)
-                .header("X-Registry-ArtifactType", artifactType.name())
+                .header("X-Registry-ArtifactType", artifactType)
                 .body(artifactContent)
             .post("/registry/v1/artifacts/{artifactId}/versions")
             .then()
                 .statusCode(200)
                 .body("id", equalTo(artifactId))
-                .body("type", equalTo(artifactType.name()));
+                .body("type", equalTo(artifactType));
 
         return response.extract().body().path("globalId");
     }
 
-    protected Integer createArtifactVersion(String groupId, String artifactId, ArtifactType artifactType, String artifactContent) throws Exception {
+    protected Integer createArtifactVersion(String groupId, String artifactId, String artifactType, String artifactContent) throws Exception {
         ValidatableResponse response = given()
             .when()
                 .contentType(CT_JSON)
                 .pathParam("groupId", groupId)
                 .pathParam("artifactId", artifactId)
-                .header("X-Registry-ArtifactType", artifactType.name())
+                .header("X-Registry-ArtifactType", artifactType)
                 .body(artifactContent)
             .post("/registry/v2/groups/{groupId}/artifacts/{artifactId}/versions")
             .then()
                 .statusCode(200)
                 .body("id", equalTo(artifactId))
-                .body("type", equalTo(artifactType.name()));
+                .body("type", equalTo(artifactType));
 
         return response.extract().body().path("globalId");
     }

@@ -22,7 +22,7 @@ import org.apache.commons.codec.digest.DigestUtils;
 
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
-import io.apicurio.registry.types.ArtifactType;
+
 import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.tests.TestUtils;
 
@@ -31,7 +31,7 @@ import io.apicurio.registry.utils.tests.TestUtils;
  */
 public class CustomTestsUtils {
 
-    public static ArtifactData createArtifact(RegistryClient client, ArtifactType type, String content) throws Exception {
+    public static ArtifactData createArtifact(RegistryClient client, String type, String content) throws Exception {
         String artifactId = TestUtils.generateArtifactId();
         ArtifactMetaData meta = client.createArtifact(null, artifactId, type, IoUtil.toStream(content));
         TestUtils.retry(() -> client.getContentByGlobalId(meta.getGlobalId()));

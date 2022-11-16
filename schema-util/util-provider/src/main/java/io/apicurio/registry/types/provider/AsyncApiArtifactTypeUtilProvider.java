@@ -26,7 +26,6 @@ import io.apicurio.registry.rules.compatibility.CompatibilityChecker;
 import io.apicurio.registry.rules.compatibility.NoopCompatibilityChecker;
 import io.apicurio.registry.rules.validity.AsyncApiContentValidator;
 import io.apicurio.registry.rules.validity.ContentValidator;
-import io.apicurio.registry.types.ArtifactType;
 
 /**
  * @author Ales Justin
@@ -34,8 +33,8 @@ import io.apicurio.registry.types.ArtifactType;
 public class AsyncApiArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvider {
 
     @Override
-    public ArtifactType getArtifactType() {
-        return ArtifactType.ASYNCAPI;
+    public String getArtifactType() {
+        return "ASYNCAPI";
     }
 
     @Override

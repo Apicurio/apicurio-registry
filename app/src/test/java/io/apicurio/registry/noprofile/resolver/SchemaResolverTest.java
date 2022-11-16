@@ -41,7 +41,7 @@ import io.apicurio.registry.resolver.strategy.ArtifactReference;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.RegistryClientFactory;
 import io.apicurio.registry.rest.client.exception.ArtifactNotFoundException;
-import io.apicurio.registry.types.ArtifactType;
+
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
 
@@ -86,14 +86,14 @@ public class SchemaResolverTest extends AbstractResourceTestBase {
             }
 
             @Override
-            public ArtifactType artifactType() {
-                return ArtifactType.AVRO;
+            public String artifactType() {
+                return "AVRO";
             }
         });
 
         Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord3\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");
         String artifactId = TestUtils.generateArtifactId();
-        createArtifact(artifactId, ArtifactType.AVRO, schema.toString());
+        createArtifact(artifactId, "AVRO", schema.toString());
 
         GenericRecord avroRecord = new GenericData.Record(schema);
         avroRecord.put("bar", "somebar");

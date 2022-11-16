@@ -19,7 +19,7 @@ package io.apicurio.registry.serde.jsonschema;
 import io.apicurio.registry.resolver.ParsedSchema;
 import io.apicurio.registry.resolver.SchemaParser;
 import io.apicurio.registry.resolver.data.Record;
-import io.apicurio.registry.types.ArtifactType;
+
 import io.apicurio.registry.utils.IoUtil;
 
 import java.util.Map;
@@ -30,8 +30,8 @@ public class JsonSchemaParser<T> implements SchemaParser<JsonSchema, T> {
      * @see io.apicurio.registry.serde.SchemaParser#artifactType()
      */
     @Override
-    public ArtifactType artifactType() {
-        return ArtifactType.JSON;
+    public String artifactType() {
+        return "JSON";
     }
 
     /**

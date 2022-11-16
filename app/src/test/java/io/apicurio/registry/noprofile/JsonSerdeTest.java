@@ -32,7 +32,7 @@ import io.apicurio.registry.serde.SerdeConfig;
 import io.apicurio.registry.serde.jsonschema.JsonSchemaKafkaDeserializer;
 import io.apicurio.registry.serde.jsonschema.JsonSchemaKafkaSerializer;
 import io.apicurio.registry.support.Person;
-import io.apicurio.registry.types.ArtifactType;
+
 import io.quarkus.test.junit.QuarkusTest;
 
 /**
@@ -49,7 +49,7 @@ public class JsonSerdeTest extends AbstractResourceTestBase {
 
         String artifactId = generateArtifactId();
 
-        ArtifactMetaData amd = clientV2.createArtifact(groupId, artifactId + "-value", ArtifactType.JSON, jsonSchema);
+        ArtifactMetaData amd = clientV2.createArtifact(groupId, artifactId + "-value", "JSON", jsonSchema);
 
         // make sure we have schema registered
         retry(() -> clientV2.getContentByGlobalId(amd.getGlobalId()));

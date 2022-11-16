@@ -22,7 +22,7 @@ import java.sql.SQLException;
 import io.apicurio.registry.storage.impl.sql.SqlUtil;
 import io.apicurio.registry.storage.impl.sql.jdb.RowMapper;
 import io.apicurio.registry.types.ArtifactState;
-import io.apicurio.registry.types.ArtifactType;
+
 import io.apicurio.registry.utils.impexp.ArtifactVersionEntity;
 
 /**
@@ -58,7 +58,7 @@ public class ArtifactVersionEntityMapper implements RowMapper<ArtifactVersionEnt
         entity.properties = SqlUtil.deserializeProperties(rs.getString("properties"));
         entity.contentId = rs.getLong("contentId");
         entity.isLatest = entity.globalId == rs.getLong("latest");
-        entity.artifactType = ArtifactType.fromValue(rs.getString("type"));
+        entity.artifactType = rs.getString("type");
         return entity;
     }
 

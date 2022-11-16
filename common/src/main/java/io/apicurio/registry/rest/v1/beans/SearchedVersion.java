@@ -6,7 +6,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyDescription;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import io.apicurio.registry.types.ArtifactState;
-import io.apicurio.registry.types.ArtifactType;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -65,7 +64,7 @@ public class SearchedVersion {
      */
     @JsonProperty("type")
     @JsonPropertyDescription("")
-    private ArtifactType type;
+    private String type;
     /**
      *
      */
@@ -181,7 +180,7 @@ public class SearchedVersion {
      *
      */
     @JsonProperty("type")
-    public ArtifactType getType() {
+    public String getType() {
         return type;
     }
 
@@ -191,7 +190,7 @@ public class SearchedVersion {
      *
      */
     @JsonProperty("type")
-    public void setType(ArtifactType type) {
+    public void setType(String type) {
         this.type = type;
     }
 

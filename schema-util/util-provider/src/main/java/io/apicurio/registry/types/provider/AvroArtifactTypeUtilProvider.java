@@ -26,7 +26,6 @@ import io.apicurio.registry.rules.compatibility.AvroCompatibilityChecker;
 import io.apicurio.registry.rules.compatibility.CompatibilityChecker;
 import io.apicurio.registry.rules.validity.AvroContentValidator;
 import io.apicurio.registry.rules.validity.ContentValidator;
-import io.apicurio.registry.types.ArtifactType;
 
 /**
  * @author Ales Justin
@@ -34,8 +33,8 @@ import io.apicurio.registry.types.ArtifactType;
 public class AvroArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvider {
 
     @Override
-    public ArtifactType getArtifactType() {
-        return ArtifactType.AVRO;
+    public String getArtifactType() {
+        return "AVRO";
     }
 
     @Override

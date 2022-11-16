@@ -31,7 +31,7 @@ import org.apache.maven.plugins.annotations.Parameter;
 
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v2.beans.IfExists;
-import io.apicurio.registry.types.ArtifactType;
+
 
 /**
  * Register artifacts against registry.
@@ -116,7 +116,7 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
         String groupId = artifact.getGroupId();
         String artifactId = artifact.getArtifactId();
         String version = artifact.getVersion();
-        ArtifactType type = artifact.getType();
+        String type = artifact.getType();
         IfExists ifExists = artifact.getIfExists();
         Boolean canonicalize = artifact.getCanonicalize();
         String contentType = contentType(artifact);

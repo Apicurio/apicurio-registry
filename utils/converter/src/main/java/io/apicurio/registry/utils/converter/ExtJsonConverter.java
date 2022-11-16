@@ -27,7 +27,7 @@ import io.apicurio.registry.resolver.data.Record;
 import io.apicurio.registry.resolver.strategy.ArtifactReference;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.serde.SchemaResolverConfigurer;
-import io.apicurio.registry.types.ArtifactType;
+
 import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.converter.json.FormatStrategy;
 import io.apicurio.registry.utils.converter.json.JsonConverterMetadata;
@@ -122,8 +122,8 @@ public class ExtJsonConverter extends SchemaResolverConfigurer<JsonNode, Object>
      * @see io.apicurio.registry.serde.SchemaParser#artifactType()
      */
     @Override
-    public ArtifactType artifactType() {
-        return ArtifactType.KCONNECT;
+    public String artifactType() {
+        return "KCONNECT";
     }
 
     /**

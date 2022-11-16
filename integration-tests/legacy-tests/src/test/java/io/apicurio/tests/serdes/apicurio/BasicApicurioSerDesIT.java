@@ -19,7 +19,7 @@ package io.apicurio.tests.serdes.apicurio;
 import com.google.protobuf.Descriptors;
 import io.apicurio.registry.common.proto.Serde;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
-import io.apicurio.registry.types.ArtifactType;
+
 import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.tests.BaseIT;
@@ -178,7 +178,7 @@ public class BasicApicurioSerDesIT extends BaseIT {
         kafkaCluster.createTopic(artifactId, 1, 1);
         LOGGER.debug("++++++++++++++++++ Created topic: {}", artifactId);
 
-        ArtifactMetaData artifact = ArtifactUtils.createArtifact(registryClient, ArtifactType.JSON, artifactId, IoUtil.toStream(jsonSchema));
+        ArtifactMetaData artifact = ArtifactUtils.createArtifact(registryClient, "JSON", artifactId, IoUtil.toStream(jsonSchema));
         LOGGER.debug("++++++++++++++++++ Artifact created: {}", artifact.getGlobalId());
 
         TestUtils.waitFor(

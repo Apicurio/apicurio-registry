@@ -31,7 +31,7 @@ public final class CNCFApiUtil {
         group.setId(dto.getGroupId());
         group.setDescription(dto.getDescription());
         if (dto.getArtifactsType() != null) {
-            group.setFormat(dto.getArtifactsType().value());
+            group.setFormat(dto.getArtifactsType());
         }
         group.setCreatedtimeutc(new Date(dto.getCreatedOn()));
         group.setUpdatedtimeutc(new Date(dto.getModifiedOn()));

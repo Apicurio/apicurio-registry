@@ -25,7 +25,6 @@ import io.apicurio.registry.rules.compatibility.CompatibilityChecker;
 import io.apicurio.registry.rules.compatibility.NoopCompatibilityChecker;
 import io.apicurio.registry.rules.validity.ContentValidator;
 import io.apicurio.registry.rules.validity.XmlContentValidator;
-import io.apicurio.registry.types.ArtifactType;
 
 /**
  * @author  cfoskin@redhat.com
@@ -36,8 +35,8 @@ public class XmlArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvide
      * @see io.apicurio.registry.types.provider.ArtifactTypeUtilProvider#getArtifactType()
      */
     @Override
-    public ArtifactType getArtifactType() {
-        return ArtifactType.XML;
+    public String getArtifactType() {
+        return "XML";
     }
 
     /**

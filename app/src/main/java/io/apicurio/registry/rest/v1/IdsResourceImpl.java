@@ -41,7 +41,7 @@ import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.StoredArtifactDto;
 import io.apicurio.registry.types.ArtifactMediaTypes;
 import io.apicurio.registry.types.ArtifactState;
-import io.apicurio.registry.types.ArtifactType;
+
 import io.apicurio.registry.types.Current;
 
 /**
@@ -78,7 +78,7 @@ public class IdsResourceImpl implements IdsResource, Headers {
 
         // protobuf - the content-type will be different for protobuf artifacts
         MediaType contentType = ArtifactMediaTypes.JSON;
-        if (metaData.getType() == ArtifactType.PROTOBUF) {
+        if (metaData.getType() == "PROTOBUF") {
             contentType = ArtifactMediaTypes.PROTO;
         }
 

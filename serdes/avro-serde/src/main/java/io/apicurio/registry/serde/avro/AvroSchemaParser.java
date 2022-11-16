@@ -22,7 +22,7 @@ import io.apicurio.registry.resolver.ParsedSchema;
 import io.apicurio.registry.resolver.ParsedSchemaImpl;
 import io.apicurio.registry.resolver.SchemaParser;
 import io.apicurio.registry.resolver.data.Record;
-import io.apicurio.registry.types.ArtifactType;
+
 import io.apicurio.registry.utils.IoUtil;
 
 import java.util.ArrayList;
@@ -47,8 +47,8 @@ public class AvroSchemaParser<U> implements SchemaParser<Schema, U> {
      * @see io.apicurio.registry.serde.SchemaParser#artifactType()
      */
     @Override
-    public ArtifactType artifactType() {
-        return ArtifactType.AVRO;
+    public String artifactType() {
+        return "AVRO";
     }
 
     /**

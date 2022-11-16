@@ -29,7 +29,7 @@ import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v2.beans.Rule;
 import io.apicurio.registry.rest.v2.beans.SearchedArtifact;
 import io.apicurio.registry.storage.RegistryStorage;
-import io.apicurio.registry.types.ArtifactType;
+
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.tests.TestUtils;
@@ -162,7 +162,7 @@ public class MultitenancyNoAuthTest extends AbstractRegistryTestBase {
         assertTrue(client.listArtifactsInGroup(null).getCount().intValue() == 0);
 
         String artifactId = TestUtils.generateArtifactId();
-        ArtifactMetaData meta = client.createArtifact(null, artifactId, ArtifactType.JSON, new ByteArrayInputStream("{}".getBytes()));
+        ArtifactMetaData meta = client.createArtifact(null, artifactId, "JSON", new ByteArrayInputStream("{}".getBytes()));
         TestUtils.retry(() -> client.getContentByGlobalId(meta.getGlobalId()));
 
         assertNotNull(client.getLatestArtifact(meta.getGroupId(), meta.getId()));

@@ -25,15 +25,14 @@ import io.apicurio.registry.rules.compatibility.CompatibilityChecker;
 import io.apicurio.registry.rules.compatibility.NoopCompatibilityChecker;
 import io.apicurio.registry.rules.validity.ContentValidator;
 import io.apicurio.registry.rules.validity.GraphQLContentValidator;
-import io.apicurio.registry.types.ArtifactType;
 
 /**
  * @author Ales Justin
  */
 public class GraphQLArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvider {
     @Override
-    public ArtifactType getArtifactType() {
-        return ArtifactType.GRAPHQL;
+    public String getArtifactType() {
+        return "GRAPHQL";
     }
 
     @Override

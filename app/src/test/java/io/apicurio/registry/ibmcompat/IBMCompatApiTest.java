@@ -30,7 +30,7 @@ import org.junit.jupiter.api.Test;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.ibmcompat.model.SchemaListItem;
 import io.apicurio.registry.ibmcompat.model.SchemaState;
-import io.apicurio.registry.types.ArtifactType;
+
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
@@ -114,7 +114,7 @@ public class IBMCompatApiTest extends AbstractResourceTestBase {
         String schemaName = "testGetSchemas_userInfo";
 
         // Create Avro artifact via the artifact API
-        createArtifact(schemaName, ArtifactType.AVRO, artifactContent);
+        createArtifact(schemaName, "AVRO", artifactContent);
 
         // Get the list of artifacts via ibmcompat API
         SchemaListItem schema;
@@ -161,7 +161,7 @@ public class IBMCompatApiTest extends AbstractResourceTestBase {
         String schemaId = schemaName.toLowerCase();
 
         // Create Avro artifact via the artifact API
-        createArtifact(schemaId, ArtifactType.AVRO, artifactContent);
+        createArtifact(schemaId, "AVRO", artifactContent);
 
         // Get the artifact via ibmcompat API
         given()
@@ -206,7 +206,7 @@ public class IBMCompatApiTest extends AbstractResourceTestBase {
         String schemaId = schemaName.toLowerCase();
 
         // Create Avro artifact via the artifact API
-        createArtifact(schemaId, ArtifactType.AVRO, artifactContent);
+        createArtifact(schemaId, "AVRO", artifactContent);
 
         // Delete the artifact via ibmcompat API
         given()
@@ -237,7 +237,7 @@ public class IBMCompatApiTest extends AbstractResourceTestBase {
         String version2Name = "testversion_2.0.0";
 
         // Create Avro artifact via the artifact API
-        createArtifact(schemaId, ArtifactType.AVRO, artifactContent);
+        createArtifact(schemaId, "AVRO", artifactContent);
         // Add the new version via ibmcompat API
         given()
             .when()
@@ -304,7 +304,7 @@ public class IBMCompatApiTest extends AbstractResourceTestBase {
         String schemaId = schemaName.toLowerCase();
 
         // Create Avro artifact via the artifact API
-        createArtifact(schemaId, ArtifactType.AVRO, artifactContent);
+        createArtifact(schemaId, "AVRO", artifactContent);
 
         // Get the list of artifacts via ibmcompat API
         given()
@@ -337,7 +337,7 @@ public class IBMCompatApiTest extends AbstractResourceTestBase {
         String newVersionName = "testversion_2.0.0";
 
         // Create Avro artifact via the artifact API
-        createArtifact(schemaId, ArtifactType.AVRO, artifactContent);
+        createArtifact(schemaId, "AVRO", artifactContent);
 
         // Add the new version via ibmcompat API
         given()
@@ -374,7 +374,7 @@ public class IBMCompatApiTest extends AbstractResourceTestBase {
         String newVersionName = "testversion_2.0.0";
 
         // Create Avro artifact via the artifact API
-        createArtifact(schemaId, ArtifactType.AVRO, artifactContent);
+        createArtifact(schemaId, "AVRO", artifactContent);
 
         // Verify the new version definition via ibmcompat API
         given()
@@ -400,7 +400,7 @@ public class IBMCompatApiTest extends AbstractResourceTestBase {
         String newVersionName = "testversion_2.0.0";
 
         // Create Avro artifact via the artifact API
-        createArtifact(schemaId, ArtifactType.AVRO, artifactContent);
+        createArtifact(schemaId, "AVRO", artifactContent);
         // Add the new version via ibmcompat API
         given()
             .when()
@@ -443,7 +443,7 @@ public class IBMCompatApiTest extends AbstractResourceTestBase {
         String version2Name = "testversion_2.0.0";
 
         // Create Avro artifact via the artifact API
-        createArtifact(schemaId, ArtifactType.AVRO, artifactContent);
+        createArtifact(schemaId, "AVRO", artifactContent);
         // Add the new version via ibmcompat API
         given()
             .when()

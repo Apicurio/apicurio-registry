@@ -3,23 +3,24 @@ package io.apicurio.registry.maven;
 import java.util.HashMap;
 import java.util.Map;
 
-import io.apicurio.registry.types.ArtifactType;
+
 
 public enum ArtifactExtensionType {
-    AVRO(ArtifactType.AVRO, "avsc"),
-    PROTOBUF(ArtifactType.PROTOBUF, "proto"),
-    JSON(ArtifactType.JSON, "json"),
-    OPENAPI(ArtifactType.OPENAPI, "json"),
-    ASYNCAPI(ArtifactType.ASYNCAPI, "json"),
-    GRAPHQL(ArtifactType.GRAPHQL, "graphql"),
-    KCONNECT(ArtifactType.KCONNECT, "json"),
-    WSDL(ArtifactType.WSDL, "wsdl"),
-    XSD(ArtifactType.XSD, "xsd"),
-    XML(ArtifactType.XML, "xml");
+    // TODO: make this customizable
+    AVRO("AVRO", "avsc"),
+    PROTOBUF("PROTOBUF", "proto"),
+    JSON("JSON", "json"),
+    OPENAPI("OPENAPI", "json"),
+    ASYNCAPI("ASYNCAPI", "json"),
+    GRAPHQL("GRAPHQL", "graphql"),
+    KCONNECT("KCONNECT", "json"),
+    WSDL("WSDL", "wsdl"),
+    XSD("XSD", "xsd"),
+    XML("XML", "xml");
 
-    private final ArtifactType artifactType;
+    private final String artifactType;
     private final String artifactExtension;
-    private final static Map<ArtifactType, ArtifactExtensionType> CONSTANTS = new HashMap<>();
+    private final static Map<String, ArtifactExtensionType> CONSTANTS = new HashMap<>();
 
     static {
         for (ArtifactExtensionType c: values()) {
@@ -27,7 +28,7 @@ public enum ArtifactExtensionType {
         }
     }
 
-    ArtifactExtensionType(ArtifactType artifactType, String artifactExtension) {
+    ArtifactExtensionType(String artifactType, String artifactExtension) {
         this.artifactType = artifactType;
         this.artifactExtension = artifactExtension;
     }
@@ -37,7 +38,7 @@ public enum ArtifactExtensionType {
         return this.artifactExtension;
     }
 
-    public static ArtifactExtensionType fromArtifactType(ArtifactType artifactType) {
+    public static ArtifactExtensionType fromArtifactType(String artifactType) {
         ArtifactExtensionType constant = CONSTANTS.get(artifactType);
         if (constant == null) {
             throw new IllegalArgumentException(artifactType.toString());

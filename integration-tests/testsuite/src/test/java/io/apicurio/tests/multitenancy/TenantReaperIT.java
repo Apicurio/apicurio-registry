@@ -21,7 +21,7 @@ import io.apicurio.tenantmanager.client.TenantManagerClient;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.exception.RestClientException;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
-import io.apicurio.registry.types.ArtifactType;
+
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.tests.common.ApicurioRegistryBaseIT;
 import io.apicurio.tests.common.Constants;
@@ -127,7 +127,7 @@ public class TenantReaperIT extends ApicurioRegistryBaseIT {
 
     private void createSomeArtifact(RegistryClient client) throws Exception {
         String artifactId = TestUtils.generateArtifactId();
-        ArtifactMetaData meta = client.createArtifact(groupId, artifactId, ArtifactType.JSON, new ByteArrayInputStream("{}".getBytes()));
+        ArtifactMetaData meta = client.createArtifact(groupId, artifactId, "JSON", new ByteArrayInputStream("{}".getBytes()));
         TestUtils.retry(() -> client.getContentByGlobalId(meta.getGlobalId()));
         assertNotNull(client.getLatestArtifact(meta.getGroupId(), meta.getId()));
     }

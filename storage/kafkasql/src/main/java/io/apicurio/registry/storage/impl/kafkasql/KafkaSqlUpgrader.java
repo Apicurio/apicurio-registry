@@ -38,7 +38,7 @@ import io.apicurio.registry.storage.impl.sql.IDbUpgrader;
 import io.apicurio.registry.storage.impl.sql.jdb.Handle;
 import io.apicurio.registry.storage.impl.sql.jdb.RowMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.ContentEntityMapper;
-import io.apicurio.registry.types.ArtifactType;
+
 import io.apicurio.registry.utils.ConcurrentUtil;
 import io.apicurio.registry.utils.impexp.ContentEntity;
 
@@ -84,7 +84,7 @@ public class KafkaSqlUpgrader {
 
             Stream<TenantContentEntity> stream = dbHandle.createQuery(sql)
                     .setFetchSize(50)
-                    .bind(0, ArtifactType.PROTOBUF.name())
+                    .bind(0, "PROTOBUF")
                     .map(new TenantContentEntityRowMapper())
                     .stream();
             try (stream) {
@@ -123,7 +123,7 @@ public class KafkaSqlUpgrader {
                 ContentCanonicalizer canonicalizer = new ProtobufContentCanonicalizer();
                 return canonicalizer.canonicalize(content, Collections.emptyMap());
             } catch (Exception e) {
-                logger.debug("Failed to canonicalize content of type: {}", ArtifactType.PROTOBUF.name());
+                logger.debug("Failed to canonicalize content of type: {}", "PROTOBUF");
                 return content;
             }
         }

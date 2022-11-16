@@ -16,12 +16,11 @@
 
 package io.apicurio.registry.types.provider;
 
-import io.apicurio.registry.types.ArtifactType;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 /**
  * @author Ales Justin
@@ -29,7 +28,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class ArtifactTypeUtilProviderImpl implements ArtifactTypeUtilProviderFactory {
 
-    private Map<ArtifactType, ArtifactTypeUtilProvider> map = new ConcurrentHashMap<>();
+    private Map<String, ArtifactTypeUtilProvider> map = new ConcurrentHashMap<>();
 
     private List<ArtifactTypeUtilProvider> providers = new ArrayList<ArtifactTypeUtilProvider>(
                 List.of(
@@ -46,11 +45,18 @@ public class ArtifactTypeUtilProviderImpl implements ArtifactTypeUtilProviderFac
             );
 
     @Override
-    public ArtifactTypeUtilProvider getArtifactTypeProvider(ArtifactType type) {
+    public ArtifactTypeUtilProvider getArtifactTypeProvider(String type) {
         return map.computeIfAbsent(type, t ->
             providers.stream()
-                     .filter(a -> a.getArtifactType() == t)
+                     .filter(a -> a.getArtifactType().equals(t))
                      .findFirst()
                      .orElseThrow(() -> new IllegalStateException("No such artifact type provider: " + t)));
+    }
+
+    @Override
+    public List<String> getAllArtifactTypes() {
+        return providers.stream()
+            .map(a -> a.getArtifactType())
+            .collect(Collectors.toList());
     }
 }

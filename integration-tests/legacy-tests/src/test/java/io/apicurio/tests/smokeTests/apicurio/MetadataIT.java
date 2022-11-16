@@ -19,7 +19,7 @@ package io.apicurio.tests.smokeTests.apicurio;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.beans.EditableMetaData;
 import io.apicurio.registry.rest.beans.VersionMetaData;
-import io.apicurio.registry.types.ArtifactType;
+
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.tests.BaseIT;
 import io.apicurio.tests.utils.subUtils.ArtifactUtils;
@@ -50,7 +50,7 @@ class MetadataIT extends BaseIT {
         String artifactDefinition = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
 
         ByteArrayInputStream artifactData = new ByteArrayInputStream(artifactDefinition.getBytes(StandardCharsets.UTF_8));
-        ArtifactMetaData metaData = ArtifactUtils.createArtifact(registryClient, ArtifactType.AVRO, artifactId, artifactData);
+        ArtifactMetaData metaData = ArtifactUtils.createArtifact(registryClient, "AVRO", artifactId, artifactData);
         TestUtils.retry(() -> registryClient.getArtifactMetaDataByGlobalId(metaData.getGlobalId()));
         LOGGER.info("Created artifact {} with metadata {}", artifactId, metaData);
 
@@ -88,7 +88,7 @@ class MetadataIT extends BaseIT {
         String artifactDefinition = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
 
         ByteArrayInputStream artifactData = new ByteArrayInputStream(artifactDefinition.getBytes(StandardCharsets.UTF_8));
-        ArtifactMetaData metaData = ArtifactUtils.createArtifact(registryClient, ArtifactType.AVRO, artifactId, artifactData);
+        ArtifactMetaData metaData = ArtifactUtils.createArtifact(registryClient, "AVRO", artifactId, artifactData);
         ArtifactMetaData amd1 = metaData;
         TestUtils.retry(() -> registryClient.getArtifactMetaDataByGlobalId(amd1.getGlobalId()));
         LOGGER.info("Created artifact {} with metadata {}", artifactId, metaData);
@@ -96,7 +96,7 @@ class MetadataIT extends BaseIT {
         String artifactUpdateDefinition = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}";
         ByteArrayInputStream artifactUpdateData = new ByteArrayInputStream(artifactUpdateDefinition.getBytes(StandardCharsets.UTF_8));
 
-        metaData = ArtifactUtils.updateArtifact(registryClient, ArtifactType.AVRO, artifactId, artifactUpdateData);
+        metaData = ArtifactUtils.updateArtifact(registryClient, "AVRO", artifactId, artifactUpdateData);
         LOGGER.info("Artifact with ID {} was updated: {}", artifactId, metaData);
         ArtifactMetaData amd2 = metaData;
         TestUtils.retry(() -> registryClient.getArtifactMetaDataByGlobalId(amd2.getGlobalId()));

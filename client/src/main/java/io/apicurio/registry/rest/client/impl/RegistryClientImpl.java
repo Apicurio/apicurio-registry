@@ -29,7 +29,7 @@ import io.apicurio.registry.rest.client.request.provider.SearchRequestsProvider;
 import io.apicurio.registry.rest.client.request.provider.UsersRequestsProvider;
 import io.apicurio.registry.rest.v2.beans.*;
 import io.apicurio.registry.rest.v2.beans.Error;
-import io.apicurio.registry.types.ArtifactType;
+
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.types.RoleType;
 import io.apicurio.registry.types.RuleType;
@@ -233,7 +233,7 @@ public class RegistryClientImpl implements RegistryClient {
     }
 
     @Override
-    public ArtifactMetaData createArtifact(String groupId, String artifactId, String version, ArtifactType artifactType, IfExists ifExists, Boolean canonical, String artifactName, String artifactDescription, String contentType, String fromURL, String artifactSHA, InputStream data) {
+    public ArtifactMetaData createArtifact(String groupId, String artifactId, String version, String artifactType, IfExists ifExists, Boolean canonical, String artifactName, String artifactDescription, String contentType, String fromURL, String artifactSHA, InputStream data) {
         if (artifactId != null && !ArtifactIdValidator.isArtifactIdAllowed(artifactId)) {
             throw new InvalidArtifactIdException();
         }
@@ -242,7 +242,7 @@ public class RegistryClientImpl implements RegistryClient {
             headers.put(Headers.ARTIFACT_ID, artifactId);
         }
         if (artifactType != null) {
-            headers.put(Headers.ARTIFACT_TYPE, artifactType.name());
+            headers.put(Headers.ARTIFACT_TYPE, artifactType);
         }
         if (artifactSHA != null) {
             headers.put(Headers.HASH_ALGO, "SHA256");
@@ -264,7 +264,7 @@ public class RegistryClientImpl implements RegistryClient {
     }
 
     @Override
-    public ArtifactMetaData createArtifact(String groupId, String artifactId, String version, ArtifactType artifactType, IfExists ifExists, Boolean canonical, String artifactName, String artifactDescription, String contentType, String fromURL, String artifactSHA, InputStream data, List<ArtifactReference> artifactReferences) {
+    public ArtifactMetaData createArtifact(String groupId, String artifactId, String version, String artifactType, IfExists ifExists, Boolean canonical, String artifactName, String artifactDescription, String contentType, String fromURL, String artifactSHA, InputStream data, List<ArtifactReference> artifactReferences) {
         if (artifactId != null && !ArtifactIdValidator.isArtifactIdAllowed(artifactId)) {
             throw new InvalidArtifactIdException();
         }
@@ -273,7 +273,7 @@ public class RegistryClientImpl implements RegistryClient {
             headers.put(Headers.ARTIFACT_ID, artifactId);
         }
         if (artifactType != null) {
-            headers.put(Headers.ARTIFACT_TYPE, artifactType.name());
+            headers.put(Headers.ARTIFACT_TYPE, artifactType);
         }
         if (artifactSHA != null) {
             headers.put(Headers.HASH_ALGO, "SHA256");

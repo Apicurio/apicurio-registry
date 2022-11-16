@@ -40,7 +40,7 @@ import io.apicurio.registry.rest.client.RegistryClientFactory;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v2.beans.Rule;
 import io.apicurio.registry.rest.v2.beans.VersionMetaData;
-import io.apicurio.registry.types.ArtifactType;
+
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.tests.SimpleDisplayName;
@@ -145,11 +145,11 @@ public class SqlStorageUpgradeIT implements TestSeparator, Constants {
 
             var registryClient = RegistryClientFactory.create("http://localhost:8081");
 
-            createArtifact(registryClient, ArtifactType.AVRO, ApicurioV2BaseIT.resourceToString("artifactTypes/" + "avro/multi-field_v1.json"));
-            createArtifact(registryClient, ArtifactType.JSON, ApicurioV2BaseIT.resourceToString("artifactTypes/" + "jsonSchema/person_v1.json"));
+            createArtifact(registryClient, "AVRO", ApicurioV2BaseIT.resourceToString("artifactTypes/" + "avro/multi-field_v1.json"));
+            createArtifact(registryClient, "JSON", ApicurioV2BaseIT.resourceToString("artifactTypes/" + "jsonSchema/person_v1.json"));
 
             String test1content = ApicurioV2BaseIT.resourceToString("artifactTypes/" + "protobuf/tutorial_v1.proto");
-            ArtifactData protoData = createArtifact(registryClient, ArtifactType.PROTOBUF, test1content);
+            ArtifactData protoData = createArtifact(registryClient, "PROTOBUF", test1content);
 
             //verify search with canonicalize returns the expected artifact metadata
             var versionMetadata = registryClient.getArtifactVersionMetaDataByContent(null, protoData.meta.getId(), true, null, IoUtil.toStream(test1content));
@@ -170,7 +170,7 @@ public class SqlStorageUpgradeIT implements TestSeparator, Constants {
             assertEquals(3, searchResults.getCount());
 
             var protobufs = searchResults.getArtifacts().stream()
-                .filter(ar -> ar.getType().name().equals(ArtifactType.PROTOBUF.name()))
+                .filter(ar -> ar.getType().name().equals("PROTOBUF".name()))
                 .collect(Collectors.toList());
 
             System.out.println("Protobuf artifacts are " + protobufs.size());
@@ -192,7 +192,7 @@ public class SqlStorageUpgradeIT implements TestSeparator, Constants {
 
             //create one more protobuf artifact and verify
             String test2content = ApicurioV2BaseIT.resourceToString("artifactTypes/" + "protobuf/tutorial_v2.proto");
-            protoData = createArtifact(registryClient, ArtifactType.PROTOBUF, test2content);
+            protoData = createArtifact(registryClient, "PROTOBUF", test2content);
             versionMetadata = registryClient.getArtifactVersionMetaDataByContent(null, protoData.meta.getId(), true, null, IoUtil.toStream(test2content));
             assertEquals(protoData.meta.getContentId(), versionMetadata.getContentId());
 
@@ -232,9 +232,9 @@ public class SqlStorageUpgradeIT implements TestSeparator, Constants {
             val.setConfig("SYNTAX_ONLY");
             client.createGlobalRule(val);
 
-            tenant.artifacts.add(createArtifact(client, ArtifactType.AVRO, ApicurioV2BaseIT.resourceToString("artifactTypes/" + "avro/multi-field_v1.json")));
-            tenant.artifacts.add(createArtifact(client, ArtifactType.JSON, ApicurioV2BaseIT.resourceToString("artifactTypes/" + "jsonSchema/person_v1.json")));
-            tenant.artifacts.add(createArtifact(client, ArtifactType.ASYNCAPI, ApicurioV2BaseIT.resourceToString("artifactTypes/" + "asyncapi/2.0-streetlights_v1.json")));
+            tenant.artifacts.add(createArtifact(client, "AVRO", ApicurioV2BaseIT.resourceToString("artifactTypes/" + "avro/multi-field_v1.json")));
+            tenant.artifacts.add(createArtifact(client, "JSON", ApicurioV2BaseIT.resourceToString("artifactTypes/" + "jsonSchema/person_v1.json")));
+            tenant.artifacts.add(createArtifact(client, "ASYNCAPI", ApicurioV2BaseIT.resourceToString("artifactTypes/" + "asyncapi/2.0-streetlights_v1.json")));
 
         }
 
@@ -246,8 +246,8 @@ public class SqlStorageUpgradeIT implements TestSeparator, Constants {
         for (TenantData tenant : tenants) {
             var client = tenant.tenant.client;
 
-            tenant.artifacts.add(createArtifact(client, ArtifactType.AVRO, ApicurioV2BaseIT.resourceToString("artifactTypes/" + "avro/multi-field_v1.json")));
-            tenant.artifacts.add(createArtifact(client, ArtifactType.KCONNECT, ApicurioV2BaseIT.resourceToString("artifactTypes/" + "kafkaConnect/simple_v1.json")));
+            tenant.artifacts.add(createArtifact(client, "AVRO", ApicurioV2BaseIT.resourceToString("artifactTypes/" + "avro/multi-field_v1.json")));
+            tenant.artifacts.add(createArtifact(client, "KCONNECT", ApicurioV2BaseIT.resourceToString("artifactTypes/" + "kafkaConnect/simple_v1.json")));
         }
     }
 

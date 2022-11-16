@@ -42,7 +42,7 @@ import io.apicurio.registry.storage.dto.ContentWrapperDto;
 import io.apicurio.registry.storage.dto.StoredArtifactDto;
 import io.apicurio.registry.types.ArtifactMediaTypes;
 import io.apicurio.registry.types.ArtifactState;
-import io.apicurio.registry.types.ArtifactType;
+
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 
@@ -93,13 +93,14 @@ public class IdsResourceImpl implements IdsResource {
 
         StoredArtifactDto artifact = storage.getArtifactVersion(globalId);
 
+        // TODO: this should not be critical but it can be made configurable with DI as well
         // protobuf - the content-type will be different for protobuf artifacts
         MediaType contentType = ArtifactMediaTypes.JSON;
-        if (metaData.getType() == ArtifactType.PROTOBUF) {
+        if (metaData.getType().equals("PROTOBUF")) {
             contentType = ArtifactMediaTypes.PROTO;
-        } else if (metaData.getType() == ArtifactType.XML || metaData.getType() == ArtifactType.WSDL || metaData.getType() == ArtifactType.XSD) {
+        } else if (metaData.getType().equals("XML") || metaData.getType().equals("WSDL") || metaData.getType().equals("XSD")) {
             contentType = ArtifactMediaTypes.XML;
-        } else if (metaData.getType() == ArtifactType.GRAPHQL) {
+        } else if (metaData.getType().equals("GRAPHQL")) {
             contentType = ArtifactMediaTypes.GRAPHQL;
         }
 

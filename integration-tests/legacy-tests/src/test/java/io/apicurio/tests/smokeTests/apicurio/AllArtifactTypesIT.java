@@ -18,7 +18,7 @@ package io.apicurio.tests.smokeTests.apicurio;
 import io.apicurio.registry.client.RegistryRestClient;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.beans.Rule;
-import io.apicurio.registry.types.ArtifactType;
+
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.tests.TestUtils;
@@ -36,7 +36,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 @Tag(SMOKE)
 class AllArtifactTypesIT extends BaseIT {
 
-    void doTest(RegistryRestClient client, String v1Resource, String v2Resource, ArtifactType atype) {
+    void doTest(RegistryRestClient client, String v1Resource, String v2Resource, String atype) {
         String artifactId = TestUtils.generateArtifactId();
         try {
             // Load/Assert resources exist.
@@ -98,39 +98,39 @@ class AllArtifactTypesIT extends BaseIT {
     @Test
     @Tag(ACCEPTANCE)
     void testAvro() {
-        doTest(registryClient, "avro/multi-field_v1.json", "avro/multi-field_v2.json", ArtifactType.AVRO);
+        doTest(registryClient, "avro/multi-field_v1.json", "avro/multi-field_v2.json", "AVRO");
     }
 
     @Test
     @Tag(ACCEPTANCE)
     void testProtobuf() {
-        doTest(registryClient, "protobuf/tutorial_v1.proto", "protobuf/tutorial_v2.proto", ArtifactType.PROTOBUF);
+        doTest(registryClient, "protobuf/tutorial_v1.proto", "protobuf/tutorial_v2.proto", "PROTOBUF");
     }
 
     @Test
     @Tag(ACCEPTANCE)
     void testJsonSchema() {
-        doTest(registryClient, "jsonSchema/person_v1.json", "jsonSchema/person_v2.json", ArtifactType.JSON);
+        doTest(registryClient, "jsonSchema/person_v1.json", "jsonSchema/person_v2.json", "JSON");
     }
 
     @Test
     void testKafkaConnect() {
-        doTest(registryClient, "kafkaConnect/simple_v1.json", "kafkaConnect/simple_v2.json", ArtifactType.KCONNECT);
+        doTest(registryClient, "kafkaConnect/simple_v1.json", "kafkaConnect/simple_v2.json", "KCONNECT");
     }
 
     @Test
     void testOpenApi30() {
-        doTest(registryClient, "openapi/3.0-petstore_v1.json", "openapi/3.0-petstore_v2.json", ArtifactType.OPENAPI);
+        doTest(registryClient, "openapi/3.0-petstore_v1.json", "openapi/3.0-petstore_v2.json", "OPENAPI");
     }
 
     @Test
     void testAsyncApi() {
-        doTest(registryClient, "asyncapi/2.0-streetlights_v1.json", "asyncapi/2.0-streetlights_v2.json", ArtifactType.ASYNCAPI);
+        doTest(registryClient, "asyncapi/2.0-streetlights_v1.json", "asyncapi/2.0-streetlights_v2.json", "ASYNCAPI");
     }
 
     @Test
     void testGraphQL() {
-        doTest(registryClient, "graphql/swars_v1.graphql", "graphql/swars_v2.graphql", ArtifactType.GRAPHQL);
+        doTest(registryClient, "graphql/swars_v1.graphql", "graphql/swars_v2.graphql", "GRAPHQL");
     }
 
     @AfterEach

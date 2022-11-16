@@ -16,11 +16,13 @@
 
 package io.apicurio.registry.types.provider;
 
-import io.apicurio.registry.types.ArtifactType;
+import java.util.List;
 
 /**
  * @author Ales Justin
  */
 public interface ArtifactTypeUtilProviderFactory {
-    ArtifactTypeUtilProvider getArtifactTypeProvider(ArtifactType type);
+    ArtifactTypeUtilProvider getArtifactTypeProvider(String type);
+
+    List<String> getAllArtifactTypes();
 }

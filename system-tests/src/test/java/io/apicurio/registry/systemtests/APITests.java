@@ -51,7 +51,7 @@ public class APITests {
 
         // Create artifact
         LOGGER.info("Creating artifact...");
-        Assertions.assertTrue(client.createArtifact(artifactGroupId, artifactId, ArtifactType.AVRO, artifactContent));
+        Assertions.assertTrue(client.createArtifact(artifactGroupId, artifactId, "AVRO", artifactContent));
 
         // List artifacts
         LOGGER.info("Listing artifacts...");

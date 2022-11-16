@@ -23,7 +23,7 @@ import io.apicurio.registry.storage.dto.SearchedArtifactDto;
 import io.apicurio.registry.storage.impl.sql.SqlUtil;
 import io.apicurio.registry.storage.impl.sql.jdb.RowMapper;
 import io.apicurio.registry.types.ArtifactState;
-import io.apicurio.registry.types.ArtifactType;
+
 
 /**
  * @author eric.wittmann@gmail.com
@@ -55,7 +55,7 @@ public class SearchedArtifactMapper implements RowMapper<SearchedArtifactDto> {
 //        dto.setProperties(SqlUtil.deserializeProperties(rs.getString("properties")));
         dto.setModifiedBy(rs.getString("modifiedBy"));
         dto.setModifiedOn(rs.getTimestamp("modifiedOn"));
-        dto.setType(ArtifactType.valueOf(rs.getString("type")));
+        dto.setType(rs.getString("type"));
         return dto;
     }
 

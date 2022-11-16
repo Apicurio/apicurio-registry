@@ -25,7 +25,7 @@ import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v2.beans.RoleMapping;
-import io.apicurio.registry.types.ArtifactType;
+
 import io.apicurio.registry.types.RoleType;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
@@ -47,7 +47,7 @@ public class SqlStorageUpgradeTest extends AbstractResourceTestBase {
         // Expected values can be found in "SqlStorageUpgradeTest.dml" in src/test/resources
         Assertions.assertEquals(101, metaData.getContentId());
         Assertions.assertEquals(5001, metaData.getGlobalId());
-        Assertions.assertEquals(ArtifactType.JSON, metaData.getType());
+        Assertions.assertEquals("JSON", metaData.getType());
 
         RoleMapping mapping = new RoleMapping();
         mapping.setPrincipalId("test_user");

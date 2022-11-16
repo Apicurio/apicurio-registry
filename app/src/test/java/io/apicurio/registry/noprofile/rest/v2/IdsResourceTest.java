@@ -27,7 +27,7 @@ import org.junit.jupiter.api.Test;
 
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
-import io.apicurio.registry.types.ArtifactType;
+
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
 
@@ -45,7 +45,7 @@ public class IdsResourceTest extends AbstractResourceTestBase {
 
         // Create a throwaway artifact so that contentId for future artifacts with different
         // content will need to be greater than 0.
-        this.createArtifact(GROUP + "-foo", "Empty-0", ArtifactType.WSDL, resourceToString("sample.wsdl"));
+        this.createArtifact(GROUP + "-foo", "Empty-0", "WSDL", resourceToString("sample.wsdl"));
 
         String artifactId1 = "testIdsAfterCreate/Empty-1";
         String artifactId2 = "testIdsAfterCreate/Empty-2";
@@ -56,7 +56,7 @@ public class IdsResourceTest extends AbstractResourceTestBase {
                     .contentType(CT_JSON)
                     .pathParam("groupId", GROUP)
                     .header("X-Registry-ArtifactId", artifactId1)
-                    .header("X-Registry-ArtifactType", ArtifactType.OPENAPI.name())
+                    .header("X-Registry-ArtifactType", "OPENAPI")
                     .body(artifactContent)
                 .post("/registry/v2/groups/{groupId}/artifacts")
                 .then()
@@ -70,7 +70,7 @@ public class IdsResourceTest extends AbstractResourceTestBase {
                     .contentType(CT_JSON)
                     .pathParam("groupId", GROUP)
                     .header("X-Registry-ArtifactId", artifactId2)
-                    .header("X-Registry-ArtifactType", ArtifactType.OPENAPI.name())
+                    .header("X-Registry-ArtifactType", "OPENAPI")
                     .body(artifactContent)
                 .post("/registry/v2/groups/{groupId}/artifacts")
                 .then()
@@ -156,7 +156,7 @@ public class IdsResourceTest extends AbstractResourceTestBase {
                 .contentType(CT_JSON)
                 .pathParam("groupId", GROUP)
                 .header("X-Registry-ArtifactId", artifactId)
-                .header("X-Registry-ArtifactType", ArtifactType.OPENAPI.name())
+                .header("X-Registry-ArtifactType", "OPENAPI")
                 .body(artifactContent)
                 .post("/registry/v2/groups/{groupId}/artifacts")
                 .then()
@@ -193,10 +193,10 @@ public class IdsResourceTest extends AbstractResourceTestBase {
 
         // Create two artifacts with same artifactId but with different groupId
 
-        long globalId1 = createArtifact(group1, artifactId, ArtifactType.OPENAPI, artifactContent);
+        long globalId1 = createArtifact(group1, artifactId, "OPENAPI", artifactContent);
         this.waitForGlobalId(globalId1);
 
-        long globalId2 = createArtifact(group2, artifactId, ArtifactType.OPENAPI, artifactContent);
+        long globalId2 = createArtifact(group2, artifactId, "OPENAPI", artifactContent);
         this.waitForGlobalId(globalId2);
 
         // Get by globalId should not fail
@@ -219,7 +219,7 @@ public class IdsResourceTest extends AbstractResourceTestBase {
                     .contentType(CT_JSON)
                     .pathParam("groupId", GROUP)
                     .header("X-Registry-ArtifactId", artifactId)
-                    .header("X-Registry-ArtifactType", ArtifactType.OPENAPI.name())
+                    .header("X-Registry-ArtifactType", "OPENAPI")
                     .body(artifactContent)
                 .post("/registry/v2/groups/{groupId}/artifacts")
                 .then()
@@ -266,7 +266,7 @@ public class IdsResourceTest extends AbstractResourceTestBase {
                 .contentType(CT_JSON)
                 .pathParam("groupId", GROUP)
                 .header("X-Registry-ArtifactId", artifactId)
-                .header("X-Registry-ArtifactType", ArtifactType.OPENAPI.name())
+                .header("X-Registry-ArtifactType", "OPENAPI")
                 .body(artifactContent)
             .post("/registry/v2/groups/{groupId}/artifacts")
             .then()

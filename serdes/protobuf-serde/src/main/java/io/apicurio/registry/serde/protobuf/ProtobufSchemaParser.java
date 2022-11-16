@@ -27,7 +27,7 @@ import io.apicurio.registry.resolver.ParsedSchema;
 import io.apicurio.registry.resolver.ParsedSchemaImpl;
 import io.apicurio.registry.resolver.SchemaParser;
 import io.apicurio.registry.resolver.data.Record;
-import io.apicurio.registry.types.ArtifactType;
+
 import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.protobuf.schema.FileDescriptorUtils;
 import io.apicurio.registry.utils.protobuf.schema.ProtobufSchema;
@@ -47,8 +47,8 @@ public class ProtobufSchemaParser<U extends Message> implements SchemaParser<Pro
      * @see io.apicurio.registry.serde.SchemaParser#artifactType()
      */
     @Override
-    public ArtifactType artifactType() {
-        return ArtifactType.PROTOBUF;
+    public String artifactType() {
+        return "PROTOBUF";
     }
 
     /**

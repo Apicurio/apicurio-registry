@@ -25,7 +25,7 @@ import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.RegistryClientFactory;
 import io.apicurio.registry.rest.client.exception.LimitExceededException;
 import io.apicurio.registry.rest.v2.beans.EditableMetaData;
-import io.apicurio.registry.types.ArtifactType;
+
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.rest.client.auth.OidcAuth;
 import io.apicurio.rest.client.auth.exception.AuthErrorHandler;
@@ -96,7 +96,7 @@ public class MultitenantLimitsIT extends ApicurioRegistryBaseIT {
 
 
         String artifactId = TestUtils.generateArtifactId();
-        client.createArtifact(null, artifactId, ArtifactType.JSON, useContent());
+        client.createArtifact(null, artifactId, "JSON", useContent());
         client.createArtifactVersion(null, artifactId, null, useContent());
 
         //valid metadata
@@ -125,17 +125,17 @@ public class MultitenantLimitsIT extends ApicurioRegistryBaseIT {
 
         //invalid content size
         Assertions.assertThrows(LimitExceededException.class, () -> {
-            client.createArtifact(null, TestUtils.generateArtifactId(), ArtifactType.JSON, useContentLarger());
+            client.createArtifact(null, TestUtils.generateArtifactId(), "JSON", useContentLarger());
         });
 
         //schema number 3, ok
         Assertions.assertDoesNotThrow(() -> {
-            client.createArtifact(null, TestUtils.generateArtifactId(), ArtifactType.JSON, useContent());
+            client.createArtifact(null, TestUtils.generateArtifactId(), "JSON", useContent());
         });
 
         //schema number 4 , exceeds the max number of schemas
         Assertions.assertThrows(LimitExceededException.class, () -> {
-            client.createArtifact(null, TestUtils.generateArtifactId(), ArtifactType.JSON, new ByteArrayInputStream("{}".getBytes()));
+            client.createArtifact(null, TestUtils.generateArtifactId(), "JSON", new ByteArrayInputStream("{}".getBytes()));
         });
     }
 

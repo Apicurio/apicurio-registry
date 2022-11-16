@@ -37,7 +37,7 @@ import io.apicurio.registry.storage.dto.OrderBy;
 import io.apicurio.registry.storage.dto.OrderDirection;
 import io.apicurio.registry.storage.dto.SearchFilter;
 import io.apicurio.registry.storage.dto.StoredArtifactDto;
-import io.apicurio.registry.types.ArtifactType;
+
 import io.apicurio.registry.types.Current;
 import io.quarkus.test.junit.QuarkusTest;
 
@@ -103,7 +103,7 @@ public class RegistryStoragePerformanceTest {
                         .replaceAll("VERSION", String.valueOf(idx)));
             EditableArtifactMetaDataDto metaData = new EditableArtifactMetaDataDto(title, description, labels,
                     properties);
-            storage.createArtifactWithMetadata(GROUP_ID, artifactId, null, ArtifactType.OPENAPI, content, metaData, null);
+            storage.createArtifactWithMetadata(GROUP_ID, artifactId, null, "OPENAPI", content, metaData, null);
 
             System.out.print(".");
             if (idx % 100 == 0) {

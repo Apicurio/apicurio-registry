@@ -27,7 +27,7 @@ import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.apicurio.registry.types.ArtifactType;
+
 import io.apicurio.tests.selenium.SeleniumProvider;
 import io.apicurio.tests.selenium.resources.ArtifactListItem;
 import io.apicurio.tests.ui.pages.ArtifactDetailsPage;
@@ -54,7 +54,7 @@ public class RegistryUITester {
         artifactsListPage.verifyIsOpen();
     }
 
-    public String uploadArtifact(String groupId, String artifactId, ArtifactType type, String content) throws UnsupportedEncodingException {
+    public String uploadArtifact(String groupId, String artifactId, String type, String content) throws UnsupportedEncodingException {
 
         UploadArtifactDialog uploadDialog = openUploadArtifactDialog();
 
@@ -89,7 +89,7 @@ public class RegistryUITester {
 
     }
 
-    public String uploadArtifactFromURL(String groupId, String artifactId, ArtifactType type, String url) throws UnsupportedEncodingException {
+    public String uploadArtifactFromURL(String groupId, String artifactId, String type, String url) throws UnsupportedEncodingException {
 
         UploadArtifactDialog uploadDialog = openUploadArtifactDialog();
 

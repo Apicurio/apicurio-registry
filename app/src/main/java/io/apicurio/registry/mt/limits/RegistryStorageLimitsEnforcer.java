@@ -30,7 +30,7 @@ import io.apicurio.registry.storage.dto.GroupSearchResultsDto;
 import io.apicurio.registry.storage.dto.OrderBy;
 import io.apicurio.registry.storage.dto.OrderDirection;
 import io.apicurio.registry.storage.dto.SearchFilter;
-import io.apicurio.registry.types.ArtifactType;
+
 import io.apicurio.registry.types.RegistryException;
 import org.eclipse.microprofile.context.ThreadContext;
 
@@ -82,7 +82,7 @@ public class RegistryStorageLimitsEnforcer extends RegistryStorageDecorator {
      */
     @Override
     public ArtifactMetaDataDto createArtifact(String groupId, String artifactId,
-                                              String version, ArtifactType artifactType, ContentHandle content, List<ArtifactReferenceDto> references)
+                                              String version, String artifactType, ContentHandle content, List<ArtifactReferenceDto> references)
             throws ArtifactAlreadyExistsException, RegistryStorageException {
 
         ArtifactMetaDataDto dto = withLimitsCheck(() -> limitsService.canCreateArtifact(null, content))
@@ -96,7 +96,7 @@ public class RegistryStorageLimitsEnforcer extends RegistryStorageDecorator {
      */
     @Override
     public ArtifactMetaDataDto createArtifactWithMetadata(String groupId, String artifactId,
-            String version, ArtifactType artifactType, ContentHandle content,
+            String version, String artifactType, ContentHandle content,
             EditableArtifactMetaDataDto metaData, List<ArtifactReferenceDto> references)
             throws ArtifactAlreadyExistsException, RegistryStorageException {
 
@@ -111,7 +111,7 @@ public class RegistryStorageLimitsEnforcer extends RegistryStorageDecorator {
      */
     @Override
     public ArtifactMetaDataDto updateArtifact(String groupId, String artifactId,
-            String version, ArtifactType artifactType, ContentHandle content, List<ArtifactReferenceDto> references)
+            String version, String artifactType, ContentHandle content, List<ArtifactReferenceDto> references)
             throws ArtifactNotFoundException, RegistryStorageException {
 
         ArtifactMetaDataDto dto = withLimitsCheck(() -> limitsService.canCreateArtifactVersion(groupId, artifactId, null, content))
@@ -125,7 +125,7 @@ public class RegistryStorageLimitsEnforcer extends RegistryStorageDecorator {
      */
     @Override
     public ArtifactMetaDataDto updateArtifactWithMetadata(String groupId, String artifactId,
-            String version, ArtifactType artifactType, ContentHandle content,
+            String version, String artifactType, ContentHandle content,
             EditableArtifactMetaDataDto metaData, List<ArtifactReferenceDto> references) throws ArtifactNotFoundException, RegistryStorageException {
 
         ArtifactMetaDataDto dto = withLimitsCheck(() -> limitsService.canCreateArtifactVersion(groupId, artifactId, metaData, content))

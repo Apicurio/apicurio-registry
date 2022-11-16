@@ -21,7 +21,7 @@ import java.util.Date;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.impl.kafkasql.MessageType;
 import io.apicurio.registry.types.ArtifactState;
-import io.apicurio.registry.types.ArtifactType;
+
 import io.quarkus.runtime.annotations.RegisterForReflection;
 import lombok.ToString;
 
@@ -34,7 +34,7 @@ public class ArtifactValue extends ArtifactVersionValue {
 
     private Long globalId;
     private String version;
-    private ArtifactType artifactType;
+    private String artifactType;
     private String contentHash;
     private String createdBy;
     private Date createdOn;
@@ -45,7 +45,7 @@ public class ArtifactValue extends ArtifactVersionValue {
     /**
      * Creator method.
      */
-    public static final ArtifactValue create(ActionType action, Long globalId, String version, ArtifactType artifactType, String contentHash,
+    public static final ArtifactValue create(ActionType action, Long globalId, String version, String artifactType, String contentHash,
             String createdBy, Date createdOn, EditableArtifactMetaDataDto metaData, Integer versionId, ArtifactState state, Long contentId,
             Boolean latest) {
         ArtifactValue value = new ArtifactValue();
@@ -75,14 +75,14 @@ public class ArtifactValue extends ArtifactVersionValue {
     /**
      * @return the artifactType
      */
-    public ArtifactType getArtifactType() {
+    public String getArtifactType() {
         return artifactType;
     }
 
     /**
      * @param artifactType the artifactType to set
      */
-    public void setArtifactType(ArtifactType artifactType) {
+    public void setArtifactType(String artifactType) {
         this.artifactType = artifactType;
     }
 

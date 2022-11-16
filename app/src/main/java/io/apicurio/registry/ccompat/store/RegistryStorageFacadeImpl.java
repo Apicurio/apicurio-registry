@@ -47,7 +47,6 @@ import io.apicurio.registry.storage.dto.SearchFilter;
 import io.apicurio.registry.storage.dto.SearchedArtifactDto;
 import io.apicurio.registry.storage.dto.StoredArtifactDto;
 import io.apicurio.registry.types.ArtifactState;
-import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
@@ -223,8 +222,8 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
         try {
             Map<String, ContentHandle> resolvedReferences = resolveReferences(references);
 
-            final ArtifactType artifactType = ArtifactTypeUtil.determineArtifactType(removeQuotedBrackets(schema), null, null, resolvedReferences);
-            if (schemaType != null && !artifactType.value().equals(schemaType)) {
+            final String artifactType = ArtifactTypeUtil.determineArtifactType(removeQuotedBrackets(schema), null, null, resolvedReferences);
+            if (schemaType != null && !artifactType.equals(schemaType)) {
                 throw new UnprocessableEntityException(String.format("Given schema is not from type: %s", schemaType));
             }
             ArtifactMetaDataDto artifactMeta = createOrUpdateArtifact(subject, schema, artifactType, references, normalize);
@@ -333,7 +332,7 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
         return ContentHandle.create(QUOTED_BRACKETS.matcher(content).replaceAll(":{}"));
     }
 
-    private ArtifactMetaDataDto createOrUpdateArtifact(String subject, String schema, ArtifactType artifactType, List<SchemaReference> references, boolean normalize) {
+    private ArtifactMetaDataDto createOrUpdateArtifact(String subject, String schema, String artifactType, List<SchemaReference> references, boolean normalize) {
         ArtifactMetaDataDto res;
         final List<ArtifactReferenceDto> parsedReferences = parseReferences(references);
         final Map<String, ContentHandle> resolvedReferences = storage.resolveReferences(parsedReferences);
@@ -475,8 +474,8 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
         }
     }
 
-    private boolean isCcompatManagedType(ArtifactType artifactType) {
-        return artifactType.equals(ArtifactType.AVRO) || artifactType.equals(ArtifactType.PROTOBUF) || artifactType.equals(ArtifactType.JSON);
+    private boolean isCcompatManagedType(String artifactType) {
+        return artifactType.equals("AVRO") || artifactType.equals("PROTOBUF") || artifactType.equals("JSON");
     }
 
     /**
@@ -485,13 +484,13 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
      * @param artifactType
      * @param content
      */
-    private ContentHandle canonicalizeContent(ArtifactType artifactType, ContentHandle content, List<SchemaReference> references) {
+    private ContentHandle canonicalizeContent(String artifactType, ContentHandle content, List<SchemaReference> references) {
         try {
             ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(artifactType);
             ContentCanonicalizer canonicalizer = provider.getContentCanonicalizer();
             return canonicalizer.canonicalize(content, resolveReferences(references));
         } catch (Exception e) {
-            log.debug("Failed to canonicalize content of type: {}", artifactType.name());
+            log.debug("Failed to canonicalize content of type: {}", artifactType);
             return content;
         }
     }

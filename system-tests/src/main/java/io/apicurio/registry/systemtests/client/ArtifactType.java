@@ -1,6 +1,6 @@
 package io.apicurio.registry.systemtests.client;
 
-public enum ArtifactType {
+public enum String {
     AVRO,
     PROTOBUF,
     JSON,

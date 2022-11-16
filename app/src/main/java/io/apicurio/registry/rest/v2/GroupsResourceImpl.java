@@ -69,7 +69,7 @@ import io.apicurio.registry.storage.dto.StoredArtifactDto;
 import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
 import io.apicurio.registry.types.ArtifactMediaTypes;
 import io.apicurio.registry.types.ArtifactState;
-import io.apicurio.registry.types.ArtifactType;
+
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.util.ArtifactIdGenerator;
@@ -179,13 +179,13 @@ public class GroupsResourceImpl implements GroupsResource {
 
         // The content-type will be different for protobuf artifacts, graphql artifacts, and XML artifacts
         MediaType contentType = ArtifactMediaTypes.JSON;
-        if (metaData.getType() == ArtifactType.PROTOBUF) {
+        if (metaData.getType().equals("PROTOBUF")) {
             contentType = ArtifactMediaTypes.PROTO;
         }
-        if (metaData.getType() == ArtifactType.GRAPHQL) {
+        if (metaData.getType().equals("GRAPHQL")) {
             contentType = ArtifactMediaTypes.GRAPHQL;
         }
-        if (metaData.getType() == ArtifactType.WSDL || metaData.getType() == ArtifactType.XSD || metaData.getType() == ArtifactType.XML) {
+        if (metaData.getType().equals("WSDL") || metaData.getType().equals("XSD") || metaData.getType().equals("XML")) {
             contentType = ArtifactMediaTypes.XML;
         }
 
@@ -533,7 +533,7 @@ public class GroupsResourceImpl implements GroupsResource {
             content = ContentTypeUtil.yamlToJson(content);
         }
 
-        ArtifactType artifactType = lookupArtifactType(groupId, artifactId);
+        String artifactType = lookupArtifactType(groupId, artifactId);
         rulesService.applyRules(gidOrNull(groupId), artifactId, artifactType, content, RuleApplicationType.UPDATE, Collections.emptyMap()); //TODO:references not supported for testing update
     }
 
@@ -559,13 +559,13 @@ public class GroupsResourceImpl implements GroupsResource {
 
         // The content-type will be different for protobuf artifacts, graphql artifacts, and XML artifacts
         MediaType contentType = ArtifactMediaTypes.JSON;
-        if (metaData.getType() == ArtifactType.PROTOBUF) {
+        if (metaData.getType().equals("PROTOBUF")) {
             contentType = ArtifactMediaTypes.PROTO;
         }
-        if (metaData.getType() == ArtifactType.GRAPHQL) {
+        if (metaData.getType().equals("GRAPHQL")) {
             contentType = ArtifactMediaTypes.GRAPHQL;
         }
-        if (metaData.getType() == ArtifactType.WSDL || metaData.getType() == ArtifactType.XSD || metaData.getType() == ArtifactType.XML) {
+        if (metaData.getType().equals("WSDL") || metaData.getType().equals("XSD") || metaData.getType().equals("XML")) {
             contentType = ArtifactMediaTypes.XML;
         }
 
@@ -692,7 +692,7 @@ public class GroupsResourceImpl implements GroupsResource {
     @Override
     @Audited(extractParameters = {"0", KEY_GROUP_ID, "1", KEY_ARTIFACT_TYPE, "2", KEY_ARTIFACT_ID, "3", KEY_VERSION, "4", KEY_IF_EXISTS, "5", KEY_CANONICAL, "6", KEY_DESCRIPTION, "7", KEY_DESCRIPTION_ENCODED, "8", KEY_NAME, "9", KEY_NAME_ENCODED, "10", KEY_FROM_URL, "11", KEY_SHA})
     @Authorized(style = AuthorizedStyle.GroupOnly, level = AuthorizedLevel.Write)
-    public ArtifactMetaData createArtifact(String groupId, ArtifactType xRegistryArtifactType, String xRegistryArtifactId,
+    public ArtifactMetaData createArtifact(String groupId, String xRegistryArtifactType, String xRegistryArtifactId,
                                            String xRegistryVersion, IfExists ifExists, Boolean canonical,
                                            String xRegistryDescription, String xRegistryDescriptionEncoded,
                                            String xRegistryName, String xRegistryNameEncoded,
@@ -706,7 +706,7 @@ public class GroupsResourceImpl implements GroupsResource {
     @Override
     @Audited(extractParameters = {"0", KEY_GROUP_ID, "1", KEY_ARTIFACT_TYPE, "2", KEY_ARTIFACT_ID, "3", KEY_VERSION, "4", KEY_IF_EXISTS, "5", KEY_CANONICAL, "6", KEY_DESCRIPTION, "7", KEY_DESCRIPTION_ENCODED, "8", KEY_NAME, "9", KEY_NAME_ENCODED, "10", "from_url" /*KEY_FROM_URL*/, "11", "artifact_sha" /*KEY_SHA*/})
     @Authorized(style = AuthorizedStyle.GroupOnly, level = AuthorizedLevel.Write)
-    public ArtifactMetaData createArtifact(String groupId, ArtifactType xRegistryArtifactType, String xRegistryArtifactId,
+    public ArtifactMetaData createArtifact(String groupId, String xRegistryArtifactType, String xRegistryArtifactId,
                                            String xRegistryVersion, IfExists ifExists, Boolean canonical,
                                            String xRegistryDescription, String xRegistryDescriptionEncoded,
                                            String xRegistryName, String xRegistryNameEncoded,
@@ -801,7 +801,7 @@ public class GroupsResourceImpl implements GroupsResource {
      * @param data
      * @param references
      */
-    private ArtifactMetaData createArtifactWithRefs(String groupId, ArtifactType xRegistryArtifactType, String xRegistryArtifactId,
+    private ArtifactMetaData createArtifactWithRefs(String groupId, String xRegistryArtifactType, String xRegistryArtifactId,
                                                     String xRegistryVersion, IfExists ifExists, Boolean canonical,
                                                     String xRegistryDescription, String xRegistryDescriptionEncoded,
                                                     String xRegistryName, String xRegistryNameEncoded,
@@ -865,7 +865,7 @@ public class GroupsResourceImpl implements GroupsResource {
                 content = ContentTypeUtil.yamlToJson(content);
             }
 
-            ArtifactType artifactType = ArtifactTypeUtil.determineArtifactType(content, xRegistryArtifactType, ct);
+            String artifactType = ArtifactTypeUtil.determineArtifactType(content, xRegistryArtifactType, ct);
 
             final List<ArtifactReferenceDto> referencesAsDtos = references.stream()
                     .map(V2ApiUtil::referenceToDto)
@@ -971,7 +971,7 @@ public class GroupsResourceImpl implements GroupsResource {
         //Try to resolve the new artifact references and the nested ones (if any)
         final Map<String, ContentHandle> resolvedReferences = storage.resolveReferences(referencesAsDtos);
 
-        ArtifactType artifactType = lookupArtifactType(groupId, artifactId);
+        String artifactType = lookupArtifactType(groupId, artifactId);
         rulesService.applyRules(gidOrNull(groupId), artifactId, artifactType, content, RuleApplicationType.UPDATE, resolvedReferences);
         EditableArtifactMetaDataDto metaData = getEditableMetaData(artifactName, artifactDescription);
         ArtifactMetaDataDto amd = storage.updateArtifactWithMetadata(gidOrNull(groupId), artifactId, xRegistryVersion, artifactType, content, metaData, referencesAsDtos);
@@ -996,7 +996,7 @@ public class GroupsResourceImpl implements GroupsResource {
      * @param groupId
      * @param artifactId
      */
-    private ArtifactType lookupArtifactType(String groupId, String artifactId) {
+    private String lookupArtifactType(String groupId, String artifactId) {
         return storage.getArtifactMetaData(gidOrNull(groupId), artifactId).getType();
     }
 
@@ -1075,7 +1075,7 @@ public class GroupsResourceImpl implements GroupsResource {
             content = ContentTypeUtil.yamlToJson(content);
         }
 
-        ArtifactType artifactType = lookupArtifactType(groupId, artifactId);
+        String artifactType = lookupArtifactType(groupId, artifactId);
 
         //Transform the given references into dtos and set the contentId, this will also detect if any of the passed references does not exist.
         final List<ArtifactReferenceDto> referencesAsDtos = references.stream()

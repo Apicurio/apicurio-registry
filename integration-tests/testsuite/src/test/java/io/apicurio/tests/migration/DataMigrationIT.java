@@ -38,7 +38,7 @@ import java.util.zip.ZipOutputStream;
 
 import io.apicurio.registry.rest.v2.beans.ArtifactReference;
 import io.apicurio.registry.types.ArtifactState;
-import io.apicurio.registry.types.ArtifactType;
+
 import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.impexp.ArtifactVersionEntity;
 import io.apicurio.registry.utils.impexp.ContentEntity;
@@ -248,7 +248,7 @@ public class DataMigrationIT extends ApicurioRegistryBaseIT {
                 byte[] contentBytes = IoUtil.toBytes(content);
                 String contentHash = DigestUtils.sha256Hex(contentBytes);
 
-                ArtifactType artifactType = ArtifactType.JSON;
+                String artifactType = "JSON";
 
                 Long contentId = contentIndex.computeIfAbsent(contentHash, k -> {
                     ContentEntity contentEntity = new ContentEntity();

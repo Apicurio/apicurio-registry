@@ -25,7 +25,7 @@ import io.apicurio.registry.rest.v2.beans.EditableMetaData;
 import io.apicurio.registry.rest.v2.beans.UpdateState;
 import io.apicurio.registry.rest.v2.beans.VersionMetaData;
 import io.apicurio.registry.types.ArtifactState;
-import io.apicurio.registry.types.ArtifactType;
+
 import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -56,7 +56,7 @@ public class ArtifactStateTest extends AbstractResourceTestBase {
         String groupId = "ArtifactStateTest_testSmoke";
         String artifactId = generateArtifactId();
 
-        ArtifactMetaData amd1 = clientV2.createArtifact(groupId, artifactId, ArtifactType.JSON, new ByteArrayInputStream("{\"type\": \"string\"}".getBytes(StandardCharsets.UTF_8)));
+        ArtifactMetaData amd1 = clientV2.createArtifact(groupId, artifactId, "JSON", new ByteArrayInputStream("{\"type\": \"string\"}".getBytes(StandardCharsets.UTF_8)));
         this.waitForGlobalId(amd1.getGlobalId());
 
         ArtifactMetaData amd2 = clientV2.updateArtifact(
@@ -159,7 +159,7 @@ public class ArtifactStateTest extends AbstractResourceTestBase {
         ArtifactMetaData md = clientV2.createArtifact(
                 groupId,
                 artifactId,
-                ArtifactType.JSON,
+                "JSON",
                 new ByteArrayInputStream("{\"type\": \"string\"}".getBytes(StandardCharsets.UTF_8))
         );
 
@@ -207,7 +207,7 @@ public class ArtifactStateTest extends AbstractResourceTestBase {
         ArtifactMetaData md = clientV2.createArtifact(
                 groupId,
                 artifactId,
-                ArtifactType.JSON,
+                "JSON",
                 new ByteArrayInputStream("{\"type\": \"string\"}".getBytes(StandardCharsets.UTF_8))
         );
 

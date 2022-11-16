@@ -28,7 +28,7 @@ import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.content.extract.ContentExtractor;
 import io.apicurio.registry.content.extract.ExtractedMetaData;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
-import io.apicurio.registry.types.ArtifactType;
+
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 import io.quarkus.test.junit.QuarkusTest;
@@ -162,7 +162,7 @@ public class ContentExtractorTest extends AbstractResourceTestBase {
         String name = "schema-" + generateArtifactId();
         String content = String.format(avroFormat, name);
 
-        ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(ArtifactType.AVRO);
+        ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider("AVRO");
         ContentExtractor extractor = provider.getContentExtractor();
 
         ExtractedMetaData emd = extractor.extract(ContentHandle.create(content));
@@ -178,7 +178,7 @@ public class ContentExtractorTest extends AbstractResourceTestBase {
         String name = "schema_" + System.currentTimeMillis();
         String content = String.format(avroFormat, name);
 
-        ArtifactMetaData amd = clientV2.createArtifact(groupId, artifactId, ArtifactType.AVRO, new ByteArrayInputStream(content.getBytes()));
+        ArtifactMetaData amd = clientV2.createArtifact(groupId, artifactId, "AVRO", new ByteArrayInputStream(content.getBytes()));
 
         Assertions.assertEquals(name, amd.getName());
 
@@ -200,7 +200,7 @@ public class ContentExtractorTest extends AbstractResourceTestBase {
         String description = "Automatic description generated at: " + System.currentTimeMillis();
         String content = String.format(jsonFormat, name, description);
 
-        ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(ArtifactType.JSON);
+        ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider("JSON");
         ContentExtractor extractor = provider.getContentExtractor();
 
         ExtractedMetaData emd = extractor.extract(ContentHandle.create(content));
@@ -217,7 +217,7 @@ public class ContentExtractorTest extends AbstractResourceTestBase {
         String description = "Automatic description generated at: " + System.currentTimeMillis();
         String content = String.format(jsonFormat, name, description);
 
-        ArtifactMetaData amd = clientV2.createArtifact(groupId, artifactId, ArtifactType.JSON, new ByteArrayInputStream(content.getBytes()));
+        ArtifactMetaData amd = clientV2.createArtifact(groupId, artifactId, "JSON", new ByteArrayInputStream(content.getBytes()));
 
         Assertions.assertEquals(name, amd.getName());
 
@@ -239,7 +239,7 @@ public class ContentExtractorTest extends AbstractResourceTestBase {
         String description = "Automatic description generated at: " + System.currentTimeMillis();
         String content = String.format(openapiFormat, name, description);
 
-        ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(ArtifactType.OPENAPI);
+        ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider("OPENAPI");
         ContentExtractor extractor = provider.getContentExtractor();
 
         ExtractedMetaData emd = extractor.extract(ContentHandle.create(content));
@@ -256,7 +256,7 @@ public class ContentExtractorTest extends AbstractResourceTestBase {
         String description = "Automatic description generated at: " + System.currentTimeMillis();
         String content = String.format(openapiFormat, name, description);
 
-        ArtifactMetaData amd = clientV2.createArtifact(groupId, artifactId, ArtifactType.OPENAPI, new ByteArrayInputStream(content.getBytes()));
+        ArtifactMetaData amd = clientV2.createArtifact(groupId, artifactId, "OPENAPI", new ByteArrayInputStream(content.getBytes()));
 
         Assertions.assertEquals(name, amd.getName());
 
@@ -278,7 +278,7 @@ public class ContentExtractorTest extends AbstractResourceTestBase {
         String description = "Automatic description generated at: " + System.currentTimeMillis();
         String content = String.format(asyncapiFormat, name, description);
 
-        ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(ArtifactType.ASYNCAPI);
+        ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider("ASYNCAPI");
         ContentExtractor extractor = provider.getContentExtractor();
 
         ExtractedMetaData emd = extractor.extract(ContentHandle.create(content));
@@ -295,7 +295,7 @@ public class ContentExtractorTest extends AbstractResourceTestBase {
         String description = "Automatic description generated at: " + System.currentTimeMillis();
         String content = String.format(asyncapiFormat, name, description);
 
-        ArtifactMetaData amd = clientV2.createArtifact(groupId, artifactId, ArtifactType.ASYNCAPI, new ByteArrayInputStream(content.getBytes()));
+        ArtifactMetaData amd = clientV2.createArtifact(groupId, artifactId, "ASYNCAPI", new ByteArrayInputStream(content.getBytes()));
 
         Assertions.assertEquals(name, amd.getName());
 
@@ -315,7 +315,7 @@ public class ContentExtractorTest extends AbstractResourceTestBase {
     public void testWsdl() {
         String content = wsdlFormat;
 
-        ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(ArtifactType.WSDL);
+        ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider("WSDL");
         ContentExtractor extractor = provider.getContentExtractor();
 
         ExtractedMetaData emd = extractor.extract(ContentHandle.create(content));
@@ -330,7 +330,7 @@ public class ContentExtractorTest extends AbstractResourceTestBase {
 
         String content = wsdlFormat;
 
-        ArtifactMetaData amd = clientV2.createArtifact(groupId, artifactId, ArtifactType.WSDL, new ByteArrayInputStream(content.getBytes()));
+        ArtifactMetaData amd = clientV2.createArtifact(groupId, artifactId, "WSDL", new ByteArrayInputStream(content.getBytes()));
 
         Assertions.assertEquals("StockQuote", amd.getName());
         Assertions.assertNull(amd.getDescription());
@@ -340,7 +340,7 @@ public class ContentExtractorTest extends AbstractResourceTestBase {
     public void testXsd() {
         String content = xsdFormat;
 
-        ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(ArtifactType.XSD);
+        ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider("XSD");
         ContentExtractor extractor = provider.getContentExtractor();
 
         ExtractedMetaData emd = extractor.extract(ContentHandle.create(content));
@@ -355,7 +355,7 @@ public class ContentExtractorTest extends AbstractResourceTestBase {
 
         String content = xsdFormat;
 
-        ArtifactMetaData amd = clientV2.createArtifact(groupId, artifactId, ArtifactType.XSD, new ByteArrayInputStream(content.getBytes()));
+        ArtifactMetaData amd = clientV2.createArtifact(groupId, artifactId, "XSD", new ByteArrayInputStream(content.getBytes()));
         Assertions.assertEquals("http://tempuri.org/PurchaseOrderSchema.xsd", amd.getName());
         Assertions.assertNull(amd.getDescription());
     }

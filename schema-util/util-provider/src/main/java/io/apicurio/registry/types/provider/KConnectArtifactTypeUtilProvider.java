@@ -25,15 +25,14 @@ import io.apicurio.registry.rules.compatibility.CompatibilityChecker;
 import io.apicurio.registry.rules.compatibility.NoopCompatibilityChecker;
 import io.apicurio.registry.rules.validity.ContentValidator;
 import io.apicurio.registry.rules.validity.KafkaConnectContentValidator;
-import io.apicurio.registry.types.ArtifactType;
 
 /**
  * @author Ales Justin
  */
 public class KConnectArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvider {
     @Override
-    public ArtifactType getArtifactType() {
-        return ArtifactType.KCONNECT;
+    public String getArtifactType() {
+        return "KCONNECT";
     }
 
     @Override

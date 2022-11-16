@@ -46,7 +46,7 @@ import org.rnorth.ducttape.unreliables.Unreliables;
 
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.events.dto.RegistryEventType;
-import io.apicurio.registry.types.ArtifactType;
+
 import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
@@ -80,8 +80,8 @@ public class KafkaEventsTest extends AbstractResourceTestBase {
         String artifactId = TestUtils.generateArtifactId();
 
         try {
-            createArtifact(artifactId, ArtifactType.JSON, content);
-            createArtifactVersion(artifactId, ArtifactType.JSON, content);
+            createArtifact(artifactId, "JSON", content);
+            createArtifactVersion(artifactId, "JSON", content);
         } catch ( Exception e ) {
             Assertions.fail(e);
         }

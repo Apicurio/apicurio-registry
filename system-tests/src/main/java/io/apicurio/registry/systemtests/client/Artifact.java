@@ -14,7 +14,7 @@ public class Artifact {
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ssZ", timezone = "UTC")
     private Date createdOn;
     private String createdBy;
-    private ArtifactType type;
+    private String type;
     private ArtifactState state;
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ssZ", timezone = "UTC")
     private Date modifiedOn;
@@ -60,11 +60,11 @@ public class Artifact {
         this.createdBy = createdBy;
     }
 
-    public ArtifactType getType() {
+    public String getType() {
         return type;
     }
 
-    public void setType(ArtifactType type) {
+    public void setType(String type) {
         this.type = type;
     }
 

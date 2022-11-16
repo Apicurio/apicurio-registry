@@ -26,15 +26,14 @@ import io.apicurio.registry.rules.compatibility.CompatibilityChecker;
 import io.apicurio.registry.rules.compatibility.ProtobufCompatibilityChecker;
 import io.apicurio.registry.rules.validity.ContentValidator;
 import io.apicurio.registry.rules.validity.ProtobufContentValidator;
-import io.apicurio.registry.types.ArtifactType;
 
 /**
  * @author Ales Justin
  */
 public class ProtobufArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvider {
     @Override
-    public ArtifactType getArtifactType() {
-        return ArtifactType.PROTOBUF;
+    public String getArtifactType() {
+        return "PROTOBUF";
     }
 
     @Override

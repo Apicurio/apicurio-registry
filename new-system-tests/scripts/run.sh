@@ -2,4 +2,4 @@
 
 ./scripts/setup_cluster.sh
 
-mvn -Dtest=SqlNoIAM test
+mvn clean -Dtest=SqlNoIAM test

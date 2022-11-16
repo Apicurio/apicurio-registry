@@ -254,7 +254,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String selectArtifactContentIds() {
-        return "SELECT v.contentId FROM versions v WHERE v.tenantId = ? AND v.groupId = ? AND v.artifactId = ?";
+        return "SELECT v.contentId FROM versions v WHERE v.tenantId = ? AND v.groupId = ? AND v.artifactId = ? ORDER BY v.versionId";
     }
 
     /**

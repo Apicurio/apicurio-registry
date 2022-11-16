@@ -20,7 +20,11 @@
         <junit.jupiter.version>5.9.0</junit.jupiter.version>
         <fabric8.version>6.2.0</fabric8.version>
         <version.hamcrest>2.2</version.hamcrest>
-        <version.slf4.simple>2.0.0</version.slf4.simple>
+        <version.slf4.simple>2.0.3</version.slf4.simple>
+        <operator.version>1.0.0-v2.0.0.final</operator.version>
+        <version.fabric8-java-gen>6.1.1</version.fabric8-java-gen>
+        <lombok.version>1.18.24</lombok.version>
+        <sundrio.version>0.93.0</sundrio.version>
     </properties>
 
 
@@ -77,6 +81,30 @@
             <artifactId>slf4j-simple</artifactId>
             <version>${version.slf4.simple}</version>
         </dependency>
+        <dependency>
+            <groupId>io.fabric8</groupId>
+            <artifactId>openshift-client</artifactId>
+            <version>6.2.0</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <version>${lombok.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.sundr</groupId>
+            <artifactId>builder-annotations</artifactId>
+            <version>${sundrio.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>javax.validation</groupId>
+            <artifactId>validation-api</artifactId>
+            <version>2.0.1.Final</version>
+            <scope>provided</scope>
+        </dependency>
     </dependencies>
 
     <build>
@@ -106,6 +134,42 @@
                         </configuration>
                     </execution>
                 </executions>
+            </plugin>
+            <plugin>
+                <groupId>com.googlecode.maven-download-plugin</groupId>
+                <artifactId>download-maven-plugin</artifactId>
+                <version>1.6.8</version>
+                <executions>
+                    <execution>
+                    <!-- Needs to run before java-generator-maven-plugin -->
+                    <phase>generate-sources</phase>
+                    <goals>
+                        <goal>wget</goal>
+                    </goals>
+                    <configuration>
+                        <url>https://raw.githubusercontent.com/Apicurio/apicurio-registry-operator/${operator.version}/packagemanifests/${operator.version}/registry.apicur.io_apicurioregistries.yaml</url>
+                        <outputFileName>registry.apicur.io_apicurioregistries.yaml</outputFileName>
+                        <outputDirectory>${project.build.directory}</outputDirectory>
+                    </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>io.fabric8</groupId>
+                <artifactId>java-generator-maven-plugin</artifactId>
+                <version>${version.fabric8-java-gen}</version>
+                <executions>
+                  <execution>
+                    <phase>generate-sources</phase>
+                    <goals>
+                      <goal>generate</goal>
+                    </goals>
+                  </execution>
+                </executions>
+                <configuration>
+                  <source>${project.build.directory}/registry.apicur.io_apicurioregistries.yaml</source>
+                  <extraAnnotations>true</extraAnnotations>
+                </configuration>
             </plugin>
         </plugins>
     </build>

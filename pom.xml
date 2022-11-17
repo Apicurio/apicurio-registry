@@ -1015,6 +1015,12 @@
             </modules>
         </profile>
         <profile>
+            <id>bigquery</id>
+            <modules>
+                <module>poc-plugins/bigquery</module>
+            </modules>
+        </profile>
+        <profile>
             <id>prod</id>
             <activation>
                 <activeByDefault>false</activeByDefault>

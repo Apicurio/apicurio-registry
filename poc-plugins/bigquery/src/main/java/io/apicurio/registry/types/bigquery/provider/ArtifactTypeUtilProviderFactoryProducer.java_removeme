@@ -14,17 +14,18 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.types.provider;
+package io.apicurio.registry.types.bigquery.provider;
 
 import javax.enterprise.inject.Produces;
 
-/**
- * @author Fabian Martinez
- */
+import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
+
 public class ArtifactTypeUtilProviderFactoryProducer {
 
     @Produces
+    @javax.enterprise.inject.Alternative
     public ArtifactTypeUtilProviderFactory artifactTypeUtilFactory() {
+        System.out.println("***************** DEBUG BIGQUERY!!!! *********************");
         return new ArtifactTypeUtilProviderImpl();
     }
 

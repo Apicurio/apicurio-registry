@@ -13,8 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-package io.apicurio.registry.types.provider;
+package io.apicurio.registry.types.bigquery.provider;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -22,13 +21,22 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
-/**
- * @author Ales Justin
- * @author famartin
- */
-@javax.enterprise.context.ApplicationScoped
-@javax.enterprise.inject.Default
+import io.apicurio.registry.types.provider.*;
+
+// import javax.annotation.PostConstruct;
+import javax.enterprise.context.ApplicationScoped;
+
+// @javax.annotation.Priority(Integer.MAX_VALUE)
+@ApplicationScoped
+@javax.enterprise.inject.Alternative
 public class ArtifactTypeUtilProviderImpl implements ArtifactTypeUtilProviderFactory {
+
+    // @PostConstruct
+    // void onConstruct() {
+    //     System.out.println("***************** DEBUG BIGQUERY!!!! *********************");
+    //     // TODO: back to info
+    //     // log.warn("BigQuery support enabled.");
+    // }
 
     private Map<String, ArtifactTypeUtilProvider> map = new ConcurrentHashMap<>();
 
@@ -48,7 +56,7 @@ public class ArtifactTypeUtilProviderImpl implements ArtifactTypeUtilProviderFac
 
     @Override
     public ArtifactTypeUtilProvider getArtifactTypeProvider(String type) {
-        System.out.println("***************** DEBUG NO BIGQUERY!!!! *********************");
+        System.out.println("***************** DEBUG BIGQUERY!!!! *********************");
         return map.computeIfAbsent(type, t ->
             providers.stream()
                      .filter(a -> a.getArtifactType().equals(t))
@@ -58,7 +66,7 @@ public class ArtifactTypeUtilProviderImpl implements ArtifactTypeUtilProviderFac
 
     @Override
     public List<String> getAllArtifactTypes() {
-        System.out.println("***************** DEBUG NO BIGQUERY!!!! *********************");
+        System.out.println("***************** DEBUG BIGQUERY!!!! *********************");
         return providers.stream()
             .map(a -> a.getArtifactType())
             .collect(Collectors.toList());

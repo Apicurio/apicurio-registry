@@ -20,6 +20,7 @@ import io.apicurio.registry.resolver.ParsedSchema;
 import io.apicurio.registry.resolver.SchemaParser;
 import io.apicurio.registry.resolver.data.Record;
 
+import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.IoUtil;
 
 import java.util.Map;
@@ -31,7 +32,7 @@ public class JsonSchemaParser<T> implements SchemaParser<JsonSchema, T> {
      */
     @Override
     public String artifactType() {
-        return "JSON";
+        return ArtifactType.JSON;
     }
 
     /**

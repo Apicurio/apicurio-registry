@@ -24,8 +24,8 @@ import io.apicurio.registry.rest.client.exception.ArtifactNotFoundException;
 import io.apicurio.registry.rest.v2.beans.*;
 import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
 import io.apicurio.registry.rules.validity.ValidityLevel;
-import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.services.auth.CustomAuthenticationMechanism;
+import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.tests.ApicurioTestTags;
@@ -109,12 +109,12 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
         Assertions.assertThrows(ArtifactNotFoundException.class, () -> client.getArtifactMetaData(groupId, artifactId));
         Assertions.assertThrows(ArtifactNotFoundException.class, () -> client.getLatestArtifact("abc", artifactId));
         Assertions.assertThrows(ForbiddenException.class, () -> {
-            client.createArtifact("testReadOnly", artifactId, "JSON", new ByteArrayInputStream("{}".getBytes()));
+            client.createArtifact("testReadOnly", artifactId, ArtifactType.JSON, new ByteArrayInputStream("{}".getBytes()));
         });
         {
             Auth devAuth = new OidcAuth(httpClient, JWKSMockServer.DEVELOPER_CLIENT_ID, "test1");
             RegistryClient devClient = createClient(devAuth);
-            ArtifactMetaData meta = devClient.createArtifact(groupId, artifactId, "JSON", new ByteArrayInputStream("{}".getBytes()));
+            ArtifactMetaData meta = devClient.createArtifact(groupId, artifactId, ArtifactType.JSON, new ByteArrayInputStream("{}".getBytes()));
             TestUtils.retry(() -> devClient.getArtifactMetaData(groupId, meta.getId()));
         }
         assertNotNull(client.getLatestArtifact(groupId, artifactId));
@@ -135,7 +135,7 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
         try {
             client.listArtifactsInGroup(groupId);
 
-            client.createArtifact(groupId, artifactId, "JSON", new ByteArrayInputStream("{}".getBytes()));
+            client.createArtifact(groupId, artifactId, ArtifactType.JSON, new ByteArrayInputStream("{}".getBytes()));
             TestUtils.retry(() -> client.getArtifactMetaData(groupId, artifactId));
 
             assertNotNull(client.getLatestArtifact(groupId, artifactId));
@@ -168,7 +168,7 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
         String artifactId = TestUtils.generateArtifactId();
         try {
             client.listArtifactsInGroup(groupId);
-            client.createArtifact(groupId, artifactId, "JSON", new ByteArrayInputStream("{}".getBytes()));
+            client.createArtifact(groupId, artifactId, ArtifactType.JSON, new ByteArrayInputStream("{}".getBytes()));
             TestUtils.retry(() -> client.getArtifactMetaData(groupId, artifactId));
             assertNotNull(client.getLatestArtifact(groupId, artifactId));
             Rule ruleConfig = new Rule();
@@ -199,7 +199,7 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
         String artifactId = TestUtils.generateArtifactId();
         try {
             client.listArtifactsInGroup(groupId);
-            client.createArtifact(groupId, artifactId, "JSON", new ByteArrayInputStream("{}".getBytes()));
+            client.createArtifact(groupId, artifactId, ArtifactType.JSON, new ByteArrayInputStream("{}".getBytes()));
             TestUtils.retry(() -> client.getArtifactMetaData(groupId, artifactId));
             assertNotNull(client.getLatestArtifact(groupId, artifactId));
             Rule ruleConfig = new Rule();
@@ -223,7 +223,7 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
             client.listArtifactsInGroup(groupId);
         });
         Assertions.assertThrows(NotAuthorizedException.class, () -> {
-            client.createArtifact(groupId, artifactId, "JSON", new ByteArrayInputStream("{}".getBytes()));
+            client.createArtifact(groupId, artifactId, ArtifactType.JSON, new ByteArrayInputStream("{}".getBytes()));
         });
     }
 
@@ -237,7 +237,7 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
 
         // Admin user will create an artifact
         String artifactId = TestUtils.generateArtifactId();
-        clientAdmin.createArtifact(groupId, artifactId, "JSON", new ByteArrayInputStream("{}".getBytes()));
+        clientAdmin.createArtifact(groupId, artifactId, ArtifactType.JSON, new ByteArrayInputStream("{}".getBytes()));
 
         EditableMetaData updatedMetaData = new EditableMetaData();
         updatedMetaData.setName("Updated Name");
@@ -252,7 +252,7 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
 
         // Now the Dev user will create an artifact
         String artifactId2 = TestUtils.generateArtifactId();
-        clientDev.createArtifact(groupId, artifactId2, "JSON", new ByteArrayInputStream("{}".getBytes()));
+        clientDev.createArtifact(groupId, artifactId2, ArtifactType.JSON, new ByteArrayInputStream("{}".getBytes()));
 
         // And the Admin user will modify it (allowed because it's the Admin user)
         Rule rule = new Rule();
@@ -276,7 +276,7 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
 
         //Execution
         final InputStream stream = IoUtil.toStream(ARTIFACT_CONTENT.getBytes(StandardCharsets.UTF_8));
-        final ArtifactMetaData created = client.createArtifact(groupId, artifactId, version, "JSON", IfExists.FAIL, false, name, description, stream);
+        final ArtifactMetaData created = client.createArtifact(groupId, artifactId, version, ArtifactType.JSON, IfExists.FAIL, false, name, description, stream);
 
         //Assertions
         assertNotNull(created);
@@ -305,7 +305,7 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
 
         //Execution
         final InputStream stream = IoUtil.toStream(ARTIFACT_CONTENT.getBytes(StandardCharsets.UTF_8));
-        final ArtifactMetaData created = client.createArtifact(groupId, artifactId, version, "JSON", IfExists.FAIL, false, name, description, stream);
+        final ArtifactMetaData created = client.createArtifact(groupId, artifactId, version, ArtifactType.JSON, IfExists.FAIL, false, name, description, stream);
 
         //Assertions
         assertNotNull(created);
@@ -345,7 +345,7 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
 
         //Execution
         final InputStream stream = IoUtil.toStream(ARTIFACT_CONTENT.getBytes(StandardCharsets.UTF_8));
-        final ArtifactMetaData created = client_dev1.createArtifact(groupId, artifactId, version, "JSON", IfExists.FAIL, false, name, description, stream);
+        final ArtifactMetaData created = client_dev1.createArtifact(groupId, artifactId, version, ArtifactType.JSON, IfExists.FAIL, false, name, description, stream);
 
         //Assertions
         assertNotNull(created);

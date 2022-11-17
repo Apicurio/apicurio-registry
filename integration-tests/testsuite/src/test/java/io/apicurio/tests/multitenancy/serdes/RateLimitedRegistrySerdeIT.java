@@ -42,7 +42,7 @@ import io.apicurio.registry.serde.avro.AvroKafkaDeserializer;
 import io.apicurio.registry.serde.avro.AvroKafkaSerializer;
 import io.apicurio.registry.serde.strategy.SimpleTopicIdStrategy;
 import io.apicurio.registry.serde.strategy.TopicIdStrategy;
-
+import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.tests.common.ApicurioRegistryBaseIT;
@@ -72,7 +72,7 @@ public class RateLimitedRegistrySerdeIT extends ApicurioRegistryBaseIT {
         kafkaCluster.stopIfPossible();
     }
 
-    protected void createArtifact(RegistryClient client, String groupId, String artifactId, String artifactType, InputStream artifact) throws Exception {
+    protected void createArtifact(RegistryClient client, String groupId, String artifactId, ArtifactType artifactType, InputStream artifact) throws Exception {
         ArtifactMetaData meta = client.createArtifact(groupId, artifactId, null, artifactType, IfExists.FAIL, false, artifact);
 
         TestUtils.retry(() -> client.getContentByGlobalId(meta.getGlobalId()));
@@ -167,7 +167,7 @@ public class RateLimitedRegistrySerdeIT extends ApicurioRegistryBaseIT {
 
             AvroGenericRecordSchemaFactory avroSchema = new AvroGenericRecordSchemaFactory("myrecordapicurio1", List.of("key1"));
 
-            createArtifact(clientTenant, topicName, artifactId, "AVRO", avroSchema.generateSchemaStream());
+            createArtifact(clientTenant, topicName, artifactId, ArtifactType.AVRO, avroSchema.generateSchemaStream());
 
             new SimpleSerdesTesterBuilder<GenericRecord, GenericRecord>()
                 .withTopic(topicName)

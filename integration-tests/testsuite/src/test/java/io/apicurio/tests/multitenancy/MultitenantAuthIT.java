@@ -39,7 +39,7 @@ import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v2.beans.RoleMapping;
 import io.apicurio.registry.rest.v2.beans.Rule;
 import io.apicurio.registry.rest.v2.beans.SearchedArtifact;
-
+import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RoleType;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.tests.TestUtils;
@@ -184,7 +184,7 @@ public class MultitenantAuthIT extends ApicurioRegistryBaseIT {
         assertTrue(client.listArtifactsInGroup(groupId).getCount().intValue() == 0);
 
         String artifactId = TestUtils.generateArtifactId();
-        ArtifactMetaData meta = client.createArtifact(groupId, artifactId, "JSON", new ByteArrayInputStream("{}".getBytes()));
+        ArtifactMetaData meta = client.createArtifact(groupId, artifactId, ArtifactType.JSON, new ByteArrayInputStream("{}".getBytes()));
         TestUtils.retry(() -> client.getContentByGlobalId(meta.getGlobalId()));
 
         assertNotNull(client.getLatestArtifact(meta.getGroupId(), meta.getId()));
@@ -209,7 +209,7 @@ public class MultitenantAuthIT extends ApicurioRegistryBaseIT {
         Assertions.assertThrows(ArtifactNotFoundException.class, () -> readOnlyClient.getArtifactMetaData(groupId, artifactId));
         Assertions.assertThrows(ArtifactNotFoundException.class, () -> readOnlyClient.getLatestArtifact("abc", artifactId));
         Assertions.assertThrows(ForbiddenException.class, () -> {
-            readOnlyClient.createArtifact("ccc", artifactId, "JSON", new ByteArrayInputStream("{}".getBytes()));
+            readOnlyClient.createArtifact("ccc", artifactId, ArtifactType.JSON, new ByteArrayInputStream("{}".getBytes()));
         });
         Rule ruleConfig = new Rule();
         ruleConfig.setType(RuleType.VALIDITY);
@@ -223,7 +223,7 @@ public class MultitenantAuthIT extends ApicurioRegistryBaseIT {
         // Users with read access are allowed to list global rules, just not edit them.
         readOnlyClient.listGlobalRules();
 
-        ArtifactMetaData meta = writePermissionsClient.createArtifact(groupId, artifactId, "JSON", new ByteArrayInputStream("{}".getBytes()));
+        ArtifactMetaData meta = writePermissionsClient.createArtifact(groupId, artifactId, ArtifactType.JSON, new ByteArrayInputStream("{}".getBytes()));
         TestUtils.retry(() -> writePermissionsClient.getArtifactMetaData(groupId, meta.getId()));
 
         assertNotNull(readOnlyClient.getLatestArtifact(groupId, artifactId));
@@ -236,7 +236,7 @@ public class MultitenantAuthIT extends ApicurioRegistryBaseIT {
         try {
             assertTrue(client.listArtifactsInGroup(groupId).getCount().intValue() == 0);
 
-            client.createArtifact(groupId, artifactId, "JSON", new ByteArrayInputStream("{}".getBytes()));
+            client.createArtifact(groupId, artifactId, ArtifactType.JSON, new ByteArrayInputStream("{}".getBytes()));
             TestUtils.retry(() -> client.getArtifactMetaData(groupId, artifactId));
 
             assertNotNull(client.getLatestArtifact(groupId, artifactId));

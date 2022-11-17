@@ -24,6 +24,7 @@ import java.util.List;
 
 import io.apicurio.registry.maven.TestArtifact;
 import io.apicurio.registry.maven.TestUpdateRegistryMojo;
+import io.apicurio.registry.types.ArtifactType;
 import org.apache.avro.Schema;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.junit.jupiter.api.Assertions;
@@ -62,7 +63,7 @@ public class TestUpdateRegistryMojoTest extends RegistryMojoTestBase {
                                                   "     {\"name\": \"favorite_number\",  \"type\": \"int\"}" +
                                                   " ]" +
                                                   "}");
-        clientV2.createArtifact(groupId, artifactId, "AVRO", new ByteArrayInputStream(schema.toString().getBytes(StandardCharsets.UTF_8)));
+        clientV2.createArtifact(groupId, artifactId, ArtifactType.AVRO, new ByteArrayInputStream(schema.toString().getBytes(StandardCharsets.UTF_8)));
         this.waitForArtifact(groupId, artifactId);
 
         Rule rule = new Rule();

@@ -26,6 +26,7 @@ import io.apicurio.registry.rules.compatibility.CompatibilityChecker;
 import io.apicurio.registry.rules.compatibility.JsonSchemaCompatibilityChecker;
 import io.apicurio.registry.rules.validity.ContentValidator;
 import io.apicurio.registry.rules.validity.JsonSchemaContentValidator;
+import io.apicurio.registry.types.ArtifactType;
 
 /**
  * @author Ales Justin
@@ -34,7 +35,7 @@ public class JsonArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvid
 
     @Override
     public String getArtifactType() {
-        return "JSON";
+        return ArtifactType.JSON;
     }
 
     @Override

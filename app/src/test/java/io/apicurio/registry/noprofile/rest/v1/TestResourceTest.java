@@ -20,6 +20,7 @@ import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.rest.v1.beans.Rule;
 import io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType;
 
+import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
@@ -41,7 +42,7 @@ public class TestResourceTest extends AbstractResourceTestBase {
         String artifactContent = resourceToString("jsonschema-valid.json");
         String artifactContentValid = resourceToString("jsonschema-valid-compatible.json");
         String artifactId = "testCreateArtifact/TestNoViolation";
-        createArtifact(artifactId, "JSON", artifactContent);
+        createArtifact(artifactId, ArtifactType.JSON, artifactContent);
 
         // Add a rule
         Rule rule = new Rule();
@@ -74,7 +75,7 @@ public class TestResourceTest extends AbstractResourceTestBase {
         given()
             .when()
                 .contentType(CT_JSON)
-                .header("X-Registry-ArtifactType", "JSON")
+                .header("X-Registry-ArtifactType", ArtifactType.JSON)
                 .pathParam("artifactId", artifactId)
                 .body(artifactContentValid)
                 .put("/registry/v1/artifacts/{artifactId}/test")
@@ -87,7 +88,7 @@ public class TestResourceTest extends AbstractResourceTestBase {
         String artifactContent = resourceToString("jsonschema-valid.json");
         String artifactContentIncompatible = resourceToString("jsonschema-valid-incompatible.json");
         String artifactId = "testTestArtifactCompatibilityViolation";
-        createArtifact(artifactId, "JSON", artifactContent);
+        createArtifact(artifactId, ArtifactType.JSON, artifactContent);
 
         // Add a rule
         Rule rule = new Rule();
@@ -120,7 +121,7 @@ public class TestResourceTest extends AbstractResourceTestBase {
         given()
             .when()
                 .contentType(CT_JSON)
-                .header("X-Registry-ArtifactType", "JSON")
+                .header("X-Registry-ArtifactType", ArtifactType.JSON)
                 .pathParam("artifactId", artifactId)
                 .body(artifactContentIncompatible)
                 .put("/registry/v1/artifacts/{artifactId}/test")
@@ -139,7 +140,7 @@ public class TestResourceTest extends AbstractResourceTestBase {
         String artifactContent = resourceToString("jsonschema-valid.json");
         String artifactContentInvalidSyntax = resourceToString("jsonschema-invalid.json");
         String artifactId = "testTestArtifactValidityViolation";
-        createArtifact(artifactId, "JSON", artifactContent);
+        createArtifact(artifactId, ArtifactType.JSON, artifactContent);
 
         // Add a rule
         Rule rule = new Rule();
@@ -172,7 +173,7 @@ public class TestResourceTest extends AbstractResourceTestBase {
         given()
             .when()
                 .contentType(CT_JSON)
-                .header("X-Registry-ArtifactType", "JSON")
+                .header("X-Registry-ArtifactType", ArtifactType.JSON)
                 .pathParam("artifactId", artifactId)
                 .body(artifactContentInvalidSyntax)
                 .put("/registry/v1/artifacts/{artifactId}/test")
@@ -187,7 +188,7 @@ public class TestResourceTest extends AbstractResourceTestBase {
         String artifactContent = resourceToString("openapi-valid-syntax.json");
         String artifactContentInvalid = resourceToString("openapi-invalid-singleerror.json");
         String artifactId = "testOpenApiValidityViolation";
-        createArtifact(artifactId, "OPENAPI", artifactContent);
+        createArtifact(artifactId, ArtifactType.OPENAPI, artifactContent);
 
         // Add a rule
         Rule rule = new Rule();
@@ -220,7 +221,7 @@ public class TestResourceTest extends AbstractResourceTestBase {
         given()
             .when()
                 .contentType(CT_JSON)
-                .header("X-Registry-ArtifactType", "OPENAPI")
+                .header("X-Registry-ArtifactType", ArtifactType.OPENAPI)
                 .pathParam("artifactId", artifactId)
                 .body(artifactContentInvalid)
                 .put("/registry/v1/artifacts/{artifactId}/test")

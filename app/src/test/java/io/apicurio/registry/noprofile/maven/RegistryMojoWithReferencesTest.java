@@ -22,6 +22,7 @@ import io.apicurio.registry.maven.RegisterArtifact;
 import io.apicurio.registry.maven.RegisterArtifactReference;
 import io.apicurio.registry.maven.RegisterRegistryMojo;
 
+import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
 import org.apache.maven.plugin.MojoExecutionException;
@@ -60,20 +61,20 @@ public class RegistryMojoWithReferencesTest extends RegistryMojoTestBase {
         RegisterArtifact tradeRawArtifact = new RegisterArtifact();
         tradeRawArtifact.setGroupId(groupId);
         tradeRawArtifact.setArtifactId("tradeRaw");
-        tradeRawArtifact.setType("AVRO");
+        tradeRawArtifact.setType(ArtifactType.AVRO);
         tradeRawArtifact.setFile(tradeRawFile);
 
         RegisterArtifactReference tradeKeyArtifact = new RegisterArtifactReference();
         tradeKeyArtifact.setGroupId(groupId);
         tradeKeyArtifact.setArtifactId("tradeKey");
-        tradeKeyArtifact.setType("AVRO");
+        tradeKeyArtifact.setType(ArtifactType.AVRO);
         tradeKeyArtifact.setFile(tradeKeyFile);
         tradeKeyArtifact.setName("tradeKey");
 
         RegisterArtifactReference exchangeArtifact = new RegisterArtifactReference();
         exchangeArtifact.setGroupId(groupId);
         exchangeArtifact.setArtifactId("exchange");
-        exchangeArtifact.setType("AVRO");
+        exchangeArtifact.setType(ArtifactType.AVRO);
         exchangeArtifact.setFile(exchangeFile);
         exchangeArtifact.setName("exchange");
 

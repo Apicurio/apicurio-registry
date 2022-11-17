@@ -19,6 +19,7 @@ package io.apicurio.registry.storage.impl.sql.upgrader;
 import java.util.Collections;
 import java.util.stream.Stream;
 
+import io.apicurio.registry.types.ArtifactType;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -55,7 +56,7 @@ public class ProtobufCanonicalHashUpgrader implements IDbUpgrader {
 
         Stream<ContentEntity> stream = dbHandle.createQuery(sql)
                 .setFetchSize(50)
-                .bind(0, "PROTOBUF")
+                .bind(0, ArtifactType.PROTOBUF)
                 .map(ContentEntityMapper.instance)
                 .stream();
         try (stream) {
@@ -90,7 +91,7 @@ public class ProtobufCanonicalHashUpgrader implements IDbUpgrader {
             ContentHandle canonicalContent = canonicalizer.canonicalize(content, Collections.emptyMap());
             return canonicalContent;
         } catch (Exception e) {
-            logger.debug("Failed to canonicalize content of type: {}", "PROTOBUF");
+            logger.debug("Failed to canonicalize content of type: {}", ArtifactType.PROTOBUF);
             return content;
         }
     }

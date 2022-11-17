@@ -31,7 +31,7 @@ import io.apicurio.registry.serde.protobuf.ProtobufKafkaDeserializerConfig;
 import io.apicurio.registry.serde.protobuf.ProtobufKafkaSerializer;
 import io.apicurio.registry.serde.strategy.SimpleTopicIdStrategy;
 import io.apicurio.registry.serde.strategy.TopicIdStrategy;
-
+import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.tests.ApicurioV2BaseIT;
@@ -70,7 +70,7 @@ public class ProtobufSerdeIT extends ApicurioV2BaseIT {
 
         ProtobufTestMessageFactory schema = new ProtobufTestMessageFactory();
 
-        createArtifact(null, artifactId, "PROTOBUF", schema.generateSchemaStream());
+        createArtifact(null, artifactId, ArtifactType.PROTOBUF, schema.generateSchemaStream());
 
         new SimpleSerdesTesterBuilder<ProtobufTestMessage, ProtobufTestMessage>()
             .withTopic(topicName)
@@ -92,7 +92,7 @@ public class ProtobufSerdeIT extends ApicurioV2BaseIT {
 
         ProtobufTestMessageFactory schema = new ProtobufTestMessageFactory();
 
-        createArtifact(null, artifactId, "PROTOBUF", schema.generateSchemaStream());
+        createArtifact(null, artifactId, ArtifactType.PROTOBUF, schema.generateSchemaStream());
 
         new SimpleSerdesTesterBuilder<ProtobufTestMessage, ProtobufTestMessage>()
             .withTopic(topicName)
@@ -116,7 +116,7 @@ public class ProtobufSerdeIT extends ApicurioV2BaseIT {
         ProtobufTestMessageFactory schemaA = new ProtobufTestMessageFactory();
         ProtobufUUIDTestMessage schemaB = new ProtobufUUIDTestMessage();
 
-        createArtifact(null, artifactId, "PROTOBUF", schemaA.generateSchemaStream());
+        createArtifact(null, artifactId, ArtifactType.PROTOBUF, schemaA.generateSchemaStream());
 
         new WrongConfiguredSerdesTesterBuilder<TestCmmn.UUID>()
             .withTopic(topicName)
@@ -138,7 +138,7 @@ public class ProtobufSerdeIT extends ApicurioV2BaseIT {
         ProtobufTestMessageFactory schemaA = new ProtobufTestMessageFactory();
         ProtobufUUIDTestMessage schemaB = new ProtobufUUIDTestMessage();
 
-        createArtifact(null, artifactId, "PROTOBUF", schemaA.generateSchemaStream());
+        createArtifact(null, artifactId, ArtifactType.PROTOBUF, schemaA.generateSchemaStream());
 
         new WrongConfiguredSerdesTesterBuilder<TestCmmn.UUID>()
             .withTopic(topicName)
@@ -185,7 +185,7 @@ public class ProtobufSerdeIT extends ApicurioV2BaseIT {
         ProtobufTestMessageFactory schemaV1 = new ProtobufTestMessageFactory();
         ProtobufUUIDTestMessage schemaV2 = new ProtobufUUIDTestMessage();
 
-        createArtifact(null, artifactId, "PROTOBUF", schemaV1.generateArtificialSchemaStream());
+        createArtifact(null, artifactId, ArtifactType.PROTOBUF, schemaV1.generateArtificialSchemaStream());
         updateArtifact(null, artifactId, schemaV2.generateSchemaStream());
 
         //by default the artifact is found by content so this should work by finding the version 1 of the artifact
@@ -261,7 +261,7 @@ public class ProtobufSerdeIT extends ApicurioV2BaseIT {
 
         ProtobufTestMessageFactory schema = new ProtobufTestMessageFactory();
 
-        createArtifact(null, artifactId, "PROTOBUF", schema.generateSchemaStream());
+        createArtifact(null, artifactId, ArtifactType.PROTOBUF, schema.generateSchemaStream());
 
         new SimpleSerdesTesterBuilder<ProtobufTestMessage, DynamicMessage>()
             .withTopic(topicName)
@@ -284,7 +284,7 @@ public class ProtobufSerdeIT extends ApicurioV2BaseIT {
 
         ProtobufTestMessageFactory schema = new ProtobufTestMessageFactory();
 
-        createArtifact(null, artifactId, "PROTOBUF", schema.generateSchemaStream());
+        createArtifact(null, artifactId, ArtifactType.PROTOBUF, schema.generateSchemaStream());
 
         new SimpleSerdesTesterBuilder<ProtobufTestMessage, ProtobufTestMessage>()
             .withTopic(topicName)
@@ -307,7 +307,7 @@ public class ProtobufSerdeIT extends ApicurioV2BaseIT {
 
         ProtobufTestMessageFactory schema = new ProtobufTestMessageFactory();
 
-        createArtifact(null, artifactId, "PROTOBUF", schema.generateSchemaStream());
+        createArtifact(null, artifactId, ArtifactType.PROTOBUF, schema.generateSchemaStream());
 
         new SimpleSerdesTesterBuilder<ProtobufTestMessage, ProtobufTestMessage>()
             .withTopic(topicName)
@@ -330,7 +330,7 @@ public class ProtobufSerdeIT extends ApicurioV2BaseIT {
 
         ProtobufTestMessageFactory schema = new ProtobufTestMessageFactory();
 
-        createArtifact(null, artifactId, "PROTOBUF", schema.generateSchemaStream());
+        createArtifact(null, artifactId, ArtifactType.PROTOBUF, schema.generateSchemaStream());
 
         new SimpleSerdesTesterBuilder<ProtobufTestMessage, ProtobufTestMessage>()
             .withTopic(topicName)
@@ -354,7 +354,7 @@ public class ProtobufSerdeIT extends ApicurioV2BaseIT {
 
         String schemaContent = resourceToString("serdes/testmessage.proto");
 
-        createArtifact(topicName, artifactId, "PROTOBUF", IoUtil.toStream(schemaContent));
+        createArtifact(topicName, artifactId, ArtifactType.PROTOBUF, IoUtil.toStream(schemaContent));
 
         ProtobufTestMessageFactory schema = new ProtobufTestMessageFactory();
 
@@ -381,7 +381,7 @@ public class ProtobufSerdeIT extends ApicurioV2BaseIT {
 
         String schemaContent = resourceToString("serdes/testmessage.proto");
 
-        createArtifact(null, artifactId, "PROTOBUF", IoUtil.toStream(schemaContent));
+        createArtifact(null, artifactId, ArtifactType.PROTOBUF, IoUtil.toStream(schemaContent));
 
         ProtobufTestMessageFactory schema = new ProtobufTestMessageFactory();
 
@@ -534,7 +534,7 @@ public class ProtobufSerdeIT extends ApicurioV2BaseIT {
 
         ProtobufTestMessageFactory schema = new ProtobufTestMessageFactory();
 
-        createArtifact(null, artifactId, "PROTOBUF", schema.generateSchemaStream());
+        createArtifact(null, artifactId, ArtifactType.PROTOBUF, schema.generateSchemaStream());
 
         new SimpleSerdesTesterBuilder<ProtobufTestMessage, DynamicMessage>()
                 .withTopic(topicName)

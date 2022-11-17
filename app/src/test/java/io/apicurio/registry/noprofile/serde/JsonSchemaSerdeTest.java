@@ -43,6 +43,7 @@ import io.apicurio.registry.support.City;
 import io.apicurio.registry.support.Person;
 import io.apicurio.registry.support.Qualification;
 
+import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.tests.TestUtils;
@@ -89,7 +90,7 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
         String groupId = TestUtils.generateGroupId();
         String artifactId = generateArtifactId();
 
-        final Integer globalId = createArtifact(groupId, artifactId, "JSON", IoUtil.toString(jsonSchema));
+        final Integer globalId = createArtifact(groupId, artifactId, ArtifactType.JSON, IoUtil.toString(jsonSchema));
 
         this.waitForGlobalId(globalId);
 
@@ -142,7 +143,7 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
         String groupId = TestUtils.generateGroupId();
         String artifactId = generateArtifactId();
 
-        Integer globalId = createArtifact(groupId, artifactId, "JSON", IoUtil.toString(jsonSchema));
+        Integer globalId = createArtifact(groupId, artifactId, ArtifactType.JSON, IoUtil.toString(jsonSchema));
 
         this.waitForGlobalId(globalId);
 
@@ -188,7 +189,7 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
         String groupId = TestUtils.generateGroupId();
         String artifactId = generateArtifactId();
 
-        Integer globalId = createArtifact(groupId, artifactId, "JSON", IoUtil.toString(jsonSchema));
+        Integer globalId = createArtifact(groupId, artifactId, ArtifactType.JSON, IoUtil.toString(jsonSchema));
 
         this.waitForGlobalId(globalId);
 
@@ -242,10 +243,10 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
         String addressId = generateArtifactId();
 
 
-        final Integer cityDependencyGlobalId = createArtifact(groupId, cityArtifactId, "JSON", IoUtil.toString(citySchema));
+        final Integer cityDependencyGlobalId = createArtifact(groupId, cityArtifactId, ArtifactType.JSON, IoUtil.toString(citySchema));
         this.waitForGlobalId(cityDependencyGlobalId);
 
-        final Integer qualificationsGlobalId = createArtifact(groupId, qualificationsId, "JSON", IoUtil.toString(qualificationSchema));
+        final Integer qualificationsGlobalId = createArtifact(groupId, qualificationsId, ArtifactType.JSON, IoUtil.toString(qualificationSchema));
         this.waitForGlobalId(qualificationsGlobalId);
 
         final ArtifactReference qualificationsReference = new ArtifactReference();
@@ -254,7 +255,7 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
         qualificationsReference.setArtifactId(qualificationsId);
         qualificationsReference.setName("qualification.json");
 
-        final Integer addressGlobalID = createArtifact(groupId, addressId, "JSON", IoUtil.toString(addressSchema));
+        final Integer addressGlobalID = createArtifact(groupId, addressId, ArtifactType.JSON, IoUtil.toString(addressSchema));
         this.waitForGlobalId(addressGlobalID);
 
         final ArtifactReference addressReference = new ArtifactReference();
@@ -269,7 +270,7 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
         cityReference.setArtifactId(cityArtifactId);
         cityReference.setName("city.json");
 
-        final Integer identifierDependencyGlobalId = createArtifact(groupId, identifierArtifactId, "JSON", IoUtil.toString(citizenIdentifier));
+        final Integer identifierDependencyGlobalId = createArtifact(groupId, identifierArtifactId, ArtifactType.JSON, IoUtil.toString(citizenIdentifier));
         this.waitForGlobalId(identifierDependencyGlobalId);
 
         final ArtifactReference identifierReference = new ArtifactReference();
@@ -280,7 +281,7 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
 
         String artifactId = generateArtifactId();
 
-        final Integer globalId = createArtifactWithReferences(groupId, artifactId, "JSON", IoUtil.toString(citizenSchema), List.of(qualificationsReference, cityReference, identifierReference, addressReference));
+        final Integer globalId = createArtifactWithReferences(groupId, artifactId, ArtifactType.JSON, IoUtil.toString(citizenSchema), List.of(qualificationsReference, cityReference, identifierReference, addressReference));
         this.waitForGlobalId(globalId);
 
         City city = new City("New York", 10001);
@@ -379,18 +380,18 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
 
         final ArtifactMetaData amdAddress =
                 client.createArtifact("GLOBAL", "sample.address.json", version,
-                        "JSON", IfExists.UPDATE, false, null, null,
+                        ArtifactType.JSON, IfExists.UPDATE, false, null, null,
                         ContentTypes.APPLICATION_CREATE_EXTENDED, null, null, address,
                         null);
 
         final ArtifactMetaData amdEmail =
                 client.createArtifact("GLOBAL", "sample.email.json", version,
-                        "JSON", IfExists.UPDATE, false, null, null,
+                        ArtifactType.JSON, IfExists.UPDATE, false, null, null,
                         ContentTypes.APPLICATION_CREATE_EXTENDED, null, null, email,
                         null);
         final ArtifactMetaData amdPhone =
                 client.createArtifact("GLOBAL", "sample.phone.json", version,
-                        "JSON", IfExists.UPDATE, false, null, null,
+                        ArtifactType.JSON, IfExists.UPDATE, false, null, null,
                         ContentTypes.APPLICATION_CREATE_EXTENDED, null, null, phone,
                         null);
 
@@ -420,7 +421,7 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
         artifactReferences.add(phoneReference);
 
         client.createArtifact("GLOBAL", "sample.account.json", version,
-                "JSON", IfExists.UPDATE, false, null, null,
+                ArtifactType.JSON, IfExists.UPDATE, false, null, null,
                 ContentTypes.APPLICATION_CREATE_EXTENDED, null, null, account,
                 artifactReferences);
 

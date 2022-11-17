@@ -71,7 +71,7 @@ public class ProtobufSerdeTest extends AbstractResourceTestBase {
 //        String groupId = TestUtils.generateGroupId();
 //        String topic = generateArtifactId();
 //
-//        createArtifact(groupId, topic, "PROTOBUF"_FD, IoUtil.toString(schema));
+//        createArtifact(groupId, topic, ArtifactType.PROTOBUF_FD, IoUtil.toString(schema));
 //
 //        System.out.println("artifaaact " + clientV2.listArtifactsInGroup(groupId).getArtifacts().get(0).getId());
 //

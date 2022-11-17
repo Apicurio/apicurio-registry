@@ -26,6 +26,7 @@ import java.util.function.Supplier;
 import javax.inject.Inject;
 
 import io.apicurio.registry.AbstractRegistryTestBase;
+import io.apicurio.registry.types.ArtifactType;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -127,7 +128,7 @@ public class MultitenancyLimitsTest extends AbstractRegistryTestBase {
 
         //schema number 3 , exceeds the max number of schemas
         Assertions.assertThrows(LimitExceededException.class, () -> {
-            client.createArtifact(null, artifactId, "JSON", new ByteArrayInputStream("{}".getBytes()));
+            client.createArtifact(null, artifactId, ArtifactType.JSON, new ByteArrayInputStream("{}".getBytes()));
         });
     }
 

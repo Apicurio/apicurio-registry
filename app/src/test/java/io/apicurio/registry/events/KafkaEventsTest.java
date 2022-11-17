@@ -30,6 +30,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
+import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.tests.ApicurioTestTags;
 import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.clients.consumer.Consumer;
@@ -80,8 +81,8 @@ public class KafkaEventsTest extends AbstractResourceTestBase {
         String artifactId = TestUtils.generateArtifactId();
 
         try {
-            createArtifact(artifactId, "JSON", content);
-            createArtifactVersion(artifactId, "JSON", content);
+            createArtifact(artifactId, ArtifactType.JSON, content);
+            createArtifactVersion(artifactId, ArtifactType.JSON, content);
         } catch ( Exception e ) {
             Assertions.fail(e);
         }

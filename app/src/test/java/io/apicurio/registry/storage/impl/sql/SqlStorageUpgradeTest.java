@@ -17,6 +17,7 @@
 package io.apicurio.registry.storage.impl.sql;
 
 import io.apicurio.registry.rest.client.AdminClient;
+import io.apicurio.registry.types.ArtifactType;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
@@ -47,7 +48,7 @@ public class SqlStorageUpgradeTest extends AbstractResourceTestBase {
         // Expected values can be found in "SqlStorageUpgradeTest.dml" in src/test/resources
         Assertions.assertEquals(101, metaData.getContentId());
         Assertions.assertEquals(5001, metaData.getGlobalId());
-        Assertions.assertEquals("JSON", metaData.getType());
+        Assertions.assertEquals(ArtifactType.JSON, metaData.getType());
 
         RoleMapping mapping = new RoleMapping();
         mapping.setPrincipalId("test_user");

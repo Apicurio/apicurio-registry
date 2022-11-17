@@ -20,6 +20,7 @@ import io.apicurio.registry.AbstractRegistryTestBase;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.canon.ContentCanonicalizer;
 
+import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 import io.quarkus.test.junit.QuarkusTest;
@@ -45,7 +46,7 @@ public class ContentCanonicalizerTest extends AbstractRegistryTestBase {
 
     @Test
     void testOpenAPI() {
-        ContentCanonicalizer canonicalizer = getContentCanonicalizer("OPENAPI");
+        ContentCanonicalizer canonicalizer = getContentCanonicalizer(ArtifactType.OPENAPI);
         
         String before = "{\r\n" + 
                 "    \"openapi\": \"3.0.2\",\r\n" + 
@@ -67,7 +68,7 @@ public class ContentCanonicalizerTest extends AbstractRegistryTestBase {
 
     @Test
     void testAvro() {
-        ContentCanonicalizer canonicalizer = getContentCanonicalizer("AVRO");
+        ContentCanonicalizer canonicalizer = getContentCanonicalizer(ArtifactType.AVRO);
         
         String before = "{\r\n" + 
                 "     \"type\": \"record\",\r\n" + 
@@ -88,7 +89,7 @@ public class ContentCanonicalizerTest extends AbstractRegistryTestBase {
 
     @Test
     void testProtobuf() {
-        ContentCanonicalizer canonicalizer = getContentCanonicalizer("PROTOBUF");
+        ContentCanonicalizer canonicalizer = getContentCanonicalizer(ArtifactType.PROTOBUF);
 
         String before = "message SearchRequest {\r\n" +
                 "  required string query = 1;\r\n" +
@@ -113,7 +114,7 @@ public class ContentCanonicalizerTest extends AbstractRegistryTestBase {
 
     @Test
     void testGraphQL() {
-        ContentCanonicalizer canonicalizer = getContentCanonicalizer("GRAPHQL");
+        ContentCanonicalizer canonicalizer = getContentCanonicalizer(ArtifactType.GRAPHQL);
         
         String before = "type Query {\r\n" + 
                 "  bookById(id: ID): Book \r\n" + 
@@ -156,7 +157,7 @@ public class ContentCanonicalizerTest extends AbstractRegistryTestBase {
     
     @Test
     void testKafkaConnect() {
-        ContentCanonicalizer canonicalizer = getContentCanonicalizer("KCONNECT");
+        ContentCanonicalizer canonicalizer = getContentCanonicalizer(ArtifactType.KCONNECT);
         
         String before = "{\r\n" + 
                 "    \"type\": \"struct\",\r\n" + 
@@ -181,7 +182,7 @@ public class ContentCanonicalizerTest extends AbstractRegistryTestBase {
     */
     @Test
     void testXsd() {
-       ContentCanonicalizer canonicalizer = getContentCanonicalizer("XSD");
+       ContentCanonicalizer canonicalizer = getContentCanonicalizer(ArtifactType.XSD);
 
        ContentHandle content = resourceToContentHandle("xml-schema-before.xsd");
        String expected = resourceToString("xml-schema-expected.xsd");
@@ -195,7 +196,7 @@ public class ContentCanonicalizerTest extends AbstractRegistryTestBase {
      */
      @Test
      void testWsdl() {
-        ContentCanonicalizer canonicalizer = getContentCanonicalizer("WSDL");
+        ContentCanonicalizer canonicalizer = getContentCanonicalizer(ArtifactType.WSDL);
 
         ContentHandle content = resourceToContentHandle("wsdl-before.wsdl");
         String expected = resourceToString("wsdl-expected.wsdl");
@@ -209,7 +210,7 @@ public class ContentCanonicalizerTest extends AbstractRegistryTestBase {
       */
       @Test
       void testXml() {
-         ContentCanonicalizer canonicalizer = getContentCanonicalizer("XML");
+         ContentCanonicalizer canonicalizer = getContentCanonicalizer(ArtifactType.XML);
         
          ContentHandle content = resourceToContentHandle("xml-before.xml");
          String expected = resourceToString("xml-expected.xml");

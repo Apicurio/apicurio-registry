@@ -20,7 +20,7 @@ import io.apicurio.registry.rest.beans.Rule;
 import io.apicurio.registry.rest.beans.UpdateState;
 import io.apicurio.registry.rest.beans.VersionMetaData;
 import io.apicurio.registry.types.ArtifactState;
-
+import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.tests.TestUtils;
@@ -69,7 +69,7 @@ class ArtifactsIT extends BaseIT {
         String artifactId = TestUtils.generateArtifactId();
 
         ByteArrayInputStream artifactData = new ByteArrayInputStream("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}".getBytes(StandardCharsets.UTF_8));
-        ArtifactMetaData metaData = ArtifactUtils.createArtifact(registryClient, "AVRO", artifactId, artifactData);
+        ArtifactMetaData metaData = ArtifactUtils.createArtifact(registryClient, ArtifactType.AVRO, artifactId, artifactData);
         LOGGER.info("Created artifact {} with metadata {}", artifactId, metaData.toString());
         // Make sure artifact is fully registered
         ArtifactMetaData amd1 = metaData;
@@ -86,10 +86,10 @@ class ArtifactsIT extends BaseIT {
 
         LOGGER.info("Invalid artifact sent {}", invalidArtifactDefinition);
         ByteArrayInputStream iad = artifactData;
-        assertWebError(409, () -> ArtifactUtils.createArtifact(registryClient, "AVRO", invalidArtifactId, iad));
+        assertWebError(409, () -> ArtifactUtils.createArtifact(registryClient, ArtifactType.AVRO, invalidArtifactId, iad));
 
         artifactData = new ByteArrayInputStream("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"bar\",\"type\":\"long\"}]}".getBytes(StandardCharsets.UTF_8));
-        metaData = ArtifactUtils.updateArtifact(registryClient, "AVRO", artifactId, artifactData);
+        metaData = ArtifactUtils.updateArtifact(registryClient, ArtifactType.AVRO, artifactId, artifactData);
         LOGGER.info("Artifact with ID {} was updated: {}", artifactId, metaData.toString());
         // Make sure artifact is fully registered
         ArtifactMetaData amd2 = metaData;
@@ -132,7 +132,7 @@ class ArtifactsIT extends BaseIT {
         ByteArrayInputStream artifactData = new ByteArrayInputStream("{\"type\":\"INVALID\",\"config\":\"invalid\"}".getBytes(StandardCharsets.UTF_8));
         String artifactId = TestUtils.generateArtifactId();
 
-        ArtifactMetaData amd = registryClient.createArtifact(artifactId, "JSON", null, artifactData);
+        ArtifactMetaData amd = registryClient.createArtifact(artifactId, ArtifactType.JSON, null, artifactData);
         // Make sure artifact is fully registered
         TestUtils.retry(() -> registryClient.getArtifactMetaDataByGlobalId(amd.getGlobalId()));
 
@@ -150,14 +150,14 @@ class ArtifactsIT extends BaseIT {
     void createArtifactSpecificVersion() throws Exception {
         ByteArrayInputStream artifactData = new ByteArrayInputStream("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}".getBytes(StandardCharsets.UTF_8));
         String artifactId = TestUtils.generateArtifactId();
-        ArtifactMetaData metaData = ArtifactUtils.createArtifact(registryClient, "AVRO", artifactId, artifactData);
+        ArtifactMetaData metaData = ArtifactUtils.createArtifact(registryClient, ArtifactType.AVRO, artifactId, artifactData);
         // Make sure artifact is fully registered
         ArtifactMetaData amd1 = metaData;
         TestUtils.retry(() -> registryClient.getArtifactMetaDataByGlobalId(amd1.getGlobalId()));
         LOGGER.info("Created artifact {} with metadata {}", artifactId, metaData);
 
         artifactData = new ByteArrayInputStream("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}".getBytes(StandardCharsets.UTF_8));
-        metaData = ArtifactUtils.updateArtifact(registryClient, "AVRO", artifactId, artifactData);
+        metaData = ArtifactUtils.updateArtifact(registryClient, ArtifactType.AVRO, artifactId, artifactData);
         // Make sure artifact is fully updated
         ArtifactMetaData amd2 = metaData;
         TestUtils.retry(() -> registryClient.getArtifactMetaDataByGlobalId(amd2.getGlobalId()));
@@ -174,11 +174,11 @@ class ArtifactsIT extends BaseIT {
     void testDuplicatedArtifact() throws Exception {
         ByteArrayInputStream artifactData = new ByteArrayInputStream("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}".getBytes(StandardCharsets.UTF_8));
         String artifactId = TestUtils.generateArtifactId();
-        ArtifactMetaData metaData = ArtifactUtils.createArtifact(registryClient, "AVRO", artifactId, artifactData);
+        ArtifactMetaData metaData = ArtifactUtils.createArtifact(registryClient, ArtifactType.AVRO, artifactId, artifactData);
         LOGGER.info("Created artifact {} with metadata {}", artifactId, metaData.toString());
 
         ByteArrayInputStream iad = new ByteArrayInputStream("{\"type\":\"record\",\"name\":\"alreadyExistArtifact\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}".getBytes(StandardCharsets.UTF_8));
-        assertWebError(409, () -> ArtifactUtils.createArtifact(registryClient, "AVRO", artifactId, iad), true);
+        assertWebError(409, () -> ArtifactUtils.createArtifact(registryClient, ArtifactType.AVRO, artifactId, iad), true);
     }
 
     @Test
@@ -188,7 +188,7 @@ class ArtifactsIT extends BaseIT {
         String artifactData = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
 
         // Create the artifact
-        ArtifactMetaData metaData = ArtifactUtils.createArtifact(registryClient, "AVRO", artifactId, IoUtil.toStream(artifactData));
+        ArtifactMetaData metaData = ArtifactUtils.createArtifact(registryClient, ArtifactType.AVRO, artifactId, IoUtil.toStream(artifactData));
         LOGGER.info("Created artifact {} with metadata {}", artifactId, metaData.toString());
 
         // Verify
@@ -228,16 +228,16 @@ class ArtifactsIT extends BaseIT {
         String artifactDataV3 = "{\"type\":\"record\",\"name\":\"myrecord3\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
 
         // Create the artifact
-        ArtifactMetaData v1MD = ArtifactUtils.createArtifact(registryClient, "AVRO", artifactId, IoUtil.toStream(artifactData));
+        ArtifactMetaData v1MD = ArtifactUtils.createArtifact(registryClient, ArtifactType.AVRO, artifactId, IoUtil.toStream(artifactData));
         LOGGER.info("Created artifact {} with metadata {}", artifactId, v1MD.toString());
         TestUtils.retry(() -> registryClient.getArtifactMetaDataByGlobalId(v1MD.getGlobalId()));
 
         // Update the artifact (v2)
-        ArtifactMetaData v2MD = ArtifactUtils.updateArtifact(registryClient, "AVRO", artifactId, IoUtil.toStream(artifactDataV2));
+        ArtifactMetaData v2MD = ArtifactUtils.updateArtifact(registryClient, ArtifactType.AVRO, artifactId, IoUtil.toStream(artifactDataV2));
         TestUtils.retry(() -> registryClient.getArtifactMetaDataByGlobalId(v2MD.getGlobalId()));
 
         // Update the artifact (v3)
-        ArtifactMetaData v3MD = ArtifactUtils.updateArtifact(registryClient, "AVRO", artifactId, IoUtil.toStream(artifactDataV3));
+        ArtifactMetaData v3MD = ArtifactUtils.updateArtifact(registryClient, ArtifactType.AVRO, artifactId, IoUtil.toStream(artifactDataV3));
         TestUtils.retry(() -> registryClient.getArtifactMetaDataByGlobalId(v3MD.getGlobalId()));
 
         // Disable v3
@@ -290,7 +290,7 @@ class ArtifactsIT extends BaseIT {
         String artifactData = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
 
         // Create the artifact
-        ArtifactMetaData metaData = ArtifactUtils.createArtifact(registryClient, "AVRO", artifactId, IoUtil.toStream(artifactData));
+        ArtifactMetaData metaData = ArtifactUtils.createArtifact(registryClient, ArtifactType.AVRO, artifactId, IoUtil.toStream(artifactData));
         LOGGER.info("Created artifact {} with metadata {}", artifactId, metaData.toString());
 
         TestUtils.retry(() -> {
@@ -321,16 +321,16 @@ class ArtifactsIT extends BaseIT {
         String artifactDataV3 = "{\"type\":\"record\",\"name\":\"myrecord3\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
 
         // Create the artifact
-        ArtifactMetaData v1MD = ArtifactUtils.createArtifact(registryClient, "AVRO", artifactId, IoUtil.toStream(artifactData));
+        ArtifactMetaData v1MD = ArtifactUtils.createArtifact(registryClient, ArtifactType.AVRO, artifactId, IoUtil.toStream(artifactData));
         LOGGER.info("Created artifact {} with metadata {}", artifactId, v1MD.toString());
         TestUtils.retry(() -> registryClient.getArtifactMetaDataByGlobalId(v1MD.getGlobalId()));
 
         // Update the artifact (v2)
-        ArtifactMetaData v2MD = ArtifactUtils.updateArtifact(registryClient, "AVRO", artifactId, IoUtil.toStream(artifactDataV2));
+        ArtifactMetaData v2MD = ArtifactUtils.updateArtifact(registryClient, ArtifactType.AVRO, artifactId, IoUtil.toStream(artifactDataV2));
         TestUtils.retry(() -> registryClient.getArtifactMetaDataByGlobalId(v2MD.getGlobalId()));
 
         // Update the artifact (v3)
-        ArtifactMetaData v3MD = ArtifactUtils.updateArtifact(registryClient, "AVRO", artifactId, IoUtil.toStream(artifactDataV3));
+        ArtifactMetaData v3MD = ArtifactUtils.updateArtifact(registryClient, ArtifactType.AVRO, artifactId, IoUtil.toStream(artifactDataV3));
         TestUtils.retry(() -> registryClient.getArtifactMetaDataByGlobalId(v3MD.getGlobalId()));
 
         // Deprecate v2

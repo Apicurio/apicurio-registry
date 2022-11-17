@@ -46,7 +46,7 @@ import io.apicurio.registry.serde.avro.AvroKafkaSerdeConfig;
 import io.apicurio.registry.serde.avro.AvroKafkaSerializer;
 import io.apicurio.registry.serde.avro.DefaultAvroDatumProvider;
 import io.apicurio.registry.serde.avro.strategy.TopicRecordIdStrategy;
-
+import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.converter.AvroConverter;
 import io.apicurio.registry.utils.converter.ExtJsonConverter;
 import io.apicurio.registry.utils.converter.SerdeBasedConverter;
@@ -73,7 +73,7 @@ public class RegistryConverterIT extends ApicurioV2BaseIT {
         AvroGenericRecordSchemaFactory schemaFactory = new AvroGenericRecordSchemaFactory(groupId, recordName, List.of("bar"));
         Schema schema = schemaFactory.generateSchema();
 
-        createArtifact(groupId, topic + "-" + recordName, "AVRO", new ByteArrayInputStream(schema.toString().getBytes(StandardCharsets.UTF_8)));
+        createArtifact(groupId, topic + "-" + recordName, ArtifactType.AVRO, new ByteArrayInputStream(schema.toString().getBytes(StandardCharsets.UTF_8)));
 
         GenericData.Record record = new GenericData.Record(schema);
         record.put("bar", "somebar");

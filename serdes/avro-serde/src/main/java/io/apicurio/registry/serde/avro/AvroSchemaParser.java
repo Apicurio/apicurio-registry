@@ -16,6 +16,7 @@
 
 package io.apicurio.registry.serde.avro;
 
+import io.apicurio.registry.types.ArtifactType;
 import org.apache.avro.Schema;
 
 import io.apicurio.registry.resolver.ParsedSchema;
@@ -48,7 +49,7 @@ public class AvroSchemaParser<U> implements SchemaParser<Schema, U> {
      */
     @Override
     public String artifactType() {
-        return "AVRO";
+        return ArtifactType.AVRO;
     }
 
     /**

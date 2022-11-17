@@ -25,6 +25,7 @@ import io.apicurio.registry.rules.compatibility.CompatibilityChecker;
 import io.apicurio.registry.rules.compatibility.NoopCompatibilityChecker;
 import io.apicurio.registry.rules.validity.ContentValidator;
 import io.apicurio.registry.rules.validity.WsdlContentValidator;
+import io.apicurio.registry.types.ArtifactType;
 
 /**
  * @author  cfoskin@redhat.com
@@ -36,7 +37,7 @@ public class WsdlArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvid
      */
     @Override
     public String getArtifactType() {
-        return "WSDL";
+        return ArtifactType.WSDL;
     }
 
     /**

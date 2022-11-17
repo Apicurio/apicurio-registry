@@ -30,7 +30,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtensionContext;
 
 import io.apicurio.registry.rest.client.exception.ArtifactNotFoundException;
-
+import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.tests.ApicurioV2BaseIT;
 import io.apicurio.tests.common.Constants;
@@ -59,12 +59,12 @@ public class DeleteArtifactIT extends ApicurioV2BaseIT {
         page.openWebPage();
 
         String content1 = resourceToString("artifactTypes/" + "protobuf/tutorial_v1.proto");
-        String artifactId1 = page.uploadArtifact(groupId, null, "PROTOBUF", content1);
+        String artifactId1 = page.uploadArtifact(groupId, null, ArtifactType.PROTOBUF, content1);
         assertEquals(1, registryClient.listArtifactsInGroup(groupId).getCount());
         page.goBackToArtifactsList();
 
         String content2 = resourceToString("artifactTypes/" + "jsonSchema/person_v1.json");
-        String artifactId2 = page.uploadArtifact(groupId, null, "JSON", content2);
+        String artifactId2 = page.uploadArtifact(groupId, null, ArtifactType.JSON, content2);
         assertEquals(2, registryClient.listArtifactsInGroup(groupId).getCount());
         page.goBackToArtifactsList();
 
@@ -110,12 +110,12 @@ public class DeleteArtifactIT extends ApicurioV2BaseIT {
         page.openWebPage();
 
         String content1 = resourceToString("artifactTypes/" + "protobuf/tutorial_v1.proto");
-        String artifactId1 = page.uploadArtifact(null, null, "PROTOBUF", content1);
+        String artifactId1 = page.uploadArtifact(null, null, ArtifactType.PROTOBUF, content1);
         assertEquals(1, registryClient.listArtifactsInGroup(null).getCount());
         page.goBackToArtifactsList();
 
         String content2 = resourceToString("artifactTypes/" + "jsonSchema/person_v1.json");
-        String artifactId2 = page.uploadArtifact(null, null, "JSON", content2);
+        String artifactId2 = page.uploadArtifact(null, null, ArtifactType.JSON, content2);
         assertEquals(2, registryClient.listArtifactsInGroup(null).getCount());
         page.goBackToArtifactsList();
 

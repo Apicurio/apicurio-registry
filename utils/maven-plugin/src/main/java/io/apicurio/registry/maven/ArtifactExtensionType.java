@@ -1,22 +1,24 @@
 package io.apicurio.registry.maven;
 
+import io.apicurio.registry.types.ArtifactType;
+
 import java.util.HashMap;
 import java.util.Map;
 
 
 
 public enum ArtifactExtensionType {
-    // TODO: make this customizable
-    AVRO("AVRO", "avsc"),
-    PROTOBUF("PROTOBUF", "proto"),
-    JSON("JSON", "json"),
-    OPENAPI("OPENAPI", "json"),
-    ASYNCAPI("ASYNCAPI", "json"),
-    GRAPHQL("GRAPHQL", "graphql"),
-    KCONNECT("KCONNECT", "json"),
-    WSDL("WSDL", "wsdl"),
-    XSD("XSD", "xsd"),
-    XML("XML", "xml");
+    // TODO: should we support custom types even here?
+    AVRO(ArtifactType.AVRO, "avsc"),
+    PROTOBUF(ArtifactType.PROTOBUF, "proto"),
+    JSON(ArtifactType.JSON, "json"),
+    OPENAPI(ArtifactType.OPENAPI, "json"),
+    ASYNCAPI(ArtifactType.ASYNCAPI, "json"),
+    GRAPHQL(ArtifactType.GRAPHQL, "graphql"),
+    KCONNECT(ArtifactType.KCONNECT, "json"),
+    WSDL(ArtifactType.WSDL, "wsdl"),
+    XSD(ArtifactType.XSD, "xsd"),
+    XML(ArtifactType.XML, "xml");
 
     private final String artifactType;
     private final String artifactExtension;

@@ -26,6 +26,7 @@ import java.util.Map;
 import javax.ws.rs.core.MediaType;
 
 import com.google.protobuf.DescriptorProtos;
+import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.protobuf.schema.FileDescriptorUtils;
 import org.apache.avro.Schema;
 import org.w3c.dom.Document;
@@ -66,14 +67,14 @@ public final class ArtifactTypeUtil {
      * @param contentType   content type from request API
      */
     //FIXME:references artifact must be dereferenced here otherwise this will fail to discover the type
-    public static String determineArtifactType(ContentHandle content, String xArtifactType, String contentType) {
-       return determineArtifactType(content, xArtifactType, contentType, Collections.emptyMap());
+    public static String determineArtifactType(ContentHandle content, String xArtifactType, String contentType, List<String> availableTypes) {
+       return determineArtifactType(content, xArtifactType, contentType, Collections.emptyMap(), availableTypes);
     }
 
-    public static String determineArtifactType(ContentHandle content, String xArtifactType, String contentType, Map<String, ContentHandle> resolvedReferences) {
+    public static String determineArtifactType(ContentHandle content, String xArtifactType, String contentType, Map<String, ContentHandle> resolvedReferences, List<String> availableTypes) {
         String artifactType = xArtifactType;
         if (artifactType == null) {
-            artifactType = getArtifactTypeFromContentType(contentType);
+            artifactType = getArtifactTypeFromContentType(contentType, availableTypes);
             if (artifactType == null) {
                 artifactType = ArtifactTypeUtil.discoverType(content, contentType, resolvedReferences);
             }
@@ -85,28 +86,34 @@ public final class ArtifactTypeUtil {
      *
      * @param contentType the content type header
      */
-    private static String getArtifactTypeFromContentType(String contentType) {
+    private static String getArtifactTypeFromContentType(String contentType, List<String> availableTypes) {
         if (contentType != null && contentType.contains(MediaType.APPLICATION_JSON) && contentType.indexOf(';') != -1) {
             String[] split = contentType.split(";");
             if (split.length > 1) {
                 for (String s : split) {
                     if (s.contains("artifactType=")) {
                         String at = s.split("=")[1];
-                        // TODO: validate that this is one of the supported elements
-                        return at;
+                        for (String t: availableTypes) {
+                            if (t.equals(at)) {
+                                return at;
+                            }
+                        }
+                        throw new IllegalStateException("The type {} is available.");
                     }
                 }
             }
         }
         if (contentType != null && contentType.contains("x-proto")) {
-            return "PROTOBUF";
+            return ArtifactType.PROTOBUF;
         }
         if (contentType != null && contentType.contains("graphql")) {
-            return "GRAPHQL";
+            return ArtifactType.GRAPHQL;
         }
         return null;
     }
 
+    // TODO: move this to ArtifactTypeUtilProvider and make this logic injectable?
+    // as a first implementation forcing users to specify the type if it's custom sounds like a reasonable limitation
     /**
      * Method that discovers the artifact type from the raw content of an artifact. This will attempt to parse
      * the content (with the optional provided Content Type as a hint) and figure out what type of artifact it
@@ -137,15 +144,15 @@ public final class ArtifactTypeUtil {
 
             // OpenAPI
             if (tree.has("openapi") || tree.has("swagger")) {
-                return "OPENAPI";
+                return ArtifactType.OPENAPI;
             }
             // AsyncAPI
             if (tree.has("asyncapi")) {
-                return "ASYNCAPI";
+                return ArtifactType.ASYNCAPI;
             }
             // JSON Schema
             if (tree.has("$schema") && tree.get("$schema").asText().contains("json-schema.org") || tree.has("properties")) {
-                return "JSON";
+                return ArtifactType.JSON;
             }
             // Kafka Connect??
             // TODO detect Kafka Connect schemas
@@ -167,7 +174,7 @@ public final class ArtifactTypeUtil {
             }
             final Schema schema = parser.parse(content.content());
             schema.toString(schemaRefs, false);
-            return "AVRO";
+            return ArtifactType.AVRO;
         } catch (Exception e) {
             //ignored
         }
@@ -182,7 +189,7 @@ public final class ArtifactTypeUtil {
 
         // Try GraphQL (SDL)
         if (tryGraphQL(content)) {
-            return "GRAPHQL";
+            return ArtifactType.GRAPHQL;
         }
 
         // Try the various XML formatted types
@@ -193,14 +200,14 @@ public final class ArtifactTypeUtil {
 
             // XSD
             if (ns != null && ns.equals("http://www.w3.org/2001/XMLSchema")) {
-                return "XSD";
+                return ArtifactType.XSD;
             } // WSDL
             else if (ns != null && (ns.equals("http://schemas.xmlsoap.org/wsdl/")
                     || ns.equals("http://www.w3.org/ns/wsdl/"))) {
-                return "WSDL";
+                return ArtifactType.WSDL;
             } else {
                 // default to XML since its been parsed
-                return "XML";
+                return ArtifactType.XML;
             }
         } catch (Exception e) {
             // It's not XML.
@@ -212,13 +219,13 @@ public final class ArtifactTypeUtil {
     private static String tryProto(ContentHandle content) {
         try {
             ProtobufFile.toProtoFileElement(content.content());
-            return "PROTOBUF";
+            return ArtifactType.PROTOBUF;
         } catch (Exception e) {
             try {
                 // Attempt to parse binary FileDescriptorProto
                 byte[] bytes = Base64.getDecoder().decode(content.content());
                 FileDescriptorUtils.fileDescriptorToProtoFile(DescriptorProtos.FileDescriptorProto.parseFrom(bytes));
-                return "PROTOBUF";
+                return ArtifactType.PROTOBUF;
             } catch (Exception pe) {
                 // Doesn't seem to be protobuf
             }

@@ -24,6 +24,7 @@ import javax.inject.Inject;
 
 import io.apicurio.registry.AbstractRegistryTestBase;
 import io.apicurio.registry.JsonSchemas;
+import io.apicurio.registry.types.ArtifactType;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -66,7 +67,7 @@ public class ArtifactTypeTest extends AbstractRegistryTestBase {
     @Test
     public void testAvro() {
         String avroString = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"f1\",\"type\":\"string\"}]}";
-        String avro = "AVRO";
+        String avro = ArtifactType.AVRO;
         ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(avro);
         CompatibilityChecker checker = provider.getCompatibilityChecker();
 
@@ -84,7 +85,7 @@ public class ArtifactTypeTest extends AbstractRegistryTestBase {
     public void testJson() {
         String jsonString = JsonSchemas.jsonSchema;
         String incompatibleJsonString = JsonSchemas.incompatibleJsonSchema;
-        String json = "JSON";
+        String json = ArtifactType.JSON;
         ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(json);
         CompatibilityChecker checker = provider.getCompatibilityChecker();
 
@@ -132,7 +133,7 @@ public class ArtifactTypeTest extends AbstractRegistryTestBase {
                       "\trpc Previous(PreviousRequest) returns (stream Channel);\n" +
                       "}\n";
 
-        String protobuf = "PROTOBUF";
+        String protobuf = ArtifactType.PROTOBUF;
         ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(protobuf);
         CompatibilityChecker checker = provider.getCompatibilityChecker();
 
@@ -197,7 +198,7 @@ public class ArtifactTypeTest extends AbstractRegistryTestBase {
                 "  required int64 time = 2;\n" +
                 "}";
 
-        String protobuf = "PROTOBUF";
+        String protobuf = ArtifactType.PROTOBUF;
         ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(protobuf);
         CompatibilityChecker checker = provider.getCompatibilityChecker();
 
@@ -222,7 +223,7 @@ public class ArtifactTypeTest extends AbstractRegistryTestBase {
 
     @Test
     public void testProtobufBackwardTransitive() {
-        String protobuf = "PROTOBUF";
+        String protobuf = ArtifactType.PROTOBUF;
         ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(protobuf);
         CompatibilityChecker checker = provider.getCompatibilityChecker();
 
@@ -237,7 +238,7 @@ public class ArtifactTypeTest extends AbstractRegistryTestBase {
 
     @Test
     public void testProtobufForward() {
-        String protobuf = "PROTOBUF";
+        String protobuf = ArtifactType.PROTOBUF;
         ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(protobuf);
         CompatibilityChecker checker = provider.getCompatibilityChecker();
 
@@ -256,7 +257,7 @@ public class ArtifactTypeTest extends AbstractRegistryTestBase {
 
     @Test
     public void testProtobufForwardTransitive() {
-        String protobuf = "PROTOBUF";
+        String protobuf = ArtifactType.PROTOBUF;
         ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(protobuf);
         CompatibilityChecker checker = provider.getCompatibilityChecker();
 
@@ -275,7 +276,7 @@ public class ArtifactTypeTest extends AbstractRegistryTestBase {
 
     @Test
     public void testProtobufFull() {
-        String protobuf = "PROTOBUF";
+        String protobuf = ArtifactType.PROTOBUF;
         ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(protobuf);
         CompatibilityChecker checker = provider.getCompatibilityChecker();
 

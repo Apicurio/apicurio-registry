@@ -16,6 +16,8 @@
 
 package io.apicurio.registry.storage.impl.kafkasql.serde;
 
+import io.apicurio.registry.types.ArtifactType;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -30,61 +32,16 @@ public class ArtifactTypeOrdUtil {
     private static final Map<String, Byte> atToOrd = new HashMap<>();
     private static final Map<Byte, String> ordToAt = new HashMap<>();
     static {
-//         for (String artifactType : ArtifactType.values()) {
-//             // Note:  the order of this list is important.  If the String enum changes
-//             // we need to update this switch.  But make sure to *NOT* change the ordinal values
-//             // of any of the old types.
-//             switch (artifactType) {
-//                 case ASYNCAPI:
-//                     index(artifactType, 1);
-//                     break;
-//                 case AVRO:
-//                     index(artifactType, 2);
-//                     break;
-//                 case GRAPHQL:
-//                     index(artifactType, 3);
-//                     break;
-//                 case JSON:
-//                     index(artifactType, 4);
-//                     break;
-//                 case KCONNECT:
-//                     index(artifactType, 5);
-//                     break;
-//                 case OPENAPI:
-//                     index(artifactType, 6);
-//                     break;
-//                 case PROTOBUF:
-//                     index(artifactType, 7);
-//                     break;
-// //                case PROTOBUF_FD:
-// //                    index(artifactType, 8);
-// //                    break;
-//                 case WSDL:
-//                     index(artifactType, 9);
-//                     break;
-//                 case XML:
-//                     index(artifactType, 10);
-//                     break;
-//                 case XSD:
-//                     index(artifactType, 11);
-//                     break;
-//                 default:
-//                     break;
-
-//             }
-//         }
-
-        // TODO: this should come from proper DI
-        index("ASYNCAPI", 1);
-        index("AVRO", 2);
-        index("GRAPHQL", 3);
-        index("JSON", 4);
-        index("KCONNECT", 5);
-        index("OPENAPI", 6);
-        index("PROTOBUF", 7);
-        index("WSDL", 9);
-        index("XML", 10);
-        index("XSD", 11);
+        index(ArtifactType.ASYNCAPI, 1);
+        index(ArtifactType.AVRO, 2);
+        index(ArtifactType.GRAPHQL, 3);
+        index(ArtifactType.JSON, 4);
+        index(ArtifactType.KCONNECT, 5);
+        index(ArtifactType.OPENAPI, 6);
+        index(ArtifactType.PROTOBUF, 7);
+        index(ArtifactType.WSDL, 9);
+        index(ArtifactType.XML, 10);
+        index(ArtifactType.XSD, 11);
     }
 
     public static byte artifactTypeToOrd(String artifactType) {

@@ -21,6 +21,7 @@ import java.io.InputStream;
 import java.util.Arrays;
 import java.util.Map;
 
+import io.apicurio.registry.types.ArtifactType;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -53,8 +54,8 @@ public class LimitsTest extends AbstractResourceTestBase {
 
         String artifactId = TestUtils.generateArtifactId();
 
-        createArtifact(artifactId, "JSON", content);
-        createArtifactVersion(artifactId, "JSON", content);
+        createArtifact(artifactId, ArtifactType.JSON, content);
+        createArtifactVersion(artifactId, ArtifactType.JSON, content);
 
         //valid metadata
         EditableMetaData meta = new EditableMetaData();
@@ -82,7 +83,7 @@ public class LimitsTest extends AbstractResourceTestBase {
 
         //schema number 3 , exceeds the max number of schemas
         Assertions.assertThrows(LimitExceededException.class, () -> {
-            clientV2.createArtifact(null, artifactId, "JSON", new ByteArrayInputStream("{}".getBytes()));
+            clientV2.createArtifact(null, artifactId, ArtifactType.JSON, new ByteArrayInputStream("{}".getBytes()));
         });
 
     }

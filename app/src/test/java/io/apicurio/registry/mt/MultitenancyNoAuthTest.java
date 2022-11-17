@@ -16,6 +16,7 @@
 
 package io.apicurio.registry.mt;
 
+import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.tenantmanager.api.datamodel.ApicurioTenant;
 import io.apicurio.tenantmanager.api.datamodel.TenantStatusValue;
 import io.apicurio.registry.AbstractRegistryTestBase;
@@ -162,7 +163,7 @@ public class MultitenancyNoAuthTest extends AbstractRegistryTestBase {
         assertTrue(client.listArtifactsInGroup(null).getCount().intValue() == 0);
 
         String artifactId = TestUtils.generateArtifactId();
-        ArtifactMetaData meta = client.createArtifact(null, artifactId, "JSON", new ByteArrayInputStream("{}".getBytes()));
+        ArtifactMetaData meta = client.createArtifact(null, artifactId, ArtifactType.JSON, new ByteArrayInputStream("{}".getBytes()));
         TestUtils.retry(() -> client.getContentByGlobalId(meta.getGlobalId()));
 
         assertNotNull(client.getLatestArtifact(meta.getGroupId(), meta.getId()));

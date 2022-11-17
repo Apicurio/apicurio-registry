@@ -27,6 +27,7 @@ import io.apicurio.registry.resolver.ParsedSchema;
 import io.apicurio.registry.resolver.SchemaParser;
 import io.apicurio.registry.resolver.SchemaResolver;
 import io.apicurio.registry.resolver.SchemaResolverConfig;
+import io.apicurio.registry.types.ArtifactType;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
@@ -87,13 +88,13 @@ public class SchemaResolverTest extends AbstractResourceTestBase {
 
             @Override
             public String artifactType() {
-                return "AVRO";
+                return ArtifactType.AVRO;
             }
         });
 
         Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord3\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");
         String artifactId = TestUtils.generateArtifactId();
-        createArtifact(artifactId, "AVRO", schema.toString());
+        createArtifact(artifactId, ArtifactType.AVRO, schema.toString());
 
         GenericRecord avroRecord = new GenericData.Record(schema);
         avroRecord.put("bar", "somebar");

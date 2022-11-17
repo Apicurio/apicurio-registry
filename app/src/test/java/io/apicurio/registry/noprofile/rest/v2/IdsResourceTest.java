@@ -21,6 +21,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 
+import io.apicurio.registry.types.ArtifactType;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -45,7 +46,7 @@ public class IdsResourceTest extends AbstractResourceTestBase {
 
         // Create a throwaway artifact so that contentId for future artifacts with different
         // content will need to be greater than 0.
-        this.createArtifact(GROUP + "-foo", "Empty-0", "WSDL", resourceToString("sample.wsdl"));
+        this.createArtifact(GROUP + "-foo", "Empty-0", ArtifactType.WSDL, resourceToString("sample.wsdl"));
 
         String artifactId1 = "testIdsAfterCreate/Empty-1";
         String artifactId2 = "testIdsAfterCreate/Empty-2";
@@ -56,7 +57,7 @@ public class IdsResourceTest extends AbstractResourceTestBase {
                     .contentType(CT_JSON)
                     .pathParam("groupId", GROUP)
                     .header("X-Registry-ArtifactId", artifactId1)
-                    .header("X-Registry-ArtifactType", "OPENAPI")
+                    .header("X-Registry-ArtifactType", ArtifactType.OPENAPI)
                     .body(artifactContent)
                 .post("/registry/v2/groups/{groupId}/artifacts")
                 .then()
@@ -70,7 +71,7 @@ public class IdsResourceTest extends AbstractResourceTestBase {
                     .contentType(CT_JSON)
                     .pathParam("groupId", GROUP)
                     .header("X-Registry-ArtifactId", artifactId2)
-                    .header("X-Registry-ArtifactType", "OPENAPI")
+                    .header("X-Registry-ArtifactType", ArtifactType.OPENAPI)
                     .body(artifactContent)
                 .post("/registry/v2/groups/{groupId}/artifacts")
                 .then()
@@ -95,7 +96,7 @@ public class IdsResourceTest extends AbstractResourceTestBase {
                 .get("/registry/v2/groups/{groupId}/artifacts/{artifactId}/meta")
             .then()
                 .statusCode(200)
-                .body("type", equalTo("OPENAPI"))
+                .body("type", equalTo(ArtifactType.OPENAPI))
                 .body("groupId", equalTo(GROUP))
                 .body("contentId", equalTo(amd1.getContentId().intValue()));
 
@@ -109,7 +110,7 @@ public class IdsResourceTest extends AbstractResourceTestBase {
                 .get("/registry/v2/groups/{groupId}/artifacts/{artifactId}/meta")
             .then()
                 .statusCode(200)
-                .body("type", equalTo("OPENAPI"))
+                .body("type", equalTo(ArtifactType.OPENAPI))
                 .body("groupId", equalTo(GROUP))
                 .body("contentId", equalTo(amd2.getContentId().intValue()));
 
@@ -156,7 +157,7 @@ public class IdsResourceTest extends AbstractResourceTestBase {
                 .contentType(CT_JSON)
                 .pathParam("groupId", GROUP)
                 .header("X-Registry-ArtifactId", artifactId)
-                .header("X-Registry-ArtifactType", "OPENAPI")
+                .header("X-Registry-ArtifactType", ArtifactType.OPENAPI)
                 .body(artifactContent)
                 .post("/registry/v2/groups/{groupId}/artifacts")
                 .then()
@@ -193,10 +194,10 @@ public class IdsResourceTest extends AbstractResourceTestBase {
 
         // Create two artifacts with same artifactId but with different groupId
 
-        long globalId1 = createArtifact(group1, artifactId, "OPENAPI", artifactContent);
+        long globalId1 = createArtifact(group1, artifactId, ArtifactType.OPENAPI, artifactContent);
         this.waitForGlobalId(globalId1);
 
-        long globalId2 = createArtifact(group2, artifactId, "OPENAPI", artifactContent);
+        long globalId2 = createArtifact(group2, artifactId, ArtifactType.OPENAPI, artifactContent);
         this.waitForGlobalId(globalId2);
 
         // Get by globalId should not fail
@@ -219,7 +220,7 @@ public class IdsResourceTest extends AbstractResourceTestBase {
                     .contentType(CT_JSON)
                     .pathParam("groupId", GROUP)
                     .header("X-Registry-ArtifactId", artifactId)
-                    .header("X-Registry-ArtifactType", "OPENAPI")
+                    .header("X-Registry-ArtifactType", ArtifactType.OPENAPI)
                     .body(artifactContent)
                 .post("/registry/v2/groups/{groupId}/artifacts")
                 .then()
@@ -266,7 +267,7 @@ public class IdsResourceTest extends AbstractResourceTestBase {
                 .contentType(CT_JSON)
                 .pathParam("groupId", GROUP)
                 .header("X-Registry-ArtifactId", artifactId)
-                .header("X-Registry-ArtifactType", "OPENAPI")
+                .header("X-Registry-ArtifactType", ArtifactType.OPENAPI)
                 .body(artifactContent)
             .post("/registry/v2/groups/{groupId}/artifacts")
             .then()

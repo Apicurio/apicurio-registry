@@ -93,16 +93,7 @@ public class IdsResourceImpl implements IdsResource {
 
         StoredArtifactDto artifact = storage.getArtifactVersion(globalId);
 
-        // TODO: this should not be critical but it can be made configurable with DI as well
-        // protobuf - the content-type will be different for protobuf artifacts
-        MediaType contentType = ArtifactMediaTypes.JSON;
-        if (metaData.getType().equals("PROTOBUF")) {
-            contentType = ArtifactMediaTypes.PROTO;
-        } else if (metaData.getType().equals("XML") || metaData.getType().equals("WSDL") || metaData.getType().equals("XSD")) {
-            contentType = ArtifactMediaTypes.XML;
-        } else if (metaData.getType().equals("GRAPHQL")) {
-            contentType = ArtifactMediaTypes.GRAPHQL;
-        }
+        MediaType contentType = factory.getArtifactMediaType(metaData.getType());
 
         ContentHandle contentToReturn = artifact.getContent();
         //TODO:carnalca when dereferencing is implemented, we should return the content dereferenced here

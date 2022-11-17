@@ -9,6 +9,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import io.apicurio.registry.types.ArtifactType;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
@@ -51,8 +52,8 @@ public class HttpEventsTest extends AbstractResourceTestBase {
                     String artifactId = TestUtils.generateArtifactId();
 
                     try {
-                        createArtifact(artifactId, "JSON", content);
-                        createArtifactVersion(artifactId, "JSON", content);
+                        createArtifact(artifactId, ArtifactType.JSON, content);
+                        createArtifactVersion(artifactId, ArtifactType.JSON, content);
                     } catch ( Exception e ) {
                         Assertions.fail(e);
                     }

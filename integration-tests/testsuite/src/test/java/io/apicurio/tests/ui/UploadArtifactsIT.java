@@ -31,7 +31,7 @@ import org.slf4j.LoggerFactory;
 
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
-
+import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.tests.ApicurioV2BaseIT;
 import io.apicurio.tests.common.Constants;
@@ -57,15 +57,15 @@ public class UploadArtifactsIT extends ApicurioV2BaseIT {
         }
     }
 
-    public void doTestFromURL(RegistryClient client, String fromURL, String type, String artifactId, boolean autodetect) throws Exception {
+    public void doTestFromURL(RegistryClient client, String fromURL, ArtifactType type, String artifactId, boolean autodetect) throws Exception {
         doTest(client, null, type, artifactId, autodetect, fromURL);
     }
 
-    public void doTest(RegistryClient client, String resource, String type, String artifactId, boolean autodetect) throws Exception {
+    public void doTest(RegistryClient client, String resource, ArtifactType type, String artifactId, boolean autodetect) throws Exception {
         doTest(client, resource, type, artifactId, autodetect, null);
     }
 
-    public void doTest(RegistryClient client, String resource, String type, String artifactId, boolean autodetect, String fromURL) throws Exception {
+    public void doTest(RegistryClient client, String resource, ArtifactType type, String artifactId, boolean autodetect, String fromURL) throws Exception {
         String groupId = UploadArtifactsIT.class.getName();
 
         assertNotNull(type);
@@ -91,37 +91,37 @@ public class UploadArtifactsIT extends ApicurioV2BaseIT {
 
 //    @RegistryServiceTest(localOnly = false)
 //    void testAvro(RegistryRestClient client) {
-//        doTest(client, "avro/multi-field_v1.json", "AVRO", null, false);
+//        doTest(client, "avro/multi-field_v1.json", ArtifactType.AVRO, null, false);
 //    }
 
     @Test
     void testProtobuf() throws Exception {
-        doTest(registryClient, "protobuf/tutorial_v1.proto", "PROTOBUF", null, false);
+        doTest(registryClient, "protobuf/tutorial_v1.proto", ArtifactType.PROTOBUF, null, false);
     }
 
     @Test
     void testJsonSchema() throws Exception {
-        doTest(registryClient, "jsonSchema/person_v1.json", "JSON", null, false);
+        doTest(registryClient, "jsonSchema/person_v1.json", ArtifactType.JSON, null, false);
     }
 
     @Test
     void testKafkaConnect() throws Exception {
-        doTest(registryClient, "kafkaConnect/simple_v1.json", "KCONNECT", null, false);
+        doTest(registryClient, "kafkaConnect/simple_v1.json", ArtifactType.KCONNECT, null, false);
     }
 
     @Test
     void testOpenApi30() throws Exception {
-        doTest(registryClient, "openapi/3.0-petstore_v1.json", "OPENAPI", null, false);
+        doTest(registryClient, "openapi/3.0-petstore_v1.json", ArtifactType.OPENAPI, null, false);
     }
 
     @Test
     void testAsyncApi() throws Exception {
-        doTest(registryClient, "asyncapi/2.0-streetlights_v1.json", "ASYNCAPI", null, false);
+        doTest(registryClient, "asyncapi/2.0-streetlights_v1.json", ArtifactType.ASYNCAPI, null, false);
     }
 
     @Test
     void testGraphQL() throws Exception {
-        doTest(registryClient, "graphql/swars_v1.graphql", "GRAPHQL", null, false);
+        doTest(registryClient, "graphql/swars_v1.graphql", ArtifactType.GRAPHQL, null, false);
     }
 
     @Test
@@ -130,7 +130,7 @@ public class UploadArtifactsIT extends ApicurioV2BaseIT {
         doTestFromURL(
                 registryClient,
                 testUrl,
-                "OPENAPI", null, false);
+                ArtifactType.OPENAPI, null, false);
     }
 
     //auto-detect, kafka connect excluded because it's known it does not work
@@ -142,39 +142,39 @@ public class UploadArtifactsIT extends ApicurioV2BaseIT {
 
     @Test
     void testProtobufAutoDetect() throws Exception {
-        doTest(registryClient, "protobuf/tutorial_v1.proto", "PROTOBUF", null, true);
+        doTest(registryClient, "protobuf/tutorial_v1.proto", ArtifactType.PROTOBUF, null, true);
     }
 
     @Test
     void testJsonSchemaAutoDetect() throws Exception {
-        doTest(registryClient, "jsonSchema/person_v1.json", "JSON", null, true);
+        doTest(registryClient, "jsonSchema/person_v1.json", ArtifactType.JSON, null, true);
     }
 
     @Test
     void testOpenApi30AutoDetect() throws Exception {
-        doTest(registryClient, "openapi/3.0-petstore_v1.json", "OPENAPI", null, true);
+        doTest(registryClient, "openapi/3.0-petstore_v1.json", ArtifactType.OPENAPI, null, true);
     }
 
     @Test
     void testAsyncApiAutoDetect() throws Exception {
-        doTest(registryClient, "asyncapi/2.0-streetlights_v1.json", "ASYNCAPI", null, true);
+        doTest(registryClient, "asyncapi/2.0-streetlights_v1.json", ArtifactType.ASYNCAPI, null, true);
     }
 
     @Test
     void testGraphQLAutoDetect() throws Exception {
-        doTest(registryClient, "graphql/swars_v1.graphql", "GRAPHQL", null, true);
+        doTest(registryClient, "graphql/swars_v1.graphql", ArtifactType.GRAPHQL, null, true);
     }
 
     //provide artifact id
 
     @Test
     void testSetArtifactId() throws Exception {
-        doTest(registryClient, "openapi/3.0-petstore_v1.json", "OPENAPI", "testArtifactIdOpenApi", false);
+        doTest(registryClient, "openapi/3.0-petstore_v1.json", ArtifactType.OPENAPI, "testArtifactIdOpenApi", false);
     }
 
     @Test
     void testSetArtifactIdAndAutodetect() throws Exception {
-        doTest(registryClient, "openapi/3.0-petstore_v1.json", "OPENAPI", "testArtifactIdOpenApi", true);
+        doTest(registryClient, "openapi/3.0-petstore_v1.json", ArtifactType.OPENAPI, "testArtifactIdOpenApi", true);
     }
 
     @Test
@@ -188,7 +188,7 @@ public class UploadArtifactsIT extends ApicurioV2BaseIT {
 
         String content = resourceToString("artifactTypes/" + "protobuf/tutorial_v1.proto");
         ArtifactMetaData meta =
-            registryClient.createArtifact(null, null, "PROTOBUF", new ByteArrayInputStream(content.getBytes()));
+            registryClient.createArtifact(null, null, ArtifactType.PROTOBUF, new ByteArrayInputStream(content.getBytes()));
 
         ArtifactListItem webArtifact = waitForArtifactWeb(page, null, meta.getId());
 
@@ -205,7 +205,7 @@ public class UploadArtifactsIT extends ApicurioV2BaseIT {
 
         RegistryUITester page = new RegistryUITester(selenium);
         page.openWebPage();
-        String webArtifactId = page.uploadArtifact(null, artifactId, "JSON", content);
+        String webArtifactId = page.uploadArtifact(null, artifactId, ArtifactType.JSON, content);
 
         assertEquals(artifactId, webArtifactId);
 

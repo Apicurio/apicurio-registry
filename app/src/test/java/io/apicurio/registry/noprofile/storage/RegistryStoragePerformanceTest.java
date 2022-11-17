@@ -26,6 +26,7 @@ import java.util.Set;
 import javax.inject.Inject;
 
 import io.apicurio.registry.storage.RegistryStorage;
+import io.apicurio.registry.types.ArtifactType;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -103,7 +104,7 @@ public class RegistryStoragePerformanceTest {
                         .replaceAll("VERSION", String.valueOf(idx)));
             EditableArtifactMetaDataDto metaData = new EditableArtifactMetaDataDto(title, description, labels,
                     properties);
-            storage.createArtifactWithMetadata(GROUP_ID, artifactId, null, "OPENAPI", content, metaData, null);
+            storage.createArtifactWithMetadata(GROUP_ID, artifactId, null, ArtifactType.OPENAPI, content, metaData, null);
 
             System.out.print(".");
             if (idx % 100 == 0) {

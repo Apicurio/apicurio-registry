@@ -23,6 +23,7 @@ import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.RegistryClientFactory;
 import io.apicurio.registry.rest.v2.beans.ArtifactSearchResults;
 
+import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.tests.ApicurioTestTags;
 import io.apicurio.registry.utils.tests.AuthTestProfileAnonymousCredentials;
 import io.apicurio.registry.utils.tests.JWKSMockServer;
@@ -98,7 +99,7 @@ public class AuthTestAnonymousCredentials extends AbstractResourceTestBase {
                 "    \"fields\" : [{\"name\" : \"age\", \"type\" : \"int\"}]\r\n" +
                 "}").getBytes(StandardCharsets.UTF_8));
         Assertions.assertThrows(NotAuthorizedException.class, () -> {
-            client.createArtifact(groupId, "testNoCredentials", "AVRO", data);
+            client.createArtifact(groupId, "testNoCredentials", ArtifactType.AVRO, data);
         });
     }
 }

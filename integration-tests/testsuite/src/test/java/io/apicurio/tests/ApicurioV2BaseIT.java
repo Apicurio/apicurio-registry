@@ -44,7 +44,7 @@ import io.apicurio.registry.rest.v2.beans.IfExists;
 import io.apicurio.registry.rest.v2.beans.SearchedArtifact;
 import io.apicurio.registry.rest.v2.beans.SearchedVersion;
 import io.apicurio.registry.rest.v2.beans.VersionMetaData;
-
+import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.tests.LoadBalanceRegistryClient.RegistryClientHolder;
 import io.apicurio.tests.common.ApicurioRegistryBaseIT;
@@ -106,7 +106,7 @@ public class ApicurioV2BaseIT extends ApicurioRegistryBaseIT {
         }, "CleanArtifacts", 5);
     }
 
-    protected ArtifactMetaData createArtifact(String groupId, String artifactId, String artifactType, InputStream artifact) throws Exception {
+    protected ArtifactMetaData createArtifact(String groupId, String artifactId, ArtifactType artifactType, InputStream artifact) throws Exception {
         ArtifactMetaData amd = registryClient.createArtifact(groupId, artifactId, null, artifactType, IfExists.FAIL, false, artifact);
 
         // make sure we have schema registered
@@ -116,7 +116,7 @@ public class ApicurioV2BaseIT extends ApicurioRegistryBaseIT {
         return amd;
     }
 
-    protected ArtifactMetaData createArtifact(String groupId, String artifactId, String version, IfExists ifExists, String artifactType, InputStream artifact) throws Exception {
+    protected ArtifactMetaData createArtifact(String groupId, String artifactId, String version, IfExists ifExists, ArtifactType artifactType, InputStream artifact) throws Exception {
         ArtifactMetaData amd = registryClient.createArtifact(groupId, artifactId, version, artifactType, ifExists, false, artifact);
 
         // make sure we have schema registered

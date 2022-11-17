@@ -37,7 +37,7 @@ import io.apicurio.registry.serde.avro.AvroKafkaDeserializer;
 import io.apicurio.registry.serde.avro.AvroKafkaSerializer;
 import io.apicurio.registry.serde.avro.strategy.RecordIdStrategy;
 import io.apicurio.registry.serde.config.IdOption;
-
+import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.tests.ConfluentBaseIT;
@@ -125,7 +125,7 @@ public class BasicConfluentSerDesIT extends ConfluentBaseIT {
 
         AvroGenericRecordSchemaFactory avroSchema = new AvroGenericRecordSchemaFactory("myrecordconfluent1", List.of("key1"));
 
-        createArtifact(null, subjectName, "AVRO", avroSchema.generateSchemaStream());
+        createArtifact(null, subjectName, ArtifactType.AVRO, avroSchema.generateSchemaStream());
 
         new SimpleSerdesTesterBuilder<GenericRecord, GenericRecord>()
             .withTopic(topicName)

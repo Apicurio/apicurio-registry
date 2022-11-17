@@ -16,6 +16,7 @@
 
 package io.apicurio.registry.noprofile.validity;
 
+import io.apicurio.registry.types.ArtifactType;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -80,7 +81,7 @@ public class ValidityRuleApplicationTest extends AbstractResourceTestBase {
     @Test
     public void testValidityRuleApplication() throws Exception {
         String artifactId = "ValidityRuleApplicationTest";
-        createArtifact(artifactId, "AVRO", SCHEMA_SIMPLE);
+        createArtifact(artifactId, ArtifactType.AVRO, SCHEMA_SIMPLE);
         Rule rule = new Rule();
         rule.setType(RuleType.VALIDITY);
         rule.setConfig(ValidityLevel.FULL.name());
@@ -94,7 +95,7 @@ public class ValidityRuleApplicationTest extends AbstractResourceTestBase {
     @Test
     public void testValidityRuleApplication_Map() throws Exception {
         String artifactId = "testValidityRuleApplication_Map";
-        createArtifact(artifactId, "AVRO", SCHEMA_WITH_MAP);
+        createArtifact(artifactId, ArtifactType.AVRO, SCHEMA_WITH_MAP);
         Rule rule = new Rule();
         rule.setType(RuleType.VALIDITY);
         rule.setConfig(ValidityLevel.FULL.name());

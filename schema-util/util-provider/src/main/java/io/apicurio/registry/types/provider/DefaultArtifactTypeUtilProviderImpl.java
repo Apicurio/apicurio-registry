@@ -16,6 +16,10 @@
 
 package io.apicurio.registry.types.provider;
 
+import io.apicurio.registry.types.ArtifactMediaTypes;
+import io.apicurio.registry.types.ArtifactType;
+
+import javax.ws.rs.core.MediaType;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -58,5 +62,22 @@ public class DefaultArtifactTypeUtilProviderImpl implements ArtifactTypeUtilProv
         return providers.stream()
             .map(a -> a.getArtifactType())
             .collect(Collectors.toList());
+    }
+
+    @Override
+    public MediaType getArtifactMediaType(String type) {
+        // The content-type will be different for protobuf artifacts, graphql artifacts, and XML artifacts
+        MediaType contentType = ArtifactMediaTypes.JSON;
+        if (type.equals(ArtifactType.PROTOBUF)) {
+            contentType = ArtifactMediaTypes.PROTO;
+        }
+        if (type.equals(ArtifactType.GRAPHQL)) {
+            contentType = ArtifactMediaTypes.GRAPHQL;
+        }
+        if (type.equals(ArtifactType.WSDL) || type.equals(ArtifactType.XSD) || type.equals(ArtifactType.XML)) {
+            contentType = ArtifactMediaTypes.XML;
+        }
+
+        return contentType;
     }
 }

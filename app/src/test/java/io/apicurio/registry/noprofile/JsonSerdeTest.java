@@ -22,6 +22,7 @@ import java.io.InputStream;
 import java.util.Map;
 
 import io.apicurio.registry.AbstractResourceTestBase;
+import io.apicurio.registry.types.ArtifactType;
 import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.junit.jupiter.api.Assertions;
@@ -49,7 +50,7 @@ public class JsonSerdeTest extends AbstractResourceTestBase {
 
         String artifactId = generateArtifactId();
 
-        ArtifactMetaData amd = clientV2.createArtifact(groupId, artifactId + "-value", "JSON", jsonSchema);
+        ArtifactMetaData amd = clientV2.createArtifact(groupId, artifactId + "-value", ArtifactType.JSON, jsonSchema);
 
         // make sure we have schema registered
         retry(() -> clientV2.getContentByGlobalId(amd.getGlobalId()));

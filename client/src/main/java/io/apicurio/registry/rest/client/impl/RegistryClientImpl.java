@@ -29,7 +29,6 @@ import io.apicurio.registry.rest.client.request.provider.SearchRequestsProvider;
 import io.apicurio.registry.rest.client.request.provider.UsersRequestsProvider;
 import io.apicurio.registry.rest.v2.beans.*;
 import io.apicurio.registry.rest.v2.beans.Error;
-
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.types.RoleType;
 import io.apicurio.registry.types.RuleType;

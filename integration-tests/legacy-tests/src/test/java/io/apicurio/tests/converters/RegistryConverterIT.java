@@ -46,7 +46,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.apicurio.registry.client.RegistryService;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
-
+import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.converter.AvroConverter;
 import io.apicurio.registry.utils.converter.ExtJsonConverter;
 import io.apicurio.registry.utils.converter.SchemalessConverter;
@@ -79,7 +79,7 @@ public class RegistryConverterIT extends BaseIT {
 
         String artifactId = generateArtifactId();
 
-        ArtifactMetaData amd = registryClient.createArtifact(artifactId + "-myrecord4", "AVRO", null,
+        ArtifactMetaData amd = registryClient.createArtifact(artifactId + "-myrecord4", ArtifactType.AVRO, null,
             new ByteArrayInputStream(schema.toString().getBytes(StandardCharsets.UTF_8))
         );
         // wait for global id store to populate (in case of Kafka / Streams)

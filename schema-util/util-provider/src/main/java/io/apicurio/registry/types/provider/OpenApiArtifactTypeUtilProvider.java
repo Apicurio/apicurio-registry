@@ -26,6 +26,7 @@ import io.apicurio.registry.rules.compatibility.CompatibilityChecker;
 import io.apicurio.registry.rules.compatibility.NoopCompatibilityChecker;
 import io.apicurio.registry.rules.validity.ContentValidator;
 import io.apicurio.registry.rules.validity.OpenApiContentValidator;
+import io.apicurio.registry.types.ArtifactType;
 
 /**
  * @author Ales Justin
@@ -34,7 +35,7 @@ public class OpenApiArtifactTypeUtilProvider extends AbstractArtifactTypeUtilPro
 
     @Override
     public String getArtifactType() {
-        return "OPENAPI";
+        return ArtifactType.OPENAPI;
     }
 
     @Override

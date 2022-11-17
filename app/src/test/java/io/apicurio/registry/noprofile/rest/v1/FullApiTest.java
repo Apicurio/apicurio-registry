@@ -20,6 +20,7 @@ import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.rest.v1.beans.Rule;
 import io.apicurio.registry.rules.validity.ValidityLevel;
 
+import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
@@ -44,7 +45,7 @@ public class FullApiTest extends AbstractResourceTestBase {
 
     @Test
     public void testGlobalRuleApplicationOpenAPI() throws Exception {
-        String artifactType = "OPENAPI";
+        String artifactType = ArtifactType.OPENAPI;
         String artifactContent = resourceToString("openapi-invalid-syntax.json");
 
         // First, create an artifact without the rule installed.  Should work.
@@ -93,7 +94,7 @@ public class FullApiTest extends AbstractResourceTestBase {
 
     @Test
     public void testGlobalRuleApplicationProtobuf() throws Exception {
-        String artifactType = "PROTOBUF";
+        String artifactType = ArtifactType.PROTOBUF;
         String artifactContent = resourceToString("protobuf-invalid-syntax.proto");
 
         // First, create an artifact without the rule installed.  Should work.

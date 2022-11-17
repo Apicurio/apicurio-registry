@@ -46,8 +46,9 @@ import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.RuleConfigurationDto;
 import io.apicurio.registry.storage.dto.StoredArtifactDto;
-import io.apicurio.registry.types.ArtifactMediaTypes;
 import io.apicurio.registry.types.ArtifactState;
+import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.types.RuleType;
@@ -107,6 +108,9 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
 
     @Inject
     ArtifactIdGenerator idGenerator;
+
+    @Inject
+    ArtifactTypeUtilProviderFactory factory;
 
     @Context
     HttpServletRequest request;
@@ -215,7 +219,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
             content = ContentTypeUtil.yamlToJson(content);
         }
 
-        String artifactType = ArtifactTypeUtil.determineArtifactType(content, xRegistryArtifactType, ct);
+        String artifactType = ArtifactTypeUtil.determineArtifactType(content, xRegistryArtifactType, ct, factory.getAllArtifactTypes());
         rulesService.applyRules(null, artifactId, artifactType, content, RuleApplicationType.UPDATE, Collections.emptyMap());
     }
 
@@ -246,7 +250,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
                 content = ContentTypeUtil.yamlToJson(content);
             }
 
-            String artifactType = ArtifactTypeUtil.determineArtifactType(content, xRegistryArtifactType, ct);
+            String artifactType = ArtifactTypeUtil.determineArtifactType(content, xRegistryArtifactType, ct, factory.getAllArtifactTypes());
             rulesService.applyRules(null, artifactId, artifactType, content, RuleApplicationType.CREATE, Collections.emptyMap());
             final String finalArtifactId = artifactId;
             ArtifactMetaDataDto amd = storage.createArtifact(null, artifactId, null, artifactType, content, null);
@@ -268,17 +272,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
         }
         StoredArtifactDto artifact = storage.getArtifact(null, artifactId);
 
-        // The content-type will be different for protobuf artifacts, graphql artifacts, and XML artifacts
-        MediaType contentType = ArtifactMediaTypes.JSON;
-        if (metaData.getType().equals("PROTOBUF")) {
-            contentType = ArtifactMediaTypes.PROTO;
-        }
-        if (metaData.getType().equals("GRAPHQL")) {
-            contentType = ArtifactMediaTypes.GRAPHQL;
-        }
-        if (metaData.getType().equals("WSDL") || metaData.getType().equals("XSD") || metaData.getType().equals("XML")) {
-            contentType = ArtifactMediaTypes.XML;
-        }
+        MediaType contentType = factory.getArtifactMediaType(metaData.getType());
 
         Response.ResponseBuilder builder = Response.ok(artifact.getContent(), contentType);
         checkIfDeprecated(metaData::getState, artifactId, metaData.getVersion(), builder);
@@ -292,7 +286,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
             content = ContentTypeUtil.yamlToJson(content);
         }
 
-        String artifactType = ArtifactTypeUtil.determineArtifactType(content, xRegistryArtifactType, ct);
+        String artifactType = ArtifactTypeUtil.determineArtifactType(content, xRegistryArtifactType, ct, factory.getAllArtifactTypes());
         rulesService.applyRules(null, artifactId, artifactType, content, RuleApplicationType.UPDATE, Collections.emptyMap());
         ArtifactMetaDataDto dto = storage.updateArtifact(null, artifactId, null, artifactType, content, null);
         return V1ApiUtil.dtoToMetaData(artifactId, artifactType, dto);
@@ -349,7 +343,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
             content = ContentTypeUtil.yamlToJson(content);
         }
 
-        String artifactType = ArtifactTypeUtil.determineArtifactType(content, xRegistryArtifactType, ct);
+        String artifactType = ArtifactTypeUtil.determineArtifactType(content, xRegistryArtifactType, ct, factory.getAllArtifactTypes());
         rulesService.applyRules(null, artifactId, artifactType, content, RuleApplicationType.UPDATE, Collections.emptyMap());
         ArtifactMetaDataDto amd = storage.updateArtifact(null, artifactId, null, artifactType, content, null);
         return V1ApiUtil.dtoToVersionMetaData(artifactId, artifactType, amd);
@@ -368,17 +362,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
         }
         StoredArtifactDto artifact = storage.getArtifactVersion(null, artifactId, sversion);
 
-        // The content-type will be different for protobuf artifacts, graphql artifacts, and XML artifacts
-        MediaType contentType = ArtifactMediaTypes.JSON;
-        if (metaData.getType().equals("PROTOBUF")) {
-            contentType = ArtifactMediaTypes.PROTO;
-        }
-        if (metaData.getType().equals("GRAPHQL")) {
-            contentType = ArtifactMediaTypes.GRAPHQL;
-        }
-        if (metaData.getType().equals("WSDL") || metaData.getType().equals("XSD") || metaData.getType().equals("XML")) {
-            contentType = ArtifactMediaTypes.XML;
-        }
+        MediaType contentType = factory.getArtifactMediaType(metaData.getType());
 
         Response.ResponseBuilder builder = Response.ok(artifact.getContent(), contentType);
         checkIfDeprecated(metaData::getState, artifactId, sversion, builder);

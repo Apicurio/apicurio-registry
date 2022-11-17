@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import io.apicurio.registry.types.ArtifactType;
 import org.junit.jupiter.api.Test;
 
 import io.apicurio.registry.AbstractResourceTestBase;
@@ -48,13 +49,13 @@ public class SearchResourceTest extends AbstractResourceTestBase {
         for (int idx = 0; idx < 5; idx++) {
             String title = "Empty API " + idx;
             String artifactId = "Empty-" + idx;
-            this.createArtifact(group, artifactId, "OPENAPI", artifactContent.replaceAll("Empty API", title));
+            this.createArtifact(group, artifactId, ArtifactType.OPENAPI, artifactContent.replaceAll("Empty API", title));
             waitForArtifact(group, artifactId);
         }
         // Create 3 artifacts in some other group
         for (int idx = 0; idx < 5; idx++) {
             String artifactId = "Empty-" + idx;
-            this.createArtifact("SearchResourceTest", artifactId, "OPENAPI", artifactContent);
+            this.createArtifact("SearchResourceTest", artifactId, ArtifactType.OPENAPI, artifactContent);
             waitForArtifact(group, artifactId);
         }
 
@@ -78,13 +79,13 @@ public class SearchResourceTest extends AbstractResourceTestBase {
         // Two with the UUID name
         for (int idx = 0; idx < 2; idx++) {
             String artifactId = "Empty-" + idx;
-            this.createArtifact(group, artifactId, "OPENAPI", artifactContent.replaceAll("Empty API", name));
+            this.createArtifact(group, artifactId, ArtifactType.OPENAPI, artifactContent.replaceAll("Empty API", name));
             waitForArtifact(group, artifactId);
         }
         // Three with a different name
         for (int idx = 2; idx < 5; idx++) {
             String artifactId = "Empty-" + idx;
-            this.createArtifact(group, artifactId, "OPENAPI", artifactContent);
+            this.createArtifact(group, artifactId, ArtifactType.OPENAPI, artifactContent);
             waitForArtifact(group, artifactId);
         }
 
@@ -106,13 +107,13 @@ public class SearchResourceTest extends AbstractResourceTestBase {
         // Two with the UUID description
         for (int idx = 0; idx < 2; idx++) {
             String artifactId = "Empty-" + idx;
-            this.createArtifact(group, artifactId, "OPENAPI", artifactContent.replaceAll("An example API design using OpenAPI.", description));
+            this.createArtifact(group, artifactId, ArtifactType.OPENAPI, artifactContent.replaceAll("An example API design using OpenAPI.", description));
             waitForArtifact(group, artifactId);
         }
         // Three with the default description
         for (int idx = 2; idx < 5; idx++) {
             String artifactId = "Empty-" + idx;
-            this.createArtifact(group, artifactId, "OPENAPI", artifactContent);
+            this.createArtifact(group, artifactId, ArtifactType.OPENAPI, artifactContent);
             waitForArtifact(group, artifactId);
         }
 
@@ -134,7 +135,7 @@ public class SearchResourceTest extends AbstractResourceTestBase {
         for (int idx = 0; idx < 5; idx++) {
             String title = "Empty API " + idx;
             String artifactId = "Empty-" + idx;
-            this.createArtifact(group, artifactId, "OPENAPI", artifactContent.replaceAll("Empty API", title));
+            this.createArtifact(group, artifactId, ArtifactType.OPENAPI, artifactContent.replaceAll("Empty API", title));
             waitForArtifact(group, artifactId);
 
             List<String> labels = new ArrayList<>(2);
@@ -187,7 +188,7 @@ public class SearchResourceTest extends AbstractResourceTestBase {
         for (int idx = 0; idx < 5; idx++) {
             String title = "Empty API " + idx;
             String artifactId = "Empty-" + idx;
-            this.createArtifact(group, artifactId, "OPENAPI", artifactContent.replaceAll("Empty API", title));
+            this.createArtifact(group, artifactId, ArtifactType.OPENAPI, artifactContent.replaceAll("Empty API", title));
             waitForArtifact(group, artifactId);
 
             Map<String, String> props = new HashMap<>();
@@ -289,7 +290,7 @@ public class SearchResourceTest extends AbstractResourceTestBase {
         for (int idx = 0; idx < 5; idx++) {
             String title = "Empty API " + idx;
             String artifactId = "Empty-" + idx;
-            this.createArtifact(group, artifactId, "OPENAPI", artifactContent.replaceAll("Empty API", title));
+            this.createArtifact(group, artifactId, ArtifactType.OPENAPI, artifactContent.replaceAll("Empty API", title));
             waitForArtifact(group, artifactId);
 
             Map<String, String> props = new HashMap<>();
@@ -375,7 +376,7 @@ public class SearchResourceTest extends AbstractResourceTestBase {
         for (int idx = 0; idx < 5; idx++) {
             String artifactId = "Empty-" + idx;
             String name = "empty-" + idx;
-            this.createArtifact(group, artifactId, "OPENAPI", artifactContent.replaceAll("Empty API", name));
+            this.createArtifact(group, artifactId, ArtifactType.OPENAPI, artifactContent.replaceAll("Empty API", name));
             waitForArtifact(group, artifactId);
         }
 
@@ -432,7 +433,7 @@ public class SearchResourceTest extends AbstractResourceTestBase {
         for (int idx = 0; idx < 20; idx++) {
             String artifactId = "Empty-" + idx;
             String name = "empty-" + idx;
-            this.createArtifact(group, artifactId, "OPENAPI", artifactContent.replaceAll("Empty API", name));
+            this.createArtifact(group, artifactId, ArtifactType.OPENAPI, artifactContent.replaceAll("Empty API", name));
             waitForArtifact(group, artifactId);
         }
 
@@ -489,11 +490,11 @@ public class SearchResourceTest extends AbstractResourceTestBase {
         for (int idx = 0; idx < 5; idx++) {
             String title = "testSearchByContent-empty-api-" + idx;
             String artifactId = "Empty-1-" + idx;
-            this.createArtifact(group, artifactId, "OPENAPI", artifactContent.replaceAll("Empty API", title));
+            this.createArtifact(group, artifactId, ArtifactType.OPENAPI, artifactContent.replaceAll("Empty API", title));
             waitForArtifact(group, artifactId);
 
             artifactId = "Empty-2-" + idx;
-            this.createArtifact(group, artifactId, "OPENAPI", artifactContent.replaceAll("Empty API", title));
+            this.createArtifact(group, artifactId, ArtifactType.OPENAPI, artifactContent.replaceAll("Empty API", title));
             waitForArtifact(group, artifactId);
         }
 
@@ -530,18 +531,18 @@ public class SearchResourceTest extends AbstractResourceTestBase {
         for (int idx = 0; idx < 5; idx++) {
             String title = "testSearchByCanonicalContent-empty-api-" + idx;
             String artifactId = "Empty-1-" + idx;
-            this.createArtifact(group, artifactId, "OPENAPI", artifactContent.replaceAll("Empty API", title));
+            this.createArtifact(group, artifactId, ArtifactType.OPENAPI, artifactContent.replaceAll("Empty API", title));
             waitForArtifact(group, artifactId);
 
             artifactId = "Empty-2-" + idx;
-            this.createArtifact(group, artifactId, "OPENAPI", artifactContent.replaceAll("Empty API", title));
+            this.createArtifact(group, artifactId, ArtifactType.OPENAPI, artifactContent.replaceAll("Empty API", title));
             waitForArtifact(group, artifactId);
         }
 
         given()
             .when()
                 .queryParam("canonical", "true")
-                .queryParam("artifactType", "OPENAPI")
+                .queryParam("artifactType", ArtifactType.OPENAPI)
                 .body(searchByContent)
                 .post("/registry/v2/search/artifacts")
             .then()

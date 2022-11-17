@@ -30,6 +30,7 @@ import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
 import io.apicurio.registry.rules.compatibility.CompatibilityRuleExecutor;
 import io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType;
 
+import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.tests.TestUtils;
@@ -139,7 +140,7 @@ public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {
                     .body("config", equalTo("FULL"));
         });
 
-        rules.applyRules("no-group", "not-existent", "AVRO", ContentHandle.create(SCHEMA_SIMPLE),
+        rules.applyRules("no-group", "not-existent", ArtifactType.AVRO, ContentHandle.create(SCHEMA_SIMPLE),
                 RuleApplicationType.CREATE, Collections.emptyMap());
     }
 
@@ -160,7 +161,7 @@ public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {
         String v2Schema = JsonSchemas.incompatibleJsonSchema;
 
         RuleViolationException ruleViolationException = Assertions.assertThrows(RuleViolationException.class, () -> {
-            RuleContext context = new RuleContext("TestGroup", "TestJson", "JSON", "FORWARD_TRANSITIVE", Collections.singletonList(ContentHandle.create(v1Schema)), ContentHandle.create(v2Schema), Collections.emptyMap());
+            RuleContext context = new RuleContext("TestGroup", "TestJson", ArtifactType.JSON, "FORWARD_TRANSITIVE", Collections.singletonList(ContentHandle.create(v1Schema)), ContentHandle.create(v2Schema), Collections.emptyMap());
             compatibility.execute(context);
         });
 
@@ -221,7 +222,7 @@ public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {
     @Test
     public void testCompatibilityRuleApplication_Map() throws Exception {
         String artifactId = "testCompatibilityRuleApplication_Map";
-        createArtifact(artifactId, "AVRO", SCHEMA_WITH_MAP);
+        createArtifact(artifactId, ArtifactType.AVRO, SCHEMA_WITH_MAP);
         Rule rule = new Rule();
         rule.setType(RuleType.COMPATIBILITY);
         rule.setConfig(CompatibilityLevel.FULL.name());
@@ -240,7 +241,7 @@ public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {
     @Test
     public void testCompatibilityInvalidExitingContentRuleApplication_Map() throws Exception {
         String artifactId = "testCompatibilityInvalidExitingContentRuleApplication_Map";
-        createArtifact(artifactId, "AVRO", INVALID_SCHEMA_WITH_MAP);
+        createArtifact(artifactId, ArtifactType.AVRO, INVALID_SCHEMA_WITH_MAP);
         Rule rule = new Rule();
         rule.setType(RuleType.COMPATIBILITY);
         rule.setConfig(CompatibilityLevel.FULL.name());

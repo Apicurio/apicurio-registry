@@ -37,7 +37,7 @@ public class ArtifactTypeUtilProviderImpl extends DefaultArtifactTypeUtilProvide
 
     @PostConstruct
     void onConstruct() {
-        log.warn("BigQuery support enabled.");
+        log.info("BigQuery support enabled.");
     }
 
     ArtifactTypeUtilProviderImpl() {

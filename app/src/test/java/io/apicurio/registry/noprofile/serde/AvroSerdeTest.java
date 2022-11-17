@@ -34,6 +34,7 @@ import com.kubetrade.schema.trade.AvroSchemaE;
 import io.apicurio.registry.serde.SerdeConfig;
 import io.apicurio.registry.serde.SerdeHeaders;
 import io.apicurio.registry.serde.config.IdOption;
+import io.apicurio.registry.types.ArtifactType;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
 import org.apache.kafka.common.header.Header;
@@ -91,7 +92,7 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
         String groupId = TestUtils.generateGroupId();
         String topic = generateArtifactId();
 
-        final Integer globalId = createArtifact(groupId, topic + "-" + recordName, "AVRO", schema.toString());
+        final Integer globalId = createArtifact(groupId, topic + "-" + recordName, ArtifactType.AVRO, schema.toString());
 
         this.waitForGlobalId(globalId);
 

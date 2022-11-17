@@ -38,7 +38,7 @@ import io.apicurio.registry.rest.client.RegistryClientFactory;
 import io.apicurio.registry.rest.client.exception.ArtifactNotFoundException;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v2.beans.Rule;
-
+import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.tests.common.ApicurioRegistryBaseIT;
@@ -90,12 +90,12 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
         Assertions.assertThrows(ArtifactNotFoundException.class, () -> client.getArtifactMetaData(groupId, artifactId));
         Assertions.assertThrows(ArtifactNotFoundException.class, () -> client.getLatestArtifact("abc", artifactId));
         Assertions.assertThrows(ForbiddenException.class, () -> {
-            client.createArtifact("ccc", artifactId, "JSON", new ByteArrayInputStream("{}".getBytes()));
+            client.createArtifact("ccc", artifactId, ArtifactType.JSON, new ByteArrayInputStream("{}".getBytes()));
         });
         {
             Auth devAuth = new OidcAuth(getHttpClient(), authServerInfo.getDeveloperClientId(), authServerInfo.getDeveloperClientSecret());
             RegistryClient devClient = createClient(devAuth);
-            ArtifactMetaData meta = devClient.createArtifact(groupId, artifactId, "JSON", new ByteArrayInputStream("{}".getBytes()));
+            ArtifactMetaData meta = devClient.createArtifact(groupId, artifactId, ArtifactType.JSON, new ByteArrayInputStream("{}".getBytes()));
             TestUtils.retry(() -> devClient.getArtifactMetaData(groupId, meta.getId()));
         }
         assertNotNull(client.getLatestArtifact(groupId, artifactId));
@@ -112,7 +112,7 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
         try {
             client.listArtifactsInGroup(groupId);
 
-            client.createArtifact(groupId, artifactId, "JSON", new ByteArrayInputStream("{}".getBytes()));
+            client.createArtifact(groupId, artifactId, ArtifactType.JSON, new ByteArrayInputStream("{}".getBytes()));
             TestUtils.retry(() -> client.getArtifactMetaData(groupId, artifactId));
 
             assertNotNull(client.getLatestArtifact(groupId, artifactId));
@@ -140,7 +140,7 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
         String artifactId = TestUtils.generateArtifactId();
         try {
             client.listArtifactsInGroup(groupId);
-            client.createArtifact(groupId, artifactId, "JSON", new ByteArrayInputStream("{}".getBytes()));
+            client.createArtifact(groupId, artifactId, ArtifactType.JSON, new ByteArrayInputStream("{}".getBytes()));
             TestUtils.retry(() -> client.getArtifactMetaData(groupId, artifactId));
             assertNotNull(client.getLatestArtifact(groupId, artifactId));
             Rule ruleConfig = new Rule();

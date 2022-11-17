@@ -32,19 +32,6 @@ import { CaretDownIcon } from "@patternfly/react-icons";
 import { ArtifactTypes } from "../../../../../models";
 import { CreateArtifactData } from "../../../../../services";
 
-
-const artifactTypes: any[] = [
-    { id: ArtifactTypes.AVRO, label: "Avro Schema" },
-    { id: ArtifactTypes.PROTOBUF, label: "Protocol Buffer Schema" },
-    { id: ArtifactTypes.JSON, label: "JSON Schema" },
-    { id: ArtifactTypes.OPENAPI, label: "OpenAPI" },
-    { id: ArtifactTypes.ASYNCAPI, label: "AsyncAPI" },
-    { id: ArtifactTypes.GRAPHQL, label: "GraphQL" },
-    { id: ArtifactTypes.KCONNECT, label: "Kafka Connect Schema" },
-    { id: ArtifactTypes.WSDL, label: "WSDL" },
-    { id: ArtifactTypes.XSD, label: "XML Schema" },
-];
-
 /**
  * Properties
  */
@@ -68,6 +55,7 @@ export interface UploadArtifactFormState extends PureComponentState {
     formValid: boolean;
     idValid: boolean;
     groupValid: boolean;
+    artifactTypes: any[];
 }
 
 /**
@@ -140,7 +128,7 @@ export class UploadArtifactForm extends PureComponent<UploadArtifactFormProps, U
                             dropdownItems={[
                                 <DropdownItem key="auto" id="" data-testid="form-type-auto"><i>Auto-Detect</i></DropdownItem>,
                                 <DropdownSeparator key="separator" />,
-                                ...artifactTypes.map(t =>
+                                ...this.state.artifactTypes.map(t =>
                                     <DropdownItem key={t.id} id={t.id} data-testid={`form-type-${t.id}`}>{ t.label }</DropdownItem>
                                 )
                             ]}
@@ -198,6 +186,9 @@ export class UploadArtifactForm extends PureComponent<UploadArtifactFormProps, U
     }
 
     protected initializeState(): UploadArtifactFormState {
+        ArtifactTypes.allTypesWithLabels().then(artifactTypes => this.setState({
+            artifactTypes: artifactTypes
+        }));
         return {
             content: null,
             contentFilename: "",
@@ -209,7 +200,8 @@ export class UploadArtifactForm extends PureComponent<UploadArtifactFormProps, U
             tabKey: 0,
             formValid: false,
             idValid: true,
-            groupValid: true
+            groupValid: true,
+            artifactTypes: []
         };
     }
 
@@ -323,7 +315,7 @@ export class UploadArtifactForm extends PureComponent<UploadArtifactFormProps, U
     }
 
     private typeLabel(type: string): string {
-        return artifactTypes.filter( t => {
+        return this.state.artifactTypes.filter( t => {
             return t.id === type;
         }).map( t => t.label )[0];
     }

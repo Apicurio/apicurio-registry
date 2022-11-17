@@ -26,6 +26,12 @@ import { UpdateConfigurationProperty } from "../../models/updateConfigurationPro
  */
 export class AdminService extends BaseService {
 
+    public getArtifactTypes(): Promise<string[]> {
+        this.logger.info("[AdminService] Getting the global list of artifactTypes.");
+        const endpoint: string = this.endpoint("/v2/admin/artifactTypes");
+        return this.httpGet<string[]>(endpoint);
+    }
+
     public getRules(): Promise<Rule[]> {
         this.logger.info("[AdminService] Getting the global list of rules.");
         const endpoint: string = this.endpoint("/v2/admin/rules");

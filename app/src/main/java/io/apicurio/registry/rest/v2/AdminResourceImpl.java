@@ -86,6 +86,7 @@ import io.apicurio.registry.storage.impexp.EntityInputStream;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.types.RoleType;
 import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 import io.apicurio.registry.utils.impexp.Entity;
 import io.apicurio.registry.utils.impexp.EntityReader;
 
@@ -114,6 +115,9 @@ public class AdminResourceImpl implements AdminResource {
     DynamicConfigPropertyIndex dynamicPropertyIndex;
 
     @Inject
+    ArtifactTypeUtilProviderFactory factory;
+
+    @Inject
     Config config;
 
     @Inject
@@ -126,6 +130,15 @@ public class AdminResourceImpl implements AdminResource {
     @ConfigProperty(name = "registry.download.href.ttl", defaultValue = "30")
     @Info(category = "download", description = "Download link expiry", availableSince = "2.1.2.Final")
     Supplier<Long> downloadHrefTtl;
+
+    /**
+     * @see io.apicurio.registry.rest.v2.AdminResource#listArtifactTypes()
+     */
+    @Override
+    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Read)
+    public List<String> listArtifactTypes() {
+        return factory.getAllArtifactTypes();
+    }
 
     /**
      * @see io.apicurio.registry.rest.v2.AdminResource#listGlobalRules()

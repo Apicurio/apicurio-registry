@@ -26,13 +26,11 @@ import java.util.stream.Collectors;
  * @author Ales Justin
  * @author famartin
  */
-@javax.enterprise.context.ApplicationScoped
-@javax.enterprise.inject.Default
-public class ArtifactTypeUtilProviderImpl implements ArtifactTypeUtilProviderFactory {
+public class DefaultArtifactTypeUtilProviderImpl implements ArtifactTypeUtilProviderFactory {
 
-    private Map<String, ArtifactTypeUtilProvider> map = new ConcurrentHashMap<>();
+    protected Map<String, ArtifactTypeUtilProvider> map = new ConcurrentHashMap<>();
 
-    private List<ArtifactTypeUtilProvider> providers = new ArrayList<ArtifactTypeUtilProvider>(
+    protected List<ArtifactTypeUtilProvider> providers = new ArrayList<ArtifactTypeUtilProvider>(
                 List.of(
                         new AsyncApiArtifactTypeUtilProvider(),
                         new AvroArtifactTypeUtilProvider(),
@@ -48,7 +46,6 @@ public class ArtifactTypeUtilProviderImpl implements ArtifactTypeUtilProviderFac
 
     @Override
     public ArtifactTypeUtilProvider getArtifactTypeProvider(String type) {
-        System.out.println("***************** DEBUG NO BIGQUERY!!!! *********************");
         return map.computeIfAbsent(type, t ->
             providers.stream()
                      .filter(a -> a.getArtifactType().equals(t))
@@ -58,7 +55,6 @@ public class ArtifactTypeUtilProviderImpl implements ArtifactTypeUtilProviderFac
 
     @Override
     public List<String> getAllArtifactTypes() {
-        System.out.println("***************** DEBUG NO BIGQUERY!!!! *********************");
         return providers.stream()
             .map(a -> a.getArtifactType())
             .collect(Collectors.toList());

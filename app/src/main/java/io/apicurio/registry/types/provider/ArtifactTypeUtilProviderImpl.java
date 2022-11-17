@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Red Hat
+ * Copyright 2020 Red Hat
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,19 +14,13 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.types.bigquery.provider;
+package io.apicurio.registry.types.provider;
 
-import javax.enterprise.inject.Produces;
+import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.inject.Default;
 
-import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
-
-public class ArtifactTypeUtilProviderFactoryProducer {
-
-    @Produces
-    @javax.enterprise.inject.Alternative
-    public ArtifactTypeUtilProviderFactory artifactTypeUtilFactory() {
-        System.out.println("***************** DEBUG BIGQUERY!!!! *********************");
-        return new ArtifactTypeUtilProviderImpl();
-    }
+@Default
+@ApplicationScoped
+public class ArtifactTypeUtilProviderImpl extends DefaultArtifactTypeUtilProviderImpl {
 
 }

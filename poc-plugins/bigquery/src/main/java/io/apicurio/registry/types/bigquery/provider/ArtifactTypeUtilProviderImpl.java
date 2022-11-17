@@ -17,58 +17,41 @@ package io.apicurio.registry.types.bigquery.provider;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
 
 import io.apicurio.registry.types.provider.*;
+import org.slf4j.Logger;
 
-// import javax.annotation.PostConstruct;
+import javax.annotation.PostConstruct;
+import javax.annotation.Priority;
 import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.inject.Alternative;
+import javax.inject.Inject;
 
-// @javax.annotation.Priority(Integer.MAX_VALUE)
+@Alternative
+@Priority(Integer.MAX_VALUE)
 @ApplicationScoped
-@javax.enterprise.inject.Alternative
-public class ArtifactTypeUtilProviderImpl implements ArtifactTypeUtilProviderFactory {
+public class ArtifactTypeUtilProviderImpl extends DefaultArtifactTypeUtilProviderImpl {
 
-    // @PostConstruct
-    // void onConstruct() {
-    //     System.out.println("***************** DEBUG BIGQUERY!!!! *********************");
-    //     // TODO: back to info
-    //     // log.warn("BigQuery support enabled.");
-    // }
+    @Inject
+    Logger log;
 
-    private Map<String, ArtifactTypeUtilProvider> map = new ConcurrentHashMap<>();
+    @PostConstruct
+    void onConstruct() {
+        log.warn("BigQuery support enabled.");
 
-    private List<ArtifactTypeUtilProvider> providers = new ArrayList<ArtifactTypeUtilProvider>(
-                List.of(
-                        new AsyncApiArtifactTypeUtilProvider(),
-                        new AvroArtifactTypeUtilProvider(),
-                        new GraphQLArtifactTypeUtilProvider(),
-                        new JsonArtifactTypeUtilProvider(),
-                        new KConnectArtifactTypeUtilProvider(),
-                        new OpenApiArtifactTypeUtilProvider(),
-                        new ProtobufArtifactTypeUtilProvider(),
-                        new WsdlArtifactTypeUtilProvider(),
-                        new XmlArtifactTypeUtilProvider(),
-                        new XsdArtifactTypeUtilProvider())
-            );
-
-    @Override
-    public ArtifactTypeUtilProvider getArtifactTypeProvider(String type) {
-        System.out.println("***************** DEBUG BIGQUERY!!!! *********************");
-        return map.computeIfAbsent(type, t ->
-            providers.stream()
-                     .filter(a -> a.getArtifactType().equals(t))
-                     .findFirst()
-                     .orElseThrow(() -> new IllegalStateException("No such artifact type provider: " + t)));
+        this.providers = new ArrayList<ArtifactTypeUtilProvider>(
+            List.of(
+                    new AsyncApiArtifactTypeUtilProvider(),
+                    new AvroArtifactTypeUtilProvider(),
+                    new GraphQLArtifactTypeUtilProvider(),
+                    new JsonArtifactTypeUtilProvider(),
+                    new KConnectArtifactTypeUtilProvider(),
+                    new OpenApiArtifactTypeUtilProvider(),
+                    new ProtobufArtifactTypeUtilProvider(),
+                    new WsdlArtifactTypeUtilProvider(),
+                    new XmlArtifactTypeUtilProvider(),
+                    new XsdArtifactTypeUtilProvider())
+        );
     }
 
-    @Override
-    public List<String> getAllArtifactTypes() {
-        System.out.println("***************** DEBUG BIGQUERY!!!! *********************");
-        return providers.stream()
-            .map(a -> a.getArtifactType())
-            .collect(Collectors.toList());
-    }
 }

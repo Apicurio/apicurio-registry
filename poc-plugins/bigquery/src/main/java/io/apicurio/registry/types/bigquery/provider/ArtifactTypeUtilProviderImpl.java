@@ -43,6 +43,7 @@ public class ArtifactTypeUtilProviderImpl extends DefaultArtifactTypeUtilProvide
             List.of(
                     new AsyncApiArtifactTypeUtilProvider(),
                     new AvroArtifactTypeUtilProvider(),
+                    new BigQueryArtifactTypeUtilProvider(),
                     new GraphQLArtifactTypeUtilProvider(),
                     new JsonArtifactTypeUtilProvider(),
                     new KConnectArtifactTypeUtilProvider(),

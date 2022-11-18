@@ -3,10 +3,7 @@ package io.apicurio.registry.rules.compatibility;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.rules.BigqueryGsonBuilder;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 public class BigqueryCompatibilityChecker extends BigqueryGsonBuilder implements CompatibilityChecker {
     @Override
@@ -21,7 +18,7 @@ public class BigqueryCompatibilityChecker extends BigqueryGsonBuilder implements
 
     @Override
     public CompatibilityExecutionResult testCompatibility(CompatibilityLevel compatibilityLevel, List<String> existingArtifacts, String proposedArtifact) {
-        if (compatibilityLevel.equals(CompatibilityLevel.NONE)) {
+        if (compatibilityLevel.equals(CompatibilityLevel.NONE) || existingArtifacts.isEmpty()) {
             return CompatibilityExecutionResult.compatible();
         }
         ComparableSchema proposedSchema = toSchema(proposedArtifact);

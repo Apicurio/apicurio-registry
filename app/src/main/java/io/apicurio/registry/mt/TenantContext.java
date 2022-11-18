@@ -31,6 +31,8 @@ public interface TenantContext {
      */
     String tenantId();
 
+    RegistryTenantContext currentContext();
+
     String tenantOwner();
 
     default String getTenantIdOrElse(String alternative) {

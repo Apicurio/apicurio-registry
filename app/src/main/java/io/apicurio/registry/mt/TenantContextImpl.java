@@ -16,34 +16,64 @@
 
 package io.apicurio.registry.mt;
 
-import javax.enterprise.context.ApplicationScoped;
-
+import io.apicurio.registry.mt.limits.TenantLimitsConfiguration;
+import io.apicurio.tenantmanager.api.datamodel.TenantStatusValue;
+import io.quarkus.vertx.http.runtime.CurrentVertxRequest;
+import io.vertx.core.http.HttpServerRequest;
 import org.slf4j.MDC;
 
-import io.apicurio.tenantmanager.api.datamodel.TenantStatusValue;
-import io.apicurio.registry.mt.limits.TenantLimitsConfiguration;
+import javax.annotation.PostConstruct;
+import javax.enterprise.context.RequestScoped;
+import javax.inject.Inject;
+import java.util.Optional;
 
 /**
  * @author eric.wittmann@gmail.com
  */
-@ApplicationScoped
+@RequestScoped
 public class TenantContextImpl implements TenantContext {
 
     private static final String TENANT_ID_KEY = "tenantId";
-    private static final RegistryTenantContext EMPTY_CONTEXT = new RegistryTenantContext(DEFAULT_TENANT_ID, null, null, TenantStatusValue.READY, null);
+    private Optional<RegistryTenantContext> current = Optional.empty();
 
+    private static final RegistryTenantContext EMPTY_CONTEXT = new RegistryTenantContext(DEFAULT_TENANT_ID, null, null, TenantStatusValue.READY, null);
     private static final ThreadLocal<RegistryTenantContext> CURRENT = ThreadLocal.withInitial(() -> EMPTY_CONTEXT);
 
-    public static RegistryTenantContext current() {
-        return CURRENT.get();
-    }
+    @Inject
+    TenantContextLoader contextLoader;
 
-    public static void setCurrentContext(RegistryTenantContext context) {
-        CURRENT.set(context);
-    }
+    @Inject
+    TenantIdResolver tenantIdResolver;
 
-    public static void clearCurrentContext() {
-        setCurrentContext(EMPTY_CONTEXT);
+    @Inject
+    CurrentVertxRequest request;
+
+    @Inject
+    MultitenancyProperties multitenancyProperties;
+
+    @PostConstruct
+    public void load() {
+        RegistryTenantContext loadedContext;
+        if (multitenancyProperties.isMultitenancyEnabled() && request.getCurrent() != null) {
+            HttpServerRequest req = request.getCurrent().request();
+            String requestURI = req.uri();
+
+            Optional<String> tenantIdOpt = tenantIdResolver.resolveTenantId(
+                    // Request URI
+                    requestURI,
+                    // Function to get an HTTP request header value
+                    req::getHeader,
+                    // Function to get the serverName from the HTTP request
+                    req::host, null);
+
+            loadedContext = tenantIdOpt.map(tenantId -> contextLoader.loadRequestContext(tenantId))
+                    .orElse(contextLoader.defaultTenantContext());
+
+        } else {
+            loadedContext = contextLoader.defaultTenantContext();
+        }
+
+        setContext(loadedContext);
     }
 
     /**
@@ -51,7 +81,16 @@ public class TenantContextImpl implements TenantContext {
      */
     @Override
     public String tenantId() {
-        return CURRENT.get().getTenantId();
+        return current.map(RegistryTenantContext::getTenantId)
+                .orElse(CURRENT.get().getTenantId());
+    }
+
+    /**
+     * @see TenantContext#currentContext()
+     */
+    @Override
+    public RegistryTenantContext currentContext() {
+        return current.orElse(CURRENT.get());
     }
 
     /**
@@ -59,7 +98,8 @@ public class TenantContextImpl implements TenantContext {
      */
     @Override
     public String tenantOwner() {
-        return CURRENT.get().getTenantOwner();
+        return current.map(RegistryTenantContext::getTenantOwner)
+                .orElse(CURRENT.get().getTenantOwner());
     }
 
     /**
@@ -67,15 +107,16 @@ public class TenantContextImpl implements TenantContext {
      */
     @Override
     public TenantLimitsConfiguration limitsConfig() {
-        return CURRENT.get().getLimitsConfiguration();
+        return current.map(RegistryTenantContext::getLimitsConfiguration)
+                .orElse(CURRENT.get().getLimitsConfiguration());
     }
 
     /**
-     * @see io.apicurio.registry.mt.TenantContext#setContext(java.lang.String)
+     * @see io.apicurio.registry.mt.TenantContext#setContext(RegistryTenantContext)
      */
     @Override
     public void setContext(RegistryTenantContext ctx) {
-        setCurrentContext(ctx);
+        current = Optional.of(ctx);
         MDC.put(TENANT_ID_KEY, ctx.getTenantId());
     }
 
@@ -84,7 +125,7 @@ public class TenantContextImpl implements TenantContext {
      */
     @Override
     public void clearContext() {
-        setCurrentContext(EMPTY_CONTEXT);
+        current = Optional.of(EMPTY_CONTEXT);
         MDC.remove(TENANT_ID_KEY);
     }
 
@@ -95,6 +136,7 @@ public class TenantContextImpl implements TenantContext {
 
     @Override
     public TenantStatusValue getTenantStatus() {
-        return CURRENT.get().getStatus();
+        return current.map(RegistryTenantContext::getStatus)
+                .orElse(CURRENT.get().getStatus());
     }
 }

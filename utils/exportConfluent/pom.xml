@@ -86,7 +86,7 @@
             <plugin>
                 <groupId>org.jboss.jandex</groupId>
                 <artifactId>jandex-maven-plugin</artifactId>
-                <version>1.1.0</version><!--$NO-MVN-MAN-VER$-->
+                <version>1.2.3</version><!--$NO-MVN-MAN-VER$-->
                 <executions>
                   <execution>
                     <id>make-index</id>

@@ -155,7 +155,7 @@
         <quarkus.version>2.14.0.Final</quarkus.version>
 
         <!-- Jandex -->
-        <jandex.version>1.1.1</jandex.version>
+        <jandex.version>1.2.3</jandex.version>
 
         <!-- Schema types -->
         <avro.version>1.11.1</avro.version>

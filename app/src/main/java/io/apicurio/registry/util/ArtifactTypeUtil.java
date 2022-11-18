@@ -23,6 +23,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import javax.ws.rs.BadRequestException;
 import javax.ws.rs.core.MediaType;
 
 import com.google.protobuf.DescriptorProtos;
@@ -98,7 +99,7 @@ public final class ArtifactTypeUtil {
                                 return at;
                             }
                         }
-                        throw new IllegalStateException("The type {} is available.");
+                        throw new BadRequestException("Unsupported artifact type: " + at);
                     }
                 }
             }

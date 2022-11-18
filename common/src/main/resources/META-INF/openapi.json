@@ -140,7 +140,7 @@
                                 "schema": {
                                     "type": "array",
                                     "items": {
-                                        "type": "string"
+                                        "$ref": "#/components/schemas/ArtifactTypeInfo"
                                     }
                                 }
                             }
@@ -3079,6 +3079,18 @@
                 "type": "string",
                 "example": "AVRO",
                 "x-codegen-package": "io.apicurio.registry.types"
+            },
+            "ArtifactTypeInfo": {
+                "description": "",
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string"
+                    }
+                },
+                "example": {
+                    "name": "AVRO"
+                }
             },
             "UpdateState": {
                 "title": "Root Type for UpdateState",

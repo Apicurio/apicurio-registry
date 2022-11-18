@@ -182,10 +182,10 @@
         <quarkus.profile>dev</quarkus.profile>
 
         <!-- Apicurio Data Models (OpenAPI and AsyncAPI support) -->
-        <apicurio-data-models.version>1.1.26</apicurio-data-models.version>
+        <apicurio-data-models.version>1.1.27</apicurio-data-models.version>
 
         <!-- Apicurio Tenant Manager -->
-        <apicurio-tenant-manager.version>0.1.1.Final</apicurio-tenant-manager.version>
+        <apicurio-tenant-manager.version>0.1.2.Final</apicurio-tenant-manager.version>
 
         <!-- GraphQL -->
         <graphql.version>19.2</graphql.version>
@@ -977,6 +977,7 @@
             <modules>
                 <!-- Operator tests module -->
                 <module>system-tests</module>
+                <module>new-system-tests</module>
             </modules>
         </profile>
         <profile>

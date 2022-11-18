@@ -16,8 +16,8 @@ ifdef::rh-openshift-sr[]
 endif::[]
 
 .Procedure
-* Update your Maven `pom.xml` file to use the `apicurio-registry-maven-plugin` to download an artifact. The following example shows downloading Apache Avro and GraphQL schemas.
-+
+Update your Maven `pom.xml` file to use the `apicurio-registry-maven-plugin` to download an artifact. The following example shows downloading Apache Avro and GraphQL schemas.
+
 [source,xml]
 ----
 <plugin>
@@ -55,6 +55,7 @@ endif::[]
   </executions>
 </plugin>
 ----
+
 . Specify `download` as the execution goal.
 . Specify the {registry} URL with the `../apis/registry/v2` endpoint.
 ifdef::apicurio-registry,rh-service-registry[]

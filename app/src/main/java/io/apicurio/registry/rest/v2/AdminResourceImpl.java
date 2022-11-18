@@ -44,6 +44,7 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import io.apicurio.registry.rest.v2.beans.ArtifactTypeInfo;
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
@@ -136,8 +137,17 @@ public class AdminResourceImpl implements AdminResource {
      */
     @Override
     @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Read)
-    public List<String> listArtifactTypes() {
-        return factory.getAllArtifactTypes();
+    public List<ArtifactTypeInfo> listArtifactTypes() {
+        return factory
+                .getAllArtifactTypes()
+                .stream()
+                .map(t -> {
+                    ArtifactTypeInfo ati = new ArtifactTypeInfo();
+                    ati.setName(t);
+                    return ati;
+                })
+                .collect(Collectors.toList());
+
     }
 
     /**

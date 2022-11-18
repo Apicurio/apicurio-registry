@@ -19,10 +19,9 @@ import { Services } from "src/services";
 
 // tslint:disable-next-line:interface-name
 export class ArtifactTypes {
-    // TODO? this can be cached
 
     public static async allTypes(): Promise<string[]> {
-        return Services.getAdminService().getArtifactTypes();
+        return (await Services.getAdminService().getArtifactTypes()).map(t => t.name);
     }
 
     public static async allTypesWithLabels(): Promise<any[]> {
@@ -135,6 +134,9 @@ export class ArtifactTypes {
                 break;
             case "XML":
                 classes += " xml-icon24";
+                break;
+            default:
+                classes += " questionmark-icon24";
                 break;
         }
         return classes;

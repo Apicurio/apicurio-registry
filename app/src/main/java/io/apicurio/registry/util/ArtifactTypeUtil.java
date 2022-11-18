@@ -42,7 +42,6 @@ import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.utils.protobuf.schema.ProtobufFile;
 import io.apicurio.registry.storage.InvalidArtifactTypeException;
 
-
 /**
  * @author eric.wittmann@gmail.com
  */
@@ -113,8 +112,8 @@ public final class ArtifactTypeUtil {
         return null;
     }
 
-    // TODO: move this to ArtifactTypeUtilProvider and make this logic injectable?
-    // as a first implementation forcing users to specify the type if it's custom sounds like a reasonable limitation
+    // TODO: should we move this to ArtifactTypeUtilProvider and make this logic injectable?
+    // as a first implementation forcing users to specify the type if it's custom sounds like a reasonable tradeoff
     /**
      * Method that discovers the artifact type from the raw content of an artifact. This will attempt to parse
      * the content (with the optional provided Content Type as a hint) and figure out what type of artifact it

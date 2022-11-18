@@ -19,7 +19,6 @@ package io.apicurio.registry.noprofile.maven;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.maven.RegisterArtifact;
 import io.apicurio.registry.maven.RegisterRegistryMojo;
-
 import io.apicurio.registry.types.ArtifactType;
 import org.apache.avro.Schema;
 import org.apache.maven.plugin.MojoExecutionException;

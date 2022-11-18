@@ -29,7 +29,6 @@ import io.apicurio.registry.serde.data.KafkaSerdeRecord;
 import io.apicurio.registry.serde.strategy.ArtifactReference;
 import io.apicurio.registry.serde.strategy.ArtifactResolverStrategy;
 
-
 /**
  *
  * This interface is kept for compatibility, It's recommended to migrate custom implementations to adhere the new interface {@link io.apicurio.registry.resolver.SchemaResolver}

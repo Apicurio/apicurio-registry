@@ -27,7 +27,6 @@ import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
 import io.apicurio.tests.selenium.SeleniumProvider;
 import io.apicurio.tests.selenium.resources.ArtifactListItem;
 import io.apicurio.tests.ui.pages.ArtifactDetailsPage;

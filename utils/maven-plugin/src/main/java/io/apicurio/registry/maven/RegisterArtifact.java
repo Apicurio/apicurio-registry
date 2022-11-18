@@ -21,7 +21,6 @@ import java.util.List;
 
 import io.apicurio.registry.rest.v2.beans.IfExists;
 
-
 /**
  * @author eric.wittmann@gmail.com
  */

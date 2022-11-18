@@ -16,7 +16,6 @@
 
 package io.apicurio.registry.storage.dto;
 
-
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;

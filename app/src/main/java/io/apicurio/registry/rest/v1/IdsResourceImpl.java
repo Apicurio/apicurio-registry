@@ -41,7 +41,6 @@ import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.StoredArtifactDto;
 import io.apicurio.registry.types.ArtifactMediaTypes;
 import io.apicurio.registry.types.ArtifactState;
-
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.Current;
 

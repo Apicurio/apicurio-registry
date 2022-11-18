@@ -42,7 +42,6 @@ import io.apicurio.registry.support.CitizenIdentifier;
 import io.apicurio.registry.support.City;
 import io.apicurio.registry.support.Person;
 import io.apicurio.registry.support.Qualification;
-
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.utils.IoUtil;

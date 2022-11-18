@@ -46,7 +46,6 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
 import io.apicurio.registry.rest.v2.beans.ArtifactReference;
-import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.tests.ApplicationRbacEnabledProfile;
 import io.quarkus.test.junit.TestProfile;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -63,7 +62,7 @@ import io.apicurio.registry.rest.v2.beans.Rule;
 import io.apicurio.registry.rest.v2.beans.UpdateConfigurationProperty;
 import io.apicurio.registry.rest.v2.beans.UpdateRole;
 import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
-
+import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.LogLevel;
 import io.apicurio.registry.types.RoleType;
 import io.apicurio.registry.types.RuleType;

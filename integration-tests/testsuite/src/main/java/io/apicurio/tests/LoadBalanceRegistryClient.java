@@ -47,7 +47,6 @@ import io.apicurio.registry.rest.v2.beans.UpdateState;
 import io.apicurio.registry.rest.v2.beans.UserInfo;
 import io.apicurio.registry.rest.v2.beans.VersionMetaData;
 import io.apicurio.registry.rest.v2.beans.VersionSearchResults;
-
 import io.apicurio.registry.types.RoleType;
 import io.apicurio.registry.types.RuleType;
 

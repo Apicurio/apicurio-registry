@@ -22,7 +22,6 @@ import java.io.InputStream;
 import java.util.Map;
 
 import io.apicurio.registry.AbstractResourceTestBase;
-import io.apicurio.registry.types.ArtifactType;
 import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.junit.jupiter.api.Assertions;
@@ -33,7 +32,7 @@ import io.apicurio.registry.serde.SerdeConfig;
 import io.apicurio.registry.serde.jsonschema.JsonSchemaKafkaDeserializer;
 import io.apicurio.registry.serde.jsonschema.JsonSchemaKafkaSerializer;
 import io.apicurio.registry.support.Person;
-
+import io.apicurio.registry.types.ArtifactType;
 import io.quarkus.test.junit.QuarkusTest;
 
 /**

@@ -37,7 +37,6 @@ import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v2.beans.VersionMetaData;
 
-
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Date;

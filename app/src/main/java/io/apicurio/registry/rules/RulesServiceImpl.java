@@ -22,7 +22,6 @@ import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.LazyContentList;
 import io.apicurio.registry.storage.dto.RuleConfigurationDto;
 import io.apicurio.registry.storage.dto.StoredArtifactDto;
-
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.types.RuleType;
 

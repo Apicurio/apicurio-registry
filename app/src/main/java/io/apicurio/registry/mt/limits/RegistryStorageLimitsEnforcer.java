@@ -30,7 +30,6 @@ import io.apicurio.registry.storage.dto.GroupSearchResultsDto;
 import io.apicurio.registry.storage.dto.OrderBy;
 import io.apicurio.registry.storage.dto.OrderDirection;
 import io.apicurio.registry.storage.dto.SearchFilter;
-
 import io.apicurio.registry.types.RegistryException;
 import org.eclipse.microprofile.context.ThreadContext;
 

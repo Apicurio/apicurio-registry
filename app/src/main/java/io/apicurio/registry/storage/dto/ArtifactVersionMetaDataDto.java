@@ -20,7 +20,6 @@ import java.util.List;
 import java.util.Map;
 
 import io.apicurio.registry.types.ArtifactState;
-
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;

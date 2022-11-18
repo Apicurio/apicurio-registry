@@ -20,7 +20,6 @@ import java.util.Map;
 
 import io.apicurio.registry.storage.dto.GroupMetaDataDto;
 import io.apicurio.registry.storage.impl.kafkasql.MessageType;
-
 import io.quarkus.runtime.annotations.RegisterForReflection;
 import lombok.ToString;
 

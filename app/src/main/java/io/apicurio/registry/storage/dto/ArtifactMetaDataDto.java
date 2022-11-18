@@ -18,7 +18,6 @@
 package io.apicurio.registry.storage.dto;
 
 import io.apicurio.registry.types.ArtifactState;
-
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;

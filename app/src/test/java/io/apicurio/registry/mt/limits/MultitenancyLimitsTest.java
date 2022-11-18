@@ -26,7 +26,6 @@ import java.util.function.Supplier;
 import javax.inject.Inject;
 
 import io.apicurio.registry.AbstractRegistryTestBase;
-import io.apicurio.registry.types.ArtifactType;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -40,7 +39,7 @@ import io.apicurio.registry.rest.client.RegistryClientFactory;
 import io.apicurio.registry.rest.client.exception.LimitExceededException;
 import io.apicurio.registry.rest.v2.beans.EditableMetaData;
 import io.apicurio.registry.storage.RegistryStorage;
-
+import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;

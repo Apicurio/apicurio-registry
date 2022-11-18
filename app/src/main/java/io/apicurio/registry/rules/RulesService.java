@@ -17,7 +17,6 @@
 package io.apicurio.registry.rules;
 
 import io.apicurio.registry.content.ContentHandle;
-
 import io.apicurio.registry.types.RuleType;
 
 import java.util.Map;

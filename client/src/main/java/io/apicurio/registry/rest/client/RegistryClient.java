@@ -23,7 +23,6 @@ import java.util.List;
 import java.util.Map;
 
 import io.apicurio.registry.rest.v2.beans.*;
-
 import io.apicurio.registry.types.RoleType;
 import io.apicurio.registry.types.RuleType;
 

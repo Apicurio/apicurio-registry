@@ -18,7 +18,6 @@ package io.apicurio.tests.ui.pages;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebElement;
 
-
 import io.apicurio.tests.selenium.SeleniumProvider;
 
 public class UploadArtifactDialog extends BasePage {

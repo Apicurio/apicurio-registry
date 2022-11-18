@@ -24,7 +24,6 @@ import io.apicurio.registry.storage.impl.sql.SqlUtil;
 import io.apicurio.registry.storage.impl.sql.jdb.RowMapper;
 import io.apicurio.registry.types.ArtifactState;
 
-
 /**
  * Used to map a single row in the versions table to a {@link ArtifactVersionMetaDataDto} instance.
  * @author eric.wittmann@gmail.com

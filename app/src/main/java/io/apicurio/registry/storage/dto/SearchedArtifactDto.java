@@ -22,7 +22,6 @@ import java.util.List;
 
 import io.apicurio.registry.types.ArtifactState;
 
-
 /**
  * @author eric.wittmann@gmail.com
  */

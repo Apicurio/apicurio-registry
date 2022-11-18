@@ -18,7 +18,6 @@ package io.apicurio.registry.rules;
 
 import io.apicurio.registry.content.ContentHandle;
 
-
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;

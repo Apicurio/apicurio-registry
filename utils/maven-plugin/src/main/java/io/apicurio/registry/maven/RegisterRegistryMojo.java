@@ -32,7 +32,6 @@ import org.apache.maven.plugins.annotations.Parameter;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v2.beans.IfExists;
 
-
 /**
  * Register artifacts against registry.
  *

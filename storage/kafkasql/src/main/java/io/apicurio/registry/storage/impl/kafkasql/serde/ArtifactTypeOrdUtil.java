@@ -16,12 +16,10 @@
 
 package io.apicurio.registry.storage.impl.kafkasql.serde;
 
-import io.apicurio.registry.types.ArtifactType;
-
 import java.util.HashMap;
 import java.util.Map;
 
-
+import io.apicurio.registry.types.ArtifactType;
 
 /**
  * Used to get an "ord" value from an ArtifactType.

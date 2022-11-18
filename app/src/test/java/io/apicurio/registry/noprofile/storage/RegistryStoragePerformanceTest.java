@@ -26,7 +26,6 @@ import java.util.Set;
 import javax.inject.Inject;
 
 import io.apicurio.registry.storage.RegistryStorage;
-import io.apicurio.registry.types.ArtifactType;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -38,7 +37,7 @@ import io.apicurio.registry.storage.dto.OrderBy;
 import io.apicurio.registry.storage.dto.OrderDirection;
 import io.apicurio.registry.storage.dto.SearchFilter;
 import io.apicurio.registry.storage.dto.StoredArtifactDto;
-
+import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.Current;
 import io.quarkus.test.junit.QuarkusTest;
 

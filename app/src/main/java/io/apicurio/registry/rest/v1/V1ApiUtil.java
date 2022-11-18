@@ -29,7 +29,6 @@ import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
-
 import io.apicurio.registry.util.VersionUtil;
 
 /**

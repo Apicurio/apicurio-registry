@@ -25,13 +25,12 @@ import java.util.List;
 
 import io.apicurio.registry.maven.DownloadArtifact;
 import io.apicurio.registry.maven.DownloadRegistryMojo;
-import io.apicurio.registry.types.ArtifactType;
 import org.apache.avro.Schema;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-
+import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
 

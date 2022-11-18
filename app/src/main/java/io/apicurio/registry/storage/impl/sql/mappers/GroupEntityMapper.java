@@ -18,7 +18,6 @@ package io.apicurio.registry.storage.impl.sql.mappers;
 
 import io.apicurio.registry.storage.impl.sql.SqlUtil;
 import io.apicurio.registry.storage.impl.sql.jdb.RowMapper;
-
 import io.apicurio.registry.utils.impexp.GroupEntity;
 
 import java.sql.ResultSet;

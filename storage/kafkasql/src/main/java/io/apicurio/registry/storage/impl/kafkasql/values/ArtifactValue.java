@@ -21,7 +21,6 @@ import java.util.Date;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.impl.kafkasql.MessageType;
 import io.apicurio.registry.types.ArtifactState;
-
 import io.quarkus.runtime.annotations.RegisterForReflection;
 import lombok.ToString;
 

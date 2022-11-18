@@ -22,7 +22,6 @@ import io.apicurio.registry.rest.v1.beans.IfExistsType;
 import io.apicurio.registry.rest.v1.beans.Rule;
 import io.apicurio.registry.rest.v1.beans.VersionMetaData;
 import io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType;
-
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.tests.TestUtils;

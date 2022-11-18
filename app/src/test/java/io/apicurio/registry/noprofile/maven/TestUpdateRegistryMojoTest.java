@@ -24,7 +24,6 @@ import java.util.List;
 
 import io.apicurio.registry.maven.TestArtifact;
 import io.apicurio.registry.maven.TestUpdateRegistryMojo;
-import io.apicurio.registry.types.ArtifactType;
 import org.apache.avro.Schema;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.junit.jupiter.api.Assertions;
@@ -32,7 +31,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import io.apicurio.registry.rest.v2.beans.Rule;
-
+import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;

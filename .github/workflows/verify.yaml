@@ -120,7 +120,7 @@ jobs:
           mvn install
 
       - name: Build All Variants
-        run: make SKIP_TESTS=true BUILD_FLAGS='-Psystem-tests -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5 --no-transfer-progress' build-all
+        run: make SKIP_TESTS=true BUILD_FLAGS='-Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5 --no-transfer-progress' build-all
 
       - name: Verify docs generation
         run: |
@@ -212,7 +212,7 @@ jobs:
           mvn install
 
       - name: Build All Variants
-        run: make SKIP_TESTS=true BUILD_FLAGS='-Psystem-tests -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5 --no-transfer-progress' build-all
+        run: make SKIP_TESTS=true BUILD_FLAGS='-Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5 --no-transfer-progress' build-all
 
       - name: Verify docs generation
         run: |

@@ -458,9 +458,9 @@ public class LoadBalanceRegistryClient implements RegistryClient {
      * @see io.apicurio.registry.rest.client.RegistryClient#createArtifact(java.lang.String, java.lang.String, java.lang.String, java.io.InputStream)
      */
     @Override
-    public ArtifactMetaData createArtifact(String groupId, String artifactId, String version,
+    public ArtifactMetaData createArtifactWithVersion(String groupId, String artifactId, String version,
             InputStream data) {
-        return getTarget().createArtifact(groupId, artifactId, version, data);
+        return getTarget().createArtifactWithVersion(groupId, artifactId, version, data);
     }
 
     /**

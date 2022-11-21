@@ -47,7 +47,7 @@ public class UploadArtifactDialog extends BasePage {
         if (type == null) {
             formType += "auto";
         } else {
-            formType += type.value();
+            formType += type;
         }
         return getUploadArtifactDialog().findElement(byDataTestId(formType));
     }

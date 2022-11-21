@@ -38,7 +38,7 @@ import org.junit.jupiter.api.Test;
 @Tag(SMOKE)
 class AllArtifactTypesIT extends ApicurioV2BaseIT {
 
-    void doTest(String v1Resource, String v2Resource, ArtifactType atype) throws Exception {
+    void doTest(String v1Resource, String v2Resource, String atype) throws Exception {
         String groupId = TestUtils.generateGroupId();
         String artifactId = TestUtils.generateArtifactId();
         // Load/Assert resources exist.

@@ -57,15 +57,15 @@ public class UploadArtifactsIT extends ApicurioV2BaseIT {
         }
     }
 
-    public void doTestFromURL(RegistryClient client, String fromURL, ArtifactType type, String artifactId, boolean autodetect) throws Exception {
+    public void doTestFromURL(RegistryClient client, String fromURL, String type, String artifactId, boolean autodetect) throws Exception {
         doTest(client, null, type, artifactId, autodetect, fromURL);
     }
 
-    public void doTest(RegistryClient client, String resource, ArtifactType type, String artifactId, boolean autodetect) throws Exception {
+    public void doTest(RegistryClient client, String resource, String type, String artifactId, boolean autodetect) throws Exception {
         doTest(client, resource, type, artifactId, autodetect, null);
     }
 
-    public void doTest(RegistryClient client, String resource, ArtifactType type, String artifactId, boolean autodetect, String fromURL) throws Exception {
+    public void doTest(RegistryClient client, String resource, String type, String artifactId, boolean autodetect, String fromURL) throws Exception {
         String groupId = UploadArtifactsIT.class.getName();
 
         assertNotNull(type);

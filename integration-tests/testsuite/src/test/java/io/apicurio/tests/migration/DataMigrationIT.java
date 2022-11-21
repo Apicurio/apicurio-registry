@@ -248,7 +248,7 @@ public class DataMigrationIT extends ApicurioRegistryBaseIT {
                 byte[] contentBytes = IoUtil.toBytes(content);
                 String contentHash = DigestUtils.sha256Hex(contentBytes);
 
-                ArtifactType artifactType = ArtifactType.JSON;
+                String artifactType = ArtifactType.JSON;
 
                 Long contentId = contentIndex.computeIfAbsent(contentHash, k -> {
                     ContentEntity contentEntity = new ContentEntity();

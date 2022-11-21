@@ -31,7 +31,8 @@ public class MsSqlEmbeddedTestResource implements QuarkusTestResourceLifecycleMa
     
     private static final String DB_PASSWORD = "P4ssw0rd!#";
 
-    private MSSQLServerContainer<?> database = new MSSQLServerContainer<>(DockerImageName.parse("mcr.microsoft.com/mssql/server"))
+    private static final DockerImageName IMAGE = DockerImageName.parse("mcr.microsoft.com/mssql/server").withTag("2022-latest");
+    private MSSQLServerContainer<?> database = new MSSQLServerContainer<>(IMAGE)
             .withPassword(DB_PASSWORD)
             .acceptLicense();
     

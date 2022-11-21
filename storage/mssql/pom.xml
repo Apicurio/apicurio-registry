@@ -1,7 +1,5 @@
 <?xml version="1.0"?>
-<project
-    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"
-    xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+<project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd" xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>io.apicurio</groupId>
@@ -9,7 +7,7 @@
         <version>2.3.2-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
-    
+
     <artifactId>apicurio-registry-storage-mssql</artifactId>
     <packaging>jar</packaging>
     <name>apicurio-registry-storage-mssql</name>
@@ -33,8 +31,30 @@
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-jdbc-mssql</artifactId>
         </dependency>
+
+        <!-- Test Only -->
+        <dependency>
+            <groupId>io.apicurio</groupId>
+            <artifactId>apicurio-registry-app</artifactId>
+            <type>test-jar</type>
+            <exclusions>
+                <exclusion>
+                    <groupId>io.quarkus</groupId>
+                    <artifactId>quarkus-jdbc-h2</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>io.apicurio</groupId>
+                    <artifactId>apicurio-registry-schema-util-provider</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>mssqlserver</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
-    
+
     <build>
         <resources>
             <resource>
@@ -42,6 +62,12 @@
                 <filtering>true</filtering>
             </resource>
         </resources>
+        <testResources>
+            <testResource>
+                <directory>src/test/resources</directory>
+                <filtering>true</filtering>
+            </testResource>
+        </testResources>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -64,16 +90,34 @@
                             <overWriteSnapshots>true</overWriteSnapshots>
                         </configuration>
                     </execution>
+                    <execution>
+                        <id>unpack-test-dependencies</id>
+                        <phase>process-test-classes</phase>
+                        <goals>
+                            <goal>unpack-dependencies</goal>
+                        </goals>
+                        <configuration>
+                            <includeGroupIds>io.apicurio</includeGroupIds>
+                            <includeTypes>test-jar</includeTypes>
+                            <includeScope>test</includeScope>
+                            <outputDirectory>
+                                ${project.build.directory}/test-classes
+                            </outputDirectory>
+                            <overWriteReleases>false</overWriteReleases>
+                            <overWriteSnapshots>true</overWriteSnapshots>
+                        </configuration>
+                    </execution>
                 </executions>
             </plugin>
             <plugin>
                 <groupId>io.apicurio</groupId>
                 <artifactId>apicurio-common-app-components-maven-plugin</artifactId>
-                <version>${apicurio-common-app-components.version}</version>
+                <!--<version>${apicurio-common-app-components.version}</version>-->
+                <version>0.1.15-SNAPSHOT</version>
                 <executions>
                     <execution>
                         <id>merge-properties</id>
-                        <phase>prepare-package</phase>
+                        <phase>process-classes</phase>
                         <goals>
                             <goal>merge</goal>
                         </goals>
@@ -84,6 +128,21 @@
                                 <param>${project.build.outputDirectory}/overlay.properties</param>
                             </inputs>
                             <deleteInputs>true</deleteInputs>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>merge-test-properties</id>
+                        <phase>process-test-classes</phase>
+                        <goals>
+                            <goal>merge</goal>
+                        </goals>
+                        <configuration>
+                            <output>${project.build.testOutputDirectory}/application.properties</output>
+                            <inputs>
+                                <param>${project.build.outputDirectory}/application.properties</param>
+                                <param>${project.build.testOutputDirectory}/test-overlay.properties</param>
+                            </inputs>
+                            <deleteInputs>false</deleteInputs>
                         </configuration>
                     </execution>
                 </executions>
@@ -107,7 +166,21 @@
                     <systemProperties>
                         <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
                     </systemProperties>
+                    <includes>
+                        <include>**/MsSqlRegistryStorageTest.java</include>
+                    </includes>
                 </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>test-jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -135,23 +208,12 @@
             </plugin>
         </plugins>
     </build>
-    
+
     <profiles>
         <profile>
             <id>no-docker</id>
             <properties>
                 <groups>!docker</groups>
-            </properties>
-        </profile>
-        <profile>
-            <id>native</id>
-            <activation>
-                <property>
-                    <name>native</name>
-                </property>
-            </activation>
-            <properties>
-                <quarkus.package.type>native</quarkus.package.type>
             </properties>
         </profile>
     </profiles>

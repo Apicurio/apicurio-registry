@@ -19,7 +19,7 @@
         <maven.failsafe.version>3.0.0-M7</maven.failsafe.version>
         <maven.surefire.version>3.0.0-M7</maven.surefire.version>
         <junit.jupiter.version>5.9.0</junit.jupiter.version>
-        <fabric8.version>6.1.1</fabric8.version>
+        <fabric8.version>6.2.0</fabric8.version>
         <version.hamcrest>2.2</version.hamcrest>
         <version.slf4.simple>2.0.4</version.slf4.simple>
     </properties>

@@ -21,7 +21,6 @@ import io.apicurio.registry.maven.DownloadRegistryMojo;
 import io.apicurio.registry.maven.RegisterArtifact;
 import io.apicurio.registry.maven.RegisterArtifactReference;
 import io.apicurio.registry.maven.RegisterRegistryMojo;
-
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;

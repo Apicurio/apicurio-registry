@@ -21,7 +21,6 @@ import java.io.ByteArrayInputStream;
 import javax.inject.Inject;
 
 import io.apicurio.registry.content.ContentHandle;
-import io.apicurio.registry.types.ArtifactType;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -29,6 +28,7 @@ import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.content.extract.ContentExtractor;
 import io.apicurio.registry.content.extract.ExtractedMetaData;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
+import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 import io.quarkus.test.junit.QuarkusTest;

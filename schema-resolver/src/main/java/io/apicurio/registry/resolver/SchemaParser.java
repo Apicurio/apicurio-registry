@@ -18,7 +18,6 @@ package io.apicurio.registry.resolver;
 
 import io.apicurio.registry.resolver.data.Record;
 
-
 import java.util.Map;
 
 /**

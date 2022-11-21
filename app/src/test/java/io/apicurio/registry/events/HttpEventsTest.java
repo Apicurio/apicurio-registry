@@ -9,7 +9,6 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import io.apicurio.registry.types.ArtifactType;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
@@ -17,7 +16,7 @@ import org.junit.jupiter.api.Disabled;
 
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.events.dto.RegistryEventType;
-
+import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;

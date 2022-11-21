@@ -17,8 +17,8 @@
 package io.apicurio.registry.storage.impl.sql;
 
 /**
- * H2 implementation of the sql statements interface.  Provides sql statements that
- * are specific to PostgreSQL, where applicable.
+ * MS SQL Server implementation of the SQL statements interface.  Provides sql statements that
+ * are specific to MS SQL Server, where applicable.
  * @author eric.wittmann@gmail.com
  */
 public class SQLServerSqlStatements extends CommonSqlStatements {
@@ -35,7 +35,7 @@ public class SQLServerSqlStatements extends CommonSqlStatements {
      */
     @Override
     public String dbType() {
-        return "sqlserver";
+        return "mssql";
     }
 
     /**

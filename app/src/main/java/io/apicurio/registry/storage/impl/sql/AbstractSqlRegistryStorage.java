@@ -1231,7 +1231,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
             orderByQuery.append(orderDirection.name());
 
             // Add limit and offset to artifact query
-            if ("sqlserver".equals(sqlStatements.dbType())) {
+            if ("mssql".equals(sqlStatements.dbType())) {
                 limitOffset.append(" OFFSET ? ROWS FETCH NEXT ? ROWS ONLY");
             } else {
                 limitOffset.append(" LIMIT ? OFFSET ?");
@@ -1257,7 +1257,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                 idx++;
             }
             // TODO find a better way to swap arguments
-            if ("sqlserver".equals(sqlStatements.dbType())) {
+            if ("mssql".equals(sqlStatements.dbType())) {
                 artifactsQuery.bind(idx++, offset);
                 artifactsQuery.bind(idx++, limit);
             } else {

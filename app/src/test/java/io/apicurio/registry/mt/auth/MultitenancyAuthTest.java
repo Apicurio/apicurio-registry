@@ -101,8 +101,8 @@ public class MultitenancyAuthTest extends AbstractRegistryTestBase {
         tenant2.setStatus(TenantStatusValue.READY);
         tenantMetadataService.createTenant(tenant2);
 
-        String tenant1BaseUrl = "http://localhost:8081/t/" + tenantId1;
-        String tenant2BaseUrl = "http://localhost:8081/t/" + tenantId2;
+        String tenant1BaseUrl = "http://localhost:" + testPort + "/t/" + tenantId1;
+        String tenant2BaseUrl = "http://localhost:" + testPort + "/t/" + tenantId2;
 
         Auth basicAutha = new BasicAuth(JWKSMockServer.BASIC_USER_A, JWKSMockServer.BASIC_PASSWORD);
         Auth basicAuthb = new BasicAuth(JWKSMockServer.BASIC_USER_B, JWKSMockServer.BASIC_PASSWORD);

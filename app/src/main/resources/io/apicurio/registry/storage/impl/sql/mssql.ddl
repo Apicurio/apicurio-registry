@@ -1,5 +1,5 @@
 -- *********************************************************************
--- DDL for the Apicurio Registry - Database: SQL Server
+-- DDL for the Apicurio Registry - Database: MS SQL Server
 -- *********************************************************************
 
 CREATE TABLE apicurio (prop_name VARCHAR(255) NOT NULL, prop_value VARCHAR(255));

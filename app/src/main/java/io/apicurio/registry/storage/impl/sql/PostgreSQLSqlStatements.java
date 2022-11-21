@@ -17,7 +17,7 @@
 package io.apicurio.registry.storage.impl.sql;
 
 /**
- * H2 implementation of the sql statements interface.  Provides sql statements that
+ * PostgreSQL implementation of the sql statements interface.  Provides sql statements that
  * are specific to PostgreSQL, where applicable.
  * @author eric.wittmann@gmail.com
  */
@@ -87,27 +87,11 @@ public class PostgreSQLSqlStatements extends CommonSqlStatements {
     }
 
     /**
-     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectCurrentSequenceValue()
-     */
-    @Override
-    public String selectCurrentSequenceValue() {
-        return "SELECT value FROM sequences WHERE name = ? AND tenantId = ? ";
-    }
-
-    /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#resetSequenceValue()
      */
     @Override
     public String resetSequenceValue() {
         return "INSERT INTO sequences (tenantId, name, value) VALUES (?, ?, ?) ON CONFLICT (tenantId, name) DO UPDATE SET value = ?";
-    }
-
-    /**
-     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#insertSequenceValue()
-     */
-    @Override
-    public String insertSequenceValue() {
-        return "INSERT INTO sequences (tenantId, name, value) VALUES (?, ?, ?)";
     }
 
     /**

@@ -121,7 +121,7 @@
                 <executions>
                     <execution>
                         <id>merge-properties</id>
-                        <phase>prepare-package</phase>
+                        <phase>process-classes</phase>
                         <goals>
                             <goal>merge</goal>
                         </goals>
@@ -146,6 +146,7 @@
                                 <param>${project.build.outputDirectory}/application.properties</param>
                                 <param>${project.build.testOutputDirectory}/test-overlay.properties</param>
                             </inputs>
+                            <deleteInputs>false</deleteInputs>
                         </configuration>
                     </execution>
                 </executions>

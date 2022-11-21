@@ -25,7 +25,7 @@ import io.apicurio.registry.AbstractResourceTestBase;
 public class IBMClientTest extends AbstractResourceTestBase {
 
     private SchemaRegistryRestAPIClient buildClient() throws Exception {
-        return new SchemaRegistryRestAPIClient("http://localhost:8081/apis/ibmcompat/v1", "<API_KEY>", true);
+        return new SchemaRegistryRestAPIClient(registryApiBaseUrl + "/ibmcompat/v1", "<API_KEY>", true);
     }
 
 //    @Test

@@ -242,9 +242,9 @@
         <os-maven-plugin.version>1.7.1</os-maven-plugin.version>
 
         <!-- Test containers version, should be aligned with version used in Quarkus -->
-        <test-containers.version>1.16.3</test-containers.version>
+        <test-containers.version>1.17.5</test-containers.version>
         <keycloak.testcontainers.version>1.9.0</keycloak.testcontainers.version>
-        <keycloak-admin-client.version>20.0.0</keycloak-admin-client.version>
+        <keycloak-admin-client.version>20.0.1</keycloak-admin-client.version>
         <embedded-postgres.version>2.0.1</embedded-postgres.version>
         <strimzi.version>0.102.0</strimzi.version>
         <wiremock-jre8.version>2.35.0</wiremock-jre8.version>
@@ -683,11 +683,16 @@
                     </exclusion>
                 </exclusions>
             </dependency>
-
             <dependency>
                 <groupId>io.strimzi</groupId>
                 <artifactId>strimzi-test-container</artifactId>
                 <version>${strimzi.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.testcontainers</groupId>
+                <artifactId>redpanda</artifactId>
+                <version>${test-containers.version}</version>
                 <scope>test</scope>
             </dependency>
             <dependency>

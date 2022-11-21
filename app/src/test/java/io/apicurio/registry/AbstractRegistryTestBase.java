@@ -17,8 +17,10 @@
 package io.apicurio.registry;
 
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.utils.tests.ParallelizableTest;
 import io.apicurio.registry.utils.tests.TestUtils;
 
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.junit.jupiter.api.Assertions;
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -32,10 +34,14 @@ import java.util.stream.Collectors;
  *
  * @author eric.wittmann@gmail.com
  */
+@ParallelizableTest
 public abstract class AbstractRegistryTestBase {
 
     public static final String CURRENT_ENV = "CURRENT_ENV";
     public static final String CURRENT_ENV_MAS_REGEX = ".*mas.*";
+
+    @ConfigProperty(name = "quarkus.http.test-port")
+    public int testPort;
 
     protected String generateArtifactId() {
         return TestUtils.generateArtifactId();

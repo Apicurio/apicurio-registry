@@ -103,7 +103,6 @@ public class CustomAuthenticationMechanism implements HttpAuthenticationMechanis
     Logger log;
 
     private BearerAuthenticationMechanism bearerAuth;
-
     private ApicurioHttpClient httpClient;
 
     private ConcurrentHashMap<String, WrappedValue<String>> cachedAccessTokens;
@@ -136,6 +135,7 @@ public class CustomAuthenticationMechanism implements HttpAuthenticationMechanis
                     return customAuthentication(context, identityProviderManager);
                 }
             } else {
+                //Once we're done with it in the auth layer, the context must be cleared.
                 return customAuthentication(context, identityProviderManager);
             }
         } else {

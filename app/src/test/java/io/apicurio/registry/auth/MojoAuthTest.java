@@ -84,7 +84,7 @@ public class MojoAuthTest extends RegistryMojoTestBase {
         System.out.println("Auth is " + authEnabled);
 
         RegisterRegistryMojo registerRegistryMojo = new RegisterRegistryMojo();
-        registerRegistryMojo.setRegistryUrl(TestUtils.getRegistryV2ApiUrl());
+        registerRegistryMojo.setRegistryUrl(TestUtils.getRegistryV2ApiUrl(testPort));
         registerRegistryMojo.setAuthServerUrl(authServerUrlConfigured);
         registerRegistryMojo.setClientId(JWKSMockServer.ADMIN_CLIENT_ID);
         registerRegistryMojo.setClientSecret(clientSecret);
@@ -99,7 +99,7 @@ public class MojoAuthTest extends RegistryMojoTestBase {
         RegisterRegistryMojo registerRegistryMojo = new RegisterRegistryMojo();
         registerRegistryMojo.setClient(null);
 
-        registerRegistryMojo.setRegistryUrl(TestUtils.getRegistryV2ApiUrl());
+        registerRegistryMojo.setRegistryUrl(TestUtils.getRegistryV2ApiUrl(testPort));
         registerRegistryMojo.setUsername(testUsername);
         registerRegistryMojo.setPassword(testPassword);
 

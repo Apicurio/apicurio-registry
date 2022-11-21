@@ -15,19 +15,18 @@
  */
 package io.apicurio.registry.mt;
 
+import io.quarkus.runtime.StartupEvent;
+import org.slf4j.Logger;
+
+import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.event.Observes;
+import javax.inject.Inject;
+import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.event.Observes;
-import javax.inject.Inject;
-
-import org.slf4j.Logger;
-
-import io.quarkus.runtime.StartupEvent;
 
 /**
  * This class centralizes the logic to resolve the tenantId from an http request.
@@ -39,21 +38,16 @@ public class TenantIdResolver {
 
     private static final int TENANT_ID_POSITION = 2;
 
-    String multitenancyBasePath;
-
     @Inject
     Logger log;
 
     @Inject
     MultitenancyProperties mtProperties;
 
-    @Inject
-    TenantContext tenantContext;
-
-    @Inject
-    TenantContextLoader contextLoader;
-
     Pattern subdomainNamePattern;
+
+    String multitenancyBasePath;
+
 
     void init(@Observes StartupEvent ev) {
         if (mtProperties.isMultitenancyEnabled()) {
@@ -69,11 +63,11 @@ public class TenantIdResolver {
     /**
      * Resolves the tenant ID from the inbound HTTP request.  The tenantId can potentially be located in one
      * of the following locations:
-     *
+     * <p>
      * 1) In the context path:  https://registry.example.org/t/{tenantId}/apis/registry/v2/search/artifacts
      * 2) In a request header:  https://registry.example.org/apis/registry/v2/search/artifacts + header X-Registry-Tenant-Id: {tenantId}
      * 3) In a subdomain:       https://{tenantId}.registry.example.org/apis/registry/v2/search/artifacts
-     *
+     * <p>
      * Configuration options exist to enable/disable checking each of these locations.  Additional configuration
      * options exist to modify the specific behavior of each approach.  For example, for (2) it is possible to
      * configure the name of the request header.
@@ -83,8 +77,8 @@ public class TenantIdResolver {
      * @param serverNameProvider
      * @param afterSuccessfullUrlResolution
      */
-    public boolean resolveTenantId(String uri, Function<String, String> headerProvider, Supplier<String> serverNameProvider,
-            Consumer<String> afterSuccessfullUrlResolution) {
+    public Optional<String> resolveTenantId(String uri, Function<String, String> headerProvider, Supplier<String> serverNameProvider,
+                                            Consumer<String> afterSuccessfullUrlResolution) {
 
         if (mtProperties.isMultitenancyEnabled()) {
             log.trace("Resolving tenantId...");
@@ -98,12 +92,10 @@ public class TenantIdResolver {
                     // 1 is t
                     // 2 is the tenantId
                     String tenantId = tokens[TENANT_ID_POSITION];
-                    RegistryTenantContext context = contextLoader.loadRequestContext(tenantId);
-                    tenantContext.setContext(context);
                     if (afterSuccessfullUrlResolution != null) {
                         afterSuccessfullUrlResolution.accept(tenantId);
                     }
-                    return true;
+                    return Optional.of(tenantId);
                 } else {
                     log.warn("Context-path multi-tenancy enabled.  Detected unmatched path.");
                 }
@@ -132,9 +124,7 @@ public class TenantIdResolver {
                 if (matcher.matches()) {
                     String tenantId = matcher.group(1);
                     if (tenantId != null) {
-                        RegistryTenantContext context = contextLoader.loadRequestContext(tenantId);
-                        tenantContext.setContext(context);
-                        return true;
+                        return Optional.of(tenantId);
                     }
                 } else {
                     log.warn("Subdomain multi-tenancy enabled.  Detected unmatched domain: " + domain);
@@ -147,18 +137,13 @@ public class TenantIdResolver {
                 log.trace("Resolving tenantId from request header named: {}", headerName);
                 String tenantId = headerProvider.apply(headerName);
                 if (tenantId != null) {
-                    RegistryTenantContext context = contextLoader.loadRequestContext(tenantId);
-                    tenantContext.setContext(context);
-                    return true;
+                    return Optional.of(tenantId);
                 } else {
                     log.warn("Request header multi-tenancy enabled, but header value not found in request.");
                 }
             }
         }
-
-        //apply default tenant context
-        tenantContext.setContext(contextLoader.defaultTenantContext());
-        return false;
+        return Optional.empty();
     }
 
     public int tenantPrefixLength(String tenantId) {

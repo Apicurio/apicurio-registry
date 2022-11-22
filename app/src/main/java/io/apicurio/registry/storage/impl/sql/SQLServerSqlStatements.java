@@ -64,10 +64,17 @@ public class SQLServerSqlStatements extends CommonSqlStatements {
 
     /**
      * @see SqlStatements#upsertContent()
+     * https://michaeljswart.com/2017/07/sql-server-upsert-patterns-and-antipatterns/
      */
     @Override
     public String upsertContent() {
-        return "INSERT INTO content (tenantId, contentId, canonicalHash, contentHash, content, artifactreferences) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT (tenantId, contentHash) DO NOTHING";
+        return String.join(" ",
+                "BEGIN TRY",
+                "INSERT INTO content (tenantId, contentId, canonicalHash, contentHash, content, artifactreferences) VALUES (?, ?, ?, ?, ?, ?)",
+                "END TRY",
+                "BEGIN CATCH",
+                "--Do nothing",
+                "END CATCH");
     }
 
     /**
@@ -75,7 +82,7 @@ public class SQLServerSqlStatements extends CommonSqlStatements {
      */
     @Override
     public String upsertLogConfiguration() {
-        return "INSERT INTO logconfiguration (logger, loglevel) VALUES (?, ?) ON CONFLICT (logger) DO UPDATE SET loglevel = ?";
+        return "MERGE INTO logconfiguration (logger, loglevel) KEY (logger) VALUES(?, ?)";
     }
 
     /**
@@ -83,7 +90,7 @@ public class SQLServerSqlStatements extends CommonSqlStatements {
      */
     @Override
     public String getNextSequenceValue() {
-        return "INSERT INTO sequences (tenantId, name, value) VALUES (?, ?, 1) ON CONFLICT (tenantId, name) DO UPDATE SET value = sequences.value + 1 RETURNING value";
+        return "UPDATE sequences sa SET seq_value = (SELECT sb.seq_value + 1 FROM sequences sb WHERE sb.tenantId = sa.tenantId AND sb.name = sa.name) WHERE sa.tenantId = ? AND sa.name = ?";
     }
 
     /**
@@ -91,15 +98,22 @@ public class SQLServerSqlStatements extends CommonSqlStatements {
      */
     @Override
     public String resetSequenceValue() {
-        return "INSERT INTO sequences (tenantId, name, value) VALUES (?, ?, ?) ON CONFLICT (tenantId, name) DO UPDATE SET value = ?";
+        return "MERGE INTO sequences (tenantId, name, seq_value) KEY (tenantId, name) VALUES(?, ?, ?)";
     }
 
     /**
      * @see SqlStatements#upsertReference()
+     * https://michaeljswart.com/2017/07/sql-server-upsert-patterns-and-antipatterns/
      */
     @Override
     public String upsertReference() {
-        return "INSERT INTO artifactreferences (tenantId, contentId, groupId, artifactId, version, name) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT (tenantId, contentId, name) DO NOTHING";
+        return String.join(" ",
+                "BEGIN TRY",
+                "INSERT INTO artifactreferences (tenantId, contentId, groupId, artifactId, version, name) VALUES (?, ?, ?, ?, ?, ?)",
+                "END TRY",
+                "BEGIN CATCH",
+                "--Do nothing",
+                "END CATCH");
     }
 
     /**

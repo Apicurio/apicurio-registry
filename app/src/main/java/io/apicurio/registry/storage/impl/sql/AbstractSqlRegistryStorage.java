@@ -2546,7 +2546,8 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     /**
      * @see RegistryStorage#importData(io.apicurio.registry.storage.impexp.EntityInputStream, boolean, boolean)
      */
-    @Override @Transactional
+    @Override
+    @Transactional
     public void importData(EntityInputStream entities, boolean preserveGlobalId, boolean preserveContentId) throws RegistryStorageException {
         handles.withHandleNoException(handle -> {
             DataImporter dataImporter;

@@ -1,0 +1,101 @@
+name: Integration Tests SQL Workflow
+on:
+  push:
+    paths-ignore:
+      - '.gitignore'
+      - 'LICENSE'
+      - 'README*'
+      - 'docs/**'
+      - '.github/workflows/**'
+    branches: [main, '[1-9].[1-9].x']
+  pull_request:
+    paths-ignore:
+      - '.gitignore'
+      - 'LICENSE'
+      - 'README*'
+      - 'docs/**'
+    branches: [main]
+
+concurrency:
+  # Only run once for latest commit per ref and cancel other (previous) runs.
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  integration-tests:
+    name: Integration Tests SQL
+    runs-on: ubuntu-20.04
+    if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
+    steps:
+      - name: Show Actor
+        run: echo ${{github.actor}}
+      - name: Checkout Code
+        uses: actions/checkout@v3
+      - name: Set up JDK 11
+        uses: actions/setup-java@v3
+        with:
+          java-version: '11'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Workaround jackson-coreutils
+        run: |
+          # upstream issue: https://github.com/java-json-tools/jackson-coreutils/issues/59
+          rm -rf ~/.m2/repository/com/github/java-json-tools
+          mkdir -p /tmp/coreutils-workaround
+          ( cd /tmp/coreutils-workaround && mvn dependency:get -DremoteRepositories=https://repo1.maven.org/maven2 -Dartifact=com.github.java-json-tools:jackson-coreutils:2.0 )
+
+      - name: Build api-model
+        run: |
+          git clone https://github.com/Apicurio/apicurio-registry-operator.git
+          cd apicurio-registry-operator/api-model
+          mvn install
+
+      # - name: Set test profile to acceptance
+      #   if: github.ref != 'refs/heads/main'
+      #   run: |
+      #     echo "test_profile=acceptance" >> $GITHUB_ENV
+
+      # Run all tests always: serdes, acceptance and smoke. Things like UI , multitenancy or auth , are tested in it's own run.
+      - name: Set test profile to ci
+        run: |
+          echo "test_profile=ci" >> $GITHUB_ENV
+
+      - name: Get maven wrapper
+        run: mvn -N io.takari:maven:wrapper -Dmaven=3.8.2
+
+      - name: Prepare Tenant Manager
+        run: make build-integration-tests-multitenancy
+
+      - name: Build All Variants
+        run: make SKIP_TESTS=true BUILD_FLAGS='-Dmaven.javadoc.skip=true --no-transfer-progress -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5' build-sql
+
+      - name: Build integration-tests-common
+        run: ./mvnw install -Pintegration-tests -pl integration-tests/integration-tests-common
+      - name: Run Integration Tests - multitenancy
+        run: ./mvnw verify -Pintegration-tests -Pmultitenancy -Psql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false
+      - name: Run Integration Tests - sql
+        run: ./mvnw verify -Pintegration-tests -P${{ env.test_profile }} -Psql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false
+      - name: Run Integration Tests - sql clustered
+        run: ./mvnw verify -Pintegration-tests -Pclustered -Psql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false
+      - name: Run Integration Tests - sql migration
+        run: ./mvnw verify -Pintegration-tests -Pmigration -Psql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false
+      - name: Run Integration Tests - sql auth
+        run: ./mvnw verify -Pintegration-tests -Pauth -Psql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false
+      - name: Run Integration Tests - sql dbupgrade
+        run: ./mvnw verify -Pintegration-tests -Pdbupgrade -Psql -pl integration-tests/testsuite -DtrimStackTrace=false -Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false
+
+      - name: Run Legacy Tests - sql
+        env:
+          TEST_APP_ENV_ENABLE_CCOMPAT_LEGACY_ID_MODE: "true"
+        run: ./mvnw verify -Pintegration-tests -P${{ env.test_profile }} -Psql -pl integration-tests/legacy-tests -Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false
+
+      - name: Collect logs
+        if: failure()
+        run: ./.github/scripts/collect_logs.sh
+      - name: Upload tests logs artifacts
+        if: failure()
+        uses: actions/upload-artifact@v1.0.0
+        with:
+          name: tests-logs
+          path: artifacts

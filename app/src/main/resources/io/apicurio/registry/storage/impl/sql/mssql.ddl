@@ -21,7 +21,7 @@ CREATE INDEX IDX_artifacts_2 ON artifacts(createdOn);
 CREATE TABLE rules (tenantId VARCHAR(128) NOT NULL, groupId VARCHAR(512) NOT NULL, artifactId VARCHAR(512) NOT NULL, type VARCHAR(32) NOT NULL, configuration VARCHAR(1024) NOT NULL);
 ALTER TABLE rules ADD PRIMARY KEY (tenantId, groupId, artifactId, type);
 
-CREATE TABLE content (tenantId VARCHAR(128) NOT NULL, contentId BIGINT NOT NULL, canonicalHash VARCHAR(64) NOT NULL, contentHash VARCHAR(64) NOT NULL, content VARBINARY NOT NULL, artifactreferences TEXT);
+CREATE TABLE content (tenantId VARCHAR(128) NOT NULL, contentId BIGINT NOT NULL, canonicalHash VARCHAR(64) NOT NULL, contentHash VARCHAR(64) NOT NULL, content VARBINARY(MAX) NOT NULL, artifactreferences TEXT);
 ALTER TABLE content ADD PRIMARY KEY (tenantId, contentId);
 ALTER TABLE content ADD CONSTRAINT UNQ_content_1 UNIQUE (tenantId, contentHash);
 CREATE INDEX IDX_content_1 ON content(canonicalHash);

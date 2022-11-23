@@ -350,6 +350,22 @@
         </profile>
 
         <profile>
+            <id>sqlit</id>
+            <properties>
+                <skipTests>false</skipTests>
+                <groups>sqlit</groups>
+            </properties>
+        </profile>
+
+        <profile>
+            <id>kafkasqlit</id>
+            <properties>
+                <skipTests>false</skipTests>
+                <groups>kafkasqlit</groups>
+            </properties>
+        </profile>
+
+        <profile>
             <id>disableSerdesTest</id>
             <properties>
                 <exclude.integration.tests>**/BasicApicurioSerDesIT.java</exclude.integration.tests>

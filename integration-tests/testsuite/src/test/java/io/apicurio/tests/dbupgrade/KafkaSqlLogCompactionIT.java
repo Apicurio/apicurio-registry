@@ -50,6 +50,7 @@ import io.apicurio.tests.common.utils.RegistryUtils;
 @DisplayNameGeneration(SimpleDisplayName.class)
 @TestInstance(Lifecycle.PER_CLASS)
 @Tag(Constants.DB_UPGRADE)
+@Tag(Constants.KAFKA_SQL)
 public class KafkaSqlLogCompactionIT implements TestSeparator, Constants {
 
     final Logger logger = LoggerFactory.getLogger(getClass());

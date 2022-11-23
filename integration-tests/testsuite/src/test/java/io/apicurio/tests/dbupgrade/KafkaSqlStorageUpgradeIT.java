@@ -57,61 +57,16 @@ import io.apicurio.tests.utils.CustomTestsUtils.ArtifactData;
 /**
  * Note this test does not extend any base class
  *
- * @author Fabian Martinez
  */
 @DisplayNameGeneration(SimpleDisplayName.class)
 @TestInstance(Lifecycle.PER_CLASS)
 @Tag(Constants.DB_UPGRADE)
-@Tag(Constants.SQL)
-public class SqlStorageUpgradeIT implements TestSeparator, Constants {
+@Tag(Constants.KAFKA_SQL)
+public class KafkaSqlStorageUpgradeIT implements TestSeparator, Constants {
 
     @Test
-    public void testStorageUpgrade() throws Exception {
-
-        Path logsPath = RegistryUtils.getLogsPath(getClass(), "testStorageUpgrade");
-        RegistryFacade facade = RegistryFacade.getInstance();
-
-        try {
-
-            Map<String, String> appEnv = facade.initRegistryAppEnv();
-
-            //runs all required infra except for the registry
-            facade.runMultitenancyInfra(appEnv);
-
-            appEnv.put("QUARKUS_HTTP_PORT", "8081");
-
-            String oldRegistryName = "registry-sql-dbv2";
-            var container = new GenericContainer<>(new RemoteDockerImage(DockerImageName.parse("quay.io/apicurio/apicurio-registry-sql:2.1.0.Final")));
-            container.setNetworkMode("host");
-            facade.runContainer(appEnv, oldRegistryName, container);
-            facade.waitForRegistryReady();
-
-            MultitenancySupport mt = new MultitenancySupport();
-
-            List<TenantData> data = loadData(mt);
-
-            verifyData(data);
-
-            facade.stopProcess(logsPath, oldRegistryName);
-
-            facade.runRegistry(appEnv, "sql-dblatest", "8081");
-            facade.waitForRegistryReady();
-
-            verifyData(data);
-
-            createMoreArtifacts(data);
-
-            verifyData(data);
-
-        } finally {
-            facade.stopAndCollectLogs(logsPath);
-        }
-
-    }
-
-    @Test
-    public void testStorageUpgradeProtobufUpgraderSql() throws Exception {
-        testStorageUpgradeProtobufUpgrader("protobufCanonicalHashSql", RegistryStorageType.sql);
+    public void testStorageUpgradeProtobufUpgraderKafkaSql() throws Exception {
+        testStorageUpgradeProtobufUpgrader("protobufCanonicalHashKafkaSql", RegistryStorageType.kafkasql);
     }
 
     public void testStorageUpgradeProtobufUpgrader(String testName, RegistryStorageType storage) throws Exception {
@@ -132,10 +87,8 @@ public class SqlStorageUpgradeIT implements TestSeparator, Constants {
             appEnv.put("QUARKUS_HTTP_PORT", "8081");
 
             String oldRegistryName = "registry-dbv4";
-            String image = "quay.io/apicurio/apicurio-registry-sql:2.1.2.Final";
-            if (storage == RegistryStorageType.kafkasql) {
-                image = "quay.io/apicurio/apicurio-registry-kafkasql:2.1.2.Final";
-            }
+            String image = "quay.io/apicurio/apicurio-registry-kafkasql:2.1.2.Final";
+
             var container = new GenericContainer<>(new RemoteDockerImage(DockerImageName.parse(image)));
             container.setNetworkMode("host");
             facade.runContainer(appEnv, oldRegistryName, container);
@@ -170,8 +123,8 @@ public class SqlStorageUpgradeIT implements TestSeparator, Constants {
             assertEquals(3, searchResults.getCount());
 
             var protobufs = searchResults.getArtifacts().stream()
-                .filter(ar -> ar.getType().name().equals(ArtifactType.PROTOBUF.name()))
-                .collect(Collectors.toList());
+                    .filter(ar -> ar.getType().name().equals(ArtifactType.PROTOBUF.name()))
+                    .collect(Collectors.toList());
 
             System.out.println("Protobuf artifacts are " + protobufs.size());
             assertEquals(1, protobufs.size());

@@ -70,6 +70,11 @@ jobs:
           mvn install
 
       - name: Build and Test All Variants
+        if: github.ref == 'refs/heads/main'
+        run: make SKIP_TESTS=false BUILD_FLAGS='-Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5 --no-transfer-progress' build-all
+
+      - name: Build and Test All Variants Without UI
+        if: github.ref != 'refs/heads/main'
         run: make SKIP_TESTS=false BUILD_FLAGS='-Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5 --no-transfer-progress' build-all
 
       - name: Login to DockerHub Registry
@@ -120,6 +125,11 @@ jobs:
           mvn install
 
       - name: Build All Variants
+        if: github.ref == 'refs/heads/main'
+        run: make SKIP_TESTS=true BUILD_FLAGS='-Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5 --no-transfer-progress' build-all
+
+      - name: Build All Variants Without UI
+        if: github.ref != 'refs/heads/main'
         run: make SKIP_TESTS=true BUILD_FLAGS='-Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5 --no-transfer-progress' build-all
 
       - name: Verify docs generation

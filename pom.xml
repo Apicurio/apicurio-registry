@@ -102,7 +102,6 @@
     <modules>
         <module>common</module>
         <module>app</module>
-        <module>ui</module>
         <module>utils/converter</module>
         <module>utils/kafka</module>
         <module>utils/maven-plugin</module>
@@ -983,6 +982,17 @@
                 <!-- Operator tests module -->
                 <module>system-tests</module>
                 <module>new-system-tests</module>
+            </modules>
+        </profile>
+        <profile>
+            <id>ui</id>
+            <activation>
+                <property>
+                    <name>!skipUiBuild</name>
+                </property>
+            </activation>
+            <modules>
+                <module>ui</module>
             </modules>
         </profile>
         <profile>

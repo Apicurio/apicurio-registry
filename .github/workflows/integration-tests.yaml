@@ -68,7 +68,7 @@ jobs:
         run: make build-integration-tests-multitenancy
 
       - name: Build Sql Variant
-        run: make SKIP_TESTS=true BUILD_FLAGS='-Dmaven.javadoc.skip=true --no-transfer-progress -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5' build-sql
+        run: make SKIP_TESTS=true BUILD_FLAGS='-DskipUiBuild=true -Dmaven.javadoc.skip=true --no-transfer-progress -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5' build-sql
 
       - name: Build integration-tests-common
         run: ./mvnw install -Pintegration-tests -pl integration-tests/integration-tests-common
@@ -145,7 +145,7 @@ jobs:
         run: make build-integration-tests-multitenancy
 
       - name: Build KafkaSql variant
-        run: make SKIP_TESTS=true BUILD_FLAGS='-Dmaven.javadoc.skip=true --no-transfer-progress -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5' build-kafkasql
+        run: make SKIP_TESTS=true BUILD_FLAGS='-DskipUiBuild=true -Dmaven.javadoc.skip=true --no-transfer-progress -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5' build-kafkasql
 
       - name: Build integration-tests-common
         run: ./mvnw install -Pintegration-tests -pl integration-tests/integration-tests-common
@@ -158,7 +158,7 @@ jobs:
         run: ./mvnw verify -Pintegration-tests -Pmigration -Pkafkasql -Pkafkasqlit -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false
       - name: Run Integration Tests - kafkasql auth
         run: ./mvnw verify -Pintegration-tests -Pauth -Pkafkasql -Pkafkasqlit -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false
-      - name: Run Integration Tests - sql dbupgrade
+      - name: Run Integration Tests - kafkasql dbupgrade
         run: ./mvnw verify -Pintegration-tests -Pdbupgrade -Pkafkasql -Pkafkasqlit -pl integration-tests/testsuite -DtrimStackTrace=false -Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false
 
       - name: Run Legacy Tests - kafkasql

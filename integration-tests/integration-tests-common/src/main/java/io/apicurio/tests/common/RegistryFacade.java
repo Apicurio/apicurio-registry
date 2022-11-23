@@ -640,6 +640,7 @@ public class RegistryFacade {
             KafkaFacade kafkaFacade = KafkaFacade.getInstance();
             var c = kafkaFacade.startNewKafka();
 
+            appEnv.put("REGISTRY_KAFKASQL_CONSUMER_STARTUPLAG", "3000"); //Three seconds startup lag to give time to the nodes being created to create the db.
             appEnv.put("KAFKA_BOOTSTRAP_SERVERS", c.getBootstrapServers());
             processes.add(new RegistryTestProcess() {
 

@@ -47,7 +47,7 @@
         <dependency>
             <groupId>io.fabric8</groupId>
             <artifactId>kubernetes-client</artifactId>
-            <version>6.2.0</version>
+            <version>${fabric8.version}</version>
         </dependency>
         <dependency>
             <groupId>io.fabric8</groupId>
@@ -85,7 +85,7 @@
         <dependency>
             <groupId>io.fabric8</groupId>
             <artifactId>openshift-client</artifactId>
-            <version>6.2.0</version>
+            <version>${fabric8.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>

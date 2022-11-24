@@ -1,7 +1,6 @@
 package io.apicurio.registry.systemtests;
 
 import io.fabric8.openshift.client.OpenShiftClient;
-import org.junit.jupiter.api.Test;
 
 /**
  * Parent class for future subclasses that will share tests.

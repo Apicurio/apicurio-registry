@@ -52,6 +52,11 @@
         </dependency>
         <dependency>
             <groupId>io.fabric8</groupId>
+            <artifactId>generator-annotations</artifactId>
+            <version>${fabric8.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.fabric8</groupId>
             <artifactId>kubernetes-junit-jupiter</artifactId>
         </dependency>
 

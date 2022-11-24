@@ -1,7 +1,5 @@
 package io.apicurio.registry.systemtests;
 
-import io.apicur.registry.v1.ApicurioRegistry;
-import io.apicur.registry.v1.ApicurioRegistryBuilder;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.client.KubernetesClientTimeoutException;
 import io.fabric8.openshift.client.OpenShiftClient;
@@ -40,34 +38,6 @@ public class Utils {
      */
     public static Deployment findRegistryOperatorDeployment(OpenShiftClient client) {
         return findRegistryOperatorDeployment(client, client.getNamespace());
-    }
-
-    /**
-     * Builds {@link ApicurioRegistry} instance with provided Cluster IP for PostgreSQL database connection.
-     *
-     * @param clusterIp Cluster IP for PostgreSQL database connection of {@link ApicurioRegistry} instance.
-     * @return {@link ApicurioRegistry} instance with provided clusterIp.
-     */
-    public static ApicurioRegistry buildRegistry(String clusterIp) {
-        String sqlUrl = "jdbc:postgresql://" + clusterIp + ":5432/postgresdb";
-
-        return new ApicurioRegistryBuilder()
-                .withNewMetadata()
-                    .withName(Constants.REGISTRY_NAME)
-                .endMetadata()
-                .withNewSpec()
-                    .withNewConfiguration()
-                        .withPersistence("sql")
-                        .withNewSql()
-                            .withNewDataSource()
-                                .withUrl(sqlUrl)
-                                .withUserName("postgresuser")
-                                .withPassword("postgrespassword")
-                            .endDataSource()
-                        .endSql()
-                    .endConfiguration()
-                .endSpec()
-                .build();
     }
 
     /**

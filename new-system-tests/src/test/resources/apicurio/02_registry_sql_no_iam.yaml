@@ -9,5 +9,5 @@ spec:
       dataSource:
         password: postgrespassword
         url: >-
-          jdbc:postgresql://postgresql.postgresql.svc.cluster.local:5432/postgresdb
+          jdbc:postgresql://postgresql:5432/postgresdb
         userName: postgresuser

@@ -27,6 +27,8 @@ import io.vertx.core.http.HttpServerRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.concurrent.CompletableFuture;
+
 /**
  * @author Fabian Martinez
  */
@@ -62,18 +64,25 @@ public abstract class LimitingProxy {
         return "http://localhost:" + port;
     }
 
-    public void start() {
+    public CompletableFuture<HttpServer> start() {
 
-        server = vertx.createHttpServer(new HttpServerOptions().setPort(port)).requestHandler(this::proxyRequest)
+        CompletableFuture<HttpServer> serverFuture = new CompletableFuture<>();
+
+        server = vertx.createHttpServer(new HttpServerOptions()
+                        .setPort(port))
+                .requestHandler(this::proxyRequest)
             .listen(server -> {
                 if (server.succeeded()) {
                     logger.info("Proxy server started on port {}", port);
                     logger.info("Proxying server {}:{}", destinationHost, destinationPort);
+                    serverFuture.complete(server.result());
                 } else {
                     logger.error("Error starting server", server.cause());
+                    serverFuture.completeExceptionally(server.cause());
                 }
             });
 
+        return serverFuture;
     }
 
     public void stop() {

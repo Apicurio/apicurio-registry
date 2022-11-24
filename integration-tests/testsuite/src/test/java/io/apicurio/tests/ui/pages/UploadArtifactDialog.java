@@ -18,7 +18,6 @@ package io.apicurio.tests.ui.pages;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebElement;
 
-import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.tests.selenium.SeleniumProvider;
 
 public class UploadArtifactDialog extends BasePage {
@@ -43,12 +42,12 @@ public class UploadArtifactDialog extends BasePage {
         return getUploadArtifactDialog().findElement(byDataTestId("form-type-toggle"));
     }
 
-    public WebElement getArtifactTypeDropdownItem(ArtifactType type) {
+    public WebElement getArtifactTypeDropdownItem(String type) {
         String formType = "form-type-";
         if (type == null) {
             formType += "auto";
         } else {
-            formType += type.value();
+            formType += type;
         }
         return getUploadArtifactDialog().findElement(byDataTestId(formType));
     }

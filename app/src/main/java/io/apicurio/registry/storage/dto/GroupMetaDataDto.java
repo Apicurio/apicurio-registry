@@ -16,7 +16,6 @@
 
 package io.apicurio.registry.storage.dto;
 
-import io.apicurio.registry.types.ArtifactType;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
@@ -38,7 +37,7 @@ public class GroupMetaDataDto implements Serializable {
 
     private String groupId;
     private String description;
-    private ArtifactType artifactsType;
+    private String artifactsType;
     private String createdBy;
     private long createdOn;
     private String modifiedBy;
@@ -83,14 +82,14 @@ public class GroupMetaDataDto implements Serializable {
     /**
      * @return the artifactsType
      */
-    public ArtifactType getArtifactsType() {
+    public String getArtifactsType() {
         return artifactsType;
     }
 
     /**
      * @param artifactsType the artifactsType to set
      */
-    public void setArtifactsType(ArtifactType artifactsType) {
+    public void setArtifactsType(String artifactsType) {
         this.artifactsType = artifactsType;
     }
 

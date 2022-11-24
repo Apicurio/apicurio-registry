@@ -10,6 +10,8 @@ import io.apicurio.registry.utils.impexp.GroupEntity;
 import io.apicurio.registry.utils.impexp.ManifestEntity;
 import org.slf4j.Logger;
 
+import javax.transaction.Transactional;
+
 public abstract class AbstractDataImporter implements DataImporter {
 
     private final Logger log;
@@ -19,6 +21,7 @@ public abstract class AbstractDataImporter implements DataImporter {
     }
 
     @Override
+    @Transactional
     public void importEntity(Entity entity) throws RegistryStorageException {
         switch (entity.getEntityType()) {
             case ArtifactRule:

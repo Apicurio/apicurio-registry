@@ -34,7 +34,7 @@ import io.apicurio.registry.types.ArtifactType;
 public class JsonArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvider {
 
     @Override
-    public ArtifactType getArtifactType() {
+    public String getArtifactType() {
         return ArtifactType.JSON;
     }
 

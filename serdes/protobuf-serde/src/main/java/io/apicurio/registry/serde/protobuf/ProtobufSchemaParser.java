@@ -47,7 +47,7 @@ public class ProtobufSchemaParser<U extends Message> implements SchemaParser<Pro
      * @see io.apicurio.registry.serde.SchemaParser#artifactType()
      */
     @Override
-    public ArtifactType artifactType() {
+    public String artifactType() {
         return ArtifactType.PROTOBUF;
     }
 

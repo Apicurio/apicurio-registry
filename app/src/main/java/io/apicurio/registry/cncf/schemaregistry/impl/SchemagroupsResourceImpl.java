@@ -44,9 +44,9 @@ import io.apicurio.registry.storage.dto.OrderBy;
 import io.apicurio.registry.storage.dto.OrderDirection;
 import io.apicurio.registry.storage.dto.SearchFilter;
 import io.apicurio.registry.storage.dto.StoredArtifactDto;
-import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 import io.apicurio.registry.util.ArtifactTypeUtil;
 import io.apicurio.registry.util.VersionUtil;
 import io.quarkus.security.identity.SecurityIdentity;
@@ -93,6 +93,9 @@ public class SchemagroupsResourceImpl implements SchemagroupsResource {
     @Inject
     SecurityIdentity securityIdentity;
 
+    @Inject
+    ArtifactTypeUtilProviderFactory factory;
+
     @Override
     @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Read)
     public List<String> getGroups() {
@@ -113,7 +116,7 @@ public class SchemagroupsResourceImpl implements SchemagroupsResource {
         GroupMetaDataDto.GroupMetaDataDtoBuilder group = GroupMetaDataDto.builder()
                 .groupId(groupId)
                 .description(data.getDescription())
-                .artifactsType(data.getFormat() != null ? ArtifactType.fromValue(data.getFormat()) : null)
+                .artifactsType(data.getFormat())
                 .properties(data.getGroupProperties());
 
         String user = securityIdentity.getPrincipal().getName();
@@ -208,7 +211,7 @@ public class SchemagroupsResourceImpl implements SchemagroupsResource {
             // This is OK - when it happens just move on and create
         }
 
-        ArtifactType artifactType = ArtifactTypeUtil.determineArtifactType(content, null, request.getContentType());
+        String artifactType = ArtifactTypeUtil.determineArtifactType(content, null, request.getContentType(), factory.getAllArtifactTypes());
 
         //spec says: The ´Content-Type´ for the payload MUST be preserved by the registry and returned when the schema is requested, independent of the format identifier.
         EditableArtifactMetaDataDto metadata = new EditableArtifactMetaDataDto();

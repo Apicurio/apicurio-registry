@@ -122,7 +122,7 @@ public class ExtJsonConverter extends SchemaResolverConfigurer<JsonNode, Object>
      * @see io.apicurio.registry.serde.SchemaParser#artifactType()
      */
     @Override
-    public ArtifactType artifactType() {
+    public String artifactType() {
         return ArtifactType.KCONNECT;
     }
 

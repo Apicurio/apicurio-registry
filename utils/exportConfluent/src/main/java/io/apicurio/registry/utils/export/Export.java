@@ -46,7 +46,6 @@ import io.confluent.kafka.schemaregistry.client.rest.entities.SchemaString;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import org.apache.commons.codec.digest.DigestUtils;
 
-import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.impexp.ArtifactRuleEntity;
@@ -212,7 +211,7 @@ public class Export implements QuarkusApplication {
 
         List<ArtifactReference> references = artifactReferenceMapper.map(metadata.getReferences());
 
-        ArtifactType artifactType = ArtifactType.fromValue(metadata.getSchemaType().toUpperCase(Locale.ROOT));
+        String artifactType = metadata.getSchemaType().toUpperCase(Locale.ROOT);
 
         Long contentId = context.getContentIndex().computeIfAbsent(contentHash, k -> {
             ContentEntity contentEntity = new ContentEntity();

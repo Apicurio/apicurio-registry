@@ -23,7 +23,6 @@ import java.sql.Timestamp;
 import io.apicurio.registry.storage.dto.GroupMetaDataDto;
 import io.apicurio.registry.storage.impl.sql.SqlUtil;
 import io.apicurio.registry.storage.impl.sql.jdb.RowMapper;
-import io.apicurio.registry.types.ArtifactType;
 
 /**
  * @author Fabian Martinez
@@ -48,7 +47,7 @@ public class GroupMetaDataDtoMapper implements RowMapper<GroupMetaDataDto> {
         dto.setDescription(rs.getString("description"));
 
         String type = rs.getString("artifactsType");
-        dto.setArtifactsType(type == null ? null : ArtifactType.valueOf(type));
+        dto.setArtifactsType(type);
 
         dto.setCreatedBy(rs.getString("createdBy"));
         dto.setCreatedOn(rs.getTimestamp("createdOn").getTime());

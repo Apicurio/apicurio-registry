@@ -16,8 +16,6 @@
 
 package io.apicurio.registry.serde;
 
-import io.apicurio.registry.types.ArtifactType;
-
 /**
  * This class is deprecated and eventually will be replaced by {@link io.apicurio.registry.resolver.SchemaParser}
  * @author Fabian Martinez
@@ -25,7 +23,7 @@ import io.apicurio.registry.types.ArtifactType;
 @Deprecated
 public interface SchemaParser<S> {
 
-    public ArtifactType artifactType();
+    public String artifactType();
 
     public S parseSchema(byte[] rawSchema);
 

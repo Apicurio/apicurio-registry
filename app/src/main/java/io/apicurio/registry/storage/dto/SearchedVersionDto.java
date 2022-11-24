@@ -23,7 +23,6 @@ import java.util.List;
 import java.util.Map;
 
 import io.apicurio.registry.types.ArtifactState;
-import io.apicurio.registry.types.ArtifactType;
 
 /**
  * @author eric.wittmann@gmail.com
@@ -34,7 +33,7 @@ public class SearchedVersionDto {
     private String description;
     private Date createdOn;
     private String createdBy;
-    private ArtifactType type;
+    private String type;
     private List<String> labels = new ArrayList<String>();
     private Map<String, String> properties = new HashMap<>();
     private ArtifactState state;
@@ -108,14 +107,14 @@ public class SearchedVersionDto {
     /**
      * @return the type
      */
-    public ArtifactType getType() {
+    public String getType() {
         return type;
     }
 
     /**
      * @param type the type to set
      */
-    public void setType(ArtifactType type) {
+    public void setType(String type) {
         this.type = type;
     }
 

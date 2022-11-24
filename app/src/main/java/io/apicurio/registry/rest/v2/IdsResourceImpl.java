@@ -42,7 +42,6 @@ import io.apicurio.registry.storage.dto.ContentWrapperDto;
 import io.apicurio.registry.storage.dto.StoredArtifactDto;
 import io.apicurio.registry.types.ArtifactMediaTypes;
 import io.apicurio.registry.types.ArtifactState;
-import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 
@@ -93,15 +92,7 @@ public class IdsResourceImpl implements IdsResource {
 
         StoredArtifactDto artifact = storage.getArtifactVersion(globalId);
 
-        // protobuf - the content-type will be different for protobuf artifacts
-        MediaType contentType = ArtifactMediaTypes.JSON;
-        if (metaData.getType() == ArtifactType.PROTOBUF) {
-            contentType = ArtifactMediaTypes.PROTO;
-        } else if (metaData.getType() == ArtifactType.XML || metaData.getType() == ArtifactType.WSDL || metaData.getType() == ArtifactType.XSD) {
-            contentType = ArtifactMediaTypes.XML;
-        } else if (metaData.getType() == ArtifactType.GRAPHQL) {
-            contentType = ArtifactMediaTypes.GRAPHQL;
-        }
+        MediaType contentType = factory.getArtifactMediaType(metaData.getType());
 
         ContentHandle contentToReturn = artifact.getContent();
         //TODO:carnalca when dereferencing is implemented, we should return the content dereferenced here

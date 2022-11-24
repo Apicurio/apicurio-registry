@@ -23,7 +23,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyDescription;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import io.apicurio.registry.types.ArtifactState;
-import io.apicurio.registry.types.ArtifactType;
 
 import java.util.List;
 import java.util.Map;
@@ -112,7 +111,7 @@ public class ArtifactMetaData {
      */
     @JsonProperty("type")
     @JsonPropertyDescription("")
-    private ArtifactType type;
+    private String type;
     /**
      *
      * (Required)
@@ -287,7 +286,7 @@ public class ArtifactMetaData {
      * 
      */
     @JsonProperty("type")
-    public ArtifactType getType() {
+    public String getType() {
         return type;
     }
 
@@ -297,7 +296,7 @@ public class ArtifactMetaData {
      * 
      */
     @JsonProperty("type")
-    public void setType(ArtifactType type) {
+    public void setType(String type) {
         this.type = type;
     }
 

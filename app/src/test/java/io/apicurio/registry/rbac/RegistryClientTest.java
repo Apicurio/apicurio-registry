@@ -1061,8 +1061,8 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         final String secondArtifactId = generateArtifactId();
 
         String content = "{\"name\":\"" + TestUtils.generateSubject() + "\"}";
-        createArtifact(groupId, firstArtifactId, ArtifactType.AVRO, content);
-        createArtifact(groupId, secondArtifactId, ArtifactType.AVRO, content);
+        createArtifact(groupId, firstArtifactId, "AVRO", content);
+        createArtifact(groupId, secondArtifactId, "AVRO", content);
 
         //Execution
         final ArtifactSearchResults searchResults = clientV2.searchArtifactsByContent(IoUtil.toStream(content), null, null, null, null);

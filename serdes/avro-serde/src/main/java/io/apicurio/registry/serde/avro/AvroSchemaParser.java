@@ -47,7 +47,7 @@ public class AvroSchemaParser<U> implements SchemaParser<Schema, U> {
      * @see io.apicurio.registry.serde.SchemaParser#artifactType()
      */
     @Override
-    public ArtifactType artifactType() {
+    public String artifactType() {
         return ArtifactType.AVRO;
     }
 

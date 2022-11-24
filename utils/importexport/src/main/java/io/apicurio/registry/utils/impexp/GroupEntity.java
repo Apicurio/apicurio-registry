@@ -18,7 +18,6 @@ package io.apicurio.registry.utils.impexp;
 
 import java.util.Map;
 
-import io.apicurio.registry.types.ArtifactType;
 import io.quarkus.runtime.annotations.RegisterForReflection;
 
 /**
@@ -29,7 +28,7 @@ public class GroupEntity extends Entity {
 
     public String groupId;
     public String description;
-    public ArtifactType artifactsType;
+    public String artifactsType;
     public String createdBy;
     public long createdOn;
     public String modifiedBy;

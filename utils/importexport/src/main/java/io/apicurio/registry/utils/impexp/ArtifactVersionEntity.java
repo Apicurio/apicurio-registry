@@ -20,7 +20,6 @@ import java.util.List;
 import java.util.Map;
 
 import io.apicurio.registry.types.ArtifactState;
-import io.apicurio.registry.types.ArtifactType;
 import io.quarkus.runtime.annotations.RegisterForReflection;
 
 /**
@@ -34,7 +33,7 @@ public class ArtifactVersionEntity extends Entity {
     public String artifactId;
     public String version;
     public int versionId;
-    public ArtifactType artifactType;
+    public String artifactType;
     public ArtifactState state;
     public String name;
     public String description;

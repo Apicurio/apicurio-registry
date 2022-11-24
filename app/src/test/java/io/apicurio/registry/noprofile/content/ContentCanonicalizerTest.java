@@ -38,7 +38,7 @@ public class ContentCanonicalizerTest extends AbstractRegistryTestBase {
     @Inject
     ArtifactTypeUtilProviderFactory factory;
 
-    private ContentCanonicalizer getContentCanonicalizer(ArtifactType type) {
+    private ContentCanonicalizer getContentCanonicalizer(String type) {
         ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(type);
         return provider.getContentCanonicalizer();
     }

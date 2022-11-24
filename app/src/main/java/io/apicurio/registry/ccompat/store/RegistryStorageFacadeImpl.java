@@ -164,7 +164,7 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
                 throw new ArtifactNotFoundException("ContentId: " + contentId);
             }
         }
-        return converter.convert(contentHandle, ArtifactTypeUtil.determineArtifactType(removeQuotedBrackets(contentHandle.content()), null, null, storage.resolveReferences(references)), references);
+        return converter.convert(contentHandle, ArtifactTypeUtil.determineArtifactType(removeQuotedBrackets(contentHandle.content()), null, null, storage.resolveReferences(references), factory.getAllArtifactTypes()), references);
     }
 
     @Override
@@ -176,7 +176,7 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
                     }
                     StoredArtifactDto storedArtifact = storage.getArtifactVersion(null, subject, version);
                     Map<String, ContentHandle> resolvedReferences = storage.resolveReferences(storedArtifact.getReferences());
-                    return converter.convert(subject, storedArtifact, ArtifactTypeUtil.determineArtifactType(removeQuotedBrackets(storedArtifact.getContent().content()), null, null, resolvedReferences));
+                    return converter.convert(subject, storedArtifact, ArtifactTypeUtil.determineArtifactType(removeQuotedBrackets(storedArtifact.getContent().content()), null, null, resolvedReferences, factory.getAllArtifactTypes()));
                 });
     }
 
@@ -223,8 +223,8 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
         try {
             Map<String, ContentHandle> resolvedReferences = resolveReferences(references);
 
-            final ArtifactType artifactType = ArtifactTypeUtil.determineArtifactType(removeQuotedBrackets(schema), null, null, resolvedReferences);
-            if (schemaType != null && !artifactType.value().equals(schemaType)) {
+            final String artifactType = ArtifactTypeUtil.determineArtifactType(removeQuotedBrackets(schema), null, null, resolvedReferences, factory.getAllArtifactTypes());
+            if (schemaType != null && !artifactType.equals(schemaType)) {
                 throw new UnprocessableEntityException(String.format("Given schema is not from type: %s", schemaType));
             }
             ArtifactMetaDataDto artifactMeta = createOrUpdateArtifact(subject, schema, artifactType, references, normalize);
@@ -333,7 +333,7 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
         return ContentHandle.create(QUOTED_BRACKETS.matcher(content).replaceAll(":{}"));
     }
 
-    private ArtifactMetaDataDto createOrUpdateArtifact(String subject, String schema, ArtifactType artifactType, List<SchemaReference> references, boolean normalize) {
+    private ArtifactMetaDataDto createOrUpdateArtifact(String subject, String schema, String artifactType, List<SchemaReference> references, boolean normalize) {
         ArtifactMetaDataDto res;
         final List<ArtifactReferenceDto> parsedReferences = parseReferences(references);
         final Map<String, ContentHandle> resolvedReferences = storage.resolveReferences(parsedReferences);
@@ -475,7 +475,7 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
         }
     }
 
-    private boolean isCcompatManagedType(ArtifactType artifactType) {
+    private boolean isCcompatManagedType(String artifactType) {
         return artifactType.equals(ArtifactType.AVRO) || artifactType.equals(ArtifactType.PROTOBUF) || artifactType.equals(ArtifactType.JSON);
     }
 
@@ -485,13 +485,13 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
      * @param artifactType
      * @param content
      */
-    private ContentHandle canonicalizeContent(ArtifactType artifactType, ContentHandle content, List<SchemaReference> references) {
+    private ContentHandle canonicalizeContent(String artifactType, ContentHandle content, List<SchemaReference> references) {
         try {
             ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(artifactType);
             ContentCanonicalizer canonicalizer = provider.getContentCanonicalizer();
             return canonicalizer.canonicalize(content, resolveReferences(references));
         } catch (Exception e) {
-            log.debug("Failed to canonicalize content of type: {}", artifactType.name());
+            log.debug("Failed to canonicalize content of type: {}", artifactType);
             return content;
         }
     }

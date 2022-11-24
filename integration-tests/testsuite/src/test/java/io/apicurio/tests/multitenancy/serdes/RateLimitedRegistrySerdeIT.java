@@ -72,7 +72,7 @@ public class RateLimitedRegistrySerdeIT extends ApicurioRegistryBaseIT {
         kafkaCluster.stopIfPossible();
     }
 
-    protected void createArtifact(RegistryClient client, String groupId, String artifactId, ArtifactType artifactType, InputStream artifact) throws Exception {
+    protected void createArtifact(RegistryClient client, String groupId, String artifactId, String artifactType, InputStream artifact) throws Exception {
         ArtifactMetaData meta = client.createArtifact(groupId, artifactId, null, artifactType, IfExists.FAIL, false, artifact);
 
         TestUtils.retry(() -> client.getContentByGlobalId(meta.getGlobalId()));

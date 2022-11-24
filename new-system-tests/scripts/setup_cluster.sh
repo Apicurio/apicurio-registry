@@ -6,15 +6,6 @@
 CLUSTER_NAME="apicurio-cluster"
 # If CLUSTER_TYPE environment variable is not set, use "kind" as default value
 : "${CLUSTER_TYPE:=kind}"
-# Define command line tool for cluster
-CLUSTER_CMD="kubectl"
-
-# If cluster is OpenShift
-if [ "${CLUSTER_TYPE}" == "openshift" ]
-then
-  # Set command line tool to oc
-  CLUSTER_CMD="oc"
-fi
 
 ### SCRIPT FUNCTIONS ###########################################################
 
@@ -51,7 +42,7 @@ function ingress_nginx_controller_deploy() {
   # Log information about deploying ingress-nginx-controller
   log_info "Deploying ingress-nginx-controller..."
   # Apply ingress-nginx deploy file
-  $CLUSTER_CMD apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
+  kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
 }
 
 # Patches ingress-nginx-controller deployment to enable SSL passthrough
@@ -59,7 +50,7 @@ function ingress_nginx_controller_patch() {
   # Log information about patching ingress-nginx-controller
   log_info "Patching ingress-nginx-controller..."
   # Patch ingress-nginx-controller deployment
-  $CLUSTER_CMD patch deployment ingress-nginx-controller -n ingress-nginx --type=json -p '[{"op":"add","path":"/spec/template/spec/containers/0/args/-","value":"--enable-ssl-passthrough"}]'
+  kubectl patch deployment ingress-nginx-controller -n ingress-nginx --type=json -p '[{"op":"add","path":"/spec/template/spec/containers/0/args/-","value":"--enable-ssl-passthrough"}]'
 }
 
 # Deploys OLM to cluster
@@ -67,9 +58,9 @@ function olm_deploy() {
   # Log information about deploying OLM
   log_info "Deploying OLM..."
   # Deploy CRDs of OLM
-  $CLUSTER_CMD apply -f https://raw.githubusercontent.com/operator-framework/operator-lifecycle-manager/master/deploy/upstream/quickstart/crds.yaml || return 1
+  kubectl apply -f https://raw.githubusercontent.com/operator-framework/operator-lifecycle-manager/master/deploy/upstream/quickstart/crds.yaml || return 1
   # Deploy OLM
-  $CLUSTER_CMD apply -f https://raw.githubusercontent.com/operator-framework/operator-lifecycle-manager/master/deploy/upstream/quickstart/olm.yaml || return 1
+  kubectl apply -f https://raw.githubusercontent.com/operator-framework/operator-lifecycle-manager/master/deploy/upstream/quickstart/olm.yaml || return 1
 }
 
 # Installs Keycloak operator
@@ -77,11 +68,11 @@ function keycloak_operator_install() {
   # Log information about installing Keycloak operator
   log_info "Installing Keycloak operator..."
   # Create namespace for Keycloak
-  $CLUSTER_CMD apply -f resources/"${1}"/keycloak/00_namespace.yaml || return 1
+  kubectl apply -f resources/"${1}"/keycloak/00_namespace.yaml || return 1
   # Create operator group for Keycloak
-  $CLUSTER_CMD apply -f resources/"${1}"/keycloak/01_operator_group.yaml || return 1
+  kubectl apply -f resources/"${1}"/keycloak/01_operator_group.yaml || return 1
   # Create subscription for Keycloak operator
-  $CLUSTER_CMD apply -f resources/"${1}"/keycloak/02_subscription.yaml || return 1
+  kubectl apply -f resources/"${1}"/keycloak/02_subscription.yaml || return 1
 }
 
 # Deploys Keycloak
@@ -89,9 +80,9 @@ function keycloak_deploy() {
   # Log information about deploying Keycloak
   log_info "Deploying Keycloak..."
   # Create Keycloak
-  $CLUSTER_CMD apply -f resources/"${1}"/keycloak/03_keycloak.yaml || return 1
+  kubectl apply -f resources/"${1}"/keycloak/03_keycloak.yaml || return 1
   # Create Keycloak realm
-  $CLUSTER_CMD apply -f resources/"${1}"/keycloak/04_keycloak_realm.yaml || return 1
+  kubectl apply -f resources/"${1}"/keycloak/04_keycloak_realm.yaml || return 1
 }
 
 # Enables external access to Keycloak
@@ -103,12 +94,12 @@ function keycloak_external_access_enable() {
   if [ "${1}" == "kubernetes" ]
   then
     # Create ingress
-    $CLUSTER_CMD apply -f resources/"${1}"/keycloak/05_ingress.yaml || return 1
+    kubectl apply -f resources/"${1}"/keycloak/05_ingress.yaml || return 1
   # If cluster is OpenShift implementation
   elif [ "${1}" == "openshift" ]
   then
     # Create route
-    $CLUSTER_CMD apply -f resources/"${1}"/keycloak/05_route.yaml || return 1
+    kubectl apply -f resources/"${1}"/keycloak/05_route.yaml || return 1
   # If cluster implementation is unknown
   else
     # Log error message
@@ -118,7 +109,7 @@ function keycloak_external_access_enable() {
   fi
 
   # Create service
-  $CLUSTER_CMD apply -f resources/"${1}"/keycloak/06_service.yaml || return 1
+  kubectl apply -f resources/"${1}"/keycloak/06_service.yaml || return 1
 }
 
 # TODO: get Keycloak URL?

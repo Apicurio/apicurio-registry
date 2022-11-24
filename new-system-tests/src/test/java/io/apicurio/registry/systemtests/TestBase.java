@@ -13,11 +13,6 @@ public abstract class TestBase {
     protected abstract OpenShiftClient getClient();
 
     /**
-     * Example of future test that can be shared with multiple subclasses.
+     * We can add test(s) that will be shared between multiple subclasses in the future here.
      */
-    @Test
-    public void test1() {
-        // Log information about current action
-        System.out.println("### test1 test ###");
-    }
 }

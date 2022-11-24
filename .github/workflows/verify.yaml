@@ -124,13 +124,13 @@ jobs:
           cd apicurio-registry-operator/api-model
           mvn install
 
-      - name: Build All Variants
+      - name: Build inmemory Variant
         if: github.ref == 'refs/heads/main'
-        run: make SKIP_TESTS=true BUILD_FLAGS='-Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5 --no-transfer-progress' build-all
+        run: make SKIP_TESTS=true BUILD_FLAGS='-Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5 --no-transfer-progress' build-in-memory
 
-      - name: Build All Variants Without UI
+      - name: Build inmemory Variant Without UI
         if: github.ref != 'refs/heads/main'
-        run: make SKIP_TESTS=true BUILD_FLAGS='-DskipUiBuild=true -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5 --no-transfer-progress' build-all
+        run: make SKIP_TESTS=true BUILD_FLAGS='-DskipUiBuild=true -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5 --no-transfer-progress' build-in-memory
 
       - name: Verify docs generation
         run: |
@@ -159,11 +159,11 @@ jobs:
 
       - name: Build integration-tests-common
         run: ./mvnw install -Pintegration-tests -pl integration-tests/integration-tests-common
-      - name: Run Integration Tests - sql
+      - name: Run Integration Tests - inmemory
         run: ./mvnw verify -Pintegration-tests -Pacceptance -Pinmemory -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress -DtestNative=true
-      - name: Run Integration Tests - sql auth
+      - name: Run Integration Tests - inmemory auth
         run: ./mvnw verify -Pintegration-tests -Pauth -Pinmemory -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress -DtestNative=true
-      - name: Run Legacy Tests - sql
+      - name: Run Legacy Tests - inmemory
         run: ./mvnw verify -Pintegration-tests -Pacceptance -Pinmemory -pl integration-tests/legacy-tests -Dmaven.javadoc.skip=true --no-transfer-progress -DtestNative=true
 
       - name: Collect logs
@@ -229,12 +229,12 @@ jobs:
           cd apicurio-registry-operator/api-model
           mvn install
 
-      - name: Build All Variants
+      - name: Build Sql Variant
         if: github.ref == 'refs/heads/main'
-        run: make SKIP_TESTS=true BUILD_FLAGS='-Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5 --no-transfer-progress' build-all
-      - name: Build All Variants Without UI
+        run: make SKIP_TESTS=true BUILD_FLAGS='-Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5 --no-transfer-progress' build-sql
+      - name: Build Sql Variant Without UI
         if: github.ref != 'refs/heads/main'
-        run: make SKIP_TESTS=true BUILD_FLAGS='-DskipUiBuild -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5 --no-transfer-progress' build-all
+        run: make SKIP_TESTS=true BUILD_FLAGS='-DskipUiBuild -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5 --no-transfer-progress' build-sql
 
       - name: Verify docs generation
         run: |

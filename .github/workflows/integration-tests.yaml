@@ -72,8 +72,6 @@ jobs:
 
       - name: Build integration-tests-common
         run: ./mvnw install -Pintegration-tests -pl integration-tests/integration-tests-common
-      - name: Run Integration Tests - multitenancy
-        run: ./mvnw verify -Pintegration-tests -Pmultitenancy -Psql -Psqlit -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false
       - name: Run Integration Tests - sql
         run: ./mvnw verify -Pintegration-tests -P${{ env.test_profile }} -Psql -Psqlit -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false
       - name: Run Integration Tests - sql clustered
@@ -82,6 +80,8 @@ jobs:
         run: ./mvnw verify -Pintegration-tests -Pmigration -Psql -Psqlit -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false
       - name: Run Integration Tests - sql auth
         run: ./mvnw verify -Pintegration-tests -Pauth -Psql -Psqlit -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false
+      - name: Run Integration Tests - multitenancy
+        run: ./mvnw verify -Pintegration-tests -Pmultitenancy -Psql -Psqlit -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false
       - name: Run Integration Tests - sql dbupgrade
         run: ./mvnw verify -Pintegration-tests -Pdbupgrade -Psql -Psqlit -pl integration-tests/testsuite -DtrimStackTrace=false -Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false
 
@@ -150,10 +150,10 @@ jobs:
       - name: Build integration-tests-common
         run: ./mvnw install -Pintegration-tests -pl integration-tests/integration-tests-common
 
-      - name: Run Integration Tests - kafkasql clustered
-        run: ./mvnw verify -Pintegration-tests -Pclustered -Pkafkasql -Pkafkasqlit -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false
       - name: Run Integration Tests - kafkasql
         run: ./mvnw verify -Pintegration-tests -P${{ env.test_profile }} -Pkafkasql -Pkafkasqlit -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false
+      - name: Run Integration Tests - kafkasql clustered
+        run: ./mvnw verify -Pintegration-tests -Pclustered -Pkafkasql -Pkafkasqlit -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false
       - name: Run Integration Tests - kafkasql migration
         run: ./mvnw verify -Pintegration-tests -Pmigration -Pkafkasql -Pkafkasqlit -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false
       - name: Run Integration Tests - kafkasql auth

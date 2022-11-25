@@ -1,9 +1,11 @@
 package io.apicurio.registry;
 
+import io.apicurio.registry.utils.tests.ApicurioTestTags;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
 
@@ -16,6 +18,7 @@ import static org.hamcrest.Matchers.nullValue;
 @QuarkusTest
 @TestProfile(ImportLifecycleBeanTestProfile.class)
 @DisabledIfEnvironmentVariable(named = AbstractRegistryTestBase.CURRENT_ENV, matches = AbstractRegistryTestBase.CURRENT_ENV_MAS_REGEX)
+@Tag(ApicurioTestTags.HEAVY)
 public class ImportLifecycleBeanTest extends AbstractResourceTestBase {
 
     @Override

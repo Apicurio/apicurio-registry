@@ -21,11 +21,13 @@ import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.rest.v1.beans.Rule;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.utils.tests.ApicurioTestTags;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import io.restassured.http.ContentType;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import static io.restassured.RestAssured.given;
@@ -39,6 +41,7 @@ import static org.hamcrest.Matchers.nullValue;
  */
 @QuarkusTest
 @TestProfile(DefaultGlobalRulesProfile.class)
+@Tag(ApicurioTestTags.HEAVY)
 public class DefaultGlobalRulesResourceTest extends AbstractResourceTestBase {
 
     @BeforeEach

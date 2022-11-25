@@ -63,11 +63,6 @@ jobs:
           echo "Flags:     ${{ steps.buildx.outputs.flags }}"
           echo "Platforms: ${{ steps.buildx.outputs.platforms }}"
 
-      - name: Build api-model
-        run: |
-          git clone https://github.com/Apicurio/apicurio-registry-operator.git
-          cd apicurio-registry-operator/api-model
-          mvn install
       - name: Build and Test In Memory Variant
         if: github.ref == 'refs/heads/main'
         run: make SKIP_TESTS=false BUILD_FLAGS='-Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5 --no-transfer-progress' build-in-memory
@@ -130,11 +125,6 @@ jobs:
           echo "Flags:     ${{ steps.buildx.outputs.flags }}"
           echo "Platforms: ${{ steps.buildx.outputs.platforms }}"
 
-      - name: Build api-model
-        run: |
-          git clone https://github.com/Apicurio/apicurio-registry-operator.git
-          cd apicurio-registry-operator/api-model
-          mvn install
       - name: Build and Test SQL Variant
         if: github.ref == 'refs/heads/main'
         run: make SKIP_TESTS=false BUILD_FLAGS='-Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5 --no-transfer-progress' build-sql
@@ -197,12 +187,6 @@ jobs:
           echo "Flags:     ${{ steps.buildx.outputs.flags }}"
           echo "Platforms: ${{ steps.buildx.outputs.platforms }}"
 
-      - name: Build api-model
-        run: |
-          git clone https://github.com/Apicurio/apicurio-registry-operator.git
-          cd apicurio-registry-operator/api-model
-          mvn install
-
       - name: Build and Test KafkaSQL Variant
         if: github.ref == 'refs/heads/main'
         run: make SKIP_TESTS=false BUILD_FLAGS='-Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5 --no-transfer-progress' build-kafkasql
@@ -252,12 +236,6 @@ jobs:
 
       - name: Get maven wrapper
         run: mvn -N io.takari:maven:wrapper -Dmaven=3.8.2
-
-      - name: Build api-model
-        run: |
-          git clone https://github.com/Apicurio/apicurio-registry-operator.git
-          cd apicurio-registry-operator/api-model
-          mvn install
 
       - name: Build inmemory Variant
         if: github.ref == 'refs/heads/main'
@@ -357,12 +335,6 @@ jobs:
 
       - name: Get maven wrapper
         run: mvn -N io.takari:maven:wrapper -Dmaven=3.8.2
-
-      - name: Build api-model
-        run: |
-          git clone https://github.com/Apicurio/apicurio-registry-operator.git
-          cd apicurio-registry-operator/api-model
-          mvn install
 
       - name: Build Sql Variant
         if: github.ref == 'refs/heads/main'

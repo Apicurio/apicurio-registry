@@ -42,7 +42,7 @@ import java.io.IOException;
 
 @QuarkusTest
 @TestProfile(AuthTestProfile.class)
-@Tag(ApicurioTestTags.DOCKER)
+@Tag(ApicurioTestTags.HEAVY)
 public class MojoAuthTest extends RegistryMojoTestBase {
 
     @ConfigProperty(name = "registry.auth.token.endpoint")

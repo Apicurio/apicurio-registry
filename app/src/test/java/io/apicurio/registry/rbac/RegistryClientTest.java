@@ -45,10 +45,12 @@ import io.apicurio.registry.rest.client.exception.GroupNotFoundException;
 import io.apicurio.registry.rest.v2.beans.GroupMetaData;
 import io.apicurio.registry.rest.v2.beans.GroupSearchResults;
 import io.apicurio.registry.rest.v2.beans.SearchedGroup;
+import io.apicurio.registry.utils.tests.ApicurioTestTags;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.IOUtils;
 import org.junit.Assert;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
 import org.slf4j.Logger;
@@ -98,6 +100,7 @@ import io.quarkus.test.junit.TestProfile;
 @QuarkusTest
 @TestProfile(ApplicationRbacEnabledProfile.class)
 @SuppressWarnings("deprecation")
+@Tag(ApicurioTestTags.HEAVY)
 public class RegistryClientTest extends AbstractResourceTestBase {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(RegistryClientTest.class);

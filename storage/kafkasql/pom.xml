@@ -235,6 +235,12 @@
     
     <profiles>
         <profile>
+            <id>no-heavy-tests</id>
+            <properties>
+                <groups>!heavy</groups>
+            </properties>
+        </profile>
+        <profile>
             <id>native</id>
             <activation>
                 <property>

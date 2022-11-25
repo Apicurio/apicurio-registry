@@ -47,6 +47,7 @@ import org.keycloak.admin.client.KeycloakBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.containers.MSSQLServerContainer;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.containers.output.OutputFrame.OutputType;
 
@@ -277,6 +278,9 @@ public class RegistryFacade {
                 break;
             case sql:
                 setupSQLStorage(appEnv);
+                break;
+            case mssql:
+                setupSQLServerStorage(appEnv);
                 break;
             case kafkasql:
                 setupKafkaStorage(appEnv);
@@ -632,6 +636,49 @@ public class RegistryFacade {
 
         }
 
+    }
+
+    public void setupSQLServerStorage(Map<String, String> appEnv) throws Exception {
+
+        MSSQLServerContainer database = new MSSQLServerContainer<>("mcr.microsoft.com/mssql/server:2022-latest")
+                .acceptLicense();
+        database.start();
+
+        TestUtils.waitFor("Database is running",
+                Constants.POLL_INTERVAL, Constants.TIMEOUT_FOR_REGISTRY_START_UP, database::isRunning);
+
+        String datasourceUrl = "jdbc:sqlserver://" + database.getContainerIpAddress() + ":" +
+                database.getMappedPort(MSSQLServerContainer.MS_SQL_SERVER_PORT) + "/" + database.getDatabaseName();
+        appEnv.put("REGISTRY_DATASOURCE_URL", datasourceUrl);
+        appEnv.put("REGISTRY_DATASOURCE_USERNAME", database.getUsername());
+        appEnv.put("REGISTRY_DATASOURCE_PASSWORD", database.getPassword());
+        processes.add(new RegistryTestProcess() {
+
+            @Override
+            public String getName() {
+                return "sqlserver";
+            }
+
+            @Override
+            public void close() throws Exception {
+                database.close();
+            }
+
+            @Override
+            public String getStdOut() {
+                return database.getLogs(OutputType.STDOUT);
+            }
+
+            @Override
+            public String getStdErr() {
+                return database.getLogs(OutputType.STDERR);
+            }
+
+            @Override
+            public boolean isContainer() {
+                return true;
+            }
+        });
     }
 
     private void setupKafkaStorage(Map<String, String> appEnv) throws TimeoutException, InterruptedException, ExecutionException {

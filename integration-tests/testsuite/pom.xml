@@ -390,6 +390,13 @@
         </profile>
 
         <profile>
+            <id>mssql</id>
+            <properties>
+                <test.storage>mssql</test.storage>
+            </properties>
+        </profile>
+
+        <profile>
             <id>kafkasql</id>
             <properties>
                 <test.storage>kafkasql</test.storage>

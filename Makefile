@@ -77,6 +77,13 @@ build-kafkasql:
 	@echo "----------------------------------------------------------------------"
 	./mvnw -T 1.5C clean install -Pprod -Pkafkasql -DskipTests=$(SKIP_TESTS) $(BUILD_FLAGS)
 
+.PHONY: build-mssql ## Builds and test in-memory module. Variables available for override [SKIP_TESTS, BUILD_FLAGS]
+build-mssql:
+	@echo "----------------------------------------------------------------------"
+	@echo "                   Building SQL Server Module                               "
+	@echo "----------------------------------------------------------------------"
+	./mvnw -T 1.5C clean install -Pprod -Pmssql -DskipTests=$(SKIP_TESTS) $(BUILD_FLAGS)
+
 .PHONY: build-mem-native ## Builds mem storage variant native executable. Variables available for override [SKIP_TESTS, BUILD_FLAGS]
 build-mem-native:
 	@echo "----------------------------------------------------------------------"

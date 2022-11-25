@@ -18,5 +18,6 @@ package io.apicurio.tests.common;
 public enum RegistryStorageType {
     inmemory,
     sql,
+    mssql,
     kafkasql;
 }

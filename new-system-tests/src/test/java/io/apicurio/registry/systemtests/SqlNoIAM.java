@@ -20,9 +20,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @KubernetesTest
 @LoadKubernetesManifests({
         // PostgreSQL database resources
-        "/sql/00_persistent_volume_claim.yaml", // Storage
-        "/sql/01_deployment.yaml", // Deployment
-        "/sql/02_service.yaml", // Service
+        "/sql/00_deployment.yaml", // Deployment
+        "/sql/01_service.yaml", // Service
         // Apicurio Registry operator
         "/apicurio/00_operator_group.yaml", // Operator group for Apicurio Registry operator
         "/apicurio/01_subscription_namespace.yaml", // Apicurio Registry operator subscription in specific namespace

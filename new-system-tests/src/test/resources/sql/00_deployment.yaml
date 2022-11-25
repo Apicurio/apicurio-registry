@@ -14,10 +14,6 @@ spec:
       labels:
         app: postgresql
     spec:
-      volumes:
-        - name: postgresql
-          persistentVolumeClaim:
-            claimName: postgresql
       containers:
         - readinessProbe:
             tcpSocket:
@@ -40,8 +36,5 @@ spec:
               containerPort: 5432
               protocol: TCP
           imagePullPolicy: Always
-          volumeMounts:
-            - name: postgresql
-              mountPath: /var/lib/pgsql/data
           image: 'quay.io/centos7/postgresql-12-centos7:latest'
       restartPolicy: Always

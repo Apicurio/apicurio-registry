@@ -180,6 +180,9 @@
         <!-- Default Quarkus configuration profile -->
         <quarkus.profile>dev</quarkus.profile>
 
+        <!-- Default Skip App build value -->
+        <skipAppTests>false</skipAppTests>
+
         <!-- Default Skip UI value -->
         <skipUiBuild>false</skipUiBuild>
 
@@ -875,6 +878,10 @@
                                 <property>
                                     <name>skipUiBuild</name>
                                     <value>${skipUiBuild}</value>
+                                </property>
+                                <property>
+                                    <name>skipAppTests</name>
+                                    <value>${skipAppTests}</value>
                                 </property>
                             </properties>
                         </configuration>

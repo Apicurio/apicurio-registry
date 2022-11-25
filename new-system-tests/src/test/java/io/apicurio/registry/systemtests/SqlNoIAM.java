@@ -70,6 +70,12 @@ public class SqlNoIAM extends TestBase {
     public void beforeEach() {
         // Log information about current action
         System.out.println("Before each.");
+
+        // Wait for readiness of PostgreSQL database deployment
+        assertTrue(waitDeploymentReady(client, Constants.POSTGRESQL_NAME));
+
+        // Wait for readiness of Apicurio Registry operator deployment
+        assertTrue(waitDeploymentReady(client, findRegistryOperatorDeployment(client).getMetadata().getName()));
     }
 
     /**
@@ -88,12 +94,6 @@ public class SqlNoIAM extends TestBase {
     public void testDeploy() {
         // Log information about current action
         System.out.println("### testDeploy test ###");
-
-        // Wait for readiness of PostgreSQL database deployment
-        assertTrue(waitDeploymentReady(client, Constants.POSTGRESQL_NAME));
-
-        // Wait for readiness of Apicurio Registry operator deployment
-        assertTrue(waitDeploymentReady(client, findRegistryOperatorDeployment(client).getMetadata().getName()));
 
         // Wait for readiness of Apicurio Registry instance with PostgreSQL database storage deployment
         assertTrue(waitDeploymentReady(client, Constants.REGISTRY_NAME + "-deployment"));

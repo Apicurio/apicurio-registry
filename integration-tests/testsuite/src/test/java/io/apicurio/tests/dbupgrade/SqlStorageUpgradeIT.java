@@ -170,7 +170,7 @@ public class SqlStorageUpgradeIT implements TestSeparator, Constants {
             assertEquals(3, searchResults.getCount());
 
             var protobufs = searchResults.getArtifacts().stream()
-                .filter(ar -> ar.getType().name().equals(ArtifactType.PROTOBUF.name()))
+                .filter(ar -> ar.getType().equals(ArtifactType.PROTOBUF))
                 .collect(Collectors.toList());
 
             System.out.println("Protobuf artifacts are " + protobufs.size());

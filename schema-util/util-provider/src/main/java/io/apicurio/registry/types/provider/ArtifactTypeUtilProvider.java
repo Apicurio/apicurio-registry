@@ -21,7 +21,6 @@ import io.apicurio.registry.content.dereference.ContentDereferencer;
 import io.apicurio.registry.content.extract.ContentExtractor;
 import io.apicurio.registry.rules.compatibility.CompatibilityChecker;
 import io.apicurio.registry.rules.validity.ContentValidator;
-import io.apicurio.registry.types.ArtifactType;
 
 /**
  * Interface providing different utils per artifact type
@@ -34,7 +33,7 @@ import io.apicurio.registry.types.ArtifactType;
  * @author Ales Justin
  */
 public interface ArtifactTypeUtilProvider {
-    ArtifactType getArtifactType();
+    String getArtifactType();
 
     CompatibilityChecker getCompatibilityChecker();
 

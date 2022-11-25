@@ -22,7 +22,6 @@ import io.apicurio.registry.storage.impl.sql.AbstractSqlRegistryStorage;
 import io.apicurio.registry.storage.impl.sql.GlobalIdGenerator;
 import io.apicurio.registry.storage.impl.sql.HandleFactory;
 import io.apicurio.registry.types.ArtifactState;
-import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.impexp.ArtifactRuleEntity;
 import io.apicurio.registry.utils.impexp.ArtifactVersionEntity;
@@ -133,7 +132,7 @@ public class KafkaSqlStore extends AbstractSqlRegistryStorage {
 
     @Transactional
     public ArtifactMetaDataDto createArtifactWithMetadata(String groupId, String artifactId, String version,
-            ArtifactType artifactType, String contentHash, String createdBy,
+            String artifactType, String contentHash, String createdBy,
             Date createdOn, EditableArtifactMetaDataDto metaData, GlobalIdGenerator globalIdGenerator)
             throws ArtifactNotFoundException, RegistryStorageException {
         long contentId = this.contentIdFromHash(contentHash);
@@ -148,7 +147,7 @@ public class KafkaSqlStore extends AbstractSqlRegistryStorage {
 
     @Transactional
     public ArtifactMetaDataDto updateArtifactWithMetadata(String groupId, String artifactId, String version,
-                                                          ArtifactType artifactType, String contentHash, String createdBy, Date createdOn,
+                                                          String artifactType, String contentHash, String createdBy, Date createdOn,
                                                           EditableArtifactMetaDataDto metaData,
                                                           GlobalIdGenerator globalIdGenerator)
             throws ArtifactNotFoundException, RegistryStorageException {

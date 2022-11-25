@@ -33,7 +33,7 @@ import io.apicurio.registry.types.ArtifactType;
  */
 public class ProtobufArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvider {
     @Override
-    public ArtifactType getArtifactType() {
+    public String getArtifactType() {
         return ArtifactType.PROTOBUF;
     }
 

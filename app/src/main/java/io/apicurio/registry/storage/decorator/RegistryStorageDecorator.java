@@ -55,7 +55,6 @@ import io.apicurio.registry.storage.dto.StoredArtifactDto;
 import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
 import io.apicurio.registry.storage.impexp.EntityInputStream;
 import io.apicurio.registry.types.ArtifactState;
-import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.impexp.Entity;
 
@@ -152,7 +151,7 @@ public abstract class RegistryStorageDecorator implements RegistryStorage {
      */
     @Override
     public ArtifactMetaDataDto createArtifact(String groupId, String artifactId,
-                                              String version, ArtifactType artifactType, ContentHandle content, List<ArtifactReferenceDto> references)
+                                              String version, String artifactType, ContentHandle content, List<ArtifactReferenceDto> references)
         throws ArtifactAlreadyExistsException, RegistryStorageException {
         return delegate.createArtifact(groupId, artifactId, version, artifactType, content, references);
     }
@@ -171,7 +170,7 @@ public abstract class RegistryStorageDecorator implements RegistryStorage {
      */
     @Override
     public ArtifactMetaDataDto createArtifactWithMetadata(String groupId, String artifactId,
-                                                          String version, ArtifactType artifactType, ContentHandle content,
+                                                          String version, String artifactType, ContentHandle content,
                                                           EditableArtifactMetaDataDto metaData, List<ArtifactReferenceDto> references)
         throws ArtifactAlreadyExistsException, RegistryStorageException {
         return delegate.createArtifactWithMetadata(groupId, artifactId, version, artifactType, content,
@@ -265,7 +264,7 @@ public abstract class RegistryStorageDecorator implements RegistryStorage {
      */
     @Override
     public ArtifactMetaDataDto updateArtifact(String groupId, String artifactId,
-                                              String version, ArtifactType artifactType, ContentHandle content, List<ArtifactReferenceDto> references)
+                                              String version, String artifactType, ContentHandle content, List<ArtifactReferenceDto> references)
         throws ArtifactNotFoundException, RegistryStorageException {
         return delegate.updateArtifact(groupId, artifactId, version, artifactType, content, references);
     }
@@ -284,7 +283,7 @@ public abstract class RegistryStorageDecorator implements RegistryStorage {
      */
     @Override
     public ArtifactMetaDataDto updateArtifactWithMetadata(String groupId, String artifactId,
-                                                          String version, ArtifactType artifactType, ContentHandle content,
+                                                          String version, String artifactType, ContentHandle content,
                                                           EditableArtifactMetaDataDto metaData, List<ArtifactReferenceDto> references) throws ArtifactNotFoundException, RegistryStorageException {
         return delegate.updateArtifactWithMetadata(groupId, artifactId, version, artifactType, content,
             metaData, references);

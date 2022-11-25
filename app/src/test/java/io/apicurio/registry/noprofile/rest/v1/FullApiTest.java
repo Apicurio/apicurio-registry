@@ -44,7 +44,7 @@ public class FullApiTest extends AbstractResourceTestBase {
 
     @Test
     public void testGlobalRuleApplicationOpenAPI() throws Exception {
-        ArtifactType artifactType = ArtifactType.OPENAPI;
+        String artifactType = ArtifactType.OPENAPI;
         String artifactContent = resourceToString("openapi-invalid-syntax.json");
 
         // First, create an artifact without the rule installed.  Should work.
@@ -81,7 +81,7 @@ public class FullApiTest extends AbstractResourceTestBase {
             .when()
                 .contentType(CT_JSON)
                 .header("X-Registry-ArtifactId", artifactId)
-                .header("X-Registry-ArtifactType", artifactType.name())
+                .header("X-Registry-ArtifactType", artifactType)
                 .body(artifactContent)
                 .post("/registry/v1/artifacts")
             .then()
@@ -93,7 +93,7 @@ public class FullApiTest extends AbstractResourceTestBase {
 
     @Test
     public void testGlobalRuleApplicationProtobuf() throws Exception {
-        ArtifactType artifactType = ArtifactType.PROTOBUF;
+        String artifactType = ArtifactType.PROTOBUF;
         String artifactContent = resourceToString("protobuf-invalid-syntax.proto");
 
         // First, create an artifact without the rule installed.  Should work.
@@ -130,7 +130,7 @@ public class FullApiTest extends AbstractResourceTestBase {
             .when()
                 .contentType(CT_PROTO)
                 .header("X-Registry-ArtifactId", artifactId)
-                .header("X-Registry-ArtifactType", artifactType.name())
+                .header("X-Registry-ArtifactType", artifactType)
                 .body(artifactContent)
                 .post("/registry/v1/artifacts")
             .then()

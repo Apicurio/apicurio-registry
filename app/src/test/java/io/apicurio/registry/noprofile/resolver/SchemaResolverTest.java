@@ -86,7 +86,7 @@ public class SchemaResolverTest extends AbstractResourceTestBase {
             }
 
             @Override
-            public ArtifactType artifactType() {
+            public String artifactType() {
                 return ArtifactType.AVRO;
             }
         });

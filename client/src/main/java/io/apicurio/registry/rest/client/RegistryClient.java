@@ -23,7 +23,6 @@ import java.util.List;
 import java.util.Map;
 
 import io.apicurio.registry.rest.v2.beans.*;
-import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RoleType;
 import io.apicurio.registry.types.RuleType;
 
@@ -122,15 +121,15 @@ public interface RegistryClient extends Closeable {
         return listArtifactsInGroup(groupId, null, null, null, null);
     }
 
-    ArtifactMetaData createArtifact(String groupId, String artifactId, String version, ArtifactType artifactType, IfExists ifExists, Boolean canonical, String artifactName, String artifactDescription, String contentType, String fromURL, String artifactSHA, InputStream data);
+    ArtifactMetaData createArtifact(String groupId, String artifactId, String version, String artifactType, IfExists ifExists, Boolean canonical, String artifactName, String artifactDescription, String contentType, String fromURL, String artifactSHA, InputStream data);
 
-    ArtifactMetaData createArtifact(String groupId, String artifactId, String version, ArtifactType artifactType, IfExists ifExists, Boolean canonical, String artifactName, String artifactDescription, String contentType, String fromURL, String artifactSHA, InputStream data, List<ArtifactReference> artifactReferences);
+    ArtifactMetaData createArtifact(String groupId, String artifactId, String version, String artifactType, IfExists ifExists, Boolean canonical, String artifactName, String artifactDescription, String contentType, String fromURL, String artifactSHA, InputStream data, List<ArtifactReference> artifactReferences);
 
-    default ArtifactMetaData createArtifact(String groupId, String artifactId, String version, ArtifactType artifactType, IfExists ifExists, Boolean canonical, String artifactName, String artifactDescription, InputStream data) {
+    default ArtifactMetaData createArtifact(String groupId, String artifactId, String version, String artifactType, IfExists ifExists, Boolean canonical, String artifactName, String artifactDescription, InputStream data) {
         return createArtifact(groupId, artifactId, version, artifactType, ifExists, canonical, artifactName, artifactDescription, null, null, null, data);
     };
 
-    default ArtifactMetaData createArtifact(String groupId, String artifactId, String version, ArtifactType artifactType, IfExists ifExists, Boolean canonical, InputStream data) {
+    default ArtifactMetaData createArtifact(String groupId, String artifactId, String version, String artifactType, IfExists ifExists, Boolean canonical, InputStream data) {
         return createArtifact(groupId, artifactId, version, artifactType, ifExists, canonical, null, null, null, null, null, data);
     }
 
@@ -142,15 +141,17 @@ public interface RegistryClient extends Closeable {
         return createArtifact(groupId, artifactId, null, null, null, null, null, null, null, null, null, data, artifactReferences);
     }
 
-    default ArtifactMetaData createArtifact(String groupId, String artifactId, String version, InputStream data) {
-        return createArtifact(groupId, artifactId, version, null, null, null, null, null, null, null, null, data);
-    }
-    default ArtifactMetaData createArtifact(String groupId, String artifactId, ArtifactType artifactType, InputStream data) {
-        return createArtifact(groupId, artifactId, null, artifactType, null, null, null, null, null, null, null, data);
-    }
-    default ArtifactMetaData createArtifact(String groupId, String artifactId, ArtifactType artifactType, IfExists ifExists, InputStream data) {
+    default ArtifactMetaData createArtifact(String groupId, String artifactId, String artifactType, IfExists ifExists, InputStream data) {
         return createArtifact(groupId, artifactId, null, artifactType, ifExists, null, null, null, null, null, null, data);
     }
+    default ArtifactMetaData createArtifact(String groupId, String artifactId, String artifactType, InputStream data) {
+        return createArtifact(groupId, artifactId, null, artifactType, null, null, null, null, null, null, null, data);
+    }
+
+    default ArtifactMetaData createArtifactWithVersion(String groupId, String artifactId, String version, InputStream data) {
+        return createArtifact(groupId, artifactId, version, null, null, null, null, null, null, null, null, data);
+    }
+
 
     void deleteArtifactsInGroup(String groupId);
 

@@ -48,7 +48,7 @@ public class SchemasResourceImpl extends AbstractResource implements SchemasReso
     @Override
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
     public List<String> getRegisteredTypes() {
-        return Arrays.asList(ArtifactType.JSON.value(), ArtifactType.PROTOBUF.value(), ArtifactType.AVRO.value());
+        return Arrays.asList(ArtifactType.JSON, ArtifactType.PROTOBUF, ArtifactType.AVRO);
     }
 
     @Override

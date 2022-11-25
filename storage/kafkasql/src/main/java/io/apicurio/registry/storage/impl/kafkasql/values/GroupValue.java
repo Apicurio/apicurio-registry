@@ -20,7 +20,6 @@ import java.util.Map;
 
 import io.apicurio.registry.storage.dto.GroupMetaDataDto;
 import io.apicurio.registry.storage.impl.kafkasql.MessageType;
-import io.apicurio.registry.types.ArtifactType;
 import io.quarkus.runtime.annotations.RegisterForReflection;
 import lombok.ToString;
 
@@ -32,7 +31,7 @@ import lombok.ToString;
 public class GroupValue extends AbstractMessageValue {
 
     private String description;
-    private ArtifactType artifactsType;
+    private String artifactsType;
     private String createdBy;
     private long createdOn;
     private String modifiedBy;
@@ -95,14 +94,14 @@ public class GroupValue extends AbstractMessageValue {
     /**
      * @return the artifactsType
      */
-    public ArtifactType getArtifactsType() {
+    public String getArtifactsType() {
         return artifactsType;
     }
 
     /**
      * @param artifactsType the artifactsType to set
      */
-    public void setArtifactsType(ArtifactType artifactsType) {
+    public void setArtifactsType(String artifactsType) {
         this.artifactsType = artifactsType;
     }
 

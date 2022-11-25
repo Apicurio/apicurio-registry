@@ -16,16 +16,11 @@
 
 package io.apicurio.registry.types.provider;
 
-import javax.enterprise.inject.Produces;
+import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.inject.Default;
 
-/**
- * @author Fabian Martinez
- */
-public class ArtifactTypeUtilProviderFactoryProducer {
-
-    @Produces
-    public ArtifactTypeUtilProviderFactory artifactTypeUtilFactory() {
-        return new ArtifactTypeUtilProviderImpl();
-    }
+@Default
+@ApplicationScoped
+public class ArtifactTypeUtilProviderImpl extends DefaultArtifactTypeUtilProviderImpl {
 
 }

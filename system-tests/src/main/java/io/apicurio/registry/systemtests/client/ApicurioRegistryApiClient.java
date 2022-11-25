@@ -102,7 +102,7 @@ public class ApicurioRegistryApiClient {
         return true;
     }
 
-    public boolean createArtifact(String groupId, String id, ArtifactType type, String content) {
+    public boolean createArtifact(String groupId, String id, String type, String content) {
         // Get request URI
         URI uri = HttpClientUtils.buildURI(
                 "http://%s:%d/apis/registry/v2/groups/%s/artifacts", host, port, groupId

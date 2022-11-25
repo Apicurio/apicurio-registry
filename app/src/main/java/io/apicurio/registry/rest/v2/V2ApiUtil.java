@@ -36,7 +36,6 @@ import io.apicurio.registry.storage.dto.GroupSearchResultsDto;
 import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v2.beans.VersionMetaData;
-import io.apicurio.registry.types.ArtifactType;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -56,7 +55,7 @@ public final class V2ApiUtil {
      * @param dto
      */
     public static final ArtifactMetaData dtoToMetaData(String groupId, String artifactId,
-            ArtifactType artifactType, ArtifactMetaDataDto dto) {
+            String artifactType, ArtifactMetaDataDto dto) {
         ArtifactMetaData metaData = new ArtifactMetaData();
         metaData.setCreatedBy(dto.getCreatedBy());
         metaData.setCreatedOn(new Date(dto.getCreatedOn()));
@@ -94,7 +93,7 @@ public final class V2ApiUtil {
      * @param artifactType
      * @param dto
      */
-    public static final ArtifactMetaData dtoToMetaData(String groupId, String artifactId, ArtifactType artifactType,
+    public static final ArtifactMetaData dtoToMetaData(String groupId, String artifactId, String artifactType,
                                                        ArtifactVersionMetaDataDto dto) {
         ArtifactMetaData metaData = new ArtifactMetaData();
         metaData.setCreatedBy(dto.getCreatedBy());
@@ -128,7 +127,7 @@ public final class V2ApiUtil {
      * @param dto
      */
     public static final VersionMetaData dtoToVersionMetaData(String groupId, String artifactId,
-            ArtifactType artifactType, ArtifactMetaDataDto dto) {
+            String artifactType, ArtifactMetaDataDto dto) {
         VersionMetaData metaData = new VersionMetaData();
         metaData.setGroupId(groupId);
         metaData.setId(artifactId);
@@ -154,7 +153,7 @@ public final class V2ApiUtil {
      * @param amd
      */
     public static final VersionMetaData dtoToVersionMetaData(String groupId, String artifactId,
-            ArtifactType artifactType, ArtifactMetaData amd) {
+            String artifactType, ArtifactMetaData amd) {
         VersionMetaData metaData = new VersionMetaData();
         metaData.setGroupId(groupId);
         metaData.setId(artifactId);
@@ -178,7 +177,7 @@ public final class V2ApiUtil {
      * @param artifactType
      * @param dto
      */
-    public static final VersionMetaData dtoToVersionMetaData(String groupId, String artifactId, ArtifactType artifactType,
+    public static final VersionMetaData dtoToVersionMetaData(String groupId, String artifactId, String artifactType,
                                                              ArtifactVersionMetaDataDto dto) {
         VersionMetaData metaData = new VersionMetaData();
         metaData.setGroupId(groupId);

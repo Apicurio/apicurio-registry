@@ -28,7 +28,6 @@ import io.apicurio.registry.serde.data.KafkaSerdeMetadata;
 import io.apicurio.registry.serde.data.KafkaSerdeRecord;
 import io.apicurio.registry.serde.strategy.ArtifactReference;
 import io.apicurio.registry.serde.strategy.ArtifactResolverStrategy;
-import io.apicurio.registry.types.ArtifactType;
 
 /**
  *
@@ -98,7 +97,7 @@ public interface SchemaResolver<SCHEMA, DATA> extends io.apicurio.registry.resol
              * @see io.apicurio.registry.serde.SchemaParser#artifactType()
              */
             @Override
-            public ArtifactType artifactType() {
+            public String artifactType() {
                 return schemaMapper.artifactType();
             }
 

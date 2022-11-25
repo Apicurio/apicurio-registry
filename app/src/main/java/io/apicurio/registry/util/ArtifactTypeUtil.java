@@ -27,6 +27,7 @@ import javax.ws.rs.BadRequestException;
 import javax.ws.rs.core.MediaType;
 
 import com.google.protobuf.DescriptorProtos;
+import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.protobuf.schema.FileDescriptorUtils;
 import org.apache.avro.Schema;
 import org.w3c.dom.Document;
@@ -40,7 +41,6 @@ import graphql.schema.idl.TypeDefinitionRegistry;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.utils.protobuf.schema.ProtobufFile;
 import io.apicurio.registry.storage.InvalidArtifactTypeException;
-import io.apicurio.registry.types.ArtifactType;
 
 /**
  * @author eric.wittmann@gmail.com
@@ -58,23 +58,23 @@ public final class ArtifactTypeUtil {
     /**
      * Figures out the artifact type in the following order of precedent:
      * <p>
-     * 1) The provided X-Registry-ArtifactType header
+     * 1) The provided X-Registry-String header
      * 2) A hint provided in the Content-Type header
      * 3) Determined from the content itself
      *
      * @param content       the content
-     * @param xArtifactType the artifact type
+     * @param xString the artifact type
      * @param contentType   content type from request API
      */
     //FIXME:references artifact must be dereferenced here otherwise this will fail to discover the type
-    public static ArtifactType determineArtifactType(ContentHandle content, ArtifactType xArtifactType, String contentType) {
-       return determineArtifactType(content, xArtifactType, contentType, Collections.emptyMap());
+    public static String determineArtifactType(ContentHandle content, String xArtifactType, String contentType, List<String> availableTypes) {
+       return determineArtifactType(content, xArtifactType, contentType, Collections.emptyMap(), availableTypes);
     }
 
-    public static ArtifactType determineArtifactType(ContentHandle content, ArtifactType xArtifactType, String contentType, Map<String, ContentHandle> resolvedReferences) {
-        ArtifactType artifactType = xArtifactType;
+    public static String determineArtifactType(ContentHandle content, String xArtifactType, String contentType, Map<String, ContentHandle> resolvedReferences, List<String> availableTypes) {
+        String artifactType = xArtifactType;
         if (artifactType == null) {
-            artifactType = getArtifactTypeFromContentType(contentType);
+            artifactType = getArtifactTypeFromContentType(contentType, availableTypes);
             if (artifactType == null) {
                 artifactType = ArtifactTypeUtil.discoverType(content, contentType, resolvedReferences);
             }
@@ -86,18 +86,19 @@ public final class ArtifactTypeUtil {
      *
      * @param contentType the content type header
      */
-    private static ArtifactType getArtifactTypeFromContentType(String contentType) {
+    private static String getArtifactTypeFromContentType(String contentType, List<String> availableTypes) {
         if (contentType != null && contentType.contains(MediaType.APPLICATION_JSON) && contentType.indexOf(';') != -1) {
             String[] split = contentType.split(";");
             if (split.length > 1) {
                 for (String s : split) {
                     if (s.contains("artifactType=")) {
                         String at = s.split("=")[1];
-                        try {
-                            return ArtifactType.valueOf(at);
-                        } catch (IllegalArgumentException e) {
-                            throw new BadRequestException("Unsupported artifact type: " + at);
+                        for (String t: availableTypes) {
+                            if (t.equals(at)) {
+                                return at;
+                            }
                         }
+                        throw new BadRequestException("Unsupported artifact type: " + at);
                     }
                 }
             }
@@ -111,6 +112,8 @@ public final class ArtifactTypeUtil {
         return null;
     }
 
+    // TODO: should we move this to ArtifactTypeUtilProvider and make this logic injectable?
+    // as a first implementation forcing users to specify the type if it's custom sounds like a reasonable tradeoff
     /**
      * Method that discovers the artifact type from the raw content of an artifact. This will attempt to parse
      * the content (with the optional provided Content Type as a hint) and figure out what type of artifact it
@@ -123,13 +126,13 @@ public final class ArtifactTypeUtil {
      * @param resolvedReferences
      */
     @SuppressWarnings("deprecation")
-    private static ArtifactType discoverType(ContentHandle content, String contentType, Map<String, ContentHandle> resolvedReferences) throws InvalidArtifactTypeException {
+    private static String discoverType(ContentHandle content, String contentType, Map<String, ContentHandle> resolvedReferences) throws InvalidArtifactTypeException {
         boolean triedProto = false;
 
         // If the content-type suggests it's protobuf, try that first.
         if (contentType == null || contentType.toLowerCase().contains("proto")) {
             triedProto = true;
-            ArtifactType type = tryProto(content);
+            String type = tryProto(content);
             if (type != null) {
                 return type;
             }
@@ -178,7 +181,7 @@ public final class ArtifactTypeUtil {
 
         // Try protobuf (only if we haven't already)
         if (!triedProto) {
-            ArtifactType type = tryProto(content);
+            String type = tryProto(content);
             if (type != null) {
                 return type;
             }
@@ -213,7 +216,7 @@ public final class ArtifactTypeUtil {
         throw new InvalidArtifactTypeException("Failed to discover artifact type from content.");
     }
 
-    private static ArtifactType tryProto(ContentHandle content) {
+    private static String tryProto(ContentHandle content) {
         try {
             ProtobufFile.toProtoFileElement(content.content());
             return ArtifactType.PROTOBUF;

@@ -84,7 +84,7 @@ public class KafkaSqlUpgrader {
 
             Stream<TenantContentEntity> stream = dbHandle.createQuery(sql)
                     .setFetchSize(50)
-                    .bind(0, ArtifactType.PROTOBUF.name())
+                    .bind(0, ArtifactType.PROTOBUF)
                     .map(new TenantContentEntityRowMapper())
                     .stream();
             try (stream) {
@@ -123,7 +123,7 @@ public class KafkaSqlUpgrader {
                 ContentCanonicalizer canonicalizer = new ProtobufContentCanonicalizer();
                 return canonicalizer.canonicalize(content, Collections.emptyMap());
             } catch (Exception e) {
-                logger.debug("Failed to canonicalize content of type: {}", ArtifactType.PROTOBUF.name());
+                logger.debug("Failed to canonicalize content of type: {}", ArtifactType.PROTOBUF);
                 return content;
             }
         }

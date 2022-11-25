@@ -16,11 +16,16 @@
 
 package io.apicurio.registry.types.provider;
 
-import io.apicurio.registry.types.ArtifactType;
+import javax.ws.rs.core.MediaType;
+import java.util.List;
 
 /**
  * @author Ales Justin
  */
 public interface ArtifactTypeUtilProviderFactory {
-    ArtifactTypeUtilProvider getArtifactTypeProvider(ArtifactType type);
+    ArtifactTypeUtilProvider getArtifactTypeProvider(String type);
+
+    List<String> getAllArtifactTypes();
+
+    MediaType getArtifactMediaType(String type);
 }

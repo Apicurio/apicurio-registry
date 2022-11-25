@@ -55,7 +55,7 @@ public class ProtobufCanonicalHashUpgrader implements IDbUpgrader {
 
         Stream<ContentEntity> stream = dbHandle.createQuery(sql)
                 .setFetchSize(50)
-                .bind(0, ArtifactType.PROTOBUF.name())
+                .bind(0, ArtifactType.PROTOBUF)
                 .map(ContentEntityMapper.instance)
                 .stream();
         try (stream) {
@@ -90,7 +90,7 @@ public class ProtobufCanonicalHashUpgrader implements IDbUpgrader {
             ContentHandle canonicalContent = canonicalizer.canonicalize(content, Collections.emptyMap());
             return canonicalContent;
         } catch (Exception e) {
-            logger.debug("Failed to canonicalize content of type: {}", ArtifactType.PROTOBUF.name());
+            logger.debug("Failed to canonicalize content of type: {}", ArtifactType.PROTOBUF);
             return content;
         }
     }

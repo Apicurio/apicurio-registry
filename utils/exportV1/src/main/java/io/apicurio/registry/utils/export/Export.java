@@ -45,11 +45,10 @@ import io.apicurio.registry.rest.beans.Rule;
 import io.apicurio.registry.rest.beans.UpdateState;
 import io.apicurio.registry.rest.beans.VersionMetaData;
 import io.apicurio.registry.types.ArtifactState;
-import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
-import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderImpl;
+import io.apicurio.registry.types.provider.DefaultArtifactTypeUtilProviderImpl;
 import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.impexp.ArtifactRuleEntity;
 import io.apicurio.registry.utils.impexp.ArtifactVersionEntity;
@@ -75,7 +74,7 @@ public class Export implements QuarkusApplication {
     @Inject
     Logger log;
 
-    ArtifactTypeUtilProviderFactory factory = new ArtifactTypeUtilProviderImpl();
+    ArtifactTypeUtilProviderFactory factory = new DefaultArtifactTypeUtilProviderImpl();
 
     private boolean matchContentId = false;
 
@@ -161,7 +160,7 @@ public class Export implements QuarkusApplication {
                     }
 
                     String contentHash = DigestUtils.sha256Hex(contentBytes);
-                    ContentHandle canonicalContent = this.canonicalizeContent(meta.getType(), ContentHandle.create(contentBytes));
+                    ContentHandle canonicalContent = this.canonicalizeContent(meta.getType().name(), ContentHandle.create(contentBytes));
                     byte[] canonicalContentBytes = canonicalContent.bytes();
                     String canonicalContentHash = DigestUtils.sha256Hex(canonicalContentBytes);
 
@@ -169,7 +168,7 @@ public class Export implements QuarkusApplication {
 
                     ArtifactVersionEntity versionEntity = new ArtifactVersionEntity();
                     versionEntity.artifactId = meta.getId();
-                    versionEntity.artifactType = meta.getType();
+                    versionEntity.artifactType = meta.getType().name();
                     versionEntity.contentId = contentId;
                     versionEntity.createdBy = meta.getCreatedBy();
                     versionEntity.createdOn = meta.getCreatedOn();
@@ -224,7 +223,7 @@ public class Export implements QuarkusApplication {
         return 0;
     }
 
-    protected ContentHandle canonicalizeContent(ArtifactType artifactType, ContentHandle content) {
+    protected ContentHandle canonicalizeContent(String artifactType, ContentHandle content) {
         try {
             ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(artifactType);
             ContentCanonicalizer canonicalizer = provider.getContentCanonicalizer();

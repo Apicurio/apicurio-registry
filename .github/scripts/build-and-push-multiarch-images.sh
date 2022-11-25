@@ -2,6 +2,7 @@
 set -euxo pipefail
 
 defvalue="foo"
+variantDefValue="mem-multiarch-images"
 
 # Initializing the variable with the Passed Parameter
 
@@ -9,8 +10,15 @@ BRANCH_NAME="$1"       # Git Branch
 IMAGE_REPOSITORY="$2"  # Image Repository, e.g. docker.io, quay.io
 RELEASE_TYPE="$3"      # Either 'snapshot' or 'release' or 'pre-release'
 RELEASE_VERSION=${4:-$defvalue}   # Release version (Pass the release version if you also want images tagged with the release version)
+VARIANT=${4:-variantDefValue}   # Variant type
 
 
+# Check if variant type is valid
+if [[ ($VARIANT != "mem-multiarch-images") &&  ($VARIANT != "sql-multiarch-images") &&  ($VARIANT != "kafkasql-multiarch-images") ]]
+then
+    echo "ERROR: Illegal value '${VARIANT}' for variable '$VARIANT'. Values can only be [mem-multiarch-images, sql-multiarch-images, kafkasql-multiarch-images]"
+    exit 1
+fi
 
 # Check if release type is valid
 if [[ ($RELEASE_TYPE != "release") &&  ($RELEASE_TYPE != "snapshot") &&  ($RELEASE_TYPE != "pre-release") ]]
@@ -50,11 +58,11 @@ case $BRANCH_NAME in
 
   "main")
        # if main branch, build images with tag "latest-${RELEASE_TYPE}"
-       make IMAGE_REPO=${IMAGE_REPOSITORY} IMAGE_TAG=latest-${RELEASE_TYPE} multiarch-registry-images
+       make IMAGE_REPO=${IMAGE_REPOSITORY} IMAGE_TAG=latest-${RELEASE_TYPE} ${VARIANT}
        ;;
 
    *)
        # if other than main, build images with tag "${BRANCH_NAME}-${RELEASE_TYPE}"
-       make IMAGE_REPO=${IMAGE_REPOSITORY} IMAGE_TAG=${BRANCH_NAME}-${RELEASE_TYPE} multiarch-registry-images
+       make IMAGE_REPO=${IMAGE_REPOSITORY} IMAGE_TAG=${BRANCH_NAME}-${RELEASE_TYPE} ${VARIANT}
        ;;
 esac

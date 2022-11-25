@@ -522,6 +522,12 @@
             </properties>
         </profile>
         <profile>
+            <id>no-heavy-tests</id>
+            <properties>
+                <groups>!heavy</groups>
+            </properties>
+        </profile>
+        <profile>
             <id>sub</id>
             <activation>
                 <property>

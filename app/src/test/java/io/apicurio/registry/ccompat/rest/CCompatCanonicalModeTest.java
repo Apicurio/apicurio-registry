@@ -19,16 +19,19 @@ package io.apicurio.registry.ccompat.rest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.ccompat.dto.SchemaContent;
+import io.apicurio.registry.utils.tests.ApicurioTestTags;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import static io.restassured.RestAssured.given;
 
 @QuarkusTest
 @TestProfile(CanonicalModeProfile.class)
+@Tag(ApicurioTestTags.HEAVY)
 public class CCompatCanonicalModeTest extends AbstractResourceTestBase {
 
     /**

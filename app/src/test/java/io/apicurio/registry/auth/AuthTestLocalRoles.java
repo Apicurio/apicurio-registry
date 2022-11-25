@@ -52,7 +52,7 @@ import java.util.UUID;
  */
 @QuarkusTest
 @TestProfile(AuthTestProfileWithLocalRoles.class)
-@Tag(ApicurioTestTags.DOCKER)
+@Tag(ApicurioTestTags.HEAVY)
 public class AuthTestLocalRoles extends AbstractResourceTestBase {
 
     private static final String TEST_CONTENT = "{\r\n" +

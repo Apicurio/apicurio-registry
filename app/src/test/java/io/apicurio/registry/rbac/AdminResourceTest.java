@@ -46,10 +46,12 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
 import io.apicurio.registry.rest.v2.beans.ArtifactReference;
+import io.apicurio.registry.utils.tests.ApicurioTestTags;
 import io.apicurio.registry.utils.tests.ApplicationRbacEnabledProfile;
 import io.quarkus.test.junit.TestProfile;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import io.apicurio.common.apps.config.Info;
@@ -79,6 +81,7 @@ import io.vertx.core.json.JsonObject;
  */
 @QuarkusTest
 @TestProfile(ApplicationRbacEnabledProfile.class)
+@Tag(ApicurioTestTags.HEAVY)
 public class AdminResourceTest extends AbstractResourceTestBase {
 
     @ConfigProperty(name = "quarkus.log.level")

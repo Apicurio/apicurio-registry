@@ -20,12 +20,15 @@ import javax.inject.Inject;
 
 import io.apicurio.registry.noprofile.storage.AbstractRegistryStorageTest;
 import io.apicurio.registry.storage.impl.sql.InMemoryRegistryStorage;
+import io.apicurio.registry.utils.tests.ApicurioTestTags;
 import io.quarkus.test.junit.QuarkusTest;
+import org.junit.jupiter.api.Tag;
 
 /**
  * @author eric.wittmann@gmail.com
  */
 @QuarkusTest
+@Tag(ApicurioTestTags.HEAVY)
 public class InMemoryRegistryStorageTest extends AbstractRegistryStorageTest {
 
     @Inject

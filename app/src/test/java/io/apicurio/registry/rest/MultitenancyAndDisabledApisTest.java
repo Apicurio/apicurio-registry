@@ -24,8 +24,10 @@ import java.util.UUID;
 
 import javax.inject.Inject;
 
+import io.apicurio.registry.utils.tests.ApicurioTestTags;
 import io.apicurio.registry.utils.tests.TestUtils;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import io.apicurio.tenantmanager.api.datamodel.ApicurioTenant;
@@ -41,6 +43,7 @@ import io.quarkus.test.junit.TestProfile;
  */
 @QuarkusTest
 @TestProfile(MultipleRequestFiltersTestProfile.class)
+@Tag(ApicurioTestTags.HEAVY)
 public class MultitenancyAndDisabledApisTest {
 
     @Inject

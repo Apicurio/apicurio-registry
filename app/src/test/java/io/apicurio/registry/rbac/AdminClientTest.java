@@ -21,7 +21,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
 
+import io.apicurio.registry.utils.tests.ApicurioTestTags;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import io.apicurio.registry.AbstractResourceTestBase;
@@ -45,6 +47,7 @@ import io.quarkus.test.junit.TestProfile;
 
 @QuarkusTest
 @TestProfile(ApplicationRbacEnabledProfile.class)
+@Tag(ApicurioTestTags.HEAVY)
 public class AdminClientTest extends AbstractResourceTestBase {
 
     @Test

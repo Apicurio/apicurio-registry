@@ -67,14 +67,14 @@ build-sql:
 	@echo "----------------------------------------------------------------------"
 	@echo "                   Building SQL Module                               "
 	@echo "----------------------------------------------------------------------"
-	./mvnw -T 1.5C clean install -Pprod -Psql -DskipAppTests -DskipTests=$(SKIP_TESTS) $(BUILD_FLAGS)
+	./mvnw -T 1.5C clean install -Pprod -Psql -Pno-heavy-tests -DskipAppTests -DskipTests=$(SKIP_TESTS) $(BUILD_FLAGS)
 
 .PHONY: build-kafkasql ## Builds and test kafkasql module. Variables available for override [SKIP_TESTS, BUILD_FLAGS]
 build-kafkasql:
 	@echo "----------------------------------------------------------------------"
 	@echo "                   Building Kafkasql Module                               "
 	@echo "----------------------------------------------------------------------"
-	./mvnw -T 1.5C clean install -Pprod -Pkafkasql -DskipAppTests -DskipTests=$(SKIP_TESTS) $(BUILD_FLAGS)
+	./mvnw -T 1.5C clean install -Pprod -Pkafkasql -Pno-heavy-tests -DskipAppTests -DskipTests=$(SKIP_TESTS) $(BUILD_FLAGS)
 
 .PHONY: build-mem-native ## Builds mem storage variant native executable. Variables available for override [SKIP_TESTS, BUILD_FLAGS]
 build-mem-native:

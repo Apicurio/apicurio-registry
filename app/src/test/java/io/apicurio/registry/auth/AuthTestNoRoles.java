@@ -49,7 +49,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @QuarkusTest
 @TestProfile(AuthTestProfile.class)
-@Tag(ApicurioTestTags.DOCKER)
+@Tag(ApicurioTestTags.HEAVY)
 public class AuthTestNoRoles extends AbstractResourceTestBase {
 
     @ConfigProperty(name = "registry.auth.token.endpoint")

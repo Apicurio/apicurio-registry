@@ -31,7 +31,7 @@ public class SQLServerSqlStatements extends CommonSqlStatements {
     }
 
     /**
-     * @see SqlStatements#dbType()
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#dbType()
      */
     @Override
     public String dbType() {
@@ -39,23 +39,23 @@ public class SQLServerSqlStatements extends CommonSqlStatements {
     }
 
     /**
-     * @see SqlStatements#isPrimaryKeyViolation(Exception)
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#isPrimaryKeyViolation(java.lang.Exception)
      */
     @Override
     public boolean isPrimaryKeyViolation(Exception error) {
-        return error.getMessage().contains("violates unique constraint");
+        return error.getMessage().contains("Violation of PRIMARY KEY constraint");
     }
 
     /**
-     * @see SqlStatements#isForeignKeyViolation(Exception)
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#isForeignKeyViolation(java.lang.Exception)
      */
     @Override
     public boolean isForeignKeyViolation(Exception error) {
-        return error.getMessage().contains("violates foreign key constraint");
+        return error.getMessage().contains("conflicted with the FOREIGN KEY constraint");
     }
 
     /**
-     * @see SqlStatements.core.storage.jdbc.ISqlStatements#isDatabaseInitialized()
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements.core.storage.jdbc.ISqlStatements#isDatabaseInitialized()
      */
     @Override
     public String isDatabaseInitialized() {
@@ -63,57 +63,81 @@ public class SQLServerSqlStatements extends CommonSqlStatements {
     }
 
     /**
-     * @see SqlStatements#upsertContent()
-     * https://michaeljswart.com/2017/07/sql-server-upsert-patterns-and-antipatterns/
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#upsertContent()
      */
     @Override
     public String upsertContent() {
         return String.join(" ",
-                "BEGIN TRY",
-                "INSERT INTO content (tenantId, contentId, canonicalHash, contentHash, content, artifactreferences) VALUES (?, ?, ?, ?, ?, ?)",
-                "END TRY",
-                "BEGIN CATCH",
-                "--Do nothing",
-                "END CATCH");
+                "MERGE INTO content AS target",
+                "USING (VALUES (?, ?, ?, ?, ?, ?)) AS source (tenantId, contentId, canonicalHash, contentHash, content, artifactreferences)",
+                "ON (target.tenantId = source.tenantId AND target.contentHash = source.contentHash)",
+                "WHEN NOT MATCHED THEN",
+                    "INSERT (tenantId, contentId, canonicalHash, contentHash, content, artifactreferences)",
+                    "VALUES (source.tenantId, source.contentId, source.canonicalHash, source.contentHash, source.content, source.artifactreferences);");
     }
 
     /**
-     * @see SqlStatements#upsertLogConfiguration()
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#upsertLogConfiguration()
      */
     @Override
     public String upsertLogConfiguration() {
-        return "MERGE INTO logconfiguration (logger, loglevel) KEY (logger) VALUES(?, ?)";
+        return String.join(" ",
+                "MERGE INTO logconfiguration AS target",
+                "USING (VALUES  (?, ?)) AS source (logger, loglevel)",
+                "ON target.logger = source.logger",
+                "WHEN MATCHED THEN",
+                    "UPDATE SET loglevel = ?",
+                "WHEN NOT MATCHED THEN",
+                    "INSERT (logger, loglevel)",
+                    "VALUES (source.logger, source.loglevel);");
     }
 
     /**
-     * @see SqlStatements#getNextSequenceValue()
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#getNextSequenceValue()
      */
     @Override
     public String getNextSequenceValue() {
-        return "UPDATE sequences sa SET seq_value = (SELECT sb.seq_value + 1 FROM sequences sb WHERE sb.tenantId = sa.tenantId AND sb.name = sa.name) WHERE sa.tenantId = ? AND sa.name = ?";
+        return String.join(" ",
+                "MERGE INTO sequences AS target",
+                "USING (VALUES  (?, ?)) AS source (tenantId, name)",
+                "ON (target.tenantId = source.tenantId AND target.name = source.name)",
+                "WHEN MATCHED THEN",
+                    "UPDATE SET value = target.value + 1",
+                "WHEN NOT MATCHED THEN",
+                    "INSERT (tenantId, name, value)",
+                    "VALUES (source.tenantId, source.name, 1)",
+                "OUTPUT INSERTED.value;");
     }
 
     /**
-     * @see SqlStatements#resetSequenceValue()
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#resetSequenceValue()
      */
     @Override
     public String resetSequenceValue() {
-        return "MERGE INTO sequences (tenantId, name, seq_value) KEY (tenantId, name) VALUES(?, ?, ?)";
+        return String.join(" ",
+                "MERGE INTO sequences AS target",
+                "USING (VALUES (?, ?, ?)) AS source (tenantId, name, value)",
+                "ON (target.tenantId = source.tenantId AND target.name = source.name)",
+                "WHEN MATCHED THEN",
+                    "UPDATE SET value = ?",
+                "WHEN NOT MATCHED THEN",
+                    "INSERT (tenantId, name, value)",
+                    "VALUES (source.tenantId, source.name, source.value)",
+                "OUTPUT INSERTED.value;");
     }
 
     /**
      * @see SqlStatements#upsertReference()
-     * https://michaeljswart.com/2017/07/sql-server-upsert-patterns-and-antipatterns/
      */
     @Override
     public String upsertReference() {
         return String.join(" ",
-                "BEGIN TRY",
-                "INSERT INTO artifactreferences (tenantId, contentId, groupId, artifactId, version, name) VALUES (?, ?, ?, ?, ?, ?)",
-                "END TRY",
-                "BEGIN CATCH",
-                "--Do nothing",
-                "END CATCH");
+                "MERGE INTO artifactreferences AS target",
+                "USING (VALUES (?, ?, ?, ?, ?, ?)) AS source (tenantId, contentId, groupId, artifactId, version, name)",
+                "ON (target.tenantId = source.tenantId AND target.contentId = source.contentId AND target.name = source.name)",
+                "WHEN NOT MATCHED THEN",
+                "INSERT (tenantId, contentId, groupId, artifactId, version, name)",
+                "VALUES (source.tenantId, source.contentId, source.groupId, source.artifactId, source.version, source.name);");
     }
 
     /**
@@ -121,7 +145,7 @@ public class SQLServerSqlStatements extends CommonSqlStatements {
      */
     @Override
     public String selectArtifactIds() {
-        return "SELECT artifactId FROM artifacts WHERE tenantId = ? TOP ?";
+        return "SELECT TOP ? artifactId FROM artifacts WHERE tenantId = ?";
     }
 
     /**
@@ -132,7 +156,7 @@ public class SQLServerSqlStatements extends CommonSqlStatements {
         return "SELECT v.*, a.type FROM versions v "
                 + "JOIN artifacts a ON a.tenantId = v.tenantId AND a.groupId = v.groupId AND a.artifactId = v.artifactId "
                 + "WHERE a.tenantId = ? AND a.groupId = ? AND a.artifactId = ? "
-                + "ORDER BY v.globalId ASC TOP ? OFFSET ?";
+                + "ORDER BY v.globalId ASC OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
     }
 
     /**
@@ -141,8 +165,8 @@ public class SQLServerSqlStatements extends CommonSqlStatements {
     @Override
     public String selectGroups() {
         //TODO pagination?
-        return "SELECT g.* FROM groups g WHERE g.tenantId = ?"
-                + "ORDER BY g.groupId ASC TOP ?";
+        return "SELECT TOP ? * FROM groups WHERE tenantId = ?"
+                + "ORDER BY groupId ASC";
     }
 
 }

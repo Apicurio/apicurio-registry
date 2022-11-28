@@ -63,57 +63,6 @@ function olm_deploy() {
   kubectl apply -f https://raw.githubusercontent.com/operator-framework/operator-lifecycle-manager/master/deploy/upstream/quickstart/olm.yaml || return 1
 }
 
-# Installs Keycloak operator
-function keycloak_operator_install() {
-  # Log information about installing Keycloak operator
-  log_info "Installing Keycloak operator..."
-  # Create namespace for Keycloak
-  kubectl apply -f resources/"${1}"/keycloak/00_namespace.yaml || return 1
-  # Create operator group for Keycloak
-  kubectl apply -f resources/"${1}"/keycloak/01_operator_group.yaml || return 1
-  # Create subscription for Keycloak operator
-  kubectl apply -f resources/"${1}"/keycloak/02_subscription.yaml || return 1
-}
-
-# Deploys Keycloak
-function keycloak_deploy() {
-  # Log information about deploying Keycloak
-  log_info "Deploying Keycloak..."
-  # Create Keycloak
-  kubectl apply -f resources/"${1}"/keycloak/03_keycloak.yaml || return 1
-  # Create Keycloak realm
-  kubectl apply -f resources/"${1}"/keycloak/04_keycloak_realm.yaml || return 1
-}
-
-# Enables external access to Keycloak
-function keycloak_external_access_enable() {
-  # Log information about enabling external access
-  log_info "Enabling external access to Keycloak..."
-
-  # If cluster is Kubernetes implementation (kind, minikube,...)
-  if [ "${1}" == "kubernetes" ]
-  then
-    # Create ingress
-    kubectl apply -f resources/"${1}"/keycloak/05_ingress.yaml || return 1
-  # If cluster is OpenShift implementation
-  elif [ "${1}" == "openshift" ]
-  then
-    # Create route
-    kubectl apply -f resources/"${1}"/keycloak/05_route.yaml || return 1
-  # If cluster implementation is unknown
-  else
-    # Log error message
-    log_error "Unknown cluster implementation '${1}'. Exiting..."
-    # Exit with error code
-    exit 1
-  fi
-
-  # Create service
-  kubectl apply -f resources/"${1}"/keycloak/06_service.yaml || return 1
-}
-
-# TODO: get Keycloak URL?
-
 # TODO: cleanup function (delete everything)
 
 ### SETUP OF CLUSTER ###########################################################
@@ -122,57 +71,7 @@ function keycloak_external_access_enable() {
 if [ "$CLUSTER_TYPE" == "openshift" ]
 then
   # Do pre-run setup of OpenShift cluster
-  log_info "Preparing OpenShift cluster..."
-
-  # Install Keycloak operator
-  # If installation was successful
-  if keycloak_operator_install "openshift"
-  then
-    # Log information about success
-    log_info "Keycloak operator successfully installed."
-  # If installation failed
-  else
-    # Log error message
-    log_error "Installation of Keycloak operator failed. Exiting..."
-    # Exit with error code
-    exit 1
-  fi
-
-  # Wait for Keycloak operator readiness
-  # TODO: Add waiting on resource(s)
-  TIMEOUT=120
-  # Log information about waiting for Keycloak operator readiness
-  log_info "Waiting for ${TIMEOUT} seconds for readiness of Keycloak operator..."
-  # Sleep for TIMEOUT seconds
-  sleep $TIMEOUT
-
-  # Deploy Keycloak
-  # If deploy was successful
-  if keycloak_deploy "openshift"
-  then
-    # Log information about success
-    log_info "Keycloak successfully deployed."
-  # If deploy failed
-  else
-    # Log error message
-    log_error "Deploy of Keycloak failed. Exiting..."
-    # Exit with error code
-    exit 1
-  fi
-
-  # Enable external access to Keycloak
-  # If enablement was successful
-  if keycloak_external_access_enable "openshift"
-  then
-    # Log information about success
-    log_info "External access to Keycloak successfully enabled."
-  # If enablement failed
-  else
-    # Log error message
-    log_error "Enablement of external access to Keycloak failed. Exiting..."
-    # Exit with error code
-    exit 1
-  fi
+  log_info "Nothing to do for OpenShift cluster..."
 # If CLUSTER_TYPE is "kind" (default)
 elif [ "$CLUSTER_TYPE" == "kind" ]
 then
@@ -232,56 +131,6 @@ then
       else
         # Log error message
         log_error "Deploy of OLM failed. Exiting..."
-        # Exit with error code
-        exit 1
-      fi
-
-      # Install Keycloak operator
-      # If installation was successful
-      if keycloak_operator_install "kubernetes"
-      then
-        # Log information about success
-        log_info "Keycloak operator successfully installed."
-      # If installation failed
-      else
-        # Log error message
-        log_error "Installation of Keycloak operator failed. Exiting..."
-        # Exit with error code
-        exit 1
-      fi
-
-      # Wait for Keycloak operator readiness
-      # TODO: Add waiting on resource(s)
-      TIMEOUT=120
-      # Log information about waiting for Keycloak operator readiness
-      log_info "Waiting for ${TIMEOUT} seconds for readiness of Keycloak operator..."
-      # Sleep for TIMEOUT seconds
-      sleep $TIMEOUT
-
-      # Deploy Keycloak
-      # If deploy was successful
-      if keycloak_deploy "kubernetes"
-      then
-        # Log information about success
-        log_info "Keycloak successfully deployed."
-      # If deploy failed
-      else
-        # Log error message
-        log_error "Deploy of Keycloak failed. Exiting..."
-        # Exit with error code
-        exit 1
-      fi
-
-      # Enable external access to Keycloak
-      # If enablement was successful
-      if keycloak_external_access_enable "kubernetes"
-      then
-        # Log information about success
-        log_info "External access to Keycloak successfully enabled."
-      # If enablement failed
-      else
-        # Log error message
-        log_error "Enablement of external access to Keycloak failed. Exiting..."
         # Exit with error code
         exit 1
       fi

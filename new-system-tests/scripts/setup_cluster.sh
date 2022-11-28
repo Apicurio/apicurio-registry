@@ -71,7 +71,7 @@ function olm_deploy() {
 if [ "$CLUSTER_TYPE" == "openshift" ]
 then
   # Do pre-run setup of OpenShift cluster
-  log_info "Nothing to do for OpenShift cluster..."
+  log_info "Nothing to do for OpenShift cluster."
 # If CLUSTER_TYPE is "kind" (default)
 elif [ "$CLUSTER_TYPE" == "kind" ]
 then
@@ -149,7 +149,9 @@ then
 elif [ "$CLUSTER_TYPE" == "minikube" ]
 then
   # Do pre-run setup of minikube cluster
-  log_info "Preparing minikube cluster..."
+  log_error "minikube cluster is not supported yet."
+  # Exit with error code
+  exit 1
 # If CLUSTER_TYPE is not known
 else
   # Print error message

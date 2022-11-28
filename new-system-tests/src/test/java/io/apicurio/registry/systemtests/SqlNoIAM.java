@@ -24,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
         "/sql/01_service.yaml", // Service
         // Apicurio Registry operator
         "/apicurio/00_operator_group.yaml", // Operator group for Apicurio Registry operator
-        "/apicurio/01_subscription_namespace.yaml", // Apicurio Registry operator subscription in specific namespace
+        "/apicurio/01_subscription.yaml", // Apicurio Registry operator subscription
         // Apicurio Registry instance
         "/apicurio/02_registry_sql_no_iam.yaml" // Apicurio Registry instance with PostgreSQL storage and without IAM
 })

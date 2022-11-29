@@ -8,9 +8,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestMethodOrder;
 
 import static io.apicurio.registry.systemtests.Utils.findRegistryOperatorDeployment;
 import static io.apicurio.registry.systemtests.Utils.isDeploymentReady;
@@ -28,7 +26,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
         // Apicurio Registry instance
         "/apicurio/02_registry_sql_no_iam.yaml" // Apicurio Registry instance with PostgreSQL storage and without IAM
 })
-@TestMethodOrder(MethodOrderer.MethodName.class)
 public class SqlNoIAM extends TestBase {
     /** {@link OpenShiftClient} instance for tests. */
     private OpenShiftClient client;

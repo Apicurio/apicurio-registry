@@ -23,18 +23,26 @@ spec:
             tcpSocket:
               port: 5432
           env:
-            - name: POSTGRESQL_ADMIN_PASSWORD
+            - name: POSTGRES_ADMIN_PASSWORD
               value: adminpassword
-            - name: POSTGRESQL_DATABASE
+            - name: POSTGRES_DB
               value: postgresdb
-            - name: POSTGRESQL_USER
+            - name: POSTGRES_USER
               value: postgresuser
-            - name: POSTGRESQL_PASSWORD
+            - name: POSTGRES_PASSWORD
               value: postgrespassword
+            - name: PGDATA
+              value: /postgresql/data
           ports:
             - name: postgresql
               containerPort: 5432
               protocol: TCP
           imagePullPolicy: Always
-          image: 'quay.io/centos7/postgresql-12-centos7:latest'
+          image: postgres:15
+          volumeMounts:
+            - mountPath: /postgresql
+              name: postgresql
       restartPolicy: Always
+      volumes:
+        - name: postgresql
+          emptyDir: {}

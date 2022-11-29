@@ -41,7 +41,7 @@ import static org.hamcrest.Matchers.nullValue;
  */
 @QuarkusTest
 @TestProfile(DefaultGlobalRulesProfile.class)
-@Tag(ApicurioTestTags.HEAVY)
+@Tag(ApicurioTestTags.SLOW)
 public class DefaultGlobalRulesResourceTest extends AbstractResourceTestBase {
 
     @BeforeEach

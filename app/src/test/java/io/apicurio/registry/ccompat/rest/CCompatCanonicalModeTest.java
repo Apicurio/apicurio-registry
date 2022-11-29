@@ -31,7 +31,7 @@ import static io.restassured.RestAssured.given;
 
 @QuarkusTest
 @TestProfile(CanonicalModeProfile.class)
-@Tag(ApicurioTestTags.HEAVY)
+@Tag(ApicurioTestTags.SLOW)
 public class CCompatCanonicalModeTest extends AbstractResourceTestBase {
 
     /**

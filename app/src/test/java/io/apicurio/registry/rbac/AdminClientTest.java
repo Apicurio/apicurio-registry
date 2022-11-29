@@ -47,7 +47,7 @@ import io.quarkus.test.junit.TestProfile;
 
 @QuarkusTest
 @TestProfile(ApplicationRbacEnabledProfile.class)
-@Tag(ApicurioTestTags.HEAVY)
+@Tag(ApicurioTestTags.SLOW)
 public class AdminClientTest extends AbstractResourceTestBase {
 
     @Test

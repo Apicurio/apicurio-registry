@@ -28,7 +28,7 @@ import org.junit.jupiter.api.Tag;
  * @author eric.wittmann@gmail.com
  */
 @QuarkusTest
-@Tag(ApicurioTestTags.HEAVY)
+@Tag(ApicurioTestTags.SLOW)
 public class InMemoryRegistryStorageTest extends AbstractRegistryStorageTest {
 
     @Inject

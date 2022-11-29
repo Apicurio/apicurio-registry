@@ -18,7 +18,7 @@ import static org.hamcrest.Matchers.nullValue;
 @QuarkusTest
 @TestProfile(ImportLifecycleBeanTestProfile.class)
 @DisabledIfEnvironmentVariable(named = AbstractRegistryTestBase.CURRENT_ENV, matches = AbstractRegistryTestBase.CURRENT_ENV_MAS_REGEX)
-@Tag(ApicurioTestTags.HEAVY)
+@Tag(ApicurioTestTags.SLOW)
 public class ImportLifecycleBeanTest extends AbstractResourceTestBase {
 
     @Override

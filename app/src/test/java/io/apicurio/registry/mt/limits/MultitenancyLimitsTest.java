@@ -52,7 +52,7 @@ import io.quarkus.test.junit.TestProfile;
  */
 @QuarkusTest
 @TestProfile(MultitenancyLimitsTestProfile.class)
-@Tag(ApicurioTestTags.HEAVY)
+@Tag(ApicurioTestTags.SLOW)
 public class MultitenancyLimitsTest extends AbstractRegistryTestBase {
 
     @Inject

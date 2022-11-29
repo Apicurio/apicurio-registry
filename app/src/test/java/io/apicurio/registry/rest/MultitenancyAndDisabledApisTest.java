@@ -43,7 +43,7 @@ import io.quarkus.test.junit.TestProfile;
  */
 @QuarkusTest
 @TestProfile(MultipleRequestFiltersTestProfile.class)
-@Tag(ApicurioTestTags.HEAVY)
+@Tag(ApicurioTestTags.SLOW)
 public class MultitenancyAndDisabledApisTest {
 
     @Inject

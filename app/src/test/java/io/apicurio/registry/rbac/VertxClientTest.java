@@ -35,7 +35,7 @@ import javax.enterprise.inject.Typed;
 @QuarkusTest
 @Typed(VertxClientTest.class)
 @TestProfile(ApplicationRbacEnabledProfile.class)
-@Tag(ApicurioTestTags.HEAVY)
+@Tag(ApicurioTestTags.SLOW)
 public class VertxClientTest extends RegistryClientTest {
 
     @Override

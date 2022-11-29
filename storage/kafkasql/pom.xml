@@ -235,9 +235,9 @@
     
     <profiles>
         <profile>
-            <id>no-heavy-tests</id>
+            <id>no-slow-tests</id>
             <properties>
-                <groups>!heavy</groups>
+                <groups>!slow</groups>
             </properties>
         </profile>
         <profile>

@@ -81,7 +81,7 @@ import io.vertx.core.json.JsonObject;
  */
 @QuarkusTest
 @TestProfile(ApplicationRbacEnabledProfile.class)
-@Tag(ApicurioTestTags.HEAVY)
+@Tag(ApicurioTestTags.SLOW)
 public class AdminResourceTest extends AbstractResourceTestBase {
 
     @ConfigProperty(name = "quarkus.log.level")

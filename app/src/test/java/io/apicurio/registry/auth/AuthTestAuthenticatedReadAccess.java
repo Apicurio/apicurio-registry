@@ -48,7 +48,7 @@ import java.nio.charset.StandardCharsets;
 
 @QuarkusTest
 @TestProfile(AuthTestProfileAuthenticatedReadAccess.class)
-@Tag(ApicurioTestTags.HEAVY)
+@Tag(ApicurioTestTags.SLOW)
 public class AuthTestAuthenticatedReadAccess extends AbstractResourceTestBase {
 
     @ConfigProperty(name = "registry.auth.token.endpoint")

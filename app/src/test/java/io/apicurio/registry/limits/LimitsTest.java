@@ -44,7 +44,7 @@ import io.quarkus.test.junit.TestProfile;
 @QuarkusTest
 @TestProfile(LimitsTestProfile.class)
 @DisabledIfEnvironmentVariable(named = AbstractRegistryTestBase.CURRENT_ENV, matches = AbstractRegistryTestBase.CURRENT_ENV_MAS_REGEX)
-@Tag(ApicurioTestTags.HEAVY)
+@Tag(ApicurioTestTags.SLOW)
 public class LimitsTest extends AbstractResourceTestBase {
 
     @Test

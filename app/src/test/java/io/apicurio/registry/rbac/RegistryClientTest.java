@@ -17,7 +17,6 @@
 package io.apicurio.registry.rbac;
 
 import static io.apicurio.registry.utils.tests.TestUtils.retry;
-import static org.junit.Assert.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -100,7 +99,7 @@ import io.quarkus.test.junit.TestProfile;
 @QuarkusTest
 @TestProfile(ApplicationRbacEnabledProfile.class)
 @SuppressWarnings("deprecation")
-@Tag(ApicurioTestTags.HEAVY)
+@Tag(ApicurioTestTags.SLOW)
 public class RegistryClientTest extends AbstractResourceTestBase {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(RegistryClientTest.class);

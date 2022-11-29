@@ -67,7 +67,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @QuarkusTest
 @TestProfile(MultitenancyAuthTestProfile.class)
-@Tag(ApicurioTestTags.HEAVY)
+@Tag(ApicurioTestTags.SLOW)
 public class MultitenancyAuthTest extends AbstractRegistryTestBase {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MultitenancyNoAuthTest.class);

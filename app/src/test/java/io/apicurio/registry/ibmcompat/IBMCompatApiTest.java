@@ -41,7 +41,7 @@ import io.restassured.common.mapper.TypeRef;
 
 @QuarkusTest
 @TestProfile(IBMTestProfile.class)
-@Tag(ApicurioTestTags.HEAVY)
+@Tag(ApicurioTestTags.SLOW)
 public class IBMCompatApiTest extends AbstractResourceTestBase {
 
     @Test

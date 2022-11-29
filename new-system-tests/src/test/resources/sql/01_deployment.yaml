@@ -1,0 +1,40 @@
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: postgresql
+  labels:
+    app: postgresql
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgresql
+  template:
+    metadata:
+      labels:
+        app: postgresql
+    spec:
+      containers:
+        - readinessProbe:
+            tcpSocket:
+              port: 5432
+          name: postgresql
+          livenessProbe:
+            tcpSocket:
+              port: 5432
+          env:
+            - name: POSTGRESQL_ADMIN_PASSWORD
+              value: adminpassword
+            - name: POSTGRESQL_DATABASE
+              value: postgresdb
+            - name: POSTGRESQL_USER
+              value: postgresuser
+            - name: POSTGRESQL_PASSWORD
+              value: postgrespassword
+          ports:
+            - name: postgresql
+              containerPort: 5432
+              protocol: TCP
+          imagePullPolicy: Always
+          image: 'quay.io/centos7/postgresql-12-centos7:latest'
+      restartPolicy: Always

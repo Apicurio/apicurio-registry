@@ -4,9 +4,6 @@ import io.apicur.registry.v1.ApicurioRegistry;
 import io.fabric8.junit.jupiter.api.KubernetesTest;
 import io.fabric8.junit.jupiter.api.LoadKubernetesManifests;
 import io.fabric8.openshift.client.OpenShiftClient;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -31,36 +28,6 @@ public class SqlNoIAM extends TestBase {
     private OpenShiftClient client;
 
     /**
-     * @return {@link OpenShiftClient} instance used in tests.
-     */
-    @Override
-    protected OpenShiftClient getClient() {
-        return client;
-    }
-
-    /**
-     * Performs actions that should be done before all tests.
-     */
-    @BeforeAll
-    public static void beforeAll() {
-        // Log information about current action
-        System.out.println("Before all.");
-
-        // Client is not accessible here
-    }
-
-    /**
-     * Performs actions that should be done after all tests.
-     */
-    @AfterAll
-    public static void afterAll() {
-        // Log information about current action
-        System.out.println("After all.");
-
-        // Client is not accessible here
-    }
-
-    /**
      * Performs actions that should be done before each test.
      */
     @BeforeEach
@@ -73,15 +40,6 @@ public class SqlNoIAM extends TestBase {
 
         // Wait for readiness of Apicurio Registry operator deployment
         assertTrue(waitDeploymentReady(client, findRegistryOperatorDeployment(client).getMetadata().getName()));
-    }
-
-    /**
-     * Performs actions that should be done after each test.
-     */
-    @AfterEach
-    public void afterEach() {
-        // Log information about current action
-        System.out.println("After each.");
     }
 
     /**

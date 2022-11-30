@@ -37,7 +37,7 @@ public class SqlKeycloak extends TestBase {
     @BeforeEach
     public void beforeEach() {
         // Log information about current action
-        System.out.println("Before each.");
+        logger.info("Running BeforeEach actions.");
 
         // Wait for readiness of Keycloak deployment
         assertTrue(waitDeploymentReady(client, Constants.KEYCLOAK_NAME));
@@ -47,6 +47,9 @@ public class SqlKeycloak extends TestBase {
 
         // Wait for readiness of Apicurio Registry operator deployment
         assertTrue(waitDeploymentReady(client, findRegistryOperatorDeployment(client).getMetadata().getName()));
+
+        // Log information about current action
+        logger.info("BeforeEach finished.");
     }
 
     /**
@@ -55,12 +58,15 @@ public class SqlKeycloak extends TestBase {
     @Test
     public void testDeploy() {
         // Log information about current action
-        System.out.println("### testDeploy test ###");
+        logger.info("Running testDeploy test.");
 
         // Wait for deployment readiness of Apicurio Registry instance with PostgreSQL database storage and Keycloak IAM
         assertTrue(waitDeploymentReady(client, Constants.REGISTRY_NAME + "-deployment"));
 
         // Check deployment readiness of Apicurio Registry instance with PostgreSQL database storage and Keycloak IAM
         assertTrue(isDeploymentReady(client, Constants.REGISTRY_NAME + "-deployment"));
+
+        // Log information about current action
+        logger.info("testDeploy test finished.");
     }
 }

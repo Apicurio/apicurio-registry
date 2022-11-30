@@ -57,10 +57,10 @@ public class SqlKeycloak extends TestBase {
         // Log information about current action
         System.out.println("### testDeploy test ###");
 
-        // Wait for readiness of Apicurio Registry instance with PostgreSQL database storage deployment
+        // Wait for deployment readiness of Apicurio Registry instance with PostgreSQL database storage and Keycloak IAM
         assertTrue(waitDeploymentReady(client, Constants.REGISTRY_NAME + "-deployment"));
 
-        // Check readiness of Apicurio Registry instance with PostgreSQL database storage deployment
+        // Check deployment readiness of Apicurio Registry instance with PostgreSQL database storage and Keycloak IAM
         assertTrue(isDeploymentReady(client, Constants.REGISTRY_NAME + "-deployment"));
     }
 }

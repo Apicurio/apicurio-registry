@@ -27,3 +27,4 @@ export * from "./versionMetaData.model";
 export * from "./downloadRef.model";
 export * from "./apiError.model";
 export * from "./artifactOwner.model";
+export * from "./artifactTypeInfo.model";

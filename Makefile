@@ -53,21 +53,49 @@ build-all:
 	@echo "----------------------------------------------------------------------"
 	@echo "                   Building All Modules                               "
 	@echo "----------------------------------------------------------------------"
-	./mvnw clean install -Pprod -Psql -Pkafkasql -DskipTests=$(SKIP_TESTS) $(BUILD_FLAGS)
+	./mvnw -T 1.5C clean install -Pprod -Psql -Pkafkasql -DskipTests=$(SKIP_TESTS) $(BUILD_FLAGS)
+
+.PHONY: build-in-memory ## Builds and test in-memory module. Variables available for override [SKIP_TESTS, BUILD_FLAGS]
+build-in-memory:
+	@echo "----------------------------------------------------------------------"
+	@echo "                   Building In-memory Module                               "
+	@echo "----------------------------------------------------------------------"
+	./mvnw -T 1.5C clean install -Pprod -DskipTests=$(SKIP_TESTS) $(BUILD_FLAGS)
+
+.PHONY: build-sql ## Builds and test sql module. Variables available for override [SKIP_TESTS, BUILD_FLAGS]
+build-sql:
+	@echo "----------------------------------------------------------------------"
+	@echo "                   Building SQL Module                               "
+	@echo "----------------------------------------------------------------------"
+	./mvnw -T 1.5C clean install -Pprod -Psql -DskipTests=$(SKIP_TESTS) $(BUILD_FLAGS)
+
+.PHONY: build-kafkasql ## Builds and test kafkasql module. Variables available for override [SKIP_TESTS, BUILD_FLAGS]
+build-kafkasql:
+	@echo "----------------------------------------------------------------------"
+	@echo "                   Building Kafkasql Module                               "
+	@echo "----------------------------------------------------------------------"
+	./mvnw -T 1.5C clean install -Pprod -Pkafkasql -DskipTests=$(SKIP_TESTS) $(BUILD_FLAGS)
+
+.PHONY: build-mem-native ## Builds mem storage variant native executable. Variables available for override [SKIP_TESTS, BUILD_FLAGS]
+build-mem-native:
+	@echo "----------------------------------------------------------------------"
+	@echo "             Building In-Memory Storage Variant Natively               "
+	@echo "----------------------------------------------------------------------"
+	./mvnw -T 1.5C package -Pnative -Dquarkus.native.container-build=true -Pprod -DskipTests=$(SKIP_TESTS) $(BUILD_FLAGS)
 
 .PHONY: build-sql-native ## Builds sql storage variant native executable. Variables available for override [SKIP_TESTS, BUILD_FLAGS]
 build-sql-native:
 	@echo "----------------------------------------------------------------------"
 	@echo "             Building SQL Storage Variant Natively                    "
 	@echo "----------------------------------------------------------------------"
-	./mvnw package -Pnative -Dquarkus.native.container-build=true -Pprod -Psql -pl storage/sql -DskipTests=$(SKIP_TESTS) $(BUILD_FLAGS)
+	./mvnw -T 1.5C package -Pnative -Dquarkus.native.container-build=true -Pprod -Psql -pl storage/sql -DskipTests=$(SKIP_TESTS) $(BUILD_FLAGS)
 
 .PHONY: build-kafkasql-native ## Builds kafkasql storage variant native executable. Variables available for override [SKIP_TESTS, BUILD_FLAGS]
 build-kafkasql-native:
 	@echo "----------------------------------------------------------------------"
 	@echo "             Building Kafkasql Storage Variant Natively               "
 	@echo "----------------------------------------------------------------------"
-	./mvnw package -Pnative -Dquarkus.native.container-build=true -Pprod -Pkafkasql -pl storage/kafkasql -DskipTests=$(SKIP_TESTS) $(BUILD_FLAGS)
+	./mvnw -T 1.5C package -Pnative -Dquarkus.native.container-build=true -Pprod -Pkafkasql -pl storage/kafkasql -DskipTests=$(SKIP_TESTS) $(BUILD_FLAGS)
 
 
 
@@ -90,6 +118,25 @@ push-mem-image:
 	@echo "------------------------------------------------------------------------"
 	docker push $(IMAGE_REPO)/apicurio/apicurio-registry-mem:$(IMAGE_TAG)
 
+
+.PHONY: build-mem-native-image ## Builds native docker image for 'mem' storage variant. Variables available for override [IMAGE_REPO, IMAGE_TAG]
+build-mem-native-image:
+	@echo "------------------------------------------------------------------------"
+	@echo " Building Image For In-Memory Storage Variant (using Native Executable)"
+	@echo " Repository: $(IMAGE_REPO)"
+	@echo " Tag: $(IMAGE_TAG)"
+	@echo "------------------------------------------------------------------------"
+	docker build -f $(DOCKERFILE_LOCATION)/Dockerfile.native -t $(IMAGE_REPO)/apicurio/apicurio-registry-mem-native:$(IMAGE_TAG) app/
+
+
+.PHONY: push-mem-native-image ## Pushes native docker image for 'mem' storage variant. Variables available for override [IMAGE_REPO, IMAGE_TAG]
+push-mem-native-image:
+	@echo "------------------------------------------------------------------------"
+	@echo " Pushing Image For In-Memory Storage Variant (using Native Executable)"
+	@echo " Repository: $(IMAGE_REPO)"
+	@echo " Tag: $(IMAGE_TAG)"
+	@echo "------------------------------------------------------------------------"
+	docker push $(IMAGE_REPO)/apicurio/apicurio-registry-mem-native:$(IMAGE_TAG)
 
 
 .PHONY: build-sql-image ## Builds docker image for 'sql' storage variant. Variables available for override [SQL_DOCKERFILE, IMAGE_REPO, IMAGE_TAG, DOCKER_BUILD_WORKSPACE]
@@ -241,7 +288,7 @@ build-integration-tests-common:
 	@echo "----------------------------------------------------------------------"
 	@echo "                 Building Integration Tests Common                    "
 	@echo "----------------------------------------------------------------------"
-	./mvnw install -Pintegration-tests -pl integration-tests/integration-tests-common
+	./mvnw -T 1.5C package install -Pintegration-tests -pl integration-tests/integration-tests-common
 
 .PHONY: run-ui-tests ## Runs sql integration tests
 run-ui-tests: build-integration-tests-common

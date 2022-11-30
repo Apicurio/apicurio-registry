@@ -640,6 +640,7 @@ public class RegistryFacade {
             KafkaFacade kafkaFacade = KafkaFacade.getInstance();
             var c = kafkaFacade.startNewKafka();
 
+            appEnv.put("REGISTRY_KAFKASQL_CONSUMER_STARTUPLAG", "3000"); //Three seconds startup lag to give time to the nodes being created to create the db.
             appEnv.put("KAFKA_BOOTSTRAP_SERVERS", c.getBootstrapServers());
             processes.add(new RegistryTestProcess() {
 
@@ -905,8 +906,15 @@ public class RegistryFacade {
     }
 
     private String getNativeExecutablePath() throws IOException {
-        String execPath = "../../storage/%s/target/apicurio-registry-storage-%s-%s-runner";
-        String path = String.format(execPath, RegistryUtils.REGISTRY_STORAGE, RegistryUtils.REGISTRY_STORAGE, PROJECT_VERSION);
+        String execPath;
+        String path;
+        if (RegistryStorageType.inmemory.equals(RegistryUtils.REGISTRY_STORAGE)) {
+            execPath = "../../app/target/apicurio-registry-app-%s-runner";
+            path = String.format(execPath, PROJECT_VERSION);
+        } else {
+            execPath = "../../storage/%s/target/apicurio-registry-storage-%s-%s-runner";
+            path = String.format(execPath, RegistryUtils.REGISTRY_STORAGE, RegistryUtils.REGISTRY_STORAGE, PROJECT_VERSION);
+        }
         if (!runnerExists(path)) {
             LOGGER.info("No runner JAR found.  Throwing an exception.");
             throw new IllegalStateException("Could not determine where to find the executable jar for the server. " +

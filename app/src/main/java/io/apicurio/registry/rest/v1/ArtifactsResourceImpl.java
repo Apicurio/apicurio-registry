@@ -46,9 +46,9 @@ import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.RuleConfigurationDto;
 import io.apicurio.registry.storage.dto.StoredArtifactDto;
-import io.apicurio.registry.types.ArtifactMediaTypes;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.util.ArtifactIdGenerator;
@@ -108,6 +108,9 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
     @Inject
     ArtifactIdGenerator idGenerator;
 
+    @Inject
+    ArtifactTypeUtilProviderFactory factory;
+
     @Context
     HttpServletRequest request;
 
@@ -122,7 +125,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
     }
 
     private ArtifactMetaData handleIfExists(
-            ArtifactType artifactType,
+            String artifactType,
             String artifactId,
             IfExistsType ifExists,
             ContentHandle content,
@@ -146,7 +149,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
 
     private ArtifactMetaData handleIfExistsReturnOrUpdate(
             String artifactId,
-            ArtifactType artifactType,
+            String artifactType,
             ContentHandle content,
             String ct, boolean canonical) {
         try {
@@ -203,7 +206,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
      */
     @Override
     @Authorized(style=AuthorizedStyle.ArtifactOnly, level=AuthorizedLevel.Read)
-    public void testUpdateArtifact(String artifactId, ArtifactType xRegistryArtifactType, InputStream data) {
+    public void testUpdateArtifact(String artifactId, String xRegistryArtifactType, InputStream data) {
         Objects.requireNonNull(artifactId);
         ContentHandle content = ContentHandle.create(data);
         if (content.bytes().length == 0) {
@@ -215,7 +218,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
             content = ContentTypeUtil.yamlToJson(content);
         }
 
-        ArtifactType artifactType = ArtifactTypeUtil.determineArtifactType(content, xRegistryArtifactType, ct);
+        String artifactType = ArtifactTypeUtil.determineArtifactType(content, xRegistryArtifactType, ct, factory.getAllArtifactTypes());
         rulesService.applyRules(null, artifactId, artifactType, content, RuleApplicationType.UPDATE, Collections.emptyMap());
     }
 
@@ -225,7 +228,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
     @Override
     @Audited(extractParameters = {"0", KEY_ARTIFACT_TYPE, "1", KEY_ARTIFACT_ID, "2", KEY_IF_EXISTS, "3", KEY_CANONICAL})
     @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Write)
-    public ArtifactMetaData createArtifact(ArtifactType xRegistryArtifactType,
+    public ArtifactMetaData createArtifact(String xRegistryArtifactType,
             String xRegistryArtifactId, IfExistsType ifExists, Boolean canonical, InputStream data) {
         ContentHandle content = ContentHandle.create(data);
         if (content.bytes().length == 0) {
@@ -246,7 +249,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
                 content = ContentTypeUtil.yamlToJson(content);
             }
 
-            ArtifactType artifactType = ArtifactTypeUtil.determineArtifactType(content, xRegistryArtifactType, ct);
+            String artifactType = ArtifactTypeUtil.determineArtifactType(content, xRegistryArtifactType, ct, factory.getAllArtifactTypes());
             rulesService.applyRules(null, artifactId, artifactType, content, RuleApplicationType.CREATE, Collections.emptyMap());
             final String finalArtifactId = artifactId;
             ArtifactMetaDataDto amd = storage.createArtifact(null, artifactId, null, artifactType, content, null);
@@ -268,17 +271,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
         }
         StoredArtifactDto artifact = storage.getArtifact(null, artifactId);
 
-        // The content-type will be different for protobuf artifacts, graphql artifacts, and XML artifacts
-        MediaType contentType = ArtifactMediaTypes.JSON;
-        if (metaData.getType() == ArtifactType.PROTOBUF) {
-            contentType = ArtifactMediaTypes.PROTO;
-        }
-        if (metaData.getType() == ArtifactType.GRAPHQL) {
-            contentType = ArtifactMediaTypes.GRAPHQL;
-        }
-        if (metaData.getType() == ArtifactType.WSDL || metaData.getType() == ArtifactType.XSD || metaData.getType() == ArtifactType.XML) {
-            contentType = ArtifactMediaTypes.XML;
-        }
+        MediaType contentType = factory.getArtifactMediaType(metaData.getType());
 
         Response.ResponseBuilder builder = Response.ok(artifact.getContent(), contentType);
         checkIfDeprecated(metaData::getState, artifactId, metaData.getVersion(), builder);
@@ -286,13 +279,13 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
     }
 
     private ArtifactMetaData updateArtifactInternal(String artifactId,
-            ArtifactType xRegistryArtifactType, ContentHandle content, String ct) {
+            String xRegistryArtifactType, ContentHandle content, String ct) {
         Objects.requireNonNull(artifactId);
         if (ContentTypeUtil.isApplicationYaml(ct)) {
             content = ContentTypeUtil.yamlToJson(content);
         }
 
-        ArtifactType artifactType = ArtifactTypeUtil.determineArtifactType(content, xRegistryArtifactType, ct);
+        String artifactType = ArtifactTypeUtil.determineArtifactType(content, xRegistryArtifactType, ct, factory.getAllArtifactTypes());
         rulesService.applyRules(null, artifactId, artifactType, content, RuleApplicationType.UPDATE, Collections.emptyMap());
         ArtifactMetaDataDto dto = storage.updateArtifact(null, artifactId, null, artifactType, content, null);
         return V1ApiUtil.dtoToMetaData(artifactId, artifactType, dto);
@@ -304,7 +297,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
     @Override
     @Audited(extractParameters = {"0", KEY_ARTIFACT_ID, "1", KEY_ARTIFACT_TYPE})
     @Authorized(style=AuthorizedStyle.ArtifactOnly, level=AuthorizedLevel.Write)
-    public ArtifactMetaData updateArtifact(String artifactId, ArtifactType xRegistryArtifactType, InputStream data) {
+    public ArtifactMetaData updateArtifact(String artifactId, String xRegistryArtifactType, InputStream data) {
         ContentHandle content = ContentHandle.create(data);
         if (content.bytes().length == 0) {
             throw new BadRequestException(EMPTY_CONTENT_ERROR_MESSAGE);
@@ -338,7 +331,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
     @Override
     @Audited(extractParameters = {"0", KEY_ARTIFACT_ID, "1", KEY_ARTIFACT_TYPE})
     @Authorized(style=AuthorizedStyle.ArtifactOnly, level=AuthorizedLevel.Write)
-    public VersionMetaData createArtifactVersion(String artifactId, ArtifactType xRegistryArtifactType, InputStream data) {
+    public VersionMetaData createArtifactVersion(String artifactId, String xRegistryArtifactType, InputStream data) {
         Objects.requireNonNull(artifactId);
         ContentHandle content = ContentHandle.create(data);
         if (content.bytes().length == 0) {
@@ -349,7 +342,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
             content = ContentTypeUtil.yamlToJson(content);
         }
 
-        ArtifactType artifactType = ArtifactTypeUtil.determineArtifactType(content, xRegistryArtifactType, ct);
+        String artifactType = ArtifactTypeUtil.determineArtifactType(content, xRegistryArtifactType, ct, factory.getAllArtifactTypes());
         rulesService.applyRules(null, artifactId, artifactType, content, RuleApplicationType.UPDATE, Collections.emptyMap());
         ArtifactMetaDataDto amd = storage.updateArtifact(null, artifactId, null, artifactType, content, null);
         return V1ApiUtil.dtoToVersionMetaData(artifactId, artifactType, amd);
@@ -368,17 +361,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
         }
         StoredArtifactDto artifact = storage.getArtifactVersion(null, artifactId, sversion);
 
-        // The content-type will be different for protobuf artifacts, graphql artifacts, and XML artifacts
-        MediaType contentType = ArtifactMediaTypes.JSON;
-        if (metaData.getType() == ArtifactType.PROTOBUF) {
-            contentType = ArtifactMediaTypes.PROTO;
-        }
-        if (metaData.getType() == ArtifactType.GRAPHQL) {
-            contentType = ArtifactMediaTypes.GRAPHQL;
-        }
-        if (metaData.getType() == ArtifactType.WSDL || metaData.getType() == ArtifactType.XSD || metaData.getType() == ArtifactType.XML) {
-            contentType = ArtifactMediaTypes.XML;
-        }
+        MediaType contentType = factory.getArtifactMediaType(metaData.getType());
 
         Response.ResponseBuilder builder = Response.ok(artifact.getContent(), contentType);
         checkIfDeprecated(metaData::getState, artifactId, sversion, builder);

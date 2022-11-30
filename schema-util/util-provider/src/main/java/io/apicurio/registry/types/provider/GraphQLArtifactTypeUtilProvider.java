@@ -32,7 +32,7 @@ import io.apicurio.registry.types.ArtifactType;
  */
 public class GraphQLArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvider {
     @Override
-    public ArtifactType getArtifactType() {
+    public String getArtifactType() {
         return ArtifactType.GRAPHQL;
     }
 

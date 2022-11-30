@@ -25,10 +25,6 @@
         </dependency>
         <dependency>
             <groupId>io.apicurio</groupId>
-            <artifactId>apicurio-registry-ui</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.apicurio</groupId>
             <artifactId>apicurio-registry-utils-kafka</artifactId>
         </dependency>
         <dependency>
@@ -312,6 +308,7 @@
                             <goal>unpack</goal>
                         </goals>
                         <configuration>
+                            <skip>${skipUiBuild}</skip>
                             <artifactItems>
                                 <artifactItem>
                                     <groupId>${project.groupId}</groupId>
@@ -417,7 +414,7 @@
             <plugin>
                 <groupId>kr.motd.maven</groupId>
                 <artifactId>os-maven-plugin</artifactId>
-                <version>1.6.2</version>
+                <version>1.7.1</version>
                 <executions>
                     <execution>
                         <phase>initialize</phase>
@@ -503,6 +500,20 @@
     </build>
 
     <profiles>
+        <profile>
+            <id>add-ui-dep</id>
+            <activation>
+                <property>
+                    <name>!skipUiBuild</name>
+                </property>
+            </activation>
+            <dependencies>
+                <dependency>
+                    <groupId>io.apicurio</groupId>
+                    <artifactId>apicurio-registry-ui</artifactId>
+                </dependency>
+            </dependencies>
+        </profile>
         <profile>
             <id>no-docker</id>
             <properties>

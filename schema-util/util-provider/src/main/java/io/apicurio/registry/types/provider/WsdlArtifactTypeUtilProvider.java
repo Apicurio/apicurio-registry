@@ -36,7 +36,7 @@ public class WsdlArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvid
      * @see io.apicurio.registry.types.provider.ArtifactTypeUtilProvider#getArtifactType()
      */
     @Override
-    public ArtifactType getArtifactType() {
+    public String getArtifactType() {
         return ArtifactType.WSDL;
     }
 

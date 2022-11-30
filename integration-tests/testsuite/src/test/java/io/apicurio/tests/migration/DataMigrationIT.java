@@ -179,7 +179,10 @@ public class DataMigrationIT extends ApicurioRegistryBaseIT {
         }
 
         // Import the data
-        dest.importData(source.exportData(), false, false);
+        InputStream data = source.exportData();
+
+
+        dest.importData(data, false, false);
 
         // Check that the import was successful
         retry(() -> {
@@ -248,7 +251,7 @@ public class DataMigrationIT extends ApicurioRegistryBaseIT {
                 byte[] contentBytes = IoUtil.toBytes(content);
                 String contentHash = DigestUtils.sha256Hex(contentBytes);
 
-                ArtifactType artifactType = ArtifactType.JSON;
+                String artifactType = ArtifactType.JSON;
 
                 Long contentId = contentIndex.computeIfAbsent(contentHash, k -> {
                     ContentEntity contentEntity = new ContentEntity();

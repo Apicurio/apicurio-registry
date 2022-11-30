@@ -72,6 +72,20 @@ public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {
             "        }\r\n" +
             "    ]\r\n" +
             "}";
+    private static final String SCHEMA_WITH_MAP_FIELD_REMOVED = "{\r\n" +
+            "    \"type\": \"record\",\r\n" +
+            "    \"name\": \"userInfo\",\r\n" +
+            "    \"namespace\": \"my.example\",\r\n" +
+            "    \"fields\": [\r\n" +
+            "        {\r\n" +
+            "            \"name\": \"props\",\r\n" +
+            "            \"type\": {\r\n" +
+            "                \"type\": \"map\",\r\n" +
+            "                \"values\": \"string\"\r\n" +
+            "            }\r\n" +
+            "        }\r\n" +
+            "    ]\r\n" +
+            "}";
     private static final String INVALID_SCHEMA_WITH_MAP = "{\r\n" +
             "    \"type\": \"record\",\r\n" +
             "    \"name\": \"userInfo\",\r\n" +
@@ -135,7 +149,7 @@ public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {
         String v2Schema = "{\"type\": \"string\"}";
 
         Assertions.assertThrows(RuleViolationException.class, () -> {
-            RuleContext context = new RuleContext("TestGroup", "Test", ArtifactType.AVRO, "BACKWARD", Collections.singletonList(ContentHandle.create(v1Schema)), ContentHandle.create(v2Schema), Collections.emptyMap());
+            RuleContext context = new RuleContext("TestGroup", "Test", "AVRO", "BACKWARD", Collections.singletonList(ContentHandle.create(v1Schema)), ContentHandle.create(v2Schema), Collections.emptyMap());
             compatibility.execute(context);
         });
     }
@@ -241,4 +255,34 @@ public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {
         });
     }
 
+
+    @Test
+    public void testCompatibilityRuleApplication_FullTransitive() throws Exception {
+        String artifactId = "testCompatibilityRuleApplication_FullTransitive";
+
+        //Create artifact with 4 versions, where the first one is not compatible with the others
+        createArtifact(artifactId, ArtifactType.AVRO, SCHEMA_SIMPLE);
+        createArtifactVersion(artifactId, ArtifactType.AVRO, SCHEMA_WITH_MAP);
+        createArtifactVersion(artifactId, ArtifactType.AVRO, SCHEMA_WITH_MAP);
+        createArtifactVersion(artifactId, ArtifactType.AVRO, SCHEMA_WITH_MAP);
+        createArtifactVersion(artifactId, ArtifactType.AVRO, SCHEMA_WITH_MAP);
+
+        //Activate compatibility rules
+        Rule rule = new Rule();
+        rule.setType(RuleType.COMPATIBILITY);
+        rule.setConfig(CompatibilityLevel.BACKWARD_TRANSITIVE.name());
+        clientV2.createArtifactRule("default", artifactId, rule);
+
+        //Should fail, the new version is not compatible with the first one
+        Assertions.assertThrows(io.apicurio.registry.rest.client.exception.RuleViolationException.class, () -> {
+            clientV2.updateArtifact("default", artifactId, IoUtil.toStream(SCHEMA_WITH_MAP));
+        });
+
+        //Change rule to backward, should pass since the new version is compatible with the latest one
+        rule = new Rule();
+        rule.setType(RuleType.COMPATIBILITY);
+        rule.setConfig(CompatibilityLevel.BACKWARD.name());
+        clientV2.updateArtifactRuleConfig("default", artifactId, RuleType.COMPATIBILITY, rule);
+        clientV2.updateArtifact("default", artifactId, IoUtil.toStream(SCHEMA_WITH_MAP));
+    }
 }

@@ -131,5 +131,4 @@ public class RegistryStorageConfigCache extends RegistryStorageDecorator {
         }
         lastRefresh = now;
     }
-
 }

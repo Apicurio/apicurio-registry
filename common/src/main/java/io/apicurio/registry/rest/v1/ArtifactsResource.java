@@ -22,7 +22,6 @@ import io.apicurio.registry.rest.v1.beans.IfExistsType;
 import io.apicurio.registry.rest.v1.beans.Rule;
 import io.apicurio.registry.rest.v1.beans.UpdateState;
 import io.apicurio.registry.rest.v1.beans.VersionMetaData;
-import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
 
 /**
@@ -77,7 +76,7 @@ public interface ArtifactsResource {
   @Produces("application/json")
   @Consumes({"*/*"})
   ArtifactMetaData createArtifact(
-      @HeaderParam("X-Registry-ArtifactType") ArtifactType xRegistryArtifactType,
+      @HeaderParam("X-Registry-ArtifactType") String xRegistryArtifactType,
       @HeaderParam("X-Registry-ArtifactId") String xRegistryArtifactId,
       @DefaultValue("FAIL") @QueryParam("ifExists") IfExistsType ifExists,
       @QueryParam("canonical") Boolean canonical,
@@ -140,7 +139,7 @@ public interface ArtifactsResource {
   @Produces("application/json")
   @Consumes({"*/*"})
   ArtifactMetaData updateArtifact(@PathParam("artifactId") String artifactId,
-      @HeaderParam("X-Registry-ArtifactType") ArtifactType xRegistryArtifactType, InputStream data);
+      @HeaderParam("X-Registry-ArtifactType") String xRegistryArtifactType, InputStream data);
 
   /**
    * Deletes an artifact completely, resulting in all versions of the artifact also being
@@ -285,7 +284,7 @@ public interface ArtifactsResource {
   @Produces("application/json")
   @Consumes({"*/*"})
   VersionMetaData createArtifactVersion(@PathParam("artifactId") String artifactId,
-      @HeaderParam("X-Registry-ArtifactType") ArtifactType xRegistryArtifactType, InputStream data);
+      @HeaderParam("X-Registry-ArtifactType") String xRegistryArtifactType, InputStream data);
 
   /**
    * Retrieves a single version of the artifact content.  Both the `artifactId` and the
@@ -519,5 +518,5 @@ public interface ArtifactsResource {
   @PUT
   @Consumes({"*/*"})
   void testUpdateArtifact(@PathParam("artifactId") String artifactId,
-      @HeaderParam("X-Registry-ArtifactType") ArtifactType xRegistryArtifactType, InputStream data);
+      @HeaderParam("X-Registry-ArtifactType") String xRegistryArtifactType, InputStream data);
 }

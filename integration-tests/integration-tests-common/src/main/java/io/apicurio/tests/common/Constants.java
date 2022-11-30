@@ -67,6 +67,16 @@ public interface Constants {
     String AUTH = "auth";
 
     /**
+     * Tag for kafkasql tests, the test will be executed only when the storage variant is kafkasql.
+     */
+    String KAFKA_SQL = "kafkasqlit";
+
+    /**
+     * Tag for sql tests, the test will be executed only when the storage variant is sql.
+     */
+    String SQL = "sqlit";
+
+    /**
      * Tag for sql storage db schema upgrade tests. Consists of one test that deploys an older version of the registry, populates the db, and then deploys the latest version of the registry.
      * Used to test the db schema upgrade process.
      */

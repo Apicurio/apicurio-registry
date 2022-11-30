@@ -21,8 +21,10 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.io.InputStream;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 import io.apicurio.tests.utils.RetryLimitingProxy;
+import io.vertx.core.http.HttpServer;
 import org.apache.avro.generic.GenericRecord;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
@@ -70,7 +72,7 @@ public class RateLimitedRegistrySerdeIT extends ApicurioRegistryBaseIT {
         kafkaCluster.stopIfPossible();
     }
 
-    protected void createArtifact(RegistryClient client, String groupId, String artifactId, ArtifactType artifactType, InputStream artifact) throws Exception {
+    protected void createArtifact(RegistryClient client, String groupId, String artifactId, String artifactType, InputStream artifact) throws Exception {
         ArtifactMetaData meta = client.createArtifact(groupId, artifactId, null, artifactType, IfExists.FAIL, false, artifact);
 
         TestUtils.retry(() -> client.getContentByGlobalId(meta.getGlobalId()));
@@ -91,7 +93,8 @@ public class RateLimitedRegistrySerdeIT extends ApicurioRegistryBaseIT {
         String tenantRateLimitedUrl = proxy.getServerUrl() + "/t/" + tenant.user.tenantId;
 
         try {
-            proxy.start();
+            final CompletableFuture<HttpServer> server = proxy.start();
+            TestUtils.waitFor("proxy is ready", Constants.POLL_INTERVAL, Constants.TIMEOUT_GLOBAL, server::isDone);
 
             RegistryClient rateLimitedClient = mt.createUserClient(tenant.user, tenantRateLimitedUrl);
 
@@ -124,7 +127,8 @@ public class RateLimitedRegistrySerdeIT extends ApicurioRegistryBaseIT {
         String tenantRateLimitedUrl = proxy.getServerUrl() + "/t/" + tenant.user.tenantId;
 
         try {
-            proxy.start();
+            final CompletableFuture<HttpServer> server = proxy.start();
+            TestUtils.waitFor("proxy is ready", Constants.POLL_INTERVAL, Constants.TIMEOUT_GLOBAL, server::isDone);
 
             RegistryClient rateLimitedClient = mt.createUserClient(tenant.user, tenantRateLimitedUrl);
 
@@ -154,7 +158,8 @@ public class RateLimitedRegistrySerdeIT extends ApicurioRegistryBaseIT {
         String tenantRateLimitedUrl = proxy.getServerUrl() + "/t/" + tenant.user.tenantId;
 
         try {
-            proxy.start();
+            final CompletableFuture<HttpServer> server = proxy.start();
+            TestUtils.waitFor("proxy is ready", Constants.POLL_INTERVAL, Constants.TIMEOUT_GLOBAL, server::isDone);
 
             String topicName = TestUtils.generateTopic();
             String artifactId = topicName;
@@ -207,7 +212,8 @@ public class RateLimitedRegistrySerdeIT extends ApicurioRegistryBaseIT {
         String tenantRateLimitedUrl = proxy.getServerUrl() + "/t/" + tenant.user.tenantId;
 
         try {
-            proxy.start();
+            final CompletableFuture<HttpServer> server = proxy.start();
+            TestUtils.waitFor("proxy is ready", Constants.POLL_INTERVAL, Constants.TIMEOUT_GLOBAL, server::isDone);
 
             String topicName = TestUtils.generateTopic();
             //because of using TopicIdStrategy
@@ -271,7 +277,8 @@ public class RateLimitedRegistrySerdeIT extends ApicurioRegistryBaseIT {
         String tenantRateLimitedUrl = proxy.getServerUrl() + "/t/" + tenant.user.tenantId;
 
         try {
-            proxy.start();
+            final CompletableFuture<HttpServer> server = proxy.start();
+            TestUtils.waitFor("proxy is ready", Constants.POLL_INTERVAL, Constants.TIMEOUT_GLOBAL, server::isDone);
 
             String topicName = TestUtils.generateTopic();
             //because of using TopicIdStrategy

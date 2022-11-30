@@ -78,7 +78,7 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
 
     @BeforeEach
     public void createIsolatedClient() {
-        restClient = RegistryClientFactory.create(TestUtils.getRegistryV2ApiUrl());
+        restClient = RegistryClientFactory.create(TestUtils.getRegistryV2ApiUrl(testPort));
     }
 
     @Test

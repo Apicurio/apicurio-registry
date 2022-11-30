@@ -16,6 +16,7 @@
 
 package io.apicurio.registry.rest;
 
+import static io.apicurio.registry.AbstractResourceTestBase.CT_JSON;
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.CoreMatchers.anything;
 
@@ -23,11 +24,12 @@ import java.util.UUID;
 
 import javax.inject.Inject;
 
+import io.apicurio.registry.utils.tests.TestUtils;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.junit.jupiter.api.Test;
 
 import io.apicurio.tenantmanager.api.datamodel.ApicurioTenant;
 import io.apicurio.tenantmanager.api.datamodel.TenantStatusValue;
-import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.ccompat.rest.ContentTypes;
 import io.apicurio.registry.mt.MockTenantMetadataService;
 import io.apicurio.registry.noprofile.ccompat.rest.CCompatTestConstants;
@@ -44,9 +46,12 @@ public class MultitenancyAndDisabledApisTest {
     @Inject
     MockTenantMetadataService tenantMetadataService;
 
+    @ConfigProperty(name = "quarkus.http.test-port")
+    public int testPort;
+
     @Test
     public void testRestApi() throws Exception {
-        DisableApisFlagsTest.doTestDisabledApis(true);
+        doTestDisabledApis(true);
 
         var tenant1 = new ApicurioTenant();
         tenant1.setTenantId("abc");
@@ -56,7 +61,7 @@ public class MultitenancyAndDisabledApisTest {
 
         //this should return http 404, it's disabled
         given()
-            .baseUri("http://localhost:8081")
+            .baseUri("http://localhost:" + testPort)
             .when()
                 .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
                 .body(CCompatTestConstants.SCHEMA_SIMPLE_WRAPPED)
@@ -66,11 +71,96 @@ public class MultitenancyAndDisabledApisTest {
 
         //this should return http 200, it's not disabled
         given()
-            .baseUri("http://localhost:8081")
-            .when().contentType(AbstractResourceTestBase.CT_JSON).get("/t/abc/apis/ccompat/v6/subjects")
+            .baseUri("http://localhost:" + testPort)
+            .when().contentType(CT_JSON).get("/t/abc/apis/ccompat/v6/subjects")
             .then()
             .statusCode(200)
             .body(anything());
+    }
+
+    public void doTestDisabledApis(boolean disabledDirectAccess) throws Exception {
+        doTestDisabledSubPathRegexp(disabledDirectAccess);
+
+        doTestDisabledPathExactMatch();
+
+        doTestDisabledChildPathByParentPath(disabledDirectAccess);
+
+        doTestUIDisabled();
+    }
+
+    private void doTestUIDisabled() {
+        given()
+                .baseUri("http://localhost:" + testPort)
+                .when()
+                .get("/ui")
+                .then()
+                .statusCode(404);
+    }
+
+    private static void doTestDisabledSubPathRegexp(boolean disabledDirectAccess) {
+        //this should return http 404, it's disabled
+        given()
+                .when()
+                .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
+                .body(CCompatTestConstants.SCHEMA_SIMPLE_WRAPPED)
+                .post("/ccompat/v6/subjects/{subject}/versions", UUID.randomUUID().toString())
+                .then()
+                .statusCode(404);
+
+        var req = given()
+                .when().contentType(CT_JSON).get("/ccompat/v6/subjects")
+                .then();
+        if (disabledDirectAccess) {
+            req.statusCode(404);
+        } else {
+            //this should return http 200, it's not disabled
+            req.statusCode(200)
+                    .body(anything());
+        }
+    }
+
+    private void doTestDisabledPathExactMatch() {
+        String schemaDefinition = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"f1\",\"type\":\"string\"}]}";
+        String schemaName = "testVerifySchema_userInfo";
+        String versionName = "testversion_1.0.0";
+
+        //the entire ibmcompat api is disabled
+        given()
+                .when()
+                .queryParam("verify", "true")
+                .contentType(CT_JSON)
+                .body("{\"name\":\"" + schemaName + "\",\"version\":\"" + versionName + "\",\"definition\":\"" + schemaDefinition + "\"}")
+                .post("/ibmcompat/v1/schemas")
+                .then()
+                .statusCode(404);
+    }
+
+    private void doTestDisabledChildPathByParentPath(boolean disabledDirectAccess) throws Exception {
+        String artifactContent = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"f1\",\"type\":\"string\"}]}";
+        String schemaId = TestUtils.generateArtifactId();
+
+        var req = given()
+                .when()
+                .contentType(CT_JSON + "; artifactType=AVRO")
+                .pathParam("groupId", "default")
+                .header("X-Registry-ArtifactId", schemaId)
+                .body(artifactContent)
+                .post("/registry/v2/groups/{groupId}/artifacts")
+                .then();
+
+        if (disabledDirectAccess) {
+            req.statusCode(404);
+        } else {
+            req.statusCode(200);
+        }
+
+
+        //the entire ibmcompat api is disabled
+        given()
+                .when()
+                .get("/ibmcompat/v1/schemas/" + schemaId)
+                .then()
+                .statusCode(404);
     }
 
 }

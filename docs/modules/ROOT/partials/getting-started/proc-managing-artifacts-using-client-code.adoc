@@ -28,7 +28,7 @@ String registryUrl_node1 = PropertiesUtil.property(clientProperties, "registry.u
     } 
     catch (WebApplicationException e) {
      CompletionStage < ArtifactMetaData > csa = service.createArtifact( <3>
-        ArtifactType.AVRO,
+        "AVRO",
         artifactId,
          new ByteArrayInputStream(LogInput.SCHEMA$.toString().getBytes())
         );

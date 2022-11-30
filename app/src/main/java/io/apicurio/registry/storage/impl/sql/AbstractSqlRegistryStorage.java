@@ -41,6 +41,9 @@ import javax.transaction.Transactional;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.VersionAlreadyExistsException;
 import io.apicurio.registry.storage.dto.ArtifactOwnerDto;
+import io.apicurio.registry.storage.dto.GroupSearchResultsDto;
+import io.apicurio.registry.storage.dto.SearchedGroupDto;
+import io.apicurio.registry.storage.impl.sql.mappers.SearchedGroupMapper;
 import io.apicurio.registry.util.DataImporter;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.tuple.Pair;
@@ -115,7 +118,6 @@ import io.apicurio.registry.storage.impl.sql.mappers.SearchedArtifactMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.SearchedVersionMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.StoredArtifactMapper;
 import io.apicurio.registry.types.ArtifactState;
-import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
@@ -471,16 +473,16 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     }
 
     /**
-     * @see RegistryStorage#createArtifact (java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.types.ArtifactType, io.apicurio.registry.content.ContentHandle)
+     * @see RegistryStorage#createArtifact (java.lang.String, java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.content.ContentHandle)
      */
     @Override
     @Transactional
-    public ArtifactMetaDataDto createArtifact(String groupId, String artifactId, String version, ArtifactType artifactType,
+    public ArtifactMetaDataDto createArtifact(String groupId, String artifactId, String version, String artifactType,
             ContentHandle content, List<ArtifactReferenceDto> references) throws ArtifactAlreadyExistsException, ArtifactNotFoundException, RegistryStorageException {
         return createArtifact(groupId, artifactId, version, artifactType, content, references, null);
     }
 
-    protected ArtifactMetaDataDto createArtifact(String groupId, String artifactId, String version, ArtifactType artifactType,
+    protected ArtifactMetaDataDto createArtifact(String groupId, String artifactId, String version, String artifactType,
             ContentHandle content, List<ArtifactReferenceDto> references, GlobalIdGenerator globalIdGenerator) throws ArtifactAlreadyExistsException, ArtifactNotFoundException, RegistryStorageException {
         return this.createArtifactWithMetadata(groupId, artifactId, version, artifactType, content, null, references, globalIdGenerator);
     }
@@ -488,7 +490,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     /**
      * Creates an artifact version by storing information in the versions table.
      */
-    private ArtifactVersionMetaDataDto createArtifactVersion(Handle handle, ArtifactType artifactType,
+    private ArtifactVersionMetaDataDto createArtifactVersion(Handle handle, String artifactType,
             boolean firstVersion, String groupId, String artifactId, String version, String name, String description, List<String> labels,
             Map<String, String> properties, String createdBy, Date createdOn, Long contentId,
             GlobalIdGenerator globalIdGenerator) {
@@ -611,7 +613,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
      * @param artifactType
      * @param content
      */
-    protected Long createOrUpdateContent(Handle handle, ArtifactType artifactType, ContentHandle content, List<ArtifactReferenceDto> references) {
+    protected Long createOrUpdateContent(Handle handle, String artifactType, ContentHandle content, List<ArtifactReferenceDto> references) {
         byte[] contentBytes = content.bytes();
         String contentHash = DigestUtils.sha256Hex(contentBytes);
         ContentHandle canonicalContent = this.canonicalizeContent(artifactType, content, references);
@@ -725,13 +727,13 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     @Override
     @Transactional
     public ArtifactMetaDataDto createArtifactWithMetadata(String groupId, String artifactId, String version,
-                                                          ArtifactType artifactType, ContentHandle content, EditableArtifactMetaDataDto metaData, List<ArtifactReferenceDto> references)
+                                                          String artifactType, ContentHandle content, EditableArtifactMetaDataDto metaData, List<ArtifactReferenceDto> references)
             throws ArtifactNotFoundException, ArtifactAlreadyExistsException, RegistryStorageException {
         return createArtifactWithMetadata(groupId, artifactId, version, artifactType, content, metaData, references, null);
     }
 
     protected ArtifactMetaDataDto createArtifactWithMetadata(String groupId, String artifactId, String version,
-            ArtifactType artifactType, ContentHandle content, EditableArtifactMetaDataDto metaData, List<ArtifactReferenceDto> references, GlobalIdGenerator globalIdGenerator)
+            String artifactType, ContentHandle content, EditableArtifactMetaDataDto metaData, List<ArtifactReferenceDto> references, GlobalIdGenerator globalIdGenerator)
             throws ArtifactNotFoundException, ArtifactAlreadyExistsException, RegistryStorageException {
 
         String createdBy = securityIdentity.getPrincipal().getName();
@@ -763,7 +765,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     }
 
     protected ArtifactMetaDataDto createArtifactWithMetadata(String groupId, String artifactId, String version,
-            ArtifactType artifactType, long contentId, String createdBy, Date createdOn, EditableArtifactMetaDataDto metaData,
+            String artifactType, long contentId, String createdBy, Date createdOn, EditableArtifactMetaDataDto metaData,
             GlobalIdGenerator globalIdGenerator) {
         log.debug("Inserting an artifact row for: {} {}", groupId, artifactId);
         try {
@@ -774,7 +776,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                       .bind(0, tenantContext.tenantId())
                       .bind(1, normalizeGroupId(groupId))
                       .bind(2, artifactId)
-                      .bind(3, artifactType.name())
+                      .bind(3, artifactType)
                       .bind(4, createdBy)
                       .bind(5, createdOn)
                       .execute();
@@ -964,12 +966,12 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
      * @see RegistryStorage#updateArtifact (java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.types.ArtifactType, io.apicurio.registry.content.ContentHandle)
      */
     @Override @Transactional
-    public ArtifactMetaDataDto updateArtifact(String groupId, String artifactId, String version, ArtifactType artifactType,
+    public ArtifactMetaDataDto updateArtifact(String groupId, String artifactId, String version, String artifactType,
             ContentHandle content, List<ArtifactReferenceDto> references) throws ArtifactNotFoundException, RegistryStorageException {
         return updateArtifact(groupId, artifactId, version, artifactType, content, references, null);
     }
 
-    protected ArtifactMetaDataDto updateArtifact(String groupId, String artifactId, String version, ArtifactType artifactType,
+    protected ArtifactMetaDataDto updateArtifact(String groupId, String artifactId, String version, String artifactType,
             ContentHandle content, List<ArtifactReferenceDto> references, GlobalIdGenerator globalIdGenerator) throws ArtifactNotFoundException, RegistryStorageException {
         return updateArtifactWithMetadata(groupId, artifactId, version, artifactType, content, null, references, globalIdGenerator);
     }
@@ -979,13 +981,13 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
      */
     @Override @Transactional
     public ArtifactMetaDataDto updateArtifactWithMetadata(String groupId, String artifactId, String version,
-            ArtifactType artifactType, ContentHandle content, EditableArtifactMetaDataDto metaData, List<ArtifactReferenceDto> references)
+            String artifactType, ContentHandle content, EditableArtifactMetaDataDto metaData, List<ArtifactReferenceDto> references)
             throws ArtifactNotFoundException, RegistryStorageException {
         return updateArtifactWithMetadata(groupId, artifactId, version, artifactType, content, metaData, references, null);
     }
 
     protected ArtifactMetaDataDto updateArtifactWithMetadata(String groupId, String artifactId, String version,
-            ArtifactType artifactType, ContentHandle content, EditableArtifactMetaDataDto metaData, List<ArtifactReferenceDto> references,
+            String artifactType, ContentHandle content, EditableArtifactMetaDataDto metaData, List<ArtifactReferenceDto> references,
             GlobalIdGenerator globalIdGenerator) throws ArtifactNotFoundException, RegistryStorageException {
 
         String createdBy = securityIdentity.getPrincipal().getName();
@@ -1006,7 +1008,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     }
 
     protected ArtifactMetaDataDto updateArtifactWithMetadata(String groupId, String artifactId, String version,
-            ArtifactType artifactType, long contentId, String createdBy, Date createdOn, EditableArtifactMetaDataDto metaData,
+            String artifactType, long contentId, String createdBy, Date createdOn, EditableArtifactMetaDataDto metaData,
             GlobalIdGenerator globalIdGenerator)
             throws ArtifactNotFoundException, RegistryStorageException {
 
@@ -1061,12 +1063,14 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
      */
     @Override
     public Set<String> getArtifactIds(Integer limit) {
+        //Set limit to max integer in case limit is null (not allowed)
+        final Integer adjustedLimit = limit == null ? Integer.MAX_VALUE : limit;
         log.debug("Getting the set of all artifact IDs");
         return handles.withHandleNoException( handle -> {
             String sql = sqlStatements.selectArtifactIds();
             List<String> ids = handle.createQuery(sql)
                     .bind(0, tenantContext.tenantId())
-                    .bind(1, limit)
+                    .bind(1, adjustedLimit)
                     .mapTo(String.class)
                     .list();
             return new TreeSet<String>(ids);
@@ -1307,7 +1311,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
         if (canonical) {
             final ArtifactMetaDataDto artifactMetaData = this.getArtifactMetaData(groupId, artifactId);
             final ContentWrapperDto contentWrapperDto = getArtifactByContentId(artifactMetaData.getContentId());
-            ArtifactType type = artifactMetaData.getType();
+            String type = artifactMetaData.getType();
             ContentHandle canonicalContent = this.canonicalizeContent(type, content, contentWrapperDto.getReferences());
             hash = DigestUtils.sha256Hex(canonicalContent.bytes());
         } else {
@@ -2319,7 +2323,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                       .bind(0, tenantContext.tenantId())
                       .bind(1, group.getGroupId())
                       .bind(2, group.getDescription())
-                      .bind(3, group.getArtifactsType() == null ? null : group.getArtifactsType().value())
+                      .bind(3, group.getArtifactsType())
                       .bind(4, group.getCreatedBy())
                       // TODO io.apicurio.registry.storage.dto.GroupMetaDataDto should not use raw numeric timestamps
                       .bind(5, group.getCreatedOn() == 0 ? new Date() : new Date(group.getCreatedOn()))
@@ -2346,7 +2350,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
             String sql = sqlStatements.updateGroup();
             int rows = handle.createUpdate(sql)
                   .bind(0, group.getDescription())
-                  .bind(1, group.getArtifactsType() == null ? null : group.getArtifactsType().value())
+                  .bind(1, group.getArtifactsType())
                   .bind(2, group.getModifiedBy())
                   .bind(3, group.getModifiedOn())
                   .bind(4, SqlUtil.serializeProperties(group.getProperties()))
@@ -2374,7 +2378,11 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
             if (rows == 0) {
                 throw new GroupNotFoundException(groupId);
             }
-            deleteArtifacts(groupId);
+            try {
+                deleteArtifacts(groupId);
+            } catch (ArtifactNotFoundException anfe) {
+                //Just ignore, group with no artifacts
+            }
             return null;
         });
     }
@@ -2538,7 +2546,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     /**
      * @see RegistryStorage#importData(io.apicurio.registry.storage.impexp.EntityInputStream, boolean, boolean)
      */
-    @Override @Transactional
+    @Override
     public void importData(EntityInputStream entities, boolean preserveGlobalId, boolean preserveContentId) throws RegistryStorageException {
         handles.withHandleNoException(handle -> {
             DataImporter dataImporter;
@@ -2995,6 +3003,107 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
         }
     }
 
+    @Override
+    public GroupSearchResultsDto searchGroups(Set<SearchFilter> filters, OrderBy orderBy, OrderDirection orderDirection, Integer offset, Integer limit) {
+
+        return handles.withHandleNoException( handle -> {
+            List<SqlStatementVariableBinder> binders = new LinkedList<>();
+
+            StringBuilder select = new StringBuilder();
+            StringBuilder where = new StringBuilder();
+            StringBuilder orderByQuery = new StringBuilder();
+            StringBuilder limitOffset = new StringBuilder();
+
+            // Formulate the SELECT clause for the artifacts query
+            select.append(
+                    "SELECT * FROM groups g ");
+
+            where.append("WHERE g.tenantId = ?");
+            binders.add((query, idx) -> {
+                query.bind(idx, tenantContext.tenantId());
+            });
+            // Formulate the WHERE clause for both queries
+
+            for (SearchFilter filter : filters) {
+                where.append(" AND (");
+                switch (filter.getType()) {
+                    case description:
+                        where.append("g.description LIKE ?");
+                        binders.add((query, idx) -> {
+                            query.bind(idx, "%" + filter.getStringValue() + "%");
+                        });
+                        break;
+                    case everything:
+                        where.append("("
+                                + "g.groupId LIKE ? OR "
+                                + "g.description LIKE ? "
+                                + ")");
+                        binders.add((query, idx) -> {
+                            query.bind(idx, "%" + filter.getStringValue() + "%");
+                        });
+                        binders.add((query, idx) -> {
+                            query.bind(idx, "%" + filter.getStringValue() + "%");
+                        });
+                        break;
+                    case group:
+                        where.append("(g.groupId = ?)");
+                        binders.add((query, idx) -> {
+                            query.bind(idx, normalizeGroupId(filter.getStringValue()));
+                        });
+                        break;
+                    default :
+                        break;
+                }
+                where.append(")");
+            }
+
+            // Add order by to artifact query
+            switch (orderBy) {
+                case name:
+                    orderByQuery.append(" ORDER BY g.groupId ");
+                    break;
+                case createdOn:
+                    orderByQuery.append(" ORDER BY g." + orderBy.name() + " ");
+                    break;
+                default:
+                    break;
+            }
+            orderByQuery.append(orderDirection.name());
+
+            // Add limit and offset to artifact query
+            limitOffset.append(" LIMIT ? OFFSET ?");
+
+            // Query for the artifacts
+            String groupsQuerySql = select + where.toString() + orderByQuery + limitOffset.toString();
+            Query groupsQuery = handle.createQuery(groupsQuerySql);
+            // Query for the total row count
+            String countSelect = "SELECT count(g.groupId) "
+                    + "FROM groups g ";
+
+            Query countQuery = handle.createQuery(countSelect + where.toString());
+
+            // Bind all query parameters
+            int idx = 0;
+            for (SqlStatementVariableBinder binder : binders) {
+                binder.bind(groupsQuery, idx);
+                binder.bind(countQuery, idx);
+                idx++;
+            }
+            groupsQuery.bind(idx++, limit);
+            groupsQuery.bind(idx++, offset);
+
+            // Execute artifact query
+            List<SearchedGroupDto> groups = groupsQuery.map(SearchedGroupMapper.instance).list();
+            // Execute count query
+            Integer count = countQuery.mapTo(Integer.class).one();
+
+            GroupSearchResultsDto results = new GroupSearchResultsDto();
+            results.setGroups(groups);
+            results.setCount(count);
+            return results;
+        });
+    }
+
     private void resolveReferences(Map<String, ContentHandle> resolvedReferences, List<ArtifactReferenceDto> references) {
         if (references != null && !references.isEmpty()) {
             for (ArtifactReferenceDto reference : references) {
@@ -3119,7 +3228,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                     .bind(0, tenantContext.tenantId())
                     .bind(1, normalizeGroupId(entity.groupId))
                     .bind(2, entity.artifactId)
-                    .bind(3, entity.artifactType.name())
+                    .bind(3, entity.artifactType)
                     .bind(4, entity.createdBy)
                     .bind(5, new Date(entity.createdOn))
                     .execute();
@@ -3240,7 +3349,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                 .bind(0, tenantContext().tenantId())
                 .bind(1, SqlUtil.normalizeGroupId(entity.groupId))
                 .bind(2, entity.description)
-                .bind(3, entity.artifactsType.name())
+                .bind(3, entity.artifactsType)
                 .bind(4, entity.createdBy)
                 .bind(5, new Date(entity.createdOn))
                 .bind(6, entity.modifiedBy)
@@ -3304,19 +3413,19 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
      * @param artifactType
      * @param content
      */
-    protected ContentHandle canonicalizeContent(ArtifactType artifactType, ContentHandle content, List<ArtifactReferenceDto> references) {
+    protected ContentHandle canonicalizeContent(String artifactType, ContentHandle content, List<ArtifactReferenceDto> references) {
         try {
             ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(artifactType);
             ContentCanonicalizer canonicalizer = provider.getContentCanonicalizer();
             ContentHandle canonicalContent = canonicalizer.canonicalize(content, resolveReferences(references));
             return canonicalContent;
         } catch (Exception e) {
-            log.debug("Failed to canonicalize content of type: {}", artifactType.name());
+            log.debug("Failed to canonicalize content of type: {}", artifactType);
             return content;
         }
     }
 
-    protected EditableArtifactMetaDataDto extractMetaData(ArtifactType artifactType, ContentHandle content) {
+    protected EditableArtifactMetaDataDto extractMetaData(String artifactType, ContentHandle content) {
         ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(artifactType);
         ContentExtractor extractor = provider.getContentExtractor();
         ExtractedMetaData emd = extractor.extract(content);
@@ -3414,4 +3523,6 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
         }
         return globalId;
     }
+
+
 }

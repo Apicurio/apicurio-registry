@@ -20,7 +20,6 @@ import java.io.File;
 import java.util.List;
 
 import io.apicurio.registry.rest.v2.beans.IfExists;
-import io.apicurio.registry.types.ArtifactType;
 
 /**
  * @author eric.wittmann@gmail.com
@@ -30,7 +29,7 @@ public class RegisterArtifact {
     private String groupId;
     private String artifactId;
     private String version;
-    private ArtifactType type;
+    private String type;
     private File file;
     private IfExists ifExists;
     private Boolean canonicalize;
@@ -116,14 +115,14 @@ public class RegisterArtifact {
     /**
      * @return the type
      */
-    public ArtifactType getType() {
+    public String getType() {
         return type;
     }
 
     /**
      * @param type the type to set
      */
-    public void setType(ArtifactType type) {
+    public void setType(String type) {
         this.type = type;
     }
 

@@ -26,12 +26,16 @@ import io.apicurio.registry.storage.decorator.RegistryStorageDecorator;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
-import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.storage.dto.GroupSearchResultsDto;
+import io.apicurio.registry.storage.dto.OrderBy;
+import io.apicurio.registry.storage.dto.OrderDirection;
+import io.apicurio.registry.storage.dto.SearchFilter;
 import io.apicurio.registry.types.RegistryException;
 import org.eclipse.microprofile.context.ThreadContext;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Supplier;
 import javax.enterprise.context.ApplicationScoped;
@@ -77,7 +81,7 @@ public class RegistryStorageLimitsEnforcer extends RegistryStorageDecorator {
      */
     @Override
     public ArtifactMetaDataDto createArtifact(String groupId, String artifactId,
-                                              String version, ArtifactType artifactType, ContentHandle content, List<ArtifactReferenceDto> references)
+                                              String version, String artifactType, ContentHandle content, List<ArtifactReferenceDto> references)
             throws ArtifactAlreadyExistsException, RegistryStorageException {
 
         ArtifactMetaDataDto dto = withLimitsCheck(() -> limitsService.canCreateArtifact(null, content))
@@ -91,7 +95,7 @@ public class RegistryStorageLimitsEnforcer extends RegistryStorageDecorator {
      */
     @Override
     public ArtifactMetaDataDto createArtifactWithMetadata(String groupId, String artifactId,
-            String version, ArtifactType artifactType, ContentHandle content,
+            String version, String artifactType, ContentHandle content,
             EditableArtifactMetaDataDto metaData, List<ArtifactReferenceDto> references)
             throws ArtifactAlreadyExistsException, RegistryStorageException {
 
@@ -106,7 +110,7 @@ public class RegistryStorageLimitsEnforcer extends RegistryStorageDecorator {
      */
     @Override
     public ArtifactMetaDataDto updateArtifact(String groupId, String artifactId,
-            String version, ArtifactType artifactType, ContentHandle content, List<ArtifactReferenceDto> references)
+            String version, String artifactType, ContentHandle content, List<ArtifactReferenceDto> references)
             throws ArtifactNotFoundException, RegistryStorageException {
 
         ArtifactMetaDataDto dto = withLimitsCheck(() -> limitsService.canCreateArtifactVersion(groupId, artifactId, null, content))
@@ -120,7 +124,7 @@ public class RegistryStorageLimitsEnforcer extends RegistryStorageDecorator {
      */
     @Override
     public ArtifactMetaDataDto updateArtifactWithMetadata(String groupId, String artifactId,
-            String version, ArtifactType artifactType, ContentHandle content,
+            String version, String artifactType, ContentHandle content,
             EditableArtifactMetaDataDto metaData, List<ArtifactReferenceDto> references) throws ArtifactNotFoundException, RegistryStorageException {
 
         ArtifactMetaDataDto dto = withLimitsCheck(() -> limitsService.canCreateArtifactVersion(groupId, artifactId, metaData, content))
@@ -195,6 +199,14 @@ public class RegistryStorageLimitsEnforcer extends RegistryStorageDecorator {
     @Override
     public Map<String, ContentHandle> resolveReferences(List<ArtifactReferenceDto> references) {
         return delegate.resolveReferences(references);
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.decorator.RegistryStorageDecorator#searchGroups(Set, OrderBy, OrderDirection, Integer, Integer)
+     */
+    @Override
+    public GroupSearchResultsDto searchGroups(Set<SearchFilter> filters, OrderBy orderBy, OrderDirection orderDirection, Integer offset, Integer limit) {
+        return delegate.searchGroups(filters, orderBy, orderDirection, offset, limit);
     }
 
     /**

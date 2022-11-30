@@ -23,6 +23,7 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.hasItems;
 
 import io.apicurio.registry.rest.client.exception.ArtifactNotFoundException;
+import io.apicurio.registry.rest.client.exception.ContentNotFoundException;
 import io.apicurio.registry.rest.v2.beans.Rule;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.tests.TestUtils;
@@ -170,6 +171,8 @@ public class SchemasConfluentIT extends ConfluentBaseIT {
 
         ConfluentSubjectsUtils.createSchema("{\"schema\": \"{\\\"type\\\": \\\"record\\\",\\\"name\\\": \\\"myrecord1\\\",\\\"fields\\\": [{\\\"name\\\": \\\"foo1\\\",\\\"type\\\": \\\"string\\\"}]}\"}\"", subjectName, 200);
 
+        TestUtils.waitFor("artifactCreated", Constants.POLL_INTERVAL, Constants.TIMEOUT_GLOBAL, () -> registryClient.getArtifactMetaData(null, subjectName) != null);
+
         String invalidSchema = "{\"schema\":\"{\\\"type\\\": \\\"bloop\\\"}\"}";
 
         Rule rule = new Rule();
@@ -221,7 +224,13 @@ public class SchemasConfluentIT extends ConfluentBaseIT {
 
         assertThat(1, is(confluentService.getAllSubjects().size()));
 
-        retryOp((rc) -> rc.getContentById(contentId));
+        TestUtils.waitFor("waiting for content to be created", Constants.POLL_INTERVAL, Constants.TIMEOUT_GLOBAL, () -> {
+            try {
+                return registryClient.getContentById(contentId) != null;
+            } catch (ContentNotFoundException cnfe) {
+                return false;
+            }
+        });
 
         TestUtils.waitFor("artifact created", Constants.POLL_INTERVAL, Constants.TIMEOUT_GLOBAL, () -> {
             try {

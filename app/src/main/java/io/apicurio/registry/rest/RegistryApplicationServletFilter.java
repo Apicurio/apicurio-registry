@@ -18,16 +18,15 @@ package io.apicurio.registry.rest;
 
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.apicurio.tenantmanager.api.datamodel.TenantStatusValue;
 import io.apicurio.registry.mt.MultitenancyProperties;
 import io.apicurio.registry.mt.TenantContext;
 import io.apicurio.registry.mt.TenantIdResolver;
 import io.apicurio.registry.services.DisabledApisMatcherService;
 import io.apicurio.registry.services.http.ErrorHttpResponse;
 import io.apicurio.registry.services.http.RegistryExceptionMapperService;
+import io.apicurio.tenantmanager.api.datamodel.TenantStatusValue;
 import org.slf4j.Logger;
 
-import java.io.IOException;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.servlet.Filter;
@@ -39,13 +38,14 @@ import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.core.MediaType;
+import java.io.IOException;
+import java.util.Optional;
 
 /**
- *
  * This Servlet Filter combines various functionalities that can be configured using config properties:
- *
+ * <p>
  * Multitenancy: the registry can accept per-tenant URLs, accepting requests like /t/{tenantId}/...rest of the api...
- *
+ * <p>
  * Disable APIs: it's possible to provide a list of regular expresions to disable API paths.
  * The list of regular expressions will be applied to all incoming requests, if any of them match the request will get a 404 response.
  * Note: this is implemented in a servlet to be able to disable the web UI (/ui), because the web is served with Servlets
@@ -80,22 +80,21 @@ public class RegistryApplicationServletFilter implements Filter {
      */
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
-
         StringBuilder rewriteContext = new StringBuilder();
-
         HttpServletRequest req = (HttpServletRequest) request;
         String requestURI = req.getRequestURI();
+
         if (requestURI != null) {
-            // TODO ensure tenant is authenticated at this point, because tenantIdResolver will fetch tenant's configuration from tenant-manager
-            boolean tenantResolved = false;
+            Optional<String> tenantIdOpt;
             try {
-                tenantResolved = tenantIdResolver.resolveTenantId(
+
+                tenantIdOpt = tenantIdResolver.resolveTenantId(
                         // Request URI
                         requestURI,
                         // Function to get an HTTP request header value
-                        (headerName) -> req.getHeader(headerName),
+                        req::getHeader,
                         // Function to get the serverName from the HTTP request
-                        () -> req.getServerName(),
+                        req::getServerName,
                         // Handler/callback to do some URL rewriting only if needed
                         (tenantId) -> {
                             String actualUri = requestURI.substring(tenantIdResolver.tenantPrefixLength(tenantId));
@@ -107,36 +106,32 @@ public class RegistryApplicationServletFilter implements Filter {
 
                             rewriteContext.append(actualUri);
                         });
-            } catch (Throwable e) {
-                ErrorHttpResponse res = exceptionMapper.mapException(e);
-                HttpServletResponse httpResponse = (HttpServletResponse) response;
-                httpResponse.reset();
-                httpResponse.setStatus(res.getStatus());
-                httpResponse.setContentType(MediaType.APPLICATION_JSON);
-
-                getMapper().writeValue(httpResponse.getOutputStream(), res.getError());
-
+            } catch (Throwable throwable) {
+                mapException(response, throwable);
                 //important to return, to stop the filters chain
-                tenantContext.clearContext();
                 return;
             }
 
 
-            boolean rewriteRequest = tenantResolved && rewriteContext.length() != 0;
+            boolean rewriteRequest = tenantIdOpt.isPresent() && rewriteContext.length() != 0;
             String evaluatedURI = requestURI;
             if (rewriteRequest) {
                 evaluatedURI = rewriteContext.toString();
             }
 
-            var tenantStatus = tenantContext.getTenantStatus();
-            if (mtProperties.isMultitenancyEnabled() && tenantStatus != TenantStatusValue.READY) {
-                log.debug("Request {} is rejected because the tenant is not ready. Status is {}",
-                        requestURI, tenantStatus.value());
-                HttpServletResponse httpResponse = (HttpServletResponse) response;
-                httpResponse.reset();
-                httpResponse.setStatus(HttpServletResponse.SC_NOT_FOUND);
-                //important to return, to stop the filters chain
-                tenantContext.clearContext();
+            try {
+                var tenantStatus = tenantContext.getTenantStatus();
+                if (mtProperties.isMultitenancyEnabled() && tenantStatus != TenantStatusValue.READY) {
+                    log.debug("Request {} is rejected because the tenant is not ready. Status is {}",
+                            requestURI, tenantStatus.value());
+                    HttpServletResponse httpResponse = (HttpServletResponse) response;
+                    httpResponse.reset();
+                    httpResponse.setStatus(HttpServletResponse.SC_NOT_FOUND);
+                    //important to return, to stop the filters chain
+                    return;
+                }
+            } catch (Throwable throwable) {
+                mapException(response, throwable);
                 return;
             }
 
@@ -147,20 +142,27 @@ public class RegistryApplicationServletFilter implements Filter {
                 httpResponse.reset();
                 httpResponse.setStatus(HttpServletResponse.SC_NOT_FOUND);
                 //important to return, to stop the filters chain
-                tenantContext.clearContext();
                 return;
             } else if (rewriteRequest) {
                 RequestDispatcher dispatcher = req.getRequestDispatcher(rewriteContext.toString());
                 dispatcher.forward(req, response);
                 //important to return, to stop the filters chain
-                log.debug("Cleaning tenant context");
-                tenantContext.clearContext();
                 return;
             }
 
         }
 
         chain.doFilter(request, response);
+    }
+
+    private void mapException(ServletResponse response, Throwable throwable) throws IOException {
+        ErrorHttpResponse res = exceptionMapper.mapException(throwable);
+        HttpServletResponse httpResponse = (HttpServletResponse) response;
+        httpResponse.reset();
+        httpResponse.setStatus(res.getStatus());
+        httpResponse.setContentType(MediaType.APPLICATION_JSON);
+
+        getMapper().writeValue(httpResponse.getOutputStream(), res.getError());
     }
 
     private synchronized ObjectMapper getMapper() {

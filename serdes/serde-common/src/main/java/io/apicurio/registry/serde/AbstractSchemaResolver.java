@@ -28,7 +28,6 @@ import io.apicurio.registry.rest.v2.beans.VersionMetaData;
 import io.apicurio.registry.serde.data.KafkaSerdeMetadata;
 import io.apicurio.registry.serde.data.KafkaSerdeRecord;
 import io.apicurio.registry.serde.strategy.ArtifactReference;
-import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.rest.client.auth.Auth;
 import io.apicurio.rest.client.auth.BasicAuth;
@@ -77,7 +76,7 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
              * @see io.apicurio.registry.serde.SchemaParser#artifactType()
              */
             @Override
-            public ArtifactType artifactType() {
+            public String artifactType() {
                 return schemaMapper.artifactType();
             }
 

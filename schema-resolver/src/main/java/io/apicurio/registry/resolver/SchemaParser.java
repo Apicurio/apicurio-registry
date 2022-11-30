@@ -17,7 +17,6 @@
 package io.apicurio.registry.resolver;
 
 import io.apicurio.registry.resolver.data.Record;
-import io.apicurio.registry.types.ArtifactType;
 
 import java.util.Map;
 
@@ -26,7 +25,7 @@ import java.util.Map;
  */
 public interface SchemaParser<S, U> {
 
-    public ArtifactType artifactType();
+    public String artifactType();
 
     public S parseSchema(byte[] rawSchema, Map<String, ParsedSchema<S>> resolvedReferences);
 

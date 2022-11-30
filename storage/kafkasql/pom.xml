@@ -46,6 +46,11 @@
             <groupId>io.strimzi</groupId>
             <artifactId>kafka-oauth-client</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>redpanda</artifactId>
+            <scope>test</scope>
+        </dependency>
 
         <!-- Test Only -->
         <dependency>
@@ -90,7 +95,6 @@
                                 <artifactItem>
                                     <groupId>com.h2database</groupId>
                                     <artifactId>h2</artifactId>
-                                    <version>${h2.version}</version>
                                     <type>jar</type>
                                     <outputDirectory>${project.build.directory}</outputDirectory>
                                     <destFileName>h2.jar</destFileName>

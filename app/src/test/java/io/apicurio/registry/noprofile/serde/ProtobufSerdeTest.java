@@ -56,7 +56,7 @@ public class ProtobufSerdeTest extends AbstractResourceTestBase {
 
     @BeforeEach
     public void createIsolatedClient() {
-        restClient = RegistryClientFactory.create(TestUtils.getRegistryV2ApiUrl());
+        restClient = RegistryClientFactory.create(TestUtils.getRegistryV2ApiUrl(testPort));
     }
 
     //FIXME

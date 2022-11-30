@@ -18,7 +18,10 @@
 package io.apicurio.registry.rest.v2;
 
 import io.apicurio.registry.rest.v2.beans.ArtifactReference;
+import io.apicurio.registry.rest.v2.beans.GroupMetaData;
+import io.apicurio.registry.rest.v2.beans.GroupSearchResults;
 import io.apicurio.registry.rest.v2.beans.SearchedArtifact;
+import io.apicurio.registry.rest.v2.beans.SearchedGroup;
 import io.apicurio.registry.rest.v2.beans.SearchedVersion;
 import io.apicurio.registry.rest.v2.beans.SortOrder;
 import io.apicurio.registry.rest.v2.beans.ArtifactSearchResults;
@@ -28,10 +31,11 @@ import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
+import io.apicurio.registry.storage.dto.GroupMetaDataDto;
+import io.apicurio.registry.storage.dto.GroupSearchResultsDto;
 import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v2.beans.VersionMetaData;
-import io.apicurio.registry.types.ArtifactType;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -51,7 +55,7 @@ public final class V2ApiUtil {
      * @param dto
      */
     public static final ArtifactMetaData dtoToMetaData(String groupId, String artifactId,
-            ArtifactType artifactType, ArtifactMetaDataDto dto) {
+            String artifactType, ArtifactMetaDataDto dto) {
         ArtifactMetaData metaData = new ArtifactMetaData();
         metaData.setCreatedBy(dto.getCreatedBy());
         metaData.setCreatedOn(new Date(dto.getCreatedOn()));
@@ -89,7 +93,7 @@ public final class V2ApiUtil {
      * @param artifactType
      * @param dto
      */
-    public static final ArtifactMetaData dtoToMetaData(String groupId, String artifactId, ArtifactType artifactType,
+    public static final ArtifactMetaData dtoToMetaData(String groupId, String artifactId, String artifactType,
                                                        ArtifactVersionMetaDataDto dto) {
         ArtifactMetaData metaData = new ArtifactMetaData();
         metaData.setCreatedBy(dto.getCreatedBy());
@@ -123,7 +127,7 @@ public final class V2ApiUtil {
      * @param dto
      */
     public static final VersionMetaData dtoToVersionMetaData(String groupId, String artifactId,
-            ArtifactType artifactType, ArtifactMetaDataDto dto) {
+            String artifactType, ArtifactMetaDataDto dto) {
         VersionMetaData metaData = new VersionMetaData();
         metaData.setGroupId(groupId);
         metaData.setId(artifactId);
@@ -149,7 +153,7 @@ public final class V2ApiUtil {
      * @param amd
      */
     public static final VersionMetaData dtoToVersionMetaData(String groupId, String artifactId,
-            ArtifactType artifactType, ArtifactMetaData amd) {
+            String artifactType, ArtifactMetaData amd) {
         VersionMetaData metaData = new VersionMetaData();
         metaData.setGroupId(groupId);
         metaData.setId(artifactId);
@@ -173,7 +177,7 @@ public final class V2ApiUtil {
      * @param artifactType
      * @param dto
      */
-    public static final VersionMetaData dtoToVersionMetaData(String groupId, String artifactId, ArtifactType artifactType,
+    public static final VersionMetaData dtoToVersionMetaData(String groupId, String artifactId, String artifactType,
                                                              ArtifactVersionMetaDataDto dto) {
         VersionMetaData metaData = new VersionMetaData();
         metaData.setGroupId(groupId);
@@ -253,6 +257,23 @@ public final class V2ApiUtil {
         return results;
     }
 
+    public static GroupSearchResults dtoToSearchResults(GroupSearchResultsDto dto) {
+        GroupSearchResults results = new GroupSearchResults();
+        results.setCount((int) dto.getCount());
+        results.setGroups(new ArrayList<>(dto.getGroups().size()));
+        dto.getGroups().forEach(group -> {
+            SearchedGroup sg = new SearchedGroup();
+            sg.setCreatedBy(group.getCreatedBy());
+            sg.setCreatedOn(group.getCreatedOn());
+            sg.setDescription(group.getDescription());
+            sg.setId(group.getId());
+            sg.setModifiedBy(group.getModifiedBy());
+            sg.setModifiedOn(group.getModifiedOn());
+            results.getGroups().add(sg);
+        });
+        return results;
+    }
+
     public static VersionSearchResults dtoToSearchResults(VersionSearchResultsDto dto) {
         VersionSearchResults results = new VersionSearchResults();
         results.setCount((int) dto.getCount());
@@ -291,5 +312,17 @@ public final class V2ApiUtil {
         artifactReference.setVersion(reference.getVersion());
         artifactReference.setArtifactId(reference.getArtifactId());
         return artifactReference;
+    }
+
+    public static GroupMetaData groupDtoToGroup(GroupMetaDataDto dto) {
+        GroupMetaData group = new GroupMetaData();
+        group.setId(dto.getGroupId());
+        group.setDescription(dto.getDescription());
+        group.setCreatedBy(dto.getCreatedBy());
+        group.setModifiedBy(dto.getModifiedBy());
+        group.setCreatedOn(new Date(dto.getCreatedOn()));
+        group.setModifiedOn(new Date(dto.getModifiedOn()));
+        group.setProperties(dto.getProperties());
+        return group;
     }
 }

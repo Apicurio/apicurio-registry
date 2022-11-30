@@ -25,6 +25,8 @@ import java.util.concurrent.ThreadLocalRandom;
 
 import io.apicurio.registry.rest.v2.beans.ArtifactOwner;
 import io.apicurio.registry.rest.v2.beans.ArtifactReference;
+import io.apicurio.registry.rest.v2.beans.GroupMetaData;
+import io.apicurio.registry.rest.v2.beans.GroupSearchResults;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,7 +47,6 @@ import io.apicurio.registry.rest.v2.beans.UpdateState;
 import io.apicurio.registry.rest.v2.beans.UserInfo;
 import io.apicurio.registry.rest.v2.beans.VersionMetaData;
 import io.apicurio.registry.rest.v2.beans.VersionSearchResults;
-import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RoleType;
 import io.apicurio.registry.types.RuleType;
 
@@ -414,12 +415,12 @@ public class LoadBalanceRegistryClient implements RegistryClient {
      */
     @Override
     public ArtifactMetaData createArtifact(String groupId, String artifactId, String version,
-            ArtifactType artifactType, IfExists ifExists, Boolean canonical, String name, String description, String contentType, String fromURL, String artifactSHA, InputStream data) {
+            String artifactType, IfExists ifExists, Boolean canonical, String name, String description, String contentType, String fromURL, String artifactSHA, InputStream data) {
         return getTarget().createArtifact(groupId, artifactId, version, artifactType, ifExists, canonical, name, description, contentType, fromURL, artifactSHA, data);
     }
 
     @Override
-    public ArtifactMetaData createArtifact(String groupId, String artifactId, String version, ArtifactType artifactType, IfExists ifExists, Boolean canonical, String artifactName, String artifactDescription, String contentType, String fromURL, String artifactSHA, InputStream data, List<ArtifactReference> artifactReferences) {
+    public ArtifactMetaData createArtifact(String groupId, String artifactId, String version, String artifactType, IfExists ifExists, Boolean canonical, String artifactName, String artifactDescription, String contentType, String fromURL, String artifactSHA, InputStream data, List<ArtifactReference> artifactReferences) {
         return getTarget().createArtifact(groupId, artifactId, version, artifactType, ifExists, canonical, artifactName, artifactDescription, contentType, fromURL, artifactSHA, data, artifactReferences);
     }
 
@@ -457,9 +458,9 @@ public class LoadBalanceRegistryClient implements RegistryClient {
      * @see io.apicurio.registry.rest.client.RegistryClient#createArtifact(java.lang.String, java.lang.String, java.lang.String, java.io.InputStream)
      */
     @Override
-    public ArtifactMetaData createArtifact(String groupId, String artifactId, String version,
+    public ArtifactMetaData createArtifactWithVersion(String groupId, String artifactId, String version,
             InputStream data) {
-        return getTarget().createArtifact(groupId, artifactId, version, data);
+        return getTarget().createArtifactWithVersion(groupId, artifactId, version, data);
     }
 
     /**
@@ -471,7 +472,7 @@ public class LoadBalanceRegistryClient implements RegistryClient {
      * @see io.apicurio.registry.rest.client.RegistryClient#createArtifact(java.lang.String, java.lang.String, io.apicurio.registry.types.ArtifactType, java.io.InputStream)
      */
     @Override
-    public ArtifactMetaData createArtifact(String groupId, String artifactId, ArtifactType artifactType,
+    public ArtifactMetaData createArtifact(String groupId, String artifactId, String artifactType,
             InputStream data) {
         return getTarget().createArtifact(groupId, artifactId, artifactType, data);
     }
@@ -486,7 +487,7 @@ public class LoadBalanceRegistryClient implements RegistryClient {
      * @see io.apicurio.registry.rest.client.RegistryClient#createArtifact(java.lang.String, java.lang.String, io.apicurio.registry.types.ArtifactType, io.apicurio.registry.rest.v2.beans.IfExists, java.io.InputStream)
      */
     @Override
-    public ArtifactMetaData createArtifact(String groupId, String artifactId, ArtifactType artifactType,
+    public ArtifactMetaData createArtifact(String groupId, String artifactId, String artifactType,
             IfExists ifExists, InputStream data) {
         return getTarget().createArtifact(groupId, artifactId, artifactType, ifExists, data);
     }
@@ -498,6 +499,26 @@ public class LoadBalanceRegistryClient implements RegistryClient {
     @Override
     public void deleteArtifactsInGroup(String groupId) {
         getTarget().deleteArtifactsInGroup(groupId);
+    }
+
+    @Override
+    public void createArtifactGroup(GroupMetaData groupMetaData) {
+        getTarget().createArtifactGroup(groupMetaData);
+    }
+
+    @Override
+    public void deleteArtifactGroup(String groupId) {
+        getTarget().deleteArtifactGroup(groupId);
+    }
+
+    @Override
+    public GroupMetaData getArtifactGroup(String groupId) {
+        return getTarget().getArtifactGroup(groupId);
+    }
+
+    @Override
+    public GroupSearchResults listGroups(SortBy orderBy, SortOrder order, Integer offset, Integer limit) {
+        return getTarget().listGroups(orderBy, order, offset, limit);
     }
 
     /**

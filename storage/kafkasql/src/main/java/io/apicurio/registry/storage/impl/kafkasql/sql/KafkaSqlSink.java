@@ -5,6 +5,7 @@ import java.util.UUID;
 import java.util.function.Supplier;
 
 import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.context.control.ActivateRequestContext;
 import javax.inject.Inject;
 
 import io.apicurio.registry.storage.dto.ArtifactOwnerDto;
@@ -23,7 +24,6 @@ import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
 import io.apicurio.registry.storage.RegistryStorageException;
 import io.apicurio.registry.storage.dto.GroupMetaDataDto;
-import io.apicurio.registry.storage.impl.kafkasql.KafkaSqlConfiguration;
 import io.apicurio.registry.storage.impl.kafkasql.KafkaSqlCoordinator;
 import io.apicurio.registry.storage.impl.kafkasql.KafkaSqlRegistryStorage;
 import io.apicurio.registry.storage.impl.kafkasql.KafkaSqlSubmitter;
@@ -82,9 +82,6 @@ public class KafkaSqlSink {
     KafkaSqlStore sqlStore;
 
     @Inject
-    KafkaSqlConfiguration configuration;
-
-    @Inject
     KafkaSqlSubmitter submitter;
 
     @Inject
@@ -104,6 +101,7 @@ public class KafkaSqlSink {
      *
      * @param record
      */
+    @ActivateRequestContext
     public void processMessage(ConsumerRecord<MessageKey, MessageValue> record) {
         UUID requestId = extractUuid(record);
         log.debug("Processing Kafka message with UUID: {}", requestId);

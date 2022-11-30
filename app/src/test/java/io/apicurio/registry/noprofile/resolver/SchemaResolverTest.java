@@ -55,7 +55,7 @@ public class SchemaResolverTest extends AbstractResourceTestBase {
 
     @BeforeEach
     public void createIsolatedClient() {
-        restClient = RegistryClientFactory.create(TestUtils.getRegistryV2ApiUrl());
+        restClient = RegistryClientFactory.create(TestUtils.getRegistryV2ApiUrl(testPort));
     }
 
     @Test
@@ -86,7 +86,7 @@ public class SchemaResolverTest extends AbstractResourceTestBase {
             }
 
             @Override
-            public ArtifactType artifactType() {
+            public String artifactType() {
                 return ArtifactType.AVRO;
             }
         });

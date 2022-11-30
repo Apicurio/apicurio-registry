@@ -62,6 +62,7 @@ import io.apicurio.tests.utils.CustomTestsUtils.ArtifactData;
 @DisplayNameGeneration(SimpleDisplayName.class)
 @TestInstance(Lifecycle.PER_CLASS)
 @Tag(Constants.DB_UPGRADE)
+@Tag(Constants.SQL)
 public class SqlStorageUpgradeIT implements TestSeparator, Constants {
 
     @Test
@@ -111,11 +112,6 @@ public class SqlStorageUpgradeIT implements TestSeparator, Constants {
     @Test
     public void testStorageUpgradeProtobufUpgraderSql() throws Exception {
         testStorageUpgradeProtobufUpgrader("protobufCanonicalHashSql", RegistryStorageType.sql);
-    }
-
-    @Test
-    public void testStorageUpgradeProtobufUpgraderKafkaSql() throws Exception {
-        testStorageUpgradeProtobufUpgrader("protobufCanonicalHashKafkaSql", RegistryStorageType.kafkasql);
     }
 
     public void testStorageUpgradeProtobufUpgrader(String testName, RegistryStorageType storage) throws Exception {
@@ -174,7 +170,7 @@ public class SqlStorageUpgradeIT implements TestSeparator, Constants {
             assertEquals(3, searchResults.getCount());
 
             var protobufs = searchResults.getArtifacts().stream()
-                .filter(ar -> ar.getType().name().equals(ArtifactType.PROTOBUF.name()))
+                .filter(ar -> ar.getType().equals(ArtifactType.PROTOBUF))
                 .collect(Collectors.toList());
 
             System.out.println("Protobuf artifacts are " + protobufs.size());

@@ -18,7 +18,6 @@
 package io.apicurio.registry.storage.dto;
 
 import io.apicurio.registry.types.ArtifactState;
-import io.apicurio.registry.types.ArtifactType;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
@@ -48,7 +47,7 @@ public class ArtifactMetaDataDto {
     private int versionId;
     private long globalId;
     private long contentId;
-    private ArtifactType type;
+    private String type;
     private ArtifactState state;
     private List<String> labels;
     private Map<String, String> properties;
@@ -146,14 +145,14 @@ public class ArtifactMetaDataDto {
     /**
      * @return the type
      */
-    public ArtifactType getType() {
+    public String getType() {
         return type;
     }
 
     /**
      * @param type the type to set
      */
-    public void setType(ArtifactType type) {
+    public void setType(String type) {
         this.type = type;
     }
 

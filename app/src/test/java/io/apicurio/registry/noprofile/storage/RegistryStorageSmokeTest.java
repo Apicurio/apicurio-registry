@@ -93,7 +93,7 @@ public class RegistryStorageSmokeTest extends AbstractResourceTestBase {
     @Test
     public void testArtifactsAndMeta() throws Exception {
         String artifactId1 = TestUtils.generateArtifactId();
-        createArtifact(artifactId1, ArtifactType.JSON, "{}");
+        createArtifact(artifactId1, "JSON", "{}");
 
         int size = getStorage().getArtifactIds(null).size();
 

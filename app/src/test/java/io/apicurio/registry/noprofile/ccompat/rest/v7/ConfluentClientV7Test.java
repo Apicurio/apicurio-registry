@@ -48,7 +48,7 @@ public class ConfluentClientV7Test extends ConfluentClientTest {
     public SchemaRegistryClient buildClient() {
         final List<SchemaProvider> schemaProviders = Arrays
                 .asList(new JsonSchemaProvider(), new AvroSchemaProvider(), new ProtobufSchemaProvider());
-        return new CachedSchemaRegistryClient(new RestService("http://localhost:8081/apis/ccompat/v7"), 3, schemaProviders, null, null);
+        return new CachedSchemaRegistryClient(new RestService("http://localhost:" + testPort + "/apis/ccompat/v7"), 3, schemaProviders, null, null);
     }
 
     @Test
@@ -61,7 +61,7 @@ public class ConfluentClientV7Test extends ConfluentClientTest {
 
         final Map<String, Object> config = new HashMap<>();
         config.put(KafkaProtobufSerializerConfig.AUTO_REGISTER_SCHEMAS, true);
-        config.put(KafkaProtobufSerializerConfig.SCHEMA_REGISTRY_URL_CONFIG, "http://localhost:8081/apis/ccompat/v7");
+        config.put(KafkaProtobufSerializerConfig.SCHEMA_REGISTRY_URL_CONFIG, "http://localhost:" + testPort + "/apis/ccompat/v7");
         config.put(KafkaProtobufDeserializerConfig.SPECIFIC_PROTOBUF_VALUE_TYPE, TestCmmn.UUID.class.getName());
 
 

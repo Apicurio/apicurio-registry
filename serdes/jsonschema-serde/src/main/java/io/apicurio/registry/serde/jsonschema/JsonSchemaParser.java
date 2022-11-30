@@ -30,7 +30,7 @@ public class JsonSchemaParser<T> implements SchemaParser<JsonSchema, T> {
      * @see io.apicurio.registry.serde.SchemaParser#artifactType()
      */
     @Override
-    public ArtifactType artifactType() {
+    public String artifactType() {
         return ArtifactType.JSON;
     }
 

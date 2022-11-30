@@ -26,7 +26,6 @@ import io.apicurio.registry.ccompat.dto.SubjectVersion;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.dto.StoredArtifactDto;
-import io.apicurio.registry.types.ArtifactType;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -48,19 +47,19 @@ public class FacadeConverter {
         return convert(subject, storedArtifact, null);
     }
 
-    public Schema convert(String subject, StoredArtifactDto storedArtifact, ArtifactType artifactType) {
+    public Schema convert(String subject, StoredArtifactDto storedArtifact, String artifactType) {
         return new Schema(
                 convertUnsigned(cconfig.legacyIdModeEnabled.get() ? storedArtifact.getGlobalId() : storedArtifact.getContentId()),
                 subject,
                 convertUnsigned(storedArtifact.getVersionId()),
                 storedArtifact.getContent().content(),
-                artifactType != null ? artifactType.value() : null,
+                artifactType,
                 storedArtifact.getReferences().stream().map(this::convert).collect(Collectors.toList())
         );
     }
 
-    public SchemaInfo convert(ContentHandle content, ArtifactType artifactType, List<ArtifactReferenceDto> references) {
-        return new SchemaInfo(content.content(), artifactType.value(), references.stream().map(this::convert).collect(Collectors.toList()));
+    public SchemaInfo convert(ContentHandle content, String artifactType, List<ArtifactReferenceDto> references) {
+        return new SchemaInfo(content.content(), artifactType, references.stream().map(this::convert).collect(Collectors.toList()));
     }
 
     public SubjectVersion convert(String artifactId, Number version) {

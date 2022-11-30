@@ -58,6 +58,10 @@ public class JWKSMockServer implements QuarkusTestResourceLifecycleManager {
     public static String BASIC_USER = "sr-test-user";
     public static String BASIC_PASSWORD = "sr-test-password";
 
+    public static String BASIC_USER_A = "sr-test-user-a";
+    public static String BASIC_USER_B = "sr-test-user-b";
+
+
     @Override
     public Map<String, String> start() {
 
@@ -108,10 +112,39 @@ public class JWKSMockServer implements QuarkusTestResourceLifecycleManager {
                         .withHeader("Content-Type", "application/json")
                         .withBody("{\n" +
                                 "  \"access_token\": \""
-                                + generateJwtToken(ADMIN_CLIENT_ID) + "\",\n" +
+                                + generateJwtToken(ADMIN_CLIENT_ID, null) + "\",\n" +
                                 "  \"refresh_token\": \"07e08903-1263-4dd1-9fd1-4a59b0db5283\",\n" +
                                 "  \"token_type\": \"bearer\"\n" +
                                 "}")));
+
+        //Stub for basic user a
+        server.stubFor(WireMock.post("/auth/realms/" + realm + "/protocol/openid-connect/token/")
+                .withRequestBody(WireMock.containing("grant_type=client_credentials"))
+                .withRequestBody(WireMock.containing("client_id=" + BASIC_USER_A))
+                .withRequestBody(WireMock.containing("client_secret=" + BASIC_PASSWORD))
+                .willReturn(WireMock.aResponse()
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\n" +
+                                "  \"access_token\": \""
+                                + generateJwtToken(ADMIN_CLIENT_ID, "aaa") + "\",\n" +
+                                "  \"refresh_token\": \"07e08903-1263-4dd1-9fd1-4a59b0db5283\",\n" +
+                                "  \"token_type\": \"bearer\"\n" +
+                                "}")));
+
+        //Stub for basic user b
+        server.stubFor(WireMock.post("/auth/realms/" + realm + "/protocol/openid-connect/token/")
+                .withRequestBody(WireMock.containing("grant_type=client_credentials"))
+                .withRequestBody(WireMock.containing("client_id=" + BASIC_USER_B))
+                .withRequestBody(WireMock.containing("client_secret=" + BASIC_PASSWORD))
+                .willReturn(WireMock.aResponse()
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\n" +
+                                "  \"access_token\": \""
+                                + generateJwtToken(ADMIN_CLIENT_ID, "bbb") + "\",\n" +
+                                "  \"refresh_token\": \"07e08903-1263-4dd1-9fd1-4a59b0db5283\",\n" +
+                                "  \"token_type\": \"bearer\"\n" +
+                                "}")));
+
 
         //Wrong credentials stub
         server.stubFor(WireMock.post("/auth/realms/" + realm + "/protocol/openid-connect/token/")
@@ -150,7 +183,7 @@ public class JWKSMockServer implements QuarkusTestResourceLifecycleManager {
                         + "}");
     }
 
-    private String generateJwtToken(String userName) {
+    private String generateJwtToken(String userName, String orgId) {
         var b = Jwt.preferredUserName(userName);
 
         if (userName.equals(ADMIN_CLIENT_ID)) {
@@ -161,6 +194,10 @@ public class JWKSMockServer implements QuarkusTestResourceLifecycleManager {
             b.claim("groups", "sr-developer");
         } else if (userName.equals(READONLY_CLIENT_ID)) {
             b.claim("groups", "sr-readonly");
+        }
+
+        if (orgId != null) {
+            b.claim("rh-org-id", orgId);
         }
 
         return b.jws()
@@ -176,7 +213,7 @@ public class JWKSMockServer implements QuarkusTestResourceLifecycleManager {
                         .withHeader("Content-Type", "application/json")
                         .withBody("{\n" +
                                 "  \"access_token\": \""
-                                + generateJwtToken(client) + "\",\n" +
+                                + generateJwtToken(client, null) + "\",\n" +
                                 "  \"refresh_token\": \"07e08903-1263-4dd1-9fd1-4a59b0db5283\",\n" +
                                 "  \"token_type\": \"bearer\"\n" +
                                 "}")));

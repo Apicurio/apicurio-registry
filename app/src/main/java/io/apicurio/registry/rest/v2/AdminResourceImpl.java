@@ -44,6 +44,7 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import io.apicurio.registry.rest.v2.beans.ArtifactTypeInfo;
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
@@ -86,6 +87,7 @@ import io.apicurio.registry.storage.impexp.EntityInputStream;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.types.RoleType;
 import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 import io.apicurio.registry.utils.impexp.Entity;
 import io.apicurio.registry.utils.impexp.EntityReader;
 
@@ -114,6 +116,9 @@ public class AdminResourceImpl implements AdminResource {
     DynamicConfigPropertyIndex dynamicPropertyIndex;
 
     @Inject
+    ArtifactTypeUtilProviderFactory factory;
+
+    @Inject
     Config config;
 
     @Inject
@@ -126,6 +131,24 @@ public class AdminResourceImpl implements AdminResource {
     @ConfigProperty(name = "registry.download.href.ttl", defaultValue = "30")
     @Info(category = "download", description = "Download link expiry", availableSince = "2.1.2.Final")
     Supplier<Long> downloadHrefTtl;
+
+    /**
+     * @see io.apicurio.registry.rest.v2.AdminResource#listArtifactTypes()
+     */
+    @Override
+    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Read)
+    public List<ArtifactTypeInfo> listArtifactTypes() {
+        return factory
+                .getAllArtifactTypes()
+                .stream()
+                .map(t -> {
+                    ArtifactTypeInfo ati = new ArtifactTypeInfo();
+                    ati.setName(t);
+                    return ati;
+                })
+                .collect(Collectors.toList());
+
+    }
 
     /**
      * @see io.apicurio.registry.rest.v2.AdminResource#listGlobalRules()
@@ -307,7 +330,8 @@ public class AdminResourceImpl implements AdminResource {
     @Audited(extractParameters = {"0", KEY_FOR_BROWSER})
     @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
     public Response exportData(Boolean forBrowser) {
-        if (forBrowser != null && forBrowser) {
+        String acceptHeader = request.getHeader("Accept");
+        if (Boolean.TRUE.equals(forBrowser) || MediaType.APPLICATION_JSON.equals(acceptHeader)) {
             long expires = System.currentTimeMillis() + (downloadHrefTtl.get() * 1000);
             DownloadContextDto downloadCtx = DownloadContextDto.builder().type(DownloadContextType.EXPORT).expires(expires).build();
             String downloadId = storage.createDownload(downloadCtx);

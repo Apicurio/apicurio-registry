@@ -61,7 +61,7 @@ class MetadataIT extends ApicurioV2BaseIT {
         assertThat(artifactMetaData.getModifiedOn().getTime(), OrderingComparison.greaterThan(0L));
         assertThat(artifactMetaData.getId(), is(artifactId));
         assertThat(artifactMetaData.getVersion(), is("1"));
-        assertThat(artifactMetaData.getType().value(), is("AVRO"));
+        assertThat(artifactMetaData.getType(), is("AVRO"));
 
         EditableMetaData emd = new EditableMetaData();
 
@@ -76,7 +76,7 @@ class MetadataIT extends ApicurioV2BaseIT {
 
             assertThat(amd.getId(), is(artifactId));
             assertThat(amd.getVersion(), is("1"));
-            assertThat(amd.getType().value(), is("AVRO"));
+            assertThat(amd.getType(), is("AVRO"));
             assertThat(amd.getDescription(), is("The description of the artifact."));
             assertThat(amd.getName(), is("Artifact Updated Name"));
         });
@@ -105,7 +105,7 @@ class MetadataIT extends ApicurioV2BaseIT {
         LOGGER.info("Got metadata of artifact with ID {}: {}", artifactId, versionMetaData);
 
         assertThat(versionMetaData.getVersion(), is("2"));
-        assertThat(versionMetaData.getType().value(), is("AVRO"));
+        assertThat(versionMetaData.getType(), is("AVRO"));
 
         EditableMetaData emd = new EditableMetaData();
 
@@ -118,7 +118,7 @@ class MetadataIT extends ApicurioV2BaseIT {
             ArtifactMetaData artifactMetaData = rc.getArtifactMetaData(groupId, artifactId);
             LOGGER.info("Got metadata of artifact with ID {}: {}", artifactId, artifactMetaData);
             assertThat(artifactMetaData.getVersion(), is("2"));
-            assertThat(artifactMetaData.getType().value(), is("AVRO"));
+            assertThat(artifactMetaData.getType(), is("AVRO"));
             assertThat(artifactMetaData.getName(), is("Artifact Updated Name"));
             assertThat(artifactMetaData.getDescription(), is("The description of the artifact."));
             assertThat(artifactMetaData.getModifiedOn(), notNullValue());
@@ -128,7 +128,7 @@ class MetadataIT extends ApicurioV2BaseIT {
 
         LOGGER.info("Got metadata of artifact with ID {} version 1: {}", artifactId, versionMetaData);
         assertThat(versionMetaData.getVersion(), is("1"));
-        assertThat(versionMetaData.getType().value(), is("AVRO"));
+        assertThat(versionMetaData.getType(), is("AVRO"));
         assertThat(versionMetaData.getName(), is("myrecord1"));
         assertThat(versionMetaData.getDescription(),  nullValue());
     }

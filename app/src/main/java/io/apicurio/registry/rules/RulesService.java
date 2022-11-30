@@ -17,7 +17,6 @@
 package io.apicurio.registry.rules;
 
 import io.apicurio.registry.content.ContentHandle;
-import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
 
 import java.util.Map;
@@ -41,7 +40,7 @@ public interface RulesService {
      * @param ruleApplicationType
      * @throws RuleViolationException
      */
-    public void applyRules(String groupId, String artifactId, ArtifactType artifactType, ContentHandle artifactContent,
+    public void applyRules(String groupId, String artifactId, String artifactType, ContentHandle artifactContent,
                     RuleApplicationType ruleApplicationType, Map<String, ContentHandle> resolvedReferences) throws RuleViolationException;
 
     /**
@@ -55,7 +54,7 @@ public interface RulesService {
      * @param ruleApplicationType
      * @throws RuleViolationException
      */
-    public void applyRule(String groupId, String artifactId, ArtifactType artifactType, ContentHandle artifactContent,
+    public void applyRule(String groupId, String artifactId, String artifactType, ContentHandle artifactContent,
                    RuleType ruleType, String ruleConfiguration, RuleApplicationType ruleApplicationType, Map<String, ContentHandle> resolvedReferences)
             throws RuleViolationException;
 
@@ -69,6 +68,6 @@ public interface RulesService {
      * @param updatedContent
      * @throws RuleViolationException
      */
-    public void applyRules(String groupId, String artifactId, String artifactVersion, ArtifactType artifactType, ContentHandle updatedContent, Map<String, ContentHandle> resolvedReferences)
+    public void applyRules(String groupId, String artifactId, String artifactVersion, String artifactType, ContentHandle updatedContent, Map<String, ContentHandle> resolvedReferences)
             throws RuleViolationException;
 }

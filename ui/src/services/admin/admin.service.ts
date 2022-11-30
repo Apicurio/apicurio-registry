@@ -16,7 +16,7 @@
  */
 
 import { BaseService } from "../baseService";
-import { DownloadRef, RoleMapping, Rule } from "../../models";
+import { ArtifactTypeInfo, DownloadRef, RoleMapping, Rule } from "../../models";
 import { ConfigurationProperty } from "../../models/configurationProperty.model";
 import { UpdateConfigurationProperty } from "../../models/updateConfigurationProperty.model";
 
@@ -25,6 +25,12 @@ import { UpdateConfigurationProperty } from "../../models/updateConfigurationPro
  * rules and logging settings.
  */
 export class AdminService extends BaseService {
+
+    public getArtifactTypes(): Promise<ArtifactTypeInfo[]> {
+        this.logger.info("[AdminService] Getting the global list of artifactTypes.");
+        const endpoint: string = this.endpoint("/v2/admin/artifactTypes");
+        return this.httpGet<ArtifactTypeInfo[]>(endpoint);
+    }
 
     public getRules(): Promise<Rule[]> {
         this.logger.info("[AdminService] Getting the global list of rules.");

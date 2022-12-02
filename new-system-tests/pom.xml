@@ -20,8 +20,13 @@
         <maven.surefire.version>3.0.0-M7</maven.surefire.version>
         <junit.jupiter.version>5.9.0</junit.jupiter.version>
         <fabric8.version>6.2.0</fabric8.version>
+        <!-- sundrio version is critical to stay aligned with whatever comes from fabric8 -->
+        <sundrio.version>0.93.0</sundrio.version>
         <version.hamcrest>2.2</version.hamcrest>
         <version.slf4.simple>2.0.5</version.slf4.simple>
+        <operator.version>1.0.0-v2.0.0.final</operator.version>
+        <lombok.version>1.18.24</lombok.version>
+        <download.maven.plugin.version>1.6.8</download.maven.plugin.version>
     </properties>
 
 
@@ -42,7 +47,14 @@
         <!-- Fabric8 Dependencies -->
         <dependency>
             <groupId>io.fabric8</groupId>
-            <artifactId>kubernetes-client</artifactId>
+            <artifactId>openshift-client</artifactId>
+            <version>${fabric8.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.fabric8</groupId>
+            <artifactId>generator-annotations</artifactId>
+            <version>${fabric8.version}</version>
         </dependency>
         <dependency>
             <groupId>io.fabric8</groupId>
@@ -77,6 +89,18 @@
             <artifactId>slf4j-simple</artifactId>
             <version>${version.slf4.simple}</version>
         </dependency>
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <version>${lombok.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.sundr</groupId>
+            <artifactId>builder-annotations</artifactId>
+            <version>${sundrio.version}</version>
+            <scope>provided</scope>
+        </dependency>
     </dependencies>
 
     <build>
@@ -106,6 +130,42 @@
                         </configuration>
                     </execution>
                 </executions>
+            </plugin>
+            <plugin>
+                <groupId>com.googlecode.maven-download-plugin</groupId>
+                <artifactId>download-maven-plugin</artifactId>
+                <version>${download.maven.plugin.version}</version>
+                <executions>
+                    <execution>
+                    <!-- Needs to run before java-generator-maven-plugin -->
+                    <phase>generate-sources</phase>
+                    <goals>
+                        <goal>wget</goal>
+                    </goals>
+                    <configuration>
+                        <url>https://raw.githubusercontent.com/Apicurio/apicurio-registry-operator/${operator.version}/packagemanifests/${operator.version}/registry.apicur.io_apicurioregistries.yaml</url>
+                        <outputFileName>registry.apicur.io_apicurioregistries.yaml</outputFileName>
+                        <outputDirectory>${project.build.directory}</outputDirectory>
+                    </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>io.fabric8</groupId>
+                <artifactId>java-generator-maven-plugin</artifactId>
+                <version>${fabric8.version}</version>
+                <executions>
+                  <execution>
+                    <phase>generate-sources</phase>
+                    <goals>
+                      <goal>generate</goal>
+                    </goals>
+                  </execution>
+                </executions>
+                <configuration>
+                  <source>${project.build.directory}/registry.apicur.io_apicurioregistries.yaml</source>
+                  <extraAnnotations>true</extraAnnotations>
+                </configuration>
             </plugin>
         </plugins>
     </build>

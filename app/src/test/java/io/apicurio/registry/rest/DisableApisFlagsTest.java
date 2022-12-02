@@ -20,9 +20,11 @@ import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.ccompat.rest.ContentTypes;
 import io.apicurio.registry.noprofile.ccompat.rest.CCompatTestConstants;
 import io.apicurio.registry.services.DisabledApisMatcherService;
+import io.apicurio.registry.utils.tests.ApicurioTestTags;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import javax.inject.Inject;
@@ -38,6 +40,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 @QuarkusTest
 @TestProfile(DisableApisTestProfile.class)
+@Tag(ApicurioTestTags.SLOW)
 public class DisableApisFlagsTest extends AbstractResourceTestBase {
 
     @Inject

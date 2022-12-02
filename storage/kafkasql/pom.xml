@@ -235,6 +235,12 @@
     
     <profiles>
         <profile>
+            <id>no-slow-tests</id>
+            <properties>
+                <groups>!slow</groups>
+            </properties>
+        </profile>
+        <profile>
             <id>native</id>
             <activation>
                 <property>

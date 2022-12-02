@@ -16,6 +16,7 @@
 
 package io.apicurio.registry.mt;
 
+import io.apicurio.registry.utils.tests.ApicurioTestTags;
 import io.apicurio.tenantmanager.api.datamodel.ApicurioTenant;
 import io.apicurio.tenantmanager.api.datamodel.TenantStatusValue;
 import io.apicurio.registry.AbstractRegistryTestBase;
@@ -47,6 +48,7 @@ import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.opentest4j.TestAbortedException;
 import org.slf4j.Logger;
@@ -68,6 +70,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 @QuarkusTest
 @TestProfile(MultitenancyNoAuthTestProfile.class)
+@Tag(ApicurioTestTags.SLOW)
 public class MultitenancyNoAuthTest extends AbstractRegistryTestBase {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MultitenancyNoAuthTest.class);

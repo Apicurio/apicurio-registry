@@ -280,6 +280,7 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
+                    <skipTests>${skipAppTests}</skipTests>
                     <groups>${groups}</groups>
                     <systemProperties>
                         <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
@@ -518,6 +519,12 @@
             <id>no-docker</id>
             <properties>
                 <groups>!docker</groups>
+            </properties>
+        </profile>
+        <profile>
+            <id>no-slow-tests</id>
+            <properties>
+                <groups>!heavy</groups>
             </properties>
         </profile>
         <profile>

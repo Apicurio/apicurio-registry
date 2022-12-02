@@ -49,7 +49,7 @@ import java.util.Collections;
  */
 @QuarkusTest
 @TestProfile(AuthTestProfileAnonymousCredentials.class)
-@Tag(ApicurioTestTags.DOCKER)
+@Tag(ApicurioTestTags.SLOW)
 public class AuthTestAnonymousCredentials extends AbstractResourceTestBase {
 
     @ConfigProperty(name = "registry.auth.token.endpoint")

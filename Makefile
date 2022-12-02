@@ -67,14 +67,14 @@ build-sql:
 	@echo "----------------------------------------------------------------------"
 	@echo "                   Building SQL Module                               "
 	@echo "----------------------------------------------------------------------"
-	./mvnw -T 1.5C clean install -Pprod -Psql -DskipTests=$(SKIP_TESTS) $(BUILD_FLAGS)
+	./mvnw -T 1.5C clean install -Pprod -Psql -Pno-slow-tests -DskipAppTests -DskipTests=$(SKIP_TESTS) $(BUILD_FLAGS)
 
 .PHONY: build-kafkasql ## Builds and test kafkasql module. Variables available for override [SKIP_TESTS, BUILD_FLAGS]
 build-kafkasql:
 	@echo "----------------------------------------------------------------------"
 	@echo "                   Building Kafkasql Module                               "
 	@echo "----------------------------------------------------------------------"
-	./mvnw -T 1.5C clean install -Pprod -Pkafkasql -DskipTests=$(SKIP_TESTS) $(BUILD_FLAGS)
+	./mvnw -T 1.5C clean install -Pprod -Pkafkasql -Pno-slow-tests -DskipAppTests -DskipTests=$(SKIP_TESTS) $(BUILD_FLAGS)
 
 .PHONY: build-mem-native ## Builds mem storage variant native executable. Variables available for override [SKIP_TESTS, BUILD_FLAGS]
 build-mem-native:
@@ -88,14 +88,14 @@ build-sql-native:
 	@echo "----------------------------------------------------------------------"
 	@echo "             Building SQL Storage Variant Natively                    "
 	@echo "----------------------------------------------------------------------"
-	./mvnw -T 1.5C package -Pnative -Dquarkus.native.container-build=true -Pprod -Psql -pl storage/sql -DskipTests=$(SKIP_TESTS) $(BUILD_FLAGS)
+	./mvnw -T 1.5C package -Pnative -Dquarkus.native.container-build=true -Pprod -Psql -pl storage/sql -DskipAppTests -DskipTests=$(SKIP_TESTS) $(BUILD_FLAGS)
 
 .PHONY: build-kafkasql-native ## Builds kafkasql storage variant native executable. Variables available for override [SKIP_TESTS, BUILD_FLAGS]
 build-kafkasql-native:
 	@echo "----------------------------------------------------------------------"
 	@echo "             Building Kafkasql Storage Variant Natively               "
 	@echo "----------------------------------------------------------------------"
-	./mvnw -T 1.5C package -Pnative -Dquarkus.native.container-build=true -Pprod -Pkafkasql -pl storage/kafkasql -DskipTests=$(SKIP_TESTS) $(BUILD_FLAGS)
+	./mvnw -T 1.5C package -Pnative -Dquarkus.native.container-build=true -Pprod -Pkafkasql -pl storage/kafkasql -DskipAppTests -DskipTests=$(SKIP_TESTS) $(BUILD_FLAGS)
 
 
 

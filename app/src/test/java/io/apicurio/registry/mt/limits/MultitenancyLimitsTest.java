@@ -26,8 +26,10 @@ import java.util.function.Supplier;
 import javax.inject.Inject;
 
 import io.apicurio.registry.AbstractRegistryTestBase;
+import io.apicurio.registry.utils.tests.ApicurioTestTags;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.opentest4j.TestAbortedException;
 
@@ -50,6 +52,7 @@ import io.quarkus.test.junit.TestProfile;
  */
 @QuarkusTest
 @TestProfile(MultitenancyLimitsTestProfile.class)
+@Tag(ApicurioTestTags.SLOW)
 public class MultitenancyLimitsTest extends AbstractRegistryTestBase {
 
     @Inject

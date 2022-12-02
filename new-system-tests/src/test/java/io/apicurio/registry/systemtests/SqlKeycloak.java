@@ -14,6 +14,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @KubernetesTest
 @LoadKubernetesManifests({
+        // Keycloak IAM
+        "/keycloak/00_service.yaml", // Service
+        "/keycloak/01_realm.yaml", // Keycloak realm as realm.json in ConfigMap
+        "/keycloak/02_deployment.yaml", // Deployment of Keycloak itself
         // PostgreSQL database resources
         "/sql/00_service.yaml", // Service
         "/sql/01_deployment.yaml", // Deployment
@@ -21,9 +25,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
         "/apicurio/00_operator_group.yaml", // Operator group for Apicurio Registry operator
         "/apicurio/01_subscription.yaml", // Apicurio Registry operator subscription
         // Apicurio Registry instance
-        "/apicurio/02_registry_sql_no_iam.yaml" // Apicurio Registry instance with PostgreSQL storage and without IAM
+        "/apicurio/02_registry_sql_keycloak.yaml" // Apicurio Registry instance with PostgreSQL storage and Keycloak IAM
 })
-public class SqlNoIAM extends TestBase {
+public class SqlKeycloak extends TestBase {
     /** {@link OpenShiftClient} instance for tests. */
     private OpenShiftClient client;
 
@@ -34,6 +38,9 @@ public class SqlNoIAM extends TestBase {
     public void beforeEach() {
         // Log information about current action
         logger.info("Running BeforeEach actions.");
+
+        // Wait for readiness of Keycloak deployment
+        assertTrue(waitDeploymentReady(client, Constants.KEYCLOAK_NAME));
 
         // Wait for readiness of PostgreSQL database deployment
         assertTrue(waitDeploymentReady(client, Constants.POSTGRESQL_NAME));
@@ -46,17 +53,17 @@ public class SqlNoIAM extends TestBase {
     }
 
     /**
-     * Tests that {@link ApicurioRegistry} with PostgreSQL database storage becomes ready.
+     * Tests that {@link ApicurioRegistry} with PostgreSQL database storage and Keycloak IAM becomes ready.
      */
     @Test
     public void testDeploy() {
         // Log information about current action
         logger.info("Running testDeploy test.");
 
-        // Wait for deployment readiness of Apicurio Registry instance with PostgreSQL database storage and without IAM
+        // Wait for deployment readiness of Apicurio Registry instance with PostgreSQL database storage and Keycloak IAM
         assertTrue(waitDeploymentReady(client, Constants.REGISTRY_NAME + "-deployment"));
 
-        // Check deployment readiness of Apicurio Registry instance with PostgreSQL database storage and without IAM
+        // Check deployment readiness of Apicurio Registry instance with PostgreSQL database storage and Keycloak IAM
         assertTrue(isDeploymentReady(client, Constants.REGISTRY_NAME + "-deployment"));
 
         // Log information about current action

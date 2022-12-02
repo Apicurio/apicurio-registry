@@ -60,7 +60,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
  */
 @QuarkusTest
 @TestProfile(AuthTestProfile.class)
-@Tag(ApicurioTestTags.DOCKER)
+@Tag(ApicurioTestTags.SLOW)
 public class SimpleAuthTest extends AbstractResourceTestBase {
 
     private static final String ARTIFACT_CONTENT = "{\"name\":\"redhat\"}";

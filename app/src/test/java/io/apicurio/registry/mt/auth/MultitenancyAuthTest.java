@@ -32,6 +32,7 @@ import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.utils.tests.ApicurioTestTags;
 import io.apicurio.registry.utils.tests.JWKSMockServer;
 import io.apicurio.registry.utils.tests.MultitenancyAuthTestProfile;
 import io.apicurio.registry.utils.tests.TestUtils;
@@ -49,6 +50,7 @@ import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.opentest4j.TestAbortedException;
 import org.slf4j.Logger;
@@ -65,6 +67,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @QuarkusTest
 @TestProfile(MultitenancyAuthTestProfile.class)
+@Tag(ApicurioTestTags.SLOW)
 public class MultitenancyAuthTest extends AbstractRegistryTestBase {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MultitenancyNoAuthTest.class);

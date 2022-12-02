@@ -40,7 +40,6 @@ public class KafkaTestContainerManager implements QuarkusTestResourceLifecycleMa
         kafka.addEnv("KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR", "1");
         kafka.addEnv("KAFKA_TRANSACTION_STATE_LOG_MIN_ISR", "1");
         kafka.withLogConsumer(new Slf4jLogConsumer(LoggerFactory.getLogger("kafka-testcontainer")));
-        kafka.withReuse(true);
 
         kafka.start();
 
@@ -54,6 +53,7 @@ public class KafkaTestContainerManager implements QuarkusTestResourceLifecycleMa
 
     @Override
     public void stop() {
+        log.info("Stopping the Kafka Test Container");
         kafka.stop();
     }
 }

@@ -24,7 +24,9 @@ import static org.hamcrest.Matchers.notNullValue;
 import java.util.List;
 import java.util.Optional;
 
+import io.apicurio.registry.utils.tests.ApicurioTestTags;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import io.apicurio.registry.AbstractResourceTestBase;
@@ -39,6 +41,7 @@ import io.restassured.common.mapper.TypeRef;
 
 @QuarkusTest
 @TestProfile(IBMTestProfile.class)
+@Tag(ApicurioTestTags.SLOW)
 public class IBMCompatApiTest extends AbstractResourceTestBase {
 
     @Test

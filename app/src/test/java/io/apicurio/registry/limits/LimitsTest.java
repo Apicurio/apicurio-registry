@@ -21,8 +21,10 @@ import java.io.InputStream;
 import java.util.Arrays;
 import java.util.Map;
 
+import io.apicurio.registry.utils.tests.ApicurioTestTags;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
 
@@ -42,6 +44,7 @@ import io.quarkus.test.junit.TestProfile;
 @QuarkusTest
 @TestProfile(LimitsTestProfile.class)
 @DisabledIfEnvironmentVariable(named = AbstractRegistryTestBase.CURRENT_ENV, matches = AbstractRegistryTestBase.CURRENT_ENV_MAS_REGEX)
+@Tag(ApicurioTestTags.SLOW)
 public class LimitsTest extends AbstractResourceTestBase {
 
     @Test

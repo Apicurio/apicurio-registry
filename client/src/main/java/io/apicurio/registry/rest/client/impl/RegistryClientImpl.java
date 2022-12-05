@@ -53,7 +53,7 @@ import java.util.Map;
  */
 public class RegistryClientImpl implements RegistryClient {
 
-    private final ApicurioHttpClient apicurioHttpClient;
+    protected final ApicurioHttpClient apicurioHttpClient;
     private static final Logger logger = LoggerFactory.getLogger(RegistryClientImpl.class);
 
     public RegistryClientImpl(ApicurioHttpClient apicurioHttpClient) {
@@ -596,7 +596,7 @@ public class RegistryClientImpl implements RegistryClient {
         }
     }
 
-    private String normalizeGid(String groupId) {
+    protected String normalizeGid(String groupId) {
         return groupId == null ? "default" : groupId;
     }
 
@@ -604,7 +604,7 @@ public class RegistryClientImpl implements RegistryClient {
         return Base64.getEncoder().encodeToString(toEncode.getBytes(StandardCharsets.UTF_8));
     }
 
-    private Map<String, String> headersFrom(String version, String artifactName, String artifactDescription, String contentType) {
+    protected Map<String, String> headersFrom(String version, String artifactName, String artifactDescription, String contentType) {
         final Map<String, String> headers = new HashMap<>();
         if (version != null) {
             headers.put(Headers.VERSION, version);

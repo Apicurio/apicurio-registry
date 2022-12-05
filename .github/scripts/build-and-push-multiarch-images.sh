@@ -2,21 +2,20 @@
 set -euxo pipefail
 
 defvalue="foo"
-variantDefValue="mem-multiarch-images"
+variantDefValue="multiarch-registry-images"
 
 # Initializing the variable with the Passed Parameter
 
 BRANCH_NAME="$1"       # Git Branch
 IMAGE_REPOSITORY="$2"  # Image Repository, e.g. docker.io, quay.io
-RELEASE_TYPE="$3"      # Either 'snapshot' or 'release' or 'pre-release'
-RELEASE_VERSION=${4:-$defvalue}   # Release version (Pass the release version if you also want images tagged with the release version)
-VARIANT=${4:-variantDefValue}   # Variant type
-
+VARIANT=${3:-$variantDefValue}   # Variant type
+RELEASE_TYPE="$4"      # Either 'snapshot' or 'release' or 'pre-release'
+RELEASE_VERSION=${5:-$defvalue}   # Release version (Pass the release version if you also want images tagged with the release version)
 
 # Check if variant type is valid
-if [[ ($VARIANT != "mem-multiarch-images") &&  ($VARIANT != "sql-multiarch-images") &&  ($VARIANT != "kafkasql-multiarch-images") ]]
+if [[ ($VARIANT != "mem-multiarch-images") &&  ($VARIANT != "sql-multiarch-images") &&  ($VARIANT != "kafkasql-multiarch-images") && ($VARIANT != "multiarch-registry-images") ]]
 then
-    echo "ERROR: Illegal value '${VARIANT}' for variable '$VARIANT'. Values can only be [mem-multiarch-images, sql-multiarch-images, kafkasql-multiarch-images]"
+    echo "ERROR: Illegal value '${VARIANT}' for variable '$VARIANT'. Values can only be [mem-multiarch-images, sql-multiarch-images, kafkasql-multiarch-images, multiarch-registry-images]"
     exit 1
 fi
 

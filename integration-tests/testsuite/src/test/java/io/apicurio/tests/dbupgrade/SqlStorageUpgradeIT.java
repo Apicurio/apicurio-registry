@@ -23,14 +23,12 @@ import java.io.InputStream;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -137,18 +135,8 @@ public class SqlStorageUpgradeIT implements TestSeparator, Constants {
         testStorageUpgradeProtobufUpgrader("protobufCanonicalHashSql", RegistryStorageType.sql);
     }
 
-    class TestArtifactMetadata extends ArtifactMetaData {
-
-        @Override
-        @JsonProperty("createdOn")
-        @JsonIgnore
-        public void setCreatedOn(Date createdOn) { }
-
-        @Override
-        @JsonProperty("modifiedOn")
-        @JsonIgnore
-        public void setModifiedOn(Date modifiedOn) { }
-    }
+    @JsonIgnoreProperties(value={ "createdOn", "modifiedOn" })
+    class TestArtifactMetadata extends ArtifactMetaData { }
 
     public static Request<TestArtifactMetadata> createArtifactWithReferences(String groupId, Map<String, String> headers, ContentCreateRequest data, Map<String, List<String>> queryParams)
             throws JsonProcessingException {
@@ -165,7 +153,8 @@ public class SqlStorageUpgradeIT implements TestSeparator, Constants {
     }
 
     public static TenantUserClient retrocompatibleRegistryClient(TenantUserClient tuc) {
-        var client = new RegistryClientImpl(ApicurioHttpClientFactory.create(tuc.tenantAppUrl, Collections.emptyMap(), new OidcAuth(ApicurioHttpClientFactory.create(tuc.tokenEndpoint, new AuthErrorHandler()), tuc.user.principalId, tuc.user.principalPassword), new AuthErrorHandler())) {
+        // Not sure why we should add the /apis/registry/v2 ???
+        var client = new RegistryClientImpl(ApicurioHttpClientFactory.create(tuc.tenantAppUrl + "/apis/registry/v2", Collections.emptyMap(), new OidcAuth(ApicurioHttpClientFactory.create(tuc.tokenEndpoint, new AuthErrorHandler()), tuc.user.principalId, tuc.user.principalPassword), new AuthErrorHandler())) {
             @Override
             public ArtifactMetaData createArtifact(String groupId, String artifactId, String version, String artifactType, IfExists ifExists, Boolean canonical, String artifactName, String artifactDescription, String contentType, String fromURL, String artifactSHA, InputStream data, List<ArtifactReference> artifactReferences) {
                 if (artifactId != null && !ArtifactIdValidator.isArtifactIdAllowed(artifactId)) {

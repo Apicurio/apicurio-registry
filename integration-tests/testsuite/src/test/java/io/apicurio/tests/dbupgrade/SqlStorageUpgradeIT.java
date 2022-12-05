@@ -20,6 +20,7 @@ import static io.apicurio.tests.utils.CustomTestsUtils.createArtifact;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.InputStream;
+import java.io.StringBufferInputStream;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -138,7 +139,7 @@ public class SqlStorageUpgradeIT implements TestSeparator, Constants {
     @JsonIgnoreProperties(value={ "createdOn", "modifiedOn" })
     class TestArtifactMetadata extends ArtifactMetaData { }
 
-    public static Request<TestArtifactMetadata> createArtifactWithReferences(String groupId, Map<String, String> headers, ContentCreateRequest data, Map<String, List<String>> queryParams)
+    public static Request<TestArtifactMetadata> createArtifactWithReferencesRequest(String groupId, Map<String, String> headers, ContentCreateRequest data, Map<String, List<String>> queryParams)
             throws JsonProcessingException {
         return new Request.RequestBuilder<TestArtifactMetadata>()
                 .operation(Operation.POST)
@@ -152,9 +153,54 @@ public class SqlStorageUpgradeIT implements TestSeparator, Constants {
                 .build();
     }
 
+    public static Request<TestArtifactMetadata> createArtifactRequest(String groupId, Map<String, String> headers, InputStream data, Map<String, List<String>> queryParams) {
+        return new Request.RequestBuilder<TestArtifactMetadata>()
+                .operation(Operation.POST)
+                .path("groups/%s/artifacts")
+                .headers(headers)
+                .pathParams(List.of(groupId))
+                .queryParams(queryParams)
+                .responseType(new TypeReference<TestArtifactMetadata>() {
+                })
+                .data(data)
+                .build();
+    }
+
     public static TenantUserClient retrocompatibleRegistryClient(TenantUserClient tuc) {
         // Not sure why we should add the /apis/registry/v2 ???
         var client = new RegistryClientImpl(ApicurioHttpClientFactory.create(tuc.tenantAppUrl + "/apis/registry/v2", Collections.emptyMap(), new OidcAuth(ApicurioHttpClientFactory.create(tuc.tokenEndpoint, new AuthErrorHandler()), tuc.user.principalId, tuc.user.principalPassword), new AuthErrorHandler())) {
+
+            @Override
+            public ArtifactMetaData createArtifact(String groupId, String artifactId, String version, String artifactType, IfExists ifExists, Boolean canonical, String artifactName, String artifactDescription, String contentType, String fromURL, String artifactSHA, InputStream data) {
+                if (artifactId != null && !ArtifactIdValidator.isArtifactIdAllowed(artifactId)) {
+                    throw new InvalidArtifactIdException();
+                }
+                final Map<String, String> headers = headersFrom(version, artifactName, artifactDescription, contentType);
+                if (artifactId != null) {
+                    headers.put(Headers.ARTIFACT_ID, artifactId);
+                }
+                if (artifactType != null) {
+                    headers.put(Headers.ARTIFACT_TYPE, artifactType);
+                }
+                if (artifactSHA != null) {
+                    headers.put(Headers.HASH_ALGO, "SHA256");
+                    headers.put(Headers.ARTIFACT_HASH, artifactSHA);
+                }
+                if (fromURL != null) {
+                    headers.put(Headers.CONTENT_TYPE, ContentTypes.APPLICATION_CREATE_EXTENDED);
+                    data = new StringBufferInputStream("{ \"content\" : \"" + fromURL + "\" }");
+                }
+                final Map<String, List<String>> queryParams = new HashMap<>();
+                if (canonical != null) {
+                    queryParams.put(Parameters.CANONICAL, Collections.singletonList(String.valueOf(canonical)));
+                }
+                if (ifExists != null) {
+                    queryParams.put(Parameters.IF_EXISTS, Collections.singletonList(ifExists.value()));
+                }
+
+                return apicurioHttpClient.sendRequest(createArtifactRequest(normalizeGid(groupId), headers, data, queryParams));
+            }
+
             @Override
             public ArtifactMetaData createArtifact(String groupId, String artifactId, String version, String artifactType, IfExists ifExists, Boolean canonical, String artifactName, String artifactDescription, String contentType, String fromURL, String artifactSHA, InputStream data, List<ArtifactReference> artifactReferences) {
                 if (artifactId != null && !ArtifactIdValidator.isArtifactIdAllowed(artifactId)) {
@@ -188,7 +234,7 @@ public class SqlStorageUpgradeIT implements TestSeparator, Constants {
                 contentCreateRequest.setReferences(artifactReferences);
 
                 try {
-                    return apicurioHttpClient.sendRequest(createArtifactWithReferences(normalizeGid(groupId), headers, contentCreateRequest, queryParams));
+                    return apicurioHttpClient.sendRequest(createArtifactWithReferencesRequest(normalizeGid(groupId), headers, contentCreateRequest, queryParams));
                 } catch (JsonProcessingException e) {
                     throw new RuntimeException(e);
                 }
@@ -206,6 +252,37 @@ public class SqlStorageUpgradeIT implements TestSeparator, Constants {
     public static RegistryClient retrocompatibleRegistryClient(String url) {
         return new RegistryClientImpl(ApicurioHttpClientFactory.create(url, new HashMap<>(), null, new ErrorHandler())) {
             @Override
+            public ArtifactMetaData createArtifact(String groupId, String artifactId, String version, String artifactType, IfExists ifExists, Boolean canonical, String artifactName, String artifactDescription, String contentType, String fromURL, String artifactSHA, InputStream data) {
+                if (artifactId != null && !ArtifactIdValidator.isArtifactIdAllowed(artifactId)) {
+                    throw new InvalidArtifactIdException();
+                }
+                final Map<String, String> headers = headersFrom(version, artifactName, artifactDescription, contentType);
+                if (artifactId != null) {
+                    headers.put(Headers.ARTIFACT_ID, artifactId);
+                }
+                if (artifactType != null) {
+                    headers.put(Headers.ARTIFACT_TYPE, artifactType);
+                }
+                if (artifactSHA != null) {
+                    headers.put(Headers.HASH_ALGO, "SHA256");
+                    headers.put(Headers.ARTIFACT_HASH, artifactSHA);
+                }
+                if (fromURL != null) {
+                    headers.put(Headers.CONTENT_TYPE, ContentTypes.APPLICATION_CREATE_EXTENDED);
+                    data = new StringBufferInputStream("{ \"content\" : \"" + fromURL + "\" }");
+                }
+                final Map<String, List<String>> queryParams = new HashMap<>();
+                if (canonical != null) {
+                    queryParams.put(Parameters.CANONICAL, Collections.singletonList(String.valueOf(canonical)));
+                }
+                if (ifExists != null) {
+                    queryParams.put(Parameters.IF_EXISTS, Collections.singletonList(ifExists.value()));
+                }
+
+                return apicurioHttpClient.sendRequest(createArtifactRequest(normalizeGid(groupId), headers, data, queryParams));
+            }
+
+            @Override
             public ArtifactMetaData createArtifact(String groupId, String artifactId, String version, String artifactType, IfExists ifExists, Boolean canonical, String artifactName, String artifactDescription, String contentType, String fromURL, String artifactSHA, InputStream data, List<ArtifactReference> artifactReferences) {
                 if (artifactId != null && !ArtifactIdValidator.isArtifactIdAllowed(artifactId)) {
                     throw new InvalidArtifactIdException();
@@ -238,7 +315,7 @@ public class SqlStorageUpgradeIT implements TestSeparator, Constants {
                 contentCreateRequest.setReferences(artifactReferences);
 
                 try {
-                    return apicurioHttpClient.sendRequest(createArtifactWithReferences(normalizeGid(groupId), headers, contentCreateRequest, queryParams));
+                    return apicurioHttpClient.sendRequest(createArtifactWithReferencesRequest(normalizeGid(groupId), headers, contentCreateRequest, queryParams));
                 } catch (JsonProcessingException e) {
                     throw new RuntimeException(e);
                 }

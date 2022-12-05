@@ -106,6 +106,7 @@ public class CheckPeriodCache<K, V> {
     }
 
     public void put(K k, V v) {
+        checkEviction();
         cache.put(k, new CheckValue<>(Instant.now(), v));
     }
 

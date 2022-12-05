@@ -25,6 +25,7 @@ import io.apicurio.tenantmanager.api.datamodel.TenantStatusValue;
 import io.quarkus.runtime.StartupEvent;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
+import java.time.Duration;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.event.Observes;
 import javax.inject.Inject;
@@ -54,7 +55,7 @@ public class TenantContextLoader {
     Long cacheCheckPeriod;
 
     public void onStart(@Observes StartupEvent ev) {
-        contextsCache = new CheckPeriodCache<>(cacheCheckPeriod);
+        contextsCache = new CheckPeriodCache<>(Duration.ofMillis(cacheCheckPeriod));
     }
 
     /**

@@ -77,6 +77,12 @@
             <scope>provided</scope>
         </dependency>
 
+        <dependency>
+            <groupId>org.jboss.slf4j</groupId>
+            <artifactId>slf4j-jboss-logging</artifactId>
+            <version>${jboss-slf4j.version}</version>
+        </dependency>
+
         <!-- Test Only -->
         <dependency>
             <groupId>io.confluent</groupId>

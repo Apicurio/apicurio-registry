@@ -35,6 +35,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.rest.Headers;
+import io.apicurio.registry.rest.client.RegistryClientFactory;
 import io.apicurio.registry.rest.client.exception.InvalidArtifactIdException;
 import io.apicurio.registry.rest.client.impl.ErrorHandler;
 import io.apicurio.registry.rest.client.impl.RegistryClientImpl;
@@ -44,9 +45,12 @@ import io.apicurio.registry.rest.v2.beans.ContentCreateRequest;
 import io.apicurio.registry.rest.v2.beans.IfExists;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.utils.ArtifactIdValidator;
+import io.apicurio.rest.client.auth.OidcAuth;
+import io.apicurio.rest.client.auth.exception.AuthErrorHandler;
 import io.apicurio.rest.client.request.Operation;
 import io.apicurio.rest.client.request.Request;
 import io.apicurio.rest.client.spi.ApicurioHttpClientFactory;
+import io.apicurio.tenantmanager.client.TenantManagerClient;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.Tag;
@@ -162,6 +166,99 @@ public class SqlStorageUpgradeIT implements TestSeparator, Constants {
                 .build();
     }
 
+    public static TenantUserClient retrocompatibleRegistryClient(TenantUserClient tuc) {
+        var client = new RegistryClientImpl(ApicurioHttpClientFactory.create(tuc.tenantAppUrl, Collections.emptyMap(), new OidcAuth(ApicurioHttpClientFactory.create(tuc.tokenEndpoint, new AuthErrorHandler()), tuc.user.principalId, tuc.user.principalPassword), new AuthErrorHandler())) {
+            @Override
+            public ArtifactMetaData createArtifact(String groupId, String artifactId, String version, String artifactType, IfExists ifExists, Boolean canonical, String artifactName, String artifactDescription, String contentType, String fromURL, String artifactSHA, InputStream data, List<ArtifactReference> artifactReferences) {
+                if (artifactId != null && !ArtifactIdValidator.isArtifactIdAllowed(artifactId)) {
+                    throw new InvalidArtifactIdException();
+                }
+                final Map<String, String> headers = headersFrom(version, artifactName, artifactDescription, ContentTypes.APPLICATION_CREATE_EXTENDED);
+                if (artifactId != null) {
+                    headers.put(Headers.ARTIFACT_ID, artifactId);
+                }
+                if (artifactType != null) {
+                    headers.put(Headers.ARTIFACT_TYPE, artifactType);
+                }
+                if (artifactSHA != null) {
+                    headers.put(Headers.HASH_ALGO, "SHA256");
+                    headers.put(Headers.ARTIFACT_HASH, artifactSHA);
+                }
+                String content = IoUtil.toString(data);
+                if (fromURL != null) {
+                    content = " { \"content\" : \"" + fromURL + "\" }";
+                }
+                final Map<String, List<String>> queryParams = new HashMap<>();
+                if (canonical != null) {
+                    queryParams.put(Parameters.CANONICAL, Collections.singletonList(String.valueOf(canonical)));
+                }
+                if (ifExists != null) {
+                    queryParams.put(Parameters.IF_EXISTS, Collections.singletonList(ifExists.value()));
+                }
+
+                final ContentCreateRequest contentCreateRequest = new ContentCreateRequest();
+                contentCreateRequest.setContent(content);
+                contentCreateRequest.setReferences(artifactReferences);
+
+                try {
+                    return apicurioHttpClient.sendRequest(createArtifactWithReferences(normalizeGid(groupId), headers, contentCreateRequest, queryParams));
+                } catch (JsonProcessingException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        };
+
+        return new TenantUserClient(
+                tuc.user,
+                tuc.tenantAppUrl,
+                client,
+                tuc.tokenEndpoint
+        );
+    }
+
+    public static RegistryClient retrocompatibleRegistryClient(String url) {
+        return new RegistryClientImpl(ApicurioHttpClientFactory.create(url, new HashMap<>(), null, new ErrorHandler())) {
+            @Override
+            public ArtifactMetaData createArtifact(String groupId, String artifactId, String version, String artifactType, IfExists ifExists, Boolean canonical, String artifactName, String artifactDescription, String contentType, String fromURL, String artifactSHA, InputStream data, List<ArtifactReference> artifactReferences) {
+                if (artifactId != null && !ArtifactIdValidator.isArtifactIdAllowed(artifactId)) {
+                    throw new InvalidArtifactIdException();
+                }
+                final Map<String, String> headers = headersFrom(version, artifactName, artifactDescription, ContentTypes.APPLICATION_CREATE_EXTENDED);
+                if (artifactId != null) {
+                    headers.put(Headers.ARTIFACT_ID, artifactId);
+                }
+                if (artifactType != null) {
+                    headers.put(Headers.ARTIFACT_TYPE, artifactType);
+                }
+                if (artifactSHA != null) {
+                    headers.put(Headers.HASH_ALGO, "SHA256");
+                    headers.put(Headers.ARTIFACT_HASH, artifactSHA);
+                }
+                String content = IoUtil.toString(data);
+                if (fromURL != null) {
+                    content = " { \"content\" : \"" + fromURL + "\" }";
+                }
+                final Map<String, List<String>> queryParams = new HashMap<>();
+                if (canonical != null) {
+                    queryParams.put(Parameters.CANONICAL, Collections.singletonList(String.valueOf(canonical)));
+                }
+                if (ifExists != null) {
+                    queryParams.put(Parameters.IF_EXISTS, Collections.singletonList(ifExists.value()));
+                }
+
+                final ContentCreateRequest contentCreateRequest = new ContentCreateRequest();
+                contentCreateRequest.setContent(content);
+                contentCreateRequest.setReferences(artifactReferences);
+
+                try {
+                    return apicurioHttpClient.sendRequest(createArtifactWithReferences(normalizeGid(groupId), headers, contentCreateRequest, queryParams));
+                } catch (JsonProcessingException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        };
+    }
+
     public void testStorageUpgradeProtobufUpgrader(String testName, RegistryStorageType storage) throws Exception {
 
         RegistryStorageType previousStorageValue = RegistryUtils.REGISTRY_STORAGE;
@@ -191,47 +288,7 @@ public class SqlStorageUpgradeIT implements TestSeparator, Constants {
 
             //
 
-            // var registryClient = RegistryClientFactory.create("http://localhost:8081");
-            var registryClient = new RegistryClientImpl(ApicurioHttpClientFactory.create("http://localhost:8081", new HashMap<>(), null, new ErrorHandler())) {
-                @Override
-                public ArtifactMetaData createArtifact(String groupId, String artifactId, String version, String artifactType, IfExists ifExists, Boolean canonical, String artifactName, String artifactDescription, String contentType, String fromURL, String artifactSHA, InputStream data, List<ArtifactReference> artifactReferences) {
-                    if (artifactId != null && !ArtifactIdValidator.isArtifactIdAllowed(artifactId)) {
-                        throw new InvalidArtifactIdException();
-                    }
-                    final Map<String, String> headers = headersFrom(version, artifactName, artifactDescription, ContentTypes.APPLICATION_CREATE_EXTENDED);
-                    if (artifactId != null) {
-                        headers.put(Headers.ARTIFACT_ID, artifactId);
-                    }
-                    if (artifactType != null) {
-                        headers.put(Headers.ARTIFACT_TYPE, artifactType);
-                    }
-                    if (artifactSHA != null) {
-                        headers.put(Headers.HASH_ALGO, "SHA256");
-                        headers.put(Headers.ARTIFACT_HASH, artifactSHA);
-                    }
-                    String content = IoUtil.toString(data);
-                    if (fromURL != null) {
-                        content = " { \"content\" : \"" + fromURL + "\" }";
-                    }
-                    final Map<String, List<String>> queryParams = new HashMap<>();
-                    if (canonical != null) {
-                        queryParams.put(Parameters.CANONICAL, Collections.singletonList(String.valueOf(canonical)));
-                    }
-                    if (ifExists != null) {
-                        queryParams.put(Parameters.IF_EXISTS, Collections.singletonList(ifExists.value()));
-                    }
-
-                    final ContentCreateRequest contentCreateRequest = new ContentCreateRequest();
-                    contentCreateRequest.setContent(content);
-                    contentCreateRequest.setReferences(artifactReferences);
-
-                    try {
-                        return apicurioHttpClient.sendRequest(createArtifactWithReferences(normalizeGid(groupId), headers, contentCreateRequest, queryParams));
-                    } catch (JsonProcessingException e) {
-                        throw new RuntimeException(e);
-                    }
-                }
-            };
+            var registryClient = retrocompatibleRegistryClient("http://localhost:8081/apis/registry/v2");
 
             createArtifact(registryClient, ArtifactType.AVRO, ApicurioV2BaseIT.resourceToString("artifactTypes/" + "avro/multi-field_v1.json"));
             createArtifact(registryClient, ArtifactType.JSON, ApicurioV2BaseIT.resourceToString("artifactTypes/" + "jsonSchema/person_v1.json"));
@@ -305,7 +362,7 @@ public class SqlStorageUpgradeIT implements TestSeparator, Constants {
         for (int i = 0; i < 50; i++) {
 
             TenantData tenant = new TenantData();
-            TenantUserClient user = mt.createTenant();
+            TenantUserClient user = retrocompatibleRegistryClient(mt.createTenant());
             tenant.tenant = user;
             tenants.add(tenant);
 

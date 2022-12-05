@@ -137,7 +137,7 @@ public class SqlStorageUpgradeIT implements TestSeparator, Constants {
     }
 
     @JsonIgnoreProperties(value={ "createdOn", "modifiedOn" })
-    class TestArtifactMetadata extends ArtifactMetaData { }
+    public static class TestArtifactMetadata extends ArtifactMetaData { }
 
     public static Request<TestArtifactMetadata> createArtifactWithReferencesRequest(String groupId, Map<String, String> headers, ContentCreateRequest data, Map<String, List<String>> queryParams)
             throws JsonProcessingException {

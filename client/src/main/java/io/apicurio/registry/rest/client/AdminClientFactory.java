@@ -33,7 +33,7 @@ import java.util.Map;
 public class AdminClientFactory {
 
     private static final Map<String, String> KEYS_TO_TRANSLATE;
-    private static final String BASE_PATH = "apis/registry/v2/";
+    public static final String BASE_PATH = "apis/registry/v2/";
 
 
     static {

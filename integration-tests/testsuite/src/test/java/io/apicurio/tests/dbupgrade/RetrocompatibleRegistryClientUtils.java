@@ -60,7 +60,7 @@ public class RetrocompatibleRegistryClientUtils {
     public static class TestArtifactSearchResults extends ArtifactSearchResults {
         @JsonProperty("artifacts")
         @JsonPropertyDescription("The artifacts returned in the result set.")
-        @JsonDeserialize(contentAs= TestSearchedArtifact.class)
+        @JsonDeserialize(contentAs = TestSearchedArtifact.class)
         private List<SearchedArtifact> artifacts = new ArrayList<SearchedArtifact>();
 
         @Override
@@ -76,7 +76,7 @@ public class RetrocompatibleRegistryClientUtils {
         }
     }
 
-    public static Request<TestArtifactMetadata> createArtifactWithReferencesRequest(String groupId, Map<String, String> headers, ContentCreateRequest data, Map<String, List<String>> queryParams)
+    private static Request<TestArtifactMetadata> createArtifactWithReferencesRequest(String groupId, Map<String, String> headers, ContentCreateRequest data, Map<String, List<String>> queryParams)
             throws JsonProcessingException {
         return new Request.RequestBuilder<TestArtifactMetadata>()
                 .operation(Operation.POST)
@@ -90,7 +90,7 @@ public class RetrocompatibleRegistryClientUtils {
                 .build();
     }
 
-    public static Request<TestArtifactMetadata> createArtifactRequest(String groupId, Map<String, String> headers, InputStream data, Map<String, List<String>> queryParams) {
+    private static Request<TestArtifactMetadata> createArtifactRequest(String groupId, Map<String, String> headers, InputStream data, Map<String, List<String>> queryParams) {
         return new Request.RequestBuilder<TestArtifactMetadata>()
                 .operation(Operation.POST)
                 .path("groups/%s/artifacts")
@@ -103,7 +103,7 @@ public class RetrocompatibleRegistryClientUtils {
                 .build();
     }
 
-    public static Request<TestVersionMetadata> getArtifactVersionMetaDataByContentRequest(String groupId, String artifactId, Map<String, String> headers, Map<String, List<String>> queryParams, InputStream data) {
+    private static Request<TestVersionMetadata> getArtifactVersionMetaDataByContentRequest(String groupId, String artifactId, Map<String, String> headers, Map<String, List<String>> queryParams, InputStream data) {
         return new Request.RequestBuilder<TestVersionMetadata>()
                 .operation(Operation.POST)
                 .path("groups/%s/artifacts/%s/meta")
@@ -116,7 +116,7 @@ public class RetrocompatibleRegistryClientUtils {
                 .build();
     }
 
-    public static Request<TestArtifactSearchResults> listArtifactsInGroupRequest(String groupId, Map<String, List<String>> queryParams) {
+    private static Request<TestArtifactSearchResults> listArtifactsInGroupRequest(String groupId, Map<String, List<String>> queryParams) {
         return new Request.RequestBuilder<TestArtifactSearchResults>()
                 .operation(Operation.GET)
                 .path("groups/%s/artifacts")
@@ -127,7 +127,7 @@ public class RetrocompatibleRegistryClientUtils {
                 .build();
     }
 
-    public static Request<TestVersionMetadata> getArtifactVersionMetaDataRequest(String groupId, String artifactId, String version) {
+    private static Request<TestVersionMetadata> getArtifactVersionMetaDataRequest(String groupId, String artifactId, String version) {
         return new Request.RequestBuilder<TestVersionMetadata>()
                 .operation(Operation.GET)
                 .path("groups/%s/artifacts/%s/versions/%s/meta")
@@ -205,9 +205,6 @@ public class RetrocompatibleRegistryClientUtils {
                 tuc.tokenEndpoint
         );
     }
-
-
-
 
     public static RegistryClient create(String url) {
         return new HackRegistryClientImpl(ApicurioHttpClientFactory.create(url + BASE_PATH, Map.of(), null, new ErrorHandler()));

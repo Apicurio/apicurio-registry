@@ -108,6 +108,11 @@ public class SqlStorageUpgradeIT implements TestSeparator, Constants {
 
     }
 
+    @Test
+    public void testStorageUpgradeProtobufUpgraderSql() throws Exception {
+        testStorageUpgradeProtobufUpgrader("protobufCanonicalHashSql", RegistryStorageType.sql);
+    }
+
     public void testStorageUpgradeProtobufUpgrader(String testName, RegistryStorageType storage) throws Exception {
 
         RegistryStorageType previousStorageValue = RegistryUtils.REGISTRY_STORAGE;

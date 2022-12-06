@@ -42,6 +42,11 @@ import java.util.Map;
 
 import static io.apicurio.registry.rest.client.AdminClientFactory.BASE_PATH;
 
+// This class is a plain hack, in https://github.com/Apicurio/apicurio-registry/pull/3006
+// we fixed a return type of the public API, but, some tests in this package, are running an old version of Registry
+// we do not care about dates here, but the deserializer is going to fail finding an incompatible format
+// here we are overriding each and every client method used by the mentioned tests so that the dates are discarded.
+// I'm sorry :-(
 public class RetrocompatibleRegistryClientUtils {
 
     @JsonIgnoreProperties(value={ "createdOn", "modifiedOn" })

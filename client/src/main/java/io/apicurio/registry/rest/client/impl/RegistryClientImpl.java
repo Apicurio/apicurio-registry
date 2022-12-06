@@ -231,8 +231,17 @@ public class RegistryClientImpl implements RegistryClient {
         return apicurioHttpClient.sendRequest(GroupRequestsProvider.listArtifactsInGroup(normalizeGid(groupId), queryParams));
     }
 
-    @Override
-    public ArtifactMetaData createArtifact(String groupId, String artifactId, String version, String artifactType, IfExists ifExists, Boolean canonical, String artifactName, String artifactDescription, String contentType, String fromURL, String artifactSHA, InputStream data) {
+    protected static class CreateArtifact {
+        public final Map<String, String> headers;
+        public final Map<String, List<String>> queryParams;
+
+        public CreateArtifact(Map<String, String> headers, Map<String, List<String>> queryParams) {
+            this.headers = headers;
+            this.queryParams = queryParams;
+        }
+    }
+
+    protected CreateArtifact createArtifactLogic(String artifactId, String version, String artifactType, IfExists ifExists, Boolean canonical, String artifactName, String artifactDescription, String contentType, String artifactSHA) {
         if (artifactId != null && !ArtifactIdValidator.isArtifactIdAllowed(artifactId)) {
             throw new InvalidArtifactIdException();
         }
@@ -247,10 +256,6 @@ public class RegistryClientImpl implements RegistryClient {
             headers.put(Headers.HASH_ALGO, "SHA256");
             headers.put(Headers.ARTIFACT_HASH, artifactSHA);
         }
-        if (fromURL != null) {
-            headers.put(Headers.CONTENT_TYPE, ContentTypes.APPLICATION_CREATE_EXTENDED);
-            data = new StringBufferInputStream("{ \"content\" : \"" + fromURL + "\" }");
-        }
         final Map<String, List<String>> queryParams = new HashMap<>();
         if (canonical != null) {
             queryParams.put(Parameters.CANONICAL, Collections.singletonList(String.valueOf(canonical)));
@@ -259,35 +264,28 @@ public class RegistryClientImpl implements RegistryClient {
             queryParams.put(Parameters.IF_EXISTS, Collections.singletonList(ifExists.value()));
         }
 
-        return apicurioHttpClient.sendRequest(GroupRequestsProvider.createArtifact(normalizeGid(groupId), headers, data, queryParams));
+        return new CreateArtifact(headers, queryParams);
+    }
+
+    @Override
+    public ArtifactMetaData createArtifact(String groupId, String artifactId, String version, String artifactType, IfExists ifExists, Boolean canonical, String artifactName, String artifactDescription, String contentType, String fromURL, String artifactSHA, InputStream data) {
+        var ca = createArtifactLogic(artifactId, version, artifactType, ifExists, canonical, artifactName, artifactDescription, contentType, artifactSHA);
+
+        if (fromURL != null) {
+            ca.headers.put(Headers.CONTENT_TYPE, ContentTypes.APPLICATION_CREATE_EXTENDED);
+            data = new StringBufferInputStream("{ \"content\" : \"" + fromURL + "\" }");
+        }
+
+        return apicurioHttpClient.sendRequest(GroupRequestsProvider.createArtifact(normalizeGid(groupId), ca.headers, data, ca.queryParams));
     }
 
     @Override
     public ArtifactMetaData createArtifact(String groupId, String artifactId, String version, String artifactType, IfExists ifExists, Boolean canonical, String artifactName, String artifactDescription, String contentType, String fromURL, String artifactSHA, InputStream data, List<ArtifactReference> artifactReferences) {
-        if (artifactId != null && !ArtifactIdValidator.isArtifactIdAllowed(artifactId)) {
-            throw new InvalidArtifactIdException();
-        }
-        final Map<String, String> headers = headersFrom(version, artifactName, artifactDescription, ContentTypes.APPLICATION_CREATE_EXTENDED);
-        if (artifactId != null) {
-            headers.put(Headers.ARTIFACT_ID, artifactId);
-        }
-        if (artifactType != null) {
-            headers.put(Headers.ARTIFACT_TYPE, artifactType);
-        }
-        if (artifactSHA != null) {
-            headers.put(Headers.HASH_ALGO, "SHA256");
-            headers.put(Headers.ARTIFACT_HASH, artifactSHA);
-        }
+        var ca = createArtifactLogic(artifactId, version, artifactType, ifExists, canonical, artifactName, artifactDescription, ContentTypes.APPLICATION_CREATE_EXTENDED, artifactSHA);
+
         String content = IoUtil.toString(data);
         if (fromURL != null) {
             content = " { \"content\" : \"" + fromURL + "\" }";
-        }
-        final Map<String, List<String>> queryParams = new HashMap<>();
-        if (canonical != null) {
-            queryParams.put(Parameters.CANONICAL, Collections.singletonList(String.valueOf(canonical)));
-        }
-        if (ifExists != null) {
-            queryParams.put(Parameters.IF_EXISTS, Collections.singletonList(ifExists.value()));
         }
 
         final ContentCreateRequest contentCreateRequest = new ContentCreateRequest();
@@ -295,12 +293,11 @@ public class RegistryClientImpl implements RegistryClient {
         contentCreateRequest.setReferences(artifactReferences);
 
         try {
-            return apicurioHttpClient.sendRequest(GroupRequestsProvider.createArtifactWithReferences(normalizeGid(groupId), headers, contentCreateRequest, queryParams));
+            return apicurioHttpClient.sendRequest(GroupRequestsProvider.createArtifactWithReferences(normalizeGid(groupId), ca.headers, contentCreateRequest, ca.queryParams));
         } catch (JsonProcessingException e) {
             throw parseSerializationError(e);
         }
     }
-
 
     @Override
     public void deleteArtifactsInGroup(String groupId) {
@@ -621,7 +618,7 @@ public class RegistryClientImpl implements RegistryClient {
         return headers;
     }
 
-    private static RestClientException parseSerializationError(JsonProcessingException ex) {
+    protected static RestClientException parseSerializationError(JsonProcessingException ex) {
         final Error error = new Error();
         error.setName(ex.getClass().getSimpleName());
         error.setMessage(ex.getMessage());

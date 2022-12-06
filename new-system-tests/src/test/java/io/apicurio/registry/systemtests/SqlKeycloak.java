@@ -14,6 +14,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @KubernetesTest
 @LoadKubernetesManifests({
+        // Shared resources
+        "/common/00_operator_group.yaml", // Operator group for installed operators in namespace
         // Keycloak IAM
         "/keycloak/00_service.yaml", // Service
         "/keycloak/01_realm.yaml", // Keycloak realm as realm.json in ConfigMap
@@ -22,7 +24,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
         "/sql/00_service.yaml", // Service
         "/sql/01_deployment.yaml", // Deployment
         // Apicurio Registry operator
-        "/apicurio/00_operator_group.yaml", // Operator group for Apicurio Registry operator
         "/apicurio/01_subscription.yaml", // Apicurio Registry operator subscription
         // Apicurio Registry instance
         "/apicurio/02_registry_sql_keycloak.yaml" // Apicurio Registry instance with PostgreSQL storage and Keycloak IAM

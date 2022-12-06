@@ -37,7 +37,7 @@ spec:
             - name: postgresql
               containerPort: 5432
               protocol: TCP
-          imagePullPolicy: Always
+          imagePullPolicy: IfNotPresent
           image: postgres:15
           volumeMounts:
             - mountPath: /postgresql

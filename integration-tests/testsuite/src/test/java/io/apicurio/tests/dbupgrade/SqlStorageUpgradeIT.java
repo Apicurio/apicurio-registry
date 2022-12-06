@@ -221,10 +221,25 @@ public class SqlStorageUpgradeIT implements TestSeparator, Constants {
                 .build();
     }
 
+    public static Request<TestVersionMetadata> getArtifactVersionMetaDataRequest(String groupId, String artifactId, String version) {
+        return new Request.RequestBuilder<TestVersionMetadata>()
+                .operation(Operation.GET)
+                .path("groups/%s/artifacts/%s/versions/%s/meta")
+                .pathParams(List.of(groupId, artifactId, version))
+                .responseType(new TypeReference<TestVersionMetadata>() {
+                })
+                .build();
+    }
+
     private static class HackRegistryClientImpl extends RegistryClientImpl {
 
         public HackRegistryClientImpl(ApicurioHttpClient apicurioHttpClient) {
             super(apicurioHttpClient);
+        }
+
+        @Override
+        public VersionMetaData getArtifactVersionMetaData(String groupId, String artifactId, String version) {
+            return apicurioHttpClient.sendRequest(getArtifactVersionMetaDataRequest(normalizeGid(groupId), artifactId, version));
         }
 
         @Override

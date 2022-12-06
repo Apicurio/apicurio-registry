@@ -158,7 +158,7 @@
 
         <!-- Schema types -->
         <avro.version>1.11.1</avro.version>
-        <json-schema-validator.version>1.0.73</json-schema-validator.version>
+        <json-schema-validator.version>1.0.74</json-schema-validator.version>
         <wire-schema.version>4.3.0</wire-schema.version>
         <wire-compiler.version>4.3.0</wire-compiler.version>
         <okio-jvm.version>3.2.0</okio-jvm.version>
@@ -205,7 +205,7 @@
         <h2.version>1.4.199</h2.version>
         <commons-codec.version>1.15</commons-codec.version>
         <jboss-slf4j.version>1.2.1.Final</jboss-slf4j.version>
-        <httpclient.version>4.5.13</httpclient.version>
+        <httpclient.version>4.5.14</httpclient.version>
         <apicurio-common-rest-client.version>0.1.13.Final</apicurio-common-rest-client.version>
         <apicurio-common-app-components.version>0.1.14.Final</apicurio-common-app-components.version>
         <sentry.version>1.7.30</sentry.version>

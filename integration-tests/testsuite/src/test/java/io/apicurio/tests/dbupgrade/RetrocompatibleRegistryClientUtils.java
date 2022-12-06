@@ -9,7 +9,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import io.apicurio.registry.rest.Headers;
 import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.rest.client.config.ClientConfig;
 import io.apicurio.registry.rest.client.impl.ErrorHandler;
 import io.apicurio.registry.rest.client.impl.RegistryClientImpl;
 import io.apicurio.registry.rest.client.request.Parameters;

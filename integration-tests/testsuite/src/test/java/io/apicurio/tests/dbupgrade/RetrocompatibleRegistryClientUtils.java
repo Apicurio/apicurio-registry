@@ -196,7 +196,7 @@ public class RetrocompatibleRegistryClientUtils {
     }
 
     public static TenantUserClient create(TenantUserClient tuc) {
-        var client = new HackRegistryClientImpl(ApicurioHttpClientFactory.create(tuc.tenantAppUrl + BASE_PATH, Map.of(), new OidcAuth(ApicurioHttpClientFactory.create(tuc.tokenEndpoint, new AuthErrorHandler()), tuc.user.principalId, tuc.user.principalPassword), new AuthErrorHandler()));
+        var client = new HackRegistryClientImpl(ApicurioHttpClientFactory.create(tuc.tenantAppUrl + BASE_PATH, Map.of(), new OidcAuth(ApicurioHttpClientFactory.create(tuc.tokenEndpoint, new AuthErrorHandler()), tuc.user.principalId, tuc.user.principalPassword), new ErrorHandler()));
 
         return new TenantUserClient(
                 tuc.user,

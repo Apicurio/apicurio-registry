@@ -30,16 +30,23 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonPropertyDescription;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import io.apicurio.registry.rest.Headers;
 import io.apicurio.registry.rest.client.impl.ErrorHandler;
 import io.apicurio.registry.rest.client.impl.RegistryClientImpl;
 import io.apicurio.registry.rest.client.request.Parameters;
 import io.apicurio.registry.rest.v2.beans.ArtifactReference;
+import io.apicurio.registry.rest.v2.beans.ArtifactSearchResults;
 import io.apicurio.registry.rest.v2.beans.ContentCreateRequest;
 import io.apicurio.registry.rest.v2.beans.IfExists;
+import io.apicurio.registry.rest.v2.beans.SearchedArtifact;
+import io.apicurio.registry.rest.v2.beans.SortBy;
+import io.apicurio.registry.rest.v2.beans.SortOrder;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.rest.client.auth.OidcAuth;
 import io.apicurio.rest.client.auth.exception.AuthErrorHandler;
@@ -141,6 +148,28 @@ public class SqlStorageUpgradeIT implements TestSeparator, Constants {
     @JsonIgnoreProperties(value={ "createdOn" })
     public static class TestVersionMetadata extends VersionMetaData { }
 
+    @JsonIgnoreProperties(value={ "createdOn", "modifiedOn" })
+    public static class TestSearchedArtifact extends SearchedArtifact {}
+
+    public static class TestArtifactSearchResults extends ArtifactSearchResults {
+        @JsonProperty("artifacts")
+        @JsonPropertyDescription("The artifacts returned in the result set.")
+        @JsonDeserialize(contentAs= TestSearchedArtifact.class)
+        private List<SearchedArtifact> artifacts = new ArrayList<SearchedArtifact>();
+
+        @Override
+        @JsonProperty("artifacts")
+        public List<SearchedArtifact> getArtifacts() {
+            return artifacts;
+        }
+
+        @Override
+        @JsonProperty("artifacts")
+        public void setArtifacts(List<SearchedArtifact> artifacts) {
+            this.artifacts = artifacts;
+        }
+    }
+
     public static Request<TestArtifactMetadata> createArtifactWithReferencesRequest(String groupId, Map<String, String> headers, ContentCreateRequest data, Map<String, List<String>> queryParams)
             throws JsonProcessingException {
         return new Request.RequestBuilder<TestArtifactMetadata>()
@@ -181,10 +210,28 @@ public class SqlStorageUpgradeIT implements TestSeparator, Constants {
                 .build();
     }
 
+    public static Request<TestArtifactSearchResults> listArtifactsInGroupRequest(String groupId, Map<String, List<String>> queryParams) {
+        return new Request.RequestBuilder<TestArtifactSearchResults>()
+                .operation(Operation.GET)
+                .path("groups/%s/artifacts")
+                .pathParams(List.of(groupId))
+                .queryParams(queryParams)
+                .responseType(new TypeReference<TestArtifactSearchResults>() {
+                })
+                .build();
+    }
+
     private static class HackRegistryClientImpl extends RegistryClientImpl {
 
         public HackRegistryClientImpl(ApicurioHttpClient apicurioHttpClient) {
             super(apicurioHttpClient);
+        }
+
+        @Override
+        public TestArtifactSearchResults listArtifactsInGroup(String groupId, SortBy orderBy, SortOrder order, Integer offset, Integer limit) {
+            final Map<String, List<String>> queryParams = new HashMap<>();
+            checkCommonQueryParams(orderBy, order, limit, offset, queryParams);
+            return apicurioHttpClient.sendRequest(listArtifactsInGroupRequest(normalizeGid(groupId), queryParams));
         }
 
         @Override

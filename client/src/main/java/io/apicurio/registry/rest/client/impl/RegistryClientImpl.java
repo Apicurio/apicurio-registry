@@ -577,7 +577,7 @@ public class RegistryClientImpl implements RegistryClient {
         return apicurioHttpClient.getHeaders();
     }
 
-    private void checkCommonQueryParams(SortBy orderBy, SortOrder order, Integer limit, Integer offset,
+    protected void checkCommonQueryParams(SortBy orderBy, SortOrder order, Integer limit, Integer offset,
                                         Map<String, List<String>> queryParams) {
         if (offset != null) {
             queryParams.put(Parameters.OFFSET, Collections.singletonList(String.valueOf(offset)));

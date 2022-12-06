@@ -85,7 +85,7 @@ public class KafkaSqlStorageUpgradeIT implements TestSeparator, Constants {
 
             //
 
-            var registryClient = RetrocompatibleRegistryClientUtils.create("http://localhost:8081");
+            var registryClient = RetrocompatibleRegistryClientUtils.create("http://localhost:8081/");
 
             createArtifact(registryClient, ArtifactType.AVRO, ApicurioV2BaseIT.resourceToString("artifactTypes/" + "avro/multi-field_v1.json"));
             createArtifact(registryClient, ArtifactType.JSON, ApicurioV2BaseIT.resourceToString("artifactTypes/" + "jsonSchema/person_v1.json"));

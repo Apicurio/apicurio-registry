@@ -215,7 +215,7 @@ public class SqlStorageUpgradeIT implements TestSeparator, Constants {
             tenant.tenant = user;
             tenants.add(tenant);
 
-            RegistryClient client = user.client;
+            RegistryClient client = RetrocompatibleRegistryClientUtils.create(user).client;
 
             Rule comp = new Rule();
             comp.setType(RuleType.COMPATIBILITY);

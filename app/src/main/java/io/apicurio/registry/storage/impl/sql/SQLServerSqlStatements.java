@@ -145,7 +145,7 @@ public class SQLServerSqlStatements extends CommonSqlStatements {
      */
     @Override
     public String selectArtifactIds() {
-        return "SELECT TOP ? artifactId FROM artifacts WHERE tenantId = ?";
+        return "SELECT TOP (?) artifactId FROM artifacts WHERE tenantId = ?";
     }
 
     /**
@@ -165,7 +165,7 @@ public class SQLServerSqlStatements extends CommonSqlStatements {
     @Override
     public String selectGroups() {
         //TODO pagination?
-        return "SELECT TOP ? * FROM groups WHERE tenantId = ?"
+        return "SELECT TOP (?) * FROM groups WHERE tenantId = ?"
                 + "ORDER BY groupId ASC";
     }
 

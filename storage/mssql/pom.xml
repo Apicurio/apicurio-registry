@@ -168,6 +168,9 @@
                     </systemProperties>
                     <includes>
                         <include>**/MsSqlRegistryStorageTest.java</include>
+                        <include>**/GroupsResourceTest.java</include>
+                        <include>**/IdsResourceTest.java</include>
+                        <include>**/SearchResourceTest.java</include>
                     </includes>
                 </configuration>
             </plugin>

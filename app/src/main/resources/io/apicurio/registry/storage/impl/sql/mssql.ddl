@@ -12,13 +12,13 @@ ALTER TABLE sequences ADD PRIMARY KEY (tenantId, name);
 CREATE TABLE globalrules (tenantId VARCHAR(128) NOT NULL, type VARCHAR(32) NOT NULL, configuration TEXT NOT NULL);
 ALTER TABLE globalrules ADD PRIMARY KEY (tenantId, type);
 
-CREATE TABLE artifacts (tenantId VARCHAR(128) NOT NULL, groupId VARCHAR(512) NOT NULL, artifactId VARCHAR(512) NOT NULL, type VARCHAR(32) NOT NULL, createdBy VARCHAR(256), createdOn DATETIME2(6) NOT NULL, latest BIGINT);
+CREATE TABLE artifacts (tenantId VARCHAR(128) NOT NULL, groupId NVARCHAR(512) NOT NULL, artifactId NVARCHAR(512) NOT NULL, type VARCHAR(32) NOT NULL, createdBy VARCHAR(256), createdOn DATETIME2(6) NOT NULL, latest BIGINT);
 ALTER TABLE artifacts ADD PRIMARY KEY (tenantId, groupId, artifactId);
 CREATE INDEX IDX_artifacts_0 ON artifacts(type);
 CREATE INDEX IDX_artifacts_1 ON artifacts(createdBy);
 CREATE INDEX IDX_artifacts_2 ON artifacts(createdOn);
 
-CREATE TABLE rules (tenantId VARCHAR(128) NOT NULL, groupId VARCHAR(512) NOT NULL, artifactId VARCHAR(512) NOT NULL, type VARCHAR(32) NOT NULL, configuration VARCHAR(1024) NOT NULL);
+CREATE TABLE rules (tenantId VARCHAR(128) NOT NULL, groupId NVARCHAR(512) NOT NULL, artifactId NVARCHAR(512) NOT NULL, type VARCHAR(32) NOT NULL, configuration VARCHAR(1024) NOT NULL);
 ALTER TABLE rules ADD PRIMARY KEY (tenantId, groupId, artifactId, type);
 
 CREATE TABLE content (tenantId VARCHAR(128) NOT NULL, contentId BIGINT NOT NULL, canonicalHash VARCHAR(64) NOT NULL, contentHash VARCHAR(64) NOT NULL, content VARBINARY(MAX) NOT NULL, artifactreferences TEXT);
@@ -27,7 +27,7 @@ ALTER TABLE content ADD CONSTRAINT UNQ_content_1 UNIQUE (tenantId, contentHash);
 CREATE INDEX IDX_content_1 ON content(canonicalHash);
 CREATE INDEX IDX_content_2 ON content(contentHash);
 
-CREATE TABLE versions (globalId BIGINT NOT NULL, tenantId VARCHAR(128) NOT NULL, groupId VARCHAR(512) NOT NULL, artifactId VARCHAR(512) NOT NULL, version VARCHAR(256), versionId INT NOT NULL, state VARCHAR(64) NOT NULL, name VARCHAR(512), description VARCHAR(1024), createdBy VARCHAR(256), createdOn DATETIME2(6) NOT NULL, labels TEXT, properties TEXT, contentId BIGINT NOT NULL);
+CREATE TABLE versions (globalId BIGINT NOT NULL, tenantId VARCHAR(128) NOT NULL, groupId NVARCHAR(512) NOT NULL, artifactId NVARCHAR(512) NOT NULL, version VARCHAR(256), versionId INT NOT NULL, state VARCHAR(64) NOT NULL, name NVARCHAR(512), description NVARCHAR(1024), createdBy VARCHAR(256), createdOn DATETIME2(6) NOT NULL, labels TEXT, properties TEXT, contentId BIGINT NOT NULL);
 ALTER TABLE versions ADD PRIMARY KEY (tenantId, globalId);
 ALTER TABLE versions ADD CONSTRAINT UQ_versions_1 UNIQUE (tenantId, groupId, artifactId, version);
 ALTER TABLE versions ADD CONSTRAINT FK_versions_1 FOREIGN KEY (tenantId, groupId, artifactId) REFERENCES artifacts(tenantId, groupId, artifactId);
@@ -35,7 +35,7 @@ ALTER TABLE versions ADD CONSTRAINT FK_versions_2 FOREIGN KEY (tenantId, content
 CREATE INDEX IDX_versions_1 ON versions(version);
 CREATE INDEX IDX_versions_2 ON versions(state);
 CREATE INDEX IDX_versions_3 ON versions(name);
-CREATE INDEX IDX_versions_4 ON versions(description);
+-- CREATE INDEX IDX_versions_4 ON versions(description);
 CREATE INDEX IDX_versions_5 ON versions(createdBy);
 CREATE INDEX IDX_versions_6 ON versions(createdOn);
 CREATE INDEX IDX_versions_7 ON versions(contentId);
@@ -52,7 +52,7 @@ CREATE INDEX IDX_labels_1 ON labels(label);
 CREATE TABLE logconfiguration (logger VARCHAR(512) NOT NULL, loglevel VARCHAR(32) NOT NULL);
 ALTER TABLE logconfiguration ADD PRIMARY KEY (logger);
 
-CREATE TABLE groups (tenantId VARCHAR(128) NOT NULL, groupId VARCHAR(512) NOT NULL, description VARCHAR(1024), artifactsType VARCHAR(32), createdBy VARCHAR(256), createdOn DATETIME2(6) NOT NULL, modifiedBy VARCHAR(256), modifiedOn DATETIME2(6), properties TEXT);
+CREATE TABLE groups (tenantId VARCHAR(128) NOT NULL, groupId NVARCHAR(512) NOT NULL, description NVARCHAR(1024), artifactsType VARCHAR(32), createdBy VARCHAR(256), createdOn DATETIME2(6) NOT NULL, modifiedBy VARCHAR(256), modifiedOn DATETIME2(6), properties TEXT);
 ALTER TABLE groups ADD PRIMARY KEY (tenantId, groupId);
 
 CREATE TABLE acls (tenantId VARCHAR(128) NOT NULL, principalId VARCHAR(256) NOT NULL, role VARCHAR(32) NOT NULL, principalName VARCHAR(256));
@@ -66,7 +66,7 @@ CREATE TABLE config (tenantId VARCHAR(128) NOT NULL, pname VARCHAR(255) NOT NULL
 ALTER TABLE config ADD PRIMARY KEY (tenantId, pname);
 CREATE INDEX IDX_config_1 ON config(modifiedOn);
 
-CREATE TABLE artifactreferences (tenantId VARCHAR(128) NOT NULL, contentId BIGINT NOT NULL, groupId VARCHAR(512), artifactId VARCHAR(512) NOT NULL, version VARCHAR(256), name VARCHAR(512) NOT NULL);
+CREATE TABLE artifactreferences (tenantId VARCHAR(128) NOT NULL, contentId BIGINT NOT NULL, groupId NVARCHAR(512), artifactId NVARCHAR(512) NOT NULL, version VARCHAR(256), name VARCHAR(512) NOT NULL);
 ALTER TABLE artifactreferences ADD PRIMARY KEY (tenantId, contentId, name);
 ALTER TABLE artifactreferences ADD CONSTRAINT FK_artifactreferences_1 FOREIGN KEY (tenantId, contentId) REFERENCES content(tenantId, contentId) ON DELETE CASCADE;
 

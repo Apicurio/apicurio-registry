@@ -160,7 +160,24 @@ public final class ArtifactTypeUtil {
         }
 
         try {
-            // Avro
+            // Avro without quote
+            final Schema.Parser parser = new Schema.Parser();
+            final List<Schema> schemaRefs = new ArrayList<>();
+            for (Map.Entry<String, ContentHandle> referencedContent : resolvedReferences.entrySet()) {
+                if (!parser.getTypes().containsKey(referencedContent.getKey())) {
+                    Schema schemaRef = parser.parse(referencedContent.getValue().content());
+                    schemaRefs.add(schemaRef);
+                }
+            }
+            final Schema schema = parser.parse(removeQuotedBrackets(content.content()));
+            schema.toString(schemaRefs, false);
+            return ArtifactType.AVRO;
+        } catch (Exception e) {
+            //ignored
+        }
+
+        try {
+            // Avro with original input
             final Schema.Parser parser = new Schema.Parser();
             final List<Schema> schemaRefs = new ArrayList<>();
             for (Map.Entry<String, ContentHandle> referencedContent : resolvedReferences.entrySet()) {

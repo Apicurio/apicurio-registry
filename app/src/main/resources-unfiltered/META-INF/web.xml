@@ -7,10 +7,11 @@
     <filter>
         <filter-name>RedirectFilter</filter-name>
         <filter-class>io.apicurio.registry.ui.servlets.RedirectFilter</filter-class>
+        <async-supported>true</async-supported>
     </filter>
     <filter-mapping>
         <filter-name>RedirectFilter</filter-name>
-        <url-pattern>/</url-pattern>
+        <url-pattern>/*</url-pattern>
     </filter-mapping>
 
     <filter>

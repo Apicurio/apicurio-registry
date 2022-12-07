@@ -176,7 +176,6 @@ push-sql-native-image:
 	@echo "------------------------------------------------------------------------"
 	docker push $(IMAGE_REPO)/apicurio/apicurio-registry-sql-native:$(IMAGE_TAG)
 
-
 .PHONY: build-mssql-image ## Builds docker image for 'mssql' storage variant. Variables available for override [MSSQL_DOCKERFILE, IMAGE_REPO, IMAGE_TAG, DOCKER_BUILD_WORKSPACE]
 build-mssql-image:
     @echo "------------------------------------------------------------------------"
@@ -195,7 +194,6 @@ push-mssql-image:
     @echo "------------------------------------------------------------------------"
     docker push $(IMAGE_REPO)/apicurio/apicurio-registry-mssql:$(IMAGE_TAG)
 
-
 .PHONY: build-kafkasql-image ## Builds docker image for kafkasql storage variant. Variables available for override [KAFKASQL_DOCKERFILE, IMAGE_REPO, IMAGE_TAG, DOCKER_BUILD_WORKSPACE]
 build-kafkasql-image:
 	@echo "------------------------------------------------------------------------"
@@ -204,7 +202,6 @@ build-kafkasql-image:
 	@echo " Tag: $(IMAGE_TAG)"
 	@echo "------------------------------------------------------------------------"
 	docker build -f $(DOCKERFILE_LOCATION)/$(KAFKASQL_DOCKERFILE) -t $(IMAGE_REPO)/apicurio/apicurio-registry-kafkasql:$(IMAGE_TAG) $(DOCKER_BUILD_WORKSPACE)
-
 
 .PHONY: push-kafkasql-image ## Pushes docker image for 'kafkasql' storage variant. Variables available for override [IMAGE_REPO, IMAGE_TAG]
 push-kafkasql-image:
@@ -223,7 +220,6 @@ build-kafkasql-native-image:
 	@echo " Tag: $(IMAGE_TAG)"
 	@echo "------------------------------------------------------------------------"
 	docker build -f $(DOCKERFILE_LOCATION)/Dockerfile.native -t $(IMAGE_REPO)/apicurio/apicurio-registry-kafkasql-native:$(IMAGE_TAG) storage/kafkasql
-
 
 .PHONY: push-kafkasql-native-image ## Pushes native docker image for 'kafkasql' storage variant. Variables available for override [IMAGE_REPO, IMAGE_TAG]
 push-kafkasql-native-image:

@@ -178,21 +178,21 @@ push-sql-native-image:
 
 .PHONY: build-mssql-image ## Builds docker image for 'mssql' storage variant. Variables available for override [MSSQL_DOCKERFILE, IMAGE_REPO, IMAGE_TAG, DOCKER_BUILD_WORKSPACE]
 build-mssql-image:
-    @echo "------------------------------------------------------------------------"
-    @echo " Building Image For MSSQL Storage Variant "
-    @echo " Repository: $(IMAGE_REPO)"
-    @echo " Tag: $(IMAGE_TAG)"
-    @echo "------------------------------------------------------------------------"
-    docker build -f $(DOCKERFILE_LOCATION)/$(MSSQL_DOCKERFILE) -t $(IMAGE_REPO)/apicurio/apicurio-registry-mssql:$(IMAGE_TAG) $(DOCKER_BUILD_WORKSPACE)
+	@echo "------------------------------------------------------------------------"
+	@echo " Building Image For MSSQL Storage Variant "
+	@echo " Repository: $(IMAGE_REPO)"
+	@echo " Tag: $(IMAGE_TAG)"
+	@echo "------------------------------------------------------------------------"
+	docker build -f $(DOCKERFILE_LOCATION)/$(MSSQL_DOCKERFILE) -t $(IMAGE_REPO)/apicurio/apicurio-registry-mssql:$(IMAGE_TAG) $(DOCKER_BUILD_WORKSPACE)
 
 .PHONY: push-mssql-image ## Pushes docker image for 'mssql' storage variant. Variables available for override [IMAGE_REPO, IMAGE_TAG]
 push-mssql-image:
-    @echo "------------------------------------------------------------------------"
-    @echo " Pushing Image For MSSQL Storage Variant"
-    @echo " Repository: $(IMAGE_REPO)"
-    @echo " Tag: $(IMAGE_TAG)"
-    @echo "------------------------------------------------------------------------"
-    docker push $(IMAGE_REPO)/apicurio/apicurio-registry-mssql:$(IMAGE_TAG)
+	@echo "------------------------------------------------------------------------"
+	@echo " Pushing Image For MSSQL Storage Variant"
+	@echo " Repository: $(IMAGE_REPO)"
+	@echo " Tag: $(IMAGE_TAG)"
+	@echo "------------------------------------------------------------------------"
+	docker push $(IMAGE_REPO)/apicurio/apicurio-registry-mssql:$(IMAGE_TAG)
 
 .PHONY: build-kafkasql-image ## Builds docker image for kafkasql storage variant. Variables available for override [KAFKASQL_DOCKERFILE, IMAGE_REPO, IMAGE_TAG, DOCKER_BUILD_WORKSPACE]
 build-kafkasql-image:

@@ -183,7 +183,7 @@ public final class ArtifactTypeUtil {
         }
 
         try {
-            // Avro without quote
+            // Avro with original input
             final Schema.Parser parser = new Schema.Parser();
             final List<Schema> schemaRefs = new ArrayList<>();
             for (Map.Entry<String, ContentHandle> referencedContent : resolvedReferences.entrySet()) {

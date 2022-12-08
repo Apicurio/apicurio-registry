@@ -642,7 +642,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
         String sql;
         Long contentId;
         boolean insertReferences = true;
-        if ("postgresql".equals(sqlStatements.dbType())) {
+        if (Set.of("mssql", "postgresql").contains(sqlStatements.dbType())) {
             sql = sqlStatements.upsertContent();
             handle.createUpdate(sql)
                     .bind(0, tenantContext.tenantId())
@@ -1068,9 +1068,17 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
         log.debug("Getting the set of all artifact IDs");
         return handles.withHandleNoException( handle -> {
             String sql = sqlStatements.selectArtifactIds();
-            List<String> ids = handle.createQuery(sql)
-                    .bind(0, tenantContext.tenantId())
-                    .bind(1, adjustedLimit)
+            Query query = handle.createQuery(sql);
+            if ("mssql".equals(sqlStatements.dbType())) {
+                query
+                        .bind(0, adjustedLimit)
+                        .bind(1, tenantContext.tenantId());
+            } else {
+                query
+                        .bind(0, tenantContext.tenantId())
+                        .bind(1, adjustedLimit);
+            }
+            List<String> ids = query
                     .mapTo(String.class)
                     .list();
             return new TreeSet<String>(ids);
@@ -1231,7 +1239,11 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
             orderByQuery.append(orderDirection.name());
 
             // Add limit and offset to artifact query
-            limitOffset.append(" LIMIT ? OFFSET ?");
+            if ("mssql".equals(sqlStatements.dbType())) {
+                limitOffset.append(" OFFSET ? ROWS FETCH NEXT ? ROWS ONLY");
+            } else {
+                limitOffset.append(" LIMIT ? OFFSET ?");
+            }
 
             // Query for the artifacts
             String artifactsQuerySql = select.toString() + where.toString() + orderByQuery.toString() + limitOffset.toString();
@@ -1252,8 +1264,14 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                 binder.bind(countQuery, idx);
                 idx++;
             }
-            artifactsQuery.bind(idx++, limit);
-            artifactsQuery.bind(idx++, offset);
+            // TODO find a better way to swap arguments
+            if ("mssql".equals(sqlStatements.dbType())) {
+                artifactsQuery.bind(idx++, offset);
+                artifactsQuery.bind(idx++, limit);
+            } else {
+                artifactsQuery.bind(idx++, limit);
+                artifactsQuery.bind(idx++, offset);
+            }
 
             // Execute artifact query
             List<SearchedArtifactDto> artifacts = artifactsQuery.map(SearchedArtifactMapper.instance).list();
@@ -1651,12 +1669,20 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
             }
 
             sql = sqlStatements.selectAllArtifactVersions();
-            List<SearchedVersionDto> versions = handle.createQuery(sql)
+            Query query = handle.createQuery(sql)
                     .bind(0, tenantContext.tenantId())
                     .bind(1, normalizeGroupId(groupId))
-                    .bind(2, artifactId)
-                    .bind(3, limit)
-                    .bind(4, offset)
+                    .bind(2, artifactId);
+            if ("mssql".equals(sqlStatements.dbType())) {
+                query
+                        .bind(3, offset)
+                        .bind(4, limit);
+            } else {
+                query
+                        .bind(3, limit)
+                        .bind(4, offset);
+            }
+            List<SearchedVersionDto> versions = query
                     .map(SearchedVersionMapper.instance)
                     .list();
             rval.setVersions(versions);
@@ -2394,9 +2420,17 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     public List<String> getGroupIds(Integer limit) throws RegistryStorageException {
         return handles.withHandleNoException(handle -> {
             String sql = sqlStatements.selectGroups();
-            List<String> groups = handle.createQuery(sql)
-                    .bind(0, tenantContext.tenantId())
-                    .bind(1, limit)
+            Query query = handle.createQuery(sql);
+            if ("mssql".equals(sqlStatements.dbType())) {
+                query
+                        .bind(0, limit)
+                        .bind(1, tenantContext.tenantId());
+            } else {
+                query
+                        .bind(0, tenantContext.tenantId())
+                        .bind(1, limit);
+            }
+            List<String> groups = query
                     .map(new RowMapper<String>() {
                         @Override
                         public String map(ResultSet rs) throws SQLException {
@@ -3456,7 +3490,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     }
 
     private long nextSequenceValue(Handle handle, String sequenceName) {
-        if ("postgresql".equals(sqlStatements.dbType())) {
+        if (Set.of("mssql", "postgresql").contains(sqlStatements.dbType())) {
             return handle.createQuery(sqlStatements.getNextSequenceValue())
                     .bind(0, tenantContext.tenantId())
                     .bind(1, sequenceName)

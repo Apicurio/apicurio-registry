@@ -94,7 +94,6 @@ public class H2SqlStatements extends CommonSqlStatements {
         return "SELECT seq_value FROM sequences WHERE name = ? AND tenantId = ? ";
     }
 
-
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#resetSequenceValue()
      */

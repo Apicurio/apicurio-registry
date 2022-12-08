@@ -165,7 +165,7 @@
         <okio.version>3.2.0</okio.version>
         <okio-fake-file-system.version>3.2.0</okio-fake-file-system.version>
         <icu4j.version>72.1</icu4j.version>
-        <protobuf.version>3.21.10</protobuf.version>
+        <protobuf.version>3.21.11</protobuf.version>
         <xmlsec.version>3.0.1</xmlsec.version>
         <protobuf.googleapi.types.version>2.11.0</protobuf.googleapi.types.version>
         <wsdl4j.version>1.6.3</wsdl4j.version>
@@ -250,7 +250,7 @@
         <test-containers.version>1.17.5</test-containers.version>
         <keycloak.testcontainers.version>1.9.0</keycloak.testcontainers.version>
         <keycloak-admin-client.version>20.0.1</keycloak-admin-client.version>
-        <embedded-postgres.version>2.0.1</embedded-postgres.version>
+        <embedded-postgres.version>2.0.2</embedded-postgres.version>
         <strimzi.version>0.102.0</strimzi.version>
         <wiremock-jre8.version>2.35.0</wiremock-jre8.version>
     </properties>
@@ -326,6 +326,11 @@
             <dependency>
                 <groupId>io.apicurio</groupId>
                 <artifactId>apicurio-registry-storage-sql</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-registry-storage-mssql</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -1013,6 +1018,12 @@
             <id>sql</id>
             <modules>
                 <module>storage/sql</module>
+            </modules>
+        </profile>
+        <profile>
+            <id>mssql</id>
+            <modules>
+                <module>storage/mssql</module>
             </modules>
         </profile>
         <profile>

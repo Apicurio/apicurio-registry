@@ -250,7 +250,7 @@
         <test-containers.version>1.17.5</test-containers.version>
         <keycloak.testcontainers.version>1.9.0</keycloak.testcontainers.version>
         <keycloak-admin-client.version>20.0.1</keycloak-admin-client.version>
-        <embedded-postgres.version>2.0.1</embedded-postgres.version>
+        <embedded-postgres.version>2.0.2</embedded-postgres.version>
         <strimzi.version>0.102.0</strimzi.version>
         <wiremock-jre8.version>2.35.0</wiremock-jre8.version>
     </properties>

@@ -1,7 +1,5 @@
 <?xml version="1.0"?>
-<project
-    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"
-    xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+<project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd" xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>io.apicurio</groupId>
@@ -9,11 +7,10 @@
         <version>2.3.2-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
-    
-    <artifactId>apicurio-registry-storage-sql</artifactId>
-    <packaging>jar</packaging>
-    <name>apicurio-registry-storage-sql</name>
 
+    <artifactId>apicurio-registry-storage-mssql</artifactId>
+    <packaging>jar</packaging>
+    <name>apicurio-registry-storage-mssql</name>
 
     <dependencies>
         <dependency>
@@ -32,7 +29,7 @@
         </dependency>
         <dependency>
             <groupId>io.quarkus</groupId>
-            <artifactId>quarkus-jdbc-postgresql</artifactId>
+            <artifactId>quarkus-jdbc-mssql</artifactId>
         </dependency>
 
         <!-- Test Only -->
@@ -52,14 +49,12 @@
             </exclusions>
         </dependency>
         <dependency>
-            <groupId>io.zonky.test</groupId>
-            <artifactId>embedded-postgres</artifactId>
-            <version>${embedded-postgres.version}</version><!--$NO-MVN-MAN-VER$-->
+            <groupId>org.testcontainers</groupId>
+            <artifactId>mssqlserver</artifactId>
             <scope>test</scope>
         </dependency>
-
     </dependencies>
-    
+
     <build>
         <resources>
             <resource>
@@ -170,6 +165,12 @@
                     <systemProperties>
                         <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
                     </systemProperties>
+                    <includes>
+                        <include>**/MsSqlRegistryStorageTest.java</include>
+                        <include>**/GroupsResourceTest.java</include>
+                        <include>**/IdsResourceTest.java</include>
+                        <include>**/SearchResourceTest.java</include>
+                    </includes>
                 </configuration>
             </plugin>
             <plugin>
@@ -209,51 +210,12 @@
             </plugin>
         </plugins>
     </build>
-    
+
     <profiles>
         <profile>
             <id>no-docker</id>
             <properties>
                 <groups>!docker</groups>
-            </properties>
-        </profile>
-        <profile>
-            <id>no-slow-tests</id>
-            <properties>
-                <groups>!slow</groups>
-            </properties>
-        </profile>
-        <profile>
-            <id>native</id>
-            <activation>
-                <property>
-                    <name>native</name>
-                </property>
-            </activation>
-            <build>
-                <plugins>
-                    <plugin>
-                        <artifactId>maven-failsafe-plugin</artifactId>
-                        <executions>
-                            <execution>
-                                <goals>
-                                    <goal>integration-test</goal>
-                                    <goal>verify</goal>
-                                </goals>
-                                <configuration>
-                                    <systemPropertyVariables>
-                                        <native.image.path>${project.build.directory}/${project.build.finalName}-runner</native.image.path>
-                                        <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
-                                        <maven.home>${maven.home}</maven.home>
-                                    </systemPropertyVariables>
-                                </configuration>
-                            </execution>
-                        </executions>
-                    </plugin>
-                </plugins>
-            </build>
-            <properties>
-                <quarkus.package.type>native</quarkus.package.type>
             </properties>
         </profile>
     </profiles>

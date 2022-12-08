@@ -105,7 +105,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String deleteGlobalRule() {
-        return "DELETE FROM globalrules r WHERE r.tenantId = ? AND r.type = ?";
+        return "DELETE FROM globalrules WHERE tenantId = ? AND type = ?";
     }
 
     /**
@@ -113,7 +113,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String deleteGlobalRules() {
-        return "DELETE FROM globalrules r WHERE r.tenantId = ?";
+        return "DELETE FROM globalrules WHERE tenantId = ?";
     }
 
     /**
@@ -489,7 +489,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String deleteVersionLabels() {
-        return "DELETE FROM labels l WHERE l.tenantId = ? AND l.globalId IN (SELECT v.globalId FROM versions v WHERE v.tenantId = ? AND v.groupId = ? AND v.artifactId = ? AND v.version = ?)";
+        return "DELETE FROM labels WHERE tenantId = ? AND globalId IN (SELECT v.globalId FROM versions v WHERE v.tenantId = ? AND v.groupId = ? AND v.artifactId = ? AND v.version = ?)";
     }
 
     /**
@@ -497,7 +497,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String deleteVersionProperties() {
-        return "DELETE FROM properties p WHERE p.tenantId = ? AND p.globalId IN (SELECT v.globalId FROM versions v WHERE v.tenantId = ? AND v.groupId = ? AND v.artifactId = ? AND v.version = ?)";
+        return "DELETE FROM properties WHERE tenantId = ? AND globalId IN (SELECT v.globalId FROM versions v WHERE v.tenantId = ? AND v.groupId = ? AND v.artifactId = ? AND v.version = ?)";
     }
 
     /**
@@ -619,7 +619,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
     public String deleteAllOrphanedContent() {
         // TODO This may be too slow
 
-        return "DELETE FROM content c WHERE NOT EXISTS (SELECT 1 FROM versions v WHERE v.contentId = c.contentId AND v.tenantId = c.tenantId)";
+        return "DELETE FROM content WHERE NOT EXISTS (SELECT 1 FROM versions v WHERE v.contentId = contentId AND v.tenantId = tenantId)";
     }
 
     /**
@@ -683,7 +683,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String deleteGroup() {
-        return "DELETE FROM groups g WHERE g.tenantId = ? AND g.groupId = ?";
+        return "DELETE FROM groups WHERE tenantId = ? AND groupId = ?";
     }
 
     /**
@@ -691,7 +691,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String deleteAllGroups() {
-        return "DELETE FROM groups g WHERE g.tenantId = ?";
+        return "DELETE FROM groups WHERE tenantId = ?";
     }
 
     /**
@@ -843,7 +843,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String deleteRoleMapping() {
-        return "DELETE FROM acls a WHERE a.tenantId = ? AND a.principalId = ?";
+        return "DELETE FROM acls WHERE tenantId = ? AND principalId = ?";
     }
 
     /**
@@ -851,7 +851,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String deleteAllRoleMappings() {
-        return "DELETE FROM acls a WHERE a.tenantId = ?";
+        return "DELETE FROM acls WHERE tenantId = ?";
     }
 
     /**
@@ -915,7 +915,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String deleteDownload() {
-        return "DELETE FROM downloads d WHERE d.tenantId = ? AND d.downloadId = ?";
+        return "DELETE FROM downloads WHERE tenantId = ? AND downloadId = ?";
     }
 
     /**
@@ -923,7 +923,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String deleteExpiredDownloads() {
-        return "DELETE FROM downloads d WHERE d.expires < ?";
+        return "DELETE FROM downloads WHERE expires < ?";
     }
 
     /**
@@ -947,7 +947,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String deleteConfigProperty() {
-        return "DELETE FROM config c WHERE c.tenantId = ? AND c.pname = ?";
+        return "DELETE FROM config WHERE tenantId = ? AND pname = ?";
     }
 
     /**
@@ -963,7 +963,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String deleteAllConfigProperties() {
-        return "DELETE FROM config c WHERE c.tenantId = ?";
+        return "DELETE FROM config WHERE tenantId = ?";
     }
 
     /**
@@ -976,12 +976,12 @@ public abstract class CommonSqlStatements implements SqlStatements {
 
     @Override
     public String deleteAllReferences() {
-        return "DELETE FROM artifactreferences ar WHERE ar.tenantId = ?";
+        return "DELETE FROM artifactreferences WHERE tenantId = ?";
     }
 
     @Override
     public String deleteOrphanedReferences() {
-        return "DELETE FROM artifactreferences ar WHERE NOT EXISTS (SELECT 1 FROM versions v WHERE v.contentId = ar.contentId AND v.tenantId = ar.tenantId)";
+        return "DELETE FROM artifactreferences WHERE NOT EXISTS (SELECT 1 FROM versions v WHERE v.contentId = contentId AND v.tenantId = tenantId)";
     }
 
     @Override
@@ -993,4 +993,15 @@ public abstract class CommonSqlStatements implements SqlStatements {
     public String selectGlobalIdsReferencingArtifactBy() {
         return "SELECT DISTINCT v.globalId FROM versions v JOIN artifactreferences ar ON v.tenantId=ar.tenantId AND v.contentId=ar.contentId WHERE ar.tenantId=? AND ar.groupId=? AND ar.artifactId=? AND ar.version=?";
     }
+
+    @Override
+    public String insertSequenceValue() {
+        return "INSERT INTO sequences (tenantId, name, value) VALUES (?, ?, ?)";
+    }
+
+    @Override
+    public String selectCurrentSequenceValue() {
+        return "SELECT value FROM sequences WHERE name = ? AND tenantId = ? ";
+    }
+
 }

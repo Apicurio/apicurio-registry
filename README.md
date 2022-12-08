@@ -12,10 +12,11 @@ This project supports several build configuration options that affect the produc
 
 By default, `mvn clean install` produces an executable JAR with the *dev* Quarkus configuration profile enabled, and *in-memory* persistence implementation. 
 
-Apicurio Registry supports 3 persistence implementations:
+Apicurio Registry supports 4 persistence implementations:
  - In-Memory
  - KafkaSQL
- - SQL
+ - PostgreSQL
+ - SQL Server (community contributed and maintained)
   
 If you enable one, a separate set of artifacts is produced with the persistence implementation available.
 
@@ -42,6 +43,8 @@ This should result in Quarkus and the in-memory registry starting up, with the u
   e.g. a higher logging level.
 - `-Psql` enables a build of `storage/sql` module and produces `apicurio-registry-storage-sql-<version>-all.zip`. This artifact uses `H2` driver in *dev* mode,
   and `PostgreSQL` driver in *prod* mode.
+- `-Pmssql` enables a build of `storage/mssql` module and produces `apicurio-registry-storage-mssql-<version>-all.zip`. This artifact uses `H2` driver in *dev* mode,
+  and `SQL Server` driver in *prod* mode.
 - `-Pkafkasql` enables a build of the `storage/kafkasql` module and produces the `apicurio-registry-storage-kafkasql-<version>-all.zip` artifact.
 - `-Pnative` *(experimental)* builds native executables. See [Building a native executable](https://quarkus.io/guides/maven-tooling#building-a-native-executable).
 - `-Ddocker` *(experimental)* builds docker images. Make sure that you have the docker service enabled and running.
@@ -53,7 +56,7 @@ The following parameters are available for executable files:
 
 ### SQL
  - In the *dev* mode, the application expects an H2 server running at `jdbc:h2:tcp://localhost:9123/mem:registry`.
- - In the *prod* mode, you have to provide connection configuration for a PostgreSQL server as follows:
+ - In the *prod* mode, you have to provide connection configuration for a PostgreSQL (or SQL Server) server as follows:
   
 |Option|Command argument|Env. variable|
 |---|---|---|
@@ -97,6 +100,7 @@ Hub.  There are several docker images to choose from, one for each storage optio
 
 * [apicurio-registry-mem](https://hub.docker.com/r/apicurio/apicurio-registry-mem)
 * [apicurio-registry-sql](https://hub.docker.com/r/apicurio/apicurio-registry-sql)
+* [apicurio-registry-mssql](https://hub.docker.com/r/apicurio/apicurio-registry-mssql)
 * [apicurio-registry-kafkasql](https://hub.docker.com/r/apicurio/apicurio-registry-kafkasql)
 
 Run one of the above docker images like this:

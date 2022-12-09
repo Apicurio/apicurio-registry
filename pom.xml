@@ -193,7 +193,7 @@
         <apicurio-tenant-manager.version>0.1.2.Final</apicurio-tenant-manager.version>
 
         <!-- GraphQL -->
-        <graphql.version>19.3</graphql.version>
+        <graphql.version>20.0</graphql.version>
 
         <!-- JSON Schema Validator -->
         <org.everit.json.schema.version>1.14.1</org.everit.json.schema.version><!-- TODO unification -->

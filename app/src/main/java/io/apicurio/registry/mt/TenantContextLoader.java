@@ -16,19 +16,25 @@
 
 package io.apicurio.registry.mt;
 
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
+import com.google.common.util.concurrent.UncheckedExecutionException;
 import io.apicurio.common.apps.config.Info;
 import io.apicurio.registry.mt.limits.TenantLimitsConfiguration;
 import io.apicurio.registry.mt.limits.TenantLimitsConfigurationService;
-import io.apicurio.registry.utils.CheckPeriodCache;
 import io.apicurio.tenantmanager.api.datamodel.ApicurioTenant;
 import io.apicurio.tenantmanager.api.datamodel.TenantStatusValue;
 import io.quarkus.runtime.StartupEvent;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
 
-import java.time.Duration;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.event.Observes;
 import javax.inject.Inject;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Component responsible for creating instances of {@link RegistryTenantContext} so they can be set with {@link TenantContext}
@@ -40,7 +46,7 @@ public class TenantContextLoader {
 
     //NOTE for now we are just storing per tenant configurations in the context, this allows us to cache the instances
     //but if in the future we store session scoped or request scoped information the caching strategy should change
-    private CheckPeriodCache<String, RegistryTenantContext> contextsCache;
+    private LoadingCache<String, RegistryTenantContext> contextsCache;
     private RegistryTenantContext defaultTenantContext;
 
     @Inject
@@ -50,12 +56,29 @@ public class TenantContextLoader {
     TenantLimitsConfigurationService limitsConfigurationService;
 
     @Inject
+    Logger log;
+
+    @Inject
     @ConfigProperty(defaultValue = "60000", name = "registry.tenants.context.cache.check-period")
     @Info(category = "mt", description = "Tenants context cache check period", availableSince = "2.1.0.Final")
     Long cacheCheckPeriod;
 
     public void onStart(@Observes StartupEvent ev) {
-        contextsCache = new CheckPeriodCache<>(Duration.ofMillis(cacheCheckPeriod));
+
+        CacheLoader<String, RegistryTenantContext> cacheLoader = new CacheLoader<>() {
+            @Override
+            public RegistryTenantContext load(@NotNull String tenantId) {
+                ApicurioTenant tenantMetadata = tenantMetadataService.getTenant(tenantId);
+                TenantLimitsConfiguration limitsConfiguration = limitsConfigurationService.fromTenantMetadata(tenantMetadata);
+                return new RegistryTenantContext(tenantId, tenantMetadata.getCreatedBy(), limitsConfiguration, tenantMetadata.getStatus(), String.valueOf(tenantMetadata.getOrganizationId()));
+            }
+        };
+
+        contextsCache = CacheBuilder
+                .newBuilder()
+                .expireAfterWrite(cacheCheckPeriod, TimeUnit.MILLISECONDS)
+                .maximumSize(1000)
+                .build(cacheLoader);
     }
 
     /**
@@ -79,11 +102,16 @@ public class TenantContextLoader {
             return defaultTenantContext();
         }
 
-        return contextsCache.compute(tenantId, k -> {
-            ApicurioTenant tenantMetadata = tenantMetadataService.getTenant(tenantId);
-            TenantLimitsConfiguration limitsConfiguration = limitsConfigurationService.fromTenantMetadata(tenantMetadata);
-            return new RegistryTenantContext(tenantId, tenantMetadata.getCreatedBy(), limitsConfiguration, tenantMetadata.getStatus(), String.valueOf(tenantMetadata.getOrganizationId()));
-        });
+        try {
+            return contextsCache.get(tenantId);
+        } catch (ExecutionException | UncheckedExecutionException e) {
+            if (e.getCause() instanceof TenantNotFoundException) {
+                throw (TenantNotFoundException) e.getCause();
+            } else {
+                log.warn("Error trying to load the tenant context for tenant id: {}. Falling back to default tenant context.", tenantId, e);
+                return defaultTenantContext();
+            }
+        }
     }
 
     public RegistryTenantContext defaultTenantContext() {
@@ -94,10 +122,10 @@ public class TenantContextLoader {
     }
 
     public void invalidateTenantInCache(String tenantId) {
-        contextsCache.remove(tenantId);
+        contextsCache.invalidate(tenantId);
     }
 
     public void invalidateTenantCache() {
-        contextsCache.clear();
+        contextsCache.invalidateAll();
     }
 }

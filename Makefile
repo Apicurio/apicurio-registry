@@ -59,28 +59,28 @@ build-all:
 .PHONY: build-in-memory ## Builds and test in-memory module. Variables available for override [SKIP_TESTS, BUILD_FLAGS]
 build-in-memory:
 	@echo "----------------------------------------------------------------------"
-	@echo "                   Building In-memory Module                               "
+	@echo "                   Building In-memory Module                          "
 	@echo "----------------------------------------------------------------------"
-	./mvnw -T 1.5C clean install -Pprod -DskipTests=$(SKIP_TESTS) $(BUILD_FLAGS)
+	./mvnw clean install -Pprod -DskipTests=$(SKIP_TESTS) $(BUILD_FLAGS)
 
 .PHONY: build-sql ## Builds and test sql module. Variables available for override [SKIP_TESTS, BUILD_FLAGS]
 build-sql:
 	@echo "----------------------------------------------------------------------"
-	@echo "                   Building SQL Module                               "
+	@echo "                   Building SQL Module                                "
 	@echo "----------------------------------------------------------------------"
 	./mvnw -T 1.5C clean install -Pprod -Psql -Pno-slow-tests -DskipAppTests -DskipTests=$(SKIP_TESTS) $(BUILD_FLAGS)
 
 .PHONY: build-kafkasql ## Builds and test kafkasql module. Variables available for override [SKIP_TESTS, BUILD_FLAGS]
 build-kafkasql:
 	@echo "----------------------------------------------------------------------"
-	@echo "                   Building Kafkasql Module                               "
+	@echo "                   Building Kafkasql Module                           "
 	@echo "----------------------------------------------------------------------"
 	./mvnw -T 1.5C clean install -Pprod -Pkafkasql -Pno-slow-tests -DskipAppTests -DskipTests=$(SKIP_TESTS) $(BUILD_FLAGS)
 
 .PHONY: build-mem-native ## Builds mem storage variant native executable. Variables available for override [SKIP_TESTS, BUILD_FLAGS]
 build-mem-native:
 	@echo "----------------------------------------------------------------------"
-	@echo "             Building In-Memory Storage Variant Natively               "
+	@echo "             Building In-Memory Storage Variant Natively              "
 	@echo "----------------------------------------------------------------------"
 	./mvnw -T 1.5C package -Pnative -Dquarkus.native.container-build=true -Pprod -DskipTests=$(SKIP_TESTS) $(BUILD_FLAGS)
 

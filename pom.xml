@@ -212,6 +212,7 @@
         <kafka-oauth-client.version>0.11.0</kafka-oauth-client.version>
         <kafka-clients.version>2.8.1</kafka-clients.version>
         <snakeyaml.version>1.33</snakeyaml.version>
+        <guava.version>31.1-jre</guava.version>
 
         <!-- Kafka Connect -->
         <connect.version>2.8.1</connect.version>
@@ -636,6 +637,12 @@
                 <groupId>io.strimzi</groupId>
                 <artifactId>kafka-oauth-client</artifactId>
                 <version>${kafka-oauth-client.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.google.guava</groupId>
+                <artifactId>guava</artifactId>
+                <version>${guava.version}</version>
             </dependency>
 
             <!-- Tests -->

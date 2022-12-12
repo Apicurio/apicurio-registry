@@ -61,7 +61,7 @@ build-in-memory:
 	@echo "----------------------------------------------------------------------"
 	@echo "                   Building In-memory Module                          "
 	@echo "----------------------------------------------------------------------"
-	./mvnw clean install -Pprod -DskipTests=$(SKIP_TESTS) $(BUILD_FLAGS)
+	./mvnw -T 1.5C clean install -Pprod -DskipTests=$(SKIP_TESTS) $(BUILD_FLAGS)
 
 .PHONY: build-sql ## Builds and test sql module. Variables available for override [SKIP_TESTS, BUILD_FLAGS]
 build-sql:

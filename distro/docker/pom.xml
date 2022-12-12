@@ -21,6 +21,14 @@
         <docker.tenant-manager.file>app-files/apicurio-registry-tenant-manager-api-${project.version}-all.tar.gz</docker.tenant-manager.file>
     </properties>
 
+    <dependencies>
+        <dependency>
+            <groupId>io.apicurio</groupId>
+            <artifactId>apicurio-registry-app</artifactId>
+            <scope>provided</scope>
+        </dependency>
+    </dependencies>
+
     <build>
 
         <plugins>

@@ -12,13 +12,13 @@ import java.util.concurrent.TimeUnit;
  */
 public class Utils {
     /**
-     * Finds {@link Deployment} of Apicurio Registry operator in provided namespace.
+     * Finds {@link Deployment} of operator in provided namespace.
      *
      * @param client {@link OpenShiftClient} instance to use for interaction with cluster.
-     * @param namespace Name of namespace to search for Apicurio Registry operator {@link Deployment}.
-     * @return {@link Deployment} of Apicurio Registry operator if {@link Deployment} was found; {@code null} otherwise.
+     * @param namespace Name of namespace to search for operator {@link Deployment}.
+     * @return {@link Deployment} of operator if {@link Deployment} was found; {@code null} otherwise.
      */
-    public static Deployment findRegistryOperatorDeployment(OpenShiftClient client, String namespace) {
+    public static Deployment findOperatorDeployment(OpenShiftClient client, String namespace, String name) {
         return client
                 .apps()
                 .deployments()
@@ -26,19 +26,19 @@ public class Utils {
                 .list()
                 .getItems()
                 .stream()
-                .filter(d -> d.getMetadata().getName().startsWith(Constants.REGISTRY_OPERATOR_NAME))
+                .filter(d -> d.getMetadata().getName().startsWith(name))
                 .findFirst()
                 .orElse(null);
     }
 
     /**
-     * Finds {@link Deployment} of Apicurio Registry operator in client's namespace.
+     * Finds {@link Deployment} of operator in client's namespace.
      *
      * @param client {@link OpenShiftClient} instance to use for interaction with cluster.
-     * @return {@link Deployment} of Apicurio Registry operator if {@link Deployment} was found; {@code null} otherwise.
+     * @return {@link Deployment} of operator if {@link Deployment} was found; {@code null} otherwise.
      */
-    public static Deployment findRegistryOperatorDeployment(OpenShiftClient client) {
-        return findRegistryOperatorDeployment(client, client.getNamespace());
+    public static Deployment findOperatorDeployment(OpenShiftClient client, String name) {
+        return findOperatorDeployment(client, client.getNamespace(), name);
     }
 
     /**

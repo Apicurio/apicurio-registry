@@ -5,7 +5,7 @@
     <parent>
         <groupId>io.apicurio</groupId>
         <artifactId>apicurio-registry</artifactId>
-        <version>2.3.2-SNAPSHOT</version>
+        <version>2.4.1-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
@@ -354,6 +354,23 @@
                 <version>${apicurio-common-app-components.version}</version>
                 <executions>
                     <execution>
+                        <id>merge-test-properties</id>
+                        <phase>process-test-classes</phase>
+                        <goals>
+                            <goal>merge</goal>
+                        </goals>
+                        <configuration>
+                            <output>${project.build.testOutputDirectory}/application.properties</output>
+                            <inputs>
+                                <param>${project.build.outputDirectory}/application.properties</param>
+                                <param>${project.build.outputDirectory}/application-prod.properties</param>
+                                <param>${project.build.outputDirectory}/application-dev.properties</param>
+                                <param>${project.build.outputDirectory}/application-test.properties</param>
+                            </inputs>
+                            <deleteInputs>false</deleteInputs>
+                        </configuration>
+                    </execution>
+                    <execution>
                         <id>merge-properties</id>
                         <phase>prepare-package</phase>
                         <goals>
@@ -368,22 +385,6 @@
                                 <param>${project.build.outputDirectory}/application-test.properties</param>
                             </inputs>
                             <deleteInputs>true</deleteInputs>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>merge-test-properties</id>
-                        <phase>process-test-classes</phase>
-                        <goals>
-                            <goal>merge</goal>
-                        </goals>
-                        <configuration>
-                            <output>${project.build.testOutputDirectory}/application.properties</output>
-                            <inputs>
-                                <param>${project.build.outputDirectory}/application.properties</param>
-                                <param>${project.build.outputDirectory}/application-prod.properties</param>
-                                <param>${project.build.outputDirectory}/application-dev.properties</param>
-                                <param>${project.build.outputDirectory}/application-test.properties</param>
-                            </inputs>
                         </configuration>
                     </execution>
                 </executions>

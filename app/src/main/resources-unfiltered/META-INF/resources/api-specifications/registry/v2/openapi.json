@@ -2,7 +2,7 @@
     "openapi": "3.0.2",
     "info": {
         "title": "Apicurio Registry API [v2]",
-        "version": "2.3.2-SNAPSHOT",
+        "version": "2.4.0.Final",
         "description": "Apicurio Registry is a datastore for standard event schemas and API designs. Apicurio Registry enables developers to manage and share the structure of their data using a REST interface. For example, client applications can dynamically push or pull the latest updates to or from the registry without needing to redeploy. Apicurio Registry also enables developers to create rules that govern how registry content can evolve over time. For example, this includes rules for content validation and version compatibility.\n\nThe Apicurio Registry REST API enables client applications to manage the artifacts in the registry. This API provides create, read, update, and delete operations for schema and API artifacts, rules, versions, and metadata. \n\nThe supported artifact types include:\n- Apache Avro schema\n- AsyncAPI specification\n- Google protocol buffers\n- GraphQL schema\n- JSON Schema\n- Kafka Connect schema\n- OpenAPI specification\n- Web Services Description Language\n- XML Schema Definition\n\n\n**Important**: The Apicurio Registry REST API is available from `https://MY-REGISTRY-URL/apis/registry/v2` by default. Therefore you must prefix all API operation paths with `../apis/registry/v2` in this case. For example: `../apis/registry/v2/ids/globalIds/{globalId}`.\n",
         "contact": {
             "name": "Apicurio",
@@ -3465,16 +3465,14 @@
                     },
                     "createdOn": {
                         "format": "date-time",
-                        "type": "string",
-                        "x-codegen-formatPattern": "yyyy-MM-dd'T'HH:mm:ssZ"
+                        "type": "string"
                     },
                     "modifiedBy": {
                         "type": "string"
                     },
                     "modifiedOn": {
                         "format": "date-time",
-                        "type": "string",
-                        "x-codegen-formatPattern": "yyyy-MM-dd'T'HH:mm:ssZ"
+                        "type": "string"
                     },
                     "id": {
                         "$ref": "#/components/schemas/ArtifactId",
@@ -3583,8 +3581,7 @@
                     "createdOn": {
                         "format": "date-time",
                         "description": "",
-                        "type": "string",
-                        "x-codegen-formatPattern": "yyyy-MM-dd'T'HH:mm:ssZ"
+                        "type": "string"
                     },
                     "createdBy": {
                         "description": "",
@@ -3608,8 +3605,7 @@
                     "modifiedOn": {
                         "format": "date-time",
                         "description": "",
-                        "type": "string",
-                        "x-codegen-formatPattern": "yyyy-MM-dd'T'HH:mm:ssZ"
+                        "type": "string"
                     },
                     "modifiedBy": {
                         "description": "",
@@ -3663,8 +3659,7 @@
                     },
                     "createdOn": {
                         "format": "date-time",
-                        "type": "string",
-                        "x-codegen-formatPattern": "yyyy-MM-dd'T'HH:mm:ssZ"
+                        "type": "string"
                     },
                     "type": {
                         "$ref": "#/components/schemas/ArtifactType",
@@ -3758,8 +3753,7 @@
                     "createdOn": {
                         "format": "date-time",
                         "description": "",
-                        "type": "string",
-                        "x-codegen-formatPattern": "yyyy-MM-dd'T'HH:mm:ssZ"
+                        "type": "string"
                     },
                     "createdBy": {
                         "description": "",
@@ -4080,8 +4074,7 @@
                     "createdOn": {
                         "format": "date-time",
                         "description": "",
-                        "type": "string",
-                        "x-codegen-formatPattern": "yyyy-MM-dd'T'HH:mm:ssZ"
+                        "type": "string"
                     },
                     "createdBy": {
                         "description": ""
@@ -4089,8 +4082,7 @@
                     "modifiedOn": {
                         "format": "date-time",
                         "description": "",
-                        "type": "string",
-                        "x-codegen-formatPattern": "yyyy-MM-dd'T'HH:mm:ssZ"
+                        "type": "string"
                     },
                     "modifiedBy": {
                         "description": "",
@@ -4133,16 +4125,14 @@
                     },
                     "createdOn": {
                         "format": "date-time",
-                        "type": "string",
-                        "x-codegen-formatPattern": "yyyy-MM-dd'T'HH:mm:ssZ"
+                        "type": "string"
                     },
                     "modifiedBy": {
                         "type": "string"
                     },
                     "modifiedOn": {
                         "format": "date-time",
-                        "type": "string",
-                        "x-codegen-formatPattern": "yyyy-MM-dd'T'HH:mm:ssZ"
+                        "type": "string"
                     },
                     "properties": {
                         "$ref": "#/components/schemas/Properties",

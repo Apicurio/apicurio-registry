@@ -3,6 +3,7 @@ package io.apicurio.registry.systemtests;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.client.KubernetesClientTimeoutException;
 import io.fabric8.openshift.client.OpenShiftClient;
+import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.TimeUnit;
 
@@ -59,7 +60,9 @@ public class Utils {
                     .withName(name)
                     .waitUntilReady(amount, timeUnit);
         } catch (KubernetesClientTimeoutException e) {
-            System.err.println("ERROR: Deployment '" + name + "' in namespace '" + namespace + "' failed readiness check within " + amount + " " + timeUnit.name() + ".");
+            LoggerFactory.getLogger(Utils.class).error(
+                    "Deployment '" + name + "' in namespace '" + namespace + "' failed readiness check within " + amount + " " + timeUnit.name() + "."
+            );
 
             return false;
         }

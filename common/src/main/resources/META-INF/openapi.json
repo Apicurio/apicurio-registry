@@ -3465,16 +3465,14 @@
                     },
                     "createdOn": {
                         "format": "date-time",
-                        "type": "string",
-                        "x-codegen-formatPattern": "yyyy-MM-dd'T'HH:mm:ssZ"
+                        "type": "string"
                     },
                     "modifiedBy": {
                         "type": "string"
                     },
                     "modifiedOn": {
                         "format": "date-time",
-                        "type": "string",
-                        "x-codegen-formatPattern": "yyyy-MM-dd'T'HH:mm:ssZ"
+                        "type": "string"
                     },
                     "id": {
                         "$ref": "#/components/schemas/ArtifactId",
@@ -3583,8 +3581,7 @@
                     "createdOn": {
                         "format": "date-time",
                         "description": "",
-                        "type": "string",
-                        "x-codegen-formatPattern": "yyyy-MM-dd'T'HH:mm:ssZ"
+                        "type": "string"
                     },
                     "createdBy": {
                         "description": "",
@@ -3608,8 +3605,7 @@
                     "modifiedOn": {
                         "format": "date-time",
                         "description": "",
-                        "type": "string",
-                        "x-codegen-formatPattern": "yyyy-MM-dd'T'HH:mm:ssZ"
+                        "type": "string"
                     },
                     "modifiedBy": {
                         "description": "",
@@ -3663,8 +3659,7 @@
                     },
                     "createdOn": {
                         "format": "date-time",
-                        "type": "string",
-                        "x-codegen-formatPattern": "yyyy-MM-dd'T'HH:mm:ssZ"
+                        "type": "string"
                     },
                     "type": {
                         "$ref": "#/components/schemas/ArtifactType",
@@ -3758,8 +3753,7 @@
                     "createdOn": {
                         "format": "date-time",
                         "description": "",
-                        "type": "string",
-                        "x-codegen-formatPattern": "yyyy-MM-dd'T'HH:mm:ssZ"
+                        "type": "string"
                     },
                     "createdBy": {
                         "description": "",
@@ -4080,8 +4074,7 @@
                     "createdOn": {
                         "format": "date-time",
                         "description": "",
-                        "type": "string",
-                        "x-codegen-formatPattern": "yyyy-MM-dd'T'HH:mm:ssZ"
+                        "type": "string"
                     },
                     "createdBy": {
                         "description": ""
@@ -4089,8 +4082,7 @@
                     "modifiedOn": {
                         "format": "date-time",
                         "description": "",
-                        "type": "string",
-                        "x-codegen-formatPattern": "yyyy-MM-dd'T'HH:mm:ssZ"
+                        "type": "string"
                     },
                     "modifiedBy": {
                         "description": "",
@@ -4133,16 +4125,14 @@
                     },
                     "createdOn": {
                         "format": "date-time",
-                        "type": "string",
-                        "x-codegen-formatPattern": "yyyy-MM-dd'T'HH:mm:ssZ"
+                        "type": "string"
                     },
                     "modifiedBy": {
                         "type": "string"
                     },
                     "modifiedOn": {
                         "format": "date-time",
-                        "type": "string",
-                        "x-codegen-formatPattern": "yyyy-MM-dd'T'HH:mm:ssZ"
+                        "type": "string"
                     },
                     "properties": {
                         "$ref": "#/components/schemas/Properties",

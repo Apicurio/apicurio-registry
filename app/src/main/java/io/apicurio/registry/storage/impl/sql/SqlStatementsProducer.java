@@ -47,6 +47,9 @@ public class SqlStatementsProducer {
         if ("h2".equals(databaseType)) {
             return new H2SqlStatements();
         }
+        if ("mssql".equals(databaseType)) {
+            return new SQLServerSqlStatements();
+        }
         if ("postgresql".equals(databaseType)) {
             return new PostgreSQLSqlStatements();
         }

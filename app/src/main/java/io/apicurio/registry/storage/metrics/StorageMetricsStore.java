@@ -16,14 +16,6 @@
 
 package io.apicurio.registry.storage.metrics;
 
-import java.util.concurrent.atomic.AtomicLong;
-
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.event.Observes;
-import javax.inject.Inject;
-
-import org.eclipse.microprofile.config.inject.ConfigProperty;
-import org.slf4j.Logger;
 import io.apicurio.common.apps.config.Info;
 import io.apicurio.registry.mt.TenantContext;
 import io.apicurio.registry.storage.RegistryStorage;
@@ -31,6 +23,14 @@ import io.apicurio.registry.types.Current;
 import io.apicurio.registry.utils.CheckPeriodCache;
 import io.quarkus.runtime.StartupEvent;
 import lombok.EqualsAndHashCode;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.slf4j.Logger;
+
+import java.time.Duration;
+import java.util.concurrent.atomic.AtomicLong;
+import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.event.Observes;
+import javax.inject.Inject;
 
 /**
  * This class provides a set of per-tenant counters. Counters such as "number of artifacts"
@@ -75,9 +75,9 @@ public class StorageMetricsStore {
     }
 
     public void onStart(@Observes StartupEvent ev) {
-        totalSchemasCounters = new CheckPeriodCache<>(limitsCheckPeriod);
-        artifactsCounters = new CheckPeriodCache<>(limitsCheckPeriod);
-        artifactVersionsCounters = new CheckPeriodCache<>(limitsCheckPeriod);
+        totalSchemasCounters = new CheckPeriodCache<>(Duration.ofMillis(limitsCheckPeriod));
+        artifactsCounters = new CheckPeriodCache<>(Duration.ofMillis(limitsCheckPeriod));
+        artifactVersionsCounters = new CheckPeriodCache<>(Duration.ofMillis(limitsCheckPeriod));
     }
 
     public long getOrInitializeTotalSchemasCounter() {

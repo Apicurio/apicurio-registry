@@ -72,8 +72,27 @@ Also don't forget the documentation (reference documentation, javadoc...).
 Be sure to test your pull request using all storage variants:
 
 1. SQL storage (using the `-Psql` profile)
-2. KafkaSQL storage (using the `-Pkafkasql` profile)
+2. SQL Server storage (using the `-Pmssql` profile)
+3. KafkaSQL storage (using the `-Pkafkasql` profile)
 
+### Customizing Registry supported ArtifactTypes
+
+Apicurio Registry is a modular project and it allows re-use of the produced artifacts in order to extend and enanche the functionalities.
+
+More specifically it's possible to modify the currently supported artifact types and add new onces by providing an higher priority  `io.apicurio.registry.types.bigquery.provider.ArtifactTypeUtilProviderImpl` to the DI framework.
+
+In [this repository](https://github.com/andreaTP/apicurio-registry-with-bigquery-example) you can find an example where we add a demo BigQuery support.
+
+Those are the interesting parts:
+
+ - use Apicurio Registry [as a dependency](https://github.com/andreaTP/apicurio-registry-with-bigquery-example/blob/66c5d18d9c0b5e246597b79e5c5b82a54752a65d/pom.xml#L45-L49)
+ - provide [an higher priority `ArtifactTypeUtilProviderImpl`](https://github.com/andreaTP/apicurio-registry-with-bigquery-example/blob/66c5d18d9c0b5e246597b79e5c5b82a54752a65d/src/main/java/io/apicurio/registry/types/bigquery/provider/ArtifactTypeUtilProviderImpl.java#L30-L33)
+ - tweak [the provider list](https://github.com/andreaTP/apicurio-registry-with-bigquery-example/blob/66c5d18d9c0b5e246597b79e5c5b82a54752a65d/src/main/java/io/apicurio/registry/types/bigquery/provider/ArtifactTypeUtilProviderImpl.java#L48) in the constructor to include the additional artifact type
+
+**NOTES:**
+
+- when creating an artifact of a type not included in the default you ALWAYS need to specify the appropriate artifact type
+- the UI will show the plain name of the additional type and won't have an appropriate icon to identify it
 
 ## The small print
 

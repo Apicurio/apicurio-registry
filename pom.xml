@@ -4,7 +4,7 @@
 
     <groupId>io.apicurio</groupId>
     <artifactId>apicurio-registry</artifactId>
-    <version>2.3.2-SNAPSHOT</version>
+    <version>2.4.1-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>apicurio-registry</name>
 
@@ -158,14 +158,14 @@
 
         <!-- Schema types -->
         <avro.version>1.11.1</avro.version>
-        <json-schema-validator.version>1.0.73</json-schema-validator.version>
+        <json-schema-validator.version>1.0.74</json-schema-validator.version>
         <wire-schema.version>4.3.0</wire-schema.version>
         <wire-compiler.version>4.3.0</wire-compiler.version>
         <okio-jvm.version>3.2.0</okio-jvm.version>
         <okio.version>3.2.0</okio.version>
         <okio-fake-file-system.version>3.2.0</okio-fake-file-system.version>
         <icu4j.version>72.1</icu4j.version>
-        <protobuf.version>3.21.10</protobuf.version>
+        <protobuf.version>3.21.11</protobuf.version>
         <xmlsec.version>3.0.1</xmlsec.version>
         <protobuf.googleapi.types.version>2.11.0</protobuf.googleapi.types.version>
         <wsdl4j.version>1.6.3</wsdl4j.version>
@@ -193,7 +193,7 @@
         <apicurio-tenant-manager.version>0.1.2.Final</apicurio-tenant-manager.version>
 
         <!-- GraphQL -->
-        <graphql.version>19.2</graphql.version>
+        <graphql.version>20.0</graphql.version>
 
         <!-- JSON Schema Validator -->
         <org.everit.json.schema.version>1.14.1</org.everit.json.schema.version><!-- TODO unification -->
@@ -205,7 +205,7 @@
         <h2.version>1.4.199</h2.version>
         <commons-codec.version>1.15</commons-codec.version>
         <jboss-slf4j.version>1.2.1.Final</jboss-slf4j.version>
-        <httpclient.version>4.5.13</httpclient.version>
+        <httpclient.version>4.5.14</httpclient.version>
         <apicurio-common-rest-client.version>0.1.13.Final</apicurio-common-rest-client.version>
         <apicurio-common-app-components.version>0.1.14.Final</apicurio-common-app-components.version>
         <sentry.version>1.7.30</sentry.version>
@@ -250,7 +250,7 @@
         <test-containers.version>1.17.5</test-containers.version>
         <keycloak.testcontainers.version>1.9.0</keycloak.testcontainers.version>
         <keycloak-admin-client.version>20.0.1</keycloak-admin-client.version>
-        <embedded-postgres.version>2.0.1</embedded-postgres.version>
+        <embedded-postgres.version>2.0.2</embedded-postgres.version>
         <strimzi.version>0.102.0</strimzi.version>
         <wiremock-jre8.version>2.35.0</wiremock-jre8.version>
     </properties>
@@ -326,6 +326,11 @@
             <dependency>
                 <groupId>io.apicurio</groupId>
                 <artifactId>apicurio-registry-storage-sql</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-registry-storage-mssql</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -1013,6 +1018,12 @@
             <id>sql</id>
             <modules>
                 <module>storage/sql</module>
+            </modules>
+        </profile>
+        <profile>
+            <id>mssql</id>
+            <modules>
+                <module>storage/mssql</module>
             </modules>
         </profile>
         <profile>

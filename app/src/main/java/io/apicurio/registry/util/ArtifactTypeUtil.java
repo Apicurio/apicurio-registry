@@ -22,6 +22,7 @@ import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 import javax.ws.rs.BadRequestException;
 import javax.ws.rs.core.MediaType;
@@ -46,6 +47,8 @@ import io.apicurio.registry.storage.InvalidArtifactTypeException;
  * @author eric.wittmann@gmail.com
  */
 public final class ArtifactTypeUtil {
+
+    private static final Pattern QUOTED_BRACKETS = Pattern.compile(": *\"\\{}\"");
 
     private static final ObjectMapper mapper = new ObjectMapper();
 
@@ -163,7 +166,24 @@ public final class ArtifactTypeUtil {
         }
 
         try {
-            // Avro
+            // Avro without quote
+            final Schema.Parser parser = new Schema.Parser();
+            final List<Schema> schemaRefs = new ArrayList<>();
+            for (Map.Entry<String, ContentHandle> referencedContent : resolvedReferences.entrySet()) {
+                if (!parser.getTypes().containsKey(referencedContent.getKey())) {
+                    Schema schemaRef = parser.parse(referencedContent.getValue().content());
+                    schemaRefs.add(schemaRef);
+                }
+            }
+            final Schema schema = parser.parse(removeQuotedBrackets(content.content()));
+            schema.toString(schemaRefs, false);
+            return ArtifactType.AVRO;
+        } catch (Exception e) {
+            //ignored
+        }
+
+        try {
+            // Avro with original input
             final Schema.Parser parser = new Schema.Parser();
             final List<Schema> schemaRefs = new ArrayList<>();
             for (Map.Entry<String, ContentHandle> referencedContent : resolvedReferences.entrySet()) {
@@ -231,6 +251,13 @@ public final class ArtifactTypeUtil {
             }
         }
         return null;
+    }
+
+    /**
+     * Given a content removes any quoted brackets. This is useful for some validation corner cases in avro where some libraries detects quoted brackets as valid and others as invalid
+     */
+    private static String removeQuotedBrackets(String content) {
+        return QUOTED_BRACKETS.matcher(content).replaceAll(":{}");
     }
 
     private static boolean tryGraphQL(ContentHandle content) {

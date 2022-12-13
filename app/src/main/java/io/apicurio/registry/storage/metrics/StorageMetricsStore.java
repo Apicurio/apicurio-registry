@@ -60,6 +60,11 @@ public class StorageMetricsStore {
     Long limitsCheckPeriod;
 
     @Inject
+    @ConfigProperty(defaultValue = "1000", name = "registry.storage.metrics.cache.max-size")
+    @Info(category = "limits", description = "Storage metrics cache max size.", availableSince = "2.4.1.Final")
+    Long cacheMaxSize;
+
+    @Inject
     TenantContext tenantContext;
 
     @Inject
@@ -100,7 +105,7 @@ public class StorageMetricsStore {
         totalSchemasCounters = CacheBuilder
                 .newBuilder()
                 .expireAfterWrite(limitsCheckPeriod, TimeUnit.MILLISECONDS)
-                .maximumSize(1000)
+                .maximumSize(cacheMaxSize)
                 .build(totalSchemaCountersLoader);
     }
 
@@ -116,7 +121,7 @@ public class StorageMetricsStore {
         artifactsCounters = CacheBuilder
                 .newBuilder()
                 .expireAfterWrite(limitsCheckPeriod, TimeUnit.MILLISECONDS)
-                .maximumSize(1000)
+                .maximumSize(cacheMaxSize)
                 .build(artifactsCountersLoader);
     }
 
@@ -131,7 +136,7 @@ public class StorageMetricsStore {
         artifactVersionsCounters = CacheBuilder
                 .newBuilder()
                 .expireAfterWrite(limitsCheckPeriod, TimeUnit.MILLISECONDS)
-                .maximumSize(1000)
+                .maximumSize(cacheMaxSize)
                 .build(artifactVersionsCountersLoader);
     }
 

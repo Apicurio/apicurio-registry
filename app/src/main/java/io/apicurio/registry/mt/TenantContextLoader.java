@@ -63,6 +63,11 @@ public class TenantContextLoader {
     @Info(category = "mt", description = "Tenants context cache check period", availableSince = "2.1.0.Final")
     Long cacheCheckPeriod;
 
+    @Inject
+    @ConfigProperty(defaultValue = "1000", name = "registry.tenants.context.cache.max-size")
+    @Info(category = "mt", description = "Tenants context cache max size", availableSince = "2.4.1.Final")
+    Long cacheMaxSize;
+
     public void onStart(@Observes StartupEvent ev) {
 
         CacheLoader<String, RegistryTenantContext> cacheLoader = new CacheLoader<>() {
@@ -77,7 +82,7 @@ public class TenantContextLoader {
         contextsCache = CacheBuilder
                 .newBuilder()
                 .expireAfterWrite(cacheCheckPeriod, TimeUnit.MILLISECONDS)
-                .maximumSize(1000)
+                .maximumSize(cacheMaxSize)
                 .build(cacheLoader);
     }
 
@@ -109,7 +114,7 @@ public class TenantContextLoader {
                 throw (TenantNotFoundException) e.getCause();
             } else {
                 log.warn("Error trying to load the tenant context for tenant id: {}. Falling back to default tenant context.", tenantId, e);
-                return defaultTenantContext();
+                throw new TenantNotFoundException(tenantId);
             }
         }
     }

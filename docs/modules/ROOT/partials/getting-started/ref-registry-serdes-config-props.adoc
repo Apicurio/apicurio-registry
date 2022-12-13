@@ -5,7 +5,7 @@
 = {registry} serializer/deserializer configuration properties
 
 [role="_abstract"]
-This section provides reference information on Java configuration properties for {registry} Kafka serializers/deserializers (SerDes). 
+This section provides reference information on Java configuration properties for {registry} Kafka serializers/deserializers (SerDes).
 
 [discrete]
 == SchemaResolver interface
@@ -22,15 +22,17 @@ This section provides reference information on Java configuration properties for
 |Default
 |`SCHEMA_RESOLVER`
 |`apicurio.registry.schema-resolver`
-|Used by serializers and deserializers. Fully-qualified Java classname that implements `SchemaResolver`. 
+|Used by serializers and deserializers. Fully-qualified Java classname that implements `SchemaResolver`.
 |String
 |`io.apicurio.registry.resolver.DefaultSchemaResolver`
 |===
 
-NOTE: The `DefaultSchemaResolver` is recommended and provides useful features for most use cases. For some advanced use cases, you might use a custom implementation of `SchemaResolver`.
+NOTE: The `DefaultSchemaResolver` is recommended and provides useful features for most use cases.
+For some advanced use cases, you might use a custom implementation of `SchemaResolver`.
 
 [discrete]
 == DefaultSchemaResolver class
+
 You can use the `DefaultSchemaResolver` to configure features such as:
 
 * Access to the registry API
@@ -53,37 +55,42 @@ The `DefaultSchemaResolver` provides the following properties to configure acces
 |Default
 |`REGISTRY_URL`
 |`apicurio.registry.url`
-|Used by serializers and deserializers. URL to access the registry API. 
+|Used by serializers and deserializers. URL to access the registry API.
 |`String`
 |None
 |`AUTH_SERVICE_URL`
 |`apicurio.auth.service.url`
-|Used by serializers and deserializers. URL of the authentication service. Required when accessing a secure registry using the OAuth client credentials flow. 
+|Used by serializers and deserializers. URL of the authentication service. Required when accessing a secure registry using the OAuth client credentials flow.
+|`String`
+|None
+|`AUTH_TOKEN_ENDPOINT`
+|`apicurio.auth.service.token.endpoint`
+|Used by serializers and deserializers. URL of the token endpoint. Required when accessing a secure registry and `AUTH_SERVICE_URL` is not specified.
 |`String`
 |None
 |`AUTH_REALM`
 |`apicurio.auth.realm`
-|Used by serializers and deserializers. Realm to access the authentication service. Required when accessing a secure registry using the OAuth client credentials flow. 
+|Used by serializers and deserializers. Realm to access the authentication service. Required when accessing a secure registry using the OAuth client credentials flow.
 |`String`
 |None
 |`AUTH_CLIENT_ID`
 |`apicurio.auth.client.id`
-|Used by serializers and deserializers. Client ID to access the authentication service. Required when accessing a secure registry using the OAuth client credentials flow. 
+|Used by serializers and deserializers. Client ID to access the authentication service. Required when accessing a secure registry using the OAuth client credentials flow.
 |`String`
 |None
 |`AUTH_CLIENT_SECRET`
 |`apicurio.auth.client.secret`
-|Used by serializers and deserializers. Client secret to access the authentication service. Required when accessing a secure registry using the OAuth client credentials flow. 
+|Used by serializers and deserializers. Client secret to access the authentication service. Required when accessing a secure registry using the OAuth client credentials flow.
 |`String`
 |None
 |`AUTH_USERNAME`
 |`apicurio.auth.username`
-|Used by serializers and deserializers. Username to access the registry. Required when accessing a secure registry using HTTP basic authentication. 
+|Used by serializers and deserializers. Username to access the registry. Required when accessing a secure registry using HTTP basic authentication.
 |`String`
 |None
 |`AUTH_PASSWORD`
 |`apicurio.auth.password`
-|Used by serializers and deserializers. Password to access the registry. Required when accessing a secure registry using HTTP basic authentication. 
+|Used by serializers and deserializers. Password to access the registry. Required when accessing a secure registry using HTTP basic authentication.
 |`String`
 |None
 |===
@@ -103,9 +110,16 @@ The `DefaultSchemaResolver` uses the following properties to configure how to lo
 |Default
 |`ARTIFACT_RESOLVER_STRATEGY`
 |`apicurio.registry.artifact-resolver-strategy`
-|Used by serializers only. Fully-qualified Java classname that implements `ArtifactReferenceResolverStrategy` and maps each Kafka message to an `ArtifactReference` (`groupId`, `artifactId`, and version).  For example, the default strategy uses the topic name as the schema `artifactId`. 
+|Used by serializers only. Fully-qualified Java classname that implements `ArtifactReferenceResolverStrategy` and maps each Kafka message to an `ArtifactReference` (`groupId`, `artifactId`, and version).  For example, the default strategy uses the topic name as the schema `artifactId`.
 |`String`
 |`io.apicurio.registry.serde.strategy.TopicIdStrategy`
+// ^^^
+// TODO: The default value in DefaultSchemaResolverConfig is
+// `io.apicurio.registry.resolver.strategy.DynamicArtifactReferenceResolverStrategy`
+// from `io.apicurio.registry.resolver.SchemaResolverConfig.ARTIFACT_RESOLVER_STRATEGY_DEFAULT`.
+// But the documentation specifies `io.apicurio.registry.serde.strategy.TopicIdStrategy`,
+// which is redefined here `io.apicurio.registry.serde.SerdeConfig.ARTIFACT_RESOLVER_STRATEGY_DEFAULT`
+// Is this OK?
 |`EXPLICIT_ARTIFACT_GROUP_ID`
 |`apicurio.registry.artifact.group-id`
 |Used by serializers only. Sets the `groupId` used for querying or creating an artifact. Overrides the `groupId` returned by the `ArtifactResolverStrategy`.
@@ -129,7 +143,7 @@ The `DefaultSchemaResolver` uses the following properties to configure how to lo
 |`AUTO_REGISTER_ARTIFACT`
 |`apicurio.registry.auto-register`
 |Used by serializers only. Specifies whether the serializer tries to create an artifact in the registry. The JSON Schema serializer does not support this feature.
-|`boolean`
+|`boolean, boolean String`
 |`false`
 |`AUTO_REGISTER_ARTIFACT_IF_EXISTS`
 |`apicurio.registry.auto-register.if-exists`
@@ -138,9 +152,19 @@ The `DefaultSchemaResolver` uses the following properties to configure how to lo
 |`RETURN_OR_UPDATE`
 |`CHECK_PERIOD_MS`
 |`apicurio.registry.check-period-ms`
-|Used by serializers and deserializers. Specifies how long to cache artifacts before auto-eviction. If not set, artifacts are fetched every time.
-|`String`
-|None
+|Used by serializers and deserializers. Specifies how long to cache artifacts before auto-eviction (milliseconds). If set to zero, artifacts are fetched every time.
+|`java.time.Duration, non-negative Number, or integer String`
+|`30000`
+|`RETRY_BACKOFF_MS`
+|`apicurio.registry.retry-backoff-ms`
+|Used by serializers and deserializers. If a schema can not be be retrieved from the Registry, it may retry a number of times. This configuration option controls the delay between the retry attempts (milliseconds).
+|`java.time.Duration, non-negative Number, or integer String`
+|`300`
+|`RETRY_COUNT`
+|`apicurio.registry.retry-count`
+|Used by serializers and deserializers. If a schema can not be be retrieved from the Registry, it may retry a number of times. This configuration option controls the number of retry attempts.
+|`non-negative Number, or integer String`
+|`3`
 |`USE_ID`
 |`apicurio.registry.use-id`
 |Used by serializers and deserializers. Configures to use the specified `IdOption` as the identifier for artifacts. Options are `globalId` and `contentId`. Instructs the serializer to write the specified ID to Kafka, and instructs the deserializer to use this ID to find the schema.
@@ -148,17 +172,18 @@ The `DefaultSchemaResolver` uses the following properties to configure how to lo
 |`globalId`
 |===
 
-
 [discrete]
 === Configuration to read/write registry artifacts in Kafka
 
 The `DefaultSchemaResolver` uses the following properties to configure how artifact information is written to and read from Kafka.
+// TODO: Should this mention the DefaultSchemaResolver config?
+// The following properties are defined in io/apicurio/registry/serde/SerdeConfig.java
 
 .Configuration properties to read/write artifact information in Kafka
 [.table-expandable,width="100%",cols="5,5,5,3,5",options="header"]
 |===
-|Constant 
-|Property 
+|Constant
+|Property
 |Description
 |Type
 |Default
@@ -183,7 +208,6 @@ The `DefaultSchemaResolver` uses the following properties to configure how artif
 |`boolean`
 |`true`
 |===
-
 
 [discrete]
 === Configuration for deserializer fall-back options
@@ -233,6 +257,7 @@ The `DefaultFallbackArtifactProvider` uses the following properties to configure
 |===
 
 .Additional resources
-* For more details, see the link:https://github.com/Apicurio/apicurio-registry/blob/2.0.x/serdes/serde-common/src/main/java/io/apicurio/registry/serde/SerdeConfig.java[SerdeConfig Java class] 
+* For more details, see the link:https://github.com/Apicurio/apicurio-registry/blob/2.0.x/serdes/serde-common/src/main/java/io/apicurio/registry/serde/SerdeConfig.java[SerdeConfig Java class]
 * You can configure application properties as Java system properties or include them in the Quarkus
-`application.properties` file. For more details, see the https://quarkus.io/guides/config#overriding-properties-at-runtime[Quarkus documentation].
+`application.properties` file.
+For more details, see the https://quarkus.io/guides/config#overriding-properties-at-runtime[Quarkus documentation].

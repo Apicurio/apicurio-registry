@@ -1,15 +1,14 @@
 package io.apicurio.registry.systemtests;
 
-import io.fabric8.openshift.client.OpenShiftClient;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Parent class for future subclasses that will share tests.
  */
 public abstract class TestBase {
-    /**
-     * @return {@link OpenShiftClient} instance used in tests.
-     */
-    protected abstract OpenShiftClient getClient();
+    /** {@link Logger} instance for logging in tests. */
+    protected Logger logger = LoggerFactory.getLogger(getClass().getName());
 
     /**
      * We can add test(s) that will be shared between multiple subclasses in the future here.

@@ -7,7 +7,7 @@
     <parent>
         <groupId>io.apicurio</groupId>
         <artifactId>apicurio-registry</artifactId>
-        <version>2.3.2-SNAPSHOT</version>
+        <version>2.4.1-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
@@ -24,6 +24,12 @@
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-annotations</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.apicurio</groupId>
+            <artifactId>apicurio-codegen-quarkus-extension</artifactId>
+            <version>1.0.13.Final</version>
         </dependency>
 
         <dependency>
@@ -50,6 +56,12 @@
             <scope>compile</scope>
         </dependency>
 
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+
     </dependencies>
 
 
@@ -61,26 +73,21 @@
                 <version>${os-maven-plugin.version}</version>
             </extension>
         </extensions>
-
         <plugins>
             <plugin>
-                <groupId>io.apicurio</groupId>
-                <artifactId>apicurio-codegen-maven-plugin</artifactId>
-                <version>1.0.12.Final</version>
+                <groupId>io.quarkus</groupId>
+                <artifactId>quarkus-maven-plugin</artifactId>
                 <executions>
                     <execution>
-                        <phase>generate-sources</phase>
                         <goals>
-                            <goal>generate</goal>
+                            <goal>build</goal>
+                            <goal>generate-code</goal>
                         </goals>
-                        <configuration>
-                            <projectSettings>
-                                <javaPackage>io.apicurio.registry.rest.v2</javaPackage>
-                            </projectSettings>
-                            <inputSpec>${project.basedir}/src/main/resources/META-INF/openapi.json</inputSpec>
-                        </configuration>
                     </execution>
                 </executions>
+                <configuration>
+
+                </configuration>
             </plugin>
         </plugins>
     </build>

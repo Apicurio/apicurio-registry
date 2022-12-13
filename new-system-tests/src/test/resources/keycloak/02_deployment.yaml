@@ -17,6 +17,7 @@ spec:
       containers:
         - name: keycloak
           image: quay.io/keycloak/keycloak:20.0.1
+          imagePullPolicy: IfNotPresent
           args: ["start-dev", "--import-realm"]
           env:
             - name: KEYCLOAK_ADMIN

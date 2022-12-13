@@ -1,0 +1,20 @@
+apiVersion: registry.apicur.io/v1
+kind: ApicurioRegistry
+metadata:
+  name: registry
+spec:
+  configuration:
+    persistence: sql
+    security:
+      keycloak:
+        apiClientId: registry-client-api
+        realm: registry
+        uiClientId: registry-client-ui
+        url: >-
+          http://keycloak:8080/auth
+    sql:
+      dataSource:
+        password: postgrespassword
+        url: >-
+          jdbc:postgresql://postgresql:5432/postgresdb
+        userName: postgresuser

@@ -992,6 +992,25 @@
                 "summary": "Get artifact version",
                 "description": "Retrieves a single version of the artifact content.  Both the `artifactId` and the\nunique `version` number must be provided.  The `Content-Type` of the response depends \non the artifact type.  In most cases, this is `application/json`, but for some types \nit may be different (for example, `PROTOBUF`).\n\nThis operation can fail for the following reasons:\n\n* No artifact with this `artifactId` exists (HTTP error `404`)\n* No version with this `version` exists (HTTP error `404`)\n* A server error occurred (HTTP error `500`)\n"
             },
+            "delete": {
+                "tags": [
+                    "Versions"
+                ],
+                "responses": {
+                    "204": {
+                        "description": "The artifact version was successfully deleted."
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "deleteArtifactVersion",
+                "summary": "Delete artifact version",
+                "description": "Deletes a single version of the artifact.  Both the `artifactId` and the unique `version`\nare needed.  If this is the only version of the artifact, this operation is the same as \ndeleting the entire artifact.\n\nThis operation can fail for the following reasons:\n\n* No artifact with this `artifactId` exists (HTTP error `404`)\n* No version with this `version` exists (HTTP error `404`)\n* A server error occurred (HTTP error `500`)\n"
+            },
             "parameters": [
                 {
                     "name": "groupId",

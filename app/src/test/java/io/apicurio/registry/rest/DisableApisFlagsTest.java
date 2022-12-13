@@ -20,6 +20,7 @@ import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.ccompat.rest.ContentTypes;
 import io.apicurio.registry.noprofile.ccompat.rest.CCompatTestConstants;
 import io.apicurio.registry.services.DisabledApisMatcherService;
+import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.tests.ApicurioTestTags;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
@@ -32,6 +33,7 @@ import java.util.UUID;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.CoreMatchers.anything;
+import static org.hamcrest.Matchers.equalTo;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -45,6 +47,8 @@ public class DisableApisFlagsTest extends AbstractResourceTestBase {
 
     @Inject
     DisabledApisMatcherService matcherService;
+
+    private static final String GROUP = "DisableApisFlagsTest";
 
     @Test
     public void testRegexp() {
@@ -71,6 +75,49 @@ public class DisableApisFlagsTest extends AbstractResourceTestBase {
         doTestDisabledChildPathByParentPath(disabledDirectAccess);
 
         doTestUIDisabled();
+
+        doTestArtifactVersionDeletionDisabled();
+    }
+
+    private void doTestArtifactVersionDeletionDisabled() throws Exception {
+        String artifactContent = resourceToString("openapi-empty.json");
+
+        // Create OpenAPI artifact
+        createArtifact(GROUP, "testDeleteArtifactVersion/EmptyAPI", ArtifactType.OPENAPI, artifactContent);
+
+        // Make sure we can get the artifact content
+        given()
+                .when()
+                .pathParam("groupId", GROUP)
+                .pathParam("artifactId", "testDeleteArtifactVersion/EmptyAPI")
+                .get("/registry/v2/groups/{groupId}/artifacts/{artifactId}")
+                .then()
+                .statusCode(200)
+                .body("openapi", equalTo("3.0.2"))
+                .body("info.title", equalTo("Empty API"));
+
+        //Get the artifact version 1
+        given()
+                .when()
+                .pathParam("groupId", GROUP)
+                .pathParam("artifactId", "testDeleteArtifactVersion/EmptyAPI")
+                .pathParam("version", "1")
+                .get("/registry/v2/groups/{groupId}/artifacts/{artifactId}/versions/{version}")
+                .then()
+                .statusCode(200)
+                .body("openapi", equalTo("3.0.2"))
+                .body("info.title", equalTo("Empty API"));
+
+        // Try to delete artifact version 1. Should return 404 as feature is disabled
+        given()
+                .when()
+                .pathParam("groupId", GROUP)
+                .pathParam("artifactId", "testDeleteArtifactVersion/EmptyAPI")
+                .pathParam("version", "1")
+                .delete("/registry/v2/groups/{groupId}/artifacts/{artifactId}/versions/{version}")
+                .then()
+                .statusCode(404)
+                .body("message", equalTo("Artifact version deletion is not enabled."));
     }
 
     private void doTestUIDisabled() {

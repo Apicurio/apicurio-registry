@@ -686,6 +686,122 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
     }
 
     @Test
+    public void testDeleteArtifactVersion() throws Exception {
+        String artifactContent = resourceToString("openapi-empty.json");
+        String updatedArtifactContent = artifactContent.replace("Empty API", "Empty API (Updated)");
+
+        // Create OpenAPI artifact
+        createArtifact(GROUP, "testDeleteArtifactVersion/EmptyAPI", ArtifactType.OPENAPI, artifactContent);
+
+        // Make sure we can get the artifact content
+        given()
+                .when()
+                .pathParam("groupId", GROUP)
+                .pathParam("artifactId", "testDeleteArtifactVersion/EmptyAPI")
+                .get("/registry/v2/groups/{groupId}/artifacts/{artifactId}")
+                .then()
+                .statusCode(200)
+                .body("openapi", equalTo("3.0.2"))
+                .body("info.title", equalTo("Empty API"));
+
+        // Create a new version of the artifact
+        given()
+                .when()
+                .contentType(CT_JSON)
+                .pathParam("groupId", GROUP)
+                .header("X-Registry-ArtifactType", ArtifactType.OPENAPI)
+                .pathParam("artifactId", "testDeleteArtifactVersion/EmptyAPI")
+                .body(updatedArtifactContent)
+                .post("/registry/v2/groups/{groupId}/artifacts/{artifactId}/versions")
+                .then()
+                .statusCode(200)
+                .body("version", equalTo("2"))
+                .body("type", equalTo(ArtifactType.OPENAPI));
+
+        //Get the artifact version 1
+        given()
+                .when()
+                .pathParam("groupId", GROUP)
+                .pathParam("artifactId", "testDeleteArtifactVersion/EmptyAPI")
+                .pathParam("version", "1")
+                .get("/registry/v2/groups/{groupId}/artifacts/{artifactId}/versions/{version}")
+                .then()
+                .statusCode(200)
+                .body("openapi", equalTo("3.0.2"))
+                .body("info.title", equalTo("Empty API"));
+
+        // Delete the artifact version 1
+        given()
+                .when()
+                .pathParam("groupId", GROUP)
+                .pathParam("artifactId", "testDeleteArtifactVersion/EmptyAPI")
+                .pathParam("version", "1")
+                .delete("/registry/v2/groups/{groupId}/artifacts/{artifactId}/versions/{version}")
+                .then()
+                .statusCode(204);
+
+        // Try to get artifact version 1 that doesn't exist.
+        TestUtils.retry(() -> {
+            given()
+                    .when()
+                    .pathParam("groupId", GROUP)
+                    .pathParam("artifactId", "testDeleteArtifactVersion/EmptyAPI")
+                    .pathParam("version", "1")
+                    .get("/registry/v2/groups/{groupId}/artifacts/{artifactId}/versions/{version}")
+                    .then()
+                    .statusCode(404)
+                    .body("error_code", equalTo(404))
+                    .body("message", equalTo("No version '1' found for artifact with ID 'testDeleteArtifactVersion/EmptyAPI' in group 'GroupsResourceTest'."));
+        });
+
+        //Get the artifact version 2
+        given()
+                .when()
+                .pathParam("groupId", GROUP)
+                .pathParam("artifactId", "testDeleteArtifactVersion/EmptyAPI")
+                .pathParam("version", "2")
+                .get("/registry/v2/groups/{groupId}/artifacts/{artifactId}/versions/{version}")
+                .then()
+                .statusCode(200)
+                .body("openapi", equalTo("3.0.2"))
+                .body("info.title", equalTo("Empty API (Updated)"));
+
+        // Delete the artifact version 2
+        given()
+                .when()
+                .pathParam("groupId", GROUP)
+                .pathParam("artifactId", "testDeleteArtifactVersion/EmptyAPI")
+                .pathParam("version", "2")
+                .delete("/registry/v2/groups/{groupId}/artifacts/{artifactId}/versions/{version}")
+                .then()
+                .statusCode(204);
+
+        // Try to get artifact version 2 that doesn't exist.
+        TestUtils.retry(() -> {
+            given()
+                    .when()
+                    .pathParam("groupId", GROUP)
+                    .pathParam("artifactId", "testDeleteArtifactVersion/EmptyAPI")
+                    .pathParam("version", "2")
+                    .get("/registry/v2/groups/{groupId}/artifacts/{artifactId}/versions/{version}")
+                    .then()
+                    .statusCode(404)
+                    .body("error_code", equalTo(404))
+                    .body("message", equalTo("No version '2' found for artifact with ID 'testDeleteArtifactVersion/EmptyAPI' in group 'GroupsResourceTest'."));
+        });
+
+        // Try to delete an artifact version 2 that doesn't exist.
+        given()
+                .when()
+                .pathParam("groupId", GROUP)
+                .pathParam("artifactId", "testDeleteArtifactVersion/EmptyAPI")
+                .pathParam("version", "2")
+                .delete("/registry/v2/groups/{groupId}/artifacts/{artifactId}/versions/{version}")
+                .then()
+                .statusCode(404);
+    }
+
+    @Test
     public void testDeleteArtifactsInGroup() throws Exception {
         String group = "testDeleteArtifactsInGroup";
         String artifactContent = resourceToString("openapi-empty.json");

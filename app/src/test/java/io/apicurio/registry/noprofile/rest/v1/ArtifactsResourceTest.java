@@ -637,6 +637,87 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
     }
 
     @Test
+    public void testDeleteArtifactVersion() throws Exception {
+        String artifactContent = resourceToString("openapi-empty.json");
+
+        // Create an artifact
+        createArtifact("testDeleteArtifactVersion/EmptyAPI", ArtifactType.OPENAPI, artifactContent);
+
+        // Update the artifact 5 times
+        List<Integer> versions = new ArrayList<>();
+        for (int idx = 0; idx < 5; idx++) {
+            Integer version =
+                    given()
+                        .when()
+                            .contentType(CT_JSON)
+                            .header("X-Registry-ArtifactType", ArtifactType.OPENAPI)
+                            .pathParam("artifactId", "testDeleteArtifactVersion/EmptyAPI")
+                            .body(artifactContent.replace("Empty API", "Empty API (Update " + idx + ")"))
+                            .put("/registry/v1/artifacts/{artifactId}")
+                        .then()
+                            .statusCode(200)
+                            .body("id", equalTo("testDeleteArtifactVersion/EmptyAPI"))
+                            .body("type", equalTo(ArtifactType.OPENAPI))
+                            .extract().body().path("version");
+
+            versions.add(version);
+        }
+
+        // Delete odd artifact versions
+        for (int idx = 0; idx < 5; idx++) {
+            if (idx % 2 == 0) {
+                continue;
+            }
+
+            Integer version = versions.get(idx);
+            given()
+                .when()
+                    .pathParam("artifactId", "testDeleteArtifactVersion/EmptyAPI")
+                    .pathParam("version", version)
+                    .delete("/registry/v1/artifacts/{artifactId}/versions/{version}")
+                .then()
+                    .statusCode(204);
+        }
+
+        // Check that the correct versions were deleted
+        for (int idx = 0; idx < 5; idx++) {
+            Integer version = versions.get(idx);
+            int expectedCode;
+            // Even indexes are still there, odd were deleted
+            if (idx % 2 == 0) {
+                expectedCode = 200;
+            } else {
+                expectedCode = 404;
+            }
+            given()
+                .when()
+                    .pathParam("artifactId", "testDeleteArtifactVersion/EmptyAPI")
+                    .pathParam("version", version)
+                    .get("/registry/v1/artifacts/{artifactId}/versions/{version}")
+                .then()
+                    .statusCode(expectedCode);
+        }
+
+        // Now try to delete a version that doesn't exist.
+        given()
+            .when()
+                .pathParam("artifactId", "testDeleteArtifactVersion/EmptyAPI")
+                .pathParam("version", 12345)
+                .get("/registry/v1/artifacts/{artifactId}/versions/{version}")
+            .then()
+                .statusCode(404);
+
+        // Try to delete a version of an artifact where the artifact doesn't exist
+        given()
+            .when()
+                .pathParam("artifactId", "testGetArtifactVersion/MissingAPI")
+                .pathParam("version", 1)
+                .get("/registry/v1/artifacts/{artifactId}/versions/{version}")
+            .then()
+                .statusCode(404);
+    }
+
+    @Test
     public void testArtifactRules() throws Exception {
         String artifactContent = resourceToString("openapi-empty.json");
         String artifactId = "testArtifactRules/EmptyAPI";

@@ -85,6 +85,7 @@ import javax.inject.Inject;
 import javax.interceptor.Interceptors;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.BadRequestException;
+import javax.ws.rs.NotFoundException;
 import javax.ws.rs.client.Client;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
@@ -562,6 +563,22 @@ public class GroupsResourceImpl implements GroupsResource {
         Response.ResponseBuilder builder = Response.ok(contentToReturn, contentType);
         checkIfDeprecated(metaData::getState, groupId, artifactId, version, builder);
         return builder.build();
+    }
+
+    /**
+     * @see io.apicurio.registry.rest.v2.GroupsResource#deleteArtifactVersion(java.lang.String, java.lang.String, java.lang.String)
+     */
+    @Override
+    public void deleteArtifactVersion(String groupId, String artifactId, String version) {
+        if (!restConfig.isArtifactVersionDeletionEnabled()) {
+            throw new NotFoundException("Artifact version deletion is not enabled.");
+        }
+
+        requireParameter("groupId", groupId);
+        requireParameter("artifactId", artifactId);
+        requireParameter("version", version);
+
+        storage.deleteArtifactVersion(gidOrNull(groupId), artifactId, version);
     }
 
     /**

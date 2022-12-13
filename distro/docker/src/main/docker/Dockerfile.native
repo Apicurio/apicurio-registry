@@ -6,7 +6,6 @@ RUN chown 1001 /work \
     && chmod "g+rwX" /work \
     && chown 1001:root /work
 
-COPY --chown=1001:root target/meta /work/meta
 COPY --chown=1001:root target/apicurio-registry-*-runner /work/application
 
 EXPOSE 8080

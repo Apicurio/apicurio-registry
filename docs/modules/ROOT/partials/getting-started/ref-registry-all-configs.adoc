@@ -426,6 +426,11 @@ This section contains a list of the configuration options available for {registr
 |`-1`
 |`2.1.0.Final`
 |Max versions per artifacts
+|`registry.storage.metrics.cache.max-size`
+|`long`
+|`1000`
+|`2.4.1.Final`
+|Storage metrics cache max size.
 |===
 
 == Category `log`:
@@ -563,6 +568,11 @@ This section contains a list of the configuration options available for {registr
 |`60000`
 |`2.1.0.Final`
 |Tenants context cache check period
+|`registry.tenants.context.cache.max-size`
+|`long`
+|`1000`
+|`2.4.1.Final`
+|Tenants context cache max size
 |===
 
 == Category `redirects`:

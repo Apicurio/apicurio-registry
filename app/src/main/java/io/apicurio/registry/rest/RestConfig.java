@@ -17,8 +17,16 @@ public class RestConfig {
     @Info(category = "rest", description = "Skip SSL validation when downloading artifacts from URL", availableSince = "2.2.6-SNAPSHOT")
     boolean downloadSkipSSLValidation;
 
+    @ConfigProperty(name = "registry.rest.artifact.deletion.enabled", defaultValue = "true")
+    @Info(category = "rest", description = "Enables artifact version deletion", availableSince = "2.4.2-SNAPSHOT")
+    boolean artifactVersionDeletionEnabled;
+
     public int getDownloadMaxSize() { return this.downloadMaxSize; }
 
     public boolean getDownloadSkipSSLValidation() { return this.downloadSkipSSLValidation; }
+
+    public boolean isArtifactVersionDeletionEnabled() {
+        return artifactVersionDeletionEnabled;
+    }
 
 }

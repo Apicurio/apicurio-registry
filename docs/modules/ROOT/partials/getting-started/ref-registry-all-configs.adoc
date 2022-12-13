@@ -377,11 +377,6 @@ This section contains a list of the configuration options available for {registr
 |Default
 |Available from
 |Description
-|`registry.limits.config.cache.check-period`
-|`long`
-|`30000`
-|`2.1.0.Final`
-|Cache check period limit
 |`registry.limits.config.max-artifact-labels`
 |`long`
 |`-1`

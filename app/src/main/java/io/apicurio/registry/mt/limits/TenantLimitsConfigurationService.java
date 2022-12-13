@@ -17,23 +17,33 @@
 package io.apicurio.registry.mt.limits;
 
 import io.apicurio.common.apps.config.Info;
+import io.apicurio.registry.mt.MultitenancyProperties;
 import io.apicurio.tenantmanager.api.datamodel.ApicurioTenant;
 import io.apicurio.tenantmanager.api.datamodel.ResourceType;
 import io.apicurio.tenantmanager.api.datamodel.TenantResource;
-import io.apicurio.registry.mt.MultitenancyProperties;
-import io.apicurio.registry.mt.TenantContext;
 import io.quarkus.runtime.StartupEvent;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 
-import java.util.Map;
-import java.util.Optional;
-import java.util.stream.Collectors;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.event.Observes;
 import javax.inject.Inject;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
-import static io.apicurio.tenantmanager.api.datamodel.ResourceType.*;
+import static io.apicurio.tenantmanager.api.datamodel.ResourceType.MAX_ARTIFACTS_COUNT;
+import static io.apicurio.tenantmanager.api.datamodel.ResourceType.MAX_ARTIFACT_DESCRIPTION_LENGTH_CHARS;
+import static io.apicurio.tenantmanager.api.datamodel.ResourceType.MAX_ARTIFACT_LABELS_COUNT;
+import static io.apicurio.tenantmanager.api.datamodel.ResourceType.MAX_ARTIFACT_NAME_LENGTH_CHARS;
+import static io.apicurio.tenantmanager.api.datamodel.ResourceType.MAX_ARTIFACT_PROPERTIES_COUNT;
+import static io.apicurio.tenantmanager.api.datamodel.ResourceType.MAX_LABEL_SIZE_BYTES;
+import static io.apicurio.tenantmanager.api.datamodel.ResourceType.MAX_PROPERTY_KEY_SIZE_BYTES;
+import static io.apicurio.tenantmanager.api.datamodel.ResourceType.MAX_PROPERTY_VALUE_SIZE_BYTES;
+import static io.apicurio.tenantmanager.api.datamodel.ResourceType.MAX_REQUESTS_PER_SECOND_COUNT;
+import static io.apicurio.tenantmanager.api.datamodel.ResourceType.MAX_SCHEMA_SIZE_BYTES;
+import static io.apicurio.tenantmanager.api.datamodel.ResourceType.MAX_TOTAL_SCHEMAS_COUNT;
+import static io.apicurio.tenantmanager.api.datamodel.ResourceType.MAX_VERSIONS_PER_ARTIFACT_COUNT;
 
 /**
  * @author Fabian Martinez
@@ -43,11 +53,6 @@ public class TenantLimitsConfigurationService {
 
     @Inject
     Logger logger;
-
-    @Inject
-    @ConfigProperty(defaultValue = "30000", name = "registry.limits.config.cache.check-period")
-    @Info(category = "limits", description = "Cache check period limit", availableSince = "2.1.0.Final")
-    Long limitsCheckPeriod;
 
     //All limits to -1 , which means by default all limits are disabled
 
@@ -108,9 +113,6 @@ public class TenantLimitsConfigurationService {
     Long defaultMaxRequestsPerSecond;
 
     @Inject
-    TenantContext tenantContext;
-
-    @Inject
     MultitenancyProperties mtProperties;
 
     private boolean isConfigured = true;
@@ -138,7 +140,7 @@ public class TenantLimitsConfigurationService {
                     defaultMaxDescriptionLength < 0 &&
 
                     defaultMaxRequestsPerSecond < 0
-                ) {
+            ) {
 
                 //all limits are disabled and multi-tenancy is not enabled
                 //limits will not be applied
@@ -191,8 +193,8 @@ public class TenantLimitsConfigurationService {
 
         // TODO: refactor this code
         Map<String, TenantResource> config = tenantMetadata.getResources()
-            .stream()
-            .collect(Collectors.toMap(tr -> tr.getType(), tr -> tr));
+                .stream()
+                .collect(Collectors.toMap(tr -> tr.getType(), tr -> tr));
 
         for (String type : ResourceType.values()) {
 

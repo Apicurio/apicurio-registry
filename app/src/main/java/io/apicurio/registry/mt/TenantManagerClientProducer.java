@@ -16,10 +16,6 @@
 
 package io.apicurio.registry.mt;
 
-import io.apicurio.tenantmanager.client.TenantManagerClient;
-import io.apicurio.tenantmanager.client.TenantManagerClientImpl;
-import io.apicurio.registry.storage.RegistryStorage;
-import io.apicurio.registry.types.Current;
 import io.apicurio.registry.utils.OptionalBean;
 import io.apicurio.rest.client.JdkHttpClientProvider;
 import io.apicurio.rest.client.auth.Auth;
@@ -27,15 +23,14 @@ import io.apicurio.rest.client.auth.OidcAuth;
 import io.apicurio.rest.client.auth.exception.AuthErrorHandler;
 import io.apicurio.rest.client.config.ApicurioClientConfig;
 import io.apicurio.rest.client.spi.ApicurioHttpClient;
-import io.quarkus.runtime.configuration.ProfileManager;
+import io.apicurio.tenantmanager.client.TenantManagerClient;
+import io.apicurio.tenantmanager.client.TenantManagerClientImpl;
+import org.slf4j.Logger;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Produces;
 import javax.enterprise.inject.spi.DeploymentException;
 import javax.inject.Inject;
-
-import org.slf4j.Logger;
-
 import java.time.Duration;
 import java.util.Collections;
 import java.util.HashMap;
@@ -52,10 +47,6 @@ public class TenantManagerClientProducer {
     Logger log;
 
     @Inject
-    @Current
-    RegistryStorage storage;
-
-    @Inject
     MultitenancyProperties properties;
 
     @Produces
@@ -63,13 +54,6 @@ public class TenantManagerClientProducer {
     OptionalBean<TenantManagerClient> produce() {
 
         if (properties.isMultitenancyEnabled()) {
-
-            //we check if profile is prod, because some tests will fail to start quarkus app.
-            //Those tests checks if multitenancy is supported and abort the test if needed
-            if ("prod".equals(ProfileManager.getActiveProfile()) && !storage.supportsMultiTenancy()) {
-                throw new DeploymentException("Unsupported configuration, \"registry.enable.multitenancy\" is enabled " +
-                        "but the storage implementation being used (" + storage.storageName() + ") does not support multitenancy");
-            }
 
             if (properties.getTenantManagerUrl().isEmpty()) {
                 throw new DeploymentException("Unsupported configuration, \"registry.enable.multitenancy\" is enabled " +

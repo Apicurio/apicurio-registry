@@ -169,7 +169,8 @@ public class ProtobufFile {
     }
 
     public Syntax getSyntax() {
-        return element.getSyntax();
+        Syntax syntax = element.getSyntax();
+        return syntax != null ? syntax : Syntax.PROTO_2 /* default  syntax */;
     }
 
     private void buildIndexes() {

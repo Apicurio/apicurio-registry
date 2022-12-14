@@ -16,6 +16,13 @@
 
 package io.apicurio.registry.rules.compatibility.protobuf;
 
+import com.squareup.wire.Syntax;
+import com.squareup.wire.schema.Field;
+import com.squareup.wire.schema.internal.parser.EnumConstantElement;
+import com.squareup.wire.schema.internal.parser.FieldElement;
+import io.apicurio.registry.protobuf.ProtobufDifference;
+import io.apicurio.registry.utils.protobuf.schema.ProtobufFile;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -24,14 +31,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-
-import com.squareup.wire.Syntax;
-import com.squareup.wire.schema.Field;
-import com.squareup.wire.schema.internal.parser.EnumConstantElement;
-import com.squareup.wire.schema.internal.parser.FieldElement;
-
-import io.apicurio.registry.protobuf.ProtobufDifference;
-import io.apicurio.registry.utils.protobuf.schema.ProtobufFile;
 
 /**
  * Provides compatibility validation functions for changes between two versions of a Protobuf schema document.
@@ -65,7 +64,7 @@ public class ProtobufCompatibilityCheckerLibrary {
         totalIssues.addAll(checkNoChangingFieldNames());
         totalIssues.addAll(checkNoRemovingServiceRPCs());
         totalIssues.addAll(checkNoChangingRPCSignature());
-        if (fileBefore.getSyntax().equals(Syntax.PROTO_2)) {
+        if (Syntax.PROTO_2.equals(fileBefore.getSyntax())) {
             totalIssues.addAll(checkRequiredFields());
         }
         return totalIssues;

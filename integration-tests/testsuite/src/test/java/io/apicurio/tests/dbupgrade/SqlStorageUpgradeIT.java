@@ -36,6 +36,7 @@ import org.testcontainers.images.RemoteDockerImage;
 import org.testcontainers.utility.DockerImageName;
 
 import io.apicurio.registry.rest.client.RegistryClient;
+import io.apicurio.registry.rest.client.RegistryClientFactory;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v2.beans.Rule;
 import io.apicurio.registry.rest.v2.beans.VersionMetaData;
@@ -142,7 +143,7 @@ public class SqlStorageUpgradeIT implements TestSeparator, Constants {
 
             //
 
-            var registryClient = RetrocompatibleRegistryClientUtils.create("http://localhost:8081/");
+            var registryClient = RegistryClientFactory.create("http://localhost:8081/");
 
             createArtifact(registryClient, ArtifactType.AVRO, ApicurioV2BaseIT.resourceToString("artifactTypes/" + "avro/multi-field_v1.json"));
             createArtifact(registryClient, ArtifactType.JSON, ApicurioV2BaseIT.resourceToString("artifactTypes/" + "jsonSchema/person_v1.json"));
@@ -216,7 +217,7 @@ public class SqlStorageUpgradeIT implements TestSeparator, Constants {
         for (int i = 0; i < 50; i++) {
 
             TenantData tenant = new TenantData();
-            TenantUserClient user = RetrocompatibleRegistryClientUtils.create(mt.createTenant());
+            TenantUserClient user = mt.createTenant();
             tenant.tenant = user;
             tenants.add(tenant);
 

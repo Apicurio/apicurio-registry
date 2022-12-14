@@ -62,7 +62,7 @@ jobs:
 
       - name: Build and Test In Memory Variant
         if: github.ref == 'refs/heads/main'
-        run: make SKIP_TESTS=false BUILD_FLAGS='-Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5 --no-transfer-progress' build-in-memory
+        run: make SKIP_TESTS=false BUILD_FLAGS='-DskipCommitIdPlugin=false -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5 --no-transfer-progress' build-in-memory
 
       - name: Build and Test In Memory Variant Without UI
         if: github.ref != 'refs/heads/main'
@@ -121,7 +121,7 @@ jobs:
 
       - name: Build and Test SQL Variant
         if: github.ref == 'refs/heads/main'
-        run: make SKIP_TESTS=false BUILD_FLAGS='-Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5 --no-transfer-progress' build-sql
+        run: make SKIP_TESTS=false BUILD_FLAGS='-DskipCommitIdPlugin=false -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5 --no-transfer-progress' build-sql
 
       - name: Build and Test SQL Variant Without UI
         if: github.ref != 'refs/heads/main'
@@ -180,7 +180,7 @@ jobs:
 
       - name: Build and Test KafkaSQL Variant
         if: github.ref == 'refs/heads/main'
-        run: make SKIP_TESTS=false BUILD_FLAGS='-Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5 --no-transfer-progress' build-kafkasql
+        run: make SKIP_TESTS=false BUILD_FLAGS='-DskipCommitIdPlugin=false -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5 --no-transfer-progress' build-kafkasql
 
       - name: Build and Test KafkaSQL Variant Without UI
         if: github.ref != 'refs/heads/main'
@@ -230,7 +230,7 @@ jobs:
 
       - name: Build inmemory Variant
         if: github.ref == 'refs/heads/main'
-        run: make SKIP_TESTS=true BUILD_FLAGS='-Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5 --no-transfer-progress' build-in-memory
+        run: make SKIP_TESTS=true BUILD_FLAGS='-DskipCommitIdPlugin=false -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5 --no-transfer-progress' build-in-memory
 
       - name: Build inmemory Variant Without UI
         if: github.ref != 'refs/heads/main'
@@ -329,7 +329,7 @@ jobs:
 
       - name: Build Sql Variant
         if: github.ref == 'refs/heads/main'
-        run: make SKIP_TESTS=true BUILD_FLAGS='-Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5 --no-transfer-progress' build-sql
+        run: make SKIP_TESTS=true BUILD_FLAGS='-DskipCommitIdPlugin=false -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5 --no-transfer-progress' build-sql
       - name: Build Sql Variant Without UI
         if: github.ref != 'refs/heads/main'
         run: make SKIP_TESTS=true BUILD_FLAGS='-DskipUiBuild -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5 --no-transfer-progress' build-sql

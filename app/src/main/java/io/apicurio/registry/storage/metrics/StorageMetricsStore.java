@@ -113,7 +113,7 @@ public class StorageMetricsStore {
         artifactsCountersLoader = new CacheLoader<>() {
             @Override
             public AtomicLong load(@NotNull String tenantId) {
-                log.info("Initializing total schemas counter, tid {}", tenantContext.tenantId());
+                log.info("Initializing total artifacts counter, tid {}", tenantContext.tenantId());
                 long count = storage.countArtifacts();
                 return new AtomicLong(count); }
         };
@@ -129,6 +129,7 @@ public class StorageMetricsStore {
         artifactVersionsCountersLoader = new CacheLoader<>() {
             @Override
             public AtomicLong load(@NotNull ArtifactVersionKey artifactVersionKey) {
+                log.info("Initializing total artifact versions counter for artifact gid {} ai {}, tid {}", artifactVersionKey.groupId, artifactVersionKey.artifactId, tenantContext.tenantId());
                 long count = storage.countArtifactVersions(artifactVersionKey.groupId, artifactVersionKey.artifactId);
                 return new AtomicLong(count); }
         };

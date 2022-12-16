@@ -15,20 +15,19 @@
  */
 package io.apicurio.registry.events.http;
 
-import java.util.UUID;
+import io.apicurio.registry.events.EventSink;
+import io.vertx.core.buffer.Buffer;
+import io.vertx.core.eventbus.Message;
+import org.slf4j.Logger;
+
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.ws.rs.core.MediaType;
-
-import io.vertx.core.http.HttpMethod;
-import io.vertx.core.http.RequestOptions;
-import org.slf4j.Logger;
-import io.apicurio.registry.events.EventSink;
-import io.vertx.core.Vertx;
-import io.vertx.core.buffer.Buffer;
-import io.vertx.core.eventbus.Message;
-import io.vertx.core.http.HttpClient;
-import io.vertx.core.http.HttpClientOptions;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.util.UUID;
 
 /**
  * @author Fabian Martinez
@@ -43,9 +42,6 @@ public class HttpEventSink implements EventSink {
 
     @Inject
     HttpSinksConfiguration sinksConfiguration;
-
-    @Inject
-    Vertx vertx;
 
     @Override
     public String name() {
@@ -73,24 +69,26 @@ public class HttpEventSink implements EventSink {
     private void sendEventHttp(String type, HttpSinkConfiguration httpSink, Buffer data) {
         try {
             log.debug("Sending event to sink " + httpSink.getName());
-            getHttpClient()
-                .request(new RequestOptions()
-                            .setMethod(HttpMethod.POST)
-                            .setURI(httpSink.getEndpoint())
-                            .putHeader("ce-id", UUID.randomUUID().toString())
-                            .putHeader("ce-specversion", "1.0")
-                            .putHeader("ce-source", "apicurio-registry")
-                            .putHeader("ce-type", type)
-                            .putHeader("content-type", MediaType.APPLICATION_JSON),
-                            ar -> {
-                                if (ar.succeeded()) {
-                                    ar.result()
-                                        .exceptionHandler(ex -> log.error("Error sending event to " + httpSink.getEndpoint(), ex))
-                                        .end(data);
-                                } else {
-                                    log.error("Error sending event to " + httpSink.getEndpoint(), ar.cause());
-                                }
-                            });
+
+            final HttpRequest eventRequest = HttpRequest.newBuilder()
+                    .uri(URI.create(httpSink.getEndpoint()))
+                    .version(HttpClient.Version.HTTP_1_1)
+                    .header("ce-id", UUID.randomUUID().toString())
+                    .header("ce-specversion", "1.0")
+                    .header("ce-source", "apicurio-registry")
+                    .header("ce-type", type)
+                    .header("content-type", MediaType.APPLICATION_JSON)
+                    .POST(HttpRequest.BodyPublishers.ofByteArray(data.getBytes()))
+                    .build();
+
+            final HttpResponse<String> eventResponse = getHttpClient()
+                    .send(eventRequest, HttpResponse.BodyHandlers.ofString());
+
+            if (eventResponse.statusCode() != 200) {
+                log.warn("Error sending http event: {}", eventResponse.body());
+            }
+
+
         } catch (Exception e) {
             log.error("Error sending http event", e);
         }
@@ -98,8 +96,8 @@ public class HttpEventSink implements EventSink {
 
     private synchronized HttpClient getHttpClient() {
         if (httpClient == null) {
-            httpClient = vertx.createHttpClient(new HttpClientOptions()
-                .setConnectTimeout(15 * 1000));
+            httpClient = HttpClient.newBuilder()
+                    .build();
         }
         return httpClient;
     }

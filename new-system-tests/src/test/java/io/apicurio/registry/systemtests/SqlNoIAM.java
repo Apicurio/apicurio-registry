@@ -7,7 +7,7 @@ import io.fabric8.openshift.client.OpenShiftClient;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import static io.apicurio.registry.systemtests.Utils.findRegistryOperatorDeployment;
+import static io.apicurio.registry.systemtests.Utils.findOperatorDeployment;
 import static io.apicurio.registry.systemtests.Utils.isDeploymentReady;
 import static io.apicurio.registry.systemtests.Utils.waitDeploymentReady;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -40,7 +40,10 @@ public class SqlNoIAM extends TestBase {
         assertTrue(waitDeploymentReady(client, Constants.POSTGRESQL_NAME));
 
         // Wait for readiness of Apicurio Registry operator deployment
-        assertTrue(waitDeploymentReady(client, findRegistryOperatorDeployment(client).getMetadata().getName()));
+        assertTrue(waitDeploymentReady(
+                client,
+                findOperatorDeployment(client, Constants.REGISTRY_OPERATOR_NAME).getMetadata().getName())
+        );
 
         // Log information about current action
         logger.info("BeforeEach finished.");

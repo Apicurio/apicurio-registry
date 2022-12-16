@@ -166,7 +166,7 @@
         <okio.version>3.2.0</okio.version>
         <okio-fake-file-system.version>3.2.0</okio-fake-file-system.version>
         <icu4j.version>72.1</icu4j.version>
-        <protobuf.version>3.21.11</protobuf.version>
+        <protobuf.version>3.21.12</protobuf.version>
         <xmlsec.version>3.0.1</xmlsec.version>
         <protobuf.googleapi.types.version>2.11.0</protobuf.googleapi.types.version>
         <wsdl4j.version>1.6.3</wsdl4j.version>
@@ -186,6 +186,9 @@
 
         <!-- Default Skip UI value -->
         <skipUiBuild>false</skipUiBuild>
+
+        <!-- Skip commit id plugin -->
+        <skipCommitIdPlugin>true</skipCommitIdPlugin>
 
         <!-- Apicurio Data Models (OpenAPI and AsyncAPI support) -->
         <apicurio-data-models.version>1.1.27</apicurio-data-models.version>
@@ -207,7 +210,7 @@
         <commons-codec.version>1.15</commons-codec.version>
         <jboss-slf4j.version>1.2.1.Final</jboss-slf4j.version>
         <httpclient.version>4.5.14</httpclient.version>
-        <apicurio-common-rest-client.version>0.1.13.Final</apicurio-common-rest-client.version>
+        <apicurio-common-rest-client.version>0.1.14.Final</apicurio-common-rest-client.version>
         <apicurio-common-app-components.version>0.1.14.Final</apicurio-common-app-components.version>
         <sentry.version>1.7.30</sentry.version>
         <kafka-oauth-client.version>0.11.0</kafka-oauth-client.version>
@@ -240,6 +243,7 @@
         <version.resources.plugin>3.3.0</version.resources.plugin>
         <version.clean.plugin>3.2.0</version.clean.plugin>
         <version.frontend-maven.plugin>1.12.1</version.frontend-maven.plugin>
+        <version.maven-antrun.plugin>3.1.0</version.maven-antrun.plugin>
 
         <!-- Plugin Deps -->
         <version.puppycrawl>8.45.1</version.puppycrawl>
@@ -251,7 +255,7 @@
         <!-- Test containers version, should be aligned with version used in Quarkus -->
         <test-containers.version>1.17.5</test-containers.version>
         <keycloak.testcontainers.version>1.9.0</keycloak.testcontainers.version>
-        <keycloak-admin-client.version>20.0.1</keycloak-admin-client.version>
+        <keycloak-admin-client.version>20.0.2</keycloak-admin-client.version>
         <embedded-postgres.version>2.0.2</embedded-postgres.version>
         <strimzi.version>0.102.0</strimzi.version>
         <wiremock-jre8.version>2.35.0</wiremock-jre8.version>
@@ -975,6 +979,48 @@
                         </goals>
                     </execution>
                 </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <version>${version.maven-antrun.plugin}</version>
+                <executions>
+                   <execution>
+                       <phase>initialize</phase>
+                       <configuration>
+                           <target>
+                               <mkdir dir="${project.build.directory}/meta"/>
+                           </target>
+                       </configuration>
+                       <goals>
+                           <goal>run</goal>
+                       </goals>
+                   </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>io.github.git-commit-id</groupId>
+                <artifactId>git-commit-id-maven-plugin</artifactId>
+                <version>5.0.0</version>
+                <executions>
+                    <execution>
+                        <id>get-the-git-infos</id>
+                        <goals>
+                            <goal>revision</goal>
+                        </goals>
+                        <phase>initialize</phase>
+                    </execution>
+                </executions>
+                <configuration>
+                    <skip>${skipCommitIdPlugin}</skip>
+                    <generateGitPropertiesFile>true</generateGitPropertiesFile>
+                    <generateGitPropertiesFilename>${project.build.directory}/meta/git.properties</generateGitPropertiesFilename>
+                    <commitIdGenerationMode>full</commitIdGenerationMode>
+                    <includeOnlyProperties>
+                        <includeOnlyProperty>^git.build.(time|version)$</includeOnlyProperty>
+                        <includeOnlyProperty>^git.commit.id.(abbrev|full)$</includeOnlyProperty>
+                    </includeOnlyProperties>
+                </configuration>
             </plugin>
         </plugins>
     </build>

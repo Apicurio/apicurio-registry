@@ -32,6 +32,7 @@ import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.images.RemoteDockerImage;
 import org.testcontainers.utility.DockerImageName;
 
+import io.apicurio.registry.rest.client.RegistryClientFactory;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.tests.SimpleDisplayName;
@@ -85,7 +86,7 @@ public class KafkaSqlStorageUpgradeIT implements TestSeparator, Constants {
 
             //
 
-            var registryClient = RetrocompatibleRegistryClientUtils.create("http://localhost:8081/");
+            var registryClient = RegistryClientFactory.create("http://localhost:8081/");
 
             createArtifact(registryClient, ArtifactType.AVRO, ApicurioV2BaseIT.resourceToString("artifactTypes/" + "avro/multi-field_v1.json"));
             createArtifact(registryClient, ArtifactType.JSON, ApicurioV2BaseIT.resourceToString("artifactTypes/" + "jsonSchema/person_v1.json"));

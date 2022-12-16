@@ -136,7 +136,7 @@ module.exports = (env, argv) => {
             requiredVersion: dependencies["react-dom"],
           },
           "react-router-dom": {
-            singleton: true,
+            singleton: false, // consoledot needs this to be off to be able to upgrade the router to v6. We don't need this to be a singleton, so let's keep this off
             requiredVersion: dependencies["react-router-dom"],
           },
         }

@@ -168,12 +168,12 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
     public Schema getSchema(String subject, String versionString) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
         return parseVersionString(subject, versionString,
                 version -> {
-                    if (ArtifactState.DISABLED.equals(storage.getArtifactVersionMetaData(null, subject, version).getState())) {
+                    ArtifactVersionMetaDataDto artifactVersionMetaDataDto = storage.getArtifactVersionMetaData(null, subject, version);
+                    if (ArtifactState.DISABLED.equals(artifactVersionMetaDataDto.getState())) {
                         throw new VersionNotFoundException(null, subject, version);
                     }
                     StoredArtifactDto storedArtifact = storage.getArtifactVersion(null, subject, version);
-                    Map<String, ContentHandle> resolvedReferences = storage.resolveReferences(storedArtifact.getReferences());
-                    return converter.convert(subject, storedArtifact, ArtifactTypeUtil.determineArtifactType(storedArtifact.getContent(), null, null, resolvedReferences, factory.getAllArtifactTypes()));
+                    return converter.convert(subject, storedArtifact, artifactVersionMetaDataDto.getType());
                 });
     }
 

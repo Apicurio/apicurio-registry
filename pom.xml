@@ -4,7 +4,7 @@
 
     <groupId>io.apicurio</groupId>
     <artifactId>apicurio-registry</artifactId>
-    <version>2.4.1-SNAPSHOT</version>
+    <version>2.4.2-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>apicurio-registry</name>
 
@@ -159,7 +159,7 @@
 
         <!-- Schema types -->
         <avro.version>1.11.1</avro.version>
-        <json-schema-validator.version>1.0.75</json-schema-validator.version>
+        <json-schema-validator.version>1.0.76</json-schema-validator.version>
         <wire-schema.version>4.3.0</wire-schema.version>
         <wire-compiler.version>4.3.0</wire-compiler.version>
         <okio-jvm.version>3.2.0</okio-jvm.version>

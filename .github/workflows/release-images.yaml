@@ -14,7 +14,6 @@ env:
   # The values are extracted from the github.event context,
   # which is only availble when the workflow gets triggered by a release event.
   RELEASE_VERSION: ${{ github.event.release.name }}
-  SOURCE_CODE_URL: ${{ github.event.release.zipball_url }}
   BRANCH: ${{ github.event.release.target_commitish }}
 
 
@@ -47,7 +46,6 @@ jobs:
         run: |
           touch release.json && curl https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/tags/${{ github.event.inputs.tag }} > release.json
           echo "RELEASE_VERSION=$(cat release.json | jq -r '.name')" >> $GITHUB_ENV
-          echo "SOURCE_CODE_URL=$(cat release.json | jq -r '.zipball_url')" >> $GITHUB_ENV
           echo "BRANCH=$(cat release.json | jq -r '.target_commitish')" >> $GITHUB_ENV
 
       - name: Determine Release Type
@@ -57,7 +55,7 @@ jobs:
           echo "RELEASE_TYPE=pre-release" >> $GITHUB_ENV
 
       - name: Download Source Code
-        run: wget -c $SOURCE_CODE_URL && unzip $RELEASE_VERSION && ls -lrt && mv ${{github.repository_owner}}* registry
+        run: git clone --branch $RELEASE_VERSION --single-branch ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}.git registry
         
       # We have faced issues in the past where a github release was created from a wrong commit
       # This step will ensure that the release was created from the right commit  

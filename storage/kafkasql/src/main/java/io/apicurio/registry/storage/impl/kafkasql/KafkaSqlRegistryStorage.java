@@ -65,6 +65,8 @@ import io.apicurio.registry.storage.impl.kafkasql.sql.KafkaSqlSink;
 import io.apicurio.registry.storage.impl.kafkasql.sql.KafkaSqlStore;
 import io.apicurio.registry.storage.impl.kafkasql.values.ActionType;
 import io.apicurio.registry.storage.impl.kafkasql.values.MessageValue;
+import io.apicurio.registry.storage.impl.sql.SqlStorageEvent;
+import io.apicurio.registry.storage.impl.sql.SqlStorageEventType;
 import io.apicurio.registry.storage.impl.sql.SqlUtil;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.RuleType;
@@ -92,6 +94,7 @@ import org.slf4j.Logger;
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.event.Observes;
 import javax.inject.Inject;
 import java.io.IOException;
 import java.time.Duration;
@@ -172,9 +175,18 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
         if (configuration.isTopicAutoCreate()) {
             autoCreateTopics();
         }
-
-        // Start the Kafka Consumer thread
-        startConsumerThread(consumer);
+    }
+    
+    /**
+     * Handles SQL storage CDI events.
+     * @param event
+     */
+    public void handleSqlStorageEvent(@Observes SqlStorageEvent event) {
+        if (event.getType() == SqlStorageEventType.initialized) {
+            // Start the Kafka Consumer thread only once the SQL storage is initialized
+            log.info("SQL store initialized, starting consumer thread.");
+            startConsumerThread(consumer);
+        }
     }
 
     /**

@@ -22,7 +22,9 @@ import static io.apicurio.registry.storage.impl.sql.SqlUtil.normalizeGroupId;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Instant;
+import java.util.Collections;
 import java.util.Date;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -35,16 +37,10 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import javax.annotation.PostConstruct;
+import javax.enterprise.event.Event;
 import javax.inject.Inject;
 import javax.transaction.Transactional;
 
-import io.apicurio.registry.storage.RegistryStorage;
-import io.apicurio.registry.storage.VersionAlreadyExistsException;
-import io.apicurio.registry.storage.dto.ArtifactOwnerDto;
-import io.apicurio.registry.storage.dto.GroupSearchResultsDto;
-import io.apicurio.registry.storage.dto.SearchedGroupDto;
-import io.apicurio.registry.storage.impl.sql.mappers.SearchedGroupMapper;
-import io.apicurio.registry.util.DataImporter;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -69,14 +65,17 @@ import io.apicurio.registry.storage.DownloadNotFoundException;
 import io.apicurio.registry.storage.GroupAlreadyExistsException;
 import io.apicurio.registry.storage.GroupNotFoundException;
 import io.apicurio.registry.storage.LogConfigurationNotFoundException;
+import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.RegistryStorageException;
 import io.apicurio.registry.storage.RoleMappingAlreadyExistsException;
 import io.apicurio.registry.storage.RoleMappingNotFoundException;
 import io.apicurio.registry.storage.RuleAlreadyExistsException;
 import io.apicurio.registry.storage.RuleNotFoundException;
 import io.apicurio.registry.storage.StorageException;
+import io.apicurio.registry.storage.VersionAlreadyExistsException;
 import io.apicurio.registry.storage.VersionNotFoundException;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
+import io.apicurio.registry.storage.dto.ArtifactOwnerDto;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
@@ -84,6 +83,7 @@ import io.apicurio.registry.storage.dto.ContentWrapperDto;
 import io.apicurio.registry.storage.dto.DownloadContextDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.GroupMetaDataDto;
+import io.apicurio.registry.storage.dto.GroupSearchResultsDto;
 import io.apicurio.registry.storage.dto.LogConfigurationDto;
 import io.apicurio.registry.storage.dto.OrderBy;
 import io.apicurio.registry.storage.dto.OrderDirection;
@@ -92,6 +92,7 @@ import io.apicurio.registry.storage.dto.RuleConfigurationDto;
 import io.apicurio.registry.storage.dto.SearchFilter;
 import io.apicurio.registry.storage.dto.SearchFilterType;
 import io.apicurio.registry.storage.dto.SearchedArtifactDto;
+import io.apicurio.registry.storage.dto.SearchedGroupDto;
 import io.apicurio.registry.storage.dto.SearchedVersionDto;
 import io.apicurio.registry.storage.dto.StoredArtifactDto;
 import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
@@ -105,9 +106,9 @@ import io.apicurio.registry.storage.impl.sql.mappers.ArtifactMetaDataDtoMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.ArtifactRuleEntityMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.ArtifactVersionEntityMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.ArtifactVersionMetaDataDtoMapper;
-import io.apicurio.registry.storage.impl.sql.mappers.DynamicConfigPropertyDtoMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.ContentEntityMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.ContentMapper;
+import io.apicurio.registry.storage.impl.sql.mappers.DynamicConfigPropertyDtoMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.GlobalRuleEntityMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.GroupEntityMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.GroupMetaDataDtoMapper;
@@ -115,12 +116,14 @@ import io.apicurio.registry.storage.impl.sql.mappers.LogConfigurationMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.RoleMappingDtoMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.RuleConfigurationDtoMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.SearchedArtifactMapper;
+import io.apicurio.registry.storage.impl.sql.mappers.SearchedGroupMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.SearchedVersionMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.StoredArtifactMapper;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
+import io.apicurio.registry.util.DataImporter;
 import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.StringUtil;
 import io.apicurio.registry.utils.impexp.ArtifactRuleEntity;
@@ -132,9 +135,6 @@ import io.apicurio.registry.utils.impexp.GroupEntity;
 import io.apicurio.registry.utils.impexp.ManifestEntity;
 import io.quarkus.security.identity.SecurityIdentity;
 
-import java.util.Collections;
-import java.util.LinkedHashMap;
-
 
 /**
  * A SQL implementation of the {@link RegistryStorage} interface.  This impl does not
@@ -145,7 +145,6 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
 
     private static int DB_VERSION = Integer.valueOf(
         IoUtil.toString(AbstractSqlRegistryStorage.class.getResourceAsStream("db-version"))).intValue();
-    private static final Object dbMutex = new Object();
     private static final Object inmemorySequencesMutex = new Object();
 
     private static final ObjectMapper mapper = new ObjectMapper();
@@ -195,7 +194,10 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     @ConfigProperty(name = "quarkus.datasource.jdbc.url")
     @Info(category = "store", description = "Datasource jdbc URL", availableSince = "2.1.0.Final")
     String jdbcUrl;
-
+    
+    @Inject
+    Event<SqlStorageEvent> sqlStorageEvent;
+    
     /**
      * Constructor.
      */
@@ -207,34 +209,36 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     protected void initialize() {
         log.info("SqlRegistryStorage constructed successfully.  JDBC URL: " + jdbcUrl);
 
-        synchronized (dbMutex) {
-            handles.withHandleNoException((handle) -> {
-                if (initDB) {
-                    if (!isDatabaseInitialized(handle)) {
-                        log.info("Database not initialized.");
-                        initializeDatabase(handle);
-                    } else {
-                        log.info("Database was already initialized, skipping.");
-                    }
-
-                    if (!isDatabaseCurrent(handle)) {
-                        log.info("Old database version detected, upgrading.");
-                        upgradeDatabase(handle);
-                    }
+        handles.withHandleNoException((handle) -> {
+            if (initDB) {
+                if (!isDatabaseInitialized(handle)) {
+                    log.info("Database not initialized.");
+                    initializeDatabase(handle);
                 } else {
-                    if (!isDatabaseInitialized(handle)) {
-                        log.error("Database not initialized.  Please use the DDL scripts to initialize the database before starting the application.");
-                        throw new RuntimeException("Database not initialized.");
-                    }
-
-                    if (!isDatabaseCurrent(handle)) {
-                        log.error("Detected an old version of the database.  Please use the DDL upgrade scripts to bring your database up to date.");
-                        throw new RuntimeException("Database not upgraded.");
-                    }
+                    log.info("Database was already initialized, skipping.");
                 }
-                return null;
-            });
-        }
+
+                if (!isDatabaseCurrent(handle)) {
+                    log.info("Old database version detected, upgrading.");
+                    upgradeDatabase(handle);
+                }
+            } else {
+                if (!isDatabaseInitialized(handle)) {
+                    log.error("Database not initialized.  Please use the DDL scripts to initialize the database before starting the application.");
+                    throw new RuntimeException("Database not initialized.");
+                }
+
+                if (!isDatabaseCurrent(handle)) {
+                    log.error("Detected an old version of the database.  Please use the DDL upgrade scripts to bring your database up to date.");
+                    throw new RuntimeException("Database not upgraded.");
+                }
+            }
+            return null;
+        });
+        
+        SqlStorageEvent initializeEvent = new SqlStorageEvent();
+        initializeEvent.setType(SqlStorageEventType.initialized);
+        sqlStorageEvent.fire(initializeEvent );
     }
 
     /**

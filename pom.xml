@@ -161,7 +161,7 @@
         <json-schema-validator.version>1.0.76</json-schema-validator.version>
         <wire-schema.version>4.3.0</wire-schema.version>
         <wire-compiler.version>4.3.0</wire-compiler.version>
-        <okio-jvm.version>3.2.0</okio-jvm.version>
+        <okio-jvm.version>3.3.0</okio-jvm.version>
         <okio.version>3.2.0</okio.version>
         <okio-fake-file-system.version>3.2.0</okio-fake-file-system.version>
         <icu4j.version>72.1</icu4j.version>

@@ -77,6 +77,11 @@ public class SchemaResolverTest extends AbstractResourceTestBase {
                 return null;
             }
 
+            @Override
+            public ParsedSchema<Schema> getSchemaFromData(Record<GenericRecord> data, boolean dereference) {
+                return null;
+            }
+
             /**
              * @see io.apicurio.registry.resolver.SchemaParser#supportsExtractSchemaFromData()
              */

@@ -31,6 +31,7 @@ import com.kubetrade.schema.trade.AvroSchemaB;
 import com.kubetrade.schema.trade.AvroSchemaC;
 import com.kubetrade.schema.trade.AvroSchemaD;
 import com.kubetrade.schema.trade.AvroSchemaE;
+import io.apicurio.registry.resolver.SchemaResolverConfig;
 import io.apicurio.registry.serde.SerdeConfig;
 import io.apicurio.registry.serde.SerdeHeaders;
 import io.apicurio.registry.serde.config.IdOption;
@@ -238,6 +239,67 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
             config.put(AvroKafkaSerdeConfig.AVRO_ENCODING, AvroKafkaSerdeConfig.AVRO_ENCODING_JSON);
             config.put(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true");
             config.put(SerdeConfig.ENABLE_HEADERS, "false");
+            serializer.configure(config, false);
+
+            config = new HashMap<>();
+            config.put(AvroKafkaSerdeConfig.AVRO_ENCODING, AvroKafkaSerdeConfig.AVRO_ENCODING_JSON);
+            config.putIfAbsent(AvroKafkaSerdeConfig.AVRO_DATUM_PROVIDER, ReflectAvroDatumProvider.class.getName());
+            deserializer.configure(config, false);
+
+            AvroSchemaB avroSchemaB = new AvroSchemaB();
+            AvroSchemaA avroSchemaA = AvroSchemaA.GEMINI;
+            AvroSchemaA avroSchemaA2 = AvroSchemaA.GEMINI;
+            AvroSchemaC avroSchemaC = new AvroSchemaC();
+            AvroSchemaD avroSchemaD = new AvroSchemaD();
+            AvroSchemaE avroSchemaE = new AvroSchemaE();
+
+            avroSchemaE.setPayload("ESchema");
+            avroSchemaE.setSymbol("ESymbol");
+
+            avroSchemaD.setSchemaE(avroSchemaE);
+            avroSchemaD.setSymbol("Dsymbol");
+
+            avroSchemaC.setSymbol("CSymbol");
+            avroSchemaC.setPayload("CSchema");
+            avroSchemaC.setSchemaD(avroSchemaD);
+
+            avroSchemaB.setSchemaC(avroSchemaC);
+            avroSchemaB.setSchemaA(avroSchemaA);
+            avroSchemaB.setSchemaA2(avroSchemaA2);
+            avroSchemaB.setKey(UUID.randomUUID().toString());
+
+            String artifactId = generateArtifactId();
+
+            byte[] bytes = serializer.serialize(artifactId, avroSchemaB);
+
+            // Test msg is stored as json, take 1st 9 bytes off (magic byte and long)
+            JSONObject msgAsJson = new JSONObject(new String(Arrays.copyOfRange(bytes, 9, bytes.length)));
+            Assertions.assertEquals("CSymbol", msgAsJson.getJSONObject("schemaC").getString("symbol"));
+
+            // some impl details ...
+            waitForSchema(globalId -> restClient.getContentByGlobalId(globalId) != null, bytes);
+
+            AvroSchemaB ir = deserializer.deserialize(artifactId, bytes);
+
+            Assertions.assertEquals(avroSchemaB, ir);
+            Assertions.assertEquals(AvroSchemaA.GEMINI, ir.getSchemaA());
+        }
+    }
+
+    /**
+     * Same test as above but using the dereference configuration to register the schema dereferenced.
+     * @throws Exception
+     */
+    @Test
+    public void avroJsonWithReferencesDereferenced() throws Exception {
+        try (AvroKafkaSerializer<AvroSchemaB> serializer = new AvroKafkaSerializer<AvroSchemaB>(restClient);
+             Deserializer<AvroSchemaB> deserializer = new AvroKafkaDeserializer<>(restClient)) {
+
+            Map<String, String> config = new HashMap<>();
+            config.put(AvroKafkaSerdeConfig.AVRO_ENCODING, AvroKafkaSerdeConfig.AVRO_ENCODING_JSON);
+            config.put(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true");
+            config.put(SerdeConfig.ENABLE_HEADERS, "false");
+            config.put(SchemaResolverConfig.DEREFERENCE_SCHEMA, "true");
             serializer.configure(config, false);
 
             config = new HashMap<>();

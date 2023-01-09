@@ -60,7 +60,7 @@ public class AvroSchemaParser<U> implements SchemaParser<Schema, U> {
     }
 
     /**
-     * @see io.apicurio.registry.resolver.SchemaParser#getSchemaFromData(java.lang.Object)
+     * @see io.apicurio.registry.resolver.SchemaParser#getSchemaFromData(Record)
      */
     @Override
     public ParsedSchema<Schema> getSchemaFromData(Record<U> data) {
@@ -73,6 +73,23 @@ public class AvroSchemaParser<U> implements SchemaParser<Schema, U> {
                 .setReferenceName(schema.getFullName())
                 .setSchemaReferences(resolvedReferences)
                 .setRawSchema(IoUtil.toBytes(schema.toString(resolvedReferences.stream().map(ParsedSchema::getParsedSchema).collect(Collectors.toSet()), false)));
+    }
+
+    /**
+     * @see io.apicurio.registry.resolver.SchemaParser#getSchemaFromData(Record, boolean)
+     */
+    @Override
+    public ParsedSchema<Schema> getSchemaFromData(Record<U> data, boolean dereference) {
+        if (dereference) {
+            Schema schema = avroDatumProvider.toSchema(data.payload());
+
+            return new ParsedSchemaImpl<Schema>()
+                    .setParsedSchema(schema)
+                    .setReferenceName(schema.getFullName())
+                    .setRawSchema(IoUtil.toBytes(schema.toString()));
+        } else {
+            return getSchemaFromData(data);
+        }
     }
 
     private List<ParsedSchema<Schema>> handleReferences(List<Schema.Field> schemaFields) {

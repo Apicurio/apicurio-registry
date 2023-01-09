@@ -37,7 +37,8 @@ public class DefaultSchemaResolverConfig {
                 FIND_LATEST_ARTIFACT, FIND_LATEST_ARTIFACT_DEFAULT,
                 CHECK_PERIOD_MS, CHECK_PERIOD_MS_DEFAULT,
                 RETRY_COUNT, RETRY_COUNT_DEFAULT,
-                RETRY_BACKOFF_MS, RETRY_BACKOFF_MS_DEFAULT
+                RETRY_BACKOFF_MS, RETRY_BACKOFF_MS_DEFAULT,
+                DEREFERENCE_SCHEMA, DEREFERENCE_SCHEMA_DEFAULT
             );
 
     private Map<String, ?> originals;
@@ -126,6 +127,10 @@ public class DefaultSchemaResolverConfig {
             return null;
         }
         return version.toString();
+    }
+
+    public boolean dereference() {
+        return this.getBoolean(DEREFERENCE_SCHEMA);
     }
 
     private Duration extractDurationMillis(Object value, String configurationName) {

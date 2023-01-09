@@ -151,6 +151,11 @@ public class ExtJsonConverter extends SchemaResolverConfigurer<JsonNode, Object>
                 .setRawSchema(IoUtil.toBytes(schemaString));
     }
 
+    @Override
+    public ParsedSchema<JsonNode> getSchemaFromData(Record<Object> data, boolean dereference) {
+        return getSchemaFromData(data);
+    }
+
     /**
      * @see java.lang.AutoCloseable#close()
      */

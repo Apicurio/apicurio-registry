@@ -184,4 +184,11 @@ public class SchemaResolverConfig {
      */
     public static final String REQUEST_KEY_PASSWORD = ClientConfig.REGISTRY_REQUEST_KEY_PASSWORD;
 
+    /**
+     * Used to indicate the auto-register feature to try to dereference the schema before registering it in Registry.
+     * Only applicable when {@link SchemaResolverConfig#AUTO_REGISTER_ARTIFACT} is enabled.
+     */
+    public static final String DEREFERENCE_SCHEMA = "apicurio.registry.dereference-schema";
+    public static final boolean DEREFERENCE_SCHEMA_DEFAULT = false;
+
 }

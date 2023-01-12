@@ -16,4 +16,5 @@
  */
 
 export * from "./editMetaDataModal";
+export * from "./generateClientModal";
 export * from "./propertiesFormGroup";

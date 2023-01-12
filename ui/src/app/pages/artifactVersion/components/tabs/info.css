@@ -48,3 +48,7 @@
 .label-truncate, .property-truncate, .label-truncate > span, .property-truncate > span {
     min-width: unset;
 }
+
+#generate-client-action {
+    margin-left: 10px;
+}

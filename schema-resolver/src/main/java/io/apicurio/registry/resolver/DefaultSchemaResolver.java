@@ -43,6 +43,7 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
     private boolean autoCreateArtifact;
     private IfExists autoCreateBehavior;
     private boolean findLatest;
+    private boolean dereference;
 
     /**
      * @see io.apicurio.registry.resolver.AbstractSchemaResolver#reset()
@@ -64,6 +65,7 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
         }
 
         this.autoCreateArtifact = config.autoRegisterArtifact();
+        this.dereference = config.dereference();
         this.autoCreateBehavior = IfExists.fromValue(config.autoRegisterArtifactIfExists());
         this.findLatest = config.findLatest();
     }
@@ -79,7 +81,7 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
 
         ParsedSchema<S> parsedSchema = null;
         if (artifactResolverStrategy.loadSchema() && schemaParser.supportsExtractSchemaFromData()) {
-            parsedSchema = schemaParser.getSchemaFromData(data);
+            parsedSchema = schemaParser.getSchemaFromData(data, dereference);
         }
 
         final ArtifactReference artifactReference = resolveArtifactReference(data, parsedSchema, false, null);
@@ -104,7 +106,7 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
 
         if (autoCreateArtifact && schemaParser.supportsExtractSchemaFromData()) {
             if (parsedSchema == null) {
-                parsedSchema = schemaParser.getSchemaFromData(data);
+                parsedSchema = schemaParser.getSchemaFromData(data, dereference);
             }
 
             if (parsedSchema.hasReferences()) {

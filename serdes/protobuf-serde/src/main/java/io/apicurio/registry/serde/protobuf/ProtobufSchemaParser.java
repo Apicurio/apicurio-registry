@@ -99,7 +99,7 @@ public class ProtobufSchemaParser<U extends Message> implements SchemaParser<Pro
     }
 
     /**
-     * @see io.apicurio.registry.resolver.SchemaParser#getSchemaFromData(java.lang.Object)
+     * @see io.apicurio.registry.resolver.SchemaParser#getSchemaFromData(Record)
      */
     @Override
     public ParsedSchema<ProtobufSchema> getSchemaFromData(Record<U> data) {
@@ -114,6 +114,12 @@ public class ProtobufSchemaParser<U extends Message> implements SchemaParser<Pro
                 .setReferenceName(protobufSchema.getFileDescriptor().getName())
                 .setSchemaReferences(handleDependencies(schemaFileDescriptor))
                 .setRawSchema(rawSchema);
+    }
+
+    @Override
+    public ParsedSchema<ProtobufSchema> getSchemaFromData(Record<U> data, boolean dereference) {
+        //dereferencing not supported, just extract with references
+        return getSchemaFromData(data);
     }
 
     private List<ParsedSchema<ProtobufSchema>> handleDependencies(FileDescriptor fileDescriptor) {

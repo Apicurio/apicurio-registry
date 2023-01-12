@@ -59,6 +59,12 @@ public class JsonSchemaParser<T> implements SchemaParser<JsonSchema, T> {
     }
 
     @Override
+    public ParsedSchema<JsonSchema> getSchemaFromData(Record<T> data, boolean dereference) {
+        //not supported for jsonschema type
+        return null;
+    }
+
+    @Override
     public boolean supportsExtractSchemaFromData() {
         return false;
     }

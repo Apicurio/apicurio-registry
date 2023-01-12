@@ -118,7 +118,6 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
         if (artifactVersionOverride != null) {
             this.explicitArtifactVersion = artifactVersionOverride;
         }
-
     }
 
     /**

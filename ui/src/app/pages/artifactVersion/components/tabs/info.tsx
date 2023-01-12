@@ -58,6 +58,7 @@ export interface InfoTabContentProps extends PureComponentProps {
     onDisableRule: (ruleType: string) => void;
     onConfigureRule: (ruleType: string, config: string) => void;
     onDownloadArtifact: () => void;
+    onGenerateClient: () => void;
     onEditMetaData: () => void;
     onChangeOwner: () => void;
 }
@@ -187,6 +188,11 @@ export class InfoTabContent extends PureComponent<InfoTabContentProps, InfoTabCo
                                         title="Download artifact content"
                                         onClick={this.props.onDownloadArtifact}
                                         variant="secondary"><DownloadIcon /> Download</Button>
+                                <Button id="generate-client-action"
+                                        data-testid="artifact-btn-gen-client"
+                                        title="[EXPERIMENTAL] Generate a client"
+                                        onClick={this.props.onGenerateClient}
+                                        variant="secondary">Generate Client</Button>
                             </div>
                         </CardBody>
                     </Card>

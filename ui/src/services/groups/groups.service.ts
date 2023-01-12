@@ -66,6 +66,13 @@ export interface EditableMetaData {
     properties: { [key: string]: string|undefined };
 }
 
+export interface ClientGeneration {
+    clientClassName: string;
+    namespaceName: string;
+    language: string;
+    url: string;
+}
+
 /**
  * The artifacts service.  Used to query the backend search API to fetch lists of
  * artifacts and also details about individual artifacts.

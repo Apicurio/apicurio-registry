@@ -1,4 +1,4 @@
-import { generate } from './kiota/main.js';
+import { generate } from './dist/main.js';
 
 try {
   if (window.kiota === undefined) {

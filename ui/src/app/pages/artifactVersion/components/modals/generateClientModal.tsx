@@ -26,6 +26,7 @@ import {
     FormGroup,
     Grid,
     GridItem,
+    Label,
     Modal,
     TextInput
 } from "@patternfly/react-core";
@@ -61,16 +62,18 @@ export class GenerateClientModal extends PureComponent<GenerateClientModalProps,
     }
 
     private downloadLink(): React.ReactElement {
-        if (this.state.isDownloadLinkVisible || this.state.isErrorVisible) {
+        console.log(this.state);
+        if (this.state.isDownloadLinkVisible) {
             return <a
                         key="DownloadLink"
                         href={this.state.downloadLink}
-                        aria-disabled={!this.state.isDownloadLinkVisible || this.state.isErrorVisible}
                         download={"client-" + this.state.data.language.toLowerCase() + ".zip"}
                         onClick={this.onDownloadLinkClick}
                     >
                 {this.state.isErrorVisible ? "Error" : "Download"}
             </a>
+        } else if (this.state.isErrorVisible) {
+            return <Label key="Error">ERROR, please check the console logs for details.</Label>
         } else {
             return <div key="Placeholder"/>
         }
@@ -85,12 +88,17 @@ export class GenerateClientModal extends PureComponent<GenerateClientModalProps,
                 onClose={this.props.onClose}
                 className="generate-client pf-m-redhat-font"
                 actions={[
-                    <Button key="Generate" variant="primary" data-testid="modal-btn-edit" onClick={this.doGenerate} isDisabled={!this.state.isValid}>Generate</Button>,
+                    <Button key="Generate" variant="primary" data-testid="modal-btn-edit" onClick={this.doGenerate} isDisabled={!this.isGenerateEnabled()}>Generate</Button>,
                     this.downloadLink()
                 ]}
             >
                 <Form>
                     <Grid hasGutter md={6}>
+                        <GridItem span={12}>
+                            <Label>[EXPERIMENTAL] This is "in-browser" generation of the client code using&nbsp;<a href="https://github.com/microsoft/kiota">Kiota</a>, please refer to&nbsp;
+                            <a href="https://microsoft.github.io/kiota/get-started/">the official documentation</a>&nbsp;to get started.</Label>
+                        </GridItem>
+
                         <GridItem span={12}>
                             <FormGroup
                                 label="Client Class Name"
@@ -266,6 +274,10 @@ export class GenerateClientModal extends PureComponent<GenerateClientModalProps,
         }, () => {
             this.validate();
         });
+    };
+
+    private isGenerateEnabled = (): boolean => {
+        return this.state.isValid && !this.state.isErrorVisible && !this.state.isDownloadLinkVisible;
     };
 
     private validate = (): void => {

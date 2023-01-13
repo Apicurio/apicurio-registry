@@ -91,9 +91,8 @@ module.exports = (env, argv) => {
       new WebpackShellPluginNext({
         onBuildStart:{
           scripts: [
-            'rm -rf client-gen/dist client-gen/kiota',
-            'curl -sL https://github.com/andreaTP/apicurio-client-gen-poc/releases/download/0.0.4/dist.tar.gz | tar -xz -C client-gen',
-            'mv client-gen/dist client-gen/kiota'
+            'rm -rf client-gen/dist',
+            'curl -sL https://github.com/andreaTP/apicurio-client-gen-poc/releases/download/0.0.7/dist.tar.gz | tar -xz -C client-gen'
           ],
           blocking: true,
           parallel: false

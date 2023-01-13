@@ -70,7 +70,7 @@ export interface ClientGeneration {
     clientClassName: string;
     namespaceName: string;
     language: string;
-    url: string;
+    content: string;
 }
 
 /**

@@ -37,7 +37,7 @@ import { ClientGeneration } from "../../../../../services";
  * Properties
  */
 export interface GenerateClientModalProps extends PureComponentProps {
-    url: string;
+    artifactContent: string;
     isOpen: boolean;
     onClose: () => void;
 }
@@ -49,12 +49,31 @@ export interface GenerateClientModalState extends PureComponentState {
     data: ClientGeneration;
     languageIsExpanded: boolean;
     isValid: boolean;
+    isErrorVisible: boolean;
+    downloadLink: string;
+    isDownloadLinkVisible: boolean;
 }
 
 export class GenerateClientModal extends PureComponent<GenerateClientModalProps, GenerateClientModalState> {
 
     constructor(props: Readonly<GenerateClientModalProps>) {
         super(props);
+    }
+
+    private downloadLink(): React.ReactElement {
+        if (this.state.isDownloadLinkVisible || this.state.isErrorVisible) {
+            return <a
+                        key="DownloadLink"
+                        href={this.state.downloadLink}
+                        aria-disabled={!this.state.isDownloadLinkVisible || this.state.isErrorVisible}
+                        download={"client-" + this.state.data.language.toLowerCase() + ".zip"}
+                        onClick={this.onDownloadLinkClick}
+                    >
+                {this.state.isErrorVisible ? "Error" : "Download"}
+            </a>
+        } else {
+            return <div key="Placeholder"/>
+        }
     }
 
     public render(): React.ReactElement {
@@ -66,7 +85,8 @@ export class GenerateClientModal extends PureComponent<GenerateClientModalProps,
                 onClose={this.props.onClose}
                 className="generate-client pf-m-redhat-font"
                 actions={[
-                    <Button key="Generate" variant="primary" data-testid="modal-btn-edit" onClick={this.doGenerate} isDisabled={!this.state.isValid}>Generate</Button>
+                    <Button key="Generate" variant="primary" data-testid="modal-btn-edit" onClick={this.doGenerate} isDisabled={!this.state.isValid}>Generate</Button>,
+                    this.downloadLink()
                 ]}
             >
                 <Form>
@@ -146,22 +166,49 @@ export class GenerateClientModal extends PureComponent<GenerateClientModalProps,
     protected initializeState(): GenerateClientModalState {
         return {
             data: {
-                url: "https://raw.githubusercontent.com/microsoft/kiota/main/tests/Kiota.Builder.IntegrationTests/ToDoApi.yaml",
+                content: this.props.artifactContent,
                 clientClassName: "MyClient",
                 namespaceName: "io.dummy",
                 language: "Java"
             },
             languageIsExpanded: false,
-            isValid: true
+            isValid: true,
+            downloadLink: "",
+            isErrorVisible: false,
+            isDownloadLinkVisible: false,
         };
     }
 
-    private doGenerate = (): void => {
-        const data: ClientGeneration = {
-            ...this.state.data
-        }
+    private doGenerate = async (): Promise<void> => {
+        const global = window as any;
 
-        alert('Have to do something now!');
+        if (global.kiota !== undefined && global.kiota.generate !== undefined) {
+            try {
+                const zip = 'data:text/plain;base64,' + await global.kiota.generate(
+                    this.state.data.content,
+                    this.state.data.language,
+                    this.state.data.clientClassName,
+                    this.state.data.namespaceName,
+                );
+
+                this.setMultiState({
+                    data: {
+                        ...this.state.data,
+                    },
+                    languageIsExpanded: false,
+                    isValid: false,
+                    downloadLink: zip,
+                    isErrorVisible: false,
+                    isDownloadLinkVisible: true,
+                });
+            } catch (e) {
+                this.setSingleState("isErrorVisible", true);
+                console.error(e);
+            }
+        } else {
+            console.error("Kiota is not available");
+            this.setSingleState("isErrorVisible", true);
+        }
     };
 
     private onLanguageToggle = (isExpanded: boolean): void => {
@@ -170,28 +217,52 @@ export class GenerateClientModal extends PureComponent<GenerateClientModalProps,
 
     private onLanguageSelect = (event: React.SyntheticEvent<HTMLDivElement>|undefined): void => {
         const newLang: string = event && event.currentTarget && event.currentTarget.id ? event.currentTarget.id : "";
-        console.log("New lang is " + newLang);
-        this.setSingleState("data", {
-            ...this.state.data,
-            language: newLang
+        this.setMultiState({
+            data: {
+                ...this.state.data,
+                language: newLang,
+            },
+            languageIsExpanded: false,
+            isValid: this.state.isValid,
+            downloadLink: "",
+            isErrorVisible: false,
+            isDownloadLinkVisible: false,
         }, () => {
             this.validate();
         });
     };
 
+    private onDownloadLinkClick = (): void => {
+        this.setSingleState("isDownloadLinkVisible", false, () => { this.validate(); });
+    };
+
     private onClientNameChange = (value: string): void => {
-        this.setSingleState("data", {
-            ...this.state.data,
-            clientClassName: value
+        this.setMultiState({
+            data: {
+                ...this.state.data,
+                clientClassName: value,
+            },
+            languageIsExpanded: false,
+            isValid: this.state.isValid,
+            downloadLink: "",
+            isErrorVisible: false,
+            isDownloadLinkVisible: false,
         }, () => {
             this.validate();
         });
     };
 
     private onNamespaceChange = (value: string): void => {
-        this.setSingleState("data", {
-            ...this.state.data,
-            namespaceName: value
+        this.setMultiState({
+            data: {
+                ...this.state.data,
+                namespaceName: value,
+            },
+            languageIsExpanded: false,
+            isValid: this.state.isValid,
+            downloadLink: "",
+            isErrorVisible: false,
+            isDownloadLinkVisible: false,
         }, () => {
             this.validate();
         });

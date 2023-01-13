@@ -87,6 +87,11 @@ module.exports = (env, argv) => {
       publicPath: "auto"
     },
     plugins: [
+      new CopyPlugin({
+        patterns: [
+            { from: 'client-gen' }
+        ]
+      }),
       new HtmlWebpackPlugin({
         template: "./src/index.html"
       }),

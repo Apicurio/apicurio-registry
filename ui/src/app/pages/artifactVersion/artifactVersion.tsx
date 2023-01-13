@@ -197,7 +197,7 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
                                    onClose={this.onEditModalClose}
                                    onEditMetaData={this.doEditMetaData}
                 />
-                <GenerateClientModal url={this.artifactName()}
+                <GenerateClientModal artifactContent={this.state.artifactContent}
                                    onClose={this.onGenerateClientModalClose}
                                    isOpen={this.state.isGenerateClientModalOpen}
                 />

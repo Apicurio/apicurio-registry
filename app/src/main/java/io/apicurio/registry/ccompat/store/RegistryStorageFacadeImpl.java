@@ -203,6 +203,10 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
     public Long createSchema(String subject, String schema, String schemaType, List<SchemaReference> references, boolean normalize) throws ArtifactAlreadyExistsException, ArtifactNotFoundException, RegistryStorageException {
         // Check to see if this content is already registered - return the global ID of that content
         // if it exists.  If not, then register the new content.
+        if (null == schema) {
+            throw new UnprocessableEntityException("The schema provided is null.");
+        }
+
         try {
             ContentHandle content = ContentHandle.create(schema);
             ArtifactVersionMetaDataDto dto;

@@ -190,6 +190,7 @@ export class InfoTabContent extends PureComponent<InfoTabContentProps, InfoTabCo
                                         variant="secondary"><DownloadIcon /> Download</Button>
                                 <Button id="generate-client-action"
                                         data-testid="artifact-btn-gen-client"
+                                        isDisabled={this.props.artifact.type !== "OPENAPI"}
                                         title="[EXPERIMENTAL] Generate a client"
                                         onClick={this.props.onGenerateClient}
                                         variant="secondary">Generate Client</Button>

@@ -502,12 +502,6 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
         this.onEditModalClose();
     };
 
-    private doGenerateClientData = (data: ClientGeneration): void => {
-        
-        alert("go on from here???")
-
-    };
-
     private doChangeOwner = (newOwner: string): void => {
         Services.getGroupsService().updateArtifactOwner(this.groupId(), this.artifactId(), newOwner).then( () => {
             if (this.state.artifact) {

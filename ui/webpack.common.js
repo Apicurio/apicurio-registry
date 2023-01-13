@@ -1,6 +1,7 @@
 const path = require("path");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
 const CopyPlugin = require("copy-webpack-plugin");
+const WebpackShellPluginNext = require('webpack-shell-plugin-next');
 const TsconfigPathsPlugin = require("tsconfig-paths-webpack-plugin");
 const Dotenv = require("dotenv-webpack");
 const {dependencies, federatedModuleName} = require("./package.json");
@@ -87,6 +88,17 @@ module.exports = (env, argv) => {
       publicPath: "auto"
     },
     plugins: [
+      new WebpackShellPluginNext({
+        onBuildStart:{
+          scripts: [
+            'rm -rf client-gen/dist client-gen/kiota',
+            'curl -sL https://github.com/andreaTP/apicurio-client-gen-poc/releases/download/0.0.4/dist.tar.gz | tar -xz -C client-gen',
+            'mv client-gen/dist client-gen/kiota'
+          ],
+          blocking: true,
+          parallel: false
+        }
+      }),
       new CopyPlugin({
         patterns: [
             { from: 'client-gen' }

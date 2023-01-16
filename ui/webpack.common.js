@@ -92,7 +92,7 @@ module.exports = (env, argv) => {
         onBuildStart:{
           scripts: [
             'rm -rf client-gen/dist',
-            'curl -sL https://github.com/andreaTP/apicurio-client-gen-poc/releases/download/0.0.7/dist.tar.gz | tar -xz -C client-gen'
+            'curl -sL https://github.com/andreaTP/apicurio-client-gen-poc/releases/download/0.0.8/dist.tar.gz | tar -xz -C client-gen'
           ],
           blocking: true,
           parallel: false

@@ -68,6 +68,7 @@ jobs:
           - "redhat-developer/app-services-sdk-go"
           - "redhat-developer/app-services-sdk-js"
           - "redhat-developer/app-services-sdk-java"
+          - "redhat-developer/app-services-sdk-core"
     runs-on: ubuntu-latest
     steps:
       - name: Repository Dispatch

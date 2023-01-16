@@ -69,6 +69,8 @@ export interface EditableMetaData {
 export interface ClientGeneration {
     clientClassName: string;
     namespaceName: string;
+    includePatterns: string,
+    excludePatterns: string,
     language: string;
     content: string;
 }

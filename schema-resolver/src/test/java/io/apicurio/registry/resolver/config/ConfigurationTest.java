@@ -83,7 +83,7 @@ class ConfigurationTest {
         assertEquals(false, config.findLatest());
         assertEquals(false, config.getObject("apicurio.registry.find-latest"));
 
-        // TODO: Does not match documentation
+        // TODO: Does not match documentation, overridden in `io.apicurio.registry.serde.SerdeConfig.ARTIFACT_RESOLVER_STRATEGY_DEFAULT`
         assertEquals("io.apicurio.registry.resolver.strategy.DynamicArtifactReferenceResolverStrategy", config.getArtifactResolverStrategy());
         assertEquals("io.apicurio.registry.resolver.strategy.DynamicArtifactReferenceResolverStrategy", config.getObject("apicurio.registry.artifact-resolver-strategy"));
 

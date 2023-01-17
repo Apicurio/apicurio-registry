@@ -113,13 +113,6 @@ The `DefaultSchemaResolver` uses the following properties to configure how to lo
 |Used by serializers only. Fully-qualified Java classname that implements `ArtifactReferenceResolverStrategy` and maps each Kafka message to an `ArtifactReference` (`groupId`, `artifactId`, and version).  For example, the default strategy uses the topic name as the schema `artifactId`.
 |`String`
 |`io.apicurio.registry.serde.strategy.TopicIdStrategy`
-// ^^^
-// TODO: The default value in DefaultSchemaResolverConfig is
-// `io.apicurio.registry.resolver.strategy.DynamicArtifactReferenceResolverStrategy`
-// from `io.apicurio.registry.resolver.SchemaResolverConfig.ARTIFACT_RESOLVER_STRATEGY_DEFAULT`.
-// But the documentation specifies `io.apicurio.registry.serde.strategy.TopicIdStrategy`,
-// which is redefined here `io.apicurio.registry.serde.SerdeConfig.ARTIFACT_RESOLVER_STRATEGY_DEFAULT`
-// Is this OK?
 |`EXPLICIT_ARTIFACT_GROUP_ID`
 |`apicurio.registry.artifact.group-id`
 |Used by serializers only. Sets the `groupId` used for querying or creating an artifact. Overrides the `groupId` returned by the `ArtifactResolverStrategy`.
@@ -176,8 +169,6 @@ The `DefaultSchemaResolver` uses the following properties to configure how to lo
 === Configuration to read/write registry artifacts in Kafka
 
 The `DefaultSchemaResolver` uses the following properties to configure how artifact information is written to and read from Kafka.
-// TODO: Should this mention the DefaultSchemaResolver config?
-// The following properties are defined in io/apicurio/registry/serde/SerdeConfig.java
 
 .Configuration properties to read/write artifact information in Kafka
 [.table-expandable,width="100%",cols="5,5,5,3,5",options="header"]

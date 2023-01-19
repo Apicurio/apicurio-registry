@@ -24,7 +24,7 @@ export class ArtifactTypes {
         try {
             return (await Services.getAdminService().getArtifactTypes()).map(t => t.name);
         } catch (e) {
-            return ["AVRO", "PROTOBUF", "JSON", "OPENAPI", "ASYNCAPI", "GRAPHQL", "KCONNECT", "WSDL", "XSD"];
+            return ["AVRO", "PROTOBUF", "JSON", "OPENAPI", "ASYNCAPI", "GRAPHQL", "KCONNECT", "WSDL", "XSD", "XML"];
         }
     }
 

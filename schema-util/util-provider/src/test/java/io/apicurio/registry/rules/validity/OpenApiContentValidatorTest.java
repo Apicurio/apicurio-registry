@@ -37,6 +37,14 @@ public class OpenApiContentValidatorTest extends ArtifactUtilProviderTestBase {
         validator.validate(ValidityLevel.SYNTAX_ONLY, content, Collections.emptyMap());
     }
 
+
+    @Test
+    public void testValidSyntax_OpenApi31() throws Exception {
+        ContentHandle content = resourceToContentHandle("openapi-valid-syntax-openapi31.json");
+        OpenApiContentValidator validator = new OpenApiContentValidator();
+        validator.validate(ValidityLevel.SYNTAX_ONLY, content, Collections.emptyMap());
+    }
+
     @Test
     public void testValidSemantics() throws Exception {
         ContentHandle content = resourceToContentHandle("openapi-valid-semantics.json");

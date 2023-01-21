@@ -22,8 +22,8 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import io.apicurio.datamodels.Library;
-import io.apicurio.datamodels.core.models.Document;
-import io.apicurio.datamodels.core.models.ValidationProblem;
+import io.apicurio.datamodels.models.Document;
+import io.apicurio.datamodels.validation.ValidationProblem;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.rules.RuleViolation;
 import io.apicurio.registry.rules.RuleViolationException;

@@ -357,6 +357,7 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
         }
     }
 
+    @SuppressWarnings({ "rawtypes", "unchecked" })
     @Test
     public void complexObjectValidation() throws Exception {
         String version = "8";

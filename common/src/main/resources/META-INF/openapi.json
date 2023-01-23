@@ -1827,7 +1827,6 @@
                     "content": {
                         "*/*": {
                             "schema": {
-
                             },
                             "examples": {
                                 "OpenAPI Example": {
@@ -1934,6 +1933,14 @@
                         "description": "Specifies the artifact description of this new version of the artifact content. Value of this must be Base64 encoded string. If this is not provided, the server will extract the description from the artifact content.",
                         "schema": {
                             "$ref": "#/components/schemas/EncodedArtifactDescription"
+                        },
+                        "in": "header"
+                    },
+                    {
+                        "name": "Content-Type",
+                        "description": "This header is explicit so clients using the OpenAPI Generator are able select the content type. Ignore otherwise.",
+                        "schema": {
+                            "type": "string"
                         },
                         "in": "header"
                     }
@@ -2068,7 +2075,6 @@
                     "content": {
                         "*/*": {
                             "schema": {
-
                             },
                             "examples": {
                                 "OpenAPI Example": {
@@ -2230,6 +2236,14 @@
                             "type": "string"
                         },
                         "in": "header"
+                    },
+                    {
+                        "name": "Content-Type",
+                        "description": "This header is explicit so clients using the OpenAPI Generator are able select the content type. Ignore otherwise.",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "in": "header"
                     }
                 ],
                 "responses": {
@@ -2293,7 +2307,6 @@
                     "content": {
                         "*/*": {
                             "schema": {
-
                             }
                         }
                     },
@@ -2405,7 +2418,6 @@
                     "content": {
                         "*/*": {
                             "schema": {
-
                             },
                             "examples": {
                                 "OpenAPI Example": {
@@ -2512,6 +2524,14 @@
                         "description": "Specifies the artifact name of this new version of the artifact content. Value of this must be Base64 encoded string. If this is not provided, the server will extract the name from the artifact content.",
                         "schema": {
                             "$ref": "#/components/schemas/EncodedArtifactName"
+                        },
+                        "in": "header"
+                    },
+                    {
+                        "name": "Content-Type",
+                        "description": "This header is explicit so clients using the OpenAPI Generator are able select the content type. Ignore otherwise.",
+                        "schema": {
+                            "type": "string"
                         },
                         "in": "header"
                     }
@@ -2626,7 +2646,6 @@
                     "content": {
                         "*/*": {
                             "schema": {
-
                             },
                             "examples": {
                                 "OpenAPI": {
@@ -3814,11 +3833,9 @@
                     "globalId": 37,
                     "version": 85,
                     "properties": {
-
                     },
                     "contentId": 62,
                     "references": {
-
                     }
                 }
             },

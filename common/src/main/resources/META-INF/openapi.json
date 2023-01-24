@@ -1888,6 +1888,11 @@
                             "schema": {
                                 "$ref": "#/components/schemas/ContentCreateRequest"
                             }
+                        },
+                        "application/vnd.create.extended+json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ContentCreateRequest"
+                            }
                         }
                     },
                     "required": true
@@ -2133,6 +2138,11 @@
                             }
                         },
                         "application/create.extended+json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ContentCreateRequest"
+                            }
+                        },
+                        "application/vnd.create.extended+json": {
                             "schema": {
                                 "$ref": "#/components/schemas/ContentCreateRequest"
                             }
@@ -2476,6 +2486,11 @@
                             }
                         },
                         "application/create.extended+json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ContentCreateRequest"
+                            }
+                        },
+                        "application/vnd.create.extended+json": {
                             "schema": {
                                 "$ref": "#/components/schemas/ContentCreateRequest"
                             }

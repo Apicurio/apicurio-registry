@@ -22,7 +22,7 @@ If you do not already have a PostgreSQL database Operator installed, you can ins
 
 . In the left navigation menu, click *Operators* and then *OperatorHub*.
 
-. In the *Filter by keyword* text box, enter `PostgreSQL` to find an Operator suitable for your environment, for example, *Crunchy PostgreSQL for OpenShift* or *PostgreSQL Operator by Dev4Ddevs.com*.
+. In the *Filter by keyword* text box, enter `PostgreSQL` to find an Operator suitable for your environment, for example, *Crunchy PostgreSQL for OpenShift*.
 
 . Read the information about the Operator, and click *Install* to display the Operator subscription page.
 

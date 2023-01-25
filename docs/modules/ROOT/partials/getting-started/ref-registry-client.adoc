@@ -48,9 +48,4 @@ You can configure Transport Layer Security (TLS) authentication for the {registr
 [role="_additional-resources"]
 .Additional resources
 * For details on how to configure authentication for {registry} Kafka client serializers/deserializers (SerDes), see 
-ifdef::apicurio-registry,rh-service-registry[]
-{kafka-client-serdes}
-endif::[]
-ifdef::rh-openshift-sr[]
-link:https://access.redhat.com/documentation/en-us/red_hat_integration/2021.q3/html/service_registry_user_guide/configuring-kafka-client-serdes[Red Hat Integration Service Registry Kafka client SerDes configuration].
-endif::[]
+{kafka-client-serdes}.

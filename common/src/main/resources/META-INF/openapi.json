@@ -1827,6 +1827,7 @@
                     "content": {
                         "*/*": {
                             "schema": {
+                                "$ref": "#/components/schemas/FileContent"
                             },
                             "examples": {
                                 "OpenAPI Example": {
@@ -2080,6 +2081,7 @@
                     "content": {
                         "*/*": {
                             "schema": {
+                                "$ref": "#/components/schemas/FileContent"
                             },
                             "examples": {
                                 "OpenAPI Example": {
@@ -2317,6 +2319,7 @@
                     "content": {
                         "*/*": {
                             "schema": {
+                                "$ref": "#/components/schemas/FileContent"
                             }
                         }
                     },
@@ -2428,6 +2431,7 @@
                     "content": {
                         "*/*": {
                             "schema": {
+                                "$ref": "#/components/schemas/FileContent"
                             },
                             "examples": {
                                 "OpenAPI Example": {
@@ -2661,6 +2665,7 @@
                     "content": {
                         "*/*": {
                             "schema": {
+                                "$ref": "#/components/schemas/FileContent"
                             },
                             "examples": {
                                 "OpenAPI": {

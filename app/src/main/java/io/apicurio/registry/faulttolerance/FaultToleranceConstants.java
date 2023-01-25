@@ -5,5 +5,5 @@ package io.apicurio.registry.faulttolerance;
  */
 public interface FaultToleranceConstants {
 
-    int TIMEOUT_MS = 3000;
+    int TIMEOUT_MS = 5000;
 }

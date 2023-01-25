@@ -113,7 +113,7 @@ public class TenantContextLoader {
             if (e.getCause() instanceof TenantNotFoundException) {
                 throw (TenantNotFoundException) e.getCause();
             } else {
-                log.warn("Error trying to load the tenant context for tenant id: {}. Falling back to default tenant context.", tenantId, e);
+                log.warn("Error trying to load the tenant context for tenant id: {}.", tenantId, e);
                 throw new TenantNotFoundException(tenantId);
             }
         }

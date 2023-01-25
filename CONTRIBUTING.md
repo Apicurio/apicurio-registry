@@ -77,24 +77,24 @@ Be sure to test your pull request using all storage variants:
 
 ### Customizing Registry supported ArtifactTypes
 
-Apicurio Registry is a modular project and it allows re-use of the produced artifacts in order to extend and enanche the functionalities.
+Apicurio Registry is a modular project and allows reuse of artifact types to extend and enhance functionality.
 
-More specifically it's possible to modify the currently supported artifact types and add new onces by providing an higher priority  `io.apicurio.registry.types.bigquery.provider.ArtifactTypeUtilProviderImpl` to the DI framework.
+You can modify the currently supported artifact types and add new types by providing a higher priority implementation of `io.apicurio.registry.types.<my-type>.provider.ArtifactTypeUtilProviderImpl` to the dependency injection framework.
 
-In [this repository](https://github.com/andreaTP/apicurio-registry-with-bigquery-example) you can find an example where we add a demo BigQuery support.
+In [this GitHub repository](https://github.com/andreaTP/apicurio-registry-with-bigquery-example), you can find an example where we add demo `BigQuery` support.
 
-Those are the interesting parts:
+The important parts are as follows:
 
- - use Apicurio Registry [as a dependency](https://github.com/andreaTP/apicurio-registry-with-bigquery-example/blob/66c5d18d9c0b5e246597b79e5c5b82a54752a65d/pom.xml#L45-L49)
- - provide [an higher priority `ArtifactTypeUtilProviderImpl`](https://github.com/andreaTP/apicurio-registry-with-bigquery-example/blob/66c5d18d9c0b5e246597b79e5c5b82a54752a65d/src/main/java/io/apicurio/registry/types/bigquery/provider/ArtifactTypeUtilProviderImpl.java#L30-L33)
- - tweak [the provider list](https://github.com/andreaTP/apicurio-registry-with-bigquery-example/blob/66c5d18d9c0b5e246597b79e5c5b82a54752a65d/src/main/java/io/apicurio/registry/types/bigquery/provider/ArtifactTypeUtilProviderImpl.java#L48) in the constructor to include the additional artifact type
+ - Use [Apicurio Registry as a dependency](https://github.com/andreaTP/apicurio-registry-with-bigquery-example/blob/66c5d18d9c0b5e246597b79e5c5b82a54752a65d/pom.xml#L45-L49)
+ - Provide a [higher priority `ArtifactTypeUtilProviderImpl`](https://github.com/andreaTP/apicurio-registry-with-bigquery-example/blob/66c5d18d9c0b5e246597b79e5c5b82a54752a65d/src/main/java/io/apicurio/registry/types/bigquery/provider/ArtifactTypeUtilProviderImpl.java#L30-L33)
+ - [Update the provider list](https://github.com/andreaTP/apicurio-registry-with-bigquery-example/blob/66c5d18d9c0b5e246597b79e5c5b82a54752a65d/src/main/java/io/apicurio/registry/types/bigquery/provider/ArtifactTypeUtilProviderImpl.java#L48) in the constructor to include the additional artifact type
 
 **NOTES:**
 
-- when creating an artifact of a type not included in the default you ALWAYS need to specify the appropriate artifact type
-- the UI will show the plain name of the additional type and won't have an appropriate icon to identify it
+- When creating an artifact of a type that is not included in the default, you must _always_ specify the appropriate artifact type.
+- The registry UI will show the plain name of the additional type and won't have an appropriate icon to identify it.
 
 ## The small print
 
-This project is an open source project, please act responsibly, be nice, polite and enjoy!
+This project is an open source project. Please act responsibly, be nice, polite and enjoy!
 

@@ -839,9 +839,10 @@ public class GroupsResourceImpl implements GroupsResource {
             String artifactType = ArtifactTypeUtil.determineArtifactType(content, xRegistryArtifactType, ct, factory.getAllArtifactTypes());
 
             final List<ArtifactReferenceDto> referencesAsDtos = references.stream()
+                    .map(r -> { r.setGroupId(gidOrNull(r.getGroupId())); return r; }) // .peek(...) may be optimized away
                     .map(V2ApiUtil::referenceToDto)
                     .collect(Collectors.toList());
-
+            
             //Try to resolve the new artifact references and the nested ones (if any)
             final Map<String, ContentHandle> resolvedReferences = storage.resolveReferences(referencesAsDtos);
 

@@ -21,7 +21,7 @@ import io.apicurio.common.apps.config.Info;
 import io.apicurio.common.apps.logging.audit.AuditHttpRequestContext;
 import io.apicurio.common.apps.logging.audit.AuditHttpRequestInfo;
 import io.apicurio.common.apps.logging.audit.AuditLogService;
-import io.apicurio.rest.client.JdkHttpClientProvider;
+import io.apicurio.rest.client.VertxHttpClientProvider;
 import io.apicurio.rest.client.auth.OidcAuth;
 import io.apicurio.rest.client.auth.exception.AuthErrorHandler;
 import io.apicurio.rest.client.auth.exception.AuthException;
@@ -40,6 +40,7 @@ import io.quarkus.vertx.http.runtime.security.HttpAuthenticationMechanism;
 import io.quarkus.vertx.http.runtime.security.HttpCredentialTransport;
 import io.quarkus.vertx.http.runtime.security.QuarkusHttpUser;
 import io.smallrye.mutiny.Uni;
+import io.vertx.core.Vertx;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.tuple.Pair;
@@ -54,6 +55,7 @@ import javax.enterprise.inject.Alternative;
 import javax.inject.Inject;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -102,6 +104,9 @@ public class CustomAuthenticationMechanism implements HttpAuthenticationMechanis
     @Inject
     Logger log;
 
+    @Inject
+    Vertx vertx;
+
     private BearerAuthenticationMechanism bearerAuth;
     private ApicurioHttpClient httpClient;
 
@@ -113,7 +118,7 @@ public class CustomAuthenticationMechanism implements HttpAuthenticationMechanis
         if (authEnabled) {
             cachedAccessTokens = new ConcurrentHashMap<>();
             cachedAuthFailures = new ConcurrentHashMap<>();
-            httpClient = new JdkHttpClientProvider().create(authServerUrl, Collections.emptyMap(), null, new AuthErrorHandler());
+            httpClient = new VertxHttpClientProvider(vertx).create(authServerUrl, Collections.emptyMap(), null, new AuthErrorHandler());
             bearerAuth = new BearerAuthenticationMechanism();
         }
     }
@@ -236,7 +241,7 @@ public class CustomAuthenticationMechanism implements HttpAuthenticationMechanis
         return cachedAccessTokens.containsKey(credentialsHash) && !cachedAccessTokens.get(credentialsHash).isExpired();
     }
 
-    @Retry(retryOn = AuthException.class, maxRetries = 4)
+    @Retry(retryOn = AuthException.class, maxRetries = 4, delay = 1, delayUnit = ChronoUnit.SECONDS)
     public String getAccessToken(Pair<String, String> clientCredentials, String credentialsHash) {
         OidcAuth oidcAuth = new OidcAuth(httpClient, clientCredentials.getLeft(), clientCredentials.getRight());
         try {

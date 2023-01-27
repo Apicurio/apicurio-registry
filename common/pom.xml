@@ -27,12 +27,6 @@
         </dependency>
 
         <dependency>
-            <groupId>io.apicurio</groupId>
-            <artifactId>apicurio-codegen-quarkus-extension</artifactId>
-            <version>1.0.13.Final</version>
-        </dependency>
-
-        <dependency>
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-core</artifactId>
             <scope>provided</scope>
@@ -73,21 +67,26 @@
                 <version>${os-maven-plugin.version}</version>
             </extension>
         </extensions>
+
         <plugins>
             <plugin>
-                <groupId>io.quarkus</groupId>
-                <artifactId>quarkus-maven-plugin</artifactId>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-codegen-maven-plugin</artifactId>
+                <version>1.0.12.Final</version>
                 <executions>
                     <execution>
+                        <phase>generate-sources</phase>
                         <goals>
-                            <goal>build</goal>
-                            <goal>generate-code</goal>
+                            <goal>generate</goal>
                         </goals>
+                        <configuration>
+                            <projectSettings>
+                                <javaPackage>io.apicurio.registry.rest.v2</javaPackage>
+                            </projectSettings>
+                            <inputSpec>${project.basedir}/src/main/resources/META-INF/openapi.json</inputSpec>
+                        </configuration>
                     </execution>
                 </executions>
-                <configuration>
-
-                </configuration>
             </plugin>
         </plugins>
     </build>

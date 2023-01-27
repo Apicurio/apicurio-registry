@@ -19,12 +19,6 @@
         <dependency>
             <groupId>io.apicurio</groupId>
             <artifactId>apicurio-registry-common</artifactId>
-            <exclusions>
-                <exclusion>
-                    <artifactId>apicurio-codegen-quarkus-extension</artifactId>
-                    <groupId>io.apicurio</groupId>
-                </exclusion>
-            </exclusions>
         </dependency>
 
         <dependency>

@@ -18,10 +18,6 @@
     <dependencies>
         <dependency>
             <groupId>io.apicurio</groupId>
-            <artifactId>apicurio-registry-common</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.apicurio</groupId>
             <artifactId>apicurio-registry-app</artifactId>
             <exclusions>
                 <exclusion>

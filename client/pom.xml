@@ -37,6 +37,10 @@
                     <artifactId>jboss-jaxrs-api_2.1_spec</artifactId>
                     <groupId>org.jboss.spec.javax.ws.rs</groupId>
                 </exclusion>
+                <exclusion>
+                    <artifactId>apicurio-codegen-quarkus-extension</artifactId>
+                    <groupId>io.apicurio</groupId>
+                </exclusion>
             </exclusions>
         </dependency>
 

@@ -126,7 +126,6 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
         Assertions.assertTrue(userInfo.getViewer());
     }
 
-    @SuppressWarnings("deprecation")
     @Test
     public void testDevRole() throws Exception {
         Auth auth = new OidcAuth(httpClient, JWKSMockServer.DEVELOPER_CLIENT_ID, "test1");

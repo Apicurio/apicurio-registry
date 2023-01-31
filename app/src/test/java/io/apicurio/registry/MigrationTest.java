@@ -26,7 +26,6 @@ import java.io.InputStream;
 public class MigrationTest extends AbstractResourceTestBase {
 
 
-    @SuppressWarnings("deprecation")
     @Test
     public void migrateData() throws IOException {
 

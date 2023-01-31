@@ -136,7 +136,7 @@ import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_OWNER;
 public class GroupsResourceImpl implements GroupsResource {
 
     private static final String EMPTY_CONTENT_ERROR_MESSAGE = "Empty content is not allowed.";
-//    private static final Integer GET_GROUPS_LIMIT = 1000;
+    private static final Integer GET_GROUPS_LIMIT = 1000;
 
     @Inject
     @Current
@@ -783,7 +783,6 @@ public class GroupsResourceImpl implements GroupsResource {
      * @param data
      * @param references
      */
-    @SuppressWarnings("deprecation")
     private ArtifactMetaData createArtifactWithRefs(String groupId, String xRegistryArtifactType, String xRegistryArtifactId,
                                                     String xRegistryVersion, IfExists ifExists, Boolean canonical,
                                                     String xRegistryDescription, String xRegistryDescriptionEncoded,

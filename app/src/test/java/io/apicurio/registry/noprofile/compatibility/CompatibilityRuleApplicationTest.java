@@ -72,20 +72,20 @@ public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {
             "        }\r\n" +
             "    ]\r\n" +
             "}";
-//    private static final String SCHEMA_WITH_MAP_FIELD_REMOVED = "{\r\n" +
-//            "    \"type\": \"record\",\r\n" +
-//            "    \"name\": \"userInfo\",\r\n" +
-//            "    \"namespace\": \"my.example\",\r\n" +
-//            "    \"fields\": [\r\n" +
-//            "        {\r\n" +
-//            "            \"name\": \"props\",\r\n" +
-//            "            \"type\": {\r\n" +
-//            "                \"type\": \"map\",\r\n" +
-//            "                \"values\": \"string\"\r\n" +
-//            "            }\r\n" +
-//            "        }\r\n" +
-//            "    ]\r\n" +
-//            "}";
+    private static final String SCHEMA_WITH_MAP_FIELD_REMOVED = "{\r\n" +
+            "    \"type\": \"record\",\r\n" +
+            "    \"name\": \"userInfo\",\r\n" +
+            "    \"namespace\": \"my.example\",\r\n" +
+            "    \"fields\": [\r\n" +
+            "        {\r\n" +
+            "            \"name\": \"props\",\r\n" +
+            "            \"type\": {\r\n" +
+            "                \"type\": \"map\",\r\n" +
+            "                \"values\": \"string\"\r\n" +
+            "            }\r\n" +
+            "        }\r\n" +
+            "    ]\r\n" +
+            "}";
     private static final String INVALID_SCHEMA_WITH_MAP = "{\r\n" +
             "    \"type\": \"record\",\r\n" +
             "    \"name\": \"userInfo\",\r\n" +

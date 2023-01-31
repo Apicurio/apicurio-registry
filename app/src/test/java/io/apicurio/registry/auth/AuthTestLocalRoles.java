@@ -53,7 +53,6 @@ import java.util.UUID;
 @QuarkusTest
 @TestProfile(AuthTestProfileWithLocalRoles.class)
 @Tag(ApicurioTestTags.SLOW)
-@SuppressWarnings("deprecation")
 public class AuthTestLocalRoles extends AbstractResourceTestBase {
 
     private static final String TEST_CONTENT = "{\r\n" +

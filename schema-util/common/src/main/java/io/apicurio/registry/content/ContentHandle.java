@@ -42,4 +42,6 @@ public interface ContentHandle {
     String content();
 
     int getSizeBytes();
+
+    String getSha256Hash();
 }

@@ -1827,7 +1827,6 @@
                     "content": {
                         "*/*": {
                             "schema": {
-
                             },
                             "examples": {
                                 "OpenAPI Example": {
@@ -2068,7 +2067,6 @@
                     "content": {
                         "*/*": {
                             "schema": {
-
                             },
                             "examples": {
                                 "OpenAPI Example": {
@@ -2293,7 +2291,6 @@
                     "content": {
                         "*/*": {
                             "schema": {
-
                             }
                         }
                     },
@@ -2405,7 +2402,6 @@
                     "content": {
                         "*/*": {
                             "schema": {
-
                             },
                             "examples": {
                                 "OpenAPI Example": {
@@ -2626,7 +2622,6 @@
                     "content": {
                         "*/*": {
                             "schema": {
-
                             },
                             "examples": {
                                 "OpenAPI": {
@@ -3814,11 +3809,9 @@
                     "globalId": 37,
                     "version": 85,
                     "properties": {
-
                     },
                     "contentId": 62,
                     "references": {
-
                     }
                 }
             },
@@ -4367,7 +4360,23 @@
         "bean-annotations": [
             "io.quarkus.runtime.annotations.RegisterForReflection",
             {
-                "annotation": "lombok.ToString",
+                "annotation": "lombok.experimental.SuperBuilder",
+                "excludeEnums": true
+            },
+            {
+                "annotation": "lombok.AllArgsConstructor",
+                "excludeEnums": true
+            },
+            {
+                "annotation": "lombok.NoArgsConstructor",
+                "excludeEnums": true
+            },
+            {
+                "annotation": "lombok.EqualsAndHashCode",
+                "excludeEnums": true
+            },
+            {
+                "annotation": "lombok.ToString(callSuper = true)",
                 "excludeEnums": true
             }
         ]

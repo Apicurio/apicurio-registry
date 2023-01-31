@@ -16,25 +16,16 @@
 
 package io.apicurio.registry.rest.v2;
 
-import java.util.List;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
-
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
-import javax.interceptor.Interceptors;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-
+import io.apicurio.common.apps.logging.Logged;
 import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
 import io.apicurio.registry.content.ContentHandle;
-import io.apicurio.common.apps.logging.Logged;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.rest.HeadersHack;
 import io.apicurio.registry.rest.v2.beans.ArtifactReference;
+import io.apicurio.registry.rest.v2.shared.CommonResourceOperations;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
@@ -44,6 +35,15 @@ import io.apicurio.registry.types.ArtifactMediaTypes;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
+
+import java.util.List;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
+import javax.interceptor.Interceptors;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 
 /**
  * @author eric.wittmann@gmail.com
@@ -59,6 +59,9 @@ public class IdsResourceImpl implements IdsResource {
 
     @Inject
     ArtifactTypeUtilProviderFactory factory;
+
+    @Inject
+    CommonResourceOperations common;
 
     private void checkIfDeprecated(Supplier<ArtifactState> stateSupplier, String artifactId, String version, Response.ResponseBuilder builder) {
         HeadersHack.checkIfDeprecated(stateSupplier, null, artifactId, version, builder);
@@ -120,10 +123,7 @@ public class IdsResourceImpl implements IdsResource {
 
     @Override
     public List<ArtifactReference> referencesByContentHash(String contentHash) {
-        ContentWrapperDto artifact = storage.getArtifactByContentHash(contentHash);
-        return artifact.getReferences().stream()
-                .map(V2ApiUtil::referenceDtoToReference)
-                .collect(Collectors.toList());
+        return common.getReferencesByContentHash(contentHash);
     }
 
     @Override

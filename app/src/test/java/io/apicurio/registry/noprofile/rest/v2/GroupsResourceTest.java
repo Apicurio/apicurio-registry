@@ -735,6 +735,19 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .body("openapi", equalTo("3.0.2"))
                 .body("info.title", equalTo("Empty API"));
 
+        // Try to delete artifact version 1, but feature is disabled and this should fail
+        given()
+                .when()
+                .pathParam("groupId", GROUP)
+                .pathParam("artifactId", "testDeleteArtifactVersion/EmptyAPI")
+                .pathParam("version", "1")
+                .delete("/registry/v2/groups/{groupId}/artifacts/{artifactId}/versions/{version}")
+                .then()
+                .statusCode(405);
+
+        // Enable artifact version delete feature
+        clientV2.setConfigProperty("registry.rest.artifact.deletion.enabled", String.valueOf(true));
+
         // Delete the artifact version 1
         given()
                 .when()

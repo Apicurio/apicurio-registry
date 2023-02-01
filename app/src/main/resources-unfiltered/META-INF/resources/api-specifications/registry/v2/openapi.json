@@ -1003,13 +1003,16 @@
                     "404": {
                         "$ref": "#/components/responses/NotFound"
                     },
+                    "405": {
+                        "$ref": "#/components/responses/MethodNotAllowed"
+                    },
                     "500": {
                         "$ref": "#/components/responses/ServerError"
                     }
                 },
                 "operationId": "deleteArtifactVersion",
                 "summary": "Delete artifact version",
-                "description": "Deletes a single version of the artifact.  Both the `artifactId` and the unique `version`\nare needed.  If this is the only version of the artifact, this operation is the same as \ndeleting the entire artifact.\n\nThis operation can fail for the following reasons:\n\n* No artifact with this `artifactId` exists (HTTP error `404`)\n* No version with this `version` exists (HTTP error `404`)\n* A server error occurred (HTTP error `500`)\n"
+                "description": "Deletes a single version of the artifact. Parameters `groupId`, `artifactId` and the unique `version`\nare needed. If this is the only version of the artifact, this operation is the same as \ndeleting the entire artifact.\n\nThis feature is disabled by default and it's discouraged for normal usage. To enable it, set the `registry.rest.artifact.deletion.enabled` property to true. This operation can fail for the following reasons:\n\n* No artifact with this `artifactId` exists (HTTP error `404`)\n* No version with this `version` exists (HTTP error `404`)\n * Feature is disabled (HTTP error `405`)\n * A server error occurred (HTTP error `500`)\n"
             },
             "parameters": [
                 {
@@ -4255,6 +4258,24 @@
                     }
                 },
                 "description": "Common response for all operations that can return a `404` error."
+            },
+            "MethodNotAllowed": {
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/Error"
+                        },
+                        "examples": {
+                            "MethodNotAllowedExample": {
+                                "value": {
+                                    "error_code": 405,
+                                    "message": "Method is currently not supported or disabled."
+                                }
+                            }
+                        }
+                    }
+                },
+                "description": "Common response for all operations that can fail due to method not allowed or disabled."
             },
             "ServerError": {
                 "content": {

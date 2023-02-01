@@ -2240,8 +2240,9 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         metadata = response
                 .statusCode(HTTP_OK)
                 .extract().as(ArtifactMetaData.class);
-        assertEquals(references, metadata.getReferences());
         waitForArtifact(metadata.getId());
+        assertEquals(references, metadata.getReferences());
+
 
         // Trying to use different references with the same content fails
         List<ArtifactReference> references2 = List.of(ArtifactReference.builder()

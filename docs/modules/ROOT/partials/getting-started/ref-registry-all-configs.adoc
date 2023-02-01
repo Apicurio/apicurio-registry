@@ -170,6 +170,11 @@ This section contains a list of the configuration options available for {registr
 |`false`
 |`2.0.2.Final`
 |Legacy ID mode (compatibility API)
+|`registry.ccompat.max-subjects`
+|`integer [dynamic]`
+|`1000`
+|`2.4.2.Final`
+|Maximum number of Subjects returned (compatibility API)
 |`registry.ccompat.use-canonical-hash`
 |`boolean [dynamic]`
 |`false`

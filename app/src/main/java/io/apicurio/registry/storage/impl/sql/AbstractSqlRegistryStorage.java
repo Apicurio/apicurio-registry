@@ -191,10 +191,10 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     @ConfigProperty(name = "quarkus.datasource.jdbc.url")
     @Info(category = "store", description = "Datasource jdbc URL", availableSince = "2.1.0.Final")
     String jdbcUrl;
-    
+
     @Inject
     Event<SqlStorageEvent> sqlStorageEvent;
-    
+
     /**
      * Constructor.
      */
@@ -232,7 +232,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
             }
             return null;
         });
-        
+
         SqlStorageEvent initializeEvent = new SqlStorageEvent();
         initializeEvent.setType(SqlStorageEventType.initialized);
         sqlStorageEvent.fire(initializeEvent );
@@ -761,9 +761,9 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
         if (md == null) {
             md = extractMetaData(artifactType, content);
         }
-        var metadataDto = createArtifactWithMetadata(groupId, artifactId, version, artifactType, contentId, createdBy, createdOn, md, globalIdGenerator);
-        metadataDto.setReferences(references); // Keep the references
-        return metadataDto;
+        // This current method is skipped in KafkaSQL, and the one below is called directly,
+        // so references must be added to the metadata there.
+        return  createArtifactWithMetadata(groupId, artifactId, version, artifactType, contentId, createdBy, createdOn, md, globalIdGenerator);
     }
 
     protected ArtifactMetaDataDto createArtifactWithMetadata(String groupId, String artifactId, String version,
@@ -788,12 +788,16 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                         metaData.getName(), metaData.getDescription(), metaData.getLabels(), metaData.getProperties(), createdBy, createdOn,
                         contentId, globalIdGenerator);
 
+                // Get the content so we can return references in the metadata
+                ContentWrapperDto contentDto = this.getArtifactByContentId(contentId);
+
                 // Return the new artifact meta-data
                 ArtifactMetaDataDto amdd = versionToArtifactDto(groupId, artifactId, vmdd);
                 amdd.setCreatedBy(createdBy);
                 amdd.setCreatedOn(createdOn.getTime());
                 amdd.setLabels(metaData.getLabels());
                 amdd.setProperties(metaData.getProperties());
+                amdd.setReferences(contentDto.getReferences());
                 return amdd;
             });
         } catch (Exception e) {

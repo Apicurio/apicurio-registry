@@ -97,7 +97,7 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
 
     @Override
     public List<String> getSubjects() {
-        return storage.searchArtifacts(Set.of(SearchFilter.ofGroup(null)), OrderBy.createdOn, OrderDirection.asc, 0, 1000)
+        return storage.searchArtifacts(Set.of(SearchFilter.ofGroup(null)), OrderBy.createdOn, OrderDirection.asc, 0, cconfig.maxSubjects.get())
                 .getArtifacts()
                 .stream()
                 .filter(searchedArtifactDto -> isCcompatManagedType(searchedArtifactDto.getType()))

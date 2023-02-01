@@ -50,26 +50,7 @@ public class StoredArtifactMapper implements RowMapper<StoredArtifactDto> {
         Long contentId = rs.getLong("contentId");
         byte[] contentBytes = rs.getBytes("content");
         ContentHandle content = ContentHandle.create(contentBytes);
-        List<ArtifactReferenceDto> references = SqlUtil.deserializeReferences(rs.getString("artifactreferences")); // ARTIFACTREFERENCES
-
-//        var meta = rs.getMetaData();
-//        for (int i = 1; i <= meta.getColumnCount(); i++) {
-//            var cname = meta.getColumnName(i);
-//            var ctype = meta.getColumnTypeName(i);
-//            System.out.println(">>> " + cname + " is " + ctype);
-//        }
-//
-//        var ref1 = rs.getString("artifactreferences");
-//        var ref2 = rs.getString("ARTIFACTREFERENCES");
-//        try {
-//            var ref3 = rs.getCharacterStream("artifactreferences");
-//            var ref4 = rs.getCharacterStream("artifactreferences");
-//            var ref5 = CharStreams.toString(ref3);
-//            var ref6 = CharStreams.toString(ref4);
-//        } catch (IOException e) {
-//            throw new RuntimeException(e);
-//        }
-
+        List<ArtifactReferenceDto> references = SqlUtil.deserializeReferences(rs.getString("artifactreferences"));
         return StoredArtifactDto.builder().content(content).contentId(contentId).globalId(globalId).version(version).versionId(versionId).references(references).build();
     }
 

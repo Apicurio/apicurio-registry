@@ -1,10 +1,12 @@
 package io.apicurio.registry.rest;
 
+import io.apicurio.common.apps.config.Dynamic;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import io.apicurio.common.apps.config.Info;
 
 import javax.inject.Singleton;
+import java.util.function.Supplier;
 
 @Singleton
 public class RestConfig {
@@ -17,16 +19,17 @@ public class RestConfig {
     @Info(category = "rest", description = "Skip SSL validation when downloading artifacts from URL", availableSince = "2.2.6-SNAPSHOT")
     boolean downloadSkipSSLValidation;
 
-    @ConfigProperty(name = "registry.rest.artifact.deletion.enabled", defaultValue = "true")
+    @Dynamic(label = "Delete artifact version", description = "When selected, users are permitted to delete artifact versions.")
+    @ConfigProperty(name = "registry.rest.artifact.deletion.enabled", defaultValue = "false")
     @Info(category = "rest", description = "Enables artifact version deletion", availableSince = "2.4.2-SNAPSHOT")
-    boolean artifactVersionDeletionEnabled;
+    Supplier<Boolean> artifactVersionDeletionEnabled;
 
     public int getDownloadMaxSize() { return this.downloadMaxSize; }
 
     public boolean getDownloadSkipSSLValidation() { return this.downloadSkipSSLValidation; }
 
     public boolean isArtifactVersionDeletionEnabled() {
-        return artifactVersionDeletionEnabled;
+        return artifactVersionDeletionEnabled.get();
     }
 
 }

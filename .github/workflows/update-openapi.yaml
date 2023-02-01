@@ -77,4 +77,4 @@ jobs:
           token: ${{ env.APP_SERVICES_CI_TOKEN }}
           repository: ${{ matrix.repo }}
           event-type: openapi-spec-change
-          client-payload: '{ "id": "registryinstance/v1", "download_url":"https://raw.githubusercontent.com/Apicurio/apicurio-registry/main/app/src/main/resources-unfiltered/META-INF/resources/api-specifications/registry/v2/openapi.json"}'
+          client-payload: '{ "id": "registryinstance/v1", "download_url":"https://raw.githubusercontent.com/Apicurio/apicurio-registry/main/app/src/main/resources-unfiltered/META-INF/resources/api-specifications/registry/v2/openapi-gen.json"}'

@@ -28,6 +28,8 @@ import io.quarkus.runtime.annotations.RegisterForReflection;
   org.apache.commons.logging.LogFactory.class,
   org.apache.commons.logging.impl.LogFactoryImpl.class,
   org.apache.commons.logging.impl.SimpleLog.class,
+  // For jackson
+  com.fasterxml.jackson.dataformat.yaml.YAMLParser.class,
   // The following list is generated running `jbang cli/tools/extractRegisterForReflection.java`
   io.apicurio.datamodels.asyncapi.models.AaiChannelBindings.class,
   io.apicurio.datamodels.asyncapi.models.AaiChannelBindingsDefinition.class,

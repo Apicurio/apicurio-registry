@@ -383,6 +383,57 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
     }
 
     @Test
+    public void testReferenceRaw() throws Exception {
+        Schema schema = new Schema.Parser().parse("{\n" +
+                "    \"type\": \"enum\",\n" +
+                "    \"namespace\": \"test\",\n" +
+                "    \"name\": \"EventType\",\n" +
+                "    \"symbols\": [\"CREATED\", \"DELETED\", \"UNDEFINED\", \"UPDATED\"]\n" +
+                "  },\n" +
+                "  {\n" +
+                "    \"type\": \"record\",\n" +
+                "    \"namespace\": \"test\",\n" +
+                "    \"name\": \"ValidateEvent\",\n" +
+                "    \"fields\": [\n" +
+                "     {\n" +
+                "        \"type\": \"EventType\",\n" +
+                "        \"name\": \"eventType\",\n" +
+                "        \"default\": \"UNDEFINED\"\n" +
+                "      }\n" +
+                "]\n" +
+                "}");
+        try (AvroKafkaSerializer<GenericData.EnumSymbol> serializer = new AvroKafkaSerializer<GenericData.EnumSymbol>(restClient);
+             Deserializer<GenericData.EnumSymbol> deserializer = new AvroKafkaDeserializer<>(restClient)) {
+
+            Map<String, String> config = new HashMap<>();
+            config.put(SerdeConfig.ENABLE_HEADERS, "true");
+            config.put(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true");
+            config.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, RecordIdStrategy.class.getName());
+            serializer.configure(config, false);
+
+            config = new HashMap<>();
+            config.put(SerdeConfig.ENABLE_HEADERS, "true");
+            deserializer.configure(config, false);
+
+            GenericData.EnumSymbol record = new GenericData.EnumSymbol(schema, "UNDEFINED");
+
+            String artifactId = generateArtifactId();
+            Headers headers = new RecordHeaders();
+            byte[] bytes = serializer.serialize(artifactId, headers, record);
+
+            Assertions.assertNotNull(headers.lastHeader(SerdeHeaders.HEADER_VALUE_GLOBAL_ID));
+            Header globalId = headers.lastHeader(SerdeHeaders.HEADER_VALUE_GLOBAL_ID);
+            long id = ByteBuffer.wrap(globalId.value()).getLong();
+
+            waitForGlobalId(id);
+
+            GenericData.EnumSymbol ir = deserializer.deserialize(artifactId, headers, bytes);
+
+            Assertions.assertEquals(record, ir);
+        }
+    }
+
+    @Test
     public void testAvroReflect() throws Exception {
         try (AvroKafkaSerializer<Tester> serializer = new AvroKafkaSerializer<Tester>(restClient);
              AvroKafkaDeserializer<Tester> deserializer = new AvroKafkaDeserializer<Tester>(restClient)) {

@@ -18,17 +18,17 @@
         <version.junit.jupiter>5.8.2</version.junit.jupiter>
         <version.junit.platform>1.7.0</version.junit.platform>
         <version.fabric8>5.12.2</version.fabric8>
-        <version.fabric8-java-gen>6.3.1</version.fabric8-java-gen>
+        <version.fabric8-java-gen>6.4.1</version.fabric8-java-gen>
         <sundrio.version>0.93.2</sundrio.version>
         <lombok.version>1.18.24</lombok.version>
         <operator.version>1.0.0-v2.0.0.final</operator.version>
         <version.hamcrest>2.2</version.hamcrest>
         <version.slf4.simple>2.0.6</version.slf4.simple>
-        <version.strimzi.api>0.32.0</version.strimzi.api>
+        <version.strimzi.api>0.33.0</version.strimzi.api>
         <version.eclipse.jgit>6.4.0.202211300538-r</version.eclipse.jgit>
         <version.org.json>20220924</version.org.json>
         <version.apache.commons>3.12.0</version.apache.commons>
-        <version.apache.httpcomponents>5.2</version.apache.httpcomponents>
+        <version.apache.httpcomponents>5.2.1</version.apache.httpcomponents>
         <version.apache.maven.artifact>3.8.7</version.apache.maven.artifact>
     </properties>
 
@@ -207,7 +207,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-checkstyle-plugin</artifactId>
-                <version>3.2.0</version>
+                <version>3.2.1</version>
                 <configuration>
                     <configLocation>checkstyle.xml</configLocation>
                     <encoding>UTF-8</encoding>

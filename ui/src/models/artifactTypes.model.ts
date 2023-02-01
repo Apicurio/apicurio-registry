@@ -21,7 +21,11 @@ import { Services } from "src/services";
 export class ArtifactTypes {
 
     public static async allTypes(): Promise<string[]> {
-        return (await Services.getAdminService().getArtifactTypes()).map(t => t.name);
+        try {
+            return (await Services.getAdminService().getArtifactTypes()).map(t => t.name);
+        } catch (e) {
+            return ["AVRO", "PROTOBUF", "JSON", "OPENAPI", "ASYNCAPI", "GRAPHQL", "KCONNECT", "WSDL", "XSD", "XML"];
+        }
     }
 
     public static async allTypesWithLabels(): Promise<any[]> {

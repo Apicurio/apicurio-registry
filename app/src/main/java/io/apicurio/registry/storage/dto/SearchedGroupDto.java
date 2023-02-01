@@ -23,7 +23,7 @@ public class SearchedGroupDto {
     private String id;
     private String description;
     private Date createdOn;
-    private Object createdBy;
+    private String createdBy;
     private Date modifiedOn;
     private String modifiedBy;
 
@@ -51,11 +51,9 @@ public class SearchedGroupDto {
         this.createdOn = createdOn;
     }
 
-    public Object getCreatedBy() {
-        return createdBy;
-    }
+    public String getCreatedBy() { return createdBy; }
 
-    public void setCreatedBy(Object createdBy) {
+    public void setCreatedBy(String createdBy) {
         this.createdBy = createdBy;
     }
 

@@ -12,6 +12,10 @@ on:
         description: 'Branch to release from'
         required: true
         default: 'main'
+      docs-version:
+        description: 'Docs version (antora.yml)'
+        required: true
+        default: '2.4.x'
 jobs:
   release:
     runs-on: ubuntu-20.04
@@ -121,7 +125,7 @@ jobs:
         run: |
           cd registry
           mvn versions:set -DnewVersion=${{ github.event.inputs.snapshot-version}} -DgenerateBackupPoms=false -DprocessAllModules=true
-          sed -i  "s/version\:\s.*/version: \'main\'/g" docs/antora.yml
+          sed -i  "s/version\:\s.*/version: \'${{ github.event.inputs.docs-version}}\'/g" docs/antora.yml
 
       - name: Commit Snapshot Version ${{ github.event.inputs.snapshot-version}}
         run: |

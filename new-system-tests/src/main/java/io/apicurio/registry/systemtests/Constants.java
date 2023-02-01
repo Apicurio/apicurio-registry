@@ -12,4 +12,8 @@ public class Constants {
     public static final String REGISTRY_OPERATOR_NAME = "apicurio-registry-operator";
     /** Name of Keycloak deployment for tests. */
     public static final String KEYCLOAK_NAME = "keycloak";
+    /** Name of Kafka instance for tests. */
+    public static final String KAFKA_NAME = "kafka";
+    /** Name/prefix of Strimzi Kafka operator deployment for tests. */
+    public static final String KAFKA_OPERATOR_NAME = "strimzi-cluster-operator";
 }

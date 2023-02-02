@@ -710,6 +710,12 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         Assertions.assertThrows(ArtifactNotFoundException.class, () -> {
             storage().getArtifactVersionMetaData(GROUP_ID, aid3, "2");
         });
+
+        // Delete the only artifact version left - same as deleting the whole artifact
+        storage().deleteArtifactVersion(GROUP_ID, aid3, "1");
+        Assertions.assertThrows(ArtifactNotFoundException.class, () -> {
+            storage().getArtifact(GROUP_ID, aid3);
+        });
     }
 
     @Test

@@ -709,7 +709,7 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         Assertions.assertEquals(1, result.getCount());
         Assertions.assertEquals("1", result.getVersions().iterator().next().getVersion());
 
-        ArtifactMetaDataDto artifactMetaData = storage().getArtifactMetaData(GROUP_ID, aid3);
+        artifactMetaData = storage().getArtifactMetaData(GROUP_ID, aid3);
         Assertions.assertNotNull(artifactMetaData);
         Assertions.assertEquals("1", artifactMetaData.getVersion());
         Assertions.assertEquals(aid3, artifactMetaData.getId());

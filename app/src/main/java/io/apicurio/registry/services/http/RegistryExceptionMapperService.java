@@ -17,7 +17,6 @@
 package io.apicurio.registry.services.http;
 
 import io.apicurio.common.apps.config.Info;
-import io.apicurio.tenantmanager.client.exception.TenantManagerClientException;
 import io.apicurio.registry.ccompat.rest.error.ConflictException;
 import io.apicurio.registry.ccompat.rest.error.UnprocessableEntityException;
 import io.apicurio.registry.metrics.health.liveness.LivenessUtil;
@@ -57,6 +56,7 @@ import io.apicurio.registry.storage.VersionAlreadyExistsException;
 import io.apicurio.registry.storage.VersionNotFoundException;
 import io.apicurio.rest.client.auth.exception.ForbiddenException;
 import io.apicurio.rest.client.auth.exception.NotAuthorizedException;
+import io.apicurio.tenantmanager.client.exception.TenantManagerClientException;
 import io.smallrye.mutiny.TimeoutException;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -132,6 +132,7 @@ public class RegistryExceptionMapperService {
         map.put(RoleMappingAlreadyExistsException.class, HTTP_CONFLICT);
         map.put(RoleMappingNotFoundException.class, HTTP_NOT_FOUND);
         map.put(TenantManagerClientException.class, HTTP_INTERNAL_ERROR);
+        map.put(io.apicurio.registry.rest.ConflictException.class, HTTP_CONFLICT);
         map.put(ParametersConflictException.class, HTTP_CONFLICT);
         map.put(DownloadNotFoundException.class, HTTP_NOT_FOUND);
         map.put(ConfigPropertyNotFoundException.class, HTTP_NOT_FOUND);

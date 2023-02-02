@@ -16,11 +16,9 @@
 
 package io.apicurio.registry.rest;
 
-import io.apicurio.registry.types.RegistryException;
-
 import java.util.Arrays;
 
-public class ParametersConflictException extends RegistryException {
+public class ParametersConflictException extends ConflictException {
 
     private static final long serialVersionUID = 247427865185425744L;
 
@@ -28,7 +26,7 @@ public class ParametersConflictException extends RegistryException {
 
     public ParametersConflictException(String parameter1, String parameter2) {
         super("Conflict: '" + parameter1 + "' and '" + parameter2 + "' are mutually exclusive.");
-        this.parameters = new String[] {parameter1, parameter2};
+        this.parameters = new String[]{parameter1, parameter2};
     }
 
     public ParametersConflictException(String... parameters) {

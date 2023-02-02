@@ -108,7 +108,7 @@ public class DisableApisFlagsTest extends AbstractResourceTestBase {
                 .body("openapi", equalTo("3.0.2"))
                 .body("info.title", equalTo("Empty API"));
 
-        // Try to delete artifact version 1. Should return 404 as feature is disabled
+        // Try to delete artifact version 1. Should return 405 as feature is disabled
         given()
                 .when()
                 .pathParam("groupId", GROUP)
@@ -116,8 +116,8 @@ public class DisableApisFlagsTest extends AbstractResourceTestBase {
                 .pathParam("version", "1")
                 .delete("/registry/v2/groups/{groupId}/artifacts/{artifactId}/versions/{version}")
                 .then()
-                .statusCode(404)
-                .body("message", equalTo("Artifact version deletion is not enabled."));
+                .statusCode(405)
+                .body("message", equalTo("Artifact version deletion operation is not enabled."));
     }
 
     private void doTestUIDisabled() {

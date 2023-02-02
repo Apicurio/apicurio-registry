@@ -85,6 +85,7 @@ import javax.inject.Inject;
 import javax.interceptor.Interceptors;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.BadRequestException;
+import javax.ws.rs.HttpMethod;
 import javax.ws.rs.NotAllowedException;
 import javax.ws.rs.client.Client;
 import javax.ws.rs.core.Context;
@@ -572,7 +573,7 @@ public class GroupsResourceImpl implements GroupsResource {
     @Authorized(style=AuthorizedStyle.GroupAndArtifact, level=AuthorizedLevel.Write)
     public void deleteArtifactVersion(String groupId, String artifactId, String version) {
         if (!restConfig.isArtifactVersionDeletionEnabled()) {
-            throw new NotAllowedException("Artifact version deletion operation is not enabled.");
+            throw new NotAllowedException("Artifact version deletion operation is not enabled.", HttpMethod.GET, (String[]) null);
         }
 
         requireParameter("groupId", groupId);

@@ -130,7 +130,6 @@
             "summary": "The list of artifact types supported by this instance of Registry.",
             "get": {
                 "tags": [
-                    "Artifact Type",
                     "Admin"
                 ],
                 "responses": {
@@ -160,7 +159,6 @@
             "summary": "Manage the global rules that apply to all artifacts if not otherwise configured.",
             "get": {
                 "tags": [
-                    "Global rules",
                     "Admin"
                 ],
                 "responses": {
@@ -197,7 +195,6 @@
                     "required": true
                 },
                 "tags": [
-                    "Global rules",
                     "Admin"
                 ],
                 "responses": {
@@ -220,7 +217,6 @@
             },
             "delete": {
                 "tags": [
-                    "Global rules",
                     "Admin"
                 ],
                 "responses": {
@@ -240,7 +236,6 @@
             "summary": "Manage the configuration of a single global artifact rule.",
             "get": {
                 "tags": [
-                    "Global rules",
                     "Admin"
                 ],
                 "responses": {
@@ -277,7 +272,6 @@
                     "required": true
                 },
                 "tags": [
-                    "Global rules",
                     "Admin"
                 ],
                 "responses": {
@@ -304,7 +298,6 @@
             },
             "delete": {
                 "tags": [
-                    "Global rules",
                     "Admin"
                 ],
                 "responses": {
@@ -487,8 +480,7 @@
             "summary": "Search for artifacts in the registry.",
             "get": {
                 "tags": [
-                    "Search",
-                    "Artifacts"
+                    "Search"
                 ],
                 "parameters": [
                     {
@@ -625,8 +617,7 @@
                     "required": true
                 },
                 "tags": [
-                    "Search",
-                    "Artifacts"
+                    "Search"
                 ],
                 "parameters": [
                     {
@@ -3014,8 +3005,7 @@
                 "summary": "Create a new group",
                 "description": "Creates a new group.\n\nThis operation can fail for the following reasons:\n\n* A server error occurred (HTTP error `500`)\n* The group already exist (HTTP error `409`)\n"
             }
-        },
-        "x-codegen-contextRoot": "/apis/registry/v2"
+        }
     },
     "components": {
         "schemas": {
@@ -4377,10 +4367,6 @@
         {
             "name": "Artifact rules",
             "description": "Rules can be configured on a per-artifact basis, allowing for different approaches\nto content evolution for each artifact.  These rules override any global rules\nthat have been configured. This section contains the operations used to manage a\nsingle artifact's rules."
-        },
-        {
-            "name": "Global rules",
-            "description": "Global rules can be configured in the registry to govern how artifact content can \nevolve over time (as artifact content is **updated**). Global rules are applied \nwhenever an artifact is added to the registry, and also whenever an artifact's \ncontent is updated (only if that artifact does not have its own specific rules \nconfigured). This section describes the operations used to manage the global rules."
         },
         {
             "name": "Search",

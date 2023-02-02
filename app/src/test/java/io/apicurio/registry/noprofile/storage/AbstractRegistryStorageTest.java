@@ -670,6 +670,20 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
             storage().getArtifactVersionMetaData(GROUP_ID, aid2, "1");
         });
 
+        ArtifactMetaDataDto dtov3 = storage().updateArtifact(GROUP_ID, artifactId, null, ArtifactType.OPENAPI, content, null);
+        Assertions.assertNotNull(dtov3);
+        Assertions.assertEquals("3", dtov3.getVersion());
+
+        // Update version 2 to DISABLED state and delete latest version
+        storage().updateArtifactState(GROUP_ID, artifactId, "2", ArtifactState.DISABLED);
+        storage().deleteArtifactVersion(GROUP_ID, artifactId, "3");
+
+        ArtifactMetaDataDto artifactMetaData = storage().getArtifactMetaData(GROUP_ID, aid2);
+        Assertions.assertNotNull(artifactMetaData);
+        Assertions.assertEquals("2", artifactMetaData.getVersion());
+        Assertions.assertEquals(aid2, artifactMetaData.getId());
+        Assertions.assertEquals(ArtifactState.DISABLED, artifactMetaData.getState());
+
         // Delete the latest version
         artifactId = "testDeleteArtifactVersion-3";
         content = ContentHandle.create(OPENAPI_CONTENT);

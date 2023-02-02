@@ -1941,6 +1941,14 @@
                             "$ref": "#/components/schemas/EncodedArtifactDescription"
                         },
                         "in": "header"
+                    },
+                    {
+                        "name": "Content-Type",
+                        "description": "This header is explicit so clients using the OpenAPI Generator are able select the content type. Ignore otherwise.",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "in": "header"
                     }
                 ],
                 "responses": {
@@ -2240,6 +2248,14 @@
                             "type": "string"
                         },
                         "in": "header"
+                    },
+                    {
+                        "name": "Content-Type",
+                        "description": "This header is explicit so clients using the OpenAPI Generator are able select the content type. Ignore otherwise.",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "in": "header"
                     }
                 ],
                 "responses": {
@@ -2527,6 +2543,14 @@
                         "description": "Specifies the artifact name of this new version of the artifact content. Value of this must be Base64 encoded string. If this is not provided, the server will extract the name from the artifact content.",
                         "schema": {
                             "$ref": "#/components/schemas/EncodedArtifactName"
+                        },
+                        "in": "header"
+                    },
+                    {
+                        "name": "Content-Type",
+                        "description": "This header is explicit so clients using the OpenAPI Generator are able select the content type. Ignore otherwise.",
+                        "schema": {
+                            "type": "string"
                         },
                         "in": "header"
                     }
@@ -4335,20 +4359,8 @@
                 },
                 "description": "The content of one version of one artifact."
             }
-        },
-        "securitySchemes": {
-            "basicAuth": {
-                "scheme": "basic",
-                "type": "http"
-            }
         }
     },
-    "security": [
-        {
-            "basicAuth": [
-            ]
-        }
-    ],
     "tags": [
         {
             "name": "Artifacts",

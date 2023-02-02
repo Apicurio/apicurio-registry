@@ -26,6 +26,7 @@ import org.apache.commons.io.IOUtils;
 import java.io.File;
 import java.io.FileInputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.stream.Collectors;
 
 import static java.lang.System.out;
 
@@ -59,9 +60,31 @@ public class TransformOpenApiForClientGen {
         // Read the source openapi document.
         Oas30Document document = (Oas30Document) Library.readDocumentFromJSONString(inputDocumentString);
 
-        attachHeaderSchema(document.paths.getItem("/groups/{groupId}/artifacts/{artifactId}").put, "/groups/{groupId}/artifacts/{artifactId} PUT");
-        attachHeaderSchema(document.paths.getItem("/groups/{groupId}/artifacts").post, "/groups/{groupId}/artifacts POST");
-        attachHeaderSchema(document.paths.getItem("/groups/{groupId}/artifacts/{artifactId}/versions").post, "/groups/{groupId}/artifacts/{artifactId}/versions POST");
+        attachHeaderSchema(document.paths.getItem("/groups/{groupId}/artifacts/{artifactId}").put,
+                "/groups/{groupId}/artifacts/{artifactId} PUT");
+        attachHeaderSchema(document.paths.getItem("/groups/{groupId}/artifacts").post,
+                "/groups/{groupId}/artifacts POST");
+        attachHeaderSchema(document.paths.getItem("/groups/{groupId}/artifacts/{artifactId}/versions").post,
+                "/groups/{groupId}/artifacts/{artifactId}/versions POST");
+
+        // Remove duplicated tags
+        document.paths.getItem("/admin/artifactTypes").get.tags.remove("Artifact Type");
+
+        document.paths.getItem("/admin/rules").get.tags.remove("Global rules");
+        document.paths.getItem("/admin/rules").post.tags.remove("Global rules");
+        document.paths.getItem("/admin/rules").delete.tags.remove("Global rules");
+
+        document.paths.getItem("/admin/rules/{rule}").get.tags.remove("Global rules");
+        document.paths.getItem("/admin/rules/{rule}").put.tags.remove("Global rules");
+        document.paths.getItem("/admin/rules/{rule}").delete.tags.remove("Global rules");
+
+        document.paths.getItem("/search/artifacts").get.tags.remove("Artifacts");
+        document.paths.getItem("/search/artifacts").post.tags.remove("Artifacts");
+
+        document.tags = document.tags.stream().filter(t -> !"Global rules".equals(t.name))
+                .collect(Collectors.toList());
+
+        document.paths.removeExtension("x-codegen-contextRoot");
 
         // Now write out the modified document
         String outputDocumentString = Library.writeDocumentToJSONString(document);

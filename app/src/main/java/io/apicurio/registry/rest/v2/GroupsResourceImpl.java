@@ -587,7 +587,7 @@ public class GroupsResourceImpl implements GroupsResource {
         requireParameter("artifactId", artifactId);
         requireParameter("version", version);
 
-        storage.deleteArtifactVersion(gidOrNull(groupId), artifactId, version);
+        storage.deleteArtifactVersion(defaultGroupIdToNull(groupId), artifactId, version);
     }
 
     /**

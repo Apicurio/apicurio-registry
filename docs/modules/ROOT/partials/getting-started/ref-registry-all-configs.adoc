@@ -605,6 +605,11 @@ This section contains a list of the configuration options available for {registr
 |Default
 |Available from
 |Description
+|`registry.rest.artifact.deletion.enabled`
+|`boolean [dynamic]`
+|`false`
+|`2.4.2-SNAPSHOT`
+|Enables artifact version deletion
 |`registry.rest.artifact.download.maxSize`
 |`int`
 |`1000000`

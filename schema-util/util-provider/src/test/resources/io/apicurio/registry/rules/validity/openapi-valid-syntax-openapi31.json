@@ -1,0 +1,8 @@
+{
+    "openapi": "3.1.0",
+    "info": {
+        "title": "Empty API",
+        "version": "1.0.0",
+        "description": "An example API design using OpenAPI."
+    }
+}

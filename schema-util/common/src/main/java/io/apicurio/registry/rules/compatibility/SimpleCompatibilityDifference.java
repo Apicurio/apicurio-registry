@@ -18,38 +18,29 @@ package io.apicurio.registry.rules.compatibility;
 
 import io.apicurio.registry.rules.RuleViolation;
 
+import java.util.Objects;
+
 /**
  * @author eric.wittmann@gmail.com
  */
-public class GenericCompatibilityDifference implements CompatibilityDifference {
+public class SimpleCompatibilityDifference implements CompatibilityDifference {
 
-    private final String message;
+    private final RuleViolation ruleViolation;
 
-    /**
-     * Constructor.
-     * @param e
-     */
-    public GenericCompatibilityDifference(Exception e) {
-        this.message = e.getMessage();
+    public SimpleCompatibilityDifference(String description, String context) {
+        Objects.requireNonNull(description);
+        if (context == null || context.isBlank()) {
+            context = "/";
+        }
+        ruleViolation = new RuleViolation(description, context);
     }
 
-    /**
-     * Constructor.
-     * @param message
-     */
-    public GenericCompatibilityDifference(String message) {
-        this.message = message;
+    public SimpleCompatibilityDifference(String description) {
+        this(description, null);
     }
 
-    /**
-     * @see io.apicurio.registry.rules.compatibility.CompatibilityDifference#asRuleViolation()
-     */
     @Override
     public RuleViolation asRuleViolation() {
-        RuleViolation violation = new RuleViolation();
-        violation.setDescription(message);
-        violation.setContext("/");
-        return violation;
+        return ruleViolation;
     }
-
 }

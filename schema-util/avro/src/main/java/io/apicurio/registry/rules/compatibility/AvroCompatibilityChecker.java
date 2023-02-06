@@ -16,70 +16,39 @@
 
 package io.apicurio.registry.rules.compatibility;
 
-import io.apicurio.registry.content.ContentHandle;
-import io.apicurio.registry.rules.UnprocessableSchemaException;
-
-import org.apache.avro.AvroTypeException;
+import com.google.common.collect.ImmutableSet;
 import org.apache.avro.Schema;
-import org.apache.avro.SchemaParseException;
-import org.apache.avro.SchemaValidationException;
-import org.apache.avro.SchemaValidator;
-import org.apache.avro.SchemaValidatorBuilder;
+import org.apache.avro.SchemaCompatibility;
+import org.apache.avro.SchemaCompatibility.Incompatibility;
 
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.List;
-
-import static java.util.Objects.requireNonNull;
+import java.util.Set;
 
 /**
  * @author Ales Justin
  * @author Jonathan Halliday
+ * @author Jakub Senko <m@jsenko.net>
  */
-public class AvroCompatibilityChecker implements CompatibilityChecker {
+public class AvroCompatibilityChecker extends AbstractCompatibilityChecker<Incompatibility> {
 
     @Override
-    public CompatibilityExecutionResult testCompatibility(CompatibilityLevel compatibilityLevel, List<ContentHandle> existingArtifacts, ContentHandle proposedArtifact) {
-        requireNonNull(compatibilityLevel, "compatibilityLevel MUST NOT be null");
-        requireNonNull(existingArtifacts, "existingSchemaStrings MUST NOT be null");
-        requireNonNull(proposedArtifact, "proposedSchemaString MUST NOT be null");
-
-        SchemaValidator schemaValidator = validatorFor(compatibilityLevel);
-
-        if (schemaValidator == null) {
-            return CompatibilityExecutionResult.compatible();
-        }
-
-        try {
-            final List<Schema> existingSchemas = new ArrayList<>();
-            existingArtifacts.forEach(contentHandle -> existingSchemas.add(new Schema.Parser().parse(contentHandle.content())));
-            Collections.reverse(existingSchemas); // the most recent must come first, i.e. reverse-chronological.
-            Schema toValidate = new Schema.Parser().parse(proposedArtifact.content());
-            schemaValidator.validate(toValidate, existingSchemas);
-            return CompatibilityExecutionResult.compatible();
-        } catch (SchemaValidationException e) {
-            return CompatibilityExecutionResult.incompatible(e);
-        } catch (SchemaParseException | AvroTypeException e) {
-            throw new UnprocessableSchemaException(e.getMessage());
-        }    }
-
-    private SchemaValidator validatorFor(CompatibilityLevel compatibilityLevel) {
-        switch (compatibilityLevel) {
-            case BACKWARD:
-                return new SchemaValidatorBuilder().canReadStrategy().validateLatest();
-            case BACKWARD_TRANSITIVE:
-                return new SchemaValidatorBuilder().canReadStrategy().validateAll();
-            case FORWARD:
-                return new SchemaValidatorBuilder().canBeReadStrategy().validateLatest();
-            case FORWARD_TRANSITIVE:
-                return new SchemaValidatorBuilder().canBeReadStrategy().validateAll();
-            case FULL:
-                return new SchemaValidatorBuilder().mutualReadStrategy().validateLatest();
-            case FULL_TRANSITIVE:
-                return new SchemaValidatorBuilder().mutualReadStrategy().validateAll();
+    protected Set<Incompatibility> isBackwardsCompatibleWith(String existing, String proposed) {
+        Schema existingSchema = new Schema.Parser().parse(existing);
+        Schema proposedSchema = new Schema.Parser().parse(proposed);
+        var result = SchemaCompatibility.checkReaderWriterCompatibility(proposedSchema, existingSchema).getResult();
+        switch (result.getCompatibility()) {
+            case COMPATIBLE:
+                return Collections.emptySet();
+            case INCOMPATIBLE: {
+                return ImmutableSet.<Incompatibility>builder().addAll(result.getIncompatibilities()).build();
+            }
             default:
-                return null;
+                throw new IllegalStateException("Got illegal compatibility result: " + result.getCompatibility());
         }
+    }
 
+    @Override
+    protected CompatibilityDifference transform(Incompatibility original) {
+        return new SimpleCompatibilityDifference(original.getMessage(), original.getLocation());
     }
 }

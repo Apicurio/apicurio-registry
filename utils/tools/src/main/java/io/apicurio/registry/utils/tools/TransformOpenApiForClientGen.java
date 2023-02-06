@@ -17,9 +17,10 @@
 package io.apicurio.registry.utils.tools;
 
 import io.apicurio.datamodels.Library;
-import io.apicurio.datamodels.openapi.models.OasOperation;
-import io.apicurio.datamodels.openapi.v3.models.Oas30Document;
-import io.apicurio.datamodels.openapi.v3.models.Oas30Schema;
+import io.apicurio.datamodels.models.openapi.OpenApiOperation;
+import io.apicurio.datamodels.models.openapi.v30.OpenApi30Document;
+import io.apicurio.datamodels.models.openapi.v30.OpenApi30Paths;
+import io.apicurio.datamodels.models.openapi.v30.OpenApi30Schema;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 
@@ -58,33 +59,35 @@ public class TransformOpenApiForClientGen {
         }
 
         // Read the source openapi document.
-        Oas30Document document = (Oas30Document) Library.readDocumentFromJSONString(inputDocumentString);
+        OpenApi30Document document = (OpenApi30Document) Library.readDocumentFromJSONString(inputDocumentString);
 
-        attachHeaderSchema(document.paths.getItem("/groups/{groupId}/artifacts/{artifactId}").put,
+        attachHeaderSchema(document.getPaths().getItem("/groups/{groupId}/artifacts/{artifactId}").getPut(),
                 "/groups/{groupId}/artifacts/{artifactId} PUT");
-        attachHeaderSchema(document.paths.getItem("/groups/{groupId}/artifacts").post,
+        attachHeaderSchema(document.getPaths().getItem("/groups/{groupId}/artifacts").getPost(),
                 "/groups/{groupId}/artifacts POST");
-        attachHeaderSchema(document.paths.getItem("/groups/{groupId}/artifacts/{artifactId}/versions").post,
+        attachHeaderSchema(document.getPaths().getItem("/groups/{groupId}/artifacts/{artifactId}/versions").getPost(),
                 "/groups/{groupId}/artifacts/{artifactId}/versions POST");
 
         // Remove duplicated tags
-        document.paths.getItem("/admin/artifactTypes").get.tags.remove("Artifact Type");
+        document.getPaths().getItem("/admin/artifactTypes").getGet().getTags().remove("Artifact Type");
 
-        document.paths.getItem("/admin/rules").get.tags.remove("Global rules");
-        document.paths.getItem("/admin/rules").post.tags.remove("Global rules");
-        document.paths.getItem("/admin/rules").delete.tags.remove("Global rules");
+        document.getPaths().getItem("/admin/rules").getGet().getTags().remove("Global rules");
+        document.getPaths().getItem("/admin/rules").getPost().getTags().remove("Global rules");
+        document.getPaths().getItem("/admin/rules").getDelete().getTags().remove("Global rules");
 
-        document.paths.getItem("/admin/rules/{rule}").get.tags.remove("Global rules");
-        document.paths.getItem("/admin/rules/{rule}").put.tags.remove("Global rules");
-        document.paths.getItem("/admin/rules/{rule}").delete.tags.remove("Global rules");
+        document.getPaths().getItem("/admin/rules/{rule}").getGet().getTags().remove("Global rules");
+        document.getPaths().getItem("/admin/rules/{rule}").getPut().getTags().remove("Global rules");
+        document.getPaths().getItem("/admin/rules/{rule}").getDelete().getTags().remove("Global rules");
 
-        document.paths.getItem("/search/artifacts").get.tags.remove("Artifacts");
-        document.paths.getItem("/search/artifacts").post.tags.remove("Artifacts");
+        document.getPaths().getItem("/search/artifacts").getGet().getTags().remove("Artifacts");
+        document.getPaths().getItem("/search/artifacts").getPost().getTags().remove("Artifacts");
 
-        document.tags = document.tags.stream().filter(t -> !"Global rules".equals(t.name))
+        var tags = document.getTags().stream().filter(t -> !"Global rules".equals(t.getName()))
                 .collect(Collectors.toList());
+        document.clearTags();
+        tags.forEach(document::addTag);
 
-        document.paths.removeExtension("x-codegen-contextRoot");
+        ((OpenApi30Paths)document.getPaths()).removeExtension("x-codegen-contextRoot");
 
         // Now write out the modified document
         String outputDocumentString = Library.writeDocumentToJSONString(document);
@@ -95,15 +98,15 @@ public class TransformOpenApiForClientGen {
         FileUtils.writeStringToFile(outputFile, outputDocumentString, StandardCharsets.UTF_8);
     }
 
-    private static void attachHeaderSchema(OasOperation operation, String info) {
+    private static void attachHeaderSchema(OpenApiOperation operation, String info) {
         out.println("Adding explicit Content-Type header to " + info);
         var param = operation.createParameter();
-        param.name = "Content-Type";
-        param.description = "This header is explicit so clients using the OpenAPI Generator are able select the content type. Ignore otherwise.";
-        var schema = (Oas30Schema) param.createSchema();
-        schema.type = "string";
-        param.schema = schema;
-        param.in = "header";
+        param.setName("Content-Type");
+        param.setDescription("This header is explicit so clients using the OpenAPI Generator are able select the content type. Ignore otherwise.");
+        var schema = (OpenApi30Schema) param.createSchema();
+        schema.setType("string");
+        param.setSchema(schema);
+        param.setIn("header");
         operation.addParameter(param);
     }
 }

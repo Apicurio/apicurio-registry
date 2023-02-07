@@ -18,7 +18,7 @@ package io.apicurio.registry.rules.compatibility;
 
 import com.google.common.collect.ImmutableSet;
 import io.apicurio.registry.rules.UnprocessableSchemaException;
-import org.apache.avro.AvroTypeException;
+import org.apache.avro.AvroRuntimeException;
 import org.apache.avro.Schema;
 import org.apache.avro.SchemaCompatibility;
 import org.apache.avro.SchemaCompatibility.Incompatibility;
@@ -48,7 +48,7 @@ public class AvroCompatibilityChecker extends AbstractCompatibilityChecker<Incom
                 default:
                     throw new IllegalStateException("Got illegal compatibility result: " + result.getCompatibility());
             }
-        } catch (AvroTypeException ex) {
+        } catch (AvroRuntimeException ex) {
             throw new UnprocessableSchemaException("Could not execute compatibility rule on invalid Avro schema", ex);
         }
     }

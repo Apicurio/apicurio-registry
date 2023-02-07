@@ -2,6 +2,90 @@
     "tests": [
         {
             "enabled": true,
+            "id": "Basic 1",
+            "compatibility": "backward",
+            "original": {
+                "type": "record",
+                "name": "myrecord",
+                "fields": [
+                    {
+                        "name": "foo",
+                        "type": "string"
+                    },
+                    {
+                        "name": "bar",
+                        "type": "string"
+                    }
+                ]
+            },
+            "updated": {
+                "type": "record",
+                "name": "myrecord",
+                "fields": [
+                    {
+                        "name": "foo",
+                        "type": "string"
+                    }
+                ]
+            }
+        },
+        {
+            "enabled": true,
+            "id": "Basic 2",
+            "compatibility": "both",
+            "original": {
+                "type": "record",
+                "name": "myrecord",
+                "fields": [
+                    {
+                        "name": "foo",
+                        "type": "string"
+                    }
+                ]
+            },
+            "updated": {
+                "type": "record",
+                "name": "myrecord",
+                "fields": [
+                    {
+                        "name": "foo",
+                        "type": "string"
+                    },
+                    {
+                        "name": "bar",
+                        "type": "string",
+                        "default": "42"
+                    }
+                ]
+            }
+        },
+        {
+            "enabled": true,
+            "id": "Basic 3",
+            "compatibility": "none",
+            "original": {
+                "type": "record",
+                "name": "myrecord1",
+                "fields": [
+                    {
+                        "name": "foo",
+                        "type": "string"
+                    }
+                ]
+            },
+            "updated": {
+                "type": "record",
+                "name": "myrecord2",
+                "fields": [
+                    {
+                        "name": "foo",
+                        "type": "string"
+                    }
+                ]
+            }
+        },
+        {
+            "enabled": true,
             "id": "Regression: https://github.com/Apicurio/apicurio-registry/issues/2572",
             "compatibility": "backward",
             "original": {

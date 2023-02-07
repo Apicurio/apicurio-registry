@@ -17,12 +17,12 @@
 
 package io.apicurio.registry.maven;
 
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.InputStream;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.rest.v2.beans.ArtifactReference;
 import io.apicurio.registry.types.ContentTypes;
 import org.apache.maven.plugin.MojoExecutionException;
@@ -121,6 +121,15 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
         Boolean canonicalize = artifact.getCanonicalize();
         String contentType = contentType(artifact);
         InputStream data = new FileInputStream(artifact.getFile());
+        if (artifact.getMinify() != null && artifact.getMinify()) {
+            try {
+                ObjectMapper objectMapper = new ObjectMapper();
+                JsonNode jsonNode = objectMapper.readValue(data, JsonNode.class);
+                data = new ByteArrayInputStream(jsonNode.toString().getBytes());
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
         ArtifactMetaData amd = this.getClient().createArtifact(groupId, artifactId, version, type, ifExists, canonicalize, null, null, ContentTypes.APPLICATION_CREATE_EXTENDED, null, null, data, references);
         getLog().info(String.format("Successfully registered artifact [%s] / [%s].  GlobalId is [%d]", groupId, artifactId, amd.getGlobalId()));
 

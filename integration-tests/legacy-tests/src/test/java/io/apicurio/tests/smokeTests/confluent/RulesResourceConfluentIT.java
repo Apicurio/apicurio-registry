@@ -16,50 +16,58 @@
 
 package io.apicurio.tests.smokeTests.confluent;
 
-import static io.apicurio.tests.common.Constants.SMOKE;
-
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.Tag;
-import org.junit.jupiter.api.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.tests.ConfluentBaseIT;
 import io.apicurio.tests.common.utils.subUtils.ConfluentConfigUtils;
 import io.apicurio.tests.utils.subUtils.GlobalRuleUtils;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.avro.AvroSchema;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import static io.apicurio.tests.common.Constants.SMOKE;
 
 @Tag(SMOKE)
-public class RulesResourceConfluentIT extends ConfluentBaseIT {
+class RulesResourceConfluentIT extends ConfluentBaseIT {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MetadataConfluentIT.class);
+
+    private static String wrap(String schema) {
+        return "{\"schema\": \"" + schema.replace("\"", "\\\"") + "\"}";
+    }
 
     @Test
     @Tag(ACCEPTANCE)
     void compatibilityGlobalRules() throws Exception {
+        var first = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
+        // Adding a default value to the new field to keep full compatibility
+        var second = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}, {\"name\":\"bar\",\"type\":\"string\", \"default\": \"42\"}]}";
+        var invalid = "{\"type\": \"bloop\"}";
+
         ConfluentConfigUtils.createGlobalCompatibilityConfig("FULL");
 
-        ParsedSchema schema = new AvroSchema("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}");
+        ParsedSchema schema = new AvroSchema(first);
 
         String schemeSubject = TestUtils.generateArtifactId();
         int schemaId = createArtifactViaConfluentClient(schema, schemeSubject);
 
         confluentService.getSchemaById(schemaId);
 
-        ParsedSchema newSchema = new AvroSchema("{\"type\":\"record\",\"name\":\"myrecord2\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}");
+        ParsedSchema newSchema = new AvroSchema(second);
 
         createArtifactViaConfluentClient(newSchema, schemeSubject);
 
         LOGGER.info("Checking 'Compability with same scheme' and expected code {}", 200);
-        ConfluentConfigUtils.testCompatibility("{\"schema\":\"{\\\"type\\\":\\\"record\\\",\\\"name\\\":\\\"myrecord2\\\",\\\"fields\\\":[{\\\"name\\\":\\\"foo\\\",\\\"type\\\":\\\"string\\\"}]}\"}", schemeSubject, 200);
+        ConfluentConfigUtils.testCompatibility(wrap(second), schemeSubject, 200);
 
         LOGGER.info("Checking 'Subject not found' and expected code {}", 404);
-        ConfluentConfigUtils.testCompatibility("{\"schema\":\"{\\\"type\\\":\\\"record\\\",\\\"name\\\":\\\"myrecord2\\\",\\\"fields\\\":[{\\\"name\\\":\\\"foo\\\",\\\"type\\\":\\\"string\\\"}]}\"}", "subject-not-found", 404);
+        ConfluentConfigUtils.testCompatibility(wrap(second), "subject-not-found", 404);
 
         LOGGER.info("Checking 'Invalid avro format' and expected code {}", 422);
-        ConfluentConfigUtils.testCompatibility("{\"schema\":\"{\\\"type\\\": \\\"bloop\\\"}\"}", schemeSubject, 422);
+        ConfluentConfigUtils.testCompatibility(wrap(invalid), schemeSubject, 422);
 
         confluentService.deleteSubject(schemeSubject);
         waitForSubjectDeleted(schemeSubject);

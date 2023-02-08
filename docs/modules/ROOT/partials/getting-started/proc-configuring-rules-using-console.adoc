@@ -5,7 +5,7 @@
 = Configuring content rules using the {registry} web console
 
 [role="_abstract"]
-You can use the {registry} web console to configure optional rules to prevent invalid content from being added to the registry. All configured artifact rules or global rules must pass before a new artifact version can be uploaded to {registry}. Configured artifact rules override any configured global rules. This section shows a simple example of configuring global and artifact rules.
+You can use the {registry} web console to configure optional rules to prevent invalid content from being added to {registry}. All configured artifact rules or global rules must pass before a new artifact version can be uploaded to {registry}. Configured artifact rules override any configured global rules. This section shows a simple example of configuring global and artifact rules.
 
 .Prerequisites
 

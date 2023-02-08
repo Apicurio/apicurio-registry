@@ -3,7 +3,7 @@
 = Configuring the {registry} web console 
 
 [role="_abstract"]
-You can configure the {registry} web console specifically for your deployment environment or to customize its behavior. This section provides details on how to configure optional environment variables for the {registry} web console.
+You can set optional environment variables to configure the {registry} web console specifically for your deployment environment or to customize its behavior.
 
 .Prerequisites
 * You have already installed {registry}.
@@ -11,7 +11,7 @@ You can configure the {registry} web console specifically for your deployment en
 [discrete]
 == Configuring the web console deployment environment
 
-When a user navigates their browser to the {registry} web console, some initial configuration settings are loaded. Two important configuration properties are:
+When you access the {registry} web console in your browser, some initial configuration settings are loaded. The following configuration settings are important:
 
 * URL for core {registry} server REST API
 * URL for {registry} web console client
@@ -30,8 +30,8 @@ Configure the following environment variables to override the default URLs:
 You can configure the {registry} web console in read-only mode as an optional feature. This mode disables all features in the {registry} web console that allow users to make changes to registered artifacts. For example, this includes the following:
 
 * Creating an artifact
-* Uploading a new version of an artifact
-* Updating an artifact's metadata
+* Uploading a new artifact version
+* Updating artifact metadata
 * Deleting an artifact
 
 .Procedure

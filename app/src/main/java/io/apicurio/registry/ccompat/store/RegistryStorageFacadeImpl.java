@@ -16,18 +16,6 @@
 
 package io.apicurio.registry.ccompat.store;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
-
-import org.slf4j.Logger;
-
 import io.apicurio.registry.ccompat.dto.CompatibilityCheckResponse;
 import io.apicurio.registry.ccompat.dto.Schema;
 import io.apicurio.registry.ccompat.dto.SchemaContent;
@@ -41,6 +29,7 @@ import io.apicurio.registry.content.canon.ContentCanonicalizer;
 import io.apicurio.registry.rules.RuleApplicationType;
 import io.apicurio.registry.rules.RuleViolationException;
 import io.apicurio.registry.rules.RulesService;
+import io.apicurio.registry.rules.UnprocessableSchemaException;
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
 import io.apicurio.registry.storage.InvalidArtifactTypeException;
@@ -66,6 +55,16 @@ import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 import io.apicurio.registry.util.ArtifactTypeUtil;
 import io.apicurio.registry.util.VersionUtil;
+import org.slf4j.Logger;
+
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
 
 /**
  * @author Ales Justin
@@ -304,6 +303,8 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
                 } else {
                     return CompatibilityCheckResponse.IS_NOT_COMPATIBLE;
                 }
+            } catch (UnprocessableSchemaException ex) {
+                throw new UnprocessableEntityException(ex.getMessage(), ex);
             }
         });
     }
@@ -326,6 +327,8 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
             } else {
                 return CompatibilityCheckResponse.IS_NOT_COMPATIBLE;
             }
+        } catch (UnprocessableSchemaException ex) {
+            throw new UnprocessableEntityException(ex.getMessage(), ex);
         }
     }
 

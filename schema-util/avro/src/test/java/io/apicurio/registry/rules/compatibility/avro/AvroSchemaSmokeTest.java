@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.rules.compatibility.jsonschema;
+package io.apicurio.registry.rules.compatibility.avro;
 
+import io.apicurio.registry.rules.compatibility.AvroCompatibilityChecker;
 import io.apicurio.registry.rules.compatibility.CompatibilityTestExecutor;
-import io.apicurio.registry.rules.compatibility.JsonSchemaCompatibilityChecker;
 import org.junit.jupiter.api.Test;
 
 import static io.apicurio.registry.rules.compatibility.CompatibilityTestExecutor.readResource;
@@ -26,11 +26,11 @@ import static io.apicurio.registry.rules.compatibility.CompatibilityTestExecutor
 /**
  * @author Jakub Senko 'jsenko@redhat.com'
  */
-class JsonSchemaSmokeTest {
+class AvroSchemaSmokeTest {
 
     @Test
     void testCompatibility() throws Exception {
-        var executor = new CompatibilityTestExecutor(new JsonSchemaCompatibilityChecker());
+        var executor = new CompatibilityTestExecutor(new AvroCompatibilityChecker());
         throwOnFailure(executor.execute(readResource(this.getClass(), "compatibility-test-data.json")));
     }
 }

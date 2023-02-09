@@ -33,6 +33,7 @@ public class RegisterArtifact {
     private File file;
     private IfExists ifExists;
     private Boolean canonicalize;
+    private Boolean minify;
     private String contentType;
     private List<RegisterArtifactReference> references;
 
@@ -110,6 +111,20 @@ public class RegisterArtifact {
      */
     public void setCanonicalize(Boolean canonicalize) {
         this.canonicalize = canonicalize;
+    }
+
+    /**
+     * @return the minify
+     */
+    public Boolean getMinify() {
+        return minify;
+    }
+
+    /**
+     * @param minify the minify to set
+     */
+    public void setMinify(Boolean minify) {
+        this.minify = minify;
     }
 
     /**

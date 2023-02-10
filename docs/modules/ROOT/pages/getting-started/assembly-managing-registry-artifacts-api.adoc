@@ -6,9 +6,9 @@ include::{mod-loc}shared/all-attributes.adoc[]
 //If the assembly covers a task, start the title with a verb in the gerund form, such as Creating or Configuring.
 
 [role="_abstract"]
-Client applications can use Registry REST API operations to manage schema and API artifacts in {registry}, for example, in a CI/CD pipeline deployed in production. The Registry REST API provides create, read, update, and delete operations for artifacts, versions, metadata, and rules stored in the registry. For detailed information, see the {registry-rest-api}.
+Client applications can use {registry} REST API operations to manage schema and API artifacts in {registry}, for example, in a CI/CD pipeline deployed in production. The Core Registry API v2 provides operations for artifacts, versions, metadata, and rules stored in {registry}. For detailed information, see the {registry-rest-api}.
 
-This chapter describes the {registry} core REST API and shows how to use it to manage schema and API artifacts stored in the registry:
+This chapter shows examples of how to use the Core Registry API v2 to perform the following tasks:
 
 ifdef::rh-openshift-sr[]
 * xref:creating-access-token-for-registry-rest-api_{context}[]

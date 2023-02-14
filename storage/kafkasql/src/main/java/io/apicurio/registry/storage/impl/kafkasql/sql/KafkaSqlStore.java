@@ -1,19 +1,7 @@
 package io.apicurio.registry.storage.impl.kafkasql.sql;
 
-import static io.apicurio.registry.storage.impl.sql.SqlUtil.normalizeGroupId;
-
-import java.util.Date;
-
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
-import javax.inject.Named;
-import javax.transaction.Transactional;
-
-import io.apicurio.registry.storage.impl.sql.SqlUtil;
-import org.slf4j.Logger;
-
-import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.common.apps.logging.Logged;
+import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
 import io.apicurio.registry.storage.RegistryStorageException;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
@@ -21,6 +9,7 @@ import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.impl.sql.AbstractSqlRegistryStorage;
 import io.apicurio.registry.storage.impl.sql.GlobalIdGenerator;
 import io.apicurio.registry.storage.impl.sql.HandleFactory;
+import io.apicurio.registry.storage.impl.sql.SqlUtil;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.impexp.ArtifactRuleEntity;
@@ -28,6 +17,15 @@ import io.apicurio.registry.utils.impexp.ArtifactVersionEntity;
 import io.apicurio.registry.utils.impexp.ContentEntity;
 import io.apicurio.registry.utils.impexp.GlobalRuleEntity;
 import io.apicurio.registry.utils.impexp.GroupEntity;
+import org.slf4j.Logger;
+
+import java.util.Date;
+import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
+import javax.inject.Named;
+import javax.transaction.Transactional;
+
+import static io.apicurio.registry.storage.impl.sql.SqlUtil.normalizeGroupId;
 
 /**
  * The SQL store used by the KSQL registry artifactStore implementation.  This is ultimately where each
@@ -49,6 +47,10 @@ public class KafkaSqlStore extends AbstractSqlRegistryStorage {
 
     @Inject
     HandleFactory handles;
+
+    public KafkaSqlStore() {
+        super(false);
+    }
 
     @Transactional
     public long nextGlobalId() {

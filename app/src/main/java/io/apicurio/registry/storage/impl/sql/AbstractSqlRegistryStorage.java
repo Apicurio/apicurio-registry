@@ -40,6 +40,8 @@ import io.apicurio.registry.storage.RoleMappingAlreadyExistsException;
 import io.apicurio.registry.storage.RoleMappingNotFoundException;
 import io.apicurio.registry.storage.RuleAlreadyExistsException;
 import io.apicurio.registry.storage.RuleNotFoundException;
+import io.apicurio.registry.storage.StorageEvent;
+import io.apicurio.registry.storage.StorageEventType;
 import io.apicurio.registry.storage.StorageException;
 import io.apicurio.registry.storage.VersionAlreadyExistsException;
 import io.apicurio.registry.storage.VersionNotFoundException;
@@ -66,7 +68,6 @@ import io.apicurio.registry.storage.dto.SearchedVersionDto;
 import io.apicurio.registry.storage.dto.StoredArtifactDto;
 import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
 import io.apicurio.registry.storage.impexp.EntityInputStream;
-import io.apicurio.registry.storage.impl.AbstractRegistryStorage;
 import io.apicurio.registry.storage.impl.sql.jdb.Handle;
 import io.apicurio.registry.storage.impl.sql.jdb.Query;
 import io.apicurio.registry.storage.impl.sql.jdb.RowMapper;
@@ -110,6 +111,7 @@ import org.slf4j.Logger;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.Date;
@@ -138,7 +140,7 @@ import static io.apicurio.registry.storage.impl.sql.SqlUtil.normalizeGroupId;
  * use any ORM technology - it simply uses native SQL for all operations.
  * @author eric.wittmann@gmail.com
  */
-public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage {
+public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
     private static int DB_VERSION = Integer.valueOf(
         IoUtil.toString(AbstractSqlRegistryStorage.class.getResourceAsStream("db-version"))).intValue();
@@ -195,15 +197,29 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     @Inject
     Event<SqlStorageEvent> sqlStorageEvent;
 
+    @Inject
+    Event<StorageEvent> storageEvent;
+
+    private volatile boolean isReady = false;
+    private volatile Instant isAliveLastCheck = Instant.MIN;
+    private volatile boolean isAliveCached = false;
+
+    private boolean emitStorageReadyEvent;
+
     /**
-     * Constructor.
+     * @param emitStorageReadyEvent The concrete implementation needs to tell AbstractSqlRegistryStorage
+     * whether it should fire {@see io.apicurio.registry.storage.StorageEvent} in addition to
+     * {@see io.apicurio.registry.storage.impl.sql.SqlStorageEvent}. Multiple storage implementations
+     * may be present at the same time (in particular when using KafkaSQL persistence),
+     * but only the single {@see io.apicurio.registry.types.Current} one may fire the former event.
      */
-    public AbstractSqlRegistryStorage() {
+    protected AbstractSqlRegistryStorage(boolean emitStorageReadyEvent) {
+        this.emitStorageReadyEvent = emitStorageReadyEvent;
     }
 
     @PostConstruct
     @Transactional
-    protected void initialize() {
+    void initialize() {
         log.info("SqlRegistryStorage constructed successfully.  JDBC URL: " + jdbcUrl);
 
         handles.withHandleNoException((handle) -> {
@@ -233,9 +249,25 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
             return null;
         });
 
+        isReady = true;
         SqlStorageEvent initializeEvent = new SqlStorageEvent();
-        initializeEvent.setType(SqlStorageEventType.initialized);
-        sqlStorageEvent.fire(initializeEvent );
+        initializeEvent.setType(SqlStorageEventType.READY);
+        sqlStorageEvent.fire(initializeEvent);
+        if(emitStorageReadyEvent) {
+            /* In cases where the observer of the event also injects the source bean,
+             * such as the io.apicurio.registry.ImportLifecycleBean,
+             * a kind of recursion may happen.
+             * This is because the event is fired in the @PostConstruct method,
+             * and is being processed in the same thread.
+             * We avoid this by processing the event asynchronously.
+             * Note that this requires the javax.enterprise.event.ObservesAsync
+             * annotation on the receiving side. If this becomes cumbersome,
+             * try using ManagedExecutor.
+             */
+            storageEvent.fireAsync(StorageEvent.builder()
+                    .type(StorageEventType.READY)
+                    .build());
+        }
     }
 
     /**
@@ -332,6 +364,28 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
             log.error("Error getting DB version.", e);
             return 0;
         }
+    }
+
+    @Override
+    public boolean isReady() {
+        return isReady;
+    }
+
+    @Override
+    public boolean isAlive() {
+        if (!isReady) {
+            return false;
+        }
+        if (Instant.now().isAfter(isAliveLastCheck.plus(Duration.ofSeconds(2)))) { // Tradeoff between reducing load on the DB and responsiveness: 2s
+            isAliveLastCheck = Instant.now();
+            try {
+                getGlobalRules();
+                isAliveCached = true;
+            } catch (Exception ex) {
+                isAliveCached = false;
+            }
+        }
+        return isAliveCached;
     }
 
     /**

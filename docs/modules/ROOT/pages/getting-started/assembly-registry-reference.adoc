@@ -2,7 +2,7 @@
 include::{mod-loc}shared/all-attributes.adoc[]
 
 [id="registry-artifact-reference_{context}"]
-= {registry} artifact reference
+= {registry} artifact and rule reference
 //If the assembly covers a task, start the title with a verb in the gerund form, such as Creating or Configuring.
 
 [role="_abstract"]

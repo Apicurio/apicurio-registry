@@ -5,30 +5,26 @@
 = Managing schema and API artifacts using {registry} REST API commands
 
 [role="_abstract"]
-This section shows a simple curl-based example of using the {registry} core REST API to add and retrieve an Apache Avro schema artifact in {registry}. 
+This section shows a simple curl-based example of using the Core Registry API v2 to add and retrieve an Apache Avro schema artifact in {registry}. 
 
 .Prerequisites
 
 ifdef::apicurio-registry,rh-service-registry[]
-* {registry} is installed and running in your environment
+* {registry} is installed and running in your environment.
 endif::[]
 ifdef::rh-openshift-sr[]
 * You have a service account with the correct access permissions for {registry} instances.
-* You  have created an access token using your service account credentials. 
+* You have created an access token using your service account credentials. 
+* You have logged in to the {registry-url}[{registry} web console]. 
 endif::[]
 
 .Procedure
-
 ifdef::rh-openshift-sr[]
-. Connect to the {registry} web console on: 
-+
-{registry-url}
-
-. For the relevant {registry} instance that you want to connect to, select the options icon (three vertical dots) and click *Connection*.
-. In the *Connection* page, copy the URL for the *Core Registry API* to a secure location. You will use this registry API endpoint to connect to the {registry} instance. 
+. In the {registry} web console, for the {registry} instance that you want to connect to, select the options icon (three vertical dots) and click *Connection*.
+. In the *Connection* page, copy the URL for the *Core Registry API* to a secure location. You will use this API endpoint to connect to the {registry} instance. 
 endif::[]
 
-. Add an artifact to the registry using the `/groups/\{group\}/artifacts` operation. The following example `curl` command adds a simple artifact for a share price application:
+. Add an artifact to {registry} using the `/groups/\{group\}/artifacts` operation. The following example `curl` command adds a simple artifact for a share price application:
 +
 [source,bash]
 ----
@@ -63,13 +59,13 @@ endif::[]
 ----
 +
 * No version was specified when adding the artifact, so the default version `1` is created automatically.
-* This was the second artifact added to the registry, so the global ID and content ID have a value of `2`. 
-. Retrieve the artifact content from the registry using its artifact ID in the API path. In this example, the specified ID is `share-price`:
+* This was the second artifact added to {registry}, so the global ID and content ID have a value of `2`. 
+. Retrieve the artifact content from {registry} using its artifact ID in the API path. In this example, the specified ID is `share-price`:
 +
 [source,bash]
 ----
 $ curl -H "Authorization: Bearer $ACCESS_TOKEN" \
- MY-REGISTRY-URL/apis/registry/v2/groups/my-group/artifacts/share-price \
+ MY-REGISTRY-URL/apis/registry/v2/groups/my-group/artifacts/share-price 
  {"type":"record","name":"price","namespace":"com.example", 
   "fields":[{"name":"symbol","type":"string"},{"name":"price","type":"string"}]}
 ----

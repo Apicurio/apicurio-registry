@@ -37,6 +37,9 @@ a| None
 |*WSDL*
 a| Full
 a| None
+|*XML*
+a| Full
+a| None
 |*XSD*
 a| Full
 a| None

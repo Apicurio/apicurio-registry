@@ -29,6 +29,8 @@ You can store and manage a wide range of schema and API artifact types in {regis
 |Google protocol buffers schema
 |`WSDL`
 |Web Services Definition Language
+|`XML`
+|Extensible Markup Language
 |`XSD`
 |XML Schema Definition
 |===

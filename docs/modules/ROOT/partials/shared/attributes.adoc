@@ -38,7 +38,7 @@ ifdef::service-registry-downstream[]
 :prodnamefull: {org-name} Integration
 :registry-name-full: Service Registry
 :registry: Service Registry
-:registry-version: 2.3
+:registry-version: 2.4
 :registry-v1: 1.1
 :operator-version: 1.0.0.redhat.x
 :kafka-streams: AMQ Streams
@@ -59,7 +59,7 @@ endif::[]
 :context: registry
 :version: 2022.Q3
 :attachmentsdir: files
-:registry-release: 2.3.0.Final
+:registry-release: 2.4.1.Final
 :registry-ocp-version: 4.11
 :registry-db-version: 12
 :registry-url: \http://MY_REGISTRY_URL/ui

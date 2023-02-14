@@ -37,6 +37,10 @@ import javax.enterprise.context.ApplicationScoped;
 @Logged
 public class MsSqlRegistryStorage extends AbstractSqlRegistryStorage {
 
+    public MsSqlRegistryStorage() {
+        super(true);
+    }
+
     @PostConstruct
     void onConstruct() {
         log.info("Using MS SQL registry storage.");

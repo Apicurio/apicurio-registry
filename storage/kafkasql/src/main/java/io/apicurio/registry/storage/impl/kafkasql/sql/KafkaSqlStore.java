@@ -17,10 +17,12 @@ import io.apicurio.registry.utils.impexp.ArtifactVersionEntity;
 import io.apicurio.registry.utils.impexp.ContentEntity;
 import io.apicurio.registry.utils.impexp.GlobalRuleEntity;
 import io.apicurio.registry.utils.impexp.GroupEntity;
+import io.quarkus.runtime.StartupEvent;
 import org.slf4j.Logger;
 
 import java.util.Date;
 import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.event.Observes;
 import javax.inject.Inject;
 import javax.inject.Named;
 import javax.transaction.Transactional;
@@ -50,6 +52,14 @@ public class KafkaSqlStore extends AbstractSqlRegistryStorage {
 
     public KafkaSqlStore() {
         super(false);
+    }
+
+    void onStart(@Observes StartupEvent ev) {
+        // Do nothing, just force initialization of the bean.
+        // Otherwise, there are some corner cases where KafkaSqlRegistryStorage does not become ready,
+        // because it never receives the io.apicurio.registry.storage.impl.sql.SqlStorageEvent.
+        // This can be reproduced by removing this method and running
+        // io.apicurio.tests.dbupgrade.KafkaSqlLogCompactionIT.testLogCompaction test.
     }
 
     @Transactional

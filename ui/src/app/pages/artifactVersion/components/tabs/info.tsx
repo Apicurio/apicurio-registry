@@ -53,6 +53,7 @@ import { If } from "../../../../components/common/if";
 export interface InfoTabContentProps extends PureComponentProps {
     artifact: ArtifactMetaData;
     isLatest: boolean;
+    codegenEnabled: boolean;
     rules: Rule[];
     onEnableRule: (ruleType: string) => void;
     onDisableRule: (ruleType: string) => void;
@@ -188,7 +189,7 @@ export class InfoTabContent extends PureComponent<InfoTabContentProps, InfoTabCo
                                         title="Download artifact content"
                                         onClick={this.props.onDownloadArtifact}
                                         variant="secondary"><DownloadIcon /> Download</Button>
-                                {((window as any).kiota !== undefined) ? 
+                                {((window as any).kiota !== undefined && this.props.codegenEnabled) ? 
                                 <Button id="generate-client-action"
                                         data-testid="artifact-btn-gen-client"
                                         isDisabled={this.props.artifact.type !== "OPENAPI"}

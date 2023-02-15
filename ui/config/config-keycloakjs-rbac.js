@@ -4,7 +4,8 @@ var ApicurioRegistryConfig = {
     },
     ui: {
         contextPath: "/",
-        navPrefixPath: "/"
+        navPrefixPath: "/",
+        codegenEnabled: false
     },
     auth: {
         type: "keycloakjs",

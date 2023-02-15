@@ -99,6 +99,7 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
             <Tab eventKey={0} title="Overview" key="overview" tabContentId="tab-info">
                 <InfoTabContent artifact={artifact}
                                 isLatest={this.versionParam() === "latest"}
+                                codegenEnabled={Services.getConfigService().uiCodegenEnabled()}
                                 rules={this.rules()}
                                 onEnableRule={this.doEnableRule}
                                 onDisableRule={this.doDisableRule}

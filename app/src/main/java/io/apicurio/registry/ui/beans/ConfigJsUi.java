@@ -25,6 +25,7 @@ import io.quarkus.runtime.annotations.RegisterForReflection;
 public class ConfigJsUi {
 
     public String contextPath;
+    public boolean codegenEnabled;
 
     /**
      * Constructor.

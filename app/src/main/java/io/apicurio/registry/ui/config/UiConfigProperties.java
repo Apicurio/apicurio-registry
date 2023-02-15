@@ -59,6 +59,11 @@ public class UiConfigProperties {
     String uiContextPath;
 
     @Inject
+    @ConfigProperty(name = "registry.ui.config.uiCodegenEnabled", defaultValue = "false")
+    @Info(category = "ui", description = "UI codegen enabled", availableSince = "2.4.2.Final")
+    boolean uiCodegenEnabled;
+
+    @Inject
     @ConfigProperty(name = "registry.ui.config.apiUrl")
     @Info(category = "ui", description = "UI APIs URL", availableSince = "1.3.0.Final")
     String apiUrl;
@@ -106,6 +111,7 @@ public class UiConfigProperties {
         log.debug("============> featureReadOnly  " + featureReadOnly);
         log.debug("============> featureSettings  " + featureSettings);
         log.debug("============> uiContextPath  " + uiContextPath);
+        log.debug("============> codegenEnabled  " + uiCodegenEnabled);
         log.debug("============> apiUrl  " + apiUrl);
     }
 
@@ -122,6 +128,14 @@ public class UiConfigProperties {
     }
 
     public String getUiContextPath() {
+        return uiContextPath;
+    }
+
+    public boolean getUiCodegenEnabled() {
+        return uiCodegenEnabled;
+    }
+
+    public String getUi() {
         return uiContextPath;
     }
 

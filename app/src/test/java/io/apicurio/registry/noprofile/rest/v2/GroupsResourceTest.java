@@ -1765,6 +1765,8 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         final String artifactContent = resourceToString("openapi-empty.json");
         final String updatedArtifactContent = artifactContent.replace("Empty API", "Empty API (Updated)");
         final String v3ArtifactContent = artifactContent.replace("Empty API", "Empty API (Version 3)");
+        final String artifactName = "ArtifactNameFromHeader";
+        final String artifactDescription = "ArtifactDescriptionFromHeader";
 
         // Create OpenAPI artifact - indicate the type via a header param
         Integer globalId1 = createArtifact(GROUP, artifactId, ArtifactType.OPENAPI, artifactContent);
@@ -1836,10 +1838,13 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         assertEquals(globalId1, globalId3);
 
         // Try to create the same artifact ID with ReturnOrUpdate and updated content - should create a new version
+        // and use name and description from headers
         resp = given()
                 .when()
                 .contentType(CT_JSON + "; artifactType=OPENAPI")
                 .header("X-Registry-ArtifactId", artifactId)
+                .header("X-Registry-Name", artifactName)
+                .header("X-Registry-Description", artifactDescription)
                 .pathParam("groupId", GROUP)
                 .queryParam("ifExists", IfExists.RETURN_OR_UPDATE)
                 .body(v3ArtifactContent)
@@ -1847,6 +1852,8 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .then()
                 .statusCode(200)
                 .body("version", equalTo("3"))
+                .body("name", equalTo(artifactName))
+                .body("description", equalTo(artifactDescription))
                 .body("type", equalTo(ArtifactType.OPENAPI));
     }
 

@@ -38,11 +38,6 @@
             <artifactId>apicurio-registry-utils-import-export</artifactId>
         </dependency>
 
-        <dependency>
-            <groupId>io.apicurio</groupId>
-            <artifactId>apicurio-registry-common</artifactId>
-        </dependency>
-
         <!-- https://mvnrepository.com/artifact/io.confluent/kafka-schema-registry-client -->
         <dependency>
             <groupId>io.confluent</groupId>

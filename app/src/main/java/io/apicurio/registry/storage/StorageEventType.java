@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Red Hat
+ * Copyright 2022 Red Hat Inc
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,25 +14,15 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.storage.impl;
-
-import io.apicurio.registry.storage.RegistryStorage;
+package io.apicurio.registry.storage;
 
 /**
- * @author Ales Justin
+ * @author Jakub Senko <m@jsenko.net>
  */
-public abstract class AbstractRegistryStorage implements RegistryStorage {
+public enum StorageEventType {
 
-    // workaround for Quarkus issue #9887
-
-    @Override
-    public boolean isReady() {
-        return getGlobalRules() != null;
-    }
-
-    @Override
-    public boolean isAlive() {
-        return true;
-    }
-
+    /**
+     * This event type MUST be fired only once.
+     */
+    READY,
 }

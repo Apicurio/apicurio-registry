@@ -25,9 +25,9 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 
 import io.apicurio.datamodels.Library;
-import io.apicurio.datamodels.openapi.models.OasSecurityRequirement;
-import io.apicurio.datamodels.openapi.v3.models.Oas30Document;
-import io.apicurio.datamodels.openapi.v3.models.Oas30SecurityScheme;
+import io.apicurio.datamodels.models.openapi.v30.OpenApi30Document;
+import io.apicurio.datamodels.models.openapi.v30.OpenApi30SecurityRequirement;
+import io.apicurio.datamodels.models.openapi.v30.OpenApi30SecurityScheme;
 
 /**
  * @author eric.wittmann@gmail.com
@@ -58,18 +58,18 @@ public class AddOpenApiAuth {
         System.out.println("Adding security scheme and requirement.");
 
         // Read the source openapi document.
-        Oas30Document document = (Oas30Document) Library.readDocumentFromJSONString(inputDocumentString);
+        OpenApi30Document document = (OpenApi30Document) Library.readDocumentFromJSONString(inputDocumentString);
 
         // Create a security scheme for basic auth
-        Oas30SecurityScheme securityScheme = document.components.createSecurityScheme("basicAuth");
-        securityScheme.type = "http";
-        securityScheme.scheme = "basic";
-        document.components.addSecurityScheme("basicAuth", securityScheme);
+        OpenApi30SecurityScheme securityScheme = (OpenApi30SecurityScheme) document.getComponents().createSecurityScheme();
+        securityScheme.setType("http");
+        securityScheme.setScheme("basic");
+        document.getComponents().addSecurityScheme("basicAuth", securityScheme);
 
         // And now *use* the basic auth security scheme.
-        OasSecurityRequirement securityRequirement = document.createSecurityRequirement();
-        securityRequirement.addSecurityRequirementItem("basicAuth", Collections.emptyList());
-        document.addSecurityRequirement(securityRequirement);
+        OpenApi30SecurityRequirement securityRequirement = (OpenApi30SecurityRequirement) document.createSecurityRequirement();
+        securityRequirement.addItem("basicAuth", Collections.emptyList());
+        document.addSecurity(securityRequirement);
 
         // Now write out the modified document
         String outputDocumentString = Library.writeDocumentToJSONString(document);

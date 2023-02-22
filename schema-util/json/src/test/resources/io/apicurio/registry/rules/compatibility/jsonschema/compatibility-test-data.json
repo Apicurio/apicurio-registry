@@ -3388,7 +3388,7 @@
     },
     {
       "enabled": true,
-      "id": "Properties: type keyword from string to array compatability 1",
+      "id": "Properties: type keyword from string to array compatibility 1",
       "compatibility": "backward",
       "original": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -3420,7 +3420,7 @@
     },
     {
       "enabled": true,
-      "id": "Properties: type keyword from string to array compatability 2",
+      "id": "Properties: type keyword from string to array compatibility 2",
       "compatibility": "backward",
       "original": {
         "$schema": "http://json-schema.org/draft-07/schema#",

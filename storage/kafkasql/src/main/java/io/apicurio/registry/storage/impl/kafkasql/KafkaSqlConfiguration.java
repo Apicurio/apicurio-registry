@@ -23,15 +23,14 @@ import java.util.Properties;
  */
 public interface KafkaSqlConfiguration {
 
-    public String bootstrapServers();
-    public String topic();
-    public Properties topicProperties();
-    public boolean isTopicAutoCreate();
-    public Integer startupLag();
-    public Integer pollTimeout();
-    public Integer responseTimeout();
-    public Properties producerProperties();
-    public Properties consumerProperties();
-    public Properties adminProperties();
+    String bootstrapServers();
+    String topic();
+    Properties topicProperties();
+    boolean isTopicAutoCreate();
+    Integer pollTimeout();
+    Integer responseTimeout();
+    Properties producerProperties();
+    Properties consumerProperties();
+    Properties adminProperties();
 
 }

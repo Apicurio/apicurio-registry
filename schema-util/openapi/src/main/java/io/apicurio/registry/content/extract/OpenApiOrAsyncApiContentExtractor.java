@@ -20,10 +20,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.apicurio.datamodels.Library;
-import io.apicurio.datamodels.combined.visitors.CombinedVisitorAdapter;
-import io.apicurio.datamodels.core.models.Document;
-import io.apicurio.datamodels.core.models.common.Info;
-import io.apicurio.datamodels.core.visitors.TraverserDirection;
+import io.apicurio.datamodels.TraverserDirection;
+import io.apicurio.datamodels.models.Document;
+import io.apicurio.datamodels.models.Info;
+import io.apicurio.datamodels.models.visitors.CombinedVisitorAdapter;
 import io.apicurio.registry.content.ContentHandle;
 
 /**
@@ -68,8 +68,8 @@ public class OpenApiOrAsyncApiContentExtractor implements ContentExtractor {
          */
         @Override
         public void visitInfo(Info node) {
-            name = node.title;
-            description = node.description;
+            name = node.getTitle();
+            description = node.getDescription();
         }
 
     }

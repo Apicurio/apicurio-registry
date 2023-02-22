@@ -16,21 +16,6 @@
 
 package io.apicurio.registry.storage.impl.kafkasql;
 
-import java.util.Optional;
-import java.util.Properties;
-import java.util.UUID;
-
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.inject.Produces;
-import javax.inject.Inject;
-
-import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.apache.kafka.clients.producer.ProducerConfig;
-import org.apache.kafka.common.config.SaslConfigs;
-import org.apache.kafka.common.config.SslConfigs;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
-
 import io.apicurio.registry.storage.impl.kafkasql.keys.MessageKey;
 import io.apicurio.registry.storage.impl.kafkasql.serde.KafkaSqlKeyDeserializer;
 import io.apicurio.registry.storage.impl.kafkasql.serde.KafkaSqlKeySerializer;
@@ -41,12 +26,29 @@ import io.apicurio.registry.storage.impl.kafkasql.values.MessageValue;
 import io.apicurio.registry.utils.RegistryProperties;
 import io.apicurio.registry.utils.kafka.AsyncProducer;
 import io.apicurio.registry.utils.kafka.ProducerActions;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.common.config.SaslConfigs;
+import org.apache.kafka.common.config.SslConfigs;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.slf4j.Logger;
+
+import java.util.Optional;
+import java.util.Properties;
+import java.util.UUID;
+import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.inject.Produces;
+import javax.inject.Inject;
 
 /**
  * @author eric.wittmann@gmail.com
  */
 @ApplicationScoped
 public class KafkaSqlFactory {
+
+    @Inject
+    Logger log;
 
     @Inject
     @ConfigProperty(name = "registry.kafkasql.bootstrap.servers")
@@ -64,8 +66,12 @@ public class KafkaSqlFactory {
     @ConfigProperty(name = "registry.kafkasql.topic.auto-create", defaultValue = "true")
     Boolean topicAutoCreate;
 
+    /**
+     * @deprecated Consumer thread is now started automatically.
+     */
     @Inject
-    @ConfigProperty(name = "registry.kafkasql.consumer.startupLag", defaultValue = "1000")
+    @ConfigProperty(name = "registry.kafkasql.consumer.startupLag", defaultValue = "-1")
+    @Deprecated(since = "2.4.2", forRemoval = true)
     Integer startupLag;
 
     @Inject
@@ -142,7 +148,11 @@ public class KafkaSqlFactory {
     @ApplicationScoped
     @Produces
     public KafkaSqlConfiguration createConfiguration() {
-        KafkaSqlConfiguration config = new KafkaSqlConfiguration() {
+        if(startupLag != -1) {
+            log.warn("Configuration property 'registry.kafkasql.consumer.startupLag' is no longer used and is ignored.");
+        }
+
+        return new KafkaSqlConfiguration() {
             @Override
             public String bootstrapServers() {
                 return bootstrapServers;
@@ -158,10 +168,6 @@ public class KafkaSqlFactory {
             @Override
             public boolean isTopicAutoCreate() {
                 return topicAutoCreate;
-            }
-            @Override
-            public Integer startupLag() {
-                return startupLag;
             }
             @Override
             public Integer pollTimeout() {
@@ -186,7 +192,6 @@ public class KafkaSqlFactory {
             }
 
         };
-        return config;
     }
 
     /**

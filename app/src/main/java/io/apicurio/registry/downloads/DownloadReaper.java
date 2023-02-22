@@ -19,12 +19,12 @@ package io.apicurio.registry.downloads;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.types.Current;
 import io.quarkus.scheduler.Scheduled;
-
 import org.slf4j.Logger;
 
+import java.time.Instant;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
-import java.time.Instant;
+
 import static io.quarkus.scheduler.Scheduled.ConcurrentExecution.SKIP;
 
 /**
@@ -48,8 +48,12 @@ public class DownloadReaper {
     @Scheduled(concurrentExecution = SKIP, every = "{registry.downloads.reaper.every}")
     void run() {
         try {
-            log.debug("Running download reaper job at {}", Instant.now());
-            reap();
+            if(storage.isAlive()) {
+                log.debug("Running download reaper job at {}", Instant.now());
+                reap();
+            } else {
+                log.warn("Storage is not alive. Skipping download reaper job for now.");
+            }
         } catch (Exception ex) {
             log.error("Exception thrown when running download reaper job", ex);
         }

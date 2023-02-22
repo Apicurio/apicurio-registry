@@ -76,4 +76,4 @@ MY-REGISTRY-URL/apis/registry/v2/groups/my-group/artifacts/my-share-price/versio
 
 [role="_additional-resources"]
 .Additional resources
-* For more REST API sample requests, see the {registry-rest-api}
+* For more REST API sample requests, see the {registry-rest-api}.

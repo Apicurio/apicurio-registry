@@ -17,7 +17,7 @@ This chapter provides detailed information on how to configure Kafka SerDes in y
 
 
 .Prerequisites
-* You have read {kafka-client-serdes}
+* You have read {kafka-client-serdes}.
 
 //INCLUDES
 include::{mod-loc}getting-started/con-registry-serdes-constants.adoc[leveloffset=+1]

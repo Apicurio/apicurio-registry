@@ -5,7 +5,7 @@
 = Managing schema and API artifacts using {registry} REST API commands
 
 [role="_abstract"]
-This section shows a simple curl-based example of using the Core Registry API v2 to add and retrieve an Apache Avro schema artifact in {registry}. 
+This section shows a simple curl-based example of using the Core Registry API v2 to add and retrieve a simple schema artifact in {registry}. 
 
 .Prerequisites
 
@@ -24,7 +24,7 @@ ifdef::rh-openshift-sr[]
 . In the *Connection* page, copy the URL for the *Core Registry API* to a secure location. You will use this API endpoint to connect to the {registry} instance. 
 endif::[]
 
-. Add an artifact to {registry} using the `/groups/\{group\}/artifacts` operation. The following example `curl` command adds a simple artifact for a share price application:
+. Add an artifact to {registry} using the `/groups/\{group\}/artifacts` operation. The following example `curl` command adds a simple schema artifact for a share price application:
 +
 [source,bash]
 ----
@@ -36,7 +36,7 @@ $ curl -X POST -H "Content-Type: application/json; artifactType=AVRO" \
   MY-REGISTRY-URL/apis/registry/v2/groups/my-group/artifacts 
 ----
 +
-* This example adds an Avro schema artifact with an artifact ID of `share-price`. If you do not specify a unique artifact ID, {registry} generates one automatically as a UUID. 
+* This example adds an Apache Avro schema artifact with an artifact ID of `share-price`. If you do not specify a unique artifact ID, {registry} generates one automatically as a UUID. 
 * `MY-REGISTRY-URL` is the 
 ifdef::apicurio-registry[]
 host name on which {registry} is deployed. For example: `\http://localhost:8080`.
@@ -72,4 +72,4 @@ $ curl -H "Authorization: Bearer $ACCESS_TOKEN" \
 
 [role="_additional-resources"]
 .Additional resources
-* For more REST API sample requests, see the {registry-rest-api}
+* For more REST API sample requests, see the {registry-rest-api}.

@@ -2,7 +2,7 @@
 // ParentAssemblies: assemblies/getting-started/as_managing-registry-artifacts-api.adoc
 
 [id="managing-artifact-references-using-rest-api_{context}"]
-= Managing artifact references using {registry} REST API commands
+= Managing schema and API artifact references using {registry} REST API commands
 
 [role="_abstract"]
 {registry} artifact types such as Apache Avro, Protobuf, and JSON Schema can include _artifact references_ from one artifact file to another. You can create efficiencies by defining reusable schema and API artifacts, and then referencing them from multiple locations.
@@ -141,4 +141,4 @@ $ curl -H "Authorization: Bearer $ACCESS_TOKEN" MY-REGISTRY-URL/apis/registry/v2
 
 [role="_additional-resources"]
 .Additional resources
-* For more details, see the {registry-rest-api}
+* For more details, see the {registry-rest-api}.

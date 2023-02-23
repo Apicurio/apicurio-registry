@@ -70,6 +70,6 @@ public class JsonSchemaContentValidatorTest extends ArtifactUtilProviderTestBase
         ContentHandle city = resourceToContentHandle("city.json");
         ContentHandle citizen = resourceToContentHandle("citizen.json");
         JsonSchemaContentValidator validator = new JsonSchemaContentValidator();
-        validator.validate(ValidityLevel.FULL, citizen, Collections.singletonMap("city.json", city));
+        validator.validate(ValidityLevel.FULL, citizen, Collections.singletonMap("https://example.com/city.json", city));
     }
 }

@@ -50,7 +50,7 @@ public class WsdlOrXsdContentExtractor implements ContentExtractor {
             }
             return metaData;
         } catch (Exception e) {
-            log.warn("Error extracting metadata from WSDL/XSD: {}", e.getMessage());
+            log.debug("Error extracting metadata from WSDL/XSD: {}", e.getMessage());
             return null;
         }
     }

@@ -3,14 +3,14 @@ syntax = "proto3";
 package additionalTypes;
 
 option java_package = "additionalTypes";
-option java_outer_classname = "Decimals";
+option java_outer_classname = "DecimalsTest";
 
 
 // Protobuf standard library / WellKnownTypes don't provide a Decimal type.
 // This posses a challenge to represent Decimals that cannot be accurately represented
 // using float or double types.
 // Related issue: https://github.com/protocolbuffers/protobuf/issues/4406
-message Decimal {
+message DecimalTest {
 
   // The whole units of the Decimal.
   // This has to be a whole positive or negative or zero

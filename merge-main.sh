@@ -1,8 +1,26 @@
 #!/bin/bash
 
+declare -a remotes=("upstream" "origin")
+REMOTE=""
+for r in "${remotes[@]}"
+do
+  if git remote | grep "$r"; then
+    read -p "Using $r remote. Is that OK? [yes] " CONTINUE
+    if [ "x$CONTINUE" = "xyes" ] || [ -z "$CONTINUE" ]; then
+      REMOTE="$r"
+      break
+    fi
+  fi
+done
+
+if [ -z "$REMOTE" ]; then
+  echo "Quitting."
+  exit 1
+fi
+
 echo "Merging latest changes from the main branch!"
-git fetch upstream main
-git merge upstream/main
+git fetch $REMOTE main
+git merge $REMOTE/main
 
 echo "Merge complete.  Check for conflicts!"
 echo ""
@@ -38,6 +56,6 @@ done
 
 git add .
 git commit -m "Updated MAS build number to $NEW_MAS_BUILD_NUMBER"
-git push upstream mas-sr
+git push $REMOTE mas-sr
 
 echo "All done!  Everything was successful.  Great job.  You're killing it!"

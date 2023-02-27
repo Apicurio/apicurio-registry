@@ -2,7 +2,7 @@ syntax = "proto2";
 
 package io.apicurio.registry.utils.protobuf.schema.syntax2.customoptions;
 
-import "metadata/metadata.proto";
+import "metadata/metadatatest.proto";
 
 message Address {
 

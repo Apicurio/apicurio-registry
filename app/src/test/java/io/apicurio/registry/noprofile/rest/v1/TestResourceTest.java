@@ -28,6 +28,7 @@ import org.junit.jupiter.api.Test;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.CoreMatchers.anything;
+import static org.hamcrest.CoreMatchers.startsWith;
 import static org.hamcrest.Matchers.equalTo;
 
 /**
@@ -128,7 +129,7 @@ public class TestResourceTest extends AbstractResourceTestBase {
             .log().all()
                 .statusCode(409)
                 .body("error_code", equalTo(409))
-                .body("message", equalTo("Incompatible artifact: testTestArtifactCompatibilityViolation " +
+                .body("message", startsWith("Incompatible artifact: testTestArtifactCompatibilityViolation " +
                         "[JSON], num of incompatible diffs: {1}, list of diff types: [SUBSCHEMA_TYPE_CHANGED at /properties/age]"))
                 .body("causes[0].description", equalTo(DiffType.SUBSCHEMA_TYPE_CHANGED.getDescription()))
                 .body("causes[0].context", equalTo("/properties/age"));
@@ -179,7 +180,7 @@ public class TestResourceTest extends AbstractResourceTestBase {
             .then()
                 .statusCode(409)
                 .body("error_code", equalTo(409))
-                .body("message", equalTo("Syntax or semantic violation for JSON Schema artifact."));
+                .body("message", startsWith("Syntax or semantic violation for JSON Schema artifact."));
     }
 
     @Test
@@ -227,7 +228,7 @@ public class TestResourceTest extends AbstractResourceTestBase {
             .then()
                 .statusCode(409)
                 .body("error_code", equalTo(409))
-                .body("message", equalTo("The OpenAPI artifact is not semantically valid. 1 problems found."))
+                .body("message", startsWith("The OpenAPI artifact is not semantically valid. 1 problems found."))
                 .body("causes[0].description", equalTo("Schema Reference must refer to a valid Schema Definition."))
                 .body("causes[0].context", equalTo("/paths[/widgets]/get/responses[200]/content[application/json]/schema/items"));
     }

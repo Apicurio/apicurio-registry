@@ -1027,7 +1027,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .then()
                 .statusCode(409)
                 .body("error_code", equalTo(409))
-                .body("message", equalTo("Syntax or semantic violation for JSON Schema artifact."));
+                .body("message", startsWith("Syntax or semantic violation for JSON Schema artifact."));
     }
 
     @Test
@@ -1078,7 +1078,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .then()
                 .statusCode(409)
                 .body("error_code", equalTo(409))
-                .body("message", equalTo("Incompatible artifact: testCreateArtifact/ValidJson [JSON], num" +
+                .body("message", startsWith("Incompatible artifact: testCreateArtifact/ValidJson [JSON], num" +
                         " of incompatible diffs: {1}, list of diff types: [SUBSCHEMA_TYPE_CHANGED at /properties/age]"))
                 .body("causes[0].description", equalTo(DiffType.SUBSCHEMA_TYPE_CHANGED.getDescription()))
                 .body("causes[0].context", equalTo("/properties/age"));

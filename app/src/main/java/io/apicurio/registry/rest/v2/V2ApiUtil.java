@@ -17,14 +17,16 @@
 
 package io.apicurio.registry.rest.v2;
 
+import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v2.beans.ArtifactReference;
+import io.apicurio.registry.rest.v2.beans.ArtifactSearchResults;
 import io.apicurio.registry.rest.v2.beans.GroupMetaData;
 import io.apicurio.registry.rest.v2.beans.GroupSearchResults;
 import io.apicurio.registry.rest.v2.beans.SearchedArtifact;
 import io.apicurio.registry.rest.v2.beans.SearchedGroup;
 import io.apicurio.registry.rest.v2.beans.SearchedVersion;
 import io.apicurio.registry.rest.v2.beans.SortOrder;
-import io.apicurio.registry.rest.v2.beans.ArtifactSearchResults;
+import io.apicurio.registry.rest.v2.beans.VersionMetaData;
 import io.apicurio.registry.rest.v2.beans.VersionSearchResults;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
@@ -34,17 +36,21 @@ import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.GroupMetaDataDto;
 import io.apicurio.registry.storage.dto.GroupSearchResultsDto;
 import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
-import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
-import io.apicurio.registry.rest.v2.beans.VersionMetaData;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.Date;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * @author eric.wittmann@gmail.com
  */
 public final class V2ApiUtil {
+
+    private V2ApiUtil() {
+    }
 
     /**
      * Creates a jax-rs meta-data entity from the id, type, and artifactStore meta-data.
@@ -54,8 +60,8 @@ public final class V2ApiUtil {
      * @param artifactType
      * @param dto
      */
-    public static final ArtifactMetaData dtoToMetaData(String groupId, String artifactId,
-            String artifactType, ArtifactMetaDataDto dto) {
+    public static ArtifactMetaData dtoToMetaData(String groupId, String artifactId,
+                                                 String artifactType, ArtifactMetaDataDto dto) {
         ArtifactMetaData metaData = new ArtifactMetaData();
         metaData.setCreatedBy(dto.getCreatedBy());
         metaData.setCreatedOn(new Date(dto.getCreatedOn()));
@@ -84,6 +90,9 @@ public final class V2ApiUtil {
         metaData.setState(dto.getState());
         metaData.setLabels(dto.getLabels());
         metaData.setProperties(dto.getProperties());
+        metaData.setReferences(Optional.ofNullable(dto.getReferences()).stream()
+                .flatMap(references -> references.stream().map(V2ApiUtil::referenceDtoToReference))
+                .collect(Collectors.toList()));
         return metaData;
     }
 
@@ -121,13 +130,14 @@ public final class V2ApiUtil {
 
     /**
      * Creates a jax-rs version meta-data entity from the id, type, and artifactStore meta-data.
+     *
      * @param groupId
      * @param artifactId
      * @param artifactType
      * @param dto
      */
     public static final VersionMetaData dtoToVersionMetaData(String groupId, String artifactId,
-            String artifactType, ArtifactMetaDataDto dto) {
+                                                             String artifactType, ArtifactMetaDataDto dto) {
         VersionMetaData metaData = new VersionMetaData();
         metaData.setGroupId(groupId);
         metaData.setId(artifactId);
@@ -147,13 +157,14 @@ public final class V2ApiUtil {
 
     /**
      * Creates a jax-rs version meta-data entity from the id, type, and artifactStore meta-data.
+     *
      * @param groupId
      * @param artifactId
      * @param artifactType
      * @param amd
      */
     public static final VersionMetaData dtoToVersionMetaData(String groupId, String artifactId,
-            String artifactType, ArtifactMetaData amd) {
+                                                             String artifactType, ArtifactMetaData amd) {
         VersionMetaData metaData = new VersionMetaData();
         metaData.setGroupId(groupId);
         metaData.setId(artifactId);
@@ -324,5 +335,23 @@ public final class V2ApiUtil {
         group.setModifiedOn(new Date(dto.getModifiedOn()));
         group.setProperties(dto.getProperties());
         return group;
+    }
+
+    public static String prettyPrintReferences(Collection<ArtifactReference> references) {
+        return references.stream()
+                .map(ar -> nullGroupIdToDefault(ar.getGroupId()) + ":" + ar.getArtifactId() + ":" + ar.getVersion() + "->" + ar.getName())
+                .reduce((left, right) -> left + ", " + right)
+                .orElse("");
+    }
+
+    public static String defaultGroupIdToNull(String groupId) {
+        if ("default".equalsIgnoreCase(groupId)) {
+            return null;
+        }
+        return groupId;
+    }
+
+    public static String nullGroupIdToDefault(String groupId) {
+        return groupId != null ? groupId : "default";
     }
 }

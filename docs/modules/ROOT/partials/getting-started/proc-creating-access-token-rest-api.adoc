@@ -5,7 +5,7 @@
 = Creating an access token for {registry} REST API commands
 
 [role="_abstract"]
-This section shows a curl-based example of how to create an OAuth Bearer access token for use with the {registry} core REST API. You can do this using the OpenShift Application Services authentication server and your service account credentials.
+This section shows a curl-based example of how to create an OAuth Bearer access token for use with the Core Registry API v2. You can do this using the OpenShift Application Services authentication server and your service account credentials.
 
 .Prerequisites
 
@@ -13,14 +13,12 @@ ifdef::apicurio-registry,rh-service-registry[]
 * {registry} is installed and running in your environment
 endif::[]
 ifdef::rh-openshift-sr[]
-* You have access to the {registry} web console
+* You have access to the {registry} web console.
 endif::[]
 
 .Procedure
 
-. Create your service account using the web console:
-+ 
-https://console.redhat.com/application-services/service-accounts
+. Create your service account using the {service-accounts-url}[Service Account web console].
 
 . Copy the generated *Client ID* and *Client secret* credentials to a secure location. To reset your service account credentials, click the options menu on the right (three vertical dots), and select *Reset credentials*.
 

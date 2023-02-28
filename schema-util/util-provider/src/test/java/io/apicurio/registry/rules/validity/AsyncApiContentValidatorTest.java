@@ -38,6 +38,13 @@ public class AsyncApiContentValidatorTest extends ArtifactUtilProviderTestBase {
     }
 
     @Test
+    public void testValidSyntax_AsyncApi25() throws Exception {
+        ContentHandle content = resourceToContentHandle("asyncapi-valid-syntax-asyncapi25.json");
+        AsyncApiContentValidator validator = new AsyncApiContentValidator();
+        validator.validate(ValidityLevel.SYNTAX_ONLY, content, Collections.emptyMap());
+    }
+
+    @Test
     public void testValidSemantics() throws Exception {
         ContentHandle content = resourceToContentHandle("asyncapi-valid-semantics.json");
         AsyncApiContentValidator validator = new AsyncApiContentValidator();

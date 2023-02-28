@@ -66,7 +66,7 @@ public class AvroSchemaParser<U> implements SchemaParser<Schema, U> {
     public ParsedSchema<Schema> getSchemaFromData(Record<U> data) {
         Schema schema = avroDatumProvider.toSchema(data.payload());
 
-        final List<ParsedSchema<Schema>> resolvedReferences = handleReferences(schema.getFields());
+        final List<ParsedSchema<Schema>> resolvedReferences = schema.getType() != Schema.Type.ENUM ? handleReferences(schema.getFields()) : Collections.emptyList();
 
         return new ParsedSchemaImpl<Schema>()
                 .setParsedSchema(schema)

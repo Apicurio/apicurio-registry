@@ -17,7 +17,7 @@
 package io.apicurio.registry.mt;
 
 import io.apicurio.registry.utils.OptionalBean;
-import io.apicurio.rest.client.JdkHttpClientProvider;
+import io.apicurio.rest.client.VertxHttpClientProvider;
 import io.apicurio.rest.client.auth.Auth;
 import io.apicurio.rest.client.auth.OidcAuth;
 import io.apicurio.rest.client.auth.exception.AuthErrorHandler;
@@ -25,6 +25,7 @@ import io.apicurio.rest.client.config.ApicurioClientConfig;
 import io.apicurio.rest.client.spi.ApicurioHttpClient;
 import io.apicurio.tenantmanager.client.TenantManagerClient;
 import io.apicurio.tenantmanager.client.TenantManagerClientImpl;
+import io.vertx.core.Vertx;
 import org.slf4j.Logger;
 
 import javax.enterprise.context.ApplicationScoped;
@@ -48,6 +49,9 @@ public class TenantManagerClientProducer {
 
     @Inject
     MultitenancyProperties properties;
+
+    @Inject
+    Vertx vertx;
 
     @Produces
     @ApplicationScoped
@@ -76,7 +80,7 @@ public class TenantManagerClientProducer {
                             "but the no auth properties aren't properly configured");
                 }
 
-                ApicurioHttpClient httpClient = new JdkHttpClientProvider().create(properties.getTenantManagerAuthUrl().get(), Collections.emptyMap(), null, new AuthErrorHandler());
+                ApicurioHttpClient httpClient = new VertxHttpClientProvider(vertx).create(properties.getTenantManagerAuthUrl().get(), Collections.emptyMap(), null, new AuthErrorHandler());
 
                 Duration tokenExpirationReduction = null;
                 if (properties.getTenantManagerAuthTokenExpirationReductionMs().isPresent()) {

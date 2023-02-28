@@ -40,4 +40,10 @@ public class CCompatConfig {
     @ConfigProperty(name = "registry.ccompat.use-canonical-hash", defaultValue = "false")
     @Info(category = "ccompat", description = "Canonical hash mode (compatibility API)", availableSince = "2.3.0.Final")
     Supplier<Boolean> canonicalHashModeEnabled;
+
+    @Dynamic(label = "Maximum number of Subjects returned (compatibility API)", description =  "Determines the maximum number of Subjects that will be returned by the ccompat API (for the '/subjects' endpoint).")
+    @ConfigProperty(name = "registry.ccompat.max-subjects", defaultValue = "1000")
+    @Info(category = "ccompat", description = "Maximum number of Subjects returned (compatibility API)", availableSince = "2.4.2.Final")
+    Supplier<Integer> maxSubjects;
+
 }

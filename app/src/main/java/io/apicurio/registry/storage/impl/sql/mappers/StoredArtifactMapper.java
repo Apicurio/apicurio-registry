@@ -16,15 +16,15 @@
 
 package io.apicurio.registry.storage.impl.sql.mappers;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.List;
-
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.dto.StoredArtifactDto;
 import io.apicurio.registry.storage.impl.sql.SqlUtil;
 import io.apicurio.registry.storage.impl.sql.jdb.RowMapper;
+
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.List;
 
 /**
  * @author eric.wittmann@gmail.com
@@ -51,7 +51,6 @@ public class StoredArtifactMapper implements RowMapper<StoredArtifactDto> {
         byte[] contentBytes = rs.getBytes("content");
         ContentHandle content = ContentHandle.create(contentBytes);
         List<ArtifactReferenceDto> references = SqlUtil.deserializeReferences(rs.getString("artifactreferences"));
-
         return StoredArtifactDto.builder().content(content).contentId(contentId).globalId(globalId).version(version).versionId(versionId).references(references).build();
     }
 

@@ -35,9 +35,12 @@ a| None
 a| Syntax Only
 a| None
 |*WSDL*
-a| Syntax Only
+a| Full
+a| None
+|*XML*
+a| Full
 a| None
 |*XSD*
-a| Syntax Only
+a| Full
 a| None
 |===

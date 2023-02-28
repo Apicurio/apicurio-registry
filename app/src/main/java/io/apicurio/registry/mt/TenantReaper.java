@@ -17,6 +17,7 @@
 package io.apicurio.registry.mt;
 
 import io.apicurio.common.apps.config.Info;
+import io.apicurio.rest.client.auth.exception.AuthException;
 import io.apicurio.tenantmanager.api.datamodel.ApicurioTenant;
 import io.apicurio.tenantmanager.api.datamodel.ApicurioTenantList;
 import io.apicurio.tenantmanager.api.datamodel.SortBy;
@@ -29,6 +30,7 @@ import io.apicurio.registry.utils.OptionalBean;
 import io.quarkus.scheduler.Scheduled;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.eclipse.microprofile.faulttolerance.Retry;
 import org.slf4j.Logger;
 
 import javax.annotation.PostConstruct;
@@ -128,6 +130,7 @@ public class TenantReaper {
      * are more tenants that need reaping, they will be processed the next time the schedule warrants it.
      * This is a defensive approach to ensure that the while loop is always bounded.
      */
+    @Retry(retryOn = AuthException.class)
     void reap() {
         List<ApicurioTenant> page;
         int tenantsProcessed = 0;

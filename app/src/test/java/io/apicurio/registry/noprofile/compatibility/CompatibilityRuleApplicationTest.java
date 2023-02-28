@@ -38,9 +38,9 @@ import io.restassured.http.ContentType;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-import javax.inject.Inject;
 import java.util.Collections;
 import java.util.Set;
+import javax.inject.Inject;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.CoreMatchers.anything;
@@ -227,11 +227,9 @@ public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {
         rule.setConfig(CompatibilityLevel.FULL.name());
         clientV2.createArtifactRule("default", artifactId, rule);
 
-        // Note: this should result in a rule violation exception due to a parse error in INVALID_SCHEMA_WITH_MAP
-        // It turns out that "{}" is not a valid default for a map field.  This will throw a AvroTypeException from
-        // the Avro parser.  It should be caught by the compatibility rule implementation and handled as a rule
-        // violation (even though it's more of a validity failure).  The point is it should NOT result in a 500
-        // error (which is reserved for server failures, not invalid content.
+        // This will result in org.apache.avro.AvroTypeException in the compatibility checker,
+        // which is rethrown as UnprocessableSchemaException.
+        // TODO: Do we want such cases to result in RuleViolationException instead?
         Assertions.assertThrows(UnprocessableSchemaException.class, () -> {
             clientV2.updateArtifact("default", artifactId, IoUtil.toStream(INVALID_SCHEMA_WITH_MAP));
         });
@@ -246,10 +244,9 @@ public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {
         rule.setConfig(CompatibilityLevel.FULL.name());
         clientV2.createArtifactRule("default", artifactId, rule);
 
-        // Note: this should result in a rule violation exception due to a parse error in INVALID_SCHEMA_WITH_MAP
-        // It turns out that "{}" is not a valid default for a map field.  This will throw a AvroTypeException from
-        // the Avro parser.  Since an invalid schema has been already created, this will fail earlier in the parsing
-        // and should not result in a 500 error returned by the server.
+        // This will result in org.apache.avro.AvroTypeException in the compatibility checker,
+        // which is rethrown as UnprocessableSchemaException.
+        // TODO: Do we want such cases to result in RuleViolationException instead?
         Assertions.assertThrows(UnprocessableSchemaException.class, () -> {
             clientV2.updateArtifact("default", artifactId, IoUtil.toStream(INVALID_SCHEMA_WITH_MAP));
         });

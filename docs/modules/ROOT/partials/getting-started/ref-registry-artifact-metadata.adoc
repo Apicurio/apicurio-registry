@@ -6,48 +6,51 @@
 [role="_abstract"]
 When an artifact is added to {registry}, a set of metadata properties is stored along with the artifact content. This metadata consists of a set of generated read-only properties, along with some properties that you can set.
 
-.{registry} metadata properties
-[%header,cols=3*]
+.{registry} read-only metadata
+[%header,cols=2*]
 |===
 |Property
 |Type
-|Editable
-|`id`
-a| string
-a| false
-|`type`
-a| ArtifactType
-a| false
-|`state`
-a| ArtifactState
-a| true
-|`version`
-a| integer
-a| false
+|`contentId`
+| integer
 |`createdBy`
-a| string
-a| false
+| string
 |`createdOn`
-a| date
-a| false
+| date
+|`globalId`
+| integer
+|`groupId`
+| string
+|`id`
+| string
 |`modifiedBy`
-a| string
-a| false
+| string
 |`modifiedOn`
-a| date
-a| false
-|`name`
-a| string
-a| true
+| date
+|`references`
+| array of ArtifactReference
+|`type`
+| ArtifactType
+|`version`
+| integer
+|===
+
+
+.{registry} editable metadata
+[%header,cols=2*]
+|===
+|Property
+|Type
 |`description`
-a| string
-a| true
+| string
 |`labels`
-a| array of string
-a| true
+| array of string
+|`name`
+| string
 |`properties`
-a| map
-a| true
+| map
+|`state`
+| ArtifactState
 |===
 
 .Updating artifact metadata

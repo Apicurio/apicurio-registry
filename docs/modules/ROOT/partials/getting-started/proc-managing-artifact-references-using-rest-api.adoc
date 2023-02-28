@@ -7,7 +7,7 @@
 [role="_abstract"]
 {registry} artifact types such as Apache Avro, Protobuf, and JSON Schema can include _artifact references_ from one artifact file to another. You can create efficiencies by defining reusable schema and API artifacts, and then referencing them from multiple locations.
 
-This section shows a simple curl-based example of using the {registry} core REST API to add and retrieve an artifact reference to a simple Avro schema artifact in {registry}. 
+This section shows a simple curl-based example of using the Core Registry API v2 to add and retrieve an artifact reference to a simple Avro schema artifact in {registry}. 
 
 This example first creates a schema artifact named `ItemId`:
 
@@ -48,22 +48,18 @@ This example then creates a schema artifact named `Item`, which includes a refer
 .Prerequisites
 
 ifdef::apicurio-registry,rh-service-registry[]
-* {registry} is installed and running in your environment
+* {registry} is installed and running in your environment.
 endif::[]
 ifdef::rh-openshift-sr[]
 * You have a service account with the correct access permissions for {registry} instances.
-* You  have created an access token using your service account credentials. 
+* You have created an access token using your service account credentials. 
+* You have logged in to the {registry-url}[{registry} web console]. 
 endif::[]
 
 .Procedure
-
 ifdef::rh-openshift-sr[]
-. Connect to the {registry} web console on: 
-+
-{registry-url}
-
-. For the relevant {registry} instance that you want to connect to, select the options icon (three vertical dots) and click *Connection*.
-. In the *Connection* page, copy the URL for the *Core Registry API* to a secure location. You will use this registry API endpoint to connect to the {registry} instance.  
+. In the {registry} web console, for the {registry} instance that you want to connect to, select the options icon (three vertical dots) and click *Connection*.
+. In the *Connection* page, copy the URL for the *Core Registry API* to a secure location. You will use this API endpoint to connect to the {registry} instance. 
 endif::[]
 
 . Add the `ItemId` schema artifact that you want to create the nested artifact reference to using the `/groups/\{group\}/artifacts` operation:
@@ -95,7 +91,7 @@ endif::[]
 [source,bash]
 ----
 {"name":"ItemId","createdBy":"","createdOn":"2022-04-14T10:50:09+0000","modifiedBy":"","modifiedOn":"2022-04-14T10:50:09+0000","id":"ItemId","version":"1","type":"AVRO","globalId":1,"state":"ENABLED","groupId":"my-group","contentId":1,"references":[]}
-----
+---- 
 
 . Add the `Item` schema artifact that includes the artifact reference to the `ItemId` schema using the `/groups/\{group\}/artifacts` operation:
 +
@@ -125,14 +121,14 @@ $ curl -X POST MY-REGISTRY-URL/apis/registry/v2/groups/my-group/artifacts \
 +
 [source,bash]
 ----
-{"name":"Item","createdBy":"","createdOn":"2022-04-14T11:52:15+0000","modifiedBy":"","modifiedOn":"2022-04-14T11:52:15+0000","id":"Item","version":"1","type":"AVRO","globalId":2,"state":"ENABLED","groupId":"my-group","contentId":2,"references":[1]}
+{"name":"Item","createdBy":"","createdOn":"2022-04-14T11:52:15+0000","modifiedBy":"","modifiedOn":"2022-04-14T11:52:15+0000","id":"Item","version":"1","type":"AVRO","globalId":2,"state":"ENABLED","groupId":"my-group","contentId":2, "references":[{"artifactId":"ItemId","groupId":"my-group","name":"ItemId","version":"1"}] }
 ----
 
 . Retrieve the artifact reference from {registry} by specifying the global ID of the artifact that includes the reference. In this example, the specified global ID is `2`:
 +
 [source,bash]
 ----
-$ curl MY-REGISTRY-URL/apis/registry/v2/ids/globalIds/2/references 
+$ curl -H "Authorization: Bearer $ACCESS_TOKEN" MY-REGISTRY-URL/apis/registry/v2/ids/globalIds/2/references  
 ----
 
 . Verify that the response includes the expected JSON body for this artifact reference. For example:

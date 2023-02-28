@@ -16,39 +16,8 @@
 
 package io.apicurio.registry.storage.impl.sql;
 
-import static io.apicurio.registry.storage.impl.sql.SqlUtil.denormalizeGroupId;
-import static io.apicurio.registry.storage.impl.sql.SqlUtil.normalizeGroupId;
-
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.time.Instant;
-import java.util.Collections;
-import java.util.Date;
-import java.util.LinkedHashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.TreeSet;
-import java.util.UUID;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
-import javax.annotation.PostConstruct;
-import javax.enterprise.event.Event;
-import javax.inject.Inject;
-import javax.transaction.Transactional;
-
-import org.apache.commons.codec.digest.DigestUtils;
-import org.apache.commons.lang3.tuple.Pair;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
-import org.slf4j.Logger;
-
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
 import io.apicurio.common.apps.config.Info;
 import io.apicurio.common.apps.core.System;
@@ -71,6 +40,8 @@ import io.apicurio.registry.storage.RoleMappingAlreadyExistsException;
 import io.apicurio.registry.storage.RoleMappingNotFoundException;
 import io.apicurio.registry.storage.RuleAlreadyExistsException;
 import io.apicurio.registry.storage.RuleNotFoundException;
+import io.apicurio.registry.storage.StorageEvent;
+import io.apicurio.registry.storage.StorageEventType;
 import io.apicurio.registry.storage.StorageException;
 import io.apicurio.registry.storage.VersionAlreadyExistsException;
 import io.apicurio.registry.storage.VersionNotFoundException;
@@ -97,7 +68,6 @@ import io.apicurio.registry.storage.dto.SearchedVersionDto;
 import io.apicurio.registry.storage.dto.StoredArtifactDto;
 import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
 import io.apicurio.registry.storage.impexp.EntityInputStream;
-import io.apicurio.registry.storage.impl.AbstractRegistryStorage;
 import io.apicurio.registry.storage.impl.sql.jdb.Handle;
 import io.apicurio.registry.storage.impl.sql.jdb.Query;
 import io.apicurio.registry.storage.impl.sql.jdb.RowMapper;
@@ -134,6 +104,35 @@ import io.apicurio.registry.utils.impexp.GlobalRuleEntity;
 import io.apicurio.registry.utils.impexp.GroupEntity;
 import io.apicurio.registry.utils.impexp.ManifestEntity;
 import io.quarkus.security.identity.SecurityIdentity;
+import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.commons.lang3.tuple.Pair;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.slf4j.Logger;
+
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.Collections;
+import java.util.Date;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import javax.annotation.PostConstruct;
+import javax.enterprise.event.Event;
+import javax.inject.Inject;
+import javax.transaction.Transactional;
+
+import static io.apicurio.registry.storage.impl.sql.SqlUtil.denormalizeGroupId;
+import static io.apicurio.registry.storage.impl.sql.SqlUtil.normalizeGroupId;
 
 
 /**
@@ -141,7 +140,7 @@ import io.quarkus.security.identity.SecurityIdentity;
  * use any ORM technology - it simply uses native SQL for all operations.
  * @author eric.wittmann@gmail.com
  */
-public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage {
+public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
     private static int DB_VERSION = Integer.valueOf(
         IoUtil.toString(AbstractSqlRegistryStorage.class.getResourceAsStream("db-version"))).intValue();
@@ -194,19 +193,33 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     @ConfigProperty(name = "quarkus.datasource.jdbc.url")
     @Info(category = "store", description = "Datasource jdbc URL", availableSince = "2.1.0.Final")
     String jdbcUrl;
-    
+
     @Inject
     Event<SqlStorageEvent> sqlStorageEvent;
-    
+
+    @Inject
+    Event<StorageEvent> storageEvent;
+
+    private volatile boolean isReady = false;
+    private volatile Instant isAliveLastCheck = Instant.MIN;
+    private volatile boolean isAliveCached = false;
+
+    private boolean emitStorageReadyEvent;
+
     /**
-     * Constructor.
+     * @param emitStorageReadyEvent The concrete implementation needs to tell AbstractSqlRegistryStorage
+     * whether it should fire {@see io.apicurio.registry.storage.StorageEvent} in addition to
+     * {@see io.apicurio.registry.storage.impl.sql.SqlStorageEvent}. Multiple storage implementations
+     * may be present at the same time (in particular when using KafkaSQL persistence),
+     * but only the single {@see io.apicurio.registry.types.Current} one may fire the former event.
      */
-    public AbstractSqlRegistryStorage() {
+    protected AbstractSqlRegistryStorage(boolean emitStorageReadyEvent) {
+        this.emitStorageReadyEvent = emitStorageReadyEvent;
     }
 
     @PostConstruct
     @Transactional
-    protected void initialize() {
+    void initialize() {
         log.info("SqlRegistryStorage constructed successfully.  JDBC URL: " + jdbcUrl);
 
         handles.withHandleNoException((handle) -> {
@@ -235,10 +248,26 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
             }
             return null;
         });
-        
+
+        isReady = true;
         SqlStorageEvent initializeEvent = new SqlStorageEvent();
-        initializeEvent.setType(SqlStorageEventType.initialized);
-        sqlStorageEvent.fire(initializeEvent );
+        initializeEvent.setType(SqlStorageEventType.READY);
+        sqlStorageEvent.fire(initializeEvent);
+        if(emitStorageReadyEvent) {
+            /* In cases where the observer of the event also injects the source bean,
+             * such as the io.apicurio.registry.ImportLifecycleBean,
+             * a kind of recursion may happen.
+             * This is because the event is fired in the @PostConstruct method,
+             * and is being processed in the same thread.
+             * We avoid this by processing the event asynchronously.
+             * Note that this requires the javax.enterprise.event.ObservesAsync
+             * annotation on the receiving side. If this becomes cumbersome,
+             * try using ManagedExecutor.
+             */
+            storageEvent.fireAsync(StorageEvent.builder()
+                    .type(StorageEventType.READY)
+                    .build());
+        }
     }
 
     /**
@@ -335,6 +364,28 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
             log.error("Error getting DB version.", e);
             return 0;
         }
+    }
+
+    @Override
+    public boolean isReady() {
+        return isReady;
+    }
+
+    @Override
+    public boolean isAlive() {
+        if (!isReady) {
+            return false;
+        }
+        if (Instant.now().isAfter(isAliveLastCheck.plus(Duration.ofSeconds(2)))) { // Tradeoff between reducing load on the DB and responsiveness: 2s
+            isAliveLastCheck = Instant.now();
+            try {
+                getGlobalRules();
+                isAliveCached = true;
+            } catch (Exception ex) {
+                isAliveCached = false;
+            }
+        }
+        return isAliveCached;
     }
 
     /**
@@ -764,8 +815,9 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
         if (md == null) {
             md = extractMetaData(artifactType, content);
         }
-
-        return createArtifactWithMetadata(groupId, artifactId, version, artifactType, contentId, createdBy, createdOn, md, globalIdGenerator);
+        // This current method is skipped in KafkaSQL, and the one below is called directly,
+        // so references must be added to the metadata there.
+        return  createArtifactWithMetadata(groupId, artifactId, version, artifactType, contentId, createdBy, createdOn, md, globalIdGenerator);
     }
 
     protected ArtifactMetaDataDto createArtifactWithMetadata(String groupId, String artifactId, String version,
@@ -790,12 +842,16 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                         metaData.getName(), metaData.getDescription(), metaData.getLabels(), metaData.getProperties(), createdBy, createdOn,
                         contentId, globalIdGenerator);
 
+                // Get the content so we can return references in the metadata
+                ContentWrapperDto contentDto = this.getArtifactByContentId(contentId);
+
                 // Return the new artifact meta-data
                 ArtifactMetaDataDto amdd = versionToArtifactDto(groupId, artifactId, vmdd);
                 amdd.setCreatedBy(createdBy);
                 amdd.setCreatedOn(createdOn.getTime());
                 amdd.setLabels(metaData.getLabels());
                 amdd.setProperties(metaData.getProperties());
+                amdd.setReferences(contentDto.getReferences());
                 return amdd;
             });
         } catch (Exception e) {

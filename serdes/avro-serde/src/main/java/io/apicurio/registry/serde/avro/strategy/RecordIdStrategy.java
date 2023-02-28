@@ -35,7 +35,7 @@ public class RecordIdStrategy implements ArtifactReferenceResolverStrategy<Schem
     @Override
     public ArtifactReference artifactReference(Record<Object> data, ParsedSchema<Schema> parsedSchema) {
         Schema schema = parsedSchema.getParsedSchema();
-        if (schema != null && schema.getType() == Schema.Type.RECORD) {
+        if (schema != null && (schema.getType() == Schema.Type.RECORD || schema.getType() == Schema.Type.ENUM)) {
             return ArtifactReference.builder()
                     .groupId(schema.getNamespace())
                     .artifactId(schema.getName())

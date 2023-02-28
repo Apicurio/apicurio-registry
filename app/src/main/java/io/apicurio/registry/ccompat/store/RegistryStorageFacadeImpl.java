@@ -29,6 +29,7 @@ import io.apicurio.registry.content.canon.ContentCanonicalizer;
 import io.apicurio.registry.rules.RuleApplicationType;
 import io.apicurio.registry.rules.RuleViolationException;
 import io.apicurio.registry.rules.RulesService;
+import io.apicurio.registry.rules.UnprocessableSchemaException;
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
 import io.apicurio.registry.storage.InvalidArtifactTypeException;
@@ -94,7 +95,7 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
 
     @Override
     public List<String> getSubjects(boolean deleted) {
-        return storage.searchArtifacts(Set.of(SearchFilter.ofGroup(null)), OrderBy.createdOn, OrderDirection.asc, 0, 1000)
+        return storage.searchArtifacts(Set.of(SearchFilter.ofGroup(null)), OrderBy.createdOn, OrderDirection.asc, 0, cconfig.maxSubjects.get())
                 .getArtifacts()
                 .stream()
                 .filter(searchedArtifactDto -> isCcompatManagedType(searchedArtifactDto.getType()) && shouldFilterState(deleted, searchedArtifactDto.getState()))
@@ -203,6 +204,10 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
     public Long createSchema(String subject, String schema, String schemaType, List<SchemaReference> references, boolean normalize) throws ArtifactAlreadyExistsException, ArtifactNotFoundException, RegistryStorageException {
         // Check to see if this content is already registered - return the global ID of that content
         // if it exists.  If not, then register the new content.
+        if (null == schema) {
+            throw new UnprocessableEntityException("The schema provided is null.");
+        }
+
         try {
             ContentHandle content = ContentHandle.create(schema);
             ArtifactVersionMetaDataDto dto;
@@ -298,6 +303,8 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
                 } else {
                     return CompatibilityCheckResponse.IS_NOT_COMPATIBLE;
                 }
+            } catch (UnprocessableSchemaException ex) {
+                throw new UnprocessableEntityException(ex.getMessage(), ex);
             }
         });
     }
@@ -320,6 +327,8 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
             } else {
                 return CompatibilityCheckResponse.IS_NOT_COMPATIBLE;
             }
+        } catch (UnprocessableSchemaException ex) {
+            throw new UnprocessableEntityException(ex.getMessage(), ex);
         }
     }
 

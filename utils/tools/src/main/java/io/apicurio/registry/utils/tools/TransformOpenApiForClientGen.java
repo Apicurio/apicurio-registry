@@ -16,23 +16,23 @@
 
 package io.apicurio.registry.utils.tools;
 
-import static java.lang.System.out;
+import io.apicurio.datamodels.Library;
+import io.apicurio.datamodels.models.Extensible;
+import io.apicurio.datamodels.models.openapi.OpenApiOperation;
+import io.apicurio.datamodels.models.openapi.v30.OpenApi30Document;
+import io.apicurio.datamodels.models.openapi.v30.OpenApi30Schema;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.stream.Collectors;
 
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.IOUtils;
-
-import io.apicurio.datamodels.Library;
-import io.apicurio.datamodels.models.Extensible;
-import io.apicurio.datamodels.models.openapi.OpenApiOperation;
-import io.apicurio.datamodels.models.openapi.v30.OpenApi30Document;
-import io.apicurio.datamodels.models.openapi.v30.OpenApi30Schema;
+import static java.lang.System.out;
 
 /**
+ * 
  * @author eric.wittmann@gmail.com
  * @author Jakub Senko <m@jsenko.net>
  */

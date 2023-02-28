@@ -138,7 +138,7 @@ $ curl -H "Authorization: Bearer $ACCESS_TOKEN" MY-REGISTRY-URL/apis/registry/v2
 [{"groupId":"my-group","artifactId":"ItemId","version":"1","name":"com.example.common.ItemId"}]
 ----
 
-
 [role="_additional-resources"]
 .Additional resources
 * For more details, see the {registry-rest-api}.
+* For more examples of artifact references, see the section on configuring each artifact type in {registry-client-serdes-config}.

@@ -72,4 +72,4 @@ $ curl -H "Authorization: Bearer $ACCESS_TOKEN" \
 
 [role="_additional-resources"]
 .Additional resources
-* For more REST API sample requests, see the {registry-rest-api}.
+* For more details, see the {registry-rest-api}.

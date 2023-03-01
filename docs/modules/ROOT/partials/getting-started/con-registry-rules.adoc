@@ -2,12 +2,12 @@
 
 [id="registry-rules_{context}"]
 
-= Govern registry content using rules
+= Govern {registry} content using rules
 
 [role="_abstract"]
-To govern the evolution of registry content, you can configure optional rules for artifact content added to the registry. All configured global rules or artifact rules must pass before a new artifact version can be uploaded to the registry. Configured artifact rules override any configured global rules.
+To govern the evolution of artifact content added to {registry}, you can configure optional rules. All configured global rules or artifact rules must pass before a new artifact version can be uploaded to {registry}. Configured artifact rules override any configured global rules.
 
-The goal of these rules is to prevent invalid content from being added to the registry. For example, content can be invalid for the following reasons:
+The goal of these rules is to prevent invalid content from being added to {registry}. For example, content can be invalid for the following reasons:
 
 * Invalid syntax for a given artifact type (for example, `AVRO` or `PROTOBUF`)
 * Valid syntax, but semantics violate a specification
@@ -17,7 +17,7 @@ You can enable optional content rules using the {registry} web console, REST API
 
 [id="registry-rules-apply_{context}"]
 == When rules are applied
-Rules are applied only when content is added to the registry. This includes the following REST operations:
+Rules are applied only when content is added to {registry}. This includes the following REST operations:
 
 * Adding an artifact
 * Updating an artifact
@@ -39,9 +39,9 @@ You can configure {registry} content rules at a global level and at an artifact 
 
 [id="registry-rules-work_{context}"]
 == How rules work
-Each rule has a name and configuration information. The registry maintains the list of rules for each artifact and the list of global rules. Each rule in the list consists of a name and configuration for the rule implementation.
+Each rule has a name and configuration information. {registry} maintains the list of rules for each artifact and the list of global rules. Each rule in the list consists of a name and configuration for the rule implementation.
 
-A rule is provided with the content of the current version of the artifact (if one exists) and the new version of the artifact being added. The rule implementation returns true or false depending on whether the artifact passes the rule. If not, the registry reports the reason why in an HTTP error response. Some rules might not use the previous version of the content. For example, compatibility rules use previous versions, but syntax or semantic validity rules do not.
+A rule is provided with the content of the current version of the artifact (if one exists) and the new version of the artifact being added. The rule implementation returns true or false depending on whether the artifact passes the rule. If not, {registry} reports the reason why in an HTTP error response. Some rules might not use the previous version of the content. For example, compatibility rules use previous versions, but syntax or semantic validity rules do not.
 
 [role="_additional-resources"]
 .Additional resources

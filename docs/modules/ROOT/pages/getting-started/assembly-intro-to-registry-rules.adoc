@@ -6,7 +6,7 @@ include::{mod-loc}shared/all-attributes.adoc[]
 //If the assembly covers a task, start the title with a verb in the gerund form, such as Creating or Configuring.
 
 [role="_abstract"]
-This chapter introduces the optional rules used to govern registry content and provides details on the available rule configuration:
+This chapter introduces the optional rules used to govern {registry} content and provides details on the available rule configuration:
 
 * xref:registry-rules_{context}[]
 * xref:registry-rules-apply_{context}[]

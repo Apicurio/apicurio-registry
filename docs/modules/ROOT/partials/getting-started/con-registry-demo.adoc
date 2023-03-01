@@ -4,20 +4,19 @@
 = {registry} demonstration examples
 
 [role="_abstract"]
-{registry} provides open source example applications that demonstrate how to use {registry} in different use case scenarios. For example, these include storing schemas used by Kafka serializer and deserializer (SerDes) classes. These Java classes fetch the schema from the registry for use when producing or consuming operations to serialize, deserialize, or validate the Kafka message payload.
+{registry} provides open source example applications that demonstrate how to use {registry} in different use case scenarios. For example, these include storing schemas used by Kafka serializer and deserializer (SerDes) Java classes. These classes fetch the schema from {registry} for use when producing or consuming operations to serialize, deserialize, or validate the Kafka message payload.
 
-These example applications include the following:
+These applications demonstrate use cases such as the following examples:
 
-* Apache Avro SerDes
-* Google Protobuf SerDes
-* JSON Schema SerDes
-* Confluent SerDes
-* Custom ID strategy
-* REST client 
+* Apache Avro Kafka SerDes
+* Apache Avro Maven plug-in
+* Apache Camel Quarkus and Kafka
 * Cloud Events 
-* Quarkus and Kafka
-* Apache Camel with Quarkus and Kafka
-
+* Confluent Kafka SerDes
+* Custom ID strategy
+* Google Protobuf Kafka SerDes
+* JSON Schema Kafka SerDes
+* REST clients 
 
 [role="_additional-resources"]
 .Additional resources

@@ -9,26 +9,27 @@ Kafka producer applications can use serializers to encode messages that conform 
 
 .{registry} and Kafka client SerDes architecture
 ifdef::apicurio-registry,rh-service-registry[]
-image::images/getting-started/registry-serdes-architecture.png[Registry SerDes architecture]
+image::images/getting-started/registry-serdes-architecture.png[Kafka client SerDes architecture]
 endif::[]
 ifdef::rh-openshift-sr[]
-image::../_images/introduction/registry-serdes-architecture.png[Registry SerDes architecture]
+image::../_images/introduction/registry-serdes-architecture.png[Kafka client SerDes architecture]
 endif::[]
 
 {registry} provides Kafka client serializers/deserializers (SerDes) to validate the following message types at runtime:
 
 * Apache Avro
-* Google protocol buffers
+* Google Protobuf
 * JSON Schema
 
 ifdef::apicurio-registry,rh-service-registry[]
-The {registry} Maven repository and source code distributions include the Kafka SerDes implementations for these message types, which Kafka client application developers can use to integrate with the registry. 
+The {registry} Maven repository and source code distributions include
 endif::[]
 ifdef::rh-openshift-sr[]
-The {registry} Maven repository includes the Kafka SerDes implementations for these message types, which Kafka client developers can use to integrate with the registry. 
+The {registry} Maven repository includes 
 endif::[]
+the Kafka SerDes implementations for these message types, which Kafka client application developers can use to integrate with {registry}. 
 
-These implementations include custom Java classes for each supported message type, for example, `io.apicurio.registry.serde.avro`, which client applications can use to pull schemas from the registry at runtime for validation. 
+These implementations include custom Java classes for each supported message type, for example, `io.apicurio.registry.serde.avro`, which client applications can use to pull schemas from {registry} at runtime for validation. 
 
 [role="_additional-resources"]
 .Additional resources

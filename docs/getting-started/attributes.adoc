@@ -1,1 +1,100 @@
-../modules/ROOT/partials/shared/attributes.adoc
+// Standard document attributes to be used in the documentation
+//
+// The following are shared by all documents
+
+//:toc:
+//:toclevels: 4
+//:numbered:
+
+// Branding - toggle upstream/downstream content "on/off"
+
+// The following attributes conditionalize content from the Apicurio Registry project:
+// * Upstream-only content tagged with ifdef::apicurio-registry[]...endif::[]
+// * Downstream-only content tagged with ifdef::rh-service-registry[]...endif::[]
+// Untagged content is common
+
+// Upstream condition by default, switch on/off downstream-only
+//:service-registry-downstream:
+
+// upstream
+ifndef::service-registry-downstream[]
+:apicurio-registry:
+:registry: Apicurio Registry
+:registry-name-full: Apicurio Registry
+:registry-version: 2.4
+:registry-docker-version: latest-release 
+:registry-v1: 1.3.x
+:operator-version: 1.0.0
+:kafka-streams: Strimzi
+:registry-kafka-version: 3.1
+:keycloak: Keycloak
+:keycloak-version: 12.0
+endif::[]
+
+// downstream
+ifdef::service-registry-downstream[]
+:rh-service-registry:
+:org-name: Red Hat
+:prodnamefull: {org-name} Integration
+:registry-name-full: Service Registry
+:registry: Service Registry
+:registry-version: 2.3
+:registry-v1: 1.1
+:operator-version: 1.0.0.redhat.x
+:kafka-streams: AMQ Streams
+:registry-streams-version: 2.1
+:keycloak: {org-name} Single Sign-On
+:keycloak-version: 7.6
+:sso-token-url: \https://sso.redhat.com/auth/realms/redhat-external/protocol/openid-connect/token
+
+ifdef::RHAF[]
+:prodnamefull: {org-name} Application Foundations
+:registry-name-full: Red Hat build of Apicurio Registry
+:registry: Apicurio Registry
+endif::[]
+
+endif::[]
+
+//common
+:context: registry
+:version: 2022.Q3
+:attachmentsdir: files
+:registry-release: 2.3.0.Final
+:registry-ocp-version: 4.11
+:registry-db-version: 12
+:registry-url: \http://MY_REGISTRY_URL/ui
+
+//integration products
+:amq-version: 2.1
+:fuse-version: 7.11
+:3scale-version: 2.12
+:productpkg: red_hat_integration
+
+// Characters
+:copy: ©
+:infin: ∞
+:mdash: —
+:nbsp:
+:ndash: –
+:reg: ®
+:trade: ™
+
+//Include attributes for external linking
+include::attributes-links.adoc[]
+
+// Download URLs
+:download-url-registry-container-catalog: https://catalog.redhat.com/software/containers/search
+:download-url-registry-distribution: https://access.redhat.com/jbossnetwork/restricted/listSoftware.html?downloadType=distributions&product=red.hat.integration
+
+
+// internal links
+:registry-overview: xref:intro-to-the-registry_{context}[]
+:registry-rules: xref:intro-to-registry-rules_{context}[] 
+:registry-reference: xref:registry-artifact-reference_{context}[]
+:installing-the-registry-openshift: xref:installing-registry-ocp_{context}[]
+:installing-the-registry-storage-openshift: xref:installing-registry-streams-storage_{context}[]
+:managing-registry-artifacts-ui: xref:managing-registry-artifacts-ui_{context}[]
+:managing-registry-artifacts-api: xref:managing-registry-artifacts-api_{context}[]
+:managing-registry-artifacts-maven: xref:managing-registry-artifacts-maven_{context}[]
+:kafka-client-serdes: xref:using-kafka-client-serdes_{context}[]
+:registry-rest-api: link:{attachmentsdir}/registry-rest-api.htm[Apicurio Registry REST API documentation]

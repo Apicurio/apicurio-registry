@@ -1,0 +1,27 @@
+// Metadata created by nebel
+include::{mod-loc}shared/all-attributes.adoc[]
+
+[id="installing-registry-ocp_{context}"]
+= Installing {registry} on OpenShift
+
+[role="_abstract"]
+This chapter explains how to install {registry} on OpenShift Container Platform:
+
+* xref:installing-registry-operatorhub_{context}[]
+
+.Prerequisites
+ifdef::apicurio-registry[]
+* {registry-overview}
+endif::[]
+ifdef::rh-service-registry[]
+* Read the introduction in the link:{LinkServiceRegistryUser}[{NameServiceRegistryUser}]
+endif::[]
+
+ifdef::apicurio-registry[]
+[role="_additional-resources"]
+.Additional resources
+* For details on building from source, see https://github.com/Apicurio/apicurio-registry.
+endif::[]
+
+//INCLUDES
+include::{mod-loc}getting-started/proc-installing-registry-operatorhub.adoc[leveloffset=+1]

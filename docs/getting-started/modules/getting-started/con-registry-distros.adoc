@@ -1,0 +1,79 @@
+// Metadata created by nebel
+
+[id="registry-distros_{context}"]
+= {registry} available distributions
+
+[role="_abstract"]
+{registry} provides the following distribution options. 
+
+ifdef::apicurio-registry[]
+
+.{registry} images 
+[%header,cols="2,4"] 
+|===
+|Distribution option
+|Container Image
+|In-memory
+|https://hub.docker.com/r/apicurio/apicurio-registry-mem
+|PostgreSQL database  
+|https://hub.docker.com/r/apicurio/apicurio-registry-sql 
+|Apache Kafka
+|https://hub.docker.com/r/apicurio/apicurio-registry-kafkasql 
+|{registry} Operator 
+|https://hub.docker.com/r/apicurio/apicurio-registry-operator
+|===
+
+.Additional resources
+* For details on building from source code and running Docker images, see https://github.com/Apicurio/apicurio-registry
+* For details on using the Operator to deploy, see https://github.com/Apicurio/apicurio-registry-operator
+
+endif::[]
+
+ifdef::rh-service-registry[]
+
+.{registry} Operator and images
+[%header,cols="3,3,2"]
+|===
+|Distribution
+|Location
+|Release category
+|{registry} Operator 
+|OpenShift web console under *Operators* → *OperatorHub*
+|General Availability
+|Container image for {registry} Operator 
+|link:{download-url-registry-container-catalog}[{org-name} Ecosystem Catalog]
+|General Availability
+|Container image for Kafka storage in AMQ Streams 
+|link:{download-url-registry-container-catalog}[{org-name} Ecosystem Catalog] 
+|General Availability
+|Container image for database storage in PostgreSQL 
+|link:{download-url-registry-container-catalog}[{org-name} Ecosystem Catalog]
+|General Availability
+|===
+
+
+.{registry} zip downloads
+[%header,cols="3,3,2"]
+|===
+|Distribution
+|Location
+|Release category
+|Example custom resource definitions for installation
+|link:{download-url-registry-distribution}[{org-name} Software Downloads]
+|General Availability
+|{registry} v1 to v2 migration tool 
+|link:{download-url-registry-distribution}[{org-name} Software Downloads]
+|General Availability
+|Maven repository
+|link:{download-url-registry-distribution}[{org-name} Software Downloads]
+|General Availability
+|Source code 
+|link:{download-url-registry-distribution}[{org-name} Software Downloads]
+|General Availability
+|Kafka Connect converters 
+|link:{download-url-registry-distribution}[{org-name} Software Downloads]
+|General Availability
+|===
+
+NOTE: You must have a subscription for {prodnamefull} and be logged into the {org-name} Customer Portal to access the available {registry} distributions.
+endif::[]

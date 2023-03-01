@@ -1,0 +1,43 @@
+[id="registry-logging_{context}"]
+= Configuring {registry} logging
+
+You can set {registry} logging configuration at runtime. {registry} provides a REST endpoint to set the log level for specific loggers for finer grained logging. This section explains how to view and set {registry} log levels at runtime using the {registry} `/admin` REST API.
+
+.Prerequisites
+
+* Get the URL to access your {registry} instance, or get your {registry} route if you have {registry} deployed on OpenShift. This simple example uses a URL of `localhost:8080`.
+
+.Procedure
+
+. Use this `curl` command to obtain the current log level for the logger `io.apicurio.registry.storage`:
++
+[source,bash]
+----
+$ curl -i localhost:8080/apis/registry/v2/admin/loggers/io.apicurio.registry.storage
+HTTP/1.1 200 OK
+[...]
+Content-Type: application/json
+{"name":"io.apicurio.registry.storage","level":"INFO"}
+----
+
+. Use this `curl` command to change the log level for the logger `io.apicurio.registry.storage` to `DEBUG`:
++
+[source,bash]
+----
+$ curl -X PUT -i -H "Content-Type: application/json" --data '{"level":"DEBUG"}' localhost:8080/apis/registry/v2/admin/loggers/io.apicurio.registry.storage
+HTTP/1.1 200 OK
+[...]
+Content-Type: application/json
+{"name":"io.apicurio.registry.storage","level":"DEBUG"}
+----
+
+. Use this `curl` command to revert the log level for the logger `io.apicurio.registry.storage` to its default value:
++
+[source,bash]
+----
+$ curl -X DELETE -i localhost:8080/apis/registry/v2/admin/loggers/io.apicurio.registry.storage
+HTTP/1.1 200 OK
+[...]
+Content-Type: application/json
+{"name":"io.apicurio.registry.storage","level":"INFO"}
+----

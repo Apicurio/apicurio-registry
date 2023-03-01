@@ -1,0 +1,22 @@
+// Metadata created by nebel
+// ParentAssemblies: assemblies/getting-started/as_installing-the-registry.adoc
+
+[id="registry-kafka-topic-names_{context}"]
+
+[role="_abstract"]
+= Kafka topic name configuration
+The default Kafka topic name that {registry} uses to store data is `kafkasql-journal`. This topic is created automatically by {registry}. However, you can override this behavior or the default topic name by setting the appropriate environment variable or Java system property:
+
+.Kafka topic name configuration
+[%header,cols="3,3,2"]
+|===
+|Environment variable
+|Java system property
+|Default value
+| `REGISTRY_KAFKASQL_TOPIC`
+| `registry.kafkasql.topic`
+| `kafkasql-journal`
+| `REGISTRY_KAFKASQL_TOPIC_AUTO_CREATE`
+| `registry.kafkasql.topic.auto-create`
+| `true`
+|===

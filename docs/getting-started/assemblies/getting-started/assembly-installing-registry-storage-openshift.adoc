@@ -1,0 +1,30 @@
+// Metadata created by nebel
+include::{mod-loc}shared/all-attributes.adoc[]
+
+[id="installing-registry-storage_{context}"]
+= Installing {registry} storage on OpenShift
+
+[role="_abstract"]
+This chapter explains how to install and configure your chosen registry storage option: 
+
+.Kafka storage
+* xref:installing-kafka-streams-operatorhub_{context}[]
+* xref:setting-up-kafka-streams-storage_{context}[]
+* xref:registry-kafka-topic-names_{context}[]
+* xref:configuring-kafka-oauth_{context}[]
+
+.PostgreSQL database storage
+* xref:installing-postgresql-operatorhub_{context}[]
+* xref:setting-up-postgresql-storage_{context}[]
+
+.Prerequisites
+* {installing-the-registry-openshift}
+
+//INCLUDES
+//include::{mod-loc}getting-started/proc_installing-registry-kafka-streams-template-storage.adoc[leveloffset=+1]
+include::{mod-loc}getting-started/proc-installing-kafka-streams-operatorhub.adoc[leveloffset=+1]
+include::{mod-loc}getting-started/proc-setting-up-kafka-streams-storage.adoc[leveloffset=+1]
+include::{mod-loc}getting-started/ref-registry-kafka-topic-names.adoc[leveloffset=+2]
+include::{mod-loc}getting-started/proc-configuring-kafka-oauth.adoc[leveloffset=+1]
+include::{mod-loc}getting-started/proc-installing-postgresql-operatorhub.adoc[leveloffset=+1]
+include::{mod-loc}getting-started/proc-setting-up-postgresql-storage.adoc[leveloffset=+1]

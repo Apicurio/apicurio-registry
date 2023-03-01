@@ -1,0 +1,35 @@
+// Metadata created by nebel
+include::{mod-loc}shared/all-attributes.adoc[]
+
+[id="using-kafka-client-serdes_{context}"]
+= Validating Kafka messages using serializers/deserializers in Java clients
+//If the assembly covers a task, start the title with a verb in the gerund form, such as Creating or Configuring.
+
+[role="_abstract"]
+{registry} provides client serializers/deserializers (SerDes) for Kafka producer and consumer applications written in Java. Kafka producer applications use serializers to encode messages that conform to a specific event schema. Kafka consumer applications use deserializers to validate that messages have been serialized using the correct schema, based on a specific schema ID. This ensures consistent schema use and helps to prevent data errors at runtime.
+
+This chapter explains how to use Kafka client SerDes in your producer and consumer client applications:
+
+* xref:registry-serdes-concepts-serde_{context}[]
+* xref:registry-serdes-concepts-strategy_{context}[]
+* xref:registry-serdes-register_{context}[]
+* xref:registry-serdes-config-consumer_{context}[]
+* xref:registry-serdes-config-producer_{context}[]
+* xref:registry-serdes-config-stream_{context}[]
+
+.Prerequisites
+* You have read {registry-overview}
+* You have installed {registry}
+* You have created Kafka producer and consumer client applications
++
+ifdef::rh-service-registry[]
+For more details on Kafka client applications, see link:{LinkDeployStreamsOpenShift}[{NameDeployStreamsOpenShift}].
+endif::[]
+
+//INCLUDES
+include::{mod-loc}getting-started/con-registry-serdes-concepts.adoc[leveloffset=+1]
+include::{mod-loc}getting-started/con-registry-serdes-strategy.adoc[leveloffset=+1]
+include::{mod-loc}getting-started/proc-registry-serdes-register.adoc[leveloffset=+1]
+include::{mod-loc}getting-started/proc-registry-serdes-config-consumer.adoc[leveloffset=+1]
+include::{mod-loc}getting-started/proc-registry-serdes-config-producer.adoc[leveloffset=+1]
+include::{mod-loc}getting-started/proc-registry-serdes-config-stream.adoc[leveloffset=+1]

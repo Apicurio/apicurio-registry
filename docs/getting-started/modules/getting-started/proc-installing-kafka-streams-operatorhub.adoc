@@ -1,0 +1,52 @@
+// Metadata created by nebel
+//
+// ParentAssemblies: assemblies/getting-started/as_installing-the-registry.adoc
+
+[id="installing-kafka-streams-operatorhub_{context}"]
+
+= Installing {kafka-streams} from the OpenShift OperatorHub
+// Start the title of a procedure module with a verb, such as Creating or Create. See also _Wording of headings_ in _The IBM Style Guide_.
+
+If you do not already have {kafka-streams} installed, you can install the {kafka-streams} Operator on your OpenShift cluster from the OperatorHub. The OperatorHub is available from the OpenShift Container Platform web console and provides an interface for cluster administrators to discover and install Operators. For more details, see link:{LinkOpenShiftIntroOperator}[{NameOpenShiftIntroOperator}].
+
+
+.Prerequisites
+
+* You must have cluster administrator access to an OpenShift cluster 
+ifdef::rh-service-registry[]
+* See link:{LinkDeployStreamsOpenShift}[{NameDeployStreamsOpenShift}] for detailed information on installing {kafka-streams}. This section shows a simple example of installing using the OpenShift OperatorHub.
+endif::[]
+
+
+.Procedure
+
+. In the OpenShift Container Platform web console, log in using an account with cluster administrator privileges.
+
+. Change to the OpenShift project in which you want to install {kafka-streams}. For example, from the *Project* drop-down, select `my-project`. 
+
+. In the left navigation menu, click *Operators* and then *OperatorHub*.
+ifdef::apicurio-registry[]
+. In the *Filter by keyword* text box, enter `{kafka-streams}` to find the *{kafka-streams}* Operator.
+endif::[]
+ifdef::rh-service-registry[]
+. In the *Filter by keyword* text box, enter `{kafka-streams}` to find the *Red Hat Integration - {kafka-streams}* Operator.
+endif::[]
+. Read the information about the Operator, and click *Install* to display the Operator subscription page.
+
+. Select your subscription settings, for example:
+ifdef::apicurio-registry[]
+** *Update Channel* and then *stable*
+endif::[]
+ifdef::rh-service-registry[]
+** *Update Channel* and then *amq-streams-{registry-streams-version}.x*
+endif::[]
+** *Installation Mode*: Select one of the following: 
+*** *All namespaces on the cluster (default)*
+*** *A specific namespace on the cluster* > *my-project*
+** *Approval Strategy*: Select *Automatic* or *Manual*
+
+. Click *Install*, and wait a few moments until the Operator is ready for use.
+
+.Additional resources
+* link:{LinkOpenShiftAddOperator}[{NameOpenShiftAddOperator}]
+* link:{LinkDeployStreamsOpenShift}[{NameDeployStreamsOpenShift}]

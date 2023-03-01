@@ -1,11 +1,10 @@
 package io.apicurio.registry.rest;
 
 import io.apicurio.common.apps.config.Dynamic;
+import io.apicurio.common.apps.config.Info;
+import jakarta.inject.Singleton;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
-import io.apicurio.common.apps.config.Info;
-
-import javax.inject.Singleton;
 import java.util.function.Supplier;
 
 @Singleton

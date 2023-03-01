@@ -16,16 +16,6 @@
 
 package io.apicurio.registry.rest.v2;
 
-import java.util.List;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
-
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
-import javax.interceptor.Interceptors;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-
 import io.apicurio.common.apps.logging.Logged;
 import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
@@ -44,6 +34,15 @@ import io.apicurio.registry.storage.dto.StoredArtifactDto;
 import io.apicurio.registry.types.ArtifactMediaTypes;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ReferenceType;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
+import jakarta.interceptor.Interceptors;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
+
+import java.util.List;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 /**
  * @author eric.wittmann@gmail.com

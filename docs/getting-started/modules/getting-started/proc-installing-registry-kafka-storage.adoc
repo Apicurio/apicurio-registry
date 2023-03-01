@@ -1,0 +1,98 @@
+// Metadata created by nebel
+// ParentAssemblies: assemblies/getting-started/as_installing-the-registry.adoc
+
+[id="installing-registry-kafka-storage_{context}"]
+ifdef::apicurio-registry[]
+= Installing {registry} with Apache Kafka storage
+endif::[]
+
+ifdef::rh-service-registry[]
+= Installing {registry} with Apache Kafka storage using Docker
+endif::[]
+
+[role="_abstract"]
+This topic explains how to install and run {registry} with Kafka storage from a container image. The `kafkasql` storage option uses Kafka storage with in-memory H2 database. This storage option is suitable for production environments. 
+
+.Prerequisites
+
+* You must have Docker installed and the Docker daemon running.
+ifdef::apicurio-registry[]
+* Ensure that you can connect to the container repository: https://hub.docker.com/r/apicurio/apicurio-registry-kafkasql.
+endif::[] 
+* Ensure that `KAFKA_HOME` is set to the location of your Kafka-based system. 
+* You must already have your Kafka broker running. For example: 
++
+[source,bash]
+----
+$KAFKA_HOME/bin/zookeeper-server-start.sh $KAFKA_HOME/config/zookeeper.properties &
+$KAFKA_HOME/bin/kafka-server-start.sh $KAFKA_HOME/config/server.properties &
+----
++ 
+For more details, see https://kafka.apache.org/quickstart. 
+
+.Procedure
+ifdef::apicurio-registry[]
+. Get the {registry} container image:
++
+[source,bash]
+----
+$ docker pull apicurio/apicurio-registry-kafkasql:VERSION 
+----
++ 
+`VERSION` is the {registry} release version, for example, `{registry-docker-version}`. For more details, see https://hub.docker.com/r/apicurio/apicurio-registry-kafkasql/tags.
+
+. Run the container image and specify the following environment variable for your Kafka system: 
++
+** `KAFKA_BOOTSTRAP_SERVERS` - The address(es) of your Kafka broker(s). 
++
+For example:  
++
+[source,bash]
+----
+$ docker run -it -p 8080:8080 -e "KAFKA_BOOTSTRAP_SERVERS=kafka:9092" apicurio/apicurio-registry-kafkasql:latest
+----
+endif::[]
+
+ifdef::rh-service-registry[]
+. Log in and authenticate using the following command: 
++
+[source,bash]
+----
+$ docker login registry.redhat.io
+----
+. Get the {registry} container image:
++
+[source,bash]
+----
+$ docker pull registry.redhat.io/fuse7-tech-preview/fuse-service-registry-rhel7 
+----
+. Run the container image and specify the following environment variable for your Kafka system: 
++
+** `KAFKA_BOOTSTRAP_SERVERS` - The address(es) of your Kafka broker(s). 
++
+For example:  
++
+[source,bash]
+----
+$ docker run -it -p 8080:8080 -e "KAFKA_BOOTSTRAP_SERVERS=kafka:9092" registry.redhat.io/fuse7-tech-preview/fuse-service-registry-rhel7
+----
+endif::[]
+
+. Send a test request using the {registry} REST API. For example, enter the following `curl` command to create a simple Avro schema artifact for a share price application in the registry:
++
+[source,bash]
+----
+$ curl -X POST -H "Content-type: application/json; artifactType=AVRO" -H "X-Registry-ArtifactId: share-price" --data '{"type":"record","name":"price","namespace":"com.example","fields":[{"name":"symbol","type":"string"},{"name":"price","type":"string"}]}' http://localhost:8080/apis/registry/v2/groups/my-group/artifacts
+----
+. Verify that the response includes the expected JSON body to confirm that the Avro schema artifact was created in the registry. For example:
++
+[source,bash]
+----
+{"name":"price","createdBy":"","createdOn":"2021-03-19T17:48:17+0000","modifiedOn":"2021-03-19T17:48:17+0000","id":"share-price","version":1,"type":"AVRO","globalId":12,"state":"ENABLED","groupId":"my-group","contentId":12}
+----
+
+[role="_additional-resources"]
+.Additional resources
+* For more REST API sample requests, see the link:{attachmentsdir}/registry-rest-api.htm[Apicurio Registry REST API documentation].
+* For demonstration examples, see link:https://github.com/Apicurio/apicurio-registry-examples[].
+* For more details on Apache Kafka, see https://kafka.apache.org/documentation/.

@@ -43,6 +43,7 @@ import javax.inject.Inject;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import jakarta.inject.Inject;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.CoreMatchers.anything;
@@ -182,7 +183,7 @@ public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {
         String v2Schema = "{\"type\": \"string\"}";
 
         Assertions.assertThrows(RuleViolationException.class, () -> {
-            RuleContext context = new RuleContext("TestGroup", "Test", "AVRO", "BACKWARD", 
+            RuleContext context = new RuleContext("TestGroup", "Test", "AVRO", "BACKWARD",
                     Collections.singletonList(ContentHandle.create(v1Schema)), ContentHandle.create(v2Schema),
                     Collections.emptyList(), Collections.emptyMap());
             compatibility.execute(context);
@@ -195,8 +196,8 @@ public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {
         String v2Schema = JsonSchemas.incompatibleJsonSchema;
 
         RuleViolationException ruleViolationException = Assertions.assertThrows(RuleViolationException.class, () -> {
-            RuleContext context = new RuleContext("TestGroup", "TestJson", ArtifactType.JSON, "FORWARD_TRANSITIVE", 
-                    Collections.singletonList(ContentHandle.create(v1Schema)), ContentHandle.create(v2Schema), 
+            RuleContext context = new RuleContext("TestGroup", "TestJson", ArtifactType.JSON, "FORWARD_TRANSITIVE",
+                    Collections.singletonList(ContentHandle.create(v1Schema)), ContentHandle.create(v2Schema),
                     Collections.emptyList(), Collections.emptyMap());
             compatibility.execute(context);
         });

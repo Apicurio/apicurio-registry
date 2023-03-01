@@ -1,0 +1,86 @@
+// Module included in the following assemblies:
+//  assembly-using-kafka-client-serdes
+
+[id='registry-serdes-concepts-constants_{context}']
+= {registry} serializer/deserializer configuration in client applications
+ 
+[role="_abstract"]
+You can configure specific client serializer/deserializer (SerDe) services and schema lookup strategies directly in a client application using the example constants shown in this section. Alternatively, you can configure the corresponding {registry} application properties in a file or an instance. 
+
+The following sections show examples of commonly used SerDe constants and configuration options.
+
+
+[discrete]
+== Configuration for SerDe services
+
+[source,java,subs="+quotes,attributes"]
+----
+public class SerdeConfig {
+
+   public static final String REGISTRY_URL = "apicurio.registry.url"; <1>
+   public static final String ID_HANDLER = "apicurio.registry.id-handler"; <2>
+   public static final String ENABLE_CONFLUENT_ID_HANDLER = "apicurio.registry.as-confluent"; <3>
+----
+. The required URL of {registry}.
+. Extends ID handling to support other ID formats and make them compatible with {registry} SerDe services.
+For example, changing the default ID format from `Long` to `Integer` supports the Confluent ID format.
+. Simplifies the handling of Confluent IDs. If set to `true`, an `Integer` is used for the global ID lookup.
+The setting should not be used with the `ID_HANDLER` option.
+
+[role="_additional-resources"]
+.Additional resources
+
+** For more details on configuration options, see xref:registry-serdes-config-props_{context}[]
+
+
+[discrete]
+== Configuration for SerDe lookup strategies
+
+[source,java,subs="+quotes,attributes"]
+----
+public class SerdeConfig {
+    
+   public static final String ARTIFACT_RESOLVER_STRATEGY = "apicurio.registry.artifact-resolver-strategy"; <1>
+   public static final String SCHEMA_RESOLVER = "apicurio.registry.schema-resolver"; <2>
+...      
+----
+. Java class that implements the artifact resolver strategy and maps between the Kafka SerDe and artifact ID.  Defaults to the topic ID strategy. This is only used by the serializer class.
+. Java class that implements the schema resolver. Defaults to `DefaultSchemaResolver`. This is used by the serializer and deserializer classes.
+
+[role="_additional-resources"]
+.Additional resources
+
+* For more details on look up strategies, see {kafka-client-serdes}
+* For more details on configuration options, see xref:registry-serdes-config-props_{context}[]
+
+[discrete]
+== Configuration for Kafka converters
+
+[source,java,subs="+quotes,attributes"]
+----
+public class SerdeBasedConverter<S, T> extends SchemaResolverConfigurer<S, T> implements Converter, Closeable {
+
+   public static final String REGISTRY_CONVERTER_SERIALIZER_PARAM = "apicurio.registry.converter.serializer"; <1>
+   public static final String REGISTRY_CONVERTER_DESERIALIZER_PARAM = "apicurio.registry.converter.deserializer"; <2>   
+----
+. The required serializer to use with the {registry} Kafka converter.
+. The required deserializer to use with the {registry} Kafka converter.
+
+[role="_additional-resources"]
+.Additional resources
+
+* For more details, see the link:https://github.com/Apicurio/apicurio-registry/blob/2.0.x/utils/converter/src/main/java/io/apicurio/registry/utils/converter/SerdeBasedConverter.java[SerdeBasedConverter Java class] 
+
+[discrete]
+== Configuration for different schema types
+
+For details on how to configure SerDe for different schema technologies, see the following: 
+
+* xref:registry-serdes-types-avro_registry[]
+* xref:registry-serdes-types-json_registry[]
+* xref:registry-serdes-types-protobuf_registry[]
+
+
+
+
+  

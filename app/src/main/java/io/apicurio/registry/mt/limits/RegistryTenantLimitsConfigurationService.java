@@ -23,28 +23,17 @@ import io.apicurio.common.apps.multitenancy.limits.TenantLimitsConfigurationServ
 import io.apicurio.tenantmanager.api.datamodel.ApicurioTenant;
 import io.apicurio.tenantmanager.api.datamodel.ResourceType;
 import io.apicurio.tenantmanager.api.datamodel.TenantResource;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 
 import javax.annotation.PostConstruct;
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import static io.apicurio.tenantmanager.api.datamodel.ResourceType.MAX_ARTIFACTS_COUNT;
-import static io.apicurio.tenantmanager.api.datamodel.ResourceType.MAX_ARTIFACT_DESCRIPTION_LENGTH_CHARS;
-import static io.apicurio.tenantmanager.api.datamodel.ResourceType.MAX_ARTIFACT_LABELS_COUNT;
-import static io.apicurio.tenantmanager.api.datamodel.ResourceType.MAX_ARTIFACT_NAME_LENGTH_CHARS;
-import static io.apicurio.tenantmanager.api.datamodel.ResourceType.MAX_ARTIFACT_PROPERTIES_COUNT;
-import static io.apicurio.tenantmanager.api.datamodel.ResourceType.MAX_LABEL_SIZE_BYTES;
-import static io.apicurio.tenantmanager.api.datamodel.ResourceType.MAX_PROPERTY_KEY_SIZE_BYTES;
-import static io.apicurio.tenantmanager.api.datamodel.ResourceType.MAX_PROPERTY_VALUE_SIZE_BYTES;
-import static io.apicurio.tenantmanager.api.datamodel.ResourceType.MAX_REQUESTS_PER_SECOND_COUNT;
-import static io.apicurio.tenantmanager.api.datamodel.ResourceType.MAX_SCHEMA_SIZE_BYTES;
-import static io.apicurio.tenantmanager.api.datamodel.ResourceType.MAX_TOTAL_SCHEMAS_COUNT;
-import static io.apicurio.tenantmanager.api.datamodel.ResourceType.MAX_VERSIONS_PER_ARTIFACT_COUNT;
+import static io.apicurio.tenantmanager.api.datamodel.ResourceType.*;
 
 /**
  * @author Fabian Martinez
@@ -118,7 +107,7 @@ public class RegistryTenantLimitsConfigurationService implements TenantLimitsCon
 
     private boolean isConfigured = true;
     private RegistryTenantLimitsConfiguration defaultLimitsConfiguration;
-    
+
     @PostConstruct
     public void postConstruct() {
         //when multi-tenancy is enabled the limits service is

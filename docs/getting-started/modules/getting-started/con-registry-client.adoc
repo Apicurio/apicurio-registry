@@ -1,0 +1,23 @@
+// Metadata created by nebel
+
+[id="registry-client-intro_{context}"]
+= {registry} Java client 
+
+[role="_abstract"]
+You can manage artifacts stored in {registry} using a Java client application. You can create, read, update, or delete artifacts stored in the registry using the {registry} Java client classes. You can also perform admin functions using the client, such as managing global rules or importing and exporting registry data.
+
+You can access the {registry} Java client by adding the correct dependency to your project. 
+ifdef::apicurio-registry,rh-service-registry[]
+For more details, see xref:writing-registry-client_registry[]
+endif::[]
+ifdef::rh-openshift-sr[]
+For more details, see xref:writing-registry-client_java-client[Writing {registry} Java client applications].
+endif::[]
+
+The {registry} client is implemented using the HTTP client provided by the JDK. This gives you the ability to customize its use, for example, by adding custom headers or enabling options for Transport Layer Security (TLS) authentication. 
+ifdef::apicurio-registry,rh-service-registry[]
+For more details, see xref:registry-client-config_registry[]
+endif::[]
+ifdef::rh-openshift-sr[]
+For more details, see xref:registry-client-config_java-client[{registry} Java client configuration].
+endif::[]

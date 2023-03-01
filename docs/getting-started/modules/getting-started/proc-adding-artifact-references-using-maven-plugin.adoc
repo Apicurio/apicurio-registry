@@ -1,0 +1,125 @@
+// Metadata created by nebel
+// ParentAssemblies: assemblies/getting-started/as_installing-the-registry.adoc
+
+[id="adding-artifact-references-using-maven-plugin_{context}"]
+= Adding artifact references using the {registry} Maven plug-in
+
+[role="_abstract"]
+{registry} artifact types such as Apache Avro, Protobuf, and JSON Schema can include _artifact references_ from one artifact file to another. You can create efficiencies by defining reusable schema and API artifacts, and then referencing them from multiple locations in artifact references.
+
+This section shows a simple example of using the {registry} Maven plug-in to register an artifact reference to a simple Avro schema artifact stored in {registry}. This example assumes that the following `Exchange` schema artifact has already been created in {registry}:
+
+.Exchange schema
+[source,json]
+---- 
+{
+  "namespace": "com.kubetrade.schema.common",
+  "type": "enum",
+  "name": "Exchange",
+  "symbols" : ["GEMINI"]
+} 
+----
+
+This example then creates a `TradeKey` schema artifact, which includes a reference to the nested `Exchange` schema artifact:
+
+.TradeKey schema with nested Exchange schema
+[source,json]
+---- 
+{
+  "namespace": "com.kubetrade.schema.trade",
+  "type": "record",
+  "name": "TradeKey",
+  "fields": [
+    {
+      "name": "exchange",
+      "type": "com.kubetrade.schema.common.Exchange"
+    },
+    {
+      "name": "key",
+      "type": "string"
+    }
+  ]
+} 
+----
+
+.Prerequisites
+ifdef::apicurio-registry,rh-service-registry[]
+* {registry} is installed and running in your environment
+endif::[]
+ifdef::rh-openshift-sr[]
+* You have a service account with the correct access permissions for {registry} instances
+endif::[]
+* The `Exchange` schema artifact is already created in {registry}
+
+.Procedure
+Update your Maven `pom.xml` file to use the `apicurio-registry-maven-plugin` to register the `TradeKey` schema, which includes a nested reference to the `Exchange` schema as follows:
+
+[source,xml]
+----
+<plugin>
+    <groupId>io.apicurio</groupId>
+    <artifactId>apicurio-registry-maven-plugin</artifactId>
+    <version>${apicurio-registry.version}</version>
+    <executions>
+        <execution>
+            <id>register-artifact</id>
+            <goals>
+                <goal>register</goal> <1>
+            </goals>
+            <configuration>
+                <registryUrl>MY-REGISTRY-URL/apis/registry/v2</registryUrl> <2>
+                <authServerUrl>MY-AUTH-SERVER</authServerUrl> 
+                <clientId>MY-CLIENT-ID</clientId>
+                <clientSecret>MY-CLIENT-SECRET</clientSecret> <3>
+                <artifacts>
+                    <artifact>
+                        <groupId>test-group</groupId> <4>
+                        <artifactId>TradeKey</artifactId>
+                        <version>2.0</version>
+                        <type>AVRO</type>
+                        <file>
+                            ${project.basedir}/src/main/resources/schemas/TradeKey.avsc
+                        </file>
+                        <ifExists>RETURN_OR_UPDATE</ifExists>
+                        <canonicalize>true</canonicalize>
+                        <references>
+                            <reference> <5>
+                                <name>com.kubetrade.schema.common.Exchange</name> 
+                                <groupId>test-group</groupId>
+                                <artifactId>Exchange</artifactId>
+                                <version>2.0</version>
+                                <type>AVRO</type>
+                                <file>
+                                    ${project.basedir}/src/main/resources/schemas/Exchange.avsc
+                                </file>
+                                <ifExists>RETURN_OR_UPDATE</ifExists>
+                                <canonicalize>true</canonicalize>
+                            </reference>
+                        </references>
+                    </artifact>
+                </artifacts>
+            </configuration>
+        </execution>
+    </executions>
+</plugin>
+----
+
+. Specify `register` as the execution goal to upload the schema artifact to the registry.
+. Specify the {registry} URL with the `../apis/registry/v2` endpoint.
+ifdef::apicurio-registry,rh-service-registry[]
+. If authentication is required, you can specify your authentication server and client credentials.
+endif::[]
+ifdef::rh-openshift-sr[]
+. Specify your service account ID and secret and the {org-name} Single Sign-On authentication server: `{sso-token-url}`
+endif::[]
+. Specify the {registry} artifact group ID. You can specify the `default` group if you do not want to use a unique group ID.
+. Specify the {registry} artifact reference using its group ID, artifact ID, version, type, and location. You can register multiple artifact references in this way.
+
+
+
+////
+// old demo needs to be updated for v2
+[role="_additional-resources"]
+.Additional resources
+ * For more details on the {registry} Maven plug-in, see the link:https://github.com/Apicurio/apicurio-registry-demo[Registry demonstration example]
+////

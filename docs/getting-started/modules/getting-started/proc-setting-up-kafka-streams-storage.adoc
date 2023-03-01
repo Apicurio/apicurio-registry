@@ -1,0 +1,93 @@
+// Metadata created by nebel
+// ParentAssemblies: assemblies/getting-started/as_installing-the-registry.adoc
+
+[id="setting-up-kafka-streams-storage_{context}"]
+= Configuring {registry} with Kafka storage on OpenShift
+
+[role="_abstract"]
+This section explains how to configure Kafka-based storage for {registry} using {kafka-streams} on OpenShift. The `kafkasql` storage option uses Kafka storage with in-memory H2 database. This storage option is suitable for production environments when `persistent` storage is configured for the Kafka cluster on OpenShift. 
+
+You can install {registry} in an existing Kafka cluster or create a new Kafka cluster, depending on your environment.
+
+.Prerequisites
+* You must have an OpenShift cluster with cluster administrator access.
+* You must have already installed {registry}. See {installing-the-registry-openshift}.
+* You must have already installed {kafka-streams}. See xref:installing-kafka-streams-operatorhub_{context}[].
+
+.Procedure
+
+. In the OpenShift Container Platform web console, log in using an account with cluster administrator privileges.
+
+. If you do not already have a Kafka cluster configured, create a new Kafka cluster using {kafka-streams}. For example, in the OpenShift OperatorHub:
++
+ifdef::apicurio-registry[]
+.. Click *Installed Operators* and then *{kafka-streams}*.
+endif::[]
+ifdef::rh-service-registry[]
+.. Click *Installed Operators* and then *Red Hat Integration - {kafka-streams}*.
+endif::[]
+.. Under *Provided APIs* and then *Kafka*, click *Create Instance* to create a new Kafka cluster.
+.. Edit the custom resource definition as appropriate, and click *Create*.
++
+WARNING: The default example creates a cluster with 3 Zookeeper nodes and 3 Kafka nodes with `ephemeral` storage. This temporary storage is suitable for development and testing only, and not for production. For more details, see link:{LinkDeployStreamsOpenShift}[{NameDeployStreamsOpenShift}].
+
+. After the cluster is ready, click *Provided APIs* > *Kafka* > *my-cluster* > *YAML*.
+
+. In the `status` block, make a copy of the `bootstrapServers` value, which you will use later to deploy {registry}. For example:
++
+[source,yaml]
+----
+status:
+  ...           
+  conditions:
+  ...
+  listeners:
+    - addresses:
+        - host: my-cluster-kafka-bootstrap.my-project.svc
+          port: 9092
+      bootstrapServers: 'my-cluster-kafka-bootstrap.my-project.svc:9092'
+      type: plain
+  ...
+----
+
+ifdef::apicurio-registry[]
+. Click *Installed Operators* > *Service Registry* > *ApicurioRegistry* > *Create ApicurioRegistry*.
+endif::[]
+ifdef::rh-service-registry[]
+. Click *Installed Operators* > *Red Hat Integration - Service Registry* > *ApicurioRegistry* > *Create ApicurioRegistry*.
+endif::[]
+. Paste in the following custom resource definition, but use your `bootstrapServers` value that you copied earlier:
++
+[source,yaml]
+----
+apiVersion: registry.apicur.io/v1
+kind: ApicurioRegistry
+metadata:
+  name: example-apicurioregistry-kafkasql
+spec:
+  configuration:
+    persistence: 'kafkasql'
+    kafkasql:
+      bootstrapServers: 'my-cluster-kafka-bootstrap.my-project.svc:9092'
+----
+
+. Click *Create* and wait for the {registry} route to be created on OpenShift.
+
+. Click *Networking* > *Route* to access the new route for the {registry} web console. For example:
++
+[source]
+----
+http://example-apicurioregistry-kafkasql.my-project.my-domain-name.com/
+----
+
+[role="_additional-resources"]
+.Additional resources
+
+ifdef::apicurio-registry[]
+For more details on installing Strimzi and on creating Kafka clusters and topics, see https://strimzi.io/docs/overview/latest/
+endif::[]
+
+ifdef::rh-service-registry[]
+//* For more details, including how to configure Transport Layer Security (TLS) and Salted Challenge Response Authentication Mechanism (SCRAM), see the link:https://github.com/redhat-integration/apicurio-registry-install-examples[example custom resource definitions] provided for registry installation.
+* For more details on creating Kafka clusters and topics using {kafka-streams}, see link:https://access.redhat.com/documentation/en-us/red_hat_amq_streams/{amq-version}/html/deploying_and_upgrading_amq_streams_on_openshift/index[Deploying and Upgrading AMQ Streams on OpenShift].
+endif::[]

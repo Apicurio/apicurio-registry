@@ -1,0 +1,78 @@
+// Module included in the following assemblies:
+//  assembly-using-kafka-client-serdes
+
+[id='registry-serdes-types-serde_{context}']
+= How to configure different client serializer/deserializer types
+
+[role="_abstract"]
+When using schemas in your Kafka client applications, you must choose which specific schema type to use, depending on your use case. {registry} provides SerDe Java classes for Apache Avro, JSON Schema, and Google Protobuf. The following sections explain how to configure Kafka applications to use each type. 
+
+You can also use Kafka to implement custom serializer and deserializer classes, and leverage {registry} functionality using the {registry} REST Java client.
+
+
+[discrete]
+== Kafka application configuration for serializers/deserializers 
+Using the SerDe classes provided by {registry} in your Kafka application involves setting the correct configuration properties. The following simple Avro examples show how to configure a serializer in a Kafka producer application and how to configure a deserializer in a Kafka consumer application.
+
+.Example serializer configuration in a Kafka producer
+[source,java,subs="+quotes,attributes"]
+----
+// Create the Kafka producer
+private static Producer<Object, Object> createKafkaProducer() {
+    Properties props = new Properties();
+
+    // Configure standard Kafka settings
+    props.putIfAbsent(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, SERVERS);
+    props.putIfAbsent(ProducerConfig.CLIENT_ID_CONFIG, "Producer-" + TOPIC_NAME);
+    props.putIfAbsent(ProducerConfig.ACKS_CONFIG, "all");
+    
+    // Use {registry}-provided Kafka serializer for Avro
+    props.putIfAbsent(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
+    props.putIfAbsent(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, AvroKafkaSerializer.class.getName());
+
+    // Configure the {registry} location
+    props.putIfAbsent(SerdeConfig.REGISTRY_URL, REGISTRY_URL);
+    
+    // Register the schema artifact if not found in the registry.
+    props.putIfAbsent(SerdeConfig.AUTO_REGISTER_ARTIFACT, Boolean.TRUE);
+
+    // Create the Kafka producer
+    Producer<Object, Object> producer = new KafkaProducer<>(props);
+    return producer;
+}
+----
+
+.Example deserializer configuration in a Kafka consumer
+[source,java,subs="+quotes,attributes"]
+----
+// Create the Kafka consumer
+private static KafkaConsumer<Long, GenericRecord> createKafkaConsumer() {
+    Properties props = new Properties();
+
+    // Configure standard Kafka settings
+    props.putIfAbsent(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, SERVERS);
+    props.putIfAbsent(ConsumerConfig.GROUP_ID_CONFIG, "Consumer-" + TOPIC_NAME);
+    props.putIfAbsent(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "true");
+    props.putIfAbsent(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, "1000");
+    props.putIfAbsent(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+    
+    // Use {registry}-provided Kafka deserializer for Avro
+    props.putIfAbsent(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
+    props.putIfAbsent(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, AvroKafkaDeserializer.class.getName());
+
+    // Configure the {registry} location
+    props.putIfAbsent(SerdeConfig.REGISTRY_URL, REGISTRY_URL);
+    
+    // No other configuration needed because the schema globalId the deserializer uses is sent 
+    // in the payload. The deserializer extracts the globalId and uses it to look up the schema 
+    // from the registry.
+
+    // Create the Kafka consumer
+    KafkaConsumer<Long, GenericRecord> consumer = new KafkaConsumer<>(props);
+    return consumer;
+}
+----
+
+[role="_additional-resources"]
+.Additional resources
+* For an example application, see the link:https://github.com/Apicurio/apicurio-registry-examples[Simple Avro example]

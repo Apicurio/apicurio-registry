@@ -26,8 +26,8 @@ import io.apicurio.registry.ccompat.dto.SchemaInfo;
 import io.apicurio.registry.ccompat.rest.v6.SubjectsResource;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
+import jakarta.interceptor.Interceptors;
 
-import javax.interceptor.Interceptors;
 import java.util.List;
 
 import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_ARTIFACT_ID;

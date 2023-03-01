@@ -18,22 +18,22 @@ package io.apicurio.registry.auth;
 
 import io.apicurio.common.apps.config.Info;
 import io.apicurio.common.apps.multitenancy.ApicurioTenantContext;
-import io.apicurio.common.apps.multitenancy.MultitenancyProperties;
-import io.apicurio.common.apps.multitenancy.TenantContext;
-import io.apicurio.common.apps.multitenancy.exceptions.TenantNotAuthorizedException;
+import io.apicurio.registry.mt.MultitenancyProperties;
+import io.apicurio.registry.mt.TenantContext;
+import io.apicurio.registry.mt.TenantNotAuthorizedException;
 import io.quarkus.security.ForbiddenException;
 import io.quarkus.security.UnauthorizedException;
 import io.quarkus.security.identity.SecurityIdentity;
+import jakarta.annotation.Priority;
+import jakarta.enterprise.inject.Instance;
+import jakarta.inject.Inject;
+import jakarta.interceptor.AroundInvoke;
+import jakarta.interceptor.Interceptor;
+import jakarta.interceptor.InvocationContext;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.jwt.JsonWebToken;
 import org.slf4j.Logger;
 
-import javax.annotation.Priority;
-import javax.enterprise.inject.Instance;
-import javax.inject.Inject;
-import javax.interceptor.AroundInvoke;
-import javax.interceptor.Interceptor;
-import javax.interceptor.InvocationContext;
 import java.util.List;
 import java.util.Optional;
 
@@ -47,7 +47,8 @@ import java.util.Optional;
  *
  * @author eric.wittmann@gmail.com
  */
-@Authorized @Interceptor
+@Authorized
+@Interceptor
 @Priority(Interceptor.Priority.APPLICATION)
 public class AuthorizedInterceptor {
 

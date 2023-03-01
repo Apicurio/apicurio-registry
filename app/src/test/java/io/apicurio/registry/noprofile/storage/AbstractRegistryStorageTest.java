@@ -16,25 +16,6 @@
 
 package io.apicurio.registry.noprofile.storage;
 
-import static io.apicurio.registry.storage.RegistryStorage.ArtifactRetrievalBehavior.DEFAULT;
-
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.atomic.AtomicInteger;
-
-import javax.inject.Inject;
-
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.slf4j.Logger;
-
 import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
 import io.apicurio.common.apps.multitenancy.ApicurioTenantContext;
 import io.apicurio.common.apps.multitenancy.TenantContext;
@@ -64,6 +45,22 @@ import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.impexp.EntityType;
 import io.apicurio.registry.utils.tests.TestUtils;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+
+import jakarta.inject.Inject;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
+
 import io.apicurio.tenantmanager.api.datamodel.ApicurioTenant;
 import io.apicurio.tenantmanager.api.datamodel.TenantStatusValue;
 
@@ -1389,17 +1386,17 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         Assertions.assertNotNull(dto);
         Assertions.assertEquals(GROUP_ID, dto.getGroupId());
         Assertions.assertEquals(artifactId, dto.getId());
-        
+
         List<CommentDto> comments = storage().getArtifactVersionComments(GROUP_ID, artifactId, "latest");
         Assertions.assertTrue(comments.isEmpty());
-        
+
         storage().createArtifactVersionComment(GROUP_ID, artifactId, "latest", "TEST_COMMENT_1");
         storage().createArtifactVersionComment(GROUP_ID, artifactId, "latest", "TEST_COMMENT_2");
         storage().createArtifactVersionComment(GROUP_ID, artifactId, "latest", "TEST_COMMENT_3");
 
         comments = storage().getArtifactVersionComments(GROUP_ID, artifactId, "latest");
         Assertions.assertEquals(3, comments.size());
-        
+
         storage().deleteArtifactVersionComment(GROUP_ID, artifactId, "latest", comments.get(1).getCommentId());
 
         comments = storage().getArtifactVersionComments(GROUP_ID, artifactId, "latest");

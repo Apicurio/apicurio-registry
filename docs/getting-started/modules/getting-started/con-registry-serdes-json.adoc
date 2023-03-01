@@ -1,0 +1,109 @@
+// Module included in the following assemblies:
+//  assembly-using-kafka-client-serdes
+
+[id='registry-serdes-types-json_{context}']
+= Configure JSON Schema SerDes with {registry}
+
+[role="_abstract"]
+This topic explains how to use the Kafka client serializer and deserializer (SerDes) classes for JSON Schema.
+
+{registry} provides the following Kafka client SerDes classes for JSON Schema:
+
+* `io.apicurio.registry.serde.jsonschema.JsonSchemaKafkaSerializer`
+* `io.apicurio.registry.serde.jsonschema.JsonSchemaKafkaDeserializer`
+
+Unlike Apache Avro, JSON Schema is not a serialization technology, but is instead a validation technology. As a result, configuration options for JSON Schema are quite different. For example, there is no encoding option, because data is always encoded as JSON.
+
+.Configure the JSON Schema serializer
+
+You can configure the JSON Schema serializer class as follows:
+
+* {registry} URL
+* Artifact resolver strategy
+* Schema validation
+
+The only non-standard configuration property is JSON Schema validation, which is enabled by default. You can disable this by setting
+`apicurio.registry.serde.validation-enabled` to `"false"`. For example:
+----
+props.putIfAbsent(SerdeConfig.VALIDATION_ENABLED, Boolean.FALSE)
+----
+
+.Configure the JSON Schema deserializer
+
+You can configure the JSON Schema deserializer class as follows:
+
+* {registry} URL
+* Schema validation
+* Class for deserializing data
+
+You must provide the location of {registry} so that the schema can be loaded. The other configuration is optional.
+
+NOTE: Deserializer validation only works if the serializer passes the global ID in the Kafka message, which will only happen when validation is enabled in the serializer.
+
+.JSON Schema SerDes and artifact references
+The JSON Schema SerDes cannot discover the schema from the message payload, so the schema artifact must be registered beforehand, and this also applies artifact references.
+
+Depending on the content of the schema, if the `$ref` value is a URL, the SerDes try to resolve the referenced schema using that URL, and then validation works as usual, validating the data against the main schema, and validating the nested value against the nested schema. Support for referencing artifacts in {registry} has also been implemented.
+
+For example, the following `citizen.json` schema references the `city.json` schema:
+
+.citizen.json schema with reference to city.json schema
+[source,json]
+----
+{
+ "$id": "https://example.com/citizen.schema.json",
+ "$schema": "http://json-schema.org/draft-07/schema#",
+ "title": "Citizen",
+ "type": "object",
+ "properties": {
+   "firstName": {
+     "type": "string",
+     "description": "The citizen's first name."
+   },
+   "lastName": {
+     "type": "string",
+     "description": "The citizen's last name."
+   },
+   "age": {
+     "description": "Age in years which must be equal to or greater than zero.",
+     "type": "integer",
+     "minimum": 0
+   },
+   "city": {
+     "$ref": "city.json"
+   }
+ }
+}
+----
+
+.city.json schema
+[source,json]
+----
+{
+ "$id": "https://example.com/city.schema.json",
+ "$schema": "http://json-schema.org/draft-07/schema#",
+ "title": "City",
+ "type": "object",
+ "properties": {
+   "name": {
+     "type": "string",
+     "description": "The city's name."
+   },
+   "zipCode": {
+     "type": "integer",
+     "description": "The zip code.",
+     "minimum": 0
+   }
+ }
+}
+----
+
+In this example, a given citizen has a city. In {registry}, a citizen artifact with a reference to the city artifact is created using the name `city.json`. In the SerDes, when the citizen schema is fetched, the city schema is also fetched because it is referenced from the citizen schema. When serializing/deserializing data, the reference name is used to resolve the nested schema, allowing validation against the citizen schema and the nested city schema.
+
+
+[role="_additional-resources"]
+.Additional resources
+* For more details, see the link:https://github.com/Apicurio/apicurio-registry/blob/main/serdes/jsonschema-serde/src/main/java/io/apicurio/registry/serde/jsonschema/JsonSchemaKafkaDeserializerConfig.java[JsonSchemaKafkaDeserializerConfig Java class]
+* For Java example applications, see:
+** link:https://github.com/Apicurio/apicurio-registry-examples[Simple JSON Schema example]
+** link:https://github.com/Apicurio/apicurio-registry-examples[SerDes with references example]

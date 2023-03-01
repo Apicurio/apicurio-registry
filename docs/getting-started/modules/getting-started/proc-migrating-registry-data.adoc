@@ -1,0 +1,64 @@
+// Metadata created by nebel
+// ParentAssemblies: assemblies/getting-started/as_managing-registry-artifacts.adoc
+
+[id="migrating-registry-data_{context}"]
+= Migrating {registry} data
+
+[role="_abstract"]
+Migrating data to {registry} 2.x requires exporting all data from your existing {registry-v1} deployment and importing it into the new 2.x deployment. If you are using {registry} as a schema registry for Kafka applications, data migration is critical because each Kafka message carries the global identifier for the schema stored in {registry}. This identifier must be preserved during registry data migration.
+
+{registry} 2.x provides an API to bulk import/export all data from your registry deployment, which guarantees that all identifiers are kept when importing data from your existing registry. The export API downloads a custom `.zip` file containing all the information for your artifacts. The import API accepts this `.zip` and loads all artifacts into the registry in a single batch.
+
+{registry} {registry-v1} does not provide an import/export API. However, version 2.x provides an export tool compatible with {registry} {registry-v1} to export a `.zip`, which you can import into your 2.x registry. This tool uses common existing APIs to export all content in the registry. However, it is less performant than the 2.x export API, and should only be used when exporting from a {registry-v1} registry. 
+
+.Prerequisites 
+* Running {registry} instances of the {registry-v1} server you are exporting from and the 2.x server you are importing into.
+* Download the 
+ifdef::apicurio-registry[]
+link:https://github.com/Apicurio/apicurio-registry/releases/download/{registry-release}/apicurio-registry-utils-exportV1-{registry-release}.jar[{registry} exportV1 tool] from GitHub. 
+endif::[]
+ifdef::rh-service-registry[]
+link:{download-url-registry-distribution}[{registry} exportV1 tool] from the Red Hat Customer Portal. 
+endif::[]
+This is a Java application that you can run on the command line.
+
+.Procedure
+
+. Export all the data from {registry} {registry-v1} using the `exportV1` tool. This generates a `registry-export.zip` file in your current directory:
++
+[source,bash, subs="attributes+"]
+----
+java -jar apicurio-registry-utils-exportV1-{registry-release}.jar http://old-registry.my-company.com/api
+----
+
+. Import the `.zip` file into {registry} 2.x using the import API: 
++
+[source,bash, subs="attributes+"]
+----
+curl -X POST "http://new-registry.my-company.com/apis/registry/v2/admin/import" \
+  -H "Accept: application/json" -H "Content-Type: application/zip" \
+  --data-binary @registry-export.zip
+----
+
+. Check that all the artifacts have been imported into the new 2.x registry by running these commands and comparing the count field:
++
+[source,bash, subs="attributes+"]
+----
+curl "http://old-registry.my-company.com/api/search/artifacts"
+----
++
+[source,bash, subs="attributes+"]
+----
+curl "http://new-registry.my-company.com/apis/registry/v2/search/artifacts"
+----
+
+[role="_additional-resources"]
+.Additional resources
+* For more details on the import/export REST API, see 
+ifdef::apicurio-registry[]
+{managing-registry-artifacts-api}
+endif::[]
+ifdef::rh-service-registry[]
+the link:{LinkServiceRegistryUser}#exporting-importing-using-rest-api[{NameServiceRegistryUser}]
+endif::[]
+* For more details on the export tool for migrating from version 1.x to 2.x, see the link:https://github.com/Apicurio/apicurio-registry/tree/2.0.x/utils/exportV1[Apicurio Registry export utility for 1.x versions]

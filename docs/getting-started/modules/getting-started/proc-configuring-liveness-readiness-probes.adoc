@@ -1,0 +1,51 @@
+// Metadata created by nebel
+// ParentAssemblies: assemblies/getting-started/as_installing-the-registry.adoc
+
+[id="configuring-liveness-readiness-probes_{context}"]
+
+= Configuring {registry} health checks on OpenShift
+
+[role="_abstract"]
+You can configure optional environment variables for liveness and readiness probes to monitor the health of the {registry} server on OpenShift:
+
+* _Liveness probes_ test if the application can make progress. If the application cannot make progress, OpenShift automatically restarts the failing Pod. 
+
+* _Readiness probes_ test if the application is ready to process requests. If the application is not ready, it can become overwhelmed by requests, and OpenShift stops sending requests for the time that the probe fails. If other Pods are OK, they continue to receive requests.
+
+IMPORTANT: The default values of the liveness and readiness environment variables are designed for most cases and should only be changed if required by your environment. Any changes to the defaults depend on your hardware, network, and amount of data stored. These values should be kept as low as possible to avoid unnecessary overhead.
+
+.Prerequisites
+* You must have an OpenShift cluster with cluster administrator access.
+* You must have already installed {registry} on OpenShift.
+* You must have already installed and configured your chosen {registry} storage in {kafka-streams} or PostgreSQL. 
+
+.Procedure
+
+. In the OpenShift Container Platform web console, log in using an account with cluster administrator privileges.
+
+ifdef::apicurio-registry[]
+. Click *Installed Operators* > *{registry}*.
+endif::[]
+ifdef::rh-service-registry[]
+. Click *Installed Operators* > *Red Hat Integration - Service Registry Operator*.
+endif::[]
+
+. On the *ApicurioRegistry* tab, click the Operator custom resource for your deployment, for example, *example-apicurioregistry*.
+
+. In the main overview page, find the *Deployment Name* section and the corresponding `DeploymentConfig` name for your {registry} deployment, for example, *example-apicurioregistry*. 
+
+. In the left navigation menu, click *Workloads* > *Deployment Configs*, and select your `DeploymentConfig` name. 
+
+. Click the *Environment* tab, and enter your environment variables in the *Single values env* section, for example: 
+** *NAME*: `LIVENESS_STATUS_RESET`  
+** *VALUE*: `350`
+
+. Click *Save* at the bottom.
++
+Alternatively, you can perform these steps using the OpenShift `oc` command. For more details, see the link:https://docs.openshift.com/container-platform/{registry-ocp-version}/cli_reference/openshift_cli/getting-started-cli.html[OpenShift CLI documentation]. 
+
+[role="_additional-resources"]
+.Additional resources
+* xref:registry-liveness-env-vars_{context}[]
+* link:https://docs.openshift.com/container-platform/{registry-ocp-version}/applications/application-health.html[OpenShift documentation on monitoring application health]
+//* TBD

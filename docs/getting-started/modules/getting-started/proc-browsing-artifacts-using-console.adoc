@@ -1,0 +1,54 @@
+// Metadata created by nebel
+// ParentAssemblies: assemblies/getting-started/as_managing-registry-artifacts.adoc
+
+[id="browsing-artifacts-using-console_{context}"]
+= Viewing artifacts using the {registry} web console
+
+[role="_abstract"]
+You can use the {registry} web console to browse the event schema and API artifacts stored in {registry}. This section shows a simple example of viewing {registry} artifacts, groups, versions, and artifact rules. 
+
+.Prerequisites
+
+ifdef::apicurio-registry,rh-service-registry[]
+* {registry} is installed and running in your environment.
+endif::[]
+* You are logged in to the {registry} web console:
++ 
+`{registry-url}`
+ifdef::rh-openshift-sr[]
+* You have access to a running {registry} instance.
+endif::[]
+* Artifacts have been added to {registry} using the web console, command line, Maven plug-in, or a Java client application. 
+
+.Procedure
+
+ifdef::rh-openshift-sr[]
+. In the {registry} web console, click your existing {registry} instance. 
+endif::[]
+. On the *Artifacts* tab, browse the list of artifacts stored in {registry}, or enter a search string to find an artifact. You can select from the list to search by specific criteria such as name, group, labels, or global ID.  
++
+.Artifacts in {registry} web console
+ifdef::apicurio-registry,rh-service-registry[]
+image::images/getting-started/registry-web-console.png[Artifacts in Registry web console]
+endif::[]
+ifdef::rh-openshift-sr[]
+image::../_images/user-guide/registry-web-console.png[Artifacts in Registry web console]
+endif::[]
++
+. Click an artifact to view the following details:
+
+** *Overview*: Displays the artifact version metadata such as name, optional group and ID, global ID, content ID, labels, and properties. Also displays rules for validity and compatibility that you can configure for artifact content.
+** *Documentation* (OpenAPI and AsyncAPI only): Displays automatically-generated REST API documentation.
+** *Content*: Displays a read-only view of the full artifact content. For JSON content, you can click *JSON* or *YAML* to display your preferred format.
+
+. If additional versions of this artifact have been added, you can select them from the *Version* list in page header.
+
+. To save the artifact contents to a local file, for example, `my-protobuf-schema.proto`, click *Download* at the end of the page.
+
+ifdef::apicurio-registry,rh-service-registry[]
+[role="_additional-resources"]
+.Additional resources
+* xref:adding-artifacts-using-console_{context}[]
+* xref:configuring-rules-using-console_{context}[]
+* {registry-reference}
+endif::[]

@@ -1,0 +1,115 @@
+// Module included in the following assemblies:
+//  assembly-using-kafka-client-serdes
+
+[id='registry-serdes-register_{context}']
+= Registering a schema in {registry}
+
+[role="_abstract"]
+After you have defined a schema in the appropriate format, such as Apache Avro, you can add the schema to {registry}.
+
+You can add the schema using the following approaches:
+
+* {registry} web console
+* curl command using the {registry} REST API
+* Maven plug-in supplied with {registry}
+* Schema configuration added to your client code
+
+Client applications cannot use {registry} until you have registered your schemas.
+
+[discrete]
+== {registry} web console
+
+When {registry} is installed, you can connect to the web console from the `ui` endpoint:
+
+`\http://MY-REGISTRY-URL/ui`
+
+From the console, you can add, view and configure schemas. You can also create the rules that prevent invalid content being added to the registry.
+
+ifdef::rh-amq-streams[]
+For more information on using the {registry} web console, see the {service-registry-doc}.
+endif::[]
+
+[discrete]
+== Curl command example
+
+[source,shell,subs="+quotes,attributes"]
+----
+ curl -X POST -H "Content-type: application/json; artifactType=AVRO" \ 
+   -H "X-Registry-ArtifactId: share-price" \ <1>
+   --data '{
+     "type":"record",
+     "name":"price",
+     "namespace":"com.example",
+     "fields":[{"name":"symbol","type":"string"},
+     {"name":"price","type":"string"}]}'    
+   https://my-cluster-my-registry-my-project.example.com/apis/registry/v2/groups/my-group/artifacts -s <2> 
+----
+. Simple Avro schema artifact. 
+. OpenShift route name that exposes {registry}. 
+
+[discrete]
+== Maven plug-in example
+
+[source,xml,subs="+quotes,attributes"]
+----
+<plugin>     
+  <groupId>io.apicurio</groupId>
+  <artifactId>apicurio-registry-maven-plugin</artifactId>
+  <version>${apicurio.version}</version>
+  <executions>
+      <execution>
+        <phase>generate-sources</phase>
+        <goals>
+            <goal>register</goal>  <1>
+        </goals>
+        <configuration>
+            <registryUrl>http://REGISTRY-URL/apis/registry/v2</registryUrl> <2>
+            <artifacts>
+                <artifact>
+                    <groupId>TestGroup</groupId> <3>
+                    <artifactId>FullNameRecord</artifactId>
+                    <file>${project.basedir}/src/main/resources/schemas/record.avsc</file> 
+                    <ifExists>FAIL</ifExists>
+                </artifact>
+                <artifact>
+                    <groupId>TestGroup</groupId>
+                    <artifactId>ExampleAPI</artifactId> <4>
+                    <type>GRAPHQL</type>
+                    <file>${project.basedir}/src/main/resources/apis/example.graphql</file>
+                    <ifExists>RETURN_OR_UPDATE</ifExists>
+                    <canonicalize>true</canonicalize>
+                </artifact>
+            </artifacts>
+        </configuration>
+    </execution>
+  </executions>
+ </plugin>
+----
+. Specify `register` as the execution goal to upload the schema artifact to the registry.
+. Specify the {registry} URL with the `../apis/registry/v2` endpoint.
+. Specify the {registry} artifact group ID.
+. You can upload multiple artifacts using the specified group ID, artifact ID, and location.
+
+[discrete]
+== Configuration using a producer client example
+
+[source,java,subs="+quotes,attributes"]
+----
+String registryUrl_node1 = PropertiesUtil.property(clientProperties, "registry.url.node1", 
+    "https://my-cluster-service-registry-myproject.example.com/apis/registry/v2"); <1>
+try (RegistryService service = RegistryClient.create(registryUrl_node1)) {
+    String artifactId = ApplicationImpl.INPUT_TOPIC + "-value";
+    try {
+        service.getArtifactMetaData(artifactId); <2>
+    } catch (WebApplicationException e) {
+        CompletionStage <ArtifactMetaData> csa = service.createArtifact(
+            "AVRO",
+            artifactId,
+            new ByteArrayInputStream(LogInput.SCHEMA$.toString().getBytes())
+        );
+        csa.toCompletableFuture().get();
+    }
+}
+----
+. You can register properties against more than one URL node.
+. Check to see if the schema already exists based on the artifact ID.

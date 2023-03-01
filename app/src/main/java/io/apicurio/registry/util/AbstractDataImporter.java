@@ -13,6 +13,9 @@ import io.apicurio.registry.utils.impexp.Entity;
 import io.apicurio.registry.utils.impexp.GlobalRuleEntity;
 import io.apicurio.registry.utils.impexp.GroupEntity;
 import io.apicurio.registry.utils.impexp.ManifestEntity;
+import org.slf4j.Logger;
+
+import jakarta.transaction.Transactional;
 
 public abstract class AbstractDataImporter implements DataImporter {
 

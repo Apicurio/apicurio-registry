@@ -1,0 +1,125 @@
+// Metadata created by nebel
+// ParentAssemblies: assemblies/getting-started/as_managing-registry-artifacts.adoc
+
+[id="configuring-settings-using-console_{context}"]
+= Configuring {registry} instance settings using the web console
+
+[role="_abstract"]
+As an administrator, you can use the {registry} web console to configure dynamic settings for {registry} instances at runtime. You can manage configuration options for features such as authentication, authorization, and API compatibility.
+
+//This section shows how to configure..
+
+ifdef::apicurio-registry,rh-service-registry[]
+NOTE: Authentication and authorization settings are only displayed in the web console if authentication was already enabled when the {registry} instance was deployed. For more details, see 
+endif::[] 
+ifdef::apicurio-registry[]
+xref:../getting-started/assembly-configuring-the-registry.adoc[].
+endif::[] 
+ifdef::rh-service-registry[]
+the link:{LinkServiceRegistryInstall}[{NameServiceRegistryInstall}].
+endif::[] 
+
+.Prerequisites
+
+* The {registry} instance is already deployed. 
+* You are logged in to the {registry} web console with administrator access:
++
+`{registry-url}`
+
+.Procedure
+
+ifdef::apicurio-registry,rh-service-registry[]
+. In the {registry} web console, click the *Settings* tab.  
+endif::[] 
+
+ifdef::rh-openshift-sr[]
+. In the {registry} web console, click the {registry} instance that you want to configure, and then click the *Settings* tab.  
+endif::[] 
+
+. Select the settings that you want to configure for this {registry} instance: 
++
+.Authentication settings
+[%header,cols="2,4"]
+|===
+|Setting
+|Description
+|*HTTP basic authentication*
+|
+ifdef::apicurio-registry,rh-service-registry[]
+Displayed only when authentication is already enabled.  
+endif::[] 
+When selected, {registry} users can authenticate using HTTP basic authentication, in addition to OAuth. 
+ifdef::apicurio-registry,rh-service-registry[]
+Not selected by default.  
+endif::[] 
+ifdef::rh-openshift-sr[] 
+Selected by default. 
+endif::[]
+|===
++
+.Authorization settings
+[%header,cols="2,4"]
+|===
+|Setting
+|Description
+ifdef::apicurio-registry,rh-service-registry[]
+| *Anonymous read access*
+|Displayed only when authentication is already selected. 
+When selected, {registry} grants read-only access to requests from anonymous users without any credentials. This setting is useful if you want to use this instance to publish schemas or APIs externally. Not selected by default.
+endif::[]
+| *Artifact owner-only authorization*
+| 
+ifdef::apicurio-registry,rh-service-registry[]
+Displayed only when authentication is already enabled. 
+endif::[]
+When selected, only the user who created an artifact can modify that artifact. Not selected by default. 
+ifdef::apicurio-registry,rh-service-registry[]
+| *Artifact group owner-only authorization*
+|Displayed only when authentication is already enabled and *Artifact owner-only authorization* is selected.
+When selected, only the user who created an artifact group has write access to that artifact group, for example, to add or remove artifacts in that group. Not selected by default. 
+endif::[]
+| *Authenticated read access*
+|
+ifdef::apicurio-registry,rh-service-registry[]
+Displayed only when authentication is already enabled. 
+endif::[]
+When selected, {registry} grants at least read-only access to requests from any authenticated user
+ifdef::rh-openshift-sr[]
+in the same organization,
+endif::[]
+regardless of their user role. Not selected by default. 
+|===
++
+.Compatibility settings
+[%header,cols="2,4"]
+|===
+|Setting
+|Description
+| *Legacy ID mode (compatibility API)*
+| When selected, the Confluent Schema Registry compatibility API uses `globalId` instead of `contentId` as an artifact identifier. This setting is useful when migrating from legacy {registry} instances based on the v1 Core Registry API. Not selected by default.
+|===
++
+ifdef::apicurio-registry,rh-service-registry[]
+.Web console settings
+[%header,cols="2,4"]
+|===
+|Setting
+|Description
+|*Download link expiry*
+| The number of seconds that a generated link to a `.zip` download file is active before expiring for security reasons, for example, when exporting artifact data from the instance. Defaults to 30 seconds.
+| *UI read-only mode*
+| When selected, the {registry} web console is set to read-only, preventing create, read, update, or delete operations. Changes made using the Core Registry API are not affected by this setting. Not selected by default. 
+|===
+endif::[]
+
+[role="_additional-resources"]
+.Additional resources
+ifdef::apicurio-registry[]
+* xref:../getting-started/assembly-configuring-the-registry.adoc[]
+endif::[] 
+ifdef::rh-service-registry[]
+* link:{LinkServiceRegistryInstall}[{NameServiceRegistryInstall}]
+endif::[] 
+ifdef::rh-openshift-sr[]
+* link:{base-url}{access-mgmt-url-registry}[Managing account access in {product-long-registry}] 
+endif::[]  

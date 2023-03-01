@@ -1,0 +1,18 @@
+// Metadata created by nebel
+include::{mod-loc}shared/all-attributes.adoc[]
+
+
+[id="migrating-the-registry_{context}"]
+= Migrating an existing {registry} deployment 
+
+[role="_abstract"]
+This chapter explains how to migrate an existing {registry} deployment from version {registry-v1} to version 2.x. 
+
+* xref:registry-migration_{context}[]
+* xref:migrating-registry-data_{context}[]
+* xref:migrating-registry-applications_{context}[]
+
+//INCLUDES
+include::{mod-loc}getting-started/con-registry-migration.adoc[leveloffset=+1]
+include::{mod-loc}getting-started/proc-migrating-registry-data.adoc[leveloffset=+1]
+include::{mod-loc}getting-started/proc-migrating-registry-applications.adoc[leveloffset=+1]

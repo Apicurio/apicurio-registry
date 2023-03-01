@@ -1,0 +1,46 @@
+// Metadata created by nebel
+// ParentAssemblies: assemblies/getting-started/as_registry-reference.adoc
+
+[id="registry-rule-maturity-matrix_{context}"]
+= {registry} content rule maturity
+
+[role="_abstract"]
+Not all content rules are fully implemented for every artifact type supported by {registry}. The following table shows the current maturity level for each rule and artifact type:
+
+.{registry} content rule maturity matrix
+[%header,cols=3*] 
+|===
+|Artifact type
+|Validity rule
+|Compatibility rule
+|*Avro*
+a| Full
+a| Full
+|*Protobuf*
+a| Full
+a| Full
+|*JSON Schema*
+a| Full
+a| Full
+|*OpenAPI*
+a| Full
+a| None
+|*AsyncAPI*
+a| Syntax Only
+a| None
+|*GraphQL*
+a| Syntax Only
+a| None
+|*Kafka Connect*
+a| Syntax Only
+a| None
+|*WSDL*
+a| Full
+a| None
+|*XML*
+a| Full
+a| None
+|*XSD*
+a| Full
+a| None
+|===

@@ -118,6 +118,12 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.event.Event;
+import jakarta.enterprise.event.Observes;
+import jakarta.inject.Inject;
 
 import static io.apicurio.registry.storage.RegistryStorage.ArtifactRetrievalBehavior.DEFAULT;
 
@@ -1305,10 +1311,10 @@ public class KafkaSqlRegistryStorage implements RegistryStorage {
         String commentId = String.valueOf(nextClusterCommentId());
 
         UUID reqId = ConcurrentUtil.get(
-                submitter.submitComment(tenantContext.tenantId(), groupId, artifactId, theVersion, commentId, 
+                submitter.submitComment(tenantContext.tenantId(), groupId, artifactId, theVersion, commentId,
                         ActionType.CREATE, createdBy, createdOn, value));
         coordinator.waitForResponse(reqId);
-        
+
         return CommentDto.builder()
                 .commentId(commentId)
                 .createdBy(createdBy)
@@ -1316,14 +1322,14 @@ public class KafkaSqlRegistryStorage implements RegistryStorage {
                 .value(value)
                 .build();
     }
-    
+
     /**
      * @see io.apicurio.registry.storage.RegistryStorage#deleteArtifactVersionComment(java.lang.String, java.lang.String, java.lang.String, java.lang.String)
      */
     @Override
     public void deleteArtifactVersionComment(String groupId, String artifactId, String version, String commentId) {
         String theVersion = sqlStore.resolveVersion(groupId, artifactId, version);
-        
+
         if (!sqlStore.isArtifactVersionExists(groupId, artifactId, theVersion)) {
             throw new VersionNotFoundException(groupId, artifactId, theVersion);
         }
@@ -1331,19 +1337,19 @@ public class KafkaSqlRegistryStorage implements RegistryStorage {
         UUID reqId = ConcurrentUtil.get(submitter.submitComment(tenantContext.tenantId(), groupId, artifactId, theVersion, commentId, ActionType.DELETE));
         coordinator.waitForResponse(reqId);
     }
-    
+
     /**
      * @see io.apicurio.registry.storage.RegistryStorage#updateArtifactVersionComment(java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String)
      */
     @Override
     public void updateArtifactVersionComment(String groupId, String artifactId, String version, String commentId, String value) {
         String theVersion = sqlStore.resolveVersion(groupId, artifactId, version);
-        
+
         if (!sqlStore.isArtifactVersionExists(groupId, artifactId, theVersion)) {
             throw new VersionNotFoundException(groupId, artifactId, theVersion);
         }
 
-        UUID reqId = ConcurrentUtil.get(submitter.submitComment(tenantContext.tenantId(), groupId, artifactId, theVersion, 
+        UUID reqId = ConcurrentUtil.get(submitter.submitComment(tenantContext.tenantId(), groupId, artifactId, theVersion,
                 commentId, ActionType.UPDATE, null, null, value));
         coordinator.waitForResponse(reqId);
     }
@@ -1369,7 +1375,7 @@ public class KafkaSqlRegistryStorage implements RegistryStorage {
         submitter.submitArtifactRule(tenantContext.tenantId(), entity.groupId, entity.artifactId, entity.type, ActionType.IMPORT, config);
     }
     public void importComment(CommentEntity entity) {
-        submitter.submitComment(tenantContext.tenantId(), entity.commentId, ActionType.IMPORT, entity.globalId, 
+        submitter.submitComment(tenantContext.tenantId(), entity.commentId, ActionType.IMPORT, entity.globalId,
                 entity.createdBy, new Date(entity.createdOn), entity.value);
     }
     protected void importArtifactVersion(ArtifactVersionEntity entity) {

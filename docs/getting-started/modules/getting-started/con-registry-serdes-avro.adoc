@@ -1,0 +1,125 @@
+// Module included in the following assemblies:
+//  assembly-using-kafka-client-serdes
+
+[id='registry-serdes-types-avro_{context}']
+= Configure Avro SerDes with {registry}
+
+[role="_abstract"]
+This topic explains how to use the Kafka client serializer and deserializer (SerDes) classes for Apache Avro.
+
+{registry} provides the following Kafka client SerDes classes for Avro:
+
+* `io.apicurio.registry.serde.avro.AvroKafkaSerializer`
+* `io.apicurio.registry.serde.avro.AvroKafkaDeserializer`
+
+.Configure the Avro serializer
+You can configure the Avro serializer class with the following:
+
+* {registry} URL
+* Artifact resolver strategy
+* ID location
+* ID encoding
+* Avro datum provider
+* Avro encoding
+
+.ID location
+The serializer passes the unique ID of the schema as part of the Kafka message so that consumers can use the correct schema for deserialization. The ID can be in the message payload or in the message headers. The default location is the message payload. To send the ID in the message headers, set the following configuration property:
+----
+props.putIfAbsent(SerdeConfig.ENABLE_HEADERS, "true")
+----
+The property name is `apicurio.registry.headers.enabled`.
+
+
+.ID encoding
+You can customize how the schema ID is encoded when passing it in the Kafka message body. Set the `apicurio.registry.id-handler` configuration property to a class that implements the `io.apicurio.registry.serde.IdHandler` interface. {registry} provides the following implementations:
+
+* `io.apicurio.registry.serde.DefaultIdHandler`: Stores the ID as an 8-byte long
+* `io.apicurio.registry.serde.Legacy4ByteIdHandler`:  Stores the ID as an 4-byte integer
+
+{registry} represents the schema ID as a long, but for legacy reasons, or for compatibility with other registries or SerDe classes, you might want to use 4 bytes when sending the ID.
+
+.Avro datum provider
+Avro provides different datum writers and readers to write and read data. {registry} supports three different types:
+
+* Generic
+* Specific
+* Reflect
+
+The {registry} `AvroDatumProvider` is the abstraction of which type is used, where `DefaultAvroDatumProvider` is used by default.
+
+You can set the following configuration options:
+
+* `apicurio.registry.avro-datum-provider`: Specifies a fully-qualified Java class name of the `AvroDatumProvider` implementation, for example `io.apicurio.registry.serde.avro.ReflectAvroDatumProvider`
+* `apicurio.registry.use-specific-avro-reader`: Set to `true` to use a specific type when using `DefaultAvroDatumProvider`
+
+.Avro encoding
+When using Avro to serialize data, you can use the Avro binary encoding format to ensure the data is encoded in as efficient a format as possible. Avro also supports encoding the data as JSON, which makes it easier to inspect the payload of each message, for example, for logging or debugging.
+
+You can set the Avro encoding by configuring the `apicurio.registry.avro.encoding` property with a value of `JSON` or `BINARY`. The default is `BINARY`.
+
+.Configure the Avro deserializer
+You must configure the Avro deserializer class to match the following configuration settings of the serializer:
+
+* {registry} URL
+* ID encoding
+* Avro datum provider
+* Avro encoding
+
+See the serializer section for these configuration options. The property names and values are the same.
+
+[NOTE]
+====
+The following options are not required when configuring the deserializer:
+
+* Artifact resolver strategy
+* ID location
+====
+
+The deserializer class can determine the values for these options from the message. The strategy is not required because the serializer is responsible for sending the ID as part of the message.
+
+The ID location is determined by checking for the magic byte at the start of the message payload. If that byte is found, the ID is read from the message payload using the configured handler. If the magic byte is not found, the ID is read from the message headers.
+
+.Avro SerDes and artifact references
+When working with Avro messages and a schema with nested records, a new artifact is registered per nested record. For example, the following `TradeKey` schema includes a nested `Exchange` schema:
+
+.TradeKey schema with nested Exchange schema
+[source,json]
+----
+{
+  "namespace": "com.kubetrade.schema.trade",
+  "type": "record",
+  "name": "TradeKey",
+  "fields": [
+    {
+      "name": "exchange",
+      "type": "com.kubetrade.schema.common.Exchange"
+    },
+    {
+      "name": "key",
+      "type": "string"
+    }
+  ]
+}
+----
+
+.Exchange schema
+[source,json]
+----
+{
+  "namespace": "com.kubetrade.schema.common",
+  "type": "enum",
+  "name": "Exchange",
+  "symbols" : ["GEMINI"]
+}
+----
+
+When using these schemas with Avro SerDes, two artifacts are created in {registry}, one for the `TradeKey` schema and one for the `Exchange` schema. Whenever a message using the `TradeKey` schema is serialized or deserialized, both schemas are retrieved, allowing you to split your definitions into different files.
+
+
+[role="_additional-resources"]
+.Additional resources
+
+* For more details on Avro configuration, see the link:https://github.com/Apicurio/apicurio-registry/blob/main/serdes/avro-serde/src/main/java/io/apicurio/registry/serde/avro/AvroKafkaSerdeConfig.java[AvroKafkaSerdeConfig Java class]
+* For Java example applications, see:
+** link:https://github.com/Apicurio/apicurio-registry-examples[Simple Avro example]
+** link:https://github.com/Apicurio/apicurio-registry-examples[SerDes with references example]

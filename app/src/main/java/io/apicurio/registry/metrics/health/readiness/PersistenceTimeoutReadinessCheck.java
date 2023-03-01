@@ -2,13 +2,13 @@ package io.apicurio.registry.metrics.health.readiness;
 
 import java.time.Duration;
 
-import javax.annotation.PostConstruct;
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.inject.Default;
-import javax.inject.Inject;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Default;
+import jakarta.inject.Inject;
 
 import io.apicurio.common.apps.config.Info;
 import io.apicurio.registry.metrics.health.AbstractErrorCounterHealthCheck;
+import jakarta.annotation.PostConstruct;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.health.HealthCheck;
 import org.eclipse.microprofile.health.HealthCheckResponse;

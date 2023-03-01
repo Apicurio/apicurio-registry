@@ -1,0 +1,38 @@
+// Metadata created by nebel
+
+[id="registry-migration_{context}"]
+= Migration from {registry} {registry-v1} to 2.x
+
+[role="_abstract"]
+{registry} 2.x includes new features with breaking changes from the previous {registry} {registry-v1} release. This section describes the major changes between {registry} {registry-v1} and version 2.x. 
+
+Because of the breaking changes in 2.x, there is no automatic upgrade and a migration process is required. This involves moving the data in your existing registry to a new registry. You must also review your existing registry client applications and update their configuration to meet the new requirements.
+
+When migrating to version 2.x, you must take the following major changes into account:
+
+== New data storage options
+The existing registry data storage options in {registry} {registry-v1} (`streams`,`jpa`, and `infinispan`) have been replaced with new storage options in version 2.x (`sql` and `kafkasql`). These new storage options provide more robust, performant, and maintainable {registry} deployments. 
+ifdef::apicurio-registry[]
+The in-memory storage option (`mem`) is also still available, but is not suitable for production workloads. 
+endif::[]
+
+For details on how to deploy {registry} 2.x with your chosen storage option,
+ifdef::apicurio-registry[]
+see {installing-the-registry-storage-openshift}. 
+endif::[]
+ifdef::rh-service-registry[]
+see link:{LinkServiceRegistryInstall}[{NameServiceRegistryInstall}]. 
+endif::[]
+
+== New v2 REST API
+{registry} 2.x includes a new REST API with support for artifact groups and improved long term maintainability. {registry} still supports the original registry v1 REST API and compatibility APIs, for example, Confluent and IBM schema registry APIs. {registry} now also implements the Schema Registry specification provided in the CNCF Cloud Events specification.
+
+== Refactored Java client libraries
+* The {registry} Java client classes are available in version 2.x in a different Maven module named `apicurio-registry-client`.
+
+* The Kakfa client serializer and deserializer (SerDe) classes are available in version 2.x in three different Maven modules, one for each supported data format: Apache Avro, Protobuf, and JSON Schema. You can now use only the module you want without pulling in transitive dependencies that you are not concerned with. 
+
+
+[role="_additional-resources"]
+.Additional resources
+* For more details on the v2 REST API, see the link:{attachmentsdir}/registry-rest-api.htm[Registry REST API documentation]

@@ -1,0 +1,52 @@
+// Metadata created by nebel
+// ParentAssemblies: assemblies/getting-started/as_installing-the-registry.adoc
+
+[id="installing-registry-in-memory-storage_{context}"]
+= Installing {registry} with in-memory storage
+
+[role="_abstract"]
+This section explains how to install and run {registry} with simple in-memory storage from a container image. 
+
+NOTE: The in-memory storage option is suitable for development only. All data is lost when the container image is restarted.  
+
+.Prerequisites
+
+* You must have Docker installed and the Docker daemon running.
+* Ensure that you can connect to the container repository: https://hub.docker.com/r/apicurio/apicurio-registry-mem.
+
+.Procedure
+
+. Get the {registry} container image:
++
+[source,bash]
+----
+$ docker pull apicurio/apicurio-registry-mem:VERSION
+----
++ 
+`VERSION` is the {registry} release version, for example, `{registry-docker-version}`. For more details, see https://hub.docker.com/r/apicurio/apicurio-registry-mem/tags.
+
+. Run the container image: 
++
+[source,bash]
+----
+$ docker run -it -p 8080:8080 apicurio/apicurio-registry-mem:VERSION
+----
+
+. Send a test request using the {registry} REST API. For example, enter the following `curl` command to create a simple Avro schema artifact for a share price application in the registry:
++
+[source,bash]
+----
+$ curl -X POST -H "Content-type: application/json; artifactType=AVRO" -H "X-Registry-ArtifactId: share-price" --data '{"type":"record","name":"price","namespace":"com.example","fields":[{"name":"symbol","type":"string"},{"name":"price","type":"string"}]}' http://localhost:8080/apis/registry/v2/groups/my-group/artifacts
+----
+
+. Verify that the response includes the expected JSON body to confirm that the Avro schema artifact was created in the registry. For example:
++
+[source,bash]
+----
+{"name":"price","createdBy":"","createdOn":"2021-03-19T17:48:17+0000","modifiedOn":"2021-03-19T17:48:17+0000","id":"share-price","version":1,"type":"AVRO","globalId":12,"state":"ENABLED","groupId":"my-group","contentId":12}
+----
+
+[role="_additional-resources"]
+.Additional resources
+* For more REST API sample requests, see the link:{attachmentsdir}/registry-rest-api.htm[Apicurio Registry REST API documentation].
+* For demonstration examples, see link:https://github.com/Apicurio/apicurio-registry-examples[].

@@ -1,0 +1,87 @@
+// Metadata created by nebel
+
+[id="registry-rules_{context}"]
+
+= Govern registry content using rules
+
+[role="_abstract"]
+To govern the evolution of registry content, you can configure optional rules for artifact content added to the registry. All configured global rules or artifact rules must pass before a new artifact version can be uploaded to the registry. Configured artifact rules override any configured global rules.
+
+The goal of these rules is to prevent invalid content from being added to the registry. For example, content can be invalid for the following reasons:
+
+* Invalid syntax for a given artifact type (for example, `AVRO` or `PROTOBUF`)
+* Valid syntax, but semantics violate a specification
+* Incompatibility, when new content includes breaking changes relative to the current artifact version
+
+You can enable optional content rules using the {registry} web console, REST API commands, or a Java client application.
+
+[id="registry-rules-apply_{context}"]
+== When rules are applied
+Rules are applied only when content is added to the registry. This includes the following REST operations:
+
+* Adding an artifact
+* Updating an artifact
+* Adding an artifact version
+
+If a rule is violated, {registry} returns an HTTP error. The response body includes the violated rule and a message showing what went wrong.
+
+[id="registry-rules-precedence_{context}"]
+== Rule precedence
+You can configure {registry} content rules at a global level and at an artifact level. The order of precedence is as follows:
+
+* If you enable an artifact rule and the equivalent global rule, the artifact rule overrides the global rule.
+
+* If you disable an artifact rule, and enable the equivalent global rule, the global rule applies.
+
+* If you disable a rule at the artifact level and at the global level, you disable the rule for all artifacts.
+
+* If you set a rule value to `NONE` at the artifact level, you override the enabled global rule. In this case, the artifact rule value `NONE` takes precedence for this artifact, but the enabled global rule continues to apply to any other artifacts that have the rule disabled at the artifact level.
+
+[id="registry-rules-work_{context}"]
+== How rules work
+Each rule has a name and configuration information. The registry maintains the list of rules for each artifact and the list of global rules. Each rule in the list consists of a name and configuration for the rule implementation.
+
+A rule is provided with the content of the current version of the artifact (if one exists) and the new version of the artifact being added. The rule implementation returns true or false depending on whether the artifact passes the rule. If not, the registry reports the reason why in an HTTP error response. Some rules might not use the previous version of the content. For example, compatibility rules use previous versions, but syntax or semantic validity rules do not.
+
+[role="_additional-resources"]
+.Additional resources
+For more details, see {registry-reference}.
+
+ifdef::apicurio-registry,rh-service-registry[]
+[id="registry-rules-config_{context}"]
+== Content rule configuration
+You can configure rules individually for each artifact, as well as globally. {registry} applies the rules configured for the specific artifact. If no rules are configured at that level, {registry} applies the globally configured rules. If no global rules are configured, no rules are applied.
+
+[discrete]
+=== Configure artifact rules
+You can configure artifact rules using the {registry} web console or REST API. For details, see the following:
+
+* {managing-registry-artifacts-ui}
+* link:{attachmentsdir}/registry-rest-api.htm[Apicurio Registry REST API documentation]
+
+[discrete]
+=== Configure global rules
+You can configure global rules in several ways:
+
+* Use the `/rules` operations in the REST API
+* Use the {registry} web console
+* Set default global rules using {registry} application properties
+
+.Configure default global rules
+You can configure {registry} at the application level to enable or disable global rules. You can configure default global rules at installation time without post-install configuration using the following application property format:
+----
+registry.rules.global.<ruleName>
+----
+
+The following rule names are currently supported:
+
+* `compatibility`
+* `validity`
+
+The value of the application property must be a valid configuration option that is specific to the rule being
+configured. 
+
+NOTE: You can configure these application properties as Java system properties or include them in the Quarkus
+`application.properties` file. For more details, see the https://quarkus.io/guides/config#overriding-properties-at-runtime[Quarkus documentation].
+
+endif::[]

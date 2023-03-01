@@ -1,0 +1,62 @@
+// Metadata created by nebel
+// ParentAssemblies: assemblies/getting-started/as_managing-registry-artifacts.adoc
+
+[id="changing-artifact-owner-using-console_{context}"]
+= Changing an artifact owner using the {registry} web console
+
+[role="_abstract"]
+As an administrator or as an owner of a schema or API artifact, you can use the {registry} web console to change the artifact owner to 
+ifdef::apicurio-registry,rh-service-registry[]
+another user account.
+endif::[] 
+ifdef::rh-openshift-sr[]
+another user account or service account.
+endif::[] 
+
+For example, this feature is useful if the *Artifact owner-only authorization* option is set for the {registry} instance on the *Settings* tab so that only owners or administrators can modify artifacts. You might need to change owner if the owner user leaves the organization or the owner account is deleted. 
+
+ifdef::apicurio-registry,rh-service-registry[]
+NOTE: The *Artifact owner-only authorization* setting and the artifact *Owner* field are displayed _only if_ authentication was enabled when the {registry} instance was deployed. For more details, see 
+endif::[] 
+ifdef::apicurio-registry[]
+xref:../getting-started/assembly-configuring-the-registry.adoc[].
+endif::[] 
+ifdef::rh-service-registry[]
+link:{LinkServiceRegistryInstall}[{NameServiceRegistryInstall}].
+endif::[] 
+
+.Prerequisites
+
+* The {registry} instance is deployed and the artifact is created. 
+* You are logged in to the {registry} web console as the artifact's current owner or as an administrator:
++
+`{registry-url}`
+
+.Procedure
+
+
+ifdef::rh-openshift-sr[]
+. In the {registry} web console, click the {registry} instance containing the artifact that you want to reassign. 
+endif::[]
+. On the *Artifacts* tab, browse the list of artifacts stored in {registry}, or enter a search string to find the artifact. You can select from the list to search by criteria such as name, group, labels, or global ID.  
+
+. Click the artifact that you want to reassign.
+
+. In the *Version metadata* section, click the pencil icon next to the *Owner* field. 
+
+. In the *New owner* field, select or enter an account name. 
+
+. Click *Change owner*.
+
+
+[role="_additional-resources"]
+.Additional resources
+ifdef::apicurio-registry[]
+* xref:../getting-started/assembly-configuring-the-registry.adoc[]
+endif::[] 
+ifdef::rh-service-registry[]
+* link:{LinkServiceRegistryInstall}[{NameServiceRegistryInstall}]
+endif::[] 
+ifdef::rh-openshift-sr[]
+* link:{base-url}{access-mgmt-url-registry}[Managing account access in {product-long-registry}] 
+endif::[]  

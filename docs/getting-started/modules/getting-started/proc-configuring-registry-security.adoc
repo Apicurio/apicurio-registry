@@ -1,0 +1,165 @@
+// Metadata created by nebel
+
+[id="registry-security_{context}"]
+
+= Configuring {registry} authentication and authorization with {keycloak}
+
+[role="_abstract"]
+This section explains how to manually configure authentication and authorization options for {registry} using {keycloak}. 
+
+[NOTE]
+====
+Alternatively, for details on how to configure these settings automatically, 
+ifdef::apicurio-registry[]
+see the link:https://www.apicur.io/registry/docs/apicurio-registry-operator/{operator-version}/assembly-registry-maintenance.html#registry-security-keycloak[{registry} Operator documentation].
+endif::[]
+ifdef::rh-service-registry[]
+see xref:registry-security-keycloak[]. 
+endif::[]
+====
+
+You can enable authentication for the {registry} web console and core REST API using {keycloak} based on OAuth using OpenID Connect (OIDC). The same {keycloak} realm and users are federated across the {registry} web console and core REST API using OpenID Connect so that you only require one set of credentials.
+
+{registry} provides role-based authorization for default admin, write, and read-only user roles. {registry} also provides content-based authorization at the schema or API level, where only the creator of the registry artifact can update or delete it. {registry} authentication and authorization settings are disabled by default. 
+
+.Prerequisites
+* {keycloak} is installed and running. For more details, see
+ifdef::apicurio-registry[]
+link:https://www.keycloak.org/documentation[{keycloak} user documentation]. 
+endif::[]
+ifdef::rh-service-registry[]
+the link:https://access.redhat.com/documentation/en-us/red_hat_single_sign-on/{keycloak-version}[{keycloak} user documentation].
+endif::[]
+* {registry} is installed and running.
+
+.Procedure
+
+. In the {keycloak} Admin Console, create a {keycloak} realm for {registry}. By default, {registry} expects a realm name of `registry`. For more details on creating realms, see
+ifdef::apicurio-registry[]
+link:https://www.keycloak.org/getting-started[Getting Started with {keycloak}]. 
+endif::[]
+ifdef::rh-service-registry[]
+the link:https://access.redhat.com/documentation/en-us/red_hat_single_sign-on/{keycloak-version}[{keycloak} user documentation].
+endif::[]
+
+. Create a {keycloak} client for the {registry} API. By default, {registry} expects the following settings:
+** *Client ID*: `registry-api` 
+** *Client Protocol*: `openid-connect`
+** *Access Type*: `bearer-only`
++ 
+You can use the defaults for the other client settings. 
++
+NOTE: If you are using {keycloak} service accounts, the client *Access Type* must be `confidential` instead of `bearer-only`. 
+
+. Create a {keycloak} client for the {registry} web console. By default, {registry} expects the following settings:
+** *Client ID*: `apicurio-registry` 
+** *Client Protocol*: `openid-connect`
+** *Access Type*: `public`
+** *Valid Redirect URLs*: `\http://my-registry-url:8080/*` 
+** *Web Origins*: `+` 
++ 
+You can use the defaults for the other client settings. 
+
+. In your {registry} deployment on OpenShift, set the following {registry} environment variables to configure authentication using {keycloak}:
++
+.Configuration for {registry} authentication
+[.table-expandable,width="100%",cols="5,5,2,4",options="header"]
+|===
+|Environment variable
+|Description
+|Type
+|Default
+|`AUTH_ENABLED`
+|If set to `true`, the environment variables that follow are required.
+|String
+|`false`
+|`KEYCLOAK_URL`
+|The URL of the {keycloak} authentication server to use. Must end with `/auth`.
+|String
+|None
+|`KEYCLOAK_REALM`
+|The {keycloak} realm used for authentication.
+|String
+|`registry`
+|`KEYCLOAK_API_CLIENT_ID`
+|The client ID for the {registry} REST API.
+|String
+|`registry-api`
+|`KEYCLOAK_UI_CLIENT_ID`
+|The client ID for the {registry} web console.
+|String
+|`apicurio-registry`
+|===
++
+TIP: For an example of setting environment variables on OpenShift, see xref:configuring-liveness-readiness-probes_{context}[]. 
+
+. Set the following option to `true` to enable {registry} user roles in {keycloak}:
++
+.Configuration for {registry} role-based authorization
+[%header,cols="2,2,1,1"]
+|===
+|Environment variable
+|Java system property
+|Type
+|Default value
+|`ROLE_BASED_AUTHZ_ENABLED`
+|`registry.auth.role-based-authorization`
+|Boolean
+|`false`
+|===
+
+. When {registry} user roles are enabled, you must assign {registry} users to at least one of the following default user roles in your {keycloak} realm: 
++
+.Default user roles for registry authentication and authorization
+[.table-expandable,width="100%",cols="2,2,2,2,4",options="header"]
+|===
+|Role
+|Read artifacts
+|Write artifacts
+|Global rules
+|Summary
+|`sr-admin`
+|Yes
+|Yes
+|Yes
+|Full access to all create, read, update, and delete operations.
+|`sr-developer`
+|Yes
+|Yes
+|No
+|Access to create, read, update, and delete operations, except configuring global rules. This role can configure artifact rules.
+|`sr-readonly`
+|Yes
+|No
+|No
+|Access to read and search operations only. This role cannot configure any rules. 
+|===
+
+. Set the following to `true` to enable owner-only authorization for updates to schema and API artifacts in {registry}:
++
+.Configuration for owner-only authorization
+[.table-expandable,width="100%",cols="2,2,1,1",options="header"]
+|===
+|Environment variable
+|Java system property
+|Type
+|Default value
+|`REGISTRY_AUTH_OBAC_ENABLED`
+|`registry.auth.owner-only-authorization`
+|Boolean
+|`false`
+|===
+
+
+[role="_additional-resources"]
+.Additional resources
+* For details on configuring non-default user role names, see xref:registry-security-settings_{context}[]
+* For an open source example application and Keycloak realm, see https://github.com/Apicurio/apicurio-registry/tree/2.0.x/distro/docker-compose[Docker Compose-based example of using Keycloak with Apicurio Registry]
+* For details on how to use {keycloak} in a production environment, see
+ifdef::apicurio-registry[]
+the link:https://www.keycloak.org/documentation[Keycloak documentation]
+endif::[]
+ifdef::rh-service-registry[]
+see link:https://access.redhat.com/documentation/en-us/red_hat_single_sign-on/{keycloak-version}/[{keycloak} documentation]
+endif::[]
+* For details on custom security configuration, the see https://quarkus.io/guides/security-openid-connect-web-authentication[Quarkus Open ID Connect documentation] 

@@ -15,22 +15,21 @@
  */
 package io.apicurio.registry.events;
 
-import java.util.Optional;
-
-import javax.annotation.PostConstruct;
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.inject.Instance;
-import javax.inject.Inject;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
-import org.slf4j.Logger;
 import io.apicurio.registry.events.dto.RegistryEventType;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.eventbus.DeliveryOptions;
 import io.vertx.core.eventbus.EventBus;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Instance;
+import jakarta.inject.Inject;
+import org.slf4j.Logger;
+
+import javax.annotation.PostConstruct;
+import java.util.Optional;
 
 /**
  * @author Fabian Martinez

@@ -1,0 +1,55 @@
+// Metadata created by nebel
+
+[id="registry-overview_{context}"]
+= What is {registry}?
+
+[role="_abstract"]
+{registry} is a datastore for sharing standard event schemas and API designs across event-driven and API architectures. You can use {registry} to decouple the structure of your data from your client applications, and to share and manage your data types and API descriptions at runtime using a REST interface.
+
+For example, client applications can dynamically push or pull the latest schema updates to or from {registry} at runtime without needing to redeploy. Developer teams can query the registry for existing schemas required for services already deployed in production, and can register new schemas required for new services in development.  
+
+You can enable client applications to use schemas and API designs stored in {registry} by specifying the registry URL in your client application code. For example, the registry can store schemas used to serialize and deserialize messages, which are then referenced from your client applications to ensure that the messages that they send and receive are compatible with those schemas.
+
+Using {registry} to decouple your data structure from your applications reduces costs by decreasing overall message size, and creates efficiencies by increasing consistent reuse of schemas and API designs across your organization. 
+{registry} provides a web console to make it easy for developers and administrators to manage registry content.
+
+In addition, you can configure optional rules to govern the evolution of your registry content. For example, these include rules to ensure that uploaded content is syntactically and semantically valid, or is backwards and forwards compatible with other versions. Any configured rules must pass before new versions can be uploaded to the registry, which ensures that time is not wasted on invalid or incompatible schemas or API designs.   
+
+ifndef::apicurio-registry[]
+{registry} is based on the Apicurio Registry open source community project. For details, see https://github.com/apicurio/apicurio-registry. 
+endif::[]
+
+[discrete]
+== {registry} capabilities
+
+ifdef::rh-openshift-sr[]
+* Deployed as an easy-to-use managed cloud service without having to install, configure, or run your own {registry} instances
+
+* Full integration with Red Hat OpenShift Streams for Apache Kafka managed cloud service, including Kafka topic-to-schema mapping
+endif::[]
+
+* Multiple payload formats for standard event schema and API specifications such as Apache Avro, JSON Schema, Protobuf, AsyncAPI, OpenAPI, and more 
+
+ifdef::rh-service-registry[]
+* Pluggable registry storage options in AMQ Streams or PostgreSQL database 
+endif::[]
+ifdef::apicurio-registry[]
+* Pluggable registry storage options in Apache Kafka or PostgreSQL database 
+endif::[]
+
+* Rules for content validation and version compatibility to govern how registry content evolves over time
+
+* Registry content management using web console, REST API, command line, Maven plug-in, or Java client
+
+* Full Apache Kafka schema registry support, including integration with Kafka Connect for external systems 
+
+* Kafka client serializers/deserializers (SerDes) to validate message types at runtime
+
+* Compatibility with existing Confluent or IBM schema registry client applications
+ifdef::apicurio-registry,rh-service-registry[]
+* Cloud-native Quarkus Java runtime for low memory footprint and fast deployment times
+
+* Operator-based installation of {registry} on OpenShift
+
+* OpenID Connect (OIDC) authentication using {keycloak}
+endif::[]

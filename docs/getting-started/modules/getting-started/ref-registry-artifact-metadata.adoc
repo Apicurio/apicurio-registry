@@ -1,0 +1,63 @@
+// Metadata created by nebel
+
+[id="registry-artifact-metadata_{context}"]
+= {registry} artifact metadata
+
+[role="_abstract"]
+When an artifact is added to {registry}, a set of metadata properties is stored along with the artifact content. This metadata consists of a set of generated read-only properties, along with some properties that you can set.
+
+.{registry} read-only metadata
+[%header,cols=2*]
+|===
+|Property
+|Type
+|`contentId`
+| integer
+|`createdBy`
+| string
+|`createdOn`
+| date
+|`globalId`
+| integer
+|`groupId`
+| string
+|`id`
+| string
+|`modifiedBy`
+| string
+|`modifiedOn`
+| date
+|`references`
+| array of ArtifactReference
+|`type`
+| ArtifactType
+|`version`
+| integer
+|===
+
+
+.{registry} editable metadata
+[%header,cols=2*]
+|===
+|Property
+|Type
+|`description`
+| string
+|`labels`
+| array of string
+|`name`
+| string
+|`properties`
+| map
+|`state`
+| ArtifactState
+|===
+
+.Updating artifact metadata
+* You can use the {registry} REST API to update the set of editable properties using the metadata endpoints. 
+
+* You can edit the `state` property only by using the state transition API. For example, you can mark an artifact as `deprecated` or `disabled`.  
+
+[role="_additional-resources"]
+.Additional resources
+For more details, see the `/artifacts/\{artifactId\}/meta` sections in the {registry-rest-api}.

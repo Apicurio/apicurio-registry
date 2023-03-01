@@ -21,10 +21,10 @@ import io.apicurio.common.apps.multitenancy.limits.TenantLimitsService;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.metrics.StorageMetricsStore;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 import org.slf4j.Logger;
 
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;

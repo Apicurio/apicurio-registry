@@ -1,0 +1,30 @@
+// Metadata created by nebel
+include::{mod-loc}shared/all-attributes.adoc[]
+
+[id="configuring-the-registry_{context}"]
+= Configuring your {registry} deployment
+
+[role="_abstract"]
+This chapter explains various configuration options for {registry}, such as authentication, logging, cloud events, and health checks on OpenShift.
+
+* xref:registry-security_{context}[]
+* xref:registry-security-settings_{context}[]
+ifdef::apicurio-registry[]
+* xref:configuring-registry-ui_{context}[]
+endif::[]
+* xref:registry-logging_{context}[]
+* xref:registry-cloud-events_{context}[]
+* xref:configuring-liveness-readiness-probes_{context}[]
+* xref:registry-liveness-env-vars_{context}[]
+
+//INCLUDES
+include::{mod-loc}getting-started/proc-configuring-registry-security.adoc[leveloffset=+1]
+include::{mod-loc}getting-started/ref-registry-security-configuration.adoc[leveloffset=+1]
+ifdef::apicurio-registry[]
+include::{mod-loc}getting-started/proc-configuring-registry-ui.adoc[leveloffset=+1]
+endif::[]
+include::{mod-loc}getting-started/proc-configuring-registry-logging.adoc[leveloffset=+1]
+include::{mod-loc}getting-started/proc-configuring-registry-events.adoc[leveloffset=+1]
+include::{mod-loc}getting-started/proc-configuring-liveness-readiness-probes.adoc[leveloffset=+1]
+include::{mod-loc}getting-started/ref-registry-liveness-env-vars.adoc[leveloffset=+1]
+include::{mod-loc}getting-started/ref-registry-all-configs.adoc[leveloffset=+1]

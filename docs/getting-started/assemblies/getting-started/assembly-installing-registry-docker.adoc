@@ -1,0 +1,26 @@
+// Metadata created by nebel
+include::{mod-loc}shared/all-attributes.adoc[]
+
+[id="installing-the-registry-docker_{context}"]
+= Installing {registry} using Docker
+
+[role="_abstract"]
+This chapter explains how to install and run {registry} using Docker with the following storage options:
+
+* xref:installing-registry-in-memory-storage_{context}[]
+* xref:installing-registry-sql-storage_{context}[]
+* xref:installing-registry-kafka-storage_{context}[]
+ 
+.Prerequisites
+* {registry-overview}
+
+NOTE: You can install more than one instance of {registry} depending on your environment. The number of instances depends on your storage option, for example, your Kafka or database cluster configuration, and on the number and type of artifacts stored in {registry}.
+
+[role="_additional-resources"]
+.Additional resources
+* For details on building from source, see https://github.com/Apicurio/apicurio-registry.
+
+//INCLUDES
+include::{mod-loc}getting-started/proc-installing-registry-in-memory-storage.adoc[leveloffset=+1]
+include::{mod-loc}getting-started/proc-installing-registry-sql-storage.adoc[leveloffset=+1]
+include::{mod-loc}getting-started/proc-installing-registry-kafka-storage.adoc[leveloffset=+1]

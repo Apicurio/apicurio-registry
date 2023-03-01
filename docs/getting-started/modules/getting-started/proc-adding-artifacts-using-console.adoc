@@ -1,0 +1,75 @@
+// Metadata created by nebel
+// ParentAssemblies: assemblies/getting-started/as_managing-registry-artifacts.adoc
+
+[id="adding-artifacts-using-console_{context}"]
+= Adding artifacts using the {registry} web console
+
+[role="_abstract"]
+You can use the {registry} web console to upload event schema and API artifacts to {registry}. 
+This section shows simple examples of uploading {registry} artifacts and adding new artifact versions. 
+
+.Prerequisites
+
+ifdef::apicurio-registry,rh-service-registry[]
+* {registry} is installed and running in your environment.
+endif::[]
+* You are logged in to the {registry} web console:
++
+`{registry-url}`
+ifdef::rh-openshift-sr[]
+* You have access to a running {registry} instance.
+endif::[]
+
+.Procedure
+ifdef::rh-openshift-sr[]
+. In the {registry} web console, click your existing {registry} instance, or click *Create {registry} instance* to provision a new one. 
+endif::[]
+. On the *Artifacts* tab, click *Upload artifact*, and specify the following details:
+** *Group & ID*: Use the default empty settings to automatically generate an artifact ID and add the artifact to the `default` artifact group. Alternatively, you can enter an optional artifact group name or ID.
+** *Type*: Use the default *Auto-Detect* setting to automatically detect the artifact type, or select the artifact type from the list, for example, *Avro Schema* or *OpenAPI*.
++
+NOTE:  {registry} cannot automatically detect the *Kafka Connect Schema* artifact type. You must manually select this artifact type.
++
+** *Artifact*: Specify the artifact location using either of the following options: 
+*** *From file*: Click *Browse*, and select a file, or drag and drop a file. For example, `my-openapi.json` or `my-schema.proto`.
+*** *From URL*: Enter a valid and accessible URL, and click *Fetch*. For example: `\https://petstore3.swagger.io/api/v3/openapi.json`.
+. Click *Upload* and view the artifact details: 
++
+** *Overview*: Displays the artifact version metadata such as name, artifact ID, global ID, content ID, labels, and properties. Also displays rules for validity and compatibility that you can configure for artifact content.
+** *Documentation* (OpenAPI and AsyncAPI only): Displays automatically-generated REST API documentation.
+** *Content*: Displays a read-only view of the full artifact content. For JSON content, you can click *JSON* or *YAML* to display your preferred format. 
++
+The following example shows an example Protobuf schema artifact:
++
+.Artifact details in {registry} web console
+ifdef::apicurio-registry,rh-service-registry[]
+image::images/getting-started/registry-web-console-artifact.png[Artifact details in Registry web console]
+endif::[]
+ifdef::rh-openshift-sr[]
+image::../_images/user-guide/registry-web-console-artifact.png[Artifact details in Registry web console]
+endif::[]
+
+. On the *Overview* tab, click the *Edit* pencil icon to edit artifact metadata such as name or description. 
++
+You can also enter an optional comma-separated list of labels for searching, or add key-value pairs of arbitrary properties associated with the artifact. To add properties, perform the following steps:
++
+.. Click *Add property*.
+.. Enter the key name and the value.
+.. Repeat the first two steps to add multiple properties.
+.. Click *Save*.
+ 
+. To save the artifact contents to a local file, for example, `my-protobuf-schema.proto`, click *Download* at the end of the page. 
+
+. To add a new artifact version, click *Upload new version* in the page header, and drag and drop or click *Browse* to upload the file, for example, `my-avro-schema.json` or `my-openapi.json`.
+
+. To delete an artifact, click *Delete* in the page header.
++
+WARNING: Deleting an artifact deletes the artifact and all of its versions, and cannot be undone. Artifact versions are immutable and cannot be deleted individually.
+
+ifdef::apicurio-registry,rh-service-registry[]
+[role="_additional-resources"]
+.Additional resources
+* xref:browsing-artifacts-using-console_{context}[]
+* xref:configuring-rules-using-console_{context}[]
+* {registry-reference}
+endif::[]

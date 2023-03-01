@@ -1,0 +1,109 @@
+// Module included in the following assemblies:
+//  assembly-using-kafka-client-serdes
+
+[id='registry-serdes-types-protobuf_{context}']
+
+= Configure Protobuf SerDes with {registry}
+
+[role="_abstract"]
+This topic explains how to use the Kafka client serializer and deserializer (SerDes) classes for Google Protobuf.
+
+{registry} provides the following Kafka client SerDes classes for Protobuf:
+
+* `io.apicurio.registry.serde.protobuf.ProtobufKafkaSerializer`
+* `io.apicurio.registry.serde.protobuf.ProtobufKafkaDeserializer`
+
+.Configure the Protobuf serializer
+
+You can configure the Protobuf serializer class as follows:
+
+* {registry} URL
+* Artifact resolver strategy   
+* ID location
+* ID encoding
+* Schema validation
+
+For details on these configuration options, see the following sections: 
+
+* xref:registry-serdes-concepts-constants_registry[]
+* xref:registry-serdes-types-avro_registry[]
+
+.Configure the Protobuf deserializer
+
+You must configure the Protobuf deserializer class to match the following configuration settings in the serializer:
+
+* {registry} URL
+* ID encoding
+
+The configuration property names and values are the same as for the serializer.
+
+[NOTE]
+====
+The following options are not required when configuring the deserializer:
+
+* Artifact resolver strategy  
+* ID location
+====
+
+The deserializer class can determine the values for these options from the message. The strategy is not required because the serializer is responsible for sending the ID as part of the message. 
+
+The ID location is determined by checking for the magic byte at the start of the message payload. If that byte is found, the ID is read from the message payload using the configured handler. If the magic byte is not found, the ID is read from the message headers.
+
+NOTE: The Protobuf deserializer does not deserialize to your exact Protobuf Message implementation,
+but rather to a `DynamicMessage` instance. There is no appropriate API to do otherwise.
+
+.Protobuf SerDes and artifact references
+When a complex Protobuf message with an `import` statement is used, the imported Protobuf messages are stored in {registry} as separate artifacts. Then when {registry} gets the main schema to check a Protobuf message, the referenced schemes are also retrieved so the full message schema can be checked and serialized. 
+
+For example, the following `table_info.proto` schema file includes the imported `mode.proto` schema file:
+
+.table_info.proto file with imported .mode.proto file
+[source,bash]
+---- 
+syntax = "proto3";
+package sample;
+option java_package = "io.api.sample";
+option java_multiple_files = true;
+
+import "sample/mode.proto";
+
+message TableInfo {
+
+ int32 winIndex = 1;
+ Mode mode = 2;
+ int32 min = 3;
+ int32 max = 4;
+ string id = 5;
+ string dataAdapter = 6;
+ string schema = 7;
+ string selector = 8;
+ string subscription_id = 9;
+}
+----
+
+.mode.proto file
+[source,bash]
+---- 
+syntax = "proto3";
+package sample;
+option java_package = "io.api.sample";
+option java_multiple_files = true;
+
+enum Mode {
+
+MODE_UNKNOWN = 0;
+RAW = 1; 
+MERGE = 2; 
+DISTINCT = 3; 
+COMMAND = 4; 
+}
+----
+
+In this example, two Protobuf artifacts are stored in {registry}, one for `TableInfo` and one for `Mode`. However, because `Mode` is part of `TableInfo`, whenever `TableInfo` is fetched to check a message in the SerDes, `Mode` is also returned as an artifact referenced by `TableInfo`.
+
+
+[role="_additional-resources"]
+.Additional resources
+* For Java example applications, see: 
+** link:https://github.com/Apicurio/apicurio-registry-examples[Protobuf Bean and Protobuf Find Latest examples]
+** link:https://github.com/Apicurio/apicurio-registry-examples[SerDes with references example] 

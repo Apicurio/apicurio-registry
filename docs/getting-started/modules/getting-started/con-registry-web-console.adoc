@@ -1,0 +1,29 @@
+// Metadata created by nebel
+
+[id="registry-web-console_{context}"]
+= Manage content using the {registry} web console
+
+[role="_abstract"]
+You can use the {registry} web console to browse and search the schema and API artifacts and optional groups stored in the registry, and to add new schema and API artifacts, groups, and versions. You can search for artifacts by label, name, group, and description. You can view an artifact’s content or its available versions, or download an artifact file locally.
+
+You can also configure optional rules for registry content, both globally and for each schema and API artifact. These optional rules for content validation and compatibility are applied when new schema and API artifacts or versions are uploaded to the registry. 
+
+ifdef::apicurio-registry,rh-service-registry[]
+For more details, see {registry-reference}.
+endif::[]
+
+.{registry} web console
+ifdef::apicurio-registry,rh-service-registry[]
+image::images/getting-started/registry-web-console.png[{registry} web console]
+endif::[]
+ifdef::rh-openshift-sr[]
+image::../_images/introduction/registry-web-console.png[{registry} web console]
+endif::[]
+
+The {registry} web console is available from `{registry-url}`. 
+
+ifdef::apicurio-registry,rh-service-registry[]
+[role="_additional-resources"]
+.Additional resources
+* {managing-registry-artifacts-ui}
+endif::[]

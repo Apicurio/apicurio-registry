@@ -1,0 +1,75 @@
+// Metadata created by nebel
+// ParentAssemblies: assemblies/getting-started/as_installing-the-registry.adoc
+
+[id="testing-artifacts-using-maven-plugin_{context}"]
+= Testing schema and API artifacts using the Maven plug-in
+
+[role="_abstract"]
+You might want to verify that an artifact can be registered without actually making any changes. This is often useful when rules are configured in {registry}. Testing the artifact results in a failure if the artifact content violates any of the configured rules.
+
+NOTE: When testing artifacts using the Maven plug-in, even if the artifact passes the test, no content is added to {registry}.
+
+.Prerequisites
+ifdef::apicurio-registry,rh-service-registry[]
+* {registry} must be installed and running in your environment
+endif::[]
+ifdef::rh-openshift-sr[]
+* You must have a service account with the correct access permissions for {registry} instances
+endif::[]
+
+.Procedure
+Update your Maven `pom.xml` file to use the `apicurio-registry-maven-plugin` to test an artifact. The following example shows testing an Apache Avro schema:
+
+[source,xml]
+----
+<plugin>     
+  <groupId>io.apicurio</groupId>
+  <artifactId>apicurio-registry-maven-plugin</artifactId>
+  <version>${apicurio.version}</version>
+  <executions>
+      <execution>
+        <phase>generate-sources</phase>
+        <goals>
+            <goal>test-update</goal>  <1>
+        </goals>
+        <configuration>
+            <registryUrl>MY-REGISTRY-URL/apis/registry/v2</registryUrl> <2>
+            <authServerUrl>MY-AUTH-SERVER</authServerUrl> 
+            <clientId>MY-CLIENT-ID</clientId>
+            <clientSecret>MY-CLIENT-SECRET</clientSecret> <3>
+            <artifacts>
+                <artifact>
+                    <groupId>TestGroup</groupId> <4>
+                    <artifactId>FullNameRecord</artifactId>
+                    <file>${project.basedir}/src/main/resources/schemas/record.avsc</file> <5>
+                </artifact>
+                <artifact>
+                    <groupId>TestGroup</groupId>
+                    <artifactId>ExampleAPI</artifactId>
+                    <type>GRAPHQL</type>
+                    <file>${project.basedir}/src/main/resources/apis/example.graphql</file>
+                </artifact>
+            </artifacts>
+        </configuration>
+    </execution>
+  </executions>
+ </plugin>
+----
+
+. Specify `test-update` as the execution goal to test the schema artifact.
+. Specify the {registry} URL with the `../apis/registry/v2` endpoint.
+ifdef::apicurio-registry,rh-service-registry[]
+. If authentication is required, you can specify your authentication server and client credentials.
+endif::[]
+ifdef::rh-openshift-sr[]
+. Specify your service account ID and secret and the {org-name} Single Sign-On authentication server: `{sso-token-url}`
+endif::[]
+. Specify the {registry} artifact group ID. You can specify the `default` group if you do not want to use a unique group.
+. You can test multiple artifacts from a specified directory using the artifact ID. 
+
+////
+// old demo needs to be updated for v2
+[role="_additional-resources"]
+.Additional resources
+ * For more details on the {registry} Maven plug-in, see the link:https://github.com/Apicurio/apicurio-registry-demo[Registry demonstration example]
+//// 

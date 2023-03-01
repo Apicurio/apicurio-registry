@@ -1,0 +1,76 @@
+// Metadata created by nebel
+// ParentAssemblies: assemblies/getting-started/as_installing-the-registry.adoc
+
+[id="adding-artifacts-using-maven-plugin_{context}"]
+= Adding schema and API artifacts using the Maven plug-in
+
+[role="_abstract"]
+The most common use case for the Maven plug-in is adding artifacts during a build. You can accomplish this by using the `register` execution goal. 
+
+.Prerequisites
+ifdef::apicurio-registry,rh-service-registry[]
+* {registry} is installed and running in your environment
+endif::[]
+ifdef::rh-openshift-sr[]
+* You have a service account with the correct access permissions for {registry} instances
+endif::[]
+
+.Procedure
+Update your Maven `pom.xml` file to use the `apicurio-registry-maven-plugin` to register an artifact. The following example shows registering Apache Avro and GraphQL schemas:
+
+[source,xml]
+----
+<plugin>     
+  <groupId>io.apicurio</groupId>
+  <artifactId>apicurio-registry-maven-plugin</artifactId>
+  <version>${apicurio.version}</version>
+  <executions>
+      <execution>
+        <phase>generate-sources</phase>
+        <goals>
+            <goal>register</goal>  <1>
+        </goals>
+        <configuration>
+            <registryUrl>MY-REGISTRY-URL/apis/registry/v2</registryUrl> <2>
+            <authServerUrl>MY-AUTH-SERVER</authServerUrl> 
+            <clientId>MY-CLIENT-ID</clientId>
+            <clientSecret>MY-CLIENT-SECRET</clientSecret> <3>
+            <artifacts>
+                <artifact>
+                    <groupId>TestGroup</groupId> <4>
+                    <artifactId>FullNameRecord</artifactId>
+                    <file>${project.basedir}/src/main/resources/schemas/record.avsc</file> 
+                    <ifExists>FAIL</ifExists>
+                </artifact>
+                <artifact>
+                    <groupId>TestGroup</groupId>
+                    <artifactId>ExampleAPI</artifactId> <5>
+                    <type>GRAPHQL</type>
+                    <file>${project.basedir}/src/main/resources/apis/example.graphql</file>
+                    <ifExists>RETURN_OR_UPDATE</ifExists>
+                    <canonicalize>true</canonicalize>
+                </artifact>
+            </artifacts>
+        </configuration>
+    </execution>
+  </executions>
+ </plugin>
+----
+
+. Specify `register` as the execution goal to upload the schema artifact to the registry.
+. Specify the {registry} URL with the `../apis/registry/v2` endpoint.
+ifdef::apicurio-registry,rh-service-registry[]
+. If authentication is required, you can specify your authentication server and client credentials.
+endif::[]
+ifdef::rh-openshift-sr[]
+. Specify your service account ID and secret and the {org-name} Single Sign-On authentication server: `{sso-token-url}`
+endif::[]
+. Specify the {registry} artifact group ID. You can specify the `default` group if you do not want to use a unique group ID.
+. You can register multiple artifacts using the specified group ID, artifact ID, and location.
+
+////
+// old demo needs to be updated for v2
+[role="_additional-resources"]
+.Additional resources
+ * For more details on the {registry} Maven plug-in, see the link:https://github.com/Apicurio/apicurio-registry-demo[Registry demonstration example]
+////

@@ -26,8 +26,8 @@ import io.apicurio.common.apps.logging.Logged;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
 
-import javax.enterprise.context.ApplicationScoped;
-import javax.interceptor.Interceptors;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.interceptor.Interceptors;
 
 /**
  * @author Ales Justin

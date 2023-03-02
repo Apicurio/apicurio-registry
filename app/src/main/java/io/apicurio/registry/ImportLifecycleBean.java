@@ -1,19 +1,16 @@
 package io.apicurio.registry;
 
 import io.apicurio.common.apps.config.Info;
-
 import io.apicurio.registry.storage.RegistryStorage;
+import io.apicurio.registry.storage.StorageEvent;
+import io.apicurio.registry.storage.StorageEventType;
 import io.apicurio.registry.storage.impexp.EntityInputStream;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.utils.impexp.Entity;
 import io.apicurio.registry.utils.impexp.EntityReader;
-import io.quarkus.runtime.StartupEvent;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.event.Observes;
-import javax.inject.Inject;
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -21,6 +18,9 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 import java.util.zip.ZipInputStream;
+import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.event.ObservesAsync;
+import javax.inject.Inject;
 
 @ApplicationScoped
 public class ImportLifecycleBean {
@@ -36,8 +36,8 @@ public class ImportLifecycleBean {
     @Info(category = "import", description = "The import URL", availableSince = "2.1.0.Final")
     Optional<URL> registryImportUrlProp;
 
-    void onStart(@Observes StartupEvent ev) {
-        if (registryImportUrlProp.isPresent()) {
+    void onStorageReady(@ObservesAsync StorageEvent ev) {
+        if (StorageEventType.READY.equals(ev.getType()) && registryImportUrlProp.isPresent()) {
             log.info("Import URL exists.");
             final URL registryImportUrl = registryImportUrlProp.get();
             try (final InputStream registryImportZip = new BufferedInputStream(registryImportUrl.openStream())) {

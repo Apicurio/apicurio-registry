@@ -16,12 +16,12 @@
 
 package io.apicurio.registry.storage.impl.kafkasql;
 
+import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
+import io.apicurio.common.apps.logging.Logged;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.canon.ContentCanonicalizer;
 import io.apicurio.registry.content.extract.ContentExtractor;
 import io.apicurio.registry.content.extract.ExtractedMetaData;
-import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
-import io.apicurio.common.apps.logging.Logged;
 import io.apicurio.registry.metrics.StorageMetricsApply;
 import io.apicurio.registry.metrics.health.liveness.PersistenceExceptionLivenessApply;
 import io.apicurio.registry.metrics.health.readiness.PersistenceTimeoutReadinessApply;
@@ -33,10 +33,13 @@ import io.apicurio.registry.storage.ContentNotFoundException;
 import io.apicurio.registry.storage.GroupAlreadyExistsException;
 import io.apicurio.registry.storage.GroupNotFoundException;
 import io.apicurio.registry.storage.LogConfigurationNotFoundException;
+import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.RegistryStorageException;
 import io.apicurio.registry.storage.RoleMappingNotFoundException;
 import io.apicurio.registry.storage.RuleAlreadyExistsException;
 import io.apicurio.registry.storage.RuleNotFoundException;
+import io.apicurio.registry.storage.StorageEvent;
+import io.apicurio.registry.storage.StorageEventType;
 import io.apicurio.registry.storage.VersionAlreadyExistsException;
 import io.apicurio.registry.storage.VersionNotFoundException;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
@@ -58,7 +61,6 @@ import io.apicurio.registry.storage.dto.SearchFilter;
 import io.apicurio.registry.storage.dto.StoredArtifactDto;
 import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
 import io.apicurio.registry.storage.impexp.EntityInputStream;
-import io.apicurio.registry.storage.impl.AbstractRegistryStorage;
 import io.apicurio.registry.storage.impl.kafkasql.keys.BootstrapKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.MessageKey;
 import io.apicurio.registry.storage.impl.kafkasql.sql.KafkaSqlSink;
@@ -91,11 +93,6 @@ import org.apache.kafka.common.config.TopicConfig;
 import org.apache.kafka.common.errors.TopicExistsException;
 import org.slf4j.Logger;
 
-import javax.annotation.PostConstruct;
-import javax.annotation.PreDestroy;
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.event.Observes;
-import javax.inject.Inject;
 import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
@@ -112,6 +109,12 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
+import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
+import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.event.Event;
+import javax.enterprise.event.Observes;
+import javax.inject.Inject;
 
 /**
  * An implementation of a registry artifactStore that extends the basic SQL artifactStore but federates 'write' operations
@@ -126,7 +129,7 @@ import java.util.function.Function;
 @StorageMetricsApply
 @Logged
 @SuppressWarnings("unchecked")
-public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
+public class KafkaSqlRegistryStorage implements RegistryStorage {
 
     @Inject
     Logger log;
@@ -164,8 +167,11 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
     @Inject
     KafkaSqlUpgrader upgrader;
 
-    private boolean bootstrapped = false;
-    private boolean stopped = true;
+    @Inject
+    Event<StorageEvent> storageEvent;
+
+    private volatile boolean bootstrapped = false;
+    private volatile boolean stopped = true;
 
     @PostConstruct
     void onConstruct() {
@@ -182,7 +188,7 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
      * @param event
      */
     public void handleSqlStorageEvent(@Observes SqlStorageEvent event) {
-        if (event.getType() == SqlStorageEventType.initialized) {
+        if (SqlStorageEventType.READY.equals(event.getType())) {
             // Start the Kafka Consumer thread only once the SQL storage is initialized
             log.info("SQL store initialized, starting consumer thread.");
             startConsumerThread(consumer);
@@ -205,19 +211,14 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
         return true;
     }
 
-    /**
-     * @see io.apicurio.registry.storage.impl.AbstractRegistryStorage#isReady()
-     */
     @Override
     public boolean isReady() {
         return bootstrapped;
     }
 
-    /**
-     * @see io.apicurio.registry.storage.impl.AbstractRegistryStorage#isAlive()
-     */
     @Override
     public boolean isAlive() {
+        // TODO: Include readiness of Kafka consumers and producers? What happens if Kafka stops responding?
         return bootstrapped && !stopped;
     }
 
@@ -241,7 +242,7 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
         try {
             KafkaUtil.createTopics(adminProperties, topicNames, topicProperties);
         } catch (TopicExistsException e) {
-            log.info("Topic already exists, skipping");
+            log.info("Topic {} already exists, skipping.", configuration.topic());
         }
     }
 
@@ -253,19 +254,14 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
      */
     private void startConsumerThread(final KafkaConsumer<MessageKey, MessageValue> consumer) {
         log.info("Starting KSQL consumer thread on topic: {}", configuration.topic());
-        log.info("Bootstrap servers: " + configuration.bootstrapServers());
+        log.info("Bootstrap servers: {}", configuration.bootstrapServers());
 
         final String bootstrapId = UUID.randomUUID().toString();
         submitter.submitBootstrap(bootstrapId);
         final long bootstrapStart = System.currentTimeMillis();
 
         Runnable runner = () -> {
-            log.info("KSQL consumer thread startup lag: {}", configuration.startupLag());
-
             try {
-                // Startup lag
-                try { Thread.sleep(configuration.startupLag()); } catch (InterruptedException e) { }
-
                 log.info("Subscribing to {}", configuration.topic());
 
                 // Subscribe to the journal topic
@@ -289,9 +285,12 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
                             if (record.key().getType() == MessageType.Bootstrap) {
                                 BootstrapKey bkey = (BootstrapKey) record.key();
                                 if (bkey.getBootstrapId().equals(bootstrapId)) {
-                                    this.bootstrapped = true;
-                                    log.info("KafkaSQL storage bootstrapped in " + (System.currentTimeMillis() - bootstrapStart) + "ms.");
                                     upgrader.upgrade();
+                                    this.bootstrapped = true;
+                                    storageEvent.fireAsync(StorageEvent.builder()
+                                            .type(StorageEventType.READY)
+                                            .build());
+                                    log.info("KafkaSQL storage bootstrapped in {} ms.", System.currentTimeMillis() - bootstrapStart);
                                 }
                                 return;
                             }

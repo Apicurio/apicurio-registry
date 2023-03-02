@@ -38,6 +38,10 @@ import javax.enterprise.context.ApplicationScoped;
 @Logged
 public class SqlRegistryStorage extends AbstractSqlRegistryStorage {
 
+    public SqlRegistryStorage() {
+        super(true);
+    }
+
     @PostConstruct
     void onConstruct() {
         log.info("Using SQL artifactStore.");

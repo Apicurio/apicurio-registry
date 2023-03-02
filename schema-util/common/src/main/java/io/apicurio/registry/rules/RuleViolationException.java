@@ -16,17 +16,18 @@
 
 package io.apicurio.registry.rules;
 
-import java.util.HashSet;
-import java.util.Optional;
-import java.util.Set;
-
 import io.apicurio.registry.types.RegistryException;
 import io.apicurio.registry.types.RuleType;
 import lombok.Getter;
 
+import java.util.HashSet;
+import java.util.Optional;
+import java.util.Set;
+
 /**
  * Exception thrown when a configured rule is violated, rejecting an artifact content
  * update.
+ *
  * @author Ales Justin
  */
 public class RuleViolationException extends RegistryException {
@@ -44,6 +45,7 @@ public class RuleViolationException extends RegistryException {
 
     /**
      * Constructor.
+     *
      * @param message
      * @param ruleType
      * @param ruleConfiguration
@@ -58,6 +60,7 @@ public class RuleViolationException extends RegistryException {
 
     /**
      * Constructor.
+     *
      * @param message
      * @param ruleType
      * @param ruleConfiguration
@@ -72,6 +75,7 @@ public class RuleViolationException extends RegistryException {
 
     /**
      * Constructor.
+     *
      * @param message
      * @param ruleType
      * @param ruleConfiguration
@@ -79,10 +83,18 @@ public class RuleViolationException extends RegistryException {
      * @param cause
      */
     public RuleViolationException(String message, RuleType ruleType, String ruleConfiguration,
-            Set<RuleViolation> causes, Throwable cause) {
+                                  Set<RuleViolation> causes, Throwable cause) {
         super(message, cause);
         this.ruleType = ruleType;
         this.ruleConfiguration = Optional.ofNullable(ruleConfiguration);
         this.causes = causes;
+    }
+
+    @Override
+    public String getMessage() {
+        return super.getMessage() + causes.stream()
+                .map(rv -> rv.getDescription() + (rv.getContext() != null && !rv.getContext().isBlank() ? " at " + rv.getContext() : ""))
+                .reduce((left, right) -> left + ", " + right)
+                .map(s -> " Causes: " + s).orElse("");
     }
 }

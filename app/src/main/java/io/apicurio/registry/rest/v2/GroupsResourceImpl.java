@@ -695,7 +695,7 @@ public class GroupsResourceImpl implements GroupsResource {
     }
 
     /**
-     * @see io.apicurio.registry.rest.v2.GroupsResource#createArtifact(String, ArtifactType, String, String, IfExists, Boolean, String, String, String, String, String, String, InputStream)
+     * @see io.apicurio.registry.rest.v2.GroupsResource#createArtifact(String, String, String, String, IfExists, Boolean, String, String, String, String, String, String, InputStream)
      */
     @Override
     @Audited(extractParameters = {"0", KEY_GROUP_ID, "1", KEY_ARTIFACT_TYPE, "2", KEY_ARTIFACT_ID, "3", KEY_VERSION, "4", KEY_IF_EXISTS, "5", KEY_CANONICAL, "6", KEY_DESCRIPTION, "7", KEY_DESCRIPTION_ENCODED, "8", KEY_NAME, "9", KEY_NAME_ENCODED, "10", KEY_FROM_URL, "11", KEY_SHA})
@@ -709,7 +709,7 @@ public class GroupsResourceImpl implements GroupsResource {
     }
 
     /**
-     * @see io.apicurio.registry.rest.v2.GroupsResource#createArtifact(String, ArtifactType, String, String, IfExists, Boolean, String, String, String, String, String, String, ContentCreateRequest)
+     * @see io.apicurio.registry.rest.v2.GroupsResource#createArtifact(String, String, String, String, IfExists, Boolean, String, String, String, String, String, String, ContentCreateRequest)
      */
     @Override
     @Audited(extractParameters = {"0", KEY_GROUP_ID, "1", KEY_ARTIFACT_TYPE, "2", KEY_ARTIFACT_ID, "3", KEY_VERSION, "4", KEY_IF_EXISTS, "5", KEY_CANONICAL, "6", KEY_DESCRIPTION, "7", KEY_DESCRIPTION_ENCODED, "8", KEY_NAME, "9", KEY_NAME_ENCODED, "10", "from_url" /*KEY_FROM_URL*/, "11", "artifact_sha" /*KEY_SHA*/})
@@ -902,7 +902,7 @@ public class GroupsResourceImpl implements GroupsResource {
             ArtifactMetaDataDto amd = storage.createArtifactWithMetadata(defaultGroupIdToNull(groupId), artifactId, xRegistryVersion, artifactType, content, metaData, referencesAsDtos);
             return V2ApiUtil.dtoToMetaData(defaultGroupIdToNull(groupId), finalArtifactId, artifactType, amd);
         } catch (ArtifactAlreadyExistsException ex) {
-            return handleIfExists(groupId, xRegistryArtifactId, xRegistryVersion, ifExists, content, ct, fcanonical, references);
+            return handleIfExists(groupId, xRegistryArtifactId, xRegistryVersion, ifExists, artifactName, artifactDescription, content, ct, fcanonical, references);
         }
     }
 
@@ -1052,8 +1052,9 @@ public class GroupsResourceImpl implements GroupsResource {
         return new String(Base64.decode(encoded));
     }
 
-    private ArtifactMetaData handleIfExists(String groupId, String artifactId, String version,
-                                            IfExists ifExists, ContentHandle content, String contentType, boolean canonical, List<ArtifactReference> references) {
+    private ArtifactMetaData handleIfExists(String groupId, String artifactId, String version, IfExists ifExists,
+                                            String artifactName, String artifactDescription, ContentHandle content,
+                                            String contentType, boolean canonical, List<ArtifactReference> references) {
         final ArtifactMetaData artifactMetaData = getArtifactMetaData(groupId, artifactId);
         if (ifExists == null) {
             ifExists = IfExists.FAIL;
@@ -1061,17 +1062,18 @@ public class GroupsResourceImpl implements GroupsResource {
 
         switch (ifExists) {
             case UPDATE:
-                return updateArtifactInternal(groupId, artifactId, version, content, contentType, references);
+                return updateArtifactInternal(groupId, artifactId, version, artifactName, artifactDescription, content, contentType, references);
             case RETURN:
                 return artifactMetaData;
             case RETURN_OR_UPDATE:
-                return handleIfExistsReturnOrUpdate(groupId, artifactId, version, content, contentType, canonical, references);
+                return handleIfExistsReturnOrUpdate(groupId, artifactId, version, artifactName, artifactDescription, content, contentType, canonical, references);
             default:
                 throw new ArtifactAlreadyExistsException(groupId, artifactId);
         }
     }
 
     private ArtifactMetaData handleIfExistsReturnOrUpdate(String groupId, String artifactId, String version,
+                                                          String artifactName, String artifactDescription,
                                                           ContentHandle content, String contentType, boolean canonical, List<ArtifactReference> references) {
         try {
             ArtifactVersionMetaDataDto mdDto = this.storage.getArtifactVersionMetaData(defaultGroupIdToNull(groupId), artifactId, canonical, content);
@@ -1080,12 +1082,7 @@ public class GroupsResourceImpl implements GroupsResource {
         } catch (ArtifactNotFoundException nfe) {
             // This is OK - we'll update the artifact if there is no matching content already there.
         }
-        return updateArtifactInternal(groupId, artifactId, version, content, contentType, references);
-    }
-
-    private ArtifactMetaData updateArtifactInternal(String groupId, String artifactId, String version,
-                                                    ContentHandle content, String contentType, List<ArtifactReference> references) {
-        return this.updateArtifactInternal(groupId, artifactId, version, null, null, content, contentType, references);
+        return updateArtifactInternal(groupId, artifactId, version, artifactName, artifactDescription, content, contentType, references);
     }
 
     private ArtifactMetaData updateArtifactInternal(String groupId, String artifactId, String version,

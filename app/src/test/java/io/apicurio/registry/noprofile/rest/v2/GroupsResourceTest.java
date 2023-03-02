@@ -1143,7 +1143,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .then()
                 .statusCode(409)
                 .body("error_code", equalTo(409))
-                .body("message", equalTo("Syntax or semantic violation for JSON Schema artifact."));
+                .body("message", startsWith("Syntax or semantic violation for JSON Schema artifact."));
     }
 
     @Test
@@ -1194,7 +1194,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .then()
                 .statusCode(409)
                 .body("error_code", equalTo(409))
-                .body("message", equalTo("Incompatible artifact: testCreateArtifact/ValidJson [JSON], num" +
+                .body("message", startsWith("Incompatible artifact: testCreateArtifact/ValidJson [JSON], num" +
                         " of incompatible diffs: {1}, list of diff types: [SUBSCHEMA_TYPE_CHANGED at /properties/age]"))
                 .body("causes[0].description", equalTo(DiffType.SUBSCHEMA_TYPE_CHANGED.getDescription()))
                 .body("causes[0].context", equalTo("/properties/age"));
@@ -1881,6 +1881,8 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         final String artifactContent = resourceToString("openapi-empty.json");
         final String updatedArtifactContent = artifactContent.replace("Empty API", "Empty API (Updated)");
         final String v3ArtifactContent = artifactContent.replace("Empty API", "Empty API (Version 3)");
+        final String artifactName = "ArtifactNameFromHeader";
+        final String artifactDescription = "ArtifactDescriptionFromHeader";
 
         // Create OpenAPI artifact - indicate the type via a header param
         Integer globalId1 = createArtifact(GROUP, artifactId, ArtifactType.OPENAPI, artifactContent);
@@ -1952,10 +1954,13 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         assertEquals(globalId1, globalId3);
 
         // Try to create the same artifact ID with ReturnOrUpdate and updated content - should create a new version
+        // and use name and description from headers
         resp = given()
                 .when()
                 .contentType(CT_JSON + "; artifactType=OPENAPI")
                 .header("X-Registry-ArtifactId", artifactId)
+                .header("X-Registry-Name", artifactName)
+                .header("X-Registry-Description", artifactDescription)
                 .pathParam("groupId", GROUP)
                 .queryParam("ifExists", IfExists.RETURN_OR_UPDATE)
                 .body(v3ArtifactContent)
@@ -1963,6 +1968,8 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .then()
                 .statusCode(200)
                 .body("version", equalTo("3"))
+                .body("name", equalTo(artifactName))
+                .body("description", equalTo(artifactDescription))
                 .body("type", equalTo(ArtifactType.OPENAPI));
     }
 

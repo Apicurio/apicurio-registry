@@ -37,6 +37,10 @@ import javax.enterprise.context.ApplicationScoped;
 @Logged
 public class InMemoryRegistryStorage extends AbstractSqlRegistryStorage {
 
+    public InMemoryRegistryStorage() {
+        super(true);
+    }
+
     @PostConstruct
     void onConstruct() {
         log.info("Using In Memory (H2) SQL storage.");

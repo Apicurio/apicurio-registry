@@ -5,7 +5,7 @@
 = Adding artifacts using the {registry} web console
 
 [role="_abstract"]
-You can use the {registry} web console to upload event schema and API artifacts to the registry. 
+You can use the {registry} web console to upload event schema and API artifacts to {registry}. 
 This section shows simple examples of uploading {registry} artifacts and adding new artifact versions. 
 
 .Prerequisites

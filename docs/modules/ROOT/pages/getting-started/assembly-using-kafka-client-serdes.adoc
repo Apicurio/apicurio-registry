@@ -18,9 +18,9 @@ This chapter explains how to use Kafka client SerDes in your producer and consum
 * xref:registry-serdes-config-stream_{context}[]
 
 .Prerequisites
-* You have read {registry-overview}
-* You have installed {registry}
-* You have created Kafka producer and consumer client applications
+* You have read {registry-overview}.
+* You have installed {registry}.
+* You have created Kafka producer and consumer client applications.
 +
 ifdef::rh-service-registry[]
 For more details on Kafka client applications, see link:{LinkDeployStreamsOpenShift}[{NameDeployStreamsOpenShift}].

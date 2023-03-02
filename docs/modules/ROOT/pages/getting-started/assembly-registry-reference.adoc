@@ -2,7 +2,7 @@
 include::{mod-loc}shared/all-attributes.adoc[]
 
 [id="registry-artifact-reference_{context}"]
-= {registry} artifact reference
+= {registry} artifact and rule reference
 //If the assembly covers a task, start the title with a verb in the gerund form, such as Creating or Configuring.
 
 [role="_abstract"]
@@ -17,7 +17,7 @@ This chapter provides details on the supported artifact types, states, metadata,
 
 [role="_additional-resources"]
 .Additional resources
-* For more detailed information, see the link:{attachmentsdir}/registry-rest-api.htm[Apicurio Registry REST API documentation]
+* For more detailed information, see the link:{attachmentsdir}/registry-rest-api.htm[Apicurio Registry REST API documentation].
 
 //INCLUDES
 include::{mod-loc}getting-started/ref-registry-artifact-types.adoc[leveloffset=+1]

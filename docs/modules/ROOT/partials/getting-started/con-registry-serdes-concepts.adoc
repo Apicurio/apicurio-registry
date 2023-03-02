@@ -8,7 +8,7 @@
 [role="_abstract"]
 {registry} decouples schema management from client application configuration. You can enable a Java client application to use a schema from {registry} by specifying its URL in your client code.
 
-You can store the schemas in the registry to serialize and deserialize messages, which are referenced from your client applications to ensure that the messages that they send and receive are compatible with those schemas. Kafka client applications can push or pull their schemas from {registry} at runtime.
+You can store the schemas in {registry} to serialize and deserialize messages, which are referenced from your client applications to ensure that the messages that they send and receive are compatible with those schemas. Kafka client applications can push or pull their schemas from {registry} at runtime.
 
 Schemas can evolve, so you can define rules in {registry}, for example, to ensure that schema changes are valid and do not break previous versions used by applications. {registry} checks for compatibility by comparing a modified schema with previous schema versions.
 

@@ -5,7 +5,7 @@
 = Viewing artifacts using the {registry} web console
 
 [role="_abstract"]
-You can use the {registry} web console to browse the event schema and API artifacts stored in the registry. This section shows a simple example of viewing {registry} artifacts, groups, versions, and artifact rules. 
+You can use the {registry} web console to browse the event schema and API artifacts stored in {registry}. This section shows a simple example of viewing {registry} artifacts, groups, versions, and artifact rules. 
 
 .Prerequisites
 

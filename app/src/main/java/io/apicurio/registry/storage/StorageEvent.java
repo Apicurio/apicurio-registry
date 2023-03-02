@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Red Hat
+ * Copyright 2022 Red Hat Inc
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,23 +14,27 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.storage.impl.kafkasql;
+package io.apicurio.registry.storage;
 
-import java.util.Properties;
+import lombok.Builder;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
 
 /**
- * @author eric.wittmann@gmail.com
+ * CDI event fired by the storage implementation.
+ * Differs from {@see io.apicurio.registry.storage.impl.sql.SqlStorageEvent} because
+ * this event is fired by non-SQL implementations as well.
+ *
+ * @author Jakub Senko <m@jsenko.net>
  */
-public interface KafkaSqlConfiguration {
+@Builder
+@Getter
+@Setter
+@EqualsAndHashCode
+@ToString
+public class StorageEvent {
 
-    String bootstrapServers();
-    String topic();
-    Properties topicProperties();
-    boolean isTopicAutoCreate();
-    Integer pollTimeout();
-    Integer responseTimeout();
-    Properties producerProperties();
-    Properties consumerProperties();
-    Properties adminProperties();
-
+    private StorageEventType type;
 }

@@ -229,7 +229,7 @@
         <scala.version>2.13.10</scala.version>
 
         <!-- Plugin Versions -->
-        <version.compiler.plugin>3.10.1</version.compiler.plugin>
+        <version.compiler.plugin>3.11.0</version.compiler.plugin>
         <version.deploy.plugin>3.1.0</version.deploy.plugin>
         <version.failsafe.plugin>2.22.2</version.failsafe.plugin>
         <version.javadoc.plugin>3.5.0</version.javadoc.plugin>

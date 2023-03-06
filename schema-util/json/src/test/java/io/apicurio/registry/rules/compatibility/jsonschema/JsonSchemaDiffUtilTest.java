@@ -3,7 +3,6 @@ package io.apicurio.registry.rules.compatibility.jsonschema;
 import io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffContext;
 import io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType;
 import io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffUtil;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -11,8 +10,6 @@ import org.junit.jupiter.params.provider.MethodSource;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class JsonSchemaDiffUtilTest {
     public static Stream<Arguments> multipleOfCases() {

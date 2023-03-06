@@ -16,19 +16,20 @@
 
 package io.apicurio.registry.noprofile.maven;
 
+import java.io.File;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
 import io.apicurio.registry.maven.RegisterArtifact;
 import io.apicurio.registry.maven.RegisterRegistryMojo;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
-import java.io.File;
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
-import java.util.List;
 
 /**
  * @author Ales Justin
@@ -40,7 +41,7 @@ public class RegistryMojoWithMinifyTest extends RegistryMojoTestBase {
     @BeforeEach
     public void createMojo() {
         this.registerMojo = new RegisterRegistryMojo();
-        this.registerMojo.setRegistryUrl(TestUtils.getRegistryV2ApiUrl(testPort));
+        this.registerMojo.setRegistryUrl(TestUtils.getRegistryV2ApiUrl());
     }
 
     @Test

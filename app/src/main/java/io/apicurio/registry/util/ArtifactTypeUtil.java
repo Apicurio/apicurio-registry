@@ -22,6 +22,7 @@ import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 import javax.ws.rs.BadRequestException;
 import javax.ws.rs.core.MediaType;
@@ -46,6 +47,8 @@ import io.apicurio.registry.types.ArtifactType;
  * @author eric.wittmann@gmail.com
  */
 public final class ArtifactTypeUtil {
+
+    private static final Pattern QUOTED_BRACKETS = Pattern.compile(": *\"\\{}\"");
 
     private static final ObjectMapper mapper = new ObjectMapper();
 
@@ -159,6 +162,7 @@ public final class ArtifactTypeUtil {
             // Apparently it's not JSON.
         }
 
+
         try {
             // Avro without quote
             final Schema.Parser parser = new Schema.Parser();
@@ -228,6 +232,13 @@ public final class ArtifactTypeUtil {
         }
 
         throw new InvalidArtifactTypeException("Failed to discover artifact type from content.");
+    }
+
+    /**
+     * Given a content removes any quoted brackets. This is useful for some validation corner cases in avro where some libraries detects quoted brackets as valid and others as invalid
+     */
+    private static String removeQuotedBrackets(String content) {
+        return QUOTED_BRACKETS.matcher(content).replaceAll(":{}");
     }
 
     private static ArtifactType tryProto(ContentHandle content) {

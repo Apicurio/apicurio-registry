@@ -21,7 +21,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import javax.enterprise.context.ApplicationScoped;
@@ -76,8 +75,6 @@ import io.apicurio.registry.util.VersionUtil;
  */
 @ApplicationScoped
 public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
-
-    private static final Pattern QUOTED_BRACKETS = Pattern.compile(": *\"\\{}\"");
 
     @Inject
     @Current
@@ -147,7 +144,7 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
                 throw new ArtifactNotFoundException("ContentId: " + contentId);
             }
         }
-        return converter.convert(contentHandle, ArtifactTypeUtil.determineArtifactType(removeQuotedBrackets(contentHandle.content()), null, null, storage.resolveReferences(references)), references);
+        return converter.convert(contentHandle, ArtifactTypeUtil.determineArtifactType(contentHandle, null, null, storage.resolveReferences(references)), references);
     }
 
     @Override
@@ -159,7 +156,7 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
                     }
                     StoredArtifactDto storedArtifact = storage.getArtifactVersion(null, subject, version);
                     Map<String, ContentHandle> resolvedReferences = storage.resolveReferences(storedArtifact.getReferences());
-                    return converter.convert(subject, storedArtifact, ArtifactTypeUtil.determineArtifactType(removeQuotedBrackets(storedArtifact.getContent().content()), null, null, resolvedReferences));
+                    return converter.convert(subject, storedArtifact, ArtifactTypeUtil.determineArtifactType(storedArtifact.getContent(), null, null, resolvedReferences));
                 });
     }
 
@@ -206,7 +203,7 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
         try {
             Map<String, ContentHandle> resolvedReferences = resolveReferences(references);
 
-            final ArtifactType artifactType = ArtifactTypeUtil.determineArtifactType(removeQuotedBrackets(schema), null, null, resolvedReferences);
+            final ArtifactType artifactType = ArtifactTypeUtil.determineArtifactType(ContentHandle.create(schema), null, null, resolvedReferences);
             if (schemaType != null && !artifactType.value().equals(schemaType)) {
                 throw new UnprocessableEntityException(String.format("Given schema is not from type: %s", schemaType));
             }
@@ -281,13 +278,6 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
                 throw new UnprocessableEntityException(ex.getMessage(), ex);
             }
         });
-    }
-
-    /**
-     * Given a content removes any quoted brackets. This is useful for some validation corner cases in avro where some libraries detects quoted brackets as valid and others as invalid
-     */
-    private ContentHandle removeQuotedBrackets(String content) {
-        return ContentHandle.create(QUOTED_BRACKETS.matcher(content).replaceAll(":{}"));
     }
 
     private ArtifactMetaDataDto createOrUpdateArtifact(String subject, String schema, ArtifactType artifactType, List<SchemaReference> references) {

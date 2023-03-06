@@ -135,7 +135,7 @@ public class DiffUtil {
         requireNonNull(updated);
         BigDecimal o = new BigDecimal(original.toString()); // Not pretty but it works:/
         BigDecimal u = new BigDecimal(updated.toString());
-        if (o.remainder(u).equals(BigDecimal.ZERO)) {
+        if (o.remainder(u).compareTo(BigDecimal.ZERO) == 0) {
             ctx.addDifference(multipleOfType, original, updated);
         } else {
             ctx.addDifference(notMultipleOfType, original, updated);

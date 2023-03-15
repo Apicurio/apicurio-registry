@@ -79,6 +79,8 @@ spec:
 ----
 http://example-apicurioregistry-kafkasql.my-project.my-domain-name.com/
 ----
++
+WARNING: The Kafka topic used by {registry} (named `kafkasql-journal` by default) must be configured with a *compaction* cleanup policy, otherwise a data loss may occur.
 
 [role="_additional-resources"]
 .Additional resources

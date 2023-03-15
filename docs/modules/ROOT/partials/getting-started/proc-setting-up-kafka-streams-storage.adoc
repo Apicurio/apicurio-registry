@@ -79,8 +79,31 @@ spec:
 ----
 http://example-apicurioregistry-kafkasql.my-project.my-domain-name.com/
 ----
+
+ifdef::apicurio-registry[]
+. To configure the Kafka topic that {registry} uses to store data, click *Installed Operators* > *{kafka-streams}* > *Provided APIs* > *Kafka Topic* > *kafkasql-journal* > *YAML*. For example:
+endif::[]
+ifdef::rh-service-registry[]
+. To configure the Kafka topic that {registry} uses to store data, click *Installed Operators* > *Red Hat Integration - {kafka-streams}* > *Provided APIs* > *Kafka Topic* > *kafkasql-journal* > *YAML*. For example:
+endif::[]
 +
-WARNING: The Kafka topic used by {registry} (named `kafkasql-journal` by default) must be configured with a *compaction* cleanup policy, otherwise a data loss may occur.
+[source,yaml]
+----
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: kafkasql-journal
+  labels:
+    strimzi.io/cluster: my-cluster
+  namespace: ...
+spec:
+  partitions: 3
+  replicas: 3
+  config:
+    cleanup.policy: compact
+----
++
+WARNING: You must configure the Kafka topic used by {registry} (named `kafkasql-journal` by default) with a compaction cleanup policy, otherwise a data loss might occur.
 
 [role="_additional-resources"]
 .Additional resources

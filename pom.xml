@@ -248,7 +248,7 @@
         <!-- Plugin Deps -->
         <version.puppycrawl>8.45.1</version.puppycrawl>
 
-        <!-- Proto -->
+        <!-- Protocol Buffers -->
         <proto-plugin.version>0.6.1</proto-plugin.version>
         <os-maven-plugin.version>1.7.1</os-maven-plugin.version>
 

@@ -83,7 +83,7 @@
             <plugin>
                 <groupId>io.apicurio</groupId>
                 <artifactId>apicurio-codegen-maven-plugin</artifactId>
-                <version>1.0.12.Final</version>
+                <version>1.0.14.Final</version>
                 <executions>
                     <execution>
                         <phase>generate-sources</phase>

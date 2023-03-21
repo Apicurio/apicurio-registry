@@ -17,7 +17,7 @@
 package io.apicurio.registry.ccompat.rest.v6;
 
 import io.apicurio.registry.ccompat.dto.Schema;
-import io.apicurio.registry.ccompat.dto.SchemaContent;
+import io.apicurio.registry.ccompat.dto.SchemaInfo;
 
 import javax.validation.constraints.NotNull;
 import javax.ws.rs.Consumes;
@@ -96,7 +96,7 @@ public interface SubjectsResource {
     @Path("/{subject}")
     Schema findSchemaByContent(
             @PathParam("subject") String subject,
-            @NotNull SchemaContent request) throws Exception;
+            @NotNull SchemaInfo request) throws Exception;
 
 
 

@@ -67,7 +67,7 @@ public interface RegistryStorageFacade {
     List<Integer> getVersions(String subject) throws ArtifactNotFoundException, RegistryStorageException;
 
 
-    Schema getSchema(String subject, SchemaContent schema, boolean normalize) throws ArtifactNotFoundException, RegistryStorageException;
+    Schema getSchema(String subject, SchemaInfo schema, boolean normalize) throws ArtifactNotFoundException, RegistryStorageException;
 
 
     /**

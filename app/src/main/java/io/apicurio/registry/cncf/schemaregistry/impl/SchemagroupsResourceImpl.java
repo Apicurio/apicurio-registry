@@ -203,7 +203,7 @@ public class SchemagroupsResourceImpl implements SchemagroupsResource {
         // Check to see if this content is already registered - return the ID of that content
         // if it exists.  If not, then register the new content.
         try {
-            storage.getArtifactVersionMetaData(groupId, schemaId, false, content);
+            storage.getArtifactVersionMetaData(groupId, schemaId, false, content, Collections.emptyList());
             SchemaId id = new SchemaId();
             id.setId(schemaId);
             return id;

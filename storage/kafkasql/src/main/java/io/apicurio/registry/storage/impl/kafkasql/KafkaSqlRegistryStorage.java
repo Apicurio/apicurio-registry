@@ -558,12 +558,12 @@ public class KafkaSqlRegistryStorage implements RegistryStorage {
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#getArtifactVersionMetaData(java.lang.String, java.lang.String, boolean, io.apicurio.registry.content.ContentHandle)
+     * @see io.apicurio.registry.storage.RegistryStorage#getArtifactVersionMetaData(java.lang.String, java.lang.String, boolean, io.apicurio.registry.content.ContentHandle, java.util.List)
      */
     @Override
-    public ArtifactVersionMetaDataDto getArtifactVersionMetaData(String groupId, String artifactId, boolean canonical, ContentHandle content)
+    public ArtifactVersionMetaDataDto getArtifactVersionMetaData(String groupId, String artifactId, boolean canonical, ContentHandle content, List<ArtifactReferenceDto> artifactReferences)
             throws ArtifactNotFoundException, RegistryStorageException {
-        return sqlStore.getArtifactVersionMetaData(groupId, artifactId, canonical, content);
+        return sqlStore.getArtifactVersionMetaData(groupId, artifactId, canonical, content, artifactReferences);
     }
 
     /**

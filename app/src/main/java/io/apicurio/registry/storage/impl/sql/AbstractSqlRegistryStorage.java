@@ -687,9 +687,8 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         String canonicalContentHash;
 
         if (referencesSerialized != null) {
-            byte[] referencesBytes = referencesSerialized.getBytes(StandardCharsets.UTF_8);
-            contentHash = DigestUtils.sha256Hex(concatContentAndReferences(contentBytes, referencesBytes));
-            canonicalContentHash = DigestUtils.sha256Hex(concatContentAndReferences(canonicalContentBytes, referencesBytes));
+            contentHash = DigestUtils.sha256Hex(concatContentAndReferences(contentBytes, referencesSerialized));
+            canonicalContentHash = DigestUtils.sha256Hex(concatContentAndReferences(canonicalContentBytes, referencesSerialized));
         } else {
             contentHash = DigestUtils.sha256Hex(contentBytes);
             canonicalContentHash = DigestUtils.sha256Hex(canonicalContentBytes);
@@ -698,11 +697,16 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         return createOrUpdateContent(handle, content, contentHash, canonicalContentHash, references, referencesSerialized);
     }
 
-    private byte[] concatContentAndReferences(byte[] contentBytes, byte[] referencesBytes) throws IOException {
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream(contentBytes.length + referencesBytes.length);
-        outputStream.write(contentBytes);
-        outputStream.write(referencesBytes);
-        return outputStream.toByteArray();
+    private byte[] concatContentAndReferences(byte[] contentBytes, String references) throws IOException {
+        if (references != null) {
+            final byte[] referencesBytes = references.getBytes(StandardCharsets.UTF_8);
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream(contentBytes.length + referencesBytes.length);
+            outputStream.write(contentBytes);
+            outputStream.write(referencesBytes);
+            return outputStream.toByteArray();
+        } else {
+            return contentBytes;
+        }
     }
 
     /**
@@ -1412,20 +1416,26 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     }
 
     /**
-     * @see RegistryStorage#getArtifactVersionMetaData(java.lang.String, java.lang.String, boolean, io.apicurio.registry.content.ContentHandle)
+     * @see RegistryStorage#getArtifactVersionMetaData(java.lang.String, java.lang.String, boolean, io.apicurio.registry.content.ContentHandle, java.util.List)
      */
     @Override
     public ArtifactVersionMetaDataDto getArtifactVersionMetaData(String groupId, String artifactId, boolean canonical,
-                                                                 ContentHandle content) throws ArtifactNotFoundException, RegistryStorageException {
+                                                                 ContentHandle content, List<ArtifactReferenceDto> artifactReferences) throws ArtifactNotFoundException, RegistryStorageException {
         String hash;
-        if (canonical) {
-            final ArtifactMetaDataDto artifactMetaData = this.getArtifactMetaData(groupId, artifactId);
-            final ContentWrapperDto contentWrapperDto = getArtifactByContentId(artifactMetaData.getContentId());
-            String type = artifactMetaData.getType();
-            ContentHandle canonicalContent = this.canonicalizeContent(type, content, contentWrapperDto.getReferences());
-            hash = DigestUtils.sha256Hex(canonicalContent.bytes());
-        } else {
-            hash = DigestUtils.sha256Hex(content.bytes());
+        String referencesSerialized = SqlUtil.serializeReferences(artifactReferences);
+
+        try {
+            if (canonical) {
+                final ArtifactMetaDataDto artifactMetaData = this.getArtifactMetaData(groupId, artifactId);
+                final ContentWrapperDto contentWrapperDto = getArtifactByContentId(artifactMetaData.getContentId());
+                String type = artifactMetaData.getType();
+                ContentHandle canonicalContent = this.canonicalizeContent(type, content, contentWrapperDto.getReferences());
+                hash = DigestUtils.sha256Hex(concatContentAndReferences(canonicalContent.bytes(), referencesSerialized));
+            } else {
+                hash = DigestUtils.sha256Hex(concatContentAndReferences(content.bytes(), referencesSerialized));
+            }
+        } catch (IOException e) {
+            throw new RegistryStorageException(e);
         }
 
         try {

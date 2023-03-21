@@ -390,6 +390,8 @@ public class GroupsResourceImpl implements GroupsResource {
     @Override
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
     public VersionMetaData getArtifactVersionMetaDataByContent(String groupId, String artifactId, Boolean canonical, InputStream data) {
+        //TODO this operation must be updated to accept the list of references,
+        // otherwise there is no way to retrieve the correct version metadata since two versions might have the same content but different references.
         requireParameter("groupId", groupId);
         requireParameter("artifactId", artifactId);
 
@@ -404,7 +406,7 @@ public class GroupsResourceImpl implements GroupsResource {
             content = ContentTypeUtil.yamlToJson(content);
         }
 
-        ArtifactVersionMetaDataDto dto = storage.getArtifactVersionMetaData(defaultGroupIdToNull(groupId), artifactId, canonical, content);
+        ArtifactVersionMetaDataDto dto = storage.getArtifactVersionMetaData(defaultGroupIdToNull(groupId), artifactId, canonical, content, Collections.emptyList());
         return V2ApiUtil.dtoToVersionMetaData(defaultGroupIdToNull(groupId), artifactId, dto.getType(), dto);
     }
 
@@ -1076,7 +1078,7 @@ public class GroupsResourceImpl implements GroupsResource {
                                                           String artifactName, String artifactDescription,
                                                           ContentHandle content, String contentType, boolean canonical, List<ArtifactReference> references) {
         try {
-            ArtifactVersionMetaDataDto mdDto = this.storage.getArtifactVersionMetaData(defaultGroupIdToNull(groupId), artifactId, canonical, content);
+            ArtifactVersionMetaDataDto mdDto = this.storage.getArtifactVersionMetaData(defaultGroupIdToNull(groupId), artifactId, canonical, content, toReferenceDtos(references));
             ArtifactMetaData md = V2ApiUtil.dtoToMetaData(defaultGroupIdToNull(groupId), artifactId, null, mdDto);
             return md;
         } catch (ArtifactNotFoundException nfe) {

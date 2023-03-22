@@ -1909,12 +1909,12 @@
                         },
                         "application/create.extended+json": {
                             "schema": {
-                                "$ref": "#/components/schemas/ContentCreateRequest"
+                                "$ref": "#/components/schemas/ArtifactContent"
                             }
                         },
                         "application/vnd.create.extended+json": {
                             "schema": {
-                                "$ref": "#/components/schemas/ContentCreateRequest"
+                                "$ref": "#/components/schemas/ArtifactContent"
                             }
                         }
                     },
@@ -2155,12 +2155,12 @@
                         },
                         "application/create.extended+json": {
                             "schema": {
-                                "$ref": "#/components/schemas/ContentCreateRequest"
+                                "$ref": "#/components/schemas/ArtifactContent"
                             }
                         },
                         "application/vnd.create.extended+json": {
                             "schema": {
-                                "$ref": "#/components/schemas/ContentCreateRequest"
+                                "$ref": "#/components/schemas/ArtifactContent"
                             }
                         }
                     },
@@ -2497,12 +2497,12 @@
                         },
                         "application/create.extended+json": {
                             "schema": {
-                                "$ref": "#/components/schemas/ContentCreateRequest"
+                                "$ref": "#/components/schemas/ArtifactContent"
                             }
                         },
                         "application/vnd.create.extended+json": {
                             "schema": {
-                                "$ref": "#/components/schemas/ContentCreateRequest"
+                                "$ref": "#/components/schemas/ArtifactContent"
                             }
                         }
                     },
@@ -2719,6 +2719,11 @@
                                         }
                                     }
                                 }
+                            }
+                        },
+                        "application/get.extended+json:": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ArtifactContent"
                             }
                         }
                     },
@@ -3850,11 +3855,9 @@
                     "createdBy": "some text",
                     "globalId": 37,
                     "version": 85,
-                    "properties": {
-                    },
+                    "properties": {},
                     "contentId": 62,
-                    "references": {
-                    }
+                    "references": {}
                 }
             },
             "RuleViolationError": {
@@ -3925,28 +3928,6 @@
                     "artifactId": "13842090-2ce3-11ec-8d3d-0242ac130003",
                     "version": "2",
                     "name": "foo.bar.Open"
-                }
-            },
-            "ContentCreateRequest": {
-                "description": "",
-                "required": [
-                    "content",
-                    "references"
-                ],
-                "type": "object",
-                "properties": {
-                    "content": {
-                        "description": "Raw content of the artifact or a valid (and accessible) URL where the content can be found.",
-                        "type": "string",
-                        "example": ""
-                    },
-                    "references": {
-                        "description": "Collection of references to other artifacts.",
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/ArtifactReference"
-                        }
-                    }
                 }
             },
             "ConfigurationProperty": {
@@ -4236,6 +4217,28 @@
                     "properties": {
                         "custom-1": "foo",
                         "custom-2": "bar"
+                    }
+                }
+            },
+            "ArtifactContent": {
+                "description": "",
+                "required": [
+                    "content",
+                    "references"
+                ],
+                "type": "object",
+                "properties": {
+                    "content": {
+                        "description": "Raw content of the artifact or a valid (and accessible) URL where the content can be found.",
+                        "type": "string",
+                        "example": ""
+                    },
+                    "references": {
+                        "description": "Collection of references to other artifacts.",
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/ArtifactReference"
+                        }
                     }
                 }
             }

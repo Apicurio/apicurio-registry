@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 
+import io.apicurio.registry.rest.v2.beans.ArtifactContent;
 import io.apicurio.registry.rest.v2.beans.ArtifactOwner;
 import io.apicurio.registry.rest.v2.beans.ArtifactReference;
 import io.apicurio.registry.rest.v2.beans.GroupMetaData;
@@ -183,6 +184,11 @@ public class LoadBalanceRegistryClient implements RegistryClient {
     public VersionMetaData getArtifactVersionMetaDataByContent(String groupId, String artifactId,
             Boolean canonical, String contentType, InputStream data) {
         return getTarget().getArtifactVersionMetaDataByContent(groupId, artifactId, canonical, contentType, data);
+    }
+
+    @Override
+    public VersionMetaData getArtifactVersionMetaDataByContent(String groupId, String artifactId, Boolean canonical, ArtifactContent artifactContent) {
+        return getTarget().getArtifactVersionMetaDataByContent(groupId, artifactId, canonical, artifactContent);
     }
 
     /**

@@ -20,9 +20,11 @@ import io.apicurio.registry.rest.client.AdminClient;
 import io.apicurio.registry.rest.client.AdminClientFactory;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.RegistryClientFactory;
+import io.apicurio.registry.rest.v2.V2ApiUtil;
 import io.apicurio.registry.rest.v2.beans.ArtifactReference;
-import io.apicurio.registry.rest.v2.beans.ContentCreateRequest;
+import io.apicurio.registry.rest.v2.beans.ArtifactContent;
 import io.apicurio.registry.storage.RegistryStorage;
+import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.types.ArtifactMediaTypes;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.Current;
@@ -40,11 +42,16 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import javax.inject.Inject;
 
+import static io.apicurio.registry.rest.v2.V2ApiUtil.defaultGroupIdToNull;
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.equalTo;
 
@@ -175,9 +182,9 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
 
     protected ValidatableResponse createArtifactExtendedRaw(String groupId, String artifactId, String artifactType, String artifactContent, List<ArtifactReference> artifactReferences) throws Exception {
 
-        ContentCreateRequest contentCreateRequest = new ContentCreateRequest();
-        contentCreateRequest.setContent(artifactContent);
-        contentCreateRequest.setReferences(artifactReferences);
+        ArtifactContent ArtifactContent = new ArtifactContent();
+        ArtifactContent.setContent(artifactContent);
+        ArtifactContent.setReferences(artifactReferences);
 
         var request = given()
                 .when()
@@ -190,7 +197,7 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
             request.header("X-Registry-ArtifactType", artifactType);
 
         return request
-                .body(contentCreateRequest)
+                .body(ArtifactContent)
                 .post("/registry/v2/groups/{groupId}/artifacts")
                 .then();
     }
@@ -502,5 +509,27 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
                 "  \"properties\": {\n" +
                 "  }\n" +
                 "}";
+    }
+
+    protected byte[] concatContentAndReferences(byte[] contentBytes, String references) throws IOException {
+        if (references != null) {
+            final byte[] referencesBytes = references.getBytes(StandardCharsets.UTF_8);
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream(contentBytes.length + referencesBytes.length);
+            outputStream.write(contentBytes);
+            outputStream.write(referencesBytes);
+            return outputStream.toByteArray();
+        } else {
+            return contentBytes;
+        }
+    }
+
+    protected List<ArtifactReferenceDto> toReferenceDtos(List<ArtifactReference> references) {
+        if (references == null) {
+            references = Collections.emptyList();
+        }
+        return references.stream()
+                .peek(r -> r.setGroupId(defaultGroupIdToNull(r.getGroupId())))
+                .map(V2ApiUtil::referenceToDto)
+                .collect(Collectors.toList());
     }
 }

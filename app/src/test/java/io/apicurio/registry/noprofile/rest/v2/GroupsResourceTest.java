@@ -18,7 +18,6 @@ package io.apicurio.registry.noprofile.rest.v2;
 
 import com.google.common.hash.Hashing;
 import io.apicurio.registry.AbstractResourceTestBase;
-import io.apicurio.registry.rest.v2.V2ApiUtil;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v2.beans.ArtifactReference;
 import io.apicurio.registry.rest.v2.beans.EditableMetaData;
@@ -26,7 +25,6 @@ import io.apicurio.registry.rest.v2.beans.IfExists;
 import io.apicurio.registry.rest.v2.beans.Rule;
 import io.apicurio.registry.rest.v2.beans.VersionMetaData;
 import io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType;
-import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.impl.sql.SqlUtil;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
@@ -50,14 +48,11 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
-import static io.apicurio.registry.rest.v2.V2ApiUtil.defaultGroupIdToNull;
 import static io.restassured.RestAssured.given;
 import static java.net.HttpURLConnection.HTTP_OK;
 import static org.hamcrest.CoreMatchers.anyOf;
@@ -2373,7 +2368,9 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .name("foo")
                 .build());
         artifactContent = getRandomValidJsonSchemaContent();
+
         response = createArtifactExtendedRaw("default", null, null, artifactContent, references);
+
         metadata = response
                 .statusCode(HTTP_OK)
                 .extract().as(ArtifactMetaData.class);
@@ -2381,7 +2378,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         assertEquals(references, metadata.getReferences());
 
 
-        // Trying to use different references with the same content is ok, but the contentId is different.
+        // Trying to use different references with the same content is ok, but the contentId and contentHash is different.
         List<ArtifactReference> references2 = List.of(ArtifactReference.builder()
                 .groupId(metadata.getGroupId())
                 .artifactId(metadata.getId())
@@ -2412,6 +2409,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .statusCode(HTTP_OK)
                 .extract().as(new TypeRef<List<ArtifactReference>>() {
                 });
+
         assertEquals(references, referenceResponse);
 
         // Get references via contentId
@@ -2456,19 +2454,6 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 });
 
         assertEquals(references, referenceResponse);
-    }
-
-    private List<ArtifactReferenceDto> toReferenceDtos(List<ArtifactReference> references) {
-        if (references == null) {
-            references = Collections.emptyList();
-        }
-        return references.stream()
-                .map(r -> {
-                    r.setGroupId(defaultGroupIdToNull(r.getGroupId()));
-                    return r;
-                }) // .peek(...) may be optimized away
-                .map(V2ApiUtil::referenceToDto)
-                .collect(Collectors.toList());
     }
 
     private byte[] concatContentAndReferences(byte[] contentBytes, byte[] referencesBytes) throws IOException {

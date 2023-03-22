@@ -3927,7 +3927,7 @@
                     "name": "foo.bar.Open"
                 }
             },
-            "ContentCreateRequest": {
+            "ArtifactContent": {
                 "description": "",
                 "required": [
                     "content",

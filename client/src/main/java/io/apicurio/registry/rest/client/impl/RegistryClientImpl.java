@@ -27,8 +27,27 @@ import io.apicurio.registry.rest.client.request.provider.GroupRequestsProvider;
 import io.apicurio.registry.rest.client.request.provider.IdRequestsProvider;
 import io.apicurio.registry.rest.client.request.provider.SearchRequestsProvider;
 import io.apicurio.registry.rest.client.request.provider.UsersRequestsProvider;
-import io.apicurio.registry.rest.v2.beans.*;
+import io.apicurio.registry.rest.v2.beans.ArtifactContent;
+import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
+import io.apicurio.registry.rest.v2.beans.ArtifactOwner;
+import io.apicurio.registry.rest.v2.beans.ArtifactReference;
+import io.apicurio.registry.rest.v2.beans.ArtifactSearchResults;
+import io.apicurio.registry.rest.v2.beans.ConfigurationProperty;
+import io.apicurio.registry.rest.v2.beans.EditableMetaData;
 import io.apicurio.registry.rest.v2.beans.Error;
+import io.apicurio.registry.rest.v2.beans.GroupMetaData;
+import io.apicurio.registry.rest.v2.beans.GroupSearchResults;
+import io.apicurio.registry.rest.v2.beans.IfExists;
+import io.apicurio.registry.rest.v2.beans.LogConfiguration;
+import io.apicurio.registry.rest.v2.beans.NamedLogConfiguration;
+import io.apicurio.registry.rest.v2.beans.RoleMapping;
+import io.apicurio.registry.rest.v2.beans.Rule;
+import io.apicurio.registry.rest.v2.beans.SortBy;
+import io.apicurio.registry.rest.v2.beans.SortOrder;
+import io.apicurio.registry.rest.v2.beans.UpdateState;
+import io.apicurio.registry.rest.v2.beans.UserInfo;
+import io.apicurio.registry.rest.v2.beans.VersionMetaData;
+import io.apicurio.registry.rest.v2.beans.VersionSearchResults;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.types.RoleType;
 import io.apicurio.registry.types.RuleType;
@@ -74,11 +93,11 @@ public class RegistryClientImpl implements RegistryClient {
     @Override
     public ArtifactMetaData updateArtifact(String groupId, String artifactId, String version, String artifactName, String artifactDescription, InputStream data, List<ArtifactReference> references) {
         Map<String, String> headers = headersFrom(version, artifactName, artifactDescription, ContentTypes.APPLICATION_CREATE_EXTENDED);
-        ContentCreateRequest contentCreateRequest = new ContentCreateRequest();
-        contentCreateRequest.setContent(IoUtil.toString(data));
-        contentCreateRequest.setReferences(references);
+        ArtifactContent artifactContent = new ArtifactContent();
+        artifactContent.setContent(IoUtil.toString(data));
+        artifactContent.setReferences(references);
         try {
-            return apicurioHttpClient.sendRequest(GroupRequestsProvider.updateArtifactWithReferences(normalizeGid(groupId), artifactId, headers, contentCreateRequest));
+            return apicurioHttpClient.sendRequest(GroupRequestsProvider.updateArtifactWithReferences(normalizeGid(groupId), artifactId, headers, artifactContent));
         } catch (JsonProcessingException e) {
             throw parseSerializationError(e);
         }
@@ -123,6 +142,17 @@ public class RegistryClientImpl implements RegistryClient {
         final Map<String, List<String>> queryParams = canonical != null ? Map.of(Parameters.CANONICAL, Collections.singletonList(String.valueOf(canonical))) : Collections.emptyMap();
         final Map<String, String> headers = contentType != null ? Map.of(Headers.CONTENT_TYPE, contentType) : Collections.emptyMap();
         return apicurioHttpClient.sendRequest(GroupRequestsProvider.getArtifactVersionMetaDataByContent(normalizeGid(groupId), artifactId, headers, queryParams, data));
+    }
+
+    @Override
+    public VersionMetaData getArtifactVersionMetaDataByContent(String groupId, String artifactId, Boolean canonical, ArtifactContent artifactContent) {
+        try {
+            final Map<String, List<String>> queryParams = canonical != null ? Map.of(Parameters.CANONICAL, Collections.singletonList(String.valueOf(canonical))) : Collections.emptyMap();
+            final Map<String, String> headers = Map.of(Headers.CONTENT_TYPE, ContentTypes.APPLICATION_GET_EXTENDED);
+            return apicurioHttpClient.sendRequest(GroupRequestsProvider.getArtifactVersionMetaDataByContent(normalizeGid(groupId), artifactId, headers, queryParams, artifactContent));
+        } catch (JsonProcessingException e) {
+            throw parseSerializationError(e);
+        }
     }
 
     @Override
@@ -288,12 +318,12 @@ public class RegistryClientImpl implements RegistryClient {
             content = " { \"content\" : \"" + fromURL + "\" }";
         }
 
-        final ContentCreateRequest contentCreateRequest = new ContentCreateRequest();
-        contentCreateRequest.setContent(content);
-        contentCreateRequest.setReferences(artifactReferences);
+        final ArtifactContent artifactContent = new ArtifactContent();
+        artifactContent.setContent(content);
+        artifactContent.setReferences(artifactReferences);
 
         try {
-            return apicurioHttpClient.sendRequest(GroupRequestsProvider.createArtifactWithReferences(normalizeGid(groupId), ca.headers, contentCreateRequest, ca.queryParams));
+            return apicurioHttpClient.sendRequest(GroupRequestsProvider.createArtifactWithReferences(normalizeGid(groupId), ca.headers, artifactContent, ca.queryParams));
         } catch (JsonProcessingException e) {
             throw parseSerializationError(e);
         }
@@ -578,7 +608,7 @@ public class RegistryClientImpl implements RegistryClient {
     }
 
     protected void checkCommonQueryParams(SortBy orderBy, SortOrder order, Integer limit, Integer offset,
-                                        Map<String, List<String>> queryParams) {
+                                          Map<String, List<String>> queryParams) {
         if (offset != null) {
             queryParams.put(Parameters.OFFSET, Collections.singletonList(String.valueOf(offset)));
         }

@@ -28,6 +28,7 @@ public final class ContentTypeUtil {
     
     public static final String CT_APPLICATION_JSON = "application/json";
     public static final String CT_APPLICATION_CREATE_EXTENDED = "application/create.extended+json";
+    public static final String CT_APPLICATION_GET_EXTENDED = "application/get.extended+json";
     public static final String CT_APPLICATION_YAML = "application/x-yaml";
     public static final String CT_APPLICATION_XML = "application/xml";
 
@@ -68,6 +69,18 @@ public final class ContentTypeUtil {
             return false;
         }
         return ct.contains(CT_APPLICATION_CREATE_EXTENDED);
+    }
+
+    /**
+     * Returns true if the Content-Type of the inbound request is "application/get.extended+json".
+     *
+     * @param ct content type
+     */
+    public static boolean isApplicationGetExtended(String ct) {
+        if (ct == null) {
+            return false;
+        }
+        return ct.contains(CT_APPLICATION_GET_EXTENDED);
     }
 
     /**

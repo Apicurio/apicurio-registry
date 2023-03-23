@@ -41,7 +41,8 @@ const DEFAULT_CONFIG: ConfigType = {
     },
     ui: {
         contextPath: "/",
-        navPrefixPath: "/"
+        navPrefixPath: "/",
+        codegenEnabled: false
     }
 };
 
@@ -93,6 +94,13 @@ export class ConfigService implements Service {
             this.config.ui.navPrefixPath = this.config.ui.navPrefixPath.substr(0, this.config.ui.navPrefixPath.length - 1);
         }
         return this.config.ui.navPrefixPath;
+    }
+
+    public uiCodegenEnabled(): boolean {
+        if (!this.config.ui || !this.config.ui.codegenEnabled) {
+            return false;
+        }
+        return this.config.ui.codegenEnabled;
     }
 
     public features(): FeaturesConfig {

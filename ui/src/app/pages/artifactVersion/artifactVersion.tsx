@@ -31,11 +31,11 @@ import { ContentTabContent, DocumentationTabContent, InfoTabContent } from "./co
 import { ArtifactVersionPageHeader } from "./components/pageheader";
 import { UploadVersionForm } from "./components/uploadForm";
 import { Link } from "react-router-dom";
-import { EditMetaDataModal } from "./components/modals";
+import { EditMetaDataModal, GenerateClientModal } from "./components/modals";
 import { InvalidContentModal } from "../../components/modals";
 import { IfFeature } from "../../components";
 import { ArtifactMetaData, ArtifactTypes, ContentTypes, Rule, SearchedVersion } from "../../../models";
-import { CreateVersionData, EditableMetaData, Services } from "../../../services";
+import { ClientGeneration, CreateVersionData, EditableMetaData, Services } from "../../../services";
 import { PleaseWaitModal } from "../../components/modals/pleaseWaitModal";
 import { ChangeOwnerModal } from "./components/modals/changeOwnerModal";
 
@@ -60,6 +60,7 @@ export interface ArtifactVersionPageState extends PageState {
     isUploadModalOpen: boolean;
     isDeleteModalOpen: boolean;
     isEditModalOpen: boolean;
+    isGenerateClientModalOpen: boolean;
     isChangeOwnerModalOpen: boolean;
     isPleaseWaitModalOpen: boolean;
     pleaseWaitMessage: string;
@@ -98,12 +99,14 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
             <Tab eventKey={0} title="Overview" key="overview" tabContentId="tab-info">
                 <InfoTabContent artifact={artifact}
                                 isLatest={this.versionParam() === "latest"}
+                                codegenEnabled={Services.getConfigService().uiCodegenEnabled()}
                                 rules={this.rules()}
                                 onEnableRule={this.doEnableRule}
                                 onDisableRule={this.doDisableRule}
                                 onConfigureRule={this.doConfigureRule}
                                 onDownloadArtifact={this.doDownloadArtifact}
                                 onEditMetaData={this.openEditMetaDataModal}
+                                onGenerateClient={this.openGenerateClientModal}
                                 onChangeOwner={this.openChangeOwnerModal}
                 />
             </Tab>,
@@ -195,6 +198,10 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
                                    onClose={this.onEditModalClose}
                                    onEditMetaData={this.doEditMetaData}
                 />
+                <GenerateClientModal artifactContent={this.state.artifactContent}
+                                   onClose={this.onGenerateClientModalClose}
+                                   isOpen={this.state.isGenerateClientModalOpen}
+                />
                 <ChangeOwnerModal isOpen={this.state.isChangeOwnerModalOpen}
                                   onClose={this.onChangeOwnerModalClose}
                                   currentOwner={this.state.artifact?.createdBy || ""}
@@ -218,6 +225,7 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
             invalidContentError: null,
             isDeleteModalOpen: false,
             isEditModalOpen: false,
+            isGenerateClientModalOpen: false,
             isChangeOwnerModalOpen: false,
             isInvalidContentModalOpen: false,
             isPleaseWaitModalOpen: false,
@@ -461,12 +469,20 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
         this.setSingleState("isEditModalOpen", true);
     };
 
+    private openGenerateClientModal = (): void => {
+        this.setSingleState("isGenerateClientModalOpen", true);
+    };
+
     private openChangeOwnerModal = (): void => {
         this.setSingleState("isChangeOwnerModalOpen", true);
     };
 
     private onEditModalClose = (): void => {
         this.setSingleState("isEditModalOpen", false);
+    };
+
+    private onGenerateClientModalClose = (): void => {
+        this.setSingleState("isGenerateClientModalOpen", false);
     };
 
     private onChangeOwnerModalClose = (): void => {

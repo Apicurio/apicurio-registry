@@ -28,6 +28,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -73,9 +74,9 @@ public class CompatibilityTestExecutor {
             var updated = testCaseData.get("updated").toString();
 
             var resultBackward = checker.testCompatibility(CompatibilityLevel.BACKWARD, List.of(original),
-                    updated);
+                    updated, Collections.emptyMap());
             var resultForward = checker.testCompatibility(CompatibilityLevel.FORWARD, List.of(original),
-                    updated);
+                    updated, Collections.emptyMap());
 
             switch (testCaseData.getString("compatibility")) {
                 case "backward":

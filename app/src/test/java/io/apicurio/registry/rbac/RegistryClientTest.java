@@ -138,6 +138,10 @@ public class RegistryClientTest extends AbstractResourceTestBase {
             "  \"paths\" : null\n" +
             "}";
 
+
+    private static final String SCHEMA_WITH_REFERENCE = "{\r\n    \"namespace\":\"com.example.common\",\r\n    \"name\":\"Item\",\r\n    \"type\":\"record\",\r\n    \"fields\":[\r\n        {\r\n            \"name\":\"itemId\",\r\n            \"type\":\"com.example.common.ItemId\"\r\n        }]\r\n}";
+    private static final String REFERENCED_SCHEMA = "{\"namespace\": \"com.example.common\", \"type\": \"record\", \"name\": \"ItemId\", \"fields\":[{\"name\":\"id\", \"type\":\"int\"}]}";
+
     private static final String ARTIFACT_CONTENT = "{\"name\":\"redhat\"}";
     private static final String UPDATED_CONTENT = "{\"name\":\"ibm\"}";
 
@@ -977,6 +981,33 @@ public class RegistryClientTest extends AbstractResourceTestBase {
             assertNotNull(ruleTypes);
             assertFalse(ruleTypes.isEmpty());
         });
+    }
+
+    @Test
+    public void testCompatibilityWithReferences() throws Exception {
+        //Preparation
+        final String groupId = "testCompatibilityWithReferences";
+        final String artifactId = generateArtifactId();
+
+        //First create the references schema
+        createArtifact(groupId, artifactId, ArtifactType.AVRO, REFERENCED_SCHEMA);
+
+        ArtifactReference artifactReference = new ArtifactReference();
+        artifactReference.setArtifactId(artifactId);
+        artifactReference.setGroupId(groupId);
+        artifactReference.setVersion("1");
+        artifactReference.setName("com.example.common.ItemId");
+
+        final String secondArtifactId = generateArtifactId();
+        final Integer globalId = createArtifactWithReferences(groupId, secondArtifactId, ArtifactType.AVRO, SCHEMA_WITH_REFERENCE, List.of(artifactReference));
+
+        //Create rule
+        createArtifactRule(groupId, secondArtifactId, RuleType.COMPATIBILITY, "BACKWARD");
+
+        updateArtifactWithReferences(groupId, secondArtifactId, ArtifactType.AVRO, SCHEMA_WITH_REFERENCE, List.of(artifactReference));
+
+        clientV2.deleteArtifact(groupId, artifactId);
+        clientV2.deleteArtifact(groupId, secondArtifactId);
     }
 
     @Test

@@ -17,6 +17,7 @@
 package io.apicurio.registry.rules.compatibility;
 
 import com.google.common.collect.ImmutableSet;
+import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.rules.UnprocessableSchemaException;
 import org.apache.avro.AvroRuntimeException;
 import org.apache.avro.Schema;
@@ -24,6 +25,7 @@ import org.apache.avro.SchemaCompatibility;
 import org.apache.avro.SchemaCompatibility.Incompatibility;
 
 import java.util.Collections;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -34,10 +36,25 @@ import java.util.Set;
 public class AvroCompatibilityChecker extends AbstractCompatibilityChecker<Incompatibility> {
 
     @Override
-    protected Set<Incompatibility> isBackwardsCompatibleWith(String existing, String proposed) {
+    protected Set<Incompatibility> isBackwardsCompatibleWith(String existing, String proposed, Map<String, ContentHandle> resolvedReferences) {
         try {
-            Schema existingSchema = new Schema.Parser().parse(existing);
-            Schema proposedSchema = new Schema.Parser().parse(proposed);
+
+
+
+
+
+            Schema.Parser existingParser = new Schema.Parser();
+            for (ContentHandle schema : resolvedReferences.values()) {
+                existingParser.parse(schema.content());
+            }
+            final Schema existingSchema = existingParser.parse(existing);
+
+            Schema.Parser proposingParser = new Schema.Parser();
+            for (ContentHandle schema : resolvedReferences.values()) {
+                proposingParser.parse(schema.content());
+            }
+            final Schema proposedSchema = proposingParser.parse(proposed);
+
             var result = SchemaCompatibility.checkReaderWriterCompatibility(proposedSchema, existingSchema).getResult();
             switch (result.getCompatibility()) {
                 case COMPATIBLE:

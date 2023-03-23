@@ -21,6 +21,7 @@ import io.apicurio.registry.content.ContentHandle;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
@@ -35,7 +36,7 @@ import static java.util.Objects.requireNonNull;
 public abstract class AbstractCompatibilityChecker<D> implements CompatibilityChecker {
 
     @Override
-    public CompatibilityExecutionResult testCompatibility(CompatibilityLevel compatibilityLevel, List<ContentHandle> existingArtifacts, ContentHandle proposedArtifact) {
+    public CompatibilityExecutionResult testCompatibility(CompatibilityLevel compatibilityLevel, List<ContentHandle> existingArtifacts, ContentHandle proposedArtifact, Map<String, ContentHandle> resolvedReferences) {
         requireNonNull(compatibilityLevel, "compatibilityLevel MUST NOT be null");
         requireNonNull(existingArtifacts, "existingSchemas MUST NOT be null");
         requireNonNull(proposedArtifact, "proposedSchema MUST NOT be null");
@@ -51,27 +52,27 @@ public abstract class AbstractCompatibilityChecker<D> implements CompatibilityCh
 
         switch (compatibilityLevel) {
             case BACKWARD:
-                incompatibleDiffs = isBackwardsCompatibleWith(lastExistingSchema, proposedArtifactContent);
+                incompatibleDiffs = isBackwardsCompatibleWith(lastExistingSchema, proposedArtifactContent, resolvedReferences);
                 break;
             case BACKWARD_TRANSITIVE:
-                incompatibleDiffs = transitively(existingArtifacts, proposedArtifactContent, this::isBackwardsCompatibleWith);
+                incompatibleDiffs = transitively(existingArtifacts, proposedArtifactContent, (existing, proposed) -> isBackwardsCompatibleWith(existing, proposed, resolvedReferences));
                 break;
             case FORWARD:
-                incompatibleDiffs = isBackwardsCompatibleWith(proposedArtifactContent, lastExistingSchema);
+                incompatibleDiffs = isBackwardsCompatibleWith(proposedArtifactContent, lastExistingSchema, resolvedReferences);
                 break;
             case FORWARD_TRANSITIVE:
-                incompatibleDiffs = transitively(existingArtifacts, proposedArtifactContent, (existing, proposed) -> isBackwardsCompatibleWith(proposed, existing));
+                incompatibleDiffs = transitively(existingArtifacts, proposedArtifactContent, (existing, proposed) -> isBackwardsCompatibleWith(proposed, existing, resolvedReferences));
                 break;
             case FULL:
                 incompatibleDiffs = ImmutableSet.<D>builder()
-                        .addAll(isBackwardsCompatibleWith(lastExistingSchema, proposedArtifactContent))
-                        .addAll(isBackwardsCompatibleWith(proposedArtifactContent, lastExistingSchema))
+                        .addAll(isBackwardsCompatibleWith(lastExistingSchema, proposedArtifactContent, resolvedReferences))
+                        .addAll(isBackwardsCompatibleWith(proposedArtifactContent, lastExistingSchema, resolvedReferences))
                         .build();
                 break;
             case FULL_TRANSITIVE:
                 incompatibleDiffs = ImmutableSet.<D>builder()
-                        .addAll(transitively(existingArtifacts, proposedArtifactContent, this::isBackwardsCompatibleWith)) // Forward
-                        .addAll(transitively(existingArtifacts, proposedArtifactContent, (existing, proposed) -> isBackwardsCompatibleWith(proposed, existing))) // Backward
+                        .addAll(transitively(existingArtifacts, proposedArtifactContent, (existing, proposed) -> isBackwardsCompatibleWith(existing, proposed, resolvedReferences))) // Backward
+                        .addAll(transitively(existingArtifacts, proposedArtifactContent, (existing, proposed) -> isBackwardsCompatibleWith(proposed, existing, resolvedReferences))) // Backward
                         .build();
                 break;
             case NONE:
@@ -101,7 +102,7 @@ public abstract class AbstractCompatibilityChecker<D> implements CompatibilityCh
         return result;
     }
 
-    protected abstract Set<D> isBackwardsCompatibleWith(String existing, String proposed);
+    protected abstract Set<D> isBackwardsCompatibleWith(String existing, String proposed, Map<String, ContentHandle> resolvedReferences);
 
     protected abstract CompatibilityDifference transform(D original);
 }

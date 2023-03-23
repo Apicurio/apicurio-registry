@@ -180,6 +180,18 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
         return response.extract().body().path("globalId");
     }
 
+    protected Integer updateArtifactWithReferences(String groupId, String artifactId, String artifactType, String artifactContent, List<ArtifactReference> artifactReferences) throws Exception {
+
+        ValidatableResponse response = updateArtifactExtendedRaw(groupId, artifactId, artifactType, artifactContent, artifactReferences)
+                .statusCode(200)
+                .body("id", equalTo(artifactId))
+                .body("type", equalTo(artifactType));
+
+        waitForArtifact(groupId, artifactId);
+
+        return response.extract().body().path("globalId");
+    }
+
     protected ValidatableResponse createArtifactExtendedRaw(String groupId, String artifactId, String artifactType, String artifactContent, List<ArtifactReference> artifactReferences) throws Exception {
 
         ArtifactContent ArtifactContent = new ArtifactContent();
@@ -201,6 +213,30 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
                 .post("/registry/v2/groups/{groupId}/artifacts")
                 .then();
     }
+
+    protected ValidatableResponse updateArtifactExtendedRaw(String groupId, String artifactId, String artifactType, String artifactContent, List<ArtifactReference> artifactReferences) throws Exception {
+
+        ArtifactContent contentCreateRequest = new ArtifactContent();
+        contentCreateRequest.setContent(artifactContent);
+        contentCreateRequest.setReferences(artifactReferences);
+
+        var request = given()
+                .when()
+                .contentType(CT_JSON_EXTENDED)
+                .pathParam("groupId", groupId)
+                .pathParam("artifactId", artifactId);
+
+        if (artifactId != null)
+            request.header("X-Registry-ArtifactId", artifactId);
+        if (artifactType != null)
+            request.header("X-Registry-ArtifactType", artifactType);
+
+        return request
+                .body(contentCreateRequest)
+                .put("/registry/v2/groups/{groupId}/artifacts/{artifactId}")
+                .then();
+    }
+
 
     protected Integer createArtifactVersion(String artifactId, String artifactType, String artifactContent) throws Exception {
         ValidatableResponse response = given()

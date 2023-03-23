@@ -687,6 +687,11 @@ This section contains a list of the configuration options available for {registr
 |`none`
 |`2.2.6.Final`
 |UI auth type
+|`registry.ui.config.uiCodegenEnabled`
+|`boolean`
+|`false`
+|`2.4.2.Final`
+|UI codegen enabled
 |`registry.ui.config.uiContextPath`
 |`string`
 |`/ui/`

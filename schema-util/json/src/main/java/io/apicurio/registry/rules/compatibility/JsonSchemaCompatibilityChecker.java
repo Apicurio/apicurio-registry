@@ -32,7 +32,7 @@ public class JsonSchemaCompatibilityChecker extends AbstractCompatibilityChecker
 
     @Override
     protected Set<Difference> isBackwardsCompatibleWith(String existing, String proposed, Map<String, ContentHandle> resolvedReferences) {
-        return JsonSchemaDiffLibrary.getIncompatibleDifferences(existing, proposed);
+        return JsonSchemaDiffLibrary.getIncompatibleDifferences(existing, proposed, resolvedReferences);
     }
 
     @Override

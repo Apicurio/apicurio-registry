@@ -872,6 +872,8 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         assertNotEquals(secondVersionMetadata.getContentId(), versionMetaData.getContentId());
     }
 
+
+
     @Test
     public void getContentByHash() throws Exception {
         //Preparation
@@ -1357,22 +1359,6 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         final InputStream stream = IoUtil.toStream(ARTIFACT_OPENAPI_YAML_CONTENT.getBytes(StandardCharsets.UTF_8));
         final ArtifactMetaData created = clientV2.createArtifact(groupId, artifactId, null, ArtifactType.OPENAPI, IfExists.FAIL, false, stream);
         return checkArtifact(groupId, artifactId, created);
-    }
-
-    private void createArtifactRule(String groupId, String artifactId, RuleType ruleType, String ruleConfig) {
-        final Rule rule = new Rule();
-        rule.setConfig(ruleConfig);
-        rule.setType(ruleType);
-        clientV2.createArtifactRule(groupId, artifactId, rule);
-    }
-
-    private Rule createGlobalRule(RuleType ruleType, String ruleConfig) {
-        final Rule rule = new Rule();
-        rule.setConfig(ruleConfig);
-        rule.setType(ruleType);
-        clientV2.createGlobalRule(rule);
-
-        return rule;
     }
 
     private void prepareRuleTest(String groupId, String artifactId, RuleType ruleType, String ruleConfig) throws Exception {

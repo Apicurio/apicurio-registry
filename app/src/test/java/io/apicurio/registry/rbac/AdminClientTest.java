@@ -231,7 +231,8 @@ public class AdminClientTest extends AbstractResourceTestBase {
         adminClientV2.setLogConfiguration(log, logConfiguration);
     }
 
-    private Rule createGlobalRule(RuleType ruleType, String ruleConfig) {
+    @Override
+    protected Rule createGlobalRule(RuleType ruleType, String ruleConfig) {
         final Rule rule = new Rule();
         rule.setConfig(ruleConfig);
         rule.setType(ruleType);

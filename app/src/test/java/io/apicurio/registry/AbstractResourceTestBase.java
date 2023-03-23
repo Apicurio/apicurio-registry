@@ -23,6 +23,7 @@ import io.apicurio.registry.rest.client.RegistryClientFactory;
 import io.apicurio.registry.rest.v2.V2ApiUtil;
 import io.apicurio.registry.rest.v2.beans.ArtifactReference;
 import io.apicurio.registry.rest.v2.beans.ArtifactContent;
+import io.apicurio.registry.rest.v2.beans.Rule;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.types.ArtifactMediaTypes;
@@ -269,6 +270,22 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
                 .body("type", equalTo(artifactType));
 
         return response.extract().body().path("globalId");
+    }
+
+    protected void createArtifactRule(String groupId, String artifactId, RuleType ruleType, String ruleConfig) {
+        final Rule rule = new Rule();
+        rule.setConfig(ruleConfig);
+        rule.setType(ruleType);
+        clientV2.createArtifactRule(groupId, artifactId, rule);
+    }
+
+    protected Rule createGlobalRule(RuleType ruleType, String ruleConfig) {
+        final Rule rule = new Rule();
+        rule.setConfig(ruleConfig);
+        rule.setType(ruleType);
+        clientV2.createGlobalRule(rule);
+
+        return rule;
     }
 
     /**

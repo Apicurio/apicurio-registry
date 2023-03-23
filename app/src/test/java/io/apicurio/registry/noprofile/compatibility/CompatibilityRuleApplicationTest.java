@@ -20,6 +20,7 @@ import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.JsonSchemas;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.rest.client.exception.UnprocessableSchemaException;
+import io.apicurio.registry.rest.v2.beans.ArtifactReference;
 import io.apicurio.registry.rest.v2.beans.Rule;
 import io.apicurio.registry.rules.RuleApplicationType;
 import io.apicurio.registry.rules.RuleContext;
@@ -40,6 +41,7 @@ import org.junit.jupiter.api.Test;
 
 import javax.inject.Inject;
 import java.util.Collections;
+import java.util.List;
 import java.util.Set;
 
 import static io.restassured.RestAssured.given;
@@ -105,6 +107,65 @@ public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {
             "            \"default\": \"{}\"\r\n" +
             "        }\r\n" +
             "    ]\r\n" +
+            "}";
+
+    private static final String citizenSchema = "{\n" +
+            "  \"$id\": \"https://example.com/citizen.schema.json\",\n" +
+            "  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n" +
+            "  \"title\": \"Citizen\",\n" +
+            "  \"type\": \"object\",\n" +
+            "  \"properties\": {\n" +
+            "    \"firstName\": {\n" +
+            "      \"type\": \"string\",\n" +
+            "      \"description\": \"The citizen's first name.\"\n" +
+            "    },\n" +
+            "    \"lastName\": {\n" +
+            "      \"type\": \"string\",\n" +
+            "      \"description\": \"The citizen's last name.\"\n" +
+            "    },\n" +
+            "    \"age\": {\n" +
+            "      \"description\": \"Age in years which must be equal to or greater than zero.\",\n" +
+            "      \"type\": \"integer\",\n" +
+            "      \"minimum\": 0\n" +
+            "    },\n" +
+            "    \"city\": {\n" +
+            "      \"$ref\": \"city.json\"\n" +
+            "    }\n" +
+            "  },\n" +
+            "  \"required\": [\n" +
+            "    \"city\"\n" +
+            "  ]\n" +
+            "}";
+    private static final String citySchema = "{\n" +
+            "  \"$id\": \"https://example.com/city.schema.json\",\n" +
+            "  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n" +
+            "  \"title\": \"City\",\n" +
+            "  \"type\": \"object\",\n" +
+            "  \"properties\": {\n" +
+            "    \"name\": {\n" +
+            "      \"type\": \"string\",\n" +
+            "      \"description\": \"The city's name.\"\n" +
+            "    },\n" +
+            "    \"zipCode\": {\n" +
+            "      \"type\": \"integer\",\n" +
+            "      \"description\": \"The zip code.\",\n" +
+            "      \"minimum\": 0\n" +
+            "    }\n" +
+            "  }\n" +
+            "}";
+
+    private static final String citizenIdentifierSchema = "{\n" +
+            "  \"$id\": \"https://example.com/citizenIdentifier.schema.json\",\n" +
+            "  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n" +
+            "  \"title\": \"Identifier\",\n" +
+            "  \"type\": \"object\",\n" +
+            "  \"properties\": {\n" +
+            "    \"identifier\": {\n" +
+            "      \"type\": \"integer\",\n" +
+            "      \"description\": \"The citizen identifier.\",\n" +
+            "      \"minimum\": 0\n" +
+            "    }\n" +
+            "  }\n" +
             "}";
 
     @Inject
@@ -207,6 +268,32 @@ public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {
         Assertions.assertEquals("/properties/zipcode", zipCodeViolationCause.getContext());
         Assertions.assertEquals(DiffType.SUBSCHEMA_TYPE_CHANGED.getDescription(), zipCodeViolationCause.getDescription());
 
+    }
+
+    @Test
+    public void validateJsonSchemaEvolutionWithReferences() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        String cityArtifactId = generateArtifactId();
+
+        final Integer cityDependencyGlobalId = createArtifact(groupId, cityArtifactId, ArtifactType.JSON, citySchema);
+        this.waitForGlobalId(cityDependencyGlobalId);
+
+        final ArtifactReference cityReference = new ArtifactReference();
+        cityReference.setVersion("1");
+        cityReference.setGroupId(groupId);
+        cityReference.setArtifactId(cityArtifactId);
+        cityReference.setName("city.json");
+
+        String artifactId = generateArtifactId();
+
+        final Integer globalId = createArtifactWithReferences(groupId, artifactId, ArtifactType.JSON, citizenSchema , List.of(cityReference));
+        this.waitForGlobalId(globalId);
+
+        createArtifactRule(groupId, artifactId, RuleType.COMPATIBILITY, "BACKWARD");
+
+        //Try to create the same artifact again, it should be validated with no issues.
+        updateArtifactWithReferences(groupId, artifactId, ArtifactType.JSON, citizenSchema, List.of(cityReference));
+        this.waitForGlobalId(globalId);
     }
 
     private RuleViolation findCauseByContext(Set<RuleViolation> ruleViolations, String context) {

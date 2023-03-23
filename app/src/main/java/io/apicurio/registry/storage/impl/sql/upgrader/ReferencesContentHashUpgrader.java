@@ -66,19 +66,17 @@ public class ReferencesContentHashUpgrader implements IDbUpgrader {
             if (contentEntity.serializedReferences != null) {
                 byte[] referencesBytes = contentEntity.serializedReferences.getBytes(StandardCharsets.UTF_8);
                 contentHash = DigestUtils.sha256Hex(concatContentAndReferences(contentEntity.contentBytes, referencesBytes));
-            } else {
-                contentHash = DigestUtils.sha256Hex(contentEntity.contentBytes);
+                String update = "UPDATE content SET contentHash = ? WHERE contentId = ? AND contentHash = ?";
+                int rowCount = dbHandle.createUpdate(update)
+                        .bind(0, contentHash)
+                        .bind(1, contentEntity.contentId)
+                        .bind(2, contentEntity.contentHash)
+                        .execute();
+                if (rowCount == 0) {
+                    logger.warn("content row not matched for hash upgrade contentId {} contentHash {}", contentEntity.contentId, contentEntity.contentHash);
+                }
             }
 
-            String update = "UPDATE content SET contentHash = ? WHERE contentId = ? AND contentHash = ?";
-            int rowCount = dbHandle.createUpdate(update)
-                    .bind(0, contentHash)
-                    .bind(1, contentEntity.contentId)
-                    .bind(2, contentEntity.contentHash)
-                    .execute();
-            if (rowCount == 0) {
-                logger.warn("content row not matched for hash upgrade contentId {} contentHash {}", contentEntity.contentId, contentEntity.contentHash);
-            }
         } catch (IOException e) {
             logger.warn("Error found processing content with id {} and hash {}", contentEntity.contentId, contentEntity.contentHash, e);
         }

@@ -38,11 +38,6 @@ public class AvroCompatibilityChecker extends AbstractCompatibilityChecker<Incom
     @Override
     protected Set<Incompatibility> isBackwardsCompatibleWith(String existing, String proposed, Map<String, ContentHandle> resolvedReferences) {
         try {
-
-
-
-
-
             Schema.Parser existingParser = new Schema.Parser();
             for (ContentHandle schema : resolvedReferences.values()) {
                 existingParser.parse(schema.content());

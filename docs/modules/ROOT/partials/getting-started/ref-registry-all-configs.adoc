@@ -33,11 +33,6 @@ This section contains a list of the configuration options available for {registr
 |Default
 |Available from
 |Description
-|`quarkus.oidc.client-id`
-|`string`
-|
-|`2.0.0.Final`
-|OIDC client ID
 |`registry.auth.admin-override.claim`
 |`string`
 |`org-admin`
@@ -73,6 +68,11 @@ This section contains a list of the configuration options available for {registr
 |`false`
 |`2.1.0.Final`
 |Anonymous read access
+|`registry.auth.audit.log.prefix`
+|`string`
+|`audit`
+|`2.2.6`
+|Prefix used for application audit logging.
 |`registry.auth.authenticated-read-access.enabled`
 |`boolean [dynamic]`
 |`false`
@@ -82,22 +82,27 @@ This section contains a list of the configuration options available for {registr
 |`integer`
 |`10`
 |`2.2.6.Final`
-|Client credentials token expiration time
+|Client credentials token expiration time.
 |`registry.auth.basic-auth-client-credentials.enabled`
 |`boolean [dynamic]`
 |`false`
 |`2.1.0.Final`
 |Enable basic auth client credentials
+|`registry.auth.client-id`
+|`string`
+|
+|`2.0.0.Final`
+|Client identifier used by the server for authentication.
 |`registry.auth.client-secret`
 |`optional<string>`
 |
 |`2.1.0.Final`
-|Auth client secret
+|Client secret used by the server for authentication.
 |`registry.auth.enabled`
 |`boolean`
 |`false`
 |`2.0.0.Final`
-|Enable authentication
+|Enable auth
 |`registry.auth.owner-only-authorization`
 |`boolean [dynamic]`
 |`false`
@@ -142,7 +147,7 @@ This section contains a list of the configuration options available for {registr
 |`string`
 |
 |`2.1.0.Final`
-|Auth token endpoint
+|Authentication server url.
 |===
 
 == Category `cache`:

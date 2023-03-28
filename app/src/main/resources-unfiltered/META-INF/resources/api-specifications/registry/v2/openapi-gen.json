@@ -1956,12 +1956,12 @@
                         },
                         "application/create.extended+json": {
                             "schema": {
-                                "$ref": "#/components/schemas/ContentCreateRequest"
+                                "$ref": "#/components/schemas/ArtifactContent"
                             }
                         },
                         "application/vnd.create.extended+json": {
                             "schema": {
-                                "$ref": "#/components/schemas/ContentCreateRequest"
+                                "$ref": "#/components/schemas/ArtifactContent"
                             }
                         }
                     },
@@ -2263,12 +2263,12 @@
                         },
                         "application/create.extended+json": {
                             "schema": {
-                                "$ref": "#/components/schemas/ContentCreateRequest"
+                                "$ref": "#/components/schemas/ArtifactContent"
                             }
                         },
                         "application/vnd.create.extended+json": {
                             "schema": {
-                                "$ref": "#/components/schemas/ContentCreateRequest"
+                                "$ref": "#/components/schemas/ArtifactContent"
                             }
                         }
                     },
@@ -2560,12 +2560,12 @@
                         },
                         "application/create.extended+json": {
                             "schema": {
-                                "$ref": "#/components/schemas/ContentCreateRequest"
+                                "$ref": "#/components/schemas/ArtifactContent"
                             }
                         },
                         "application/vnd.create.extended+json": {
                             "schema": {
-                                "$ref": "#/components/schemas/ContentCreateRequest"
+                                "$ref": "#/components/schemas/ArtifactContent"
                             }
                         }
                     },
@@ -2587,187 +2587,6 @@
                     },
                     "409": {
                         "$ref": "#/components/responses/RuleViolationConflict"
-                    },
-                    "500": {
-                        "$ref": "#/components/responses/ServerError"
-                    }
-                }
-            },
-            "parameters": [
-                {
-                    "name": "groupId",
-                    "in": "path",
-                    "description": "The artifact group ID.  Must be a string provided by the client, representing the name of the grouping of artifacts.",
-                    "required": true,
-                    "schema": {
-                        "$ref": "#/components/schemas/GroupId"
-                    }
-                },
-                {
-                    "name": "artifactId",
-                    "in": "path",
-                    "description": "The artifact ID.  Can be a string (client-provided) or UUID (server-generated), representing the unique artifact identifier.",
-                    "required": true,
-                    "schema": {
-                        "$ref": "#/components/schemas/ArtifactId"
-                    }
-                }
-            ]
-        },
-        "/groups/{groupId}/artifacts/{artifactId}/meta": {
-            "summary": "Manage the metadata of a single artifact.",
-            "get": {
-                "tags": [
-                    "Metadata"
-                ],
-                "summary": "Get artifact metadata",
-                "description": "Gets the metadata for an artifact in the registry.  The returned metadata includes\nboth generated (read-only) and editable metadata (such as name and description).\n\nThis operation can fail for the following reasons:\n\n* No artifact with this `artifactId` exists (HTTP error `404`)\n* A server error occurred (HTTP error `500`)",
-                "operationId": "getArtifactMetaData",
-                "responses": {
-                    "200": {
-                        "description": "The artifact's metadata.",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ArtifactMetaData"
-                                }
-                            }
-                        }
-                    },
-                    "404": {
-                        "$ref": "#/components/responses/NotFound"
-                    },
-                    "500": {
-                        "$ref": "#/components/responses/ServerError"
-                    }
-                }
-            },
-            "put": {
-                "tags": [
-                    "Metadata"
-                ],
-                "summary": "Update artifact metadata",
-                "description": "Updates the editable parts of the artifact's metadata.  Not all metadata fields can\nbe updated.  For example, `createdOn` and `createdBy` are both read-only properties.\n\nThis operation can fail for the following reasons:\n\n* No artifact with the `artifactId` exists (HTTP error `404`)\n* A server error occurred (HTTP error `500`)",
-                "operationId": "updateArtifactMetaData",
-                "requestBody": {
-                    "description": "Updated artifact metadata.",
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/EditableMetaData"
-                            }
-                        }
-                    },
-                    "required": true
-                },
-                "responses": {
-                    "204": {
-                        "description": "The artifact's metadata was updated."
-                    },
-                    "404": {
-                        "$ref": "#/components/responses/NotFound"
-                    },
-                    "500": {
-                        "$ref": "#/components/responses/ServerError"
-                    }
-                }
-            },
-            "post": {
-                "tags": [
-                    "Metadata"
-                ],
-                "summary": "Get artifact version metadata by content",
-                "description": "Gets the metadata for an artifact that matches the raw content.  Searches the registry\nfor a version of the given artifact matching the content provided in the body of the\nPOST.\n\nThis operation can fail for the following reasons:\n\n* Provided content (request body) was empty (HTTP error `400`)\n* No artifact with the `artifactId` exists (HTTP error `404`)\n* No artifact version matching the provided content exists (HTTP error `404`)\n* A server error occurred (HTTP error `500`)\n",
-                "operationId": "getArtifactVersionMetaDataByContent",
-                "parameters": [
-                    {
-                        "name": "canonical",
-                        "in": "query",
-                        "description": "Parameter that can be set to `true` to indicate that the server should \"canonicalize\" the content when searching for a matching version.  Canonicalization is unique to each artifact type, but typically involves removing any extra whitespace and formatting the content in a consistent manner.",
-                        "schema": {
-                            "type": "boolean"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "description": "The content of an artifact version.",
-                    "content": {
-                        "*/*": {
-                            "schema": {
-                                "$ref": "#/components/schemas/FileContent"
-                            },
-                            "examples": {
-                                "OpenAPI": {
-                                    "value": {
-                                        "openapi": "3.0.2",
-                                        "info": {
-                                            "title": "Empty API",
-                                            "version": "1.0.7",
-                                            "description": "An example API design using OpenAPI."
-                                        },
-                                        "paths": {
-                                            "/widgets": {
-                                                "get": {
-                                                    "responses": {
-                                                        "200": {
-                                                            "content": {
-                                                                "application/json": {
-                                                                    "schema": {
-                                                                        "type": "array",
-                                                                        "items": {
-                                                                            "type": "string"
-                                                                        }
-                                                                    }
-                                                                }
-                                                            },
-                                                            "description": "All widgets"
-                                                        }
-                                                    },
-                                                    "summary": "Get widgets"
-                                                }
-                                            }
-                                        },
-                                        "components": {
-                                            "schemas": {
-                                                "Widget": {
-                                                    "title": "Root Type for Widget",
-                                                    "description": "A sample data type.",
-                                                    "type": "object",
-                                                    "properties": {
-                                                        "property-1": {
-                                                            "type": "string"
-                                                        },
-                                                        "property-2": {
-                                                            "type": "boolean"
-                                                        }
-                                                    },
-                                                    "example": {
-                                                        "property-1": "value1",
-                                                        "property-2": true
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    "required": true
-                },
-                "responses": {
-                    "200": {
-                        "description": "The metadata of the artifact version matching the provided content.",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/VersionMetaData"
-                                }
-                            }
-                        }
-                    },
-                    "404": {
-                        "$ref": "#/components/responses/NotFound"
                     },
                     "500": {
                         "$ref": "#/components/responses/ServerError"
@@ -3027,6 +2846,197 @@
                     }
                 }
             }
+        },
+        "/groups/{groupId}/artifacts/{artifactId}/meta": {
+            "summary": "Manage the metadata of a single artifact.",
+            "get": {
+                "tags": [
+                    "Metadata"
+                ],
+                "summary": "Get artifact metadata",
+                "description": "Gets the metadata for an artifact in the registry.  The returned metadata includes\nboth generated (read-only) and editable metadata (such as name and description).\n\nThis operation can fail for the following reasons:\n\n* No artifact with this `artifactId` exists (HTTP error `404`)\n* A server error occurred (HTTP error `500`)",
+                "operationId": "getArtifactMetaData",
+                "responses": {
+                    "200": {
+                        "description": "The artifact's metadata.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ArtifactMetaData"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                }
+            },
+            "put": {
+                "tags": [
+                    "Metadata"
+                ],
+                "summary": "Update artifact metadata",
+                "description": "Updates the editable parts of the artifact's metadata.  Not all metadata fields can\nbe updated.  For example, `createdOn` and `createdBy` are both read-only properties.\n\nThis operation can fail for the following reasons:\n\n* No artifact with the `artifactId` exists (HTTP error `404`)\n* A server error occurred (HTTP error `500`)",
+                "operationId": "updateArtifactMetaData",
+                "requestBody": {
+                    "description": "Updated artifact metadata.",
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/EditableMetaData"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "204": {
+                        "description": "The artifact's metadata was updated."
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Metadata"
+                ],
+                "summary": "Get artifact version metadata by content",
+                "description": "Gets the metadata for an artifact that matches the raw content.  Searches the registry\nfor a version of the given artifact matching the content provided in the body of the\nPOST.\n\nThis operation can fail for the following reasons:\n\n* Provided content (request body) was empty (HTTP error `400`)\n* No artifact with the `artifactId` exists (HTTP error `404`)\n* No artifact version matching the provided content exists (HTTP error `404`)\n* A server error occurred (HTTP error `500`)\n",
+                "operationId": "getArtifactVersionMetaDataByContent",
+                "parameters": [
+                    {
+                        "name": "canonical",
+                        "in": "query",
+                        "description": "Parameter that can be set to `true` to indicate that the server should \"canonicalize\" the content when searching for a matching version.  Canonicalization is unique to each artifact type, but typically involves removing any extra whitespace and formatting the content in a consistent manner.",
+                        "schema": {
+                            "type": "boolean"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "description": "The content of an artifact version.",
+                    "content": {
+                        "*/*": {
+                            "schema": {
+                                "$ref": "#/components/schemas/FileContent"
+                            },
+                            "examples": {
+                                "OpenAPI": {
+                                    "value": {
+                                        "openapi": "3.0.2",
+                                        "info": {
+                                            "title": "Empty API",
+                                            "version": "1.0.7",
+                                            "description": "An example API design using OpenAPI."
+                                        },
+                                        "paths": {
+                                            "/widgets": {
+                                                "get": {
+                                                    "responses": {
+                                                        "200": {
+                                                            "content": {
+                                                                "application/json": {
+                                                                    "schema": {
+                                                                        "type": "array",
+                                                                        "items": {
+                                                                            "type": "string"
+                                                                        }
+                                                                    }
+                                                                }
+                                                            },
+                                                            "description": "All widgets"
+                                                        }
+                                                    },
+                                                    "summary": "Get widgets"
+                                                }
+                                            }
+                                        },
+                                        "components": {
+                                            "schemas": {
+                                                "Widget": {
+                                                    "title": "Root Type for Widget",
+                                                    "description": "A sample data type.",
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "property-1": {
+                                                            "type": "string"
+                                                        },
+                                                        "property-2": {
+                                                            "type": "boolean"
+                                                        }
+                                                    },
+                                                    "example": {
+                                                        "property-1": "value1",
+                                                        "property-2": true
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        "application/get.extended+json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ArtifactContent"
+                            }
+                        },
+                        "application/vnd.get.extended+json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ArtifactContent"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "The metadata of the artifact version matching the provided content.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/VersionMetaData"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                }
+            },
+            "parameters": [
+                {
+                    "name": "groupId",
+                    "in": "path",
+                    "description": "The artifact group ID.  Must be a string provided by the client, representing the name of the grouping of artifacts.",
+                    "required": true,
+                    "schema": {
+                        "$ref": "#/components/schemas/GroupId"
+                    }
+                },
+                {
+                    "name": "artifactId",
+                    "in": "path",
+                    "description": "The artifact ID.  Can be a string (client-provided) or UUID (server-generated), representing the unique artifact identifier.",
+                    "required": true,
+                    "schema": {
+                        "$ref": "#/components/schemas/ArtifactId"
+                    }
+                }
+            ]
         }
     },
     "components": {
@@ -3943,28 +3953,6 @@
                     "name": "foo.bar.Open"
                 }
             },
-            "ContentCreateRequest": {
-                "description": "",
-                "required": [
-                    "content",
-                    "references"
-                ],
-                "type": "object",
-                "properties": {
-                    "content": {
-                        "description": "Raw content of the artifact or a valid (and accessible) URL where the content can be found.",
-                        "type": "string",
-                        "example": ""
-                    },
-                    "references": {
-                        "description": "Collection of references to other artifacts.",
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/ArtifactReference"
-                        }
-                    }
-                }
-            },
             "ConfigurationProperty": {
                 "title": "Root Type for ConfigurationProperty",
                 "description": "",
@@ -4252,6 +4240,28 @@
                     "properties": {
                         "custom-1": "foo",
                         "custom-2": "bar"
+                    }
+                }
+            },
+            "ArtifactContent": {
+                "description": "",
+                "required": [
+                    "content",
+                    "references"
+                ],
+                "type": "object",
+                "properties": {
+                    "content": {
+                        "description": "Raw content of the artifact or a valid (and accessible) URL where the content can be found.",
+                        "type": "string",
+                        "example": ""
+                    },
+                    "references": {
+                        "description": "Collection of references to other artifacts.",
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/ArtifactReference"
+                        }
                     }
                 }
             }

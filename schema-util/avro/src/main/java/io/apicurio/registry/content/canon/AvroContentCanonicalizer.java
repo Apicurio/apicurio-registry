@@ -71,7 +71,6 @@ public class AvroContentCanonicalizer implements ContentCanonicalizer {
                 fields.forEach(array::add);
                 ObjectNode.class.cast(root).replace("fields", array);
             }
-
             String converted = mapper.writeValueAsString(mapper.treeToValue(root, Object.class));
             return ContentHandle.create(converted);
         } catch (Throwable t) {
@@ -86,5 +85,4 @@ public class AvroContentCanonicalizer implements ContentCanonicalizer {
             return ContentHandle.create(schema.toString(schemaRefs, false));
         }
     }
-
 }

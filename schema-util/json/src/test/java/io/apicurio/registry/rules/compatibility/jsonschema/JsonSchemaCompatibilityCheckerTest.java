@@ -71,7 +71,7 @@ public class JsonSchemaCompatibilityCheckerTest {
     	JsonSchemaCompatibilityChecker checker = new JsonSchemaCompatibilityChecker();
     	ContentHandle existing = ContentHandle.create(BEFORE);
     	ContentHandle proposed = ContentHandle.create(AFTER_VALID);
-		checker.testCompatibility(CompatibilityLevel.BACKWARD, Collections.singletonList(existing), proposed);
+		checker.testCompatibility(CompatibilityLevel.BACKWARD, Collections.singletonList(existing), proposed, Collections.emptyMap());
 	}
 
     @Test
@@ -79,7 +79,7 @@ public class JsonSchemaCompatibilityCheckerTest {
     	JsonSchemaCompatibilityChecker checker = new JsonSchemaCompatibilityChecker();
     	ContentHandle existing = ContentHandle.create(BEFORE);
     	ContentHandle proposed = ContentHandle.create(AFTER_INVALID);
-		checker.testCompatibility(CompatibilityLevel.BACKWARD, Collections.singletonList(existing), proposed);
+		checker.testCompatibility(CompatibilityLevel.BACKWARD, Collections.singletonList(existing), proposed, Collections.emptyMap());
 	}
 	
 }

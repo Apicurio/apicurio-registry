@@ -17,7 +17,7 @@
 package io.apicurio.registry.ccompat.rest.v7;
 
 import io.apicurio.registry.ccompat.dto.Schema;
-import io.apicurio.registry.ccompat.dto.SchemaContent;
+import io.apicurio.registry.ccompat.dto.SchemaInfo;
 
 import javax.validation.constraints.NotNull;
 import javax.ws.rs.Consumes;
@@ -97,7 +97,7 @@ public interface SubjectsResource {
     @Path("/{subject}")
     Schema findSchemaByContent(
             @PathParam("subject") String subject,
-            @NotNull SchemaContent request, @QueryParam("normalize") Boolean normalize) throws Exception;
+            @NotNull SchemaInfo request, @QueryParam("normalize") Boolean normalize) throws Exception;
 
     /**
      * Deletes the specified subject and its associated compatibility level if registered.

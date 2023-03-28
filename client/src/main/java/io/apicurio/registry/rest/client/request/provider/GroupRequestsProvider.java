@@ -19,7 +19,18 @@ package io.apicurio.registry.rest.client.request.provider;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.apicurio.registry.rest.v2.beans.*;
+import io.apicurio.registry.rest.v2.beans.ArtifactContent;
+import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
+import io.apicurio.registry.rest.v2.beans.ArtifactOwner;
+import io.apicurio.registry.rest.v2.beans.ArtifactReference;
+import io.apicurio.registry.rest.v2.beans.ArtifactSearchResults;
+import io.apicurio.registry.rest.v2.beans.EditableMetaData;
+import io.apicurio.registry.rest.v2.beans.GroupMetaData;
+import io.apicurio.registry.rest.v2.beans.GroupSearchResults;
+import io.apicurio.registry.rest.v2.beans.Rule;
+import io.apicurio.registry.rest.v2.beans.UpdateState;
+import io.apicurio.registry.rest.v2.beans.VersionMetaData;
+import io.apicurio.registry.rest.v2.beans.VersionSearchResults;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.rest.client.request.Operation;
@@ -61,7 +72,7 @@ public class GroupRequestsProvider {
                 .build();
     }
 
-    public static Request<ArtifactMetaData> createArtifactWithReferences(String groupId, Map<String, String> headers, ContentCreateRequest data, Map<String, List<String>> queryParams)
+    public static Request<ArtifactMetaData> createArtifactWithReferences(String groupId, Map<String, String> headers, ArtifactContent data, Map<String, List<String>> queryParams)
             throws JsonProcessingException {
         return new Request.RequestBuilder<ArtifactMetaData>()
                 .operation(Operation.POST)
@@ -270,6 +281,19 @@ public class GroupRequestsProvider {
                 .build();
     }
 
+    public static Request<VersionMetaData> getArtifactVersionMetaDataByContent(String groupId, String artifactId, Map<String, String> headers, Map<String, List<String>> queryParams, ArtifactContent artifactContent) throws JsonProcessingException {
+        return new Request.RequestBuilder<VersionMetaData>()
+                .operation(Operation.POST)
+                .path(Routes.ARTIFACT_METADATA)
+                .headers(headers)
+                .pathParams(List.of(groupId, artifactId))
+                .queryParams(queryParams)
+                .responseType(new TypeReference<VersionMetaData>() {
+                })
+                .data(IoUtil.toStream(mapper.writeValueAsBytes(artifactContent)))
+                .build();
+    }
+
     public static Request<VersionMetaData> getArtifactVersionMetaDataByContent(String groupId, String artifactId, Map<String, List<String>> queryParams, InputStream data) {
         return new Request.RequestBuilder<VersionMetaData>()
                 .operation(Operation.POST)
@@ -347,7 +371,7 @@ public class GroupRequestsProvider {
                 .build();
     }
 
-    public static Request<ArtifactMetaData> updateArtifactWithReferences(String groupId, String artifactId, Map<String, String> headers, ContentCreateRequest data) throws JsonProcessingException {
+    public static Request<ArtifactMetaData> updateArtifactWithReferences(String groupId, String artifactId, Map<String, String> headers, ArtifactContent data) throws JsonProcessingException {
         return new Request.RequestBuilder<ArtifactMetaData>()
                 .operation(Operation.PUT)
                 .path(Routes.ARTIFACT_BASE_PATH)

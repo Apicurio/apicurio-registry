@@ -93,7 +93,9 @@ import org.apache.kafka.common.config.TopicConfig;
 import org.apache.kafka.common.errors.TopicExistsException;
 import org.slf4j.Logger;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Collection;
@@ -353,22 +355,28 @@ public class KafkaSqlRegistryStorage implements RegistryStorage {
      * @param artifactType
      */
     private String ensureContent(ContentHandle content, String groupId, String artifactId, String artifactType, List<ArtifactReferenceDto> references) {
-        byte[] contentBytes = content.bytes();
-        String contentHash = DigestUtils.sha256Hex(contentBytes);
+        try {
 
-        if (!sqlStore.isContentExists(contentHash)) {
-            long contentId = nextClusterContentId();
+            String referencesSerialized = SqlUtil.serializeReferences(references);
+            byte[] contentBytes = content.bytes();
+            String contentHash = DigestUtils.sha256Hex(concatContentAndReferences(contentBytes, referencesSerialized));
 
-            ContentHandle canonicalContent = this.canonicalizeContent(artifactType, content, references);
-            byte[] canonicalContentBytes = canonicalContent.bytes();
-            String canonicalContentHash = DigestUtils.sha256Hex(canonicalContentBytes);
+            if (!sqlStore.isContentExists(contentHash)) {
+                long contentId = nextClusterContentId();
 
-            CompletableFuture<UUID> future = submitter.submitContent(tenantContext.tenantId(), contentId, contentHash, ActionType.CREATE, canonicalContentHash, content, SqlUtil.serializeReferences(references));
-            UUID uuid = ConcurrentUtil.get(future);
-            coordinator.waitForResponse(uuid);
+                ContentHandle canonicalContent = this.canonicalizeContent(artifactType, content, references);
+                byte[] canonicalContentBytes = canonicalContent.bytes();
+                String canonicalContentHash = DigestUtils.sha256Hex(concatContentAndReferences(canonicalContentBytes, referencesSerialized));
+
+                CompletableFuture<UUID> future = submitter.submitContent(tenantContext.tenantId(), contentId, contentHash, ActionType.CREATE, canonicalContentHash, content, SqlUtil.serializeReferences(references));
+                UUID uuid = ConcurrentUtil.get(future);
+                coordinator.waitForResponse(uuid);
+            }
+
+            return contentHash;
+        } catch (IOException e) {
+            throw new RegistryStorageException(e);
         }
-
-        return contentHash;
     }
 
     protected long ensureContentAndGetContentId(ContentHandle content, String canonicalContentHash, List<ArtifactReferenceDto> references) {
@@ -558,12 +566,12 @@ public class KafkaSqlRegistryStorage implements RegistryStorage {
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#getArtifactVersionMetaData(java.lang.String, java.lang.String, boolean, io.apicurio.registry.content.ContentHandle)
+     * @see io.apicurio.registry.storage.RegistryStorage#getArtifactVersionMetaData(java.lang.String, java.lang.String, boolean, io.apicurio.registry.content.ContentHandle, java.util.List)
      */
     @Override
-    public ArtifactVersionMetaDataDto getArtifactVersionMetaData(String groupId, String artifactId, boolean canonical, ContentHandle content)
+    public ArtifactVersionMetaDataDto getArtifactVersionMetaData(String groupId, String artifactId, boolean canonical, ContentHandle content, List<ArtifactReferenceDto> artifactReferences)
             throws ArtifactNotFoundException, RegistryStorageException {
-        return sqlStore.getArtifactVersionMetaData(groupId, artifactId, canonical, content);
+        return sqlStore.getArtifactVersionMetaData(groupId, artifactId, canonical, content, artifactReferences);
     }
 
     /**
@@ -1356,6 +1364,18 @@ public class KafkaSqlRegistryStorage implements RegistryStorage {
         } catch (Exception e) {
             log.debug("Failed to canonicalize content of type: {}", artifactType);
             return content;
+        }
+    }
+
+    private byte[] concatContentAndReferences(byte[] contentBytes, String references) throws IOException {
+        if (references != null) {
+            final byte[] referencesBytes = references.getBytes(StandardCharsets.UTF_8);
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream(contentBytes.length + referencesBytes.length);
+            outputStream.write(contentBytes);
+            outputStream.write(referencesBytes);
+            return outputStream.toByteArray();
+        } else {
+            return contentBytes;
         }
     }
 

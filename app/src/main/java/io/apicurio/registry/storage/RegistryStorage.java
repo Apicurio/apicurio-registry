@@ -295,11 +295,12 @@ public interface RegistryStorage extends DynamicConfigStorage {
      * @param artifactId
      * @param canonical
      * @param content
+     * @param artifactReferences
      * @throws ArtifactNotFoundException
      * @throws RegistryStorageException
      */
     ArtifactVersionMetaDataDto getArtifactVersionMetaData(String groupId, String artifactId, boolean canonical,
-                                                          ContentHandle content) throws ArtifactNotFoundException, RegistryStorageException;
+                                                          ContentHandle content, List<ArtifactReferenceDto> artifactReferences) throws ArtifactNotFoundException, RegistryStorageException;
 
     /**
      * Gets the stored meta-data for an artifact by global ID.  This will include client-editable meta-data such as

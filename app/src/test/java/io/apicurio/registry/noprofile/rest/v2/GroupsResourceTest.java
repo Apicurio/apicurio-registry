@@ -18,15 +18,14 @@ package io.apicurio.registry.noprofile.rest.v2;
 
 import com.google.common.hash.Hashing;
 import io.apicurio.registry.AbstractResourceTestBase;
-import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v2.beans.ArtifactReference;
 import io.apicurio.registry.rest.v2.beans.EditableMetaData;
-import io.apicurio.registry.rest.v2.beans.Error;
 import io.apicurio.registry.rest.v2.beans.IfExists;
 import io.apicurio.registry.rest.v2.beans.Rule;
 import io.apicurio.registry.rest.v2.beans.VersionMetaData;
 import io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType;
+import io.apicurio.registry.storage.impl.sql.SqlUtil;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.tests.TestUtils;
@@ -36,6 +35,7 @@ import io.restassured.config.EncoderConfig;
 import io.restassured.config.RestAssuredConfig;
 import io.restassured.http.ContentType;
 import io.restassured.response.ValidatableResponse;
+import org.apache.commons.codec.digest.DigestUtils;
 import org.hamcrest.Matchers;
 import org.jose4j.base64url.Base64;
 import org.junit.jupiter.api.Test;
@@ -43,6 +43,8 @@ import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
 import org.junit.jupiter.api.condition.DisabledOnOs;
 import org.junit.jupiter.api.condition.OS;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -52,12 +54,19 @@ import java.util.Map;
 import java.util.UUID;
 
 import static io.restassured.RestAssured.given;
-import static java.net.HttpURLConnection.HTTP_CONFLICT;
 import static java.net.HttpURLConnection.HTTP_OK;
 import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.CoreMatchers.anything;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.equalToObject;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.Matchers.startsWith;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
 /**
  * @author eric.wittmann@gmail.com
@@ -2359,7 +2368,9 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .name("foo")
                 .build());
         artifactContent = getRandomValidJsonSchemaContent();
+
         response = createArtifactExtendedRaw("default", null, null, artifactContent, references);
+
         metadata = response
                 .statusCode(HTTP_OK)
                 .extract().as(ArtifactMetaData.class);
@@ -2367,18 +2378,21 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         assertEquals(references, metadata.getReferences());
 
 
-        // Trying to use different references with the same content fails
+        // Trying to use different references with the same content is ok, but the contentId and contentHash is different.
         List<ArtifactReference> references2 = List.of(ArtifactReference.builder()
                 .groupId(metadata.getGroupId())
                 .artifactId(metadata.getId())
                 .version(metadata.getVersion())
                 .name("foo2")
                 .build());
+
         response = createArtifactExtendedRaw("default", null, null, artifactContent, references2);
-        var error = response
-                .statusCode(HTTP_CONFLICT)
-                .extract().as(Error.class);
-        assertEquals("ConflictException", error.getName());
+
+        var secondMetadata = response
+                .statusCode(HTTP_OK)
+                .extract().as(ArtifactMetaData.class);
+
+        assertNotEquals(secondMetadata.getContentId(), metadata.getContentId());
 
         // Same references are not an issue
         response = createArtifactExtendedRaw("default2", null, null, artifactContent, references);
@@ -2395,6 +2409,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .statusCode(HTTP_OK)
                 .extract().as(new TypeRef<List<ArtifactReference>>() {
                 });
+
         assertEquals(references, referenceResponse);
 
         // Get references via contentId
@@ -2406,17 +2421,24 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .statusCode(HTTP_OK)
                 .extract().as(new TypeRef<List<ArtifactReference>>() {
                 });
+
+        final String referencesSerialized = SqlUtil.serializeReferences(toReferenceDtos(references));
+
+        //We calculate the hash using the content itself and the references
+        String contentHash = DigestUtils.sha256Hex(concatContentAndReferences(artifactContent.getBytes(StandardCharsets.UTF_8), referencesSerialized.getBytes(StandardCharsets.UTF_8)));
+
         assertEquals(references, referenceResponse);
 
         // Get references via contentHash
         referenceResponse = given()
                 .when()
-                .pathParam("contentHash", ContentHandle.create(artifactContent).getSha256Hash())
+                .pathParam("contentHash", contentHash)
                 .get("/registry/v2/ids/contentHashes/{contentHash}/references")
                 .then()
                 .statusCode(HTTP_OK)
                 .extract().as(new TypeRef<List<ArtifactReference>>() {
                 });
+
         assertEquals(references, referenceResponse);
 
         // Get references via GAV
@@ -2430,6 +2452,14 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .statusCode(HTTP_OK)
                 .extract().as(new TypeRef<List<ArtifactReference>>() {
                 });
+
         assertEquals(references, referenceResponse);
+    }
+
+    private byte[] concatContentAndReferences(byte[] contentBytes, byte[] referencesBytes) throws IOException {
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream(contentBytes.length + referencesBytes.length);
+        outputStream.write(contentBytes);
+        outputStream.write(referencesBytes);
+        return outputStream.toByteArray();
     }
 }

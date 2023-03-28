@@ -153,7 +153,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
             ContentHandle content,
             String ct, boolean canonical) {
         try {
-            ArtifactVersionMetaDataDto mdDto = this.storage.getArtifactVersionMetaData(null, artifactId, canonical, content);
+            ArtifactVersionMetaDataDto mdDto = this.storage.getArtifactVersionMetaData(null, artifactId, canonical, content, Collections.emptyList());
             ArtifactMetaData md = V1ApiUtil.dtoToMetaData(artifactId, artifactType, mdDto);
             return md;
         } catch (ArtifactNotFoundException nfe) {
@@ -467,7 +467,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
             content = ContentTypeUtil.yamlToJson(content);
         }
 
-        ArtifactVersionMetaDataDto dto = storage.getArtifactVersionMetaData(null, artifactId, canonical, content);
+        ArtifactVersionMetaDataDto dto = storage.getArtifactVersionMetaData(null, artifactId, canonical, content, Collections.emptyList());
         return V1ApiUtil.dtoToVersionMetaData(artifactId, dto.getType(), dto);
     }
 

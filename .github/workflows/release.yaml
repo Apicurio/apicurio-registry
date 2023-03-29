@@ -12,10 +12,6 @@ on:
         description: 'Branch to release from'
         required: true
         default: 'main'
-      docs-version:
-        description: 'Docs version (antora.yml)'
-        required: true
-        default: '2.4.x'
 jobs:
   release:
     runs-on: ubuntu-20.04
@@ -67,8 +63,12 @@ jobs:
         run: |
           cd registry
           mvn versions:set -DnewVersion=${{ github.event.inputs.release-version}} -DgenerateBackupPoms=false -DprocessAllModules=true
-          sed -i  "s/version\:\s.*/version: \'${{ github.event.inputs.release-version}}\'/g" docs/antora.yml
-          sed -i  "5s/\"version\"\:\s\".*\"/\"version\": \"${{ github.event.inputs.release-version}}\"/g" app/src/main/resources-unfiltered/META-INF/resources/api-specifications/registry/v2/openapi.json
+
+          # take only the major and minor versions from release-version and then append .x.
+          DOCS_VERSION=$(echo "${{ github.event.inputs.release-version}}" | awk -F '.' '{print $1"."$2".x"}')
+          
+          sed -i  "s/version\:\s.*/version: \'${DOCS_VERSION}\'/g" docs/antora.yml
+          sed -i  "5s/\"version\"\:\s\".*\"/\"version\": \"${DOCS_VERSION}\"/g" app/src/main/resources-unfiltered/META-INF/resources/api-specifications/registry/v2/openapi.json
 
       - name: Build Registry (All Variants)
         run: |
@@ -125,7 +125,12 @@ jobs:
         run: |
           cd registry
           mvn versions:set -DnewVersion=${{ github.event.inputs.snapshot-version}} -DgenerateBackupPoms=false -DprocessAllModules=true
-          sed -i  "s/version\:\s.*/version: \'${{ github.event.inputs.docs-version}}\'/g" docs/antora.yml
+          
+          # take only the major and minor versions from snapshot-version and then append .x.
+          DOCS_VERSION=$(echo "${{ github.event.inputs.snapshot-version}}" | awk -F '.' '{print $1"."$2".x"}')
+          
+          sed -i  "s/version\:\s.*/version: \'${DOCS_VERSION}\'/g" docs/antora.yml
+          sed -i  "5s/\"version\"\:\s\".*\"/\"version\": \"${DOCS_VERSION}\"/g" app/src/main/resources-unfiltered/META-INF/resources/api-specifications/registry/v2/openapi.json
 
       - name: Commit Snapshot Version ${{ github.event.inputs.snapshot-version}}
         run: |

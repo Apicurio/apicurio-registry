@@ -109,6 +109,13 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 
+import javax.annotation.PostConstruct;
+import javax.enterprise.event.Event;
+import javax.inject.Inject;
+import javax.transaction.Transactional;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Duration;
@@ -126,10 +133,6 @@ import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import javax.annotation.PostConstruct;
-import javax.enterprise.event.Event;
-import javax.inject.Inject;
-import javax.transaction.Transactional;
 
 import static io.apicurio.registry.storage.impl.sql.SqlUtil.denormalizeGroupId;
 import static io.apicurio.registry.storage.impl.sql.SqlUtil.normalizeGroupId;
@@ -668,13 +671,36 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
      * @param artifactType
      * @param content
      */
-    protected Long createOrUpdateContent(Handle handle, String artifactType, ContentHandle content, List<ArtifactReferenceDto> references) {
+    protected Long createOrUpdateContent(Handle handle, String artifactType, ContentHandle content, List<ArtifactReferenceDto> references) throws IOException {
         byte[] contentBytes = content.bytes();
-        String contentHash = DigestUtils.sha256Hex(contentBytes);
         ContentHandle canonicalContent = this.canonicalizeContent(artifactType, content, references);
         byte[] canonicalContentBytes = canonicalContent.bytes();
-        String canonicalContentHash = DigestUtils.sha256Hex(canonicalContentBytes);
-        return createOrUpdateContent(handle, content, contentHash, canonicalContentHash, references);
+
+        String referencesSerialized = SqlUtil.serializeReferences(references);
+        String contentHash;
+        String canonicalContentHash;
+
+        if (referencesSerialized != null) {
+            contentHash = DigestUtils.sha256Hex(concatContentAndReferences(contentBytes, referencesSerialized));
+            canonicalContentHash = DigestUtils.sha256Hex(concatContentAndReferences(canonicalContentBytes, referencesSerialized));
+        } else {
+            contentHash = DigestUtils.sha256Hex(contentBytes);
+            canonicalContentHash = DigestUtils.sha256Hex(canonicalContentBytes);
+        }
+
+        return createOrUpdateContent(handle, content, contentHash, canonicalContentHash, references, referencesSerialized);
+    }
+
+    private byte[] concatContentAndReferences(byte[] contentBytes, String references) throws IOException {
+        if (references != null) {
+            final byte[] referencesBytes = references.getBytes(StandardCharsets.UTF_8);
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream(contentBytes.length + referencesBytes.length);
+            outputStream.write(contentBytes);
+            outputStream.write(referencesBytes);
+            return outputStream.toByteArray();
+        } else {
+            return contentBytes;
+        }
     }
 
     /**
@@ -686,9 +712,8 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
      * @param contentHash
      * @param canonicalContentHash
      */
-    protected Long createOrUpdateContent(Handle handle, ContentHandle content, String contentHash, String canonicalContentHash, List<ArtifactReferenceDto> references) {
+    protected Long createOrUpdateContent(Handle handle, ContentHandle content, String contentHash, String canonicalContentHash, List<ArtifactReferenceDto> references, String referencesSerialized) {
         byte[] contentBytes = content.bytes();
-        String referencesSerialized = SqlUtil.serializeReferences(references);
 
         // Upsert a row in the "content" table.  This will insert a row for the content
         // if a row doesn't already exist.  We use the canonical hash to determine whether
@@ -1380,24 +1405,30 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     }
 
     /**
-     * @see RegistryStorage#getArtifactVersionMetaData(java.lang.String, java.lang.String, boolean, io.apicurio.registry.content.ContentHandle)
+     * @see RegistryStorage#getArtifactVersionMetaData(java.lang.String, java.lang.String, boolean, io.apicurio.registry.content.ContentHandle, java.util.List)
      */
     @Override
     public ArtifactVersionMetaDataDto getArtifactVersionMetaData(String groupId, String artifactId, boolean canonical,
-            ContentHandle content) throws ArtifactNotFoundException, RegistryStorageException {
+                                                                 ContentHandle content, List<ArtifactReferenceDto> artifactReferences) throws ArtifactNotFoundException, RegistryStorageException {
         String hash;
-        if (canonical) {
-            final ArtifactMetaDataDto artifactMetaData = this.getArtifactMetaData(groupId, artifactId);
-            final ContentWrapperDto contentWrapperDto = getArtifactByContentId(artifactMetaData.getContentId());
-            String type = artifactMetaData.getType();
-            ContentHandle canonicalContent = this.canonicalizeContent(type, content, contentWrapperDto.getReferences());
-            hash = DigestUtils.sha256Hex(canonicalContent.bytes());
-        } else {
-            hash = DigestUtils.sha256Hex(content.bytes());
+        String referencesSerialized = SqlUtil.serializeReferences(artifactReferences);
+
+        try {
+            if (canonical) {
+                final ArtifactMetaDataDto artifactMetaData = this.getArtifactMetaData(groupId, artifactId);
+                final ContentWrapperDto contentWrapperDto = getArtifactByContentId(artifactMetaData.getContentId());
+                String type = artifactMetaData.getType();
+                ContentHandle canonicalContent = this.canonicalizeContent(type, content, contentWrapperDto.getReferences());
+                hash = DigestUtils.sha256Hex(concatContentAndReferences(canonicalContent.bytes(), referencesSerialized));
+            } else {
+                hash = DigestUtils.sha256Hex(concatContentAndReferences(content.bytes(), referencesSerialized));
+            }
+        } catch (IOException e) {
+            throw new RegistryStorageException(e);
         }
 
         try {
-            return this.handles.withHandle( handle -> {
+            return this.handles.withHandle(handle -> {
                 String sql = sqlStatements.selectArtifactVersionMetaDataByContentHash();
                 if (canonical) {
                     sql = sqlStatements.selectArtifactVersionMetaDataByCanonicalHash();

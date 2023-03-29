@@ -70,12 +70,12 @@ public class ArtifactTypeTest extends AbstractRegistryTestBase {
         ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(avro);
         CompatibilityChecker checker = provider.getCompatibilityChecker();
 
-        CompatibilityExecutionResult compatibilityExecutionResult = checker.testCompatibility(CompatibilityLevel.BACKWARD, Collections.emptyList(), avroString);
+        CompatibilityExecutionResult compatibilityExecutionResult = checker.testCompatibility(CompatibilityLevel.BACKWARD, Collections.emptyList(), avroString, Collections.emptyMap());
         Assertions.assertTrue(compatibilityExecutionResult.isCompatible());
         Assertions.assertTrue(compatibilityExecutionResult.getIncompatibleDifferences().isEmpty());
 
         String avroString2 = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"f1\",\"type\":\"string\", \"qq\":\"ff\"}]}";
-        compatibilityExecutionResult = checker.testCompatibility(CompatibilityLevel.BACKWARD, Collections.singletonList(avroString), avroString2);
+        compatibilityExecutionResult = checker.testCompatibility(CompatibilityLevel.BACKWARD, Collections.singletonList(avroString), avroString2, Collections.emptyMap());
         Assertions.assertTrue(compatibilityExecutionResult.isCompatible());
         Assertions.assertTrue(compatibilityExecutionResult.getIncompatibleDifferences().isEmpty());
     }
@@ -88,10 +88,10 @@ public class ArtifactTypeTest extends AbstractRegistryTestBase {
         ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(json);
         CompatibilityChecker checker = provider.getCompatibilityChecker();
 
-        Assertions.assertTrue(checker.testCompatibility(CompatibilityLevel.BACKWARD, Collections.emptyList(), jsonString).isCompatible());
-        Assertions.assertTrue(checker.testCompatibility(CompatibilityLevel.BACKWARD, Collections.singletonList(jsonString), jsonString).isCompatible());
+        Assertions.assertTrue(checker.testCompatibility(CompatibilityLevel.BACKWARD, Collections.emptyList(), jsonString, Collections.emptyMap()).isCompatible());
+        Assertions.assertTrue(checker.testCompatibility(CompatibilityLevel.BACKWARD, Collections.singletonList(jsonString), jsonString, Collections.emptyMap()).isCompatible());
 
-        CompatibilityExecutionResult compatibilityExecutionResult = checker.testCompatibility(CompatibilityLevel.BACKWARD, Collections.singletonList(jsonString), incompatibleJsonString);
+        CompatibilityExecutionResult compatibilityExecutionResult = checker.testCompatibility(CompatibilityLevel.BACKWARD, Collections.singletonList(jsonString), incompatibleJsonString, Collections.emptyMap());
         Assertions.assertFalse(compatibilityExecutionResult.isCompatible());
         Set<CompatibilityDifference> incompatibleDifferences = compatibilityExecutionResult.getIncompatibleDifferences();
         Difference ageDiff = findDiffByPathUpdated(incompatibleDifferences, "/properties/age");
@@ -136,7 +136,7 @@ public class ArtifactTypeTest extends AbstractRegistryTestBase {
         ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(protobuf);
         CompatibilityChecker checker = provider.getCompatibilityChecker();
 
-        CompatibilityExecutionResult compatibilityExecutionResult = checker.testCompatibility(CompatibilityLevel.BACKWARD, Collections.emptyList(), data);
+        CompatibilityExecutionResult compatibilityExecutionResult = checker.testCompatibility(CompatibilityLevel.BACKWARD, Collections.emptyList(), data, Collections.emptyMap());
         Assertions.assertTrue(compatibilityExecutionResult.isCompatible());
         Assertions.assertTrue(compatibilityExecutionResult.getIncompatibleDifferences().isEmpty());
 
@@ -160,7 +160,7 @@ public class ArtifactTypeTest extends AbstractRegistryTestBase {
                        "\trpc Previous(PreviousRequest) returns (stream Channel);\n" +
                        "}\n";
 
-        compatibilityExecutionResult = checker.testCompatibility(CompatibilityLevel.BACKWARD, Collections.singletonList(data), data2);
+        compatibilityExecutionResult = checker.testCompatibility(CompatibilityLevel.BACKWARD, Collections.singletonList(data), data2, Collections.emptyMap());
         Assertions.assertTrue(compatibilityExecutionResult.isCompatible());
         Assertions.assertTrue(compatibilityExecutionResult.getIncompatibleDifferences().isEmpty());
 
@@ -181,7 +181,7 @@ public class ArtifactTypeTest extends AbstractRegistryTestBase {
                        "\trpc Previous(PreviousRequest) returns (stream Channel);\n" +
                        "}\n";
 
-        compatibilityExecutionResult = checker.testCompatibility(CompatibilityLevel.BACKWARD, Collections.singletonList(data), data3);
+        compatibilityExecutionResult = checker.testCompatibility(CompatibilityLevel.BACKWARD, Collections.singletonList(data), data3, Collections.emptyMap());
         Assertions.assertFalse(compatibilityExecutionResult.isCompatible());
         Assertions.assertFalse(compatibilityExecutionResult.getIncompatibleDifferences().isEmpty());
         Assertions.assertEquals("The new version of the protobuf artifact is not backward compatible.", compatibilityExecutionResult.getIncompatibleDifferences().iterator().next().asRuleViolation().getDescription());
@@ -201,7 +201,7 @@ public class ArtifactTypeTest extends AbstractRegistryTestBase {
         ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(protobuf);
         CompatibilityChecker checker = provider.getCompatibilityChecker();
 
-        CompatibilityExecutionResult compatibilityExecutionResult = checker.testCompatibility(CompatibilityLevel.BACKWARD, Collections.emptyList(), data);
+        CompatibilityExecutionResult compatibilityExecutionResult = checker.testCompatibility(CompatibilityLevel.BACKWARD, Collections.emptyList(), data, Collections.emptyMap());
         Assertions.assertTrue(compatibilityExecutionResult.isCompatible());
         Assertions.assertTrue(compatibilityExecutionResult.getIncompatibleDifferences().isEmpty());
 
@@ -213,7 +213,7 @@ public class ArtifactTypeTest extends AbstractRegistryTestBase {
                 "  required string code = 3;\n" +
                 "}";
 
-        compatibilityExecutionResult = checker.testCompatibility(CompatibilityLevel.BACKWARD, Collections.singletonList(data), data2);
+        compatibilityExecutionResult = checker.testCompatibility(CompatibilityLevel.BACKWARD, Collections.singletonList(data), data2, Collections.emptyMap());
         Assertions.assertFalse(compatibilityExecutionResult.isCompatible());
         Assertions.assertFalse(compatibilityExecutionResult.getIncompatibleDifferences().isEmpty());
         Assertions.assertEquals("The new version of the protobuf artifact is not backward compatible.", compatibilityExecutionResult.getIncompatibleDifferences().iterator().next().asRuleViolation().getDescription());
@@ -227,7 +227,7 @@ public class ArtifactTypeTest extends AbstractRegistryTestBase {
         CompatibilityChecker checker = provider.getCompatibilityChecker();
 
         //adding a required field is not allowed since the first schema does not have it, should fail
-        CompatibilityExecutionResult compatibilityExecutionResult = checker.testCompatibility(CompatibilityLevel.BACKWARD_TRANSITIVE, List.of(PROTO_DATA, PROTO_DATA_2), PROTO_DATA_2);
+        CompatibilityExecutionResult compatibilityExecutionResult = checker.testCompatibility(CompatibilityLevel.BACKWARD_TRANSITIVE, List.of(PROTO_DATA, PROTO_DATA_2), PROTO_DATA_2, Collections.emptyMap());
         Assertions.assertFalse(compatibilityExecutionResult.isCompatible());
         Assertions.assertFalse(compatibilityExecutionResult.getIncompatibleDifferences().isEmpty());
         Assertions.assertEquals("The new version of the protobuf artifact is not backward compatible.", compatibilityExecutionResult.getIncompatibleDifferences().iterator().next().asRuleViolation().getDescription());
@@ -242,14 +242,14 @@ public class ArtifactTypeTest extends AbstractRegistryTestBase {
         CompatibilityChecker checker = provider.getCompatibilityChecker();
 
         //adding a required field is not allowed, should fail
-        CompatibilityExecutionResult compatibilityExecutionResult = checker.testCompatibility(CompatibilityLevel.FORWARD, Collections.singletonList(PROTO_DATA_2), PROTO_DATA);
+        CompatibilityExecutionResult compatibilityExecutionResult = checker.testCompatibility(CompatibilityLevel.FORWARD, Collections.singletonList(PROTO_DATA_2), PROTO_DATA, Collections.emptyMap());
         Assertions.assertFalse(compatibilityExecutionResult.isCompatible());
         Assertions.assertFalse(compatibilityExecutionResult.getIncompatibleDifferences().isEmpty());
         Assertions.assertEquals("The new version of the protobuf artifact is not forward compatible.", compatibilityExecutionResult.getIncompatibleDifferences().iterator().next().asRuleViolation().getDescription());
         Assertions.assertEquals("/", compatibilityExecutionResult.getIncompatibleDifferences().iterator().next().asRuleViolation().getContext());
 
         //adding a required field is allowed since we're only checking forward, not forward transitive
-        compatibilityExecutionResult = checker.testCompatibility(CompatibilityLevel.FORWARD, List.of(PROTO_DATA, PROTO_DATA_2), PROTO_DATA_2);
+        compatibilityExecutionResult = checker.testCompatibility(CompatibilityLevel.FORWARD, List.of(PROTO_DATA, PROTO_DATA_2), PROTO_DATA_2, Collections.emptyMap());
         Assertions.assertTrue(compatibilityExecutionResult.isCompatible());
         Assertions.assertTrue(compatibilityExecutionResult.getIncompatibleDifferences().isEmpty());
     }
@@ -261,12 +261,12 @@ public class ArtifactTypeTest extends AbstractRegistryTestBase {
         CompatibilityChecker checker = provider.getCompatibilityChecker();
 
         //must pass, all the existing schemas are the same
-        CompatibilityExecutionResult compatibilityExecutionResult = checker.testCompatibility(CompatibilityLevel.FORWARD_TRANSITIVE, List.of(PROTO_DATA_2, PROTO_DATA_2), PROTO_DATA_2);
+        CompatibilityExecutionResult compatibilityExecutionResult = checker.testCompatibility(CompatibilityLevel.FORWARD_TRANSITIVE, List.of(PROTO_DATA_2, PROTO_DATA_2), PROTO_DATA_2, Collections.emptyMap());
         Assertions.assertTrue(compatibilityExecutionResult.isCompatible());
         Assertions.assertTrue(compatibilityExecutionResult.getIncompatibleDifferences().isEmpty());
 
         //adding a required field is not allowed since we're now checking forward transitive and the field is not present, not forward transitive
-        compatibilityExecutionResult = checker.testCompatibility(CompatibilityLevel.FORWARD_TRANSITIVE, List.of(PROTO_DATA, PROTO_DATA_2), PROTO_DATA_2);
+        compatibilityExecutionResult = checker.testCompatibility(CompatibilityLevel.FORWARD_TRANSITIVE, List.of(PROTO_DATA, PROTO_DATA_2), PROTO_DATA_2, Collections.emptyMap());
         Assertions.assertFalse(compatibilityExecutionResult.isCompatible());
         Assertions.assertFalse(compatibilityExecutionResult.getIncompatibleDifferences().isEmpty());
         Assertions.assertEquals("The new version of the protobuf artifact is not forward compatible.", compatibilityExecutionResult.getIncompatibleDifferences().iterator().next().asRuleViolation().getDescription());
@@ -280,19 +280,19 @@ public class ArtifactTypeTest extends AbstractRegistryTestBase {
         CompatibilityChecker checker = provider.getCompatibilityChecker();
 
         //adding a required field is not allowed since we're now checking forward transitive and the field is not present, not forward transitive
-        CompatibilityExecutionResult compatibilityExecutionResult = checker.testCompatibility(CompatibilityLevel.FULL, List.of(PROTO_DATA), PROTO_DATA_2);
+        CompatibilityExecutionResult compatibilityExecutionResult = checker.testCompatibility(CompatibilityLevel.FULL, List.of(PROTO_DATA), PROTO_DATA_2, Collections.emptyMap());
         Assertions.assertFalse(compatibilityExecutionResult.isCompatible());
         Assertions.assertFalse(compatibilityExecutionResult.getIncompatibleDifferences().isEmpty());
         Assertions.assertEquals("The new version of the protobuf artifact is not fully compatible.", compatibilityExecutionResult.getIncompatibleDifferences().iterator().next().asRuleViolation().getDescription());
         Assertions.assertEquals("/", compatibilityExecutionResult.getIncompatibleDifferences().iterator().next().asRuleViolation().getContext());
 
         //must pass, since the schema is both backwards and forwards compatible with the latest existing schema
-        compatibilityExecutionResult = checker.testCompatibility(CompatibilityLevel.FULL, List.of(PROTO_DATA, PROTO_DATA_2), PROTO_DATA_2);
+        compatibilityExecutionResult = checker.testCompatibility(CompatibilityLevel.FULL, List.of(PROTO_DATA, PROTO_DATA_2), PROTO_DATA_2, Collections.emptyMap());
         Assertions.assertTrue(compatibilityExecutionResult.isCompatible());
         Assertions.assertTrue(compatibilityExecutionResult.getIncompatibleDifferences().isEmpty());
 
         //must fail, the schema is not compatible with the first existing schema
-        compatibilityExecutionResult = checker.testCompatibility(CompatibilityLevel.FULL_TRANSITIVE, List.of(PROTO_DATA, PROTO_DATA_2), PROTO_DATA_2);
+        compatibilityExecutionResult = checker.testCompatibility(CompatibilityLevel.FULL_TRANSITIVE, List.of(PROTO_DATA, PROTO_DATA_2), PROTO_DATA_2, Collections.emptyMap());
         Assertions.assertFalse(compatibilityExecutionResult.isCompatible());
         Assertions.assertFalse(compatibilityExecutionResult.getIncompatibleDifferences().isEmpty());
         Assertions.assertEquals("The new version of the protobuf artifact is not fully compatible.", compatibilityExecutionResult.getIncompatibleDifferences().iterator().next().asRuleViolation().getDescription());

@@ -19,6 +19,7 @@ package io.apicurio.registry.rules.compatibility;
 import static java.util.Objects.requireNonNull;
 
 import java.util.List;
+import java.util.Map;
 
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.rules.compatibility.protobuf.ProtobufCompatibilityCheckerLibrary;
@@ -31,7 +32,7 @@ import org.jetbrains.annotations.NotNull;
 public class ProtobufCompatibilityChecker implements CompatibilityChecker {
 
     @Override
-    public CompatibilityExecutionResult testCompatibility(CompatibilityLevel compatibilityLevel, List<ContentHandle> existingArtifacts, ContentHandle proposedArtifact) {
+    public CompatibilityExecutionResult testCompatibility(CompatibilityLevel compatibilityLevel, List<ContentHandle> existingArtifacts, ContentHandle proposedArtifact, Map<String, ContentHandle> resolvedReferences) {
         requireNonNull(compatibilityLevel, "compatibilityLevel MUST NOT be null");
         requireNonNull(existingArtifacts, "existingArtifacts MUST NOT be null");
         requireNonNull(proposedArtifact, "proposedArtifact MUST NOT be null");

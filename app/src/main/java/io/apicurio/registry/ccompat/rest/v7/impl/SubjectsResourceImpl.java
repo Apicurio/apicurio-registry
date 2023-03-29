@@ -22,7 +22,7 @@ import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
 import io.apicurio.registry.ccompat.dto.Schema;
-import io.apicurio.registry.ccompat.dto.SchemaContent;
+import io.apicurio.registry.ccompat.dto.SchemaInfo;
 import io.apicurio.registry.ccompat.rest.v7.SubjectsResource;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
@@ -49,7 +49,7 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
 
     @Override
     @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Read)
-    public Schema findSchemaByContent(String subject, SchemaContent request, Boolean normalize) throws Exception {
+    public Schema findSchemaByContent(String subject, SchemaInfo request, Boolean normalize) throws Exception {
         final boolean fnormalize = normalize == null ? Boolean.FALSE : normalize;
         return facade.getSchema(subject, request, fnormalize);
     }

@@ -189,12 +189,15 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
     }
 
     @Override
-    public Schema getSchema(String subject, SchemaContent schema, boolean normalize) throws ArtifactNotFoundException, RegistryStorageException {
+    public Schema getSchema(String subject, SchemaInfo schema, boolean normalize) throws ArtifactNotFoundException, RegistryStorageException {
         ArtifactVersionMetaDataDto amd;
+
+        final List<ArtifactReferenceDto> artifactReferenceDtos = parseReferences(schema.getReferences());
+
         if (cconfig.canonicalHashModeEnabled.get() || normalize) {
-            amd = storage.getArtifactVersionMetaData(null, subject, true, ContentHandle.create(schema.getSchema()));
+            amd = storage.getArtifactVersionMetaData(null, subject, true, ContentHandle.create(schema.getSchema()), artifactReferenceDtos);
         } else {
-            amd = storage.getArtifactVersionMetaData(null, subject, false, ContentHandle.create(schema.getSchema()));
+            amd = storage.getArtifactVersionMetaData(null, subject, false, ContentHandle.create(schema.getSchema()), artifactReferenceDtos);
         }
         StoredArtifactDto storedArtifact = storage.getArtifactVersion(null, subject, amd.getVersion());
         return converter.convert(subject, storedArtifact);
@@ -208,13 +211,15 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
             throw new UnprocessableEntityException("The schema provided is null.");
         }
 
+        final List<ArtifactReferenceDto> artifactReferences = parseReferences(references);
+
         try {
             ContentHandle content = ContentHandle.create(schema);
             ArtifactVersionMetaDataDto dto;
             if (cconfig.canonicalHashModeEnabled.get() || normalize) {
-                dto = storage.getArtifactVersionMetaData(null, subject, true, content);
+                dto = storage.getArtifactVersionMetaData(null, subject, true, content, artifactReferences);
             } else {
-                dto = storage.getArtifactVersionMetaData(null, subject, false, content);
+                dto = storage.getArtifactVersionMetaData(null, subject, false, content, artifactReferences);
             }
             return cconfig.legacyIdModeEnabled.get() ? dto.getGlobalId() : dto.getContentId();
         } catch (ArtifactNotFoundException nfe) {

@@ -333,16 +333,17 @@ public abstract class RegistryStorageDecorator implements RegistryStorage {
      * @param artifactId
      * @param canonical
      * @param content
+     * @param artifactReferences
      * @return
      * @throws ArtifactNotFoundException
      * @throws RegistryStorageException
-     * @see RegistryStorage#getArtifactVersionMetaData(java.lang.String, java.lang.String, boolean, io.apicurio.registry.content.ContentHandle)
+     * @see RegistryStorage#getArtifactVersionMetaData(java.lang.String, java.lang.String, boolean, io.apicurio.registry.content.ContentHandle, List)
      */
     @Override
     public ArtifactVersionMetaDataDto getArtifactVersionMetaData(String groupId, String artifactId,
-                                                                 boolean canonical, ContentHandle content)
+                                                                 boolean canonical, ContentHandle content, List<ArtifactReferenceDto> artifactReferences)
         throws ArtifactNotFoundException, RegistryStorageException {
-        return delegate.getArtifactVersionMetaData(groupId, artifactId, canonical, content);
+        return delegate.getArtifactVersionMetaData(groupId, artifactId, canonical, content, artifactReferences);
     }
 
     /**

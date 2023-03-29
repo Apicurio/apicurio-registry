@@ -63,12 +63,18 @@ public interface RegistryClient extends Closeable {
 
     VersionMetaData getArtifactVersionMetaDataByContent(String groupId, String artifactId, Boolean canonical, String contentType, InputStream data);
 
+    VersionMetaData getArtifactVersionMetaDataByContent(String groupId, String artifactId, Boolean canonical, ArtifactContent artifactContent);
+
     default VersionMetaData getArtifactVersionMetaDataByContent(String groupId, String artifactId, Boolean canonical, InputStream data) {
         return getArtifactVersionMetaDataByContent(groupId, artifactId, canonical, null, data);
     }
 
     default VersionMetaData getArtifactVersionMetaDataByContent(String groupId, String artifactId, InputStream data) {
         return getArtifactVersionMetaDataByContent(groupId, artifactId, null, null, data);
+    }
+
+    default VersionMetaData getArtifactVersionMetaDataByContent(String groupId, String artifactId, ArtifactContent artifactContent) {
+        return getArtifactVersionMetaDataByContent(groupId, artifactId, null, artifactContent);
     }
 
     List<RuleType> listArtifactRules(String groupId, String artifactId);

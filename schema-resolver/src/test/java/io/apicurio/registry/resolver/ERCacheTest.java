@@ -66,6 +66,20 @@ public class ERCacheTest {
     }
 
     @Test
+    void testGetByContentHashEnforcesTTL() {
+        String contentHashKey = "content hash ttl key";
+        ERCache<String> cache = newCache(contentHashKey);
+        cache.configureLifetime(Duration.ZERO);
+        Function<String, String> firstLoader = (key) -> {return "a value";};
+        Function<String, String> secondLoader = (key) -> {return "another value";};
+
+        String firstValue = cache.getByContentHash(contentHashKey, firstLoader);
+        assertEquals("a value", firstValue);
+        String secondValue = cache.getByContentHash(contentHashKey, secondLoader);
+        assertEquals("another value", secondValue);
+    }
+
+    @Test
     void testClearEmptiesContentHashIndex() {
         String contentHashKey = "another key";
         ERCache<String> cache = newCache(contentHashKey);

@@ -150,7 +150,7 @@ public class ArtifactReferenceImpl implements ArtifactReference {
     }
 
     /**
-     * @param contentId the contentId to set
+     * @param contentHash the contentHash to set
      */
     protected void setContentHash(String contentHash) {
         this.contentHash = contentHash;

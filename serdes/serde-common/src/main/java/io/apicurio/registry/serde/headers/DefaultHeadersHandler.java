@@ -153,7 +153,6 @@ public class DefaultHeadersHandler implements HeadersHandler {
     }
 
     private String getContentHash(Headers headers) {
-        System.err.println("======= getContentHash -- headerName: " + contentHashHeaderName);
         Header header = headers.lastHeader(contentHashHeaderName);
         if (header == null) {
             return null;

@@ -49,6 +49,11 @@ public class ArtifactReferenceImpl implements ArtifactReference {
      */
     private Long contentId;
 
+    /**
+     * Optional, unless the rest of fields are empty
+     */
+    private String contentHash;
+
     protected ArtifactReferenceImpl() {
         //empty initialize using setters
     }
@@ -102,6 +107,14 @@ public class ArtifactReferenceImpl implements ArtifactReference {
     }
 
     /**
+     * @see io.apicurio.registry.resolver.strategy.ArtifactReference#getContentHash()
+     */
+    @Override
+    public String getContentHash() {
+        return contentHash;
+    }
+
+    /**
      * @param groupId the groupId to set
      */
     protected void setGroupId(String groupId) {
@@ -134,6 +147,13 @@ public class ArtifactReferenceImpl implements ArtifactReference {
      */
     protected void setContentId(Long contentId) {
         this.contentId = contentId;
+    }
+
+    /**
+     * @param contentId the contentId to set
+     */
+    protected void setContentHash(String contentHash) {
+        this.contentHash = contentHash;
     }
 
     /**
@@ -176,8 +196,8 @@ public class ArtifactReferenceImpl implements ArtifactReference {
         }
 
         boolean match3 = false;
-        if(groupId != null  && other.groupId != null) {
-            if (!groupId.equals(other.groupId)) {
+        if(contentHash != null  && other.contentHash != null) {
+            if (!contentHash.equals(other.contentHash)) {
                 return false;
             } else {
                 match3 = true;
@@ -185,8 +205,8 @@ public class ArtifactReferenceImpl implements ArtifactReference {
         }
 
         boolean match4 = false;
-        if(artifactId != null  && other.artifactId != null) {
-            if (!artifactId.equals(other.artifactId)) {
+        if(groupId != null  && other.groupId != null) {
+            if (!groupId.equals(other.groupId)) {
                 return false;
             } else {
                 match4 = true;
@@ -194,15 +214,24 @@ public class ArtifactReferenceImpl implements ArtifactReference {
         }
 
         boolean match5 = false;
-        if(version != null  && other.version != null) {
-            if (!version.equals(other.version)) {
+        if(artifactId != null  && other.artifactId != null) {
+            if (!artifactId.equals(other.artifactId)) {
                 return false;
             } else {
                 match5 = true;
             }
         }
 
-        return match1 || match2 || (match3 && match4 && match5);
+        boolean match6 = false;
+        if(version != null  && other.version != null) {
+            if (!version.equals(other.version)) {
+                return false;
+            } else {
+                match6 = true;
+            }
+        }
+
+        return match1 || match2 || match3 || (match4 && match5 && match6);
     }
 
     /**
@@ -211,7 +240,7 @@ public class ArtifactReferenceImpl implements ArtifactReference {
     @Override
     public String toString() {
         return "ArtifactReference [groupId=" + groupId + ", artifactId=" + artifactId + ", version=" + version
-                + ", globalId=" + globalId + ", contentId=" + contentId + "]";
+                + ", globalId=" + globalId + ", contentId=" + contentId + ", contentHash=" + contentHash + "]";
     }
 
     public static class ArtifactReferenceBuilder {
@@ -244,6 +273,11 @@ public class ArtifactReferenceImpl implements ArtifactReference {
 
         public ArtifactReferenceBuilder contentId(Long contentId) {
             reference.setContentId(contentId);
+            return ArtifactReferenceBuilder.this;
+        }
+
+        public ArtifactReferenceBuilder contentHash(String contentHash) {
+            reference.setContentHash(contentHash);
             return ArtifactReferenceBuilder.this;
         }
 

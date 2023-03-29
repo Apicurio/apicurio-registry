@@ -336,6 +336,16 @@ public class SerdeConfig {
      */
     public static final String HEADER_VALUE_CONTENT_ID_OVERRIDE_NAME = "apicurio.registry.headers.value.contentId.name";
     /**
+     * Used to override the Kafka message header name used to pass the contentHash for the message key.  Only
+     * applicable when {@link SerdeConfig#ENABLE_HEADERS} is enabled.  Default value is {@link SerdeHeaders#HEADER_KEY_CONTENT_HASH}.
+     */
+    public static final String HEADER_KEY_CONTENT_HASH_OVERRIDE_NAME = "apicurio.registry.headers.key.contentHash.name";
+    /**
+     * Used to override the Kafka message header name used to pass the contentHash for the message value.  Only
+     * applicable when {@link SerdeConfig#ENABLE_HEADERS} is enabled.  Default value is {@link SerdeHeaders#HEADER_VALUE_CONTENT_HASH}.
+     */
+    public static final String HEADER_VALUE_CONTENT_HASH_OVERRIDE_NAME = "apicurio.registry.headers.value.contentHash.name";
+    /**
      * Used to override the Kafka message header name used to pass the message type for the message key.  Only
      * applicable when {@link SerdeConfig#ENABLE_HEADERS} is enabled.  Only used by the JSON Schema serde classes.
      * Default value is {@link SerdeHeaders#HEADER_KEY_MESSAGE_TYPE}.

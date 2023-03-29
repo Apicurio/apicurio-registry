@@ -55,6 +55,11 @@ public interface ArtifactReference {
     Long getContentId();
 
     /**
+     * @return the contentHash
+     */
+    String getContentHash();
+
+    /**
      * @see java.lang.Object#hashCode()
      */
     @Override

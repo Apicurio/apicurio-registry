@@ -90,7 +90,7 @@ public class SchemaLookupResult<T> {
         return ArtifactReference.builder()
                 .globalId(this.getGlobalId())
                 .contentId(this.getContentId())
-                .contentHash(this.contentHash)
+                .contentHash(this.getContentHash())
                 .groupId(this.getGroupId())
                 .artifactId(this.getArtifactId())
                 .version(this.getVersion())

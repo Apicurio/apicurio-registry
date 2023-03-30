@@ -92,6 +92,11 @@ public class MockRegistryClient implements RegistryClient {
     }
 
     @Override
+    public VersionMetaData getArtifactVersionMetaDataByContent(String groupId, String artifactId, Boolean canonical, ArtifactContent artifactContent) {
+        throw new UnsupportedOperationException("Unimplemented method 'getArtifactVersionMetaDataByContent'");
+    }
+
+    @Override
     public List<RuleType> listArtifactRules(String groupId, String artifactId) {
         throw new UnsupportedOperationException("Unimplemented method 'listArtifactRules'");
     }

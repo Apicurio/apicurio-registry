@@ -210,7 +210,7 @@
         <jboss-slf4j.version>1.2.1.Final</jboss-slf4j.version>
         <httpclient.version>4.5.14</httpclient.version>
         <apicurio-common-rest-client.version>0.1.15.Final</apicurio-common-rest-client.version>
-        <apicurio-common-app-components.version>0.1.18.Final</apicurio-common-app-components.version>
+        <apicurio-common-app-components.version>1.0.16.Final</apicurio-common-app-components.version>
         <sentry.version>1.7.30</sentry.version>
         <kafka-oauth-client.version>0.12.0</kafka-oauth-client.version>
         <kafka-clients.version>2.8.1</kafka-clients.version>

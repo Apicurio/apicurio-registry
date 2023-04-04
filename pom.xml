@@ -159,7 +159,7 @@
         <!-- Schema types -->
         <avro.version>1.11.1</avro.version>
         <json-schema-validator.version>1.0.79</json-schema-validator.version>
-        <wire-schema.version>4.5.3</wire-schema.version>
+        <wire-schema.version>4.5.4</wire-schema.version>
         <wire-compiler.version>4.3.0</wire-compiler.version>
         <okio-jvm.version>3.3.0</okio-jvm.version>
         <okio.version>3.3.0</okio.version>
@@ -196,7 +196,7 @@
         <apicurio-tenant-manager.version>0.1.3.Final</apicurio-tenant-manager.version>
 
         <!-- GraphQL -->
-        <graphql.version>20.1</graphql.version>
+        <graphql.version>20.2</graphql.version>
 
         <!-- JSON Schema Validator -->
         <org.everit.json.schema.version>1.14.2</org.everit.json.schema.version><!-- TODO unification -->

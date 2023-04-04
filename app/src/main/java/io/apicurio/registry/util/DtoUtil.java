@@ -48,4 +48,12 @@ public final class DtoUtil {
         return amdd;
     }
 
+    public static String registryAuthPropertyToApp(String propertyName) {
+        return propertyName.replace("registry.auth.", "app.authn.");
+    }
+
+    public static String appAuthPropertyToRegistry(String propertyName) {
+        return propertyName.replace("app.authn.", "registry.auth.");
+    }
+
 }

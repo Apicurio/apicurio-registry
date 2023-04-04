@@ -79,14 +79,14 @@ public class generateAllConfigPartial {
         }
 
         public String toMDLine() {
-            String af = availableSince == null ?  " " :  " `" + availableSince + "` ";
-            return "| `" + name +  "` | `" + category + "` | `" + type + "` | `" + defaultValue + "` |" + af + "| " + description + " |";
+            String af = availableSince == null ? " " : " `" + availableSince + "` ";
+            return "| `" + name + "` | `" + category + "` | `" + type + "` | `" + defaultValue + "` |" + af + "| " + description + " |";
         }
 
         public String toAdoc() {
-            String df = defaultValue == null || defaultValue.trim().isEmpty() ?  "" :  "`" + defaultValue + "`";
-            String af = availableSince == null || availableSince.trim().isEmpty() ?  "" :  "`" + availableSince + "`";
-            return  "|`" + name +  "`\n" +
+            String df = defaultValue == null || defaultValue.trim().isEmpty() ? "" : "`" + defaultValue + "`";
+            String af = availableSince == null || availableSince.trim().isEmpty() ? "" : "`" + availableSince + "`";
+            return "|`" + name + "`\n" +
                     "|`" + type + "`\n" +
                     "|" + df + "\n" +
                     "|" + af + "\n" +
@@ -120,7 +120,7 @@ public class generateAllConfigPartial {
         }
     }
 
-    public static Map<String, Option> extractConfigurations(String jarFile) {
+    public static Map<String, Option> extractConfigurations(String jarFile, Map<String, Option> allConfiguration) {
         Main.main(new String[]{jarFile});
 
         // Jandex dance
@@ -144,26 +144,28 @@ public class generateAllConfigPartial {
             }
         }
 
-        Map<String, Option> allConfiguration = new HashMap();
-
         DotName configProperty = DotName.createSimple("org.eclipse.microprofile.config.inject.ConfigProperty");
         List<AnnotationInstance> configAnnotations = index.getAnnotations(configProperty);
 
         for (AnnotationInstance annotation : configAnnotations) {
+            var configName = annotation.value("name").value().toString();
+            if (allConfiguration.containsKey(configName)) {
+                continue;
+            }
             switch (annotation.target().kind()) {
                 case FIELD:
-                    var configName = annotation.value("name").value().toString();
+                    configName = configName.replace("app.authn.", "registry.auth.");
                     var defaultValue = Optional.ofNullable(annotation.value("defaultValue")).map(v -> v.value().toString()).orElse("");
                     var type = annotation.target().asField().type();
 
                     // Extract more infos if available:
                     var info = annotation
-                        .target()
-                        .asField()
-                        .annotations()
-                        .stream()
-                        .filter(a -> a.name().toString().equals("io.apicurio.common.apps.config.Info"))
-                        .findFirst();
+                            .target()
+                            .asField()
+                            .annotations()
+                            .stream()
+                            .filter(a -> a.name().toString().equals("io.apicurio.common.apps.config.Info"))
+                            .findFirst();
 
                     if (!info.isPresent()) {
                         throw new IllegalArgumentException("The field: \"" + annotation.target() + "\" is annotated with @ConfigProperty but not with @io.apicurio.common.apps.config.Info");
@@ -171,7 +173,11 @@ public class generateAllConfigPartial {
 
                     var category = Optional.ofNullable(info.get().value("category")).map(v -> v.value().toString()).orElse("");
                     var description = Optional.ofNullable(info.get().value("description")).map(v -> v.value().toString()).orElse("");
-                    var availableSince = Optional.ofNullable(info.get().value("availableSince")).map(v -> v.value().toString()).orElse("");
+                    var availableSince = Optional.ofNullable(info.get().value("registryAvailableSince"))
+                            .map(v -> v.value().toString()).
+                            orElse(Optional.ofNullable(info.get().value("availableSince"))
+                                    .map(v -> v.value().toString()).
+                                    orElse(""));
 
                     allConfiguration.put(configName, new Option(
                             configName,
@@ -190,19 +196,21 @@ public class generateAllConfigPartial {
 
     public static void main(String... args) throws Exception {
 
-        if (args.length < 2) {
-            System.err.println("This script needs 2 arguments: version, baseDir");
+        if (args.length < 3) {
+            System.err.println("This script needs 3 arguments: version, baseDir, commonComponentsVersion");
             System.exit(-1);
         }
 
         String currentVersion = args[0];
         String baseDir = args[1];
+        String commonComponentsVersion = args[2];
         String templateFile = baseDir + "/modules/ROOT/partials/getting-started/ref-registry-all-configs.template";
         String destinationFile = baseDir + "/modules/ROOT/partials/getting-started/ref-registry-all-configs.adoc";
 
         // TODO: include all the relevant jars, to be determined
         // Extract configuration from Jandex
-        allConfiguration = extractConfigurations( baseDir + "/../app/target/apicurio-registry-app-" + currentVersion + ".jar");
+        extractConfigurations(baseDir + "/../app/target/lib/io.apicurio.apicurio-common-app-components-auth-" + commonComponentsVersion + ".jar", allConfiguration);
+        extractConfigurations(baseDir + "/../app/target/apicurio-registry-app-" + currentVersion + ".jar", allConfiguration);
 
         // TODO
         // How to handle dynamic RegistryProperties -> we can scan but the configuration is dynamic after it ...
@@ -211,11 +219,11 @@ public class generateAllConfigPartial {
         Properties props = new Properties();
         try {
             //load a properties file from class path, inside static method
-            props.load(new FileInputStream( baseDir + "../app/src/main/resources/application.properties"));
+            props.load(new FileInputStream(baseDir + "../app/src/main/resources/application.properties"));
         } catch (Exception e) {
             e.printStackTrace();
         }
-        for (var prop: props.entrySet()) {
+        for (var prop : props.entrySet()) {
 
             var key = prop.getKey().toString();
             var value = prop.getValue().toString();
@@ -228,7 +236,7 @@ public class generateAllConfigPartial {
                                 opt.getCategory(),
                                 opt.getDescription(),
                                 opt.getType(),
-                                value,
+                                opt.getDefaultValue(),
                                 opt.getAvailableFrom()
                         ));
             } else {
@@ -257,8 +265,10 @@ public class generateAllConfigPartial {
 
             var categories = new HashSet<String>();
             categories.addAll(allConfiguration.values().stream().map(c -> c.getCategory()).collect(Collectors.toList()));
-            
-            for (var category: categories.stream().sorted().collect(Collectors.toList())) {
+
+            ((HashSet) categories).remove("unknown");
+
+            for (var category : categories.stream().sorted().collect(Collectors.toList())) {
 
                 dest.write("== Category `" + category + "`:\n");
 
@@ -271,11 +281,11 @@ public class generateAllConfigPartial {
                 dest.write("|Available from\n");
                 dest.write("|Description\n");
 
-                for (var config: allConfiguration
-                    .values()
-                    .stream()
-                    .filter(c -> c.getCategory().equals(category))
-                    .sorted((o1, o2) -> o1.getName().compareTo(o2.getName())).collect(Collectors.toList())) {
+                for (var config : allConfiguration
+                        .values()
+                        .stream()
+                        .filter(c -> c.getCategory().equals(category))
+                        .sorted((o1, o2) -> o1.getName().compareTo(o2.getName())).collect(Collectors.toList())) {
                     dest.write(config.toAdoc());
                 }
 

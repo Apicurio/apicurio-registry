@@ -25,6 +25,8 @@ import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_RULE;
 import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_RULE_TYPE;
 import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_UPDATE_ROLE;
 import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_NAME;
+import static io.apicurio.registry.util.DtoUtil.registryAuthPropertyToApp;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -515,6 +517,7 @@ public class AdminResourceImpl implements AdminResource {
      * @return the dynamic config property definition
      */
     private DynamicConfigPropertyDef resolveConfigProperty(String propertyName) {
+        propertyName = registryAuthPropertyToApp(propertyName);
         DynamicConfigPropertyDef property = dynamicPropertyIndex.getProperty(propertyName);
         if (property == null) {
             throw new ConfigPropertyNotFoundException(propertyName);

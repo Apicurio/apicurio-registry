@@ -94,6 +94,7 @@ import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 import io.apicurio.registry.util.DataImporter;
+import io.apicurio.registry.util.DtoUtil;
 import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.StringUtil;
 import io.apicurio.registry.utils.impexp.ArtifactRuleEntity;
@@ -2281,10 +2282,11 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         log.debug("Selecting a single config property: {}", propertyName);
         try {
             return this.handles.withHandle( handle -> {
+                final String normalizedPropertyName = DtoUtil.appAuthPropertyToRegistry(propertyName);
                 String sql = sqlStatements.selectConfigPropertyByName();
                 Optional<DynamicConfigPropertyDto> res = handle.createQuery(sql)
                         .bind(0, tenantContext.tenantId())
-                        .bind(1, propertyName)
+                        .bind(1, normalizedPropertyName)
                         .map(DynamicConfigPropertyDtoMapper.instance)
                         .findOne();
                 return res.orElse(null);

@@ -36,12 +36,14 @@ public class DefaultHeadersHandlerConfig extends BaseKafkaSerDeConfig {
         ConfigDef configDef = new ConfigDef()
                 .define(HEADER_KEY_GLOBAL_ID_OVERRIDE_NAME, Type.STRING, HEADER_KEY_GLOBAL_ID, Importance.HIGH, "TODO docs")
                 .define(HEADER_KEY_CONTENT_ID_OVERRIDE_NAME, Type.STRING, HEADER_KEY_CONTENT_ID, Importance.HIGH, "TODO docs")
+                .define(HEADER_KEY_CONTENT_HASH_OVERRIDE_NAME, Type.STRING, HEADER_KEY_CONTENT_HASH, Importance.HIGH, "TODO docs")
                 .define(HEADER_KEY_GROUP_ID_OVERRIDE_NAME, Type.STRING, HEADER_KEY_GROUP_ID, Importance.HIGH, "TODO docs")
                 .define(HEADER_KEY_ARTIFACT_ID_OVERRIDE_NAME, Type.STRING, HEADER_KEY_ARTIFACT_ID, Importance.HIGH, "TODO docs")
                 .define(HEADER_KEY_VERSION_OVERRIDE_NAME, Type.STRING, HEADER_KEY_VERSION, Importance.HIGH, "TODO docs")
 
                 .define(HEADER_VALUE_GLOBAL_ID_OVERRIDE_NAME, Type.STRING, HEADER_VALUE_GLOBAL_ID, Importance.HIGH, "TODO docs")
                 .define(HEADER_VALUE_CONTENT_ID_OVERRIDE_NAME, Type.STRING, HEADER_VALUE_CONTENT_ID, Importance.HIGH, "TODO docs")
+                .define(HEADER_VALUE_CONTENT_HASH_OVERRIDE_NAME, Type.STRING, HEADER_VALUE_CONTENT_HASH, Importance.HIGH, "TODO docs")
                 .define(HEADER_VALUE_GROUP_ID_OVERRIDE_NAME, Type.STRING, HEADER_VALUE_GROUP_ID, Importance.HIGH, "TODO docs")
                 .define(HEADER_VALUE_ARTIFACT_ID_OVERRIDE_NAME, Type.STRING, HEADER_VALUE_ARTIFACT_ID, Importance.HIGH, "TODO docs")
                 .define(HEADER_VALUE_VERSION_OVERRIDE_NAME, Type.STRING, HEADER_VALUE_VERSION, Importance.HIGH, "TODO docs");
@@ -59,6 +61,10 @@ public class DefaultHeadersHandlerConfig extends BaseKafkaSerDeConfig {
 
     public String getKeyContentIdHeader() {
         return this.getString(HEADER_KEY_CONTENT_ID_OVERRIDE_NAME);
+    }
+
+    public String getKeyContentHashHeader() {
+        return this.getString(HEADER_KEY_CONTENT_HASH_OVERRIDE_NAME);
     }
 
     public String getKeyGroupIdHeader() {
@@ -81,6 +87,10 @@ public class DefaultHeadersHandlerConfig extends BaseKafkaSerDeConfig {
 
     public String getValueContentIdHeader() {
         return this.getString(HEADER_VALUE_CONTENT_ID_OVERRIDE_NAME);
+    }
+
+    public String getValueContentHashHeader() {
+        return this.getString(HEADER_VALUE_CONTENT_HASH_OVERRIDE_NAME);
     }
 
     public String getValueGroupIdHeader() {

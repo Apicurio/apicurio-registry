@@ -32,6 +32,7 @@ public class SchemaLookupResult<T> {
 
     private long globalId;
     private long contentId;
+    private String contentHash;
     private String groupId;
     private String artifactId;
     private String version;
@@ -69,6 +70,13 @@ public class SchemaLookupResult<T> {
     }
 
     /**
+     * @return the contentHash
+     */
+    public String getContentHash() {
+        return contentHash;
+    }
+
+    /**
      * @return the groupId
      */
     public String getGroupId() {
@@ -93,6 +101,7 @@ public class SchemaLookupResult<T> {
         return ArtifactReference.builder()
                 .globalId(this.getGlobalId())
                 .contentId(this.getContentId())
+                .contentHash(this.getContentHash())
                 .groupId(this.getGroupId())
                 .artifactId(this.getArtifactId())
                 .version(this.getVersion())
@@ -111,6 +120,7 @@ public class SchemaLookupResult<T> {
     public io.apicurio.registry.resolver.SchemaLookupResult toCompat() {
         return io.apicurio.registry.resolver.SchemaLookupResult.builder()
             .contentId(contentId)
+            .contentHash(contentHash)
             .globalId(globalId)
             .groupId(groupId)
             .artifactId(artifactId)
@@ -148,6 +158,11 @@ public class SchemaLookupResult<T> {
 
         public SchemaLookupResultBuilder<T> contentId(long contentId) {
             this.result.contentId = contentId;
+            return SchemaLookupResultBuilder.this;
+        }
+
+        public SchemaLookupResultBuilder<T> contentHash(String contentHash) {
+            this.result.contentHash = contentHash;
             return SchemaLookupResultBuilder.this;
         }
 

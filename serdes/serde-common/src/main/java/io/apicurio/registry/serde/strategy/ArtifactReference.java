@@ -75,6 +75,11 @@ public class ArtifactReference extends ArtifactReferenceImpl {
             return ArtifactReferenceBuilder.this;
         }
 
+        public ArtifactReferenceBuilder contentHash(String contentHash) {
+            reference.setContentHash(contentHash);
+            return ArtifactReferenceBuilder.this;
+        }
+
         public ArtifactReference build() {
             return reference;
         }

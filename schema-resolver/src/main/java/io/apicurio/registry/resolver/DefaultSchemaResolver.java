@@ -95,6 +95,8 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
             return Optional.of(resolveSchemaByGlobalId(artifactReference.getGlobalId()));
         } else if (artifactReference.getContentId() != null && schemaCache.containsByContentId(artifactReference.getContentId())) {
             return Optional.of(resolveSchemaByContentId(artifactReference.getContentId()));
+        } else if (artifactReference.getContentHash() != null && schemaCache.containsByContentHash(artifactReference.getContentHash())) {
+            return Optional.of(resolveSchemaByContentHash(artifactReference.getContentHash()));
         } else if (schemaCache.containsByArtifactCoordinates(ArtifactCoordinates.fromArtifactReference(artifactReference))) {
             return Optional.of(resolveSchemaByArtifactCoordinatesCached(ArtifactCoordinates.fromArtifactReference(artifactReference)));
         }
@@ -156,15 +158,18 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
         if (reference == null) {
             throw new IllegalStateException("artifact reference cannot be null");
         }
-        //TODO add here more conditions whenever we support referencing by contentHash or some other thing
+
         if (reference.getContentId() != null) {
             return resolveSchemaByContentId(reference.getContentId());
         }
-        if (reference.getGlobalId() == null) {
-            return resolveSchemaByCoordinates(reference.getGroupId(), reference.getArtifactId(), reference.getVersion());
-        } else {
+        if (reference.getContentHash() != null) {
+            return resolveSchemaByContentHash(reference.getContentHash());
+        }
+        if (reference.getGlobalId() != null) {
             return resolveSchemaByGlobalId(reference.getGlobalId());
         }
+
+        return resolveSchemaByCoordinates(reference.getGroupId(), reference.getArtifactId(), reference.getVersion());
     }
 
     private SchemaLookupResult<S> resolveSchemaByCoordinates(String groupId, String artifactId, String version) {
@@ -199,6 +204,33 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
 
             return result
                     .contentId(contentIdKey)
+                    .parsedSchema(ps)
+                    .build();
+        });
+    }
+
+    protected SchemaLookupResult<S> resolveSchemaByContentHash(String contentHash) {
+        return schemaCache.getByContentHash(contentHash, contentHashKey -> {
+
+            // it's impossible to retrieve more info about the artifact with only the contentHash, and that's ok for this case
+            InputStream rawSchema = client.getContentByHash(contentHashKey);
+
+            //Get the artifact references
+            final List<io.apicurio.registry.rest.v2.beans.ArtifactReference> artifactReferences = client.getArtifactReferencesByContentHash(contentHashKey);
+            //If there are any references for the schema being parsed, resolve them before parsing the schema
+            final Map<String, ParsedSchema<S>> resolvedReferences = resolveReferences(artifactReferences);
+
+            byte[] schema = IoUtil.toBytes(rawSchema);
+            S parsed = schemaParser.parseSchema(schema, resolvedReferences);
+
+            SchemaLookupResult.SchemaLookupResultBuilder<S> result = SchemaLookupResult.builder();
+
+            ParsedSchemaImpl<S> ps = new ParsedSchemaImpl<S>()
+                    .setParsedSchema(parsed)
+                    .setRawSchema(schema);
+
+            return result
+                    .contentHash(contentHashKey)
                     .parsedSchema(ps)
                     .build();
         });
@@ -295,6 +327,8 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
             return schemaCache.getByGlobalId(artifactReference.getGlobalId(), this::resolveSchemaByGlobalId);
         } else if (artifactReference.getContentId() != null) {
             return schemaCache.getByContentId(artifactReference.getContentId(), this::resolveSchemaByContentId);
+        } else if (artifactReference.getContentHash() != null) {
+            return schemaCache.getByContentHash(artifactReference.getContentHash(), this::resolveSchemaByContentHash);
         } else {
             return schemaCache.getByArtifactCoordinates(ArtifactCoordinates.fromArtifactReference(artifactReference), artifactReferenceKey -> resolveByCoordinates(artifactReferenceKey.getGroupId(), artifactReferenceKey.getArtifactId(), artifactReferenceKey.getVersion()));
         }

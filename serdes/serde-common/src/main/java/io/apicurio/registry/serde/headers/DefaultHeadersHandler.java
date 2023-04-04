@@ -34,6 +34,7 @@ public class DefaultHeadersHandler implements HeadersHandler {
 
     private String globalIdHeaderName;
     private String contentIdHeaderName;
+    private String contentHashHeaderName;
     private String groupIdHeaderName;
     private String artifactIdHeaderName;
     private String versionHeaderName;
@@ -48,12 +49,14 @@ public class DefaultHeadersHandler implements HeadersHandler {
         if (isKey) {
             globalIdHeaderName = config.getKeyGlobalIdHeader();
             contentIdHeaderName = config.getKeyContentIdHeader();
+            contentHashHeaderName = config.getKeyContentHashHeader();
             groupIdHeaderName = config.getKeyGroupIdHeader();
             artifactIdHeaderName = config.getKeyArtifactIdHeader();
             versionHeaderName = config.getKeyVersionHeader();
         } else {
             globalIdHeaderName = config.getValueGlobalIdHeader();
             contentIdHeaderName = config.getValueContentIdHeader();
+            contentHashHeaderName = config.getValueContentHashHeader();
             groupIdHeaderName = config.getValueGroupIdHeader();
             artifactIdHeaderName = config.getValueArtifactIdHeader();
             versionHeaderName = config.getValueVersionHeader();
@@ -81,6 +84,9 @@ public class DefaultHeadersHandler implements HeadersHandler {
             buff.putLong(reference.getGlobalId());
             headers.add(globalIdHeaderName, buff.array());
         } else {
+            if (reference.getContentHash() != null) {
+                headers.add(contentHashHeaderName, IoUtil.toBytes(reference.getContentHash()));
+            }
             headers.add(groupIdHeaderName, IoUtil.toBytes(reference.getGroupId()));
             headers.add(artifactIdHeaderName, IoUtil.toBytes(reference.getArtifactId()));
             if (reference.getVersion() != null) {
@@ -97,6 +103,7 @@ public class DefaultHeadersHandler implements HeadersHandler {
         return ArtifactReference.builder()
                 .globalId(getGlobalId(headers))
                 .contentId(getContentId(headers))
+                .contentHash(getContentHash(headers))
                 .groupId(getGroupId(headers))
                 .artifactId(getArtifactId(headers))
                 .version(getVersion(headers))
@@ -142,6 +149,15 @@ public class DefaultHeadersHandler implements HeadersHandler {
             return null;
         } else {
             return ByteBuffer.wrap(header.value()).getLong();
+        }
+    }
+
+    private String getContentHash(Headers headers) {
+        Header header = headers.lastHeader(contentHashHeaderName);
+        if (header == null) {
+            return null;
+        } else {
+            return IoUtil.toString(header.value());
         }
     }
 

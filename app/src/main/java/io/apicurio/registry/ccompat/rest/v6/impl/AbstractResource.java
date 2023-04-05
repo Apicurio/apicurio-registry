@@ -24,7 +24,7 @@ import io.apicurio.registry.ccompat.store.RegistryStorageFacade;
 
 /**
  * @author Ales Justin
- * @author Jakub Senko 'jsenko@redhat.com'
+ * @author Jakub Senko <em>m@jsenko.net</em>
  */
 public abstract class AbstractResource {
 

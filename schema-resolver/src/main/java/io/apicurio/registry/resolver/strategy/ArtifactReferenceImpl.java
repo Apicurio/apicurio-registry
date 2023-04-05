@@ -22,7 +22,7 @@ import io.apicurio.registry.resolver.SchemaResolverConfig;
  * @see ArtifactReference
  *
  * @author Fabian Martinez
- * @author Jakub Senko <jsenko@redhat.com>
+ * @author Jakub Senko <em>m@jsenko.net</em>
  */
 public class ArtifactReferenceImpl implements ArtifactReference {
 

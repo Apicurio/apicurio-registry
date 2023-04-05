@@ -36,7 +36,7 @@ import java.util.Optional;
  * Default implementation of {@link SchemaResolver}
  *
  * @author Fabian Martinez
- * @author Jakub Senko <jsenko@redhat.com>
+ * @author Jakub Senko <em>m@jsenko.net</em>
  */
 public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
 

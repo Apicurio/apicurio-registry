@@ -21,7 +21,7 @@ import io.apicurio.registry.rules.compatibility.jsonschema.wrapper.NullSchemaWra
 import org.everit.json.schema.NullSchema;
 
 /**
- * @author Jakub Senko 'jsenko@redhat.com'
+ * @author Jakub Senko <em>m@jsenko.net</em>
  */
 @SuppressWarnings("unused")
 public class NullSchemaDiffVisitor extends JsonSchemaWrapperVisitor {

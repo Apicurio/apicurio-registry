@@ -34,7 +34,7 @@ import static io.apicurio.registry.faulttolerance.FaultToleranceConstants.TIMEOU
 
 /**
  * @author Fabian Martinez
- * @author Jakub Senko <jsenko@redhat.com>
+ * @author Jakub Senko <em>m@jsenko.net</em>
  */
 @ApplicationScoped
 public class TenantMetadataService {

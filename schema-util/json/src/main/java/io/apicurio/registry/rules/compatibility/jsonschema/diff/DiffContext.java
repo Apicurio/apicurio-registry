@@ -27,7 +27,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * @author Jakub Senko 'jsenko@redhat.com'
+ * @author Jakub Senko <em>m@jsenko.net</em>
  */
 public class DiffContext {
 

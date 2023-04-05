@@ -40,7 +40,7 @@ import static io.apicurio.registry.ccompat.rest.ContentTypes.OCTET_STREAM;
  * The config resource allows you to inspect the cluster-level configuration values as well as subject overrides.
  *
  * @author Ales Justin
- * @author Jakub Senko 'jsenko@redhat.com'
+ * @author Jakub Senko <em>m@jsenko.net</em>
  */
 @Path("/apis/ccompat/v6/config")
 @Consumes({JSON, OCTET_STREAM, COMPAT_SCHEMA_REGISTRY_V1, COMPAT_SCHEMA_REGISTRY_STABLE_LATEST})

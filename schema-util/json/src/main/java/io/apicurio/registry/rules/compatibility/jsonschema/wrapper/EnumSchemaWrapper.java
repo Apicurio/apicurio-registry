@@ -24,7 +24,7 @@ import org.everit.json.schema.EnumSchema;
 import java.util.Set;
 
 /**
- * @author Jakub Senko 'jsenko@redhat.com'
+ * @author Jakub Senko <em>m@jsenko.net</em>
  */
 @ToString
 public class EnumSchemaWrapper extends EqualitySchemaWrapper implements SchemaWrapper {

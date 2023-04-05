@@ -17,7 +17,7 @@
 package io.apicurio.registry.rules.compatibility.jsonschema.diff;
 
 /**
- * @author Jakub Senko 'jsenko@redhat.com'
+ * @author Jakub Senko <em>m@jsenko.net</em>
  */
 public enum DiffType {
 

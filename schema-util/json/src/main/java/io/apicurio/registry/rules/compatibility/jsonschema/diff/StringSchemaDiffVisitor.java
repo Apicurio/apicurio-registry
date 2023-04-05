@@ -49,7 +49,7 @@ import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffUtil.
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffUtil.getExceptionally;
 
 /**
- * @author Jakub Senko 'jsenko@redhat.com'
+ * @author Jakub Senko <em>m@jsenko.net</em>
  */
 public class StringSchemaDiffVisitor extends JsonSchemaWrapperVisitor {
 

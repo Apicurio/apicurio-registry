@@ -26,7 +26,7 @@ import java.util.Map;
 import java.util.regex.Pattern;
 
 /**
- * @author Jakub Senko 'jsenko@redhat.com'
+ * @author Jakub Senko <em>m@jsenko.net</em>
  */
 @ToString
 public class StringSchemaWrapper extends EqualitySchemaWrapper implements SchemaWrapper {

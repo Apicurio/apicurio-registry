@@ -40,7 +40,7 @@ import static io.apicurio.registry.ccompat.rest.ContentTypes.OCTET_STREAM;
  * This <a href="https://docs.confluent.io/5.5.0/schema-registry/develop/api.html#subjects">API specification</a> is owned by Confluent.
  *
  * @author Ales Justin
- * @author Jakub Senko 'jsenko@redhat.com'
+ * @author Jakub Senko <em>m@jsenko.net</em>
  */
 @Path("/apis/ccompat/v6/subjects")
 @Consumes({JSON, OCTET_STREAM, COMPAT_SCHEMA_REGISTRY_V1, COMPAT_SCHEMA_REGISTRY_STABLE_LATEST})

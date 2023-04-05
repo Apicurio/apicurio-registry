@@ -36,7 +36,7 @@ import io.apicurio.registry.types.RuleType;
  *
  *
  * @author Ales Justin
- * @author Jakub Senko 'jsenko@redhat.com'
+ * @author Jakub Senko <em>m@jsenko.net</em>
  */
 public interface RegistryStorageFacade {
 

@@ -10,7 +10,7 @@ import java.util.stream.Stream;
  * Proxyable alternative to java.util.Optional.
  * Optional cannot be used with CDI because it is final.
  *
- * @author Jakub Senko <jsenko@redhat.com>
+ * @author Jakub Senko <em>m@jsenko.net</em>
  */
 public class OptionalBean<T> {
     private static final OptionalBean<?> EMPTY = new OptionalBean<>();

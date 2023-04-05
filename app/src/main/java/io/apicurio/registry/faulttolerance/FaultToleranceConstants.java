@@ -1,7 +1,7 @@
 package io.apicurio.registry.faulttolerance;
 
 /**
- * @author Jakub Senko <m@jsenko.net>
+ * @author Jakub Senko <em>m@jsenko.net</em>
  */
 public interface FaultToleranceConstants {
 

@@ -48,7 +48,7 @@ import static io.apicurio.registry.metrics.MetricsConstants.REST_REQUESTS_TAG_ST
  * about them.
  *
  * @author Miguel Soriano
- * @author Jakub Senko <jsenko@redhat.com>
+ * @author Jakub Senko <em>m@jsenko.net</em>
  */
 @Provider
 @Default

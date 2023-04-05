@@ -18,7 +18,7 @@ import static io.apicurio.registry.rules.compatibility.jsonschema.JsonUtil.MAPPE
  * When using collections, always wrap the schema inside this wrapper,
  * or any other wrapper that inherits from this one.
  *
- * @author Jakub Senko <jsenko@redhat.com>
+ * @author Jakub Senko <em>m@jsenko.net</em>
  */
 // TODO Should implement SchemaWrapper?
 public class EqualitySchemaWrapper implements SchemaWrapper {

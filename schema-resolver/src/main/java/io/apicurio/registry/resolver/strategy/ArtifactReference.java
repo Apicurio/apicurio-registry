@@ -23,7 +23,7 @@ import io.apicurio.registry.resolver.strategy.ArtifactReferenceImpl.ArtifactRefe
  * reference to an artifact in a group. Optionally it can reference to a specific version.
  *
  * @author Fabian Martinez
- * @author Jakub Senko <jsenko@redhat.com>
+ * @author Jakub Senko <em>m@jsenko.net</em>
  */
 public interface ArtifactReference {
 

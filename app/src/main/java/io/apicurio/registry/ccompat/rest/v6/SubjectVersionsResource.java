@@ -45,7 +45,7 @@ import static io.apicurio.registry.ccompat.rest.ContentTypes.OCTET_STREAM;
  *
  *
  * @author Ales Justin
- * @author Jakub Senko 'jsenko@redhat.com'
+ * @author Jakub Senko <em>m@jsenko.net</em>
  */
 @Path("/apis/ccompat/v6/subjects/{subject}/versions")
 @Consumes({JSON, OCTET_STREAM, COMPAT_SCHEMA_REGISTRY_V1, COMPAT_SCHEMA_REGISTRY_STABLE_LATEST})

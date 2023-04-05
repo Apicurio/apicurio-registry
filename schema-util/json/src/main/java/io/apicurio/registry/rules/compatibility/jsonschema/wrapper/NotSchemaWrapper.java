@@ -24,7 +24,7 @@ import org.everit.json.schema.NotSchema;
 import static io.apicurio.registry.rules.compatibility.jsonschema.wrapper.WrapUtil.wrap;
 
 /**
- * @author Jakub Senko 'jsenko@redhat.com'
+ * @author Jakub Senko <em>m@jsenko.net</em>
  */
 @ToString
 public class NotSchemaWrapper extends EqualitySchemaWrapper implements SchemaWrapper {

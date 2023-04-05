@@ -14,7 +14,7 @@ import org.eclipse.microprofile.health.Liveness;
 import org.slf4j.Logger;
 
 /**
- * @author Jakub Senko 'jsenko@redhat.com'
+ * @author Jakub Senko <em>m@jsenko.net</em>
  */
 @ApplicationScoped
 @Liveness

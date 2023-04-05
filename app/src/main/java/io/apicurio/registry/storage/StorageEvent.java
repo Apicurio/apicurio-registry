@@ -27,7 +27,7 @@ import lombok.ToString;
  * Differs from {@see io.apicurio.registry.storage.impl.sql.SqlStorageEvent} because
  * this event is fired by non-SQL implementations as well.
  *
- * @author Jakub Senko <m@jsenko.net>
+ * @author Jakub Senko <em>m@jsenko.net</em>
  */
 @Builder
 @Getter

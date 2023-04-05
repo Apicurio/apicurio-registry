@@ -36,7 +36,7 @@ import static io.apicurio.registry.rules.compatibility.jsonschema.JsonUtil.MAPPE
 import static io.apicurio.registry.rules.compatibility.jsonschema.wrapper.WrapUtil.wrap;
 
 /**
- * @author Jakub Senko 'jsenko@redhat.com'
+ * @author Jakub Senko <em>m@jsenko.net</em>
  */
 public class JsonSchemaDiffLibrary {
 

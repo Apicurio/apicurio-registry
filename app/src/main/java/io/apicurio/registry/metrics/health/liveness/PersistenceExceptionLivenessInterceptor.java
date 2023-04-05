@@ -9,7 +9,7 @@ import javax.interceptor.InvocationContext;
 /**
  * Fail liveness check if the number of exceptions thrown by artifactStore is too high.
  *
- * @author Jakub Senko 'jsenko@redhat.com'
+ * @author Jakub Senko <em>m@jsenko.net</em>
  */
 @Interceptor
 @Priority(Interceptor.Priority.APPLICATION)

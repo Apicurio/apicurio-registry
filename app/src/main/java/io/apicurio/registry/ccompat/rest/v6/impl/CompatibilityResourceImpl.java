@@ -31,7 +31,7 @@ import javax.interceptor.Interceptors;
 
 /**
  * @author Ales Justin
- * @author Jakub Senko 'jsenko@redhat.com'
+ * @author Jakub Senko <em>m@jsenko.net</em>
  */
 
 @ApplicationScoped

@@ -18,7 +18,7 @@ import org.slf4j.Logger;
 /**
  * Fail readiness check if the duration of processing a artifactStore operation is too high.
  *
- * @author Jakub Senko 'jsenko@redhat.com'
+ * @author Jakub Senko <em>m@jsenko.net</em>
  */
 @ApplicationScoped
 @Liveness

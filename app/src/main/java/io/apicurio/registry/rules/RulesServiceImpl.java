@@ -36,7 +36,7 @@ import java.util.stream.Collectors;
  * Implements the {@link RulesService} interface.
  *
  * @author Ales Justin
- * @author Jakub Senko 'jsenko@redhat.com'
+ * @author Jakub Senko <em>m@jsenko.net</em>
  */
 @ApplicationScoped
 public class RulesServiceImpl implements RulesService {

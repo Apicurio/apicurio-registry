@@ -35,7 +35,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * @author Jakub Senko <m@jsenko.net>
+ * @author Jakub Senko <em>m@jsenko.net</em>
  */
 public class CompatibilityTestExecutor {
 

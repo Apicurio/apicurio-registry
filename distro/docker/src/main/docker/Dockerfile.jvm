@@ -5,8 +5,20 @@ ENV JAVA_APP_DIR=/deployments \
     JAVA_OPTIONS="-Dquarkus.http.host=0.0.0.0 -Djava.util.logging.manager=org.jboss.logmanager.LogManager" \
     AB_ENABLED=jmx_exporter
 
+ADD "$APP_URL" /deployments
+
+USER root
+
+RUN chown -R 1001:0 /deployments \
+    && chmod -R "ug=rX" /deployments
+
+RUN chown -R 1001:0 /usr/local/s2i \
+    && chmod -R "ug=rX" /usr/local/s2i
+
+RUN chown -R 1001:0 /opt \
+    && chmod -R "ug=rwX" /opt
+
+# See https://docs.openshift.com/container-platform/4.12/openshift_images/create-images.html#use-uid_create-images
+USER 1001:0
+
 EXPOSE 8080 8778 9779
-
-USER 185
-
-ADD "$APP_URL" /deployments/

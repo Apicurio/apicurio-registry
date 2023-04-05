@@ -1,15 +1,19 @@
 FROM registry.access.redhat.com/ubi8/ubi-minimal:8.3
 
-WORKDIR /work/
+WORKDIR /work
 
-RUN chown 1001 /work \
-    && chmod "g+rwX" /work \
-    && chown 1001:root /work
+COPY target/meta /work/meta
+COPY target/apicurio-registry-*-runner /work/application
 
-COPY --chown=1001:root target/meta /work/meta
-COPY --chown=1001:root target/apicurio-registry-*-runner /work/application
+USER root
+
+RUN chown -R 1001:0 /work \
+    && chmod "ug=rx" /work/application \
+    && chmod "ug=rX" /work
+
+# See https://docs.openshift.com/container-platform/4.12/openshift_images/create-images.html#use-uid_create-images
+USER 1001:0
 
 EXPOSE 8080
-USER 1001
 
 CMD ["./application", "-Dquarkus.http.host=0.0.0.0"]

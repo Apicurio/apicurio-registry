@@ -204,7 +204,7 @@ class ArtifactsIT extends BaseIT {
 
         // Verify (expect 404)
         TestUtils.retry(() -> {
-            ArtifactMetaData actualMD = registryClient.getArtifactMetaData(artifactId);
+            VersionMetaData actualMD = registryClient.getArtifactVersionMetaData(artifactId, metaData.getVersion());
             assertEquals(ArtifactState.DISABLED, actualMD.getState());
             assertWebError(404, () -> registryClient.getLatestArtifact(artifactId), true);
         });

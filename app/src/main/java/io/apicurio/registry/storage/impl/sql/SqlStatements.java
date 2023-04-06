@@ -21,6 +21,7 @@ import java.util.List;
 /**
  * Returns SQL statements used by the JDB artifactStore implementation.  There are different
  * implementations of this interface depending on the database being used.
+ *
  * @author eric.wittmann@gmail.com
  */
 public interface SqlStatements {
@@ -32,12 +33,14 @@ public interface SqlStatements {
 
     /**
      * Returns true if the given exception represents a primary key violation.
+     *
      * @param error
      */
     public boolean isPrimaryKeyViolation(Exception error);
 
     /**
      * Returns true if the given exception represents a foreign key violation.
+     *
      * @param error
      */
     public boolean isForeignKeyViolation(Exception error);
@@ -200,12 +203,38 @@ public interface SqlStatements {
     /**
      * A statement to get a single artifact (latest version) content by artifactId.
      */
-    public String selectLatestArtifactContent();
+    String selectLatestArtifactContent();
+
+    /**
+     * A statement to get a single artifact (latest version) content by artifactId.
+     * Skips DISABLED versions.
+     */
+    String selectLatestArtifactContentSkipDisabledState();
+
+    /**
+     * A statement to get a single artifact (latest version) content by artifactId.
+     * Tries to find a non-DISABLED version with the highest global ID.
+     * This is used in case the latest version referenced by the artifact is DISABLED.
+     */
+    String selectLatestArtifactContentWithMaxGlobalIDSkipDisabledState();
 
     /**
      * A statement to get a single artifact (latest version) meta-data by artifactId.
      */
-    public String selectLatestArtifactMetaData();
+    String selectLatestArtifactMetaData();
+
+    /**
+     * A statement to get a single artifact (latest version) meta-data by artifactId.
+     * Skips DISABLED versions.
+     */
+    String selectLatestArtifactMetaDataSkipDisabledState();
+
+    /**
+     * A statement to get a single artifact (latest version) meta-data by artifactId.
+     * Tries to find a non-DISABLED version with the highest global ID.
+     * This is used in case the latest version referenced by the artifact is DISABLED.
+     */
+    String selectLatestArtifactMetaDataWithMaxGlobalIDSkipDisabledState();
 
     /**
      * A statement to select the contentId of a row in the content table by hash value.

@@ -31,7 +31,7 @@ import static java.util.Objects.requireNonNull;
 /**
  * @author Ales Justin
  * @author Jonathan Halliday
- * @author Jakub Senko 'jsenko@redhat.com'
+ * @author Jakub Senko <em>m@jsenko.net</em>
  */
 public abstract class AbstractCompatibilityChecker<D> implements CompatibilityChecker {
 

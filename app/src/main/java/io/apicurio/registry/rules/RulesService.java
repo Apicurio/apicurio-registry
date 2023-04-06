@@ -27,7 +27,7 @@ import java.util.Map;
  * any rules configured for the artifact.
  *
  * @author Ales Justin
- * @author Jakub Senko 'jsenko@redhat.com'
+ * @author Jakub Senko <em>m@jsenko.net</em>
  */
 public interface RulesService {
 

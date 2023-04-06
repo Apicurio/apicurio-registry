@@ -22,7 +22,7 @@ import lombok.ToString;
 import org.everit.json.schema.TrueSchema;
 
 /**
- * @author Jakub Senko 'jsenko@redhat.com'
+ * @author Jakub Senko <em>m@jsenko.net</em>
  */
 @ToString
 public class TrueSchemaWrapper extends EqualitySchemaWrapper implements SchemaWrapper {

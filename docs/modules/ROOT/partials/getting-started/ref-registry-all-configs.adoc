@@ -636,6 +636,11 @@ This section contains a list of the configuration options available for {registr
 |Default
 |Available from
 |Description
+|`artifacts.skip.disabled.latest`
+|`boolean`
+|`true`
+|`2.4.2-SNAPSHOT`
+|Skip artifact versions with DISABLED state when retrieving latest artifact version
 |`quarkus.datasource.db-kind`
 |`string`
 |`postgresql`

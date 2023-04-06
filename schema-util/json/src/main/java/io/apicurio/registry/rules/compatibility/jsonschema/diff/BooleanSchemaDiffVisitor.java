@@ -21,7 +21,7 @@ import io.apicurio.registry.rules.compatibility.jsonschema.wrapper.BooleanSchema
 import org.everit.json.schema.BooleanSchema;
 
 /**
- * @author Jakub Senko 'jsenko@redhat.com'
+ * @author Jakub Senko <em>m@jsenko.net</em>
  */
 @SuppressWarnings("unused")
 public class BooleanSchemaDiffVisitor extends JsonSchemaWrapperVisitor {

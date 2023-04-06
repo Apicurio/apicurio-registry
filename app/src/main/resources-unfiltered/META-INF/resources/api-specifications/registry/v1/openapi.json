@@ -322,7 +322,7 @@
                 },
                 "operationId": "updateArtifactState",
                 "summary": "Update artifact state",
-                "description": "Updates the state of the artifact.  For example, you can use this to mark the latest\nversion of an artifact as `DEPRECATED`.  The operation changes the state of the latest \nversion of the artifact.  If multiple versions exist, only the most recent is changed.\n\nThe following state changes are supported:\n\n* Enabled -> Disabled\n* Enabled -> Deprecated\n* Enabled -> Deleted\n* Disabled -> Enabled\n* Disabled -> Deleted\n* Disabled -> Deprecated\n* Deprecated -> Deleted\n\nThis operation can fail for the following reasons:\n\n* No artifact with this `artifactId` exists (HTTP error `404`)\n* Artifact cannot transition to the given state (HTTP error `400`)\n* A server error occurred (HTTP error `500`)\n"
+                "description": "Updates the state of the artifact. For example, you can use this to mark the latest version of an artifact as `DEPRECATED`. The operation changes the state of the latest version of the artifact, even if this version is `DISABLED`. If multiple versions exist, only the most recent is changed.\n\nThe following state changes are supported:\n\n* Enabled -> Disabled\n* Enabled -> Deprecated\n* Enabled -> Deleted\n* Disabled -> Enabled\n* Disabled -> Deleted\n* Disabled -> Deprecated\n* Deprecated -> Deleted\n\nThis operation can fail for the following reasons:\n\n* No artifact with this `artifactId` exists (HTTP error `404`)\n* Artifact cannot transition to the given state (HTTP error `400`)\n* A server error occurred (HTTP error `500`)\n"
             },
             "parameters": [
                 {
@@ -373,9 +373,7 @@
                                     }
                                 }
                             },
-                            "application/graphql": {
-
-                            }
+                            "application/graphql": {}
                         },
                         "description": "The content of the artifact version."
                     },
@@ -1030,9 +1028,7 @@
                                     }
                                 }
                             },
-                            "application/graphql": {
-
-                            }
+                            "application/graphql": {}
                         },
                         "description": "The most recent version of the artifact."
                     },
@@ -1045,7 +1041,7 @@
                 },
                 "operationId": "getLatestArtifact",
                 "summary": "Get latest artifact",
-                "description": "Returns the latest version of the artifact in its raw form.  The `Content-Type` of the\nresponse depends on the artifact type.  In most cases, this is `application/json`, but \nfor some types it may be different (for example, `PROTOBUF`).\n\nThis operation may fail for one of the following reasons:\n\n* No artifact with this `artifactId` exists (HTTP error `404`)\n* A server error occurred (HTTP error `500`)\n"
+                "description": "Returns the latest version of the artifact in its raw form.  The `Content-Type` of the response depends on the artifact type.  In most cases, this is `application/json`, but for some types it may be different (for example, `PROTOBUF`). If the latest version of the artifact is marked as `DISABLED`, the next available non-disabled version will be used.\n\nThis operation may fail for one of the following reasons:\n\n* No artifact with this `artifactId` exists or all versions are `DISABLED` (HTTP error `404`)\n* A server error occurred (HTTP error `500`)\n"
             },
             "put": {
                 "requestBody": {
@@ -1221,7 +1217,7 @@
                 },
                 "operationId": "getArtifactMetaData",
                 "summary": "Get artifact metadata",
-                "description": "Gets the metadata for an artifact in the registry.  The returned metadata includes\nboth generated (read-only) and editable metadata (such as name and description).\n\nThis operation can fail for the following reasons:\n\n* No artifact with this `artifactId` exists (HTTP error `404`)\n* A server error occurred (HTTP error `500`)"
+                "description": "Gets the metadata for an artifact in the registry, based on the latest version. If the latest version of the artifact is marked as `DISABLED`, the next available non-disabled version will be used. The returned metadata includes both generated (read-only) and editable metadata (such as name and description).\n\nThis operation can fail for the following reasons:\n\n* No artifact with this `artifactId` exists or all versions are `DISABLED` (HTTP error `404`)\n* A server error occurred (HTTP error `500`)"
             },
             "put": {
                 "requestBody": {
@@ -1530,9 +1526,7 @@
                 "requestBody": {
                     "description": "The content of the artifact being tested. This is often, but not always, JSON data\nrepresenting one of the supported artifact types:\n\n* Avro (`AVRO`)\n* Protobuf (`PROTOBUF`)\n* Protobuf File Descriptor (`PROTOBUF_FD`)\n* JSON Schema (`JSON`)\n* Kafka Connect (`KCONNECT`)\n* OpenAPI (`OPENAPI`)\n* AsyncAPI (`ASYNCAPI`)\n* GraphQL (`GRAPHQL`)\n* Web Services Description Language (`WSDL`)\n* XML Schema (`XSD`)\n",
                     "content": {
-                        "*/*": {
-
-                        }
+                        "*/*": {}
                     },
                     "required": true
                 },

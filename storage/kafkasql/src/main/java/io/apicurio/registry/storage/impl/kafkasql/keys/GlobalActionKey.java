@@ -23,7 +23,7 @@ import io.quarkus.runtime.annotations.RegisterForReflection;
  * Key that carries no additional information (tenantId excepted).
  * Does not apply to a specific resource, but to the entire node.
  *
- * @author Jakub Senko <jsenko@redhat.com>
+ * @author Jakub Senko <em>m@jsenko.net</em>
  */
 @RegisterForReflection
 public class GlobalActionKey extends AbstractMessageKey {

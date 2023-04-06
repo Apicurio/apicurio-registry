@@ -46,7 +46,7 @@ import java.util.Optional;
  * Base implementation of {@link SchemaResolver}
  *
  * @author Fabian Martinez
- * @author Jakub Senko <jsenko@redhat.com>
+ * @author Jakub Senko <em>m@jsenko.net</em>
  */
 @Deprecated
 public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, T> {

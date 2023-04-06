@@ -39,7 +39,7 @@ import static io.apicurio.registry.ccompat.rest.ContentTypes.OCTET_STREAM;
  * The compatibility resource allows the user to test schemas for compatibility against specific versions of a subject’s schema.
  *
  * @author Ales Justin
- * @author Jakub Senko 'jsenko@redhat.com'
+ * @author Jakub Senko <em>m@jsenko.net</em>
  */
 @Path("/apis/ccompat/v6/compatibility")
 @Consumes({JSON, OCTET_STREAM, COMPAT_SCHEMA_REGISTRY_V1, COMPAT_SCHEMA_REGISTRY_STABLE_LATEST})

@@ -16,7 +16,7 @@ import org.slf4j.Logger;
 /**
  * Fail liveness check if the number of exceptions thrown by artifactStore is too high.
  *
- * @author Jakub Senko 'jsenko@redhat.com'
+ * @author Jakub Senko <em>m@jsenko.net</em>
  */
 @ApplicationScoped
 @Liveness

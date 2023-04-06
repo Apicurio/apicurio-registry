@@ -30,7 +30,7 @@ import static io.quarkus.scheduler.Scheduled.ConcurrentExecution.SKIP;
 /**
  * Periodically cleanup data of tenants marked as deleted.
  *
- * @author Jakub Senko <jsenko@redhat.com>
+ * @author Jakub Senko <em>m@jsenko.net</em>
  */
 @ApplicationScoped
 public class DownloadReaper {

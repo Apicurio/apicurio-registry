@@ -29,7 +29,7 @@ import javax.interceptor.Interceptors;
  * We <b>DO NOT</b> support this endpoint. Fails with 404.
  *
  * @author Ales Justin
- * @author Jakub Senko 'jsenko@redhat.com'
+ * @author Jakub Senko <em>m@jsenko.net</em>
  */
 @Interceptors({ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class})
 @Logged

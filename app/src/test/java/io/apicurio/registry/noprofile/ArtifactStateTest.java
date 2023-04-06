@@ -37,6 +37,7 @@ import java.util.function.Function;
 
 import static io.apicurio.registry.utils.tests.TestUtils.assertClientError;
 import static io.apicurio.registry.utils.tests.TestUtils.retry;
+import static io.restassured.RestAssured.given;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
@@ -84,28 +85,29 @@ public class ArtifactStateTest extends AbstractResourceTestBase {
         Assertions.assertEquals("3", tvmd.getVersion());
         Assertions.assertEquals(ArtifactState.DISABLED, tvmd.getState());
 
+        // Latest artifact version (3) is disabled, this will return a previous version
         ArtifactMetaData tamd = clientV2.getArtifactMetaData(groupId, artifactId);
-        Assertions.assertEquals("3", tamd.getVersion());
-        Assertions.assertEquals(ArtifactState.DISABLED, tamd.getState());
+        Assertions.assertEquals("2", tamd.getVersion());
+        Assertions.assertEquals(ArtifactState.ENABLED, tamd.getState());
         Assertions.assertNull(tamd.getDescription());
 
         EditableMetaData emd = new EditableMetaData();
         String description = "Testing artifact state";
         emd.setDescription(description);
 
-        // cannot get a disabled artifact
-        Function<Exception, Integer> errorCodeExtractor = (e) -> {return ((RestClientException) e).getError().getErrorCode();};
-        assertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, () -> clientV2.getLatestArtifact(groupId, artifactId), errorCodeExtractor);
+        // cannot get a disabled artifact version
+        Function<Exception, Integer> errorCodeExtractor = (e) -> {
+            return ((RestClientException) e).getError().getErrorCode();
+        };
         assertClientError(VersionNotFoundException.class.getSimpleName(), 404, () -> clientV2.getArtifactVersion(groupId, artifactId, "3"), errorCodeExtractor);
 
-        // can update and get metadata for a disabled artifact
+        // can update and get metadata for a disabled artifact, but must specify version
         clientV2.updateArtifactVersionMetaData(groupId, artifactId, "3", emd);
-        clientV2.updateArtifactMetaData(groupId, artifactId, emd);
 
         retry(() -> {
-            ArtifactMetaData innerAmd = clientV2.getArtifactMetaData(groupId, artifactId);
-            Assertions.assertEquals("3", innerAmd.getVersion());
-            Assertions.assertEquals(description, innerAmd.getDescription());
+            VersionMetaData innerAvmd = clientV2.getArtifactVersionMetaData(groupId, artifactId, "3");
+            Assertions.assertEquals("3", innerAvmd.getVersion());
+            Assertions.assertEquals(description, innerAvmd.getDescription());
             return null;
         });
 
@@ -173,25 +175,40 @@ public class ArtifactStateTest extends AbstractResourceTestBase {
         UpdateState state = new UpdateState();
         state.setState(ArtifactState.DISABLED);
         clientV2.updateArtifactState(groupId, artifactId, state);
-        this.waitForArtifactState(groupId, artifactId, ArtifactState.DISABLED);
+        this.waitForVersionState(groupId, artifactId, md.getVersion(), ArtifactState.DISABLED);
+        retry(() -> {
+            given()
+                    .when()
+                    .contentType(CT_JSON)
+                    .pathParam("groupId", groupId)
+                    .pathParam("artifactId", artifactId)
+                    .get("/registry/v2/groups/{groupId}/artifacts/{artifactId}/meta")
+                    .then()
+                    .statusCode(404);
+        });
 
         retry(() -> {
-            // Get the meta-data again - should be DISABLED
-            ArtifactMetaData actualMD = clientV2.getArtifactMetaData(groupId, artifactId);
-            assertEquals(md.getGlobalId(), actualMD.getGlobalId());
-            Assertions.assertEquals(ArtifactState.DISABLED, actualMD.getState());
+            // Get the latest meta-data again - should not be accessible because it's DISABLED
+            // and there is only a single version.
+            try {
+                ArtifactMetaData actualMD = clientV2.getArtifactMetaData(groupId, artifactId);
+                Assertions.fail("ArtifactNotFoundException expected");
+            } catch (ArtifactNotFoundException ex) {
+                // OK
+            }
 
-            // Get the version meta-data - should also be disabled
+            // Get the specific version meta-data - should be accessible even though it's DISABLED.
             VersionMetaData vmd = clientV2.getArtifactVersionMetaData(groupId, artifactId, String.valueOf(md.getVersion()));
             Assertions.assertEquals(ArtifactState.DISABLED, vmd.getState());
         });
 
         // Now re-enable the artifact
         state.setState(ArtifactState.ENABLED);
-        clientV2.updateArtifactState(groupId, artifactId, state);
-        this.waitForArtifactState(groupId, artifactId, ArtifactState.ENABLED);
+        clientV2.updateArtifactVersionState(groupId, artifactId, md.getVersion(), state);
+        this.waitForVersionState(groupId, artifactId, md.getVersion(), ArtifactState.ENABLED);
 
         // Get the meta-data
+        // Should be accessible now
         ArtifactMetaData amd = clientV2.getArtifactMetaData(groupId, artifactId);
         Assertions.assertEquals(ArtifactState.ENABLED, amd.getState());
         VersionMetaData vmd = clientV2.getArtifactVersionMetaData(groupId, artifactId, String.valueOf(md.getVersion()));
@@ -221,7 +238,7 @@ public class ArtifactStateTest extends AbstractResourceTestBase {
         UpdateState state = new UpdateState();
         state.setState(ArtifactState.DEPRECATED);
         clientV2.updateArtifactState(groupId, artifactId, state);
-        this.waitForArtifactState(groupId, artifactId, ArtifactState.DEPRECATED);
+        this.waitForVersionState(groupId, artifactId, md.getVersion(), ArtifactState.DEPRECATED);
 
         retry(() -> {
             // Get the meta-data again - should be DEPRECATED
@@ -233,15 +250,29 @@ public class ArtifactStateTest extends AbstractResourceTestBase {
         // Set to disabled
         state.setState(ArtifactState.DISABLED);
         clientV2.updateArtifactState(groupId, artifactId, state);
-        this.waitForArtifactState(groupId, artifactId, ArtifactState.DISABLED);
+        this.waitForVersionState(groupId, artifactId, md.getVersion(), ArtifactState.DISABLED);
+        retry(() -> {
+            given()
+                    .when()
+                    .contentType(CT_JSON)
+                    .pathParam("groupId", groupId)
+                    .pathParam("artifactId", artifactId)
+                    .get("/registry/v2/groups/{groupId}/artifacts/{artifactId}/meta")
+                    .then()
+                    .statusCode(404);
+        });
 
         retry(() -> {
-            // Get the meta-data again - should be DISABLED
-            ArtifactMetaData actualMD = clientV2.getArtifactMetaData(groupId, artifactId);
-            assertEquals(md.getGlobalId(), actualMD.getGlobalId());
-            Assertions.assertEquals(ArtifactState.DISABLED, actualMD.getState());
+            // Get the latest meta-data again - should not be accessible because it's DISABLED
+            // and there is only a single version.
+            try {
+                ArtifactMetaData actualMD = clientV2.getArtifactMetaData(groupId, artifactId);
+                Assertions.fail("ArtifactNotFoundException expected");
+            } catch (ArtifactNotFoundException ex) {
+                // OK
+            }
 
-            // Get the version meta-data - should also be disabled
+            // Get the specific version meta-data - should be accessible even though it's DISABLED.
             VersionMetaData vmd = clientV2.getArtifactVersionMetaData(groupId, artifactId, String.valueOf(md.getVersion()));
             Assertions.assertEquals(ArtifactState.DISABLED, vmd.getState());
         });

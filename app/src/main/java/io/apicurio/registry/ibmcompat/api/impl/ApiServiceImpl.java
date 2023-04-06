@@ -16,27 +16,9 @@
  */
 package io.apicurio.registry.ibmcompat.api.impl;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeSet;
-import java.util.stream.Collectors;
-
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
-import javax.ws.rs.BadRequestException;
-import javax.ws.rs.container.AsyncResponse;
-import javax.ws.rs.core.Response;
-
-import org.jetbrains.annotations.Nullable;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
+import io.apicurio.common.apps.logging.Logged;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.ibmcompat.api.ApiService;
 import io.apicurio.registry.ibmcompat.model.EnabledModification;
@@ -50,7 +32,6 @@ import io.apicurio.registry.ibmcompat.model.SchemaState;
 import io.apicurio.registry.ibmcompat.model.SchemaSummary;
 import io.apicurio.registry.ibmcompat.model.SchemaVersion;
 import io.apicurio.registry.ibmcompat.model.StateModification;
-import io.apicurio.common.apps.logging.Logged;
 import io.apicurio.registry.rules.RuleApplicationType;
 import io.apicurio.registry.rules.RulesService;
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
@@ -66,6 +47,24 @@ import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.util.ArtifactIdGenerator;
 import io.apicurio.registry.util.VersionUtil;
+import org.jetbrains.annotations.Nullable;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.stream.Collectors;
+import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
+import javax.ws.rs.BadRequestException;
+import javax.ws.rs.container.AsyncResponse;
+import javax.ws.rs.core.Response;
+
+import static io.apicurio.registry.storage.RegistryStorage.ArtifactRetrievalBehavior.DEFAULT;
 
 /**
  * @author Ales Justin
@@ -97,7 +96,7 @@ public class ApiServiceImpl implements ApiService {
     }
 
     private SchemaVersion getLatestSchemaVersion(String schemaid) {
-        return getSchemaVersionFromStorage(schemaid, storage.getArtifact(null, schemaid).getVersion());
+        return getSchemaVersionFromStorage(schemaid, storage.getArtifact(null, schemaid, DEFAULT).getVersion());
     }
 
     private SchemaVersion getSchemaVersionFromStorage(String schemaid, String versionid) {
@@ -135,7 +134,7 @@ public class ApiServiceImpl implements ApiService {
         List<ArtifactState> versionStates = storage.getArtifactVersions(null, schemaid).stream()
             .map(version -> storage.getArtifactVersionMetaData(null, schemaid, version).getState())
             .collect(Collectors.toList());
-        Map<String, String> properties = storage.getArtifactMetaData(null, schemaid).getProperties();
+        Map<String, String> properties = storage.getArtifactMetaData(null, schemaid, DEFAULT).getProperties();
 
         schemaSummary.setId(schemaid);
 
@@ -400,7 +399,7 @@ public class ApiServiceImpl implements ApiService {
     }
 
     private void updateStateCommentInArtifactMetadata(String schemaid, String schemaStateComment) {
-        ArtifactMetaDataDto amdd = storage.getArtifactMetaData(null, schemaid);
+        ArtifactMetaDataDto amdd = storage.getArtifactMetaData(null, schemaid, DEFAULT);
         Map<String, String> properties = amdd.getProperties();
         if(properties == null) {
             properties = new HashMap<>();

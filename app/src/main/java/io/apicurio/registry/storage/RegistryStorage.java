@@ -181,6 +181,11 @@ public interface RegistryStorage extends DynamicConfigStorage {
     StoredArtifactDto getArtifact(String groupId, String artifactId) throws ArtifactNotFoundException, RegistryStorageException;
 
     /**
+     * Gets the most recent version of the value of the artifact with the given group and ID.
+     */
+    StoredArtifactDto getArtifact(String groupId, String artifactId, ArtifactRetrievalBehavior behavior) throws ArtifactNotFoundException, RegistryStorageException;
+
+    /**
      * Gets some artifact content by the unique contentId.  This method of getting content
      * from storage does not allow extra meta-data to be returned, because the contentId only
      * points to a piece of content/data - it is divorced from any artifact version.
@@ -277,6 +282,9 @@ public interface RegistryStorage extends DynamicConfigStorage {
     ArtifactSearchResultsDto searchArtifacts(Set<SearchFilter> filters, OrderBy orderBy, OrderDirection orderDirection,
                                              int offset, int limit);
 
+    ArtifactMetaDataDto getArtifactMetaData(String groupId, String artifactId)
+            throws ArtifactNotFoundException, RegistryStorageException;
+
     /**
      * Gets the stored meta-data for an artifact by group and ID.  This will include client-editable meta-data such as
      * name and description, but also generated meta-data such as "modifedOn" and "globalId".
@@ -286,12 +294,13 @@ public interface RegistryStorage extends DynamicConfigStorage {
      * @throws ArtifactNotFoundException
      * @throws RegistryStorageException
      */
-    ArtifactMetaDataDto getArtifactMetaData(String groupId, String artifactId) throws ArtifactNotFoundException, RegistryStorageException;
+    ArtifactMetaDataDto getArtifactMetaData(String groupId, String artifactId, ArtifactRetrievalBehavior behavior)
+            throws ArtifactNotFoundException, RegistryStorageException;
 
     /**
      * Gets the metadata of the version that matches content.
      *
-     * @param groupId    (optional)
+     * @param groupId            (optional)
      * @param artifactId
      * @param canonical
      * @param content
@@ -819,4 +828,12 @@ public interface RegistryStorage extends DynamicConfigStorage {
      * @param limit          the result size limit
      */
     GroupSearchResultsDto searchGroups(Set<SearchFilter> filters, OrderBy orderBy, OrderDirection orderDirection, Integer offset, Integer limit);
+
+    enum ArtifactRetrievalBehavior {
+        DEFAULT,
+        /**
+         * Skip artifact versions with DISABLED state
+         */
+        SKIP_DISABLED_LATEST
+    }
 }

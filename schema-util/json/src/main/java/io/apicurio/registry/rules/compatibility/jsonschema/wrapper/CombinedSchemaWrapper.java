@@ -25,7 +25,7 @@ import org.everit.json.schema.CombinedSchema.ValidationCriterion;
 import java.util.Collection;
 
 /**
- * @author Jakub Senko 'jsenko@redhat.com'
+ * @author Jakub Senko <em>m@jsenko.net</em>
  */
 @ToString
 public class CombinedSchemaWrapper extends EqualitySchemaWrapper implements SchemaWrapper {

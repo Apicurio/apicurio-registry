@@ -26,7 +26,7 @@ import java.util.Set;
 /**
  * @author Ales Justin
  * @author Jonathan Halliday
- * @author Jakub Senko <m@jsenko.net>
+ * @author Jakub Senko <em>m@jsenko.net</em>
  */
 public class JsonSchemaCompatibilityChecker extends AbstractCompatibilityChecker<Difference> {
 

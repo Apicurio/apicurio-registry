@@ -48,7 +48,7 @@ import static io.apicurio.registry.rules.compatibility.jsonschema.wrapper.WrapUt
 import static java.util.Comparator.comparingInt;
 
 /**
- * @author Jakub Senko 'jsenko@redhat.com'
+ * @author Jakub Senko <em>m@jsenko.net</em>
  */
 public class CombinedSchemaDiffVisitor extends JsonSchemaWrapperVisitor {
 

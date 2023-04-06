@@ -17,7 +17,7 @@
 package io.apicurio.registry.storage;
 
 /**
- * @author Jakub Senko <m@jsenko.net>
+ * @author Jakub Senko <em>m@jsenko.net</em>
  */
 public enum StorageEventType {
 

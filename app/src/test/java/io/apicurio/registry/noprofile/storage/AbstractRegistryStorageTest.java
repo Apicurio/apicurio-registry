@@ -17,8 +17,6 @@
 package io.apicurio.registry.noprofile.storage;
 
 import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
-import io.apicurio.tenantmanager.api.datamodel.ApicurioTenant;
-import io.apicurio.tenantmanager.api.datamodel.TenantStatusValue;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.mt.MockTenantMetadataService;
@@ -45,13 +43,14 @@ import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.impexp.EntityType;
 import io.apicurio.registry.utils.tests.TestUtils;
+import io.apicurio.tenantmanager.api.datamodel.ApicurioTenant;
+import io.apicurio.tenantmanager.api.datamodel.TenantStatusValue;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 
-import javax.inject.Inject;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -60,6 +59,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
+import javax.inject.Inject;
+
+import static io.apicurio.registry.storage.RegistryStorage.ArtifactRetrievalBehavior.DEFAULT;
 
 /**
  * @author eric.wittmann@gmail.com
@@ -678,7 +680,7 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         storage().updateArtifactState(GROUP_ID, artifactId, "2", ArtifactState.DISABLED);
         storage().deleteArtifactVersion(GROUP_ID, artifactId, "3");
 
-        ArtifactMetaDataDto artifactMetaData = storage().getArtifactMetaData(GROUP_ID, aid2);
+        ArtifactMetaDataDto artifactMetaData = storage().getArtifactMetaData(GROUP_ID, aid2, DEFAULT);
         Assertions.assertNotNull(artifactMetaData);
         Assertions.assertEquals("2", artifactMetaData.getVersion());
         Assertions.assertEquals(aid2, artifactMetaData.getId());
@@ -728,7 +730,7 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         // Delete the only artifact version left - same as deleting the whole artifact
         storage().deleteArtifactVersion(GROUP_ID, aid3, "1");
         Assertions.assertThrows(ArtifactNotFoundException.class, () -> {
-            storage().getArtifact(GROUP_ID, aid3);
+            storage().getArtifact(GROUP_ID, aid3, DEFAULT);
         });
     }
 
@@ -1028,7 +1030,7 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         ArtifactMetaDataDto artifactDto1 = storage().createArtifact(group1, artifactId1, null, ArtifactType.OPENAPI, content, null);
         storage().createArtifactRule(group1, artifactId1, RuleType.VALIDITY, RuleConfigurationDto.builder().configuration("FULL").build());
         ArtifactMetaDataDto artifactDto2 = storage().createArtifactWithMetadata(
-            group2, artifactId2, null, ArtifactType.OPENAPI, content, EditableArtifactMetaDataDto.builder().name("test").build(), null);
+                group2, artifactId2, null, ArtifactType.OPENAPI, content, EditableArtifactMetaDataDto.builder().name("test").build(), null);
         storage().createGlobalRule(RuleType.VALIDITY, RuleConfigurationDto.builder().configuration("FULL").build());
         storage().createRoleMapping(principal, role, null);
 
@@ -1045,7 +1047,7 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         // We don't need thread safety, but it's simpler to use this when effectively final counter is needed
         final AtomicInteger count = new AtomicInteger(0);
         storage().exportData(e -> {
-            if(e.getEntityType() != EntityType.Manifest) {
+            if (e.getEntityType() != EntityType.Manifest) {
                 log.debug("Counting from export: {}", e);
                 count.incrementAndGet();
             }
@@ -1357,8 +1359,9 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         Assertions.assertEquals("true", boolProp.getValue());
         Assertions.assertEquals("12345", longProp.getValue());
     }
+
     private DynamicConfigPropertyDto getProperty(List<DynamicConfigPropertyDto> properties, String propertyName) {
-        for (DynamicConfigPropertyDto prop: properties) {
+        for (DynamicConfigPropertyDto prop : properties) {
             if (prop.getName().equals(propertyName)) {
                 return prop;
             }

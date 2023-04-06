@@ -20,7 +20,7 @@ import io.apicurio.registry.rules.compatibility.jsonschema.JsonSchemaWrapperVisi
 import org.everit.json.schema.Schema;
 
 /**
- * @author Jakub Senko 'jsenko@redhat.com'
+ * @author Jakub Senko <em>m@jsenko.net</em>
  */
 public interface SchemaWrapper {
 

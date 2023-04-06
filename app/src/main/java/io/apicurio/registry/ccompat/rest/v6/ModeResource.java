@@ -38,7 +38,7 @@ import static io.apicurio.registry.ccompat.rest.ContentTypes.OCTET_STREAM;
  * We <b>DO NOT</b> support this endpoint. Fails with 404.
  *
  * @author Ales Justin
- * @author Jakub Senko 'jsenko@redhat.com'
+ * @author Jakub Senko <em>m@jsenko.net</em>
  */
 @Path("/apis/ccompat/v6/mode")
 @Consumes({JSON, OCTET_STREAM, COMPAT_SCHEMA_REGISTRY_V1, COMPAT_SCHEMA_REGISTRY_STABLE_LATEST})

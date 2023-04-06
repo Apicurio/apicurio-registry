@@ -49,7 +49,7 @@ import static org.hamcrest.CoreMatchers.anything;
 import static org.hamcrest.Matchers.equalTo;
 
 /**
- * @author Jakub Senko 'jsenko@redhat.com'
+ * @author Jakub Senko <em>m@jsenko.net</em>
  */
 @QuarkusTest
 public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {

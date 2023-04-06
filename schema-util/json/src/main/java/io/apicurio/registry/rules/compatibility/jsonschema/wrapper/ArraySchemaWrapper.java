@@ -26,7 +26,7 @@ import java.util.List;
 import static io.apicurio.registry.rules.compatibility.jsonschema.wrapper.WrapUtil.wrap;
 
 /**
- * @author Jakub Senko 'jsenko@redhat.com'
+ * @author Jakub Senko <em>m@jsenko.net</em>
  */
 @ToString
 public class ArraySchemaWrapper extends EqualitySchemaWrapper implements SchemaWrapper {

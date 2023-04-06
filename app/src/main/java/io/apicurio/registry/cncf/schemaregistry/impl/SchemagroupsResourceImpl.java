@@ -16,6 +16,7 @@
 
 package io.apicurio.registry.cncf.schemaregistry.impl;
 
+import io.apicurio.common.apps.logging.Logged;
 import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
@@ -25,7 +26,6 @@ import io.apicurio.registry.cncf.schemaregistry.SchemagroupsResource;
 import io.apicurio.registry.cncf.schemaregistry.beans.SchemaGroup;
 import io.apicurio.registry.cncf.schemaregistry.beans.SchemaId;
 import io.apicurio.registry.content.ContentHandle;
-import io.apicurio.common.apps.logging.Logged;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.rules.RuleApplicationType;
@@ -51,13 +51,6 @@ import io.apicurio.registry.util.ArtifactTypeUtil;
 import io.apicurio.registry.util.VersionUtil;
 import io.quarkus.security.identity.SecurityIdentity;
 
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
-import javax.interceptor.Interceptors;
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.BadRequestException;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.Response;
 import java.io.InputStream;
 import java.util.Collections;
 import java.util.Date;
@@ -66,8 +59,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
+import javax.interceptor.Interceptors;
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.BadRequestException;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.Response;
 
 import static io.apicurio.registry.cncf.schemaregistry.impl.CNCFApiUtil.dtoToSchemaGroup;
+import static io.apicurio.registry.storage.RegistryStorage.ArtifactRetrievalBehavior.DEFAULT;
 
 /**
  * @author Fabian Martinez
@@ -277,7 +278,7 @@ public class SchemagroupsResourceImpl implements SchemagroupsResource {
 
     private boolean artifactExists(String groupId, String schemaId) {
         try {
-            storage.getArtifactMetaData(groupId, schemaId);
+            storage.getArtifactMetaData(groupId, schemaId, DEFAULT);
             return true;
         } catch (ArtifactNotFoundException ignored) {
             return false;

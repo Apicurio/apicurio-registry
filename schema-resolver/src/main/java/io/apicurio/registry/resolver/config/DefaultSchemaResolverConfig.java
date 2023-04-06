@@ -27,7 +27,7 @@ import static java.util.Map.entry;
 
 /**
  * @author Fabian Martinez
- * @author Jakub Senko <m@jsenko.net>
+ * @author Jakub Senko <em>m@jsenko.net</em>
  */
 public class DefaultSchemaResolverConfig {
 

@@ -269,6 +269,30 @@ public abstract class CommonSqlStatements implements SqlStatements {
     }
 
     /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectLatestArtifactContentSkipDisabledState()
+     */
+    @Override
+    public String selectLatestArtifactContentSkipDisabledState() {
+        return "SELECT v.globalId, v.version, v.versionId, c.contentId, c.content, c.artifactreferences FROM artifacts a "
+                + "JOIN versions v ON a.tenantId = v.tenantId AND a.latest = v.globalId "
+                + "JOIN content c ON v.contentId = c.contentId AND v.tenantId = c.tenantId "
+                + "WHERE a.tenantId = ? AND a.groupId = ? AND a.artifactId = ? AND v.state != 'DISABLED'";
+    }
+
+    @Override
+    public String selectLatestArtifactContentWithMaxGlobalIDSkipDisabledState() {
+        var inner = "SELECT MAX(v.globalId) "
+                + "FROM versions v "
+                + "WHERE v.tenantId = ? AND v.groupId = ? AND v.artifactId = ? AND v.state != 'DISABLED'";
+
+        return "SELECT v.globalId, v.version, v.versionId, c.contentId, c.content, c.artifactreferences "
+                + "FROM artifacts a "
+                + "JOIN versions v ON a.tenantId = v.tenantId AND a.groupId = v.groupId AND a.artifactId = v.artifactId "
+                + "JOIN content c ON v.contentId = c.contentId AND v.tenantId = c.tenantId "
+                + "WHERE a.tenantId = ? AND a.groupId = ? AND a.artifactId = ? AND v.globalId IN (" + inner + ")";
+    }
+
+    /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectLatestArtifactMetaData()
      */
     @Override
@@ -277,6 +301,29 @@ public abstract class CommonSqlStatements implements SqlStatements {
                 + "FROM artifacts a "
                 + "JOIN versions v ON a.tenantId = v.tenantId AND a.latest = v.globalId "
                 + "WHERE a.tenantId = ? AND a.groupId = ? AND a.artifactId = ?";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectLatestArtifactMetaDataSkipDisabledState()
+     */
+    @Override
+    public String selectLatestArtifactMetaDataSkipDisabledState() {
+        return "SELECT a.*, v.contentId, v.globalId, v.version, v.versionId, v.state, v.name, v.description, v.labels, v.properties, v.createdBy AS modifiedBy, v.createdOn AS modifiedOn "
+                + "FROM artifacts a "
+                + "JOIN versions v ON a.tenantId = v.tenantId AND a.latest = v.globalId "
+                + "WHERE a.tenantId = ? AND a.groupId = ? AND a.artifactId = ? AND v.state != 'DISABLED'";
+    }
+
+    @Override
+    public String selectLatestArtifactMetaDataWithMaxGlobalIDSkipDisabledState() {
+        var inner = "SELECT MAX(v.globalId) "
+                + "FROM versions v "
+                + "WHERE v.tenantId = ? AND v.groupId = ? AND v.artifactId = ? AND v.state != 'DISABLED'";
+
+        return "SELECT a.*, v.contentId, v.globalId, v.version, v.versionId, v.state, v.name, v.description, v.labels, v.properties, v.createdBy AS modifiedBy, v.createdOn AS modifiedOn "
+                + "FROM artifacts a "
+                + "JOIN versions v ON a.tenantId = v.tenantId AND a.groupId = v.groupId AND a.artifactId = v.artifactId "
+                + "WHERE a.tenantId = ? AND a.groupId = ? AND a.artifactId = ? AND v.globalId IN (" + inner + ")";
     }
 
     /**

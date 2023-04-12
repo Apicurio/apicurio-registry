@@ -23,10 +23,12 @@
             <groupId>io.apicurio</groupId>
             <artifactId>apicurio-registry-common</artifactId>
         </dependency>
+
         <dependency>
             <groupId>io.apicurio</groupId>
             <artifactId>apicurio-registry-utils-kafka</artifactId>
         </dependency>
+
         <dependency>
             <groupId>io.apicurio</groupId>
             <artifactId>apicurio-registry-schema-util-provider</artifactId>
@@ -37,21 +39,30 @@
             <groupId>io.apicurio</groupId>
             <artifactId>apicurio-common-app-components-core</artifactId>
         </dependency>
+
         <dependency>
             <groupId>io.apicurio</groupId>
             <artifactId>apicurio-common-app-components-logging</artifactId>
         </dependency>
+
         <dependency>
             <groupId>io.apicurio</groupId>
             <artifactId>apicurio-common-app-components-config</artifactId>
         </dependency>
+
         <dependency>
             <groupId>io.apicurio</groupId>
             <artifactId>apicurio-common-app-components-config-index</artifactId>
         </dependency>
+
         <dependency>
             <groupId>io.apicurio</groupId>
             <artifactId>apicurio-common-app-components-auth</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.apicurio</groupId>
+            <artifactId>apicurio-common-app-components-multitenancy</artifactId>
         </dependency>
 
         <!-- Tenant Manager Client -->

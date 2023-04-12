@@ -15,6 +15,7 @@
  */
 package io.apicurio.registry.mt;
 
+import io.apicurio.common.apps.multitenancy.MultitenancyProperties;
 import io.quarkus.runtime.StartupEvent;
 import org.slf4j.Logger;
 

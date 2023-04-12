@@ -22,9 +22,9 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Instance;
 import javax.inject.Inject;
 
+import io.apicurio.common.apps.multitenancy.MultitenancyProperties;
 import org.eclipse.microprofile.jwt.JsonWebToken;
 
-import io.apicurio.registry.mt.MultitenancyProperties;
 import io.apicurio.registry.mt.TenantContext;
 import io.quarkus.security.identity.SecurityIdentity;
 

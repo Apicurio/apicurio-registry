@@ -18,7 +18,7 @@ package io.apicurio.registry.rest;
 
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.apicurio.registry.mt.MultitenancyProperties;
+import io.apicurio.common.apps.multitenancy.MultitenancyProperties;
 import io.apicurio.registry.mt.TenantContext;
 import io.apicurio.registry.mt.TenantIdResolver;
 import io.apicurio.registry.services.DisabledApisMatcherService;

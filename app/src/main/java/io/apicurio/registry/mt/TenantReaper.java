@@ -17,6 +17,7 @@
 package io.apicurio.registry.mt;
 
 import io.apicurio.common.apps.config.Info;
+import io.apicurio.common.apps.multitenancy.MultitenancyProperties;
 import io.apicurio.rest.client.auth.exception.AuthException;
 import io.apicurio.tenantmanager.api.datamodel.ApicurioTenant;
 import io.apicurio.tenantmanager.api.datamodel.ApicurioTenantList;

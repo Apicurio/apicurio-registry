@@ -24,13 +24,13 @@ import javax.interceptor.Interceptor;
 import javax.interceptor.InvocationContext;
 
 import io.apicurio.common.apps.config.Info;
+import io.apicurio.common.apps.multitenancy.MultitenancyProperties;
 import io.apicurio.registry.mt.RegistryTenantContext;
 import io.apicurio.registry.mt.TenantNotAuthorizedException;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.jwt.JsonWebToken;
 import org.slf4j.Logger;
 
-import io.apicurio.registry.mt.MultitenancyProperties;
 import io.apicurio.registry.mt.TenantContext;
 import io.quarkus.security.ForbiddenException;
 import io.quarkus.security.UnauthorizedException;

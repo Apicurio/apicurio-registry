@@ -154,7 +154,10 @@ public class generateAllConfigPartial {
             }
             switch (annotation.target().kind()) {
                 case FIELD:
-                    configName = configName.replace("app.authn.", "registry.auth.");
+                    configName = configName.replace("app.authn.", "registry.auth.")
+                            .replace("app.multitenancy", "registry.multitenancy")
+                            .replace("app.enable.multitenancy", "registry.enable.multitenancy")
+                            .replace("app.tenant.manager", "registry.tenant.manager");
                     var defaultValue = Optional.ofNullable(annotation.value("defaultValue")).map(v -> v.value().toString()).orElse("");
                     var type = annotation.target().asField().type();
 
@@ -210,6 +213,7 @@ public class generateAllConfigPartial {
         // TODO: include all the relevant jars, to be determined
         // Extract configuration from Jandex
         extractConfigurations(baseDir + "/../app/target/lib/io.apicurio.apicurio-common-app-components-auth-" + commonComponentsVersion + ".jar", allConfiguration);
+        extractConfigurations(baseDir + "/../app/target/lib/io.apicurio.apicurio-common-app-components-multitenancy-" + commonComponentsVersion + ".jar", allConfiguration);
         extractConfigurations(baseDir + "/../app/target/apicurio-registry-app-" + currentVersion + ".jar", allConfiguration);
 
         // TODO

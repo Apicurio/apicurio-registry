@@ -17,7 +17,7 @@
 package io.apicurio.registry.mt.limits;
 
 import io.apicurio.common.apps.config.Info;
-import io.apicurio.registry.mt.MultitenancyProperties;
+import io.apicurio.common.apps.multitenancy.MultitenancyProperties;
 import io.apicurio.tenantmanager.api.datamodel.ApicurioTenant;
 import io.apicurio.tenantmanager.api.datamodel.ResourceType;
 import io.apicurio.tenantmanager.api.datamodel.TenantResource;

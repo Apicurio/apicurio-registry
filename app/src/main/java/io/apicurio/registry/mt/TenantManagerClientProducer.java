@@ -16,6 +16,7 @@
 
 package io.apicurio.registry.mt;
 
+import io.apicurio.common.apps.multitenancy.MultitenancyProperties;
 import io.apicurio.registry.utils.OptionalBean;
 import io.apicurio.rest.client.VertxHttpClientProvider;
 import io.apicurio.rest.client.auth.Auth;

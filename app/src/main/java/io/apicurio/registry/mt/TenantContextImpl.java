@@ -16,6 +16,7 @@
 
 package io.apicurio.registry.mt;
 
+import io.apicurio.common.apps.multitenancy.MultitenancyProperties;
 import io.apicurio.registry.mt.limits.TenantLimitsConfiguration;
 import io.apicurio.tenantmanager.api.datamodel.TenantStatusValue;
 import io.quarkus.vertx.http.runtime.CurrentVertxRequest;

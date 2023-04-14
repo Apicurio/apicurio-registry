@@ -48,7 +48,7 @@ public class ErrorHandler implements RestClientErrorHandler {
     @Override
     public ApicurioRestClientException handleErrorResponse(InputStream body, int statusCode) {
         try {
-            // NOTE: io.apicurio.registry.mt.TenantNotFoundException is also mapped to HTTP code 403 to avoid scanning attacks
+            // NOTE: io.apicurio.common.apps.multitenancy.TenantNotFoundException is also mapped to HTTP code 403 to avoid scanning attacks
             if (statusCode == UNAUTHORIZED_CODE) {
                 //authorization error
                 return new NotAuthorizedException("Authentication exception");

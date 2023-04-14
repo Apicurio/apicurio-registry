@@ -16,25 +16,23 @@
 
 package io.apicurio.registry.config;
 
-import static io.quarkus.scheduler.Scheduled.ConcurrentExecution.SKIP;
+import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
+import io.apicurio.common.apps.config.Info;
+import io.apicurio.common.apps.multitenancy.TenantContext;
+import io.apicurio.registry.storage.RegistryStorageException;
+import io.apicurio.registry.storage.decorator.RegistryStorageDecorator;
+import io.quarkus.scheduler.Scheduled;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.slf4j.Logger;
 
+import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
-
-import org.eclipse.microprofile.config.inject.ConfigProperty;
-import org.slf4j.Logger;
-
-import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
-import io.apicurio.common.apps.config.Info;
-import io.apicurio.registry.mt.TenantContext;
-import io.apicurio.registry.storage.RegistryStorageException;
-import io.apicurio.registry.storage.decorator.RegistryStorageDecorator;
-import io.quarkus.scheduler.Scheduled;
+import static io.quarkus.scheduler.Scheduled.ConcurrentExecution.SKIP;
 
 /**
  * @author eric.wittmann@gmail.com

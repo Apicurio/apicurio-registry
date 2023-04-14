@@ -18,6 +18,8 @@ package io.apicurio.registry.mt.limits;
 
 import io.apicurio.common.apps.config.Info;
 import io.apicurio.common.apps.multitenancy.MultitenancyProperties;
+import io.apicurio.common.apps.multitenancy.limits.TenantLimitsConfiguration;
+import io.apicurio.common.apps.multitenancy.limits.TenantLimitsConfigurationService;
 import io.apicurio.tenantmanager.api.datamodel.ApicurioTenant;
 import io.apicurio.tenantmanager.api.datamodel.ResourceType;
 import io.apicurio.tenantmanager.api.datamodel.TenantResource;
@@ -49,7 +51,7 @@ import static io.apicurio.tenantmanager.api.datamodel.ResourceType.MAX_VERSIONS_
  * @author Fabian Martinez
  */
 @ApplicationScoped
-public class TenantLimitsConfigurationService {
+public class RegistryTenantLimitsConfigurationService implements TenantLimitsConfigurationService {
 
     @Inject
     Logger logger;
@@ -116,7 +118,7 @@ public class TenantLimitsConfigurationService {
     MultitenancyProperties mtProperties;
 
     private boolean isConfigured = true;
-    private TenantLimitsConfiguration defaultLimitsConfiguration;
+    private RegistryTenantLimitsConfiguration defaultLimitsConfiguration;
 
     public void onStart(@Observes StartupEvent ev) {
 
@@ -150,7 +152,7 @@ public class TenantLimitsConfigurationService {
 
         }
 
-        TenantLimitsConfiguration c = new TenantLimitsConfiguration();
+        RegistryTenantLimitsConfiguration c = new RegistryTenantLimitsConfiguration();
 
         c.setMaxTotalSchemasCount(defaultMaxTotalSchemas);
         c.setMaxSchemaSizeBytes(defaultMaxSchemaSizeBytes);
@@ -172,10 +174,12 @@ public class TenantLimitsConfigurationService {
         defaultLimitsConfiguration = c;
     }
 
+    @Override
     public boolean isConfigured() {
         return this.isConfigured;
     }
 
+    @Override
     public TenantLimitsConfiguration defaultConfigurationTenant() {
         return defaultLimitsConfiguration;
     }
@@ -183,8 +187,9 @@ public class TenantLimitsConfigurationService {
     /**
      * @param tenantMetadata
      */
+    @Override
     public TenantLimitsConfiguration fromTenantMetadata(ApicurioTenant tenantMetadata) {
-        TenantLimitsConfiguration c = new TenantLimitsConfiguration();
+        RegistryTenantLimitsConfiguration c = new RegistryTenantLimitsConfiguration();
 
         if (tenantMetadata.getResources() == null || tenantMetadata.getResources().isEmpty()) {
             logger.debug("Tenant has no resources config, using default tenant limits config");

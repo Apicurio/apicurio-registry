@@ -505,7 +505,7 @@ This section contains a list of the configuration options available for {registr
 |Enable multitenancy request header type
 |`registry.multitenancy.types.request-header.name`
 |`string`
-|`X-Registry-Tenant-Id`
+|`X-Tenant-Id`
 |`2.1.0.Final`
 |Multitenancy request header type name
 |`registry.multitenancy.types.subdomain.enabled`

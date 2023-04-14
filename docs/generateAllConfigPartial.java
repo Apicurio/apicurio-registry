@@ -157,7 +157,10 @@ public class generateAllConfigPartial {
                     configName = configName.replace("app.authn.", "registry.auth.")
                             .replace("app.multitenancy", "registry.multitenancy")
                             .replace("app.enable.multitenancy", "registry.enable.multitenancy")
-                            .replace("app.tenant.manager", "registry.tenant.manager");
+                            .replace("app.tenant.manager", "registry.tenant.manager")
+                            .replace("app.tenants.", "registry.tenants.");
+
+
                     var defaultValue = Optional.ofNullable(annotation.value("defaultValue")).map(v -> v.value().toString()).orElse("");
                     var type = annotation.target().asField().type();
 

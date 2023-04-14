@@ -16,6 +16,15 @@
 
 package io.apicurio.registry.services;
 
+import io.apicurio.common.apps.config.Info;
+import io.apicurio.common.apps.multitenancy.MultitenancyProperties;
+import io.quarkus.runtime.StartupEvent;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.slf4j.Logger;
+
+import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.event.Observes;
+import javax.inject.Inject;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -23,17 +32,6 @@ import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.event.Observes;
-import javax.inject.Inject;
-
-import io.apicurio.common.apps.multitenancy.MultitenancyProperties;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
-import org.slf4j.Logger;
-
-import io.apicurio.common.apps.config.Info;
-import io.quarkus.runtime.StartupEvent;
 
 /**
  * @author Fabian Martinez

@@ -20,7 +20,7 @@ package io.apicurio.registry.storage;
 import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
 import io.apicurio.common.apps.config.DynamicConfigStorage;
 import io.apicurio.registry.content.ContentHandle;
-import io.apicurio.registry.mt.TenantContext;
+import io.apicurio.common.apps.multitenancy.TenantContext;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.ArtifactOwnerDto;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;

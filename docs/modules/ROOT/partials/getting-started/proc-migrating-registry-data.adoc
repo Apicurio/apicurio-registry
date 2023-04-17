@@ -59,6 +59,6 @@ ifdef::apicurio-registry[]
 {managing-registry-artifacts-api}
 endif::[]
 ifdef::rh-service-registry[]
-the link:{LinkServiceRegistryUser}#exporting-importing-using-rest-api[{NameServiceRegistryUser}]
+the link:{LinkServiceRegistryUser}#exporting-importing-using-rest-api[{NameServiceRegistryUser}].
 endif::[]
-* For more details on the export tool for migrating from version 1.x to 2.x, see the link:https://github.com/Apicurio/apicurio-registry/tree/2.0.x/utils/exportV1[Apicurio Registry export utility for 1.x versions]
+* For more details on the export tool for migrating from version 1.x to 2.x, see the link:https://github.com/Apicurio/apicurio-registry/tree/2.2.x/utils/exportV1[Apicurio Registry export utility for 1.x versions].

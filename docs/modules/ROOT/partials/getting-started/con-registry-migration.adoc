@@ -30,9 +30,9 @@ endif::[]
 == Refactored Java client libraries
 * The {registry} Java client classes are available in version 2.x in a different Maven module named `apicurio-registry-client`.
 
-* The Kakfa client serializer and deserializer (SerDe) classes are available in version 2.x in three different Maven modules, one for each supported data format: Apache Avro, Protobuf, and JSON Schema. You can now use only the module you want without pulling in transitive dependencies that you are not concerned with. 
+* The Kafka client serializer and deserializer (SerDes) classes are available in version 2.x in three different Maven modules, one for each supported data format: Apache Avro, Protobuf, and JSON Schema. You can now use only the module you want without pulling in transitive dependencies that you are not concerned with. 
 
 
 [role="_additional-resources"]
 .Additional resources
-* For more details on the v2 REST API, see the link:{attachmentsdir}/registry-rest-api.htm[Registry REST API documentation]
+* For more details on the v2 REST API, see the link:{attachmentsdir}/registry-rest-api.htm[Registry REST API documentation].

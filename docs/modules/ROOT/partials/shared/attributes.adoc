@@ -38,7 +38,7 @@ ifdef::service-registry-downstream[]
 :prodnamefull: {org-name} Integration
 :registry-name-full: Service Registry
 :registry: Service Registry
-:registry-version: 2.4
+:registry-version: 2.3
 :registry-v1: 1.1
 :operator-version: 1.0.0.redhat.x
 :kafka-streams: AMQ Streams
@@ -57,15 +57,15 @@ endif::[]
 
 //common
 :context: registry
-:version: 2022.Q3
+:version: 2023.Q1
 :attachmentsdir: files
 :registry-release: 2.4.1.Final
-:registry-ocp-version: 4.11
-:registry-db-version: 12
+:registry-ocp-version: 4.12
+:registry-db-version: 15
 :registry-url: \http://MY_REGISTRY_URL/ui
 
 //integration products
-:amq-version: 2.1
+:amq-version: 2.3
 :fuse-version: 7.11
 :3scale-version: 2.12
 :productpkg: red_hat_integration
@@ -96,5 +96,8 @@ include::attributes-links.adoc[]
 :managing-registry-artifacts-ui: xref:managing-registry-artifacts-ui_{context}[]
 :managing-registry-artifacts-api: xref:managing-registry-artifacts-api_{context}[]
 :managing-registry-artifacts-maven: xref:managing-registry-artifacts-maven_{context}[]
+:rest-client: xref:using-the-registry-client_{context}[] 
 :kafka-client-serdes: xref:using-kafka-client-serdes_{context}[]
+:registry-client-serdes-config: xref:configuring-kafka-client-serdes_{context}[]
 :registry-rest-api: link:{attachmentsdir}/registry-rest-api.htm[Apicurio Registry REST API documentation]
+

@@ -138,13 +138,14 @@ objects:
           - name: ENABLE_ACCESS_LOG
             value: ${ENABLE_ACCESS_LOG}
 
+          # Sentry/GlitchTip
           - name: ENABLE_SENTRY
             value: ${ENABLE_SENTRY}
           - name: SENTRY_DSN
             valueFrom:
               secretKeyRef:
-                name:  ${SENTRY_DSN_SECRET_NAME}
-                key:  sentry-dsn
+                name:  ${SENTRY_CONFIG_SECRET_NAME}
+                key:  ${SENTRY_CONFIG_SECRET_KEY_DSN}
 
           - name: DB_HOST
             valueFrom:
@@ -492,11 +493,15 @@ parameters:
   description: ConfigMap containing Envoy config file
   value: apicurio-registry-envoy-config
 
+# Sentry/GlitchTip
 - name: ENABLE_SENTRY
   value: "true"
-- name: SENTRY_DSN_SECRET_NAME
-  description: Secret name containing dsn for connecting to sentry
-  value: sentry-dsn-secret
+- name: SENTRY_CONFIG_SECRET_NAME
+  description: Name of the secret containing configuration for connecting to Sentry/GlitchTip
+  value: "sentry-dsn-secret"
+- name: SENTRY_CONFIG_SECRET_KEY_DSN
+  description: Name of the key in the secret above, containing Sentry/GlitchTip `dsn`
+  value: "sentry-dsn"
 
 - name: CORS_ALLOWED_ORIGINS
   description: List of allowed origins for CORS. The expected value is a regex to be used as a pattern.

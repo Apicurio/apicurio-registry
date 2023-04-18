@@ -136,7 +136,7 @@ public class RegistryExceptionMapperService {
         map.put(ParametersConflictException.class, HTTP_CONFLICT);
         map.put(DownloadNotFoundException.class, HTTP_NOT_FOUND);
         map.put(ConfigPropertyNotFoundException.class, HTTP_NOT_FOUND);
-        // From io.apicurio.common.apps.multitenancy.TenantMetadataService:
+        // From io.apicurio.common.apps.multitenancy.TenantManagerService:
         map.put(NotAuthorizedException.class, HTTP_FORBIDDEN);
         map.put(ForbiddenException.class, HTTP_FORBIDDEN);
         // Not using HTTP_NOT_FOUND to prevent leaking information by scanning for existing tenants

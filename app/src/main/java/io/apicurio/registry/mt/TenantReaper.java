@@ -20,7 +20,7 @@ import io.apicurio.common.apps.config.Info;
 import io.apicurio.common.apps.multitenancy.MultitenancyProperties;
 import io.apicurio.common.apps.multitenancy.TenantContext;
 import io.apicurio.common.apps.multitenancy.TenantContextLoader;
-import io.apicurio.common.apps.multitenancy.TenantMetadataService;
+import io.apicurio.common.apps.multitenancy.TenantManagerService;
 import io.apicurio.common.apps.util.OptionalBean;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.types.Current;
@@ -61,7 +61,7 @@ public class TenantReaper {
     MultitenancyProperties properties;
 
     @Inject
-    TenantMetadataService tenantService;
+    TenantManagerService tenantService;
 
     @Inject
     @Current

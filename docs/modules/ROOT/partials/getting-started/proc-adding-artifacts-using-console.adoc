@@ -8,6 +8,10 @@
 You can use the {registry} web console to upload event schema and API artifacts to {registry}. 
 This section shows simple examples of uploading {registry} artifacts and adding new artifact versions. 
 
+ifdef::rh-openshift-sr[]
+NOTE: When uploading an artifact from a URL, you must specify an HTTPS URL. HTTP URLs are not supported. 
+endif::[]
+
 .Prerequisites
 
 ifdef::apicurio-registry,rh-service-registry[]
@@ -26,16 +30,15 @@ ifdef::rh-openshift-sr[]
 endif::[]
 . On the *Artifacts* tab, click *Upload artifact*, and specify the following details:
 ** *Group & ID*: Use the default empty settings to automatically generate an artifact ID and add the artifact to the `default` artifact group. Alternatively, you can enter an optional artifact group name or ID.
-** *Type*: Use the default *Auto-Detect* setting to automatically detect the artifact type, or select the artifact type from the list, for example, *Avro Schema* or *OpenAPI*.
-+
-NOTE:  {registry} cannot automatically detect the *Kafka Connect Schema* artifact type. You must manually select this artifact type.
+** *Type*: Use the default *Auto-Detect* setting to automatically detect the artifact type, or select the artifact type from the list, for example, *Avro Schema* or *OpenAPI*. You must manually select the *Kafka Connect Schema* artifact type, which cannot be automatically detected.
 +
 ** *Artifact*: Specify the artifact location using either of the following options: 
-*** *From file*: Click *Browse*, and select a file, or drag and drop a file. For example, `my-openapi.json` or `my-schema.proto`.
+*** *From file*: Click *Browse*, and select a file, or drag and drop a file. For example, `my-openapi.json` or `my-schema.proto`. Alternatively, you can enter the file contents in the text box.
 *** *From URL*: Enter a valid and accessible URL, and click *Fetch*. For example: `\https://petstore3.swagger.io/api/v3/openapi.json`.
+
 . Click *Upload* and view the artifact details: 
 +
-** *Overview*: Displays the artifact version metadata such as name, artifact ID, global ID, content ID, labels, and properties. Also displays rules for validity and compatibility that you can configure for artifact content.
+** *Overview*: Displays artifact version metadata such as artifact name, artifact ID, global ID, content ID, labels, properties, and so on. Also displays rules for validity and compatibility that you can configure for artifact content.
 ** *Documentation* (OpenAPI and AsyncAPI only): Displays automatically-generated REST API documentation.
 ** *Content*: Displays a read-only view of the full artifact content. For JSON content, you can click *JSON* or *YAML* to display your preferred format. 
 +
@@ -64,7 +67,7 @@ You can also enter an optional comma-separated list of labels for searching, or 
 
 . To delete an artifact, click *Delete* in the page header.
 +
-WARNING: Deleting an artifact deletes the artifact and all of its versions, and cannot be undone. Artifact versions are immutable and cannot be deleted individually.
+WARNING: Deleting an artifact deletes the artifact and all of its versions, and cannot be undone.
 
 ifdef::apicurio-registry,rh-service-registry[]
 [role="_additional-resources"]

@@ -216,7 +216,7 @@
         <kafka-clients.version>2.8.1</kafka-clients.version>
         <snakeyaml.version>1.33</snakeyaml.version>
         <guava.version>31.1-jre</guava.version>
-        <woodstox-core.version>6.5.0</woodstox-core.version>
+        <woodstox-core.version>6.5.1</woodstox-core.version>
 
         <!-- Kafka Connect -->
         <connect.version>2.8.1</connect.version>

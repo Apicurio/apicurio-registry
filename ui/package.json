@@ -67,7 +67,7 @@
     "@patternfly/react-table": "4.71.16",
     "ace-builds": "1.7.1",
     "axios": "0.21.2",
-    "keycloak-js": "^19.0.2",
+    "keycloak-js": "^21.1.1",
     "mobx": "^6.5.0",
     "moment": "2.29.4",
     "oidc-client-ts": "^2.0.3",

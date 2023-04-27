@@ -255,7 +255,7 @@ public class KafkaSqlStore extends AbstractSqlRegistryStorage {
                  .bind(0, newCanonicalHash)
                  .bind(1, tenantContext().tenantId())
                  .bind(2, contentId)
-                 .bind(2, contentHash)
+                 .bind(3, contentHash)
                  .execute();
            if (rowCount == 0) {
                log.warn("update content canonicalHash, no row match contentId {} contentHash {}", contentId, contentHash);

@@ -112,7 +112,7 @@ public class KafkaSqlUpgrader {
             logger.debug("Protobuf content canonicalHash outdated value detected, updating contentId {}", contentEntity.contentId);
 
             CompletableFuture<UUID> future = submitter
-                    .submitContent(tenantContentEntity.tenantId, contentEntity.contentId, contentEntity.contentHash, ActionType.UPDATE, canonicalContentHash, null, null);
+                    .submitContent(tenantContentEntity.tenantId, contentEntity.contentId, contentEntity.contentHash, ActionType.UPDATE, canonicalContentHash, null, contentEntity.serializedReferences != null ? contentEntity.serializedReferences: null);
             UUID uuid = ConcurrentUtil.get(future);
             coordinator.waitForResponse(uuid);
 

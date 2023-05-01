@@ -1,34 +1,21 @@
 package io.apicurio.registry.storage.impl.kafkasql.sql;
 
-import java.util.Optional;
-import java.util.UUID;
-import java.util.function.Supplier;
-
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.context.control.ActivateRequestContext;
-import javax.inject.Inject;
-
-import io.apicurio.registry.storage.dto.ArtifactOwnerDto;
-import io.apicurio.registry.storage.impl.kafkasql.keys.ArtifactOwnerKey;
-import io.apicurio.registry.storage.impl.kafkasql.values.ArtifactOwnerValue;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.kafka.common.header.Header;
-import org.slf4j.Logger;
-
 import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
 import io.apicurio.common.apps.logging.Logged;
-import io.apicurio.registry.mt.RegistryTenantContext;
-import io.apicurio.registry.mt.TenantContext;
-import io.apicurio.registry.mt.TenantContextLoader;
+import io.apicurio.common.apps.multitenancy.ApicurioTenantContext;
+import io.apicurio.common.apps.multitenancy.TenantContext;
+import io.apicurio.common.apps.multitenancy.TenantContextLoader;
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
 import io.apicurio.registry.storage.RegistryStorageException;
+import io.apicurio.registry.storage.dto.ArtifactOwnerDto;
 import io.apicurio.registry.storage.dto.GroupMetaDataDto;
 import io.apicurio.registry.storage.impl.kafkasql.KafkaSqlCoordinator;
 import io.apicurio.registry.storage.impl.kafkasql.KafkaSqlRegistryStorage;
 import io.apicurio.registry.storage.impl.kafkasql.KafkaSqlSubmitter;
 import io.apicurio.registry.storage.impl.kafkasql.MessageType;
 import io.apicurio.registry.storage.impl.kafkasql.keys.ArtifactKey;
+import io.apicurio.registry.storage.impl.kafkasql.keys.ArtifactOwnerKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.ArtifactRuleKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.ArtifactVersionKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.ConfigPropertyKey;
@@ -43,6 +30,7 @@ import io.apicurio.registry.storage.impl.kafkasql.keys.LogConfigKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.MessageKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.RoleMappingKey;
 import io.apicurio.registry.storage.impl.kafkasql.values.AbstractMessageValue;
+import io.apicurio.registry.storage.impl.kafkasql.values.ArtifactOwnerValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.ArtifactRuleValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.ArtifactValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.ArtifactVersionValue;
@@ -64,6 +52,16 @@ import io.apicurio.registry.utils.impexp.ArtifactVersionEntity;
 import io.apicurio.registry.utils.impexp.ContentEntity;
 import io.apicurio.registry.utils.impexp.GlobalRuleEntity;
 import io.apicurio.registry.utils.impexp.GroupEntity;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.common.header.Header;
+import org.slf4j.Logger;
+
+import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.context.control.ActivateRequestContext;
+import javax.inject.Inject;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.function.Supplier;
 
 /**
  * @author Fabian Martinez
@@ -147,7 +145,7 @@ public class KafkaSqlSink {
 
         String tenantId = key.getTenantId();
         if (tenantId != null) {
-            RegistryTenantContext tctx = tcl.loadBatchJobContext(tenantId);
+            ApicurioTenantContext tctx = tcl.loadBatchJobContext(tenantId);
             tenantContext.setContext(tctx);
         }
         try {

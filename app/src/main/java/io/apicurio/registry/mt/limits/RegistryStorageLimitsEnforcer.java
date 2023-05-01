@@ -55,10 +55,10 @@ public class RegistryStorageLimitsEnforcer extends RegistryStorageDecorator {
     ThreadContext threadContext;
 
     @Inject
-    TenantLimitsService limitsService;
+    RegistryTenantLimitsService limitsService;
 
     @Inject
-    TenantLimitsConfigurationService limitsConfiguration;
+    RegistryTenantLimitsConfigurationService limitsConfiguration;
 
     /**
      * @see io.apicurio.registry.storage.decorator.RegistryStorageDecorator#isEnabled()

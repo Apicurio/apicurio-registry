@@ -16,6 +16,7 @@
 
 package io.apicurio.registry.mt.limits;
 
+import io.apicurio.common.apps.multitenancy.limits.TenantLimitsConfiguration;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
@@ -28,7 +29,7 @@ import lombok.ToString;
 @Getter
 @Setter
 @ToString
-public class TenantLimitsConfiguration {
+public class RegistryTenantLimitsConfiguration implements TenantLimitsConfiguration {
 
     private Long maxTotalSchemasCount;
     private Long maxSchemaSizeBytes;

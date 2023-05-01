@@ -20,6 +20,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+import io.apicurio.common.apps.multitenancy.TenantManagerService;
+import io.apicurio.common.apps.multitenancy.exceptions.TenantNotAuthorizedException;
+import io.apicurio.common.apps.multitenancy.exceptions.TenantNotFoundException;
 import io.apicurio.tenantmanager.api.datamodel.ApicurioTenant;
 import io.quarkus.test.Mock;
 import io.vertx.core.impl.ConcurrentHashSet;
@@ -28,14 +31,14 @@ import io.vertx.core.impl.ConcurrentHashSet;
  * @author Fabian Martinez
  */
 @Mock
-public class MockTenantMetadataService extends TenantMetadataService {
+public class MockTenantMetadataService extends TenantManagerService {
 
     private static final Map<String, ApicurioTenant> cache = new ConcurrentHashMap<String, ApicurioTenant>();
 
     private static final Set<String> unauthorizedList = new ConcurrentHashSet<>();
 
     /**
-     * @see io.apicurio.registry.mt.TenantMetadataService#getTenant(java.lang.String)
+     * @see io.apicurio.common.apps.multitenancy.TenantManagerService#getTenant(java.lang.String)
      */
     @Override
     public ApicurioTenant getTenant(String tenantId) throws TenantNotFoundException {

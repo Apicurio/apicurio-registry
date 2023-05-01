@@ -488,6 +488,11 @@ This section contains a list of the configuration options available for {registr
 |`10800`
 |`2.1.0.Final`
 |Multitenancy reaper period seconds
+|`registry.multitenancy.tenant.token-claim.names`
+|`list<string>`
+|
+|`2.1.0.Final`
+|Token claims used to resolve the tenant id
 |`registry.multitenancy.types.context-path.base-path`
 |`string`
 |`t`
@@ -505,7 +510,7 @@ This section contains a list of the configuration options available for {registr
 |Enable multitenancy request header type
 |`registry.multitenancy.types.request-header.name`
 |`string`
-|`X-Registry-Tenant-Id`
+|`X-Tenant-Id`
 |`2.1.0.Final`
 |Multitenancy request header type name
 |`registry.multitenancy.types.subdomain.enabled`
@@ -528,6 +533,11 @@ This section contains a list of the configuration options available for {registr
 |`(\w[\w\d\-]*)\.localhost\.local`
 |`2.1.0.Final`
 |Multitenancy subdomain type pattern
+|`registry.multitenancy.types.token-claims.enabled`
+|`boolean`
+|`false`
+|`2.1.0.Final`
+|Enable multitenancy request header type
 |`registry.organization-id.claim-name`
 |`list<string>`
 |

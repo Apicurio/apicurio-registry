@@ -18,6 +18,7 @@ package io.apicurio.registry.storage.impl.kafkasql;
 
 import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
 import io.apicurio.common.apps.logging.Logged;
+import io.apicurio.common.apps.multitenancy.TenantContext;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.canon.ContentCanonicalizer;
 import io.apicurio.registry.content.extract.ContentExtractor;
@@ -25,7 +26,6 @@ import io.apicurio.registry.content.extract.ExtractedMetaData;
 import io.apicurio.registry.metrics.StorageMetricsApply;
 import io.apicurio.registry.metrics.health.liveness.PersistenceExceptionLivenessApply;
 import io.apicurio.registry.metrics.health.readiness.PersistenceTimeoutReadinessApply;
-import io.apicurio.registry.mt.TenantContext;
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
 import io.apicurio.registry.storage.ArtifactStateExt;
@@ -82,7 +82,6 @@ import io.apicurio.registry.utils.impexp.ContentEntity;
 import io.apicurio.registry.utils.impexp.Entity;
 import io.apicurio.registry.utils.impexp.GlobalRuleEntity;
 import io.apicurio.registry.utils.impexp.GroupEntity;
-import io.apicurio.registry.utils.impexp.ManifestEntity;
 import io.apicurio.registry.utils.kafka.KafkaUtil;
 import io.quarkus.security.identity.SecurityIdentity;
 import org.apache.commons.codec.digest.DigestUtils;
@@ -93,6 +92,12 @@ import org.apache.kafka.common.config.TopicConfig;
 import org.apache.kafka.common.errors.TopicExistsException;
 import org.slf4j.Logger;
 
+import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
+import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.event.Event;
+import javax.enterprise.event.Observes;
+import javax.inject.Inject;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -111,12 +116,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
-import javax.annotation.PostConstruct;
-import javax.annotation.PreDestroy;
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.event.Event;
-import javax.enterprise.event.Observes;
-import javax.inject.Inject;
 
 import static io.apicurio.registry.storage.RegistryStorage.ArtifactRetrievalBehavior.DEFAULT;
 
@@ -1284,37 +1283,6 @@ public class KafkaSqlRegistryStorage implements RegistryStorage {
         return sqlStore.searchGroups(filters, orderBy, orderDirection, offset, limit);
     }
 
-    protected void importEntity(Entity entity) throws RegistryStorageException {
-        switch (entity.getEntityType()) {
-            case ArtifactRule:
-                importArtifactRule((ArtifactRuleEntity) entity);
-                break;
-            case ArtifactVersion:
-                importArtifactVersion((ArtifactVersionEntity) entity);
-                break;
-            case Content:
-                importContent((ContentEntity) entity);
-                break;
-            case GlobalRule:
-                importGlobalRule((GlobalRuleEntity) entity);
-                break;
-            case Group:
-                importGroup((GroupEntity) entity);
-                break;
-            case Manifest:
-                ManifestEntity manifest = (ManifestEntity) entity;
-                log.info("---------- Import Info ----------");
-                log.info("System Name:    {}", manifest.systemName);
-                log.info("System Desc:    {}", manifest.systemDescription);
-                log.info("System Version: {}", manifest.systemVersion);
-                log.info("Data exported on {} by user {}", manifest.exportedOn, manifest.exportedBy);
-                log.info("---------- ----------- ----------");
-                // Ignore the manifest for now.
-                break;
-            default:
-                throw new RegistryStorageException("Unhandled entity type during import: " + entity.getEntityType());
-        }
-    }
     protected void importArtifactRule(ArtifactRuleEntity entity) {
         RuleConfigurationDto config = new RuleConfigurationDto(entity.configuration);
         submitter.submitArtifactRule(tenantContext.tenantId(), entity.groupId, entity.artifactId, entity.type, ActionType.IMPORT, config);

@@ -16,6 +16,7 @@
 
 
     <dependencies>
+        <!-- Project Deps -->
         <dependency>
             <groupId>io.apicurio</groupId>
             <artifactId>apicurio-registry-app</artifactId>
@@ -81,7 +82,7 @@
                             <goal>unpack-dependencies</goal>
                         </goals>
                         <configuration>
-                            <excludeArtifactIds>apicurio-common-app-components-config-index,apicurio-common-app-components-logging,apicurio-common-app-components-config-definitions,apicurio-common-app-components-config-impl,apicurio-common-app-components-core</excludeArtifactIds>
+                            <excludeArtifactIds>apicurio-common-app-components-config-index,apicurio-common-app-components-logging,apicurio-common-app-components-config-definitions,apicurio-common-app-components-config-impl,apicurio-common-app-components-core,apicurio-common-app-components-multitenancy</excludeArtifactIds>
                             <includeGroupIds>io.apicurio</includeGroupIds>
                             <includeTypes>jar,maven-plugin</includeTypes>
                             <outputDirectory>

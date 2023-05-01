@@ -17,11 +17,12 @@
 package io.apicurio.registry.noprofile.storage;
 
 import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
+import io.apicurio.common.apps.multitenancy.ApicurioTenantContext;
+import io.apicurio.common.apps.multitenancy.TenantContext;
+import io.apicurio.common.apps.multitenancy.context.ApicurioTenantContextImpl;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.mt.MockTenantMetadataService;
-import io.apicurio.registry.mt.RegistryTenantContext;
-import io.apicurio.registry.mt.TenantContext;
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
 import io.apicurio.registry.storage.RegistryStorage;
@@ -51,6 +52,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 
+import javax.inject.Inject;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -59,7 +61,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
-import javax.inject.Inject;
 
 import static io.apicurio.registry.storage.RegistryStorage.ArtifactRetrievalBehavior.DEFAULT;
 
@@ -104,18 +105,18 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
     @Inject
     MockTenantMetadataService tms;
 
-    RegistryTenantContext tenantId1;
-    RegistryTenantContext tenantId2;
+    ApicurioTenantContext tenantId1;
+    ApicurioTenantContext tenantId2;
 
     @BeforeEach
     protected void setTenantIds() throws Exception {
-        tenantId1 = new RegistryTenantContext(UUID.randomUUID().toString(), null, null, TenantStatusValue.READY, null);
+        tenantId1 = new ApicurioTenantContextImpl(UUID.randomUUID().toString(), null, null, TenantStatusValue.READY, null);
         ApicurioTenant rt1 = new ApicurioTenant();
         rt1.setTenantId(tenantId1.getTenantId());
         rt1.setStatus(tenantId1.getStatus());
         tms.createTenant(rt1);
 
-        tenantId2 = new RegistryTenantContext(UUID.randomUUID().toString(), null, null, TenantStatusValue.READY, null);
+        tenantId2 = new ApicurioTenantContextImpl(UUID.randomUUID().toString(), null, null, TenantStatusValue.READY, null);
         ApicurioTenant rt2 = new ApicurioTenant();
         rt2.setTenantId(tenantId2.getTenantId());
         rt2.setStatus(tenantId2.getStatus());

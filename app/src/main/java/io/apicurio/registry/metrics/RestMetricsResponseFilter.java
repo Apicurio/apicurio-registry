@@ -15,11 +15,9 @@
  */
 package io.apicurio.registry.metrics;
 
-import io.apicurio.registry.mt.TenantContext;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
-import org.slf4j.Logger;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Default;
@@ -56,13 +54,7 @@ import static io.apicurio.registry.metrics.MetricsConstants.REST_REQUESTS_TAG_ST
 public class RestMetricsResponseFilter implements ContainerRequestFilter, ContainerResponseFilter {
 
     @Inject
-    Logger log;
-
-    @Inject
     MeterRegistry registry;
-
-    @Inject
-    TenantContext tenantContext;
 
     public static final String TIMER_SAMPLE_CONTEXT_PROPERTY_NAME = "request-timer-sample";
 
@@ -85,30 +77,30 @@ public class RestMetricsResponseFilter implements ContainerRequestFilter, Contai
 
     @Override
     public void filter(ContainerRequestContext requestContext, ContainerResponseContext responseContext)
-        throws IOException {
+            throws IOException {
 
         if (requestContext.getProperty(TIMER_SAMPLE_CONTEXT_PROPERTY_NAME) == null) {
             return;
         }
 
         Timer timer = Timer
-            .builder(REST_REQUESTS)
-            .description(REST_REQUESTS_DESCRIPTION)
-            .tag(REST_REQUESTS_TAG_PATH, this.getPath())
-            .tag(REST_REQUESTS_TAG_METHOD, requestContext.getMethod())
-            .tag(REST_REQUESTS_TAG_STATUS_CODE_FAMILY, this.getStatusGroup(responseContext.getStatus()))
-            .register(registry);
+                .builder(REST_REQUESTS)
+                .description(REST_REQUESTS_DESCRIPTION)
+                .tag(REST_REQUESTS_TAG_PATH, this.getPath())
+                .tag(REST_REQUESTS_TAG_METHOD, requestContext.getMethod())
+                .tag(REST_REQUESTS_TAG_STATUS_CODE_FAMILY, this.getStatusGroup(responseContext.getStatus()))
+                .register(registry);
 
         Timer.Sample sample = (Timer.Sample) requestContext.getProperty(TIMER_SAMPLE_CONTEXT_PROPERTY_NAME);
         sample.stop(timer);
 
         Counter.builder(REST_REQUESTS_COUNTER)
-            .description(REST_REQUESTS_COUNTER_DESCRIPTION)
-            .tag(REST_REQUESTS_TAG_PATH, this.getPath())
-            .tag(REST_REQUESTS_TAG_METHOD, requestContext.getMethod())
-            .tag(REST_REQUESTS_TAG_STATUS_CODE_FAMILY, this.getStatusGroup(responseContext.getStatus()))
-            .register(registry)
-            .increment();
+                .description(REST_REQUESTS_COUNTER_DESCRIPTION)
+                .tag(REST_REQUESTS_TAG_PATH, this.getPath())
+                .tag(REST_REQUESTS_TAG_METHOD, requestContext.getMethod())
+                .tag(REST_REQUESTS_TAG_STATUS_CODE_FAMILY, this.getStatusGroup(responseContext.getStatus()))
+                .register(registry)
+                .increment();
     }
 
     private String getStatusGroup(int statusCode) {

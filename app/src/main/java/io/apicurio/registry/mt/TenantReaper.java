@@ -17,6 +17,13 @@
 package io.apicurio.registry.mt;
 
 import io.apicurio.common.apps.config.Info;
+import io.apicurio.common.apps.multitenancy.MultitenancyProperties;
+import io.apicurio.common.apps.multitenancy.TenantContext;
+import io.apicurio.common.apps.multitenancy.TenantContextLoader;
+import io.apicurio.common.apps.multitenancy.TenantManagerService;
+import io.apicurio.common.apps.util.OptionalBean;
+import io.apicurio.registry.storage.RegistryStorage;
+import io.apicurio.registry.types.Current;
 import io.apicurio.rest.client.auth.exception.AuthException;
 import io.apicurio.tenantmanager.api.datamodel.ApicurioTenant;
 import io.apicurio.tenantmanager.api.datamodel.ApicurioTenantList;
@@ -24,11 +31,7 @@ import io.apicurio.tenantmanager.api.datamodel.SortBy;
 import io.apicurio.tenantmanager.api.datamodel.SortOrder;
 import io.apicurio.tenantmanager.api.datamodel.TenantStatusValue;
 import io.apicurio.tenantmanager.client.TenantManagerClient;
-import io.apicurio.registry.storage.RegistryStorage;
-import io.apicurio.registry.types.Current;
-import io.apicurio.registry.utils.OptionalBean;
 import io.quarkus.scheduler.Scheduled;
-
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.faulttolerance.Retry;
 import org.slf4j.Logger;
@@ -58,7 +61,7 @@ public class TenantReaper {
     MultitenancyProperties properties;
 
     @Inject
-    TenantMetadataService tenantService;
+    TenantManagerService tenantService;
 
     @Inject
     @Current

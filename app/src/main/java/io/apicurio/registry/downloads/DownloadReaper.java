@@ -45,10 +45,10 @@ public class DownloadReaper {
     /**
      * Minimal granularity is 1 minute.
      */
-    @Scheduled(concurrentExecution = SKIP, every = "{registry.downloads.reaper.every}")
+    @Scheduled(delay = 2, concurrentExecution = SKIP, every = "{registry.downloads.reaper.every}")
     void run() {
         try {
-            if(storage.isAlive()) {
+            if(storage.isReady()) {
                 log.debug("Running download reaper job at {}", Instant.now());
                 reap();
             } else {

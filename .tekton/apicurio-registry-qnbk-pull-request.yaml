@@ -245,7 +245,7 @@ spec:
         values:
         - "false"
       workspaces:
-      - name: sanity-ws
+      - name: test-ws
         workspace: workspace
     - name: clair-scan
       params:

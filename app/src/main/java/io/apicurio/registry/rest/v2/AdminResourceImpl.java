@@ -517,11 +517,18 @@ public class AdminResourceImpl implements AdminResource {
      * @return the dynamic config property definition
      */
     private DynamicConfigPropertyDef resolveConfigProperty(String propertyName) {
-        propertyName = registryAuthPropertyToApp(propertyName);
         DynamicConfigPropertyDef property = dynamicPropertyIndex.getProperty(propertyName);
+
+        if (property == null) {
+            propertyName = registryAuthPropertyToApp(propertyName);
+        }
+        //If registry property cannot be found, try with app property
+        property = dynamicPropertyIndex.getProperty(propertyName);
+
         if (property == null) {
             throw new ConfigPropertyNotFoundException(propertyName);
         }
+
         if (!dynamicPropertyIndex.isAccepted(propertyName)) {
             throw new ConfigPropertyNotFoundException(propertyName);
         }

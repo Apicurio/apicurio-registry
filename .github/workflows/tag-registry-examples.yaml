@@ -41,10 +41,10 @@ jobs:
           echo "Release Version: $RELEASE_VERSION"
           echo "Snapshot Version: $SNAPSHOT_VERSION"
 
-      - name: Set up JDK 11
+      - name: Set up JDK 17
         uses: actions/setup-java@v3
         with:
-          java-version: '11'
+          java-version: '17'
           distribution: 'temurin'
 
       - name: Configure Git

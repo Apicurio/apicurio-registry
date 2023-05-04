@@ -48,7 +48,7 @@ def registry_server(request):
     poll_for_ready()
 
 @pytest.mark.asyncio
-async def test_simple():
+async def test_basic_upload_download():
     auth_provider = AnonymousAuthenticationProvider()
     request_adapter = HttpxRequestAdapter(auth_provider)
     request_adapter.base_url = "http://localhost:8080/apis/registry/v2"
@@ -67,11 +67,4 @@ async def test_simple():
     assert create_artifact.id is not None
     
     return_artifact = await client.groups_by_id("default").artifacts_by_id(create_artifact.id).get()
-    
-    print("DEBUG")
-    print(return_artifact)
-    # assert json.load(str(return_artifact, "utf-8")) == json.load(payload.content)
-    # artifact_types = await client.admin.artifact_types.get()
-    # artifact_types = map(lambda at: at.name, artifact_types)
-    # print(f"Artifact types {artifact_types}")
-    # assert "true" == 'false'
+    assert json.loads(str(return_artifact, "utf-8").replace("'", '"')) == json.loads(payload.content)

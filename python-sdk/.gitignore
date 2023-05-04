@@ -1,0 +1,6 @@
+dist
+kiota_tmp
+python_sdk/client
+
+__pycache__
+

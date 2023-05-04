@@ -70,6 +70,7 @@ import io.apicurio.registry.storage.dto.StoredArtifactDto;
 import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.Current;
+import io.apicurio.registry.types.ReferenceType;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 import io.apicurio.registry.util.ArtifactIdGenerator;
@@ -125,6 +126,7 @@ import static io.apicurio.registry.rest.v2.V2ApiUtil.defaultGroupIdToNull;
 public class GroupsResourceImpl implements GroupsResource {
 
     private static final String EMPTY_CONTENT_ERROR_MESSAGE = "Empty content is not allowed.";
+    @SuppressWarnings("unused")
     private static final Integer GET_GROUPS_LIMIT = 1000;
 
     @Inject
@@ -212,16 +214,17 @@ public class GroupsResourceImpl implements GroupsResource {
     }
 
     /**
-     * @see io.apicurio.registry.rest.v2.GroupsResource#getArtifactVersionReferences(String, String, String)
-     **/
+     * @see io.apicurio.registry.rest.v2.GroupsResource#getArtifactVersionReferences(java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.types.ReferenceType)
+     */
     @Override
-    public List<ArtifactReference> getArtifactVersionReferences(String groupId, String artifactId, String version) {
-        if (null == version) {
-            return storage.getArtifact(defaultGroupIdToNull(groupId), artifactId).getReferences().stream()
+    public List<ArtifactReference> getArtifactVersionReferences(String groupId, String artifactId,
+            String version, ReferenceType refType) {
+        if (refType == null || refType == ReferenceType.OUTBOUND) {
+            return storage.getArtifactVersion(defaultGroupIdToNull(groupId), artifactId, version).getReferences().stream()
                     .map(V2ApiUtil::referenceDtoToReference)
                     .collect(Collectors.toList());
         } else {
-            return storage.getArtifactVersion(defaultGroupIdToNull(groupId), artifactId, version).getReferences().stream()
+            return storage.getInboundArtifactReferences(defaultGroupIdToNull(groupId), artifactId, version).stream()
                     .map(V2ApiUtil::referenceDtoToReference)
                     .collect(Collectors.toList());
         }
@@ -806,6 +809,7 @@ public class GroupsResourceImpl implements GroupsResource {
      * @param data
      * @param references
      */
+    @SuppressWarnings("deprecation")
     private ArtifactMetaData createArtifactWithRefs(String groupId, String xRegistryArtifactType, String xRegistryArtifactId,
                                                     String xRegistryVersion, IfExists ifExists, Boolean canonical,
                                                     String xRegistryDescription, String xRegistryDescriptionEncoded,

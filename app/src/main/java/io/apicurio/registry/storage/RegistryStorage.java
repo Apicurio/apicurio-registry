@@ -17,10 +17,16 @@
 
 package io.apicurio.registry.storage;
 
+import java.time.Instant;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
+
 import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
 import io.apicurio.common.apps.config.DynamicConfigStorage;
-import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.common.apps.multitenancy.TenantContext;
+import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.ArtifactOwnerDto;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
@@ -43,12 +49,6 @@ import io.apicurio.registry.storage.impexp.EntityInputStream;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.impexp.Entity;
-
-import java.time.Instant;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.function.Function;
 
 /**
  * The artifactStore layer for the registry.
@@ -813,6 +813,14 @@ public interface RegistryStorage extends DynamicConfigStorage {
     /**
      * @param groupId
      * @param artifactId
+     * @param version
+     * @return the list of inbound references to the given artifact version
+     */
+    List<ArtifactReferenceDto> getInboundArtifactReferences(String groupId, String artifactId, String version);
+
+    /**
+     * @param groupId
+     * @param artifactId
      * @return true if an artifact version exists with the coordinates passed as parameters
      * @throws RegistryStorageException
      */
@@ -836,4 +844,5 @@ public interface RegistryStorage extends DynamicConfigStorage {
          */
         SKIP_DISABLED_LATEST
     }
+
 }

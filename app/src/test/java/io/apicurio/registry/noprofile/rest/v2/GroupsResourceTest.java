@@ -27,6 +27,7 @@ import io.apicurio.registry.rest.v2.beans.VersionMetaData;
 import io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType;
 import io.apicurio.registry.storage.impl.sql.SqlUtil;
 import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.ReferenceType;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
@@ -65,6 +66,7 @@ import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.startsWith;
+import static org.junit.Assert.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
@@ -2358,6 +2360,8 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         var metadata = response
                 .statusCode(HTTP_OK)
                 .extract().as(ArtifactMetaData.class);
+        // Save the metadata for artifact #1 for later use
+        var referencedMD = metadata;
         waitForArtifact(metadata.getId());
 
         // Create #2 referencing the #1, using different content
@@ -2375,6 +2379,8 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .statusCode(HTTP_OK)
                 .extract().as(ArtifactMetaData.class);
         waitForArtifact(metadata.getId());
+        // Save the referencing artifact metadata for later use
+        var referencingMD = metadata;
         assertEquals(references, metadata.getReferences());
 
 
@@ -2454,6 +2460,40 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 });
 
         assertEquals(references, referenceResponse);
+
+        // Get INBOUND references via GAV
+        referenceResponse = given()
+                .when()
+                .pathParam("groupId", referencedMD.getGroupId() == null ? "default" : referencedMD.getGroupId())
+                .pathParam("artifactId", referencedMD.getId())
+                .pathParam("version", referencedMD.getVersion())
+                .queryParam("refType", ReferenceType.INBOUND)
+                .get("/registry/v2/groups/{groupId}/artifacts/{artifactId}/versions/{version}/references")
+                .then()
+                .statusCode(HTTP_OK)
+                .extract().as(new TypeRef<List<ArtifactReference>>() {
+                });
+        assertFalse(referenceResponse.isEmpty());
+        assertEquals(2, referenceResponse.size());
+        assertEquals(referencingMD.getGroupId(), referenceResponse.get(0).getGroupId());
+        assertEquals(referencingMD.getId(), referenceResponse.get(0).getArtifactId());
+        assertEquals(referencingMD.getVersion(), referenceResponse.get(0).getVersion());
+
+        // Get INBOUND references via globalId
+        referenceResponse = given()
+                .when()
+                .pathParam("globalId", referencedMD.getGlobalId())
+                .queryParam("refType", ReferenceType.INBOUND)
+                .get("/registry/v2/ids/globalIds/{globalId}/references")
+                .then()
+                .statusCode(HTTP_OK)
+                .extract().as(new TypeRef<List<ArtifactReference>>() {
+                });
+        assertFalse(referenceResponse.isEmpty());
+        assertEquals(2, referenceResponse.size());
+        assertEquals(referencingMD.getGroupId(), referenceResponse.get(0).getGroupId());
+        assertEquals(referencingMD.getId(), referenceResponse.get(0).getArtifactId());
+        assertEquals(referencingMD.getVersion(), referenceResponse.get(0).getVersion());
     }
 
     private byte[] concatContentAndReferences(byte[] contentBytes, byte[] referencesBytes) throws IOException {

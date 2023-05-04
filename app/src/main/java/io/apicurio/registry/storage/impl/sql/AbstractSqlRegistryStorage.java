@@ -16,8 +16,44 @@
 
 package io.apicurio.registry.storage.impl.sql;
 
+import static io.apicurio.registry.storage.RegistryStorage.ArtifactRetrievalBehavior.DEFAULT;
+import static io.apicurio.registry.storage.impl.sql.SqlUtil.denormalizeGroupId;
+import static io.apicurio.registry.storage.impl.sql.SqlUtil.normalizeGroupId;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.Collections;
+import java.util.Date;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import javax.annotation.PostConstruct;
+import javax.enterprise.event.Event;
+import javax.inject.Inject;
+import javax.transaction.Transactional;
+
+import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.commons.lang3.tuple.Pair;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.slf4j.Logger;
+
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
 import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
 import io.apicurio.common.apps.config.Info;
 import io.apicurio.common.apps.core.System;
@@ -75,6 +111,7 @@ import io.apicurio.registry.storage.impl.sql.jdb.Query;
 import io.apicurio.registry.storage.impl.sql.jdb.RowMapper;
 import io.apicurio.registry.storage.impl.sql.jdb.Update;
 import io.apicurio.registry.storage.impl.sql.mappers.ArtifactMetaDataDtoMapper;
+import io.apicurio.registry.storage.impl.sql.mappers.ArtifactReferenceDtoMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.ArtifactRuleEntityMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.ArtifactVersionEntityMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.ArtifactVersionMetaDataDtoMapper;
@@ -107,39 +144,6 @@ import io.apicurio.registry.utils.impexp.GlobalRuleEntity;
 import io.apicurio.registry.utils.impexp.GroupEntity;
 import io.apicurio.registry.utils.impexp.ManifestEntity;
 import io.quarkus.security.identity.SecurityIdentity;
-import org.apache.commons.codec.digest.DigestUtils;
-import org.apache.commons.lang3.tuple.Pair;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
-import org.slf4j.Logger;
-
-import javax.annotation.PostConstruct;
-import javax.enterprise.event.Event;
-import javax.inject.Inject;
-import javax.transaction.Transactional;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.time.Duration;
-import java.time.Instant;
-import java.util.Collections;
-import java.util.Date;
-import java.util.LinkedHashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.TreeSet;
-import java.util.UUID;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
-import static io.apicurio.registry.storage.RegistryStorage.ArtifactRetrievalBehavior.DEFAULT;
-import static io.apicurio.registry.storage.impl.sql.SqlUtil.denormalizeGroupId;
-import static io.apicurio.registry.storage.impl.sql.SqlUtil.normalizeGroupId;
 
 
 /**
@@ -3230,6 +3234,22 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         });
     }
 
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#getInboundArtifactReferences(java.lang.String, java.lang.String, java.lang.String)
+     */
+    public List<ArtifactReferenceDto> getInboundArtifactReferences(String groupId, String artifactId, String version) {
+        return handles.withHandleNoException(handle -> {
+            String sql = sqlStatements().selectInboundReferencesByGAV();
+            return handle.createQuery(sql)
+                    .bind(0, tenantContext().tenantId())
+                    .bind(1, normalizeGroupId(groupId))
+                    .bind(2, artifactId)
+                    .bind(3, version)
+                    .map(ArtifactReferenceDtoMapper.instance)
+                    .list();
+        });
+    }
+    
     /**
      * @see RegistryStorage#isArtifactExists(String, String)
      */

@@ -26,6 +26,8 @@ import {
 } from "../../models";
 import { BaseService } from "../baseService";
 import YAML from "yaml";
+import { ArtifactReference } from "../../models/artifactReference.model";
+import { ReferenceType } from "../../models/referenceType";
 
 export interface CreateArtifactData {
     groupId: string;
@@ -76,7 +78,7 @@ export interface ClientGeneration {
 }
 
 /**
- * The artifacts service.  Used to query the backend search API to fetch lists of
+ * The artifacts/groups service.  Used to query the backend search API to fetch lists of
  * artifacts and also details about individual artifacts.
  */
 export class GroupsService extends BaseService {
@@ -156,6 +158,14 @@ export class GroupsService extends BaseService {
             endpoint = this.endpoint("/v2/groups/:groupId/artifacts/:artifactId/meta", { groupId, artifactId });
         }
         return this.httpGet<ArtifactMetaData>(endpoint);
+    }
+
+    public getArtifactReferences(globalId: number, refType: ReferenceType): Promise<ArtifactReference[]> {
+        const queryParams: any = {
+            refType: refType || "OUTBOUND"
+        };
+        const endpoint: string = this.endpoint("/v2/ids/globalIds/:globalId/references", { globalId }, queryParams);
+        return this.httpGet<ArtifactReference[]>(endpoint);
     }
 
     public getLatestArtifact(groupId: string|null, artifactId: string): Promise<string> {

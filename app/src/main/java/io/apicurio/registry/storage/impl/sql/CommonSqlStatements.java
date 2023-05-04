@@ -1042,6 +1042,11 @@ public abstract class CommonSqlStatements implements SqlStatements {
     }
 
     @Override
+    public String selectInboundReferencesByGAV() {
+        return "SELECT DISTINCT v.groupId, v.artifactId, v.version, ar.name as name FROM versions v JOIN artifactreferences ar ON v.tenantId=ar.tenantId AND v.contentId=ar.contentId WHERE ar.tenantId=? AND ar.groupId=? AND ar.artifactId=? AND ar.version=?";
+    }
+
+    @Override
     public String insertSequenceValue() {
         return "INSERT INTO sequences (tenantId, name, value) VALUES (?, ?, ?)";
     }

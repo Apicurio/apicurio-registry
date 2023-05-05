@@ -14,12 +14,12 @@
     <name>apicurio-registry-new-system-tests</name>
 
     <properties>
-        <maven.compiler.source>11</maven.compiler.source>
-        <maven.compiler.target>11</maven.compiler.target>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
         <maven.failsafe.version>3.0.0</maven.failsafe.version>
         <maven.surefire.version>3.0.0</maven.surefire.version>
         <junit.jupiter.version>5.9.0</junit.jupiter.version>
-        <fabric8.version>6.5.1</fabric8.version>
+        <fabric8.version>6.6.0</fabric8.version>
         <!-- sundrio version is critical to stay aligned with whatever comes from fabric8 -->
         <sundrio.version>0.94.0</sundrio.version>
         <version.hamcrest>2.2</version.hamcrest>

@@ -70,9 +70,9 @@ export class DownloaderService implements Service {
      * @param filename name of the file to save as
      */
     public downloadBase64DataToFS(content: string, filename: string): Promise<boolean> {
-        console.info("[DownloaderService] Downloading b64 content.");
+        console.info("[DownloaderService] Downloading b64 content");
         const link = document.createElement("a");
-        link.href = `data:text/plain,base64,${content}`;
+        link.href = `data:text/plain;base64,${content}`;
         link.download = filename;
         link.click();
 

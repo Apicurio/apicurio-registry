@@ -27,7 +27,6 @@ import {
     Grid,
     GridItem,
     Modal,
-    Spinner,
     TextInput
 } from "@patternfly/react-core";
 import { CaretDownIcon, CheckCircleIcon } from "@patternfly/react-icons";
@@ -52,7 +51,7 @@ export interface GenerateClientModalState extends PureComponentState {
     languageIsExpanded: boolean;
     isValid: boolean;
     isErrorVisible: boolean;
-    downloadLink: string;
+    downloadData: string;
     isGenerating: boolean;
     isGenerated: boolean;
     isExpanded: boolean;
@@ -64,13 +63,19 @@ export class GenerateClientModal extends PureComponent<GenerateClientModalProps,
         super(props);
     }
 
+    public componentDidUpdate(prevProps: GenerateClientModalProps, prevState: GenerateClientModalState) {
+        if (prevProps.isOpen !== this.props.isOpen) {
+            this.setMultiState(this.initializeState());
+        }
+    }
+
     private onToggle = (isExpanded: boolean): void => {
         this.setSingleState("isExpanded", isExpanded);
     };
 
     private triggerDownload = (): void => {
         const fname: string = `client-${this.state.data.language.toLowerCase()}.zip`;
-        Services.getDownloaderService().downloadBase64DataToFS(this.state.downloadLink, fname);
+        Services.getDownloaderService().downloadBase64DataToFS(this.state.downloadData, fname);
     };
 
     public render(): React.ReactElement {
@@ -243,7 +248,7 @@ export class GenerateClientModal extends PureComponent<GenerateClientModalProps,
             },
             languageIsExpanded: false,
             isValid: true,
-            downloadLink: "",
+            downloadData: "",
             isErrorVisible: false,
             isGenerating: false,
             isGenerated: false,
@@ -253,11 +258,6 @@ export class GenerateClientModal extends PureComponent<GenerateClientModalProps,
 
     private doGenerate = async (): Promise<void> => {
         this.setMultiState({
-            data: {
-                ...this.state.data,
-            },
-            languageIsExpanded: false,
-            isValid: this.state.isValid,
             isErrorVisible: false,
             isGenerating: true,
             isGenerated: false
@@ -267,7 +267,7 @@ export class GenerateClientModal extends PureComponent<GenerateClientModalProps,
 
         if (global.kiota !== undefined && global.kiota.generate !== undefined) {
             try {
-                const zip = "data:text/plain;base64," + await global.kiota.generate(
+                const zipData = await global.kiota.generate(
                     this.state.data.content,
                     this.state.data.language,
                     this.state.data.clientClassName,
@@ -275,12 +275,7 @@ export class GenerateClientModal extends PureComponent<GenerateClientModalProps,
                 );
 
                 this.setMultiState({
-                    data: {
-                        ...this.state.data,
-                    },
-                    languageIsExpanded: false,
-                    isValid: this.state.isValid,
-                    downloadLink: zip,
+                    downloadData: zipData,
                     isErrorVisible: false,
                     isGenerating: false,
                     isGenerated: true
@@ -308,11 +303,7 @@ export class GenerateClientModal extends PureComponent<GenerateClientModalProps,
                 ...this.state.data,
                 language: newLang,
             },
-            languageIsExpanded: false,
-            isValid: this.state.isValid,
-            downloadLink: "",
-            isErrorVisible: false,
-            isGenerating: false,
+            languageIsExpanded: false
         }, () => {
             this.validate();
         });
@@ -323,12 +314,7 @@ export class GenerateClientModal extends PureComponent<GenerateClientModalProps,
             data: {
                 ...this.state.data,
                 clientClassName: value,
-            },
-            languageIsExpanded: false,
-            isValid: this.state.isValid,
-            downloadLink: "",
-            isErrorVisible: false,
-            isGenerating: false,
+            }
         }, () => {
             this.validate();
         });
@@ -339,12 +325,7 @@ export class GenerateClientModal extends PureComponent<GenerateClientModalProps,
             data: {
                 ...this.state.data,
                 namespaceName: value,
-            },
-            languageIsExpanded: false,
-            isValid: this.state.isValid,
-            downloadLink: "",
-            isErrorVisible: false,
-            isGenerating: false,
+            }
         }, () => {
             this.validate();
         });
@@ -355,12 +336,7 @@ export class GenerateClientModal extends PureComponent<GenerateClientModalProps,
             data: {
                 ...this.state.data,
                 includePatterns: value,
-            },
-            languageIsExpanded: false,
-            isValid: this.state.isValid,
-            downloadLink: "",
-            isErrorVisible: false,
-            isGenerating: false,
+            }
         }, () => {
             this.validate();
         });
@@ -371,12 +347,7 @@ export class GenerateClientModal extends PureComponent<GenerateClientModalProps,
             data: {
                 ...this.state.data,
                 excludePatterns: value,
-            },
-            languageIsExpanded: false,
-            isValid: this.state.isValid,
-            downloadLink: "",
-            isErrorVisible: false,
-            isGenerating: false,
+            }
         }, () => {
             this.validate();
         });

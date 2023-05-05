@@ -5,7 +5,7 @@ var ApicurioRegistryConfig = {
     ui: {
         contextPath: "/",
         navPrefixPath: "/",
-        codegenEnabled: false
+        codegenEnabled: true
     },
     auth: {
         type: "none"

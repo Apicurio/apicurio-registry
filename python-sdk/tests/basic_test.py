@@ -1,6 +1,4 @@
-import asyncio
 import pytest
-import pytest_asyncio
 import subprocess
 import time
 import os
@@ -12,11 +10,10 @@ from kiota_abstractions.authentication.anonymous_authentication_provider import 
 from kiota_http.httpx_request_adapter import HttpxRequestAdapter
 from client.registry_client import RegistryClient
 from client.models.artifact_content import ArtifactContent
-# from myfile import MyClass
 
 REGISTRY_HOST = "localhost"
 REGISTRY_PORT = 8080
-MAX_POLL_TIME = 60
+MAX_POLL_TIME = 120
 POLL_INTERVAL = 1
 start_time = time.time()
 
@@ -51,7 +48,7 @@ def registry_server(request):
 async def test_basic_upload_download():
     auth_provider = AnonymousAuthenticationProvider()
     request_adapter = HttpxRequestAdapter(auth_provider)
-    request_adapter.base_url = "http://localhost:8080/apis/registry/v2"
+    request_adapter.base_url = f"http://{REGISTRY_HOST}:{REGISTRY_PORT}/apis/registry/v2"
     client = RegistryClient(request_adapter)
     
     payload = ArtifactContent()

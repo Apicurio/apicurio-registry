@@ -203,10 +203,15 @@ export class InfoTabContent extends PureComponent<InfoTabContentProps, InfoTabCo
                 <div className="artifact-rules">
                     <Card>
                         <CardTitle>
-                            <div className="rules-label">Content rules</div>
+                            <div className="rules-label">Artifact-specific rules</div>
                         </CardTitle>
                         <Divider />
                         <CardBody>
+                            <p style={{ paddingBottom: "15px" }}>
+                                Manage the content rules for this artifact. Each artifact-specific rule can be
+                                individually enabled, configured, and disabled. Artifact-specific rules override
+                                the equivalent global rules.
+                            </p>
                             <RuleList rules={this.props.rules}
                                       onEnableRule={this.props.onEnableRule}
                                       onDisableRule={this.props.onDisableRule}

@@ -125,7 +125,7 @@ export class RuleList extends PureComponent<RuleListProps, RuleListState> {
                                 <CodeBranchIcon className="rule-icon" />
                                 <span id="compatibility-rule-name">Compatibility rule</span>
                             </DataListCell>,
-                            <DataListCell key="rule-description">Enforce a compatibility level when updating this artifact (for example, Backwards Compatibility).</DataListCell>
+                            <DataListCell key="rule-description">Enforce a compatibility level when updating this artifact (for example, select Backward for backwards compatibility).</DataListCell>
                         ]}
                         />
                         <IfAuth isDeveloper={true}>

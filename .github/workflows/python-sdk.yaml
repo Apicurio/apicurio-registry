@@ -39,8 +39,8 @@ jobs:
       - name: Install Poetry
         uses: snok/install-poetry@d45b6d76012debf457ab49dffc7fb7b2efe8071d
 
-      - name: Build and Test In Memory Variant
-        run: make SKIP_TESTS=true build-project
+      - name: Build Registry
+        run: mvn clean install -am -pl app -Dskip.npm -DskipTests=true --no-transfer-progress
 
       - name: Install the package
         working-directory: python-sdk

@@ -9,15 +9,9 @@ import platform
 
 KIOTA_VERSION = "1.1.3"
 
-KIOTA_OS_NAMES = {
-    "Windows": "win",
-    "Darwin": "osx",
-    "Linux": "linux"
-}
-KIOTA_ARCH_NAMES = {
-    "32bit": "x86",
-    "64bit": "x64"
-}
+KIOTA_OS_NAMES = {"Windows": "win", "Darwin": "osx", "Linux": "linux"}
+KIOTA_ARCH_NAMES = {"32bit": "x86", "64bit": "x64"}
+
 
 def generate_kiota_client_files(setup_kwargs):
     kiota_os_name = KIOTA_OS_NAMES.get(platform.system(), None)
@@ -29,7 +23,7 @@ def generate_kiota_client_files(setup_kwargs):
     if kiota_arch_name is None:
         print("Unsupported architecture.")
         exit(1)
-    
+
     if platform.processor()[0] == "arm" and kiota_arch_name == "x64":
         kiota_arch_name = "arm64"
 
@@ -39,26 +33,38 @@ def generate_kiota_client_files(setup_kwargs):
 
     tmpdir = os.path.join(sys.path[0], "kiota_tmp", KIOTA_VERSION)
     if not os.path.exists(tmpdir):
-      print(f"Downloading Kiota from URL: {url}")
-      response = requests.get(url)
-      zip_archive = zipfile.ZipFile(io.BytesIO(response.content))
-      os.makedirs(tmpdir)
-      zip_archive.extractall(tmpdir)
+        print(f"Downloading Kiota from URL: {url}")
+        response = requests.get(url)
+        zip_archive = zipfile.ZipFile(io.BytesIO(response.content))
+        os.makedirs(tmpdir)
+        zip_archive.extractall(tmpdir)
     else:
-      print(f"Using kiota already available on path if something goes wrong, please clean the local 'kiota_tmp' folder.")
+        print(
+            f"Using kiota already available on path if something goes wrong, please clean the local 'kiota_tmp' folder."
+        )
 
-    kiotaBin = os.path.join(tmpdir, "kiota")
-    st = os.stat(kiotaBin)
-    os.chmod(kiotaBin, st.st_mode | stat.S_IEXEC)
+    kiota_bin = os.path.join(tmpdir, "kiota")
+    st = os.stat(kiota_bin)
+    os.chmod(kiota_bin, st.st_mode | stat.S_IEXEC)
 
-    openapiDoc = os.path.join(sys.path[0], "..", "common", "src", "main", "resources", "META-INF", "openapi.json")
+    openapi_doc = os.path.join(
+        sys.path[0],
+        "..",
+        "common",
+        "src",
+        "main",
+        "resources",
+        "META-INF",
+        "openapi.json",
+    )
     output = os.path.join(sys.path[0], "python_sdk", "client")
-    command = f"{kiotaBin} generate --language=python --openapi=\"{openapiDoc}\" --output=\"{output}\" --class-name=RegistryClient --namespace-name=client --clean-output --clear-cache"
+    command = f'{kiota_bin} generate --language=python --openapi="{openapi_doc}" --output="{output}" --class-name=RegistryClient --namespace-name=client --clean-output --clear-cache'
     print(f"Executing kiota command: {command}")
 
     os.system(command)
     print("Kiota client generation has been successful")
     return setup_kwargs
+
 
 if __name__ == "__main__":
     generate_kiota_client_files({})

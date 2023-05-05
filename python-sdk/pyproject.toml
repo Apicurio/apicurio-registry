@@ -18,6 +18,10 @@ pytest = "^7.3.1"
 pytest-asyncio = "^0.21.0"
 requests = "2.29.0"
 
+
+[tool.poetry.group.dev.dependencies]
+black = "^23.3.0"
+
 [build-system]
 requires = ["poetry-core", "requests", "shutils"]
 build-backend = "poetry.core.masonry.api"
@@ -28,3 +32,6 @@ script = "kiota-gen.py"
 
 [tool.pytest.ini_options]
 pythonpath = [ "python_sdk" ]
+
+[tool.black]
+extend-exclude = 'client'

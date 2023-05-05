@@ -67,4 +67,6 @@ async def test_basic_upload_download():
     assert create_artifact.id is not None
     
     return_artifact = await client.groups_by_id("default").artifacts_by_id(create_artifact.id).get()
+    print(str(return_artifact, "utf-8"))
+    # TODO: remove the workaround ".replace("'", '"')" when updating the dependency after this PR gets merged: https://github.com/microsoft/kiota-serialization-json-python/pull/77
     assert json.loads(str(return_artifact, "utf-8").replace("'", '"')) == json.loads(payload.content)

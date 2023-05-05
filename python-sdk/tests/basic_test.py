@@ -26,7 +26,7 @@ def poll_for_ready():
 
       print("Attempt to connect")
       try:
-          response = requests.get(f"http://{REGISTRY_HOST}:{REGISTRY_PORT}")
+          response = requests.get(f"http://{REGISTRY_HOST}:{REGISTRY_PORT}/apis/registry/v2")
           if response.status_code == 200:
               print("Server is up!")
               break

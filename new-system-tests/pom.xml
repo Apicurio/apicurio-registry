@@ -17,7 +17,7 @@
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
         <maven.failsafe.version>3.1.0</maven.failsafe.version>
-        <maven.surefire.version>3.0.0</maven.surefire.version>
+        <maven.surefire.version>3.1.0</maven.surefire.version>
         <junit.jupiter.version>5.9.0</junit.jupiter.version>
         <fabric8.version>6.6.0</fabric8.version>
         <!-- sundrio version is critical to stay aligned with whatever comes from fabric8 -->

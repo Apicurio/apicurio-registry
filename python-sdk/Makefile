@@ -10,3 +10,6 @@ lint-check:
 
 lint-apply:
 	poetry run black ./
+
+publish:
+	poetry publish --build -u ${PYPI_USERNAME} -p ${PYPI_PASSWORD}

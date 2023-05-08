@@ -5,6 +5,10 @@ description = ""
 authors = ["Andrea Peruffo <andrea.peruffo1982@gmail.com>"]
 readme = "README.md"
 packages = [{include = "python_sdk"}]
+license = "Apache 2.0"
+homepage = "https://github.com/apicurio/apicurio-registry"
+repository = "https://github.com/apicurio/apicurio-registry"
+keywords = ["apicurio", "registry"]
 
 [tool.poetry.dependencies]
 python = "^3.11"

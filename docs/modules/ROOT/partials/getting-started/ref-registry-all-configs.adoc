@@ -709,7 +709,7 @@ This section contains a list of the configuration options available for {registr
 |UI auth type
 |`registry.ui.config.uiCodegenEnabled`
 |`boolean`
-|`false`
+|`true`
 |`2.4.2.Final`
 |UI codegen enabled
 |`registry.ui.config.uiContextPath`

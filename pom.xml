@@ -231,7 +231,7 @@
         <!-- Plugin Versions -->
         <version.compiler.plugin>3.11.0</version.compiler.plugin>
         <version.deploy.plugin>3.1.1</version.deploy.plugin>
-        <version.failsafe.plugin>3.0.0</version.failsafe.plugin>
+        <version.failsafe.plugin>3.1.0</version.failsafe.plugin>
         <version.javadoc.plugin>3.5.0</version.javadoc.plugin>
         <version.source.plugin>3.2.1</version.source.plugin>
         <version.surefire.plugin>3.0.0</version.surefire.plugin>

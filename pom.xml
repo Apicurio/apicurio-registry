@@ -160,7 +160,7 @@
         <avro.version>1.11.1</avro.version>
         <json-schema-validator.version>1.0.81</json-schema-validator.version>
         <wire-schema.version>4.5.5</wire-schema.version>
-        <wire-compiler.version>4.3.0</wire-compiler.version>
+        <wire-compiler.version>4.6.0</wire-compiler.version>
         <okio-jvm.version>3.3.0</okio-jvm.version>
         <okio.version>3.3.0</okio.version>
         <okio-fake-file-system.version>3.3.0</okio-fake-file-system.version>

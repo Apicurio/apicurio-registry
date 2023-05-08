@@ -26,7 +26,9 @@ import {
     FormGroup,
     Grid,
     GridItem,
+    Label,
     Modal,
+    TextArea,
     TextInput
 } from "@patternfly/react-core";
 import { CaretDownIcon, CheckCircleIcon } from "@patternfly/react-icons";
@@ -51,6 +53,7 @@ export interface GenerateClientModalState extends PureComponentState {
     languageIsExpanded: boolean;
     isValid: boolean;
     isErrorVisible: boolean;
+    errorMessage: string;
     downloadData: string;
     isGenerating: boolean;
     isGenerated: boolean;
@@ -84,6 +87,10 @@ export class GenerateClientModal extends PureComponent<GenerateClientModalProps,
         generatingProps.spinnerAriaLabelledBy = "generate-client-button";
         generatingProps.isLoading = this.state.isGenerating;
 
+        const errorMessage = this.state.isErrorVisible ? <div>
+                <Label key="Error">ERROR DURING GENERATION</Label>
+                <TextArea id="kiota-error-message" isDisabled={true} value={this.state.errorMessage}></TextArea>
+            </div> : <div/>
         return (
             <Modal
                 title="Generate client SDK"
@@ -232,6 +239,7 @@ export class GenerateClientModal extends PureComponent<GenerateClientModalProps,
                         </GridItem>
                     </Grid>
                 </Form>
+                {errorMessage}
             </Modal>
         );
     }
@@ -250,6 +258,7 @@ export class GenerateClientModal extends PureComponent<GenerateClientModalProps,
             isValid: true,
             downloadData: "",
             isErrorVisible: false,
+            errorMessage: "",
             isGenerating: false,
             isGenerated: false,
             isExpanded: false
@@ -259,6 +268,7 @@ export class GenerateClientModal extends PureComponent<GenerateClientModalProps,
     private doGenerate = async (): Promise<void> => {
         this.setMultiState({
             isErrorVisible: false,
+            errorMessage: "",
             isGenerating: true,
             isGenerated: false
         });
@@ -272,6 +282,8 @@ export class GenerateClientModal extends PureComponent<GenerateClientModalProps,
                     this.state.data.language,
                     this.state.data.clientClassName,
                     this.state.data.namespaceName,
+                    this.state.data.includePatterns,
+                    this.state.data.excludePatterns,
                 );
 
                 this.setMultiState({
@@ -282,13 +294,23 @@ export class GenerateClientModal extends PureComponent<GenerateClientModalProps,
                 });
 
                 setTimeout(this.triggerDownload, 250);
-            } catch (e) {
-                this.setSingleState("isErrorVisible", true);
+            } catch (e : Error) {
+                this.setMultiState({
+                    isErrorVisible: true,
+                    errorMessage: e,
+                    isGenerating: false,
+                    isGenerated: false,
+                });
                 console.error(e);
             }
         } else {
             console.error("Kiota is not available");
-            this.setSingleState("isErrorVisible", true);
+            this.setMultiState({
+                isErrorVisible: true,
+                errorMessage: "Kiota is not available in the runtime",
+                isGenerating: false,
+                isGenerated: false
+            });
         }
     };
 
@@ -354,7 +376,7 @@ export class GenerateClientModal extends PureComponent<GenerateClientModalProps,
     };
 
     private isGenerateEnabled = (): boolean => {
-        return this.state.isValid && !this.state.isErrorVisible;
+        return this.state.isValid;
     };
 
     private validate = (): void => {

@@ -42,7 +42,7 @@ const DEFAULT_CONFIG: ConfigType = {
     ui: {
         contextPath: "/",
         navPrefixPath: "/",
-        codegenEnabled: false
+        codegenEnabled: true
     }
 };
 

@@ -1,0 +1,15 @@
+.references-toolbar {
+    padding: 0;
+}
+
+.references-toolbar > div {
+    width: 100%;
+}
+
+#references-toolbar-1 .tbi-filter-type {
+    margin-right: 0;
+}
+
+#references-toolbar-1 .paging-item {
+    flex-grow: 1;
+}

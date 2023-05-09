@@ -21,4 +21,5 @@ export * from "./ifFeature";
 export * from "./ifNotEmpty";
 export * from "./urlUpload";
 export * from "./isLoading";
+export * from "./ListWithToolbar";
 

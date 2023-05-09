@@ -619,7 +619,7 @@ public class KafkaSqlRegistryStorage implements RegistryStorage {
     @Override
     public void updateArtifactOwner(String groupId, String artifactId, ArtifactOwnerDto owner) throws ArtifactNotFoundException, RegistryStorageException {
         // Note: the next line will throw ArtifactNotFoundException if the artifact does not exist, so there is no need for an extra check.
-        ArtifactMetaDataDto metaDataDto = sqlStore.getArtifactMetaData(groupId, artifactId, DEFAULT);
+        /*ArtifactMetaDataDto metaDataDto = */sqlStore.getArtifactMetaData(groupId, artifactId, DEFAULT);
 
         UUID reqId = ConcurrentUtil.get(submitter.submitArtifactOwner(tenantContext.tenantId(), groupId, artifactId, ActionType.UPDATE, owner.getOwner()));
         coordinator.waitForResponse(reqId);
@@ -1265,6 +1265,11 @@ public class KafkaSqlRegistryStorage implements RegistryStorage {
     @Override
     public List<Long> getGlobalIdsReferencingArtifact(String groupId, String artifactId, String version) {
         return sqlStore.getGlobalIdsReferencingArtifact(groupId, artifactId, version);
+    }
+
+    @Override
+    public List<ArtifactReferenceDto> getInboundArtifactReferences(String groupId, String artifactId, String version) {
+        return sqlStore.getInboundArtifactReferences(groupId, artifactId, version);
     }
 
     /**

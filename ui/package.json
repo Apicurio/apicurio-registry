@@ -61,6 +61,7 @@
     "@apicurio/data-models": "^1.1.26",
     "@asyncapi/react-component": "^1.0.0-next.40",
     "@patternfly/patternfly": "4.185.1",
+    "@patternfly/react-code-editor": "4.82.115",
     "@patternfly/react-core": "4.202.16",
     "@patternfly/react-icons": "4.53.16",
     "@patternfly/react-styles": "4.64.1",

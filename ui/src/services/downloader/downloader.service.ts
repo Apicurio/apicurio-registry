@@ -63,4 +63,20 @@ export class DownloaderService implements Service {
         // Not async right now - so just resolve to true
         return Promise.resolve(true);
     }
+
+    /**
+     * Called to download base64 encoded content to the local filesystem.
+     * @param content the base64 encoded data
+     * @param filename name of the file to save as
+     */
+    public downloadBase64DataToFS(content: string, filename: string): Promise<boolean> {
+        console.info("[DownloaderService] Downloading b64 content");
+        const link = document.createElement("a");
+        link.href = `data:text/plain;base64,${content}`;
+        link.download = filename;
+        link.click();
+
+        // Not async right now - so just resolve to true
+        return Promise.resolve(true);
+    }
 }

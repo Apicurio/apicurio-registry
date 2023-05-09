@@ -34,7 +34,7 @@ import {
     DescriptionListDescription,
     DescriptionListGroup,
     DescriptionListTerm,
-    Divider,
+    Divider, Flex, FlexItem,
     Label,
     Split,
     SplitItem,
@@ -88,20 +88,28 @@ export class InfoTabContent extends PureComponent<InfoTabContentProps, InfoTabCo
                     <Card>
                         <CardTitle>
                             <div className="title-and-type">
-                                <Split>
-                                    <SplitItem className="type"><ArtifactTypeIcon type={this.props.artifact.type} /></SplitItem>
-                                    <SplitItem className="title" isFilled={true}>Version metadata</SplitItem>
-                                    <SplitItem className="actions">
+                                <Flex>
+                                    <FlexItem className="type"><ArtifactTypeIcon type={this.props.artifact.type} /></FlexItem>
+                                    <FlexItem className="title">Version metadata</FlexItem>
+                                    <FlexItem className="actions" align={{ default: "alignRight" }}>
+                                    <If condition={((window as any).kiota !== undefined && this.props.codegenEnabled)}>
+                                            <Button id="generate-client-action"
+                                                data-testid="artifact-btn-gen-client"
+                                                isDisabled={this.props.artifact.type !== "OPENAPI"}
+                                                title="Generate a client"
+                                                onClick={this.props.onGenerateClient}
+                                                variant="link">Generate client SDK</Button>
+                                        </If>
                                         <IfAuth isDeveloper={true}>
                                             <IfFeature feature="readOnly" isNot={true}>
                                                 <Button id="edit-action"
-                                                        data-testid="artifact-btn-edit"
-                                                        onClick={this.props.onEditMetaData}
-                                                        variant="link"><PencilAltIcon />{" "}Edit</Button>
+                                                    data-testid="artifact-btn-edit"
+                                                    onClick={this.props.onEditMetaData}
+                                                    variant="link"><PencilAltIcon />{" "}Edit</Button>
                                             </IfFeature>
                                         </IfAuth>
-                                    </SplitItem>
-                                </Split>
+                                    </FlexItem>
+                                </Flex>
                             </div>
                         </CardTitle>
                         <Divider />
@@ -189,13 +197,6 @@ export class InfoTabContent extends PureComponent<InfoTabContentProps, InfoTabCo
                                         title="Download artifact content"
                                         onClick={this.props.onDownloadArtifact}
                                         variant="secondary"><DownloadIcon /> Download</Button>
-                                {((window as any).kiota !== undefined && this.props.codegenEnabled) ? 
-                                <Button id="generate-client-action"
-                                        data-testid="artifact-btn-gen-client"
-                                        isDisabled={this.props.artifact.type !== "OPENAPI"}
-                                        title="[EXPERIMENTAL] Generate a client"
-                                        onClick={this.props.onGenerateClient}
-                                        variant="secondary">Generate Client</Button> : <div/>}
                             </div>
                         </CardBody>
                     </Card>

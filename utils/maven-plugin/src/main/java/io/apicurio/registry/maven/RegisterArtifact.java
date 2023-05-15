@@ -34,6 +34,7 @@ public class RegisterArtifact {
     private IfExists ifExists;
     private Boolean canonicalize;
     private Boolean minify;
+    private Boolean analyzeDirectory;
     private String contentType;
     private List<RegisterArtifactReference> references;
 
@@ -181,5 +182,13 @@ public class RegisterArtifact {
      */
     public void setReferences(List<RegisterArtifactReference> references) {
         this.references = references;
+    }
+
+    public Boolean getAnalyzeDirectory() {
+        return analyzeDirectory;
+    }
+
+    public void setAnalyzeDirectory(Boolean analyzeDirectory) {
+        this.analyzeDirectory = analyzeDirectory;
     }
 }

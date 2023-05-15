@@ -17,20 +17,27 @@
 
 package io.apicurio.registry.maven;
 
-import java.io.*;
-import java.util.ArrayList;
-import java.util.List;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.protobuf.Descriptors;
+import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v2.beans.ArtifactReference;
+import io.apicurio.registry.rest.v2.beans.IfExists;
+import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
+import io.apicurio.registry.utils.IoUtil;
+import org.apache.avro.Schema;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 
-import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
-import io.apicurio.registry.rest.v2.beans.IfExists;
+import java.io.ByteArrayInputStream;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Register artifacts against registry.
@@ -67,8 +74,8 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
                 if (artifact.getFile() == null) {
                     getLog().error(String.format("File is required when registering an artifact.  Missing from artifacts[%s].", idx));
                     errorCount++;
-                } else if (!artifact.getFile().isFile()) {
-                    getLog().error(String.format("Artifact file to register is configured but file does not exist or is not a file: %s", artifact.getFile().getPath()));
+                } else if (!artifact.getFile().exists()) {
+                    getLog().error(String.format("Artifact file to register is configured but file does not exist: %s", artifact.getFile().getPath()));
                     errorCount++;
                 }
 
@@ -87,61 +94,155 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
 
         int errorCount = 0;
         if (artifacts != null) {
-            for (RegisterArtifact artifact : artifacts) {
 
+            for (RegisterArtifact artifact : artifacts) {
                 String groupId = artifact.getGroupId();
                 String artifactId = artifact.getArtifactId();
-
                 try {
-                    List<ArtifactReference> references = new ArrayList<>();
-                    //First, we check if the artifact being processed has references defined
-                    if (hasReferences(artifact)) {
-                        references = registerArtifactReferences(artifact.getReferences());
+
+                    if (artifact.getAnalyzeDirectory()) { //Auto register selected, we must figure out if the artifact has reference using the directory structure
+                        registerDirectory(artifact);
+                    } else {
+
+                        List<ArtifactReference> references = new ArrayList<>();
+                        //First, we check if the artifact being processed has references defined
+                        if (hasReferences(artifact)) {
+                            references = registerArtifactReferences(artifact.getReferences());
+                        }
+                        registerArtifact(artifact, references);
                     }
-                    registerArtifact(artifact, references);
                 } catch (Exception e) {
                     errorCount++;
                     getLog().error(String.format("Exception while registering artifact [%s] / [%s]", groupId, artifactId), e);
                 }
-            }
-        }
 
-        if (errorCount > 0) {
-            throw new MojoExecutionException("Errors while registering artifacts ...");
+            }
+
+            if (errorCount > 0) {
+                throw new MojoExecutionException("Errors while registering artifacts ...");
+            }
         }
     }
 
-    private ArtifactMetaData registerArtifact(RegisterArtifact artifact, List<ArtifactReference> references) throws FileNotFoundException {
+    private void registerDirectory(RegisterArtifact artifact) throws IOException, Descriptors.DescriptorValidationException {
+        switch (artifact.getType()) {
+            case ArtifactType.AVRO -> {
+                final Schema schema = AvroDirectoryParser.parse(artifact.getFile());
+                registerArtifact(artifact, handleSchemaReferences(artifact, schema));
+            }
+            case ArtifactType.PROTOBUF -> {
+                final Descriptors.FileDescriptor protoSchema = ProtobufDirectoryParser.parse(artifact.getFile());
+
+            }
+            case ArtifactType.JSON -> {
+
+            }
+        }
+    }
+
+
+
+    private List<ArtifactReference> handleSchemaReferences(RegisterArtifact rootArtifact, Schema rootSchema) throws FileNotFoundException {
+
+        List<ArtifactReference> references = new ArrayList<>();
+
+        //Iterate through all the fields of the schema
+        for (Schema.Field field : rootSchema.getFields()) {
+            List<ArtifactReference> nestedArtifactReferences = new ArrayList<>();
+            if (field.schema().getType() == Schema.Type.RECORD) { //If the field is a sub-schema, recursively check for nested sub-schemas and register all of them
+
+                RegisterArtifact nestedSchema = buildFromRoot(rootArtifact, field.schema());
+
+                if (field.schema().hasFields()) {
+                    nestedArtifactReferences = handleSchemaReferences(nestedSchema, field.schema());
+                }
+
+                registerNestedSchema(references, field.schema(), nestedArtifactReferences, nestedSchema);
+            } else if (field.schema().getType() == Schema.Type.ENUM) { //If the nested schema is an enum, just register
+
+                RegisterArtifact nestedSchema = buildFromRoot(rootArtifact, field.schema());
+                registerNestedSchema(references, field.schema(), nestedArtifactReferences, nestedSchema);
+            } else if (isArrayWithSubschemaElement(field)) { //If the nested schema is an array and the element is a sub-schema, handle it
+
+                Schema elementSchema = field.schema().getElementType();
+
+                RegisterArtifact nestedSchema = buildFromRoot(rootArtifact, elementSchema);
+
+                if (elementSchema.hasFields()) {
+                    nestedArtifactReferences = handleSchemaReferences(nestedSchema, elementSchema);
+                }
+
+                registerNestedSchema(references, elementSchema,  nestedArtifactReferences, nestedSchema);
+            }
+        }
+        return references;
+    }
+
+    private boolean isArrayWithSubschemaElement(Schema.Field field) {
+        return field.schema().getType() == Schema.Type.ARRAY && field.schema().getElementType().getType() == Schema.Type.RECORD;
+    }
+
+    private RegisterArtifact buildFromRoot(RegisterArtifact rootArtifact, Schema schema) {
+        RegisterArtifact nestedSchema = new RegisterArtifact();
+        nestedSchema.setCanonicalize(rootArtifact.getCanonicalize());
+        nestedSchema.setArtifactId(schema.getFullName());
+        nestedSchema.setGroupId(rootArtifact.getGroupId());
+        nestedSchema.setContentType(rootArtifact.getContentType());
+        nestedSchema.setType(rootArtifact.getType());
+        nestedSchema.setMinify(rootArtifact.getMinify());
+        nestedSchema.setContentType(rootArtifact.getContentType());
+        nestedSchema.setIfExists(rootArtifact.getIfExists());
+
+        return nestedSchema;
+    }
+
+    private void registerNestedSchema(List<ArtifactReference> references, Schema schema, List<ArtifactReference> nestedArtifactReferences, RegisterArtifact nestedSchema) throws FileNotFoundException {
+        ArtifactMetaData referencedArtifactMetadata = registerArtifact(nestedSchema, IoUtil.toStream(schema.toString()), nestedArtifactReferences);
+        ArtifactReference referencedArtifact = new ArtifactReference();
+        referencedArtifact.setName(schema.getFullName());
+        referencedArtifact.setArtifactId(referencedArtifactMetadata.getId());
+        referencedArtifact.setGroupId(referencedArtifactMetadata.getGroupId());
+        referencedArtifact.setVersion(referencedArtifactMetadata.getVersion());
+        references.add(referencedArtifact);
+    }
+
+    private ArtifactMetaData registerArtifact(RegisterArtifact artifact, List<ArtifactReference> references) throws
+            FileNotFoundException {
+        return registerArtifact(artifact, new FileInputStream(artifact.getFile()), references);
+
+    }
+
+    private ArtifactMetaData registerArtifact(RegisterArtifact artifact, InputStream artifactContent, List<ArtifactReference> references) throws FileNotFoundException {
         String groupId = artifact.getGroupId();
         String artifactId = artifact.getArtifactId();
         String version = artifact.getVersion();
         String type = artifact.getType();
         IfExists ifExists = artifact.getIfExists();
         Boolean canonicalize = artifact.getCanonicalize();
-        String contentType = contentType(artifact);
-        InputStream data = new FileInputStream(artifact.getFile());
         if (artifact.getMinify() != null && artifact.getMinify()) {
             try {
                 ObjectMapper objectMapper = new ObjectMapper();
-                JsonNode jsonNode = objectMapper.readValue(data, JsonNode.class);
-                data = new ByteArrayInputStream(jsonNode.toString().getBytes());
+                JsonNode jsonNode = objectMapper.readValue(artifactContent, JsonNode.class);
+                artifactContent = new ByteArrayInputStream(jsonNode.toString().getBytes());
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
         }
-        ArtifactMetaData amd = this.getClient().createArtifact(groupId, artifactId, version, type, ifExists, canonicalize, null, null, ContentTypes.APPLICATION_CREATE_EXTENDED, null, null, data, references);
+        ArtifactMetaData amd = this.getClient().createArtifact(groupId, artifactId, version, type, ifExists, canonicalize, null, null, ContentTypes.APPLICATION_CREATE_EXTENDED, null, null, artifactContent, references);
         getLog().info(String.format("Successfully registered artifact [%s] / [%s].  GlobalId is [%d]", groupId, artifactId, amd.getGlobalId()));
 
         return amd;
     }
 
+
     private boolean hasReferences(RegisterArtifact artifact) {
         return artifact.getReferences() != null && !artifact.getReferences().isEmpty();
     }
 
-    private List<ArtifactReference> registerArtifactReferences(List<RegisterArtifactReference> referencedArtifacts) throws FileNotFoundException {
+    private List<ArtifactReference> registerArtifactReferences
+            (List<RegisterArtifactReference> referencedArtifacts) throws FileNotFoundException {
         List<ArtifactReference> references = new ArrayList<>();
-        for (RegisterArtifactReference artifact: referencedArtifacts) {
+        for (RegisterArtifactReference artifact : referencedArtifacts) {
             List<ArtifactReference> nestedReferences = new ArrayList<>();
             //First, we check if the artifact being processed has references defined, and register them if needed
             if (hasReferences(artifact)) {
@@ -164,7 +265,7 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
 
     private String contentType(RegisterArtifact registerArtifact) {
         String contentType = registerArtifact.getContentType();
-        if(contentType != null) {
+        if (contentType != null) {
             return contentType;
         }
         return getContentTypeByExtension(registerArtifact.getFile().getName());

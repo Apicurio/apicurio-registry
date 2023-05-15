@@ -44,6 +44,7 @@ public class ProtobufDirectoryParser {
                     schemaDefs.put(fileToProcess.getName(), schemaContent);
                     fis.close();
                 } catch (Exception ex) {
+                    System.out.println("");
                     //Just ignore, the schema cannot be parsed yet.
                 }
             }
@@ -57,7 +58,8 @@ public class ProtobufDirectoryParser {
             fis.close();
             return schemaDescriptor;
         } catch (Exception ex) {
-
+            System.out.println("");
+            //TODO log exception
         }
 
         return null;

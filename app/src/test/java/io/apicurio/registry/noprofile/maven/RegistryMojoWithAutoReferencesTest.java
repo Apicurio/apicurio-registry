@@ -19,6 +19,7 @@ package io.apicurio.registry.noprofile.maven;
 import io.apicurio.registry.maven.DownloadRegistryMojo;
 import io.apicurio.registry.maven.RegisterArtifact;
 import io.apicurio.registry.maven.RegisterRegistryMojo;
+import io.apicurio.registry.rest.v2.beans.IfExists;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
@@ -74,6 +75,8 @@ public class RegistryMojoWithAutoReferencesTest extends RegistryMojoTestBase {
         tableNotification.setType(ArtifactType.PROTOBUF);
         tableNotification.setFile(tradeRawFile);
         tableNotification.setAnalyzeDirectory(true);
+        tableNotification.setIfExists(IfExists.RETURN);
+
 
         registerMojo.setArtifacts(Collections.singletonList(tableNotification));
         registerMojo.execute();

@@ -40,10 +40,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 /**
@@ -152,7 +150,6 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
         final Set<Descriptors.FileDescriptor> baseDeps = new HashSet<>(Arrays.asList(FileDescriptorUtils.baseDependencies()));
 
         final ProtoFileElement rootSchemaElement = FileDescriptorUtils.fileDescriptorToProtoFile(protoSchema.toProto());
-        final Map<String, ArtifactReference> registered = new HashMap<>();
 
         for (Descriptors.FileDescriptor dependency : protoSchema.getDependencies()) {
             List<ArtifactReference> nestedArtifactReferences = new ArrayList<>();
@@ -165,54 +162,46 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
                     nestedArtifactReferences = handleProtobufSchemaReferences(nestedArtifact, dependency);
                 }
 
-                ArtifactReference registeredReference;
-                if (!registered.containsKey(dependencyFullName)) {
-                     registeredReference = registerNestedSchema(dependencyFullName, nestedArtifactReferences, nestedArtifact, FileDescriptorUtils.fileDescriptorToProtoFile(dependency.toProto()).toSchema());
-                     registered.put(dependencyFullName, registeredReference);
-                } else {
-                    registeredReference = registered.get(dependencyFullName);
-                }
-
-                references.add(registeredReference);
+                references.add(registerNestedSchema(dependencyFullName, nestedArtifactReferences, nestedArtifact, FileDescriptorUtils.fileDescriptorToProtoFile(dependency.toProto()).toSchema()));
             }
         }
 
         return references;
     }
 
-/*
+    /*
 
-    public static Descriptors.FileDescriptor protoFileToFileDescriptor(String schemaDefinition, String protoFileName, Optional<String> optionalPackageName, Map<String, String> schemaDefs, Map<String, Descriptors.FileDescriptor> dependencies)
-            throws Descriptors.DescriptorValidationException {
-        Objects.requireNonNull(schemaDefinition);
-        Objects.requireNonNull(protoFileName);
+        public static Descriptors.FileDescriptor protoFileToFileDescriptor(String schemaDefinition, String protoFileName, Optional<String> optionalPackageName, Map<String, String> schemaDefs, Map<String, Descriptors.FileDescriptor> dependencies)
+                throws Descriptors.DescriptorValidationException {
+            Objects.requireNonNull(schemaDefinition);
+            Objects.requireNonNull(protoFileName);
 
-        final DescriptorProtos.FileDescriptorProto fileDescriptorProto = toFileDescriptorProto(schemaDefinition, protoFileName, optionalPackageName, schemaDefs);
-        final Set<Descriptors.FileDescriptor> requiredDependencies = new HashSet<>();
+            final DescriptorProtos.FileDescriptorProto fileDescriptorProto = toFileDescriptorProto(schemaDefinition, protoFileName, optionalPackageName, schemaDefs);
+            final Set<Descriptors.FileDescriptor> requiredDependencies = new HashSet<>();
 
-        Arrays.stream(baseDependencies()).forEach(baseDependency -> {
-            String dependencyFullName = baseDependency.getPackage() + "/" + baseDependency.getName(); //FIXME find a better way to do this...
-            if (fileDescriptorProto.getDependencyList().contains(dependencyFullName)) {
-                requiredDependencies.add(baseDependency);
-            }
-        });
+            Arrays.stream(baseDependencies()).forEach(baseDependency -> {
+                String dependencyFullName = baseDependency.getPackage() + "/" + baseDependency.getName(); //FIXME find a better way to do this...
+                if (fileDescriptorProto.getDependencyList().contains(dependencyFullName)) {
+                    requiredDependencies.add(baseDependency);
+                }
+            });
 
-        dependencies.keySet().forEach(dependencyName -> {
-            Descriptors.FileDescriptor dependencyDescriptor = dependencies.get(dependencyName);
-            String dependencyFullName = dependencyDescriptor.getPackage() + "/" + dependencyDescriptor.getName(); //FIXME find a better way to do this...
-            if (fileDescriptorProto.getDependencyList().contains(dependencyFullName)) {
-                requiredDependencies.add(dependencyDescriptor);
-            }
-        });
+            dependencies.keySet().forEach(dependencyName -> {
+                Descriptors.FileDescriptor dependencyDescriptor = dependencies.get(dependencyName);
+                String dependencyFullName = dependencyDescriptor.getPackage() + "/" + dependencyDescriptor.getName(); //FIXME find a better way to do this...
+                if (fileDescriptorProto.getDependencyList().contains(dependencyFullName)) {
+                    requiredDependencies.add(dependencyDescriptor);
+                }
+            });
 
-        final Set<Descriptors.FileDescriptor> joinedDependencies = new HashSet<>(requiredDependencies);
+            final Set<Descriptors.FileDescriptor> joinedDependencies = new HashSet<>(requiredDependencies);
 
-        Descriptors.FileDescriptor[] dependenciesArray = new Descriptors.FileDescriptor[joinedDependencies.size()];
+            Descriptors.FileDescriptor[] dependenciesArray = new Descriptors.FileDescriptor[joinedDependencies.size()];
 
-        return Descriptors.FileDescriptor.buildFrom(fileDescriptorProto, joinedDependencies.toArray(dependenciesArray));
-    }
+            return Descriptors.FileDescriptor.buildFrom(fileDescriptorProto, joinedDependencies.toArray(dependenciesArray));
+        }
 
-*/
+    */
     private List<ArtifactReference> handleAvroSchemaReferences(RegisterArtifact rootArtifact, Schema rootSchema) throws FileNotFoundException {
 
         List<ArtifactReference> references = new ArrayList<>();

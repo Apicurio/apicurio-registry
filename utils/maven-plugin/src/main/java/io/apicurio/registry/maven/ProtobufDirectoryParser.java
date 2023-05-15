@@ -22,7 +22,7 @@ public class ProtobufDirectoryParser {
 
     private static final String PROTO_SCHEMA_EXTENSION = ".proto";
 
-    public static Descriptors.FileDescriptor parse(File protoFile) throws IOException, Descriptors.DescriptorValidationException {
+    public static DescriptorWrapper parse(File protoFile) {
 
         Set<File> protoFiles = Arrays.stream(Objects.requireNonNull(protoFile.getParentFile().listFiles((dir, name) -> name.endsWith(PROTO_SCHEMA_EXTENSION))))
                 .filter(file -> !file.getName().equals(protoFile.getName()))
@@ -56,7 +56,7 @@ public class ProtobufDirectoryParser {
             final String schemaContent = IoUtil.toString(fis);
             final Descriptors.FileDescriptor schemaDescriptor = parseProtoFile(protoFile, schemaDefs, parsedFiles, schemaContent);
             fis.close();
-            return schemaDescriptor;
+            return new DescriptorWrapper(schemaDescriptor, schemaDefs);
         } catch (Exception ex) {
             System.out.println("");
             //TODO log exception
@@ -66,9 +66,27 @@ public class ProtobufDirectoryParser {
     }
 
 
-    private static Descriptors.FileDescriptor parseProtoFile(File protoFile, Map<String, String> schemaDefs, Map<String, Descriptors.FileDescriptor> dependencies, String schemaContent) throws IOException, Descriptors.DescriptorValidationException {
+    private static Descriptors.FileDescriptor parseProtoFile(File protoFile, Map<String, String> schemaDefs, Map<String, Descriptors.FileDescriptor> dependencies, String schemaContent) throws Descriptors.DescriptorValidationException {
         ProtoFileElement protoFileElement = ProtoParser.Companion.parse(Location.get(protoFile.getAbsolutePath()), schemaContent);
         return FileDescriptorUtils.protoFileToFileDescriptor(schemaContent, protoFile.getName(), Optional.ofNullable(protoFileElement.getPackageName()), schemaDefs, dependencies);
+    }
+
+    public static class DescriptorWrapper {
+        final Descriptors.FileDescriptor fileDescriptor;
+        final Map<String, String> fileContents; //used to store the original file content to register the content as-is.
+
+        public DescriptorWrapper(Descriptors.FileDescriptor fileDescriptor, Map<String, String> fileContents) {
+            this.fileDescriptor = fileDescriptor;
+            this.fileContents = fileContents;
+        }
+
+        public Descriptors.FileDescriptor getFileDescriptor() {
+            return fileDescriptor;
+        }
+
+        public Map<String, String> getFileContents() {
+            return fileContents;
+        }
     }
 }
 

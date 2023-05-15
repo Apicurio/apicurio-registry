@@ -42,6 +42,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -136,8 +137,8 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
                 registerArtifact(artifact, handleAvroSchemaReferences(artifact, schema));
             }
             case ArtifactType.PROTOBUF -> {
-                final Descriptors.FileDescriptor protoSchema = ProtobufDirectoryParser.parse(artifact.getFile());
-                registerArtifact(artifact, handleProtobufSchemaReferences(artifact, protoSchema));
+                final ProtobufDirectoryParser.DescriptorWrapper protoSchema = ProtobufDirectoryParser.parse(artifact.getFile());
+                registerArtifact(artifact, handleProtobufSchemaReferences(artifact, protoSchema.getFileDescriptor(), protoSchema.getFileContents()));
             }
             case ArtifactType.JSON -> {
 
@@ -145,13 +146,14 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
         }
     }
 
-    private List<ArtifactReference> handleProtobufSchemaReferences(RegisterArtifact rootArtifact, Descriptors.FileDescriptor protoSchema) throws FileNotFoundException {
+    private List<ArtifactReference> handleProtobufSchemaReferences(RegisterArtifact rootArtifact, Descriptors.FileDescriptor protoSchema, Map<String, String> fileContents) throws FileNotFoundException {
         List<ArtifactReference> references = new ArrayList<>();
         final Set<Descriptors.FileDescriptor> baseDeps = new HashSet<>(Arrays.asList(FileDescriptorUtils.baseDependencies()));
 
         final ProtoFileElement rootSchemaElement = FileDescriptorUtils.fileDescriptorToProtoFile(protoSchema.toProto());
 
         for (Descriptors.FileDescriptor dependency : protoSchema.getDependencies()) {
+
             List<ArtifactReference> nestedArtifactReferences = new ArrayList<>();
             String dependencyFullName = dependency.getPackage() + "/" + dependency.getName(); //FIXME find a better wat to do this
             if (!baseDeps.contains(dependency) && rootSchemaElement.getImports().contains(dependencyFullName)) {
@@ -159,10 +161,10 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
                 RegisterArtifact nestedArtifact = buildFromRoot(rootArtifact, dependencyFullName);
 
                 if (!dependency.getDependencies().isEmpty()) {
-                    nestedArtifactReferences = handleProtobufSchemaReferences(nestedArtifact, dependency);
+                    nestedArtifactReferences = handleProtobufSchemaReferences(nestedArtifact, dependency, fileContents);
                 }
 
-                references.add(registerNestedSchema(dependencyFullName, nestedArtifactReferences, nestedArtifact, FileDescriptorUtils.fileDescriptorToProtoFile(dependency.toProto()).toSchema()));
+                references.add(registerNestedSchema(dependencyFullName, nestedArtifactReferences, nestedArtifact, fileContents.get(dependency.getName())));
             }
         }
 
@@ -273,7 +275,7 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
 
     }
 
-    private ArtifactMetaData registerArtifact(RegisterArtifact artifact, InputStream artifactContent, List<ArtifactReference> references) throws FileNotFoundException {
+    private ArtifactMetaData registerArtifact(RegisterArtifact artifact, InputStream artifactContent, List<ArtifactReference> references) {
         String groupId = artifact.getGroupId();
         String artifactId = artifact.getArtifactId();
         String version = artifact.getVersion();

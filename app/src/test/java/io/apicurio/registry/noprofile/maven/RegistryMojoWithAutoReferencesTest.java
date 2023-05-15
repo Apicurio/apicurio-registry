@@ -19,12 +19,14 @@ package io.apicurio.registry.noprofile.maven;
 import io.apicurio.registry.maven.DownloadRegistryMojo;
 import io.apicurio.registry.maven.RegisterArtifact;
 import io.apicurio.registry.maven.RegisterRegistryMojo;
+import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v2.beans.IfExists;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -77,8 +79,10 @@ public class RegistryMojoWithAutoReferencesTest extends RegistryMojoTestBase {
         tableNotification.setAnalyzeDirectory(true);
         tableNotification.setIfExists(IfExists.RETURN);
 
-
         registerMojo.setArtifacts(Collections.singletonList(tableNotification));
         registerMojo.execute();
+
+        final ArtifactMetaData artifactWithReferences = clientV2.getArtifactMetaData(groupId, "tableNotification");
+        Assertions.assertNotNull(artifactWithReferences);
     }
 }

@@ -149,6 +149,19 @@ jobs:
       #     access-token: ${{ secrets.TWITTER_ACCESS_TOKEN }}
       #     access-token-secret: ${{ secrets.TWITTER_ACCESS_TOKEN_SECRET }}
 
+      # Python SDK release
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      - name: Install Poetry
+        uses: snok/install-poetry@d45b6d76012debf457ab49dffc7fb7b2efe8071d
+      - name: Release Python SDK
+        working-directory: python-sdk
+        run: make publish
+        env:
+          PYPI_USERNAME: ${{ secrets.PYPI_USERNAME }}
+          PYPI_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+
       - name: Google Chat Notification
         if: ${{ failure() }}
         uses: Co-qn/google-chat-notification@b9227d9daa4638c9782a5bd16c4abb86268127a1
@@ -156,6 +169,7 @@ jobs:
           name: ${{ github.workflow }}
           url: ${{ secrets.GOOGLE_CHAT_WEBHOOK }}
           status: ${{ job.status }}
+
 
   job-trigger:
     needs: [release]

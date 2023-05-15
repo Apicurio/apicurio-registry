@@ -412,9 +412,14 @@ public interface SqlStatements {
     public String selectContentIdsReferencingArtifactBy();
 
     /**
-     * A statement to select global ids of artifact versions with content referencing artifact
+     * A statement to select global ids of artifact versions with content referencing an artifact
      */
     public String selectGlobalIdsReferencingArtifactBy();
+
+    /**
+     * A statement to select GAV info of artifact versions with content referencing an artifact
+     */
+    public String selectInboundReferencesByGAV();
 
     /**
      * A statement to select the number of artifacts with a given artifactId (should be 0 or 1).
@@ -613,4 +618,5 @@ public interface SqlStatements {
     public String deleteAllReferences();
 
     public String deleteOrphanedReferences();
+
 }

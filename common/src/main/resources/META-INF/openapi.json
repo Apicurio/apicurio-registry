@@ -1604,6 +1604,14 @@
                     },
                     "in": "path",
                     "required": true
+                },
+                {
+                    "name": "refType",
+                    "description": "Determines the type of reference to return, either INBOUND or OUTBOUND.  Defaults to OUTBOUND.",
+                    "schema": {
+                        "$ref": "#/components/schemas/ReferenceType"
+                    },
+                    "in": "query"
                 }
             ]
         },
@@ -1665,6 +1673,15 @@
                     },
                     "in": "path",
                     "required": true
+                },
+                {
+                    "name": "refType",
+                    "description": "Determines the type of reference to return, either INBOUND or OUTBOUND.  Defaults to OUTBOUND.",
+                    "schema": {
+                        "$ref": "#/components/schemas/ReferenceType"
+                    },
+                    "in": "query",
+                    "required": false
                 }
             ]
         },
@@ -4246,6 +4263,16 @@
                         }
                     }
                 }
+            },
+            "ReferenceType": {
+                "description": "",
+                "enum": [
+                    "OUTBOUND",
+                    "INBOUND"
+                ],
+                "type": "string",
+                "example": "\"INBOUND\"",
+                "x-codegen-package": "io.apicurio.registry.types"
             }
         },
         "responses": {

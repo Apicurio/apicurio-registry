@@ -34,6 +34,7 @@ import io.apicurio.registry.storage.dto.StoredArtifactDto;
 import io.apicurio.registry.types.ArtifactMediaTypes;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.Current;
+import io.apicurio.registry.types.ReferenceType;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 
 import java.util.List;
@@ -121,11 +122,17 @@ public class IdsResourceImpl implements IdsResource {
         return builder.build();
     }
 
+    /**
+     * @see io.apicurio.registry.rest.v2.IdsResource#referencesByContentHash(java.lang.String)
+     */
     @Override
     public List<ArtifactReference> referencesByContentHash(String contentHash) {
         return common.getReferencesByContentHash(contentHash);
     }
 
+    /**
+     * @see io.apicurio.registry.rest.v2.IdsResource#referencesByContentId(long)
+     */
     @Override
     public List<ArtifactReference> referencesByContentId(long contentId) {
         ContentWrapperDto artifact = storage.getArtifactByContentId(contentId);
@@ -134,11 +141,21 @@ public class IdsResourceImpl implements IdsResource {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * @see io.apicurio.registry.rest.v2.IdsResource#referencesByGlobalId(long, io.apicurio.registry.types.ReferenceType)
+     */
     @Override
-    public List<ArtifactReference> referencesByGlobalId(long globalId) {
-        StoredArtifactDto artifact = storage.getArtifactVersion(globalId);
-        return artifact.getReferences().stream()
-                .map(V2ApiUtil::referenceDtoToReference)
-                .collect(Collectors.toList());
+    public List<ArtifactReference> referencesByGlobalId(long globalId, ReferenceType refType) {
+        if (refType == ReferenceType.OUTBOUND || refType == null) {
+            StoredArtifactDto artifact = storage.getArtifactVersion(globalId);
+            return artifact.getReferences().stream()
+                    .map(V2ApiUtil::referenceDtoToReference)
+                    .collect(Collectors.toList());
+        } else {
+            ArtifactMetaDataDto amd = storage.getArtifactMetaData(globalId);
+            return storage.getInboundArtifactReferences(amd.getGroupId(), amd.getId(), amd.getVersion()).stream()
+                    .map(V2ApiUtil::referenceDtoToReference)
+                    .collect(Collectors.toList());
+        }
     }
 }

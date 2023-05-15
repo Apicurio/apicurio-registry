@@ -38,6 +38,7 @@ import { ArtifactMetaData, ArtifactTypes, ContentTypes, Rule, SearchedVersion } 
 import { ClientGeneration, CreateVersionData, EditableMetaData, Services } from "../../../services";
 import { PleaseWaitModal } from "../../components/modals/pleaseWaitModal";
 import { ChangeOwnerModal } from "./components/modals/changeOwnerModal";
+import { ReferencesTabContent } from "./components/tabs/references";
 
 
 /**
@@ -115,6 +116,9 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
             </Tab>,
             <Tab eventKey={2} title="Content" key="content">
                 <ContentTabContent artifactContent={this.state.artifactContent} artifactType={artifact.type} />
+            </Tab>,
+            <Tab eventKey={3} title="References" key="references">
+                <ReferencesTabContent artifact={this.state.artifact} artifactType={artifact.type} />
             </Tab>,
         ];
         if (!this.showDocumentationTab()) {

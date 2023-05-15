@@ -22,7 +22,7 @@
 
         <kafka.version>2.3.0</kafka.version>
         <hamcrest.version>2.2</hamcrest.version>
-        <version.failsafe.plugin>3.0.0</version.failsafe.plugin>
+        <version.failsafe.plugin>3.1.0</version.failsafe.plugin>
     </properties>
 
     <repositories>

@@ -59,7 +59,7 @@ public class UiConfigProperties {
     String uiContextPath;
 
     @Inject
-    @ConfigProperty(name = "registry.ui.config.uiCodegenEnabled", defaultValue = "false")
+    @ConfigProperty(name = "registry.ui.config.uiCodegenEnabled", defaultValue = "true")
     @Info(category = "ui", description = "UI codegen enabled", availableSince = "2.4.2.Final")
     boolean uiCodegenEnabled;
 

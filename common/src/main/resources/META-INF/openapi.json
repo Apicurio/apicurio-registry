@@ -3086,7 +3086,14 @@
                     "Versions"
                 ],
                 "responses": {
-                    "201": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Comment"
+                                }
+                            }
+                        },
                         "description": "The comment was successfully created."
                     },
                     "404": {
@@ -3182,15 +3189,6 @@
             },
             "parameters": [
                 {
-                    "name": "commentId",
-                    "description": "The unique identifier of a single comment.",
-                    "schema": {
-                        "type": "string"
-                    },
-                    "in": "path",
-                    "required": true
-                },
-                {
                     "name": "groupId",
                     "description": "The artifact group ID.  Must be a string provided by the client, representing the name of the grouping of artifacts.",
                     "schema": {
@@ -3213,6 +3211,15 @@
                     "description": "The unique identifier of a specific version of the artifact content.",
                     "schema": {
                         "$ref": "#/components/schemas/Version"
+                    },
+                    "in": "path",
+                    "required": true
+                },
+                {
+                    "name": "commentId",
+                    "description": "The unique identifier of a single comment.",
+                    "schema": {
+                        "type": "string"
                     },
                     "in": "path",
                     "required": true

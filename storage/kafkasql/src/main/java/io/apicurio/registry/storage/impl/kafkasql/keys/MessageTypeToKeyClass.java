@@ -77,6 +77,12 @@ public class MessageTypeToKeyClass {
                 case ArtifactOwner:
                     index.put(type, ArtifactOwnerKey.class);
                     break;
+                case CommentId:
+                    index.put(type, CommentIdKey.class);
+                    break;
+                case Comment:
+                    index.put(type, CommentKey.class);
+                    break;
                 default:
                     throw new RuntimeException("[MessageTypeToKeyClass] Type not mapped: " + type);
             }

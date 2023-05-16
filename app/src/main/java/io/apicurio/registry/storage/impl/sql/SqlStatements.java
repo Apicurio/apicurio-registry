@@ -332,6 +332,11 @@ public interface SqlStatements {
     public String deleteAllProperties();
 
     /**
+     * A statement to delete all comments for all versions for all artifacts
+     */
+    public String deleteAllComments();
+
+    /**
      * A statement to delete all versions for a single artifact.
      */
     public String deleteVersions();
@@ -385,6 +390,11 @@ public interface SqlStatements {
      * A statement to delete the properties for a single artifact version.
      */
     public String deleteVersionProperties();
+
+    /**
+     * A statement to delete the comments for a single artifact version.
+     */
+    public String deleteVersionComments();
 
     /**
      * A statement to delete a single artifact version.
@@ -559,6 +569,8 @@ public interface SqlStatements {
     public String selectMaxContentId();
 
     public String selectMaxGlobalId();
+
+    public String selectMaxCommentId();
 
     public String selectContentExists();
 

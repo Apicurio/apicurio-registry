@@ -619,4 +619,16 @@ public interface SqlStatements {
 
     public String deleteOrphanedReferences();
 
+    /*
+     * The next statements relate to comments.
+     */
+
+    public String insertComment();
+    
+    public String selectComments();
+
+    public String deleteComment();
+
+    public String updateComment();
+
 }

@@ -66,6 +66,7 @@ import io.apicurio.registry.exception.UnreachableCodeException;
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
 import io.apicurio.registry.storage.ArtifactStateExt;
+import io.apicurio.registry.storage.CommentNotFoundException;
 import io.apicurio.registry.storage.ContentNotFoundException;
 import io.apicurio.registry.storage.DownloadNotFoundException;
 import io.apicurio.registry.storage.GroupAlreadyExistsException;
@@ -88,6 +89,7 @@ import io.apicurio.registry.storage.dto.ArtifactOwnerDto;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
+import io.apicurio.registry.storage.dto.CommentDto;
 import io.apicurio.registry.storage.dto.ContentWrapperDto;
 import io.apicurio.registry.storage.dto.DownloadContextDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
@@ -115,6 +117,7 @@ import io.apicurio.registry.storage.impl.sql.mappers.ArtifactReferenceDtoMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.ArtifactRuleEntityMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.ArtifactVersionEntityMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.ArtifactVersionMetaDataDtoMapper;
+import io.apicurio.registry.storage.impl.sql.mappers.CommentDtoMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.ContentEntityMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.ContentMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.DynamicConfigPropertyDtoMapper;
@@ -167,6 +170,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
     private static final String GLOBAL_ID_SEQUENCE = "globalId";
     private static final String CONTENT_ID_SEQUENCE = "contentId";
+    private static final String COMMENT_ID_SEQUENCE = "commentId";
 
     @Inject
     Logger log;
@@ -841,8 +845,8 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             //Only create group metadata for non-default groups.
             createGroup(GroupMetaDataDto.builder()
                     .groupId(groupId)
-                    .createdOn(0)
-                    .modifiedOn(0)
+                    .createdOn(createdOn.getTime())
+                    .modifiedOn(createdOn.getTime())
                     .createdBy(createdBy)
                     .modifiedBy(createdBy)
                     .build());
@@ -2205,6 +2209,165 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                 return null;
             });
         } catch (VersionNotFoundException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new RegistryStorageException(e);
+        }
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#createArtifactVersionComment(java.lang.String, java.lang.String, java.lang.String, java.lang.String)
+     */
+    @Override
+    public CommentDto createArtifactVersionComment(String groupId, String artifactId, String version, String value) {
+        log.debug("Inserting an artifact comment row for artifact: {} {} version: {}", groupId, artifactId, version);
+
+        String theVersion = resolveVersion(groupId, artifactId, version);
+        String createdBy = securityIdentity.getPrincipal().getName();
+        Date createdOn = new Date();
+        
+        try {
+            return this.handles.withHandle(handle -> {
+                String sql = sqlStatements.selectArtifactVersionMetaData();
+                Optional<ArtifactVersionMetaDataDto> res = handle.createQuery(sql)
+                        .bind(0, tenantContext.tenantId())
+                        .bind(1, normalizeGroupId(groupId))
+                        .bind(2, artifactId)
+                        .bind(3, theVersion)
+                        .map(ArtifactVersionMetaDataDtoMapper.instance)
+                        .findOne();
+                ArtifactVersionMetaDataDto avmdd = res.orElseThrow(() -> new VersionNotFoundException(groupId, artifactId, version));
+
+                String commentId = String.valueOf(nextCommentId(handle));
+
+                sql = sqlStatements.insertComment();
+                handle.createUpdate(sql)
+                        .bind(0, tenantContext.tenantId())
+                        .bind(1, commentId)
+                        .bind(2, avmdd.getGlobalId())
+                        .bind(3, createdBy)
+                        .bind(4, createdOn)
+                        .bind(5, value)
+                        .execute();
+
+                log.debug("Comment row successfully inserted.");
+
+                CommentDto dto = CommentDto.builder()
+                        .commentId(commentId)
+                        .createdBy(createdBy)
+                        .createdOn(createdOn.getTime())
+                        .value(value)
+                        .build();
+                return dto;
+            });
+        } catch (VersionNotFoundException e) {
+            throw e;
+        } catch (Exception e) {
+            if (sqlStatements.isForeignKeyViolation(e)) {
+                throw new ArtifactNotFoundException(groupId, artifactId, e);
+            }
+            throw new RegistryStorageException(e);
+        }
+    }
+    
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#getArtifactVersionComments(java.lang.String, java.lang.String, java.lang.String)
+     */
+    @Override
+    public List<CommentDto> getArtifactVersionComments(String groupId, String artifactId, String version) {
+        log.debug("Getting a list of all artifact version comments for: {} {} @ {}", groupId, artifactId, version);
+        String theVersion = resolveVersion(groupId, artifactId, version);
+
+        try {
+            return this.handles.withHandle(handle -> {
+                String sql = sqlStatements.selectComments();
+                List<CommentDto> comments = handle.createQuery(sql)
+                        .bind(0, tenantContext.tenantId())
+                        .bind(1, normalizeGroupId(groupId))
+                        .bind(2, artifactId)
+                        .bind(3, theVersion)
+                        .map(CommentDtoMapper.instance)
+                        .list();
+                return comments;
+            });
+        } catch (ArtifactNotFoundException anfe) {
+            throw anfe;
+        } catch (Exception e) {
+            throw new RegistryStorageException(e);
+        }
+    }
+    
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#deleteArtifactVersionComment(java.lang.String, java.lang.String, java.lang.String, java.lang.String)
+     */
+    @Override
+    @Transactional
+    public void deleteArtifactVersionComment(String groupId, String artifactId, String version, String commentId) {
+        log.debug("Deleting an artifact rule for artifact: {} {} @ {}", groupId, artifactId, version);
+        String theVersion = resolveVersion(groupId, artifactId, version);
+        try {
+            this.handles.withHandle(handle -> {
+                String sql = sqlStatements.selectArtifactVersionMetaData();
+                Optional<ArtifactVersionMetaDataDto> res = handle.createQuery(sql)
+                        .bind(0, tenantContext.tenantId())
+                        .bind(1, normalizeGroupId(groupId))
+                        .bind(2, artifactId)
+                        .bind(3, theVersion)
+                        .map(ArtifactVersionMetaDataDtoMapper.instance)
+                        .findOne();
+                ArtifactVersionMetaDataDto avmdd = res.orElseThrow(() -> new VersionNotFoundException(groupId, artifactId, version));
+
+                sql = sqlStatements.deleteComment();
+                int rowCount = handle.createUpdate(sql)
+                        .bind(0, tenantContext.tenantId())
+                        .bind(1, avmdd.getGlobalId())
+                        .bind(2, commentId)
+                        .execute();
+                if (rowCount == 0) {
+                    throw new CommentNotFoundException();
+                }
+                return null;
+            });
+        } catch (StorageException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new RegistryStorageException(e);
+        }
+    }
+    
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#updateArtifactVersionComment(java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String)
+     */
+    @Override
+    @Transactional
+    public void updateArtifactVersionComment(String groupId, String artifactId, String version, String commentId, String value) {
+        log.debug("Updating a comment for artifact: {} {} @ {}", groupId, artifactId, version);
+        String theVersion = resolveVersion(groupId, artifactId, version);
+        try {
+            this.handles.withHandle(handle -> {
+                String sql = sqlStatements.selectArtifactVersionMetaData();
+                Optional<ArtifactVersionMetaDataDto> res = handle.createQuery(sql)
+                        .bind(0, tenantContext.tenantId())
+                        .bind(1, normalizeGroupId(groupId))
+                        .bind(2, artifactId)
+                        .bind(3, theVersion)
+                        .map(ArtifactVersionMetaDataDtoMapper.instance)
+                        .findOne();
+                ArtifactVersionMetaDataDto avmdd = res.orElseThrow(() -> new VersionNotFoundException(groupId, artifactId, version));
+
+                sql = sqlStatements.updateComment();
+                int rowCount = handle.createUpdate(sql)
+                        .bind(0, value)
+                        .bind(1, tenantContext.tenantId())
+                        .bind(2, avmdd.getGlobalId())
+                        .bind(3, commentId)
+                        .execute();
+                if (rowCount == 0) {
+                    throw new CommentNotFoundException();
+                }
+                return null;
+            });
+        } catch (StorageException e) {
             throw e;
         } catch (Exception e) {
             throw new RegistryStorageException(e);
@@ -3721,6 +3884,10 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         return nextSequenceValue(handle, GLOBAL_ID_SEQUENCE);
     }
 
+    protected long nextCommentId(Handle handle) {
+        return nextSequenceValue(handle, COMMENT_ID_SEQUENCE);
+    }
+
     private long nextSequenceValue(Handle handle, String sequenceName) {
         if (Set.of("mssql", "postgresql").contains(sqlStatements.dbType())) {
             return handle.createQuery(sqlStatements.getNextSequenceValue())
@@ -3790,5 +3957,11 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         return globalId;
     }
 
+    private String resolveVersion(String groupId, String artifactId, String version) {
+        if ("latest".equalsIgnoreCase(version)) {
+            return getLatestArtifactMetaDataInternal(groupId, artifactId, ArtifactRetrievalBehavior.SKIP_DISABLED_LATEST).getVersion();
+        }
+        return version;
+    }
 
 }

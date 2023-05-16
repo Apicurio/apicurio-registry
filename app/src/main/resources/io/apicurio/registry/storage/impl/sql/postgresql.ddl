@@ -4,7 +4,7 @@
 
 CREATE TABLE apicurio (prop_name VARCHAR(255) NOT NULL, prop_value VARCHAR(255));
 ALTER TABLE apicurio ADD PRIMARY KEY (prop_name);
-INSERT INTO apicurio (prop_name, prop_value) VALUES ('db_version', 12);
+INSERT INTO apicurio (prop_name, prop_value) VALUES ('db_version', 13);
 
 CREATE TABLE sequences (tenantId VARCHAR(128) NOT NULL, name VARCHAR(32) NOT NULL, value BIGINT NOT NULL);
 ALTER TABLE sequences ADD PRIMARY KEY (tenantId, name);
@@ -48,6 +48,11 @@ CREATE INDEX IDX_props_2 ON properties(pvalue);
 CREATE TABLE labels (tenantId VARCHAR(128) NOT NULL, globalId BIGINT NOT NULL, label VARCHAR(256) NOT NULL);
 ALTER TABLE labels ADD CONSTRAINT FK_labels_1 FOREIGN KEY (tenantId, globalId) REFERENCES versions(tenantId, globalId);
 CREATE INDEX IDX_labels_1 ON labels(label);
+
+CREATE TABLE comments (tenantId VARCHAR(128) NOT NULL, commentId VARCHAR(128) NOT NULL, globalId BIGINT NOT NULL, createdBy VARCHAR(256), createdOn TIMESTAMP WITHOUT TIME ZONE NOT NULL, cvalue VARCHAR(1024) NOT NULL);
+ALTER TABLE comments ADD PRIMARY KEY (tenantId, commentId);
+ALTER TABLE comments ADD CONSTRAINT FK_comments_1 FOREIGN KEY (tenantId, globalId) REFERENCES versions(tenantId, globalId);
+CREATE INDEX IDX_comments_1 ON comments(createdBy);
 
 CREATE TABLE logconfiguration (logger VARCHAR(512) NOT NULL, loglevel VARCHAR(32) NOT NULL);
 ALTER TABLE logconfiguration ADD PRIMARY KEY (logger);

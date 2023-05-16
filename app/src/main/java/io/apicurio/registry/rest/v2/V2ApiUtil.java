@@ -17,9 +17,17 @@
 
 package io.apicurio.registry.rest.v2;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v2.beans.ArtifactReference;
 import io.apicurio.registry.rest.v2.beans.ArtifactSearchResults;
+import io.apicurio.registry.rest.v2.beans.Comment;
 import io.apicurio.registry.rest.v2.beans.GroupMetaData;
 import io.apicurio.registry.rest.v2.beans.GroupSearchResults;
 import io.apicurio.registry.rest.v2.beans.SearchedArtifact;
@@ -32,17 +40,11 @@ import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
+import io.apicurio.registry.storage.dto.CommentDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.GroupMetaDataDto;
 import io.apicurio.registry.storage.dto.GroupSearchResultsDto;
 import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Comparator;
-import java.util.Date;
-import java.util.Optional;
-import java.util.stream.Collectors;
 
 /**
  * @author eric.wittmann@gmail.com
@@ -335,6 +337,15 @@ public final class V2ApiUtil {
         group.setModifiedOn(new Date(dto.getModifiedOn()));
         group.setProperties(dto.getProperties());
         return group;
+    }
+
+    public static Comment commentDtoToComment(CommentDto dto) {
+        return Comment.builder()
+                .commentId(dto.getCommentId())
+                .createdBy(dto.getCreatedBy())
+                .createdOn(new Date(dto.getCreatedOn()))
+                .value(dto.getValue())
+                .build();
     }
 
     public static String prettyPrintReferences(Collection<ArtifactReference> references) {

@@ -34,6 +34,7 @@ import io.apicurio.registry.storage.dto.ArtifactOwnerDto;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
+import io.apicurio.registry.storage.dto.CommentDto;
 import io.apicurio.registry.storage.dto.ContentWrapperDto;
 import io.apicurio.registry.storage.dto.DownloadContextDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
@@ -1021,5 +1022,37 @@ public abstract class RegistryStorageDecorator implements RegistryStorage {
     @Override
     public GroupSearchResultsDto searchGroups(Set<SearchFilter> filters, OrderBy orderBy, OrderDirection orderDirection, Integer offset, Integer limit) {
         return delegate.searchGroups(filters, orderBy, orderDirection, offset, limit);
+    }
+    
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#createArtifactVersionComment(java.lang.String, java.lang.String, java.lang.String, java.lang.String)
+     */
+    @Override
+    public CommentDto createArtifactVersionComment(String groupId, String artifactId, String version, String value) {
+        return delegate.createArtifactVersionComment(groupId, artifactId, version, value);
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#deleteArtifactVersionComment(java.lang.String, java.lang.String, java.lang.String, java.lang.String)
+     */
+    @Override
+    public void deleteArtifactVersionComment(String groupId, String artifactId, String version, String commentId) {
+        delegate.deleteArtifactVersionComment(groupId, artifactId, version, commentId);
+    }
+    
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#getArtifactVersionComments(java.lang.String, java.lang.String, java.lang.String)
+     */
+    @Override
+    public List<CommentDto> getArtifactVersionComments(String groupId, String artifactId, String version) {
+        return delegate.getArtifactVersionComments(groupId, artifactId, version);
+    }
+    
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#updateArtifactVersionComment(java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String)
+     */
+    @Override
+    public void updateArtifactVersionComment(String groupId, String artifactId, String version, String commentId, String value) {
+        delegate.updateArtifactVersionComment(groupId, artifactId, version, commentId, value);
     }
 }

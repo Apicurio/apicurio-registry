@@ -1056,4 +1056,26 @@ public abstract class CommonSqlStatements implements SqlStatements {
         return "SELECT value FROM sequences WHERE name = ? AND tenantId = ? ";
     }
 
+    @Override
+    public String insertComment() {
+        return "INSERT INTO comments (tenantId, commentId, globalId, createdBy, createdOn, cvalue) VALUES (?, ?, ?, ?, ?, ?)";
+    }
+    
+    @Override
+    public String selectComments() {
+        return "SELECT c.* "
+                + "FROM comments c JOIN versions v ON v.tenantId = c.tenantId AND v.globalId = c.globalId "
+                + "WHERE v.tenantId = ? AND v.groupId = ? AND v.artifactId = ? AND v.version = ? ORDER BY c.createdOn DESC";
+    }
+    
+    @Override
+    public String deleteComment() {
+        return "DELETE FROM comments WHERE tenantId = ? AND globalId = ? AND commentId = ?";
+    }
+    
+    @Override
+    public String updateComment() {
+        return "UPDATE comments SET cvalue = ? WHERE tenantId = ? AND globalId = ? AND commentId = ?";
+    }
+
 }

@@ -16,86 +16,84 @@
 
 package io.apicurio.registry.maven;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.rules.compatibility.jsonschema.JsonUtil;
+import org.everit.json.schema.Schema;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 public class JsonSchemaDirectoryParser {
 
-    private static final String JSON_EXTENSION = ".json";
+    private static final String JSON_SCHEMA_EXTENSION = ".json";
+    private static final Logger log = LoggerFactory.getLogger(JsonSchemaDirectoryParser.class);
 
-    private final File directory;
-    private final ObjectMapper mapper;
-    private final List<JsonNode> schemas;
-
-    public JsonSchemaDirectoryParser(File directory) {
-        this.directory = directory;
-        this.mapper = new ObjectMapper();
-        this.schemas = new ArrayList<>();
+    public static JsonSchemaWrapper parse(File rootSchemaFile) throws JsonProcessingException {
+        return parseDirectory(rootSchemaFile.getParentFile(), rootSchemaFile);
     }
 
-    public List<JsonNode> parse() throws IOException {
-        for (File file : directory.listFiles()) {
-            if (file.isFile() && file.getName().endsWith(JSON_EXTENSION)) {
-                String json = new String(Files.readAllBytes(Paths.get(file.getPath())));
-                JsonNode node = mapper.readTree(json);
-                parseNode(node);
-            }
+    private static ContentHandle readSchemaContent(File schemaFile) {
+        try {
+            return ContentHandle.create(Files.readAllBytes(schemaFile.toPath()));
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to read schema file: " + schemaFile, e);
         }
-        return schemas;
     }
 
-    private void parseNode(JsonNode node) {
-        if (node.isArray()) {
-            ArrayNode array = (ArrayNode) node;
-            for (JsonNode item : array) {
-                parseNode(item);
-            }
-        } else if (node.isObject()) {
-            ObjectNode object = (ObjectNode) node;
-            if (object.has("$ref")) {
-                String ref = object.get("$ref").asText();
-                String[] parts = ref.split("/");
-                String name = parts[parts.length - 1];
-                JsonNode schema = findOrCreateSchema(name);
-                object.putAll((ObjectNode) schema);
-            } else {
-                for (JsonNode child : node) {
-                    parseNode(child);
+    private static JsonSchemaWrapper parseDirectory(File directory, File rootSchema) throws JsonProcessingException {
+        Set<File> typesToAdd = Arrays.stream(Objects.requireNonNull(directory.listFiles((dir, name) -> name.endsWith(JSON_SCHEMA_EXTENSION))))
+                .filter(file -> !file.getName().equals(rootSchema.getName())).collect(Collectors.toSet());
+
+        Map<String, Schema> processed = new HashMap<>();
+        Map<String, ContentHandle> schemaContents = new HashMap<>();
+
+
+        while (processed.size() != typesToAdd.size()) {
+            for (File typeToAdd : typesToAdd) {
+                if (typeToAdd.getName().equals(rootSchema.getName())) {
+                    continue;
+                }
+                try {
+                    final ContentHandle schemaContent = readSchemaContent(typeToAdd);
+                    final Schema schema = JsonUtil.readSchema(schemaContent.content(), schemaContents, false);
+                    processed.put(schema.getId(), schema);
+                    schemaContents.put(schema.getId(), schemaContent);
+                } catch (JsonProcessingException ex) {
+                    log.warn("Error processing json schema with name {}. This usually means that the references are not ready yet to parse it", typeToAdd.getName());
                 }
             }
         }
+
+        return new JsonSchemaWrapper(JsonUtil.readSchema(readSchemaContent(rootSchema).content(), schemaContents, false), schemaContents);
     }
 
-    private JsonNode findOrCreateSchema(String name) {
-        for (JsonNode schema : schemas) {
-            if (schema.get("title").asText().equals(name)) {
-                return schema;
-            }
+    public static class JsonSchemaWrapper {
+        final Schema schema;
+        final Map<String, ContentHandle> fileContents;
+
+        public JsonSchemaWrapper(Schema schema, Map<String, ContentHandle> fileContents) {
+            this.schema = schema;
+            this.fileContents = fileContents;
         }
-        String path = directory.getPath() + File.separator + name + JSON_EXTENSION;
-        String json = null;
-        try {
-            json = new String(Files.readAllBytes(Paths.get(path)));
-        } catch (IOException e) {
-            e.printStackTrace();
+
+        public Schema getSchema() {
+            return schema;
         }
-        JsonNode schema = null;
-        try {
-            schema = mapper.readTree(json);
-            schemas.add(schema);
-        } catch (IOException e) {
-            e.printStackTrace();
+
+        public Map<String, ContentHandle> getFileContents() {
+            return fileContents;
         }
-        return schema;
     }
+
 }
 

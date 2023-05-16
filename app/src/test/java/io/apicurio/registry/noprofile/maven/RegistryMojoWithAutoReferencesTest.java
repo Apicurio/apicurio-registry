@@ -47,6 +47,8 @@ public class RegistryMojoWithAutoReferencesTest extends RegistryMojoTestBase {
 
     private static final String PROTO_SCHEMA_EXTENSION = ".proto";
     private static final String AVSC_SCHEMA_EXTENSION = ".avsc";
+    private static final String JSON_SCHEMA_EXTENSION = ".json";
+
 
     RegisterRegistryMojo registerMojo;
     DownloadRegistryMojo downloadMojo;
@@ -126,6 +128,42 @@ public class RegistryMojoWithAutoReferencesTest extends RegistryMojoTestBase {
 
         //Assertions
         validateStructure(groupId, artifactId, 2, 4, protoFiles);
+    }
+
+    @Test
+    public void autoRegisterJsonSchemaWithReferences() throws MojoExecutionException, MojoFailureException {
+        //Preparation
+        String groupId = "autoRegisterJsonSchemaWithReferences";
+        String artifactId = "citizen";
+
+        File citizenFile = new File(getClass().getResource("citizen.json").getFile());
+
+        Set<String> protoFiles = Arrays.stream(Objects.requireNonNull(citizenFile.getParentFile().listFiles((dir, name) -> name.endsWith(JSON_SCHEMA_EXTENSION))))
+                .map(file -> {
+                    FileInputStream fis = null;
+                    try {
+                        fis = new FileInputStream(file);
+                    } catch (FileNotFoundException e) {
+                    }
+                    return IoUtil.toString(fis).trim();
+                })
+                .collect(Collectors.toSet());
+
+        RegisterArtifact citizen = new RegisterArtifact();
+        citizen.setGroupId(groupId);
+        citizen.setArtifactId(artifactId);
+        citizen.setType(ArtifactType.JSON);
+        citizen.setFile(citizenFile);
+        citizen.setAnalyzeDirectory(true);
+        citizen.setIfExists(IfExists.RETURN);
+
+        registerMojo.setArtifacts(Collections.singletonList(citizen));
+
+        //Execution
+        registerMojo.execute();
+
+        //Assertions
+        validateStructure(groupId, artifactId, 3, 4, protoFiles);
     }
 
     private void validateStructure(String groupId, String artifactId, int expectedMainReferences, int expectedTotalArtifacts, Set<String> originalContents) {

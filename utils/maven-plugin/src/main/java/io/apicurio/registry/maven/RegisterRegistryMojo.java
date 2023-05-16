@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.protobuf.Descriptors;
 import com.squareup.wire.schema.internal.parser.ProtoFileElement;
+import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v2.beans.ArtifactReference;
 import io.apicurio.registry.rest.v2.beans.IfExists;
@@ -32,6 +33,9 @@ import org.apache.avro.Schema;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
+import org.everit.json.schema.ArraySchema;
+import org.everit.json.schema.ObjectSchema;
+import org.everit.json.schema.ReferenceSchema;
 
 import java.io.ByteArrayInputStream;
 import java.io.FileInputStream;
@@ -40,6 +44,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -141,15 +146,53 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
                 registerArtifact(artifact, handleProtobufSchemaReferences(artifact, protoSchema.getFileDescriptor(), protoSchema.getFileContents()));
             }
             case ArtifactType.JSON -> {
-
+                final JsonSchemaDirectoryParser.JsonSchemaWrapper jsonSchema = JsonSchemaDirectoryParser.parse(artifact.getFile());
+                registerArtifact(artifact, handleJsonSchemaReferences(artifact, jsonSchema.getSchema(), jsonSchema.getFileContents()));
             }
+        }
+    }
+
+    private List<ArtifactReference> handleJsonSchemaReferences(RegisterArtifact rootArtifact, org.everit.json.schema.Schema rootSchema, Map<String, ContentHandle> fileContents) throws FileNotFoundException {
+
+        if (rootSchema instanceof ObjectSchema objectSchema) {
+            List<ArtifactReference> references = new ArrayList<>();
+
+            Map<String, org.everit.json.schema.Schema> rootSchemaPropertySchemas = objectSchema.getPropertySchemas();
+
+            for (String schemaKey : rootSchemaPropertySchemas.keySet()) {
+
+                List<ArtifactReference> nestedArtifactReferences = new ArrayList<>();
+
+                if (rootSchemaPropertySchemas.get(schemaKey) instanceof ReferenceSchema nestedSchema) {
+
+                    RegisterArtifact nestedRegisterArtifact = buildFromRoot(rootArtifact, nestedSchema.getSchemaLocation());
+
+                    if (nestedSchema.getReferredSchema() instanceof ObjectSchema nestedObjectSchema) {
+                        nestedArtifactReferences = handleJsonSchemaReferences(nestedRegisterArtifact, nestedObjectSchema, fileContents);
+                    }
+
+                    references.add(registerNestedSchema(nestedSchema.getSchemaLocation(), nestedArtifactReferences, nestedRegisterArtifact, fileContents.get(nestedSchema.getSchemaLocation()).content()));
+
+                } else if (rootSchemaPropertySchemas.get(schemaKey) instanceof ArraySchema nestedArray && nestedArray.getAllItemSchema() instanceof ReferenceSchema arrayElementSchema) {
+
+                    RegisterArtifact nestedRegisterArtifact = buildFromRoot(rootArtifact, arrayElementSchema.getSchemaLocation());
+
+                    if (arrayElementSchema.getReferredSchema() instanceof ObjectSchema arrayElementObjectSchema) {
+                        nestedArtifactReferences = handleJsonSchemaReferences(nestedRegisterArtifact, arrayElementObjectSchema, fileContents);
+                    }
+
+                    references.add(registerNestedSchema(arrayElementSchema.getSchemaLocation(), nestedArtifactReferences, nestedRegisterArtifact, fileContents.get(arrayElementSchema.getSchemaLocation()).content()));
+                }
+            }
+            return references;
+        } else {
+            return Collections.emptyList();
         }
     }
 
     private List<ArtifactReference> handleProtobufSchemaReferences(RegisterArtifact rootArtifact, Descriptors.FileDescriptor protoSchema, Map<String, String> fileContents) throws FileNotFoundException {
         List<ArtifactReference> references = new ArrayList<>();
         final Set<Descriptors.FileDescriptor> baseDeps = new HashSet<>(Arrays.asList(FileDescriptorUtils.baseDependencies()));
-
         final ProtoFileElement rootSchemaElement = FileDescriptorUtils.fileDescriptorToProtoFile(protoSchema.toProto());
 
         for (Descriptors.FileDescriptor dependency : protoSchema.getDependencies()) {
@@ -171,40 +214,7 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
         return references;
     }
 
-    /*
-
-        public static Descriptors.FileDescriptor protoFileToFileDescriptor(String schemaDefinition, String protoFileName, Optional<String> optionalPackageName, Map<String, String> schemaDefs, Map<String, Descriptors.FileDescriptor> dependencies)
-                throws Descriptors.DescriptorValidationException {
-            Objects.requireNonNull(schemaDefinition);
-            Objects.requireNonNull(protoFileName);
-
-            final DescriptorProtos.FileDescriptorProto fileDescriptorProto = toFileDescriptorProto(schemaDefinition, protoFileName, optionalPackageName, schemaDefs);
-            final Set<Descriptors.FileDescriptor> requiredDependencies = new HashSet<>();
-
-            Arrays.stream(baseDependencies()).forEach(baseDependency -> {
-                String dependencyFullName = baseDependency.getPackage() + "/" + baseDependency.getName(); //FIXME find a better way to do this...
-                if (fileDescriptorProto.getDependencyList().contains(dependencyFullName)) {
-                    requiredDependencies.add(baseDependency);
-                }
-            });
-
-            dependencies.keySet().forEach(dependencyName -> {
-                Descriptors.FileDescriptor dependencyDescriptor = dependencies.get(dependencyName);
-                String dependencyFullName = dependencyDescriptor.getPackage() + "/" + dependencyDescriptor.getName(); //FIXME find a better way to do this...
-                if (fileDescriptorProto.getDependencyList().contains(dependencyFullName)) {
-                    requiredDependencies.add(dependencyDescriptor);
-                }
-            });
-
-            final Set<Descriptors.FileDescriptor> joinedDependencies = new HashSet<>(requiredDependencies);
-
-            Descriptors.FileDescriptor[] dependenciesArray = new Descriptors.FileDescriptor[joinedDependencies.size()];
-
-            return Descriptors.FileDescriptor.buildFrom(fileDescriptorProto, joinedDependencies.toArray(dependenciesArray));
-        }
-
-    */
-    private List<ArtifactReference> handleAvroSchemaReferences(RegisterArtifact rootArtifact, Schema rootSchema, Map<String, String> fileContents) throws FileNotFoundException {
+    private List<ArtifactReference> handleAvroSchemaReferences(RegisterArtifact rootArtifact, Schema rootSchema, Map<String, ContentHandle> fileContents) throws FileNotFoundException {
 
         List<ArtifactReference> references = new ArrayList<>();
 
@@ -219,11 +229,11 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
                     nestedArtifactReferences = handleAvroSchemaReferences(nestedSchema, field.schema(), fileContents);
                 }
 
-                references.add(registerNestedSchema(field.schema().getFullName(), nestedArtifactReferences, nestedSchema, fileContents.get(field.schema().getFullName())));
+                references.add(registerNestedSchema(field.schema().getFullName(), nestedArtifactReferences, nestedSchema, fileContents.get(field.schema().getFullName()).content()));
             } else if (field.schema().getType() == Schema.Type.ENUM) { //If the nested schema is an enum, just register
 
                 RegisterArtifact nestedSchema = buildFromRoot(rootArtifact, field.schema().getFullName());
-                references.add(registerNestedSchema(field.schema().getFullName(), nestedArtifactReferences, nestedSchema, fileContents.get(field.schema().getFullName())));
+                references.add(registerNestedSchema(field.schema().getFullName(), nestedArtifactReferences, nestedSchema, fileContents.get(field.schema().getFullName()).content()));
             } else if (isArrayWithSubschemaElement(field)) { //If the nested schema is an array and the element is a sub-schema, handle it
 
                 Schema elementSchema = field.schema().getElementType();
@@ -234,7 +244,7 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
                     nestedArtifactReferences = handleAvroSchemaReferences(nestedSchema, elementSchema, fileContents);
                 }
 
-                references.add(registerNestedSchema(elementSchema.getFullName(), nestedArtifactReferences, nestedSchema, fileContents.get(elementSchema.getFullName())));
+                references.add(registerNestedSchema(elementSchema.getFullName(), nestedArtifactReferences, nestedSchema, fileContents.get(elementSchema.getFullName()).content()));
             }
         }
         return references;

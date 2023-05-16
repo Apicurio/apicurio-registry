@@ -64,10 +64,14 @@ public class JsonUtil {
     }
 
     public static Schema readSchema(String content) throws JsonProcessingException {
-        return readSchema(content, Collections.emptyMap());
+        return readSchema(content, Collections.emptyMap(), true);
     }
 
     public static Schema readSchema(String content, Map<String, ContentHandle> resolvedReferences) throws JsonProcessingException {
+        return readSchema(content, resolvedReferences, true);
+    }
+
+    public static Schema readSchema(String content, Map<String, ContentHandle> resolvedReferences, boolean validateDangling) throws JsonProcessingException {
         JsonNode jsonNode = MAPPER.readTree(content);
         Schema schemaObj;
         // Extract the $schema to use for determining the id keyword
@@ -121,7 +125,7 @@ public class JsonUtil {
             }
         }
         // Check for dangling references. Do we want to do this as a separate rule?
-        if (!resolvedReferencesCopy.isEmpty()) {
+        if (validateDangling && !resolvedReferencesCopy.isEmpty()) {
             var msg = "There are unused references recorded for this content. " +
                     "Make sure you have not made a typo, otherwise remove the unused reference record(s). " +
                     "References in the content: " + referenceURIs + ", " +

@@ -25,7 +25,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -35,7 +34,7 @@ public class AvroDirectoryParser {
 
     private static final String AVRO_SCHEMA_EXTENSION = ".avsc";
 
-    public static Schema parse(File rootSchemaFile) {
+    public static AvroSchemaWrapper parse(File rootSchemaFile) {
         return parseDirectory(rootSchemaFile.getParentFile(), rootSchemaFile);
     }
 
@@ -47,26 +46,26 @@ public class AvroDirectoryParser {
         }
     }
 
-    private static Schema parseDirectory(File directory, File rootSchema) {
-        Set<File> schemaFiles = Arrays.stream(Objects.requireNonNull(directory.listFiles((dir, name) -> name.endsWith(AVRO_SCHEMA_EXTENSION))))
-                .collect(Collectors.toSet());
-
-        schemaFiles.remove(rootSchema);
-
-        Set<File> typesToAdd = new HashSet<>(schemaFiles);
+    private static AvroSchemaWrapper parseDirectory(File directory, File rootSchema) {
+        Set<File> typesToAdd = Arrays.stream(Objects.requireNonNull(directory.listFiles((dir, name) -> name.endsWith(AVRO_SCHEMA_EXTENSION))))
+                .filter(file -> !file.getName().equals(rootSchema.getName())).collect(Collectors.toSet());
 
         Map<String, Schema> processed = new HashMap<>();
+        Map<String, String> schemaContents = new HashMap<>();
 
         Schema.Parser rootSchemaParser = new Schema.Parser();
         Schema.Parser partialParser = new Schema.Parser();
+
         while (processed.size() != typesToAdd.size()) {
-            for (File typeToAdd: typesToAdd) {
+            for (File typeToAdd : typesToAdd) {
                 if (typeToAdd.getName().equals(rootSchema.getName())) {
-                   continue;
+                    continue;
                 }
                 try {
-                    final Schema schema = partialParser.parse(readSchemaContent(typeToAdd));
+                    final String schemaContent = readSchemaContent(typeToAdd);
+                    final Schema schema = partialParser.parse(schemaContent);
                     processed.put(schema.getFullName(), schema);
+                    schemaContents.put(schema.getFullName(), schemaContent);
                 } catch (SchemaParseException ex) {
                 }
             }
@@ -76,6 +75,24 @@ public class AvroDirectoryParser {
 
         rootSchemaParser.addTypes(processed);
 
-        return rootSchemaParser.parse(readSchemaContent(rootSchema));
+        return new AvroSchemaWrapper(rootSchemaParser.parse(readSchemaContent(rootSchema)), schemaContents);
+    }
+
+    public static class AvroSchemaWrapper {
+        final Schema schema;
+        final Map<String, String> fileContents; //Original file contents from the file system.
+
+        public AvroSchemaWrapper(Schema schema, Map<String, String> fileContents) {
+            this.schema = schema;
+            this.fileContents = fileContents;
+        }
+
+        public Schema getSchema() {
+            return schema;
+        }
+
+        public Map<String, String> getFileContents() {
+            return fileContents;
+        }
     }
 }

@@ -130,11 +130,11 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
         }
     }
 
-    private void registerDirectory(RegisterArtifact artifact) throws IOException, Descriptors.DescriptorValidationException {
+    private void registerDirectory(RegisterArtifact artifact) throws IOException {
         switch (artifact.getType()) {
             case ArtifactType.AVRO -> {
-                final Schema schema = AvroDirectoryParser.parse(artifact.getFile());
-                registerArtifact(artifact, handleAvroSchemaReferences(artifact, schema));
+                final AvroDirectoryParser.AvroSchemaWrapper schema = AvroDirectoryParser.parse(artifact.getFile());
+                registerArtifact(artifact, handleAvroSchemaReferences(artifact, schema.getSchema(), schema.getFileContents()));
             }
             case ArtifactType.PROTOBUF -> {
                 final ProtobufDirectoryParser.DescriptorWrapper protoSchema = ProtobufDirectoryParser.parse(artifact.getFile());
@@ -204,7 +204,7 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
         }
 
     */
-    private List<ArtifactReference> handleAvroSchemaReferences(RegisterArtifact rootArtifact, Schema rootSchema) throws FileNotFoundException {
+    private List<ArtifactReference> handleAvroSchemaReferences(RegisterArtifact rootArtifact, Schema rootSchema, Map<String, String> fileContents) throws FileNotFoundException {
 
         List<ArtifactReference> references = new ArrayList<>();
 
@@ -216,14 +216,14 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
                 RegisterArtifact nestedSchema = buildFromRoot(rootArtifact, field.schema().getFullName());
 
                 if (field.schema().hasFields()) {
-                    nestedArtifactReferences = handleAvroSchemaReferences(nestedSchema, field.schema());
+                    nestedArtifactReferences = handleAvroSchemaReferences(nestedSchema, field.schema(), fileContents);
                 }
 
-                references.add(registerNestedSchema(field.schema().getFullName(), nestedArtifactReferences, nestedSchema, field.schema().toString()));
+                references.add(registerNestedSchema(field.schema().getFullName(), nestedArtifactReferences, nestedSchema, fileContents.get(field.schema().getFullName())));
             } else if (field.schema().getType() == Schema.Type.ENUM) { //If the nested schema is an enum, just register
 
                 RegisterArtifact nestedSchema = buildFromRoot(rootArtifact, field.schema().getFullName());
-                references.add(registerNestedSchema(field.schema().getFullName(), nestedArtifactReferences, nestedSchema, field.schema().toString()));
+                references.add(registerNestedSchema(field.schema().getFullName(), nestedArtifactReferences, nestedSchema, fileContents.get(field.schema().getFullName())));
             } else if (isArrayWithSubschemaElement(field)) { //If the nested schema is an array and the element is a sub-schema, handle it
 
                 Schema elementSchema = field.schema().getElementType();
@@ -231,10 +231,10 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
                 RegisterArtifact nestedSchema = buildFromRoot(rootArtifact, elementSchema.getFullName());
 
                 if (elementSchema.hasFields()) {
-                    nestedArtifactReferences = handleAvroSchemaReferences(nestedSchema, elementSchema);
+                    nestedArtifactReferences = handleAvroSchemaReferences(nestedSchema, elementSchema, fileContents);
                 }
 
-                references.add(registerNestedSchema(elementSchema.getFullName(), nestedArtifactReferences, nestedSchema, elementSchema.toString()));
+                references.add(registerNestedSchema(elementSchema.getFullName(), nestedArtifactReferences, nestedSchema, fileContents.get(elementSchema.getFullName())));
             }
         }
         return references;

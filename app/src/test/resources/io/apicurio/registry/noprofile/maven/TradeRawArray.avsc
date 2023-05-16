@@ -12,7 +12,6 @@
           "type": "com.kubetrade.schema.trade.TradeKey"
         }
       }
-
     },
     {
       "name": "symbol",

@@ -184,7 +184,9 @@ public class ProtobufSchemaLoader {
             fileHandle.close();
             return path;
         } finally {
-            fileHandle.close();
+            if (fileHandle != null) {
+                fileHandle.close();
+            }
         }
     }
 

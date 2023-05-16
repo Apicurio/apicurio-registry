@@ -18,39 +18,76 @@ package io.apicurio.registry.maven;
 
 
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.rest.client.RegistryClient;
+import io.apicurio.registry.rest.v2.beans.ArtifactReference;
 import org.apache.avro.Schema;
 import org.apache.avro.SchemaParseException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
+import java.io.FileNotFoundException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-public class AvroDirectoryParser {
+public class AvroDirectoryParser extends AbstractDirectoryParser<Schema> {
 
     private static final String AVRO_SCHEMA_EXTENSION = ".avsc";
     private static final Logger log = LoggerFactory.getLogger(AvroDirectoryParser.class);
 
-    public static AvroSchemaWrapper parse(File rootSchemaFile) {
+    public AvroDirectoryParser(RegistryClient client) {
+        super(client);
+    }
+
+    @Override
+    public ParsedDirectoryWrapper<Schema> parse(File rootSchemaFile) {
         return parseDirectory(rootSchemaFile.getParentFile(), rootSchemaFile);
     }
 
-    private static ContentHandle readSchemaContent(File schemaFile) {
-        try {
-            return ContentHandle.create(Files.readAllBytes(schemaFile.toPath()));
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to read schema file: " + schemaFile, e);
+    @Override
+    public List<ArtifactReference> handleSchemaReferences(RegisterArtifact rootArtifact, Schema rootSchema, Map<String, ContentHandle> fileContents) throws FileNotFoundException {
+
+        List<ArtifactReference> references = new ArrayList<>();
+
+        //Iterate through all the fields of the schema
+        for (Schema.Field field : rootSchema.getFields()) {
+            List<ArtifactReference> nestedArtifactReferences = new ArrayList<>();
+            if (field.schema().getType() == Schema.Type.RECORD) { //If the field is a sub-schema, recursively check for nested sub-schemas and register all of them
+
+                RegisterArtifact nestedSchema = buildFromRoot(rootArtifact, field.schema().getFullName());
+
+                if (field.schema().hasFields()) {
+                    nestedArtifactReferences = handleSchemaReferences(nestedSchema, field.schema(), fileContents);
+                }
+
+                references.add(registerNestedSchema(field.schema().getFullName(), nestedArtifactReferences, nestedSchema, fileContents.get(field.schema().getFullName()).content()));
+            } else if (field.schema().getType() == Schema.Type.ENUM) { //If the nested schema is an enum, just register
+
+                RegisterArtifact nestedSchema = buildFromRoot(rootArtifact, field.schema().getFullName());
+                references.add(registerNestedSchema(field.schema().getFullName(), nestedArtifactReferences, nestedSchema, fileContents.get(field.schema().getFullName()).content()));
+            } else if (isArrayWithSubschemaElement(field)) { //If the nested schema is an array and the element is a sub-schema, handle it
+
+                Schema elementSchema = field.schema().getElementType();
+
+                RegisterArtifact nestedSchema = buildFromRoot(rootArtifact, elementSchema.getFullName());
+
+                if (elementSchema.hasFields()) {
+                    nestedArtifactReferences = handleSchemaReferences(nestedSchema, elementSchema, fileContents);
+                }
+
+                references.add(registerNestedSchema(elementSchema.getFullName(), nestedArtifactReferences, nestedSchema, fileContents.get(elementSchema.getFullName()).content()));
+            }
         }
+        return references;
     }
 
-    private static AvroSchemaWrapper parseDirectory(File directory, File rootSchema) {
+    private ParsedDirectoryWrapper<Schema> parseDirectory(File directory, File rootSchema) {
         Set<File> typesToAdd = Arrays.stream(Objects.requireNonNull(directory.listFiles((dir, name) -> name.endsWith(AVRO_SCHEMA_EXTENSION))))
                 .filter(file -> !file.getName().equals(rootSchema.getName())).collect(Collectors.toSet());
 
@@ -83,7 +120,11 @@ public class AvroDirectoryParser {
         return new AvroSchemaWrapper(rootSchemaParser.parse(readSchemaContent(rootSchema).content()), schemaContents);
     }
 
-    public static class AvroSchemaWrapper {
+    private boolean isArrayWithSubschemaElement(Schema.Field field) {
+        return field.schema().getType() == Schema.Type.ARRAY && field.schema().getElementType().getType() == Schema.Type.RECORD;
+    }
+
+    public static class AvroSchemaWrapper implements ParsedDirectoryWrapper<Schema> {
         final Schema schema;
         final Map<String, ContentHandle> fileContents; //Original file contents from the file system.
 
@@ -92,11 +133,13 @@ public class AvroDirectoryParser {
             this.fileContents = fileContents;
         }
 
+        @Override
         public Schema getSchema() {
             return schema;
         }
 
-        public Map<String, ContentHandle> getFileContents() {
+        @Override
+        public Map<String, ContentHandle> getSchemaContents() {
             return fileContents;
         }
     }

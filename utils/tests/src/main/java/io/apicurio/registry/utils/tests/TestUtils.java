@@ -23,7 +23,6 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.net.InetSocketAddress;
 import java.net.Socket;
-import java.net.URL;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -55,7 +54,8 @@ public class TestUtils {
     private static final String DEFAULT_REGISTRY_HOST = "localhost";
     private static final int DEFAULT_REGISTRY_PORT = 8081;
 
-    public static URL REGISTRY_URL;
+    private static final String REGISTRY_HOST = System.getenv().getOrDefault("REGISTRY_HOST", DEFAULT_REGISTRY_HOST);
+    private static final int REGISTRY_PORT = Integer.parseInt(System.getenv().getOrDefault("REGISTRY_PORT", String.valueOf(DEFAULT_REGISTRY_PORT)));
     private static final String EXTERNAL_REGISTRY = System.getenv().getOrDefault("EXTERNAL_REGISTRY", "false");
 
     private TestUtils() {
@@ -67,11 +67,11 @@ public class TestUtils {
     }
 
     public static String getRegistryHost() {
-        return REGISTRY_URL.getHost();
+        return REGISTRY_HOST;
     }
 
     public static int getRegistryPort() {
-        return REGISTRY_URL.getPort();
+        return REGISTRY_PORT;
     }
 
     public static String getRegistryUIUrl() {
@@ -100,7 +100,7 @@ public class TestUtils {
 
     public static String getRegistryBaseUrl() {
         if (isExternalRegistry()) {
-            return String.format("http://%s:%s", REGISTRY_URL.getHost(), REGISTRY_URL.getPort());
+            return String.format("http://%s:%s", REGISTRY_HOST, REGISTRY_PORT);
         } else {
             return String.format("http://%s:%s", DEFAULT_REGISTRY_HOST, DEFAULT_REGISTRY_PORT);
         }
@@ -108,7 +108,7 @@ public class TestUtils {
 
     public static String getRegistryBaseUrl(int port) {
         if (isExternalRegistry()) {
-            return String.format("http://%s:%s", REGISTRY_URL.getHost(), port);
+            return String.format("http://%s:%s", REGISTRY_HOST, port);
         } else {
             return String.format("http://%s:%s", DEFAULT_REGISTRY_HOST, port);
         }
@@ -121,8 +121,8 @@ public class TestUtils {
      */
     public static boolean isReachable() {
         try (Socket socket = new Socket()) {
-            String host = isExternalRegistry() ? REGISTRY_URL.getHost() : DEFAULT_REGISTRY_HOST;
-            int port = isExternalRegistry() ? REGISTRY_URL.getPort() : DEFAULT_REGISTRY_PORT;
+            String host = isExternalRegistry() ? REGISTRY_HOST : DEFAULT_REGISTRY_HOST;
+            int port = isExternalRegistry() ? REGISTRY_PORT : DEFAULT_REGISTRY_PORT;
             log.info("Trying to connect to {}:{}", host, port);
             socket.connect(new InetSocketAddress(host, port), 5_000);
             log.info("Client is able to connect to Registry instance");

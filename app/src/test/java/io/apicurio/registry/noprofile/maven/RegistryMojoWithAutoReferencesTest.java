@@ -86,6 +86,7 @@ public class RegistryMojoWithAutoReferencesTest extends RegistryMojoTestBase {
         tradeRawArtifact.setType(ArtifactType.AVRO);
         tradeRawArtifact.setFile(tradeRawFile);
         tradeRawArtifact.setAnalyzeDirectory(true);
+        tradeRawArtifact.setIfExists(IfExists.FAIL);
 
         registerMojo.setArtifacts(Collections.singletonList(tradeRawArtifact));
         registerMojo.execute();
@@ -119,7 +120,7 @@ public class RegistryMojoWithAutoReferencesTest extends RegistryMojoTestBase {
         tableNotification.setType(ArtifactType.PROTOBUF);
         tableNotification.setFile(tableNotificationFile);
         tableNotification.setAnalyzeDirectory(true);
-        tableNotification.setIfExists(IfExists.RETURN);
+        tableNotification.setIfExists(IfExists.FAIL);
 
         registerMojo.setArtifacts(Collections.singletonList(tableNotification));
 
@@ -155,7 +156,7 @@ public class RegistryMojoWithAutoReferencesTest extends RegistryMojoTestBase {
         citizen.setType(ArtifactType.JSON);
         citizen.setFile(citizenFile);
         citizen.setAnalyzeDirectory(true);
-        citizen.setIfExists(IfExists.RETURN);
+        citizen.setIfExists(IfExists.FAIL);
 
         registerMojo.setArtifacts(Collections.singletonList(citizen));
 
@@ -198,28 +199,3 @@ public class RegistryMojoWithAutoReferencesTest extends RegistryMojoTestBase {
         }
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

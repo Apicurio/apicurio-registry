@@ -5,6 +5,10 @@ description = ""
 authors = ["Andrea Peruffo <andrea.peruffo1982@gmail.com>"]
 readme = "README.md"
 packages = [{include = "python_sdk"}]
+include = [
+    { path = "python_sdk/client/*" },
+    { path = "python_sdk/client/**/*" }
+]
 license = "Apache 2.0"
 homepage = "https://github.com/apicurio/apicurio-registry"
 repository = "https://github.com/apicurio/apicurio-registry"

@@ -2364,6 +2364,8 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     public void updateArtifactVersionComment(String groupId, String artifactId, String version, String commentId, String value) {
         log.debug("Updating a comment for artifact: {} {} @ {}", groupId, artifactId, version);
         String theVersion = resolveVersion(groupId, artifactId, version);
+        String modifiedBy = securityIdentity.getPrincipal().getName();
+
         try {
             this.handles.withHandle(handle -> {
                 String sql = sqlStatements.selectArtifactVersionMetaData();
@@ -2382,6 +2384,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                         .bind(1, tenantContext.tenantId())
                         .bind(2, avmdd.getGlobalId())
                         .bind(3, commentId)
+                        .bind(4, modifiedBy)
                         .execute();
                 if (rowCount == 0) {
                     throw new CommentNotFoundException();

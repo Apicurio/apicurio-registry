@@ -1093,7 +1093,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
     
     @Override
     public String updateComment() {
-        return "UPDATE comments SET cvalue = ? WHERE tenantId = ? AND globalId = ? AND commentId = ?";
+        return "UPDATE comments SET cvalue = ? WHERE tenantId = ? AND globalId = ? AND commentId = ? AND createdBy = ?";
     }
 
 }

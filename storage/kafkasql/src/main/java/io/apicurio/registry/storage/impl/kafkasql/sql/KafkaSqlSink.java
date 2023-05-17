@@ -63,6 +63,7 @@ import io.apicurio.registry.storage.impl.kafkasql.values.MessageValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.RoleMappingValue;
 import io.apicurio.registry.storage.impl.sql.IdGenerator;
 import io.apicurio.registry.storage.impl.sql.IdGenerator.StaticIdGenerator;
+import io.apicurio.registry.storage.impl.sql.jdb.Handle;
 import io.apicurio.registry.types.RegistryException;
 import io.apicurio.registry.utils.impexp.ArtifactRuleEntity;
 import io.apicurio.registry.utils.impexp.ArtifactVersionEntity;
@@ -308,7 +309,7 @@ public class KafkaSqlSink {
         try {
             IdGenerator globalIdGenerator = new IdGenerator() {
                 @Override
-                public Long generate() {
+                public Long generate(Handle handle) {
                     return value.getGlobalId();
                 }
             };

@@ -582,13 +582,13 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         if (globalIdGenerator == null) {
             globalIdGenerator = new IdGenerator() {
                 @Override
-                public Long generate() {
+                public Long generate(Handle handle) {
                     return nextGlobalId(handle);
                 }
             };
         }
 
-        Long globalId = globalIdGenerator.generate();
+        Long globalId = globalIdGenerator.generate(handle);
 
         // Create a row in the "versions" table
         String sql = sqlStatements.insertVersion(firstVersion);
@@ -2239,10 +2239,8 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
         return createArtifactVersionComment(groupId, artifactId, theVersion, new IdGenerator() {
             @Override
-            public Long generate() {
-                return handles.withHandle(handle -> {
-                    return nextCommentId(handle);
-                });
+            public Long generate(Handle handle) {
+                return nextCommentId(handle);
             }
         }, createdBy, createdOn, value);
     }
@@ -2261,7 +2259,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                         .findOne();
                 ArtifactVersionMetaDataDto avmdd = res.orElseThrow(() -> new VersionNotFoundException(groupId, artifactId, version));
 
-                String cid = String.valueOf(commentId.generate());
+                String cid = String.valueOf(commentId.generate(handle));
                 
                 sql = sqlStatements.insertComment();
                 handle.createUpdate(sql)

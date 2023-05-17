@@ -2,10 +2,10 @@ import requests
 import zipfile
 import io
 import os
-import shutil
 import stat
 import sys
 import platform
+from pathlib import Path
 
 KIOTA_VERSION = "1.1.3"
 
@@ -57,7 +57,8 @@ def generate_kiota_client_files(setup_kwargs):
         "META-INF",
         "openapi.json",
     )
-    output = os.path.join(sys.path[0], "python_sdk", "client")
+    output = Path(__file__).parent.joinpath("python_sdk", "client")
+
     command = f'{kiota_bin} generate --language=python --openapi="{openapi_doc}" --output="{output}" --class-name=RegistryClient --namespace-name=client --clean-output --clear-cache'
     print(f"Executing kiota command: {command}")
 

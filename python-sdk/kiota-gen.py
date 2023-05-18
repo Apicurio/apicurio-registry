@@ -49,7 +49,6 @@ def generate_kiota_client_files(setup_kwargs):
     os.chmod(kiota_bin, st.st_mode | stat.S_IEXEC)
 
     openapi_doc = Path(__file__).parent.joinpath("openapi.json")
-    # TODO: improve this to do a better clean-install
     if not os.path.exists(openapi_doc):
         shutil.copyfile(
             os.path.join(

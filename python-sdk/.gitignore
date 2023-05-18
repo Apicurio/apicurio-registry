@@ -1,9 +1,6 @@
-<<<<<<< HEAD
-=======
 dist
 kiota_tmp
 apicurioregistrysdk/client
 
->>>>>>> 542772a83 (rename the root folder of the Python SDK)
 __pycache__
 .pytest_cache

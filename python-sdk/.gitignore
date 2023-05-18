@@ -1,6 +1,2 @@
-dist
-kiota_tmp
-apicurioregistrysdk/client
-
 __pycache__
-
+.pytest_cache

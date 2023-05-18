@@ -4,6 +4,7 @@ import io
 import os
 import stat
 import sys
+import shutil
 import platform
 from pathlib import Path
 
@@ -47,16 +48,20 @@ def generate_kiota_client_files(setup_kwargs):
     st = os.stat(kiota_bin)
     os.chmod(kiota_bin, st.st_mode | stat.S_IEXEC)
 
-    openapi_doc = os.path.join(
-        sys.path[0],
-        "..",
-        "common",
-        "src",
-        "main",
-        "resources",
-        "META-INF",
-        "openapi.json",
-    )
+    openapi_doc = Path(__file__).parent.joinpath("openapi.json")
+    # TODO: improve this to do a better clean-install
+    if not os.path.exists(openapi_doc):
+        shutil.copyfile(os.path.join(
+            sys.path[0],
+            "..",
+            "common",
+            "src",
+            "main",
+            "resources",
+            "META-INF",
+            "openapi.json",
+        ), openapi_doc)
+
     output = Path(__file__).parent.joinpath("apicurioregistrysdk", "client")
 
     command = f'{kiota_bin} generate --language=python --openapi="{openapi_doc}" --output="{output}" --class-name=RegistryClient --namespace-name=client --clean-output --clear-cache'

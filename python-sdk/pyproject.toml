@@ -6,7 +6,11 @@ authors = ["Andrea Peruffo <andrea.peruffo1982@gmail.com>"]
 readme = "README.md"
 packages = [{include = "apicurioregistrysdk"}]
 include = [
-    { path = "apicurioregistrysdk/client/**/*" },
+    { path = "openapi.json", format=["sdist", "wheel"] },
+    { path = "apicurioregistrysdk/client/**/*", format=["sdist", "wheel"] },
+]
+exclude = [
+    { path = "apicurioregistrysdk/__pycache__", format=["sdist", "wheel"] },
 ]
 license = "Apache 2.0"
 homepage = "https://github.com/apicurio/apicurio-registry"

@@ -57,7 +57,7 @@ def generate_kiota_client_files(setup_kwargs):
         "META-INF",
         "openapi.json",
     )
-    output = Path(__file__).parent.joinpath("python_sdk", "client")
+    output = Path(__file__).parent.joinpath("apicurioregistrysdk", "client")
 
     command = f'{kiota_bin} generate --language=python --openapi="{openapi_doc}" --output="{output}" --class-name=RegistryClient --namespace-name=client --clean-output --clear-cache'
     print(f"Executing kiota command: {command}")

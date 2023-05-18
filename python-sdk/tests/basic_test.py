@@ -9,8 +9,8 @@ from kiota_abstractions.authentication.anonymous_authentication_provider import 
     AnonymousAuthenticationProvider,
 )
 from kiota_http.httpx_request_adapter import HttpxRequestAdapter
-from client.registry_client import RegistryClient
-from client.models.artifact_content import ArtifactContent
+from apicurioregistrysdk.client.registry_client import RegistryClient
+from apicurioregistrysdk.client.models.artifact_content import ArtifactContent
 
 REGISTRY_HOST = "localhost"
 REGISTRY_PORT = 8080

@@ -88,6 +88,14 @@ public interface RegistryClient extends Closeable {
     Rule updateArtifactRuleConfig(String groupId, String artifactId, RuleType rule, Rule data);
 
     void deleteArtifactRule(String groupId, String artifactId, RuleType rule);
+    
+    List<Comment> getArtifactVersionComments(String groupId, String artifactId, String version);
+
+    Comment addArtifactVersionComment(String groupId, String artifactId, String version, NewComment comment);
+    
+    void deleteArtifactVersionComment(String groupId, String artifactId, String version, String commentId);
+    
+    void editArtifactVersionComment(String groupId, String artifactId, String version, String commentId, NewComment comment);
 
     void updateArtifactState(String groupId, String artifactId, UpdateState data);
 

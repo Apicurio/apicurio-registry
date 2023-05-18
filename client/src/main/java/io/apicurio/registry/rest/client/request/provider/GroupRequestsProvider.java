@@ -16,17 +16,26 @@
 
 package io.apicurio.registry.rest.client.request.provider;
 
+import static io.apicurio.rest.client.request.Operation.GET;
+
+import java.io.InputStream;
+import java.util.List;
+import java.util.Map;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
 import io.apicurio.registry.rest.v2.beans.ArtifactContent;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v2.beans.ArtifactOwner;
 import io.apicurio.registry.rest.v2.beans.ArtifactReference;
 import io.apicurio.registry.rest.v2.beans.ArtifactSearchResults;
+import io.apicurio.registry.rest.v2.beans.Comment;
 import io.apicurio.registry.rest.v2.beans.EditableMetaData;
 import io.apicurio.registry.rest.v2.beans.GroupMetaData;
 import io.apicurio.registry.rest.v2.beans.GroupSearchResults;
+import io.apicurio.registry.rest.v2.beans.NewComment;
 import io.apicurio.registry.rest.v2.beans.Rule;
 import io.apicurio.registry.rest.v2.beans.UpdateState;
 import io.apicurio.registry.rest.v2.beans.VersionMetaData;
@@ -35,12 +44,6 @@ import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.rest.client.request.Operation;
 import io.apicurio.rest.client.request.Request;
-
-import java.io.InputStream;
-import java.util.List;
-import java.util.Map;
-
-import static io.apicurio.rest.client.request.Operation.GET;
 
 /**
  * @author Carles Arnal 'carnalca@redhat.com'
@@ -443,4 +446,49 @@ public class GroupRequestsProvider {
                 })
                 .build();
     }
+    
+    public static Request<Void> deleteArtifactVersionComment(String groupId, String artifactId, String version, String commentId) {
+        return new Request.RequestBuilder<Void>()
+                .operation(Operation.DELETE)
+                .path(Routes.ARTIFACT_VERSION_COMMENT)
+                .pathParams(List.of(groupId, artifactId, version, commentId))
+                .responseType(new TypeReference<Void>() {
+                })
+                .build();
+    }
+
+    public static Request<Void> editArtifactVersionComment(String groupId, String artifactId, String version,
+            String commentId, NewComment comment) throws JsonProcessingException {
+        return new Request.RequestBuilder<Void>()
+                .operation(Operation.PUT)
+                .path(Routes.ARTIFACT_VERSION_COMMENT)
+                .pathParams(List.of(groupId, artifactId, version, commentId))
+                .data(IoUtil.toStream(mapper.writeValueAsBytes(comment)))
+                .responseType(new TypeReference<Void>() {
+                })
+                .build();
+    }
+
+    public static Request<Comment> addArtifactVersionComment(String groupId, String artifactId, String version, 
+            NewComment comment) throws JsonProcessingException {
+        return new Request.RequestBuilder<Comment>()
+                .operation(Operation.POST)
+                .path(Routes.ARTIFACT_VERSION_COMMENTS)
+                .pathParams(List.of(groupId, artifactId, version))
+                .responseType(new TypeReference<Comment>() {
+                })
+                .data(IoUtil.toStream(mapper.writeValueAsBytes(comment)))
+                .build();
+    }
+
+    public static Request<List<Comment>> getArtifactVersionComments(String groupId, String artifactId, String version) {
+        return new Request.RequestBuilder<List<Comment>>()
+                .operation(GET)
+                .path(Routes.ARTIFACT_VERSION_COMMENTS)
+                .pathParams(List.of(groupId, artifactId, version))
+                .responseType(new TypeReference<List<Comment>>() {
+                })
+                .build();
+    }
+
 }

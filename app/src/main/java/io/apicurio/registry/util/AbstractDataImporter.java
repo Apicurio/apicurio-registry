@@ -1,16 +1,18 @@
 package io.apicurio.registry.util;
 
+import javax.transaction.Transactional;
+
+import org.slf4j.Logger;
+
 import io.apicurio.registry.storage.RegistryStorageException;
 import io.apicurio.registry.utils.impexp.ArtifactRuleEntity;
 import io.apicurio.registry.utils.impexp.ArtifactVersionEntity;
+import io.apicurio.registry.utils.impexp.CommentEntity;
 import io.apicurio.registry.utils.impexp.ContentEntity;
 import io.apicurio.registry.utils.impexp.Entity;
 import io.apicurio.registry.utils.impexp.GlobalRuleEntity;
 import io.apicurio.registry.utils.impexp.GroupEntity;
 import io.apicurio.registry.utils.impexp.ManifestEntity;
-import org.slf4j.Logger;
-
-import javax.transaction.Transactional;
 
 public abstract class AbstractDataImporter implements DataImporter {
 
@@ -38,6 +40,9 @@ public abstract class AbstractDataImporter implements DataImporter {
                 break;
             case Group:
                 importGroup((GroupEntity) entity);
+                break;
+            case Comment:
+                importComment((CommentEntity) entity);
                 break;
             case Manifest:
                 ManifestEntity manifest = (ManifestEntity) entity;

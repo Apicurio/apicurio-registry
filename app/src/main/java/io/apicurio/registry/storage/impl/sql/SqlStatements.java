@@ -550,6 +550,8 @@ public interface SqlStatements {
 
     public String exportArtifactRules();
 
+    public String exportComments();
+
     public String exportArtifactVersions();
 
     /*

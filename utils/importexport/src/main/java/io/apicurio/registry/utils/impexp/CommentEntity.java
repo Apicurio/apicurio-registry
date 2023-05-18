@@ -22,8 +22,19 @@ import io.quarkus.runtime.annotations.RegisterForReflection;
  * @author eric.wittmann@gmail.com
  */
 @RegisterForReflection
-public enum EntityType {
+public class CommentEntity extends Entity {
 
-    Manifest, GlobalRule, Content, Group, ArtifactVersion, ArtifactRule, Comment
+    public long globalId;
+    public String commentId;
+    public String createdBy;
+    public long createdOn;
+    public String value;
 
+    /**
+     * @see io.apicurio.registry.utils.impexp.Entity#getEntityType()
+     */
+    @Override
+    public EntityType getEntityType() {
+        return EntityType.Comment;
+    }
 }

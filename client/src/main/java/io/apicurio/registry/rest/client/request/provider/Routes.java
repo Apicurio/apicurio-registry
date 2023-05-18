@@ -35,7 +35,8 @@ public class Routes {
     protected static final String ARTIFACT_VERSIONS = ARTIFACT_BASE_PATH + "/versions";
     protected static final String ARTIFACT_VERSION = ARTIFACT_VERSIONS + "/%s";
     protected static final String ARTIFACT_VERSION_REFERENCES = ARTIFACT_VERSION + "/references";
-
+    protected static final String ARTIFACT_VERSION_COMMENTS = ARTIFACT_VERSION + "/comments";
+    protected static final String ARTIFACT_VERSION_COMMENT = ARTIFACT_VERSION_COMMENTS + "/%s";
 
     protected static final String ARTIFACT_METADATA = ARTIFACT_BASE_PATH + "/meta";
     protected static final String ARTIFACT_RULE = ARTIFACT_RULES + "/%s";

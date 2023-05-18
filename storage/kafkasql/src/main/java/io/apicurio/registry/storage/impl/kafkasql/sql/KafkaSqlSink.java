@@ -67,6 +67,7 @@ import io.apicurio.registry.storage.impl.sql.jdb.Handle;
 import io.apicurio.registry.types.RegistryException;
 import io.apicurio.registry.utils.impexp.ArtifactRuleEntity;
 import io.apicurio.registry.utils.impexp.ArtifactVersionEntity;
+import io.apicurio.registry.utils.impexp.CommentEntity;
 import io.apicurio.registry.utils.impexp.ContentEntity;
 import io.apicurio.registry.utils.impexp.GlobalRuleEntity;
 import io.apicurio.registry.utils.impexp.GroupEntity;
@@ -617,13 +618,13 @@ public class KafkaSqlSink {
                 sqlStore.deleteArtifactVersionComment(key.getGroupId(), key.getArtifactId(), key.getVersion(), key.getCommentId());
                 return null;
             case IMPORT:
-                // TODO implement IMPORT/EXPORT for comments
-//                ArtifactRuleEntity entity = new ArtifactRuleEntity();
-//                entity.groupId = key.getGroupId();
-//                entity.artifactId = key.getArtifactId();
-//                entity.type = key.getRuleType();
-//                entity.configuration = value.getConfig().getConfiguration();
-//                sqlStore.importArtifactRule(entity);
+                CommentEntity entity = new CommentEntity();
+                entity.commentId = key.getCommentId();
+                entity.globalId = value.getGlobalId();
+                entity.createdBy = value.getCreatedBy();
+                entity.createdOn = value.getCreatedOn().getTime();
+                entity.value = value.getValue();
+                sqlStore.importComment(entity);
                 return null;
             default:
                 return unsupported(key, value);

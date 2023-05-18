@@ -118,6 +118,7 @@ import io.apicurio.registry.storage.impl.sql.mappers.ArtifactRuleEntityMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.ArtifactVersionEntityMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.ArtifactVersionMetaDataDtoMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.CommentDtoMapper;
+import io.apicurio.registry.storage.impl.sql.mappers.CommentEntityMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.ContentEntityMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.ContentMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.DynamicConfigPropertyDtoMapper;
@@ -141,6 +142,7 @@ import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.StringUtil;
 import io.apicurio.registry.utils.impexp.ArtifactRuleEntity;
 import io.apicurio.registry.utils.impexp.ArtifactVersionEntity;
+import io.apicurio.registry.utils.impexp.CommentEntity;
 import io.apicurio.registry.utils.impexp.ContentEntity;
 import io.apicurio.registry.utils.impexp.Entity;
 import io.apicurio.registry.utils.impexp.GlobalRuleEntity;
@@ -2326,6 +2328,8 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     public void deleteArtifactVersionComment(String groupId, String artifactId, String version, String commentId) {
         log.debug("Deleting an artifact rule for artifact: {} {} @ {}", groupId, artifactId, version);
         String theVersion = resolveVersion(groupId, artifactId, version);
+        String deletedBy = securityIdentity.getPrincipal().getName();
+
         try {
             this.handles.withHandle(handle -> {
                 String sql = sqlStatements.selectArtifactVersionMetaData();
@@ -2343,6 +2347,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                         .bind(0, tenantContext.tenantId())
                         .bind(1, avmdd.getGlobalId())
                         .bind(2, commentId)
+                        .bind(3, deletedBy)
                         .execute();
                 if (rowCount == 0) {
                     throw new CommentNotFoundException();
@@ -2926,6 +2931,24 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                 return null;
             });
 
+            // Export all artifact comments
+            /////////////////////////////////
+            this.handles.withHandle(handle -> {
+                String sql = sqlStatements.exportComments();
+                Stream<CommentEntity> stream = handle.createQuery(sql)
+                        .bind(0, tenantContext().tenantId())
+                        .setFetchSize(50)
+                        .map(CommentEntityMapper.instance)
+                        .stream();
+                // Process and then close the stream.
+                try (stream) {
+                    stream.forEach(entity -> {
+                        handler.apply(entity);
+                    });
+                }
+                return null;
+            });
+
             // Export all artifact rules
             /////////////////////////////////
             this.handles.withHandle(handle -> {
@@ -2991,6 +3014,9 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
             // Make sure the globalId sequence is set high enough
             resetGlobalId(handle);
+
+            // Make sure the commentId sequence is set high enough
+            resetCommentId(handle);
 
             return null;
         });
@@ -3822,6 +3848,24 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             log.warn("Failed to import group entity (likely it already exists).", e);
         }
     }
+    
+    protected void importComment(Handle handle, CommentEntity entity) {
+        try {
+            String sql = sqlStatements.insertComment();
+            handle.createUpdate(sql)
+                    .bind(0, tenantContext.tenantId())
+                    .bind(1, entity.commentId)
+                    .bind(2, entity.globalId)
+                    .bind(3, entity.createdBy)
+                    .bind(4, new Date(entity.createdOn))
+                    .bind(5, entity.value)
+                    .execute();
+            log.info("Comment entity imported successfully.");
+        } catch (Exception e) {
+            log.warn("Failed to import comment entity.", e);
+        }
+    }
+
 
     public boolean isContentExists(long contentId) throws RegistryStorageException {
         return handles.withHandleNoException(handle -> {

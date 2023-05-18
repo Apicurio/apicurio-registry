@@ -198,14 +198,22 @@ public class KafkaSqlSubmitter {
      * Artifact Version comments
      * ****************************************************************************************** */
     public CompletableFuture<UUID> submitComment(String tenantId, String groupId, String artifactId, String version, 
-            String commentId, ActionType action, String createdBy, Date createdOn, String value) {
+            String commentId, ActionType action, long globalId, String createdBy, Date createdOn, String value) {
         CommentKey key = CommentKey.create(tenantId, groupId, artifactId, version, commentId);
-        CommentValue cv = CommentValue.create(action, createdBy, createdOn, value);
+        CommentValue cv = CommentValue.create(action, globalId, createdBy, createdOn, value);
         return send(key, cv);
+    }
+    public CompletableFuture<UUID> submitComment(String tenantId, String groupId, String artifactId, String version, 
+            String commentId, ActionType action, String createdBy, Date createdOn, String value) {
+        return submitComment(tenantId, groupId, artifactId, version, commentId, action, -1, createdBy, createdOn, value);
     }
     public CompletableFuture<UUID> submitComment(String tenantId, String groupId, String artifactId, String version, 
             String commentId, ActionType action) {
         return submitComment(tenantId, groupId, artifactId, version, commentId, action, null, null, null);
+    }
+    public CompletableFuture<UUID> submitComment(String tenantId, String commentId, ActionType action, long globalId, 
+            String createdBy, Date createdOn, String value) {
+        return submitComment(tenantId, "<import-comments>", "_", "_", commentId, action, globalId, createdBy, createdOn, value);
     }
 
 

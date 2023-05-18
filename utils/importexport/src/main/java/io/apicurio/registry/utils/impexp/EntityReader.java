@@ -65,6 +65,8 @@ public class EntityReader {
                         return readGlobalRule(entry);
                     case Group:
                         return readGroup(entry);
+                    case Comment:
+                        return readComment(entry);
                     case Manifest:
                         return readManifest(entry);
                 }
@@ -105,6 +107,10 @@ public class EntityReader {
 
     private ArtifactRuleEntity readArtifactRule(ZipEntry entry) throws IOException {
         return this.readEntry(entry, ArtifactRuleEntity.class);
+    }
+
+    private CommentEntity readComment(ZipEntry entry) throws IOException {
+        return this.readEntry(entry, CommentEntity.class);
     }
 
     private GlobalRuleEntity readGlobalRule(ZipEntry entry) throws IOException {

@@ -789,6 +789,14 @@ public abstract class CommonSqlStatements implements SqlStatements {
     }
 
     /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#exportComments()
+     */
+    @Override
+    public String exportComments() {
+        return "SELECT * FROM comments c WHERE c.tenantId = ?";
+    }
+    
+    /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#exportContent()
      */
     @Override
@@ -1088,7 +1096,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
     
     @Override
     public String deleteComment() {
-        return "DELETE FROM comments WHERE tenantId = ? AND globalId = ? AND commentId = ?";
+        return "DELETE FROM comments WHERE tenantId = ? AND globalId = ? AND commentId = ? AND createdBy = ?";
     }
     
     @Override

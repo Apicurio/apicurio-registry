@@ -15,6 +15,7 @@ import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.impexp.ArtifactRuleEntity;
 import io.apicurio.registry.utils.impexp.ArtifactVersionEntity;
+import io.apicurio.registry.utils.impexp.CommentEntity;
 import io.apicurio.registry.utils.impexp.ContentEntity;
 import io.apicurio.registry.utils.impexp.GlobalRuleEntity;
 import io.apicurio.registry.utils.impexp.GroupEntity;
@@ -236,6 +237,14 @@ public class KafkaSqlStore extends AbstractSqlRegistryStorage {
     }
 
     @Transactional
+    public void importComment(CommentEntity entity) {
+        handles.withHandleNoException(handle -> {
+            super.importComment(handle, entity);
+            return null;
+        });
+    }
+
+    @Transactional
     public void resetContentId() {
         handles.withHandleNoException(handle -> {
             super.resetContentId(handle);
@@ -289,4 +298,5 @@ public class KafkaSqlStore extends AbstractSqlRegistryStorage {
             String createdBy, Date createdOn, String value) {
         return super.createArtifactVersionComment(groupId, artifactId, version, commentId, createdBy, createdOn, value);
     }
+
 }

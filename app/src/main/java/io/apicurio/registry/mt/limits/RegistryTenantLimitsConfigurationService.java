@@ -23,12 +23,11 @@ import io.apicurio.common.apps.multitenancy.limits.TenantLimitsConfigurationServ
 import io.apicurio.tenantmanager.api.datamodel.ApicurioTenant;
 import io.apicurio.tenantmanager.api.datamodel.ResourceType;
 import io.apicurio.tenantmanager.api.datamodel.TenantResource;
-import io.quarkus.runtime.StartupEvent;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 
+import javax.annotation.PostConstruct;
 import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.event.Observes;
 import javax.inject.Inject;
 import java.util.Map;
 import java.util.Optional;
@@ -119,9 +118,9 @@ public class RegistryTenantLimitsConfigurationService implements TenantLimitsCon
 
     private boolean isConfigured = true;
     private RegistryTenantLimitsConfiguration defaultLimitsConfiguration;
-
-    public void onStart(@Observes StartupEvent ev) {
-
+    
+    @PostConstruct
+    public void postConstruct() {
         //when multi-tenancy is enabled the limits service is
         //always enabled/configured because configuration is loaded dynamically at tenant's first request
         if (!mtProperties.isMultitenancyEnabled()) {

@@ -32,6 +32,7 @@ import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v2.beans.ArtifactOwner;
 import io.apicurio.registry.rest.v2.beans.ArtifactReference;
 import io.apicurio.registry.rest.v2.beans.ArtifactSearchResults;
+import io.apicurio.registry.rest.v2.beans.Comment;
 import io.apicurio.registry.rest.v2.beans.ConfigurationProperty;
 import io.apicurio.registry.rest.v2.beans.EditableMetaData;
 import io.apicurio.registry.rest.v2.beans.Error;
@@ -40,6 +41,7 @@ import io.apicurio.registry.rest.v2.beans.GroupSearchResults;
 import io.apicurio.registry.rest.v2.beans.IfExists;
 import io.apicurio.registry.rest.v2.beans.LogConfiguration;
 import io.apicurio.registry.rest.v2.beans.NamedLogConfiguration;
+import io.apicurio.registry.rest.v2.beans.NewComment;
 import io.apicurio.registry.rest.v2.beans.RoleMapping;
 import io.apicurio.registry.rest.v2.beans.Rule;
 import io.apicurio.registry.rest.v2.beans.SortBy;
@@ -595,6 +597,34 @@ public class RegistryClientImpl implements RegistryClient {
     @Override
     public List<ArtifactReference> getArtifactReferencesByCoordinates(String groupId, String artifactId, String version) {
         return apicurioHttpClient.sendRequest(GroupRequestsProvider.getArtifactReferencesByCoordinates(normalizeGid(groupId), artifactId, version));
+    }
+    
+    @Override
+    public Comment addArtifactVersionComment(String groupId, String artifactId, String version, NewComment comment) {
+        try {
+            return apicurioHttpClient.sendRequest(GroupRequestsProvider.addArtifactVersionComment(normalizeGid(groupId), artifactId, version, comment));
+        } catch (JsonProcessingException e) {
+            throw parseSerializationError(e);
+        }
+    }
+
+    @Override
+    public void deleteArtifactVersionComment(String groupId, String artifactId, String version, String commentId) {
+        apicurioHttpClient.sendRequest(GroupRequestsProvider.deleteArtifactVersionComment(normalizeGid(groupId), artifactId, version, commentId));
+    }
+    
+    @Override
+    public void editArtifactVersionComment(String groupId, String artifactId, String version, String commentId, NewComment comment) {
+        try {
+            apicurioHttpClient.sendRequest(GroupRequestsProvider.editArtifactVersionComment(normalizeGid(groupId), artifactId, version, commentId, comment));
+        } catch (JsonProcessingException e) {
+            throw parseSerializationError(e);
+        }
+    }
+    
+    @Override
+    public List<Comment> getArtifactVersionComments(String groupId, String artifactId, String version) {
+        return apicurioHttpClient.sendRequest(GroupRequestsProvider.getArtifactVersionComments(normalizeGid(groupId), artifactId, version));
     }
 
     @Override

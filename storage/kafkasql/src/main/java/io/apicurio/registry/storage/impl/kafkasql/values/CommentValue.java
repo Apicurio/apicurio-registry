@@ -29,6 +29,7 @@ import lombok.ToString;
 @ToString
 public class CommentValue extends AbstractMessageValue {
 
+    private long globalId;
     private String createdBy;
     private Date createdOn;
     private String value;
@@ -36,13 +37,15 @@ public class CommentValue extends AbstractMessageValue {
     /**
      * Creator method.
      * @param action
+     * @param globalId
      * @param createdBy
      * @param createdOn
      * @param value
      */
-    public static final CommentValue create(ActionType action, String createdBy, Date createdOn, String value) {
+    public static final CommentValue create(ActionType action, long globalId, String createdBy, Date createdOn, String value) {
         CommentValue cv = new CommentValue();
         cv.setAction(action);
+        cv.setGlobalId(globalId);
         cv.setCreatedBy(createdBy);
         cv.setCreatedOn(createdOn);
         cv.setValue(value);
@@ -97,5 +100,19 @@ public class CommentValue extends AbstractMessageValue {
      */
     public void setValue(String value) {
         this.value = value;
+    }
+
+    /**
+     * @return the globalId
+     */
+    public long getGlobalId() {
+        return globalId;
+    }
+
+    /**
+     * @param globalId the globalId to set
+     */
+    public void setGlobalId(long globalId) {
+        this.globalId = globalId;
     }
 }

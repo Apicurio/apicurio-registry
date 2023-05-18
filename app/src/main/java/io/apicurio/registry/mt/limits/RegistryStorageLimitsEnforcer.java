@@ -31,6 +31,7 @@ import io.apicurio.registry.storage.dto.OrderBy;
 import io.apicurio.registry.storage.dto.OrderDirection;
 import io.apicurio.registry.storage.dto.SearchFilter;
 import io.apicurio.registry.types.RegistryException;
+
 import org.eclipse.microprofile.context.ThreadContext;
 
 import java.util.List;
@@ -155,7 +156,7 @@ public class RegistryStorageLimitsEnforcer extends RegistryStorageDecorator {
     public void updateArtifactVersionMetaData(String groupId, String artifactId, String version,
             EditableArtifactMetaDataDto metaData)
             throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
-
+        
         withLimitsCheck(() -> limitsService.checkMetaData(metaData))
             .execute(() -> {
                 super.updateArtifactVersionMetaData(groupId, artifactId, version, metaData);

@@ -4,10 +4,13 @@ version = "2.4.2"
 description = ""
 authors = ["Andrea Peruffo <andrea.peruffo1982@gmail.com>"]
 readme = "README.md"
-packages = [{include = "python_sdk"}]
+packages = [{include = "apicurioregistrysdk"}]
 include = [
-    { path = "python_sdk/client/*" },
-    { path = "python_sdk/client/**/*" }
+    { path = "openapi.json", format=["sdist", "wheel"] },
+    { path = "apicurioregistrysdk/client/**/*", format=["sdist", "wheel"] },
+]
+exclude = [
+    { path = "apicurioregistrysdk/__pycache__", format=["sdist", "wheel"] },
 ]
 license = "Apache 2.0"
 homepage = "https://github.com/apicurio/apicurio-registry"
@@ -15,7 +18,7 @@ repository = "https://github.com/apicurio/apicurio-registry"
 keywords = ["apicurio", "registry"]
 
 [tool.poetry.dependencies]
-python = "^3.11"
+python = "^3.9"
 microsoft-kiota-abstractions = "^0.5.1"
 microsoft-kiota-http = "^0.4.1"
 microsoft-kiota-serialization-json = "^0.3.2"
@@ -39,7 +42,7 @@ generate-setup-file = false
 script = "kiota-gen.py"
 
 [tool.pytest.ini_options]
-pythonpath = [ "python_sdk" ]
+pythonpath = [ "apicurioregistrysdk" ]
 
 [tool.black]
 extend-exclude = 'client'

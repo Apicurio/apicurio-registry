@@ -1,6 +1,2 @@
-dist
-kiota_tmp
-python_sdk/client
-
 __pycache__
-
+.pytest_cache

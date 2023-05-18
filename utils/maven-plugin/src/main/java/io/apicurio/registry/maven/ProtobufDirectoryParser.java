@@ -45,6 +45,7 @@ public class ProtobufDirectoryParser extends AbstractDirectoryParser<Descriptors
 
         // Add file to set of parsed files to avoid circular dependencies
         while (parsedFiles.size() != protoFiles.size()) {
+            boolean fileParsed = false;
             for (File fileToProcess : protoFiles) {
                 if (fileToProcess.getName().equals(protoFile.getName()) || parsedFiles.containsKey(fileToProcess.getName())) {
                     continue;
@@ -53,9 +54,15 @@ public class ProtobufDirectoryParser extends AbstractDirectoryParser<Descriptors
                     final ContentHandle schemaContent = readSchemaContent(fileToProcess);
                     parsedFiles.put(fileToProcess.getName(), parseProtoFile(fileToProcess, schemaDefs, parsedFiles, schemaContent));
                     schemaDefs.put(fileToProcess.getName(), schemaContent);
+                    fileParsed = true;
                 } catch (Exception ex) {
                     log.warn("Error processing Avro schema with name {}. This usually means that the references are not ready yet to parse it", fileToProcess.getName());
                 }
+            }
+
+            //If no schema has been processed during this iteration, that means there is an error in the configuration, throw exception.
+            if (!fileParsed) {
+                throw new IllegalStateException("Error found in the directory structure. Check that all required files are present.");
             }
         }
 
@@ -67,7 +74,7 @@ public class ProtobufDirectoryParser extends AbstractDirectoryParser<Descriptors
 
     @Override
     public List<ArtifactReference> handleSchemaReferences(RegisterArtifact rootArtifact, Descriptors.FileDescriptor protoSchema, Map<String, ContentHandle> fileContents) throws FileNotFoundException {
-        List<ArtifactReference> references = new ArrayList<>();
+        Set<ArtifactReference> references = new HashSet<>();
         final Set<Descriptors.FileDescriptor> baseDeps = new HashSet<>(Arrays.asList(FileDescriptorUtils.baseDependencies()));
         final ProtoFileElement rootSchemaElement = FileDescriptorUtils.fileDescriptorToProtoFile(protoSchema.toProto());
 
@@ -87,7 +94,7 @@ public class ProtobufDirectoryParser extends AbstractDirectoryParser<Descriptors
             }
         }
 
-        return references;
+        return new ArrayList<>(references);
     }
 
     private Descriptors.FileDescriptor parseProtoFile(File protoFile, Map<String, ContentHandle> schemaDefs, Map<String, Descriptors.FileDescriptor> dependencies, ContentHandle schemaContent) {

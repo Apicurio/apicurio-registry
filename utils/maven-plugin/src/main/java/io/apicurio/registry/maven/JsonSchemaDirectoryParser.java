@@ -34,6 +34,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -60,7 +61,7 @@ public class JsonSchemaDirectoryParser extends AbstractDirectoryParser<Schema> {
         if (rootSchema instanceof ObjectSchema) {
 
             ObjectSchema objectSchema = (ObjectSchema) rootSchema;
-            List<ArtifactReference> references = new ArrayList<>();
+            Set<ArtifactReference> references = new HashSet<>();
 
             Map<String, org.everit.json.schema.Schema> rootSchemaPropertySchemas = objectSchema.getPropertySchemas();
 
@@ -96,7 +97,7 @@ public class JsonSchemaDirectoryParser extends AbstractDirectoryParser<Schema> {
                     }
                 }
             }
-            return references;
+            return new ArrayList<>(references);
         } else {
             return Collections.emptyList();
         }
@@ -110,6 +111,7 @@ public class JsonSchemaDirectoryParser extends AbstractDirectoryParser<Schema> {
         Map<String, ContentHandle> schemaContents = new HashMap<>();
 
         while (processed.size() != typesToAdd.size()) {
+            boolean fileParsed = false;
             for (File typeToAdd : typesToAdd) {
                 if (typeToAdd.getName().equals(rootSchema.getName())) {
                     continue;
@@ -119,9 +121,15 @@ public class JsonSchemaDirectoryParser extends AbstractDirectoryParser<Schema> {
                     final Schema schema = JsonUtil.readSchema(schemaContent.content(), schemaContents, false);
                     processed.put(schema.getId(), schema);
                     schemaContents.put(schema.getId(), schemaContent);
+                    fileParsed = true;
                 } catch (JsonProcessingException ex) {
                     log.warn("Error processing json schema with name {}. This usually means that the references are not ready yet to parse it", typeToAdd.getName());
                 }
+            }
+
+            //If no schema has been processed during this iteration, that means there is an error in the configuration, throw exception.
+            if (!fileParsed) {
+                throw new IllegalStateException("Error found in the directory structure. Check that all required files are present.");
             }
         }
 

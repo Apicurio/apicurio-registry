@@ -30,6 +30,7 @@ import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -53,7 +54,7 @@ public class AvroDirectoryParser extends AbstractDirectoryParser<Schema> {
     @Override
     public List<ArtifactReference> handleSchemaReferences(RegisterArtifact rootArtifact, Schema rootSchema, Map<String, ContentHandle> fileContents) throws FileNotFoundException {
 
-        List<ArtifactReference> references = new ArrayList<>();
+        Set<ArtifactReference> references = new HashSet<>();
 
         //Iterate through all the fields of the schema
         for (Schema.Field field : rootSchema.getFields()) {
@@ -84,7 +85,7 @@ public class AvroDirectoryParser extends AbstractDirectoryParser<Schema> {
                 references.add(registerNestedSchema(elementSchema.getFullName(), nestedArtifactReferences, nestedSchema, fileContents.get(elementSchema.getFullName()).content()));
             }
         }
-        return references;
+        return new ArrayList<>(references);
     }
 
     private ParsedDirectoryWrapper<Schema> parseDirectory(File directory, File rootSchema) {
@@ -98,6 +99,7 @@ public class AvroDirectoryParser extends AbstractDirectoryParser<Schema> {
         Schema.Parser partialParser = new Schema.Parser();
 
         while (processed.size() != typesToAdd.size()) {
+            boolean fileParsed = false;
             for (File typeToAdd : typesToAdd) {
                 if (typeToAdd.getName().equals(rootSchema.getName())) {
                     continue;
@@ -107,12 +109,19 @@ public class AvroDirectoryParser extends AbstractDirectoryParser<Schema> {
                     final Schema schema = partialParser.parse(schemaContent.content());
                     processed.put(schema.getFullName(), schema);
                     schemaContents.put(schema.getFullName(), schemaContent);
+                    fileParsed = true;
                 } catch (SchemaParseException ex) {
                     log.warn("Error processing Avro schema with name {}. This usually means that the references are not ready yet to parse it", typeToAdd.getName());
                 }
             }
             partialParser = new Schema.Parser();
             partialParser.addTypes(processed);
+
+            //If no schema has been processed during this iteration, that means there is an error in the configuration, throw exception.
+            if (!fileParsed) {
+                throw new IllegalStateException("Error found in the directory structure. Check that all required files are present.");
+            }
+
         }
 
         rootSchemaParser.addTypes(processed);

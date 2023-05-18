@@ -140,6 +140,8 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
                 final ParsedDirectoryWrapper<org.everit.json.schema.Schema> jsonSchema = jsonSchemaDirectoryParser.parse(artifact.getFile());
                 registerArtifact(artifact, jsonSchemaDirectoryParser.handleSchemaReferences(artifact, jsonSchema.getSchema(), jsonSchema.getSchemaContents()));
                 break;
+            default:
+                throw new IllegalArgumentException(String.format("Artifact type not recognized for analyzing a directory structure %s", artifact.getType()));
         }
     }
 

@@ -342,7 +342,7 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
         final Map<String, ContentHandle> resolvedReferences = storage.resolveReferences(parsedReferences);
         try {
             ContentHandle schemaContent;
-            if (cconfig.canonicalHashModeEnabled.get() || normalize) {
+            if (normalize) {
                 schemaContent = this.canonicalizeContent(artifactType, ContentHandle.create(schema), references);
             } else {
                 schemaContent = ContentHandle.create(schema);

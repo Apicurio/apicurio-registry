@@ -25,3 +25,11 @@ website
 apicurio-codegen
 /multitenancy/
 /docs/.jbang/
+
+python-sdk/dist
+python-sdk/kiota_tmp
+python-sdk/apicurioregistrysdk/client
+python-sdk/openapi.json
+__pycache__
+
+

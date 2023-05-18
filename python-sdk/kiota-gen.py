@@ -51,16 +51,19 @@ def generate_kiota_client_files(setup_kwargs):
     openapi_doc = Path(__file__).parent.joinpath("openapi.json")
     # TODO: improve this to do a better clean-install
     if not os.path.exists(openapi_doc):
-        shutil.copyfile(os.path.join(
-            sys.path[0],
-            "..",
-            "common",
-            "src",
-            "main",
-            "resources",
-            "META-INF",
-            "openapi.json",
-        ), openapi_doc)
+        shutil.copyfile(
+            os.path.join(
+                sys.path[0],
+                "..",
+                "common",
+                "src",
+                "main",
+                "resources",
+                "META-INF",
+                "openapi.json",
+            ),
+            openapi_doc,
+        )
 
     output = Path(__file__).parent.joinpath("apicurioregistrysdk", "client")
 

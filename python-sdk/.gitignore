@@ -1,6 +1,6 @@
 dist
 kiota_tmp
-python_sdk/client
+apicurioregistrysdk/client
 
 __pycache__
 

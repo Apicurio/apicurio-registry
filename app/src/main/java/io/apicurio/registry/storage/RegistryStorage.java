@@ -32,6 +32,7 @@ import io.apicurio.registry.storage.dto.ArtifactOwnerDto;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
+import io.apicurio.registry.storage.dto.CommentDto;
 import io.apicurio.registry.storage.dto.ContentWrapperDto;
 import io.apicurio.registry.storage.dto.DownloadContextDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
@@ -844,5 +845,41 @@ public interface RegistryStorage extends DynamicConfigStorage {
          */
         SKIP_DISABLED_LATEST
     }
+
+    /**
+     * Creates a new comment for an artifact version.
+     * @param groupId
+     * @param artifactId
+     * @param version
+     * @param value
+     */
+    CommentDto createArtifactVersionComment(String groupId, String artifactId, String version, String value);
+
+    /**
+     * Deletes a single comment for an artifact version.
+     * @param groupId
+     * @param artifactId
+     * @param version
+     * @param commentId
+     */
+    void deleteArtifactVersionComment(String groupId, String artifactId, String version, String commentId);
+
+    /**
+     * Returns all comments for the given artifact version.
+     * @param groupId
+     * @param artifactId
+     * @param version
+     */
+    List<CommentDto> getArtifactVersionComments(String groupId, String artifactId, String version);
+
+    /**
+     * Updates a single comment.
+     * @param groupId
+     * @param artifactId
+     * @param version
+     * @param commentId
+     * @param value
+     */
+    void updateArtifactVersionComment(String groupId, String artifactId, String version, String commentId, String value);
 
 }

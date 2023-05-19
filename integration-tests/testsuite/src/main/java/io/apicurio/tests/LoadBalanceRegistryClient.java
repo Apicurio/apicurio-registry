@@ -35,11 +35,13 @@ import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.RegistryClientFactory;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v2.beans.ArtifactSearchResults;
+import io.apicurio.registry.rest.v2.beans.Comment;
 import io.apicurio.registry.rest.v2.beans.ConfigurationProperty;
 import io.apicurio.registry.rest.v2.beans.EditableMetaData;
 import io.apicurio.registry.rest.v2.beans.IfExists;
 import io.apicurio.registry.rest.v2.beans.LogConfiguration;
 import io.apicurio.registry.rest.v2.beans.NamedLogConfiguration;
+import io.apicurio.registry.rest.v2.beans.NewComment;
 import io.apicurio.registry.rest.v2.beans.RoleMapping;
 import io.apicurio.registry.rest.v2.beans.Rule;
 import io.apicurio.registry.rest.v2.beans.SortBy;
@@ -54,6 +56,7 @@ import io.apicurio.registry.types.RuleType;
 /**
  * @author Fabian Martinez
  */
+@SuppressWarnings("deprecation")
 public class LoadBalanceRegistryClient implements RegistryClient {
 
     protected final Logger logger = LoggerFactory.getLogger(this.getClass().getName());
@@ -106,10 +109,6 @@ public class LoadBalanceRegistryClient implements RegistryClient {
     }
 
     /**
-     * @param groupId
-     * @param artifactId
-     * @param data
-     * @return
      * @see io.apicurio.registry.rest.client.RegistryClient#updateArtifact(java.lang.String, java.lang.String, java.io.InputStream)
      */
     @Override
@@ -118,11 +117,6 @@ public class LoadBalanceRegistryClient implements RegistryClient {
     }
 
     /**
-     * @param groupId
-     * @param artifactId
-     * @param data
-     * @param references 
-     * @return
      * @see io.apicurio.registry.rest.client.RegistryClient#updateArtifact(java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.io.InputStream, java.util.List)
      */
     @Override
@@ -131,8 +125,6 @@ public class LoadBalanceRegistryClient implements RegistryClient {
     }
 
     /**
-     * @param groupId
-     * @param artifactId
      * @see io.apicurio.registry.rest.client.RegistryClient#deleteArtifact(java.lang.String, java.lang.String)
      */
     @Override
@@ -141,9 +133,6 @@ public class LoadBalanceRegistryClient implements RegistryClient {
     }
 
     /**
-     * @param groupId
-     * @param artifactId
-     * @return
      * @see io.apicurio.registry.rest.client.RegistryClient#getArtifactMetaData(java.lang.String, java.lang.String)
      */
     @Override
@@ -157,9 +146,6 @@ public class LoadBalanceRegistryClient implements RegistryClient {
     }
 
     /**
-     * @param groupId
-     * @param artifactId
-     * @param data
      * @see io.apicurio.registry.rest.client.RegistryClient#updateArtifactMetaData(java.lang.String, java.lang.String, io.apicurio.registry.rest.v2.beans.EditableMetaData)
      */
     @Override
@@ -173,11 +159,6 @@ public class LoadBalanceRegistryClient implements RegistryClient {
     }
 
     /**
-     * @param groupId
-     * @param artifactId
-     * @param canonical
-     * @param data
-     * @return
      * @see io.apicurio.registry.rest.client.RegistryClient#getArtifactVersionMetaDataByContent(java.lang.String, java.lang.String, java.lang.Boolean, java.io.InputStream)
      */
     @Override
@@ -192,10 +173,6 @@ public class LoadBalanceRegistryClient implements RegistryClient {
     }
 
     /**
-     * @param groupId
-     * @param artifactId
-     * @param data
-     * @return
      * @see io.apicurio.registry.rest.client.RegistryClient#getArtifactVersionMetaDataByContent(java.lang.String, java.lang.String, java.io.InputStream)
      */
     @Override
@@ -205,9 +182,6 @@ public class LoadBalanceRegistryClient implements RegistryClient {
     }
 
     /**
-     * @param groupId
-     * @param artifactId
-     * @return
      * @see io.apicurio.registry.rest.client.RegistryClient#listArtifactRules(java.lang.String, java.lang.String)
      */
     @Override
@@ -216,9 +190,6 @@ public class LoadBalanceRegistryClient implements RegistryClient {
     }
 
     /**
-     * @param groupId
-     * @param artifactId
-     * @param data
      * @see io.apicurio.registry.rest.client.RegistryClient#createArtifactRule(java.lang.String, java.lang.String, io.apicurio.registry.rest.v2.beans.Rule)
      */
     @Override
@@ -227,8 +198,6 @@ public class LoadBalanceRegistryClient implements RegistryClient {
     }
 
     /**
-     * @param groupId
-     * @param artifactId
      * @see io.apicurio.registry.rest.client.RegistryClient#deleteArtifactRules(java.lang.String, java.lang.String)
      */
     @Override
@@ -237,10 +206,6 @@ public class LoadBalanceRegistryClient implements RegistryClient {
     }
 
     /**
-     * @param groupId
-     * @param artifactId
-     * @param rule
-     * @return
      * @see io.apicurio.registry.rest.client.RegistryClient#getArtifactRuleConfig(java.lang.String, java.lang.String, io.apicurio.registry.types.RuleType)
      */
     @Override
@@ -249,11 +214,6 @@ public class LoadBalanceRegistryClient implements RegistryClient {
     }
 
     /**
-     * @param groupId
-     * @param artifactId
-     * @param rule
-     * @param data
-     * @return
      * @see io.apicurio.registry.rest.client.RegistryClient#updateArtifactRuleConfig(java.lang.String, java.lang.String, io.apicurio.registry.types.RuleType, io.apicurio.registry.rest.v2.beans.Rule)
      */
     @Override
@@ -262,9 +222,6 @@ public class LoadBalanceRegistryClient implements RegistryClient {
     }
 
     /**
-     * @param groupId
-     * @param artifactId
-     * @param rule
      * @see io.apicurio.registry.rest.client.RegistryClient#deleteArtifactRule(java.lang.String, java.lang.String, io.apicurio.registry.types.RuleType)
      */
     @Override
@@ -273,9 +230,6 @@ public class LoadBalanceRegistryClient implements RegistryClient {
     }
 
     /**
-     * @param groupId
-     * @param artifactId
-     * @param data
      * @see io.apicurio.registry.rest.client.RegistryClient#updateArtifactState(java.lang.String, java.lang.String, io.apicurio.registry.rest.v2.beans.UpdateState)
      */
     @Override
@@ -284,9 +238,6 @@ public class LoadBalanceRegistryClient implements RegistryClient {
     }
 
     /**
-     * @param groupId
-     * @param artifactId
-     * @param data
      * @see io.apicurio.registry.rest.client.RegistryClient#testUpdateArtifact(java.lang.String, java.lang.String, java.io.InputStream)
      */
     @Override
@@ -295,10 +246,6 @@ public class LoadBalanceRegistryClient implements RegistryClient {
     }
 
     /**
-     * @param groupId
-     * @param artifactId
-     * @param version
-     * @return
      * @see io.apicurio.registry.rest.client.RegistryClient#getArtifactVersion(java.lang.String, java.lang.String, java.lang.String)
      */
     @Override
@@ -307,10 +254,6 @@ public class LoadBalanceRegistryClient implements RegistryClient {
     }
 
     /**
-     * @param groupId
-     * @param artifactId
-     * @param version
-     * @return
      * @see io.apicurio.registry.rest.client.RegistryClient#getArtifactVersionMetaData(java.lang.String, java.lang.String, java.lang.String)
      */
     @Override
@@ -319,10 +262,6 @@ public class LoadBalanceRegistryClient implements RegistryClient {
     }
 
     /**
-     * @param groupId
-     * @param artifactId
-     * @param version
-     * @param data
      * @see io.apicurio.registry.rest.client.RegistryClient#updateArtifactVersionMetaData(java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.rest.v2.beans.EditableMetaData)
      */
     @Override
@@ -332,9 +271,6 @@ public class LoadBalanceRegistryClient implements RegistryClient {
     }
 
     /**
-     * @param groupId
-     * @param artifactId
-     * @param version
      * @see io.apicurio.registry.rest.client.RegistryClient#deleteArtifactVersionMetaData(java.lang.String, java.lang.String, java.lang.String)
      */
     @Override
@@ -343,10 +279,6 @@ public class LoadBalanceRegistryClient implements RegistryClient {
     }
 
     /**
-     * @param groupId
-     * @param artifactId
-     * @param version
-     * @param data
      * @see io.apicurio.registry.rest.client.RegistryClient#updateArtifactVersionState(java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.rest.v2.beans.UpdateState)
      */
     @Override
@@ -356,11 +288,6 @@ public class LoadBalanceRegistryClient implements RegistryClient {
     }
 
     /**
-     * @param groupId
-     * @param artifactId
-     * @param offset
-     * @param limit
-     * @return
      * @see io.apicurio.registry.rest.client.RegistryClient#listArtifactVersions(java.lang.String, java.lang.String, java.lang.Integer, java.lang.Integer)
      */
     @Override
@@ -370,11 +297,6 @@ public class LoadBalanceRegistryClient implements RegistryClient {
     }
 
     /**
-     * @param groupId
-     * @param artifactId
-     * @param version
-     * @param data
-     * @return
      * @see io.apicurio.registry.rest.client.RegistryClient#createArtifactVersion(java.lang.String, java.lang.String, java.lang.String, java.io.InputStream)
      */
     @Override
@@ -384,12 +306,6 @@ public class LoadBalanceRegistryClient implements RegistryClient {
     }
 
     /**
-     * @param groupId
-     * @param orderBy
-     * @param order
-     * @param offset
-     * @param limit
-     * @return
      * @see io.apicurio.registry.rest.client.RegistryClient#listArtifactsInGroup(java.lang.String, io.apicurio.registry.rest.v2.beans.SortBy, io.apicurio.registry.rest.v2.beans.SortOrder, java.lang.Integer, java.lang.Integer)
      */
     @Override
@@ -399,8 +315,6 @@ public class LoadBalanceRegistryClient implements RegistryClient {
     }
 
     /**
-     * @param groupId
-     * @return
      * @see io.apicurio.registry.rest.client.RegistryClient#listArtifactsInGroup(java.lang.String)
      */
     @Override
@@ -409,14 +323,6 @@ public class LoadBalanceRegistryClient implements RegistryClient {
     }
 
     /**
-     * @param groupId
-     * @param artifactId
-     * @param version
-     * @param artifactType
-     * @param ifExists
-     * @param canonical
-     * @param data
-     * @return
      * @see io.apicurio.registry.rest.client.RegistryClient#createArtifact(java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.types.ArtifactType, io.apicurio.registry.rest.v2.beans.IfExists, java.lang.Boolean, java.io.InputStream)
      */
     @Override
@@ -431,10 +337,6 @@ public class LoadBalanceRegistryClient implements RegistryClient {
     }
 
     /**
-     * @param groupId
-     * @param artifactId
-     * @param data
-     * @return
      * @see io.apicurio.registry.rest.client.RegistryClient#createArtifact(java.lang.String, java.lang.String, java.io.InputStream)
      */
     @Override
@@ -443,11 +345,6 @@ public class LoadBalanceRegistryClient implements RegistryClient {
     }
 
     /**
-     * @param groupId
-     * @param artifactId
-     * @param data
-     * @param references
-     * @return
      * @see io.apicurio.registry.rest.client.RegistryClient#createArtifact(java.lang.String,  java.lang.String, java.io.InputStream, java.util.List)
      */
     @Override
@@ -456,11 +353,6 @@ public class LoadBalanceRegistryClient implements RegistryClient {
     }
 
     /**
-     * @param groupId
-     * @param artifactId
-     * @param version
-     * @param data
-     * @return
      * @see io.apicurio.registry.rest.client.RegistryClient#createArtifact(java.lang.String, java.lang.String, java.lang.String, java.io.InputStream)
      */
     @Override
@@ -470,11 +362,6 @@ public class LoadBalanceRegistryClient implements RegistryClient {
     }
 
     /**
-     * @param groupId
-     * @param artifactId
-     * @param artifactType
-     * @param data
-     * @return
      * @see io.apicurio.registry.rest.client.RegistryClient#createArtifact(java.lang.String, java.lang.String, io.apicurio.registry.types.ArtifactType, java.io.InputStream)
      */
     @Override
@@ -484,12 +371,6 @@ public class LoadBalanceRegistryClient implements RegistryClient {
     }
 
     /**
-     * @param groupId
-     * @param artifactId
-     * @param artifactType
-     * @param ifExists
-     * @param data
-     * @return
      * @see io.apicurio.registry.rest.client.RegistryClient#createArtifact(java.lang.String, java.lang.String, io.apicurio.registry.types.ArtifactType, io.apicurio.registry.rest.v2.beans.IfExists, java.io.InputStream)
      */
     @Override
@@ -499,7 +380,6 @@ public class LoadBalanceRegistryClient implements RegistryClient {
     }
 
     /**
-     * @param groupId
      * @see io.apicurio.registry.rest.client.RegistryClient#deleteArtifactsInGroup(java.lang.String)
      */
     @Override
@@ -528,8 +408,6 @@ public class LoadBalanceRegistryClient implements RegistryClient {
     }
 
     /**
-     * @param contentId
-     * @return
      * @see io.apicurio.registry.rest.client.RegistryClient#getContentById(long)
      */
     @Override
@@ -538,8 +416,6 @@ public class LoadBalanceRegistryClient implements RegistryClient {
     }
 
     /**
-     * @param globalId
-     * @return
      * @see io.apicurio.registry.rest.client.RegistryClient#getContentByGlobalId(long)
      */
     @Override
@@ -553,9 +429,6 @@ public class LoadBalanceRegistryClient implements RegistryClient {
     }
 
     /**
-     * @param contentHash
-     * @param canonical
-     * @return
      * @see io.apicurio.registry.rest.client.RegistryClient#getContentByHash(java.lang.String, java.lang.Boolean)
      */
     @Override
@@ -564,8 +437,6 @@ public class LoadBalanceRegistryClient implements RegistryClient {
     }
 
     /**
-     * @param contentHash
-     * @return
      * @see io.apicurio.registry.rest.client.RegistryClient#getContentByHash(java.lang.String)
      */
     @Override
@@ -584,12 +455,6 @@ public class LoadBalanceRegistryClient implements RegistryClient {
     }
 
     /**
-     * @param data
-     * @param orderBy
-     * @param order
-     * @param offset
-     * @param limit
-     * @return
      * @see io.apicurio.registry.rest.client.RegistryClient#searchArtifactsByContent(java.io.InputStream, io.apicurio.registry.rest.v2.beans.SortBy, io.apicurio.registry.rest.v2.beans.SortOrder, java.lang.Integer, java.lang.Integer)
      */
     @Override
@@ -599,7 +464,6 @@ public class LoadBalanceRegistryClient implements RegistryClient {
     }
 
     /**
-     * @return
      * @see io.apicurio.registry.rest.client.RegistryClient#listGlobalRules()
      */
     @Override
@@ -608,7 +472,6 @@ public class LoadBalanceRegistryClient implements RegistryClient {
     }
 
     /**
-     * @param data
      * @see io.apicurio.registry.rest.client.RegistryClient#createGlobalRule(io.apicurio.registry.rest.v2.beans.Rule)
      */
     @Override
@@ -626,8 +489,6 @@ public class LoadBalanceRegistryClient implements RegistryClient {
     }
 
     /**
-     * @param rule
-     * @return
      * @see io.apicurio.registry.rest.client.RegistryClient#getGlobalRuleConfig(io.apicurio.registry.types.RuleType)
      */
     @Override
@@ -636,9 +497,6 @@ public class LoadBalanceRegistryClient implements RegistryClient {
     }
 
     /**
-     * @param rule
-     * @param data
-     * @return
      * @see io.apicurio.registry.rest.client.RegistryClient#updateGlobalRuleConfig(io.apicurio.registry.types.RuleType, io.apicurio.registry.rest.v2.beans.Rule)
      */
     @Override
@@ -647,7 +505,6 @@ public class LoadBalanceRegistryClient implements RegistryClient {
     }
 
     /**
-     * @param rule
      * @see io.apicurio.registry.rest.client.RegistryClient#deleteGlobalRule(io.apicurio.registry.types.RuleType)
      */
     @Override
@@ -656,7 +513,6 @@ public class LoadBalanceRegistryClient implements RegistryClient {
     }
 
     /**
-     * @return
      * @see io.apicurio.registry.rest.client.RegistryClient#listLogConfigurations()
      */
     @Override
@@ -665,8 +521,6 @@ public class LoadBalanceRegistryClient implements RegistryClient {
     }
 
     /**
-     * @param logger
-     * @return
      * @see io.apicurio.registry.rest.client.RegistryClient#getLogConfiguration(java.lang.String)
      */
     @Override
@@ -675,9 +529,6 @@ public class LoadBalanceRegistryClient implements RegistryClient {
     }
 
     /**
-     * @param logger
-     * @param data
-     * @return
      * @see io.apicurio.registry.rest.client.RegistryClient#setLogConfiguration(java.lang.String, io.apicurio.registry.rest.v2.beans.LogConfiguration)
      */
     @Override
@@ -686,8 +537,6 @@ public class LoadBalanceRegistryClient implements RegistryClient {
     }
 
     /**
-     * @param logger
-     * @return
      * @see io.apicurio.registry.rest.client.RegistryClient#removeLogConfiguration(java.lang.String)
      */
     @Override
@@ -716,7 +565,6 @@ public class LoadBalanceRegistryClient implements RegistryClient {
     }
 
     /**
-     * @param requestHeaders
      * @see io.apicurio.registry.rest.client.RegistryClient#setNextRequestHeaders(java.util.Map)
      */
     @Override
@@ -725,7 +573,6 @@ public class LoadBalanceRegistryClient implements RegistryClient {
     }
 
     /**
-     * @return
      * @see io.apicurio.registry.rest.client.RegistryClient#getHeaders()
      */
     @Override
@@ -835,6 +682,38 @@ public class LoadBalanceRegistryClient implements RegistryClient {
     @Override
     public UserInfo getCurrentUserInfo() {
         return getTarget().getCurrentUserInfo();
+    }
+    
+    /**
+     * @see io.apicurio.registry.rest.client.RegistryClient#getArtifactVersionComments(java.lang.String, java.lang.String, java.lang.String)
+     */
+    @Override
+    public List<Comment> getArtifactVersionComments(String groupId, String artifactId, String version) {
+        return getTarget().getArtifactVersionComments(groupId, artifactId, version);
+    }
+    
+    /**
+     * @see io.apicurio.registry.rest.client.RegistryClient#addArtifactVersionComment(java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.rest.v2.beans.NewComment)
+     */
+    @Override
+    public Comment addArtifactVersionComment(String groupId, String artifactId, String version, NewComment comment) {
+        return getTarget().addArtifactVersionComment(groupId, artifactId, version, comment);
+    }
+    
+    /**
+     * @see io.apicurio.registry.rest.client.RegistryClient#deleteArtifactVersionComment(java.lang.String, java.lang.String, java.lang.String, java.lang.String)
+     */
+    @Override
+    public void deleteArtifactVersionComment(String groupId, String artifactId, String version, String commentId) {
+        getTarget().deleteArtifactVersionComment(groupId, artifactId, version, commentId);
+    }
+    
+    /**
+     * @see io.apicurio.registry.rest.client.RegistryClient#editArtifactVersionComment(java.lang.String, java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.rest.v2.beans.NewComment)
+     */
+    @Override
+    public void editArtifactVersionComment(String groupId, String artifactId, String version, String commentId, NewComment comment) {
+        getTarget().editArtifactVersionComment(groupId, artifactId, version, commentId, comment);
     }
 
     @Override

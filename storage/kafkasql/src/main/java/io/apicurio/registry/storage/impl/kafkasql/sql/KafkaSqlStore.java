@@ -5,15 +5,17 @@ import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
 import io.apicurio.registry.storage.RegistryStorageException;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
+import io.apicurio.registry.storage.dto.CommentDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.impl.sql.AbstractSqlRegistryStorage;
-import io.apicurio.registry.storage.impl.sql.GlobalIdGenerator;
+import io.apicurio.registry.storage.impl.sql.IdGenerator;
 import io.apicurio.registry.storage.impl.sql.HandleFactory;
 import io.apicurio.registry.storage.impl.sql.SqlUtil;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.impexp.ArtifactRuleEntity;
 import io.apicurio.registry.utils.impexp.ArtifactVersionEntity;
+import io.apicurio.registry.utils.impexp.CommentEntity;
 import io.apicurio.registry.utils.impexp.ContentEntity;
 import io.apicurio.registry.utils.impexp.GlobalRuleEntity;
 import io.apicurio.registry.utils.impexp.GroupEntity;
@@ -72,6 +74,11 @@ public class KafkaSqlStore extends AbstractSqlRegistryStorage {
         return handles.withHandleNoException(this::nextContentId);
     }
 
+    @Transactional
+    public long nextCommentId() {
+        return handles.withHandleNoException(this::nextCommentId);
+    }
+
     public boolean isContentExists(String contentHash) throws RegistryStorageException {
         return handles.withHandleNoException( handle -> {
             String sql = sqlStatements().selectContentCountByHash();
@@ -82,7 +89,7 @@ public class KafkaSqlStore extends AbstractSqlRegistryStorage {
                     .one() > 0;
         });
     }
-
+    
     public boolean isArtifactRuleExists(String groupId, String artifactId, RuleType rule) throws RegistryStorageException {
         return handles.withHandleNoException( handle -> {
             String sql = sqlStatements().selectArtifactRuleCountByType();
@@ -119,7 +126,6 @@ public class KafkaSqlStore extends AbstractSqlRegistryStorage {
         });
     }
 
-
     @Transactional
     public void storeContent(long contentId, String contentHash, String canonicalHash, ContentHandle content, String serializedReferences) throws RegistryStorageException {
         handles.withHandleNoException( handle -> {
@@ -141,11 +147,10 @@ public class KafkaSqlStore extends AbstractSqlRegistryStorage {
         });
     }
 
-
     @Transactional
     public ArtifactMetaDataDto createArtifactWithMetadata(String groupId, String artifactId, String version,
             String artifactType, String contentHash, String createdBy,
-            Date createdOn, EditableArtifactMetaDataDto metaData, GlobalIdGenerator globalIdGenerator)
+            Date createdOn, EditableArtifactMetaDataDto metaData, IdGenerator globalIdGenerator)
             throws ArtifactNotFoundException, RegistryStorageException {
         long contentId = this.contentIdFromHash(contentHash);
 
@@ -161,7 +166,7 @@ public class KafkaSqlStore extends AbstractSqlRegistryStorage {
     public ArtifactMetaDataDto updateArtifactWithMetadata(String groupId, String artifactId, String version,
                                                           String artifactType, String contentHash, String createdBy, Date createdOn,
                                                           EditableArtifactMetaDataDto metaData,
-                                                          GlobalIdGenerator globalIdGenerator)
+                                                          IdGenerator globalIdGenerator)
             throws ArtifactNotFoundException, RegistryStorageException {
         long contentId = this.contentIdFromHash(contentHash);
 
@@ -232,9 +237,25 @@ public class KafkaSqlStore extends AbstractSqlRegistryStorage {
     }
 
     @Transactional
+    public void importComment(CommentEntity entity) {
+        handles.withHandleNoException(handle -> {
+            super.importComment(handle, entity);
+            return null;
+        });
+    }
+
+    @Transactional
     public void resetContentId() {
         handles.withHandleNoException(handle -> {
             super.resetContentId(handle);
+            return null;
+        });
+    }
+
+    @Transactional
+    public void resetCommentId() {
+        handles.withHandleNoException(handle -> {
+            super.resetCommentId(handle);
             return null;
         });
     }
@@ -262,6 +283,20 @@ public class KafkaSqlStore extends AbstractSqlRegistryStorage {
            }
            return null;
         });
+    }
+    
+    @Transactional
+    public String resolveVersion(String groupId, String artifactId, String version) {
+        return super.resolveVersion(groupId, artifactId, version);
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.AbstractSqlRegistryStorage#createArtifactVersionComment(java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.storage.impl.sql.IdGenerator, java.lang.String, java.util.Date, java.lang.String)
+     */
+    @Transactional
+    public CommentDto createArtifactVersionComment(String groupId, String artifactId, String version, IdGenerator commentId,
+            String createdBy, Date createdOn, String value) {
+        return super.createArtifactVersionComment(groupId, artifactId, version, commentId, createdBy, createdOn, value);
     }
 
 }

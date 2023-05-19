@@ -173,7 +173,6 @@ public class SqlStorageUpgradeIT implements TestSeparator, Constants {
                 .filter(ar -> ar.getType().equals(ArtifactType.PROTOBUF))
                 .collect(Collectors.toList());
 
-            System.out.println("Protobuf artifacts are " + protobufs.size());
             assertEquals(1, protobufs.size());
             var protoMetadata = registryClient.getArtifactMetaData(protobufs.get(0).getGroupId(), protobufs.get(0).getId());
             var content = registryClient.getContentByGlobalId(protoMetadata.getGlobalId());

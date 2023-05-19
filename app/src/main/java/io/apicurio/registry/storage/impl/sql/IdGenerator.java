@@ -15,11 +15,26 @@
  */
 package io.apicurio.registry.storage.impl.sql;
 
+import io.apicurio.registry.storage.impl.sql.jdb.Handle;
+
 /**
  * @author Fabian Martinez
  */
-public interface GlobalIdGenerator {
+public interface IdGenerator {
 
-    Long generate();
+    Long generate(Handle handle);
+    
+    public static class StaticIdGenerator implements IdGenerator {
+        private final Long id;
+        
+        public StaticIdGenerator(Long id) {
+            this.id = id;
+        }
+        
+        @Override
+        public Long generate(Handle handle) {
+            return id;
+        }
+    }
 
 }

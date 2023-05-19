@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Red Hat
+ * Copyright 2023 Red Hat Inc
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,16 +14,32 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.utils.impexp;
+package io.apicurio.registry.storage.dto;
 
-import io.quarkus.runtime.annotations.RegisterForReflection;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
 
 /**
  * @author eric.wittmann@gmail.com
  */
-@RegisterForReflection
-public enum EntityType {
-
-    Manifest, GlobalRule, Content, Group, ArtifactVersion, ArtifactRule, Comment
+@AllArgsConstructor
+@Builder
+@Getter
+@Setter
+@EqualsAndHashCode
+@ToString
+public class CommentDto {
+    
+    private String commentId;
+    private String value;
+    private String createdBy;
+    private long createdOn;
+    
+    public CommentDto() {
+    }
 
 }

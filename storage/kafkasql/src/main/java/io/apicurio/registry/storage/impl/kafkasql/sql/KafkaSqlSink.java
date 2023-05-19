@@ -1,5 +1,17 @@
 package io.apicurio.registry.storage.impl.kafkasql.sql;
 
+import java.util.Optional;
+import java.util.UUID;
+import java.util.function.Supplier;
+
+import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.context.control.ActivateRequestContext;
+import javax.inject.Inject;
+
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.common.header.Header;
+import org.slf4j.Logger;
+
 import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
 import io.apicurio.common.apps.logging.Logged;
 import io.apicurio.common.apps.multitenancy.ApicurioTenantContext;
@@ -18,6 +30,8 @@ import io.apicurio.registry.storage.impl.kafkasql.keys.ArtifactKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.ArtifactOwnerKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.ArtifactRuleKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.ArtifactVersionKey;
+import io.apicurio.registry.storage.impl.kafkasql.keys.CommentIdKey;
+import io.apicurio.registry.storage.impl.kafkasql.keys.CommentKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.ConfigPropertyKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.ContentIdKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.ContentKey;
@@ -34,6 +48,8 @@ import io.apicurio.registry.storage.impl.kafkasql.values.ArtifactOwnerValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.ArtifactRuleValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.ArtifactValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.ArtifactVersionValue;
+import io.apicurio.registry.storage.impl.kafkasql.values.CommentIdValue;
+import io.apicurio.registry.storage.impl.kafkasql.values.CommentValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.ConfigPropertyValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.ContentIdValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.ContentValue;
@@ -45,23 +61,16 @@ import io.apicurio.registry.storage.impl.kafkasql.values.GroupValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.LogConfigValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.MessageValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.RoleMappingValue;
-import io.apicurio.registry.storage.impl.sql.GlobalIdGenerator;
+import io.apicurio.registry.storage.impl.sql.IdGenerator;
+import io.apicurio.registry.storage.impl.sql.IdGenerator.StaticIdGenerator;
+import io.apicurio.registry.storage.impl.sql.jdb.Handle;
 import io.apicurio.registry.types.RegistryException;
 import io.apicurio.registry.utils.impexp.ArtifactRuleEntity;
 import io.apicurio.registry.utils.impexp.ArtifactVersionEntity;
+import io.apicurio.registry.utils.impexp.CommentEntity;
 import io.apicurio.registry.utils.impexp.ContentEntity;
 import io.apicurio.registry.utils.impexp.GlobalRuleEntity;
 import io.apicurio.registry.utils.impexp.GroupEntity;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.kafka.common.header.Header;
-import org.slf4j.Logger;
-
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.context.control.ActivateRequestContext;
-import javax.inject.Inject;
-import java.util.Optional;
-import java.util.UUID;
-import java.util.function.Supplier;
 
 /**
  * @author Fabian Martinez
@@ -179,6 +188,10 @@ public class KafkaSqlSink {
                     return processConfigProperty((ConfigPropertyKey) key, (ConfigPropertyValue) value);
                 case ArtifactOwner:
                     return processArtifactOwnerMessage((ArtifactOwnerKey) key, (ArtifactOwnerValue) value);
+                case CommentId:
+                    return processCommentId((CommentIdKey) key, (CommentIdValue) value);
+                case Comment:
+                    return processComment((CommentKey) key, (CommentValue) value);
                 default:
                     log.warn("Unrecognized message type: {}", record.key());
                     throw new RegistryStorageException("Unexpected message type: " + messageType.name());
@@ -295,9 +308,9 @@ public class KafkaSqlSink {
      */
     private Object processArtifactMessage(ArtifactKey key, ArtifactValue value) throws RegistryStorageException {
         try {
-            GlobalIdGenerator globalIdGenerator = new GlobalIdGenerator() {
+            IdGenerator globalIdGenerator = new IdGenerator() {
                 @Override
-                public Long generate() {
+                public Long generate(Handle handle) {
                     return value.getGlobalId();
                 }
             };
@@ -544,6 +557,24 @@ public class KafkaSqlSink {
     }
 
     /**
+     * Process a Kafka message of type "comment id".  This is typically used to generate a new commentId that
+     * is unique and consistent across the cluster.
+     * @param key
+     * @param value
+     */
+    private Object processCommentId(CommentIdKey key, CommentIdValue value) {
+        switch (value.getAction()) {
+            case CREATE:
+                return sqlStore.nextCommentId();
+            case RESET:
+                sqlStore.resetCommentId();
+                return null;
+            default:
+                return unsupported(key, value);
+        }
+    }
+
+    /**
      * Process a Kafka message of type "log config".  This includes updating and deleting
      * log configurations.
      * @param key
@@ -567,4 +598,37 @@ public class KafkaSqlSink {
         log.warn(m);
         throw new RegistryStorageException(m);
     }
+    
+    /**
+     * Process a Kafka message of type "comment".  This includes creating, updating, and deleting
+     * comments for a specific artifact version.
+     * @param key
+     * @param value
+     */
+    private Object processComment(CommentKey key, CommentValue value) {
+        switch (value.getAction()) {
+            case CREATE:
+                return sqlStore.createArtifactVersionComment(key.getGroupId(), key.getArtifactId(), key.getVersion(), 
+                        new StaticIdGenerator(Long.parseLong(key.getCommentId())),
+                        value.getCreatedBy(), value.getCreatedOn(), value.getValue());
+            case UPDATE:
+                sqlStore.updateArtifactVersionComment(key.getGroupId(), key.getArtifactId(), key.getVersion(), key.getCommentId(), value.getValue());
+                return null;
+            case DELETE:
+                sqlStore.deleteArtifactVersionComment(key.getGroupId(), key.getArtifactId(), key.getVersion(), key.getCommentId());
+                return null;
+            case IMPORT:
+                CommentEntity entity = new CommentEntity();
+                entity.commentId = key.getCommentId();
+                entity.globalId = value.getGlobalId();
+                entity.createdBy = value.getCreatedBy();
+                entity.createdOn = value.getCreatedOn().getTime();
+                entity.value = value.getValue();
+                sqlStore.importComment(entity);
+                return null;
+            default:
+                return unsupported(key, value);
+        }
+    }
+
 }

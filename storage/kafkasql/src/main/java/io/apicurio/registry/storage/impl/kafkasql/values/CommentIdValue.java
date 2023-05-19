@@ -14,16 +14,35 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.utils.impexp;
+package io.apicurio.registry.storage.impl.kafkasql.values;
 
+import io.apicurio.registry.storage.impl.kafkasql.MessageType;
 import io.quarkus.runtime.annotations.RegisterForReflection;
+import lombok.ToString;
 
 /**
  * @author eric.wittmann@gmail.com
  */
 @RegisterForReflection
-public enum EntityType {
+@ToString
+public class CommentIdValue extends AbstractMessageValue {
 
-    Manifest, GlobalRule, Content, Group, ArtifactVersion, ArtifactRule, Comment
+    /**
+     * Creator method.
+     * @param action
+     */
+    public static final CommentIdValue create(ActionType action) {
+        CommentIdValue value = new CommentIdValue();
+        value.setAction(action);
+        return value;
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.kafkasql.values.MessageValue#getType()
+     */
+    @Override
+    public MessageType getType() {
+        return MessageType.CommentId;
+    }
 
 }

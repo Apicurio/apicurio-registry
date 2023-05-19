@@ -459,10 +459,12 @@ public abstract class CommonSqlStatements implements SqlStatements {
     public String deleteAllProperties() {
         return "DELETE FROM properties WHERE tenantId = ? AND globalId IN (SELECT globalId FROM versions WHERE tenantId = ?)";
     }
+    
+    @Override
+    public String deleteAllComments() {
+        return "DELETE FROM comments WHERE tenantId = ? AND globalId IN (SELECT globalId FROM versions WHERE tenantId = ?)";
+    }
 
-    /**
-     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#deleteVersions()
-     */
     @Override
     public String deleteVersions() {
         return "DELETE FROM versions WHERE tenantId = ? AND groupId = ? AND artifactId = ?";
@@ -545,6 +547,14 @@ public abstract class CommonSqlStatements implements SqlStatements {
     @Override
     public String deleteVersionProperties() {
         return "DELETE FROM properties WHERE tenantId = ? AND globalId IN (SELECT v.globalId FROM versions v WHERE v.tenantId = ? AND v.groupId = ? AND v.artifactId = ? AND v.version = ?)";
+    }
+    
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#deleteVersionComments()
+     */
+    @Override
+    public String deleteVersionComments() {
+        return "DELETE FROM comments WHERE tenantId = ? AND globalId IN (SELECT v.globalId FROM versions v WHERE v.tenantId = ? AND v.groupId = ? AND v.artifactId = ? AND v.version = ?)";
     }
 
     /**
@@ -779,6 +789,14 @@ public abstract class CommonSqlStatements implements SqlStatements {
     }
 
     /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#exportComments()
+     */
+    @Override
+    public String exportComments() {
+        return "SELECT * FROM comments c WHERE c.tenantId = ?";
+    }
+    
+    /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#exportContent()
      */
     @Override
@@ -852,13 +870,21 @@ public abstract class CommonSqlStatements implements SqlStatements {
     public String selectMaxContentId() {
         return "SELECT MAX(contentId) FROM content WHERE tenantId = ?";
     }
-
+    
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectMaxGlobalId()
      */
     @Override
     public String selectMaxGlobalId() {
         return "SELECT MAX(globalId) FROM versions WHERE tenantId = ?";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectMaxCommentId()
+     */
+    @Override
+    public String selectMaxCommentId() {
+        return "SELECT MAX(commentId) FROM comments WHERE tenantId = ?";
     }
 
     /**
@@ -1054,6 +1080,28 @@ public abstract class CommonSqlStatements implements SqlStatements {
     @Override
     public String selectCurrentSequenceValue() {
         return "SELECT value FROM sequences WHERE name = ? AND tenantId = ? ";
+    }
+
+    @Override
+    public String insertComment() {
+        return "INSERT INTO comments (tenantId, commentId, globalId, createdBy, createdOn, cvalue) VALUES (?, ?, ?, ?, ?, ?)";
+    }
+    
+    @Override
+    public String selectComments() {
+        return "SELECT c.* "
+                + "FROM comments c JOIN versions v ON v.tenantId = c.tenantId AND v.globalId = c.globalId "
+                + "WHERE v.tenantId = ? AND v.groupId = ? AND v.artifactId = ? AND v.version = ? ORDER BY c.createdOn DESC";
+    }
+    
+    @Override
+    public String deleteComment() {
+        return "DELETE FROM comments WHERE tenantId = ? AND globalId = ? AND commentId = ? AND createdBy = ?";
+    }
+    
+    @Override
+    public String updateComment() {
+        return "UPDATE comments SET cvalue = ? WHERE tenantId = ? AND globalId = ? AND commentId = ? AND createdBy = ?";
     }
 
 }

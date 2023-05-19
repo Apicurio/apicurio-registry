@@ -76,6 +76,12 @@ public class MessageTypeToValueClass {
                 case ArtifactOwner:
                     index.put(type, ArtifactOwnerValue.class);
                     break;
+                case CommentId:
+                    index.put(type, CommentIdValue.class);
+                    break;
+                case Comment:
+                    index.put(type, CommentValue.class);
+                    break;
                 default:
                     throw new RuntimeException("[MessageTypeToValueClass] Type not mapped: " + type);
             }

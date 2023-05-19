@@ -68,6 +68,8 @@ public class EntityWriter {
             case GlobalRule:
                 writeEntity((GlobalRuleEntity) entity);
                 break;
+            case Comment:
+                writeEntity((CommentEntity) entity);
             case Manifest:
                 writeEntity((ManifestEntity) entity);
                 break;
@@ -114,6 +116,11 @@ public class EntityWriter {
         write(mdEntry, entity, GlobalRuleEntity.class);
     }
 
+    private void writeEntity(CommentEntity entity) throws IOException {
+        ZipEntry mdEntry = createZipEntry(EntityType.Comment, entity.globalId + '-' + entity.commentId, "json");
+        write(mdEntry, entity, CommentEntity.class);
+    }
+
     private ZipEntry createZipEntry(EntityType type, String fileName, String fileExt) {
         return createZipEntry(type, null, null, fileName, fileExt);
     }
@@ -135,6 +142,9 @@ public class EntityWriter {
                 break;
             case Group:
                 path = String.format("groups/%s.%s.%s", fileName, type.name(), fileExt);
+                break;
+            case Comment:
+                path = String.format("comments/%s.%s.%s", fileName, type.name(), fileExt);
                 break;
             case Manifest:
                 path = String.format("%s.%s.%s", fileName, type.name(), fileExt);

@@ -16,12 +16,51 @@
 
 package io.apicurio.registry.noprofile.rest.v2;
 
+import static io.restassured.RestAssured.given;
+import static java.net.HttpURLConnection.HTTP_OK;
+import static java.net.HttpURLConnection.HTTP_NO_CONTENT;
+import static org.hamcrest.CoreMatchers.anyOf;
+import static org.hamcrest.CoreMatchers.anything;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.equalToObject;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.Matchers.startsWith;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+import org.apache.commons.codec.digest.DigestUtils;
+import org.hamcrest.Matchers;
+import org.jose4j.base64url.Base64;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.OS;
+
 import com.google.common.hash.Hashing;
+
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v2.beans.ArtifactReference;
+import io.apicurio.registry.rest.v2.beans.Comment;
 import io.apicurio.registry.rest.v2.beans.EditableMetaData;
 import io.apicurio.registry.rest.v2.beans.IfExists;
+import io.apicurio.registry.rest.v2.beans.NewComment;
 import io.apicurio.registry.rest.v2.beans.Rule;
 import io.apicurio.registry.rest.v2.beans.VersionMetaData;
 import io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType;
@@ -36,39 +75,6 @@ import io.restassured.config.EncoderConfig;
 import io.restassured.config.RestAssuredConfig;
 import io.restassured.http.ContentType;
 import io.restassured.response.ValidatableResponse;
-import org.apache.commons.codec.digest.DigestUtils;
-import org.hamcrest.Matchers;
-import org.jose4j.base64url.Base64;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
-import org.junit.jupiter.api.condition.DisabledOnOs;
-import org.junit.jupiter.api.condition.OS;
-
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-
-import static io.restassured.RestAssured.given;
-import static java.net.HttpURLConnection.HTTP_OK;
-import static org.hamcrest.CoreMatchers.anyOf;
-import static org.hamcrest.CoreMatchers.anything;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.equalToObject;
-import static org.hamcrest.Matchers.greaterThanOrEqualTo;
-import static org.hamcrest.Matchers.not;
-import static org.hamcrest.Matchers.notNullValue;
-import static org.hamcrest.Matchers.nullValue;
-import static org.hamcrest.Matchers.startsWith;
-import static org.junit.Assert.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
 /**
  * @author eric.wittmann@gmail.com
@@ -2501,5 +2507,126 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         outputStream.write(contentBytes);
         outputStream.write(referencesBytes);
         return outputStream.toByteArray();
+    }
+    
+    @Test
+    public void testArtifactComments() throws Exception {
+        String artifactId = "testArtifactComments/EmptyAPI";
+        String artifactContent = resourceToString("openapi-empty.json");
+
+        // Create OpenAPI artifact
+        createArtifact(GROUP, artifactId, ArtifactType.OPENAPI, artifactContent);
+
+        // Get comments for the artifact (should be none)
+        List<Comment> comments = given()
+                .when()
+                .pathParam("groupId", GROUP)
+                .pathParam("artifactId", artifactId)
+                .get("/registry/v2/groups/{groupId}/artifacts/{artifactId}/versions/latest/comments")
+                .then()
+                .statusCode(HTTP_OK)
+                .extract().as(new TypeRef<List<Comment>>() {
+                });
+        assertEquals(0, comments.size());
+        
+        // Create a new comment
+        NewComment nc = NewComment.builder().value("COMMENT_1").build();
+        Comment comment1 = given()
+                .when()
+                .contentType(CT_JSON)
+                .pathParam("groupId", GROUP)
+                .pathParam("artifactId", artifactId)
+                .body(nc)
+                .post("/registry/v2/groups/{groupId}/artifacts/{artifactId}/versions/latest/comments")
+                .then()
+                .statusCode(HTTP_OK)
+                .extract().as(Comment.class);
+        assertNotNull(comment1);
+        assertNotNull(comment1.getCommentId());
+        assertNotNull(comment1.getValue());
+        assertNotNull(comment1.getCreatedOn());
+        assertEquals("COMMENT_1", comment1.getValue());
+        
+        // Create another new comment
+        nc = NewComment.builder().value("COMMENT_2").build();
+        Comment comment2 = given()
+                .when()
+                .contentType(CT_JSON)
+                .pathParam("groupId", GROUP)
+                .pathParam("artifactId", artifactId)
+                .body(nc)
+                .post("/registry/v2/groups/{groupId}/artifacts/{artifactId}/versions/latest/comments")
+                .then()
+                .statusCode(HTTP_OK)
+                .extract().as(Comment.class);
+        assertNotNull(comment2);
+        assertNotNull(comment2.getCommentId());
+        assertNotNull(comment2.getValue());
+        assertNotNull(comment2.getCreatedOn());
+        assertEquals("COMMENT_2", comment2.getValue());
+        
+        // Get the list of comments (should have 2)
+        comments = given()
+                .when()
+                .pathParam("groupId", GROUP)
+                .pathParam("artifactId", artifactId)
+                .get("/registry/v2/groups/{groupId}/artifacts/{artifactId}/versions/latest/comments")
+                .then()
+                .statusCode(HTTP_OK)
+                .extract().as(new TypeRef<List<Comment>>() {
+                });
+        assertEquals(2, comments.size());
+        assertEquals("COMMENT_2", comments.get(0).getValue());
+        assertEquals("COMMENT_1", comments.get(1).getValue());
+
+        // Update a comment
+        nc = NewComment.builder().value("COMMENT_2_UPDATED").build();
+        given()
+                .when()
+                .contentType(CT_JSON)
+                .pathParam("groupId", GROUP)
+                .pathParam("artifactId", artifactId)
+                .pathParam("commentId", comment2.getCommentId())
+                .body(nc)
+                .put("/registry/v2/groups/{groupId}/artifacts/{artifactId}/versions/latest/comments/{commentId}")
+                .then()
+                .statusCode(HTTP_NO_CONTENT);
+
+        // Get the list of comments (should have 2)
+        comments = given()
+                .when()
+                .pathParam("groupId", GROUP)
+                .pathParam("artifactId", artifactId)
+                .get("/registry/v2/groups/{groupId}/artifacts/{artifactId}/versions/latest/comments")
+                .then()
+                .statusCode(HTTP_OK)
+                .extract().as(new TypeRef<List<Comment>>() {
+                });
+        assertEquals(2, comments.size());
+        assertEquals("COMMENT_2_UPDATED", comments.get(0).getValue());
+        assertEquals("COMMENT_1", comments.get(1).getValue());
+
+        // Delete a comment
+        given()
+                .when()
+                .pathParam("groupId", GROUP)
+                .pathParam("artifactId", artifactId)
+                .pathParam("commentId", comment2.getCommentId())
+                .delete("/registry/v2/groups/{groupId}/artifacts/{artifactId}/versions/latest/comments/{commentId}")
+                .then()
+                .statusCode(HTTP_NO_CONTENT);
+
+        // Get the list of comments (should have only 1)
+        comments = given()
+                .when()
+                .pathParam("groupId", GROUP)
+                .pathParam("artifactId", artifactId)
+                .get("/registry/v2/groups/{groupId}/artifacts/{artifactId}/versions/latest/comments")
+                .then()
+                .statusCode(HTTP_OK)
+                .extract().as(new TypeRef<List<Comment>>() {
+                });
+        assertEquals(1, comments.size());
+        assertEquals("COMMENT_1", comments.get(0).getValue());
     }
 }

@@ -39,6 +39,8 @@ public enum MessageType {
     Download(12),
     ConfigProperty(13),
     ArtifactOwner(14),
+    CommentId(15),
+    Comment(16),
     ;
 
     private final byte ord;

@@ -401,5 +401,37 @@ public class MockRegistryClient implements RegistryClient {
             String groupId, String artifactId, String version) {
         throw new UnsupportedOperationException("Unimplemented method 'getArtifactReferencesByCoordinates'");
     }
+    
+    /**
+     * @see io.apicurio.registry.rest.client.RegistryClient#addArtifactVersionComment(java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.rest.v2.beans.NewComment)
+     */
+    @Override
+    public Comment addArtifactVersionComment(String groupId, String artifactId, String version, NewComment comment) {
+        throw new UnsupportedOperationException("Unimplemented method 'addArtifactVersionComment'");
+    }
+    
+    /**
+     * @see io.apicurio.registry.rest.client.RegistryClient#deleteArtifactVersionComment(java.lang.String, java.lang.String, java.lang.String, java.lang.String)
+     */
+    @Override
+    public void deleteArtifactVersionComment(String groupId, String artifactId, String version, String commentId) {
+        throw new UnsupportedOperationException("Unimplemented method 'deleteArtifactVersionComment'");
+    }
+
+    /**
+     * @see io.apicurio.registry.rest.client.RegistryClient#editArtifactVersionComment(java.lang.String, java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.rest.v2.beans.NewComment)
+     */
+    @Override
+    public void editArtifactVersionComment(String groupId, String artifactId, String version, String commentId, NewComment comment) {
+        throw new UnsupportedOperationException("Unimplemented method 'editArtifactVersionComment'");
+    }
+    
+    /**
+     * @see io.apicurio.registry.rest.client.RegistryClient#getArtifactVersionComments(java.lang.String, java.lang.String, java.lang.String)
+     */
+    @Override
+    public List<Comment> getArtifactVersionComments(String groupId, String artifactId, String version) {
+        throw new UnsupportedOperationException("Unimplemented method 'getArtifactVersionComments'");
+    }
 
 }

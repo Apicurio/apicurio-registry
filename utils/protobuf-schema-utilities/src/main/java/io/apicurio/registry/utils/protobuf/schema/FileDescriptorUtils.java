@@ -51,6 +51,7 @@ import metadata.ProtobufSchemaMetadata;
 import additionalTypes.Decimals;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -184,14 +185,33 @@ public class FileDescriptorUtils {
         Objects.requireNonNull(schemaDefinition);
         Objects.requireNonNull(protoFileName);
 
-        return FileDescriptor.buildFrom(toFileDescriptorProto(schemaDefinition, protoFileName, optionalPackageName), baseDependencies());
+        return FileDescriptor.buildFrom(toFileDescriptorProto(schemaDefinition, protoFileName, optionalPackageName, Collections.emptyMap()), baseDependencies());
+    }
+
+    public static FileDescriptor protoFileToFileDescriptor(String schemaDefinition, String protoFileName, Optional<String> optionalPackageName, Map<String, String> schemaDefs, Map<String, Descriptors.FileDescriptor> dependencies)
+            throws DescriptorValidationException {
+        Objects.requireNonNull(schemaDefinition);
+        Objects.requireNonNull(protoFileName);
+
+        final List<Descriptors.FileDescriptor> baseDependencies = Arrays.asList(baseDependencies());
+        final Set<Descriptors.FileDescriptor> joinedDependencies = new HashSet<>(baseDependencies);
+        joinedDependencies.addAll(dependencies.values());
+
+        Descriptors.FileDescriptor[] dependenciesArray = new Descriptors.FileDescriptor[joinedDependencies.size()];
+
+        return FileDescriptor.buildFrom(toFileDescriptorProto(schemaDefinition, protoFileName, optionalPackageName, schemaDefs), joinedDependencies.toArray(dependenciesArray));
     }
 
     private static FileDescriptorProto toFileDescriptorProto(String schemaDefinition, String protoFileName, Optional<String> optionalPackageName) {
+        return toFileDescriptorProto(schemaDefinition, protoFileName, optionalPackageName, Collections.emptyMap());
+    }
+
+
+    private static FileDescriptorProto toFileDescriptorProto(String schemaDefinition, String protoFileName, Optional<String> optionalPackageName, Map<String, String> deps) {
         final ProtobufSchemaLoader.ProtobufSchemaLoaderContext protobufSchemaLoaderContext;
         try {
             protobufSchemaLoaderContext =
-                    ProtobufSchemaLoader.loadSchema(optionalPackageName, protoFileName, schemaDefinition);
+                    ProtobufSchemaLoader.loadSchema(optionalPackageName, protoFileName, schemaDefinition, deps);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -236,6 +256,7 @@ public class FileDescriptorUtils {
         for (String ref : element.getImports()) {
             schema.addDependency(ref);
         }
+
         for (String ref : element.getPublicImports()) {
             boolean add = true;
             for (int i = 0; i < schema.getDependencyCount(); i++) {

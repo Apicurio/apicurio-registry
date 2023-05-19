@@ -17,6 +17,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -124,21 +125,37 @@ public class ProtobufSchemaLoader {
      */
     public static ProtobufSchemaLoaderContext loadSchema(Optional<String> packageName, String fileName, String schemaDefinition)
         throws IOException {
+        return loadSchema(packageName, fileName, schemaDefinition, Collections.emptyMap());
+    }
+
+    /**
+     * Creates a schema loader using a in-memory file system. This is required for square wire schema parser and linker
+     * to load the types correctly. See https://github.com/square/wire/issues/2024#
+     * As of now this only supports reading one .proto file but can be extended to support reading multiple files.
+     * @param packageName Package name for the .proto if present
+     * @param fileName Name of the .proto file.
+     * @param schemaDefinition Schema Definition to parse.
+     * @param schemaDefinition Schema Definition to parse.
+     * @return Schema - parsed and properly linked Schema.
+     */
+    public static ProtobufSchemaLoaderContext loadSchema(Optional<String> packageName, String fileName, String schemaDefinition, Map<String, String> deps)
+            throws IOException {
         final FileSystem inMemoryFileSystem = getFileSystem();
 
         String[] dirs = {};
         if (packageName.isPresent()) {
             dirs = packageName.get().split("\\.");
         }
+
         String protoFileName = fileName.endsWith(".proto") ? fileName : fileName + ".proto";
-        FileHandle fileHandle = null;
+
         try {
             String dirPath = createDirectory(dirs, inMemoryFileSystem);
-            okio.Path path = okio.Path.get((dirPath + "/" + protoFileName));
-            final byte[] schemaBytes = schemaDefinition.getBytes(StandardCharsets.UTF_8);
-            fileHandle = inMemoryFileSystem.openReadWrite(path);
-            fileHandle.write(0, schemaBytes, 0, schemaBytes.length);
-            fileHandle.close();
+            okio.Path path = writeFile(schemaDefinition, fileName, dirPath, inMemoryFileSystem);
+
+            for (String depKey: deps.keySet()) {
+                writeFile(deps.get(depKey), depKey, dirPath, inMemoryFileSystem);
+            }
 
             SchemaLoader schemaLoader = new SchemaLoader(inMemoryFileSystem);
             schemaLoader.initRoots(Lists.newArrayList(Location.get("/")), Lists.newArrayList(Location.get("/")));
@@ -153,6 +170,19 @@ public class ProtobufSchemaLoader {
             return new ProtobufSchemaLoaderContext(schema, protoFile);
         } catch (Exception e) {
             throw e;
+        }
+    }
+
+    private static okio.Path writeFile(String schemaDefinition, String fileName, String dirPath, FileSystem inMemoryFileSystem) throws IOException {
+        FileHandle fileHandle = null;
+        try {
+            String protoFileName = fileName.endsWith(".proto") ? fileName : fileName + ".proto";
+            okio.Path path = okio.Path.get((dirPath + "/" + protoFileName));
+            final byte[] schemaBytes = schemaDefinition.getBytes(StandardCharsets.UTF_8);
+            fileHandle = inMemoryFileSystem.openReadWrite(path);
+            fileHandle.write(0, schemaBytes, 0, schemaBytes.length);
+            fileHandle.close();
+            return path;
         } finally {
             if (fileHandle != null) {
                 fileHandle.close();

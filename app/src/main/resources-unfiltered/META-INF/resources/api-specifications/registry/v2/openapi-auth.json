@@ -1622,8 +1622,8 @@
                 "tags": [
                     "Versions"
                 ],
-                "summary": "Get artifact version",
-                "description": "Retrieves a single version of the artifact content.  Both the `artifactId` and the\nunique `version` number must be provided.  The `Content-Type` of the response depends \non the artifact type.  In most cases, this is `application/json`, but for some types \nit may be different (for example, `PROTOBUF`).\n\nThis operation can fail for the following reasons:\n\n* No artifact with this `artifactId` exists (HTTP error `404`)\n* No version with this `version` exists (HTTP error `404`)\n* A server error occurred (HTTP error `500`)\n",
+                "summary": "Get artifact version references",
+                "description": "Retrieves all references for a single version of an artifact.  Both the `artifactId` and the\nunique `version` number must be provided.  Using the `refType` query parameter, it is possible\nto retrieve an array of either the inbound or outbound references.\n\nThis operation can fail for the following reasons:\n\n* No artifact with this `artifactId` exists (HTTP error `404`)\n* No version with this `version` exists (HTTP error `404`)\n* A server error occurred (HTTP error `500`)\n",
                 "operationId": "getArtifactVersionReferences",
                 "responses": {
                     "200": {
@@ -3040,6 +3040,192 @@
                     }
                 }
             ]
+        },
+        "/groups/{groupId}/artifacts/{artifactId}/versions/{version}/comments": {
+            "summary": "Manage a collection of comments for an artifact version",
+            "get": {
+                "tags": [
+                    "Versions"
+                ],
+                "summary": "Get artifact version comments",
+                "description": "Retrieves all comments for a version of an artifact.  Both the `artifactId` and the\nunique `version` number must be provided.\n\nThis operation can fail for the following reasons:\n\n* No artifact with this `artifactId` exists (HTTP error `404`)\n* No version with this `version` exists (HTTP error `404`)\n* A server error occurred (HTTP error `500`)\n",
+                "operationId": "getArtifactVersionComments",
+                "responses": {
+                    "200": {
+                        "description": "List of all the comments for this artifact.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/Comment"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Versions"
+                ],
+                "summary": "Add new comment",
+                "description": "Adds a new comment to the artifact version.  Both the `artifactId` and the\nunique `version` number must be provided.\n\nThis operation can fail for the following reasons:\n\n* No artifact with this `artifactId` exists (HTTP error `404`)\n* No version with this `version` exists (HTTP error `404`)\n* A server error occurred (HTTP error `500`)\n",
+                "operationId": "addArtifactVersionComment",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/NewComment"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "The comment was successfully created.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Comment"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                }
+            },
+            "parameters": [
+                {
+                    "name": "groupId",
+                    "in": "path",
+                    "description": "The artifact group ID.  Must be a string provided by the client, representing the name of the grouping of artifacts.",
+                    "required": true,
+                    "schema": {
+                        "$ref": "#/components/schemas/GroupId"
+                    }
+                },
+                {
+                    "name": "artifactId",
+                    "in": "path",
+                    "description": "The artifact ID.  Can be a string (client-provided) or UUID (server-generated), representing the unique artifact identifier.",
+                    "required": true,
+                    "schema": {
+                        "$ref": "#/components/schemas/ArtifactId"
+                    }
+                },
+                {
+                    "name": "version",
+                    "in": "path",
+                    "description": "The unique identifier of a specific version of the artifact content.",
+                    "required": true,
+                    "schema": {
+                        "$ref": "#/components/schemas/Version"
+                    }
+                }
+            ]
+        },
+        "/groups/{groupId}/artifacts/{artifactId}/versions/{version}/comments/{commentId}": {
+            "summary": "Manage a single comment",
+            "put": {
+                "tags": [
+                    "Versions"
+                ],
+                "summary": "Update a comment",
+                "description": "Updates the value of a single comment in an artifact version.  Only the owner of the\ncomment can modify it.  The `artifactId`, unique `version` number, and `commentId` \nmust be provided.\n\nThis operation can fail for the following reasons:\n\n* No artifact with this `artifactId` exists (HTTP error `404`)\n* No version with this `version` exists (HTTP error `404`)\n* No comment with this `commentId` exists (HTTP error `404`)\n* A server error occurred (HTTP error `500`)\n",
+                "operationId": "updateArtifactVersionComment",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/NewComment"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "204": {
+                        "description": "The value of the comment was successfully changed."
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "Versions"
+                ],
+                "summary": "Delete a single comment",
+                "description": "Deletes a single comment in an artifact version.  Only the owner of the\ncomment can delete it.  The `artifactId`, unique `version` number, and `commentId` \nmust be provided.\n\nThis operation can fail for the following reasons:\n\n* No artifact with this `artifactId` exists (HTTP error `404`)\n* No version with this `version` exists (HTTP error `404`)\n* No comment with this `commentId` exists (HTTP error `404`)\n* A server error occurred (HTTP error `500`)\n",
+                "operationId": "deleteArtifactVersionComment",
+                "responses": {
+                    "204": {
+                        "description": "The comment was successfully deleted."
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                }
+            },
+            "parameters": [
+                {
+                    "name": "groupId",
+                    "in": "path",
+                    "description": "The artifact group ID.  Must be a string provided by the client, representing the name of the grouping of artifacts.",
+                    "required": true,
+                    "schema": {
+                        "$ref": "#/components/schemas/GroupId"
+                    }
+                },
+                {
+                    "name": "artifactId",
+                    "in": "path",
+                    "description": "The artifact ID.  Can be a string (client-provided) or UUID (server-generated), representing the unique artifact identifier.",
+                    "required": true,
+                    "schema": {
+                        "$ref": "#/components/schemas/ArtifactId"
+                    }
+                },
+                {
+                    "name": "version",
+                    "in": "path",
+                    "description": "The unique identifier of a specific version of the artifact content.",
+                    "required": true,
+                    "schema": {
+                        "$ref": "#/components/schemas/Version"
+                    }
+                },
+                {
+                    "name": "commentId",
+                    "in": "path",
+                    "description": "The unique identifier of a single comment.",
+                    "required": true,
+                    "schema": {
+                        "type": "string"
+                    }
+                }
+            ]
         }
     },
     "components": {
@@ -4277,6 +4463,57 @@
                 "type": "string",
                 "example": "\"INBOUND\"",
                 "x-codegen-package": "io.apicurio.registry.types"
+            },
+            "NewComment": {
+                "title": "Root Type for NewComment",
+                "description": "",
+                "required": [
+                    "value"
+                ],
+                "type": "object",
+                "properties": {
+                    "value": {
+                        "type": "string"
+                    }
+                },
+                "example": {
+                    "value": "This is a new comment on an existing artifact version."
+                }
+            },
+            "Comment": {
+                "title": "Root Type for NewComment",
+                "description": "",
+                "required": [
+                    "createdBy",
+                    "createdOn",
+                    "value",
+                    "commentId"
+                ],
+                "type": "object",
+                "properties": {
+                    "value": {
+                        "maxLength": 1024.0,
+                        "type": "string"
+                    },
+                    "createdOn": {
+                        "format": "date-time",
+                        "type": "string"
+                    },
+                    "createdBy": {
+                        "description": "",
+                        "type": "string"
+                    },
+                    "commentId": {
+                        "description": "",
+                        "type": "string"
+                    }
+                },
+                "example": {
+                    "commentId": "12345",
+                    "value": "This is a comment on an artifact version.",
+                    "createdBy": "bwayne",
+                    "createdOn": "2023-07-01T15:22:01Z"
+                }
             }
         },
         "responses": {

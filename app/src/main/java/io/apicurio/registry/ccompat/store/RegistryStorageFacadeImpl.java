@@ -16,6 +16,20 @@
 
 package io.apicurio.registry.ccompat.store;
 
+import static io.apicurio.registry.storage.RegistryStorage.ArtifactRetrievalBehavior.DEFAULT;
+
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
+import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
+
+import org.slf4j.Logger;
+
 import io.apicurio.registry.ccompat.dto.CompatibilityCheckResponse;
 import io.apicurio.registry.ccompat.dto.Schema;
 import io.apicurio.registry.ccompat.dto.SchemaContent;
@@ -26,6 +40,7 @@ import io.apicurio.registry.ccompat.rest.error.ConflictException;
 import io.apicurio.registry.ccompat.rest.error.UnprocessableEntityException;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.canon.ContentCanonicalizer;
+import io.apicurio.registry.rest.v2.beans.ArtifactReference;
 import io.apicurio.registry.rules.RuleApplicationType;
 import io.apicurio.registry.rules.RuleViolationException;
 import io.apicurio.registry.rules.RulesService;
@@ -55,18 +70,6 @@ import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 import io.apicurio.registry.util.ArtifactTypeUtil;
 import io.apicurio.registry.util.VersionUtil;
-import org.slf4j.Logger;
-
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
-
-import static io.apicurio.registry.storage.RegistryStorage.ArtifactRetrievalBehavior.DEFAULT;
 
 /**
  * @author Ales Justin
@@ -299,7 +302,7 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
                 final ArtifactVersionMetaDataDto artifact = storage
                         .getArtifactVersionMetaData(null, subject, v);
                 rulesService.applyRules(null, subject, v, artifact.getType(),
-                        ContentHandle.create(request.getSchema()), Collections.emptyMap());
+                        ContentHandle.create(request.getSchema()), Collections.emptyList(), Collections.emptyMap());
                 return CompatibilityCheckResponse.IS_COMPATIBLE;
             } catch (RuleViolationException ex) {
                 if (verbose) {
@@ -322,7 +325,7 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
             for (String version : versions) {
                 final ArtifactVersionMetaDataDto artifactVersionMetaData = storage.getArtifactVersionMetaData(null, subject, version);
                 rulesService.applyRules(null, subject, version, artifactVersionMetaData.getType(),
-                        ContentHandle.create(request.getSchema()), Collections.emptyMap());
+                        ContentHandle.create(request.getSchema()), Collections.emptyList(), Collections.emptyMap());
             }
             return CompatibilityCheckResponse.IS_COMPATIBLE;
         } catch (RuleViolationException ex) {
@@ -339,6 +342,14 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
     private ArtifactMetaDataDto createOrUpdateArtifact(String subject, String schema, String artifactType, List<SchemaReference> references, boolean normalize) {
         ArtifactMetaDataDto res;
         final List<ArtifactReferenceDto> parsedReferences = parseReferences(references);
+        final List<ArtifactReference> artifactReferences = parsedReferences.stream().map(dto -> {
+            return ArtifactReference.builder()
+                    .name(dto.getName())
+                    .groupId(dto.getGroupId())
+                    .artifactId(dto.getArtifactId())
+                    .version(dto.getVersion())
+                    .build();
+        }).collect(Collectors.toList());
         final Map<String, ContentHandle> resolvedReferences = storage.resolveReferences(parsedReferences);
         try {
             ContentHandle schemaContent;
@@ -348,10 +359,12 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
                 schemaContent = ContentHandle.create(schema);
             }
             if (!doesArtifactExist(subject)) {
-                rulesService.applyRules(null, subject, artifactType, schemaContent, RuleApplicationType.CREATE, resolvedReferences);
+                rulesService.applyRules(null, subject, artifactType, schemaContent, RuleApplicationType.CREATE,
+                        artifactReferences, resolvedReferences);
                 res = storage.createArtifact(null, subject, null, artifactType, schemaContent, parsedReferences);
             } else {
-                rulesService.applyRules(null, subject, artifactType, schemaContent, RuleApplicationType.UPDATE, resolvedReferences);
+                rulesService.applyRules(null, subject, artifactType, schemaContent, RuleApplicationType.UPDATE,
+                        artifactReferences, resolvedReferences);
                 res = storage.updateArtifact(null, subject, null, artifactType, schemaContent, parsedReferences);
             }
         } catch (RuleViolationException ex) {

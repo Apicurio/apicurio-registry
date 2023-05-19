@@ -20,6 +20,7 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 
 import io.apicurio.registry.rules.compatibility.CompatibilityRuleExecutor;
+import io.apicurio.registry.rules.integrity.IntegrityRuleExecutor;
 import io.apicurio.registry.rules.validity.ValidityRuleExecutor;
 import io.apicurio.registry.types.RuleType;
 
@@ -34,6 +35,8 @@ public class RuleExecutorFactory {
     CompatibilityRuleExecutor compatibility;
     @Inject
     ValidityRuleExecutor validity;
+    @Inject
+    IntegrityRuleExecutor integrity;
 
     public RuleExecutor createExecutor(RuleType ruleType) {
         switch (ruleType) {
@@ -41,6 +44,8 @@ public class RuleExecutorFactory {
                 return compatibility;
             case VALIDITY:
                 return validity;
+            case INTEGRITY:
+                return integrity;
             default:
                 throw new RuntimeException("Rule type not supported");
         }

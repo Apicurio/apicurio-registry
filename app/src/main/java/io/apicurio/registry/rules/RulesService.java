@@ -16,10 +16,12 @@
 
 package io.apicurio.registry.rules;
 
-import io.apicurio.registry.content.ContentHandle;
-import io.apicurio.registry.types.RuleType;
-
+import java.util.List;
 import java.util.Map;
+
+import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.rest.v2.beans.ArtifactReference;
+import io.apicurio.registry.types.RuleType;
 
 /**
  * A service used to apply configured rules to a given content update.  In other words,
@@ -38,10 +40,13 @@ public interface RulesService {
      * @param artifactType
      * @param artifactContent
      * @param ruleApplicationType
+     * @param references
+     * @param resolvedReferences
      * @throws RuleViolationException
      */
     public void applyRules(String groupId, String artifactId, String artifactType, ContentHandle artifactContent,
-                    RuleApplicationType ruleApplicationType, Map<String, ContentHandle> resolvedReferences) throws RuleViolationException;
+                    RuleApplicationType ruleApplicationType, List<ArtifactReference> references,
+                    Map<String, ContentHandle> resolvedReferences) throws RuleViolationException;
 
     /**
      * Applies a single, specific rule to the content update for the given artifact.
@@ -52,12 +57,14 @@ public interface RulesService {
      * @param ruleType
      * @param ruleConfiguration
      * @param ruleApplicationType
+     * @param references
+     * @param resolvedReferences
      * @throws RuleViolationException
      */
     public void applyRule(String groupId, String artifactId, String artifactType, ContentHandle artifactContent,
-                   RuleType ruleType, String ruleConfiguration, RuleApplicationType ruleApplicationType, Map<String, ContentHandle> resolvedReferences)
+                   RuleType ruleType, String ruleConfiguration, RuleApplicationType ruleApplicationType, 
+                   List<ArtifactReference> references, Map<String, ContentHandle> resolvedReferences)
             throws RuleViolationException;
-
 
     /**
      * Applies configured rules to the content update, relative to ANY artifact version.
@@ -66,8 +73,11 @@ public interface RulesService {
      * @param artifactVersion
      * @param artifactType
      * @param updatedContent
+     * @param references
+     * @param resolvedReferences
      * @throws RuleViolationException
      */
-    public void applyRules(String groupId, String artifactId, String artifactVersion, String artifactType, ContentHandle updatedContent, Map<String, ContentHandle> resolvedReferences)
+    public void applyRules(String groupId, String artifactId, String artifactVersion, String artifactType, 
+            ContentHandle updatedContent, List<ArtifactReference> references, Map<String, ContentHandle> resolvedReferences)
             throws RuleViolationException;
 }

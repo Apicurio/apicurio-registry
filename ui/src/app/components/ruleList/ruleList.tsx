@@ -27,12 +27,12 @@ import {
     DataListItemRow
 } from "@patternfly/react-core";
 import { PureComponent, PureComponentProps, PureComponentState } from "../baseComponent";
-import { CodeBranchIcon, OkIcon, TrashIcon } from "@patternfly/react-icons";
+import { CheckIcon, CodeBranchIcon, OkIcon, TrashIcon } from "@patternfly/react-icons";
 import { CompatibilityDropdown } from "./compatibility-dropdown";
 import { ValidityDropdown } from "./validity-dropdown";
-import { IfFeature } from "../common/ifFeature";
-import { IfAuth } from "../common";
+import { IfAuth, IfFeature } from "../common";
 import { Rule } from "../../../models";
+import { IntegrityDropdown } from "./integrity-dropdown";
 
 
 export interface RuleListProps extends PureComponentProps {
@@ -68,7 +68,7 @@ export class RuleList extends PureComponent<RuleListProps, RuleListState> {
                     <Button variant="plain"
                             key="delete-action"
                             data-testid="rules-validity-disable"
-                            title="Disable the validity rule"
+                            title="Disable the  validity rule"
                             onClick={this.doDisableRule("VALIDITY")}><TrashIcon /></Button>
                 </React.Fragment>
             );
@@ -89,6 +89,25 @@ export class RuleList extends PureComponent<RuleListProps, RuleListState> {
                             data-testid="rules-compatibility-disable"
                             title="Disable the compatibility rule"
                             onClick={this.doDisableRule("COMPATIBILITY")}><TrashIcon /></Button>
+                </React.Fragment>
+            );
+        }
+        let integrityRuleActions: React.ReactElement = (
+            <Button variant="secondary"
+                    key="enable-action"
+                    data-testid="rules-integrity-enable"
+                    onClick={this.doEnableRule("INTEGRITY")}>Enable</Button>
+        );
+        if (this.isRuleEnabled("INTEGRITY")) {
+            integrityRuleActions = (
+                <React.Fragment>
+                    <IntegrityDropdown value={this.getRuleConfig("INTEGRITY")}
+                                       onSelect={this.doConfigureRule("INTEGRITY")} />
+                    <Button variant="plain"
+                            key="delete-action"
+                            data-testid="rules-integrity-disable"
+                            title="Disable the integrity rule"
+                            onClick={this.doDisableRule("INTEGRITY")}><TrashIcon /></Button>
                 </React.Fragment>
             );
         }
@@ -141,6 +160,29 @@ export class RuleList extends PureComponent<RuleListProps, RuleListState> {
                         </IfAuth>
                     </DataListItemRow>
                 </DataListItem>
+                <DataListItem aria-labelledby="integrity-rule-name">
+                    <DataListItemRow className={this.getRuleRowClasses("INTEGRITY")}>
+                        <DataListItemCells dataListCells={[
+                            <DataListCell key="rule-name">
+                                <CheckIcon className="rule-icon" />
+                                <span id="integrity-rule-name">Integrity rule</span>
+                            </DataListCell>,
+                            <DataListCell key="rule-description">Enforce artifact reference integrity when creating or updating artifacts.  Enable and configure this rule to ensure that artifact references provided are correct.</DataListCell>
+                        ]}
+                        />
+                        <IfAuth isDeveloper={true}>
+                            <IfFeature feature="readOnly" isNot={true}>
+                                <DataListAction
+                                    aria-labelledby="selectable-action-item1 selectable-action-action1"
+                                    id="selectable-action-action2"
+                                    aria-label="Actions"
+                                >
+                                    { integrityRuleActions }
+                                </DataListAction>
+                            </IfFeature>
+                        </IfAuth>
+                    </DataListItemRow>
+                </DataListItem>
             </DataList>
         );
     }
@@ -157,13 +199,15 @@ export class RuleList extends PureComponent<RuleListProps, RuleListState> {
         const classes: string[] = [ "rule" ];
         if (ruleType === "COMPATIBILITY") {
             classes.push("compatibility-rule");
-        } else {
+        } else if (ruleType === "VALIDITY") {
             classes.push("validity-rule");
+        } else if (ruleType === "INTEGRITY") {
+            classes.push("integrity-rule");
         }
         if (!this.isRuleEnabled(ruleType)) {
             classes.push("disabled-state-text");
         }
-        return classes.join(' ');
+        return classes.join(" ");
     }
 
     private getRuleConfig(ruleType: string): string {

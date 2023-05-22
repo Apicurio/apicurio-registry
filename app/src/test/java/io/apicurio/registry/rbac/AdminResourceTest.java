@@ -63,6 +63,7 @@ import io.apicurio.registry.rest.v2.beans.Rule;
 import io.apicurio.registry.rest.v2.beans.UpdateConfigurationProperty;
 import io.apicurio.registry.rest.v2.beans.UpdateRole;
 import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
+import io.apicurio.registry.rules.integrity.IntegrityLevel;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.LogLevel;
 import io.apicurio.registry.types.RoleType;
@@ -271,6 +272,62 @@ public class AdminResourceTest extends AbstractResourceTestBase {
                 .contentType(ContentType.JSON)
                 .body("error_code", equalTo(404))
                 .body("message", equalTo("No rule named 'VALIDITY' was found."));
+
+    }
+
+    @Test
+    public void testIntegrityRule() throws Exception {
+        // Add a global rule
+        Rule rule = new Rule();
+        rule.setType(RuleType.INTEGRITY);
+        rule.setConfig(IntegrityLevel.NO_DUPLICATES.name());
+        given()
+            .when()
+                .contentType(CT_JSON)
+                .body(rule)
+                .post("/registry/v2/admin/rules")
+            .then()
+                .statusCode(204)
+                .body(anything());
+
+        // Get the rule by name
+        TestUtils.retry(() -> {
+            given()
+                .when()
+                    .get("/registry/v2/admin/rules/INTEGRITY")
+                .then()
+                    .statusCode(200)
+                    .contentType(ContentType.JSON)
+                    .body("type", equalTo("INTEGRITY"))
+                    .body("config", equalTo("NO_DUPLICATES"));
+        });
+        
+        // Update the rule config
+        String newConfig = IntegrityLevel.NO_DUPLICATES + "," + IntegrityLevel.REFS_EXIST;
+        rule.setType(RuleType.INTEGRITY);
+        rule.setConfig(newConfig);
+        given()
+            .when()
+                .contentType(CT_JSON)
+                .body(rule)
+                .put("/registry/v2/admin/rules/INTEGRITY")
+            .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .body("type", equalTo("INTEGRITY"))
+                .body("config", equalTo(newConfig));
+
+        // Verify new config
+        TestUtils.retry(() -> {
+            given()
+                .when()
+                    .get("/registry/v2/admin/rules/INTEGRITY")
+                .then()
+                    .statusCode(200)
+                    .contentType(ContentType.JSON)
+                    .body("type", equalTo("INTEGRITY"))
+                    .body("config", equalTo(newConfig));
+        });
 
     }
 

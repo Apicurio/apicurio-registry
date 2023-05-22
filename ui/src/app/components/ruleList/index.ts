@@ -17,4 +17,5 @@
 
 export * from "./ruleList";
 export * from "./compatibility-dropdown";
+export * from "./integrity-dropdown";
 export * from "./validity-dropdown";

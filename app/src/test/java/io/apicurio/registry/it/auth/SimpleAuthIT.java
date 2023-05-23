@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Red Hat
+ * Copyright 2023 Red Hat
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,25 +14,10 @@
  * limitations under the License.
  */
 
-package io.apicurio.tests.auth;
+package io.apicurio.registry.it.auth;
 
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-
-import java.io.ByteArrayInputStream;
-import java.util.Collections;
-import java.util.UUID;
-
-import io.apicurio.rest.client.auth.Auth;
-import io.apicurio.rest.client.auth.OidcAuth;
-import io.apicurio.rest.client.auth.exception.AuthErrorHandler;
-import io.apicurio.rest.client.auth.exception.ForbiddenException;
-import io.apicurio.rest.client.auth.exception.NotAuthorizedException;
-import io.apicurio.rest.client.spi.ApicurioHttpClient;
-import io.apicurio.rest.client.spi.ApicurioHttpClientFactory;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Tag;
-import org.junit.jupiter.api.Test;
-
+import io.apicurio.registry.it.ApicurioRegistryBaseIT;
+import io.apicurio.registry.it.utils.Constants;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.RegistryClientFactory;
 import io.apicurio.registry.rest.client.exception.ArtifactNotFoundException;
@@ -40,38 +25,57 @@ import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v2.beans.Rule;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.utils.tests.AuthTestProfile;
+import io.apicurio.registry.utils.tests.JWKSMockServer;
 import io.apicurio.registry.utils.tests.TestUtils;
-import io.apicurio.tests.common.ApicurioRegistryBaseIT;
-import io.apicurio.tests.common.AuthServerInfo;
-import io.apicurio.tests.common.Constants;
-import io.apicurio.tests.common.RegistryFacade;
+import io.apicurio.rest.client.auth.Auth;
+import io.apicurio.rest.client.auth.OidcAuth;
+import io.apicurio.rest.client.auth.exception.AuthErrorHandler;
+import io.apicurio.rest.client.auth.exception.ForbiddenException;
+import io.apicurio.rest.client.auth.exception.NotAuthorizedException;
+import io.apicurio.rest.client.spi.ApicurioHttpClient;
+import io.apicurio.rest.client.spi.ApicurioHttpClientFactory;
+import io.quarkus.test.junit.QuarkusIntegrationTest;
+import io.quarkus.test.junit.TestProfile;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+
+import java.io.ByteArrayInputStream;
+import java.util.Collections;
+
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 /**
- * @author Fabian Martinez
+ * @author Carles Arnal
  */
 @Tag(Constants.AUTH)
+@TestProfile(AuthTestProfile.class)
+@QuarkusIntegrationTest
 public class SimpleAuthIT extends ApicurioRegistryBaseIT {
-
-    private RegistryFacade facade = RegistryFacade.getInstance();
 
     ApicurioHttpClient httpClient;
 
     protected ApicurioHttpClient getHttpClient() {
-        AuthServerInfo authServerInfo = facade.getAuthServerInfo();
         if (httpClient == null) {
-            httpClient = ApicurioHttpClientFactory.create(authServerInfo.getAuthServerUrlConfigured(), new AuthErrorHandler());
+            httpClient = ApicurioHttpClientFactory.create(authServerUrlConfigured, new AuthErrorHandler());
         }
         return httpClient;
     }
 
+    @Override
+    protected RegistryClient createRegistryClient() {
+        Auth auth = new OidcAuth(getHttpClient(), JWKSMockServer.ADMIN_CLIENT_ID, "test1");
+        return createClient(auth);
+    }
+
     private RegistryClient createClient(Auth auth) {
-        return RegistryClientFactory.create(TestUtils.getRegistryBaseUrl(), Collections.emptyMap(), auth);
+        return RegistryClientFactory.create(getRegistryBaseUrl(), Collections.emptyMap(), auth);
     }
 
     @Test
     public void testWrongCreds() throws Exception {
-        AuthServerInfo authServerInfo = facade.getAuthServerInfo();
-        Auth auth = new OidcAuth(getHttpClient(), authServerInfo.getReadOnlyClientId(), UUID.randomUUID().toString());
+        Auth auth = new OidcAuth(getHttpClient(), JWKSMockServer.WRONG_CREDS_CLIENT_ID, "test55");
         RegistryClient client = createClient(auth);
         Assertions.assertThrows(NotAuthorizedException.class, () -> {
             client.listArtifactsInGroup("foo");
@@ -80,8 +84,7 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
 
     @Test
     public void testReadOnly() throws Exception {
-        AuthServerInfo authServerInfo = facade.getAuthServerInfo();
-        Auth auth = new OidcAuth(getHttpClient(), authServerInfo.getReadOnlyClientId(), authServerInfo.getReadOnlyClientSecret());
+        Auth auth = new OidcAuth(getHttpClient(), JWKSMockServer.READONLY_CLIENT_ID, "test1");
         RegistryClient client = createClient(auth);
 
         String groupId = TestUtils.generateGroupId();
@@ -93,7 +96,7 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
             client.createArtifact("ccc", artifactId, ArtifactType.JSON, new ByteArrayInputStream("{}".getBytes()));
         });
         {
-            Auth devAuth = new OidcAuth(getHttpClient(), authServerInfo.getDeveloperClientId(), authServerInfo.getDeveloperClientSecret());
+            Auth devAuth = new OidcAuth(getHttpClient(), JWKSMockServer.DEVELOPER_CLIENT_ID, "test1");
             RegistryClient devClient = createClient(devAuth);
             ArtifactMetaData meta = devClient.createArtifact(groupId, artifactId, ArtifactType.JSON, new ByteArrayInputStream("{}".getBytes()));
             TestUtils.retry(() -> devClient.getArtifactMetaData(groupId, meta.getId()));
@@ -103,8 +106,7 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
 
     @Test
     public void testDevRole() throws Exception {
-        AuthServerInfo authServerInfo = facade.getAuthServerInfo();
-        Auth devAuth = new OidcAuth(getHttpClient(), authServerInfo.getDeveloperClientId(), authServerInfo.getDeveloperClientSecret());
+        Auth devAuth = new OidcAuth(getHttpClient(), JWKSMockServer.DEVELOPER_CLIENT_ID, "test1");
         RegistryClient client = createClient(devAuth);
 
         String groupId = TestUtils.generateGroupId();
@@ -132,8 +134,7 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
 
     @Test
     public void testAdminRole() throws Exception {
-        AuthServerInfo authServerInfo = facade.getAuthServerInfo();
-        Auth auth = new OidcAuth(getHttpClient(), authServerInfo.getAdminClientId(), authServerInfo.getAdminClientSecret());
+        Auth auth = new OidcAuth(getHttpClient(), JWKSMockServer.ADMIN_CLIENT_ID, "test1");
         RegistryClient client = createClient(auth);
 
         String groupId = TestUtils.generateGroupId();

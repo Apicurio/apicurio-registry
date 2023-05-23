@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Red Hat
+ * Copyright 2023 Red Hat
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,10 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.apicurio.tests.smokeTests.apicurio;
+package io.apicurio.registry.it.smoke;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.apicurio.registry.it.ApicurioRegistryBaseIT;
+import io.apicurio.registry.it.utils.AvroGenericRecordSchemaFactory;
+import io.apicurio.registry.it.utils.Constants;
 import io.apicurio.registry.rest.client.exception.ArtifactAlreadyExistsException;
 import io.apicurio.registry.rest.client.exception.ArtifactNotFoundException;
 import io.apicurio.registry.rest.client.exception.InvalidArtifactIdException;
@@ -35,10 +38,7 @@ import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.tests.TestUtils;
-import io.apicurio.tests.ApicurioV2BaseIT;
-import io.apicurio.tests.common.Constants;
-import io.apicurio.tests.serdes.apicurio.AvroGenericRecordSchemaFactory;
-import io.apicurio.tests.utils.ArtifactUtils;
+import io.quarkus.test.junit.QuarkusIntegrationTest;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Tag;
@@ -54,7 +54,6 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import static io.apicurio.registry.utils.tests.TestUtils.assertClientError;
 import static org.hamcrest.CoreMatchers.hasItems;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -62,7 +61,8 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @Tag(Constants.SMOKE)
-class ArtifactsIT extends ApicurioV2BaseIT {
+@QuarkusIntegrationTest
+class ArtifactsIT extends ApicurioRegistryBaseIT {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ArtifactsIT.class);
 
@@ -134,15 +134,15 @@ class ArtifactsIT extends ApicurioV2BaseIT {
         String groupId = TestUtils.generateGroupId();
 
         List<ArtifactMetaData> artifacts = IntStream.range(0, 10)
-            .mapToObj(i -> {
-                String artifactId = TestUtils.generateSubject();
-                try {
-                    return super.createArtifact(groupId, artifactId, ArtifactType.AVRO, new AvroGenericRecordSchemaFactory(groupId, artifactId, List.of("foo")).generateSchemaStream());
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
-                }
-            })
-            .collect(Collectors.toList());
+                .mapToObj(i -> {
+                    String artifactId = TestUtils.generateSubject();
+                    try {
+                        return super.createArtifact(groupId, artifactId, ArtifactType.AVRO, new AvroGenericRecordSchemaFactory(groupId, artifactId, List.of("foo")).generateSchemaStream());
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                })
+                .collect(Collectors.toList());
 
         LOGGER.info("Created  {} artifacts", artifacts.size());
 
@@ -226,7 +226,7 @@ class ArtifactsIT extends ApicurioV2BaseIT {
         String artifactData = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
 
         // Create the artifact
-        ArtifactMetaData metaData = createArtifact(groupId, artifactId , ArtifactType.AVRO, IoUtil.toStream(artifactData));
+        ArtifactMetaData metaData = createArtifact(groupId, artifactId, ArtifactType.AVRO, IoUtil.toStream(artifactData));
         LOGGER.info("Created artifact {} with metadata {}", artifactId, metaData.toString());
 
         // Disable the artifact
@@ -405,7 +405,7 @@ class ArtifactsIT extends ApicurioV2BaseIT {
             registryClient.createArtifact(groupId, artifactId, ArtifactType.AVRO, artifactData);
         });
 
-        ArtifactUtils.createArtifact(groupId, artifactId, content, 400);
+        createArtifact(groupId, artifactId, content, 400);
 
     }
 
@@ -430,7 +430,7 @@ class ArtifactsIT extends ApicurioV2BaseIT {
 
         registryClient.getLatestArtifact(groupId, artifactId);
 
-        ArtifactUtils.getArtifact(groupId, artifactId);
+        getArtifact(groupId, artifactId);
     }
 
     @Test
@@ -440,9 +440,9 @@ class ArtifactsIT extends ApicurioV2BaseIT {
 
         String content = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
 
-        ArtifactUtils.createArtifact(groupId, artifactId, content, 200);
+        createArtifact(groupId, artifactId, content, 200);
 
-        retryOp((rc) -> rc.getArtifactMetaData(groupId,artifactId));
+        retryOp((rc) -> rc.getArtifactMetaData(groupId, artifactId));
 
         registryClient.getArtifactMetaData(groupId, artifactId);
 
@@ -456,7 +456,7 @@ class ArtifactsIT extends ApicurioV2BaseIT {
 
         registryClient.getLatestArtifact(groupId, artifactId);
 
-        ArtifactUtils.getArtifact(groupId, artifactId);
+        getArtifact(groupId, artifactId);
     }
 
     @Test
@@ -467,7 +467,7 @@ class ArtifactsIT extends ApicurioV2BaseIT {
 
         for (int idx = 0; idx < 5; idx++) {
             String artifactId = "test-" + idx;
-            Thread.sleep(idx == 0 ? 0 : 1500/idx);
+            Thread.sleep(idx == 0 ? 0 : 1500 / idx);
             this.createArtifact(group, artifactId, ArtifactType.OPENAPI, new ByteArrayInputStream(content.getBytes()));
         }
 

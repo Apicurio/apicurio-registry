@@ -17,8 +17,8 @@
 package io.apicurio.registry.noprofile.rest.v2;
 
 import static io.restassured.RestAssured.given;
-import static java.net.HttpURLConnection.HTTP_OK;
 import static java.net.HttpURLConnection.HTTP_NO_CONTENT;
+import static java.net.HttpURLConnection.HTTP_OK;
 import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.CoreMatchers.anything;
 import static org.hamcrest.Matchers.containsString;
@@ -34,8 +34,10 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -47,6 +49,7 @@ import java.util.UUID;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.hamcrest.Matchers;
 import org.jose4j.base64url.Base64;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
 import org.junit.jupiter.api.condition.DisabledOnOs;
@@ -55,6 +58,7 @@ import org.junit.jupiter.api.condition.OS;
 import com.google.common.hash.Hashing;
 
 import io.apicurio.registry.AbstractResourceTestBase;
+import io.apicurio.registry.rest.client.exception.RuleViolationException;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v2.beans.ArtifactReference;
 import io.apicurio.registry.rest.v2.beans.Comment;
@@ -2629,4 +2633,114 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         assertEquals(1, comments.size());
         assertEquals("COMMENT_1", comments.get(0).getValue());
     }
+
+    @Test
+    public void testCreateArtifactIntegrityRuleViolation() throws Exception {
+        String artifactContent = resourceToString("jsonschema-valid.json");
+        String artifactId = "testCreateArtifact/IntegrityRuleViolation";
+        createArtifact(GROUP, artifactId, ArtifactType.JSON, artifactContent);
+
+        // Enable the Integrity rule for the artifact
+        Rule rule = new Rule();
+        rule.setType(RuleType.INTEGRITY);
+        rule.setConfig("FULL");
+        given()
+                .when()
+                .contentType(CT_JSON)
+                .pathParam("groupId", GROUP)
+                .body(rule)
+                .pathParam("artifactId", artifactId)
+                .post("/registry/v2/groups/{groupId}/artifacts/{artifactId}/rules")
+                .then()
+                .statusCode(204)
+                .body(anything());
+
+        // Verify the rule was added
+        TestUtils.retry(() -> {
+            given()
+                    .when()
+                    .pathParam("groupId", GROUP)
+                    .pathParam("artifactId", artifactId)
+                    .get("/registry/v2/groups/{groupId}/artifacts/{artifactId}/rules/INTEGRITY")
+                    .then()
+                    .statusCode(200)
+                    .contentType(ContentType.JSON)
+                    .body("type", equalTo("INTEGRITY"))
+                    .body("config", equalTo("FULL"));
+        });
+
+        // Now try registering an artifact with a valid reference
+        InputStream data = new ByteArrayInputStream(artifactContent.getBytes(StandardCharsets.UTF_8));
+        List<ArtifactReference> references = new ArrayList<>();
+        references.add(ArtifactReference.builder()
+                .groupId(GROUP)
+                .artifactId(artifactId)
+                .version("1")
+                .name("other.json#/defs/Foo")
+                .build());
+        clientV2.updateArtifact(GROUP, artifactId, "2", null, null, data, references);
+
+        // Now try registering an artifact with an INVALID reference
+        data = new ByteArrayInputStream(artifactContent.getBytes(StandardCharsets.UTF_8));
+        references = new ArrayList<>();
+        references.add(ArtifactReference.builder()
+                .groupId(GROUP)
+                .artifactId("ArtifactThatDoesNotExist")
+                .version("1")
+                .name("other.json#/defs/Foo")
+                .build());
+        final InputStream dataf_1 = data;
+        final List<ArtifactReference> referencesf_1 = references;
+        Assertions.assertThrows(RuleViolationException.class, () -> {
+            clientV2.updateArtifact(GROUP, artifactId, "2", null, null, dataf_1, referencesf_1);
+        });
+
+        // Now try registering an artifact with both a valid and invalid ref
+        data = new ByteArrayInputStream(artifactContent.getBytes(StandardCharsets.UTF_8));
+        references = new ArrayList<>();
+        // valid ref
+        references.add(ArtifactReference.builder()
+                .groupId(GROUP)
+                .artifactId(artifactId)
+                .version("1")
+                .name("other.json#/defs/Foo")
+                .build());
+        // invalid ref
+        references.add(ArtifactReference.builder()
+                .groupId(GROUP)
+                .artifactId("ArtifactThatDoesNotExist")
+                .version("1")
+                .name("other.json#/defs/Bar")
+                .build());
+        final InputStream dataf_2 = data;
+        final List<ArtifactReference> referencesf_2 = references;
+        Assertions.assertThrows(RuleViolationException.class, () -> {
+            clientV2.updateArtifact(GROUP, artifactId, "2", null, null, dataf_2, referencesf_2);
+        });
+
+        // Now try registering an artifact with a duplicate ref
+        data = new ByteArrayInputStream(artifactContent.getBytes(StandardCharsets.UTF_8));
+        references = new ArrayList<>();
+        // valid ref
+        references.add(ArtifactReference.builder()
+                .groupId(GROUP)
+                .artifactId(artifactId)
+                .version("1")
+                .name("other.json#/defs/Foo")
+                .build());
+        // duplicate ref
+        references.add(ArtifactReference.builder()
+                .groupId(GROUP)
+                .artifactId(artifactId)
+                .version("1")
+                .name("other.json#/defs/Foo")
+                .build());
+        final InputStream dataf_3 = data;
+        final List<ArtifactReference> referencesf_3 = references;
+        Assertions.assertThrows(RuleViolationException.class, () -> {
+            clientV2.updateArtifact(GROUP, artifactId, "2", null, null, dataf_3, referencesf_3);
+        });
+
+    }
+
 }

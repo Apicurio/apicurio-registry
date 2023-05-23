@@ -87,7 +87,7 @@ public class IntegrityRuleExecutor implements RuleExecutor {
             }
         });
         if (!causes.isEmpty()) {
-            throw new RuleViolationException("Duplicate artifact reference(s) detected.", RuleType.INTEGRITY, 
+            throw new RuleViolationException("Referenced artifact does not exist.", RuleType.INTEGRITY, 
                     IntegrityLevel.REFS_EXIST.name(), causes);
         }
         

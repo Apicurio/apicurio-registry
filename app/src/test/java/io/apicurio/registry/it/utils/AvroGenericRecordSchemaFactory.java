@@ -26,7 +26,7 @@ import java.io.InputStream;
 import java.util.List;
 import java.util.Objects;
 
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * @author Fabian Martinez

@@ -236,7 +236,7 @@
         <version.source.plugin>3.2.1</version.source.plugin>
         <version.surefire.plugin>3.1.0</version.surefire.plugin>
         <version.jar.plugin>3.3.0</version.jar.plugin>
-        <version.checkstyle.plugin>3.2.2</version.checkstyle.plugin>
+        <version.checkstyle.plugin>3.3.0</version.checkstyle.plugin>
         <version.properties.plugin>1.1.0</version.properties.plugin>
         <version.dependency.plugin>3.5.0</version.dependency.plugin>
         <version.assembly.plugin>3.6.0</version.assembly.plugin>

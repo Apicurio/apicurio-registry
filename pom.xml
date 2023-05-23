@@ -134,6 +134,7 @@
         <module>schema-util/xml</module>
         <module>schema-util/xsd</module>
         <module>schema-util/util-provider</module>
+        <module>e2e-system-tests</module>
     </modules>
 
     <properties>

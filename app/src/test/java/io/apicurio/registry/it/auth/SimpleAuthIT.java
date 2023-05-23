@@ -154,5 +154,4 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
             client.deleteArtifact(groupId, artifactId);
         }
     }
-
 }

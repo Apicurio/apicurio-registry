@@ -34,6 +34,10 @@
             <artifactId>quarkus-junit5</artifactId>
         </dependency>
         <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-kubernetes</artifactId>
+        </dependency>
+        <dependency>
             <groupId>io.apicurio</groupId>
             <artifactId>apicurio-registry-client</artifactId>
             <scope>test</scope>
@@ -193,7 +197,12 @@
                 </plugins>
             </build>
         </profile>
+        <profile>
+            <id>smoke</id>
+            <properties>
+                <skipTests>false</skipTests>
+                <groups>smoke</groups>
+            </properties>
+        </profile>
     </profiles>
-
-
 </project>

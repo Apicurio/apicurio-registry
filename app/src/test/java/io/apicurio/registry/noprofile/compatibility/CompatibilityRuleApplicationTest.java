@@ -74,20 +74,6 @@ public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {
             "        }\r\n" +
             "    ]\r\n" +
             "}";
-    private static final String SCHEMA_WITH_MAP_FIELD_REMOVED = "{\r\n" +
-            "    \"type\": \"record\",\r\n" +
-            "    \"name\": \"userInfo\",\r\n" +
-            "    \"namespace\": \"my.example\",\r\n" +
-            "    \"fields\": [\r\n" +
-            "        {\r\n" +
-            "            \"name\": \"props\",\r\n" +
-            "            \"type\": {\r\n" +
-            "                \"type\": \"map\",\r\n" +
-            "                \"values\": \"string\"\r\n" +
-            "            }\r\n" +
-            "        }\r\n" +
-            "    ]\r\n" +
-            "}";
     private static final String INVALID_SCHEMA_WITH_MAP = "{\r\n" +
             "    \"type\": \"record\",\r\n" +
             "    \"name\": \"userInfo\",\r\n" +
@@ -154,20 +140,6 @@ public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {
             "  }\n" +
             "}";
 
-    private static final String citizenIdentifierSchema = "{\n" +
-            "  \"$id\": \"https://example.com/citizenIdentifier.schema.json\",\n" +
-            "  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n" +
-            "  \"title\": \"Identifier\",\n" +
-            "  \"type\": \"object\",\n" +
-            "  \"properties\": {\n" +
-            "    \"identifier\": {\n" +
-            "      \"type\": \"integer\",\n" +
-            "      \"description\": \"The citizen identifier.\",\n" +
-            "      \"minimum\": 0\n" +
-            "    }\n" +
-            "  }\n" +
-            "}";
-
     @Inject
     RulesService rules;
 
@@ -201,7 +173,7 @@ public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {
         });
 
         rules.applyRules("no-group", "not-existent", ArtifactType.AVRO, ContentHandle.create(SCHEMA_SIMPLE),
-                RuleApplicationType.CREATE, Collections.emptyMap());
+                RuleApplicationType.CREATE, Collections.emptyList(), Collections.emptyMap());
     }
 
     @Test
@@ -210,7 +182,9 @@ public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {
         String v2Schema = "{\"type\": \"string\"}";
 
         Assertions.assertThrows(RuleViolationException.class, () -> {
-            RuleContext context = new RuleContext("TestGroup", "Test", "AVRO", "BACKWARD", Collections.singletonList(ContentHandle.create(v1Schema)), ContentHandle.create(v2Schema), Collections.emptyMap());
+            RuleContext context = new RuleContext("TestGroup", "Test", "AVRO", "BACKWARD", 
+                    Collections.singletonList(ContentHandle.create(v1Schema)), ContentHandle.create(v2Schema),
+                    Collections.emptyList(), Collections.emptyMap());
             compatibility.execute(context);
         });
     }
@@ -221,7 +195,9 @@ public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {
         String v2Schema = JsonSchemas.incompatibleJsonSchema;
 
         RuleViolationException ruleViolationException = Assertions.assertThrows(RuleViolationException.class, () -> {
-            RuleContext context = new RuleContext("TestGroup", "TestJson", ArtifactType.JSON, "FORWARD_TRANSITIVE", Collections.singletonList(ContentHandle.create(v1Schema)), ContentHandle.create(v2Schema), Collections.emptyMap());
+            RuleContext context = new RuleContext("TestGroup", "TestJson", ArtifactType.JSON, "FORWARD_TRANSITIVE", 
+                    Collections.singletonList(ContentHandle.create(v1Schema)), ContentHandle.create(v2Schema), 
+                    Collections.emptyList(), Collections.emptyMap());
             compatibility.execute(context);
         });
 

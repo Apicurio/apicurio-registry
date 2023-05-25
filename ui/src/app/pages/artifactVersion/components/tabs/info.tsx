@@ -92,10 +92,9 @@ export class InfoTabContent extends PureComponent<InfoTabContentProps, InfoTabCo
                                     <FlexItem className="type"><ArtifactTypeIcon type={this.props.artifact.type} /></FlexItem>
                                     <FlexItem className="title">Version metadata</FlexItem>
                                     <FlexItem className="actions" align={{ default: "alignRight" }}>
-                                    <If condition={((window as any).kiota !== undefined && this.props.codegenEnabled)}>
+                                        <If condition={((window as any).kiota !== undefined && this.props.codegenEnabled && this.props.artifact.type === "OPENAPI")}>
                                             <Button id="generate-client-action"
                                                 data-testid="artifact-btn-gen-client"
-                                                isDisabled={this.props.artifact.type !== "OPENAPI"}
                                                 title="Generate a client"
                                                 onClick={this.props.onGenerateClient}
                                                 variant="link">Generate client SDK</Button>

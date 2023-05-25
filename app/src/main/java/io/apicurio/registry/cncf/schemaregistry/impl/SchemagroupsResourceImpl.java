@@ -221,10 +221,10 @@ public class SchemagroupsResourceImpl implements SchemagroupsResource {
         ArtifactMetaDataDto res;
         try {
             if (!artifactExists(groupId, schemaId)) {
-                rulesService.applyRules(groupId, schemaId, artifactType, content, RuleApplicationType.CREATE, Collections.emptyMap()); //FIXME:references handle artifact references
+                rulesService.applyRules(groupId, schemaId, artifactType, content, RuleApplicationType.CREATE, Collections.emptyList(), Collections.emptyMap()); //FIXME:references handle artifact references
                 res = storage.createArtifactWithMetadata(groupId, schemaId, null, artifactType, content, metadata, null);
             } else {
-                rulesService.applyRules(groupId, schemaId, artifactType, content, RuleApplicationType.UPDATE, Collections.emptyMap()); //FIXME:references handle artifact references
+                rulesService.applyRules(groupId, schemaId, artifactType, content, RuleApplicationType.UPDATE, Collections.emptyList(), Collections.emptyMap()); //FIXME:references handle artifact references
                 res = storage.updateArtifactWithMetadata(groupId, schemaId, null, artifactType, content, metadata, null);
             }
         } catch (RuleViolationException ex) {

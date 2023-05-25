@@ -536,7 +536,7 @@ public class GroupsResourceImpl implements GroupsResource {
         }
 
         String artifactType = lookupArtifactType(groupId, artifactId);
-        rulesService.applyRules(defaultGroupIdToNull(groupId), artifactId, artifactType, content, RuleApplicationType.UPDATE, Collections.emptyMap()); //TODO:references not supported for testing update
+        rulesService.applyRules(defaultGroupIdToNull(groupId), artifactId, artifactType, content, RuleApplicationType.UPDATE, Collections.emptyList(), Collections.emptyMap()); //TODO:references not supported for testing update
     }
 
     /**
@@ -945,7 +945,7 @@ public class GroupsResourceImpl implements GroupsResource {
             //Try to resolve the new artifact references and the nested ones (if any)
             final Map<String, ContentHandle> resolvedReferences = storage.resolveReferences(referencesAsDtos);
 
-            rulesService.applyRules(defaultGroupIdToNull(groupId), artifactId, artifactType, content, RuleApplicationType.CREATE, resolvedReferences);
+            rulesService.applyRules(defaultGroupIdToNull(groupId), artifactId, artifactType, content, RuleApplicationType.CREATE, references, resolvedReferences);
 
             final String finalArtifactId = artifactId;
             EditableArtifactMetaDataDto metaData = getEditableMetaData(artifactName, artifactDescription);
@@ -1043,7 +1043,7 @@ public class GroupsResourceImpl implements GroupsResource {
         final Map<String, ContentHandle> resolvedReferences = storage.resolveReferences(referencesAsDtos);
 
         String artifactType = lookupArtifactType(groupId, artifactId);
-        rulesService.applyRules(defaultGroupIdToNull(groupId), artifactId, artifactType, content, RuleApplicationType.UPDATE, resolvedReferences);
+        rulesService.applyRules(defaultGroupIdToNull(groupId), artifactId, artifactType, content, RuleApplicationType.UPDATE, references, resolvedReferences);
         EditableArtifactMetaDataDto metaData = getEditableMetaData(artifactName, artifactDescription);
         ArtifactMetaDataDto amd = storage.updateArtifactWithMetadata(defaultGroupIdToNull(groupId), artifactId, xRegistryVersion, artifactType, content, metaData, referencesAsDtos);
         return V2ApiUtil.dtoToVersionMetaData(defaultGroupIdToNull(groupId), artifactId, artifactType, amd);
@@ -1151,7 +1151,7 @@ public class GroupsResourceImpl implements GroupsResource {
 
         final Map<String, ContentHandle> resolvedReferences = storage.resolveReferences(referencesAsDtos);
 
-        rulesService.applyRules(defaultGroupIdToNull(groupId), artifactId, artifactType, content, RuleApplicationType.UPDATE, resolvedReferences);
+        rulesService.applyRules(defaultGroupIdToNull(groupId), artifactId, artifactType, content, RuleApplicationType.UPDATE, references, resolvedReferences);
         EditableArtifactMetaDataDto metaData = getEditableMetaData(name, description);
         ArtifactMetaDataDto dto = storage.updateArtifactWithMetadata(defaultGroupIdToNull(groupId), artifactId, version, artifactType, content, metaData, referencesAsDtos);
         return V2ApiUtil.dtoToMetaData(defaultGroupIdToNull(groupId), artifactId, artifactType, dto);

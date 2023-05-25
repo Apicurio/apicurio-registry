@@ -16,6 +16,8 @@
 
 package io.apicurio.registry.rules;
 
+import java.util.Objects;
+
 /**
  * @author eric.wittmann@gmail.com
  */
@@ -66,6 +68,29 @@ public class RuleViolation {
      */
     public void setContext(String context) {
         this.context = context;
+    }
+
+    /**
+     * @see java.lang.Object#hashCode()
+     */
+    @Override
+    public int hashCode() {
+        return Objects.hash(context, description);
+    }
+
+    /**
+     * @see java.lang.Object#equals(java.lang.Object)
+     */
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj)
+            return true;
+        if (obj == null)
+            return false;
+        if (getClass() != obj.getClass())
+            return false;
+        RuleViolation other = (RuleViolation) obj;
+        return Objects.equals(context, other.context) && Objects.equals(description, other.description);
     }
 
 }

@@ -3592,9 +3592,11 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                     if (!resolvedReferences.containsKey(reference.getName())) {
                         //TODO improve exception handling
                         final ArtifactVersionMetaDataDto referencedArtifactMetaData = this.lookupForReference(reference);
-                        final ContentWrapperDto referencedContent = getArtifactByContentId(referencedArtifactMetaData.getContentId());
-                        resolveReferences(resolvedReferences, referencedContent.getReferences());
-                        resolvedReferences.put(reference.getName(), referencedContent.getContent());
+                        if (referencedArtifactMetaData != null) {
+                            final ContentWrapperDto referencedContent = getArtifactByContentId(referencedArtifactMetaData.getContentId());
+                            resolveReferences(resolvedReferences, referencedContent.getReferences());
+                            resolvedReferences.put(reference.getName(), referencedContent.getContent());
+                        }
                     }
                 }
             }
@@ -3602,7 +3604,11 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     }
 
     private ArtifactVersionMetaDataDto lookupForReference(ArtifactReferenceDto reference) {
-        return getArtifactVersionMetaDataInternal(reference.getGroupId(), reference.getArtifactId(), reference.getVersion());
+        try {
+            return getArtifactVersionMetaDataInternal(reference.getGroupId(), reference.getArtifactId(), reference.getVersion());
+        } catch (VersionNotFoundException e) {
+            return null;
+        }
     }
 
     protected void deleteAllOrphanedContent() {

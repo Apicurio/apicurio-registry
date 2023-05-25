@@ -17,6 +17,7 @@
 package io.apicurio.registry.rules;
 
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.rest.v2.beans.ArtifactReference;
 
 import java.util.List;
 import java.util.Map;
@@ -35,6 +36,7 @@ public class RuleContext {
     private final String configuration;
     private final List<ContentHandle> currentContent;
     private final ContentHandle updatedContent;
+    private final List<ArtifactReference> references;
     private final Map<String, ContentHandle> resolvedReferences;
 
     /**
@@ -48,13 +50,15 @@ public class RuleContext {
      * @param updatedContent
      */
     public RuleContext(String groupId, String artifactId, String artifactType, String configuration,
-                       List<ContentHandle> currentContent, ContentHandle updatedContent, Map<String, ContentHandle> resolvedReferences) {
+                       List<ContentHandle> currentContent, ContentHandle updatedContent, 
+                       List<ArtifactReference> references, Map<String, ContentHandle> resolvedReferences) {
         this.groupId = groupId;
         this.artifactId = Objects.requireNonNull(artifactId);
         this.artifactType = Objects.requireNonNull(artifactType);
         this.configuration = Objects.requireNonNull(configuration);
         this.currentContent = currentContent; // Current Content will be null when creating an artifact.
         this.updatedContent = Objects.requireNonNull(updatedContent);
+        this.references = Objects.requireNonNull(references);
         this.resolvedReferences = Objects.requireNonNull(resolvedReferences);
     }
 
@@ -105,5 +109,12 @@ public class RuleContext {
      */
     public Map<String, ContentHandle> getResolvedReferences() {
         return resolvedReferences;
+    }
+
+    /**
+     * @return the references
+     */
+    public List<ArtifactReference> getReferences() {
+        return references;
     }
 }

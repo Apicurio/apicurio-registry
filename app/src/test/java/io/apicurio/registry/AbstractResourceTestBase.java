@@ -279,6 +279,7 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
         clientV2.createArtifactRule(groupId, artifactId, rule);
     }
 
+    @SuppressWarnings("deprecation")
     protected Rule createGlobalRule(RuleType ruleType, String ruleConfig) {
         final Rule rule = new Rule();
         rule.setConfig(ruleConfig);

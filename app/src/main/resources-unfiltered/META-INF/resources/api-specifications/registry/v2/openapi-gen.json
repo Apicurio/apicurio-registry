@@ -1312,7 +1312,8 @@
                     "schema": {
                         "enum": [
                             "VALIDITY",
-                            "COMPATIBILITY"
+                            "COMPATIBILITY",
+                            "INTEGRITY"
                         ],
                         "type": "string"
                     }
@@ -3332,7 +3333,8 @@
                 "description": "",
                 "enum": [
                     "VALIDITY",
-                    "COMPATIBILITY"
+                    "COMPATIBILITY",
+                    "INTEGRITY"
                 ],
                 "type": "string",
                 "example": "VALIDITY",

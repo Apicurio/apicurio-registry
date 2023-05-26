@@ -117,6 +117,9 @@
         <module>serdes/protobuf-serde</module>
         <module>serdes/jsonschema-serde</module>
         <module>storage</module>
+        <module>storage/kafkasql</module>
+        <module>storage/mssql</module>
+        <module>storage/sql</module>
         <module>distro</module>
         <module>docs</module>
         <module>client</module>

@@ -73,6 +73,9 @@ def generate_kiota_client_files(setup_kwargs):
     print("Kiota client generation has been successful")
     return setup_kwargs
 
+
 if __name__ == "__main__":
-    if not os.path.exists(os.path.join(sys.path[0], "apicurioregistrysdk", "client", "kiota-lock.json")):
+    if not os.path.exists(
+        os.path.join(sys.path[0], "apicurioregistrysdk", "client", "kiota-lock.json")
+    ):
         generate_kiota_client_files({})

@@ -31,7 +31,9 @@ import io.apicurio.registry.rules.RuleContext;
 import io.apicurio.registry.rules.RuleExecutor;
 import io.apicurio.registry.rules.RuleViolation;
 import io.apicurio.registry.rules.RuleViolationException;
+import io.apicurio.registry.rules.validity.ContentValidator;
 import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 
 /**
@@ -69,8 +71,10 @@ public class IntegrityRuleExecutor implements RuleExecutor {
         }
     }
 
-    private void verifyAllReferencesHaveMappings(RuleContext context) {
-        // TODO implement this rule
+    private void verifyAllReferencesHaveMappings(RuleContext context) throws RuleViolationException {
+        ArtifactTypeUtilProvider artifactTypeProvider = factory.getArtifactTypeProvider(context.getArtifactType());
+        ContentValidator validator = artifactTypeProvider.getContentValidator();
+        validator.validateReferences(context.getUpdatedContent(), context.getReferences());
     }
 
     private void validateReferencesExist(RuleContext context) throws RuleViolationException {

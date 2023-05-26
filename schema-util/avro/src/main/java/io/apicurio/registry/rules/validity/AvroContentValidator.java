@@ -16,19 +16,34 @@
 
 package io.apicurio.registry.rules.validity;
 
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+
 import org.apache.avro.Schema;
 
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.rest.v2.beans.ArtifactReference;
+import io.apicurio.registry.rules.RuleViolation;
 import io.apicurio.registry.rules.RuleViolationException;
+import io.apicurio.registry.rules.integrity.IntegrityLevel;
 import io.apicurio.registry.types.RuleType;
-
-import java.util.Map;
 
 /**
  * A content validator implementation for the Avro content type.
  * @author eric.wittmann@gmail.com
  */
 public class AvroContentValidator implements ContentValidator {
+    
+    private static final String DUMMY_AVRO_RECORD = "{\n"
+            + "     \"type\": \"record\",\n"
+            + "     \"namespace\": \"NAMESPACE\",\n"
+            + "     \"name\": \"NAME\",\n"
+            + "     \"fields\": [\n"
+            + "       { \"name\": \"first\", \"type\": \"string\" },\n"
+            + "       { \"name\": \"last\", \"type\": \"string\" }\n"
+            + "     ]\n"
+            + "}";
 
     /**
      * Constructor.
@@ -50,6 +65,34 @@ public class AvroContentValidator implements ContentValidator {
                 parser.parse(artifactContent.content());
             } catch (Exception e) {
                 throw new RuleViolationException("Syntax violation for Avro artifact.", RuleType.VALIDITY, level.name(), e);
+            }
+        }
+    }
+    
+    /**
+     * @see io.apicurio.registry.rules.validity.ContentValidator#validateReferences(io.apicurio.registry.content.ContentHandle, java.util.List)
+     */
+    @Override
+    public void validateReferences(ContentHandle artifactContent, List<ArtifactReference> references) throws RuleViolationException {
+        try {
+            Schema.Parser parser = new Schema.Parser();
+            references.forEach(ref -> {
+                String refName = ref.getName();
+                if (refName != null && refName.contains(".")) {
+                    int idx = refName.lastIndexOf('.');
+                    String ns = refName.substring(0, idx);
+                    String name = refName.substring(idx+1);
+                    parser.parse(DUMMY_AVRO_RECORD.replace("NAMESPACE", ns).replace("NAME", name));
+                }
+            });
+            parser.parse(artifactContent.content());
+        } catch (Exception e) {
+            // This is terrible, but I don't know how else to detect if the reason for the parse failure
+            // is because of a missing defined type or some OTHER parse exception.
+            if (e.getMessage().contains("is not a defined name")) {
+                RuleViolation violation = new RuleViolation("Missing reference detected.", e.getMessage());
+                throw new RuleViolationException("Missing reference detected in Avro artifact.", RuleType.INTEGRITY, 
+                        IntegrityLevel.ALL_REFS_MAPPED.name(), Collections.singleton(violation));
             }
         }
     }

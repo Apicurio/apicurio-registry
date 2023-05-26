@@ -18,10 +18,13 @@ package io.apicurio.registry.rules.validity;
 
 
 import java.util.Collections;
+import java.util.List;
+
 import org.everit.json.schema.SchemaException;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.rest.v2.beans.ArtifactReference;
 import io.apicurio.registry.rules.RuleViolation;
 import io.apicurio.registry.rules.RuleViolationException;
 import io.apicurio.registry.rules.compatibility.jsonschema.JsonUtil;
@@ -72,5 +75,13 @@ public class JsonSchemaContentValidator implements ContentValidator {
                         Collections.singleton(violation));
             }
         }
+    }
+    
+    /**
+     * @see io.apicurio.registry.rules.validity.ContentValidator#validateReferences(io.apicurio.registry.content.ContentHandle, java.util.List)
+     */
+    @Override
+    public void validateReferences(ContentHandle artifactContent, List<ArtifactReference> references) throws RuleViolationException {
+        // TODO Implement this for JSON Schema!
     }
 }

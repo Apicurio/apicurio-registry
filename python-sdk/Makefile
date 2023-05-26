@@ -1,4 +1,8 @@
 
+clean:
+	rm -f openapi.json
+	rm -rf apicurioregistrysdk/client
+
 install:
 	poetry install
 

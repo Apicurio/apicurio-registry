@@ -59,7 +59,7 @@
   },
   "dependencies": {
     "@apicurio/data-models": "^1.1.26",
-    "@asyncapi/react-component": "^1.0.0-next.40",
+    "@asyncapi/react-component": "1.0.0-next.47",
     "@patternfly/patternfly": "4.224.2",
     "@patternfly/react-code-editor": "4.82.115",
     "@patternfly/react-core": "4.276.8",

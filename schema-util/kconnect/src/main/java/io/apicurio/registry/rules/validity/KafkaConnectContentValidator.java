@@ -17,6 +17,7 @@
 package io.apicurio.registry.rules.validity;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.kafka.connect.json.JsonConverter;
@@ -26,6 +27,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.rest.v2.beans.ArtifactReference;
 import io.apicurio.registry.rules.RuleViolationException;
 import io.apicurio.registry.types.RuleType;
 
@@ -65,6 +67,14 @@ public class KafkaConnectContentValidator implements ContentValidator {
                 throw new RuleViolationException("Syntax violation for Kafka Connect Schema artifact.", RuleType.VALIDITY, level.name(), e);
             }
         }
+    }
+
+    /**
+     * @see io.apicurio.registry.rules.validity.ContentValidator#validateReferences(io.apicurio.registry.content.ContentHandle, java.util.List)
+     */
+    @Override
+    public void validateReferences(ContentHandle artifactContent, List<ArtifactReference> references) throws RuleViolationException {
+        // Note: not yet implemented!
     }
 
 }

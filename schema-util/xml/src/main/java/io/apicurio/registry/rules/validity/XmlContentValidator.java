@@ -17,9 +17,11 @@
 package io.apicurio.registry.rules.validity;
 
 import java.io.InputStream;
+import java.util.List;
 import java.util.Map;
 
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.rest.v2.beans.ArtifactReference;
 import io.apicurio.registry.rules.RuleViolationException;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.util.DocumentBuilderAccessor;
@@ -47,6 +49,14 @@ public class XmlContentValidator implements ContentValidator {
                 throw new RuleViolationException("Syntax violation for XML artifact.", RuleType.VALIDITY, level.name(), e);
             }
         }
+    }
+
+    /**
+     * @see io.apicurio.registry.rules.validity.ContentValidator#validateReferences(io.apicurio.registry.content.ContentHandle, java.util.List)
+     */
+    @Override
+    public void validateReferences(ContentHandle artifactContent, List<ArtifactReference> references) throws RuleViolationException {
+        // Note: not yet implemented!
     }
 
 }

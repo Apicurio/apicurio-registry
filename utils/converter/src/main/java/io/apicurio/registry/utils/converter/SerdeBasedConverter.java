@@ -117,6 +117,11 @@ public class SerdeBasedConverter<S, T> implements Converter, Closeable {
         return serializer.serialize(topic, applySchema(schema, value));
     }
 
+    @Override
+    public byte[] fromConnectData(String topic, Headers headers, Schema schema, Object value) {
+        return serializer.serialize(topic, headers, applySchema(schema, value));
+    }
+
     protected Schema provideSchema(T result) {
         return null;
     }

@@ -21,14 +21,12 @@ import io.apicurio.registry.rest.client.AdminClientFactory;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.RegistryClientFactory;
 import io.apicurio.registry.rest.v2.V2ApiUtil;
-import io.apicurio.registry.rest.v2.beans.ArtifactReference;
 import io.apicurio.registry.rest.v2.beans.ArtifactContent;
+import io.apicurio.registry.rest.v2.beans.ArtifactReference;
 import io.apicurio.registry.rest.v2.beans.Rule;
-import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.types.ArtifactMediaTypes;
 import io.apicurio.registry.types.ArtifactState;
-import io.apicurio.registry.types.Current;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.rest.client.auth.Auth;
@@ -50,7 +48,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
-import javax.inject.Inject;
 
 import static io.apicurio.registry.rest.v2.V2ApiUtil.defaultGroupIdToNull;
 import static io.restassured.RestAssured.given;
@@ -75,10 +72,6 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
     protected String registryV2ApiUrl;
     protected RegistryClient clientV2;
     protected AdminClient adminClientV2;
-
-    @Inject
-    @Current
-    RegistryStorage storage;
 
     @BeforeAll
     protected void beforeAll() throws Exception {

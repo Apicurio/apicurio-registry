@@ -32,6 +32,9 @@ public class RoleBasedAccessController extends AbstractAccessController {
     @Inject
     TokenRoleProvider tokenRoleProvider;
 
+    @Inject
+    HeaderRoleProvider headerRoleProvider;
+
     /**
      * @see io.apicurio.registry.auth.IAccessController#isAuthorized(javax.interceptor.InvocationContext)
      */
@@ -73,6 +76,8 @@ public class RoleBasedAccessController extends AbstractAccessController {
             return tokenRoleProvider;
         } else if ("application".equals(authConfig.roleSource)) {
             return storageRoleProvider;
+        } else if ("header".equals(authConfig.roleSource)) {
+            return headerRoleProvider;
         } else {
             throw new RuntimeException("Unsupported RBAC role source: " + authConfig.roleSource);
         }

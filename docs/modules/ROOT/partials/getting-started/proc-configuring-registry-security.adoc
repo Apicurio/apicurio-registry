@@ -127,7 +127,7 @@ TIP: For an example of setting environment variables on OpenShift, see xref:conf
 |Yes
 |Yes
 |No
-|Access to create, read, update, and delete operations, except configuring global rules. This role can configure artifact rules.
+|Access to create, read, update, and delete operations, except configuring global rules. This role can configure artifact-specific rules.
 |`sr-readonly`
 |Yes
 |No

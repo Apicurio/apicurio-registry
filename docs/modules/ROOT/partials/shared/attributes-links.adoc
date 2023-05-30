@@ -148,7 +148,7 @@
 
 
 // Service Registry titles
-:ServiceRegistryURLVersion: 2022.q3
+:ServiceRegistryURLVersion: 2023.q2
 :RegistryProductURL: service_registry 
 
 ifdef::RHAF[]
@@ -169,15 +169,15 @@ endif::[]
 :LinkServiceRegistryRESTAPI: https://access.redhat.com/webassets/avalon/d/Red_Hat_Integration-2022.q3-Service_Registry_User_Guide-en-US/files/registry-rest-api.htm
 :NameServiceRegistryRESTAPI: Apicurio Registry v2 core REST API documentation
 
-:LinkOpenShiftAddOperator: https://docs.openshift.com/container-platform/{registry-ocp-version}/operators/admin/olm-adding-operators-to-cluster.html
+:LinkOpenShiftAddOperator: https://docs.openshift.com/container-platform/latest/operators/admin/olm-adding-operators-to-cluster.html
 :NameOpenShiftAddOperator: Adding Operators to an OpenShift cluster
 
-:LinkOpenShiftIntroOperator: https://docs.openshift.com/container-platform/{registry-ocp-version}/operators/understanding/olm-understanding-operatorhub.html
+:LinkOpenShiftIntroOperator: https://docs.openshift.com/container-platform/latest/operators/understanding/olm-understanding-operatorhub.html
 :NameOpenShiftIntroOperator: Understanding OperatorHub
 
 // AMQ Streams titles
 :StreamsName: AMQ Streams
-:AMQStreamsURLVersion: 2.1
+:AMQStreamsURLVersion: 2.3
 
 :LinkStreamsOpenShift: https://access.redhat.com/documentation/en-us/red_hat_amq_streams/{AMQStreamsURLVersion}/html-single/using_amq_streams_on_openshift/index
 :NameStreamsOpenShift: Using {StreamsName} on OpenShift

@@ -5,13 +5,14 @@
 = Govern {registry} content using rules
 
 [role="_abstract"]
-To govern the evolution of artifact content added to {registry}, you can configure optional rules. All configured global rules or artifact rules must pass before a new artifact version can be uploaded to {registry}. Configured artifact rules override any configured global rules.
+To govern the evolution of artifact content added to {registry}, you can configure optional rules. All configured global rules or artifact-specific rules must pass before a new artifact version can be uploaded to {registry}. Configured artifact-specific rules override any configured global rules.
 
 The goal of these rules is to prevent invalid content from being added to {registry}. For example, content can be invalid for the following reasons:
 
-* Invalid syntax for a given artifact type (for example, `AVRO` or `PROTOBUF`)
-* Valid syntax, but semantics violate a specification
-* Incompatibility, when new content includes breaking changes relative to the current artifact version
+* Invalid syntax for a given artifact type, for example, `AVRO` or `PROTOBUF`.
+* Valid syntax, but semantics violate a specification.
+* Incompatibility, when new content includes breaking changes relative to the current artifact version.
+* Artifact reference integrity, for example, a duplicate or non-existent artifact reference mapping. 
 
 You can enable optional content rules using the {registry} web console, REST API commands, or a Java client application.
 
@@ -26,16 +27,16 @@ Rules are applied only when content is added to {registry}. This includes the fo
 If a rule is violated, {registry} returns an HTTP error. The response body includes the violated rule and a message showing what went wrong.
 
 [id="registry-rules-precedence_{context}"]
-== Rule precedence
-You can configure {registry} content rules at a global level and at an artifact level. The order of precedence is as follows:
+== Order of precedence of rules
+The order of precedence for artifact-specific and global rules is as follows:
 
-* If you enable an artifact rule and the equivalent global rule, the artifact rule overrides the global rule.
+* If you enable an artifact-specific rule, and the equivalent global rule is enabled, the artifact rule overrides the global rule.
 
-* If you disable an artifact rule, and enable the equivalent global rule, the global rule applies.
+* If you disable an artifact-specific rule, and the equivalent global rule is enabled, the global rule applies.
 
-* If you disable a rule at the artifact level and at the global level, you disable the rule for all artifacts.
+* If you disable an artifact-specific rule, and the equivalent global rule is disabled, the rule is disabled for all artifacts.
 
-* If you set a rule value to `NONE` at the artifact level, you override the enabled global rule. In this case, the artifact rule value `NONE` takes precedence for this artifact, but the enabled global rule continues to apply to any other artifacts that have the rule disabled at the artifact level.
+* If you set a rule value to `NONE` at the artifact level, you override the enabled global rule. In this case, the artifact rule value of `NONE` takes precedence for this artifact, but the enabled global rule continues to apply to any other artifacts that have the rule disabled at the artifact level.
 
 [id="registry-rules-work_{context}"]
 == How rules work
@@ -50,7 +51,9 @@ For more details, see {registry-reference}.
 ifdef::apicurio-registry,rh-service-registry[]
 [id="registry-rules-config_{context}"]
 == Content rule configuration
-You can configure rules individually for each artifact, as well as globally. {registry} applies the rules configured for the specific artifact. If no rules are configured at that level, {registry} applies the globally configured rules. If no global rules are configured, no rules are applied.
+Administrators can configure {registry} global rules and artifact-specific rules. Developers can configure artifact-specific rules only. 
+
+{registry} applies the rules configured for the specific artifact. If no rules are configured at that level, {registry} applies the globally configured rules. If no global rules are configured, no rules are applied.
 
 [discrete]
 === Configure artifact rules
@@ -61,14 +64,14 @@ You can configure artifact rules using the {registry} web console or REST API. F
 
 [discrete]
 === Configure global rules
-You can configure global rules in several ways:
+Administrators can configure global rules in several ways:
 
-* Use the `/rules` operations in the REST API
+* Use the `admin/rules` operations in the REST API
 * Use the {registry} web console
 * Set default global rules using {registry} application properties
 
 .Configure default global rules
-You can configure {registry} at the application level to enable or disable global rules. You can configure default global rules at installation time without post-install configuration using the following application property format:
+Administrators can configure {registry} at the application level to enable or disable global rules. You can configure default global rules at installation time without post-install configuration using the following application property format:
 ----
 registry.rules.global.<ruleName>
 ----
@@ -77,6 +80,7 @@ The following rule names are currently supported:
 
 * `compatibility`
 * `validity`
+* `integrity`
 
 The value of the application property must be a valid configuration option that is specific to the rule being
 configured. 

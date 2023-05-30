@@ -123,6 +123,11 @@ This section contains a list of the configuration options available for {registr
 |`token`
 |`2.1.0.Final`
 |Auth roles source
+|`registry.auth.role-source.header.name`
+|`string`
+|
+|`2.5.0.Final`
+|Header authorization name
 |`registry.auth.roles.admin`
 |`string`
 |`sr-admin`

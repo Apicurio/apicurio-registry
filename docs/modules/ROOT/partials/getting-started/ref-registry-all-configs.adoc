@@ -126,7 +126,7 @@ This section contains a list of the configuration options available for {registr
 |`registry.auth.role-source.header.name`
 |`string`
 |
-|`2.5.0.Final`
+|`2.4.3.Final`
 |Header authorization name
 |`registry.auth.roles.admin`
 |`string`

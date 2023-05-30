@@ -248,7 +248,7 @@ The `DefaultFallbackArtifactProvider` uses the following properties to configure
 |===
 
 .Additional resources
-* For more details, see the link:https://github.com/Apicurio/apicurio-registry/blob/2.3.x/serdes/serde-common/src/main/java/io/apicurio/registry/serde/SerdeConfig.java[SerdeConfig Java class].
+* For more details, see the link:https://github.com/Apicurio/apicurio-registry/blob/main/serdes/serde-common/src/main/java/io/apicurio/registry/serde/SerdeConfig.java[SerdeConfig Java class].
 * You can configure application properties as Java system properties or include them in the Quarkus
 `application.properties` file.
 For more details, see the https://quarkus.io/guides/config#overriding-properties-at-runtime[Quarkus documentation].

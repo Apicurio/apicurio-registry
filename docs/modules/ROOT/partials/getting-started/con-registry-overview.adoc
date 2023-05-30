@@ -36,7 +36,7 @@ ifdef::apicurio-registry[]
 * Pluggable {registry} storage options in Apache Kafka or PostgreSQL database. 
 endif::[]
 
-* Rules for content validation and version compatibility to govern how {registry} content evolves over time.
+* Rules for content validation, compatibility, and integrity to govern how {registry} content evolves over time.
 
 * {registry} content management using web console, REST API, command line, Maven plug-in, or Java client.
 

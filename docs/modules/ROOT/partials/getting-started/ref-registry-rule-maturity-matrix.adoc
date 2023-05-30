@@ -8,39 +8,50 @@
 Not all content rules are fully implemented for every artifact type supported by {registry}. The following table shows the current maturity level for each rule and artifact type:
 
 .{registry} content rule maturity matrix
-[%header,cols=3*] 
+[%header,cols=4*] 
 |===
 |Artifact type
 |Validity rule
 |Compatibility rule
+|Integrity rule
 |*Avro*
+a| Full
 a| Full
 a| Full
 |*Protobuf*
 a| Full
 a| Full
+a| Full
 |*JSON Schema*
 a| Full
 a| Full
+a| Mapping detection not supported
 |*OpenAPI*
 a| Full
 a| None
+a| Full
 |*AsyncAPI*
 a| Syntax Only
 a| None
+a| Full
 |*GraphQL*
 a| Syntax Only
 a| None
+a| Mapping detection not supported
 |*Kafka Connect*
 a| Syntax Only
 a| None
+a| Mapping detection not supported
 |*WSDL*
 a| Full
 a| None
+a| Mapping detection not supported
 |*XML*
 a| Full
 a| None
+a| Mapping detection not supported
 |*XSD*
 a| Full
 a| None
+a| Mapping detection not supported
 |===

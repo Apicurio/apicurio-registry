@@ -69,7 +69,7 @@ public class SerdeBasedConverter<S, T> extends SchemaResolverConfigurer<S, T> im
 [role="_additional-resources"]
 .Additional resources
 
-* For more details, see the link:https://github.com/Apicurio/apicurio-registry/blob/2.0.x/utils/converter/src/main/java/io/apicurio/registry/utils/converter/SerdeBasedConverter.java[SerdeBasedConverter Java class] 
+* For more details, see the link:https://github.com/Apicurio/apicurio-registry/blob/main/utils/converter/src/main/java/io/apicurio/registry/utils/converter/SerdeBasedConverter.java[SerdeBasedConverter Java class] 
 
 [discrete]
 == Configuration for different schema types

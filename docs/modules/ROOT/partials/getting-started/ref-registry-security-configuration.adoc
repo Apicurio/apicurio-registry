@@ -150,7 +150,7 @@ of the following user roles in {keycloak}. However, you can configure different 
 |Yes
 |Yes
 |No
-|Access to create, read, update, and delete operations, except configuring global rules and import/export. This role can configure artifact rules only.
+|Access to create, read, update, and delete operations, except configuring global rules and import/export. This role can configure artifact-specific rules only.
 |`sr-readonly`
 |Yes
 |No

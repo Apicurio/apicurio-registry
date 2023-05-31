@@ -9,9 +9,9 @@ You can use the {registry} web console to configure, generate, and download clie
 
 {registry} generates client SDKs for the following programming languages: 
 
- * Java 
  * C# 
- * Go 
+ * Go
+ * Java  
  * PHP
  * Python
  * Ruby
@@ -55,4 +55,5 @@ image::images/getting-started/registry-web-console-client-sdk.png[Generate a Jav
 
 [role="_additional-resources"]
 .Additional resources
-* {registry} uses Kiota from Microsoft to generate the client SDK. For more information and examples of using the generated client SDKs, see https://github.com/microsoft/kiota. 
+* {registry} uses Kiota from Microsoft to generate the client SDKs. For more information, see https://github.com/microsoft/kiota. 
+* For examples of how to get started with using the generated SDKs to build client applications, see https://learn.microsoft.com/en-us/openapi/kiota/quickstarts.

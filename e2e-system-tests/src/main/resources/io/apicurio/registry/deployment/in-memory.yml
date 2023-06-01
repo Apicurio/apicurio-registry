@@ -1,3 +1,10 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: "apicurio-registry-e2e-in-memory"
+  labels:
+    name: "apicurio-registry-e2e-in-memory"
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -8,6 +15,7 @@ metadata:
     prometheus.io/path: /metrics
     prometheus.io/port: "8080"
     prometheus.io/scheme: http
+  namespace: "apicurio-registry-e2e-in-memory"
   labels:
     app.kubernetes.io/name: apicurio-registry-e2e-system-tests
     app.kubernetes.io/version: 2.5.0-SNAPSHOT
@@ -64,3 +72,52 @@ spec:
             periodSeconds: 10
             successThreshold: 1
             timeoutSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: "apicurio-registry-e2e-in-memory"
+  annotations:
+    app.quarkus.io/commit-id: b025a6d9d485201e94ffc26146f984aecdf35800
+    app.quarkus.io/build-timestamp: 2023-05-24 - 10:48:42 +0000
+    prometheus.io/scrape: "true"
+    prometheus.io/path: /metrics
+    prometheus.io/port: "8080"
+    prometheus.io/scheme: http
+  labels:
+    app.kubernetes.io/name: apicurio-registry-e2e-system-tests
+    app.kubernetes.io/version: 2.5.0-SNAPSHOT
+  name: apicurio-registry-e2e-system-tests
+spec:
+  ports:
+    - name: http
+      port: 80
+      protocol: TCP
+      targetPort: 8080
+  selector:
+    app.kubernetes.io/name: apicurio-registry-e2e-system-tests
+    app.kubernetes.io/version: 2.5.0-SNAPSHOT
+  type: ClusterIP
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  namespace: "apicurio-registry-e2e-in-memory"
+  annotations:
+    app.quarkus.io/commit-id: b025a6d9d485201e94ffc26146f984aecdf35800
+    app.quarkus.io/build-timestamp: 2023-05-24 - 10:48:42 +0000
+  labels:
+    app.kubernetes.io/name: apicurio-registry-e2e-system-tests
+    app.kubernetes.io/version: 2.5.0-SNAPSHOT
+  name: apicurio-registry-e2e-system-tests
+spec:
+  rules:
+    - http:
+        paths:
+          - backend:
+              service:
+                name: apicurio-registry-e2e-system-tests
+                port:
+                  number: 80
+            path: /
+            pathType: Prefix

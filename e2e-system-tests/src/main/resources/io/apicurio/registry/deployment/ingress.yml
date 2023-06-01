@@ -1,0 +1,21 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    app.quarkus.io/commit-id: b025a6d9d485201e94ffc26146f984aecdf35800
+    app.quarkus.io/build-timestamp: 2023-05-24 - 10:48:42 +0000
+  labels:
+    app.kubernetes.io/name: apicurio-registry-e2e-system-tests
+    app.kubernetes.io/version: 2.5.0-SNAPSHOT
+  name: apicurio-registry-e2e-system-tests
+spec:
+  rules:
+    - http:
+        paths:
+          - backend:
+              service:
+                name: apicurio-registry-e2e-system-tests
+                port:
+                  number: 80
+            path: /
+            pathType: Prefix

@@ -16,6 +16,7 @@
 
 package io.apicurio.registry.it;
 
+import io.apicurio.registry.deployment.RegistryDeploymentManager;
 import io.apicurio.registry.it.utils.Constants;
 import io.apicurio.registry.it.utils.LoadBalanceRegistryClient;
 import io.apicurio.registry.it.utils.RegistryWaitUtils;
@@ -49,6 +50,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -89,6 +91,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 @DisplayNameGeneration(SimpleDisplayName.class)
 @TestInstance(Lifecycle.PER_CLASS)
+@ExtendWith(RegistryDeploymentManager.class)
 public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
 
     private static final Logger log = LoggerFactory.getLogger(TestUtils.class);
@@ -290,12 +293,19 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
     }
 
     public String getRegistryBaseUrl() {
-        return String.format("http://%s:%s", REGISTRY_URL.getHost(), REGISTRY_URL.getPort());
+        if (REGISTRY_URL != null) {
+            return String.format("http://%s:%s", REGISTRY_URL.getHost(), REGISTRY_URL.getPort());
+        } else {
+            return String.format("http://%s:%s", System.getProperty("quarkus.http.test-host"), System.getProperty("quarkus.http.test-port"));
+        }
     }
 
     public String getRegistryBaseUrl(int port) {
-        return String.format("http://%s:%s", REGISTRY_URL.getHost(), REGISTRY_URL.getPort());
-    }
+        if (REGISTRY_URL != null) {
+            return String.format("http://%s:%s", REGISTRY_URL.getHost(), port);
+        } else {
+            return String.format("http://%s:%s", System.getProperty("quarkus.http.test-host"), port);
+        }    }
 
     /**
      * Method which try connection to registries. It's used as a initial check for registries availability.

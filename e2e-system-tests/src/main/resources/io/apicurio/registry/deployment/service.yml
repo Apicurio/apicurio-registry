@@ -1,0 +1,24 @@
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    app.quarkus.io/commit-id: b025a6d9d485201e94ffc26146f984aecdf35800
+    app.quarkus.io/build-timestamp: 2023-05-24 - 10:48:42 +0000
+    prometheus.io/scrape: "true"
+    prometheus.io/path: /metrics
+    prometheus.io/port: "8080"
+    prometheus.io/scheme: http
+  labels:
+    app.kubernetes.io/name: apicurio-registry-e2e-system-tests
+    app.kubernetes.io/version: 2.5.0-SNAPSHOT
+  name: apicurio-registry-e2e-system-tests
+spec:
+  ports:
+    - name: http
+      port: 80
+      protocol: TCP
+      targetPort: 8080
+  selector:
+    app.kubernetes.io/name: apicurio-registry-e2e-system-tests
+    app.kubernetes.io/version: 2.5.0-SNAPSHOT
+  type: ClusterIP

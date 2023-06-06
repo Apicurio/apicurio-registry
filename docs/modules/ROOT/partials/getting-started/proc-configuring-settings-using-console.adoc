@@ -111,6 +111,16 @@ ifdef::apicurio-registry,rh-service-registry[]
 | When selected, the {registry} web console is set to read-only, preventing create, read, update, or delete operations. Changes made using the Core Registry API are not affected by this setting. Not selected by default. 
 |===
 endif::[]
++
+.Additional properties
+[%header,cols="2,4"]
+|===
+|Setting
+|Description
+| *Delete artifact version*
+| When selected, users are permitted to delete artifact versions in this instance by using the Core Registry API. Not selected by default.
+|===
+
 
 [role="_additional-resources"]
 .Additional resources

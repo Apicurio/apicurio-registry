@@ -5,7 +5,7 @@
 = Viewing artifacts using the {registry} web console
 
 [role="_abstract"]
-You can use the {registry} web console to browse the event schema and API artifacts stored in {registry}. This section shows a simple example of viewing {registry} artifacts, groups, versions, and artifact rules. 
+You can use the {registry} web console to browse the schema and API artifacts stored in {registry}. This section shows a simple example of viewing {registry} artifacts, groups, versions, and artifact rules. 
 
 .Prerequisites
 
@@ -40,10 +40,11 @@ endif::[]
 ** *Overview*: Displays artifact version metadata such as artifact name, artifact ID, global ID, content ID, labels, properties, and so on. Also displays rules for validity and compatibility that you can configure for artifact content.
 ** *Documentation* (OpenAPI and AsyncAPI only): Displays automatically-generated REST API documentation.
 ** *Content*: Displays a read-only view of the full artifact content. For JSON content, you can click *JSON* or *YAML* to display your preferred format.
+** *References*: Displays a read-only view of all artifacts referenced by this artifact. You can also click *View artifacts that reference this artifact*.
 
 . If additional versions of this artifact have been added, you can select them from the *Version* list in page header.
 
-. To save the artifact contents to a local file, for example, `my-protobuf-schema.proto`, click *Download* at the end of the page.
+. To save the artifact contents to a local file, for example, `my-openapi.json` or `my-protobuf-schema.proto`, and click *Download* at the end of the page.
 
 ifdef::apicurio-registry,rh-service-registry[]
 [role="_additional-resources"]

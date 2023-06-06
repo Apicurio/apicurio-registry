@@ -20,11 +20,11 @@ import java.text.SimpleDateFormat;
 import java.util.TimeZone;
 
 import javax.annotation.PostConstruct;
-import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
@@ -37,25 +37,51 @@ import io.quarkus.jackson.ObjectMapperCustomizer;
 @Singleton
 public class JacksonDateTimeCustomizer implements ObjectMapperCustomizer {
     
-    @Inject
-    Logger log;
+    private static Logger log = LoggerFactory.getLogger(JacksonDateTimeCustomizer.class);
     
-    @ConfigProperty(name = "registry.apis.v2.date-format", defaultValue = "yyyy-MM-dd'T'HH:mm:ss'Z'")
+    private static final String DEFAULT_DATE_TIME_FORMAT = "yyyy-MM-dd'T'HH:mm:ssZ";
+    private static final String DEFAULT_DATE_TIME_FORMAT_TZ = "UTC";
+    
+    @ConfigProperty(name = "registry.apis.v2.date-format", defaultValue = DEFAULT_DATE_TIME_FORMAT)
     String dateFormat;
-    @ConfigProperty(name = "registry.apis.v2.date-format-timezone", defaultValue = "UTC")
+    @ConfigProperty(name = "registry.apis.v2.date-format-timezone", defaultValue = DEFAULT_DATE_TIME_FORMAT_TZ)
     String timezone;
 
     @PostConstruct
     protected void postConstruct() {
-        log.info("Setting REST API date format to: {}", dateFormat);
+        if (dateFormat.equals("yyyy-MM-dd'T'HH:mm:ssZ")) {
+            log.info("---------------------------------------------------------------------");
+            log.info("Legacy REST API date formats enabled (this is currently the default).");
+            log.info("");
+            log.info("For maximum compatibility and to ease upgrades from older versions");
+            log.info("of Registry, the date format used in the REST API is not compliant");
+            log.info("with OpenAPI standards (due to a bug in older versions).  Please");
+            log.info("make sure you upgrade all of your client applications to use the");
+            log.info("latest client version.  The next release will fix the date format");
+            log.info("bug, which will result in older clients no longer being compatible");
+            log.info("with the REST API.");
+            log.info("");
+            log.info("If you would like to fix the date format bug in THIS version of");
+            log.info("Registry (great!) please set the following ENV variable + value:");
+            log.info("");
+            log.info("REGISTRY_APIS_V2_DATE_FORMAT=yyyy-MM-dd'T'HH:mm:ss'Z'");
+            log.info("");
+            log.info("Doing this will result in a REST API that is OpenAPI compliant, but");
+            log.info("please remember to upgrade all your client applications first!");
+            log.info("---------------------------------------------------------------------");
+        }
     }
 
+    /**
+     * @see io.quarkus.jackson.ObjectMapperCustomizer#customize(com.fasterxml.jackson.databind.ObjectMapper)
+     */
+    @Override
     public void customize(ObjectMapper mapper) {
         try {
             configureDateFormat(mapper, dateFormat, timezone);
         } catch (Exception e) {
             log.error("Error setting REST API date format.", e);
-            configureDateFormat(mapper, "yyyy-MM-dd'T'HH:mm:ss'Z'", "UTC");
+            configureDateFormat(mapper, DEFAULT_DATE_TIME_FORMAT, DEFAULT_DATE_TIME_FORMAT_TZ);
         }
     }
 

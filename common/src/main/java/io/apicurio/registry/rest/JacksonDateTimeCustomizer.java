@@ -69,6 +69,10 @@ public class JacksonDateTimeCustomizer implements ObjectMapperCustomizer {
             log.info("Doing this will result in a REST API that is OpenAPI compliant, but");
             log.info("please remember to upgrade all your client applications first!");
             log.info("---------------------------------------------------------------------");
+        } else {
+            log.info("---------------------------------------------------------------------");
+            log.info("Overriding REST API date format.  Using: " + dateFormat);
+            log.info("---------------------------------------------------------------------");
         }
     }
 

@@ -167,7 +167,7 @@
         <icu4j.version>73.1</icu4j.version>
         <protobuf.version>3.23.2</protobuf.version>
         <xmlsec.version>3.0.2</xmlsec.version>
-        <protobuf.googleapi.types.version>2.19.1</protobuf.googleapi.types.version>
+        <protobuf.googleapi.types.version>2.20.0</protobuf.googleapi.types.version>
         <wsdl4j.version>1.6.3</wsdl4j.version>
         <google.truth.extension.version>1.1.4</google.truth.extension.version>
 

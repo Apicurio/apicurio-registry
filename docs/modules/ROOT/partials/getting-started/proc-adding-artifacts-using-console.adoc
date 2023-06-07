@@ -5,8 +5,7 @@
 = Adding artifacts using the {registry} web console
 
 [role="_abstract"]
-You can use the {registry} web console to upload event schema and API artifacts to {registry}. 
-This section shows simple examples of uploading {registry} artifacts and adding new artifact versions. 
+You can use the {registry} web console to upload schema and API artifacts to {registry}. This section shows simple examples of uploading {registry} artifacts and adding new artifact versions. 
 
 ifdef::rh-openshift-sr[]
 NOTE: When uploading an artifact from a URL, you must specify an HTTPS URL. HTTP URLs are not supported. 
@@ -41,8 +40,9 @@ endif::[]
 ** *Overview*: Displays artifact version metadata such as artifact name, artifact ID, global ID, content ID, labels, properties, and so on. Also displays rules for validity and compatibility that you can configure for artifact content.
 ** *Documentation* (OpenAPI and AsyncAPI only): Displays automatically-generated REST API documentation.
 ** *Content*: Displays a read-only view of the full artifact content. For JSON content, you can click *JSON* or *YAML* to display your preferred format. 
+** *References*: Displays a read-only view of all artifacts referenced by this artifact. You can also click *View artifacts that reference this artifact*. You can add artifact references using the {registry} Maven plug-in or REST API only.
 +
-The following example shows an example Protobuf schema artifact:
+The following example shows an example OpenAPI artifact:
 +
 .Artifact details in {registry} web console
 ifdef::apicurio-registry,rh-service-registry[]
@@ -61,7 +61,7 @@ You can also enter an optional comma-separated list of labels for searching, or 
 .. Repeat the first two steps to add multiple properties.
 .. Click *Save*.
  
-. To save the artifact contents to a local file, for example, `my-protobuf-schema.proto`, click *Download* at the end of the page. 
+. To save the artifact contents to a local file, for example, `my-protobuf-schema.proto` or `my-openapi.json`, click *Download* at the end of the page. 
 
 . To add a new artifact version, click *Upload new version* in the page header, and drag and drop or click *Browse* to upload the file, for example, `my-avro-schema.json` or `my-openapi.json`.
 

@@ -18,7 +18,7 @@ You can use the {registry} web console to configure, generate, and download clie
  * Swift
  * TypeScript
 
-NOTE: Client SDK generation for OpenAPI artifacts runs in your browser only, and cannot be automated by using an API. You must regenerate the client SDK each time a new version of the artifact is added in {registry}. 
+NOTE: Client SDK generation for OpenAPI artifacts runs in your browser only, and cannot be automated by using an API. You must regenerate the client SDK each time a new artifact version is added in {registry}. 
 
 .Prerequisites
 
@@ -38,7 +38,7 @@ NOTE: Client SDK generation for OpenAPI artifacts runs in your browser only, and
 
 . In the *Version metadata* section, click *Generate client SDK*, and configure the following settings in the dialog:
 
-** *Language*: Select the programming language for which to generate the client SDK, for example, *Java*.
+** *Language*: Select the programming language in which to generate the client SDK, for example, *Java*.
 ** *Generated client class name*: Enter the class name for the client SDK, for example, `MyJavaClientSDK.`
 ** *Generated client package name*: Enter the package name for the client SDK, for example, `io.my.example.sdk`
 
@@ -55,5 +55,5 @@ image::images/getting-started/registry-web-console-client-sdk.png[Generate a Jav
 
 [role="_additional-resources"]
 .Additional resources
-* {registry} uses Kiota from Microsoft to generate the client SDKs. For more information, see https://github.com/microsoft/kiota. 
-* For examples of how to get started with using the generated SDKs to build client applications, see https://learn.microsoft.com/en-us/openapi/kiota/quickstarts.
+* {registry} uses Kiota from Microsoft to generate the client SDKs. For more information, see the https://github.com/microsoft/kiota[Kiota project in GitHub^]. 
+* For examples of how to get started with using the generated SDKs to build client applications, see the https://learn.microsoft.com/en-us/openapi/kiota/quickstarts[Kiota API client quick starts^].

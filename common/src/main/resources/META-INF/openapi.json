@@ -4692,6 +4692,7 @@
         }
     ],
     "x-codegen": {
+        "suppress-date-time-formatting": true,
         "bean-annotations": [
             "io.quarkus.runtime.annotations.RegisterForReflection",
             {

@@ -4508,7 +4508,7 @@
                 "type": "object",
                 "properties": {
                     "value": {
-                        "maxLength": 1024.0,
+                        "maxLength": 1024,
                         "type": "string"
                     },
                     "createdOn": {
@@ -4674,6 +4674,7 @@
         }
     ],
     "x-codegen": {
+        "suppress-date-time-formatting": true,
         "bean-annotations": [
             "io.quarkus.runtime.annotations.RegisterForReflection",
             {

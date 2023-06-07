@@ -19,7 +19,7 @@
         <maven.failsafe.version>3.1.0</maven.failsafe.version>
         <maven.surefire.version>3.1.0</maven.surefire.version>
         <junit.jupiter.version>5.9.0</junit.jupiter.version>
-        <fabric8.version>6.7.0</fabric8.version>
+        <fabric8.version>6.7.1</fabric8.version>
         <!-- sundrio version is critical to stay aligned with whatever comes from fabric8 -->
         <sundrio.version>0.95.0</sundrio.version>
         <version.hamcrest>2.2</version.hamcrest>

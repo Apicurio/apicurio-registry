@@ -16,28 +16,11 @@
 
 package io.apicurio.tests.dbupgrade;
 
-import static io.apicurio.tests.utils.CustomTestsUtils.createArtifact;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-
-import org.apache.commons.codec.digest.DigestUtils;
-import org.junit.jupiter.api.DisplayNameGeneration;
-import org.junit.jupiter.api.Tag;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInstance;
-import org.junit.jupiter.api.TestInstance.Lifecycle;
-import org.testcontainers.containers.GenericContainer;
-import org.testcontainers.images.RemoteDockerImage;
-import org.testcontainers.utility.DockerImageName;
-
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.RegistryClientFactory;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
+import io.apicurio.registry.rest.v2.beans.ArtifactReference;
 import io.apicurio.registry.rest.v2.beans.Rule;
 import io.apicurio.registry.rest.v2.beans.VersionMetaData;
 import io.apicurio.registry.types.ArtifactType;
@@ -53,6 +36,26 @@ import io.apicurio.tests.common.utils.RegistryUtils;
 import io.apicurio.tests.multitenancy.MultitenancySupport;
 import io.apicurio.tests.multitenancy.TenantUserClient;
 import io.apicurio.tests.utils.CustomTestsUtils.ArtifactData;
+import org.apache.commons.codec.digest.DigestUtils;
+import org.junit.jupiter.api.DisplayNameGeneration;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.TestInstance.Lifecycle;
+import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.images.RemoteDockerImage;
+import org.testcontainers.utility.DockerImageName;
+
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
+import static io.apicurio.tests.utils.CustomTestsUtils.createArtifact;
+import static io.apicurio.tests.utils.CustomTestsUtils.createArtifactWithReferences;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * Note this test does not extend any base class
@@ -64,6 +67,11 @@ import io.apicurio.tests.utils.CustomTestsUtils.ArtifactData;
 @Tag(Constants.DB_UPGRADE)
 @Tag(Constants.SQL)
 public class SqlStorageUpgradeIT implements TestSeparator, Constants {
+
+    private static final String ARTIFACT_CONTENT = "{\"name\":\"redhat\"}";
+    private static final String REFERENCE_CONTENT = "{\"name\":\"ibm\"}";
+
+    private static final ObjectMapper mapper = new ObjectMapper();
 
     @Test
     public void testStorageUpgrade() throws Exception {
@@ -170,8 +178,8 @@ public class SqlStorageUpgradeIT implements TestSeparator, Constants {
             assertEquals(3, searchResults.getCount());
 
             var protobufs = searchResults.getArtifacts().stream()
-                .filter(ar -> ar.getType().equals(ArtifactType.PROTOBUF))
-                .collect(Collectors.toList());
+                    .filter(ar -> ar.getType().equals(ArtifactType.PROTOBUF))
+                    .collect(Collectors.toList());
 
             assertEquals(1, protobufs.size());
             var protoMetadata = registryClient.getArtifactMetaData(protobufs.get(0).getGroupId(), protobufs.get(0).getId());
@@ -209,6 +217,85 @@ public class SqlStorageUpgradeIT implements TestSeparator, Constants {
 
     }
 
+    @Test
+    public void testStorageUpgradeReferencesContentHash() throws Exception {
+        testStorageUpgradeReferencesContentHashUpgrader("referencesContentHash", RegistryStorageType.sql);
+    }
+
+    public void testStorageUpgradeReferencesContentHashUpgrader(String testName, RegistryStorageType storage) throws Exception {
+
+        RegistryStorageType previousStorageValue = RegistryUtils.REGISTRY_STORAGE;
+        RegistryUtils.REGISTRY_STORAGE = storage;
+
+        Path logsPath = RegistryUtils.getLogsPath(getClass(), testName);
+        RegistryFacade facade = RegistryFacade.getInstance();
+
+        try {
+
+            Map<String, String> appEnv = facade.initRegistryAppEnv();
+
+            //runs all required infra except for the registry
+            facade.deployStorage(appEnv, storage);
+
+            appEnv.put("QUARKUS_HTTP_PORT", "8081");
+
+            String oldRegistryName = "registry-dbv4";
+            String image = "quay.io/apicurio/apicurio-registry-sql:2.4.1.Final";
+            if (storage == RegistryStorageType.kafkasql) {
+                image = "quay.io/apicurio/apicurio-registry-kafkasql:2.4.1.Final";
+            }
+            var container = new GenericContainer<>(new RemoteDockerImage(DockerImageName.parse(image)));
+            container.setNetworkMode("host");
+            facade.runContainer(appEnv, oldRegistryName, container);
+            facade.waitForRegistryReady();
+
+            //
+            var registryClient = RegistryClientFactory.create("http://localhost:8081/");
+
+
+            final ArtifactData artifact = createArtifact(registryClient, ArtifactType.JSON, REFERENCE_CONTENT);
+
+            //Create a second artifact referencing the first one, the hash will be the same using version 2.4.1.Final.
+            var artifactReference = new ArtifactReference();
+
+            artifactReference.setName("testReference");
+            artifactReference.setArtifactId(artifact.meta.getId());
+            artifactReference.setGroupId(artifact.meta.getGroupId());
+            artifactReference.setVersion(artifact.meta.getVersion());
+
+            var artifactReferences = List.of(artifactReference);
+
+            String artifactId = UUID.randomUUID().toString();
+
+            final ArtifactData artifactWithReferences = createArtifactWithReferences(artifactId, registryClient, ArtifactType.AVRO, ARTIFACT_CONTENT, artifactReferences);
+
+            String calculatedHash = DigestUtils.sha256Hex(ARTIFACT_CONTENT);
+
+            //Assertions
+            //The artifact hash is calculated without using references
+            assertEquals(calculatedHash, artifactWithReferences.contentHash);
+
+            facade.stopProcess(logsPath, oldRegistryName);
+
+            facade.runRegistry(appEnv, "registry-dblatest", "8081");
+            facade.waitForRegistryReady();
+
+            //Finally, if we try to create the same artifact with the same references, no new version will be created and the same ids are used.
+            ArtifactData upgradedArtifact = createArtifactWithReferences(artifactId, registryClient, ArtifactType.AVRO, ARTIFACT_CONTENT, artifactReferences);
+            assertEquals(artifactWithReferences.meta.getGlobalId(), upgradedArtifact.meta.getGlobalId());
+            assertEquals(artifactWithReferences.meta.getContentId(), upgradedArtifact.meta.getContentId());
+
+        } finally {
+            try {
+                facade.stopAndCollectLogs(logsPath);
+            } finally {
+                RegistryUtils.REGISTRY_STORAGE = previousStorageValue;
+            }
+        }
+
+    }
+
+
     private List<TenantData> loadData(MultitenancySupport mt) throws Exception {
 
         List<TenantData> tenants = new ArrayList<>();
@@ -236,9 +323,7 @@ public class SqlStorageUpgradeIT implements TestSeparator, Constants {
             tenant.artifacts.add(createArtifact(client, ArtifactType.ASYNCAPI, ApicurioV2BaseIT.resourceToString("artifactTypes/" + "asyncapi/2.0-streetlights_v1.json")));
 
         }
-
         return tenants;
-
     }
 
     private void createMoreArtifacts(List<TenantData> tenants) throws Exception {
@@ -280,11 +365,10 @@ public class SqlStorageUpgradeIT implements TestSeparator, Constants {
                 assertEquals(meta.getContentId(), vmeta.getContentId());
 
             }
-
         }
     }
 
-    private class TenantData {
+    private static class TenantData {
         TenantUserClient tenant;
         List<ArtifactData> artifacts;
 
@@ -292,5 +376,4 @@ public class SqlStorageUpgradeIT implements TestSeparator, Constants {
             artifacts = new ArrayList<>();
         }
     }
-
 }

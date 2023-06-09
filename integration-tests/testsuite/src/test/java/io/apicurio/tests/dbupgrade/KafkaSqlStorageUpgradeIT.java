@@ -163,7 +163,7 @@ public class KafkaSqlStorageUpgradeIT implements TestSeparator, Constants {
 
     @Test
     public void testStorageUpgradeReferencesContentHash() throws Exception {
-        testStorageUpgradeReferencesContentHashUpgrader("referencesContentHash", RegistryStorageType.sql);
+        testStorageUpgradeReferencesContentHashUpgrader("referencesContentHash", RegistryStorageType.kafkasql);
     }
 
     public void testStorageUpgradeReferencesContentHashUpgrader(String testName, RegistryStorageType storage) throws Exception {

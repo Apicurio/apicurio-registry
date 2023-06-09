@@ -696,14 +696,6 @@ public abstract class CommonSqlStatements implements SqlStatements {
     }
 
     /**
-     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#updateContentCanonicalHash()
-     */
-    @Override
-    public String upgradeContent() {
-        return "UPDATE content SET canonicalHash = ?, contentHash = ? WHERE tenantId = ? AND contentId = ? AND contentHash = ?";
-    }
-
-    /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectLogConfigurationByLogger()
      */
     @Override

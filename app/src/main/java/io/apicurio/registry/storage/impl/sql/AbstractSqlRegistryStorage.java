@@ -740,7 +740,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         byte[] contentBytes = content.bytes();
 
         // Upsert a row in the "content" table.  This will insert a row for the content
-        // if a row doesn't already exist.  We use the canonical hash to determine whether
+        // if a row doesn't already exist.  We use the content hash to determine whether
         // a row for this content already exists.  If we find a row we return its globalId.
         // If we don't find a row, we insert one and then return its globalId.
         String sql;

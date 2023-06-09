@@ -18,12 +18,17 @@ package io.apicurio.tests.utils;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
+import io.apicurio.registry.rest.v2.beans.ArtifactReference;
+import io.apicurio.registry.rest.v2.beans.IfExists;
+import io.apicurio.registry.types.ContentTypes;
 import org.apache.commons.codec.digest.DigestUtils;
 
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.tests.TestUtils;
+
+import java.util.List;
 
 /**
  * @author Fabian Martinez
@@ -33,6 +38,14 @@ public class CustomTestsUtils {
     public static ArtifactData createArtifact(RegistryClient client, String type, String content) throws Exception {
         String artifactId = TestUtils.generateArtifactId();
         ArtifactMetaData meta = client.createArtifact(null, artifactId, type, IoUtil.toStream(content));
+        TestUtils.retry(() -> client.getContentByGlobalId(meta.getGlobalId()));
+        assertNotNull(client.getLatestArtifact(meta.getGroupId(), meta.getId()));
+        String contentHash = DigestUtils.sha256Hex(IoUtil.toBytes(content));
+        return new ArtifactData(meta, contentHash);
+    }
+
+    public static ArtifactData createArtifactWithReferences(String artifactId, RegistryClient client, String type, String content, List<ArtifactReference> references) throws Exception {
+        ArtifactMetaData meta = client.createArtifact(null, artifactId, null,  type, IfExists.RETURN, false, null, null, ContentTypes.APPLICATION_CREATE_EXTENDED,null, null,  IoUtil.toStream(content), references);
         TestUtils.retry(() -> client.getContentByGlobalId(meta.getGlobalId()));
         assertNotNull(client.getLatestArtifact(meta.getGroupId(), meta.getId()));
         String contentHash = DigestUtils.sha256Hex(IoUtil.toBytes(content));

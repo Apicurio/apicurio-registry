@@ -196,7 +196,6 @@ public interface SqlStatements {
 
     /**
      * A statement to update canonicalHash value in a row in the "content" table
-     * The only statement that allows to modify an existing row in the "content" table
      */
     public String updateContentCanonicalHash();
 

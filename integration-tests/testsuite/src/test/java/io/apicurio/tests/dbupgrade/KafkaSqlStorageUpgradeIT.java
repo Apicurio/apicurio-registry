@@ -17,12 +17,17 @@
 package io.apicurio.tests.dbupgrade;
 
 import static io.apicurio.tests.utils.CustomTestsUtils.createArtifact;
+import static io.apicurio.tests.utils.CustomTestsUtils.createArtifactWithReferences;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
+import io.apicurio.registry.rest.v2.beans.ArtifactReference;
+import org.apache.commons.codec.digest.DigestUtils;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -53,6 +58,9 @@ import io.apicurio.tests.utils.CustomTestsUtils.ArtifactData;
 @Tag(Constants.DB_UPGRADE)
 @Tag(Constants.KAFKA_SQL)
 public class KafkaSqlStorageUpgradeIT implements TestSeparator, Constants {
+
+    private static final String ARTIFACT_CONTENT = "{\"name\":\"redhat\"}";
+    private static final String REFERENCE_CONTENT = "{\"name\":\"ibm\"}";
 
     @Test
     public void testStorageUpgradeProtobufUpgraderKafkaSql() throws Exception {
@@ -141,6 +149,83 @@ public class KafkaSqlStorageUpgradeIT implements TestSeparator, Constants {
 
             //assert total num of artifacts
             assertEquals(4, registryClient.listArtifactsInGroup(null).getCount());
+
+
+        } finally {
+            try {
+                facade.stopAndCollectLogs(logsPath);
+            } finally {
+                RegistryUtils.REGISTRY_STORAGE = previousStorageValue;
+            }
+        }
+
+    }
+
+    @Test
+    public void testStorageUpgradeReferencesContentHash() throws Exception {
+        testStorageUpgradeReferencesContentHashUpgrader("referencesContentHash", RegistryStorageType.kafkasql);
+    }
+
+    public void testStorageUpgradeReferencesContentHashUpgrader(String testName, RegistryStorageType storage) throws Exception {
+
+        RegistryStorageType previousStorageValue = RegistryUtils.REGISTRY_STORAGE;
+        RegistryUtils.REGISTRY_STORAGE = storage;
+
+        Path logsPath = RegistryUtils.getLogsPath(getClass(), testName);
+        RegistryFacade facade = RegistryFacade.getInstance();
+
+        try {
+
+            Map<String, String> appEnv = facade.initRegistryAppEnv();
+
+            //runs all required infra except for the registry
+            facade.deployStorage(appEnv, storage);
+
+            appEnv.put("QUARKUS_HTTP_PORT", "8081");
+
+            String oldRegistryName = "registry-dbv4";
+            String image = "quay.io/apicurio/apicurio-registry-kafkasql:2.4.1.Final";
+
+            var container = new GenericContainer<>(new RemoteDockerImage(DockerImageName.parse(image)));
+            container.setNetworkMode("host");
+            facade.runContainer(appEnv, oldRegistryName, container);
+            facade.waitForRegistryReady();
+
+            //
+            var registryClient = RegistryClientFactory.create("http://localhost:8081/");
+
+
+            final ArtifactData artifact = createArtifact(registryClient, ArtifactType.JSON, REFERENCE_CONTENT);
+
+            //Create a second artifact referencing the first one, the hash will be the same using version 2.4.1.Final.
+            var artifactReference = new ArtifactReference();
+
+            artifactReference.setName("testReference");
+            artifactReference.setArtifactId(artifact.meta.getId());
+            artifactReference.setGroupId(artifact.meta.getGroupId());
+            artifactReference.setVersion(artifact.meta.getVersion());
+
+            var artifactReferences = List.of(artifactReference);
+
+            String artifactId = UUID.randomUUID().toString();
+
+            final ArtifactData artifactWithReferences = createArtifactWithReferences(artifactId, registryClient, ArtifactType.AVRO, ARTIFACT_CONTENT, artifactReferences);
+
+            String calculatedHash = DigestUtils.sha256Hex(ARTIFACT_CONTENT);
+
+            //Assertions
+            //The artifact hash is calculated without using references
+            assertEquals(calculatedHash, artifactWithReferences.contentHash);
+
+            facade.stopProcess(logsPath, oldRegistryName);
+
+            facade.runRegistry(appEnv, "registry-dblatest", "8081");
+            facade.waitForRegistryReady();
+
+            //Finally, if we try to create the same artifact with the same references, no new version will be created and the same ids are used.
+            ArtifactData upgradedArtifact = createArtifactWithReferences(artifactId, registryClient, ArtifactType.AVRO, ARTIFACT_CONTENT, artifactReferences);
+            assertEquals(artifactWithReferences.meta.getGlobalId(), upgradedArtifact.meta.getGlobalId());
+            assertEquals(artifactWithReferences.meta.getContentId(), upgradedArtifact.meta.getContentId());
 
 
         } finally {

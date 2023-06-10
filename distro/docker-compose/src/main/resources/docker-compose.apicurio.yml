@@ -6,38 +6,43 @@ volumes:
 
 services:
   keycloak-server:
+    container_name: keycloak-apicurio
     image: quay.io/keycloak/keycloak:19.0.2
     environment:
-      QUARKUS_HTTP_PORT: 8090
       KEYCLOAK_ADMIN: admin
       KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_HOSTNAME_URL: http://localhost:8080
     command:
       - start-dev
       - --import-realm
+    ports:
+      - 8080:8080
     volumes:
       - ./config/keycloak/apicurio-realm.json:/opt/keycloak/data/import/realm.json
-    network_mode: host
 
   postgres:
+    container_name: database-apicurio
     image: postgres
     environment:
       POSTGRES_USER: apicurio-registry
       POSTGRES_PASSWORD: password
-    network_mode: host
+
   app:
     image: apicurio/apicurio-registry-sql:latest-snapshot
     environment:
-      REGISTRY_DATASOURCE_URL: 'jdbc:postgresql://localhost:5432/apicurio-registry'
+      REGISTRY_DATASOURCE_URL: 'jdbc:postgresql://database-apicurio:5432/apicurio-registry'
       REGISTRY_DATASOURCE_USERNAME: apicurio-registry
       REGISTRY_DATASOURCE_PASSWORD: password
       AUTH_ENABLED: "true"
       KEYCLOAK_REALM: registry
       QUARKUS_HTTP_PORT: 8081
+      LOG_LEVEL: "DEBUG"
       KEYCLOAK_URL: "http://localhost:8080"
       KEYCLOAK_API_CLIENT_ID: registry-api
       KEYCLOAK_UI_CLIENT_ID: apicurio-registry
-      REGISTRY_AUTH_URL_CONFIGURED: "http://localhost:8080/realms/registry"
+      REGISTRY_AUTH_URL_CONFIGURED: "http://host.docker.internal:8080/realms/registry"
+    ports:
+      - 8081:8081
     depends_on:
       - postgres
       - keycloak-server
-    network_mode: host

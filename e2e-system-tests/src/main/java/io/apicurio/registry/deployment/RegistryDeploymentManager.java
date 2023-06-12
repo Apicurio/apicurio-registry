@@ -24,7 +24,7 @@ import org.junit.jupiter.api.extension.ExtensionContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.concurrent.TimeUnit;
+import java.net.InetAddress;
 
 public class RegistryDeploymentManager implements BeforeAllCallback, AfterAllCallback {
 
@@ -32,6 +32,7 @@ public class RegistryDeploymentManager implements BeforeAllCallback, AfterAllCal
 
     private static final String KUBERNETES_IN_MEMORY_DEPLOYMENT = "in-memory.yml";
     private static final String IN_MEMORY_NAMESPACE = "apicurio-registry-e2e-in-memory";
+    private static final String IN_MEMORY_SERVICE = "apicurio-registry-e2e-system-tests-in-memory";
 
     KubernetesClient kubernetesClient;
 
@@ -44,9 +45,17 @@ public class RegistryDeploymentManager implements BeforeAllCallback, AfterAllCal
             try {
                 kubernetesClient.load(getClass().getResourceAsStream(KUBERNETES_IN_MEMORY_DEPLOYMENT))
                         .create();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            try {
 
-                kubernetesClient.pods().inNamespace(IN_MEMORY_NAMESPACE)
-                        .waitUntilReady(30, TimeUnit.SECONDS);
+                InetAddress inetAddress = InetAddress.getByAddress(new byte[]{127, 0, 0, 1});
+
+                kubernetesClient.services()
+                        .inNamespace(IN_MEMORY_NAMESPACE)
+                        .withName(IN_MEMORY_SERVICE)
+                        .portForward(80, inetAddress, 8080);
 
             } catch (Exception e) {
                 e.printStackTrace();
@@ -59,10 +68,6 @@ public class RegistryDeploymentManager implements BeforeAllCallback, AfterAllCal
     public void afterAll(ExtensionContext extensionContext) throws Exception {
         LOGGER.info("Test suite ended ##################################################");
         LOGGER.info("Closing test resources ##################################################");
-
-        kubernetesClient.namespaces()
-                .withName(IN_MEMORY_NAMESPACE)
-                .delete();
 
         if (kubernetesClient != null) {
             kubernetesClient.close();

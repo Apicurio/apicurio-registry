@@ -38,7 +38,7 @@ public class RegistryDeploymentManager implements BeforeAllCallback, AfterAllCal
 
     @Override
     public void beforeAll(ExtensionContext extensionContext) throws Exception {
-        if (System.getProperty("quarkus.http.test-host") != null) {
+        if (Boolean.parseBoolean(System.getProperty("cluster.tests"))) {
             kubernetesClient = new KubernetesClientBuilder()
                     .build();
 

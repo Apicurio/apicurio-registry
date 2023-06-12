@@ -8,6 +8,10 @@
     <version>2.5.0-SNAPSHOT</version>
   </parent>
   <artifactId>apicurio-registry-e2e-system-tests</artifactId>
+
+  <properties>
+    <cluster.tests>false</cluster.tests>
+  </properties>
   <dependencies>
     <dependency>
       <groupId>io.quarkus</groupId>
@@ -108,7 +112,9 @@
     <profile>
       <id>inmemory</id>
       <activation>
-        <activeByDefault>true</activeByDefault>
+        <property>
+          <name>!cluster.tests</name>
+        </property>
       </activation>
       <build>
         <plugins>

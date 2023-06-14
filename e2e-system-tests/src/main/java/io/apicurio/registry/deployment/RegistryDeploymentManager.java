@@ -24,6 +24,8 @@ import org.junit.jupiter.api.extension.ExtensionContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.concurrent.TimeUnit;
+
 public class RegistryDeploymentManager implements BeforeAllCallback, AfterAllCallback {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(RegistryDeploymentManager.class);
@@ -43,10 +45,14 @@ public class RegistryDeploymentManager implements BeforeAllCallback, AfterAllCal
             kubernetesClient.load(getClass().getResourceAsStream(KUBERNETES_IN_MEMORY_DEPLOYMENT))
                     .create();
 
+            kubernetesClient.pods().inNamespace(IN_MEMORY_NAMESPACE).waitUntilReady(30, TimeUnit.SECONDS);
+
             kubernetesClient.services()
                     .inNamespace(IN_MEMORY_NAMESPACE)
                     .withName(IN_MEMORY_SERVICE)
                     .portForward(8080, 8080);
+
+
 
             LOGGER.info("Test suite started ##################################################");
         }

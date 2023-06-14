@@ -24,8 +24,6 @@ import org.junit.jupiter.api.extension.ExtensionContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.net.InetAddress;
-
 public class RegistryDeploymentManager implements BeforeAllCallback, AfterAllCallback {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(RegistryDeploymentManager.class);
@@ -42,24 +40,14 @@ public class RegistryDeploymentManager implements BeforeAllCallback, AfterAllCal
             kubernetesClient = new KubernetesClientBuilder()
                     .build();
 
-            try {
-                kubernetesClient.load(getClass().getResourceAsStream(KUBERNETES_IN_MEMORY_DEPLOYMENT))
-                        .create();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-            try {
+            kubernetesClient.load(getClass().getResourceAsStream(KUBERNETES_IN_MEMORY_DEPLOYMENT))
+                    .create();
 
-                InetAddress inetAddress = InetAddress.getByAddress(new byte[]{127, 0, 0, 1});
+            kubernetesClient.services()
+                    .inNamespace(IN_MEMORY_NAMESPACE)
+                    .withName(IN_MEMORY_SERVICE)
+                    .portForward(8080, 8080);
 
-                kubernetesClient.services()
-                        .inNamespace(IN_MEMORY_NAMESPACE)
-                        .withName(IN_MEMORY_SERVICE)
-                        .portForward(80, inetAddress, 8080);
-
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
             LOGGER.info("Test suite started ##################################################");
         }
     }
@@ -70,6 +58,10 @@ public class RegistryDeploymentManager implements BeforeAllCallback, AfterAllCal
         LOGGER.info("Closing test resources ##################################################");
 
         if (kubernetesClient != null) {
+            kubernetesClient.namespaces()
+                    .withName(IN_MEMORY_NAMESPACE)
+                    .delete();
+
             kubernetesClient.close();
         }
     }

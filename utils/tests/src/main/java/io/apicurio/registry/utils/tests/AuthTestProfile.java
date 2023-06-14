@@ -33,7 +33,7 @@ public class AuthTestProfile implements QuarkusTestProfile {
 
     @Override
     public List<TestResourceEntry> testResources() {
-        if (null == System.getProperty("quarkus.http.test-host")) {
+        if (!Boolean.parseBoolean(System.getProperty("cluster.tests"))) {
             return List.of(
                     new TestResourceEntry(JWKSMockServer.class));
         } else {

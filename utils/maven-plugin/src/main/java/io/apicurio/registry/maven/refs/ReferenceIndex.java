@@ -110,8 +110,8 @@ public class ReferenceIndex {
                 indexDataModels(path, content);
             }
             // JSON Schema
-            if (tree.has("$schema") && tree.get("$schema").asText().contains("json-schema.org") || tree.has("properties")) {
-                indexJsonSchema(path, content);
+            if (tree.has("$schema") && !tree.get("$schema").isNull()) {
+                indexJsonSchema(tree, path, content);
             }
             // Avro
             indexAvro(path, content, tree);
@@ -143,8 +143,13 @@ public class ReferenceIndex {
         this.index.add(resource);
     }
 
-    private void indexJsonSchema(Path path, ContentHandle content) {
-        throw new UnsupportedOperationException("Not yet implemented.");
+    private void indexJsonSchema(JsonNode schema, Path path, ContentHandle content) {
+        String resourceName = null;
+        if (schema.has("$id")) {
+            resourceName = schema.get("$id").asText(null);
+        }
+        IndexedResource resource = new IndexedResource(path, ArtifactType.JSON, resourceName, content);
+        this.index.add(resource);
     }
 
     private void indexDataModels(Path path, ContentHandle content) {

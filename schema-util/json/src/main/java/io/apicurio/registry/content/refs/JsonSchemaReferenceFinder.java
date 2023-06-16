@@ -18,6 +18,8 @@ package io.apicurio.registry.content.refs;
 
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -59,7 +61,20 @@ public class JsonSchemaReferenceFinder implements ReferenceFinder {
     }
 
     private static void findExternalTypesIn(JsonNode schema, Set<String> externalTypes) {
-        // TODO implement this!!
+        if (schema.isObject()) {
+            if (schema.has("$ref")) {
+                String ref = schema.get("$ref").asText(null);
+                if (ref != null) {
+                    // TODO: the value of the ref should be resolved against the $id in this schema if it has one
+                    externalTypes.add(ref);
+                }
+            }
+            Iterator<Entry<String, JsonNode>> fields = schema.fields();
+            while (fields.hasNext()) {
+                Entry<String, JsonNode> field = fields.next();
+                findExternalTypesIn(field.getValue(), externalTypes);
+            }
+        }
     }
 
 }

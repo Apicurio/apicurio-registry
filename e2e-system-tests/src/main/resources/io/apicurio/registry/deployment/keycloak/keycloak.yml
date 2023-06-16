@@ -2514,27 +2514,27 @@ spec:
         app: keycloak-deployment
     spec:
       containers:
-        - image: jboss/keycloak:latest
+        - image: quay.io/keycloak/keycloak:latest
+          args: [ "start-dev --import-realm" ]
+          volumeMounts:
+            - name: keycloak-volume
+              mountPath: /opt/keycloak/data/import
           name: keycloak
           env:
             - name: KEYCLOAK_USER
               value: admin
             - name: KEYCLOAK_PASSWORD
               value: superSecret
-            - name: KEYCLOAK_IMPORT
-              value: /import/realm.json
           ports:
             - name: http
-              containerPort: 8081
-          volumeMounts:
-            - name: keycloak-volume
-              mountPath: /import
+              containerPort: 8080
           readinessProbe:
+            failureThreshold: 3
             httpGet:
-              path: /auth/realms/master
-              port: 8081
-            initialDelaySeconds: 30
-            timeoutSeconds: 30
+              path: /realms/master
+              port: 8080
+            initialDelaySeconds: 10
+            timeoutSeconds: 50
           resources: {}
       volumes:
         - name: keycloak-volume
@@ -2547,8 +2547,8 @@ metadata:
   name: keycloak-service
 spec:
   selector:
-    app: keycloak-service
+    app: keycloak-deployment
   ports:
     - protocol: TCP
       port: 8081
-      targetPort: 8081
+      targetPort: 8080

@@ -1,0 +1,43 @@
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: "apicurio-registry-e2e"
+  labels:
+    app: kafka-service
+  name: kafka-service
+spec:
+  ports:
+     - protocol: TCP
+       port: 9092
+       targetPort: 9092
+  selector:
+    app: kafka-service
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: "apicurio-registry-e2e"
+  name: kafka-service
+spec:
+  selector:
+    matchLabels:
+      app: kafka-service
+  template:
+    metadata:
+      labels:
+        app: kafka-service
+    spec:
+      containers:
+        - name: kafka-service
+          image: quay.io/strimzi/kafka:latest-kafka-3.5.0-amd64
+          command:
+            - /bin/sh
+            - -c
+            - "export CLUSTER_ID=$(bin/kafka-storage.sh random-uuid) && bin/kafka-storage.sh format -t $CLUSTER_ID -c config/kraft/server.properties && bin/kafka-server-start.sh config/kraft/server.properties --override advertised.listeners=${KAFKA_ADVERTISED_LISTENERS}"
+          env:
+            - name: LOG_DIR
+              value: /tmp/logs
+            - name: KAFKA_ADVERTISED_LISTENERS
+              value: PLAINTEXT://kafka-service:9092
+          ports:
+            - containerPort: 9092

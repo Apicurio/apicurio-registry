@@ -18,6 +18,7 @@ package io.apicurio.registry.deployment;
 
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientBuilder;
+import io.fabric8.kubernetes.client.LocalPortForward;
 import org.junit.jupiter.api.extension.AfterAllCallback;
 import org.junit.jupiter.api.extension.BeforeAllCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
@@ -32,15 +33,16 @@ public class RegistryDeploymentManager implements BeforeAllCallback, AfterAllCal
 
     private static final String E2E_NAMESPACE_RESOURCE = "/e2e-namespace.yml";
 
-    private static final String APPLICATION_IN_MEMORY_RESOURCES = "/registry-in-memory.yml";
-    private static final String APPLICATION_KAFKA_RESOURCES = "/registry-kafka.yml";
+    private static final String APPLICATION_IN_MEMORY_RESOURCES = "/in-memory/registry-in-memory.yml";
+    private static final String APPLICATION_KAFKA_RESOURCES = "/kafka/registry-kafka.yml";
 
-    private static final String KAFKA_RESOURCES = "/kafka.yml";
+    private static final String KAFKA_RESOURCES = "/kafka/kafka.yml";
 
     private static final String TEST_NAMESPACE = "apicurio-registry-e2e"; //TODO try to use @KubernetesTest with the dynamic namespace
     private static final String APPLICATION_SERVICE = "apicurio-registry-service";
 
     KubernetesClient kubernetesClient;
+    LocalPortForward localPortForward;
 
     @Override
     public void beforeAll(ExtensionContext extensionContext) throws Exception {
@@ -64,10 +66,16 @@ public class RegistryDeploymentManager implements BeforeAllCallback, AfterAllCal
         if (Boolean.parseBoolean(System.getProperty("deployInMemory"))) {
             deployInMemoryApp();
         } else if (Boolean.parseBoolean(System.getProperty("deploySql"))) {
-            deployKafkaApp();
-        } else if (Boolean.parseBoolean(System.getProperty("deployKafka"))) {
             deploySqlApp();
+        } else if (Boolean.parseBoolean(System.getProperty("deployKafka"))) {
+            deployKafkaApp();
         }
+
+        //No matter the storage type, create port forward so the application is reachable from the tests
+        localPortForward = kubernetesClient.services()
+                .inNamespace(TEST_NAMESPACE)
+                .withName(APPLICATION_SERVICE)
+                .portForward(8080, 8080);
     }
 
     private void deployInMemoryApp() {
@@ -78,13 +86,6 @@ public class RegistryDeploymentManager implements BeforeAllCallback, AfterAllCal
         //Wait for all the pods of the variant to be ready
         kubernetesClient.pods()
                 .inNamespace(TEST_NAMESPACE).waitUntilReady(30, TimeUnit.SECONDS);
-
-        //Create port forward so the application is reachable from the tests
-        kubernetesClient.services()
-                .inNamespace(TEST_NAMESPACE)
-                .withName(APPLICATION_SERVICE)
-                .portForward(8080, 8080);
-
     }
 
     private void deployKafkaApp() {
@@ -103,12 +104,6 @@ public class RegistryDeploymentManager implements BeforeAllCallback, AfterAllCal
         //Wait for all the pods of the variant to be ready
         kubernetesClient.pods()
                 .inNamespace(TEST_NAMESPACE).waitUntilReady(30, TimeUnit.SECONDS);
-
-        //Create port forward so the application is reachable from the tests
-        kubernetesClient.services()
-                .inNamespace(TEST_NAMESPACE)
-                .withName(APPLICATION_SERVICE)
-                .portForward(8080, 8080);
     }
 
     private void deploySqlApp() {
@@ -118,6 +113,10 @@ public class RegistryDeploymentManager implements BeforeAllCallback, AfterAllCal
     @Override
     public void afterAll(ExtensionContext extensionContext) throws Exception {
         LOGGER.info("Test suite ended ##################################################");
+
+        if (localPortForward != null) {
+            localPortForward.close();
+        }
 
         //Finally, once the testsuite is done, cleanup all the resources in the cluster
         if (kubernetesClient != null) {

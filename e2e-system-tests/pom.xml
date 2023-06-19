@@ -11,6 +11,8 @@
 
   <properties>
     <cluster.tests>false</cluster.tests>
+    <groups></groups>
+    <skipTests>true</skipTests>
   </properties>
   <dependencies>
     <dependency>
@@ -164,6 +166,72 @@
         <dependency>
           <groupId>io.apicurio</groupId>
           <artifactId>apicurio-registry-app</artifactId>
+          <type>test-jar</type>
+          <exclusions>
+            <exclusion>
+              <groupId>io.apicurio</groupId>
+              <artifactId>apicurio-registry-schema-util-provider</artifactId>
+            </exclusion>
+          </exclusions>
+        </dependency>
+      </dependencies>
+    </profile>
+
+    <profile>
+      <id>local-sql</id>
+      <build>
+        <plugins>
+          <plugin>
+            <artifactId>maven-dependency-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>unpack-app-dependencies</id>
+                <phase>process-classes</phase>
+                <goals>
+                  <goal>unpack-dependencies</goal>
+                </goals>
+                <configuration>
+                  <excludeArtifactIds>apicurio-common-app-components-config-index,apicurio-common-app-components-logging,apicurio-common-app-components-config-definitions,apicurio-common-app-components-config-impl,apicurio-common-app-components-core,apicurio-common-app-components-multitenancy</excludeArtifactIds>
+                  <includeGroupIds>io.apicurio</includeGroupIds>
+                  <includeTypes>jar,maven-plugin</includeTypes>
+                  <outputDirectory>${project.build.directory}/classes</outputDirectory>
+                  <overWriteReleases>false</overWriteReleases>
+                  <overWriteSnapshots>true</overWriteSnapshots>
+                </configuration>
+              </execution>
+              <execution>
+                <id>unpack-test-dependencies</id>
+                <phase>process-test-classes</phase>
+                <goals>
+                  <goal>unpack-dependencies</goal>
+                </goals>
+                <configuration>
+                  <includeGroupIds>io.apicurio</includeGroupIds>
+                  <includeTypes>test-jar</includeTypes>
+                  <includeScope>test</includeScope>
+                  <outputDirectory>${project.build.directory}/test-classes</outputDirectory>
+                  <includes>**/*SqlStorageTestResources.class, **/*.properties</includes>
+                  <overWriteReleases>false</overWriteReleases>
+                  <overWriteSnapshots>true</overWriteSnapshots>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+      <dependencies>
+        <dependency>
+          <groupId>io.apicurio</groupId>
+          <artifactId>apicurio-registry-storage-sql</artifactId>
+        </dependency>
+        <dependency>
+          <groupId>io.zonky.test</groupId>
+          <artifactId>embedded-postgres</artifactId>
+          <version>2.0.4</version>
+        </dependency>
+        <dependency>
+          <groupId>io.apicurio</groupId>
+          <artifactId>apicurio-registry-storage-sql</artifactId>
           <type>test-jar</type>
           <exclusions>
             <exclusion>

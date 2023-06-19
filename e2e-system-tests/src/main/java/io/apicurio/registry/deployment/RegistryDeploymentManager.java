@@ -30,42 +30,100 @@ public class RegistryDeploymentManager implements BeforeAllCallback, AfterAllCal
 
     private static final Logger LOGGER = LoggerFactory.getLogger(RegistryDeploymentManager.class);
 
-    private static final String KUBERNETES_IN_MEMORY_DEPLOYMENT = "in-memory.yml";
-    private static final String IN_MEMORY_NAMESPACE = "apicurio-registry-e2e-in-memory";
-    private static final String IN_MEMORY_SERVICE = "apicurio-registry-e2e-system-tests-in-memory";
+    private static final String E2E_NAMESPACE_RESOURCE = "/e2e-namespace.yml";
+
+    private static final String APPLICATION_IN_MEMORY_RESOURCES = "/registry-in-memory.yml";
+    private static final String APPLICATION_KAFKA_RESOURCES = "/registry-kafka.yml";
+
+    private static final String KAFKA_RESOURCES = "/kafka.yml";
+
+    private static final String TEST_NAMESPACE = "apicurio-registry-e2e"; //TODO try to use @KubernetesTest with the dynamic namespace
+    private static final String APPLICATION_SERVICE = "apicurio-registry-service";
 
     KubernetesClient kubernetesClient;
 
     @Override
     public void beforeAll(ExtensionContext extensionContext) throws Exception {
         if (Boolean.parseBoolean(System.getProperty("cluster.tests"))) {
-            kubernetesClient = new KubernetesClientBuilder()
-                    .build();
 
-            kubernetesClient.load(getClass().getResourceAsStream(KUBERNETES_IN_MEMORY_DEPLOYMENT))
-                    .create();
-
-            kubernetesClient.pods().inNamespace(IN_MEMORY_NAMESPACE).waitUntilReady(30, TimeUnit.SECONDS);
-
-            kubernetesClient.services()
-                    .inNamespace(IN_MEMORY_NAMESPACE)
-                    .withName(IN_MEMORY_SERVICE)
-                    .portForward(8080, 8080);
-
-
+            handleInfraDeployment();
 
             LOGGER.info("Test suite started ##################################################");
         }
     }
 
+    private void handleInfraDeployment() {
+        kubernetesClient = new KubernetesClientBuilder()
+                .build();
+
+        //First of all, create the namespace used for the test.
+        kubernetesClient.load(getClass().getResourceAsStream(E2E_NAMESPACE_RESOURCE))
+                .create();
+
+        //Based on the configuration, dpeloy the appropriate variant
+        if (Boolean.parseBoolean(System.getProperty("deployInMemory"))) {
+            deployInMemoryApp();
+        } else if (Boolean.parseBoolean(System.getProperty("deploySql"))) {
+            deployKafkaApp();
+        } else if (Boolean.parseBoolean(System.getProperty("deployKafka"))) {
+            deploySqlApp();
+        }
+    }
+
+    private void deployInMemoryApp() {
+        //Deploy all the resources associated to the in-memory variant
+        kubernetesClient.load(getClass().getResourceAsStream(APPLICATION_IN_MEMORY_RESOURCES))
+                .create();
+
+        //Wait for all the pods of the variant to be ready
+        kubernetesClient.pods()
+                .inNamespace(TEST_NAMESPACE).waitUntilReady(30, TimeUnit.SECONDS);
+
+        //Create port forward so the application is reachable from the tests
+        kubernetesClient.services()
+                .inNamespace(TEST_NAMESPACE)
+                .withName(APPLICATION_SERVICE)
+                .portForward(8080, 8080);
+
+    }
+
+    private void deployKafkaApp() {
+        //Deploy all the resources associated to kafka
+        kubernetesClient.load(getClass().getResourceAsStream(KAFKA_RESOURCES))
+                .create();
+
+        //Wait for all the kafka pods to be ready
+        kubernetesClient.pods()
+                .inNamespace(TEST_NAMESPACE).waitUntilReady(30, TimeUnit.SECONDS);
+
+        //Deploy all the resources associated to the kafka variant
+        kubernetesClient.load(getClass().getResourceAsStream(APPLICATION_KAFKA_RESOURCES))
+                .create();
+
+        //Wait for all the pods of the variant to be ready
+        kubernetesClient.pods()
+                .inNamespace(TEST_NAMESPACE).waitUntilReady(30, TimeUnit.SECONDS);
+
+        //Create port forward so the application is reachable from the tests
+        kubernetesClient.services()
+                .inNamespace(TEST_NAMESPACE)
+                .withName(APPLICATION_SERVICE)
+                .portForward(8080, 8080);
+    }
+
+    private void deploySqlApp() {
+
+    }
+
     @Override
     public void afterAll(ExtensionContext extensionContext) throws Exception {
         LOGGER.info("Test suite ended ##################################################");
-        LOGGER.info("Closing test resources ##################################################");
 
+        //Finally, once the testsuite is done, cleanup all the resources in the cluster
         if (kubernetesClient != null) {
+            LOGGER.info("Closing test resources ##################################################");
             kubernetesClient.namespaces()
-                    .withName(IN_MEMORY_NAMESPACE)
+                    .withName(TEST_NAMESPACE)
                     .delete();
 
             kubernetesClient.close();

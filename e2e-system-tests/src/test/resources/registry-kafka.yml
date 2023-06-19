@@ -1,29 +1,19 @@
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: "apicurio-registry-e2e-in-memory"
-  labels:
-    name: "apicurio-registry-e2e-in-memory"
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  namespace: "apicurio-registry-e2e-in-memory"
+  namespace: "apicurio-registry-e2e"
   labels:
-    app.kubernetes.io/name: apicurio-registry-e2e-system-tests
-    app.kubernetes.io/version: 2.5.0-SNAPSHOT
-  name: apicurio-registry-e2e-system-tests
+    app: apicurio-registry-kafka
+  name: apicurio-registry-kafka
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app.kubernetes.io/name: apicurio-registry-e2e-system-tests
-      app.kubernetes.io/version: 2.5.0-SNAPSHOT
+      app: apicurio-registry-kafka
   template:
     metadata:
       labels:
-        app.kubernetes.io/name: apicurio-registry-e2e-system-tests
-        app.kubernetes.io/version: 2.5.0-SNAPSHOT
+        app: apicurio-registry-kafka
     spec:
       containers:
         - env:
@@ -31,7 +21,9 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.namespace
-          image: quay.io/apicurio/apicurio-registry-mem:latest-snapshot
+            - name: KAFKA_BOOTSTRAP_SERVERS
+              value: kafka-service:9092
+          image: quay.io/apicurio/apicurio-registry-kafkasql:latest-snapshot
           imagePullPolicy: Always
           livenessProbe:
             failureThreshold: 3
@@ -43,7 +35,7 @@ spec:
             periodSeconds: 10
             successThreshold: 1
             timeoutSeconds: 10
-          name: apicurio-registry-e2e-system-tests
+          name: apicurio-registry-kafka
           ports:
             - containerPort: 8080
               name: http
@@ -62,11 +54,10 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  namespace: "apicurio-registry-e2e-in-memory"
+  namespace: "apicurio-registry-e2e"
   labels:
-    app.kubernetes.io/name: apicurio-registry-e2e-system-tests
-    app.kubernetes.io/version: 2.5.0-SNAPSHOT
-  name: apicurio-registry-e2e-system-tests-in-memory
+    app: apicurio-registry-kafka
+  name: apicurio-registry-service
 spec:
   ports:
     - name: http
@@ -74,6 +65,5 @@ spec:
       protocol: TCP
       targetPort: 8080
   selector:
-    app.kubernetes.io/name: apicurio-registry-e2e-system-tests
-    app.kubernetes.io/version: 2.5.0-SNAPSHOT
+    app: apicurio-registry-kafka
   type: ClusterIP

@@ -10,9 +10,10 @@
   <artifactId>apicurio-registry-e2e-system-tests</artifactId>
 
   <properties>
-    <cluster.tests>false</cluster.tests>
-    <groups></groups>
     <skipTests>true</skipTests>
+    <quarkus.http.test-host>localhost</quarkus.http.test-host>
+    <quarkus.http.test-port>0</quarkus.http.test-port>
+    <groups></groups>
   </properties>
   <dependencies>
     <dependency>
@@ -90,9 +91,6 @@
                 <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
                 <maven.home>${maven.home}</maven.home>
               </systemPropertyVariables>
-              <properties>
-                <configurationParameters>junit.jupiter.extensions.autodetection.enabled = true</configurationParameters>
-              </properties>
             </configuration>
           </execution>
         </executions>
@@ -113,11 +111,9 @@
   <profiles>
     <profile>
       <id>local-mem</id>
-      <activation>
-        <property>
-          <name>!cluster.tests</name>
-        </property>
-      </activation>
+      <properties>
+        <skipTests>false</skipTests>
+      </properties>
       <build>
         <plugins>
           <plugin>
@@ -156,6 +152,29 @@
               </execution>
             </executions>
           </plugin>
+          <plugin>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>properties-maven-plugin</artifactId>
+            <executions>
+              <execution>
+                <goals>
+                  <goal>set-system-properties</goal>
+                </goals>
+                <configuration>
+                  <properties>
+                    <property>
+                      <name>quarkus.http.test-host</name>
+                      <value>${quarkus.http.test-host}</value>
+                    </property>
+                    <property>
+                      <name>quarkus.http.test-port</name>
+                      <value>${quarkus.http.test-port}</value>
+                    </property>
+                  </properties>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
         </plugins>
       </build>
       <dependencies>
@@ -179,6 +198,9 @@
 
     <profile>
       <id>local-sql</id>
+      <properties>
+        <skipTests>false</skipTests>
+      </properties>
       <build>
         <plugins>
           <plugin>
@@ -191,7 +213,7 @@
                   <goal>unpack-dependencies</goal>
                 </goals>
                 <configuration>
-                  <excludeArtifactIds>apicurio-common-app-components-config-index,apicurio-common-app-components-logging,apicurio-common-app-components-config-definitions,apicurio-common-app-components-config-impl,apicurio-common-app-components-core,apicurio-common-app-components-multitenancy</excludeArtifactIds>
+                  <excludeArtifactIds>apicurio-registry-app,apicurio-common-app-components-config-index,apicurio-common-app-components-logging,apicurio-common-app-components-config-definitions,apicurio-common-app-components-config-impl,apicurio-common-app-components-core,apicurio-common-app-components-multitenancy</excludeArtifactIds>
                   <includeGroupIds>io.apicurio</includeGroupIds>
                   <includeTypes>jar,maven-plugin</includeTypes>
                   <outputDirectory>${project.build.directory}/classes</outputDirectory>
@@ -213,6 +235,29 @@
                   <includes>**/*SqlStorageTestResources.class, **/*.properties</includes>
                   <overWriteReleases>false</overWriteReleases>
                   <overWriteSnapshots>true</overWriteSnapshots>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>properties-maven-plugin</artifactId>
+            <executions>
+              <execution>
+                <goals>
+                  <goal>set-system-properties</goal>
+                </goals>
+                <configuration>
+                  <properties>
+                    <property>
+                      <name>quarkus.http.test-host</name>
+                      <value>${quarkus.http.test-host}</value>
+                    </property>
+                    <property>
+                      <name>quarkus.http.test-port</name>
+                      <value>${quarkus.http.test-port}</value>
+                    </property>
+                  </properties>
                 </configuration>
               </execution>
             </executions>
@@ -245,32 +290,90 @@
 
     <!-- Here we define the deployment options -->
     <profile>
-      <id>in-memory</id>
+      <id>remote-in-memory</id>
       <properties>
-        <deployInmemory>true</deployInmemory>
+        <skipTests>false</skipTests>
       </properties>
-
+      <build>
+        <plugins>
+          <plugin>
+            <artifactId>maven-failsafe-plugin</artifactId>
+            <executions>
+              <execution>
+                <goals>
+                  <goal>integration-test</goal>
+                </goals>
+                <configuration>
+                  <systemPropertyVariables>
+                    <deployInMemory>true</deployInMemory>
+                    <cluster.tests>true</cluster.tests>
+                    <quarkus.http.test-host>localhost</quarkus.http.test-host>
+                    <quarkus.http.test-port>8080</quarkus.http.test-port>
+                  </systemPropertyVariables>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
     </profile>
 
     <profile>
-      <id>kafka</id>
+      <id>remote-kafka</id>
       <properties>
-        <deployKafka>true</deployKafka>
+        <skipTests>false</skipTests>
       </properties>
+      <build>
+        <plugins>
+          <plugin>
+            <artifactId>maven-failsafe-plugin</artifactId>
+            <executions>
+              <execution>
+                <goals>
+                  <goal>integration-test</goal>
+                </goals>
+                <configuration>
+                  <systemPropertyVariables>
+                    <cluster.tests>true</cluster.tests>
+                    <deployKafka>true</deployKafka>
+                    <quarkus.http.test-host>localhost</quarkus.http.test-host>
+                    <quarkus.http.test-port>8080</quarkus.http.test-port>
+                  </systemPropertyVariables>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
     </profile>
 
     <profile>
-      <id>sql</id>
+      <id>remote-sql</id>
       <properties>
-        <deploySql>true</deploySql>
+        <skipTests>false</skipTests>
       </properties>
-    </profile>
-
-    <profile>
-      <id>keycloak</id>
-      <properties>
-        <deployAuth>true</deployAuth>
-      </properties>
+      <build>
+        <plugins>
+          <plugin>
+            <artifactId>maven-failsafe-plugin</artifactId>
+            <executions>
+              <execution>
+                <goals>
+                  <goal>integration-test</goal>
+                </goals>
+                <configuration>
+                  <systemPropertyVariables>
+                    <cluster.tests>true</cluster.tests>
+                    <deploySql>true</deploySql>
+                    <quarkus.http.test-host>localhost</quarkus.http.test-host>
+                    <quarkus.http.test-port>8080</quarkus.http.test-port>
+                  </systemPropertyVariables>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
     </profile>
 
 

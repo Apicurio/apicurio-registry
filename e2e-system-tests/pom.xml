@@ -90,6 +90,7 @@
               <systemPropertyVariables>
                 <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
                 <maven.home>${maven.home}</maven.home>
+                <groups>${groups}</groups>
               </systemPropertyVariables>
             </configuration>
           </execution>
@@ -382,6 +383,14 @@
       <id>smoke</id>
       <properties>
         <groups>smoke</groups>
+        <skipTests>false</skipTests>
+      </properties>
+    </profile>
+
+    <profile>
+      <id>auth</id>
+      <properties>
+        <groups>auth</groups>
         <skipTests>false</skipTests>
       </properties>
     </profile>

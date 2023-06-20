@@ -71,6 +71,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeoutException;
@@ -113,7 +114,8 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
 
     @BeforeAll
     void prepareRestAssured() {
-        authServerUrlConfigured = ConfigProvider.getConfig().getConfigValue("registry.auth.token.endpoint").getValue();
+        authServerUrlConfigured = Optional.ofNullable(ConfigProvider.getConfig().getConfigValue("registry.auth.token.endpoint").getValue())
+                .orElse("http://localhost:8090/realms/registry/protocol/openid-connect/token");
         registryClient = createRegistryClient();
         RestAssured.baseURI = getRegistryV2ApiUrl();
         logger.info("RestAssured configured with {}", RestAssured.baseURI);

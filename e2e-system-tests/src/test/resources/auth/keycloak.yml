@@ -2494,11 +2494,13 @@ data:
     }
 kind: ConfigMap
 metadata:
+  namespace: "apicurio-registry-e2e"
   name: keycloak-configmap
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
+  namespace: "apicurio-registry-e2e"
   labels:
     app: keycloak-deployment
   name: keycloak-deployment
@@ -2514,7 +2516,7 @@ spec:
         app: keycloak-deployment
     spec:
       containers:
-        - image: quay.io/keycloak/keycloak:latest
+        - image: quay.io/keycloak/keycloak:18.0.1
           args: [ "start-dev --import-realm" ]
           volumeMounts:
             - name: keycloak-volume
@@ -2525,14 +2527,26 @@ spec:
               value: admin
             - name: KEYCLOAK_PASSWORD
               value: superSecret
+            - name: KC_PROXY
+              value: "edge"
+            - name: KC_HOSTNAME
+              value: "localhost"
+            - name: KC_HOSTNAME_PORT
+              value: "8090"
+            - name: KC_HOSTNAME_STRICT_BACKCHANNEL
+              value: "false"
+            - name: KC_HTTP_RELATIVE_PATH
+              value: "/auth"
+            - name: KC_HTTP_PORT
+              value: "8090"
           ports:
             - name: http
-              containerPort: 8080
+              containerPort: 8090
           readinessProbe:
             failureThreshold: 3
             httpGet:
               path: /realms/master
-              port: 8080
+              port: 8090
             initialDelaySeconds: 10
             timeoutSeconds: 50
           resources: {}
@@ -2544,11 +2558,12 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
+  namespace: "apicurio-registry-e2e"
   name: keycloak-service
 spec:
   selector:
     app: keycloak-deployment
   ports:
     - protocol: TCP
-      port: 8081
-      targetPort: 8080
+      port: 8090
+      targetPort: 8090

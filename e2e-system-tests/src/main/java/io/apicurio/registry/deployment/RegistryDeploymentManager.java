@@ -34,9 +34,11 @@ public class RegistryDeploymentManager implements BeforeAllCallback, AfterAllCal
     private static final String E2E_NAMESPACE_RESOURCE = "/e2e-namespace.yml";
 
     private static final String APPLICATION_IN_MEMORY_RESOURCES = "/in-memory/registry-in-memory.yml";
+    private static final String APPLICATION_SQL_RESOURCES = "/kafka/registry-sql.yml";
     private static final String APPLICATION_KAFKA_RESOURCES = "/kafka/registry-kafka.yml";
 
     private static final String KAFKA_RESOURCES = "/kafka/kafka.yml";
+    private static final String DATABASE_RESOURCES = "/sql/postgresql.yml";
 
     private static final String TEST_NAMESPACE = "apicurio-registry-e2e"; //TODO try to use @KubernetesTest with the dynamic namespace
     private static final String APPLICATION_SERVICE = "apicurio-registry-service";
@@ -107,7 +109,21 @@ public class RegistryDeploymentManager implements BeforeAllCallback, AfterAllCal
     }
 
     private void deploySqlApp() {
+        //Deploy all the resources associated to the database
+        kubernetesClient.load(getClass().getResourceAsStream(DATABASE_RESOURCES))
+                .create();
 
+        //Wait for all the sql pods to be ready
+        kubernetesClient.pods()
+                .inNamespace(TEST_NAMESPACE).waitUntilReady(30, TimeUnit.SECONDS);
+
+        //Deploy all the resources associated to the sql variant
+        kubernetesClient.load(getClass().getResourceAsStream(APPLICATION_SQL_RESOURCES))
+                .create();
+
+        //Wait for all the pods of the variant to be ready
+        kubernetesClient.pods()
+                .inNamespace(TEST_NAMESPACE).waitUntilReady(30, TimeUnit.SECONDS);
     }
 
     @Override

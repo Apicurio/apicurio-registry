@@ -21,6 +21,12 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.namespace
+            - name: REGISTRY_DATASOURCE_URL
+              value: jdbc:postgresql://postgresql-service:5432/registry
+            - name: REGISTRY_DATASOURCE_USERNAME
+              value: "apicurio"
+            - name: REGISTRY_DATASOURCE_PASSWORD
+              value: "registry"
           image: quay.io/apicurio/apicurio-registry-sql:latest-snapshot
           imagePullPolicy: Always
           livenessProbe:

@@ -4,7 +4,7 @@ metadata:
   namespace: "apicurio-registry-e2e"
   labels:
     app: apicurio-registry-memory
-  name: apicurio-registry-memory
+  name: apicurio-registry-deployment
 spec:
   replicas: 1
   selector:

@@ -27,24 +27,27 @@ import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.TimeUnit;
 
+import static io.apicurio.registry.deployment.KubernetesTestResources.APPLICATION_IN_MEMORY_RESOURCES;
+import static io.apicurio.registry.deployment.KubernetesTestResources.APPLICATION_IN_MEMORY_SECURED_RESOURCES;
+import static io.apicurio.registry.deployment.KubernetesTestResources.APPLICATION_KAFKA_RESOURCES;
+import static io.apicurio.registry.deployment.KubernetesTestResources.APPLICATION_KAFKA_SECURED_RESOURCES;
+import static io.apicurio.registry.deployment.KubernetesTestResources.APPLICATION_SERVICE;
+import static io.apicurio.registry.deployment.KubernetesTestResources.APPLICATION_SQL_RESOURCES;
+import static io.apicurio.registry.deployment.KubernetesTestResources.APPLICATION_SQL_SECURED_RESOURCES;
+import static io.apicurio.registry.deployment.KubernetesTestResources.DATABASE_RESOURCES;
+import static io.apicurio.registry.deployment.KubernetesTestResources.E2E_NAMESPACE_RESOURCE;
+import static io.apicurio.registry.deployment.KubernetesTestResources.KAFKA_RESOURCES;
+import static io.apicurio.registry.deployment.KubernetesTestResources.KEYCLOAK_RESOURCES;
+import static io.apicurio.registry.deployment.KubernetesTestResources.KEYCLOAK_SERVICE;
+import static io.apicurio.registry.deployment.KubernetesTestResources.TEST_NAMESPACE;
+
 public class RegistryDeploymentManager implements BeforeAllCallback, AfterAllCallback {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(RegistryDeploymentManager.class);
 
-    private static final String E2E_NAMESPACE_RESOURCE = "/e2e-namespace.yml";
-
-    private static final String APPLICATION_IN_MEMORY_RESOURCES = "/in-memory/registry-in-memory.yml";
-    private static final String APPLICATION_SQL_RESOURCES = "/sql/registry-sql.yml";
-    private static final String APPLICATION_KAFKA_RESOURCES = "/kafka/registry-kafka.yml";
-
-    private static final String KAFKA_RESOURCES = "/kafka/kafka.yml";
-    private static final String DATABASE_RESOURCES = "/sql/postgresql.yml";
-
-    private static final String TEST_NAMESPACE = "apicurio-registry-e2e"; //TODO try to use @KubernetesTest with the dynamic namespace
-    private static final String APPLICATION_SERVICE = "apicurio-registry-service";
-
     KubernetesClient kubernetesClient;
-    LocalPortForward localPortForward;
+    LocalPortForward registryPortForward;
+    LocalPortForward keycloakPortForward;
 
     @Override
     public void beforeAll(ExtensionContext extensionContext) throws Exception {
@@ -60,7 +63,7 @@ public class RegistryDeploymentManager implements BeforeAllCallback, AfterAllCal
         kubernetesClient = new KubernetesClientBuilder()
                 .build();
 
-        //First of all, create the namespace used for the test.
+        //First, create the namespace used for the test.
         kubernetesClient.load(getClass().getResourceAsStream(E2E_NAMESPACE_RESOURCE))
                 .create();
 
@@ -74,45 +77,63 @@ public class RegistryDeploymentManager implements BeforeAllCallback, AfterAllCal
         }
 
         //No matter the storage type, create port forward so the application is reachable from the tests
-        localPortForward = kubernetesClient.services()
+        registryPortForward = kubernetesClient.services()
                 .inNamespace(TEST_NAMESPACE)
                 .withName(APPLICATION_SERVICE)
                 .portForward(8080, 8080);
     }
 
+
     private void deployInMemoryApp() {
-        //Deploy all the resources associated to the in-memory variant
-
-        try {
-            kubernetesClient.load(getClass().getResourceAsStream(APPLICATION_IN_MEMORY_RESOURCES))
-                    .create();
-        } catch (Exception e) {
-            LOGGER.error("Error creating in memory resources: ", e);
+        if (Constants.TEST_PROFILE.equals(Constants.AUTH)) {
+            startResources(null, APPLICATION_IN_MEMORY_SECURED_RESOURCES, true);
+        } else {
+            startResources(null, APPLICATION_IN_MEMORY_RESOURCES, false);
         }
-
-
-        //Wait for all the pods of the variant to be ready
-        kubernetesClient.pods()
-                .inNamespace(TEST_NAMESPACE).waitUntilReady(30, TimeUnit.SECONDS);
-
     }
 
     private void deployKafkaApp() {
-        startResources(KAFKA_RESOURCES, APPLICATION_KAFKA_RESOURCES);
+        if (Constants.TEST_PROFILE.equals(Constants.AUTH)) {
+            startResources(KAFKA_RESOURCES, APPLICATION_KAFKA_SECURED_RESOURCES, true);
+        } else {
+            startResources(KAFKA_RESOURCES, APPLICATION_KAFKA_RESOURCES, false);
+        }
     }
 
     private void deploySqlApp() {
-        startResources(DATABASE_RESOURCES, APPLICATION_SQL_RESOURCES);
+        if (Constants.TEST_PROFILE.equals(Constants.AUTH)) {
+            startResources(DATABASE_RESOURCES, APPLICATION_SQL_SECURED_RESOURCES, true);
+        } else {
+            startResources(DATABASE_RESOURCES, APPLICATION_SQL_RESOURCES, false);
+        }
     }
 
-    private void startResources(String externalResources, String registryResources) {
-        //Deploy all the resources associated to the database
-        kubernetesClient.load(getClass().getResourceAsStream(externalResources))
-                .create();
+    private void startResources(String externalResources, String registryResources, boolean startKeycloak) {
+        if (startKeycloak) {
+            //Deploy all the resources associated to the external requirements
+            kubernetesClient.load(getClass().getResourceAsStream(KEYCLOAK_RESOURCES))
+                    .create();
 
-        //Wait for all the external resources pods to be ready
-        kubernetesClient.pods()
-                .inNamespace(TEST_NAMESPACE).waitUntilReady(30, TimeUnit.SECONDS);
+            //Wait for all the external resources pods to be ready
+            kubernetesClient.pods()
+                    .inNamespace(TEST_NAMESPACE).waitUntilReady(30, TimeUnit.SECONDS);
+
+            //Create the keycloak port forward so the tests can reach it to get tokens
+            keycloakPortForward = kubernetesClient.services()
+                    .inNamespace(TEST_NAMESPACE)
+                    .withName(KEYCLOAK_SERVICE)
+                    .portForward(8090, 8090);
+        }
+
+        if (externalResources != null) {
+            //Deploy all the resources associated to the external requirements
+            kubernetesClient.load(getClass().getResourceAsStream(externalResources))
+                    .create();
+
+            //Wait for all the external resources pods to be ready
+            kubernetesClient.pods()
+                    .inNamespace(TEST_NAMESPACE).waitUntilReady(30, TimeUnit.SECONDS);
+        }
 
         //Deploy all the resources associated to the registry variant
         kubernetesClient.load(getClass().getResourceAsStream(registryResources))
@@ -127,8 +148,12 @@ public class RegistryDeploymentManager implements BeforeAllCallback, AfterAllCal
     public void afterAll(ExtensionContext extensionContext) throws Exception {
         LOGGER.info("Test suite ended ##################################################");
 
-        if (localPortForward != null) {
-            localPortForward.close();
+        if (registryPortForward != null) {
+            registryPortForward.close();
+        }
+
+        if (keycloakPortForward != null) {
+            keycloakPortForward.close();
         }
 
         //Finally, once the testsuite is done, cleanup all the resources in the cluster

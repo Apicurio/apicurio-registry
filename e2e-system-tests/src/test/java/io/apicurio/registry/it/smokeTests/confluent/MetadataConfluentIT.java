@@ -14,26 +14,25 @@
  * limitations under the License.
  */
 
-package io.apicurio.tests.smokeTests.confluent;
+package io.apicurio.registry.it.smokeTests.confluent;
 
-import static io.apicurio.tests.common.Constants.SMOKE;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
-
-import java.io.IOException;
-import java.util.concurrent.TimeoutException;
-
+import io.apicurio.registry.it.ConfluentBaseIT;
+import io.apicurio.registry.utils.tests.TestUtils;
+import io.confluent.kafka.schemaregistry.ParsedSchema;
+import io.confluent.kafka.schemaregistry.avro.AvroSchema;
+import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
+import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.apicurio.registry.utils.tests.TestUtils;
-import io.apicurio.tests.ConfluentBaseIT;
-import io.confluent.kafka.schemaregistry.ParsedSchema;
-import io.confluent.kafka.schemaregistry.avro.AvroSchema;
-import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
-import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
+import java.io.IOException;
+import java.util.concurrent.TimeoutException;
+
+import static io.apicurio.registry.it.utils.Constants.SMOKE;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 @Tag(SMOKE)
 public class MetadataConfluentIT extends ConfluentBaseIT {

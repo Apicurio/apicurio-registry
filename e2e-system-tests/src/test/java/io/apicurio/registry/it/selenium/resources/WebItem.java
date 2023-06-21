@@ -13,27 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.apicurio.tests.ui.pages;
+package io.apicurio.registry.it.selenium.resources;
 
-import org.openqa.selenium.By;
+import org.openqa.selenium.WebElement;
 
-import io.apicurio.tests.selenium.SeleniumProvider;
+public abstract class WebItem {
 
-public abstract class BasePage {
+    protected WebElement webItem;
 
-    protected SeleniumProvider selenium;
-
-    public BasePage(SeleniumProvider selenium) {
-        super();
-        this.selenium = selenium;
+    public WebItem(WebElement webItem) {
+        this.webItem = webItem;
     }
 
-    public static By byDataTestId(String dataTestId) {
-        return By.xpath(".//*[@data-testid='" + dataTestId + "']");
-    }
-
-    public static By byDataTestIdLike(String dataTestId) {
-        return By.xpath(".//*[contains(@data-testid, '" + dataTestId + "')]");
+    public WebElement getWebItem() {
+        return webItem;
     }
 
 }

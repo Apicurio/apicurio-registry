@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Red Hat
+ * Copyright 2023 Red Hat
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,12 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.apicurio.tests.selenium;
+package io.apicurio.registry.it.selenium;
 
-import java.io.IOException;
-import java.net.HttpURLConnection;
-import java.net.URL;
-
+import io.apicurio.registry.it.ApicurioRegistryBaseIT;
+import io.apicurio.registry.utils.tests.TestUtils;
 import org.junit.jupiter.api.extension.AfterAllCallback;
 import org.junit.jupiter.api.extension.AfterTestExecutionCallback;
 import org.junit.jupiter.api.extension.BeforeAllCallback;
@@ -33,7 +31,9 @@ import org.slf4j.LoggerFactory;
 import org.testcontainers.Testcontainers;
 import org.testcontainers.containers.BrowserWebDriverContainer;
 
-import io.apicurio.registry.utils.tests.TestUtils;
+import java.io.IOException;
+import java.net.HttpURLConnection;
+import java.net.URL;
 
 public class SeleniumChromeExtension implements BeforeTestExecutionCallback, AfterTestExecutionCallback, BeforeAllCallback, AfterAllCallback {
 
@@ -78,20 +78,11 @@ public class SeleniumChromeExtension implements BeforeTestExecutionCallback, Aft
         LOGGER.info("Deploying chrome browser");
         String uiUrl;
         WebDriver driver;
-        if (TestUtils.isExternalRegistry()) {
-            // we are supposing that if registry is deployed externally selenium will be as well
-            driver = getRemoteChromeDriver();
-            String registrySeleniumHost =  System.getenv().getOrDefault("REGISTRY_SELENIUM_HOST", TestUtils.getRegistryHost());
-            String registrySeleniumPort = System.getenv().getOrDefault("REGISTRY_SELENIUM_PORT", Integer.toString(TestUtils.getRegistryPort()));
-            uiUrl = String.format("http://%s:%s/ui", registrySeleniumHost, registrySeleniumPort);
-        } else {
-            Testcontainers.exposeHostPorts(TestUtils.getRegistryPort());
-            uiUrl = TestUtils.getRegistryUIUrl().replace("localhost", "host.testcontainers.internal");
-            chrome = new BrowserWebDriverContainer()
-                .withCapabilities(buildChromeOptions());
-            chrome.start();
-            driver = chrome.getWebDriver();
-        }
+        Testcontainers.exposeHostPorts(ApicurioRegistryBaseIT.getRegistryPort());
+        uiUrl = ApicurioRegistryBaseIT.getRegistryUIUrl().replace("localhost", "host.testcontainers.internal");
+        chrome = new BrowserWebDriverContainer().withCapabilities(buildChromeOptions());
+        chrome.start();
+        driver = chrome.getWebDriver();
         SeleniumProvider.getInstance().setupDriver(driver);
         SeleniumProvider.getInstance().setUiUrl(uiUrl);
         deployed = true;
@@ -107,7 +98,7 @@ public class SeleniumChromeExtension implements BeforeTestExecutionCallback, Aft
     }
 
     public static RemoteWebDriver getRemoteChromeDriver() throws Exception {
-        String seleniumHost =  System.getenv().getOrDefault("SELENIUM_HOST", "localhost");
+        String seleniumHost = System.getenv().getOrDefault("SELENIUM_HOST", "localhost");
         String seleniumPort = System.getenv().getOrDefault("SELENIUM_PORT", "80");
         return getRemoteDriver(seleniumHost, seleniumPort, buildChromeOptions());
     }

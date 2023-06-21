@@ -13,34 +13,35 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.apicurio.tests.ui;
+package io.apicurio.registry.it.ui;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.hamcrest.CoreMatchers.hasItems;
-import static org.hamcrest.MatcherAssert.assertThat;
-
-import java.time.Duration;
-import java.util.List;
-import java.util.stream.Collectors;
-
+import io.apicurio.registry.it.ApicurioRegistryBaseIT;
+import io.apicurio.registry.it.selenium.SeleniumChrome;
+import io.apicurio.registry.it.selenium.SeleniumProvider;
+import io.apicurio.registry.it.selenium.resources.ArtifactListItem;
+import io.apicurio.registry.it.utils.Constants;
+import io.apicurio.registry.rest.client.exception.ArtifactNotFoundException;
+import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.utils.tests.TestUtils;
+import io.quarkus.test.junit.QuarkusIntegrationTest;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtensionContext;
 
-import io.apicurio.registry.rest.client.exception.ArtifactNotFoundException;
-import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.utils.tests.TestUtils;
-import io.apicurio.tests.ApicurioV2BaseIT;
-import io.apicurio.tests.common.Constants;
-import io.apicurio.tests.selenium.SeleniumChrome;
-import io.apicurio.tests.selenium.SeleniumProvider;
-import io.apicurio.tests.selenium.resources.ArtifactListItem;
+import java.time.Duration;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import static org.hamcrest.CoreMatchers.hasItems;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Tag(Constants.UI)
 @SeleniumChrome
-public class DeleteArtifactIT extends ApicurioV2BaseIT {
+@QuarkusIntegrationTest
+public class DeleteArtifactIT extends ApicurioRegistryBaseIT {
 
     SeleniumProvider selenium = SeleniumProvider.getInstance();
 

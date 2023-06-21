@@ -13,12 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.apicurio.tests.ui.pages;
+package io.apicurio.registry.it.ui.pages;
 
+import io.apicurio.registry.it.selenium.SeleniumProvider;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebElement;
-
-import io.apicurio.tests.selenium.SeleniumProvider;
 
 public class UploadArtifactDialog extends BasePage {
 

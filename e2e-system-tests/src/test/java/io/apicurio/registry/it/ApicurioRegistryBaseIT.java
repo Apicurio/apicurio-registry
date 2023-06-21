@@ -98,7 +98,7 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
     private static final Logger log = LoggerFactory.getLogger(TestUtils.class);
 
     @TestHTTPResource
-    URL REGISTRY_URL;
+    static URL REGISTRY_URL;
 
     protected final Logger logger = LoggerFactory.getLogger(this.getClass().getName());
 
@@ -262,39 +262,47 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
         }
     }
 
-    public String getRegistryHost() {
-        return REGISTRY_URL.getHost();
+    public static String getRegistryHost() {
+        if (REGISTRY_URL != null) {
+            return REGISTRY_URL.getHost();
+        } else {
+            return System.getProperty("quarkus.http.test-host");
+        }
     }
 
-    public int getRegistryPort() {
-        return REGISTRY_URL.getPort();
+    public static int getRegistryPort() {
+        if (REGISTRY_URL != null) {
+            return REGISTRY_URL.getPort();
+        } else {
+            return Integer.parseInt(System.getProperty("quarkus.http.test-port"));
+        }
     }
 
-    public String getRegistryUIUrl() {
+    public static String getRegistryUIUrl() {
         return getRegistryBaseUrl().concat("/ui");
     }
 
-    public String getRegistryApiUrl() {
+    public static String getRegistryApiUrl() {
         return getRegistryBaseUrl().concat("/apis");
     }
 
-    public String getRegistryApiUrl(int port) {
+    public static String getRegistryApiUrl(int port) {
         return getRegistryBaseUrl(port).concat("/apis");
     }
 
-    public String getRegistryV1ApiUrl() {
+    public static String getRegistryV1ApiUrl() {
         return getRegistryApiUrl().concat("/registry/v1");
     }
 
-    public String getRegistryV2ApiUrl() {
+    public static String getRegistryV2ApiUrl() {
         return getRegistryApiUrl().concat("/registry/v2");
     }
 
-    public String getRegistryV2ApiUrl(int testPort) {
+    public static String getRegistryV2ApiUrl(int testPort) {
         return getRegistryApiUrl(testPort).concat("/registry/v2");
     }
 
-    public String getRegistryBaseUrl() {
+    public static String getRegistryBaseUrl() {
         if (REGISTRY_URL != null) {
             return String.format("http://%s:%s", REGISTRY_URL.getHost(), REGISTRY_URL.getPort());
         } else {
@@ -302,12 +310,13 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
         }
     }
 
-    public String getRegistryBaseUrl(int port) {
+    public static String getRegistryBaseUrl(int port) {
         if (REGISTRY_URL != null) {
             return String.format("http://%s:%s", REGISTRY_URL.getHost(), port);
         } else {
             return String.format("http://%s:%s", System.getProperty("quarkus.http.test-host"), port);
-        }    }
+        }
+    }
 
     /**
      * Method which try connection to registries. It's used as a initial check for registries availability.

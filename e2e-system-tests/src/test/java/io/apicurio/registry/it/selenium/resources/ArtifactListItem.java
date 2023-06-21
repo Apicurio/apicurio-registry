@@ -13,16 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.apicurio.tests.selenium.resources;
+package io.apicurio.registry.it.selenium.resources;
 
-import static io.apicurio.tests.ui.pages.BasePage.byDataTestId;
+import org.openqa.selenium.By;
+import org.openqa.selenium.WebElement;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 
-import org.openqa.selenium.By;
-import org.openqa.selenium.WebElement;
+import static io.apicurio.registry.it.ui.pages.BasePage.byDataTestId;
 
 public class ArtifactListItem extends WebItem {
 
@@ -70,7 +70,7 @@ public class ArtifactListItem extends WebItem {
     }
 
     /**
-     * @see java.lang.Object#toString()
+     * @see Object#toString()
      */
     @Override
     public String toString() {

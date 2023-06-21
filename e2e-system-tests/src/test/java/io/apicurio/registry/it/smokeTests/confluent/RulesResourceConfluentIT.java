@@ -14,14 +14,14 @@
  * limitations under the License.
  */
 
-package io.apicurio.tests.smokeTests.confluent;
+package io.apicurio.registry.it.smokeTests.confluent;
 
+import io.apicurio.registry.it.ConfluentBaseIT;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.tests.TestUtils;
-import io.apicurio.tests.ConfluentBaseIT;
-import io.apicurio.tests.common.utils.subUtils.ConfluentConfigUtils;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.avro.AvroSchema;
+import io.quarkus.test.junit.QuarkusIntegrationTest;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -30,10 +30,11 @@ import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
-import static io.apicurio.tests.common.Constants.SMOKE;
+import static io.apicurio.registry.it.utils.Constants.SMOKE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @Tag(SMOKE)
+@QuarkusIntegrationTest
 class RulesResourceConfluentIT extends ConfluentBaseIT {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MetadataConfluentIT.class);

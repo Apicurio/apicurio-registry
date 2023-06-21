@@ -14,28 +14,21 @@
  * limitations under the License.
  */
 
-package io.apicurio.tests.smokeTests.confluent;
+package io.apicurio.registry.it.smokeTests.confluent;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.hasItems;
-
+import io.apicurio.registry.it.ConfluentBaseIT;
+import io.apicurio.registry.it.utils.ArtifactUtils;
+import io.apicurio.registry.it.utils.Constants;
 import io.apicurio.registry.rest.client.exception.ArtifactNotFoundException;
 import io.apicurio.registry.rest.client.exception.ContentNotFoundException;
 import io.apicurio.registry.rest.v2.beans.Rule;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.tests.TestUtils;
-import io.apicurio.tests.ConfluentBaseIT;
-import io.apicurio.tests.common.Constants;
-import io.apicurio.tests.common.utils.subUtils.ConfluentSubjectsUtils;
-import io.apicurio.tests.utils.ArtifactUtils;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
+import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.restassured.response.Response;
-
 import org.apache.avro.SchemaParseException;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -43,14 +36,19 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.ws.rs.WebApplicationException;
-
-import static io.apicurio.tests.common.Constants.SMOKE;
-
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.TimeoutException;
 
+import static io.apicurio.registry.it.utils.Constants.SMOKE;
+import static org.hamcrest.CoreMatchers.hasItems;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
 @Tag(SMOKE)
+@QuarkusIntegrationTest
 public class SchemasConfluentIT extends ConfluentBaseIT {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SchemasConfluentIT.class);

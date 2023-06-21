@@ -71,6 +71,17 @@
             <artifactId>apicurio-registry-utils-converter</artifactId>
             <scope>test</scope>
         </dependency>
+        <!-- Test Only -->
+        <dependency>
+            <groupId>io.confluent</groupId>
+            <artifactId>kafka-avro-serializer</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.confluent</groupId>
+            <artifactId>kafka-connect-avro-converter</artifactId>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>io.rest-assured</groupId>
             <artifactId>rest-assured</artifactId>
@@ -543,7 +554,7 @@
             <id>all</id>
             <properties>
                 <skipTests>false</skipTests>
-                <groups>( smoke | serdes | ui )</groups>
+                <groups>( smoke | serdes | acceptance)</groups>
             </properties>
         </profile>
     </profiles>

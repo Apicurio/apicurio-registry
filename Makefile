@@ -1,6 +1,6 @@
 # used for mem, sql, mssql & kafkasql.
 # 'override' keyword prevents the variable from being overrideen
-override DOCKERFILE_LOCATION := ./distro/docker/target/docker
+override DOCKERFILE_LOCATION := ./distro/docker/src/main/docker
 
 MEM_DOCKERFILE ?= Dockerfile.jvm
 SQL_DOCKERFILE ?= Dockerfile.sql.jvm

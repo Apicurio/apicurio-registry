@@ -13,19 +13,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.apicurio.tests.selenium;
+package io.apicurio.registry.it.ui.pages;
 
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.Target;
+import io.apicurio.registry.it.selenium.SeleniumProvider;
+import org.openqa.selenium.By;
 
-import org.junit.jupiter.api.extension.ExtendWith;
+public abstract class BasePage {
 
-import static java.lang.annotation.RetentionPolicy.RUNTIME;
+    protected SeleniumProvider selenium;
 
+    public BasePage(SeleniumProvider selenium) {
+        super();
+        this.selenium = selenium;
+    }
 
-@Target({ElementType.METHOD, ElementType.TYPE, ElementType.ANNOTATION_TYPE})
-@Retention(RUNTIME)
-@ExtendWith(SeleniumChromeExtension.class)
-public @interface SeleniumChrome {
+    public static By byDataTestId(String dataTestId) {
+        return By.xpath(".//*[@data-testid='" + dataTestId + "']");
+    }
+
+    public static By byDataTestIdLike(String dataTestId) {
+        return By.xpath(".//*[contains(@data-testid, '" + dataTestId + "')]");
+    }
+
 }

@@ -16,15 +16,20 @@
 
 package io.apicurio.registry.deployment;
 
+import io.fabric8.kubernetes.api.model.Namespace;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientBuilder;
 import io.fabric8.kubernetes.client.LocalPortForward;
+import io.fabric8.kubernetes.client.dsl.Resource;
 import org.junit.jupiter.api.extension.AfterAllCallback;
 import org.junit.jupiter.api.extension.BeforeAllCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Collection;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
 import static io.apicurio.registry.deployment.KubernetesTestResources.APPLICATION_IN_MEMORY_RESOURCES;
@@ -159,9 +164,22 @@ public class RegistryDeploymentManager implements BeforeAllCallback, AfterAllCal
         //Finally, once the testsuite is done, cleanup all the resources in the cluster
         if (kubernetesClient != null) {
             LOGGER.info("Closing test resources ##################################################");
-            kubernetesClient.namespaces()
-                    .withName(TEST_NAMESPACE)
-                    .delete();
+
+
+            final Resource<Namespace> namespaceResource = kubernetesClient.namespaces()
+                    .withName(TEST_NAMESPACE);
+
+            namespaceResource.delete();
+
+            // wait the namespace to be deleted
+            CompletableFuture<List<Namespace>> namespace = namespaceResource
+                    .informOnCondition(Collection::isEmpty);
+
+            try {
+                namespace.get(60, TimeUnit.SECONDS);
+            } finally {
+                namespace.cancel(true);
+            }
 
             kubernetesClient.close();
         }

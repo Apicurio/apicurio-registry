@@ -13,9 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.apicurio.tests.ui;
+package io.apicurio.registry.it.ui;
 
-import static org.junit.Assert.assertNotNull;
+import io.apicurio.registry.it.selenium.SeleniumProvider;
+import io.apicurio.registry.it.selenium.resources.ArtifactListItem;
+import io.apicurio.registry.it.ui.pages.ArtifactDetailsPage;
+import io.apicurio.registry.it.ui.pages.ArtifactsListPage;
+import io.apicurio.registry.it.ui.pages.UploadArtifactDialog;
+import org.openqa.selenium.support.ui.ExpectedConditions;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
@@ -23,15 +30,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.List;
 
-import org.openqa.selenium.support.ui.ExpectedConditions;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import io.apicurio.tests.selenium.SeleniumProvider;
-import io.apicurio.tests.selenium.resources.ArtifactListItem;
-import io.apicurio.tests.ui.pages.ArtifactDetailsPage;
-import io.apicurio.tests.ui.pages.ArtifactsListPage;
-import io.apicurio.tests.ui.pages.UploadArtifactDialog;
+import static org.junit.Assert.assertNotNull;
 
 public class RegistryUITester {
 

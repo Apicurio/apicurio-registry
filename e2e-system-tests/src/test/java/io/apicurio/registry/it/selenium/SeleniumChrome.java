@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Red Hat
+ * Copyright 2023 Red Hat
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,20 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.apicurio.tests.selenium.resources;
+package io.apicurio.registry.it.selenium;
 
-import org.openqa.selenium.WebElement;
+import org.junit.jupiter.api.extension.ExtendWith;
 
-public abstract class WebItem {
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.Target;
 
-    protected WebElement webItem;
+import static java.lang.annotation.RetentionPolicy.RUNTIME;
 
-    public WebItem(WebElement webItem) {
-        this.webItem = webItem;
-    }
 
-    public WebElement getWebItem() {
-        return webItem;
-    }
-
+@Target({ElementType.METHOD, ElementType.TYPE, ElementType.ANNOTATION_TYPE})
+@Retention(RUNTIME)
+@ExtendWith(SeleniumChromeExtension.class)
+public @interface SeleniumChrome {
 }

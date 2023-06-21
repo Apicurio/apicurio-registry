@@ -13,14 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.apicurio.tests.ui;
+package io.apicurio.registry.it.ui;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-
-import java.io.ByteArrayInputStream;
-import java.util.List;
-
+import io.apicurio.registry.it.ApicurioRegistryBaseIT;
+import io.apicurio.registry.it.selenium.SeleniumChrome;
+import io.apicurio.registry.it.selenium.SeleniumProvider;
+import io.apicurio.registry.it.selenium.resources.ArtifactListItem;
+import io.apicurio.registry.it.ui.pages.ArtifactDetailsPage;
+import io.apicurio.registry.it.ui.pages.UploadArtifactDialog;
+import io.apicurio.registry.it.utils.Constants;
+import io.apicurio.registry.rest.client.RegistryClient;
+import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
+import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.utils.tests.TestUtils;
+import io.quarkus.test.junit.QuarkusIntegrationTest;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -29,21 +35,16 @@ import org.openqa.selenium.WebElement;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
-import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.utils.tests.TestUtils;
-import io.apicurio.tests.ApicurioV2BaseIT;
-import io.apicurio.tests.common.Constants;
-import io.apicurio.tests.selenium.SeleniumChrome;
-import io.apicurio.tests.selenium.SeleniumProvider;
-import io.apicurio.tests.selenium.resources.ArtifactListItem;
-import io.apicurio.tests.ui.pages.ArtifactDetailsPage;
-import io.apicurio.tests.ui.pages.UploadArtifactDialog;
+import java.io.ByteArrayInputStream;
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @Tag(Constants.UI)
 @SeleniumChrome
-public class UploadArtifactsIT extends ApicurioV2BaseIT {
+@QuarkusIntegrationTest
+public class UploadArtifactsIT extends ApicurioRegistryBaseIT {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(UploadArtifactsIT.class);
 

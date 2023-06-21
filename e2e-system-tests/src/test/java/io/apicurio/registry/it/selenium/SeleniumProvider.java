@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Red Hat
+ * Copyright 2023 Red Hat
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,11 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.apicurio.tests.selenium;
+package io.apicurio.registry.it.selenium;
 
-import io.apicurio.tests.common.Constants;
-import io.apicurio.tests.selenium.resources.WebItem;
-import io.apicurio.tests.ui.pages.BasePage;
+import io.apicurio.registry.it.selenium.resources.WebItem;
+import io.apicurio.registry.it.ui.pages.BasePage;
+import io.apicurio.registry.it.utils.Constants;
 import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.openqa.selenium.By;

@@ -21,16 +21,18 @@ import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientBuilder;
 import io.fabric8.kubernetes.client.LocalPortForward;
 import io.fabric8.kubernetes.client.dsl.Resource;
-import org.junit.jupiter.api.extension.AfterAllCallback;
-import org.junit.jupiter.api.extension.BeforeAllCallback;
-import org.junit.jupiter.api.extension.ExtensionContext;
+import org.junit.platform.launcher.TestExecutionListener;
+import org.junit.platform.launcher.TestPlan;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import static io.apicurio.registry.deployment.KubernetesTestResources.APPLICATION_IN_MEMORY_RESOURCES;
 import static io.apicurio.registry.deployment.KubernetesTestResources.APPLICATION_IN_MEMORY_SECURED_RESOURCES;
@@ -46,7 +48,7 @@ import static io.apicurio.registry.deployment.KubernetesTestResources.KEYCLOAK_R
 import static io.apicurio.registry.deployment.KubernetesTestResources.KEYCLOAK_SERVICE;
 import static io.apicurio.registry.deployment.KubernetesTestResources.TEST_NAMESPACE;
 
-public class RegistryDeploymentManager implements BeforeAllCallback, AfterAllCallback {
+public class RegistryDeploymentManager implements TestExecutionListener {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(RegistryDeploymentManager.class);
 
@@ -55,12 +57,58 @@ public class RegistryDeploymentManager implements BeforeAllCallback, AfterAllCal
     LocalPortForward keycloakPortForward;
 
     @Override
-    public void beforeAll(ExtensionContext extensionContext) throws Exception {
+    public void testPlanExecutionStarted(TestPlan testPlan) {
         if (Boolean.parseBoolean(System.getProperty("cluster.tests"))) {
 
             handleInfraDeployment();
 
             LOGGER.info("Test suite started ##################################################");
+        }
+    }
+
+    @Override
+    public void testPlanExecutionFinished(TestPlan testPlan) {
+        LOGGER.info("Test suite ended ##################################################");
+
+        if (registryPortForward != null) {
+            try {
+                registryPortForward.close();
+            } catch (IOException e) {
+                LOGGER.warn("Error closing registry port forward", e);
+            }
+        }
+
+        if (keycloakPortForward != null) {
+            try {
+                keycloakPortForward.close();
+            } catch (IOException e) {
+                LOGGER.warn("Error closing keycloak port forward", e);
+            }
+        }
+
+        //Finally, once the testsuite is done, cleanup all the resources in the cluster
+        if (kubernetesClient != null) {
+            LOGGER.info("Closing test resources ##################################################");
+
+
+            final Resource<Namespace> namespaceResource = kubernetesClient.namespaces()
+                    .withName(TEST_NAMESPACE);
+
+            namespaceResource.delete();
+
+            // wait the namespace to be deleted
+            CompletableFuture<List<Namespace>> namespace = namespaceResource
+                    .informOnCondition(Collection::isEmpty);
+
+            try {
+                namespace.get(60, TimeUnit.SECONDS);
+            } catch (ExecutionException | InterruptedException | TimeoutException e) {
+                LOGGER.warn("Error waiting for namespace deletion", e);
+            } finally {
+                namespace.cancel(true);
+            }
+
+            kubernetesClient.close();
         }
     }
 
@@ -147,41 +195,5 @@ public class RegistryDeploymentManager implements BeforeAllCallback, AfterAllCal
         //Wait for all the pods of the variant to be ready
         kubernetesClient.pods()
                 .inNamespace(TEST_NAMESPACE).waitUntilReady(30, TimeUnit.SECONDS);
-    }
-
-    @Override
-    public void afterAll(ExtensionContext extensionContext) throws Exception {
-        LOGGER.info("Test suite ended ##################################################");
-
-        if (registryPortForward != null) {
-            registryPortForward.close();
-        }
-
-        if (keycloakPortForward != null) {
-            keycloakPortForward.close();
-        }
-
-        //Finally, once the testsuite is done, cleanup all the resources in the cluster
-        if (kubernetesClient != null) {
-            LOGGER.info("Closing test resources ##################################################");
-
-
-            final Resource<Namespace> namespaceResource = kubernetesClient.namespaces()
-                    .withName(TEST_NAMESPACE);
-
-            namespaceResource.delete();
-
-            // wait the namespace to be deleted
-            CompletableFuture<List<Namespace>> namespace = namespaceResource
-                    .informOnCondition(Collection::isEmpty);
-
-            try {
-                namespace.get(60, TimeUnit.SECONDS);
-            } finally {
-                namespace.cancel(true);
-            }
-
-            kubernetesClient.close();
-        }
     }
 }

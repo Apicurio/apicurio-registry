@@ -51,16 +51,8 @@
             <artifactId>commons-io</artifactId>
         </dependency>
         <dependency>
-            <groupId>commons-io</groupId>
-            <artifactId>commons-io</artifactId>
-        </dependency>
-        <dependency>
             <groupId>io.apicurio</groupId>
-            <artifactId>apicurio-registry-protobuf-schema-utilities</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.apicurio</groupId>
-            <artifactId>apicurio-registry-schema-util-json</artifactId>
+            <artifactId>apicurio-registry-schema-util-provider</artifactId>
         </dependency>
 
     </dependencies>

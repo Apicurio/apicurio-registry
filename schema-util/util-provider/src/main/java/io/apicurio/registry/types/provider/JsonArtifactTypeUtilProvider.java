@@ -22,6 +22,8 @@ import io.apicurio.registry.content.dereference.ContentDereferencer;
 import io.apicurio.registry.content.dereference.JsonSchemaDereferencer;
 import io.apicurio.registry.content.extract.ContentExtractor;
 import io.apicurio.registry.content.extract.JsonContentExtractor;
+import io.apicurio.registry.content.refs.JsonSchemaReferenceFinder;
+import io.apicurio.registry.content.refs.ReferenceFinder;
 import io.apicurio.registry.rules.compatibility.CompatibilityChecker;
 import io.apicurio.registry.rules.compatibility.JsonSchemaCompatibilityChecker;
 import io.apicurio.registry.rules.validity.ContentValidator;
@@ -61,5 +63,10 @@ public class JsonArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvid
     @Override
     public ContentDereferencer getContentDereferencer() {
         return new JsonSchemaDereferencer();
+    }
+    
+    @Override
+    public ReferenceFinder getReferenceFinder() {
+        return new JsonSchemaReferenceFinder();
     }
 }

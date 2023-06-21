@@ -22,6 +22,8 @@ import io.apicurio.registry.content.dereference.ContentDereferencer;
 import io.apicurio.registry.content.dereference.JsonSchemaDereferencer;
 import io.apicurio.registry.content.extract.ContentExtractor;
 import io.apicurio.registry.content.extract.OpenApiOrAsyncApiContentExtractor;
+import io.apicurio.registry.content.refs.AsyncApiReferenceFinder;
+import io.apicurio.registry.content.refs.ReferenceFinder;
 import io.apicurio.registry.rules.compatibility.CompatibilityChecker;
 import io.apicurio.registry.rules.compatibility.NoopCompatibilityChecker;
 import io.apicurio.registry.rules.validity.AsyncApiContentValidator;
@@ -61,5 +63,10 @@ public class AsyncApiArtifactTypeUtilProvider extends AbstractArtifactTypeUtilPr
     @Override
     public ContentDereferencer getContentDereferencer() {
         return new JsonSchemaDereferencer();
+    }
+    
+    @Override
+    public ReferenceFinder getReferenceFinder() {
+        return new AsyncApiReferenceFinder();
     }
 }

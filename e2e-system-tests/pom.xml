@@ -63,6 +63,11 @@
             <scope>test</scope>
         </dependency>
         <dependency>
+            <groupId>io.apicurio</groupId>
+            <artifactId>apicurio-registry-utils-converter</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <groupId>io.rest-assured</groupId>
             <artifactId>rest-assured</artifactId>
             <scope>test</scope>
@@ -391,7 +396,7 @@
 
         <!-- Here we define the remote deployment options -->
         <profile>
-            <id>remote-in-memory</id>
+            <id>remote-mem</id>
             <properties>
                 <skipTests>false</skipTests>
             </properties>
@@ -488,6 +493,14 @@
         </profile>
 
         <profile>
+            <id>serdes</id>
+            <properties>
+                <groups>serdes</groups>
+                <skipTests>false</skipTests>
+            </properties>
+        </profile>
+
+        <profile>
             <id>auth</id>
             <properties>
                 <groups>auth</groups>
@@ -499,7 +512,7 @@
             <id>all</id>
             <properties>
                 <skipTests>false</skipTests>
-                <groups>( smoke | auth )</groups>
+                <groups>( smoke | serdes )</groups>
             </properties>
         </profile>
     </profiles>

@@ -38,7 +38,6 @@ import static io.apicurio.registry.deployment.KubernetesTestResources.APPLICATIO
 import static io.apicurio.registry.deployment.KubernetesTestResources.APPLICATION_IN_MEMORY_SECURED_RESOURCES;
 import static io.apicurio.registry.deployment.KubernetesTestResources.APPLICATION_KAFKA_RESOURCES;
 import static io.apicurio.registry.deployment.KubernetesTestResources.APPLICATION_KAFKA_SECURED_RESOURCES;
-import static io.apicurio.registry.deployment.KubernetesTestResources.APPLICATION_SERVICE;
 import static io.apicurio.registry.deployment.KubernetesTestResources.APPLICATION_SQL_RESOURCES;
 import static io.apicurio.registry.deployment.KubernetesTestResources.APPLICATION_SQL_SECURED_RESOURCES;
 import static io.apicurio.registry.deployment.KubernetesTestResources.DATABASE_RESOURCES;
@@ -128,12 +127,6 @@ public class RegistryDeploymentManager implements TestExecutionListener {
         } else if (Boolean.parseBoolean(System.getProperty("deployKafka"))) {
             deployKafkaApp();
         }
-
-        //No matter the storage type, create port forward so the application is reachable from the tests
-        registryPortForward = kubernetesClient.services()
-                .inNamespace(TEST_NAMESPACE)
-                .withName(APPLICATION_SERVICE)
-                .portForward(8080, 8080);
     }
 
 

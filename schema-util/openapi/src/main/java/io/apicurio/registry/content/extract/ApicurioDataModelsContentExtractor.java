@@ -30,7 +30,7 @@ import io.apicurio.registry.content.ContentHandle;
  * Performs meta-data extraction for OpenAPI content.
  * @author eric.wittmann@gmail.com
  */
-public class OpenApiOrAsyncApiContentExtractor implements ContentExtractor {
+public class ApicurioDataModelsContentExtractor implements ContentExtractor {
 
     Logger log = LoggerFactory.getLogger(getClass());
 

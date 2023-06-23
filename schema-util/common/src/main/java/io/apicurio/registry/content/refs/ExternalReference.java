@@ -146,5 +146,13 @@ public class ExternalReference {
         ExternalReference other = (ExternalReference) obj;
         return Objects.equals(fullReference, other.fullReference);
     }
+    
+    /**
+     * @see java.lang.Object#toString()
+     */
+    @Override
+    public String toString() {
+        return this.fullReference;
+    }
 
 }

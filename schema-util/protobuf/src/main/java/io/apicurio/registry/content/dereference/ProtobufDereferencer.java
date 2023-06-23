@@ -34,6 +34,7 @@ public class ProtobufDereferencer implements ContentDereferencer {
     @Override
     public ContentHandle dereference(ContentHandle content, Map<String, ContentHandle> resolvedReferences) {
         //FIXME this code is not dereferencing references, only validating that all that references are resolvable
+        //FIXME CAN this even be done in Proto? Can multiple types in different namespaces be defined in the same .proto file?  Does it matter?  Needs investigation.
         final ProtoFileElement protoFileElement = ProtobufFile.toProtoFileElement(content.content());
         final Map<String, ProtoFileElement> dependencies = Collections.unmodifiableMap(resolvedReferences.entrySet()
                 .stream()
@@ -46,5 +47,14 @@ public class ProtobufDereferencer implements ContentDereferencer {
         } catch (Descriptors.DescriptorValidationException e) {
             throw new IllegalArgumentException(e);
         }
+    }
+    
+    /**
+     * @see io.apicurio.registry.content.dereference.ContentDereferencer#rewriteReferences(io.apicurio.registry.content.ContentHandle, java.util.Map)
+     */
+    @Override
+    public ContentHandle rewriteReferences(ContentHandle content, Map<String, String> resolvedReferenceUrls) {
+        // TODO not yet implemented (perhaps cannot be implemented?)
+        return content;
     }
 }

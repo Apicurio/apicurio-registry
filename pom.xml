@@ -134,6 +134,8 @@
         <module>schema-util/xml</module>
         <module>schema-util/xsd</module>
         <module>schema-util/util-provider</module>
+
+        <module>operator</module>
     </modules>
 
     <properties>

@@ -130,17 +130,36 @@
             </plugin>
             <plugin>
                 <artifactId>maven-failsafe-plugin</artifactId>
+                <configuration>
+                    <systemPropertyVariables>
+                        <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
+                        <maven.home>${maven.home}</maven.home>
+                        <groups>${groups}</groups>
+                    </systemPropertyVariables>
+                </configuration>
                 <executions>
                     <execution>
                         <goals>
                             <goal>integration-test</goal>
+                            <goal>verify</goal>
                         </goals>
                         <configuration>
-                            <systemPropertyVariables>
-                                <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
-                                <maven.home>${maven.home}</maven.home>
-                                <groups>${groups}</groups>
-                            </systemPropertyVariables>
+                            <statelessTestsetReporter implementation="org.apache.maven.plugin.surefire.extensions.junit5.JUnit5Xml30StatelessReporter">
+                                <disable>false</disable>
+                                <version>3.0</version>
+                                <usePhrasedFileName>false</usePhrasedFileName>
+                                <usePhrasedTestSuiteClassName>true</usePhrasedTestSuiteClassName>
+                                <usePhrasedTestCaseClassName>true</usePhrasedTestCaseClassName>
+                                <usePhrasedTestCaseMethodName>true</usePhrasedTestCaseMethodName>
+                            </statelessTestsetReporter>
+                            <consoleOutputReporter implementation="org.apache.maven.plugin.surefire.extensions.junit5.JUnit5ConsoleOutputReporter">
+                                <disable>false</disable>
+                                <encoding>UTF-8</encoding>
+                                <usePhrasedFileName>true</usePhrasedFileName>
+                            </consoleOutputReporter>
+                            <excludes>
+                                <exclude>${exclude.integration.tests}</exclude>
+                            </excludes>
                         </configuration>
                     </execution>
                 </executions>
@@ -528,6 +547,22 @@
 
         <!-- Finally, these are the different test groups, this will determine the tests executed using the defined storage -->
         <profile>
+            <id>all</id>
+            <properties>
+                <skipTests>false</skipTests>
+                <groups>( smoke | serdes | acceptance | ui)</groups>
+            </properties>
+        </profile>
+
+        <profile>
+            <id>ci</id>
+            <properties>
+                <skipTests>false</skipTests>
+                <groups>( smoke | serdes | acceptance )</groups>
+            </properties>
+        </profile>
+
+        <profile>
             <id>smoke</id>
             <properties>
                 <groups>smoke</groups>
@@ -552,6 +587,14 @@
         </profile>
 
         <profile>
+            <id>acceptance</id>
+            <properties>
+                <skipTests>false</skipTests>
+                <groups>acceptance &amp; !multitenancy</groups>
+            </properties>
+        </profile>
+
+        <profile>
             <id>auth</id>
             <properties>
                 <groups>auth</groups>
@@ -559,12 +602,5 @@
             </properties>
         </profile>
 
-        <profile>
-            <id>all</id>
-            <properties>
-                <skipTests>false</skipTests>
-                <groups>( smoke | serdes | acceptance)</groups>
-            </properties>
-        </profile>
     </profiles>
 </project>

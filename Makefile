@@ -302,13 +302,12 @@ mem-native-scratch-image:
 multiarch-registry-images: mem-multiarch-images sql-multiarch-images mssql-multiarch-images kafkasql-multiarch-images mem-native-scratch-image
 
 
-
 .PHONY: pr-check ## Builds and runs basic tests for multitenant registry pipelines
 pr-check:
 	CURRENT_ENV=mas mvn clean install -Pno-docker -Dskip.npm -Pprod -Psql -am -pl storage/sql \
 		-Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false
 	./scripts/clean-postgres.sh
-	CURRENT_ENV=mas NO_DOCKER=true mvn verify -Pintegration-tests -Psql -am -pl integration-tests/testsuite \
+	CURRENT_ENV=mas NO_DOCKER=true mvn verify -Pe2e-tests -Psql -am -pl e2e-system-tests \
 		-Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false
 
 .PHONY: build-project ## Builds the components for multitenant registry pipelines
@@ -327,134 +326,114 @@ build-integration-tests-multitenancy:
 	git clone https://github.com/Apicurio/apicurio-tenant-manager.git --branch="main" --depth 1 multitenancy
 	( cd multitenancy && .././mvnw clean install --no-transfer-progress -DskipTests=true )
 
-.PHONY: build-integration-tests-common ## Builds integration-tests-common
-build-integration-tests-common:
-	@echo "----------------------------------------------------------------------"
-	@echo "                 Building Integration Tests Common                    "
-	@echo "----------------------------------------------------------------------"
-	./mvnw -T 1.5C package install --no-transfer-progress -Pintegration-tests -pl integration-tests/integration-tests-common
-
-.PHONY: run-ui-tests ## Runs sql integration tests
-run-ui-tests: build-integration-tests-common
+.PHONY: run-ui-tests ## Runs ui e2e tests
+run-ui-tests:
 	@echo "----------------------------------------------------------------------"
 	@echo "                         Running UI Tests                             "
 	@echo "----------------------------------------------------------------------"
-	./mvnw verify --no-transfer-progress -Pintegration-tests -Pui -Pinmemory -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false
+	./mvnw verify --no-transfer-progress -Pe2e-tests -Pui -Plocal-mem -pl e2e-system-tests -Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false
 
-.PHONY: run-sql-integration-tests ## Runs sql integration tests
-run-sql-integration-tests: build-integration-tests-common
+.PHONY: run-sql-integration-tests ## Runs sql e2e tests
+run-sql-integration-tests:
 	@echo "----------------------------------------------------------------------"
 	@echo "                 Running Sql Integration Tests                        "
 	@echo "----------------------------------------------------------------------"
-	./mvnw verify --no-transfer-progress -Pintegration-tests -P$(INTEGRATION_TESTS_PROFILE) -Psql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress
+	./mvnw verify --no-transfer-progress -Pe2e-tests -P$(INTEGRATION_TESTS_PROFILE) -Plocal-sql -pl e2e-system-tests -Dmaven.javadoc.skip=true --no-transfer-progress
 
-.PHONY: run-sql-clustered-integration-tests ## Runs sql clustered integration tests
-run-sql-clustered-integration-tests: build-integration-tests-common
-	@echo "----------------------------------------------------------------------"
-	@echo "               Running Sql clustered Integration Tests                "
-	@echo "----------------------------------------------------------------------"
-	./mvnw verify --no-transfer-progress -Pintegration-tests -Pclustered -Psql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress
-
-.PHONY: run-mssql-integration-tests ## Runs mssql integration tests
-run-mssql-integration-tests: build-integration-tests-common
-	@echo "----------------------------------------------------------------------"
-	@echo "                 Running SQL Server Integration Tests                 "
-	@echo "----------------------------------------------------------------------"
-	./mvnw verify --no-transfer-progress -Pintegration-tests -P$(INTEGRATION_TESTS_PROFILE) -Pmssql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress
-
-.PHONY: run-mssql-clustered-integration-tests ## Runs mssql clustered integration tests
-run-mssql-clustered-integration-tests: build-integration-tests-common
-	@echo "----------------------------------------------------------------------"
-	@echo "               Running SQL Server clustered Integration Tests         "
-	@echo "----------------------------------------------------------------------"
-	./mvnw verify --no-transfer-progress -Pintegration-tests -Pclustered -Pmssql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress
-
-.PHONY: run-kafkasql-integration-tests ## Runs kafkasql integration tests
-run-kafkasql-integration-tests: build-integration-tests-common
-	@echo "----------------------------------------------------------------------"
-	@echo "                 Running KafkaSql Integration Tests                        "
-	@echo "----------------------------------------------------------------------"
-	./mvnw verify --no-transfer-progress -Pintegration-tests -P$(INTEGRATION_TESTS_PROFILE) -Pkafkasql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress
-
-.PHONY: run-kafkasql-clustered-integration-tests ## Runs kafkasql clustered integration tests
-run-kafkasql-clustered-integration-tests: build-integration-tests-common
-	@echo "----------------------------------------------------------------------"
-	@echo "               Running KafkaSql clustered Integration Tests                "
-	@echo "----------------------------------------------------------------------"
-	./mvnw verify --no-transfer-progress -Pintegration-tests -Pclustered -Pkafkasql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress
-
-.PHONY: run-multitenancy-integration-tests ## Runs multitenancy integration tests
-run-multitenancy-integration-tests: build-integration-tests-common
-	@echo "----------------------------------------------------------------------"
-	@echo "               Running Multitenancy Integration Tests                 "
-	@echo "----------------------------------------------------------------------"
-	./mvnw verify --no-transfer-progress -Pintegration-tests -Pmultitenancy -Psql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false
-
-.PHONY: run-sql-migration-integration-tests ## Runs sql migration integration tests
-run-sql-migration-integration-tests: build-integration-tests-common
-	@echo "----------------------------------------------------------------------"
-	@echo "               Running SQL Migration Integration Tests                "
-	@echo "----------------------------------------------------------------------"
-	./mvnw verify --no-transfer-progress -Pintegration-tests -Pmigration -Psql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress
-
-.PHONY: run-mssql-migration-integration-tests ## Runs mssql migration integration tests
-run-mssql-migration-integration-tests: build-integration-tests-common
-	@echo "----------------------------------------------------------------------"
-	@echo "             Running SQL Server Migration Integration Tests           "
-	@echo "----------------------------------------------------------------------"
-	./mvnw verify --no-transfer-progress -Pintegration-tests -Pmigration -mssql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress
-
-.PHONY: run-kafkasql-migration-integration-tests ## Runs kafkasql migration integration tests
-run-kafkasql-migration-integration-tests: build-integration-tests-common
-	@echo "----------------------------------------------------------------------"
-	@echo "             Running KafkaSQL Migration Integration Tests             "
-	@echo "----------------------------------------------------------------------"
-	./mvnw verify --no-transfer-progress -Pintegration-tests -Pmigration -Pkafkasql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress
 
 .PHONY: run-sql-auth-integration-tests ## Runs sql auth integration tests
-run-sql-auth-integration-tests: build-integration-tests-common
+run-sql-auth-integration-tests:
 	@echo "----------------------------------------------------------------------"
 	@echo "                  Running SQL Auth Integration Tests                  "
 	@echo "----------------------------------------------------------------------"
-	./mvnw verify --no-transfer-progress -Pintegration-tests -Pauth -Psql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress
+	./mvnw verify --no-transfer-progress -Pe2e-tests -Pauth -Plocal-sql -pl e2e-system-tests -Dmaven.javadoc.skip=true --no-transfer-progress
 
-.PHONY: run-mssql-auth-integration-tests ## Runs mssql auth integration tests
-run-mssql-auth-integration-tests: build-integration-tests-common
+.PHONY: run-sql-migration-integration-tests ## Runs sql migration integration tests
+run-sql-migration-integration-tests:
 	@echo "----------------------------------------------------------------------"
-	@echo "                Running SQL Server Auth Integration Tests             "
+	@echo "               Running SQL Migration Integration Tests                "
 	@echo "----------------------------------------------------------------------"
-	./mvnw verify --no-transfer-progress -Pintegration-tests -Pauth -mssql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress
-
-.PHONY: run-kafkasql-auth-integration-tests ## Runs kafkasql auth integration tests
-run-kafkasql-auth-integration-tests: build-integration-tests-common
-	@echo "----------------------------------------------------------------------"
-	@echo "                Running KafkaSQL Auth Integration Tests               "
-	@echo "----------------------------------------------------------------------"
-	./mvnw verify --no-transfer-progress -Pintegration-tests -Pauth -Pkafkasql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress
+	./mvnw verify --no-transfer-progress -Pe2e-tests -Pmigration -Psql -pl e2e-system-tests -Dmaven.javadoc.skip=true --no-transfer-progress
 
 .PHONY: run-sql-legacy-tests ## Runs sql legacy tests
-run-sql-legacy-tests: build-integration-tests-common
+run-sql-legacy-tests:
 	@echo "----------------------------------------------------------------------"
 	@echo "                        Running SQL Legacy Tests                      "
 	@echo "----------------------------------------------------------------------"
-	./mvnw verify --no-transfer-progress -Pintegration-tests -P$(INTEGRATION_TESTS_PROFILE) -Psql -pl integration-tests/legacy-tests -Dmaven.javadoc.skip=true --no-transfer-progress
+	./mvnw verify --no-transfer-progress -Pe2e-tests -P$(INTEGRATION_TESTS_PROFILE) -Psql -pl integration-tests/legacy-tests -Dmaven.javadoc.skip=true --no-transfer-progress
+
+.PHONY: run-mssql-integration-tests ## Runs mssql integration tests
+run-mssql-integration-tests:
+	@echo "----------------------------------------------------------------------"
+	@echo "                 Running SQL Server Integration Tests                 "
+	@echo "----------------------------------------------------------------------"
+	./mvnw verify --no-transfer-progress -Pe2e-tests -P$(INTEGRATION_TESTS_PROFILE) -Pmssql -pl e2e-system-tests -Dmaven.javadoc.skip=true --no-transfer-progress
+
+.PHONY: run-mssql-clustered-integration-tests ## Runs mssql clustered integration tests
+run-mssql-clustered-integration-tests:
+	@echo "----------------------------------------------------------------------"
+	@echo "               Running SQL Server clustered Integration Tests         "
+	@echo "----------------------------------------------------------------------"
+	./mvnw verify --no-transfer-progress -Pe2e-tests -Pclustered -Pmssql -pl e2e-system-tests -Dmaven.javadoc.skip=true --no-transfer-progress
+
+.PHONY: run-kafkasql-integration-tests ## Runs kafkasql integration tests
+run-kafkasql-integration-tests:
+	@echo "----------------------------------------------------------------------"
+	@echo "                 Running KafkaSql Integration Tests                        "
+	@echo "----------------------------------------------------------------------"
+	./mvnw verify --no-transfer-progress -Pe2e-tests -P$(INTEGRATION_TESTS_PROFILE) -Pkafkasql -pl e2e-system-tests -Dmaven.javadoc.skip=true --no-transfer-progress
+
+.PHONY: run-multitenancy-integration-tests ## Runs multitenancy integration tests
+run-multitenancy-integration-tests:
+	@echo "----------------------------------------------------------------------"
+	@echo "               Running Multitenancy Integration Tests                 "
+	@echo "----------------------------------------------------------------------"
+	./mvnw verify --no-transfer-progress -Pe2e-tests -Pmultitenancy -Psql -pl e2e-system-tests -Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false
+
+.PHONY: run-mssql-migration-integration-tests ## Runs mssql migration integration tests
+run-mssql-migration-integration-tests:
+	@echo "----------------------------------------------------------------------"
+	@echo "             Running SQL Server Migration Integration Tests           "
+	@echo "----------------------------------------------------------------------"
+	./mvnw verify --no-transfer-progress -Pe2e-tests -Pmigration -mssql -pl e2e-system-tests -Dmaven.javadoc.skip=true --no-transfer-progress
+
+.PHONY: run-kafkasql-migration-integration-tests ## Runs kafkasql migration integration tests
+run-kafkasql-migration-integration-tests:
+	@echo "----------------------------------------------------------------------"
+	@echo "             Running KafkaSQL Migration Integration Tests             "
+	@echo "----------------------------------------------------------------------"
+	./mvnw verify --no-transfer-progress -Pe2e-tests -Pmigration -Pkafkasql -pl e2e-system-tests -Dmaven.javadoc.skip=true --no-transfer-progress
+
+.PHONY: run-mssql-auth-integration-tests ## Runs mssql auth integration tests
+run-mssql-auth-integration-tests:
+	@echo "----------------------------------------------------------------------"
+	@echo "                Running SQL Server Auth Integration Tests             "
+	@echo "----------------------------------------------------------------------"
+	./mvnw verify --no-transfer-progress -Pe2e-tests -Pauth -mssql -pl e2e-system-tests -Dmaven.javadoc.skip=true --no-transfer-progress
+
+.PHONY: run-kafkasql-auth-integration-tests ## Runs kafkasql auth integration tests
+run-kafkasql-auth-integration-tests:
+	@echo "----------------------------------------------------------------------"
+	@echo "                Running KafkaSQL Auth Integration Tests               "
+	@echo "----------------------------------------------------------------------"
+	./mvnw verify --no-transfer-progress -Pe2e-tests -Pauth -Pkafkasql -pl e2e-system-tests -Dmaven.javadoc.skip=true --no-transfer-progress
 
 .PHONY: run-mssql-legacy-tests ## Runs mssql legacy tests
-run-mssql-legacy-tests: build-integration-tests-common
+run-mssql-legacy-tests:
 	@echo "----------------------------------------------------------------------"
 	@echo "                     Running SQL Server Legacy Tests                  "
 	@echo "----------------------------------------------------------------------"
-	./mvnw verify --no-transfer-progress -Pintegration-tests -P$(INTEGRATION_TESTS_PROFILE) -mssql -pl integration-tests/legacy-tests -Dmaven.javadoc.skip=true --no-transfer-progress
+	./mvnw verify --no-transfer-progress -Pe2e-tests -P$(INTEGRATION_TESTS_PROFILE) -mssql -pl integration-tests/legacy-tests -Dmaven.javadoc.skip=true --no-transfer-progress
 
 .PHONY: run-kafkasql-legacy-tests ## Runs kafkasql legacy tests
-run-kafkasql-legacy-tests: build-integration-tests-common
+run-kafkasql-legacy-tests:
 	@echo "----------------------------------------------------------------------"
 	@echo "                     Running KafkaSQL Legacy Tests                    "
 	@echo "----------------------------------------------------------------------"
-	./mvnw verify --no-transfer-progress -Pintegration-tests -P$(INTEGRATION_TESTS_PROFILE) -Pkafkasql -pl integration-tests/legacy-tests -Dmaven.javadoc.skip=true --no-transfer-progress
+	./mvnw verify --no-transfer-progress -Pe2e-tests -P$(INTEGRATION_TESTS_PROFILE) -Pkafkasql -pl integration-tests/legacy-tests -Dmaven.javadoc.skip=true --no-transfer-progress
 
 .PHONY: integration-tests ## Runs all integration tests [SKIP_TESTS, BUILD_FLAGS]
-integration-tests: build-all build-integration-tests-common run-ui-tests run-sql-integration-tests run-sql-clustered-integration-tests run-mssql-integration-tests run-mssql-clustered-integration-tests run-kafkasql-integration-tests run-kafkasql-clustered-integration-tests run-multitenancy-integration-tests run-sql-migration-integration-tests run-mssql-migration-integration-tests run-kafkasql-migration-integration-tests run-sql-auth-integration-tests run-mssql-auth-integration-tests run-kafkasql-auth-integration-tests run-sql-legacy-tests run-mssql-legacy-tests run-kafkasql-legacy-tests
+integration-tests: build-all  run-ui-tests run-sql-integration-tests run-sql-clustered-integration-tests run-mssql-integration-tests run-mssql-clustered-integration-tests run-kafkasql-integration-tests run-kafkasql-clustered-integration-tests run-multitenancy-integration-tests run-sql-migration-integration-tests run-mssql-migration-integration-tests run-kafkasql-migration-integration-tests run-sql-auth-integration-tests run-mssql-auth-integration-tests run-kafkasql-auth-integration-tests run-sql-legacy-tests run-mssql-legacy-tests run-kafkasql-legacy-tests
 
 # Please declare your targets as .PHONY in the format shown below, so that the 'make help' parses the information correctly.
 #

@@ -17,11 +17,6 @@
 package io.apicurio.tests;
 
 import io.apicurio.registry.deployment.PortForwardManager;
-import io.apicurio.tests.utils.Constants;
-import io.apicurio.tests.utils.LoadBalanceRegistryClient;
-import io.apicurio.tests.utils.RegistryWaitUtils;
-import io.apicurio.tests.utils.RestConstants;
-import io.apicurio.tests.utils.TestSeparator;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.RegistryClientFactory;
 import io.apicurio.registry.rest.client.exception.ArtifactNotFoundException;
@@ -32,17 +27,17 @@ import io.apicurio.registry.rest.v2.beans.IfExists;
 import io.apicurio.registry.rest.v2.beans.SearchedArtifact;
 import io.apicurio.registry.rest.v2.beans.SearchedVersion;
 import io.apicurio.registry.rest.v2.beans.VersionMetaData;
-import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.tests.SimpleDisplayName;
 import io.apicurio.registry.utils.tests.TestUtils;
+import io.apicurio.tests.utils.Constants;
+import io.apicurio.tests.utils.LoadBalanceRegistryClient;
+import io.apicurio.tests.utils.RegistryWaitUtils;
+import io.apicurio.tests.utils.RestConstants;
+import io.apicurio.tests.utils.TestSeparator;
 import io.quarkus.test.common.http.TestHTTPResource;
 import io.restassured.RestAssured;
 import io.restassured.parsing.Parser;
 import io.restassured.response.Response;
-import org.apache.http.HttpStatus;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.client.HttpClients;
 import org.eclipse.microprofile.config.ConfigProvider;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
@@ -93,7 +88,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @DisplayNameGeneration(SimpleDisplayName.class)
 @TestInstance(Lifecycle.PER_CLASS)
 @ExtendWith(PortForwardManager.class)
-public class ApicurioRegistryBaseIT implements TestSeparator, Constants  {
+public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
 
     private static final Logger log = LoggerFactory.getLogger(TestUtils.class);
 
@@ -336,62 +331,6 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants  {
             return false; // Either timeout or unreachable or failed DNS lookup.
         }
     }
-
-    /**
-     * Generic check if an endpoint is network reachable
-     *
-     * @param host
-     * @param port
-     * @param component
-     * @return true if it's possible to open a network connection to the endpoint
-     */
-    public boolean isReachable(String host, int port, String component) {
-        try (Socket socket = new Socket()) {
-            log.info("Trying to connect to {}:{}", host, port);
-            socket.connect(new InetSocketAddress(host, port), 5_000);
-            log.info("Client is able to connect to " + component);
-            return true;
-        } catch (IOException ex) {
-            log.warn("Cannot connect to {}: {}", component, ex.getMessage());
-            return false; // Either timeout or unreachable or failed DNS lookup.
-        }
-    }
-
-
-    /**
-     * Checks the readniess endpoint of the registry
-     *
-     * @return true if registry readiness endpoint replies sucessfully
-     */
-    public boolean isReady(boolean logResponse) {
-        return isReady(getRegistryBaseUrl(), "/health/ready", logResponse, "Apicurio Registry");
-    }
-
-    /**
-     * Generic check of the /health/ready endpoint
-     *
-     * @param baseUrl
-     * @param logResponse
-     * @param component
-     * @return true if the readiness endpoint replies successfully
-     */
-    public boolean isReady(String baseUrl, String healthUrl, boolean logResponse, String component) {
-        try {
-            CloseableHttpResponse res = HttpClients.createMinimal().execute(new HttpGet(baseUrl.concat(healthUrl)));
-            boolean ok = res.getStatusLine().getStatusCode() == HttpStatus.SC_OK;
-            if (ok) {
-                log.info(component + " is ready");
-            }
-            if (logResponse) {
-                log.info(IoUtil.toString(res.getEntity().getContent()));
-            }
-            return ok;
-        } catch (IOException e) {
-            log.warn(component + " is not ready {}", e.getMessage());
-            return false;
-        }
-    }
-
     // ---
 
     /**

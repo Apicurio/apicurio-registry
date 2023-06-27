@@ -17,6 +17,11 @@ This section contains a list of the configuration options available for {registr
 |`false`
 |`2.1.4.Final`
 |Include stack trace in errors responses
+|`registry.apis.v2.base-href`
+|`string`
+|`_`
+|`2.5.0.Final`
+|API base href (URI)
 |`registry.disable.apis`
 |`optional<list<string>>`
 |

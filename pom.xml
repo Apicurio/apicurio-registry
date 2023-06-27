@@ -417,6 +417,11 @@
             </dependency>
             <dependency>
                 <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-common-app-components-config-definitions</artifactId>
+                <version>${apicurio-common-app-components.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
                 <artifactId>apicurio-common-app-components-config-index</artifactId>
                 <version>${apicurio-common-app-components.version}</version>
             </dependency>

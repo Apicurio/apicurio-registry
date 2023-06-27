@@ -49,7 +49,7 @@ public class ReferenceRewriter extends AllNodeVisitor {
     protected void visitNode(Node node) {
         if (node instanceof Referenceable) {
             String $ref = ((Referenceable) node).get$ref();
-            if (referenceUrls.containsKey($ref)) {
+            if ($ref != null && referenceUrls.containsKey($ref)) {
                 ((Referenceable) node).set$ref(referenceUrls.get($ref));
             }
         }

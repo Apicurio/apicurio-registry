@@ -19,6 +19,7 @@ package io.apicurio.registry.content.dereference;
 import static com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES;
 
 import java.io.IOException;
+import java.util.Iterator;
 import java.util.Map;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
@@ -88,6 +89,14 @@ public class JsonSchemaDereferencer implements ContentDereferencer {
             String $ref = node.get("$ref").asText();
             if (resolvedReferenceUrls.containsKey($ref)) {
                 node.put("$ref", resolvedReferenceUrls.get($ref));
+            }
+        }
+        Iterator<String> fieldNames = node.fieldNames();
+        while (fieldNames.hasNext()) {
+            String fieldName = fieldNames.next();
+            JsonNode fieldValue = node.get(fieldName);
+            if (fieldValue.isObject()) {
+                rewriteInObject((ObjectNode) fieldValue, resolvedReferenceUrls);
             }
         }
     }

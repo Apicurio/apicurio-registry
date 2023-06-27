@@ -15,8 +15,8 @@
  */
 package io.apicurio.tests.ui;
 
-import io.apicurio.tests.selenium.SeleniumProvider;
-import io.apicurio.tests.selenium.resources.ArtifactListItem;
+import io.apicurio.tests.ui.selenium.SeleniumProvider;
+import io.apicurio.tests.ui.selenium.resources.ArtifactListItem;
 import io.apicurio.tests.ui.pages.ArtifactDetailsPage;
 import io.apicurio.tests.ui.pages.ArtifactsListPage;
 import io.apicurio.tests.ui.pages.UploadArtifactDialog;

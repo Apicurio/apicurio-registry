@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.apicurio.tests.selenium;
+package io.apicurio.tests.ui.selenium;
 
 import org.junit.jupiter.api.extension.ExtendWith;
 

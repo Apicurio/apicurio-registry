@@ -16,9 +16,9 @@
 package io.apicurio.tests.ui;
 
 import io.apicurio.tests.ApicurioRegistryBaseIT;
-import io.apicurio.tests.selenium.SeleniumChrome;
-import io.apicurio.tests.selenium.SeleniumProvider;
-import io.apicurio.tests.selenium.resources.ArtifactListItem;
+import io.apicurio.tests.ui.selenium.SeleniumChrome;
+import io.apicurio.tests.ui.selenium.SeleniumProvider;
+import io.apicurio.tests.ui.selenium.resources.ArtifactListItem;
 import io.apicurio.tests.ui.pages.ArtifactDetailsPage;
 import io.apicurio.tests.ui.pages.UploadArtifactDialog;
 import io.apicurio.tests.utils.Constants;

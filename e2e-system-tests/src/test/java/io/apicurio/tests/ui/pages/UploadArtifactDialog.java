@@ -15,7 +15,7 @@
  */
 package io.apicurio.tests.ui.pages;
 
-import io.apicurio.tests.selenium.SeleniumProvider;
+import io.apicurio.tests.ui.selenium.SeleniumProvider;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebElement;
 

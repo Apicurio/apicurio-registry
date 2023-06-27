@@ -25,6 +25,7 @@ import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_RULE;
 import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_RULE_TYPE;
 import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_UPDATE_ROLE;
 import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_NAME;
+import static io.apicurio.registry.util.DtoUtil.appAuthPropertyToRegistry;
 import static io.apicurio.registry.util.DtoUtil.registryAuthPropertyToApp;
 
 import java.io.IOException;
@@ -502,7 +503,7 @@ public class AdminResourceImpl implements AdminResource {
         String propertyValue = config.getOptionalValue(def.getName(), String.class).orElse(def.getDefaultValue());
 
         ConfigurationProperty rval = new ConfigurationProperty();
-        rval.setName(def.getName());
+        rval.setName(appAuthPropertyToRegistry(def.getName()));
         rval.setValue(propertyValue);
         rval.setType(def.getType().getName());
         rval.setLabel(def.getLabel());

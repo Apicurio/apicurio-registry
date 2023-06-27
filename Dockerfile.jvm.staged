@@ -1,7 +1,10 @@
 FROM registry.access.redhat.com/ubi8/openjdk-17:1.15 AS builder
+
 WORKDIR /work
 COPY . .
+
 USER 0
+RUN microdnf install unzip
 RUN mvn clean package -Pprod -Psql -DskipTests -DskipDocsGen
 
 FROM registry.access.redhat.com/ubi8/openjdk-17-runtime:1.13

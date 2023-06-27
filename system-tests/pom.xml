@@ -19,7 +19,7 @@
         <version.junit.platform>1.7.0</version.junit.platform>
         <version.fabric8>5.12.2</version.fabric8>
         <version.fabric8-java-gen>6.7.2</version.fabric8-java-gen>
-        <sundrio.version>0.95.0</sundrio.version>
+        <sundrio.version>0.100.0</sundrio.version>
         <lombok.version>1.18.28</lombok.version>
         <operator.version>1.0.0-v2.0.0.final</operator.version>
         <version.hamcrest>2.2</version.hamcrest>

@@ -21,7 +21,7 @@
         <junit.jupiter.version>5.9.0</junit.jupiter.version>
         <fabric8.version>6.7.2</fabric8.version>
         <!-- sundrio version is critical to stay aligned with whatever comes from fabric8 -->
-        <sundrio.version>0.95.0</sundrio.version>
+        <sundrio.version>0.100.0</sundrio.version>
         <version.hamcrest>2.2</version.hamcrest>
         <version.slf4.simple>2.0.7</version.slf4.simple>
         <operator.version>1.0.0-v2.0.0.final</operator.version>

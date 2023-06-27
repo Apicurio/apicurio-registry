@@ -57,6 +57,11 @@ public class RegistryDeploymentManager implements TestExecutionListener {
 
     @Override
     public void testPlanExecutionStarted(TestPlan testPlan) {
+        if (Constants.TEST_PROFILE.equals(Constants.DB_UPGRADE) && Boolean.parseBoolean(System.getProperty("deployKafka"))) {
+            //prepare kafka for migration test
+        }
+
+
         if (Boolean.parseBoolean(System.getProperty("cluster.tests"))) {
 
             handleInfraDeployment();
@@ -86,7 +91,7 @@ public class RegistryDeploymentManager implements TestExecutionListener {
         }
 
         //Finally, once the testsuite is done, cleanup all the resources in the cluster
-        if (kubernetesClient != null) {
+        if (kubernetesClient != null && !(Boolean.parseBoolean(System.getProperty("preserveNamespace")))) {
             LOGGER.info("Closing test resources ##################################################");
 
 

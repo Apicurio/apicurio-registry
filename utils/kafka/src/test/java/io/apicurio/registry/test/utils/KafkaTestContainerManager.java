@@ -27,6 +27,7 @@ import java.util.Map;
 /**
  * @author Fabian Martinez Gonzalez
  * @author Ales Justin
+ * @author Carles Arnal
  */
 public class KafkaTestContainerManager implements QuarkusTestResourceLifecycleManager {
     private static final Logger log = LoggerFactory.getLogger(KafkaTestContainerManager.class);
@@ -37,18 +38,20 @@ public class KafkaTestContainerManager implements QuarkusTestResourceLifecycleMa
     public Map<String, String> start() {
         log.info("Starting the Kafka Test Container");
         kafka = new RedpandaContainer("docker.redpanda.com/vectorized/redpanda:v22.2.1");
+
         kafka.addEnv("KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR", "1");
         kafka.addEnv("KAFKA_TRANSACTION_STATE_LOG_MIN_ISR", "1");
         kafka.withLogConsumer(new Slf4jLogConsumer(LoggerFactory.getLogger("kafka-testcontainer")));
-
         kafka.start();
 
         String bootstrapServers = kafka.getBootstrapServers();
 
+        System.setProperty("bootstrap.servers", bootstrapServers);
+
         return Map.of(
-                    "bootstrap.servers", bootstrapServers,
-                    "registry.events.kafka.config.bootstrap.servers", bootstrapServers,
-                    "registry.kafkasql.bootstrap.servers", bootstrapServers);
+                "bootstrap.servers", bootstrapServers,
+                "registry.events.kafka.config.bootstrap.servers", bootstrapServers,
+                "registry.kafkasql.bootstrap.servers", bootstrapServers);
     }
 
     @Override

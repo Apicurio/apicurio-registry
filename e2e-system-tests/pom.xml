@@ -94,7 +94,17 @@
         <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>kafka</artifactId>
-            <scope>compile</scope>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.zonky.test</groupId>
+            <artifactId>embedded-postgres</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>redpanda</artifactId>
+            <scope>test</scope>
         </dependency>
 
         <!-- UI tests  -->
@@ -143,24 +153,6 @@
                             <goal>integration-test</goal>
                             <goal>verify</goal>
                         </goals>
-                        <configuration>
-                            <statelessTestsetReporter implementation="org.apache.maven.plugin.surefire.extensions.junit5.JUnit5Xml30StatelessReporter">
-                                <disable>false</disable>
-                                <version>3.0</version>
-                                <usePhrasedFileName>false</usePhrasedFileName>
-                                <usePhrasedTestSuiteClassName>true</usePhrasedTestSuiteClassName>
-                                <usePhrasedTestCaseClassName>true</usePhrasedTestCaseClassName>
-                                <usePhrasedTestCaseMethodName>true</usePhrasedTestCaseMethodName>
-                            </statelessTestsetReporter>
-                            <consoleOutputReporter implementation="org.apache.maven.plugin.surefire.extensions.junit5.JUnit5ConsoleOutputReporter">
-                                <disable>false</disable>
-                                <encoding>UTF-8</encoding>
-                                <usePhrasedFileName>true</usePhrasedFileName>
-                            </consoleOutputReporter>
-                            <excludes>
-                                <exclude>${exclude.integration.tests}</exclude>
-                            </excludes>
-                        </configuration>
                     </execution>
                 </executions>
             </plugin>
@@ -345,11 +337,6 @@
                     <artifactId>apicurio-registry-storage-sql</artifactId>
                 </dependency>
                 <dependency>
-                    <groupId>io.zonky.test</groupId>
-                    <artifactId>embedded-postgres</artifactId>
-                    <version>2.0.4</version>
-                </dependency>
-                <dependency>
                     <groupId>io.apicurio</groupId>
                     <artifactId>apicurio-registry-storage-sql</artifactId>
                     <type>test-jar</type>
@@ -437,10 +424,6 @@
                 <dependency>
                     <groupId>io.apicurio</groupId>
                     <artifactId>apicurio-registry-storage-kafkasql</artifactId>
-                </dependency>
-                <dependency>
-                    <groupId>org.testcontainers</groupId>
-                    <artifactId>redpanda</artifactId>
                 </dependency>
                 <dependency>
                     <groupId>io.apicurio</groupId>

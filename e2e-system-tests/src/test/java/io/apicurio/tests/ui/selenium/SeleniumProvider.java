@@ -13,9 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.apicurio.tests.selenium;
+package io.apicurio.tests.ui.selenium;
 
-import io.apicurio.tests.selenium.resources.WebItem;
+import io.apicurio.tests.ui.selenium.resources.WebItem;
 import io.apicurio.tests.ui.pages.BasePage;
 import io.apicurio.tests.utils.Constants;
 import org.apache.commons.io.FileUtils;

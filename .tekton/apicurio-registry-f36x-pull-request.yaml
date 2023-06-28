@@ -22,7 +22,7 @@ spec:
   - name: git-url
     value: '{{repo_url}}'
   - name: output-image
-    value: quay.io/redhat-appstudio/user-workload:on-pr-{{revision}}
+    value: https://quay.io/redhat-user-workloads/service-registry-tenant/apicurio-registry/apicurio-registry-f36x:on-pr-{{revision}}
   - name: path-context
     value: .
   - name: revision

@@ -40,6 +40,11 @@
         </dependency>
         <dependency>
             <groupId>io.apicurio</groupId>
+            <artifactId>apicurio-tenant-manager-client</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.apicurio</groupId>
             <artifactId>apicurio-registry-utils-kafka</artifactId>
             <type>test-jar</type>
             <scope>test</scope>
@@ -116,7 +121,6 @@
         <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>selenium</artifactId>
-            <version>${test-containers.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -124,6 +128,7 @@
             <artifactId>commons-io</artifactId>
             <scope>test</scope>
         </dependency>
+
     </dependencies>
     <build>
         <plugins>

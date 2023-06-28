@@ -35,14 +35,15 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
-      - name: Build Sql Variant
-        run: make SKIP_TESTS=true BUILD_FLAGS='-DskipUiBuild=true -Dmaven.javadoc.skip=true --no-transfer-progress -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5' build-sql
+      - name: Setup Minikube
+        uses: manusa/actions-setup-minikube@v2.7.2
+        with:
+          minikube version: 'v1.28.0'
+          kubernetes version: 'v1.25.3'
+          github token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Run Integration Tests - sql
         run: make run-sql-integration-tests
-
-      - name: Run Integration Tests - sql auth
-        run:  run-sql-auth-integration-tests
 
       - name: Collect logs
         if: failure()
@@ -67,21 +68,14 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
-      - name: Download built apicurio artifacts
-        id: download-apicurio
-        uses: actions/download-artifact@v3
-        with:
-          path: ~/.m2/repository/io/apicurio
-          name: apicurio-artifacts.zip
-
       - name: Build KafkaSql variant
-        run: make SKIP_TESTS=true BUILD_FLAGS='-DskipUiBuild=true -Dmaven.javadoc.skip=true --no-transfer-progress -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5' build-kafkasql
+        run: make SKIP_TESTS=true BUILD_FLAGS='-DskipUiBuild=false -Dmaven.javadoc.skip=true --no-transfer-progress -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5' build-kafkasql
 
       - name: Run Integration Tests - kafkasql
         run: make run-kafkasql-integration-tests
 
       - name: Run Integration Tests - kafkasql auth
-        run: run-kafkasql-auth-integration-tests
+        run: make run-kafkasql-auth-integration-tests
 
       - name: Collect logs
         if: failure()
@@ -96,7 +90,6 @@ jobs:
   integration-tests-ui:
     name: Integration Tests UI
     runs-on: ubuntu-20.04
-    needs: prepare-integration-tests
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3

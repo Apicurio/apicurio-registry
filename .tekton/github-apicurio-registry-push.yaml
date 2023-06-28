@@ -24,7 +24,7 @@ spec:
   - name: output-image
     value: quay.io/redhat-user-workloads/service-registry-tenant/apicurio-registry/github-apicurio-registry:{{revision}}
   - name: path-context
-    value: .github
+    value: ''
   - name: revision
     value: '{{revision}}'
   pipelineSpec:

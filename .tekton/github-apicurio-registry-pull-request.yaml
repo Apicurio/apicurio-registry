@@ -19,7 +19,7 @@ metadata:
 spec:
   params:
   - name: dockerfile
-    value: https://raw.githubusercontent.com/devfile-samples/devfile-sample-code-with-quarkus/main/src/main/docker/Dockerfile.jvm.staged
+    value: Dockerfile.jvm.staged
   - name: git-url
     value: '{{repo_url}}'
   - name: image-expires-after
@@ -27,7 +27,7 @@ spec:
   - name: output-image
     value: quay.io/redhat-user-workloads/service-registry-tenant/apicurio-registry/github-apicurio-registry:on-pr-{{revision}}
   - name: path-context
-    value: .github
+    value: ''
   - name: revision
     value: '{{revision}}'
   pipelineSpec:

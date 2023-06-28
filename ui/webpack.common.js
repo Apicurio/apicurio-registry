@@ -91,10 +91,15 @@ module.exports = (env, argv) => {
       new WebpackShellPluginNext({
         onBuildStart:{
           scripts: [
+            'echo Deleting client-gen/dist...',
             'rm -rf client-gen/dist',
-            'curl -sL https://github.com/Apicurio/apicurio-client-gen/releases/download/0.1.0/dist.zip -o client-gen.zip',
+            'echo Downloading client-gen.zip...',
+            'curl -L -v https://github.com/Apicurio/apicurio-client-gen/releases/download/0.1.0/dist.zip -o client-gen.zip',
+            'echo Unzipping client-gen.zip...',
             'unzip -q client-gen.zip -d client-gen',
-            'rm client-gen.zip'
+            'echo Cleaning up...',
+            'rm client-gen.zip',
+            'echo Done!'
           ],
           blocking: true,
           parallel: false

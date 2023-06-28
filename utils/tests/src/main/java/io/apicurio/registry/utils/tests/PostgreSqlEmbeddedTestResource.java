@@ -14,15 +14,15 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.storage.util;
+package io.apicurio.registry.utils.tests;
+
+import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
+import io.zonky.test.db.postgres.embedded.EmbeddedPostgres;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.HashMap;
 import java.util.Map;
-
-import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
-import io.zonky.test.db.postgres.embedded.EmbeddedPostgres;
 
 /**
  * @author Fabian Martinez
@@ -32,7 +32,7 @@ public class PostgreSqlEmbeddedTestResource implements QuarkusTestResourceLifecy
     private EmbeddedPostgres database;
 
     /**
-     * @see io.quarkus.test.common.QuarkusTestResourceLifecycleManager#start()
+     * @see QuarkusTestResourceLifecycleManager#start()
      */
     @Override
     public Map<String, String> start() {
@@ -57,18 +57,22 @@ public class PostgreSqlEmbeddedTestResource implements QuarkusTestResourceLifecy
             throw new UncheckedIOException(e);
         }
 
-
         String datasourceUrl = database.getJdbcUrl("postgres", "postgres");
 
         Map<String, String> props = new HashMap<>();
         props.put("quarkus.datasource.jdbc.url", datasourceUrl);
         props.put("quarkus.datasource.username", "postgres");
         props.put("quarkus.datasource.password", "postgres");
+
+        System.setProperty("quarkus.datasource.jdbc.url", datasourceUrl);
+        System.setProperty("quarkus.datasource.username", "postgres");
+        System.setProperty("quarkus.datasource.password", "postgres");
+
         return props;
     }
 
     /**
-     * @see io.quarkus.test.common.QuarkusTestResourceLifecycleManager#stop()
+     * @see QuarkusTestResourceLifecycleManager#stop()
      */
     @Override
     public void stop() {

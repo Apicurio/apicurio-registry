@@ -14,15 +14,24 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.storage.util;
+package io.apicurio.registry.utils.tests;
 
-import io.apicurio.registry.utils.tests.PostgreSqlEmbeddedTestResource;
-import io.quarkus.test.common.QuarkusTestResource;
+import io.quarkus.test.junit.QuarkusTestProfile;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /**
- * @author Fabian Martinez
+ * @author Carles Arnal
  */
-@QuarkusTestResource(value = PostgreSqlEmbeddedTestResource.class)
-public class SqlStorageTestResources {
+public class MultitenancyNoAuthTestProfile implements QuarkusTestProfile {
+
+    @Override
+    public Map<String, String> getConfigOverrides() {
+        Map<String, String> props = new HashMap<>();
+        props.put("registry.enable.multitenancy", "true");
+        props.put("registry.disable.apis", "");
+        return props;
+    }
 
 }

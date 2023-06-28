@@ -14,15 +14,23 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.storage.util;
-
-import io.apicurio.registry.utils.tests.PostgreSqlEmbeddedTestResource;
-import io.quarkus.test.common.QuarkusTestResource;
+package io.apicurio.tests.multitenancy;
 
 /**
  * @author Fabian Martinez
  */
-@QuarkusTestResource(value = PostgreSqlEmbeddedTestResource.class)
-public class SqlStorageTestResources {
+public class TenantUser {
+
+    public final String tenantId;
+    public final String principalId;
+    public final String organizationId;
+    public final String principalPassword;
+
+    public TenantUser(String tenantId, String principalId, String organizationId, String principalPassword) {
+        this.tenantId = tenantId;
+        this.principalId = principalId;
+        this.organizationId = organizationId;
+        this.principalPassword = principalPassword;
+    }
 
 }

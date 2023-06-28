@@ -25,12 +25,10 @@ import io.apicurio.registry.utils.tests.SimpleDisplayName;
 import io.apicurio.tests.ApicurioRegistryBaseIT;
 import io.apicurio.tests.utils.Constants;
 import io.apicurio.tests.utils.CustomTestsUtils;
-import io.apicurio.tests.utils.RegistryWaitUtils;
 import io.apicurio.tests.utils.TestSeparator;
 import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
-import org.apache.commons.codec.digest.DigestUtils;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -43,9 +41,9 @@ import org.testcontainers.containers.wait.strategy.Wait;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
+import static io.apicurio.tests.dbupgrade.UpgradeTestsDataInitializer.ARTIFACT_CONTENT;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
@@ -62,21 +60,20 @@ public class KafkaSqlStorageUpgradeIT extends ApicurioRegistryBaseIT implements 
 
     static final Logger logger = LoggerFactory.getLogger(KafkaSqlLogCompactionIT.class);
 
-    private static final String ARTIFACT_CONTENT = "{\"name\":\"redhat\"}";
-    private static final String REFERENCE_CONTENT = "{\"name\":\"ibm\"}";
-    private static CustomTestsUtils.ArtifactData protoData;
-    private static CustomTestsUtils.ArtifactData artifactWithReferences;
-    private static List<ArtifactReference> artifactReferences;
-    private static final String PREPARE_PROTO_GROUP = "prepareProtobufHashUpgradeTest";
+    protected static CustomTestsUtils.ArtifactData artifactWithReferences;
+    protected static List<ArtifactReference> artifactReferences;
+    protected static CustomTestsUtils.ArtifactData protoData;
 
-    @Test
-    public void testStorageUpgradeProtobufUpgraderKafkaSql() throws Exception {
-        testStorageUpgradeProtobufUpgrader("protobufCanonicalHashKafkaSql");
-    }
+    public static final String PREPARE_PROTO_GROUP = "prepareProtobufHashUpgradeTest";
 
     @Override
     public void cleanArtifacts() throws Exception {
         //Don't clean artifacts for this test
+    }
+
+    @Test
+    public void testStorageUpgradeProtobufUpgraderKafkaSql() throws Exception {
+        testStorageUpgradeProtobufUpgrader("protobufCanonicalHashKafkaSql");
     }
 
     public void testStorageUpgradeProtobufUpgrader(String testName) throws Exception {
@@ -139,9 +136,10 @@ public class KafkaSqlStorageUpgradeIT extends ApicurioRegistryBaseIT implements 
             startOldRegistryVersion("quay.io/apicurio/apicurio-registry-kafkasql:2.1.2.Final", bootstrapServers);
 
             try {
-                prepareProtobufHashUpgradeTest();
-                prepareReferencesUpgradeTest();
+                var registryClient = RegistryClientFactory.create("http://localhost:8081/");
 
+                UpgradeTestsDataInitializer.prepareProtobufHashUpgradeTest(registryClient);
+                UpgradeTestsDataInitializer.prepareReferencesUpgradeTest(registryClient);
             } catch (Exception e) {
                 logger.warn("Error filling old registry with information: ", e);
             }
@@ -167,56 +165,6 @@ public class KafkaSqlStorageUpgradeIT extends ApicurioRegistryBaseIT implements 
 
             genericContainer.start();
             genericContainer.waitingFor(Wait.forLogMessage(".*(KSQL Kafka Consumer Thread) KafkaSQL storage bootstrapped.*", 1));
-        }
-
-        private void prepareProtobufHashUpgradeTest() throws Exception {
-            var registryClient = RegistryClientFactory.create("http://localhost:8081/");
-
-            RegistryWaitUtils.retry(registryClient, registryClient1 -> CustomTestsUtils.createArtifact(registryClient, PREPARE_PROTO_GROUP, ArtifactType.AVRO, ApicurioRegistryBaseIT.resourceToString("artifactTypes/" + "avro/multi-field_v1.json")));
-            CustomTestsUtils.createArtifact(registryClient, PREPARE_PROTO_GROUP, ArtifactType.JSON, ApicurioRegistryBaseIT.resourceToString("artifactTypes/" + "jsonSchema/person_v1.json"));
-
-            String test1content = ApicurioRegistryBaseIT.resourceToString("artifactTypes/" + "protobuf/tutorial_v1.proto");
-            var protoData = CustomTestsUtils.createArtifact(registryClient, PREPARE_PROTO_GROUP, ArtifactType.PROTOBUF, test1content);
-
-            //verify search with canonicalize returns the expected artifact metadata
-            var versionMetadata = registryClient.getArtifactVersionMetaDataByContent(PREPARE_PROTO_GROUP, protoData.meta.getId(), true, null, IoUtil.toStream(test1content));
-            assertEquals(protoData.meta.getContentId(), versionMetadata.getContentId());
-
-            assertEquals(3, registryClient.listArtifactsInGroup(PREPARE_PROTO_GROUP).getCount());
-
-            //Once prepared, set the global variable, so we can compare during the test execution
-            KafkaSqlStorageUpgradeIT.protoData = protoData;
-        }
-
-        private void prepareReferencesUpgradeTest() throws Exception {
-            //
-            var registryClient = RegistryClientFactory.create("http://localhost:8081/");
-
-            final CustomTestsUtils.ArtifactData artifact = CustomTestsUtils.createArtifact(registryClient, ArtifactType.JSON, REFERENCE_CONTENT);
-
-            //Create a second artifact referencing the first one, the hash will be the same using version 2.4.1.Final.
-            var artifactReference = new ArtifactReference();
-
-            artifactReference.setName("testReference");
-            artifactReference.setArtifactId(artifact.meta.getId());
-            artifactReference.setGroupId(artifact.meta.getGroupId());
-            artifactReference.setVersion(artifact.meta.getVersion());
-
-            var artifactReferences = List.of(artifactReference);
-
-            String artifactId = UUID.randomUUID().toString();
-
-            final CustomTestsUtils.ArtifactData artifactWithReferences = CustomTestsUtils.createArtifactWithReferences(artifactId, registryClient, ArtifactType.AVRO, ARTIFACT_CONTENT, artifactReferences);
-
-            String calculatedHash = DigestUtils.sha256Hex(ARTIFACT_CONTENT);
-
-            //Assertions
-            //The artifact hash is calculated without using references
-            assertEquals(calculatedHash, artifactWithReferences.contentHash);
-
-            //Once prepared, set the global variables, so we can compare during the test execution.
-            KafkaSqlStorageUpgradeIT.artifactReferences = artifactReferences;
-            KafkaSqlStorageUpgradeIT.artifactWithReferences = artifactWithReferences;
         }
     }
 }

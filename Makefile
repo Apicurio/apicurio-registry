@@ -338,7 +338,7 @@ run-sql-integration-tests:
 	@echo "----------------------------------------------------------------------"
 	@echo "                 Running Sql Integration Tests                        "
 	@echo "----------------------------------------------------------------------"
-	./mvnw verify --no-transfer-progress -Pe2e-tests -P$(INTEGRATION_TESTS_PROFILE) -Plocal-sql -pl e2e-system-tests -Dmaven.javadoc.skip=true --no-transfer-progress
+	./mvnw verify -am --no-transfer-progress -Pe2e-tests -P$(INTEGRATION_TESTS_PROFILE) -Premote-sql -pl e2e-system-tests -Dmaven.javadoc.skip=true --no-transfer-progress
 
 
 .PHONY: run-sql-auth-integration-tests ## Runs sql auth integration tests

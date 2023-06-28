@@ -1,3 +1,7 @@
+import asyncio
+from dataclasses import dataclass
+from typing import Optional
+from httpx import QueryParams
 import pytest
 import subprocess
 import time
@@ -9,6 +13,8 @@ from kiota_abstractions.authentication.anonymous_authentication_provider import 
     AnonymousAuthenticationProvider,
 )
 from kiota_http.httpx_request_adapter import HttpxRequestAdapter
+from apicurioregistrysdk.client.groups.item.artifacts.artifacts_request_builder import ArtifactsRequestBuilder
+from apicurioregistrysdk.client.models.artifact_meta_data import ArtifactMetaData
 from apicurioregistrysdk.client.registry_client import RegistryClient
 from apicurioregistrysdk.client.models.artifact_content import ArtifactContent
 
@@ -39,7 +45,6 @@ def poll_for_ready():
         # Wait for the specified poll interval before trying again
         time.sleep(POLL_INTERVAL)
 
-
 @pytest.fixture(scope="session", autouse=True)
 def registry_server(request):
     registry_jar = os.path.join(
@@ -50,6 +55,15 @@ def registry_server(request):
     request.addfinalizer(p.kill)
     poll_for_ready()
 
+# workaround: https://stackoverflow.com/a/72104554
+@pytest.fixture(scope="session", autouse=True)
+def event_loop():
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+    yield loop
+    loop.close()
 
 @pytest.mark.asyncio
 async def test_basic_upload_download():
@@ -78,3 +92,42 @@ async def test_basic_upload_download():
     assert json.loads(str(return_artifact, "utf-8").replace("'", '"')) == json.loads(
         payload.content
     )
+
+@pytest.mark.asyncio
+async def test_issue_3465():
+    auth_provider = AnonymousAuthenticationProvider()
+    request_adapter = HttpxRequestAdapter(auth_provider)
+    request_adapter.base_url = REGISTRY_URL
+    client = RegistryClient(request_adapter)
+
+    payload = ArtifactContent()
+    payload.content = """{
+        "openapi": "3.0.0",
+        "info": {
+            "title": "My API",
+            "version": "1.0.0"
+        },
+        "paths": {}
+    }"""
+    
+    query_params = ArtifactsRequestBuilder.ArtifactsRequestBuilderPostQueryParameters(
+        canonical = True, if_exists = 'RETURN_OR_UPDATE'
+    )
+    
+    request_configuration = ArtifactsRequestBuilder.ArtifactsRequestBuilderPostRequestConfiguration(
+        headers= { "X-Registry-ArtifactId": "foo" },
+        query_parameters=query_params
+    )
+    
+    # create_artifact = await client.groups_by_id("default").artifacts.post(payload, request_configuration = request_configuration)
+    
+    raw_query_params = {"canonical": True, "ifExists": 'RETURN_OR_UPDATE'}
+    request = client.groups_by_id("default").artifacts.to_post_request_information(payload, request_configuration = request_configuration)
+    request.query_parameters.update(QueryParams(raw_query_params))
+    
+    create_artifact = await request_adapter.send_async(request, ArtifactMetaData, {})
+    assert create_artifact.id == "foo"
+    
+    # check the return or update functionality
+    create_artifact = await request_adapter.send_async(request, ArtifactMetaData, {})
+    assert create_artifact.id == "foo"

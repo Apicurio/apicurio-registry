@@ -43,6 +43,7 @@ script = "kiota-gen.py"
 
 [tool.pytest.ini_options]
 pythonpath = [ "apicurioregistrysdk" ]
+asyncio_mode = "auto"
 
 [tool.black]
 extend-exclude = 'client'

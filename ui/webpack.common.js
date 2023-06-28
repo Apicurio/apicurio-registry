@@ -92,7 +92,7 @@ module.exports = (env, argv) => {
         onBuildStart:{
           scripts: [
             'rm -rf client-gen/dist',
-            'curl -sL https://github.com/Apicurio/apicurio-client-gen/releases/download/0.1.0/dist.zip -o client-gen.zip',
+            'curl -L -v --no-progress-meter https://github.com/Apicurio/apicurio-client-gen/releases/download/0.1.0/dist.zip -o client-gen.zip',
             'unzip -q client-gen.zip -d client-gen',
             'rm client-gen.zip'
           ],

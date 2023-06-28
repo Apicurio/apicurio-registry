@@ -119,7 +119,7 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
     }
 
     @AfterEach
-    void cleanArtifacts() throws Exception {
+    public void cleanArtifacts() throws Exception {
         logger.info("Removing all artifacts");
         // Retrying to delete artifacts can solve the problem with bad order caused by artifacts references
         // TODO: Solve problem with artifact references circle - maybe use of deleteAllUserData for cleaning artifacts after IT

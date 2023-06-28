@@ -17,6 +17,7 @@
 package io.apicurio.tests.dbupgrade;
 
 import io.apicurio.registry.rest.client.RegistryClientFactory;
+import io.apicurio.registry.test.utils.KafkaTestContainerManager;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.tests.SimpleDisplayName;
 import io.apicurio.tests.ApicurioRegistryBaseIT;
@@ -55,12 +56,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 @TestInstance(Lifecycle.PER_CLASS)
 @Tag(Constants.DB_UPGRADE)
 @Tag(Constants.KAFKA_SQL)
+@QuarkusTestResource(value = KafkaTestContainerManager.class, restrictToAnnotatedClass = true)
 @QuarkusTestResource(value = KafkaSqlLogCompactionIT.KafkaSqlLogCompactionTestInitializer.class, restrictToAnnotatedClass = true)
 @QuarkusIntegrationTest
 public class KafkaSqlLogCompactionIT extends ApicurioRegistryBaseIT implements TestSeparator, Constants {
 
     static final Logger logger = LoggerFactory.getLogger(KafkaSqlLogCompactionIT.class);
-
 
     @Test
     public void testLogCompaction() throws Exception {
@@ -89,6 +90,11 @@ public class KafkaSqlLogCompactionIT extends ApicurioRegistryBaseIT implements T
     public static class KafkaSqlLogCompactionTestInitializer implements QuarkusTestResourceLifecycleManager {
         GenericContainer genericContainer;
         AdminClient adminClient;
+
+        @Override
+        public int order() {
+            return 10000;
+        }
 
         @Override
         public Map<String, String> start() {
@@ -150,6 +156,14 @@ public class KafkaSqlLogCompactionIT extends ApicurioRegistryBaseIT implements T
 
         public void createTopic(String topic, int partitions, String bootstrapServers) {
             var journal = new NewTopic(topic, partitions, (short) 1);
+
+            /*journal.configs(Map.of(
+                    "min.cleanable.dirty.ratio","0.000001",
+                    "cleanup.policy","compact",
+                    "segment.ms", "100",
+                    "delete.retention.ms", "100"
+            ));*/
+
             journal.configs(Map.of(
                     "cleanup.policy", "compact"
             ));

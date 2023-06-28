@@ -376,22 +376,6 @@
                                     <overWriteSnapshots>true</overWriteSnapshots>
                                 </configuration>
                             </execution>
-                            <execution>
-                                <id>unpack-test-dependencies</id>
-                                <phase>process-test-classes</phase>
-                                <goals>
-                                    <goal>unpack-dependencies</goal>
-                                </goals>
-                                <configuration>
-                                    <includeGroupIds>io.apicurio</includeGroupIds>
-                                    <includeTypes>test-jar</includeTypes>
-                                    <includeScope>test</includeScope>
-                                    <outputDirectory>${project.build.directory}/test-classes</outputDirectory>
-                                    <includes>**/*KafkaSqlServiceInitializer.class, **/*.properties</includes>
-                                    <overWriteReleases>false</overWriteReleases>
-                                    <overWriteSnapshots>true</overWriteSnapshots>
-                                </configuration>
-                            </execution>
                         </executions>
                     </plugin>
                     <plugin>
@@ -581,6 +565,30 @@
             <properties>
                 <groups>auth</groups>
                 <skipTests>false</skipTests>
+            </properties>
+        </profile>
+
+        <profile>
+            <id>dbupgrade</id>
+            <properties>
+                <skipTests>false</skipTests>
+                <groups>dbupgrade</groups>
+            </properties>
+        </profile>
+
+        <profile>
+            <id>sqlit</id>
+            <properties>
+                <skipTests>false</skipTests>
+                <groups>sqlit</groups>
+            </properties>
+        </profile>
+
+        <profile>
+            <id>kafkasqlit</id>
+            <properties>
+                <skipTests>false</skipTests>
+                <groups>kafkasqlit</groups>
             </properties>
         </profile>
 

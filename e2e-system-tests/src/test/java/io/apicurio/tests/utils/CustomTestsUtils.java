@@ -32,8 +32,12 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 public class CustomTestsUtils {
 
     public static ArtifactData createArtifact(RegistryClient client, String type, String content) throws Exception {
+        return createArtifact(client, null, type, content);
+    }
+
+    public static ArtifactData createArtifact(RegistryClient client, String group, String type, String content) throws Exception {
         String artifactId = TestUtils.generateArtifactId();
-        ArtifactMetaData meta = client.createArtifact(null, artifactId, type, IoUtil.toStream(content));
+        ArtifactMetaData meta = client.createArtifact(group, artifactId, type, IoUtil.toStream(content));
         TestUtils.retry(() -> client.getContentByGlobalId(meta.getGlobalId()));
         assertNotNull(client.getLatestArtifact(meta.getGroupId(), meta.getId()));
         String contentHash = DigestUtils.sha256Hex(IoUtil.toBytes(content));
@@ -57,5 +61,4 @@ public class CustomTestsUtils {
             this.contentHash = contentHash;
         }
     }
-
 }

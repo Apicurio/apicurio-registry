@@ -43,6 +43,12 @@ jobs:
       - name: Run Integration Tests - sql
         run: make run-sql-integration-tests
 
+      - name: Run Integration Tests - sql - Auth
+        run: make run-sql-auth-tests
+
+      - name: Run Integration Tests - sql - Database Upgrade
+        run: make run-sql-upgrade-tests
+
       - name: Collect logs
         if: failure()
         run: ./.github/scripts/collect_logs.sh
@@ -66,14 +72,19 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
-      - name: Build KafkaSql variant
-        run: make SKIP_TESTS=true BUILD_FLAGS='-DskipUiBuild=false -Dmaven.javadoc.skip=true --no-transfer-progress -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5' build-kafkasql
+      - name: Setup Kind
+        uses: engineerd/setup-kind@v0.5.0
+        with:
+            version: "v0.11.1"
 
       - name: Run Integration Tests - kafkasql
         run: make run-kafkasql-integration-tests
 
-      - name: Run Integration Tests - kafkasql auth
-        run: make run-kafkasql-auth-integration-tests
+      - name: Run Integration Tests - kafkasql - Auth
+        run: make run-kafkasql-auth-tests
+
+      - name: Run Integration Tests - kafkasql - Upgrade
+        run: make run-kafkasql-upgrade-tests
 
       - name: Collect logs
         if: failure()
@@ -98,8 +109,10 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
-      - name: Build In-memory variant
-        run: make SKIP_TESTS=true BUILD_FLAGS='-Dmaven.javadoc.skip=true --no-transfer-progress -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5' build-in-memory
+      - name: Setup Kind
+        uses: engineerd/setup-kind@v0.5.0
+        with:
+          version: "v0.11.1"
 
       - name: Run UI tests
         run: make run-ui-tests

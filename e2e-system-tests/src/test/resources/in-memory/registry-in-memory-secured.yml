@@ -43,7 +43,7 @@ spec:
               value: "true"
             - name: REGISTRY_AUTH_ROLE_SOURCE
               value: "token"
-          image: quay.io/apicurio/apicurio-registry-mem:latest-snapshot
+          image: registry-image
           imagePullPolicy: Always
           livenessProbe:
             failureThreshold: 3

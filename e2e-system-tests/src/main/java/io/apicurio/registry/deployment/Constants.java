@@ -19,6 +19,11 @@ package io.apicurio.registry.deployment;
 import java.util.Optional;
 
 public class Constants {
+
+    /**
+     * Registry image placeholder
+     */
+    static String REGISTRY_IMAGE = "registry-image";
     /**
      * Tag for tests, which are testing basic functionality
      */

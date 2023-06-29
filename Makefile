@@ -19,6 +19,7 @@ IMAGE_PLATFORMS ?= linux/amd64,linux/arm64,linux/s390x,linux/ppc64le
 SKIP_TESTS ?= false
 INTEGRATION_TESTS_PROFILE ?= ci
 BUILD_FLAGS ?=
+REGISTRY_IMAGE ?=
 
 
 # Colour Codes for help message
@@ -336,21 +337,21 @@ run-sql-integration-tests:
 	@echo "----------------------------------------------------------------------"
 	@echo "                 Running Sql Integration Tests                        "
 	@echo "----------------------------------------------------------------------"
-	./mvnw verify -am --no-transfer-progress -Pe2e-tests -P$(INTEGRATION_TESTS_PROFILE) -Premote-sql -pl e2e-system-tests -Dmaven.javadoc.skip=true --no-transfer-progress
+	./mvnw verify -am --no-transfer-progress -Pe2e-tests -P$(INTEGRATION_TESTS_PROFILE) $(REGISTRY_IMAGE) -Premote-sql -pl e2e-system-tests -Dmaven.javadoc.skip=true --no-transfer-progress
 
 .PHONY: run-sql-upgrade-tests ## Runs sql e2e tests
 run-sql-upgrade-tests:
 	@echo "----------------------------------------------------------------------"
 	@echo "                 Running Sql Integration Tests                        "
 	@echo "----------------------------------------------------------------------"
-	./mvnw verify -am --no-transfer-progress -Pe2e-tests -Psqlit -Premote-sql -pl e2e-system-tests -Dmaven.javadoc.skip=true --no-transfer-progress
+	./mvnw verify -am --no-transfer-progress -Pe2e-tests -Psqlit $(REGISTRY_IMAGE) -Premote-sql -pl e2e-system-tests -Dmaven.javadoc.skip=true --no-transfer-progress
 
 .PHONY: run-sql-auth-tests ## Runs sql auth integration tests
 run-sql-auth-tests:
 	@echo "----------------------------------------------------------------------"
 	@echo "                  Running SQL Auth Integration Tests                  "
 	@echo "----------------------------------------------------------------------"
-	./mvnw verify -am --no-transfer-progress -Pe2e-tests -Pauth -Premote-sql -pl e2e-system-tests -Dmaven.javadoc.skip=true --no-transfer-progress
+	./mvnw verify -am --no-transfer-progress -Pe2e-tests -Pauth $(REGISTRY_IMAGE) -Premote-sql -pl e2e-system-tests -Dmaven.javadoc.skip=true --no-transfer-progress
 
 .PHONY: run-sql-migration-integration-tests ## Runs sql migration integration tests
 run-sql-migration-integration-tests:

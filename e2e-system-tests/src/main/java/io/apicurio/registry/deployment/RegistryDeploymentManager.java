@@ -167,7 +167,7 @@ public class RegistryDeploymentManager implements TestExecutionListener {
 
             //Wait for all the external resources pods to be ready
             kubernetesClient.pods()
-                    .inNamespace(TEST_NAMESPACE).waitUntilReady(30, TimeUnit.SECONDS);
+                    .inNamespace(TEST_NAMESPACE).waitUntilReady(60, TimeUnit.SECONDS);
 
             //Create the keycloak port forward so the tests can reach it to get tokens
             keycloakPortForward = kubernetesClient.services()
@@ -183,7 +183,7 @@ public class RegistryDeploymentManager implements TestExecutionListener {
 
             //Wait for all the external resources pods to be ready
             kubernetesClient.pods()
-                    .inNamespace(TEST_NAMESPACE).waitUntilReady(30, TimeUnit.SECONDS);
+                    .inNamespace(TEST_NAMESPACE).waitUntilReady(60, TimeUnit.SECONDS);
         }
 
         //Deploy all the resources associated to the registry variant

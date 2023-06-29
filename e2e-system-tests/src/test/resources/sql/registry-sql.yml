@@ -27,7 +27,7 @@ spec:
               value: "apicurio"
             - name: REGISTRY_DATASOURCE_PASSWORD
               value: "registry"
-          image: quay.io/apicurio/apicurio-registry-sql:latest-snapshot
+          image: registry-image
           imagePullPolicy: Always
           livenessProbe:
             failureThreshold: 3

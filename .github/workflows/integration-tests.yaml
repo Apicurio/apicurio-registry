@@ -35,23 +35,31 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
+      - name: Build Sql Variant
+        run: make SKIP_TESTS=true BUILD_FLAGS='-DskipUiBuild=true -Dmaven.javadoc.skip=true --no-transfer-progress -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5' build-sql
+
+      - name: Build and Push Sql image
+        env:
+          IMAGE_REPO: ttl.sh/${{ github.sha }}
+          # maximum allowed
+          IMAGE_TAG: 1d
+        run: make build-sql-image push-sql-image
+
       - name: Setup Kind
         uses: engineerd/setup-kind@v0.5.0
         with:
           version: "v0.11.1"
 
       - name: Run Integration Tests - sql
-        run: make run-sql-integration-tests
+        run: make REGISTRY_IMAGE='-Dregistry-sql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-sql:1d' run-sql-integration-tests
 
       - name: Run Integration Tests - sql - Auth
-        run: make run-sql-auth-tests
-
-      - name: Run Integration Tests - sql - Database Upgrade
-        run: make run-sql-upgrade-tests
+        run: make REGISTRY_IMAGE='-Dregistry-sql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-sql:1d' run-sql-auth-tests
 
       - name: Collect logs
         if: failure()
         run: ./.github/scripts/collect_logs.sh
+
       - name: Upload tests logs artifacts
         if: failure()
         uses: actions/upload-artifact@v1.0.0
@@ -72,19 +80,26 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
+      - name: Build kafkasql Variant
+        run: make SKIP_TESTS=true BUILD_FLAGS='-DskipUiBuild=true -Dmaven.javadoc.skip=true --no-transfer-progress -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5' build-kafkasql
+
+      - name: Build and Push kafkasql image
+        env:
+          IMAGE_REPO: ttl.sh/${{ github.sha }}
+            # maximum allowed
+          IMAGE_TAG: 1d
+        run: make build-kafkasql-image push-kafkasql-image
+
       - name: Setup Kind
         uses: engineerd/setup-kind@v0.5.0
         with:
             version: "v0.11.1"
 
-      - name: Run Integration Tests - kafkasql
-        run: make run-kafkasql-integration-tests
+      - name: Run Integration Tests - sql
+        run: make REGISTRY_IMAGE='-Dregistry-kafkasql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-kafkasql:1d' run-kafkasql-integration-tests
 
-      - name: Run Integration Tests - kafkasql - Auth
-        run: make run-kafkasql-auth-tests
-
-      - name: Run Integration Tests - kafkasql - Upgrade
-        run: make run-kafkasql-upgrade-tests
+      - name: Run Integration Tests - sql - Auth
+        run: make REGISTRY_IMAGE='-Dregistry-kafksql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-kafkasql:1d' run-kafkasql-auth-tests
 
       - name: Collect logs
         if: failure()
@@ -109,13 +124,23 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
+      - name: Build mem Variant
+        run: make SKIP_TESTS=true BUILD_FLAGS='-Dmaven.javadoc.skip=true --no-transfer-progress -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5' build-in-memory
+
+      - name: Build and Push mem image
+        env:
+          IMAGE_REPO: ttl.sh/${{ github.sha }}
+          # maximum allowed
+          IMAGE_TAG: 1d
+        run: make build-mem-image push-mem-image
+
       - name: Setup Kind
         uses: engineerd/setup-kind@v0.5.0
         with:
           version: "v0.11.1"
 
       - name: Run UI tests
-        run: make run-ui-tests
+        run: make REGISTRY_IMAGE='-Dregistry-in-memory-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-mem:1d' run-ui-tests
 
       - name: Collect logs
         if: failure()

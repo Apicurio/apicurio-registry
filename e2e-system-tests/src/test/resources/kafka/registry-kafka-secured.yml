@@ -45,7 +45,7 @@ spec:
               value: "true"
             - name: REGISTRY_AUTH_ROLE_SOURCE
               value: "token"
-          image: quay.io/apicurio/apicurio-registry-kafkasql:latest-snapshot
+          image: registry-image
           imagePullPolicy: Always
           livenessProbe:
             failureThreshold: 3

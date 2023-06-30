@@ -16,25 +16,24 @@
 
 package io.apicurio.registry.content.dereference;
 
-import io.apicurio.registry.content.ContentHandle;
-import org.apache.avro.Schema;
-
-
 import java.util.Map;
 
+import io.apicurio.datamodels.Library;
+import io.apicurio.datamodels.TraverserDirection;
+import io.apicurio.datamodels.models.Document;
+import io.apicurio.registry.content.ContentHandle;
+
 /**
- * @author carnalca@redhat.com
+ * @author eric.wittmann@gmail.com
  */
-public class AvroDereferencer implements ContentDereferencer {
+public class ApicurioDataModelsContentDereferencer implements ContentDereferencer {
 
     @Override
     public ContentHandle dereference(ContentHandle content, Map<String, ContentHandle> resolvedReferences) {
-        final Schema.Parser parser = new Schema.Parser();
-        for (ContentHandle referencedContent : resolvedReferences.values()) {
-            parser.parse(referencedContent.content());
-        }
-        final Schema schema = parser.parse(content.content());
-        return ContentHandle.create(schema.toString());
+        // TODO not yet implemented
+//        Document document = Library.readDocumentFromJSONString(content.content());
+//        Library.dereference(document);
+        return content;
     }
     
     /**
@@ -42,10 +41,9 @@ public class AvroDereferencer implements ContentDereferencer {
      */
     @Override
     public ContentHandle rewriteReferences(ContentHandle content, Map<String, String> resolvedReferenceUrls) {
-        // Avro does not support rewriting references.  A reference in Avro is a QName of a type
-        // defined in another .avsc file.  The location of that other file is not included in the Avro
-        // specification (in other words there is no "import" statement).  So rewriting is meaningless
-        // in Avro.
-        return content;
+        Document doc = Library.readDocumentFromJSONString(content.content());
+        ReferenceRewriter visitor = new ReferenceRewriter(resolvedReferenceUrls);
+        Library.visitTree(doc, visitor, TraverserDirection.down);
+        return ContentHandle.create(Library.writeDocumentToJSONString(doc));
     }
 }

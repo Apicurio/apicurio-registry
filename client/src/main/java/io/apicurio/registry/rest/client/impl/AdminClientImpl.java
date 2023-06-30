@@ -153,6 +153,11 @@ public class AdminClientImpl implements AdminClient {
         apicurioHttpClient.sendRequest(AdminRequestsProvider.importData(data, preserveGlobalIds, preserveContentIds));
     }
 
+    @Override
+    public List<ArtifactTypeInfo> listArtifactTypes() {
+        return apicurioHttpClient.sendRequest(AdminRequestsProvider.listArtifactTypes());
+    }
+
 
     private static RestClientException parseSerializationError(JsonProcessingException ex) {
         final Error error = new Error();

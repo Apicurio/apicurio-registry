@@ -16,6 +16,7 @@
 
 package io.apicurio.registry.rest.client;
 
+import io.apicurio.registry.rest.v2.beans.ArtifactTypeInfo;
 import io.apicurio.registry.rest.v2.beans.LogConfiguration;
 import io.apicurio.registry.rest.v2.beans.NamedLogConfiguration;
 import io.apicurio.registry.rest.v2.beans.RoleMapping;
@@ -68,4 +69,6 @@ public interface AdminClient extends Closeable {
     void importData(InputStream data);
 
     void importData(InputStream data, boolean preserveGlobalIds, boolean preserveContentIds);
+
+    List<ArtifactTypeInfo> listArtifactTypes();
 }

@@ -71,4 +71,6 @@ public class Routes {
 
     protected static final String EXPORT_PATH = ADMIN_BASE_PATH + "/export";
     protected static final String IMPORT_PATH = ADMIN_BASE_PATH + "/import";
+
+    protected static final String LIST_ARTIFACT_PATH = ADMIN_BASE_PATH + "/artifactTypes";
 }

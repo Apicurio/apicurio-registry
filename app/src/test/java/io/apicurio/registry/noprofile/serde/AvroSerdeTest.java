@@ -401,24 +401,24 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
 
     @Test
     public void testReferenceRaw() throws Exception {
-        Schema schema = new Schema.Parser().parse("{\n" +
+        Schema.Parser parser = new Schema.Parser();
+        Schema eventTypeSchema = parser.parse("{\n" +
                 "    \"type\": \"enum\",\n" +
                 "    \"namespace\": \"test\",\n" +
                 "    \"name\": \"EventType\",\n" +
                 "    \"symbols\": [\"CREATED\", \"DELETED\", \"UNDEFINED\", \"UPDATED\"]\n" +
-                "  },\n" +
-                "  {\n" +
-                "    \"type\": \"record\",\n" +
-                "    \"namespace\": \"test\",\n" +
-                "    \"name\": \"ValidateEvent\",\n" +
-                "    \"fields\": [\n" +
-                "     {\n" +
-                "        \"type\": \"EventType\",\n" +
-                "        \"name\": \"eventType\",\n" +
-                "        \"default\": \"UNDEFINED\"\n" +
-                "      }\n" +
-                "]\n" +
-                "}");
+                "  }\n");
+//        Schema schema = parser.parse("{\n" +
+//                "    \"type\": \"record\",\n" +
+//                "    \"namespace\": \"test\",\n" +
+//                "    \"name\": \"ValidateEvent\",\n" +
+//                "    \"fields\": [\n" +
+//                "     {\n" +
+//                "        \"type\": \"EventType\",\n" +
+//                "        \"name\": \"eventType\",\n" +
+//                "        \"default\": \"UNDEFINED\"\n" +
+//                "      }\n" +
+//                "]}");
         try (AvroKafkaSerializer<GenericData.EnumSymbol> serializer = new AvroKafkaSerializer<GenericData.EnumSymbol>(restClient);
              Deserializer<GenericData.EnumSymbol> deserializer = new AvroKafkaDeserializer<>(restClient)) {
 
@@ -432,7 +432,7 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
             config.put(SerdeConfig.ENABLE_HEADERS, "true");
             deserializer.configure(config, false);
 
-            GenericData.EnumSymbol record = new GenericData.EnumSymbol(schema, "UNDEFINED");
+            GenericData.EnumSymbol record = new GenericData.EnumSymbol(eventTypeSchema, "UNDEFINED");
 
             String artifactId = generateArtifactId();
             Headers headers = new RecordHeaders();

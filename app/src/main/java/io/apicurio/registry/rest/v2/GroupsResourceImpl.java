@@ -431,6 +431,10 @@ public class GroupsResourceImpl implements GroupsResource {
         requireParameter("groupId", groupId);
         requireParameter("artifactId", artifactId);
 
+        if (data.getConfig().isEmpty()) {
+            throw new BadRequestException("Invalid_Rule_Name");
+        }
+
         RuleConfigurationDto config = new RuleConfigurationDto();
         config.setConfiguration(data.getConfig());
 

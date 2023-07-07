@@ -5,7 +5,7 @@ include::{mod-loc}shared/all-attributes.adoc[]
 = Managing {registry} content using a Java client
 
 [role="_abstract"]
-This chapter explains how to use the {registry} Java client:
+You can write a {registry} Java client application and use it to manage artifacts stored in {registry}:
 
 * xref:registry-client-intro_{context}[]
 * xref:writing-registry-client_{context}[]

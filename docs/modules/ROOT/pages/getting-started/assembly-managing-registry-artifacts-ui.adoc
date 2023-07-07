@@ -6,7 +6,7 @@ include::{mod-loc}shared/all-attributes.adoc[]
 //If the assembly covers a task, start the title with a verb in the gerund form, such as Creating or Configuring.
 
 [role="_abstract"]
-This chapter explains how to manage schema and API artifacts stored in {registry} by using the {registry} web console. This includes uploading and browsing {registry} content, configuring optional rules for content, and generating client sdk code:
+You can manage schema and API artifacts stored in {registry} by using the {registry} web console. This includes uploading and browsing {registry} content, configuring optional rules for content, and generating client sdk code:
 
 ifdef::apicurio-registry[]
 * xref:configuring-registry-ui_{context}[]

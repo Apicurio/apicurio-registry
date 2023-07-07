@@ -5,12 +5,13 @@ include::{mod-loc}shared/all-attributes.adoc[]
 = Managing {registry} content using the Maven plug-in
 
 [role="_abstract"]
-You can use the {registry} Maven plug-in to manage schema and API artifacts stored in {registry} when developing client applications:
+When developing client applications, you can use the {registry} Maven plug-in to manage schema and API artifacts stored in {registry}:
 
 * xref:adding-artifacts-using-maven-plugin_{context}[]
 * xref:downloading-artifacts-using-maven-plugin_{context}[]
-* xref:adding-artifact-references-using-maven-plugin_{context}[]
 * xref:testing-artifacts-using-maven-plugin_{context}[]
+* xref:adding-artifact-references-manually-using-maven-plugin_{context}[]
+* xref:adding-artifact-references-automatically-using-maven-plugin_{context}[]
 
 .Prerequisites
 * {registry} is installed and running in your environment.
@@ -19,5 +20,7 @@ You can use the {registry} Maven plug-in to manage schema and API artifacts stor
 //INCLUDES
 include::{mod-loc}getting-started/proc-adding-artifacts-using-maven-plugin.adoc[leveloffset=+1]
 include::{mod-loc}getting-started/proc-downloading-artifacts-using-maven-plugin.adoc[leveloffset=+1]
-include::{mod-loc}getting-started/proc-adding-artifact-references-using-maven-plugin.adoc[leveloffset=+1]
 include::{mod-loc}getting-started/proc-testing-artifacts-using-maven-plugin.adoc[leveloffset=+1]
+include::{mod-loc}getting-started/proc-adding-artifact-references-manually-using-maven-plugin.adoc[leveloffset=+1]
+include::{mod-loc}getting-started/proc-adding-artifact-references-automatically-using-maven-plugin.adoc[leveloffset=+1]
+

@@ -185,6 +185,9 @@
         <!-- Default Skip App build value -->
         <skipAppTests>false</skipAppTests>
 
+        <!-- Default Skip Operator build value -->
+        <skipOperatorTests>true</skipOperatorTests>
+
         <!-- Default Skip UI value -->
         <skipUiBuild>false</skipUiBuild>
 
@@ -922,6 +925,10 @@
                                 <property>
                                     <name>skipAppTests</name>
                                     <value>${skipAppTests}</value>
+                                </property>
+                                <property>
+                                    <name>skipOperatorTests</name>
+                                    <value>${skipOperatorTests}</value>
                                 </property>
                             </properties>
                         </configuration>

@@ -16,25 +16,39 @@
 
 package io.apicurio.registry.noprofile.serde;
 
-import static io.apicurio.registry.utils.tests.TestUtils.waitForSchema;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-
-import java.nio.ByteBuffer;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
-import java.util.function.Supplier;
-
 import com.kubetrade.schema.trade.AvroSchemaA;
 import com.kubetrade.schema.trade.AvroSchemaB;
 import com.kubetrade.schema.trade.AvroSchemaC;
 import com.kubetrade.schema.trade.AvroSchemaD;
 import com.kubetrade.schema.trade.AvroSchemaE;
+import com.kubetrade.schema.trade.AvroSchemaF;
+import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.resolver.SchemaResolverConfig;
+import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
+import io.apicurio.registry.rest.client.RegistryClient;
+import io.apicurio.registry.rest.client.RegistryClientFactory;
+import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.serde.SerdeConfig;
 import io.apicurio.registry.serde.SerdeHeaders;
+import io.apicurio.registry.serde.avro.AvroKafkaDeserializer;
+import io.apicurio.registry.serde.avro.AvroKafkaSerdeConfig;
+import io.apicurio.registry.serde.avro.AvroKafkaSerializer;
+import io.apicurio.registry.serde.avro.DefaultAvroDatumProvider;
+import io.apicurio.registry.serde.avro.ReflectAvroDatumProvider;
+import io.apicurio.registry.serde.avro.strategy.QualifiedRecordIdStrategy;
+import io.apicurio.registry.serde.avro.strategy.RecordIdStrategy;
+import io.apicurio.registry.serde.avro.strategy.TopicRecordIdStrategy;
 import io.apicurio.registry.serde.config.IdOption;
+import io.apicurio.registry.support.Tester;
+import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.utils.tests.TestUtils;
+import io.confluent.kafka.schemaregistry.ParsedSchema;
+import io.confluent.kafka.schemaregistry.avro.AvroSchema;
+import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.kafka.serializers.KafkaAvroDeserializer;
+import io.confluent.kafka.serializers.KafkaAvroSerializer;
+import io.quarkus.test.junit.QuarkusTest;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
 import org.apache.kafka.common.header.Header;
@@ -47,29 +61,16 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import io.apicurio.registry.AbstractResourceTestBase;
-import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
-import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.rest.client.RegistryClientFactory;
-import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
-import io.apicurio.registry.serde.avro.AvroKafkaDeserializer;
-import io.apicurio.registry.serde.avro.AvroKafkaSerdeConfig;
-import io.apicurio.registry.serde.avro.AvroKafkaSerializer;
-import io.apicurio.registry.serde.avro.DefaultAvroDatumProvider;
-import io.apicurio.registry.serde.avro.ReflectAvroDatumProvider;
-import io.apicurio.registry.serde.avro.strategy.QualifiedRecordIdStrategy;
-import io.apicurio.registry.serde.avro.strategy.RecordIdStrategy;
-import io.apicurio.registry.serde.avro.strategy.TopicRecordIdStrategy;
-import io.apicurio.registry.support.Tester;
-import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.utils.tests.TestUtils;
-import io.confluent.kafka.schemaregistry.ParsedSchema;
-import io.confluent.kafka.schemaregistry.avro.AvroSchema;
-import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
-import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
-import io.confluent.kafka.serializers.KafkaAvroDeserializer;
-import io.confluent.kafka.serializers.KafkaAvroSerializer;
-import io.quarkus.test.junit.QuarkusTest;
+import java.nio.ByteBuffer;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.function.Supplier;
+
+import static io.apicurio.registry.utils.tests.TestUtils.waitForSchema;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * @author Fabian Martinez
@@ -252,6 +253,10 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
             AvroSchemaC avroSchemaC = new AvroSchemaC();
             AvroSchemaD avroSchemaD = new AvroSchemaD();
             AvroSchemaE avroSchemaE = new AvroSchemaE();
+            AvroSchemaF avroSchemaF = new AvroSchemaF();
+
+            avroSchemaF.setPayload("Fschema");
+            avroSchemaF.setSymbol("Fsymbol");
 
             avroSchemaE.setPayload("ESchema");
             avroSchemaE.setSymbol("ESymbol");
@@ -267,6 +272,9 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
             avroSchemaB.setSchemaA(avroSchemaA);
             avroSchemaB.setSchemaA2(avroSchemaA2);
             avroSchemaB.setKey(UUID.randomUUID().toString());
+            avroSchemaB.setUnionTest(avroSchemaF);
+            avroSchemaB.setArrayTest(List.of(avroSchemaF));
+            avroSchemaB.setMapTest(Map.of("mapKey", avroSchemaF));
 
             String artifactId = generateArtifactId();
 
@@ -288,6 +296,7 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
 
     /**
      * Same test as above but using the dereference configuration to register the schema dereferenced.
+     *
      * @throws Exception
      */
     @Test
@@ -313,6 +322,10 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
             AvroSchemaC avroSchemaC = new AvroSchemaC();
             AvroSchemaD avroSchemaD = new AvroSchemaD();
             AvroSchemaE avroSchemaE = new AvroSchemaE();
+            AvroSchemaF avroSchemaF = new AvroSchemaF();
+
+            avroSchemaF.setPayload("Fschema");
+            avroSchemaF.setSymbol("Fsymbol");
 
             avroSchemaE.setPayload("ESchema");
             avroSchemaE.setSymbol("ESymbol");
@@ -328,6 +341,10 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
             avroSchemaB.setSchemaA(avroSchemaA);
             avroSchemaB.setSchemaA2(avroSchemaA2);
             avroSchemaB.setKey(UUID.randomUUID().toString());
+
+            avroSchemaB.setUnionTest(avroSchemaF);
+            avroSchemaB.setArrayTest(List.of(avroSchemaF));
+            avroSchemaB.setMapTest(Map.of("mapKey", avroSchemaF));
 
             String artifactId = generateArtifactId();
 
@@ -480,8 +497,7 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
         record.put("bar", "somebar");
 
         try (KafkaAvroSerializer serializer1 = new KafkaAvroSerializer(schemaClient);
-                AvroKafkaDeserializer<GenericData.Record> deserializer1 = new AvroKafkaDeserializer<GenericData.Record>(restClient))
-        {
+             AvroKafkaDeserializer<GenericData.Record> deserializer1 = new AvroKafkaDeserializer<GenericData.Record>(restClient)) {
             byte[] bytes = serializer1.serialize(subject, record);
 
             TestUtils.retry(() -> TestUtils.waitForSchema(globalId -> restClient.getContentById(globalId) != null, bytes, bb -> (long) bb.getInt()));
@@ -495,7 +511,7 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
         }
 
         try (KafkaAvroDeserializer deserializer2 = new KafkaAvroDeserializer(schemaClient);
-                AvroKafkaSerializer<GenericData.Record> serializer2 = new AvroKafkaSerializer<GenericData.Record>(restClient)) {
+             AvroKafkaSerializer<GenericData.Record> serializer2 = new AvroKafkaSerializer<GenericData.Record>(restClient)) {
 
             Map<String, String> config = new HashMap<>();
             config.put(SerdeConfig.USE_ID, IdOption.contentId.name());

@@ -4,6 +4,47 @@
   "name": "AvroSchemaB",
   "fields": [
     {
+      "name": "unionTest",
+      "type": [
+        {
+          "namespace": "com.kubetrade.schema.trade",
+          "type": "record",
+          "name": "AvroSchemaF",
+          "fields": [
+            {
+              "name": "symbol",
+              "type": "string"
+            },
+            {
+              "name": "payload",
+              "type": "string"
+            }
+          ]
+        },
+        "null"
+      ]
+    },
+    {
+      "name": "mapTest",
+      "type": {
+        "type": "map",
+        "values": {
+          "name": "schemaFMapValue",
+          "type": "com.kubetrade.schema.trade.AvroSchemaF"
+        }
+      }
+    },
+    {
+      "name": "arrayTest",
+      "type": {
+        "type": "array",
+        "items": {
+          "name": "schemaFArrayValue",
+          "type": "com.kubetrade.schema.trade.AvroSchemaF"
+        }
+      }
+    },
+    {
       "name": "schemaA",
       "type": "com.kubetrade.schema.trade.AvroSchemaA"
     },

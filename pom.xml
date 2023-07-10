@@ -160,14 +160,14 @@
 
         <!-- Schema types -->
         <avro.version>1.11.1</avro.version>
-        <json-schema-validator.version>1.0.85</json-schema-validator.version>
+        <json-schema-validator.version>1.0.86</json-schema-validator.version>
         <wire-schema.version>4.5.5</wire-schema.version>
         <wire-compiler.version>4.3.0</wire-compiler.version>
         <okio-jvm.version>3.3.0</okio-jvm.version>
         <okio.version>3.3.0</okio.version>
         <okio-fake-file-system.version>3.3.0</okio-fake-file-system.version>
         <icu4j.version>73.2</icu4j.version>
-        <protobuf.version>3.23.2</protobuf.version>
+        <protobuf.version>3.23.4</protobuf.version>
         <xmlsec.version>3.0.2</xmlsec.version>
         <protobuf.googleapi.types.version>2.21.0</protobuf.googleapi.types.version>
         <wsdl4j.version>1.6.3</wsdl4j.version>
@@ -217,7 +217,7 @@
         <kafka-oauth-client.version>0.12.0</kafka-oauth-client.version>
         <kafka-clients.version>2.8.1</kafka-clients.version>
         <snakeyaml.version>1.33</snakeyaml.version>
-        <guava.version>32.0.1-jre</guava.version>
+        <guava.version>32.1.1-jre</guava.version>
         <woodstox-core.version>6.5.1</woodstox-core.version>
 
         <!-- Kafka Connect -->
@@ -259,7 +259,7 @@
         <keycloak.testcontainers.version>1.9.0</keycloak.testcontainers.version>
         <keycloak-admin-client.version>21.1.2</keycloak-admin-client.version>
         <embedded-postgres.version>2.0.4</embedded-postgres.version>
-        <strimzi.version>0.103.0</strimzi.version>
+        <strimzi.version>0.104.0</strimzi.version>
         <wiremock-jre8.version>2.35.0</wiremock-jre8.version>
     </properties>
 
@@ -415,6 +415,11 @@
             <dependency>
                 <groupId>io.apicurio</groupId>
                 <artifactId>apicurio-common-app-components-config</artifactId>
+                <version>${apicurio-common-app-components.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-common-app-components-config-definitions</artifactId>
                 <version>${apicurio-common-app-components.version}</version>
             </dependency>
             <dependency>

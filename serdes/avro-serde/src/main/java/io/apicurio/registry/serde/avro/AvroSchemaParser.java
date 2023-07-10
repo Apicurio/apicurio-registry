@@ -16,14 +16,13 @@
 
 package io.apicurio.registry.serde.avro;
 
-import org.apache.avro.Schema;
-
 import io.apicurio.registry.resolver.ParsedSchema;
 import io.apicurio.registry.resolver.ParsedSchemaImpl;
 import io.apicurio.registry.resolver.SchemaParser;
 import io.apicurio.registry.resolver.data.Record;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.IoUtil;
+import org.apache.avro.Schema;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -65,9 +64,7 @@ public class AvroSchemaParser<U> implements SchemaParser<Schema, U> {
     @Override
     public ParsedSchema<Schema> getSchemaFromData(Record<U> data) {
         Schema schema = avroDatumProvider.toSchema(data.payload());
-
-        final List<ParsedSchema<Schema>> resolvedReferences = schema.getType() != Schema.Type.ENUM ? handleReferences(schema.getFields()) : Collections.emptyList();
-
+        final List<ParsedSchema<Schema>> resolvedReferences = handleReferences(schema);
         return new ParsedSchemaImpl<Schema>()
                 .setParsedSchema(schema)
                 .setReferenceName(schema.getFullName())
@@ -92,12 +89,75 @@ public class AvroSchemaParser<U> implements SchemaParser<Schema, U> {
         }
     }
 
-    private List<ParsedSchema<Schema>> handleReferences(List<Schema.Field> schemaFields) {
+    private List<ParsedSchema<Schema>> handleReferences(Schema schema) {
         final List<ParsedSchema<Schema>> schemaReferences = new ArrayList<>();
-        for (Schema.Field field: schemaFields) {
+        switch (schema.getType()) {
+            case RECORD:
+                schemaReferences.addAll(handleRecord(schema));
+                break;
+            case UNION:
+                schemaReferences.addAll(handleUnion(schema));
+                break;
+            case ENUM:
+                schemaReferences.add(handleEnum(schema));
+                break;
+            case MAP:
+                schemaReferences.addAll(handleMap(schema));
+                break;
+            case ARRAY:
+                schemaReferences.addAll(handleArray(schema));
+                break;
+        }
+
+        return schemaReferences;
+    }
+
+    private List<ParsedSchema<Schema>> handleUnion(Schema schema) {
+        final List<ParsedSchema<Schema>> schemaReferences = new ArrayList<>();
+        for (Schema type : schema.getTypes()) {
+            if (isComplexType(type.getType())) {
+                addComplexTypeSubSchema(schemaReferences, type);
+            }
+        }
+        return schemaReferences;
+    }
+
+    private List<ParsedSchema<Schema>> handleMap(Schema schema) {
+        final List<ParsedSchema<Schema>> schemaReferences = new ArrayList<>();
+        final Schema elementSchema = schema.getValueType();
+        if (isComplexType(schema.getValueType().getType())) {
+            addComplexTypeSubSchema(schemaReferences, elementSchema);
+        }
+
+        return schemaReferences;
+    }
+
+    private List<ParsedSchema<Schema>> handleArray(Schema schema) {
+        final List<ParsedSchema<Schema>> schemaReferences = new ArrayList<>();
+        final Schema elementSchema = schema.getElementType();
+        if (isComplexType(schema.getElementType().getType())) {
+            addComplexTypeSubSchema(schemaReferences, elementSchema);
+        }
+
+        return schemaReferences;
+    }
+
+    private void addComplexTypeSubSchema(List<ParsedSchema<Schema>> schemaReferences, Schema elementSchema) {
+        if (elementSchema.getType().equals(Schema.Type.ENUM)) {
+            schemaReferences.add(parseSchema(elementSchema, Collections.emptyList()));
+        } else if (elementSchema.getType().equals(Schema.Type.RECORD)) {
+            List<ParsedSchema<Schema>> nestedReferences = new ArrayList<>(handleReferences(elementSchema));
+            schemaReferences.add(parseSchema(elementSchema, nestedReferences));
+        }
+    }
+
+
+    private List<ParsedSchema<Schema>> handleRecord(Schema schema) {
+        final List<ParsedSchema<Schema>> schemaReferences = new ArrayList<>();
+        for (Schema.Field field : schema.getFields()) {
             if (field.schema().getType().equals(Schema.Type.RECORD)) {
 
-                final List<ParsedSchema<Schema>> parsedSchemas = handleReferences(field.schema().getFields());
+                final List<ParsedSchema<Schema>> parsedSchemas = handleReferences(field.schema());
 
                 byte[] rawSchema = IoUtil.toBytes(field.schema().toString(parsedSchemas.stream().map(ParsedSchema::getParsedSchema).collect(Collectors.toSet()), false));
 
@@ -108,19 +168,44 @@ public class AvroSchemaParser<U> implements SchemaParser<Schema, U> {
                         .setRawSchema(rawSchema);
 
                 schemaReferences.add(referencedSchema);
+            } else if (field.schema().getType().equals(Schema.Type.UNION)) {
+                schemaReferences.addAll(handleUnion(field.schema()));
+
+            } else if (field.schema().getType().equals(Schema.Type.ARRAY)) {
+                schemaReferences.addAll(handleArray(field.schema()));
+
+            } else if (field.schema().getType().equals(Schema.Type.MAP)) {
+                schemaReferences.addAll(handleMap(field.schema()));
+
             } else if (field.schema().getType().equals(Schema.Type.ENUM)) {
-                byte[] rawSchema = IoUtil.toBytes(field.schema().toString());
-
-                ParsedSchema<Schema> referencedSchema = new ParsedSchemaImpl<Schema>()
-                        .setParsedSchema(field.schema())
-                        .setReferenceName(field.schema().getFullName())
-                        .setSchemaReferences(Collections.emptyList())
-                        .setRawSchema(rawSchema);
-
-                schemaReferences.add(referencedSchema);
+                schemaReferences.add(handleEnum(field.schema()));
             }
         }
+
         return schemaReferences;
     }
 
+    private ParsedSchema<Schema> parseSchema(Schema schema, List<ParsedSchema<Schema>> schemaReferences) {
+        byte[] rawSchema = IoUtil.toBytes(schema.toString(schemaReferences.stream().map(ParsedSchema::getParsedSchema).collect(Collectors.toSet()), false));
+
+        return new ParsedSchemaImpl<Schema>()
+                .setParsedSchema(schema)
+                .setReferenceName(schema.getFullName())
+                .setSchemaReferences(schemaReferences)
+                .setRawSchema(rawSchema);
+    }
+
+    private ParsedSchema<Schema> handleEnum(Schema schema) {
+        byte[] rawSchema = IoUtil.toBytes(schema.toString());
+
+        return new ParsedSchemaImpl<Schema>()
+                .setParsedSchema(schema)
+                .setReferenceName(schema.getFullName())
+                .setSchemaReferences(Collections.emptyList())
+                .setRawSchema(rawSchema);
+    }
+
+    public boolean isComplexType(Schema.Type type) {
+        return type == Schema.Type.ARRAY || type == Schema.Type.MAP || type == Schema.Type.RECORD || type == Schema.Type.ENUM || type == Schema.Type.UNION;
+    }
 }

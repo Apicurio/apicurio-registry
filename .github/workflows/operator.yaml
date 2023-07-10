@@ -48,4 +48,4 @@ jobs:
       - name: Run the tests in remote mode
         run: |
           ./mvnw clean package -P '!external_repos' -pl operator/controller -am -Dquarkus.container-image.build=true
-          ./mvnw clean verify -P '!external_repos' -pl operator/controller -am -Dtest.operator.deployment=remote -Dtest.operator.deployment-target=minikube
+          ./mvnw clean verify -P '!external_repos' -DskipOperatorTests=false -pl operator/controller -am -Dtest.operator.deployment=remote -Dtest.operator.deployment-target=minikube

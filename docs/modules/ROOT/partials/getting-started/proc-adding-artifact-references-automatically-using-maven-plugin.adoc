@@ -7,9 +7,9 @@
 [role="_abstract"]
 {registry} artifact types such as Apache Avro, Google Protobuf, and JSON Schema can include _artifact references_ from one artifact file to another. You can create efficiencies by defining reusable schema or API artifacts, and then referencing them from multiple locations in artifact references.
 
-You can specify a single parent artifact and configure the Maven plugin to automatically detect all references to child artifacts located in the same directory, and automatically register them.
+You can specify a single artifact and configure the {registry} Maven plugin to automatically detect all references to artifacts located in the same directory, and to automatically register those references.
 
-This section shows a simple example of using the {registry} Maven plug-in to register a parent Avro schema and automatically detect and register an artifact reference to a simple child schema artifact. This example assumes that the parent `TradeKey` and nested `Exchange` schema artifacts are both available in the same directory:
+This section shows a simple example of using the Maven plug-in to register an Avro schema and automatically detect and register an artifact reference to a simple schema artifact. This example assumes that the parent `TradeKey` artifact and the nested `Exchange` schema artifact are both available in the same directory:
 
 .TradeKey schema with nested reference to Exchange schema
 [source,json]
@@ -94,8 +94,8 @@ endif::[]
 ifdef::rh-openshift-sr[]
 <3> Specify your service account ID and secret and the {org-name} Single Sign-On authentication server: `{sso-token-url}`
 endif::[]
-<4> Specify the parent artifact group ID. You can specify the `default` group if you do not want to use a unique group ID.
-<5> Specify the location of the parent artifact file. The referenced artifacts must also be located in the same directory. 
+<4> Specify the parent artifact group ID that contains the references. You can specify the `default` group if you do not want to use a unique group ID.
+<5> Specify the location of the parent artifact file. All referenced artifacts must also be located in the same directory. 
 <6> Set the `<analyzeDirectory>` option to true to automatically detect and register all references to artifacts in the same directory. You can register multiple artifact references in this way.
 
 . Build your Maven project, for example, by using the `mvn package` command. 

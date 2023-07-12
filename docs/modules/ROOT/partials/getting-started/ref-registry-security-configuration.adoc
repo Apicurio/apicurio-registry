@@ -78,13 +78,13 @@ By default, {registry} supports authentication using OpenID Connect. Users or AP
 |===
 
 [discrete]
-=== {registry} HTTP basic client credentials token expiry 
+=== {registry} HTTP basic client credentials cache expiry 
 
-You can also configure the HTTP basic client credentials token expiry time. By default, when using HTTP basic authentication, {registry} caches the JWT token, and does not issue a new token when there is no need. You can configure the cache expiry time for JWT tokens, which is set to 10 mins by default. 
+You can also configure the HTTP basic client credentials cache expiry time. By default, when using HTTP basic authentication, {registry} caches JWT tokens, and does not issue a new token when there is no need. You can configure the cache expiry time for JWT tokens, which is set to 10 mins by default. 
 
-When using {keycloak}, it is best to set configuration variable to your {keycloak} JWT expiry time minus 1 minute. For example, if you have the expiration time set to `5` mins in {keycloak}, you should set the following configuration option to `4` mins:
+When using {keycloak}, it is best to set this configuration to your {keycloak} JWT expiry time minus one minute. For example, if you have the expiry time set to `5` mins in {keycloak}, you should set the following configuration option to `4` mins:
 
-.Configuration for HTTP basic client credentials token expiry
+.Configuration for HTTP basic client credentials cache expiry
 [%header,cols="4,4,1,1"]
 |===
 |Environment variable

@@ -24,7 +24,7 @@ Located under `integration-tests`. We have a set of tests for the current versio
 This set of tests are mainly designed to work in two different modes:
 
 + Apicurio Registry and required infrastructure deployed locally (processes, docker containers, mocks, ...) by the testsuite
-+ Apicurio Registry and required infrasturcture are deployed externally and connection details have to be provided in order to execute the tests.
++ Apicurio Registry and required infrastructure are deployed externally and connection details have to be provided in order to execute the tests.
 
 ### ITs with local infrastructure
 

@@ -61,10 +61,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 @QuarkusIntegrationTest
 public class AvroSerdeIT extends ApicurioRegistryBaseIT {
 
-    private KafkaFacade kafkaCluster = KafkaFacade.getInstance();
+    private final KafkaFacade kafkaCluster = KafkaFacade.getInstance();
 
-    private Class<AvroKafkaSerializer> serializer = AvroKafkaSerializer.class;
-    private Class<AvroKafkaDeserializer> deserializer = AvroKafkaDeserializer.class;
+    private final Class<AvroKafkaSerializer> serializer = AvroKafkaSerializer.class;
+    private final Class<AvroKafkaDeserializer> deserializer = AvroKafkaDeserializer.class;
 
     @BeforeAll
     void setupEnvironment() {

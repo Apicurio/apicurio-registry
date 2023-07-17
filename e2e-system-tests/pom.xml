@@ -133,6 +133,11 @@
             <artifactId>apicurio-registry-utils-import-export</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>io.vertx</groupId>
+            <artifactId>vertx-core</artifactId>
+            <scope>test</scope>
+        </dependency>
 
     </dependencies>
     <build>

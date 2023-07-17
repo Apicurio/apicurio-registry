@@ -128,6 +128,11 @@
             <artifactId>commons-io</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>io.apicurio</groupId>
+            <artifactId>apicurio-registry-utils-import-export</artifactId>
+            <scope>test</scope>
+        </dependency>
 
     </dependencies>
     <build>

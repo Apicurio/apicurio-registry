@@ -25,6 +25,7 @@ import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import io.quarkus.runtime.Startup;
 import org.slf4j.Logger;
 import io.apicurio.registry.events.dto.RegistryEventType;
 import io.quarkus.runtime.StartupEvent;
@@ -36,12 +37,14 @@ import io.vertx.core.eventbus.EventBus;
 /**
  * @author Fabian Martinez
  */
+@Startup
 @ApplicationScoped
 public class EventsServiceImpl implements EventsService {
 
     private static final String INTERNAL_EVENTS_ADDRESS = "registry-events";
 
     private ObjectMapper mapper;
+    private boolean initDone = false;
     private boolean configuredSinks = false;
 
     @Inject
@@ -64,6 +67,12 @@ public class EventsServiceImpl implements EventsService {
                 configuredSinks = true;
             }
         }
+        initDone = true;
+    }
+
+    @Override
+    public boolean isReady() {
+        return initDone;
     }
 
     @Override

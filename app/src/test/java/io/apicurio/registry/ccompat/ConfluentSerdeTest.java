@@ -40,7 +40,6 @@ public class ConfluentSerdeTest extends AbstractResourceTestBase {
         Properties properties = new Properties();
         String serverUrl = "http://localhost:%s/apis/ccompat/v6";
         properties.setProperty(KafkaProtobufSerializerConfig.SCHEMA_REGISTRY_URL_CONFIG, String.format(serverUrl, testPort));
-
         properties.setProperty(KafkaProtobufSerializerConfig.AUTO_REGISTER_SCHEMAS, "true");
 
         KafkaProtobufSerializer kafkaProtobufSerializer = new KafkaProtobufSerializer();

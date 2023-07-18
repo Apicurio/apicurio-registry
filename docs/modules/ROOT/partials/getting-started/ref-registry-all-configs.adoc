@@ -93,6 +93,11 @@ This section contains a list of the configuration options available for {registr
 |`false`
 |`2.1.0.Final`
 |Enable basic auth client credentials
+|`registry.auth.basic-auth.scope`
+|`optional<string>`
+|
+|`2.5.0.Final`
+|Client credentials scope.
 |`registry.auth.client-id`
 |`string`
 |
@@ -477,6 +482,11 @@ This section contains a list of the configuration options available for {registr
 |`boolean`
 |`false`
 |`2.0.0.Final`
+|Enable multitenancy
+|`registry.enable.multitenancy.standalone`
+|`boolean`
+|`false`
+|`2.5.0.Final`
 |Enable multitenancy
 |`registry.multitenancy.authorization.enabled`
 |`boolean`

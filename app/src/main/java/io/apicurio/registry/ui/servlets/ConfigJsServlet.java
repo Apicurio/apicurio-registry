@@ -16,32 +16,30 @@
 
 package io.apicurio.registry.ui.servlets;
 
-import java.io.IOException;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
+import com.fasterxml.jackson.core.JsonEncoding;
+import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.apicurio.registry.auth.AuthConfig;
+import io.apicurio.registry.ui.URLUtil;
+import io.apicurio.registry.ui.beans.ConfigJs;
+import io.apicurio.registry.ui.config.UiConfigProperties;
+import io.apicurio.registry.utils.StringUtil;
+import io.quarkus.security.identity.SecurityIdentity;
 
 import javax.inject.Inject;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-
-import com.fasterxml.jackson.annotation.JsonInclude.Include;
-import com.fasterxml.jackson.core.JsonEncoding;
-import com.fasterxml.jackson.core.JsonFactory;
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import io.apicurio.registry.auth.AuthConfig;
-import io.apicurio.registry.ui.beans.ConfigJs;
-import io.apicurio.registry.ui.config.UiConfigProperties;
-import io.apicurio.registry.utils.StringUtil;
-import io.quarkus.security.identity.SecurityIdentity;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
 
 /**
  * Generates the 'config.js' file imported by the UI.
+ *
  * @author eric.wittmann@gmail.com
  */
 public class ConfigJsServlet extends HttpServlet {
@@ -56,6 +54,9 @@ public class ConfigJsServlet extends HttpServlet {
 
     @Inject
     AuthConfig authConfig;
+
+    @Inject
+    URLUtil urlUtil;
 
     /**
      * @see javax.servlet.http.HttpServlet#doGet(javax.servlet.http.HttpServletRequest, javax.servlet.http.HttpServletResponse)
@@ -97,6 +98,7 @@ public class ConfigJsServlet extends HttpServlet {
 
     /**
      * Configure the auth settings.
+     *
      * @param config
      */
     private void configureAuth(ConfigJs config) {
@@ -123,46 +125,14 @@ public class ConfigJsServlet extends HttpServlet {
 
     /**
      * Generates a URL that the caller can use to access the API.
+     *
      * @param request
      */
     private String generateApiUrl(HttpServletRequest request) {
-        String apiRelativePath = "/apis/registry";
-        try {
-            String apiUrl = uiConfig.getApiUrl();
-            if (!"_".equals(apiUrl) && !StringUtil.isEmpty(apiUrl)) {
-                return apiUrl;
-            }
-
-            String url = resolveUrlFromXForwarded(request, apiRelativePath);
-            if (url != null) {
-                return url;
-            }
-
-            url = request.getRequestURL().toString();
-            url = new URI(url).resolve(apiRelativePath).toString();
-            if (url.startsWith("http:") && request.isSecure()) {
-                url = url.replaceFirst("http", "https");
-            }
-            return url;
-        } catch (URISyntaxException e) {
-            throw new RuntimeException(e);
+        String apiUrl = uiConfig.getApiUrl();
+        if (!"_".equals(apiUrl) && !StringUtil.isEmpty(apiUrl)) {
+            return apiUrl;
         }
+        return urlUtil.getExternalAbsoluteURL(request, "/apis/registry").toString();
     }
-
-    /**
-     * Resolves a URL path relative to the information found in X-Forwarded-Host and X-Forwarded-Proto.
-     * @param path
-     */
-    private String resolveUrlFromXForwarded(HttpServletRequest request, String path) {
-        try {
-            String fproto = request.getHeader("X-Forwarded-Proto");
-            String fhost = request.getHeader("X-Forwarded-Host");
-            if (!StringUtil.isEmpty(fproto) && !StringUtil.isEmpty(fhost)) {
-                return new URI(fproto + "://" + fhost).resolve(path).toString();
-            }
-        } catch (URISyntaxException e) {
-        }
-        return null;
-    }
-
 }

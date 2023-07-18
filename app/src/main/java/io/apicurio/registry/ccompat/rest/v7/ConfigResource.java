@@ -18,11 +18,13 @@ package io.apicurio.registry.ccompat.rest.v7;
 
 import io.apicurio.registry.ccompat.dto.CompatibilityLevelDto;
 import io.apicurio.registry.ccompat.dto.CompatibilityLevelParamDto;
+import io.apicurio.registry.rest.Headers;
 
 import javax.validation.constraints.NotNull;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
+import javax.ws.rs.HeaderParam;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
@@ -102,7 +104,7 @@ public interface ConfigResource {
      */
     @Path("/{subject}")
     @GET
-    CompatibilityLevelParamDto getSubjectCompatibilityLevel(@PathParam("subject") String subject);
+    CompatibilityLevelParamDto getSubjectCompatibilityLevel(@PathParam("subject") String subject, @HeaderParam(Headers.GROUP_ID) String groupId);
 
     /**
      * Update compatibility level for the specified subject.
@@ -124,7 +126,7 @@ public interface ConfigResource {
     @PUT
     CompatibilityLevelDto updateSubjectCompatibilityLevel(
             @PathParam("subject") String subject,
-            @NotNull CompatibilityLevelDto request);
+            @NotNull CompatibilityLevelDto request, @HeaderParam(Headers.GROUP_ID) String groupId);
 
     /**
      * Deletes the specified subject-level compatibility level config and reverts to the global default.
@@ -141,5 +143,5 @@ public interface ConfigResource {
     @Path("/{subject}")
     @DELETE
     CompatibilityLevelParamDto deleteSubjectCompatibility(
-            @PathParam("subject") String subject);
+            @PathParam("subject") String subject, @HeaderParam(Headers.GROUP_ID) String groupId);
 }

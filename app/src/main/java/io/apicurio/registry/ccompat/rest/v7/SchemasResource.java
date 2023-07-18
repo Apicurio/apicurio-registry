@@ -18,9 +18,11 @@ package io.apicurio.registry.ccompat.rest.v7;
 
 import io.apicurio.registry.ccompat.dto.SchemaInfo;
 import io.apicurio.registry.ccompat.dto.SubjectVersion;
+import io.apicurio.registry.rest.Headers;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
+import javax.ws.rs.HeaderParam;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
@@ -68,7 +70,7 @@ public interface SchemasResource {
      */
     @GET
     @Path("/ids/{id}")
-    SchemaInfo getSchema(@PathParam("id") int id, @QueryParam("subject") String subject);
+    SchemaInfo getSchema(@PathParam("id") int id, @QueryParam("subject") String subject, @HeaderParam(Headers.GROUP_ID) String groupId);
 
     // ----- Path: /schemas/types -----
 

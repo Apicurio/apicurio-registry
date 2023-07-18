@@ -41,24 +41,24 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
 
     @Override
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
-    public List<String> listSubjects(String subjectPrefix, Boolean deleted) {
+    public List<String> listSubjects(String subjectPrefix, Boolean deleted, String groupId) {
         //Since contexts are not supported, subjectPrefix is not used
         final boolean fdeleted = deleted == null ? Boolean.FALSE : deleted;
-        return facade.getSubjects(fdeleted);
+        return facade.getSubjects(fdeleted, groupId);
     }
 
     @Override
     @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Read)
-    public Schema findSchemaByContent(String subject, SchemaInfo request, Boolean normalize) throws Exception {
+    public Schema findSchemaByContent(String subject, SchemaInfo request, Boolean normalize, String groupId) throws Exception {
         final boolean fnormalize = normalize == null ? Boolean.FALSE : normalize;
-        return facade.getSchema(subject, request, fnormalize);
+        return facade.getSchemaNormalize(subject, request, fnormalize, groupId);
     }
 
     @Override
     @Audited(extractParameters = {"0", KEY_ARTIFACT_ID})
     @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Write)
-    public List<Integer> deleteSubject(String subject, Boolean permanent) throws Exception {
+    public List<Integer> deleteSubject(String subject, Boolean permanent, String groupId) throws Exception {
         final boolean fpermanent = permanent == null ? Boolean.FALSE : permanent;
-        return facade.deleteSubject(subject, fpermanent);
+        return facade.deleteSubject(subject, fpermanent, groupId);
     }
 }

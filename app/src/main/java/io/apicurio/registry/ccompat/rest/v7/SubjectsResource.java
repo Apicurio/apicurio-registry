@@ -18,11 +18,13 @@ package io.apicurio.registry.ccompat.rest.v7;
 
 import io.apicurio.registry.ccompat.dto.Schema;
 import io.apicurio.registry.ccompat.dto.SchemaInfo;
+import io.apicurio.registry.rest.Headers;
 
 import javax.validation.constraints.NotNull;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
+import javax.ws.rs.HeaderParam;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
@@ -65,7 +67,7 @@ public interface SubjectsResource {
      *         Error code 50001 – Error in the backend datastore
      */
     @GET
-    List<String> listSubjects(@QueryParam("subjectPrefix") String subjectPrefix, @QueryParam("deleted") Boolean deleted);
+    List<String> listSubjects(@QueryParam("subjectPrefix") String subjectPrefix, @QueryParam("deleted") Boolean deleted, @HeaderParam(Headers.GROUP_ID) String groupId);
 
     // ----- Path: /subjects/{subject} -----
 
@@ -97,7 +99,7 @@ public interface SubjectsResource {
     @Path("/{subject}")
     Schema findSchemaByContent(
             @PathParam("subject") String subject,
-            @NotNull SchemaInfo request, @QueryParam("normalize") Boolean normalize) throws Exception;
+            @NotNull SchemaInfo request, @QueryParam("normalize") Boolean normalize, @HeaderParam(Headers.GROUP_ID) String groupId) throws Exception;
 
     /**
      * Deletes the specified subject and its associated compatibility level if registered.
@@ -123,5 +125,5 @@ public interface SubjectsResource {
     @DELETE
     @Path("/{subject}")
     List<Integer> deleteSubject(
-            @PathParam("subject") String subject, @QueryParam("permanent") Boolean permanent) throws Exception;
+            @PathParam("subject") String subject, @QueryParam("permanent") Boolean permanent, @HeaderParam(Headers.GROUP_ID) String groupId) throws Exception;
 }

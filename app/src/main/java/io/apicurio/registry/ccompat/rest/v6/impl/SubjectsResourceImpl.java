@@ -49,7 +49,7 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
     @Override
     @Authorized(style=AuthorizedStyle.ArtifactOnly, level=AuthorizedLevel.Read)
     public Schema findSchemaByContent(String subject, SchemaInfo request) throws Exception {
-        return facade.getSchema(subject, request, false);
+        return facade.getSchemaNormalize(subject, request, false);
     }
 
     @Override

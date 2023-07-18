@@ -17,6 +17,7 @@
 package io.apicurio.registry.noprofile.ccompat.rest.v7;
 
 import io.apicurio.registry.noprofile.ccompat.rest.v6.ConfluentClientTest;
+import io.apicurio.registry.rest.Headers;
 import io.apicurio.registry.support.TestCmmn;
 import io.confluent.kafka.schemaregistry.SchemaProvider;
 import io.confluent.kafka.schemaregistry.avro.AvroSchemaProvider;
@@ -48,7 +49,7 @@ public class ConfluentClientV7Test extends ConfluentClientTest {
     public SchemaRegistryClient buildClient() {
         final List<SchemaProvider> schemaProviders = Arrays
                 .asList(new JsonSchemaProvider(), new AvroSchemaProvider(), new ProtobufSchemaProvider());
-        return new CachedSchemaRegistryClient(new RestService("http://localhost:" + testPort + "/apis/ccompat/v7"), 3, schemaProviders, null, null);
+        return new CachedSchemaRegistryClient(new RestService("http://localhost:" + testPort + "/apis/ccompat/v7"), 3, schemaProviders, null, Map.of(Headers.GROUP_ID, "confluentV7-test-group"));
     }
 
     @Test

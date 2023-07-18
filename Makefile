@@ -256,7 +256,6 @@ mem-multiarch-images:
 	@echo "------------------------------------------------------------------------"
 	docker buildx build --push -f $(DOCKERFILE_LOCATION)/$(MEM_DOCKERFILE) -t $(IMAGE_REPO)/apicurio/apicurio-registry-mem:$(IMAGE_TAG) --platform $(IMAGE_PLATFORMS) $(DOCKER_BUILD_WORKSPACE)
 
-
 .PHONY: sql-multiarch-images ## Builds and pushes multi-arch images for 'sql' storage variant. Variables available for override [SQL_DOCKERFILE, IMAGE_REPO, IMAGE_TAG, DOCKER_BUILD_WORKSPACE]
 sql-multiarch-images:
 	@echo "------------------------------------------------------------------------"
@@ -287,8 +286,8 @@ kafkasql-multiarch-images:
 	@echo "------------------------------------------------------------------------"
 	docker buildx build --push -f $(DOCKERFILE_LOCATION)/$(KAFKASQL_DOCKERFILE) -t $(IMAGE_REPO)/apicurio/apicurio-registry-kafkasql:$(IMAGE_TAG) --platform $(IMAGE_PLATFORMS) $(DOCKER_BUILD_WORKSPACE)
 
-.PHONY: kafkasql-multiarch-images ## Builds and pushes multi-arch images for mem storage variant based on scratch. Variables available for override [MEM_SCRATCH_DOCKERFILE, IMAGE_REPO, IMAGE_TAG, DOCKER_BUILD_WORKSPACE]
-kafkasql-multiarch-images:
+.PHONY: mem-native-scratch-image ## Builds and pushes multi-arch images for mem storage variant based on scratch. Variables available for override [MEM_SCRATCH_DOCKERFILE, IMAGE_REPO, IMAGE_TAG, DOCKER_BUILD_WORKSPACE]
+mem-native-scratch-image:
 	@echo "------------------------------------------------------------------------"
 	@echo " Building Multi-arch Images For Mem Storage Variant on Scratch"
 	@echo " Supported Platforms: $(IMAGE_PLATFORMS)"
@@ -298,9 +297,7 @@ kafkasql-multiarch-images:
 	docker buildx build --push -f $(DOCKERFILE_LOCATION)/$(MEM_SCRATCH_DOCKERFILE) -t $(IMAGE_REPO)/apicurio/apicurio-registry-mem-native-scratch:$(IMAGE_TAG) --platform $(IMAGE_PLATFORMS) $(DOCKER_BUILD_WORKSPACE)
 
 .PHONY: multiarch-registry-images ## Builds and pushes multi-arch registry images for all variants. Variables available for override [IMAGE_REPO, IMAGE_TAG]
-multiarch-registry-images: mem-multiarch-images sql-multiarch-images mssql-multiarch-images kafkasql-multiarch-images build-mem-native-scratch-image
-
-
+multiarch-registry-images: mem-multiarch-images sql-multiarch-images mssql-multiarch-images kafkasql-multiarch-images mem-native-scratch-image
 
 
 

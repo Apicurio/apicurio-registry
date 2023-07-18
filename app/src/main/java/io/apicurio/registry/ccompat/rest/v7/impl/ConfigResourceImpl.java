@@ -96,28 +96,28 @@ public class ConfigResourceImpl extends AbstractResource implements ConfigResour
     @Override
     @Audited(extractParameters = {"0", AuditingConstants.KEY_ARTIFACT_ID, "1", AuditingConstants.KEY_RULE})
     @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Write)
-    public CompatibilityLevelDto updateSubjectCompatibilityLevel(String subject, CompatibilityLevelDto request) {
+    public CompatibilityLevelDto updateSubjectCompatibilityLevel(String subject, CompatibilityLevelDto request, String groupId) {
         updateCompatibilityLevel(request.getCompatibility(),
-                dto -> facade.createOrUpdateArtifactRule(subject, RuleType.COMPATIBILITY, dto),
-                () -> facade.deleteArtifactRule(subject, RuleType.COMPATIBILITY));
+                dto -> facade.createOrUpdateArtifactRule(subject, RuleType.COMPATIBILITY, dto, groupId),
+                () -> facade.deleteArtifactRule(subject, RuleType.COMPATIBILITY, groupId));
         return request;
     }
 
     @Override
     @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Read)
-    public CompatibilityLevelParamDto getSubjectCompatibilityLevel(String subject) {
+    public CompatibilityLevelParamDto getSubjectCompatibilityLevel(String subject, String groupId) {
         return getCompatibilityLevel(() ->
-                facade.getArtifactRule(subject, RuleType.COMPATIBILITY).getConfiguration());
+                facade.getArtifactRule(subject, RuleType.COMPATIBILITY, groupId).getConfiguration());
     }
 
     @Override
     @Audited(extractParameters = {"0", AuditingConstants.KEY_ARTIFACT_ID})
     @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Write)
-    public CompatibilityLevelParamDto deleteSubjectCompatibility(String subject) {
+    public CompatibilityLevelParamDto deleteSubjectCompatibility(String subject, String groupId) {
         final CompatibilityLevelParamDto compatibilityLevel = getCompatibilityLevel(() ->
-                facade.getArtifactRule(subject, RuleType.COMPATIBILITY).getConfiguration());
+                facade.getArtifactRule(subject, RuleType.COMPATIBILITY, groupId).getConfiguration());
         if (!CompatibilityLevel.NONE.name().equals(compatibilityLevel.getCompatibilityLevel())) {
-            facade.deleteArtifactRule(subject, RuleType.COMPATIBILITY);
+            facade.deleteArtifactRule(subject, RuleType.COMPATIBILITY, groupId);
         }
         return compatibilityLevel;
     }

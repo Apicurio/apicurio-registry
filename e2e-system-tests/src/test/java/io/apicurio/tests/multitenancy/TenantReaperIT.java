@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Red Hat
+ * Copyright 2023 Red Hat
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,18 +13,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package io.apicurio.tests.multitenancy;
 
-import io.apicurio.tenantmanager.api.datamodel.TenantStatusValue;
-import io.apicurio.tenantmanager.api.datamodel.UpdateApicurioTenantRequest;
-import io.apicurio.tenantmanager.client.TenantManagerClient;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.exception.RestClientException;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.utils.tests.MultitenancyNoAuthTestProfile;
 import io.apicurio.registry.utils.tests.TestUtils;
-import io.apicurio.tests.common.ApicurioRegistryBaseIT;
-import io.apicurio.tests.common.Constants;
+import io.apicurio.tenantmanager.api.datamodel.TenantStatusValue;
+import io.apicurio.tenantmanager.api.datamodel.UpdateApicurioTenantRequest;
+import io.apicurio.tenantmanager.client.TenantManagerClient;
+import io.apicurio.tests.ApicurioRegistryBaseIT;
+import io.apicurio.tests.utils.Constants;
+import io.apicurio.tests.utils.TenantManagerTestResource;
+import io.quarkus.test.common.QuarkusTestResource;
+import io.quarkus.test.junit.QuarkusIntegrationTest;
+import io.quarkus.test.junit.TestProfile;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -34,26 +40,29 @@ import org.slf4j.LoggerFactory;
 import java.io.ByteArrayInputStream;
 import java.util.ArrayList;
 import java.util.List;
+
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-/**
- * @author Fabian Martinez
- * @author Jakub Senko <em>m@jsenko.net</em>
- */
 @Tag(Constants.MULTITENANCY)
+@QuarkusIntegrationTest
+@TestProfile(MultitenancyNoAuthTestProfile.class)
+@QuarkusTestResource(value = TenantManagerTestResource.class, restrictToAnnotatedClass = true)
 public class TenantReaperIT extends ApicurioRegistryBaseIT {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(TenantReaperIT.class);
 
     private static String groupId = "testGroup";
 
+    @Override
+    public void cleanArtifacts() throws Exception {
+        //Don't clean up
+    }
+
     @Test
     public void testTenantReaper() throws Exception {
         try {
-            MultitenancySupport mt = new MultitenancySupport();
-
+            MultitenancySupport mt = new MultitenancySupport("http://localhost:8585", ApicurioRegistryBaseIT.getRegistryBaseUrl());
             List<TenantUserClient> tenants = new ArrayList<>(55);
-
             TenantManagerClient tenantManager = mt.getTenantManagerClient();
 
             // Create 55 tenants to force use of pagination (currently 50), and some data
@@ -138,5 +147,4 @@ public class TenantReaperIT extends ApicurioRegistryBaseIT {
         tenantManager.updateTenant(tenantId, request);
         TestUtils.retry(() -> Assertions.assertEquals(status, tenantManager.getTenant(tenantId).getStatus()));
     }
-
 }

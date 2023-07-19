@@ -17,7 +17,7 @@
 package io.apicurio.tests.multitenancy;
 
 /**
- * @author Fabian Martinez
+ * @author Carles Arnal
  */
 public class TenantUser {
 

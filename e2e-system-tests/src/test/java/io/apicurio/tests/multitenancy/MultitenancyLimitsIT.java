@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Red Hat
+ * Copyright 2023 Red Hat
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,25 +16,24 @@
 
 package io.apicurio.tests.multitenancy;
 
-import io.apicurio.tenantmanager.api.datamodel.NewApicurioTenantRequest;
-import io.apicurio.tenantmanager.api.datamodel.ResourceType;
-import io.apicurio.tenantmanager.api.datamodel.TenantResource;
-import io.apicurio.tenantmanager.client.TenantManagerClient;
-import io.apicurio.tenantmanager.client.TenantManagerClientImpl;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.RegistryClientFactory;
 import io.apicurio.registry.rest.client.exception.LimitExceededException;
 import io.apicurio.registry.rest.v2.beans.EditableMetaData;
 import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.utils.tests.MultitenancyNoAuthTestProfile;
 import io.apicurio.registry.utils.tests.TestUtils;
-import io.apicurio.rest.client.auth.OidcAuth;
-import io.apicurio.rest.client.auth.exception.AuthErrorHandler;
-import io.apicurio.rest.client.spi.ApicurioHttpClient;
-import io.apicurio.rest.client.spi.ApicurioHttpClientFactory;
-import io.apicurio.tests.common.ApicurioRegistryBaseIT;
-import io.apicurio.tests.common.Constants;
-import io.apicurio.tests.common.RegistryFacade;
-import io.apicurio.tests.common.auth.CustomJWTAuth;
+import io.apicurio.tenantmanager.api.datamodel.NewApicurioTenantRequest;
+import io.apicurio.tenantmanager.api.datamodel.ResourceType;
+import io.apicurio.tenantmanager.api.datamodel.TenantResource;
+import io.apicurio.tenantmanager.client.TenantManagerClient;
+import io.apicurio.tenantmanager.client.TenantManagerClientImpl;
+import io.apicurio.tests.ApicurioRegistryBaseIT;
+import io.apicurio.tests.utils.Constants;
+import io.apicurio.tests.utils.TenantManagerTestResource;
+import io.quarkus.test.common.QuarkusTestResource;
+import io.quarkus.test.junit.QuarkusIntegrationTest;
+import io.quarkus.test.junit.TestProfile;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Tag;
@@ -49,16 +48,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-/**
- * @author Fabian Martinez
- */
 @Tag(Constants.MULTITENANCY)
-public class MultitenantLimitsIT extends ApicurioRegistryBaseIT {
+@QuarkusIntegrationTest
+@TestProfile(MultitenancyNoAuthTestProfile.class)
+@QuarkusTestResource(value = TenantManagerTestResource.class, restrictToAnnotatedClass = true)
+public class MultitenancyLimitsIT extends ApicurioRegistryBaseIT {
 
     private static final ByteArrayInputStream CONTENT = new ByteArrayInputStream("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}".getBytes(StandardCharsets.UTF_8));
     private static final long CONTENT_SIZE = CONTENT.available();
     private static final ByteArrayInputStream CONTENT_LARGER = new ByteArrayInputStream("{\"type\":\"record\",\"name\":\"myrecord111111111111\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}".getBytes(StandardCharsets.UTF_8));
-    private static final long CONTENT_LARGER_SIZE = CONTENT_LARGER.available();
 
     private static ByteArrayInputStream useContent() {
         CONTENT.reset();
@@ -70,15 +68,9 @@ public class MultitenantLimitsIT extends ApicurioRegistryBaseIT {
         return CONTENT_LARGER;
     }
 
-    private RegistryFacade registryFacade = RegistryFacade.getInstance();
-
-    ApicurioHttpClient httpClient;
-
-    protected ApicurioHttpClient getHttpClient(String baseEndpoint) {
-        if (httpClient == null) {
-            httpClient = ApicurioHttpClientFactory.create(baseEndpoint, new AuthErrorHandler());
-        }
-        return httpClient;
+    @Override
+    public void cleanArtifacts() throws Exception {
+        //Don't clean up
     }
 
     @Test
@@ -93,8 +85,6 @@ public class MultitenantLimitsIT extends ApicurioRegistryBaseIT {
     }
 
     private void testTenantLimits(RegistryClient client) {
-
-
         String artifactId = TestUtils.generateArtifactId();
         client.createArtifact(null, artifactId, ArtifactType.JSON, useContent());
         client.createArtifactVersion(null, artifactId, null, useContent());
@@ -194,16 +184,12 @@ public class MultitenantLimitsIT extends ApicurioRegistryBaseIT {
 
         //TODO add limits for more resources
 
-        var keycloak = registryFacade.getMTOnlyKeycloakMock();
-
-        TenantManagerClient tenantManager = new TenantManagerClientImpl(registryFacade.getTenantManagerUrl(), Collections.emptyMap(),
-                    new OidcAuth(getHttpClient(keycloak.tokenEndpoint), keycloak.clientId, keycloak.clientSecret));
+        TenantManagerClient tenantManager = new TenantManagerClientImpl("http://localhost:8585", Collections.emptyMap(), null);
 
         tenantManager.createTenant(tenantReq);
 
-        String tenantAppUrl = TestUtils.getRegistryBaseUrl() + "/t/" + tenantReq.getTenantId();
+        String tenantAppUrl = getRegistryBaseUrl() + "/t/" + tenantReq.getTenantId();
 
-        return RegistryClientFactory.create(tenantAppUrl + "/apis/registry/v2", Collections.emptyMap(), new CustomJWTAuth(username, tenantReq.getOrganizationId()));
+        return RegistryClientFactory.create(tenantAppUrl + "/apis/registry/v2", Collections.emptyMap());
     }
-
 }

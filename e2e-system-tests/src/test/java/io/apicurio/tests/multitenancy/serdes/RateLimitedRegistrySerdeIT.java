@@ -29,13 +29,7 @@ import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.tests.MultitenancyNoAuthTestProfile;
 import io.apicurio.registry.utils.tests.TestUtils;
-import io.apicurio.tenantmanager.api.datamodel.SortBy;
-import io.apicurio.tenantmanager.api.datamodel.SortOrder;
-import io.apicurio.tenantmanager.api.datamodel.TenantStatusValue;
-import io.apicurio.tenantmanager.client.TenantManagerClient;
-import io.apicurio.tenantmanager.client.TenantManagerClientImpl;
 import io.apicurio.tests.ApicurioRegistryBaseIT;
-import io.apicurio.tests.dbupgrade.SqlStorageUpgradeIT;
 import io.apicurio.tests.multitenancy.MultitenancySupport;
 import io.apicurio.tests.serdes.apicurio.SimpleSerdesTesterBuilder;
 import io.apicurio.tests.utils.AvroGenericRecordSchemaFactory;
@@ -43,29 +37,20 @@ import io.apicurio.tests.utils.Constants;
 import io.apicurio.tests.utils.KafkaFacade;
 import io.apicurio.tests.utils.RateLimitingProxy;
 import io.apicurio.tests.utils.RetryLimitingProxy;
+import io.apicurio.tests.utils.TenantManagerTestResource;
 import io.quarkus.test.common.QuarkusTestResource;
-import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.quarkus.test.junit.TestProfile;
 import io.vertx.core.http.HttpServer;
-import io.zonky.test.db.postgres.embedded.EmbeddedPostgres;
 import org.apache.avro.generic.GenericRecord;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.testcontainers.containers.GenericContainer;
-import org.testcontainers.containers.wait.strategy.Wait;
 
-import java.io.IOException;
 import java.io.InputStream;
-import java.io.UncheckedIOException;
-import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -74,10 +59,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 @Tag(Constants.MULTITENANCY)
 @QuarkusIntegrationTest
 @TestProfile(MultitenancyNoAuthTestProfile.class)
-@QuarkusTestResource(value = RateLimitedRegistrySerdeIT.TenantManagerTestResource.class, restrictToAnnotatedClass = true)
+@QuarkusTestResource(value = TenantManagerTestResource.class, restrictToAnnotatedClass = true)
 public class RateLimitedRegistrySerdeIT extends ApicurioRegistryBaseIT {
-
-    private static final Logger logger = LoggerFactory.getLogger(SqlStorageUpgradeIT.class);
 
     private final KafkaFacade kafkaCluster = KafkaFacade.getInstance();
 
@@ -331,70 +314,5 @@ public class RateLimitedRegistrySerdeIT extends ApicurioRegistryBaseIT {
             proxy.stop();
         }
 
-    }
-
-    public static class TenantManagerTestResource implements QuarkusTestResourceLifecycleManager {
-        GenericContainer tenantManagerContainer;
-        EmbeddedPostgres database;
-        TenantManagerClient tenantManager;
-
-        @Override
-        public int order() {
-            return 10000;
-        }
-
-        @Override
-        public Map<String, String> start() {
-            try {
-                database = EmbeddedPostgres.start();
-            } catch (IOException e) {
-                throw new UncheckedIOException(e);
-            }
-
-            String datasourceUrl = database.getJdbcUrl("postgres", "postgres");
-
-            String tenantManagerUrl = startTenantManagerApplication("quay.io/apicurio/apicurio-tenant-manager-api:latest", datasourceUrl, "postgres", "postgres");
-
-            try {
-                //Warm up until the tenant manager is ready.
-                TestUtils.retry(() -> {
-                    getTenantManagerClient(tenantManagerUrl).listTenants(TenantStatusValue.READY, 0, 1, SortOrder.asc, SortBy.tenantId);
-                });
-
-            } catch (Exception ex) {
-                logger.warn("Error filling old registry with information: ", ex);
-            }
-
-            return Collections.emptyMap();
-        }
-
-        private String startTenantManagerApplication(String tenantManagerImageName, String jdbcUrl, String username, String password) {
-            tenantManagerContainer = new GenericContainer<>(tenantManagerImageName)
-                    .withEnv(Map.of("DATASOURCE_URL", jdbcUrl,
-                            "REGISTRY_ROUTE_URL", "",
-                            "DATASOURCE_USERNAME", username,
-                            "DATASOURCE_PASSWORD", password,
-                            "QUARKUS_HTTP_PORT", "8585"))
-                    .withNetworkMode("host");
-
-            tenantManagerContainer.start();
-            tenantManagerContainer.waitingFor(Wait.forLogMessage(".*Installed features:*", 1));
-
-            return "http://localhost:8585";
-        }
-
-        @Override
-        public void stop() {
-            if (tenantManagerContainer != null && tenantManagerContainer.isRunning()) {
-                tenantManagerContainer.stop();
-            }
-        }
-
-        public synchronized TenantManagerClient getTenantManagerClient(String tenantManagerUrl) {
-            if (tenantManager == null) {
-                tenantManager = new TenantManagerClientImpl(tenantManagerUrl, Collections.emptyMap(), null);
-            }
-            return tenantManager;
-        }
     }
 }

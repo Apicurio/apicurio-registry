@@ -19,7 +19,7 @@ package io.apicurio.tests.multitenancy;
 import io.apicurio.registry.rest.client.RegistryClient;
 
 /**
- * @author Fabian Martinez
+ * @author Carles Arnal
  */
 public class TenantUserClient {
 

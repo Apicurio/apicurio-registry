@@ -31,6 +31,8 @@ public class MultitenancyNoAuthTestProfile implements QuarkusTestProfile {
         Map<String, String> props = new HashMap<>();
         props.put("registry.enable.multitenancy", "true");
         props.put("registry.disable.apis", "");
+        props.put("registry.multitenancy.reaper.period-seconds", "5");
+        props.put("registry.multitenancy.reaper.every", "3s");
         return props;
     }
 

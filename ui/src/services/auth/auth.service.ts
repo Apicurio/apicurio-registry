@@ -126,7 +126,7 @@ export class AuthService implements Service {
             client_id: configOptions.clientId,
             redirect_uri: configOptions.redirectUri,
             response_type: "code",
-            scope: "openid profile api1",
+            scope: "openid profile email",
             filterProtocolClaims: true,
             loadUserInfo: true
         };
@@ -237,7 +237,7 @@ export class AuthService implements Service {
         } else if (this.config.authType() === "oidc") {
             this.enabled = true;
             const url = new URL(window.location.href);
-            if (url.searchParams.get("state")) {
+            if (url.searchParams.get("state") || url.searchParams.get("code")) {
                 this.userManager.signinRedirectCallback().then(user => {
                     this.oidcUser = user;
                     render();

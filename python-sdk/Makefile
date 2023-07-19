@@ -17,3 +17,9 @@ lint-apply:
 
 publish:
 	poetry publish --build -u ${PYPI_USERNAME} -p ${PYPI_PASSWORD}
+
+update:
+	poetry add microsoft-kiota-abstractions@latest
+	poetry add microsoft-kiota-http@latest
+	poetry add microsoft-kiota-serialization-json@latest
+	poetry add microsoft-kiota-serialization-text@latest

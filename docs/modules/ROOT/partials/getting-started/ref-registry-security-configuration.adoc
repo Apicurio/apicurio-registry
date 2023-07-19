@@ -62,7 +62,7 @@ You can set the following environment variables to configure authentication for 
 [id="registry-security-authn-http"]
 == {registry} authentication using HTTP basic
 
-NOTE: By default, {registry} supports authentication using OpenID Connect. Users (or API clients) must obtain an access token to make authenticated calls to the {registry} REST API.  However, because some tools do not support OpenID Connect, you can also configure {registry} to support HTTP basic authentication by setting the following configuration option to `true`.
+By default, {registry} supports authentication using OpenID Connect. Users or API clients must obtain an access token to make authenticated calls to the {registry} REST API.  However, because some tools do not support OpenID Connect, you can also configure {registry} to support HTTP basic authentication by setting the following configuration option to `true`:
 
 .Configuration for {registry} HTTP basic authentication
 [%header,cols="4,4,1,1"]
@@ -75,6 +75,26 @@ NOTE: By default, {registry} supports authentication using OpenID Connect. Users
 |`registry.auth.basic-auth-client-credentials.enabled`
 |Boolean
 |`false`
+|===
+
+[discrete]
+=== {registry} HTTP basic client credentials cache expiry 
+
+You can also configure the HTTP basic client credentials cache expiry time. By default, when using HTTP basic authentication, {registry} caches JWT tokens, and does not issue a new token when there is no need. You can configure the cache expiry time for JWT tokens, which is set to 10 mins by default. 
+
+When using {keycloak}, it is best to set this configuration to your {keycloak} JWT expiry time minus one minute. For example, if you have the expiry time set to `5` mins in {keycloak}, you should set the following configuration option to `4` mins:
+
+.Configuration for HTTP basic client credentials cache expiry
+[%header,cols="4,4,1,1"]
+|===
+|Environment variable
+|Java system property
+|Type
+|Default value
+|`CLIENT_CREDENTIALS_BASIC_CACHE_EXPIRATION`
+|`registry.auth.basic-auth-client-credentials.cache-expiration`
+|Integer
+|`10`
 |===
 
 

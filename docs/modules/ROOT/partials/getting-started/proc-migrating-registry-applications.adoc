@@ -54,7 +54,7 @@ endif::[]
 <dependency>
     <groupId>io.apicurio</groupId>
     <artifactId>apicurio-registry-utils-serde</artifactId>
-    <version>1.3.2.Final</version>
+    <version>{registry-v1-release}</version>
 </dependency>
 ----
 +

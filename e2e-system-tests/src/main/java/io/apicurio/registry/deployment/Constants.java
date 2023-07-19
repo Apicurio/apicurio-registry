@@ -27,20 +27,11 @@ public class Constants {
     /**
      * Tag for tests, which are testing basic functionality
      */
-    static String SMOKE = "smoke";
-    /**
-     * Tag for tests, which are working with the cluster (integration of kafka with registries) such as serdes and converters
-     */
-    static String SERDES = "serdes";
-    /**
-     * Tag for web ui tests
-     */
-    static String UI = "ui";
 
     /**
-     * Tag for acceptance tests, less tests than smoke testing
+     * Tag for migration tests, the suite will deploy two registries and perform data migration between the two
      */
-    static String ACCEPTANCE = "acceptance";
+    static String MULTITENANCY = "migration";
 
     /**
      * Tag for migration tests, the suite will deploy two registries and perform data migration between the two
@@ -48,13 +39,12 @@ public class Constants {
     static String MIGRATION = "migration";
 
     /**
-     * Tag for auth tests, the suite will deploy apicurio registry with keycloak and verify the api is secured
+     * Tag for auth tests profile.
      */
     static String AUTH = "auth";
 
     /**
-     * Tag for sql storage db schema upgrade tests. Consists of one test that deploys an older version of the registry, populates the db, and then deploys the latest version of the registry.
-     * Used to test the db schema upgrade process.
+     * Tag for sql db upgrade tests profile.
      */
     static String DB_UPGRADE = "dbupgrade";
 

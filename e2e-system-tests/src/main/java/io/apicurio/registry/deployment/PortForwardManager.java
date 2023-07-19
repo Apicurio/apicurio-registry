@@ -35,7 +35,6 @@ public class PortForwardManager implements BeforeAllCallback, AfterAllCallback {
         if (Boolean.parseBoolean(System.getProperty("cluster.tests"))) {
             kubernetesClient = new KubernetesClientBuilder()
                     .build();
-
         }
     }
 

@@ -35,7 +35,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 @QuarkusIntegrationTest
 @QuarkusTestResource(value = DataMigrationIT.MigrateTestInitializer.class, restrictToAnnotatedClass = true)
-@Tag(Constants.MIGRATION)
+@Tag(Constants.SMOKE)
 public class DataMigrationIT extends ApicurioRegistryBaseIT {
 
     private static final Logger log = LoggerFactory.getLogger(DataMigrationIT.class);
@@ -69,11 +69,6 @@ public class DataMigrationIT extends ApicurioRegistryBaseIT {
         });
     }
 
-    @Test
-    public void testGeneratingCanonicalHashOnImport() throws Exception {
-
-    }
-
     @AfterEach
     public void tearDownRegistries() throws IOException {
     }
@@ -82,15 +77,11 @@ public class DataMigrationIT extends ApicurioRegistryBaseIT {
 
         GenericContainer registryContainer;
 
-
         @Override
         public Map<String, String> start() {
 
             String registryBaseUrl = startRegistryApplication("quay.io/apicurio/apicurio-registry-mem:latest-release");
             RegistryClient source = RegistryClientFactory.create(registryBaseUrl);
-
-            migrateGlobalIds = new ArrayList<>();
-            migrateReferencesMap = new HashMap<>();
 
             try {
 

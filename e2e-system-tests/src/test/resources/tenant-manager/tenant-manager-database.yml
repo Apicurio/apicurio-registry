@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: "apicurio-registry-e2e"
+  labels:
+    app: tenant-manager-database
+  name: tenant-manager-database
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tenant-manager-database
+  template:
+    metadata:
+      labels:
+        app: tenant-manager-database
+    spec:
+      containers:
+        - name: postgresql
+          image: quay.io/centos7/postgresql-13-centos7
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRESQL_DB
+              value: tenant-manager
+            - name: POSTGRESQL_USER
+              value: apicurio
+            - name: POSTGRESQL_PASSWORD
+              value: tenant-manager
+            - name: POSTGRESQL_DATABASE
+              value: tenant-manager
+          volumeMounts:
+            - mountPath: "/var/lib/postgresql/data"
+              name: "tenant-manager-pgdata"
+      volumes:
+        - emptyDir:
+            sizeLimit: 500Mi
+          name: tenant-manager-pgdata
+---
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: "apicurio-registry-e2e"
+  labels:
+    app: tenant-manager-database
+  name: tenant-manager-database-service
+spec:
+  ports:
+    - name: http
+      port: 5432
+      protocol: TCP
+      targetPort: 5432
+  selector:
+    app: tenant-manager-database
+  type: ClusterIP

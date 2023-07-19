@@ -22,6 +22,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -39,6 +40,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class MigrationTestsDataInitializer {
 
     public static void initializeMigrateTest(RegistryClient source) throws Exception {
+        migrateGlobalIds = new ArrayList<>();
+        migrateReferencesMap = new HashMap<>();
+
         JsonSchemaMsgFactory jsonSchema = new JsonSchemaMsgFactory();
         for (int idx = 0; idx < 50; idx++) {
             String artifactId = idx + "-" + UUID.randomUUID().toString();

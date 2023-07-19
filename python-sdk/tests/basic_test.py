@@ -86,17 +86,14 @@ async def test_basic_upload_download():
         },
         "paths": {}
     }"""
-    create_artifact = await client.groups_by_id("default").artifacts.post(payload)
+    create_artifact = await client.groups.by_group_id("default").artifacts.post(payload)
     assert create_artifact.id is not None
 
     return_artifact = (
-        await client.groups_by_id("default").artifacts_by_id(create_artifact.id).get()
+        await client.groups.by_group_id("default").artifacts.by_artifact_id(create_artifact.id).get()
     )
     print(str(return_artifact, "utf-8"))
-    # TODO: remove the workaround ".replace("'", '"')" when updating the dependency after this PR gets merged: https://github.com/microsoft/kiota-serialization-json-python/pull/77
-    assert json.loads(str(return_artifact, "utf-8").replace("'", '"')) == json.loads(
-        payload.content
-    )
+    assert json.loads(return_artifact) == json.loads(payload.content)
 
 
 @pytest.mark.asyncio
@@ -126,17 +123,9 @@ async def test_issue_3465():
         )
     )
 
-    # create_artifact = await client.groups_by_id("default").artifacts.post(payload, request_configuration = request_configuration)
-
-    raw_query_params = {"canonical": True, "ifExists": "RETURN_OR_UPDATE"}
-    request = client.groups_by_id("default").artifacts.to_post_request_information(
-        payload, request_configuration=request_configuration
-    )
-    request.query_parameters.update(QueryParams(raw_query_params))
-
-    create_artifact = await request_adapter.send_async(request, ArtifactMetaData, {})
+    create_artifact = await client.groups.by_group_id("default").artifacts.post(payload, request_configuration = request_configuration)
     assert create_artifact.id == "foo"
 
     # check the return or update functionality
-    create_artifact = await request_adapter.send_async(request, ArtifactMetaData, {})
+    create_artifact = await client.groups.by_group_id("default").artifacts.post(payload, request_configuration = request_configuration)
     assert create_artifact.id == "foo"

@@ -587,6 +587,14 @@
         </profile>
 
         <profile>
+            <id>multitenancy</id>
+            <properties>
+                <groups>multitenancy</groups>
+                <skipTests>false</skipTests>
+            </properties>
+        </profile>
+
+        <profile>
             <id>dbupgrade</id>
             <properties>
                 <skipTests>false</skipTests>

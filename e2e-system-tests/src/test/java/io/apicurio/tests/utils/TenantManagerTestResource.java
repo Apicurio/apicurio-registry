@@ -51,7 +51,7 @@ public class TenantManagerTestResource implements QuarkusTestResourceLifecycleMa
     @Override
     public Map<String, String> start() {
         try {
-            database = EmbeddedPostgres.start();
+            database = EmbeddedPostgres.builder().setPort(5431).start();
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }

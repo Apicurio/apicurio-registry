@@ -38,10 +38,13 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import static io.apicurio.registry.deployment.Constants.REGISTRY_IMAGE;
+import static io.apicurio.registry.deployment.KubernetesTestResources.APPLICATION_IN_MEMORY_MULTITENANT_RESOURCES;
 import static io.apicurio.registry.deployment.KubernetesTestResources.APPLICATION_IN_MEMORY_RESOURCES;
 import static io.apicurio.registry.deployment.KubernetesTestResources.APPLICATION_IN_MEMORY_SECURED_RESOURCES;
+import static io.apicurio.registry.deployment.KubernetesTestResources.APPLICATION_KAFKA_MULTITENANT_RESOURCES;
 import static io.apicurio.registry.deployment.KubernetesTestResources.APPLICATION_KAFKA_RESOURCES;
 import static io.apicurio.registry.deployment.KubernetesTestResources.APPLICATION_KAFKA_SECURED_RESOURCES;
+import static io.apicurio.registry.deployment.KubernetesTestResources.APPLICATION_SQL_MULTITENANT_RESOURCES;
 import static io.apicurio.registry.deployment.KubernetesTestResources.APPLICATION_SQL_RESOURCES;
 import static io.apicurio.registry.deployment.KubernetesTestResources.APPLICATION_SQL_SECURED_RESOURCES;
 import static io.apicurio.registry.deployment.KubernetesTestResources.DATABASE_RESOURCES;
@@ -49,6 +52,9 @@ import static io.apicurio.registry.deployment.KubernetesTestResources.E2E_NAMESP
 import static io.apicurio.registry.deployment.KubernetesTestResources.KAFKA_RESOURCES;
 import static io.apicurio.registry.deployment.KubernetesTestResources.KEYCLOAK_RESOURCES;
 import static io.apicurio.registry.deployment.KubernetesTestResources.KEYCLOAK_SERVICE;
+import static io.apicurio.registry.deployment.KubernetesTestResources.TENANT_MANAGER_DATABASE;
+import static io.apicurio.registry.deployment.KubernetesTestResources.TENANT_MANAGER_RESOURCES;
+import static io.apicurio.registry.deployment.KubernetesTestResources.TENANT_MANAGER_SERVICE;
 import static io.apicurio.registry.deployment.KubernetesTestResources.TEST_NAMESPACE;
 
 public class RegistryDeploymentManager implements TestExecutionListener {
@@ -76,7 +82,6 @@ public class RegistryDeploymentManager implements TestExecutionListener {
     @Override
     public void testPlanExecutionFinished(TestPlan testPlan) {
         LOGGER.info("Test suite ended ##################################################");
-
         if (registryPortForward != null) {
             try {
                 registryPortForward.close();
@@ -114,7 +119,6 @@ public class RegistryDeploymentManager implements TestExecutionListener {
             } finally {
                 namespace.cancel(true);
             }
-
             kubernetesClient.close();
         }
     }
@@ -137,47 +141,46 @@ public class RegistryDeploymentManager implements TestExecutionListener {
         }
     }
 
-
     private void deployInMemoryApp(String registryImage) throws IOException {
         if (Constants.TEST_PROFILE.equals(Constants.AUTH)) {
-            startResources(null, APPLICATION_IN_MEMORY_SECURED_RESOURCES, true, registryImage);
+            prepareTestsInfra(null, APPLICATION_IN_MEMORY_SECURED_RESOURCES, true, registryImage, false);
+        } else if (Constants.TEST_PROFILE.equals(Constants.MULTITENANCY)) {
+            prepareTestsInfra(null, APPLICATION_IN_MEMORY_MULTITENANT_RESOURCES, false, registryImage, true);
         } else if (Constants.TEST_PROFILE.equals(Constants.DB_UPGRADE)) {
-
+            prepareTestsInfra(null, APPLICATION_IN_MEMORY_MULTITENANT_RESOURCES, false, registryImage, true);
         } else {
-            startResources(null, APPLICATION_IN_MEMORY_RESOURCES, false, registryImage);
+            prepareTestsInfra(null, APPLICATION_IN_MEMORY_RESOURCES, false, registryImage, false);
         }
     }
 
     private void deployKafkaApp(String registryImage) throws IOException {
         if (Constants.TEST_PROFILE.equals(Constants.AUTH)) {
-            startResources(KAFKA_RESOURCES, APPLICATION_KAFKA_SECURED_RESOURCES, true, registryImage);
+            prepareTestsInfra(KAFKA_RESOURCES, APPLICATION_KAFKA_SECURED_RESOURCES, true, registryImage, false);
+        } else if (Constants.TEST_PROFILE.equals(Constants.MULTITENANCY)) {
+            prepareTestsInfra(KAFKA_RESOURCES, APPLICATION_KAFKA_MULTITENANT_RESOURCES, false, registryImage, true);
         } else if (Constants.TEST_PROFILE.equals(Constants.DB_UPGRADE)) {
-
+            prepareTestsInfra(KAFKA_RESOURCES, APPLICATION_KAFKA_MULTITENANT_RESOURCES, false, registryImage, true);
         } else {
-            startResources(KAFKA_RESOURCES, APPLICATION_KAFKA_RESOURCES, false, registryImage);
+            prepareTestsInfra(KAFKA_RESOURCES, APPLICATION_KAFKA_RESOURCES, false, registryImage, false);
         }
-
     }
 
     private void deploySqlApp(String registryImage) throws IOException {
         if (Constants.TEST_PROFILE.equals(Constants.AUTH)) {
-            startResources(DATABASE_RESOURCES, APPLICATION_SQL_SECURED_RESOURCES, true, registryImage);
+            prepareTestsInfra(DATABASE_RESOURCES, APPLICATION_SQL_SECURED_RESOURCES, true, registryImage, false);
+        } else if (Constants.TEST_PROFILE.equals(Constants.MULTITENANCY)) {
+            prepareTestsInfra(DATABASE_RESOURCES, APPLICATION_SQL_MULTITENANT_RESOURCES, false, registryImage, true);
         } else if (Constants.TEST_PROFILE.equals(Constants.DB_UPGRADE)) {
-
+            prepareTestsInfra(DATABASE_RESOURCES, APPLICATION_SQL_MULTITENANT_RESOURCES, false, registryImage, true);
         } else {
-            startResources(DATABASE_RESOURCES, APPLICATION_SQL_RESOURCES, false, registryImage);
+            prepareTestsInfra(DATABASE_RESOURCES, APPLICATION_SQL_RESOURCES, false, registryImage, false);
         }
     }
 
-    private void startResources(String externalResources, String registryResources, boolean startKeycloak, String registryImage) throws IOException {
+    private void prepareTestsInfra(String externalResources, String registryResources, boolean startKeycloak, String
+            registryImage, boolean startTenantManager) throws IOException {
         if (startKeycloak) {
-            //Deploy all the resources associated to the external requirements
-            kubernetesClient.load(getClass().getResourceAsStream(KEYCLOAK_RESOURCES))
-                    .create();
-
-            //Wait for all the external resources pods to be ready
-            kubernetesClient.pods()
-                    .inNamespace(TEST_NAMESPACE).waitUntilReady(60, TimeUnit.SECONDS);
+            deployResource(KEYCLOAK_RESOURCES);
 
             //Create the keycloak port forward so the tests can reach it to get tokens
             keycloakPortForward = kubernetesClient.services()
@@ -186,14 +189,19 @@ public class RegistryDeploymentManager implements TestExecutionListener {
                     .portForward(8090, 8090);
         }
 
-        if (externalResources != null) {
-            //Deploy all the resources associated to the external requirements
-            kubernetesClient.load(getClass().getResourceAsStream(externalResources))
-                    .create();
+        if (startTenantManager) {
+            deployResource(TENANT_MANAGER_DATABASE);
+            deployResource(TENANT_MANAGER_RESOURCES);
 
-            //Wait for all the external resources pods to be ready
-            kubernetesClient.pods()
-                    .inNamespace(TEST_NAMESPACE).waitUntilReady(60, TimeUnit.SECONDS);
+            //Create the tenant manager port forward so it's available for the deployment
+            keycloakPortForward = kubernetesClient.services()
+                    .inNamespace(TEST_NAMESPACE)
+                    .withName(TENANT_MANAGER_SERVICE)
+                    .portForward(8585, 8585);
+        }
+
+        if (externalResources != null) {
+            deployResource(externalResources);
         }
 
         final InputStream resourceAsStream = getClass().getResourceAsStream(registryResources);
@@ -208,6 +216,16 @@ public class RegistryDeploymentManager implements TestExecutionListener {
                 .create();
 
         //Wait for all the pods of the variant to be ready
+        kubernetesClient.pods()
+                .inNamespace(TEST_NAMESPACE).waitUntilReady(60, TimeUnit.SECONDS);
+    }
+
+    private void deployResource(String resource) {
+        //Deploy all the resources associated to the external requirements
+        kubernetesClient.load(getClass().getResourceAsStream(resource))
+                .create();
+
+        //Wait for all the external resources pods to be ready
         kubernetesClient.pods()
                 .inNamespace(TEST_NAMESPACE).waitUntilReady(60, TimeUnit.SECONDS);
     }

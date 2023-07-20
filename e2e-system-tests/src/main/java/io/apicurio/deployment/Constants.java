@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.deployment;
+package io.apicurio.deployment;
 
 import java.util.Optional;
 
@@ -23,30 +23,27 @@ public class Constants {
     /**
      * Registry image placeholder
      */
-    static String REGISTRY_IMAGE = "registry-image";
-    /**
-     * Tag for tests, which are testing basic functionality
-     */
+    static final String REGISTRY_IMAGE = "registry-image";
 
     /**
      * Tag for migration tests, the suite will deploy two registries and perform data migration between the two
      */
-    static String MULTITENANCY = "migration";
+    static final String MULTITENANCY = "multitenancy";
 
     /**
      * Tag for migration tests, the suite will deploy two registries and perform data migration between the two
      */
-    static String MIGRATION = "migration";
+    static final String MIGRATION = "migration";
 
     /**
      * Tag for auth tests profile.
      */
-    static String AUTH = "auth";
+    static final String AUTH = "auth";
 
     /**
      * Tag for sql db upgrade tests profile.
      */
-    static String DB_UPGRADE = "dbupgrade";
+    static final String DB_UPGRADE = "dbupgrade";
 
     public static final String TEST_PROFILE =
             Optional.ofNullable(System.getProperty("groups"))

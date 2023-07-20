@@ -16,7 +16,7 @@
 
 package io.apicurio.tests;
 
-import io.apicurio.registry.deployment.PortForwardManager;
+import io.apicurio.deployment.PortForwardManager;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.RegistryClientFactory;
 import io.apicurio.registry.rest.client.exception.ArtifactNotFoundException;

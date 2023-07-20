@@ -360,13 +360,6 @@ run-sql-migration-integration-tests:
 	@echo "----------------------------------------------------------------------"
 	./mvnw verify -am --no-transfer-progress -Pe2e-tests -Pmigration -Premote-sql -pl e2e-system-tests -Dmaven.javadoc.skip=true --no-transfer-progress
 
-.PHONY: run-sql-legacy-tests ## Runs sql legacy tests
-run-sql-legacy-tests:
-	@echo "----------------------------------------------------------------------"
-	@echo "                        Running SQL Legacy Tests                      "
-	@echo "----------------------------------------------------------------------"
-	./mvnw verify -am --no-transfer-progress -Pe2e-tests -P$(INTEGRATION_TESTS_PROFILE) -Psql -pl integration-tests/legacy-tests -Dmaven.javadoc.skip=true --no-transfer-progress
-
 .PHONY: run-sql-multitenancy-integration-tests ## Runs multitenancy integration tests
 run-multitenancy-integration-tests:
 	@echo "----------------------------------------------------------------------"
@@ -375,9 +368,7 @@ run-multitenancy-integration-tests:
 	./mvnw verify -am --no-transfer-progress -Pe2e-tests -Pmultitenancy -Psql -pl e2e-system-tests -Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false
 
 
-
 ############################################# KafkaSql Integration Tests #########################################################################
-
 
 
 .PHONY: run-kafkasql-integration-tests ## Runs kafkasql integration tests
@@ -407,13 +398,6 @@ run-kafkasql-auth-tests:
 	@echo "                Running KafkaSQL Auth Integration Tests               "
 	@echo "----------------------------------------------------------------------"
 	./mvnw verify -am --no-transfer-progress -Pe2e-tests -Pauth -Premote-kafka -pl e2e-system-tests -Dmaven.javadoc.skip=true --no-transfer-progress
-
-.PHONY: run-kafkasql-legacy-tests ## Runs kafkasql legacy tests
-run-kafkasql-legacy-tests:
-	@echo "----------------------------------------------------------------------"
-	@echo "                     Running KafkaSQL Legacy Tests                    "
-	@echo "----------------------------------------------------------------------"
-	./mvnw verify -am --no-transfer-progress -Pe2e-tests -P$(INTEGRATION_TESTS_PROFILE) -Premote-kafka -pl integration-tests/legacy-tests -Dmaven.javadoc.skip=true --no-transfer-progress
 
 ############################################# MSSQL Integration Tests #########################################################################
 

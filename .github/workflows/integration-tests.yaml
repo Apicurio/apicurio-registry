@@ -51,12 +51,42 @@ jobs:
           IMAGE_TAG: 1d
         run: make build-sql-image push-sql-image
 
+
+  prepare-kafkasql-tests:
+    name: Prepare for KafkaSQL Integration Tests
+    runs-on: ubuntu-20.04
+    if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
+    steps:
+      - name: Show Actor
+        run: echo ${{github.actor}}
+      - name: Checkout Code
+        uses: actions/checkout@v3
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Get maven wrapper
+        run: mvn -N io.takari:maven:wrapper -Dmaven=3.8.2
+
+      - name: Build kafkasql Variant
+        run: make SKIP_TESTS=true BUILD_FLAGS='-DskipUiBuild=true -Dmaven.javadoc.skip=true --no-transfer-progress -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5' build-kafkasql
+
+      - name: Build and Push kafkasql image
+        env:
+          IMAGE_REPO: ttl.sh/${{ github.sha }}
+          # maximum allowed
+          IMAGE_TAG: 1d
+        run: make build-kafkasql-image push-kafkasql-image
+
   integration-tests-sql:
     name: Integration Tests SQL
     runs-on: ubuntu-20.04
     needs: prepare-sql-tests
     steps:
-      - name: Checkouvt Code
+      - name: Checkout Code
         uses: actions/checkout@v3
       - name: Set up JDK 17
         uses: actions/setup-java@v3
@@ -85,7 +115,7 @@ jobs:
           path: artifacts
 
   integration-tests-sql-auth:
-    name: Integration Tests SQL
+    name: Integration Tests SQL Authentication
     runs-on: ubuntu-20.04
     needs: prepare-sql-tests
     steps:
@@ -103,8 +133,74 @@ jobs:
         with:
           version: "v0.11.1"
 
-      - name: Run Integration Tests - sql
-        run: make REGISTRY_IMAGE='-Dregistry-sql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-sql:1d' run-sql-integration-tests
+      - name: Run Integration Tests - sql - auth
+        run: make REGISTRY_IMAGE='-Dregistry-sql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-sql:1d' run-sql-auth-tests
+
+      - name: Collect logs
+        if: failure()
+        run: ./.github/scripts/collect_logs.sh
+
+      - name: Upload tests logs artifacts
+        if: failure()
+        uses: actions/upload-artifact@v1.0.0
+        with:
+          name: tests-logs
+          path: artifacts
+
+  integration-tests-sql-migration:
+    name: Integration Tests SQL Migration
+    runs-on: ubuntu-20.04
+    needs: prepare-sql-tests
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Setup Kind
+        uses: engineerd/setup-kind@v0.5.0
+        with:
+          version: "v0.11.1"
+
+      - name: Run Integration Tests - sql - migration
+        run: make REGISTRY_IMAGE='-Dregistry-sql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-sql:1d' run-sql-migration-integration-tests
+
+      - name: Collect logs
+        if: failure()
+        run: ./.github/scripts/collect_logs.sh
+
+      - name: Upload tests logs artifacts
+        if: failure()
+        uses: actions/upload-artifact@v1.0.0
+        with:
+          name: tests-logs
+          path: artifacts
+
+  integration-tests-sql-multitenancy:
+    name: Integration Tests SQL Multitenancy
+    runs-on: ubuntu-20.04
+    needs: prepare-sql-tests
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Setup Kind
+        uses: engineerd/setup-kind@v0.5.0
+        with:
+          version: "v0.11.1"
+
+      - name: Run Integration Tests - sql - multitenancy
+        run: make REGISTRY_IMAGE='-Dregistry-sql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-sql:1d' run-sql-multitenancy-integration-tests
 
       - name: Collect logs
         if: failure()
@@ -130,26 +226,76 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
-      - name: Build kafkasql Variant
-        run: make SKIP_TESTS=true BUILD_FLAGS='-DskipUiBuild=true -Dmaven.javadoc.skip=true --no-transfer-progress -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5' build-kafkasql
-
-      - name: Build and Push kafkasql image
-        env:
-          IMAGE_REPO: ttl.sh/${{ github.sha }}
-            # maximum allowed
-          IMAGE_TAG: 1d
-        run: make build-kafkasql-image push-kafkasql-image
-
       - name: Setup Kind
         uses: engineerd/setup-kind@v0.5.0
         with:
             version: "v0.11.1"
 
-      - name: Run Integration Tests - sql
+      - name: Run Integration Tests - KafkaSql
         run: make REGISTRY_IMAGE='-Dregistry-kafkasql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-kafkasql:1d' run-kafkasql-integration-tests
 
-      - name: Run Integration Tests - sql - Auth
-        run: make REGISTRY_IMAGE='-Dregistry-kafksql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-kafkasql:1d' run-kafkasql-auth-tests
+      - name: Collect logs
+        if: failure()
+        run: ./.github/scripts/collect_logs.sh
+      - name: Upload tests logs artifacts
+        if: failure()
+        uses: actions/upload-artifact@v1.0.0
+        with:
+          name: tests-logs
+          path: artifacts
+
+
+  integration-tests-kafkasql-migration:
+    name: Integration Tests KafkaSql - Migration
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Setup Kind
+        uses: engineerd/setup-kind@v0.5.0
+        with:
+          version: "v0.11.1"
+
+      - name: Run Integration Tests - KafkaSql
+        run: make REGISTRY_IMAGE='-Dregistry-kafkasql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-kafkasql:1d' run-kafkasql-migration-integration-tests
+
+      - name: Collect logs
+        if: failure()
+        run: ./.github/scripts/collect_logs.sh
+      - name: Upload tests logs artifacts
+        if: failure()
+        uses: actions/upload-artifact@v1.0.0
+        with:
+          name: tests-logs
+          path: artifacts
+
+  integration-tests-kafkasql-auth:
+    name: Integration Tests KafkaSql - Authentication
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Setup Kind
+        uses: engineerd/setup-kind@v0.5.0
+        with:
+          version: "v0.11.1"
+
+      - name: Run Integration Tests - KafkaSql
+        run: make REGISTRY_IMAGE='-Dregistry-kafkasql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-kafkasql:1d' run-kafkasql-auth-tests
 
       - name: Collect logs
         if: failure()

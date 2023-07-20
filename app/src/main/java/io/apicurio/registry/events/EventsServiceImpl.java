@@ -17,8 +17,8 @@ package io.apicurio.registry.events;
 
 import java.util.Optional;
 
+import javax.annotation.PostConstruct;
 import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.event.Observes;
 import javax.enterprise.inject.Instance;
 import javax.inject.Inject;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
@@ -27,7 +27,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.slf4j.Logger;
 import io.apicurio.registry.events.dto.RegistryEventType;
-import io.quarkus.runtime.StartupEvent;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.eventbus.DeliveryOptions;
@@ -42,6 +41,7 @@ public class EventsServiceImpl implements EventsService {
     private static final String INTERNAL_EVENTS_ADDRESS = "registry-events";
 
     private ObjectMapper mapper;
+    private boolean initDone = false;
     private boolean configuredSinks = false;
 
     @Inject
@@ -56,7 +56,8 @@ public class EventsServiceImpl implements EventsService {
     @Inject
     Instance<EventSink> sinks;
 
-    public void init(@Observes StartupEvent ev) {
+    @PostConstruct
+    public void init() {
         for (EventSink sink : sinks) {
             if (sink.isConfigured()) {
                 log.info("Subscribing sink " + sink.name());
@@ -64,6 +65,12 @@ public class EventsServiceImpl implements EventsService {
                 configuredSinks = true;
             }
         }
+        initDone = true;
+    }
+
+    @Override
+    public boolean isReady() {
+        return initDone;
     }
 
     @Override

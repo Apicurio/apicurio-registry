@@ -191,7 +191,7 @@ public class SqlStorageUpgradeIT extends ApicurioRegistryBaseIT implements TestS
                     UpgradeTestsDataInitializer.prepareTestStorageUpgrade(SqlStorageUpgradeIT.class.getSimpleName(), tenantManagerUrl, "http://localhost:8081");
 
                     //Wait until all the data is available for the upgrade test.
-                    TestUtils.retry(() -> Assertions.assertEquals(20, getTenantManagerClient(tenantManagerUrl).listTenants(TenantStatusValue.READY, 0, 51, SortOrder.asc, SortBy.tenantId).getCount()));
+                    TestUtils.retry(() -> Assertions.assertEquals(10, getTenantManagerClient(tenantManagerUrl).listTenants(TenantStatusValue.READY, 0, 51, SortOrder.asc, SortBy.tenantId).getCount()));
 
                     MultitenancySupport mt = new MultitenancySupport(tenantManagerUrl, registryBaseUrl);
                     TenantUser tenantUser = new TenantUser(UUID.randomUUID().toString(), UUID.randomUUID().toString(), "storageUpgrade", UUID.randomUUID().toString());

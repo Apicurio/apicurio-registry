@@ -227,10 +227,13 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
-      - name: Setup Kind
-        uses: engineerd/setup-kind@v0.5.0
+      - name: Setup Minikube
+        uses: manusa/actions-setup-minikube@v2.7.2
         with:
-          version: "v0.11.1"
+          minikube version: 'v1.31.1'
+          kubernetes version: 'v1.26.3'
+          github token: ${{ secrets.GITHUB_TOKEN }}
+          driver: docker
 
       - name: Run Integration Tests - sql - multitenancy
         run: make REGISTRY_IMAGE='-Dregistry-sql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-sql:1d' run-sql-multitenancy-integration-tests
@@ -249,6 +252,7 @@ jobs:
   integration-tests-kafkasql:
     name: Integration Tests KafkaSql
     runs-on: ubuntu-20.04
+    needs: prepare-kafkasql-tests
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
@@ -281,6 +285,7 @@ jobs:
   integration-tests-kafkasql-migration:
     name: Integration Tests KafkaSql - Migration
     runs-on: ubuntu-20.04
+    needs: prepare-kafkasql-tests
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
@@ -312,6 +317,7 @@ jobs:
   integration-tests-kafkasql-db-upgrade:
     name: Integration Tests KafkaSql - DB Upgrade
     runs-on: ubuntu-20.04
+    needs: prepare-kafkasql-tests
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
@@ -343,6 +349,7 @@ jobs:
   integration-tests-kafkasql-auth:
     name: Integration Tests KafkaSql - Authentication
     runs-on: ubuntu-20.04
+    needs: prepare-kafkasql-tests
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
@@ -374,6 +381,7 @@ jobs:
   integration-tests-ui:
     name: Integration Tests UI
     runs-on: ubuntu-20.04
+    needs: prepare-sql-tests
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
@@ -384,23 +392,13 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
-      - name: Build mem Variant
-        run: make SKIP_TESTS=true BUILD_FLAGS='-Dmaven.javadoc.skip=true --no-transfer-progress -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5' build-in-memory
-
-      - name: Build and Push mem image
-        env:
-          IMAGE_REPO: ttl.sh/${{ github.sha }}
-          # maximum allowed
-          IMAGE_TAG: 1d
-        run: make build-mem-image push-mem-image
-
       - name: Setup Kind
         uses: engineerd/setup-kind@v0.5.0
         with:
           version: "v0.11.1"
 
       - name: Run UI tests
-        run: make REGISTRY_IMAGE='-Dregistry-in-memory-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-mem:1d' run-ui-tests
+        run: make REGISTRY_IMAGE='-Dregistry-sql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-mem:1d' run-ui-tests
 
       - name: Collect logs
         if: failure()

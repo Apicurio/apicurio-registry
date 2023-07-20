@@ -33,6 +33,7 @@ public class MultitenancyNoAuthTestProfile implements QuarkusTestProfile {
         props.put("registry.disable.apis", "");
         props.put("registry.multitenancy.reaper.period-seconds", "5");
         props.put("registry.multitenancy.reaper.every", "3s");
+        props.put("quarkus.http.port", "8081");
         return props;
     }
 

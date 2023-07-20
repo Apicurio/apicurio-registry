@@ -264,7 +264,7 @@ public class RateLimitedRegistrySerdeIT extends ApicurioRegistryBaseIT {
 
         RetryLimitingProxy proxy = new RetryLimitingProxy(3, getRegistryHost(), getRegistryPort());
 
-        MultitenancySupport mt = new MultitenancySupport("http://localhost:8585", ApicurioRegistryBaseIT.getRegistryBaseUrl());
+        MultitenancySupport mt = new MultitenancySupport(ApicurioRegistryBaseIT.getTenantManagerUrl(), ApicurioRegistryBaseIT.getRegistryBaseUrl());
         var tenant = mt.createTenant();
         RegistryClient clientTenant = tenant.client;
         String tenantRateLimitedUrl = proxy.getServerUrl() + "/t/" + tenant.user.tenantId;

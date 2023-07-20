@@ -62,6 +62,11 @@ public class ProtobufSerdeIT extends ApicurioRegistryBaseIT {
         kafkaCluster.stopIfPossible();
     }
 
+    @Override
+    public void cleanArtifacts() throws Exception {
+        //Don't clean up
+    }
+
     @Test
     @Tag(Constants.ACCEPTANCE)
     void testTopicIdStrategyFindLatest() throws Exception {

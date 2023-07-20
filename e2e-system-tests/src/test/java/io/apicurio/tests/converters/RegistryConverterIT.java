@@ -64,6 +64,11 @@ import java.util.function.Function;
 @QuarkusIntegrationTest
 public class RegistryConverterIT extends ApicurioRegistryBaseIT {
 
+    @Override
+    public void cleanArtifacts() throws Exception {
+        //Don't clean up
+    }
+
     @Test
     public void testConfiguration() throws Exception {
         String groupId = TestUtils.generateGroupId();

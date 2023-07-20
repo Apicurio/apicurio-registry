@@ -66,6 +66,11 @@ public class AvroSerdeIT extends ApicurioRegistryBaseIT {
     private final Class<AvroKafkaSerializer> serializer = AvroKafkaSerializer.class;
     private final Class<AvroKafkaDeserializer> deserializer = AvroKafkaDeserializer.class;
 
+    @Override
+    public void cleanArtifacts() throws Exception {
+        //Don't clean up
+    }
+
     @BeforeAll
     void setupEnvironment() {
         kafkaCluster.startIfNeeded();

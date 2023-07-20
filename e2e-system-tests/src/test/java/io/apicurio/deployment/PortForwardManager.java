@@ -24,12 +24,14 @@ import org.junit.jupiter.api.extension.BeforeAllCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
 
 import static io.apicurio.deployment.KubernetesTestResources.APPLICATION_SERVICE;
+import static io.apicurio.deployment.KubernetesTestResources.TENANT_MANAGER_SERVICE;
 import static io.apicurio.deployment.KubernetesTestResources.TEST_NAMESPACE;
 
 public class PortForwardManager implements BeforeAllCallback, AfterAllCallback {
 
     KubernetesClient kubernetesClient;
     LocalPortForward registryPortForward;
+    LocalPortForward tenantManagerPortForward;
 
     public PortForwardManager() {
         if (Boolean.parseBoolean(System.getProperty("cluster.tests"))) {
@@ -46,8 +48,16 @@ public class PortForwardManager implements BeforeAllCallback, AfterAllCallback {
                     .inNamespace(TEST_NAMESPACE)
                     .withName(APPLICATION_SERVICE)
                     .portForward(8080, 8080);
-        }
 
+
+            if (Boolean.parseBoolean(System.getProperty("multitenancy.tests"))) {
+                //Create the tenant manager port forward so it's available for the deployment
+                tenantManagerPortForward = kubernetesClient.services()
+                        .inNamespace(TEST_NAMESPACE)
+                        .withName(TENANT_MANAGER_SERVICE)
+                        .portForward(8585, 8585);
+            }
+        }
     }
 
     @Override
@@ -55,6 +65,12 @@ public class PortForwardManager implements BeforeAllCallback, AfterAllCallback {
         if (Boolean.parseBoolean(System.getProperty("cluster.tests"))) {
             if (registryPortForward != null) {
                 registryPortForward.close();
+            }
+
+            if (Boolean.parseBoolean(System.getProperty("cluster.tests"))) {
+                if (tenantManagerPortForward != null) {
+                    tenantManagerPortForward.close();
+                }
             }
         }
     }

@@ -64,6 +64,11 @@ public class KafkaSqlLogCompactionIT extends ApicurioRegistryBaseIT implements T
 
     static final Logger logger = LoggerFactory.getLogger(KafkaSqlLogCompactionIT.class);
 
+    @Override
+    public void cleanArtifacts() throws Exception {
+        //Don't clean artifacts for this test
+    }
+
     @Test
     public void testLogCompaction() throws Exception {
         //The check must be retried so the kafka storage has been bootstrapped
@@ -121,7 +126,7 @@ public class KafkaSqlLogCompactionIT extends ApicurioRegistryBaseIT implements T
                     var artifactdata = CustomTestsUtils.createArtifact(registryClient, ArtifactType.JSON, ApicurioRegistryBaseIT.resourceToString("artifactTypes/" + "jsonSchema/person_v1.json"));
                     CustomTestsUtils.createArtifact(registryClient, ArtifactType.PROTOBUF, ApicurioRegistryBaseIT.resourceToString("artifactTypes/" + "protobuf/tutorial_v1.proto"));
 
-                    assertEquals(3, registryClient.listArtifactsInGroup(null).getCount());
+                    assertEquals(3, registryClient.listArtifactsInGroup(PREPARE_LOG_COMPACTION).getCount());
 
                     //spend some time doing something
                     //this is just to give kafka some time to be 100% the topic is log compacted

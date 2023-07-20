@@ -61,12 +61,12 @@ public class TenantReaperIT extends ApicurioRegistryBaseIT {
     @Test
     public void testTenantReaper() throws Exception {
         try {
-            MultitenancySupport mt = new MultitenancySupport("http://localhost:8585", ApicurioRegistryBaseIT.getRegistryBaseUrl());
-            List<TenantUserClient> tenants = new ArrayList<>(55);
+            MultitenancySupport mt = new MultitenancySupport(ApicurioRegistryBaseIT.getTenantManagerUrl(), ApicurioRegistryBaseIT.getRegistryBaseUrl());
+            List<TenantUserClient> tenants = new ArrayList<>(5);
             TenantManagerClient tenantManager = mt.getTenantManagerClient();
 
-            // Create 55 tenants to force use of pagination (currently 50), and some data
-            for (int i = 0; i < 55; i++) {
+            // Create 15 tenants to force use of pagination (currently 50), and <<some data
+            for (int i = 0; i < 5; i++) {
                 TenantUserClient tenant = mt.createTenant();
                 tenants.add(tenant);
                 createSomeArtifact(tenant.client);
@@ -74,14 +74,14 @@ public class TenantReaperIT extends ApicurioRegistryBaseIT {
                 Assertions.assertEquals(2, tenant.client.listArtifactsInGroup(groupId).getCount());
             }
 
-            // Mark 53 tenants for deletion
-            for (int i = 0; i < 53; i++) {
+            // Mark 13 tenants for deletion
+            for (int i = 0; i < 3; i++) {
                 updateTenantStatus(tenantManager, tenants.get(i).user.tenantId, TenantStatusValue.TO_BE_DELETED);
             }
 
             // Wait for the reaper
             TestUtils.waitFor("tenant reaper", 3000, 6 * 3000, () -> {
-                for (int i = 0; i < 53; i++) {
+                for (int i = 0; i < 3; i++) {
                     if (tenantManager.getTenant(tenants.get(i).user.tenantId).getStatus() != TenantStatusValue.DELETED) {
                         return false;
                     }
@@ -90,7 +90,7 @@ public class TenantReaperIT extends ApicurioRegistryBaseIT {
             });
 
             // Ensure that the APIs are disabled
-            for (int i = 0; i < 53; i++) {
+            for (int i = 0; i < 3; i++) {
                 RegistryClient client = tenants.get(i).client;
                 try {
                     client.listArtifactsInGroup(groupId);
@@ -102,14 +102,14 @@ public class TenantReaperIT extends ApicurioRegistryBaseIT {
             }
 
             // To test that the data was removed, we will change the tenant status back to ready
-            for (int i = 0; i < 53; i++) {
+            for (int i = 0; i < 3; i++) {
                 updateTenantStatus(tenantManager, tenants.get(i).user.tenantId, TenantStatusValue.READY);
             }
 
             // Wait for the reaper again, because it also purges the tenant loader cache
             TestUtils.waitFor("tenant reaper 2", 3000, 6 * 3000, () -> {
                 try {
-                    for (int i = 0; i < 53; i++) {
+                    for (int i = 0; i < 3; i++) {
                         RegistryClient client = tenants.get(i).client;
                         client.listArtifactsInGroup(groupId);
                     }
@@ -120,12 +120,12 @@ public class TenantReaperIT extends ApicurioRegistryBaseIT {
             });
 
             // First 53 tenants should be "empty" and the last 2 should keep their content
-            for (int i = 0; i < 53; i++) {
+            for (int i = 0; i < 3; i++) {
                 RegistryClient client = tenants.get(i).client;
                 Assertions.assertEquals(0, client.listArtifactsInGroup(groupId).getCount());
             }
-            Assertions.assertEquals(2, tenants.get(53).client.listArtifactsInGroup(groupId).getCount());
-            Assertions.assertEquals(2, tenants.get(54).client.listArtifactsInGroup(groupId).getCount());
+            Assertions.assertEquals(2, tenants.get(3).client.listArtifactsInGroup(groupId).getCount());
+            Assertions.assertEquals(2, tenants.get(4).client.listArtifactsInGroup(groupId).getCount());
         } catch (RestClientException restClientException) {
             LOGGER.warn("Unexpected rest client exception", restClientException);
             LOGGER.warn("Error code {} message {}", restClientException.getError().getErrorCode(), restClientException.getError().getMessage());

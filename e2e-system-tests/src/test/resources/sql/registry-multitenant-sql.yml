@@ -37,6 +37,8 @@ spec:
               value: "3s"
             - name: TENANT_MANAGER_URL
               value: "http://tenant-manager-service:8585"
+            - name:  REGISTRY_MULTITENANCY_REAPER_MAX_TENANTS_REAPED
+              value: "5"
           image: registry-image
           imagePullPolicy: Always
           livenessProbe:

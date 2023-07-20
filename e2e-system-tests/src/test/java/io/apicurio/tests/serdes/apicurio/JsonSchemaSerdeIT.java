@@ -50,6 +50,11 @@ public class JsonSchemaSerdeIT extends ApicurioRegistryBaseIT {
     private Class<JsonSchemaKafkaSerializer> serializer = JsonSchemaKafkaSerializer.class;
     private Class<JsonSchemaKafkaDeserializer> deserializer = JsonSchemaKafkaDeserializer.class;
 
+    @Override
+    public void cleanArtifacts() throws Exception {
+        //Don't clean up
+    }
+
     @BeforeAll
     void setupEnvironment() {
         kafkaCluster.startIfNeeded();

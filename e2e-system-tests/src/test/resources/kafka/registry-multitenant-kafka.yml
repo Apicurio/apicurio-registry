@@ -6,7 +6,7 @@ metadata:
     app: apicurio-registry-kafka
   name: apicurio-registry-deployment
 spec:
-  replicas: 3
+  replicas: 1
   selector:
     matchLabels:
       app: apicurio-registry-kafka
@@ -23,12 +23,14 @@ spec:
                   fieldPath: metadata.namespace
             - name: KAFKA_BOOTSTRAP_SERVERS
               value: kafka-service:9092
+            - name: TENANT_MANAGER_URL
+              value: "http://tenant-manager-service:8585"
             - name: REGISTRY_ENABLE_MULTITENANCY
               value: "true"
             - name: REGISTRY_DISABLE_APIS
               value: ""
             - name: REGISTRY_MULTITENANCY_REAPER_PERIOD_SECONDS
-              value: "5"
+              value: "15"
             - name: REGISTRY_MULTITENANCY_REAPER_EVERY
               value: "3s"
           image: registry-image

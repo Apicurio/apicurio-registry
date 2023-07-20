@@ -50,24 +50,26 @@ public class TenantManagerTestResource implements QuarkusTestResourceLifecycleMa
 
     @Override
     public Map<String, String> start() {
-        try {
-            database = EmbeddedPostgres.builder().setPort(5431).start();
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
+        if (!Boolean.parseBoolean(System.getProperty("cluster.tests"))) {
+            try {
+                database = EmbeddedPostgres.builder().setPort(5431).start();
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
 
-        String datasourceUrl = database.getJdbcUrl("postgres", "postgres");
+            String datasourceUrl = database.getJdbcUrl("postgres", "postgres");
 
-        String tenantManagerUrl = startTenantManagerApplication("quay.io/apicurio/apicurio-tenant-manager-api:latest", datasourceUrl, "postgres", "postgres");
+            String tenantManagerUrl = startTenantManagerApplication("quay.io/apicurio/apicurio-tenant-manager-api:latest", datasourceUrl, "postgres", "postgres");
 
-        try {
-            //Warm up until the tenant manager is ready.
-            TestUtils.retry(() -> {
-                getTenantManagerClient(tenantManagerUrl).listTenants(TenantStatusValue.READY, 0, 1, SortOrder.asc, SortBy.tenantId);
-            });
+            try {
+                //Warm up until the tenant manager is ready.
+                TestUtils.retry(() -> {
+                    getTenantManagerClient(tenantManagerUrl).listTenants(TenantStatusValue.READY, 0, 1, SortOrder.asc, SortBy.tenantId);
+                });
 
-        } catch (Exception ex) {
-            logger.warn("Error filling old registry with information: ", ex);
+            } catch (Exception ex) {
+                logger.warn("Error filling old registry with information: ", ex);
+            }
         }
 
         return Collections.emptyMap();

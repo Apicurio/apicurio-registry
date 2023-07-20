@@ -213,7 +213,7 @@ public class RegistryDeploymentManager implements TestExecutionListener {
             deployResource(TENANT_MANAGER_RESOURCES);
 
             //Create the tenant manager port forward so it's available for the deployment
-            keycloakPortForward = kubernetesClient.services()
+            tenantManagerPortForward = kubernetesClient.services()
                     .inNamespace(TEST_NAMESPACE)
                     .withName(TENANT_MANAGER_SERVICE)
                     .portForward(8585, 8585);

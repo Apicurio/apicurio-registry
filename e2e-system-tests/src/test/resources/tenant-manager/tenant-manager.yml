@@ -22,7 +22,7 @@ spec:
                 fieldRef:
                   fieldPath: metadata.namespace
             - name: DATASOURCE_URL
-              value: jdbc:postgresql://postgresql-service:5432/tenant-manager
+              value: jdbc:postgresql://tenant-manager-database-service:5432/tenant-manager
             - name: DATASOURCE_USERNAME
               value: "apicurio"
             - name: DATASOURCE_PASSWORD
@@ -38,7 +38,7 @@ spec:
           livenessProbe:
             failureThreshold: 3
             httpGet:
-              path: /health/live
+              path: /q/health/live
               port: 8585
               scheme: HTTP
             initialDelaySeconds: 5
@@ -53,7 +53,7 @@ spec:
           readinessProbe:
             failureThreshold: 3
             httpGet:
-              path: /health/ready
+              path: /q/health/ready
               port: 8585
               scheme: HTTP
             initialDelaySeconds: 5

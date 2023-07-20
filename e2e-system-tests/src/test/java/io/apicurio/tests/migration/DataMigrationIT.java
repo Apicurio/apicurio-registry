@@ -6,7 +6,6 @@ import io.apicurio.registry.rest.v2.beans.ArtifactReference;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.tests.ApicurioRegistryBaseIT;
-import io.apicurio.tests.dbupgrade.MigrationTestsDataInitializer;
 import io.apicurio.tests.utils.AbstractTestDataInitializer;
 import io.apicurio.tests.utils.Constants;
 import io.quarkus.test.common.QuarkusTestResource;
@@ -16,7 +15,6 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.testcontainers.containers.GenericContainer;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -26,7 +24,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static io.apicurio.tests.dbupgrade.MigrationTestsDataInitializer.matchesReferences;
+import static io.apicurio.tests.migration.MigrationTestsDataInitializer.matchesReferences;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -35,7 +33,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 @QuarkusIntegrationTest
 @QuarkusTestResource(value = DataMigrationIT.MigrateTestInitializer.class, restrictToAnnotatedClass = true)
-@Tag(Constants.SMOKE)
+@Tag(Constants.MIGRATION)
 public class DataMigrationIT extends ApicurioRegistryBaseIT {
 
     private static final Logger log = LoggerFactory.getLogger(DataMigrationIT.class);
@@ -74,8 +72,6 @@ public class DataMigrationIT extends ApicurioRegistryBaseIT {
     }
 
     public static class MigrateTestInitializer extends AbstractTestDataInitializer {
-
-        GenericContainer registryContainer;
 
         @Override
         public Map<String, String> start() {

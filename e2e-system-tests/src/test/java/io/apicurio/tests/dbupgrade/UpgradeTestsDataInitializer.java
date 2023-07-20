@@ -45,7 +45,7 @@ public class UpgradeTestsDataInitializer {
     protected static final String REFERENCE_CONTENT = "{\"name\":\"ibm\"}";
     protected static final String ARTIFACT_CONTENT = "{\"name\":\"redhat\"}";
 
-    protected static void prepareProtobufHashUpgradeTest(RegistryClient registryClient) throws Exception {
+    public static void prepareProtobufHashUpgradeTest(RegistryClient registryClient) throws Exception {
         RegistryWaitUtils.retry(registryClient, registryClient1 -> CustomTestsUtils.createArtifact(registryClient, PREPARE_PROTO_GROUP, ArtifactType.AVRO, resourceToString("artifactTypes/" + "avro/multi-field_v1.json")));
         CustomTestsUtils.createArtifact(registryClient, PREPARE_PROTO_GROUP, ArtifactType.JSON, resourceToString("artifactTypes/" + "jsonSchema/person_v1.json"));
 
@@ -63,7 +63,7 @@ public class UpgradeTestsDataInitializer {
         SqlStorageUpgradeIT.protoData = protoData;
     }
 
-    protected static void prepareReferencesUpgradeTest(RegistryClient registryClient) throws Exception {
+    public static void prepareReferencesUpgradeTest(RegistryClient registryClient) throws Exception {
         final CustomTestsUtils.ArtifactData artifact = CustomTestsUtils.createArtifact(registryClient, ArtifactType.JSON, REFERENCE_CONTENT);
 
         //Create a second artifact referencing the first one, the hash will be the same using version 2.4.1.Final.
@@ -93,7 +93,7 @@ public class UpgradeTestsDataInitializer {
         SqlStorageUpgradeIT.artifactWithReferences = artifactWithReferences;
     }
 
-    protected static void prepareTestStorageUpgrade(String testName, String tenantManagerUrl, String registryBaseUrl) throws Exception {
+    public static void prepareTestStorageUpgrade(String testName, String tenantManagerUrl, String registryBaseUrl) throws Exception {
         MultitenancySupport mt = new MultitenancySupport(tenantManagerUrl, registryBaseUrl);
 
         List<TenantData> data = loadData(mt, testName);
@@ -132,7 +132,7 @@ public class UpgradeTestsDataInitializer {
         return tenants;
     }
 
-    protected static void verifyData(List<TenantData> tenants) {
+    public static void verifyData(List<TenantData> tenants) {
         for (TenantData tenant : tenants) {
 
             var client = tenant.tenant.client;
@@ -164,7 +164,7 @@ public class UpgradeTestsDataInitializer {
         }
     }
 
-    protected static void createMoreArtifacts(List<TenantData> tenants) throws Exception {
+    public static void createMoreArtifacts(List<TenantData> tenants) throws Exception {
         for (TenantData tenant : tenants) {
             var client = tenant.tenant.client;
 
@@ -173,7 +173,7 @@ public class UpgradeTestsDataInitializer {
         }
     }
 
-    protected static class TenantData {
+    public static class TenantData {
         TenantUserClient tenant;
         List<CustomTestsUtils.ArtifactData> artifacts;
 

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.deployment;
+package io.apicurio.deployment;
 
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientBuilder;
@@ -23,8 +23,8 @@ import org.junit.jupiter.api.extension.AfterAllCallback;
 import org.junit.jupiter.api.extension.BeforeAllCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
 
-import static io.apicurio.registry.deployment.KubernetesTestResources.APPLICATION_SERVICE;
-import static io.apicurio.registry.deployment.KubernetesTestResources.TEST_NAMESPACE;
+import static io.apicurio.deployment.KubernetesTestResources.APPLICATION_SERVICE;
+import static io.apicurio.deployment.KubernetesTestResources.TEST_NAMESPACE;
 
 public class PortForwardManager implements BeforeAllCallback, AfterAllCallback {
 

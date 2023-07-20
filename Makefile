@@ -319,15 +319,12 @@ build-project:
 	CURRENT_ENV=mas mvn clean install -Pprod -Pno-docker -Dskip.npm -Psql -Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false -DskipTests
 
 
-
 .PHONY: run-ui-tests ## Runs ui e2e tests
 run-ui-tests:
 	@echo "----------------------------------------------------------------------"
 	@echo "                         Running UI Tests                             "
 	@echo "----------------------------------------------------------------------"
-	./mvnw -am verify --no-transfer-progress -Pe2e-tests -Pui -Premote-mem -pl e2e-system-tests -Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false
-
-
+	./mvnw -am verify --no-transfer-progress -Pe2e-tests -Pui -Premote-sql -pl e2e-system-tests -Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false
 
 ############################################# SQL Integration Tests #########################################################################
 
@@ -365,7 +362,7 @@ run-sql-multitenancy-integration-tests:
 	@echo "----------------------------------------------------------------------"
 	@echo "               Running Multitenancy Integration Tests                 "
 	@echo "----------------------------------------------------------------------"
-	./mvnw verify -am --no-transfer-progress -Pe2e-tests -Pmultitenancy -Psql -pl e2e-system-tests -Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false
+	./mvnw verify -am --no-transfer-progress -Pe2e-tests -Pmultitenancy -Premote-sql -pl e2e-system-tests -Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false
 
 
 ############################################# KafkaSql Integration Tests #########################################################################

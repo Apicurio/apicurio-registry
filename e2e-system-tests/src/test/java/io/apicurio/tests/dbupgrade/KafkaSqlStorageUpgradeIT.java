@@ -29,6 +29,7 @@ import io.apicurio.tests.utils.TestSeparator;
 import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -73,7 +74,7 @@ public class KafkaSqlStorageUpgradeIT extends ApicurioRegistryBaseIT implements 
     @Test
     public void testStorageUpgradeProtobufUpgraderKafkaSql() throws Exception {
         //The check must be retried so the kafka storage has been bootstrapped
-        retry(() -> assertEquals(3, registryClient.listArtifactsInGroup(PREPARE_PROTO_GROUP).getCount()));
+        retry(() -> assertEquals(3, registryClient.listArtifactsInGroup(PREPARE_PROTO_GROUP).getCount()), 1000L);
 
         var searchResults = registryClient.listArtifactsInGroup(PREPARE_PROTO_GROUP);
 
@@ -112,6 +113,8 @@ public class KafkaSqlStorageUpgradeIT extends ApicurioRegistryBaseIT implements 
 
     @Test
     public void testStorageUpgradeReferencesContentHash() throws Exception {
+        //The check must be retried so the kafka storage has been bootstrapped
+        retry(() -> Assertions.assertTrue(registryClient.listArtifactsInGroup(artifactWithReferences.meta.getGroupId()).getCount() > 0), 1000L);
         //Once the storage is filled with the proper information, if we try to create the same artifact with the same references, no new version will be created and the same ids are used.
         CustomTestsUtils.ArtifactData upgradedArtifact = CustomTestsUtils.createArtifactWithReferences(artifactWithReferences.meta.getGroupId(), artifactWithReferences.meta.getId(), registryClient, ArtifactType.AVRO, ARTIFACT_CONTENT, artifactReferences);
         assertEquals(artifactWithReferences.meta.getGlobalId(), upgradedArtifact.meta.getGlobalId());

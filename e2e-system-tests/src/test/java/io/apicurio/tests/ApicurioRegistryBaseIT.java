@@ -436,8 +436,19 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
         });
     }
 
+    public void retry(TestUtils.RunnableExc runnable, long delta) throws Exception {
+        retry(() -> {
+            runnable.run();
+            return null;
+        }, delta);
+    }
+
     public <T> T retry(Callable<T> callable) throws Exception {
         return retry(callable, "Action #" + System.currentTimeMillis(), 20);
+    }
+
+    public <T> T retry(Callable<T> callable, long delta) throws Exception {
+        return retry(callable, "Action #" + System.currentTimeMillis(), 20, delta);
     }
 
     public void retry(TestUtils.RunnableExc runnable, String name, int maxRetries) throws Exception {
@@ -448,6 +459,10 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
     }
 
     private <T> T retry(Callable<T> callable, String name, int maxRetries) throws Exception {
+        return retry(callable, name, maxRetries, 100L);
+    }
+
+    private <T> T retry(Callable<T> callable, String name, int maxRetries, long delta) throws Exception {
         Throwable error = null;
         int tries = maxRetries;
         int attempt = 1;
@@ -463,7 +478,7 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
                 } else {
                     error.addSuppressed(t);
                 }
-                Thread.sleep(100L * attempt);
+                Thread.sleep(delta * attempt);
                 tries--;
                 attempt++;
             }

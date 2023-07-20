@@ -53,6 +53,8 @@ public class UpgradeTestsDataInitializer {
     private static final Logger logger = LoggerFactory.getLogger(UpgradeTestsDataInitializer.class);
 
     public static void prepareProtobufHashUpgradeTest(RegistryClient registryClient) throws Exception {
+        logger.info("Preparing ProtobufHashUpgradeTest test data...");
+
         RegistryWaitUtils.retry(registryClient, registryClient1 -> CustomTestsUtils.createArtifact(registryClient, PREPARE_PROTO_GROUP, ArtifactType.AVRO, resourceToString("artifactTypes/" + "avro/multi-field_v1.json")));
         CustomTestsUtils.createArtifact(registryClient, PREPARE_PROTO_GROUP, ArtifactType.JSON, resourceToString("artifactTypes/" + "jsonSchema/person_v1.json"));
 
@@ -68,9 +70,13 @@ public class UpgradeTestsDataInitializer {
         //Once prepared, set the global variable, so we can compare during the test execution
         KafkaSqlStorageUpgradeIT.protoData = protoData;
         SqlStorageUpgradeIT.protoData = protoData;
+
+        logger.info("Finished preparing ProtobufHashUpgradeTest test data.");
     }
 
     public static void prepareReferencesUpgradeTest(RegistryClient registryClient) throws Exception {
+        logger.info("Preparing ReferencesUpgradeTest test data...");
+
         final CustomTestsUtils.ArtifactData artifact = CustomTestsUtils.createArtifact(registryClient, PREPARE_REFERENCES_GROUP, ArtifactType.JSON, REFERENCE_CONTENT);
 
         //Create a second artifact referencing the first one, the hash will be the same using version 2.4.1.Final.
@@ -98,9 +104,13 @@ public class UpgradeTestsDataInitializer {
         KafkaSqlStorageUpgradeIT.artifactWithReferences = artifactWithReferences;
         SqlStorageUpgradeIT.artifactReferences = artifactReferences;
         SqlStorageUpgradeIT.artifactWithReferences = artifactWithReferences;
+
+        logger.info("Finished preparing ReferencesUpgradeTest test data.");
     }
 
     public static void prepareTestStorageUpgrade(String testName, String tenantManagerUrl, String registryBaseUrl) throws Exception {
+        logger.info("Preparing TestStorageUpgrade test data...");
+
         MultitenancySupport mt = new MultitenancySupport(tenantManagerUrl, registryBaseUrl);
 
         List<TenantData> data = loadData(mt, testName);
@@ -108,10 +118,14 @@ public class UpgradeTestsDataInitializer {
         verifyData(data);
 
         SqlStorageUpgradeIT.data = data;
+
+        logger.info("Finished preparing TestStorageUpgrade test data.");
     }
 
     public static void prepareLogCompactionTests(RegistryClient registryClient) throws Exception {
         try {
+
+            logger.info("Preparing LogCompactionTests test data...");
 
             RegistryWaitUtils.retry(registryClient, registryClient1 -> CustomTestsUtils.createArtifact(registryClient, PREPARE_LOG_COMPACTION, ArtifactType.AVRO, ApicurioRegistryBaseIT.resourceToString("artifactTypes/" + "avro/multi-field_v1.json")));
 
@@ -135,6 +149,8 @@ public class UpgradeTestsDataInitializer {
         } catch (Exception e) {
             logger.warn("Error filling origin with artifacts information:", e);
         }
+
+        logger.info("Finished preparing LogCompactionTests test data.");
     }
 
     private static List<TenantData> loadData(MultitenancySupport mt, String testName) throws Exception {
@@ -147,6 +163,8 @@ public class UpgradeTestsDataInitializer {
             TenantUserClient user = mt.createTenant();
             tenant.tenant = user;
             tenants.add(tenant);
+
+            logger.info("Tenant {} created...", tenant.tenant.user.tenantId);
 
             RegistryClient client = user.client;
 
@@ -162,12 +180,17 @@ public class UpgradeTestsDataInitializer {
             tenant.artifacts.add(CustomTestsUtils.createArtifact(client, ArtifactType.AVRO, resourceToString("artifactTypes/" + "avro/multi-field_v1.json")));
             tenant.artifacts.add(CustomTestsUtils.createArtifact(client, ArtifactType.JSON, resourceToString("artifactTypes/" + "jsonSchema/person_v1.json")));
             tenant.artifacts.add(CustomTestsUtils.createArtifact(client, ArtifactType.ASYNCAPI, resourceToString("artifactTypes/" + "asyncapi/2.0-streetlights_v1.json")));
+
+            logger.info("Tenant {} filled with test data...", tenant.tenant.user.tenantId);
         }
         return tenants;
     }
 
     public static void verifyData(List<TenantData> tenants) {
+
         for (TenantData tenant : tenants) {
+
+            logger.info("Verifying tenant {} data...", tenant.tenant.user.tenantId);
 
             var client = tenant.tenant.client;
 
@@ -194,6 +217,8 @@ public class UpgradeTestsDataInitializer {
 
                 VersionMetaData vmeta = client.getArtifactVersionMetaData(meta.getGroupId(), meta.getId(), meta.getVersion());
                 assertEquals(meta.getContentId(), vmeta.getContentId());
+
+                logger.info("Tenant {} data verified...", tenant.tenant.user.tenantId);
             }
         }
     }

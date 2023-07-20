@@ -35,7 +35,6 @@ import io.fabric8.kubernetes.client.KubernetesClientBuilder;
 import io.fabric8.kubernetes.client.LocalPortForward;
 import io.fabric8.kubernetes.client.dsl.Resource;
 import io.fabric8.kubernetes.client.dsl.RollableScalableResource;
-import org.junit.jupiter.api.Assertions;
 import org.junit.platform.launcher.TestExecutionListener;
 import org.junit.platform.launcher.TestPlan;
 import org.slf4j.Logger;
@@ -55,28 +54,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import static io.apicurio.deployment.Constants.REGISTRY_IMAGE;
-import static io.apicurio.deployment.KubernetesTestResources.APPLICATION_DEPLOYMENT;
-import static io.apicurio.deployment.KubernetesTestResources.APPLICATION_IN_MEMORY_MULTITENANT_RESOURCES;
-import static io.apicurio.deployment.KubernetesTestResources.APPLICATION_IN_MEMORY_RESOURCES;
-import static io.apicurio.deployment.KubernetesTestResources.APPLICATION_IN_MEMORY_SECURED_RESOURCES;
-import static io.apicurio.deployment.KubernetesTestResources.APPLICATION_KAFKA_MULTITENANT_RESOURCES;
-import static io.apicurio.deployment.KubernetesTestResources.APPLICATION_KAFKA_RESOURCES;
-import static io.apicurio.deployment.KubernetesTestResources.APPLICATION_KAFKA_SECURED_RESOURCES;
-import static io.apicurio.deployment.KubernetesTestResources.APPLICATION_OLD_KAFKA_RESOURCES;
-import static io.apicurio.deployment.KubernetesTestResources.APPLICATION_OLD_SQL_RESOURCES;
-import static io.apicurio.deployment.KubernetesTestResources.APPLICATION_SERVICE;
-import static io.apicurio.deployment.KubernetesTestResources.APPLICATION_SQL_MULTITENANT_RESOURCES;
-import static io.apicurio.deployment.KubernetesTestResources.APPLICATION_SQL_RESOURCES;
-import static io.apicurio.deployment.KubernetesTestResources.APPLICATION_SQL_SECURED_RESOURCES;
-import static io.apicurio.deployment.KubernetesTestResources.DATABASE_RESOURCES;
-import static io.apicurio.deployment.KubernetesTestResources.E2E_NAMESPACE_RESOURCE;
-import static io.apicurio.deployment.KubernetesTestResources.KAFKA_RESOURCES;
-import static io.apicurio.deployment.KubernetesTestResources.KEYCLOAK_RESOURCES;
-import static io.apicurio.deployment.KubernetesTestResources.KEYCLOAK_SERVICE;
-import static io.apicurio.deployment.KubernetesTestResources.TENANT_MANAGER_DATABASE;
-import static io.apicurio.deployment.KubernetesTestResources.TENANT_MANAGER_RESOURCES;
-import static io.apicurio.deployment.KubernetesTestResources.TENANT_MANAGER_SERVICE;
-import static io.apicurio.deployment.KubernetesTestResources.TEST_NAMESPACE;
+import static io.apicurio.deployment.KubernetesTestResources.*;
 
 public class RegistryDeploymentManager implements TestExecutionListener {
 
@@ -152,10 +130,13 @@ public class RegistryDeploymentManager implements TestExecutionListener {
 
         //Based on the configuration, deploy the appropriate variant
         if (Boolean.parseBoolean(System.getProperty("deployInMemory"))) {
+            LOGGER.info("Deploying In Memory Registry Variant with image: {} ##################################################", System.getProperty("registry-in-memory-image"));
             deployInMemoryApp(System.getProperty("registry-in-memory-image"));
         } else if (Boolean.parseBoolean(System.getProperty("deploySql"))) {
+            LOGGER.info("Deploying SQL Registry Variant with image: {} ##################################################", System.getProperty("registry-sql-image"));
             deploySqlApp(System.getProperty("registry-sql-image"));
         } else if (Boolean.parseBoolean(System.getProperty("deployKafka"))) {
+            LOGGER.info("Deploying Kafka SQL Registry Variant with image: {} ##################################################", System.getProperty("registry-kafkasql-image"));
             deployKafkaApp(System.getProperty("registry-kafkasql-image"));
         }
     }
@@ -211,6 +192,8 @@ public class RegistryDeploymentManager implements TestExecutionListener {
     private void prepareTestsInfra(String externalResources, String registryResources, boolean startKeycloak, String
             registryImage, boolean startTenantManager) throws IOException {
         if (startKeycloak) {
+            LOGGER.info("Deploying Keycloak resources ##################################################");
+
             deployResource(KEYCLOAK_RESOURCES);
 
             //Create the keycloak port forward so the tests can reach it to get tokens
@@ -221,17 +204,14 @@ public class RegistryDeploymentManager implements TestExecutionListener {
         }
 
         if (startTenantManager) {
+            LOGGER.info("Deploying Tenant Manager resources ##################################################");
+
             deployResource(TENANT_MANAGER_DATABASE);
             deployResource(TENANT_MANAGER_RESOURCES);
-
-            //Create the tenant manager port forward so it's available for the deployment
-            tenantManagerPortForward = kubernetesClient.services()
-                    .inNamespace(TEST_NAMESPACE)
-                    .withName(TENANT_MANAGER_SERVICE)
-                    .portForward(8585, 8585);
         }
 
         if (externalResources != null) {
+            LOGGER.info("Deploying external dependencies for Registry ##################################################");
             deployResource(externalResources);
         }
 
@@ -265,9 +245,18 @@ public class RegistryDeploymentManager implements TestExecutionListener {
     }
 
     private void prepareSqlDbUpgradeTests(String registryImage) throws Exception {
+        LOGGER.info("Preparing data for SQL DB Upgrade migration tests...");
+
         //For the migration tests first we deploy the in-memory variant, add some data and then the appropriate variant is deployed.
         prepareTestsInfra(DATABASE_RESOURCES, APPLICATION_OLD_SQL_RESOURCES, false, null, true);
-        prepareSqlMigrationData(ApicurioRegistryBaseIT.getTenantManagerUrl(), ApicurioRegistryBaseIT.getRegistryBaseUrl());
+
+        //Create the tenant manager port forward so it's available for the deployment
+        tenantManagerPortForward = kubernetesClient.services()
+                .inNamespace(TEST_NAMESPACE)
+                .withName(TENANT_MANAGER_SERVICE)
+                .portForward(8585, 8585);
+
+        prepareSqlMigrationData(ApicurioRegistryBaseIT.getTenantManagerUrl(), ApicurioRegistryBaseIT.getRegistryBaseUrl(), tenantManagerPortForward);
 
         final RollableScalableResource<Deployment> deploymentResource = kubernetesClient.apps().deployments().inNamespace(TEST_NAMESPACE).withName(APPLICATION_DEPLOYMENT);
 
@@ -286,10 +275,16 @@ public class RegistryDeploymentManager implements TestExecutionListener {
             deployment.cancel(true);
         }
 
+        //Once done preparing data, close the tenant manager port forwarding.
+        tenantManagerPortForward.close();
+
+        LOGGER.info("Finished preparing data for the SQL DB Upgrade tests.");
         prepareTestsInfra(null, APPLICATION_SQL_MULTITENANT_RESOURCES, false, registryImage, false);
     }
 
     private void prepareKafkaDbUpgradeTests(String registryImage) throws Exception {
+        LOGGER.info("Preparing data for KafkaSQL DB Upgrade migration tests...");
+
         //For the migration tests first we deploy the in-memory variant, add some data and then the appropriate variant is deployed.
         prepareTestsInfra(KAFKA_RESOURCES, APPLICATION_OLD_KAFKA_RESOURCES, false, null, false);
         prepareKafkaSqlMigrationData(ApicurioRegistryBaseIT.getRegistryBaseUrl());
@@ -311,11 +306,11 @@ public class RegistryDeploymentManager implements TestExecutionListener {
             deployment.cancel(true);
         }
 
+        LOGGER.info("Finished preparing data for the KafkaSQL DB Upgrade tests.");
         prepareTestsInfra(null, APPLICATION_KAFKA_RESOURCES, false, registryImage, false);
     }
 
-    private void prepareSqlMigrationData(String tenantManagerUrl, String registryBaseUrl) throws Exception {
-
+    private void prepareSqlMigrationData(String tenantManagerUrl, String registryBaseUrl, LocalPortForward tenantManagerPortForward) throws Exception {
         try (LocalPortForward ignored = kubernetesClient.services()
                 .inNamespace(TEST_NAMESPACE)
                 .withName(APPLICATION_SERVICE)
@@ -326,10 +321,13 @@ public class RegistryDeploymentManager implements TestExecutionListener {
             //Warm up until the tenant manager is ready.
             TestUtils.retry(() -> tenantManagerClient.listTenants(TenantStatusValue.READY, 0, 1, SortOrder.asc, SortBy.tenantId));
 
+            LOGGER.info("Tenant manager is ready, filling registry with test data...");
+
             UpgradeTestsDataInitializer.prepareTestStorageUpgrade(SqlStorageUpgradeIT.class.getSimpleName(), tenantManagerUrl, registryBaseUrl);
 
-            //Wait until all the data is available for the upgrade test.
-            TestUtils.retry(() -> Assertions.assertEquals(10, tenantManagerClient.listTenants(TenantStatusValue.READY, 0, 51, SortOrder.asc, SortBy.tenantId).getCount()));
+            TestUtils.waitFor("Waiting for tenant data to be available...", 3000, 180000, () -> tenantManagerClient.listTenants(TenantStatusValue.READY, 0, 51, SortOrder.asc, SortBy.tenantId).getCount() == 10);
+
+            LOGGER.info("Done filling registry with test data...");
 
             MultitenancySupport mt = new MultitenancySupport(tenantManagerUrl, registryBaseUrl);
             TenantUser tenantUser = new TenantUser(UUID.randomUUID().toString(), UUID.randomUUID().toString(), "storageUpgrade", UUID.randomUUID().toString());

@@ -64,6 +64,11 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
     }
 
     @Override
+    public void cleanArtifacts() throws Exception {
+        //Don't clean
+    }
+
+    @Override
     protected RegistryClient createRegistryClient() {
         Auth auth = new OidcAuth(getHttpClient(), JWKSMockServer.ADMIN_CLIENT_ID, "test1");
         return createClient(auth);

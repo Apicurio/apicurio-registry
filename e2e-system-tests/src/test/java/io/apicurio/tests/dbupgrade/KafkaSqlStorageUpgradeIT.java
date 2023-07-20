@@ -44,6 +44,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import static io.apicurio.tests.dbupgrade.UpgradeTestsDataInitializer.ARTIFACT_CONTENT;
+import static io.apicurio.tests.dbupgrade.UpgradeTestsDataInitializer.PREPARE_PROTO_GROUP;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
@@ -64,8 +65,6 @@ public class KafkaSqlStorageUpgradeIT extends ApicurioRegistryBaseIT implements 
     protected static List<ArtifactReference> artifactReferences;
     protected static CustomTestsUtils.ArtifactData protoData;
 
-    public static final String PREPARE_PROTO_GROUP = "prepareProtobufHashUpgradeTest";
-
     @Override
     public void cleanArtifacts() throws Exception {
         //Don't clean artifacts for this test
@@ -73,10 +72,6 @@ public class KafkaSqlStorageUpgradeIT extends ApicurioRegistryBaseIT implements 
 
     @Test
     public void testStorageUpgradeProtobufUpgraderKafkaSql() throws Exception {
-        testStorageUpgradeProtobufUpgrader("protobufCanonicalHashKafkaSql");
-    }
-
-    public void testStorageUpgradeProtobufUpgrader(String testName) throws Exception {
         //The check must be retried so the kafka storage has been bootstrapped
         retry(() -> assertEquals(3, registryClient.listArtifactsInGroup(PREPARE_PROTO_GROUP).getCount()));
 
@@ -117,12 +112,8 @@ public class KafkaSqlStorageUpgradeIT extends ApicurioRegistryBaseIT implements 
 
     @Test
     public void testStorageUpgradeReferencesContentHash() throws Exception {
-        testStorageUpgradeReferencesContentHashUpgrader("referencesContentHash");
-    }
-
-    public void testStorageUpgradeReferencesContentHashUpgrader(String testName) throws Exception {
         //Once the storage is filled with the proper information, if we try to create the same artifact with the same references, no new version will be created and the same ids are used.
-        CustomTestsUtils.ArtifactData upgradedArtifact = CustomTestsUtils.createArtifactWithReferences(artifactWithReferences.meta.getId(), registryClient, ArtifactType.AVRO, ARTIFACT_CONTENT, artifactReferences);
+        CustomTestsUtils.ArtifactData upgradedArtifact = CustomTestsUtils.createArtifactWithReferences(artifactWithReferences.meta.getGroupId(), artifactWithReferences.meta.getId(), registryClient, ArtifactType.AVRO, ARTIFACT_CONTENT, artifactReferences);
         assertEquals(artifactWithReferences.meta.getGlobalId(), upgradedArtifact.meta.getGlobalId());
         assertEquals(artifactWithReferences.meta.getContentId(), upgradedArtifact.meta.getContentId());
     }
@@ -132,16 +123,19 @@ public class KafkaSqlStorageUpgradeIT extends ApicurioRegistryBaseIT implements 
 
         @Override
         public Map<String, String> start() {
-            String bootstrapServers = System.getProperty("bootstrap.servers");
-            startOldRegistryVersion("quay.io/apicurio/apicurio-registry-kafkasql:2.1.2.Final", bootstrapServers);
+            if (!Boolean.parseBoolean(System.getProperty("cluster.tests"))) {
 
-            try {
-                var registryClient = RegistryClientFactory.create("http://localhost:8081/");
+                String bootstrapServers = System.getProperty("bootstrap.servers");
+                startOldRegistryVersion("quay.io/apicurio/apicurio-registry-kafkasql:2.1.2.Final", bootstrapServers);
 
-                UpgradeTestsDataInitializer.prepareProtobufHashUpgradeTest(registryClient);
-                UpgradeTestsDataInitializer.prepareReferencesUpgradeTest(registryClient);
-            } catch (Exception e) {
-                logger.warn("Error filling old registry with information: ", e);
+                try {
+                    var registryClient = RegistryClientFactory.create("http://localhost:8081/");
+
+                    UpgradeTestsDataInitializer.prepareProtobufHashUpgradeTest(registryClient);
+                    UpgradeTestsDataInitializer.prepareReferencesUpgradeTest(registryClient);
+                } catch (Exception e) {
+                    logger.warn("Error filling old registry with information: ", e);
+                }
             }
             return Collections.emptyMap();
         }

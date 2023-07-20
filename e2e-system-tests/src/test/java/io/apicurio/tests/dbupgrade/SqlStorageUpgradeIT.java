@@ -58,6 +58,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import static io.apicurio.tests.dbupgrade.UpgradeTestsDataInitializer.PREPARE_PROTO_GROUP;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
@@ -86,8 +87,7 @@ public class SqlStorageUpgradeIT extends ApicurioRegistryBaseIT implements TestS
     protected static List<ArtifactReference> artifactReferences;
     protected static CustomTestsUtils.ArtifactData protoData;
 
-    public static final String PREPARE_PROTO_GROUP = "prepareProtobufHashUpgradeTest";
-    private static RegistryClient upgradeTenantClient;
+    public static RegistryClient upgradeTenantClient;
 
     @Override
     public void cleanArtifacts() throws Exception {
@@ -111,7 +111,7 @@ public class SqlStorageUpgradeIT extends ApicurioRegistryBaseIT implements TestS
 
     public void testStorageUpgradeReferencesContentHashUpgrader(String testName) throws Exception {
         //Once the storage is filled with the proper information, if we try to create the same artifact with the same references, no new version will be created and the same ids are used.
-        CustomTestsUtils.ArtifactData upgradedArtifact = CustomTestsUtils.createArtifactWithReferences(artifactWithReferences.meta.getId(), upgradeTenantClient, ArtifactType.AVRO, ARTIFACT_CONTENT, artifactReferences);
+        CustomTestsUtils.ArtifactData upgradedArtifact = CustomTestsUtils.createArtifactWithReferences(artifactWithReferences.meta.getGroupId(), artifactWithReferences.meta.getId(), upgradeTenantClient, ArtifactType.AVRO, ARTIFACT_CONTENT, artifactReferences);
         assertEquals(artifactWithReferences.meta.getGlobalId(), upgradedArtifact.meta.getGlobalId());
         assertEquals(artifactWithReferences.meta.getContentId(), upgradedArtifact.meta.getContentId());
     }
@@ -172,42 +172,45 @@ public class SqlStorageUpgradeIT extends ApicurioRegistryBaseIT implements TestS
 
         @Override
         public Map<String, String> start() {
-            String jdbcUrl = System.getProperty("quarkus.datasource.jdbc.url");
-            String userName = System.getProperty("quarkus.datasource.username");
-            String password = System.getProperty("quarkus.datasource.password");
+            if (!Boolean.parseBoolean(System.getProperty("cluster.tests"))) {
 
-            String tenantManagerUrl = startTenantManagerApplication("quay.io/apicurio/apicurio-tenant-manager-api:latest", jdbcUrl, userName, password);
-            String registryBaseUrl = startOldRegistryVersion("quay.io/apicurio/apicurio-registry-sql:2.1.0.Final", jdbcUrl, userName, password, tenantManagerUrl);
+                String jdbcUrl = System.getProperty("quarkus.datasource.jdbc.url");
+                String userName = System.getProperty("quarkus.datasource.username");
+                String password = System.getProperty("quarkus.datasource.password");
 
-            try {
+                String tenantManagerUrl = startTenantManagerApplication("quay.io/apicurio/apicurio-tenant-manager-api:latest", jdbcUrl, userName, password);
+                String registryBaseUrl = startOldRegistryVersion("quay.io/apicurio/apicurio-registry-sql:2.1.0.Final", jdbcUrl, userName, password, tenantManagerUrl);
 
-                //Warm up until the tenant manager is ready.
-                TestUtils.retry(() -> {
-                    getTenantManagerClient(tenantManagerUrl).listTenants(TenantStatusValue.READY, 0, 1, SortOrder.asc, SortBy.tenantId);
-                });
+                try {
 
-                UpgradeTestsDataInitializer.prepareTestStorageUpgrade(SqlStorageUpgradeIT.class.getSimpleName(), tenantManagerUrl, "http://localhost:8081");
+                    //Warm up until the tenant manager is ready.
+                    TestUtils.retry(() -> {
+                        getTenantManagerClient(tenantManagerUrl).listTenants(TenantStatusValue.READY, 0, 1, SortOrder.asc, SortBy.tenantId);
+                    });
 
-                //Wait until all the data is available for the upgrade test.
-                TestUtils.retry(() -> Assertions.assertEquals(50, getTenantManagerClient(tenantManagerUrl).listTenants(TenantStatusValue.READY, 0, 51, SortOrder.asc, SortBy.tenantId).getCount()));
+                    UpgradeTestsDataInitializer.prepareTestStorageUpgrade(SqlStorageUpgradeIT.class.getSimpleName(), tenantManagerUrl, "http://localhost:8081");
 
-                MultitenancySupport mt = new MultitenancySupport(tenantManagerUrl, registryBaseUrl);
-                TenantUser tenantUser = new TenantUser(UUID.randomUUID().toString(), UUID.randomUUID().toString(), "storageUpgrade", UUID.randomUUID().toString());
-                final TenantUserClient tenantUpgradeClient = mt.createTenant(tenantUser);
+                    //Wait until all the data is available for the upgrade test.
+                    TestUtils.retry(() -> Assertions.assertEquals(20, getTenantManagerClient(tenantManagerUrl).listTenants(TenantStatusValue.READY, 0, 51, SortOrder.asc, SortBy.tenantId).getCount()));
 
-                //Prepare the data for the content and canonical hash upgraders using an isolated tenant so we don't have data conflicts.
-                UpgradeTestsDataInitializer.prepareProtobufHashUpgradeTest(tenantUpgradeClient.client);
-                UpgradeTestsDataInitializer.prepareReferencesUpgradeTest(tenantUpgradeClient.client);
+                    MultitenancySupport mt = new MultitenancySupport(tenantManagerUrl, registryBaseUrl);
+                    TenantUser tenantUser = new TenantUser(UUID.randomUUID().toString(), UUID.randomUUID().toString(), "storageUpgrade", UUID.randomUUID().toString());
+                    final TenantUserClient tenantUpgradeClient = mt.createTenant(tenantUser);
 
-                upgradeTenantClient = tenantUpgradeClient.client;
+                    //Prepare the data for the content and canonical hash upgraders using an isolated tenant so we don't have data conflicts.
+                    UpgradeTestsDataInitializer.prepareProtobufHashUpgradeTest(tenantUpgradeClient.client);
+                    UpgradeTestsDataInitializer.prepareReferencesUpgradeTest(tenantUpgradeClient.client);
 
-                //Once the data is set, stop the old registry before running the tests.
-                if (registryContainer != null && registryContainer.isRunning()) {
-                    registryContainer.stop();
+                    upgradeTenantClient = tenantUpgradeClient.client;
+
+                    //Once the data is set, stop the old registry before running the tests.
+                    if (registryContainer != null && registryContainer.isRunning()) {
+                        registryContainer.stop();
+                    }
+
+                } catch (Exception e) {
+                    logger.warn("Error filling old registry with information: ", e);
                 }
-
-            } catch (Exception e) {
-                logger.warn("Error filling old registry with information: ", e);
             }
 
             return Collections.emptyMap();

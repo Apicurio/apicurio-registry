@@ -21,6 +21,7 @@ import io.zonky.test.db.postgres.embedded.EmbeddedPostgres;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -36,18 +37,21 @@ public class PostgreSqlEmbeddedTestResource implements QuarkusTestResourceLifecy
      */
     @Override
     public Map<String, String> start() {
+        if (!Boolean.parseBoolean(System.getProperty("cluster.tests"))) {
 
-        String currentEnv = System.getenv("CURRENT_ENV");
+            String currentEnv = System.getenv("CURRENT_ENV");
 
-        if (currentEnv != null && "mas".equals(currentEnv)) {
-            Map<String, String> props = new HashMap<>();
-            props.put("quarkus.datasource.jdbc.url", "jdbc:postgresql://localhost:5432/test");
-            props.put("quarkus.datasource.username", "test");
-            props.put("quarkus.datasource.password", "test");
-            return props;
-        } else {
-            return startPostgresql();
+            if (currentEnv != null && "mas".equals(currentEnv)) {
+                Map<String, String> props = new HashMap<>();
+                props.put("quarkus.datasource.jdbc.url", "jdbc:postgresql://localhost:5432/test");
+                props.put("quarkus.datasource.username", "test");
+                props.put("quarkus.datasource.password", "test");
+                return props;
+            } else {
+                return startPostgresql();
+            }
         }
+        return Collections.emptyMap();
     }
 
     private Map<String, String> startPostgresql() {

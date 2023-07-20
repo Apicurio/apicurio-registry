@@ -180,6 +180,39 @@ jobs:
           name: tests-logs
           path: artifacts
 
+  integration-tests-sql-db-upgrade:
+    name: Integration Tests SQL DB Upgrade
+    runs-on: ubuntu-20.04
+    needs: prepare-sql-tests
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Setup Kind
+        uses: engineerd/setup-kind@v0.5.0
+        with:
+          version: "v0.11.1"
+
+      - name: Run Integration Tests - sql - db upgrade
+        run: make REGISTRY_IMAGE='-Dregistry-sql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-sql:1d' run-sql-upgrade-tests
+
+      - name: Collect logs
+        if: failure()
+        run: ./.github/scripts/collect_logs.sh
+
+      - name: Upload tests logs artifacts
+        if: failure()
+        uses: actions/upload-artifact@v1.0.0
+        with:
+          name: tests-logs
+          path: artifacts
+
   integration-tests-sql-multitenancy:
     name: Integration Tests SQL Multitenancy
     runs-on: ubuntu-20.04
@@ -265,6 +298,37 @@ jobs:
 
       - name: Run Integration Tests - KafkaSql
         run: make REGISTRY_IMAGE='-Dregistry-kafkasql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-kafkasql:1d' run-kafkasql-migration-integration-tests
+
+      - name: Collect logs
+        if: failure()
+        run: ./.github/scripts/collect_logs.sh
+      - name: Upload tests logs artifacts
+        if: failure()
+        uses: actions/upload-artifact@v1.0.0
+        with:
+          name: tests-logs
+          path: artifacts
+
+  integration-tests-kafkasql-db-upgrade:
+    name: Integration Tests KafkaSql - DB Upgrade
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Setup Kind
+        uses: engineerd/setup-kind@v0.5.0
+        with:
+          version: "v0.11.1"
+
+      - name: Run Integration Tests - KafkaSql
+        run: make REGISTRY_IMAGE='-Dregistry-kafkasql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-kafkasql:1d' run-kafkasql-upgrade-tests
 
       - name: Collect logs
         if: failure()

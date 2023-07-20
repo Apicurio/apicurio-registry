@@ -31,11 +31,6 @@ public class Constants {
     static final String MULTITENANCY = "multitenancy";
 
     /**
-     * Tag for migration tests, the suite will deploy two registries and perform data migration between the two
-     */
-    static final String MIGRATION = "migration";
-
-    /**
      * Tag for auth tests profile.
      */
     static final String AUTH = "auth";
@@ -43,7 +38,13 @@ public class Constants {
     /**
      * Tag for sql db upgrade tests profile.
      */
-    static final String DB_UPGRADE = "dbupgrade";
+    static final String KAFKA_SQL = "kafkasqlit";
+
+    /**
+     * Tag for sql db upgrade tests profile.
+     */
+    static final String SQL = "sqlit";
+
 
     public static final String TEST_PROFILE =
             Optional.ofNullable(System.getProperty("groups"))

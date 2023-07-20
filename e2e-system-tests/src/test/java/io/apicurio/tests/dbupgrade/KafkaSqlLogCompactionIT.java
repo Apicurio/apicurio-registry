@@ -47,6 +47,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
+import static io.apicurio.tests.dbupgrade.UpgradeTestsDataInitializer.PREPARE_LOG_COMPACTION;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
@@ -66,14 +67,14 @@ public class KafkaSqlLogCompactionIT extends ApicurioRegistryBaseIT implements T
     @Test
     public void testLogCompaction() throws Exception {
         //The check must be retried so the kafka storage has been bootstrapped
-        retry(() -> assertEquals(3, registryClient.listArtifactsInGroup(null).getCount()));
+        retry(() -> assertEquals(3, registryClient.listArtifactsInGroup(PREPARE_LOG_COMPACTION).getCount()));
 
-        var searchResults = registryClient.listArtifactsInGroup(null);
+        var searchResults = registryClient.listArtifactsInGroup(PREPARE_LOG_COMPACTION);
         assertEquals(3, searchResults.getCount());
 
         String test2content = ApicurioRegistryBaseIT.resourceToString("artifactTypes/" + "protobuf/tutorial_v2.proto");
         String originalHash = DigestUtils.sha256Hex(test2content);
-        var artifact = CustomTestsUtils.createArtifact(registryClient, ArtifactType.PROTOBUF, test2content);
+        var artifact = CustomTestsUtils.createArtifact(registryClient, PREPARE_LOG_COMPACTION, ArtifactType.PROTOBUF, test2content);
 
         assertEquals(originalHash, artifact.contentHash);
 
@@ -84,7 +85,7 @@ public class KafkaSqlLogCompactionIT extends ApicurioRegistryBaseIT implements T
         assertEquals(originalHash, bycontentidHash);
 
         //assert total num of artifacts
-        assertEquals(4, registryClient.listArtifactsInGroup(null).getCount());
+        assertEquals(4, registryClient.listArtifactsInGroup(PREPARE_LOG_COMPACTION).getCount());
     }
 
     public static class KafkaSqlLogCompactionTestInitializer implements QuarkusTestResourceLifecycleManager {
@@ -98,43 +99,46 @@ public class KafkaSqlLogCompactionIT extends ApicurioRegistryBaseIT implements T
 
         @Override
         public Map<String, String> start() {
-            String bootstrapServers = System.getProperty("bootstrap.servers");
+            if (!Boolean.parseBoolean(System.getProperty("cluster.tests"))) {
 
-            genericContainer = new GenericContainer("quay.io/apicurio/apicurio-registry-kafkasql:2.1.2.Final")
-                    .withEnv(Map.of("KAFKA_BOOTSTRAP_SERVERS", bootstrapServers, "QUARKUS_HTTP_PORT", "8081"))
-                    .withNetworkMode("host");
+                String bootstrapServers = System.getProperty("bootstrap.servers");
 
-            //create the topic with agressive log compaction
-            createTopic("kafkasql-journal", 1, bootstrapServers);
+                genericContainer = new GenericContainer("quay.io/apicurio/apicurio-registry-kafkasql:2.1.2.Final")
+                        .withEnv(Map.of("KAFKA_BOOTSTRAP_SERVERS", bootstrapServers, "QUARKUS_HTTP_PORT", "8081"))
+                        .withNetworkMode("host");
 
-            genericContainer.start();
-            genericContainer.waitingFor(Wait.forLogMessage(".*(KSQL Kafka Consumer Thread) KafkaSQL storage bootstrapped.*", 1));
+                //create the topic with agressive log compaction
+                createTopic("kafkasql-journal", 1, bootstrapServers);
 
-            var registryClient = RegistryClientFactory.create("http://localhost:8081");
+                genericContainer.start();
+                genericContainer.waitingFor(Wait.forLogMessage(".*(KSQL Kafka Consumer Thread) KafkaSQL storage bootstrapped.*", 1));
 
-            try {
-                RegistryWaitUtils.retry(registryClient, registryClient1 -> CustomTestsUtils.createArtifact(registryClient, ArtifactType.AVRO, ApicurioRegistryBaseIT.resourceToString("artifactTypes/" + "avro/multi-field_v1.json")));
+                var registryClient = RegistryClientFactory.create("http://localhost:8081");
 
-                var artifactdata = CustomTestsUtils.createArtifact(registryClient, ArtifactType.JSON, ApicurioRegistryBaseIT.resourceToString("artifactTypes/" + "jsonSchema/person_v1.json"));
-                CustomTestsUtils.createArtifact(registryClient, ArtifactType.PROTOBUF, ApicurioRegistryBaseIT.resourceToString("artifactTypes/" + "protobuf/tutorial_v1.proto"));
+                try {
+                    RegistryWaitUtils.retry(registryClient, registryClient1 -> CustomTestsUtils.createArtifact(registryClient, ArtifactType.AVRO, ApicurioRegistryBaseIT.resourceToString("artifactTypes/" + "avro/multi-field_v1.json")));
 
-                assertEquals(3, registryClient.listArtifactsInGroup(null).getCount());
+                    var artifactdata = CustomTestsUtils.createArtifact(registryClient, ArtifactType.JSON, ApicurioRegistryBaseIT.resourceToString("artifactTypes/" + "jsonSchema/person_v1.json"));
+                    CustomTestsUtils.createArtifact(registryClient, ArtifactType.PROTOBUF, ApicurioRegistryBaseIT.resourceToString("artifactTypes/" + "protobuf/tutorial_v1.proto"));
 
-                //spend some time doing something
-                //this is just to give kafka some time to be 100% the topic is log compacted
-                logger.info("Giving kafka some time to do log compaction");
-                for (int i = 0; i < 15; i++) {
-                    registryClient.getArtifactMetaData(artifactdata.meta.getGroupId(), artifactdata.meta.getId());
-                    try {
-                        Thread.sleep(900);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
+                    assertEquals(3, registryClient.listArtifactsInGroup(null).getCount());
+
+                    //spend some time doing something
+                    //this is just to give kafka some time to be 100% the topic is log compacted
+                    logger.info("Giving kafka some time to do log compaction");
+                    for (int i = 0; i < 15; i++) {
+                        registryClient.getArtifactMetaData(artifactdata.meta.getGroupId(), artifactdata.meta.getId());
+                        try {
+                            Thread.sleep(900);
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
                     }
-                }
 
-                logger.info("Finished giving kafka some time");
-            } catch (Exception e) {
-                logger.warn("Error filling origin with artifacts information:", e);
+                    logger.info("Finished giving kafka some time");
+                } catch (Exception e) {
+                    logger.warn("Error filling origin with artifacts information:", e);
+                }
             }
 
             return Collections.emptyMap();

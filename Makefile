@@ -361,7 +361,7 @@ run-sql-migration-integration-tests:
 	./mvnw verify -am --no-transfer-progress -Pe2e-tests -Pmigration -Premote-sql -pl e2e-system-tests -Dmaven.javadoc.skip=true --no-transfer-progress
 
 .PHONY: run-sql-multitenancy-integration-tests ## Runs multitenancy integration tests
-run-multitenancy-integration-tests:
+run-sql-multitenancy-integration-tests:
 	@echo "----------------------------------------------------------------------"
 	@echo "               Running Multitenancy Integration Tests                 "
 	@echo "----------------------------------------------------------------------"

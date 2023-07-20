@@ -313,6 +313,10 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
         }
     }
 
+    public static String getTenantManagerUrl() {
+        return "http://localhost:8585";
+    }
+
     /**
      * Method which try connection to registries. It's used as a initial check for registries availability.
      *

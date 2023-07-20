@@ -593,14 +593,6 @@
         </profile>
 
         <profile>
-            <id>dbupgrade</id>
-            <properties>
-                <skipTests>false</skipTests>
-                <groups>dbupgrade</groups>
-            </properties>
-        </profile>
-
-        <profile>
             <id>migration</id>
             <properties>
                 <skipTests>false</skipTests>

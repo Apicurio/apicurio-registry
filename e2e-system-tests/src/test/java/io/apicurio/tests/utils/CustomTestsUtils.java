@@ -44,12 +44,16 @@ public class CustomTestsUtils {
         return new ArtifactData(meta, contentHash);
     }
 
-    public static ArtifactData createArtifactWithReferences(String artifactId, RegistryClient client, String type, String content, List<ArtifactReference> references) throws Exception {
-        ArtifactMetaData meta = client.createArtifact(null, artifactId, null, type, IfExists.RETURN, false, null, null, ContentTypes.APPLICATION_CREATE_EXTENDED, null, null, IoUtil.toStream(content), references);
+    public static ArtifactData createArtifactWithReferences(String groupId, String artifactId, RegistryClient client, String type, String content, List<ArtifactReference> references) throws Exception {
+        ArtifactMetaData meta = client.createArtifact(groupId, artifactId, null, type, IfExists.RETURN, false, null, null, ContentTypes.APPLICATION_CREATE_EXTENDED, null, null, IoUtil.toStream(content), references);
         TestUtils.retry(() -> client.getContentByGlobalId(meta.getGlobalId()));
         assertNotNull(client.getLatestArtifact(meta.getGroupId(), meta.getId()));
         String contentHash = DigestUtils.sha256Hex(IoUtil.toBytes(content));
         return new ArtifactData(meta, contentHash);
+    }
+
+    public static ArtifactData createArtifactWithReferences(String artifactId, RegistryClient client, String type, String content, List<ArtifactReference> references) throws Exception {
+        return createArtifactWithReferences(null, artifactId, client, type, content, references);
     }
 
     public static class ArtifactData {

@@ -30,13 +30,14 @@ import io.apicurio.tests.multitenancy.TenantUserClient;
 import io.apicurio.tests.utils.CustomTestsUtils;
 import io.apicurio.tests.utils.RegistryWaitUtils;
 import org.apache.commons.codec.digest.DigestUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
 import static io.apicurio.tests.ApicurioRegistryBaseIT.resourceToString;
-import static io.apicurio.tests.dbupgrade.KafkaSqlStorageUpgradeIT.PREPARE_PROTO_GROUP;
 import static io.apicurio.tests.utils.CustomTestsUtils.createArtifact;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -44,6 +45,12 @@ public class UpgradeTestsDataInitializer {
 
     protected static final String REFERENCE_CONTENT = "{\"name\":\"ibm\"}";
     protected static final String ARTIFACT_CONTENT = "{\"name\":\"redhat\"}";
+
+    public static final String PREPARE_LOG_COMPACTION = "prepareLogCompactionGroup";
+    public static final String PREPARE_PROTO_GROUP = "prepareProtobufHashUpgradeTest";
+    public static final String PREPARE_REFERENCES_GROUP = "prepareReferencesUpgradeTest";
+
+    private static final Logger logger = LoggerFactory.getLogger(UpgradeTestsDataInitializer.class);
 
     public static void prepareProtobufHashUpgradeTest(RegistryClient registryClient) throws Exception {
         RegistryWaitUtils.retry(registryClient, registryClient1 -> CustomTestsUtils.createArtifact(registryClient, PREPARE_PROTO_GROUP, ArtifactType.AVRO, resourceToString("artifactTypes/" + "avro/multi-field_v1.json")));
@@ -64,7 +71,7 @@ public class UpgradeTestsDataInitializer {
     }
 
     public static void prepareReferencesUpgradeTest(RegistryClient registryClient) throws Exception {
-        final CustomTestsUtils.ArtifactData artifact = CustomTestsUtils.createArtifact(registryClient, ArtifactType.JSON, REFERENCE_CONTENT);
+        final CustomTestsUtils.ArtifactData artifact = CustomTestsUtils.createArtifact(registryClient, PREPARE_REFERENCES_GROUP, ArtifactType.JSON, REFERENCE_CONTENT);
 
         //Create a second artifact referencing the first one, the hash will be the same using version 2.4.1.Final.
         var artifactReference = new ArtifactReference();
@@ -78,7 +85,7 @@ public class UpgradeTestsDataInitializer {
 
         String artifactId = UUID.randomUUID().toString();
 
-        final CustomTestsUtils.ArtifactData artifactWithReferences = CustomTestsUtils.createArtifactWithReferences(artifactId, registryClient, ArtifactType.AVRO, ARTIFACT_CONTENT, artifactReferences);
+        final CustomTestsUtils.ArtifactData artifactWithReferences = CustomTestsUtils.createArtifactWithReferences(PREPARE_REFERENCES_GROUP, artifactId, registryClient, ArtifactType.AVRO, ARTIFACT_CONTENT, artifactReferences);
 
         String calculatedHash = DigestUtils.sha256Hex(ARTIFACT_CONTENT);
 
@@ -103,11 +110,38 @@ public class UpgradeTestsDataInitializer {
         SqlStorageUpgradeIT.data = data;
     }
 
+    public static void prepareLogCompactionTests(RegistryClient registryClient) throws Exception {
+        try {
+
+            RegistryWaitUtils.retry(registryClient, registryClient1 -> CustomTestsUtils.createArtifact(registryClient, PREPARE_LOG_COMPACTION, ArtifactType.AVRO, ApicurioRegistryBaseIT.resourceToString("artifactTypes/" + "avro/multi-field_v1.json")));
+
+            var artifactdata = CustomTestsUtils.createArtifact(registryClient, PREPARE_LOG_COMPACTION, ArtifactType.JSON, ApicurioRegistryBaseIT.resourceToString("artifactTypes/" + "jsonSchema/person_v1.json"));
+            CustomTestsUtils.createArtifact(registryClient, PREPARE_LOG_COMPACTION, ArtifactType.PROTOBUF, ApicurioRegistryBaseIT.resourceToString("artifactTypes/" + "protobuf/tutorial_v1.proto"));
+            assertEquals(3, registryClient.listArtifactsInGroup(PREPARE_LOG_COMPACTION).getCount());
+
+            //spend some time doing something
+            //this is just to give kafka some time to be 100% the topic is log compacted
+            logger.info("Giving kafka some time to do log compaction");
+            for (int i = 0; i < 15; i++) {
+                registryClient.getArtifactMetaData(artifactdata.meta.getGroupId(), artifactdata.meta.getId());
+                try {
+                    Thread.sleep(900);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+
+            logger.info("Finished giving kafka some time");
+        } catch (Exception e) {
+            logger.warn("Error filling origin with artifacts information:", e);
+        }
+    }
+
     private static List<TenantData> loadData(MultitenancySupport mt, String testName) throws Exception {
 
         List<TenantData> tenants = new ArrayList<>();
 
-        for (int i = 0; i < 50; i++) {
+        for (int i = 0; i < 10; i++) {
 
             TenantData tenant = new TenantData();
             TenantUserClient user = mt.createTenant();

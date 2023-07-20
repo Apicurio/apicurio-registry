@@ -34,7 +34,6 @@ public class KubernetesTestResources {
 
     protected static final String APPLICATION_OLD_SQL_RESOURCES = "/sql/registry-sql-old.yml";
     protected static final String APPLICATION_OLD_KAFKA_RESOURCES = "/kafka/registry-kafka-old.yml";
-    protected static final String APPLICATION_OLD_IN_MEMORY_RESOURCES = "/in-memory/registry-in-memory-old.yml";
 
     protected static final String TENANT_MANAGER_RESOURCES = "/tenant-manager/tenant-manager.yml";
     protected static final String TENANT_MANAGER_DATABASE = "/tenant-manager/tenant-manager-database.yml";

@@ -16,14 +16,26 @@
 
 package io.apicurio.deployment;
 
-import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.RegistryClientFactory;
 import io.apicurio.registry.utils.tests.TestUtils;
+import io.apicurio.tenantmanager.api.datamodel.SortBy;
+import io.apicurio.tenantmanager.api.datamodel.SortOrder;
+import io.apicurio.tenantmanager.api.datamodel.TenantStatusValue;
+import io.apicurio.tenantmanager.client.TenantManagerClientImpl;
+import io.apicurio.tests.ApicurioRegistryBaseIT;
+import io.apicurio.tests.dbupgrade.SqlStorageUpgradeIT;
+import io.apicurio.tests.dbupgrade.UpgradeTestsDataInitializer;
+import io.apicurio.tests.multitenancy.MultitenancySupport;
+import io.apicurio.tests.multitenancy.TenantUser;
+import io.apicurio.tests.multitenancy.TenantUserClient;
 import io.fabric8.kubernetes.api.model.Namespace;
+import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientBuilder;
 import io.fabric8.kubernetes.client.LocalPortForward;
 import io.fabric8.kubernetes.client.dsl.Resource;
+import io.fabric8.kubernetes.client.dsl.RollableScalableResource;
+import org.junit.jupiter.api.Assertions;
 import org.junit.platform.launcher.TestExecutionListener;
 import org.junit.platform.launcher.TestPlan;
 import org.slf4j.Logger;
@@ -34,7 +46,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -48,6 +62,7 @@ import static io.apicurio.deployment.KubernetesTestResources.APPLICATION_IN_MEMO
 import static io.apicurio.deployment.KubernetesTestResources.APPLICATION_KAFKA_MULTITENANT_RESOURCES;
 import static io.apicurio.deployment.KubernetesTestResources.APPLICATION_KAFKA_RESOURCES;
 import static io.apicurio.deployment.KubernetesTestResources.APPLICATION_KAFKA_SECURED_RESOURCES;
+import static io.apicurio.deployment.KubernetesTestResources.APPLICATION_OLD_KAFKA_RESOURCES;
 import static io.apicurio.deployment.KubernetesTestResources.APPLICATION_OLD_SQL_RESOURCES;
 import static io.apicurio.deployment.KubernetesTestResources.APPLICATION_SERVICE;
 import static io.apicurio.deployment.KubernetesTestResources.APPLICATION_SQL_MULTITENANT_RESOURCES;
@@ -62,7 +77,6 @@ import static io.apicurio.deployment.KubernetesTestResources.TENANT_MANAGER_DATA
 import static io.apicurio.deployment.KubernetesTestResources.TENANT_MANAGER_RESOURCES;
 import static io.apicurio.deployment.KubernetesTestResources.TENANT_MANAGER_SERVICE;
 import static io.apicurio.deployment.KubernetesTestResources.TEST_NAMESPACE;
-import static io.apicurio.tests.ApicurioRegistryBaseIT.getRegistryBaseUrl;
 
 public class RegistryDeploymentManager implements TestExecutionListener {
 
@@ -154,8 +168,6 @@ public class RegistryDeploymentManager implements TestExecutionListener {
             case Constants.MULTITENANCY:
                 prepareTestsInfra(null, APPLICATION_IN_MEMORY_MULTITENANT_RESOURCES, false, registryImage, true);
                 break;
-            case Constants.DB_UPGRADE:
-                throw new UnsupportedOperationException("Running db upgrade tests is not supported for the in memory storage variant");
             default:
                 prepareTestsInfra(null, APPLICATION_IN_MEMORY_RESOURCES, false, registryImage, false);
                 break;
@@ -170,7 +182,7 @@ public class RegistryDeploymentManager implements TestExecutionListener {
             case Constants.MULTITENANCY:
                 prepareTestsInfra(KAFKA_RESOURCES, APPLICATION_KAFKA_MULTITENANT_RESOURCES, false, registryImage, true);
                 break;
-            case Constants.DB_UPGRADE:
+            case Constants.KAFKA_SQL:
                 prepareKafkaDbUpgradeTests(registryImage);
                 break;
             default:
@@ -187,7 +199,7 @@ public class RegistryDeploymentManager implements TestExecutionListener {
             case Constants.MULTITENANCY:
                 prepareTestsInfra(DATABASE_RESOURCES, APPLICATION_SQL_MULTITENANT_RESOURCES, false, registryImage, true);
                 break;
-            case Constants.DB_UPGRADE:
+            case Constants.SQL:
                 prepareSqlDbUpgradeTests(registryImage);
                 break;
             default:
@@ -253,32 +265,96 @@ public class RegistryDeploymentManager implements TestExecutionListener {
     }
 
     private void prepareSqlDbUpgradeTests(String registryImage) throws Exception {
-
         //For the migration tests first we deploy the in-memory variant, add some data and then the appropriate variant is deployed.
-
         prepareTestsInfra(DATABASE_RESOURCES, APPLICATION_OLD_SQL_RESOURCES, false, null, true);
+        prepareSqlMigrationData(ApicurioRegistryBaseIT.getTenantManagerUrl(), ApicurioRegistryBaseIT.getRegistryBaseUrl());
 
-        //TODO create port forward
+        final RollableScalableResource<Deployment> deploymentResource = kubernetesClient.apps().deployments().inNamespace(TEST_NAMESPACE).withName(APPLICATION_DEPLOYMENT);
 
-        RegistryClient registryClient = RegistryClientFactory.create(getRegistryBaseUrl());
+        kubernetesClient.services().inNamespace(TEST_NAMESPACE).withName(APPLICATION_SERVICE).delete();
+        kubernetesClient.apps().deployments().inNamespace(TEST_NAMESPACE).withName(APPLICATION_DEPLOYMENT).delete();
 
-        //Warm up waiting for registry ready
-        TestUtils.retry(() -> {
-            registryClient.listArtifactsInGroup("null");
-        });
+        // wait the namespace to be deleted
+        CompletableFuture<List<Deployment>> deployment = deploymentResource
+                .informOnCondition(Collection::isEmpty);
 
+        try {
+            deployment.get(60, TimeUnit.SECONDS);
+        } catch (ExecutionException | InterruptedException | TimeoutException e) {
+            LOGGER.warn("Error waiting for namespace deletion", e);
+        } finally {
+            deployment.cancel(true);
+        }
 
-        kubernetesClient.apps().deployments().withName(APPLICATION_DEPLOYMENT).delete();
-        kubernetesClient.services().withName(APPLICATION_SERVICE).delete();
-
-
-        prepareTestsInfra(DATABASE_RESOURCES, APPLICATION_SQL_MULTITENANT_RESOURCES, false, registryImage, true);
+        prepareTestsInfra(null, APPLICATION_SQL_MULTITENANT_RESOURCES, false, registryImage, false);
     }
 
-    private void prepareKafkaDbUpgradeTests(String registryImage) throws IOException {
+    private void prepareKafkaDbUpgradeTests(String registryImage) throws Exception {
+        //For the migration tests first we deploy the in-memory variant, add some data and then the appropriate variant is deployed.
+        prepareTestsInfra(KAFKA_RESOURCES, APPLICATION_OLD_KAFKA_RESOURCES, false, null, false);
+        prepareKafkaSqlMigrationData(ApicurioRegistryBaseIT.getRegistryBaseUrl());
 
+        final RollableScalableResource<Deployment> deploymentResource = kubernetesClient.apps().deployments().inNamespace(TEST_NAMESPACE).withName(APPLICATION_DEPLOYMENT);
 
+        kubernetesClient.services().inNamespace(TEST_NAMESPACE).withName(APPLICATION_SERVICE).delete();
+        kubernetesClient.apps().deployments().inNamespace(TEST_NAMESPACE).withName(APPLICATION_DEPLOYMENT).delete();
 
-        prepareTestsInfra(KAFKA_RESOURCES, APPLICATION_KAFKA_MULTITENANT_RESOURCES, false, registryImage, true);
+        // wait the namespace to be deleted
+        CompletableFuture<List<Deployment>> deployment = deploymentResource
+                .informOnCondition(Collection::isEmpty);
+
+        try {
+            deployment.get(60, TimeUnit.SECONDS);
+        } catch (ExecutionException | InterruptedException | TimeoutException e) {
+            LOGGER.warn("Error waiting for namespace deletion", e);
+        } finally {
+            deployment.cancel(true);
+        }
+
+        prepareTestsInfra(null, APPLICATION_KAFKA_RESOURCES, false, registryImage, false);
+    }
+
+    private void prepareSqlMigrationData(String tenantManagerUrl, String registryBaseUrl) throws Exception {
+
+        try (LocalPortForward ignored = kubernetesClient.services()
+                .inNamespace(TEST_NAMESPACE)
+                .withName(APPLICATION_SERVICE)
+                .portForward(8080, 8080)) {
+
+            final TenantManagerClientImpl tenantManagerClient = new TenantManagerClientImpl(tenantManagerUrl, Collections.emptyMap(), null);
+
+            //Warm up until the tenant manager is ready.
+            TestUtils.retry(() -> tenantManagerClient.listTenants(TenantStatusValue.READY, 0, 1, SortOrder.asc, SortBy.tenantId));
+
+            UpgradeTestsDataInitializer.prepareTestStorageUpgrade(SqlStorageUpgradeIT.class.getSimpleName(), tenantManagerUrl, registryBaseUrl);
+
+            //Wait until all the data is available for the upgrade test.
+            TestUtils.retry(() -> Assertions.assertEquals(10, tenantManagerClient.listTenants(TenantStatusValue.READY, 0, 51, SortOrder.asc, SortBy.tenantId).getCount()));
+
+            MultitenancySupport mt = new MultitenancySupport(tenantManagerUrl, registryBaseUrl);
+            TenantUser tenantUser = new TenantUser(UUID.randomUUID().toString(), UUID.randomUUID().toString(), "storageUpgrade", UUID.randomUUID().toString());
+            final TenantUserClient tenantUpgradeClient = mt.createTenant(tenantUser);
+
+            //Prepare the data for the content and canonical hash upgraders using an isolated tenant so we don't have data conflicts.
+            UpgradeTestsDataInitializer.prepareProtobufHashUpgradeTest(tenantUpgradeClient.client);
+            UpgradeTestsDataInitializer.prepareReferencesUpgradeTest(tenantUpgradeClient.client);
+
+            SqlStorageUpgradeIT.upgradeTenantClient = tenantUpgradeClient.client;
+        }
+    }
+
+    private void prepareKafkaSqlMigrationData(String registryBaseUrl) throws Exception {
+        try (LocalPortForward ignored = kubernetesClient.services()
+                .inNamespace(TEST_NAMESPACE)
+                .withName(APPLICATION_SERVICE)
+                .portForward(8080, 8080)) {
+
+            var registryClient = RegistryClientFactory.create(registryBaseUrl);
+
+            UpgradeTestsDataInitializer.prepareProtobufHashUpgradeTest(registryClient);
+            UpgradeTestsDataInitializer.prepareReferencesUpgradeTest(registryClient);
+            UpgradeTestsDataInitializer.prepareLogCompactionTests(registryClient);
+
+        }
     }
 }

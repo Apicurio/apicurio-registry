@@ -95,10 +95,13 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
-      - name: Setup Kind
-        uses: engineerd/setup-kind@v0.5.0
+      - name: Setup Minikube
+        uses: manusa/actions-setup-minikube@v2.7.2
         with:
-          version: "v0.11.1"
+          minikube version: 'v1.31.1'
+          kubernetes version: 'v1.26.3'
+          github token: ${{ secrets.GITHUB_TOKEN }}
+          driver: docker
 
       - name: Run Integration Tests - sql
         run: make REGISTRY_IMAGE='-Dregistry-sql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-sql:1d' run-sql-integration-tests
@@ -128,10 +131,13 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
-      - name: Setup Kind
-        uses: engineerd/setup-kind@v0.5.0
+      - name: Setup Minikube
+        uses: manusa/actions-setup-minikube@v2.7.2
         with:
-          version: "v0.11.1"
+          minikube version: 'v1.31.1'
+          kubernetes version: 'v1.26.3'
+          github token: ${{ secrets.GITHUB_TOKEN }}
+          driver: docker
 
       - name: Run Integration Tests - sql - auth
         run: make REGISTRY_IMAGE='-Dregistry-sql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-sql:1d' run-sql-auth-tests
@@ -161,10 +167,13 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
-      - name: Setup Kind
-        uses: engineerd/setup-kind@v0.5.0
+      - name: Setup Minikube
+        uses: manusa/actions-setup-minikube@v2.7.2
         with:
-          version: "v0.11.1"
+          minikube version: 'v1.31.1'
+          kubernetes version: 'v1.26.3'
+          github token: ${{ secrets.GITHUB_TOKEN }}
+          driver: docker
 
       - name: Run Integration Tests - sql - migration
         run: make REGISTRY_IMAGE='-Dregistry-sql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-sql:1d' run-sql-migration-integration-tests
@@ -194,10 +203,13 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
-      - name: Setup Kind
-        uses: engineerd/setup-kind@v0.5.0
+      - name: Setup Minikube
+        uses: manusa/actions-setup-minikube@v2.7.2
         with:
-          version: "v0.11.1"
+          minikube version: 'v1.31.1'
+          kubernetes version: 'v1.26.3'
+          github token: ${{ secrets.GITHUB_TOKEN }}
+          driver: docker
 
       - name: Run Integration Tests - sql - db upgrade
         run: make REGISTRY_IMAGE='-Dregistry-sql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-sql:1d' run-sql-upgrade-tests
@@ -263,10 +275,13 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
-      - name: Setup Kind
-        uses: engineerd/setup-kind@v0.5.0
+      - name: Setup Minikube
+        uses: manusa/actions-setup-minikube@v2.7.2
         with:
-            version: "v0.11.1"
+          minikube version: 'v1.31.1'
+          kubernetes version: 'v1.26.3'
+          github token: ${{ secrets.GITHUB_TOKEN }}
+          driver: docker
 
       - name: Run Integration Tests - KafkaSql
         run: make REGISTRY_IMAGE='-Dregistry-kafkasql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-kafkasql:1d' run-kafkasql-integration-tests
@@ -296,10 +311,13 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
-      - name: Setup Kind
-        uses: engineerd/setup-kind@v0.5.0
+      - name: Setup Minikube
+        uses: manusa/actions-setup-minikube@v2.7.2
         with:
-          version: "v0.11.1"
+          minikube version: 'v1.31.1'
+          kubernetes version: 'v1.26.3'
+          github token: ${{ secrets.GITHUB_TOKEN }}
+          driver: docker
 
       - name: Run Integration Tests - KafkaSql
         run: make REGISTRY_IMAGE='-Dregistry-kafkasql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-kafkasql:1d' run-kafkasql-migration-integration-tests
@@ -328,10 +346,13 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
-      - name: Setup Kind
-        uses: engineerd/setup-kind@v0.5.0
+      - name: Setup Minikube
+        uses: manusa/actions-setup-minikube@v2.7.2
         with:
-          version: "v0.11.1"
+          minikube version: 'v1.31.1'
+          kubernetes version: 'v1.26.3'
+          github token: ${{ secrets.GITHUB_TOKEN }}
+          driver: docker
 
       - name: Run Integration Tests - KafkaSql
         run: make REGISTRY_IMAGE='-Dregistry-kafkasql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-kafkasql:1d' run-kafkasql-upgrade-tests
@@ -360,10 +381,13 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
-      - name: Setup Kind
-        uses: engineerd/setup-kind@v0.5.0
+      - name: Setup Minikube
+        uses: manusa/actions-setup-minikube@v2.7.2
         with:
-          version: "v0.11.1"
+          minikube version: 'v1.31.1'
+          kubernetes version: 'v1.26.3'
+          github token: ${{ secrets.GITHUB_TOKEN }}
+          driver: docker
 
       - name: Run Integration Tests - KafkaSql
         run: make REGISTRY_IMAGE='-Dregistry-kafkasql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-kafkasql:1d' run-kafkasql-auth-tests
@@ -392,10 +416,13 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
-      - name: Setup Kind
-        uses: engineerd/setup-kind@v0.5.0
+      - name: Setup Minikube
+        uses: manusa/actions-setup-minikube@v2.7.2
         with:
-          version: "v0.11.1"
+          minikube version: 'v1.31.1'
+          kubernetes version: 'v1.26.3'
+          github token: ${{ secrets.GITHUB_TOKEN }}
+          driver: docker
 
       - name: Run UI tests
         run: make REGISTRY_IMAGE='-Dregistry-sql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-mem:1d' run-ui-tests

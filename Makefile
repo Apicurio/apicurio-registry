@@ -326,6 +326,28 @@ run-ui-tests:
 	@echo "----------------------------------------------------------------------"
 	./mvnw -am verify --no-transfer-progress -Pe2e-tests -Pui -Premote-sql -pl e2e-system-tests -Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false
 
+
+############################################# In-Memory Integration Tests #########################################################################
+
+
+
+
+.PHONY: run-in-memory-integration-tests ## Runs mem e2e tests
+run-in-memory-integration-tests:
+	@echo "----------------------------------------------------------------------"
+	@echo "                 Running In Memory Integration Tests                        "
+	@echo "----------------------------------------------------------------------"
+	./mvnw verify -am --no-transfer-progress -Pe2e-tests -P$(INTEGRATION_TESTS_PROFILE) $(REGISTRY_IMAGE) -Premote-mem -pl e2e-system-tests -Dmaven.javadoc.skip=true --no-transfer-progress
+
+
+.PHONY: run-in-memory-auth-tests ## Runs mem auth integration tests
+run-in-memory-auth-tests:
+	@echo "----------------------------------------------------------------------"
+	@echo "                  Running In Memory Auth Integration Tests                  "
+	@echo "----------------------------------------------------------------------"
+	./mvnw verify -am --no-transfer-progress -Pe2e-tests -Pauth $(REGISTRY_IMAGE) -Premote-mem -pl e2e-system-tests -Dmaven.javadoc.skip=true --no-transfer-progress
+
+
 ############################################# SQL Integration Tests #########################################################################
 
 

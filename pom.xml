@@ -145,7 +145,7 @@
         <maven.compiler.source>11</maven.compiler.source>
         <maven.compiler.target>11</maven.compiler.target>
 
-        <tar.long.file.mode>gnu</tar.long.file.mode>
+        <tar.long.file.mode>posix</tar.long.file.mode>
 
         <!-- UI Build Tools -->
         <node.version>16.17.0</node.version>

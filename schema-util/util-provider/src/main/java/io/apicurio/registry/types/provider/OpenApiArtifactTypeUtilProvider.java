@@ -26,6 +26,7 @@ import io.apicurio.registry.content.refs.OpenApiReferenceFinder;
 import io.apicurio.registry.content.refs.ReferenceFinder;
 import io.apicurio.registry.rules.compatibility.CompatibilityChecker;
 import io.apicurio.registry.rules.compatibility.NoopCompatibilityChecker;
+import io.apicurio.registry.rules.compatibility.OpenApiCompatibilityChecker;
 import io.apicurio.registry.rules.validity.ContentValidator;
 import io.apicurio.registry.rules.validity.OpenApiContentValidator;
 import io.apicurio.registry.types.ArtifactType;
@@ -42,7 +43,7 @@ public class OpenApiArtifactTypeUtilProvider extends AbstractArtifactTypeUtilPro
 
     @Override
     protected CompatibilityChecker createCompatibilityChecker() {
-        return NoopCompatibilityChecker.INSTANCE;
+        return new OpenApiCompatibilityChecker();
     }
 
     @Override

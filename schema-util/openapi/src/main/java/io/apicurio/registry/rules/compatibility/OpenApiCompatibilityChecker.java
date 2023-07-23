@@ -16,20 +16,23 @@
 
 package io.apicurio.registry.rules.compatibility;
 
-import static java.util.Objects.requireNonNull;
+import com.agoda.common.openapi.schema.verification.AgOpenApiSchemaComparator;
+import com.agoda.common.openapi.schema.verification.CompatibilityMode;
+import com.agoda.common.openapi.schema.verification.CompatibilityResponse;
+import io.apicurio.registry.content.ContentHandle;
+//import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
-import io.apicurio.registry.content.ContentHandle;
-import io.apicurio.registry.rules.compatibility.protobuf.ProtobufCompatibilityCheckerLibrary;
-import io.apicurio.registry.utils.protobuf.schema.ProtobufFile;
-import org.jetbrains.annotations.NotNull;
+import static java.util.Objects.requireNonNull;
 
 /**
- * @author Ales Justin
+ * @author Sittikun R.
  */
-public class ProtobufCompatibilityChecker implements CompatibilityChecker {
+public class OpenApiCompatibilityChecker implements CompatibilityChecker {
 
     @Override
     public CompatibilityExecutionResult testCompatibility(CompatibilityLevel compatibilityLevel, List<ContentHandle> existingArtifacts, ContentHandle proposedArtifact, Map<String, ContentHandle> resolvedReferences) {
@@ -41,99 +44,93 @@ public class ProtobufCompatibilityChecker implements CompatibilityChecker {
             return CompatibilityExecutionResult.compatible();
         }
 
-        ProtobufFile fileBefore = new ProtobufFile(existingArtifacts.get(existingArtifacts.size() - 1).content());
-        ProtobufFile fileAfter = new ProtobufFile(proposedArtifact.content());
+        String stringBefore = existingArtifacts.get(existingArtifacts.size() - 1).content();
+        String stringAfter = proposedArtifact.content();
 
         switch (compatibilityLevel) {
             case BACKWARD: {
-                return testBackward(fileBefore, fileAfter);
+                return testBackward(stringBefore, stringAfter);
             }
             case BACKWARD_TRANSITIVE: {
-                return testBackwardTransitive(existingArtifacts, fileAfter);
+                return testBackwardTransitive(existingArtifacts, stringAfter);
             }
             case FORWARD: {
-                return testForward(fileBefore, fileAfter);
+                return testForward(stringBefore, stringAfter);
             }
             case FORWARD_TRANSITIVE: {
-                return testForwardTransitive(existingArtifacts, fileAfter);
+                return testForwardTransitive(existingArtifacts, stringAfter);
             }
             case FULL: {
-                return testFull(fileBefore, fileAfter);
+                return testFull(stringBefore, stringAfter);
             }
             case FULL_TRANSITIVE: {
-                return testFullTransitive(existingArtifacts, fileAfter);
+                return testFullTransitive(existingArtifacts, stringAfter);
             }
             default:
                 return CompatibilityExecutionResult.compatible();
         }
     }
 
-    @NotNull
-    private CompatibilityExecutionResult testFullTransitive(List<ContentHandle> existingSchemas, ProtobufFile fileAfter) {
-        ProtobufFile fileBefore;
+    //@NotNull
+    private CompatibilityExecutionResult testFullTransitive(List<ContentHandle> existingSchemas, String fileAfter) {
         for (ContentHandle existing : existingSchemas) {
-            fileBefore = new ProtobufFile(existing.content());
-            if (!testFull(fileBefore, fileAfter).isCompatible()) {
-                return CompatibilityExecutionResult.incompatible("The new version of the protobuf artifact is not fully compatible.");
-            }
+            AgOpenApiSchemaComparator comparator = new AgOpenApiSchemaComparator();
+            CompatibilityResponse compatibilityResponse = comparator.compare(existing.content(), fileAfter, CompatibilityMode.FULL);
+            Set<CompatibilityDifference> compatibilityDifferenceSet = compatibilityResponse.getErrorMessages().stream().map(errorMessage -> new SimpleCompatibilityDifference(errorMessage)).collect(Collectors.toSet());
+            CompatibilityExecutionResult result = CompatibilityExecutionResult.incompatibleOrEmpty(compatibilityDifferenceSet);
+            return result;
         }
         return CompatibilityExecutionResult.compatible();
     }
 
-    @NotNull
-    private CompatibilityExecutionResult testFull(ProtobufFile fileBefore, ProtobufFile fileAfter) {
-        ProtobufCompatibilityCheckerLibrary backwardChecker = new ProtobufCompatibilityCheckerLibrary(fileBefore, fileAfter);
-        ProtobufCompatibilityCheckerLibrary forwardChecker = new ProtobufCompatibilityCheckerLibrary(fileAfter, fileBefore);
-        if (!backwardChecker.validate() && !forwardChecker.validate()) {
-            return CompatibilityExecutionResult.incompatible("The new version of the protobuf artifact is not fully compatible.");
-        } else {
-            return CompatibilityExecutionResult.compatible();
-        }
+    //@NotNull
+    private CompatibilityExecutionResult testFull(String fileBefore, String fileAfter) {
+        AgOpenApiSchemaComparator comparator = new AgOpenApiSchemaComparator();
+        CompatibilityResponse compatibilityResponse = comparator.compare(fileBefore, fileAfter, CompatibilityMode.FULL);
+        Set<CompatibilityDifference> compatibilityDifferenceSet = compatibilityResponse.getErrorMessages().stream().map(errorMessage -> new SimpleCompatibilityDifference(errorMessage)).collect(Collectors.toSet());
+        CompatibilityExecutionResult result = CompatibilityExecutionResult.incompatibleOrEmpty(compatibilityDifferenceSet);
+        return result;
     }
 
-    @NotNull
-    private CompatibilityExecutionResult testForwardTransitive(List<ContentHandle> existingSchemas, ProtobufFile fileAfter) {
-        ProtobufFile fileBefore;
+    //@NotNull
+    private CompatibilityExecutionResult testForwardTransitive(List<ContentHandle> existingSchemas, String fileAfter) {
         for (ContentHandle existing : existingSchemas) {
-            fileBefore = new ProtobufFile(existing.content());
-            ProtobufCompatibilityCheckerLibrary checker = new ProtobufCompatibilityCheckerLibrary(fileAfter, fileBefore);
-            if (!checker.validate()) {
-                return CompatibilityExecutionResult.incompatible("The new version of the protobuf artifact is not forward compatible.");
-            }
+            AgOpenApiSchemaComparator comparator = new AgOpenApiSchemaComparator();
+            CompatibilityResponse compatibilityResponse = comparator.compare(existing.content(), fileAfter, CompatibilityMode.FORWARD);
+            Set<CompatibilityDifference> compatibilityDifferenceSet = compatibilityResponse.getErrorMessages().stream().map(errorMessage -> new SimpleCompatibilityDifference(errorMessage)).collect(Collectors.toSet());
+            CompatibilityExecutionResult result = CompatibilityExecutionResult.incompatibleOrEmpty(compatibilityDifferenceSet);
+            return result;
         }
         return CompatibilityExecutionResult.compatible();
     }
 
-    @NotNull
-    private CompatibilityExecutionResult testForward(ProtobufFile fileBefore, ProtobufFile fileAfter) {
-        ProtobufCompatibilityCheckerLibrary checker = new ProtobufCompatibilityCheckerLibrary(fileAfter, fileBefore);
-        if (checker.validate()) {
-            return CompatibilityExecutionResult.compatible();
-        } else {
-            return CompatibilityExecutionResult.incompatible("The new version of the protobuf artifact is not forward compatible.");
-        }
+    //@NotNull
+    private CompatibilityExecutionResult testForward(String fileBefore, String fileAfter) {
+        AgOpenApiSchemaComparator comparator = new AgOpenApiSchemaComparator();
+        CompatibilityResponse compatibilityResponse = comparator.compare(fileBefore, fileAfter, CompatibilityMode.FORWARD);
+        Set<CompatibilityDifference> compatibilityDifferenceSet = compatibilityResponse.getErrorMessages().stream().map(errorMessage -> new SimpleCompatibilityDifference(errorMessage)).collect(Collectors.toSet());
+        CompatibilityExecutionResult result = CompatibilityExecutionResult.incompatibleOrEmpty(compatibilityDifferenceSet);
+        return result;
     }
 
-    @NotNull
-    private CompatibilityExecutionResult testBackwardTransitive(List<ContentHandle> existingSchemas, ProtobufFile fileAfter) {
-        ProtobufFile fileBefore;
+    //@NotNull
+    private CompatibilityExecutionResult testBackwardTransitive(List<ContentHandle> existingSchemas, String fileAfter) {
         for (ContentHandle existing : existingSchemas) {
-            fileBefore = new ProtobufFile(existing.content());
-            ProtobufCompatibilityCheckerLibrary checker = new ProtobufCompatibilityCheckerLibrary(fileBefore, fileAfter);
-            if (!checker.validate()) {
-                return CompatibilityExecutionResult.incompatible("The new version of the protobuf artifact is not backward compatible.");
-            }
+            AgOpenApiSchemaComparator comparator = new AgOpenApiSchemaComparator();
+            CompatibilityResponse compatibilityResponse = comparator.compare(existing.content(), fileAfter, CompatibilityMode.BACKWARD);
+            Set<CompatibilityDifference> compatibilityDifferenceSet = compatibilityResponse.getErrorMessages().stream().map(errorMessage -> new SimpleCompatibilityDifference(errorMessage)).collect(Collectors.toSet());
+            CompatibilityExecutionResult result = CompatibilityExecutionResult.incompatibleOrEmpty(compatibilityDifferenceSet);
+            return result;
         }
         return CompatibilityExecutionResult.compatible();
     }
 
-    @NotNull
-    private CompatibilityExecutionResult testBackward(ProtobufFile fileBefore, ProtobufFile fileAfter) {
-        ProtobufCompatibilityCheckerLibrary checker = new ProtobufCompatibilityCheckerLibrary(fileBefore, fileAfter);
-        if (checker.validate()) {
-            return CompatibilityExecutionResult.compatible();
-        } else {
-            return CompatibilityExecutionResult.incompatible("The new version of the protobuf artifact is not backward compatible.");
-        }
+    //@NotNull
+    private CompatibilityExecutionResult testBackward(String fileBefore, String fileAfter) {
+        AgOpenApiSchemaComparator comparator = new AgOpenApiSchemaComparator();
+        CompatibilityResponse compatibilityResponse = comparator.compare(fileBefore, fileAfter, CompatibilityMode.BACKWARD);
+        Set<CompatibilityDifference> compatibilityDifferenceSet = compatibilityResponse.getErrorMessages().stream().map(errorMessage -> new SimpleCompatibilityDifference(errorMessage)).collect(Collectors.toSet());
+        CompatibilityExecutionResult result = CompatibilityExecutionResult.incompatibleOrEmpty(compatibilityDifferenceSet);
+        return result;
     }
 }

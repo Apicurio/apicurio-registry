@@ -60,4 +60,4 @@ When an artifact is added to {registry}, a set of metadata properties is stored 
 
 [role="_additional-resources"]
 .Additional resources
-For more details, see the `/artifacts/\{artifactId\}/meta` sections in the {registry-rest-api}.
+For more details, see the `/artifacts/\{artifactId\}/meta` endpoint in the {registry-rest-api}.

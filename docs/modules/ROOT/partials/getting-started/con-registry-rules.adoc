@@ -46,7 +46,7 @@ A rule is provided with the content of the current version of the artifact (if o
 
 [role="_additional-resources"]
 .Additional resources
-For more details, see {registry-reference}.
+For more details, see {registry-rule-reference}.
 
 ifdef::apicurio-registry,rh-service-registry[]
 [id="registry-rules-config_{context}"]

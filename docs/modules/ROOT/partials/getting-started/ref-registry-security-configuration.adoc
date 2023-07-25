@@ -27,9 +27,9 @@ This chapter provides details on the following configuration options:
 [id="registry-security-authn-keycloak"]
 == {registry} authentication using OpenID Connect with {keycloak} 
 
-You can set the following environment variables to configure authentication for the {registry} web console and API using {keycloak}:
+You can set the following environment variables to configure authentication for the {registry} web console and API with {keycloak}:
 
-.Configuration for {registry} authentication options
+.Configuration for {registry} authentication with {keycloak}
 [.table-expandable,width="100%",cols="5,6,2,4",options="header"]
 |===
 |Environment variable
@@ -37,15 +37,15 @@ You can set the following environment variables to configure authentication for 
 |Type
 |Default
 |`AUTH_ENABLED`
-|Enables or disables authentication in {registry}.  When set to `true`, the environment variables that follow are required.
+|Enables authentication in {registry}. When set to `true`, the environment variables that follow are required.
 |String
 |`false`
 |`KEYCLOAK_URL`
-|The URL of the {keycloak} authentication server to use. Must end with `/auth`.
+|The URL of the {keycloak} authentication server. For example, `\http://localhost:8080`.
 |String
 |-
 |`KEYCLOAK_REALM`
-|The {keycloak} realm used for authentication.
+|The {keycloak} realm for authentication. For example,`registry.`
 |String
 |-
 |`KEYCLOAK_API_CLIENT_ID`

@@ -51,6 +51,9 @@ class ConfigurationTest {
         assertEquals(null, config.getAuthClientSecret());
         assertEquals(null, config.getObject("apicurio.auth.client.secret"));
 
+        assertEquals(null, config.getAuthClientScope());
+        assertEquals(null, config.getObject("apicurio.auth.client.scope"));
+
         assertEquals(null, config.getAuthPassword());
         assertEquals(null, config.getObject("apicurio.auth.password"));
 

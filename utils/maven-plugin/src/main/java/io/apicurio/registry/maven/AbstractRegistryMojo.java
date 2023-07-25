@@ -61,6 +61,9 @@ public abstract class AbstractRegistryMojo extends AbstractMojo {
     @Parameter(property = "client.secret")
     String clientSecret;
 
+    @Parameter(property = "client.scope")
+    String clientScope;
+
     @Parameter(property = "username")
     String username;
 
@@ -74,7 +77,7 @@ public abstract class AbstractRegistryMojo extends AbstractMojo {
         if (client == null) {
             if (authServerUrl != null && clientId != null && clientSecret != null) {
                 httpClient = ApicurioHttpClientFactory.create(authServerUrl, new AuthErrorHandler());
-                Auth auth = new OidcAuth(httpClient, clientId, clientSecret);
+                Auth auth = new OidcAuth(httpClient, clientId, clientSecret, null, clientScope);
                 client = RegistryClientFactory.create(registryUrl, Collections.emptyMap(), auth);
             } else if (username != null && password != null) {
                 Auth auth = new BasicAuth(username, password);
@@ -150,6 +153,8 @@ public abstract class AbstractRegistryMojo extends AbstractMojo {
     public void setClientSecret(String clientSecret) {
         this.clientSecret = clientSecret;
     }
+
+    public void setClientScope(String clientScope) { this.clientScope = clientScope; }
 
     public void setUsername(String username) {
         this.username = username;

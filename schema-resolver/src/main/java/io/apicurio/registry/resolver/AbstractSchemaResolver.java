@@ -289,8 +289,10 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
             throw new IllegalArgumentException("Missing registry auth secret, set " + SchemaResolverConfig.AUTH_CLIENT_SECRET);
         }
 
+        final String clientScope = config.getAuthClientScope();
+
         authClient = ApicurioHttpClientFactory.create(tokenEndpoint, new AuthErrorHandler());
-        return new OidcAuth(authClient, clientId, clientSecret);
+        return new OidcAuth(authClient, clientId, clientSecret, null, clientScope);
     }
 
     private RegistryClient configureClientWithBasicAuth(DefaultSchemaResolverConfig config, String registryUrl, String username) {

@@ -30,6 +30,7 @@ The most common use case for the Maven plug-in is adding artifacts during a buil
             <authServerUrl>MY-AUTH-SERVER</authServerUrl> 
             <clientId>MY-CLIENT-ID</clientId>
             <clientSecret>MY-CLIENT-SECRET</clientSecret> <3>
+            <clientScope>MY-CLIENT-SCOPE</clientScope>
             <artifacts>
                 <artifact>
                     <groupId>TestGroup</groupId> <4>

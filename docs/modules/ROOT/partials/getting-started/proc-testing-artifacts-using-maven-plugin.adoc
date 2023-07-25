@@ -33,6 +33,7 @@ NOTE: When testing artifacts using the Maven plug-in, even if the artifact passe
             <authServerUrl>MY-AUTH-SERVER</authServerUrl> 
             <clientId>MY-CLIENT-ID</clientId>
             <clientSecret>MY-CLIENT-SECRET</clientSecret> <3>
+            <clientScope>MY-CLIENT-SCOPE</clientScope>
             <artifacts>
                 <artifact>
                     <groupId>TestGroup</groupId> <4>

@@ -55,6 +55,8 @@ public class MojoAuthTest extends RegistryMojoTestBase {
 
     String clientSecret = "test1";
 
+    String clientScope = "testScope";
+
     String testUsername = "sr-test-user";
     String testPassword = "sr-test-password";
 
@@ -88,6 +90,7 @@ public class MojoAuthTest extends RegistryMojoTestBase {
         registerRegistryMojo.setAuthServerUrl(authServerUrlConfigured);
         registerRegistryMojo.setClientId(JWKSMockServer.ADMIN_CLIENT_ID);
         registerRegistryMojo.setClientSecret(clientSecret);
+        registerRegistryMojo.setClientScope(clientScope);
 
         super.testRegister(registerRegistryMojo, "testRegister");
     }

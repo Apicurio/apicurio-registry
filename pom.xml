@@ -359,7 +359,7 @@
             </dependency>
             <dependency>
                 <groupId>io.apicurio</groupId>
-                <artifactId>apicurio-registry-e2e-system-tests</artifactId>
+                <artifactId>apicurio-registry-integration-tests</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -1066,14 +1066,6 @@
 
     <profiles>
         <profile>
-            <id>system-tests</id>
-            <modules>
-                <!-- Operator tests module -->
-                <module>system-tests</module>
-                <module>new-system-tests</module>
-            </modules>
-        </profile>
-        <profile>
             <id>ui</id>
             <activation>
                 <property>
@@ -1112,9 +1104,9 @@
             </properties>
         </profile>
         <profile>
-            <id>e2e-tests</id>
+            <id>integration-tests</id>
             <modules>
-                <module>e2e-system-tests</module>
+                <module>integration-tests</module>
             </modules>
         </profile>
         <profile>

@@ -106,148 +106,16 @@ jobs:
       - name: Run Integration Tests - sql
         run: make REGISTRY_IMAGE='-Dregistry-sql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-sql:1d' run-sql-integration-tests
 
-      - name: Collect logs
-        if: failure()
-        run: ./.github/scripts/collect_logs.sh
-
-      - name: Upload tests logs artifacts
-        if: failure()
-        uses: actions/upload-artifact@v1.0.0
-        with:
-          name: tests-logs
-          path: artifacts
-
-  integration-tests-sql-auth:
-    name: Integration Tests SQL Authentication
-    runs-on: ubuntu-20.04
-    needs: prepare-sql-tests
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
-      - name: Set up JDK 17
-        uses: actions/setup-java@v3
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-          cache: 'maven'
-
-      - name: Setup Minikube
-        uses: manusa/actions-setup-minikube@v2.7.2
-        with:
-          minikube version: 'v1.31.1'
-          kubernetes version: 'v1.26.3'
-          github token: ${{ secrets.GITHUB_TOKEN }}
-          driver: docker
-
-      - name: Run Integration Tests - sql - auth
+      - name: Run Integration Tests - sql - Auth
         run: make REGISTRY_IMAGE='-Dregistry-sql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-sql:1d' run-sql-auth-tests
 
-      - name: Collect logs
-        if: failure()
-        run: ./.github/scripts/collect_logs.sh
-
-      - name: Upload tests logs artifacts
-        if: failure()
-        uses: actions/upload-artifact@v1.0.0
-        with:
-          name: tests-logs
-          path: artifacts
-
-  integration-tests-sql-migration:
-    name: Integration Tests SQL Migration
-    runs-on: ubuntu-20.04
-    needs: prepare-sql-tests
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
-      - name: Set up JDK 17
-        uses: actions/setup-java@v3
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-          cache: 'maven'
-
-      - name: Setup Minikube
-        uses: manusa/actions-setup-minikube@v2.7.2
-        with:
-          minikube version: 'v1.31.1'
-          kubernetes version: 'v1.26.3'
-          github token: ${{ secrets.GITHUB_TOKEN }}
-          driver: docker
-
-      - name: Run Integration Tests - sql - migration
+      - name: Run Integration Tests - sql - Migration
         run: make REGISTRY_IMAGE='-Dregistry-sql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-sql:1d' run-sql-migration-integration-tests
 
-      - name: Collect logs
-        if: failure()
-        run: ./.github/scripts/collect_logs.sh
-
-      - name: Upload tests logs artifacts
-        if: failure()
-        uses: actions/upload-artifact@v1.0.0
-        with:
-          name: tests-logs
-          path: artifacts
-
-  integration-tests-sql-db-upgrade:
-    name: Integration Tests SQL DB Upgrade
-    runs-on: ubuntu-20.04
-    needs: prepare-sql-tests
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
-      - name: Set up JDK 17
-        uses: actions/setup-java@v3
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-          cache: 'maven'
-
-      - name: Setup Minikube
-        uses: manusa/actions-setup-minikube@v2.7.2
-        with:
-          minikube version: 'v1.31.1'
-          kubernetes version: 'v1.26.3'
-          github token: ${{ secrets.GITHUB_TOKEN }}
-          driver: docker
-
-      - name: Run Integration Tests - sql - db upgrade
+      - name: Run Integration Tests - sql - DBUpgrade
         run: make REGISTRY_IMAGE='-Dregistry-sql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-sql:1d' run-sql-upgrade-tests
 
-      - name: Collect logs
-        if: failure()
-        run: ./.github/scripts/collect_logs.sh
-
-      - name: Upload tests logs artifacts
-        if: failure()
-        uses: actions/upload-artifact@v1.0.0
-        with:
-          name: tests-logs
-          path: artifacts
-
-  integration-tests-sql-multitenancy:
-    name: Integration Tests SQL Multitenancy
-    runs-on: ubuntu-20.04
-    needs: prepare-sql-tests
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
-      - name: Set up JDK 17
-        uses: actions/setup-java@v3
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-          cache: 'maven'
-
-      - name: Setup Minikube
-        uses: manusa/actions-setup-minikube@v2.7.2
-        with:
-          minikube version: 'v1.31.1'
-          kubernetes version: 'v1.26.3'
-          github token: ${{ secrets.GITHUB_TOKEN }}
-          driver: docker
-
-      - name: Run Integration Tests - sql - multitenancy
+      - name: Run Integration Tests - sql - Multitenancy
         run: make REGISTRY_IMAGE='-Dregistry-sql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-sql:1d' run-sql-multitenancy-integration-tests
 
       - name: Collect logs
@@ -286,110 +154,13 @@ jobs:
       - name: Run Integration Tests - KafkaSql
         run: make REGISTRY_IMAGE='-Dregistry-kafkasql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-kafkasql:1d' run-kafkasql-integration-tests
 
-      - name: Collect logs
-        if: failure()
-        run: ./.github/scripts/collect_logs.sh
-      - name: Upload tests logs artifacts
-        if: failure()
-        uses: actions/upload-artifact@v1.0.0
-        with:
-          name: tests-logs
-          path: artifacts
-
-
-  integration-tests-kafkasql-migration:
-    name: Integration Tests KafkaSql - Migration
-    runs-on: ubuntu-20.04
-    needs: prepare-kafkasql-tests
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
-      - name: Set up JDK 17
-        uses: actions/setup-java@v3
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-          cache: 'maven'
-
-      - name: Setup Minikube
-        uses: manusa/actions-setup-minikube@v2.7.2
-        with:
-          minikube version: 'v1.31.1'
-          kubernetes version: 'v1.26.3'
-          github token: ${{ secrets.GITHUB_TOKEN }}
-          driver: docker
-
-      - name: Run Integration Tests - KafkaSql
+      - name: Run Integration Tests - KafkaSql - Migration
         run: make REGISTRY_IMAGE='-Dregistry-kafkasql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-kafkasql:1d' run-kafkasql-migration-integration-tests
 
-      - name: Collect logs
-        if: failure()
-        run: ./.github/scripts/collect_logs.sh
-      - name: Upload tests logs artifacts
-        if: failure()
-        uses: actions/upload-artifact@v1.0.0
-        with:
-          name: tests-logs
-          path: artifacts
-
-  integration-tests-kafkasql-db-upgrade:
-    name: Integration Tests KafkaSql - DB Upgrade
-    runs-on: ubuntu-20.04
-    needs: prepare-kafkasql-tests
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
-      - name: Set up JDK 17
-        uses: actions/setup-java@v3
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-          cache: 'maven'
-
-      - name: Setup Minikube
-        uses: manusa/actions-setup-minikube@v2.7.2
-        with:
-          minikube version: 'v1.31.1'
-          kubernetes version: 'v1.26.3'
-          github token: ${{ secrets.GITHUB_TOKEN }}
-          driver: docker
-
-      - name: Run Integration Tests - KafkaSql
+      - name: Run Integration Tests - KafkaSql - DBUpgrade
         run: make REGISTRY_IMAGE='-Dregistry-kafkasql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-kafkasql:1d' run-kafkasql-upgrade-tests
 
-      - name: Collect logs
-        if: failure()
-        run: ./.github/scripts/collect_logs.sh
-      - name: Upload tests logs artifacts
-        if: failure()
-        uses: actions/upload-artifact@v1.0.0
-        with:
-          name: tests-logs
-          path: artifacts
-
-  integration-tests-kafkasql-auth:
-    name: Integration Tests KafkaSql - Authentication
-    runs-on: ubuntu-20.04
-    needs: prepare-kafkasql-tests
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
-      - name: Set up JDK 17
-        uses: actions/setup-java@v3
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-          cache: 'maven'
-
-      - name: Setup Minikube
-        uses: manusa/actions-setup-minikube@v2.7.2
-        with:
-          minikube version: 'v1.31.1'
-          kubernetes version: 'v1.26.3'
-          github token: ${{ secrets.GITHUB_TOKEN }}
-          driver: docker
-
-      - name: Run Integration Tests - KafkaSql
+      - name: Run Integration Tests - KafkaSql - Auth
         run: make REGISTRY_IMAGE='-Dregistry-kafkasql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-kafkasql:1d' run-kafkasql-auth-tests
 
       - name: Collect logs

@@ -11,7 +11,8 @@ This chapter provides reference information on the configuration options that ar
 * xref:all-registry-configs_{context}[]
 
 .Additional resources
-* For information on how to set configuration options using the Core Registry API, see the `/admin/config/properties` endpoint in the {registry-rest-api}.
+* For details on setting configuration options with the Core Registry API, see the `/admin/config/properties` endpoint in the {registry-rest-api}.
+* For details on client configuration options for Kafka serializers and deserializers, see {registry-client-serdes-config}.
 
 //INCLUDES
 include::{mod-loc}getting-started/ref-registry-all-configs.adoc[leveloffset=+1]

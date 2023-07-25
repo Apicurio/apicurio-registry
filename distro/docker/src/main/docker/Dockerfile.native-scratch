@@ -21,7 +21,7 @@ USER quarkus
 WORKDIR /code
 
 RUN ./mvnw clean install -DskipTests
-RUN ./mvnw -T 1.5C package -B -Pnative -Pprod -DskipTests -Dquarkus.native.additional-build-args="--initialize-at-run-time=org.apache.kafka.common.security.authenticator.SaslClientAuthenticator,com.fasterxml.jackson.dataformat.yaml.YAMLParser","--allow-incomplete-classpath","--static","--libc=musl" -f ./app/pom.xml
+RUN ./mvnw -T 1.5C package -B -Pnative -Pprod -DskipTests -Dquarkus.native.additional-build-args="--initialize-at-run-time=org.apache.kafka.common.security.authenticator.SaslClientAuthenticator","--allow-incomplete-classpath","--static","--libc=musl" -f ./app/pom.xml
 
 FROM scratch
 

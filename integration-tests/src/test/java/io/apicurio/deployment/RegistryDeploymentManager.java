@@ -61,9 +61,6 @@ public class RegistryDeploymentManager implements TestExecutionListener {
     private static final Logger LOGGER = LoggerFactory.getLogger(RegistryDeploymentManager.class);
 
     KubernetesClient kubernetesClient;
-    LocalPortForward registryPortForward;
-    LocalPortForward keycloakPortForward;
-    LocalPortForward tenantManagerPortForward;
 
     @Override
     public void testPlanExecutionStarted(TestPlan testPlan) {
@@ -81,10 +78,6 @@ public class RegistryDeploymentManager implements TestExecutionListener {
     @Override
     public void testPlanExecutionFinished(TestPlan testPlan) {
         LOGGER.info("Test suite ended ##################################################");
-
-        closePortForward(registryPortForward);
-        closePortForward(keycloakPortForward);
-        closePortForward(tenantManagerPortForward);
 
         //Finally, once the testsuite is done, cleanup all the resources in the cluster
         if (kubernetesClient != null && !(Boolean.parseBoolean(System.getProperty("preserveNamespace")))) {
@@ -107,16 +100,6 @@ public class RegistryDeploymentManager implements TestExecutionListener {
                 namespace.cancel(true);
             }
             kubernetesClient.close();
-        }
-    }
-
-    private void closePortForward(LocalPortForward portForward) {
-        if (portForward != null) {
-            try {
-                portForward.close();
-            } catch (IOException e) {
-                LOGGER.warn("Error closing port forward", e);
-            }
         }
     }
 
@@ -195,12 +178,6 @@ public class RegistryDeploymentManager implements TestExecutionListener {
             LOGGER.info("Deploying Keycloak resources ##################################################");
 
             deployResource(KEYCLOAK_RESOURCES);
-
-            //Create the keycloak port forward so the tests can reach it to get tokens
-            keycloakPortForward = kubernetesClient.services()
-                    .inNamespace(TEST_NAMESPACE)
-                    .withName(KEYCLOAK_SERVICE)
-                    .portForward(8090, 8090);
         }
 
         if (startTenantManager) {
@@ -249,34 +226,32 @@ public class RegistryDeploymentManager implements TestExecutionListener {
 
         //For the migration tests first we deploy the in-memory variant, add some data and then the appropriate variant is deployed.
         prepareTestsInfra(DATABASE_RESOURCES, APPLICATION_OLD_SQL_RESOURCES, false, null, true);
-
         //Create the tenant manager port forward so it's available for the deployment
-        tenantManagerPortForward = kubernetesClient.services()
+
+        try (LocalPortForward ignored = kubernetesClient.services()
                 .inNamespace(TEST_NAMESPACE)
                 .withName(TENANT_MANAGER_SERVICE)
-                .portForward(8585, 8585);
+                .portForward(8585, 8585)) {
 
-        prepareSqlMigrationData(ApicurioRegistryBaseIT.getTenantManagerUrl(), ApicurioRegistryBaseIT.getRegistryBaseUrl(), tenantManagerPortForward);
+            prepareSqlMigrationData(ApicurioRegistryBaseIT.getTenantManagerUrl(), ApicurioRegistryBaseIT.getRegistryBaseUrl());
 
-        final RollableScalableResource<Deployment> deploymentResource = kubernetesClient.apps().deployments().inNamespace(TEST_NAMESPACE).withName(APPLICATION_DEPLOYMENT);
+            final RollableScalableResource<Deployment> deploymentResource = kubernetesClient.apps().deployments().inNamespace(TEST_NAMESPACE).withName(APPLICATION_DEPLOYMENT);
 
-        kubernetesClient.services().inNamespace(TEST_NAMESPACE).withName(APPLICATION_SERVICE).delete();
-        kubernetesClient.apps().deployments().inNamespace(TEST_NAMESPACE).withName(APPLICATION_DEPLOYMENT).delete();
+            kubernetesClient.services().inNamespace(TEST_NAMESPACE).withName(APPLICATION_SERVICE).delete();
+            kubernetesClient.apps().deployments().inNamespace(TEST_NAMESPACE).withName(APPLICATION_DEPLOYMENT).delete();
 
-        // wait the namespace to be deleted
-        CompletableFuture<List<Deployment>> deployment = deploymentResource
-                .informOnCondition(Collection::isEmpty);
+            // wait the namespace to be deleted
+            CompletableFuture<List<Deployment>> deployment = deploymentResource
+                    .informOnCondition(Collection::isEmpty);
 
-        try {
-            deployment.get(60, TimeUnit.SECONDS);
-        } catch (ExecutionException | InterruptedException | TimeoutException e) {
-            LOGGER.warn("Error waiting for namespace deletion", e);
-        } finally {
-            deployment.cancel(true);
+            try {
+                deployment.get(60, TimeUnit.SECONDS);
+            } catch (ExecutionException | InterruptedException | TimeoutException e) {
+                LOGGER.warn("Error waiting for namespace deletion", e);
+            } finally {
+                deployment.cancel(true);
+            }
         }
-
-        //Once done preparing data, close the tenant manager port forwarding.
-        tenantManagerPortForward.close();
 
         LOGGER.info("Finished preparing data for the SQL DB Upgrade tests.");
         prepareTestsInfra(null, APPLICATION_SQL_MULTITENANT_RESOURCES, false, registryImage, false);
@@ -310,7 +285,7 @@ public class RegistryDeploymentManager implements TestExecutionListener {
         prepareTestsInfra(null, APPLICATION_KAFKA_RESOURCES, false, registryImage, false);
     }
 
-    private void prepareSqlMigrationData(String tenantManagerUrl, String registryBaseUrl, LocalPortForward tenantManagerPortForward) throws Exception {
+    private void prepareSqlMigrationData(String tenantManagerUrl, String registryBaseUrl) throws Exception {
         try (LocalPortForward ignored = kubernetesClient.services()
                 .inNamespace(TEST_NAMESPACE)
                 .withName(APPLICATION_SERVICE)

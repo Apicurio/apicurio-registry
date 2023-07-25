@@ -1,0 +1,22 @@
+// Metadata created by nebel
+include::{mod-loc}shared/all-attributes.adoc[]
+
+[id="registry-rule-reference_{context}"]
+= {registry} content rule reference
+//If the assembly covers a task, start the title with a verb in the gerund form, such as Creating or Configuring.
+
+[role="_abstract"]
+This chapter provides reference information on the supported content rule types, their level of support for artifact types, and order of precedence of artifact-specific and global rules.
+
+* xref:registry-rule-types_{context}[]
+* xref:registry-rule-maturity-matrix_{context}[]
+* xref:registry-rule-precedence_{context}[]
+
+[role="_additional-resources"]
+.Additional resources
+* For more information, see the link:{attachmentsdir}/registry-rest-api.htm[Apicurio Registry REST API documentation].
+
+//INCLUDES
+include::{mod-loc}getting-started/ref-registry-rule-types.adoc[leveloffset=+1]
+include::{mod-loc}getting-started/ref-registry-rule-maturity-matrix.adoc[leveloffset=+1]
+include::{mod-loc}getting-started/ref-registry-rule-precedence.adoc[leveloffset=+1]

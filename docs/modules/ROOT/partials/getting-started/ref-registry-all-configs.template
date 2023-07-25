@@ -1,5 +1,5 @@
 [id="all-registry-configs_{context}"]
-= All the available {registry} configuration options
+= {registry} configuration options
 
-This section contains a list of the configuration options available for {registry}.
+The following {registry} configuration options are available for each component category:
 

@@ -17,7 +17,6 @@ endif::[]
 * xref:configuring-liveness-readiness-probes_{context}[]
 * xref:registry-liveness-env-vars_{context}[]
 
-NOTE: For a list of available configuration options, see xref:getting-started/assembly-config-reference.adoc[].
 NOTE: For a list of available configuration options, see {registry-config-reference}.
 
 //INCLUDES

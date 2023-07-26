@@ -184,7 +184,7 @@ public class MultitenancyLimitsIT extends ApicurioRegistryBaseIT {
 
         //TODO add limits for more resources
 
-        TenantManagerClient tenantManager = new TenantManagerClientImpl("http://localhost:8585", Collections.emptyMap(), null);
+        TenantManagerClient tenantManager = new TenantManagerClientImpl(ApicurioRegistryBaseIT.getTenantManagerUrl(), Collections.emptyMap(), null);
 
         tenantManager.createTenant(tenantReq);
 

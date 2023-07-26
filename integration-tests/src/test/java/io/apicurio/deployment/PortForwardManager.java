@@ -28,16 +28,12 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 
-import static io.apicurio.deployment.KubernetesTestResources.APPLICATION_SERVICE;
 import static io.apicurio.deployment.KubernetesTestResources.KEYCLOAK_SERVICE;
-import static io.apicurio.deployment.KubernetesTestResources.TENANT_MANAGER_SERVICE;
 import static io.apicurio.deployment.KubernetesTestResources.TEST_NAMESPACE;
 
 public class PortForwardManager implements BeforeAllCallback, AfterAllCallback, BeforeEachCallback {
 
     KubernetesClient kubernetesClient;
-    static LocalPortForward registryPortForward;
-    static LocalPortForward tenantManagerPortForward;
     static LocalPortForward keycloakPortForward;
 
     private static final Logger logger = LoggerFactory.getLogger(PortForwardManager.class);
@@ -52,12 +48,6 @@ public class PortForwardManager implements BeforeAllCallback, AfterAllCallback, 
     @Override
     public void beforeAll(ExtensionContext context) throws Exception {
         if (Boolean.parseBoolean(System.getProperty("cluster.tests"))) {
-            startRegistryPortForward();
-
-            if (Boolean.parseBoolean(System.getProperty("multitenancy.tests"))) {
-                startTenantManagerPortForward();
-            }
-
             if (Constants.TEST_PROFILE.equals(Constants.AUTH)) {
                 startKeycloakPortForward();
             }
@@ -67,16 +57,6 @@ public class PortForwardManager implements BeforeAllCallback, AfterAllCallback, 
     @Override
     public void afterAll(ExtensionContext context) throws Exception {
         if (Boolean.parseBoolean(System.getProperty("cluster.tests"))) {
-            if (registryPortForward != null) {
-                registryPortForward.close();
-            }
-
-            if (Boolean.parseBoolean(System.getProperty("cluster.tests"))) {
-                if (tenantManagerPortForward != null) {
-                    tenantManagerPortForward.close();
-                }
-            }
-
             if (Constants.TEST_PROFILE.equals(Constants.AUTH)) {
                 if (keycloakPortForward != null) {
                     keycloakPortForward.close();
@@ -85,38 +65,6 @@ public class PortForwardManager implements BeforeAllCallback, AfterAllCallback, 
         }
     }
 
-    private void startRegistryPortForward() {
-        try {
-            if (registryPortForward != null) {
-                registryPortForward.close();
-            }
-
-            //No matter the storage type, create port forward so the application is reachable from the tests
-            registryPortForward = kubernetesClient.services()
-                    .inNamespace(TEST_NAMESPACE)
-                    .withName(APPLICATION_SERVICE)
-                    .portForward(8080, 8080);
-        } catch (IllegalStateException | IOException ex) {
-            logger.warn("Error found forwarding registry port, the port forwarding might be running already, continuing...", ex);
-        }
-    }
-
-
-    private void startTenantManagerPortForward() {
-        try {
-            if (tenantManagerPortForward != null) {
-                tenantManagerPortForward.close();
-            }
-
-            //Create the tenant manager port forward so it's available for the deployment
-            tenantManagerPortForward = kubernetesClient.services()
-                    .inNamespace(TEST_NAMESPACE)
-                    .withName(TENANT_MANAGER_SERVICE)
-                    .portForward(8585, 8585);
-        } catch (IllegalStateException | IOException ex) {
-            logger.warn("Error found forwarding tenant manager port, the port forwarding might be running already, continuing...", ex);
-        }
-    }
 
     private void startKeycloakPortForward() {
         try {
@@ -135,16 +83,6 @@ public class PortForwardManager implements BeforeAllCallback, AfterAllCallback, 
 
     @Override
     public void beforeEach(ExtensionContext context) {
-        if (registryPortForward == null || isPortForwardDead(registryPortForward)) {
-            startRegistryPortForward();
-        }
 
-        if (tenantManagerPortForward != null && isPortForwardDead(tenantManagerPortForward)) {
-            startTenantManagerPortForward();
-        }
-    }
-
-    private boolean isPortForwardDead(LocalPortForward portForward) {
-        return !portForward.getClientThrowables().isEmpty() || !portForward.getServerThrowables().isEmpty() || !portForward.isAlive() || portForward.errorOccurred();
     }
 }

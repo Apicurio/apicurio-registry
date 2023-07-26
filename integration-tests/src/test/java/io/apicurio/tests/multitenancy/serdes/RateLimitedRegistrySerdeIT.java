@@ -90,7 +90,7 @@ public class RateLimitedRegistrySerdeIT extends ApicurioRegistryBaseIT {
     void testRateLimitingProxy() throws Exception {
         RateLimitingProxy proxy = new RateLimitingProxy(2, getRegistryHost(), getRegistryPort());
 
-        MultitenancySupport mt = new MultitenancySupport("http://localhost:8585", ApicurioRegistryBaseIT.getRegistryBaseUrl());
+        MultitenancySupport mt = new MultitenancySupport(ApicurioRegistryBaseIT.getTenantManagerUrl(), ApicurioRegistryBaseIT.getRegistryBaseUrl());
         var tenant = mt.createTenant();
         RegistryClient clientTenant = tenant.client;
 
@@ -124,7 +124,7 @@ public class RateLimitedRegistrySerdeIT extends ApicurioRegistryBaseIT {
     void testRetryLimitingProxy() throws Exception {
         RetryLimitingProxy proxy = new RetryLimitingProxy(2, getRegistryHost(), getRegistryPort());
 
-        MultitenancySupport mt = new MultitenancySupport("http://localhost:8585", ApicurioRegistryBaseIT.getRegistryBaseUrl());
+        MultitenancySupport mt = new MultitenancySupport(ApicurioRegistryBaseIT.getTenantManagerUrl(), ApicurioRegistryBaseIT.getRegistryBaseUrl());
         var tenant = mt.createTenant();
         RegistryClient clientTenant = tenant.client;
 
@@ -159,7 +159,7 @@ public class RateLimitedRegistrySerdeIT extends ApicurioRegistryBaseIT {
 
         RateLimitingProxy proxy = new RateLimitingProxy(3, getRegistryHost(), getRegistryPort());
 
-        MultitenancySupport mt = new MultitenancySupport("http://localhost:8585", ApicurioRegistryBaseIT.getRegistryBaseUrl());
+        MultitenancySupport mt = new MultitenancySupport(ApicurioRegistryBaseIT.getTenantManagerUrl(), ApicurioRegistryBaseIT.getRegistryBaseUrl());
         var tenant = mt.createTenant();
         RegistryClient clientTenant = tenant.client;
         String tenantRateLimitedUrl = proxy.getServerUrl() + "/t/" + tenant.user.tenantId;
@@ -206,7 +206,7 @@ public class RateLimitedRegistrySerdeIT extends ApicurioRegistryBaseIT {
 
         RateLimitingProxy proxy = new RateLimitingProxy(3, getRegistryHost(), getRegistryPort());
 
-        MultitenancySupport mt = new MultitenancySupport("http://localhost:8585", ApicurioRegistryBaseIT.getRegistryBaseUrl());
+        MultitenancySupport mt = new MultitenancySupport(ApicurioRegistryBaseIT.getTenantManagerUrl(), ApicurioRegistryBaseIT.getRegistryBaseUrl());
         var tenant = mt.createTenant();
         RegistryClient clientTenant = tenant.client;
         String tenantRateLimitedUrl = proxy.getServerUrl() + "/t/" + tenant.user.tenantId;

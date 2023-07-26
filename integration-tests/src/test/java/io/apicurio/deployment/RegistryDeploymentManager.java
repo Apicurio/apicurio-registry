@@ -32,7 +32,6 @@ import io.fabric8.kubernetes.api.model.Namespace;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientBuilder;
-import io.fabric8.kubernetes.client.LocalPortForward;
 import io.fabric8.kubernetes.client.dsl.Resource;
 import io.fabric8.kubernetes.client.dsl.RollableScalableResource;
 import org.junit.platform.launcher.TestExecutionListener;
@@ -202,13 +201,27 @@ public class RegistryDeploymentManager implements TestExecutionListener {
             registryLoadedResources = registryLoadedResources.replace(REGISTRY_IMAGE, registryImage);
         }
 
-        //Deploy all the resources associated to the registry variant
-        kubernetesClient.load(IOUtils.toInputStream(registryLoadedResources, StandardCharsets.UTF_8.name()))
-                .create();
+       try {
+           //Deploy all the resources associated to the registry variant
+           kubernetesClient.load(IOUtils.toInputStream(registryLoadedResources, StandardCharsets.UTF_8.name()))
+                   .create();
+       } catch (Exception ex) {
+           LOGGER.warn("Error creating registry resources:", ex);
+       }
 
         //Wait for all the pods of the variant to be ready
         kubernetesClient.pods()
                 .inNamespace(TEST_NAMESPACE).waitUntilReady(60, TimeUnit.SECONDS);
+
+        //We're running the cluster tests but no external endpoint has been provided, set the value of the load balancer
+        if (System.getProperty("quarkus.http.test-host").equals("localhost")) {
+            System.setProperty("quarkus.http.test-host", kubernetesClient.services().inNamespace(TEST_NAMESPACE).withName(APPLICATION_SERVICE).get().getSpec().getClusterIP());
+        }
+
+        //We're running the cluster tests but no external endpoint has been provided, set the value of the load balancer
+        if (startTenantManager && System.getProperty("tenant.manager.external.endpoint") == null) {
+            System.setProperty("tenant.manager.external.endpoint", kubernetesClient.services().inNamespace(TEST_NAMESPACE).withName(TENANT_MANAGER_SERVICE).get().getSpec().getClusterIP());
+        }
     }
 
     private void deployResource(String resource) {
@@ -226,31 +239,23 @@ public class RegistryDeploymentManager implements TestExecutionListener {
 
         //For the migration tests first we deploy the in-memory variant, add some data and then the appropriate variant is deployed.
         prepareTestsInfra(DATABASE_RESOURCES, APPLICATION_OLD_SQL_RESOURCES, false, null, true);
-        //Create the tenant manager port forward so it's available for the deployment
 
-        try (LocalPortForward ignored = kubernetesClient.services()
-                .inNamespace(TEST_NAMESPACE)
-                .withName(TENANT_MANAGER_SERVICE)
-                .portForward(8585, 8585)) {
+        prepareSqlMigrationData(ApicurioRegistryBaseIT.getTenantManagerUrl(), ApicurioRegistryBaseIT.getRegistryBaseUrl());
 
-            prepareSqlMigrationData(ApicurioRegistryBaseIT.getTenantManagerUrl(), ApicurioRegistryBaseIT.getRegistryBaseUrl());
+        final RollableScalableResource<Deployment> deploymentResource = kubernetesClient.apps().deployments().inNamespace(TEST_NAMESPACE).withName(APPLICATION_DEPLOYMENT);
 
-            final RollableScalableResource<Deployment> deploymentResource = kubernetesClient.apps().deployments().inNamespace(TEST_NAMESPACE).withName(APPLICATION_DEPLOYMENT);
+        kubernetesClient.apps().deployments().inNamespace(TEST_NAMESPACE).withName(APPLICATION_DEPLOYMENT).delete();
 
-            kubernetesClient.services().inNamespace(TEST_NAMESPACE).withName(APPLICATION_SERVICE).delete();
-            kubernetesClient.apps().deployments().inNamespace(TEST_NAMESPACE).withName(APPLICATION_DEPLOYMENT).delete();
+        //Wait for the deployment to be deleted
+        CompletableFuture<List<Deployment>> deployment = deploymentResource
+                .informOnCondition(Collection::isEmpty);
 
-            // wait the namespace to be deleted
-            CompletableFuture<List<Deployment>> deployment = deploymentResource
-                    .informOnCondition(Collection::isEmpty);
-
-            try {
-                deployment.get(60, TimeUnit.SECONDS);
-            } catch (ExecutionException | InterruptedException | TimeoutException e) {
-                LOGGER.warn("Error waiting for namespace deletion", e);
-            } finally {
-                deployment.cancel(true);
-            }
+        try {
+            deployment.get(60, TimeUnit.SECONDS);
+        } catch (ExecutionException | InterruptedException | TimeoutException e) {
+            LOGGER.warn("Error waiting for namespace deletion", e);
+        } finally {
+            deployment.cancel(true);
         }
 
         LOGGER.info("Finished preparing data for the SQL DB Upgrade tests.");
@@ -266,10 +271,9 @@ public class RegistryDeploymentManager implements TestExecutionListener {
 
         final RollableScalableResource<Deployment> deploymentResource = kubernetesClient.apps().deployments().inNamespace(TEST_NAMESPACE).withName(APPLICATION_DEPLOYMENT);
 
-        kubernetesClient.services().inNamespace(TEST_NAMESPACE).withName(APPLICATION_SERVICE).delete();
         kubernetesClient.apps().deployments().inNamespace(TEST_NAMESPACE).withName(APPLICATION_DEPLOYMENT).delete();
 
-        // wait the namespace to be deleted
+        //Wait for the deployment to be deleted
         CompletableFuture<List<Deployment>> deployment = deploymentResource
                 .informOnCondition(Collection::isEmpty);
 
@@ -286,48 +290,35 @@ public class RegistryDeploymentManager implements TestExecutionListener {
     }
 
     private void prepareSqlMigrationData(String tenantManagerUrl, String registryBaseUrl) throws Exception {
-        try (LocalPortForward ignored = kubernetesClient.services()
-                .inNamespace(TEST_NAMESPACE)
-                .withName(APPLICATION_SERVICE)
-                .portForward(8080, 8080)) {
+        final TenantManagerClientImpl tenantManagerClient = new TenantManagerClientImpl(tenantManagerUrl, Collections.emptyMap(), null);
 
-            final TenantManagerClientImpl tenantManagerClient = new TenantManagerClientImpl(tenantManagerUrl, Collections.emptyMap(), null);
+        //Warm up until the tenant manager is ready.
+        TestUtils.retry(() -> tenantManagerClient.listTenants(TenantStatusValue.READY, 0, 1, SortOrder.asc, SortBy.tenantId));
 
-            //Warm up until the tenant manager is ready.
-            TestUtils.retry(() -> tenantManagerClient.listTenants(TenantStatusValue.READY, 0, 1, SortOrder.asc, SortBy.tenantId));
+        LOGGER.info("Tenant manager is ready, filling registry with test data...");
 
-            LOGGER.info("Tenant manager is ready, filling registry with test data...");
+        UpgradeTestsDataInitializer.prepareTestStorageUpgrade(SqlStorageUpgradeIT.class.getSimpleName(), tenantManagerUrl, registryBaseUrl);
 
-            UpgradeTestsDataInitializer.prepareTestStorageUpgrade(SqlStorageUpgradeIT.class.getSimpleName(), tenantManagerUrl, registryBaseUrl);
+        TestUtils.waitFor("Waiting for tenant data to be available...", 3000, 180000, () -> tenantManagerClient.listTenants(TenantStatusValue.READY, 0, 51, SortOrder.asc, SortBy.tenantId).getCount() == 10);
 
-            TestUtils.waitFor("Waiting for tenant data to be available...", 3000, 180000, () -> tenantManagerClient.listTenants(TenantStatusValue.READY, 0, 51, SortOrder.asc, SortBy.tenantId).getCount() == 10);
+        LOGGER.info("Done filling registry with test data...");
 
-            LOGGER.info("Done filling registry with test data...");
+        MultitenancySupport mt = new MultitenancySupport(tenantManagerUrl, registryBaseUrl);
+        TenantUser tenantUser = new TenantUser(UUID.randomUUID().toString(), UUID.randomUUID().toString(), "storageUpgrade", UUID.randomUUID().toString());
+        final TenantUserClient tenantUpgradeClient = mt.createTenant(tenantUser);
 
-            MultitenancySupport mt = new MultitenancySupport(tenantManagerUrl, registryBaseUrl);
-            TenantUser tenantUser = new TenantUser(UUID.randomUUID().toString(), UUID.randomUUID().toString(), "storageUpgrade", UUID.randomUUID().toString());
-            final TenantUserClient tenantUpgradeClient = mt.createTenant(tenantUser);
+        //Prepare the data for the content and canonical hash upgraders using an isolated tenant so we don't have data conflicts.
+        UpgradeTestsDataInitializer.prepareProtobufHashUpgradeTest(tenantUpgradeClient.client);
+        UpgradeTestsDataInitializer.prepareReferencesUpgradeTest(tenantUpgradeClient.client);
 
-            //Prepare the data for the content and canonical hash upgraders using an isolated tenant so we don't have data conflicts.
-            UpgradeTestsDataInitializer.prepareProtobufHashUpgradeTest(tenantUpgradeClient.client);
-            UpgradeTestsDataInitializer.prepareReferencesUpgradeTest(tenantUpgradeClient.client);
-
-            SqlStorageUpgradeIT.upgradeTenantClient = tenantUpgradeClient.client;
-        }
+        SqlStorageUpgradeIT.upgradeTenantClient = tenantUpgradeClient.client;
     }
 
     private void prepareKafkaSqlMigrationData(String registryBaseUrl) throws Exception {
-        try (LocalPortForward ignored = kubernetesClient.services()
-                .inNamespace(TEST_NAMESPACE)
-                .withName(APPLICATION_SERVICE)
-                .portForward(8080, 8080)) {
+        var registryClient = RegistryClientFactory.create(registryBaseUrl);
 
-            var registryClient = RegistryClientFactory.create(registryBaseUrl);
-
-            UpgradeTestsDataInitializer.prepareProtobufHashUpgradeTest(registryClient);
-            UpgradeTestsDataInitializer.prepareReferencesUpgradeTest(registryClient);
-            UpgradeTestsDataInitializer.prepareLogCompactionTests(registryClient);
-
-        }
+        UpgradeTestsDataInitializer.prepareProtobufHashUpgradeTest(registryClient);
+        UpgradeTestsDataInitializer.prepareReferencesUpgradeTest(registryClient);
+        UpgradeTestsDataInitializer.prepareLogCompactionTests(registryClient);
     }
 }

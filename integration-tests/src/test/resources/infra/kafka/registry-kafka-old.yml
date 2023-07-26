@@ -6,7 +6,7 @@ metadata:
     app: apicurio-registry-kafka
   name: apicurio-registry-deployment
 spec:
-  replicas: 3
+  replicas: 1
   selector:
     matchLabels:
       app: apicurio-registry-kafka
@@ -23,7 +23,7 @@ spec:
                   fieldPath: metadata.namespace
             - name: KAFKA_BOOTSTRAP_SERVERS
               value: kafka-service:9092
-          image: registry-image
+          image: quay.io/apicurio/apicurio-registry-kafkasql:2.1.2.Final
           imagePullPolicy: Always
           livenessProbe:
             failureThreshold: 3
@@ -60,10 +60,17 @@ metadata:
   name: apicurio-registry-service
 spec:
   ports:
-    - name: http
+    - protocol: TCP
       port: 8080
-      protocol: TCP
       targetPort: 8080
+      nodePort: 32586
   selector:
     app: apicurio-registry-kafka
-  type: ClusterIP
+  type: LoadBalancer
+  sessionAffinity: None
+  externalTrafficPolicy: Cluster
+  ipFamilies:
+    - IPv4
+  ipFamilyPolicy: SingleStack
+  allocateLoadBalancerNodePorts: true
+  internalTrafficPolicy: Cluster

@@ -45,6 +45,11 @@ public class Constants {
      */
     static final String SQL = "sqlit";
 
+    /**
+     * Tag for ui tests profile.
+     */
+    static final String UI = "ui";
+
 
     public static final String TEST_PROFILE =
             Optional.ofNullable(System.getProperty("groups"))

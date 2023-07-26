@@ -103,20 +103,24 @@ jobs:
           github token: ${{ secrets.GITHUB_TOKEN }}
           driver: docker
 
+      - name: Prepare minikube tunnel
+        run: minikube tunnel &> /dev/null &
+
       - name: Run Integration Tests - sql
         run: make REGISTRY_IMAGE='-Dregistry-sql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-sql:1d' run-sql-integration-tests
 
-      - name: Run Integration Tests - sql - Auth
+      - name: Run Integration Tests - sql - auth
         run: make REGISTRY_IMAGE='-Dregistry-sql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-sql:1d' run-sql-auth-tests
 
-      - name: Run Integration Tests - sql - Migration
+      - name: Run Integration Tests - sql - migration
         run: make REGISTRY_IMAGE='-Dregistry-sql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-sql:1d' run-sql-migration-integration-tests
 
-      - name: Run Integration Tests - sql - DBUpgrade
+      - name: Run Integration Tests - sql - db upgrade
         run: make REGISTRY_IMAGE='-Dregistry-sql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-sql:1d' run-sql-upgrade-tests
 
-      - name: Run Integration Tests - sql - Multitenancy
+      - name: Run Integration Tests - sql - multitenancy
         run: make REGISTRY_IMAGE='-Dregistry-sql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-sql:1d' run-sql-multitenancy-integration-tests
+
 
       - name: Collect logs
         if: failure()
@@ -150,6 +154,9 @@ jobs:
           kubernetes version: 'v1.26.3'
           github token: ${{ secrets.GITHUB_TOKEN }}
           driver: docker
+
+      - name: Prepare minikube tunnel
+        run: minikube tunnel &> /dev/null &
 
       - name: Run Integration Tests - KafkaSql
         run: make REGISTRY_IMAGE='-Dregistry-kafkasql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-kafkasql:1d' run-kafkasql-integration-tests
@@ -194,6 +201,9 @@ jobs:
           kubernetes version: 'v1.26.3'
           github token: ${{ secrets.GITHUB_TOKEN }}
           driver: docker
+
+      - name: Prepare minikube tunnel
+        run: minikube tunnel &> /dev/null &
 
       - name: Run UI tests
         run: make REGISTRY_IMAGE='-Dregistry-sql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-mem:1d' run-ui-tests

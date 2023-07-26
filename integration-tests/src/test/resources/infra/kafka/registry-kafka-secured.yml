@@ -3,17 +3,17 @@ kind: Deployment
 metadata:
   namespace: "apicurio-registry-e2e"
   labels:
-    app: apicurio-registry-sql
+    app: apicurio-registry-kafka
   name: apicurio-registry-deployment
 spec:
-  replicas: 3
+  replicas: 1
   selector:
     matchLabels:
-      app: apicurio-registry-sql
+      app: apicurio-registry-kafka
   template:
     metadata:
       labels:
-        app: apicurio-registry-sql
+        app: apicurio-registry-kafka
     spec:
       containers:
         - env:
@@ -21,12 +21,8 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.namespace
-            - name: REGISTRY_DATASOURCE_URL
-              value: jdbc:postgresql://postgresql-service:5432/registry
-            - name: REGISTRY_DATASOURCE_USERNAME
-              value: "apicurio"
-            - name: REGISTRY_DATASOURCE_PASSWORD
-              value: "registry"
+            - name: KAFKA_BOOTSTRAP_SERVERS
+              value: kafka-service:9092
             - name: AUTH_ENABLED
               value: "true"
             - name: KEYCLOAK_API_CLIENT_ID
@@ -61,7 +57,7 @@ spec:
             periodSeconds: 10
             successThreshold: 1
             timeoutSeconds: 10
-          name: apicurio-registry-sql
+          name: apicurio-registry-kafka
           ports:
             - containerPort: 8080
               name: http
@@ -82,14 +78,21 @@ kind: Service
 metadata:
   namespace: "apicurio-registry-e2e"
   labels:
-    app: apicurio-registry-sql
+    app: apicurio-registry-kafka
   name: apicurio-registry-service
 spec:
   ports:
-    - name: http
+    - protocol: TCP
       port: 8080
-      protocol: TCP
       targetPort: 8080
+      nodePort: 32586
   selector:
-    app: apicurio-registry-sql
-  type: ClusterIP
+    app: apicurio-registry-kafka
+  type: LoadBalancer
+  sessionAffinity: None
+  externalTrafficPolicy: Cluster
+  ipFamilies:
+    - IPv4
+  ipFamilyPolicy: SingleStack
+  allocateLoadBalancerNodePorts: true
+  internalTrafficPolicy: Cluster

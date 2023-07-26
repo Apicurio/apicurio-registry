@@ -3,17 +3,17 @@ kind: Deployment
 metadata:
   namespace: "apicurio-registry-e2e"
   labels:
-    app: apicurio-registry-kafka
+    app: apicurio-registry-memory
   name: apicurio-registry-deployment
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: apicurio-registry-kafka
+      app: apicurio-registry-memory
   template:
     metadata:
       labels:
-        app: apicurio-registry-kafka
+        app: apicurio-registry-memory
     spec:
       containers:
         - env:
@@ -21,8 +21,6 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.namespace
-            - name: KAFKA_BOOTSTRAP_SERVERS
-              value: kafka-service:9092
             - name: TENANT_MANAGER_URL
               value: "http://tenant-manager-service:8585"
             - name: REGISTRY_ENABLE_MULTITENANCY
@@ -30,7 +28,7 @@ spec:
             - name: REGISTRY_DISABLE_APIS
               value: ""
             - name: REGISTRY_MULTITENANCY_REAPER_PERIOD_SECONDS
-              value: "15"
+              value: "10"
             - name: REGISTRY_MULTITENANCY_REAPER_EVERY
               value: "3s"
           image: registry-image
@@ -45,7 +43,7 @@ spec:
             periodSeconds: 10
             successThreshold: 1
             timeoutSeconds: 10
-          name: apicurio-registry-kafka
+          name: apicurio-registry-memory
           ports:
             - containerPort: 8080
               name: http
@@ -66,14 +64,21 @@ kind: Service
 metadata:
   namespace: "apicurio-registry-e2e"
   labels:
-    app: apicurio-registry-kafka
+    app: apicurio-registry-memory
   name: apicurio-registry-service
 spec:
   ports:
-    - name: http
+    - protocol: TCP
       port: 8080
-      protocol: TCP
       targetPort: 8080
+      nodePort: 32586
   selector:
-    app: apicurio-registry-kafka
-  type: ClusterIP
+    app: apicurio-registry-memory
+  type: LoadBalancer
+  sessionAffinity: None
+  externalTrafficPolicy: Cluster
+  ipFamilies:
+    - IPv4
+  ipFamilyPolicy: SingleStack
+  allocateLoadBalancerNodePorts: true
+  internalTrafficPolicy: Cluster

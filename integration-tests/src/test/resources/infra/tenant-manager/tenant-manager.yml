@@ -70,10 +70,17 @@ metadata:
   name: tenant-manager-service
 spec:
   ports:
-    - name: http
+    - protocol: TCP
       port: 8585
-      protocol: TCP
       targetPort: 8585
+      nodePort: 32587
   selector:
     app: tenant-manager-app
-  type: ClusterIP
+  type: LoadBalancer
+  sessionAffinity: None
+  externalTrafficPolicy: Cluster
+  ipFamilies:
+    - IPv4
+  ipFamilyPolicy: SingleStack
+  allocateLoadBalancerNodePorts: true
+  internalTrafficPolicy: Cluster

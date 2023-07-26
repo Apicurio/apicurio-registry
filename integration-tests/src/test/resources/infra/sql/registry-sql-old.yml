@@ -76,10 +76,17 @@ metadata:
   name: apicurio-registry-service
 spec:
   ports:
-    - name: http
+    - protocol: TCP
       port: 8080
-      protocol: TCP
       targetPort: 8080
+      nodePort: 32586
   selector:
     app: apicurio-registry-sql
-  type: ClusterIP
+  type: LoadBalancer
+  sessionAffinity: None
+  externalTrafficPolicy: Cluster
+  ipFamilies:
+    - IPv4
+  ipFamilyPolicy: SingleStack
+  allocateLoadBalancerNodePorts: true
+  internalTrafficPolicy: Cluster

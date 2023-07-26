@@ -3,17 +3,17 @@ kind: Deployment
 metadata:
   namespace: "apicurio-registry-e2e"
   labels:
-    app: apicurio-registry-memory
+    app: apicurio-registry-kafka
   name: apicurio-registry-deployment
 spec:
-  replicas: 3
+  replicas: 1
   selector:
     matchLabels:
-      app: apicurio-registry-memory
+      app: apicurio-registry-kafka
   template:
     metadata:
       labels:
-        app: apicurio-registry-memory
+        app: apicurio-registry-kafka
     spec:
       containers:
         - env:
@@ -21,28 +21,8 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.namespace
-            - name: AUTH_ENABLED
-              value: "true"
-            - name: KEYCLOAK_API_CLIENT_ID
-              value: "registry-api"
-            - name: KEYCLOAK_UI_CLIENT_ID
-              value: apicurio-registry
-            - name: REGISTRY_UI_CONFIG_AUTH_KEYCLOAK_URL
-              value: 'http://localhost:8090'
-            - name: KEYCLOAK_REALM
-              value: 'registry'
-            - name: QUARKUS_OIDC_AUTH_SERVER_URL
-              value: "http://keycloak-service:8090/realms/registry"
-            - name: QUARKUS_OIDC_TLS_VERIFICATION
-              value: none
-            - name: TOKEN_ENDPOINT
-              value: "http://keycloak-service:8090/realms/registry/protocol/openid-connect/token"
-            - name: CLIENT_CREDENTIALS_BASIC_AUTH_ENABLED
-              value: "true"
-            - name: REGISTRY_AUTH_RBAC_ENABLED
-              value: "true"
-            - name: REGISTRY_AUTH_ROLE_SOURCE
-              value: "token"
+            - name: KAFKA_BOOTSTRAP_SERVERS
+              value: kafka-service:9092
           image: registry-image
           imagePullPolicy: Always
           livenessProbe:
@@ -55,7 +35,7 @@ spec:
             periodSeconds: 10
             successThreshold: 1
             timeoutSeconds: 10
-          name: apicurio-registry-memory
+          name: apicurio-registry-kafka
           ports:
             - containerPort: 8080
               name: http
@@ -76,14 +56,21 @@ kind: Service
 metadata:
   namespace: "apicurio-registry-e2e"
   labels:
-    app: apicurio-registry-memory
+    app: apicurio-registry-kafka
   name: apicurio-registry-service
 spec:
   ports:
-    - name: http
+    - protocol: TCP
       port: 8080
-      protocol: TCP
       targetPort: 8080
+      nodePort: 32586
   selector:
-    app: apicurio-registry-memory
-  type: ClusterIP
+    app: apicurio-registry-kafka
+  type: LoadBalancer
+  sessionAffinity: None
+  externalTrafficPolicy: Cluster
+  ipFamilies:
+    - IPv4
+  ipFamilyPolicy: SingleStack
+  allocateLoadBalancerNodePorts: true
+  internalTrafficPolicy: Cluster

@@ -22,8 +22,12 @@
             <artifactId>quarkus-junit5</artifactId>
         </dependency>
         <dependency>
-            <groupId>io.quarkus</groupId>
-            <artifactId>quarkus-kubernetes-client</artifactId>
+            <groupId>io.fabric8</groupId>
+            <artifactId>kubernetes-client</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.fabric8</groupId>
+            <artifactId>openshift-client</artifactId>
         </dependency>
         <dependency>
             <groupId>org.junit.platform</groupId>
@@ -452,7 +456,9 @@
                                 </goals>
                                 <configuration>
                                     <systemPropertyVariables>
-                                        <registry-in-memory-image>quay.io/apicurio/apicurio-registry-mem:latest-snapshot</registry-in-memory-image>
+                                        <registry-in-memory-image>
+                                            quay.io/apicurio/apicurio-registry-mem:latest-snapshot
+                                        </registry-in-memory-image>
                                         <deployInMemory>true</deployInMemory>
                                         <cluster.tests>true</cluster.tests>
                                         <quarkus.http.test-host>localhost</quarkus.http.test-host>
@@ -482,7 +488,9 @@
                                 </goals>
                                 <configuration>
                                     <systemPropertyVariables>
-                                        <registry-kafkasql-image>quay.io/apicurio/apicurio-registry-kafkasql:latest-snapshot</registry-kafkasql-image>
+                                        <registry-kafkasql-image>
+                                            quay.io/apicurio/apicurio-registry-kafkasql:latest-snapshot
+                                        </registry-kafkasql-image>
                                         <cluster.tests>true</cluster.tests>
                                         <deployKafka>true</deployKafka>
                                         <quarkus.http.test-host>localhost</quarkus.http.test-host>
@@ -512,7 +520,8 @@
                                 </goals>
                                 <configuration>
                                     <systemPropertyVariables>
-                                        <registry-sql-image>quay.io/apicurio/apicurio-registry-sql:latest-snapshot</registry-sql-image>
+                                        <registry-sql-image>quay.io/apicurio/apicurio-registry-sql:latest-snapshot
+                                        </registry-sql-image>
                                         <cluster.tests>true</cluster.tests>
                                         <deploySql>true</deploySql>
                                         <quarkus.http.test-host>localhost</quarkus.http.test-host>
@@ -652,6 +661,29 @@
                 <skipTests>false</skipTests>
                 <groups>kafkasqlit</groups>
             </properties>
+        </profile>
+
+        <profile>
+            <id>openshift</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <artifactId>maven-failsafe-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <goals>
+                                    <goal>integration-test</goal>
+                                </goals>
+                                <configuration>
+                                    <systemPropertyVariables>
+                                        <openshift.resources>true</openshift.resources>
+                                    </systemPropertyVariables>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
         </profile>
 
     </profiles>

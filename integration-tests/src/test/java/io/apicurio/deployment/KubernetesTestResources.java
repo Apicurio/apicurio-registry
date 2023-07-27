@@ -19,8 +19,9 @@ package io.apicurio.deployment;
 public class KubernetesTestResources {
 
     protected static final String E2E_NAMESPACE_RESOURCE = "/infra/e2e-namespace.yml";
+    protected static final String REGISTRY_OPENSHIFT_ROUTE = "/infra/openshift/registry-route.yml";
 
-    protected static final String APPLICATION_SERVICE_RESOURCES = "/infra/service.yml";
+    protected static final String TENANT_MANAGER_OPENSHIFT_ROUTE = "/infra/openshift/tenant-manager-route.yml";
 
     protected static final String APPLICATION_IN_MEMORY_RESOURCES = "/infra/in-memory/registry-in-memory.yml";
     protected static final String APPLICATION_SQL_RESOURCES = "/infra/sql/registry-sql.yml";

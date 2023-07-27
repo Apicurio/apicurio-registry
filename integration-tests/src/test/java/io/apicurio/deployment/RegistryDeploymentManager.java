@@ -21,6 +21,9 @@ import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientBuilder;
 import io.fabric8.kubernetes.client.LocalPortForward;
 import io.fabric8.kubernetes.client.dsl.Resource;
+import io.fabric8.openshift.api.model.Route;
+import io.fabric8.openshift.client.OpenShiftClient;
+import io.fabric8.openshift.client.impl.OpenShiftClientImpl;
 import org.junit.platform.launcher.TestExecutionListener;
 import org.junit.platform.launcher.TestPlan;
 import org.slf4j.Logger;
@@ -41,7 +44,9 @@ import static io.apicurio.deployment.Constants.REGISTRY_IMAGE;
 import static io.apicurio.deployment.KubernetesTestResources.APPLICATION_SERVICE;
 import static io.apicurio.deployment.KubernetesTestResources.E2E_NAMESPACE_RESOURCE;
 import static io.apicurio.deployment.KubernetesTestResources.KEYCLOAK_RESOURCES;
+import static io.apicurio.deployment.KubernetesTestResources.REGISTRY_OPENSHIFT_ROUTE;
 import static io.apicurio.deployment.KubernetesTestResources.TENANT_MANAGER_DATABASE;
+import static io.apicurio.deployment.KubernetesTestResources.TENANT_MANAGER_OPENSHIFT_ROUTE;
 import static io.apicurio.deployment.KubernetesTestResources.TENANT_MANAGER_RESOURCES;
 import static io.apicurio.deployment.KubernetesTestResources.TENANT_MANAGER_SERVICE;
 import static io.apicurio.deployment.KubernetesTestResources.TEST_NAMESPACE;
@@ -161,7 +166,7 @@ public class RegistryDeploymentManager implements TestExecutionListener {
 
         //Wait for all the pods of the variant to be ready
         kubernetesClient.pods()
-                .inNamespace(TEST_NAMESPACE).waitUntilReady(60, TimeUnit.SECONDS);
+                .inNamespace(TEST_NAMESPACE).waitUntilReady(360, TimeUnit.SECONDS);
 
         setupTestNetworking(startTenantManager);
     }
@@ -174,14 +179,43 @@ public class RegistryDeploymentManager implements TestExecutionListener {
                     .withName(APPLICATION_SERVICE)
                     .portForward(8080, 8080);
         } else {
-            //If we're running the cluster tests but no external endpoint has been provided, set the value of the load balancer.
-            if (System.getProperty("quarkus.http.test-host").equals("localhost")) {
-                System.setProperty("quarkus.http.test-host", kubernetesClient.services().inNamespace(TEST_NAMESPACE).withName(APPLICATION_SERVICE).get().getSpec().getClusterIP());
-            }
 
-            //If we're running the cluster tests but no external endpoint has been provided, set the value of the load balancer.
-            if (startTenantManager && System.getProperty("tenant.manager.external.endpoint") == null) {
-                System.setProperty("tenant.manager.external.endpoint", kubernetesClient.services().inNamespace(TEST_NAMESPACE).withName(TENANT_MANAGER_SERVICE).get().getSpec().getClusterIP());
+            //For openshift, a route to the application is created we use it to set up the networking needs.
+            if (Boolean.parseBoolean(System.getProperty("openshift.resources"))) {
+
+                OpenShiftClient openShiftClient = new OpenShiftClientImpl();
+
+                try {
+                    final Route registryRoute = openShiftClient.routes()
+                            .load(RegistryDeploymentManager.class.getResourceAsStream(REGISTRY_OPENSHIFT_ROUTE))
+                            .create();
+                    System.setProperty("quarkus.http.test-host", registryRoute.getSpec().getHost());
+                    System.setProperty("quarkus.http.test-port", "80");
+
+                } catch (Exception ex) {
+                    LOGGER.warn("The registry route already exists: ", ex);
+                }
+
+                try {
+                    final Route tenantManagerRoute = openShiftClient.routes()
+                            .load(RegistryDeploymentManager.class.getResourceAsStream(TENANT_MANAGER_OPENSHIFT_ROUTE))
+                            .create();
+
+                    System.setProperty("tenant.manager.external.endpoint", tenantManagerRoute.getSpec().getHost());
+                } catch (Exception ex) {
+                    LOGGER.warn("The tenant manger route already exists: ", ex);
+                }
+
+            } else {
+                //If we're running the cluster tests but no external endpoint has been provided, set the value of the load balancer.
+                if (System.getProperty("quarkus.http.test-host").equals("localhost")) {
+                    System.setProperty("quarkus.http.test-host", kubernetesClient.services().inNamespace(TEST_NAMESPACE).withName(APPLICATION_SERVICE).get().getSpec().getClusterIP());
+                }
+
+                //If we're running the cluster tests but no external endpoint has been provided, set the value of the load balancer.
+                if (startTenantManager && System.getProperty("tenant.manager.external.endpoint") == null) {
+                    System.setProperty("tenant.manager.external.endpoint", kubernetesClient.services().inNamespace(TEST_NAMESPACE).withName(TENANT_MANAGER_SERVICE).get().getSpec().getClusterIP());
+                }
             }
         }
     }

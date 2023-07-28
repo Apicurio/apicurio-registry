@@ -5,7 +5,7 @@ include::{mod-loc}shared/all-attributes.adoc[]
 = Configuring your {registry} deployment
 
 [role="_abstract"]
-This chapter explains various configuration options for {registry}, such as authentication, logging, cloud events, and health checks on OpenShift.
+This chapter explains how to set important configuration options for {registry}. This includes features such as authentication and authorization, logging, events, and health checks: 
 
 * xref:registry-security_{context}[]
 * xref:registry-security-settings_{context}[]
@@ -17,6 +17,8 @@ endif::[]
 * xref:configuring-liveness-readiness-probes_{context}[]
 * xref:registry-liveness-env-vars_{context}[]
 
+NOTE: For a list of available configuration options, see {registry-config-reference}.
+
 //INCLUDES
 include::{mod-loc}getting-started/proc-configuring-registry-security.adoc[leveloffset=+1]
 include::{mod-loc}getting-started/ref-registry-security-configuration.adoc[leveloffset=+1]
@@ -27,4 +29,3 @@ include::{mod-loc}getting-started/proc-configuring-registry-logging.adoc[levelof
 include::{mod-loc}getting-started/proc-configuring-registry-events.adoc[leveloffset=+1]
 include::{mod-loc}getting-started/proc-configuring-liveness-readiness-probes.adoc[leveloffset=+1]
 include::{mod-loc}getting-started/ref-registry-liveness-env-vars.adoc[leveloffset=+1]
-include::{mod-loc}getting-started/ref-registry-all-configs.adoc[leveloffset=+1]

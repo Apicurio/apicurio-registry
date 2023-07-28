@@ -27,7 +27,9 @@ asciidoc:
     mod-loc: partial$
     registry-overview: link:assembly-intro-to-the-registry.html[Introduction to Apicurio Registry]
     registry-rules: link:assembly-intro-to-registry-rules.html[Introduction to Apicurio Registry rules]
-    registry-reference: link:assembly-registry-reference.html[Apicurio Registry artifact and rule reference]
+    registry-artifact-reference: link:assembly-artifact-reference.html[Apicurio Registry artifact reference]
+    registry-rule-reference: link:assembly-rule-reference.html[Apicurio Registry rule reference]
+    registry-config-reference: link:assembly-config-reference.html[Apicurio Registry configuration reference]
     installing-the-registry-docker: link:assembly-installing-registry-docker.html[Installing Apicurio Registry using Docker]
     installing-the-registry-openshift: link:assembly-installing-registry-openshift.html[Installing Apicurio Registry on OpenShift]
     installing-the-registry-storage-openshift: link:assembly-installing-registry-storage-openshift.html[Installing Apicurio Registry storage on OpenShift]
@@ -36,4 +38,4 @@ asciidoc:
     managing-registry-artifacts-maven: link:assembly-managing-registry-artifacts-maven.html[Managing Apicurio Registry content using the Maven plug-in]
     rest-client:  link:assembly-using-the-registry-client.html[Managing Apicurio Registry content using a Java client]
     kafka-client-serdes: link:assembly-using-kafka-client-serdes.html[Validating schemas using Kafka client serializers/deserializers in Java clients]
-    registry-client-serdes-config: link:assembly-configuring-kafka-client-serdes.html[Kafka client serializers/deserializers in Java clients]
+    registry-client-serdes-config: link:assembly-configuring-kafka-client-serdes.html[Configuring Kafka serializers/deserializers in Java clients]

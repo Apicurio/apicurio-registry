@@ -27,14 +27,11 @@ Get the current {registry} user.
 
 [discrete]
 == Compatibility with other schema registry REST APIs
-{registry} provides compatibility with the following schema registries by including implementations of their respective REST APIs:
+{registry} also provides compatibility with the following schema registries by including implementations of their respective REST APIs:
 
 * {registry} Core Registry API v1 
 * Confluent Schema Registry API v6
-ifdef::apicurio-registry[]
 * Confluent Schema Registry API v7
-* IBM Event Streams schema registry API v1
-endif::[]
 * CNCF CloudEvents Schema Registry API v0
 
 Applications using Confluent client libraries can use {registry} as a drop-in replacement. 

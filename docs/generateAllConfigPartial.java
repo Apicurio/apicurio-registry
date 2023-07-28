@@ -277,10 +277,10 @@ public class generateAllConfigPartial {
 
             for (var category : categories.stream().sorted().collect(Collectors.toList())) {
 
-                dest.write("== Category `" + category + "`:\n");
+                dest.write("== " + category + "\n");
 
-                dest.write(".Category `" + category + "` configuration options\n");
-                dest.write("[.table-expandable,width=\"100%\",cols=\"5,2,5,3,4\",options=\"header\"]\n");
+                dest.write("." + category + " configuration options\n");
+                dest.write("[.table-expandable,width=\"100%\",cols=\"6,3,2,3,5\",options=\"header\"]\n");
                 dest.write("|===\n");
                 dest.write("|Name\n");
                 dest.write("|Type\n");

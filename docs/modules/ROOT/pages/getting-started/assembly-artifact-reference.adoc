@@ -1,0 +1,22 @@
+// Metadata created by nebel
+include::{mod-loc}shared/all-attributes.adoc[]
+
+[id="registry-artifact-reference_{context}"]
+= {registry} artifact reference
+//If the assembly covers a task, start the title with a verb in the gerund form, such as Creating or Configuring.
+
+[role="_abstract"]
+This chapter provides reference information on the supported artifact types, states, and metadata that are stored in {registry}.
+
+* xref:registry-artifact-types_{context}[]
+* xref:registry-artifact-states_{context}[]
+* xref:registry-artifact-metadata_{context}[]
+
+[role="_additional-resources"]
+.Additional resources
+* For more information, see the link:{attachmentsdir}/registry-rest-api.htm[Apicurio Registry REST API documentation].
+
+//INCLUDES
+include::{mod-loc}getting-started/ref-registry-artifact-types.adoc[leveloffset=+1]
+include::{mod-loc}getting-started/ref-registry-artifact-states.adoc[leveloffset=+1]
+include::{mod-loc}getting-started/ref-registry-artifact-metadata.adoc[leveloffset=+1]

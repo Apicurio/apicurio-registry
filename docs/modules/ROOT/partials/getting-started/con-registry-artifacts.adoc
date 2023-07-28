@@ -56,7 +56,8 @@ NOTE: Specifying a group is optional when using the {registry} web console, and 
 [role="_additional-resources"]
 .Additional resources
 
-* For more details on the Core Registry API, see the {registry-rest-api}.
+* For information on supported artifact types, see {registry-artifact-reference}.
+* For information on the Core Registry API, see the {registry-rest-api}.
 
 
 [discrete]

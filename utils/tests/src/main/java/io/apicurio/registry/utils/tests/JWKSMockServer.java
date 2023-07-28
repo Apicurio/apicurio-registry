@@ -44,7 +44,7 @@ public class JWKSMockServer implements QuarkusTestResourceLifecycleManager {
     private WireMockServer server;
 
     public String authServerUrl;
-    public String realm = "test";
+    public String realm = "registry";
     public String tokenEndpoint;
 
     public static String ADMIN_CLIENT_ID = "admin-client";
@@ -53,7 +53,7 @@ public class JWKSMockServer implements QuarkusTestResourceLifecycleManager {
     public static String READONLY_CLIENT_ID = "readonly-client";
 
     public static String NO_ROLE_CLIENT_ID = "no-role-client";
-    public static String WRONG_CREDS_CLIENT_ID = "wrong-creds-client";
+    public static String WRONG_CREDS_CLIENT_ID = "wrong-client";
 
     public static String BASIC_USER = "sr-test-user";
     public static String BASIC_PASSWORD = "sr-test-password";

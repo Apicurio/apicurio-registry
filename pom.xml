@@ -321,12 +321,25 @@
             </dependency>
             <dependency>
                 <groupId>io.apicurio</groupId>
-                <artifactId>apicurio-registry-utils-tests</artifactId>
+                <artifactId>apicurio-registry-storage-sql</artifactId>
                 <version>${project.version}</version>
+                <type>test-jar</type>
             </dependency>
             <dependency>
                 <groupId>io.apicurio</groupId>
-                <artifactId>apicurio-registry-integration-tests-common</artifactId>
+                <artifactId>apicurio-registry-storage-kafkasql</artifactId>
+                <version>${project.version}</version>
+                <type>test-jar</type>
+            </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-registry-storage-mssql</artifactId>
+                <version>${project.version}</version>
+                <type>test-jar</type>
+            </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-registry-utils-tests</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -342,6 +355,11 @@
             <dependency>
                 <groupId>io.apicurio</groupId>
                 <artifactId>apicurio-registry-storage-kafkasql</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-registry-integration-tests</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -733,9 +751,9 @@
                 <scope>test</scope>
             </dependency>
             <dependency>
-                <groupId>org.testcontainers</groupId>
-                <artifactId>redpanda</artifactId>
-                <version>${test-containers.version}</version>
+                <groupId>io.zonky.test</groupId>
+                <artifactId>embedded-postgres</artifactId>
+                <version>${embedded-postgres.version}</version>
                 <scope>test</scope>
             </dependency>
             <dependency>
@@ -1048,14 +1066,6 @@
 
     <profiles>
         <profile>
-            <id>system-tests</id>
-            <modules>
-                <!-- Operator tests module -->
-                <module>system-tests</module>
-                <module>new-system-tests</module>
-            </modules>
-        </profile>
-        <profile>
             <id>ui</id>
             <activation>
                 <property>
@@ -1096,9 +1106,7 @@
         <profile>
             <id>integration-tests</id>
             <modules>
-                <module>integration-tests/integration-tests-common</module>
-                <module>integration-tests/legacy-tests</module>
-                <module>integration-tests/testsuite</module>
+                <module>integration-tests</module>
             </modules>
         </profile>
         <profile>

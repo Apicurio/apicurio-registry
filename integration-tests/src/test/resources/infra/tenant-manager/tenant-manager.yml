@@ -1,0 +1,86 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: "apicurio-registry-e2e"
+  labels:
+    app: tenant-manager-app
+  name: tenant-manager-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tenant-manager-app
+  template:
+    metadata:
+      labels:
+        app: tenant-manager-app
+    spec:
+      containers:
+        - env:
+            - name: KUBERNETES_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: DATASOURCE_URL
+              value: jdbc:postgresql://tenant-manager-database-service:5432/tenant-manager
+            - name: DATASOURCE_USERNAME
+              value: "apicurio"
+            - name: DATASOURCE_PASSWORD
+              value: "tenant-manager"
+            - name: QUARKUS_HTTP_PORT
+              value: "8585"
+            - name: ENABLE_TEST_STATUS_TRANSITION
+              value: "true"
+            - name: REGISTRY_ROUTE_URL
+              value: ""
+          image: quay.io/apicurio/apicurio-tenant-manager-api:latest
+          imagePullPolicy: Always
+          livenessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /q/health/live
+              port: 8585
+              scheme: HTTP
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 10
+          name: tenant-manager-app
+          ports:
+            - containerPort: 8585
+              name: http
+              protocol: TCP
+          readinessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /q/health/ready
+              port: 8585
+              scheme: HTTP
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: "apicurio-registry-e2e"
+  labels:
+    app: tenant-manager-app
+  name: tenant-manager-service
+spec:
+  ports:
+    - protocol: TCP
+      port: 8585
+      targetPort: 8585
+      nodePort: 32587
+  selector:
+    app: tenant-manager-app
+  type: LoadBalancer
+  sessionAffinity: None
+  externalTrafficPolicy: Cluster
+  ipFamilies:
+    - IPv4
+  ipFamilyPolicy: SingleStack
+  allocateLoadBalancerNodePorts: true
+  internalTrafficPolicy: Cluster

@@ -334,7 +334,7 @@ jobs:
 
       - name: Build Sql Variant
         if: github.ref == 'refs/heads/main'
-        run: make SKIP_TESTS=true BUILD_FLAGS='-DskipUiBuild=false -Dmaven.javadoc.skip=true --no-transfer-progress -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5' build-sql
+        run: make SKIP_TESTS=true BUILD_FLAGS='-Dmaven.javadoc.skip=true --no-transfer-progress -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5' build-sql
       - name: Build Sql Variant Without UI
         if: github.ref != 'refs/heads/main'
         run: make SKIP_TESTS=true BUILD_FLAGS='-DskipUiBuild=true -Dmaven.javadoc.skip=true --no-transfer-progress -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5' build-sql

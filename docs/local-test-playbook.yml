@@ -38,4 +38,4 @@ asciidoc:
     managing-registry-artifacts-maven: link:assembly-managing-registry-artifacts-maven.html[Managing Apicurio Registry content using the Maven plug-in]
     rest-client:  link:assembly-using-the-registry-client.html[Managing Apicurio Registry content using a Java client]
     kafka-client-serdes: link:assembly-using-kafka-client-serdes.html[Validating schemas using Kafka client serializers/deserializers in Java clients]
-    registry-client-serdes-config: link:assembly-configuring-kafka-client-serdes.html[Kafka client serializers/deserializers in Java clients]
+    registry-client-serdes-config: link:assembly-configuring-kafka-client-serdes.html[Configuring Kafka serializers/deserializers in Java clients]

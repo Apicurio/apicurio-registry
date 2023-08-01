@@ -21,10 +21,10 @@ public class URLUtil {
 
     @ConfigProperty(name = "registry.url.override.host")
     @Info(category = "redirects", description = "Override the hostname used for generating externally-accessible URLs. " +
-            "The host and port overrides are useful e.g. when deploying with HTTPS passthrough ingress/route on OpenShift. " +
-            "In case like these, the request URL/IP (and port) that is then re-used for redirection " +
+            "The host and port overrides are useful when deploying Registry with HTTPS passthrough Ingress or Route. " +
+            "In cases like these, the request URL (and port) that is then re-used for redirection " +
             "does not belong to actual external URL used by the client, because the request is proxied. " +
-            "The redirection than fails because the target URL is not reachable.", availableSince = "2.5.0.Final")
+            "The redirection then fails because the target URL is not reachable.", availableSince = "2.5.0.Final")
     Optional<String> urlOverrideHost;
 
     @ConfigProperty(name = "registry.url.override.port")

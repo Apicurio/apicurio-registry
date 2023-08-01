@@ -179,6 +179,16 @@ public class generateAllConfigPartial {
 
                     var category = Optional.ofNullable(info.get().value("category")).map(v -> v.value().toString()).orElse("");
                     var description = Optional.ofNullable(info.get().value("description")).map(v -> v.value().toString()).orElse("");
+
+                    // TODO Remove this after updating common-app-components to 0.1.22
+                    if ("registry.enable.multitenancy.standalone".equals(configName)) {
+                        description = "Enable Standalone Multitenancy mode. " +
+                                "In this mode, Registry provides basic multi-tenancy features, without dependencies on additional components " +
+                                "to manage tenants and their metadata. A new tenant is simply created as soon as a tenant ID is extracted " +
+                                "from the request for the first time. The tenant IDs must be managed externally, " +
+                                "and tenants can be effectively deleted by deleting their data.";
+                    }
+
                     var availableSince = Optional.ofNullable(info.get().value("registryAvailableSince"))
                             .map(v -> v.value().toString()).
                             orElse(Optional.ofNullable(info.get().value("availableSince"))
@@ -226,7 +236,7 @@ public class generateAllConfigPartial {
         Properties props = new Properties();
         try {
             //load a properties file from class path, inside static method
-            props.load(new FileInputStream(baseDir + "../app/src/main/resources/application.properties"));
+            props.load(new FileInputStream(baseDir + "/../app/src/main/resources/application.properties"));
         } catch (Exception e) {
             e.printStackTrace();
         }

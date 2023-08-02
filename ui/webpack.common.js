@@ -27,6 +27,7 @@ process.argv.forEach(arg => {
 
 module.exports = (env, argv) => {
   const isProduction = argv && argv.mode === "production";
+  const clientGenVersion = "0.1.0" // Use resources/download-client-gen-dist.sh to update
   console.info("Is production build? %o", isProduction);
   return {
     entry: {
@@ -93,12 +94,8 @@ module.exports = (env, argv) => {
           scripts: [
             'echo Deleting client-gen/dist...',
             'rm -rf client-gen/dist',
-            'echo Downloading client-gen.zip...',
-            'curl -L -v https://github.com/Apicurio/apicurio-client-gen/releases/download/0.1.0/dist.zip -o client-gen.zip',
-            'echo Unzipping client-gen.zip...',
-            'unzip -q client-gen.zip -d client-gen',
-            'echo Cleaning up...',
-            'rm client-gen.zip',
+            'echo Unzipping client-gen-' + clientGenVersion + '.zip...',
+            'unzip -q resources/client-gen-' + clientGenVersion + '.zip -d client-gen',
             'echo Done!'
           ],
           blocking: true,

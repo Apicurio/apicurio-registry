@@ -60,9 +60,6 @@ updates:
           - 1.11.2.Final
           - 1.12.0.Final
           - 1.13.0.Final
-      - dependency-name: com.networknt:json-schema-validator
-        versions:
-          - 1.0.51
       - dependency-name: io.confluent:kafka-connect-avro-converter
         versions:
           - 6.1.0

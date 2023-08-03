@@ -34,18 +34,7 @@ import com.squareup.wire.schema.Rpc;
 import com.squareup.wire.schema.Schema;
 import com.squareup.wire.schema.Service;
 import com.squareup.wire.schema.Type;
-import com.squareup.wire.schema.internal.parser.EnumConstantElement;
-import com.squareup.wire.schema.internal.parser.EnumElement;
-import com.squareup.wire.schema.internal.parser.ExtensionsElement;
-import com.squareup.wire.schema.internal.parser.FieldElement;
-import com.squareup.wire.schema.internal.parser.MessageElement;
-import com.squareup.wire.schema.internal.parser.OneOfElement;
-import com.squareup.wire.schema.internal.parser.OptionElement;
-import com.squareup.wire.schema.internal.parser.ProtoFileElement;
-import com.squareup.wire.schema.internal.parser.ReservedElement;
-import com.squareup.wire.schema.internal.parser.RpcElement;
-import com.squareup.wire.schema.internal.parser.ServiceElement;
-import com.squareup.wire.schema.internal.parser.TypeElement;
+import com.squareup.wire.schema.internal.parser.*;
 import kotlin.ranges.IntRange;
 import metadata.ProtobufSchemaMetadata;
 import additionalTypes.Decimals;
@@ -922,13 +911,14 @@ public class FileDescriptorUtils {
                     descriptor.getOptions().getNoStandardDescriptorAccessor(), false);
             options.add(option);
         }
+
         return new MessageElement(DEFAULT_LOCATION, name, "", nested.build(), options.build(),
                 reserved.build(), fields.build(),
                 oneofs.stream()
                         //Ignore oneOfs with no fields (like Proto3 Optional)
                         .filter(e -> e.getValue().build().size() != 0)
                         .map(e -> toOneof(e.getKey(), e.getValue())).collect(Collectors.toList()),
-                extensions.build(), Collections.emptyList());
+                extensions.build(), Collections.emptyList(), Collections.emptyList());
     }
 
     private static OneOfElement toOneof(String name, ImmutableList.Builder<FieldElement> fields) {

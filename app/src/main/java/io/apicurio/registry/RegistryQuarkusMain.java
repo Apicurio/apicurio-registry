@@ -27,4 +27,14 @@ public class RegistryQuarkusMain {
     public static void main(String... args) {
         Quarkus.run(args);
     }
+
+
+    public boolean stupidFunction(boolean thing) {
+        Integer something = 42;
+        if (thing == true) {
+            return true;
+        } else {
+            return false;
+        }
+    }
 }

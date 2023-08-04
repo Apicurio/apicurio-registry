@@ -51,12 +51,13 @@ jobs:
         env:
           QODANA_TOKEN: ${{ secrets.QODANA_TOKEN }}
         with:
-          # TODO: args: --baseline,.qodana/qodana.sarif.json
+          args: --baseline,.qodana/qodana.sarif.json
           upload-result: true
           # TODO: push-fixes: pull-request
-#      - name: Upload report to GitHub
-#        uses: github/codeql-action/upload-sarif@v2
-#        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-#        with:
-#          sarif_file: ${{ runner.temp }}/qodana/results/qodana.sarif.json
-#        continue-on-error: true # TODO: There are some issues when uploading the Sarif file
+      - name: Upload report to GitHub
+        uses: github/codeql-action/upload-sarif@v2
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        with:
+          sarif_file: ${{ runner.temp }}/qodana/results/qodana.sarif.json
+          category: Qodana
+        continue-on-error: true # TODO: There are some issues when uploading the Sarif file

@@ -44,7 +44,7 @@ jobs:
         env:
           QODANA_TOKEN: ${{ secrets.QODANA_TOKEN }}
         with:
-          github-token: ${{ secrets.ACCESS_TOKEN }}
+          token: ${{ secrets.ACCESS_TOKEN }}
         # TODO: args: --baseline,qodana.sarif.json
         # TODO: push-fixes: pull-request
 #      - name: Upload report to GitHub

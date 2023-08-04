@@ -42,7 +42,7 @@ include:
   - name: AmbiguousFieldAccess
   - name: AmbiguousMethodCall
   #- name: Annotation
-  - name: AnnotationClass
+  #- name: AnnotationClass
   - name: Annotator
   - name: Anonymous2MethodRef
   - name: AnonymousClassComplexity
@@ -80,7 +80,7 @@ include:
   - name: AwaitNotInLoop
   - name: AwaitWithoutCorrespondingSignal
   - name: BadExceptionCaught
-  - name: BadExceptionDeclared
+  #- name: BadExceptionDeclared
   - name: BadExceptionThrown
   - name: BadOddness
   - name: BigDecimalEquals
@@ -95,15 +95,15 @@ include:
   - name: BooleanVariableAlwaysNegated
   - name: BoundedWildcard
   - name: BoundFieldAssignment
-  - name: BreakStatement
-  - name: BreakStatementWithLabel
+  #- name: BreakStatement
+  #- name: BreakStatementWithLabel
   - name: BulkFileAttributesRead
   - name: CallingMethodShouldBeRequiresBlockingContext
   - name: CallToNativeMethodWhileLocked
   - name: CallToSimpleGetterInClass
   - name: CallToSimpleSetterInClass
   - name: CallToStringConcatCanBeReplacedByOperator
-  - name: CallToSuspiciousStringMethod
+  #- name: CallToSuspiciousStringMethod
   - name: CanBeFinal
   - name: CanBeParameter
   - name: CanBePrimaryConstructorProperty
@@ -126,7 +126,7 @@ include:
   - name: CharUsedInArithmeticContext
   - name: CheckDependencyLicenses # TODO Ultimate Plus version
   - name: CheckDtdRefs
-  - name: CheckedExceptionClass
+  #- name: CheckedExceptionClass
   - name: CheckEmptyScriptTag
   - name: CheckForOutOfMemoryOnLargeArrayAllocation
   - name: CheckNodeTest
@@ -202,8 +202,8 @@ include:
   - name: ConstantValueVariableUse
   - name: ConstPropertyName
   - name: ConstructorCount
-  - name: ContinueStatement
-  - name: ContinueStatementWithLabel
+  #- name: ContinueStatement
+  #- name: ContinueStatementWithLabel
   - name: ControlFlowStatementWithoutBraces
   - name: Convert2Diamond
   - name: Convert2Lambda
@@ -291,7 +291,7 @@ include:
   - name: EmptyMethod
   - name: EnhancedSwitchBackwardMigration
   - name: EnhancedSwitchMigration
-  - name: EnumClass
+  #- name: EnumClass
   - name: EnumEntryName
   - name: EnumerationCanBeIteration
   - name: EnumSwitchStatementWhichMissesCases
@@ -303,7 +303,7 @@ include:
   - name: EscapedSpace
   - name: ExceptionFromCatchWhichDoesntWrap
   - name: ExceptionNameDoesntEndWithException
-  - name: ExceptionPackage
+  #- name: ExceptionPackage
   - name: ExcessiveLambdaUsage
   - name: ExcessiveRangeCheck
   - name: ExpectedExceptionNeverThrown
@@ -346,7 +346,7 @@ include:
   - name: FoldInitializerAndIfToElvis
   - name: ForbiddenInSuspectContextMethod
   - name: ForCanBeForeach
-  - name: ForeachStatement
+  #- name: ForeachStatement
   - name: ForEachWithRecordPatternCanBeUsed
   - name: ForeignDelegate
   - name: ForLoopReplaceableByWhile
@@ -563,7 +563,7 @@ include:
   - name: JavadocDeclaration
   - name: JavadocHtmlLint
   - name: JavadocLinkAsPlainText
-  - name: JavadocReference
+  #- name: JavadocReference
   - name: JavaLangImport
   - name: JavaMapForEach
   - name: JavaModuleNaming
@@ -735,7 +735,7 @@ include:
   - name: NonSerializableObjectPassedToObjectStream
   - name: NonSerializableWithSerializationMethods
   - name: NonShortCircuitBoolean
-  - name: NonStaticFinalLogger
+  #- name: NonStaticFinalLogger
   - name: NonStrictComparisonCanBeEquality
   - name: NonSynchronizedMethodOverridesSynchronizedMethod
   - name: NonThreadSafeLazyInitialization
@@ -764,7 +764,7 @@ include:
   - name: ObsoleteKotlinJsPackages
   - name: ObviousNullCheck
   - name: OctalAndDecimalIntegersMixed
-  - name: OnDemandImport
+  #- name: OnDemandImport
   - name: OneButtonGroup
   - name: OnlyOneElementUsed
   - name: OptionalAssignedToNull
@@ -823,7 +823,7 @@ include:
   - name: ProhibitUseSiteTargetAnnotationsOnSuperTypesMigration
   - name: PropertyName
   - name: PropertyValueSetToItself
-  - name: ProtectedField
+  #- name: ProtectedField
   - name: ProtectedInFinal
   - name: ProtectedInnerClass
   - name: ProtectedMemberInFinalClass
@@ -972,7 +972,7 @@ include:
   - name: ReturnNull
   - name: ReturnOfInnerClass
   - name: ReturnSeparatedFromComputation
-  - name: ReturnThis
+  #- name: ReturnThis
   - name: ReuseOfLocalVariable
   - name: RuntimeExec
   - name: RuntimeExecWithNonConstantString
@@ -981,7 +981,7 @@ include:
   - name: SafeVarargsDetector
   - name: SamePackageImport
   - name: SameParameterValue
-  - name: SameReturnValue
+  #- name: SameReturnValue
   - name: ScopeFunctionConversion
   - name: SecondUnsafeCall
   - name: SerializableCtor
@@ -1018,7 +1018,7 @@ include:
   #- name: SingleClassImport
   - name: SingleElementAnnotation
   - name: SingleStatementInBlock
-  - name: Singleton
+  #- name: Singleton
   - name: SingletonConstructor
   - name: SizeReplaceableByIsEmpty
   - name: SleepWhileHoldingLock
@@ -1041,7 +1041,7 @@ include:
   - name: StaticVariableUninitializedUse
   - name: StreamToLoop
   - name: StringBufferField
-  - name: StringBufferMustHaveInitialCapacity
+  #- name: StringBufferMustHaveInitialCapacity
   - name: StringBufferReplaceableByString
   - name: StringBufferReplaceableByStringBuilder
   - name: StringBufferToStringInConcatenation
@@ -1076,9 +1076,9 @@ include:
   - name: SynchronizedOnLiteralObject
   - name: SynchronizeOnLock
   - name: SynchronizeOnThis
-  - name: SystemExit
+  #- name: SystemExit
   - name: SystemGC
-  - name: SystemGetenv
+  #- name: SystemGetenv
   - name: SystemOutErr
   - name: SystemProperties
   - name: SystemSetSecurityManager
@@ -1128,7 +1128,7 @@ include:
   - name: TypeParameterExtendsFinalClass
   - name: TypeParameterExtendsObject
   - name: UElementAsPsi
-  - name: UncheckedExceptionClass
+  #- name: UncheckedExceptionClass
   - name: UNCHECKED_WARNING
   - name: UnclearBinaryExpression
   - name: UnclearPrecedenceOfBinaryExpression
@@ -1150,7 +1150,7 @@ include:
   - name: UnnecessaryContinue
   - name: UnnecessaryDefault
   - name: UnnecessaryExplicitNumericCast
-  - name: UnnecessaryFinalOnLocalVariableOrParameter
+  #- name: UnnecessaryFinalOnLocalVariableOrParameter
   - name: UnnecessaryFullyQualifiedName
   - name: UnnecessaryInheritDoc
   - name: UnnecessaryJavaDocLink
@@ -1206,7 +1206,7 @@ include:
   - name: UseEllipsisInPropertyInspection
   - name: UseExpressionBody
   - name: UseJBColor
-  - name: UseOfAnotherObjectsPrivateField
+  #- name: UseOfAnotherObjectsPrivateField
   - name: UseOfAWTPeerClass
   - name: UseOfClone
   #- name: UseOfConcreteClass
@@ -1221,8 +1221,8 @@ include:
   - name: UsePropertyAccessSyntax
   - name: UseVirtualFileEquals
   - name: UseWithIndex
-  - name: UtilityClass
-  - name: UtilityClassCanBeEnum
+  #- name: UtilityClass
+  #- name: UtilityClassCanBeEnum
   - name: UtilityClassWithoutPrivateConstructor
   - name: UtilityClassWithPublicConstructor
   - name: VarargParameter

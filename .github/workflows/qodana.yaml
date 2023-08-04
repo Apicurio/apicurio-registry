@@ -35,9 +35,16 @@ jobs:
       pull-requests: write
       security-events: write
     steps:
-      - name: Checkout '${{ github.ref }}'
+      - name: Checkout ${{ github.ref }}
         uses: actions/checkout@v3
+        if: github.event_name == 'push'
         with:
+          fetch-depth: 0
+      - name: Checkout ${{ github.ref }} (${{ github.event.pull_request.head.sha }})
+        uses: actions/checkout@v3
+        if: github.event_name == 'pull_request'
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
       - name: Scan
         uses: JetBrains/qodana-action@v2023.2

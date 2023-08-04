@@ -43,8 +43,8 @@ jobs:
         uses: JetBrains/qodana-action@v2023.2
         env:
           QODANA_TOKEN: ${{ secrets.QODANA_TOKEN }}
-          GITHUB_TOKEN: ${{ secrets.QODANA_GITHUB_ACCESS_TOKEN }}
-        with: { }
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
         # TODO: args: --baseline,qodana.sarif.json
         # TODO: push-fixes: pull-request
 #      - name: Upload report to GitHub

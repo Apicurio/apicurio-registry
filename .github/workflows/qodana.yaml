@@ -28,7 +28,7 @@ jobs:
     if: >
       github.repository_owner == 'Apicurio' &&
       !contains(github.event.*.labels.*.name, 'DO NOT MERGE') &&
-      !contains(github.event.*.labels.*.name, 'Dependencies')
+      github.event.pull_request.user.login != 'dependabot[bot]'
     permissions:
       checks: write
       contents: write
@@ -40,7 +40,7 @@ jobs:
         if: github.event_name == 'push'
         with:
           fetch-depth: 0
-      - name: Checkout ${{ github.ref }} (${{ github.event.pull_request.head.sha }})
+      - name: Checkout ${{ github.event.pull_request.head.sha }}
         uses: actions/checkout@v3
         if: github.event_name == 'pull_request'
         with:
@@ -51,9 +51,9 @@ jobs:
         env:
           QODANA_TOKEN: ${{ secrets.QODANA_TOKEN }}
         with:
+          # TODO: args: --baseline,.qodana/qodana.sarif.json
           upload-result: true
-        # TODO: args: --baseline,qodana.sarif.json
-        # TODO: push-fixes: pull-request
+          # TODO: push-fixes: pull-request
 #      - name: Upload report to GitHub
 #        uses: github/codeql-action/upload-sarif@v2
 #        if: github.ref == 'refs/heads/main' && github.event_name == 'push'

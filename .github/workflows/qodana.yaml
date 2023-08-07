@@ -1,0 +1,62 @@
+name: Static code analysis with Qodana
+on:
+  push:
+    paths-ignore:
+      - .gitignore
+      - LICENSE
+      - README*
+      - docs/**
+    branches:
+      - main
+  pull_request:
+    paths-ignore:
+      - .gitignore
+      - LICENSE
+      - README*
+      - docs/**
+    branches:
+      - main
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Qodana
+    runs-on: ubuntu-latest
+    if: >
+      github.repository_owner == 'Apicurio' &&
+      !contains(github.event.*.labels.*.name, 'DO NOT MERGE') &&
+      github.event.pull_request.user.login != 'dependabot[bot]'
+    permissions:
+      checks: write
+      contents: write
+      pull-requests: write
+      security-events: write
+    steps:
+      - name: Checkout ${{ github.ref }}
+        uses: actions/checkout@v3
+        if: github.event_name == 'push'
+        with:
+          fetch-depth: 0
+      - name: Checkout ${{ github.event.pull_request.head.sha }}
+        uses: actions/checkout@v3
+        if: github.event_name == 'pull_request'
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+      - name: Scan
+        uses: JetBrains/qodana-action@v2023.2
+        env:
+          QODANA_TOKEN: ${{ secrets.QODANA_TOKEN }}
+        with:
+          # TODO: args: --baseline,.qodana/qodana.sarif.json
+          upload-result: true
+          # TODO: push-fixes: pull-request
+#      - name: Upload report to GitHub
+#        uses: github/codeql-action/upload-sarif@v2
+#        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+#        with:
+#          sarif_file: ${{ runner.temp }}/qodana/results/qodana.sarif.json
+#        continue-on-error: true # TODO: There are some issues when uploading the Sarif file

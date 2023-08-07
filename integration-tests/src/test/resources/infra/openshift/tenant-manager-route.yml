@@ -1,0 +1,15 @@
+kind: Route
+apiVersion: route.openshift.io/v1
+metadata:
+  name: tenant-manager
+  namespace: apicurio-registry-e2e
+  labels:
+    app: tenant-manager-app
+spec:
+  to:
+    kind: Service
+    name: tenant-manager-service
+    weight: 100
+  port:
+    targetPort: 8585
+  wildcardPolicy: None

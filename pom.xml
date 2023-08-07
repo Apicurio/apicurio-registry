@@ -153,23 +153,22 @@
         <node.version>16.17.0</node.version>
 
         <!-- Quarkus Version -->
-        <quarkus.version>2.16.7.Final</quarkus.version>
+        <quarkus.version>2.16.9.Final</quarkus.version>
 
         <!-- Jandex -->
         <jandex.version>1.1.1</jandex.version>
 
         <!-- Schema types -->
-        <avro.version>1.11.1</avro.version>
-        <json-schema-validator.version>1.0.86</json-schema-validator.version>
-        <wire-schema.version>4.5.5</wire-schema.version>
+        <avro.version>1.11.2</avro.version>
+        <wire-schema.version>4.8.0</wire-schema.version>
         <wire-compiler.version>4.3.0</wire-compiler.version>
         <okio-jvm.version>3.4.0</okio-jvm.version>
-        <okio.version>3.3.0</okio.version>
+        <okio.version>3.4.0</okio.version>
         <okio-fake-file-system.version>3.4.0</okio-fake-file-system.version>
         <icu4j.version>73.2</icu4j.version>
         <protobuf.version>3.23.4</protobuf.version>
         <xmlsec.version>3.0.2</xmlsec.version>
-        <protobuf.googleapi.types.version>2.21.0</protobuf.googleapi.types.version>
+        <protobuf.googleapi.types.version>2.23.0</protobuf.googleapi.types.version>
         <wsdl4j.version>1.6.3</wsdl4j.version>
         <google.truth.extension.version>1.1.5</google.truth.extension.version>
 
@@ -201,12 +200,12 @@
         <apicurio-tenant-manager.version>0.1.3.Final</apicurio-tenant-manager.version>
 
         <!-- GraphQL -->
-        <graphql.version>20.4</graphql.version>
+        <graphql.version>21.0</graphql.version>
 
         <!-- JSON Schema Validator -->
         <org.everit.json.schema.version>1.14.2</org.everit.json.schema.version><!-- TODO unification -->
         <jackson-datatype-json-org.version>2.15.2</jackson-datatype-json-org.version>
-        <jackson-dataformat-yaml.version>2.13.4</jackson-dataformat-yaml.version>
+        <jackson-dataformat-yaml.version>2.14.2</jackson-dataformat-yaml.version>
 
         <!-- Dependency versions -->
         <lombok.version>1.18.28</lombok.version>
@@ -214,17 +213,17 @@
         <commons-codec.version>1.16.0</commons-codec.version>
         <jboss-slf4j.version>1.2.1.Final</jboss-slf4j.version>
         <httpclient.version>4.5.14</httpclient.version>
-        <apicurio-common-rest-client.version>0.1.17.Final</apicurio-common-rest-client.version>
-        <apicurio-common-app-components.version>0.1.20.Final</apicurio-common-app-components.version>
+        <apicurio-common-rest-client.version>0.1.18.Final</apicurio-common-rest-client.version>
+        <apicurio-common-app-components.version>0.1.21.Final</apicurio-common-app-components.version>
         <sentry.version>1.7.30</sentry.version>
-        <kafka-oauth-client.version>0.12.0</kafka-oauth-client.version>
-        <kafka-clients.version>2.8.1</kafka-clients.version>
-        <snakeyaml.version>1.33</snakeyaml.version>
-        <guava.version>32.1.1-jre</guava.version>
+        <kafka-oauth-client.version>0.13.0</kafka-oauth-client.version>
+        <kafka-clients.version>3.5.1</kafka-clients.version>
+        <snakeyaml.version>2.1</snakeyaml.version>
+        <guava.version>32.1.2-jre</guava.version>
         <woodstox-core.version>6.5.1</woodstox-core.version>
 
         <!-- Kafka Connect -->
-        <connect.version>2.8.1</connect.version>
+        <connect.version>3.5.1</connect.version>
 
         <!-- Specifications -->
         <annotation-api.version>1.3.5</annotation-api.version>
@@ -242,7 +241,7 @@
         <version.surefire.plugin>3.1.2</version.surefire.plugin>
         <version.jar.plugin>3.3.0</version.jar.plugin>
         <version.checkstyle.plugin>3.3.0</version.checkstyle.plugin>
-        <version.properties.plugin>1.1.0</version.properties.plugin>
+        <version.properties.plugin>1.2.0</version.properties.plugin>
         <version.dependency.plugin>3.6.0</version.dependency.plugin>
         <version.assembly.plugin>3.6.0</version.assembly.plugin>
         <version.resources.plugin>3.3.1</version.resources.plugin>
@@ -260,7 +259,7 @@
         <!-- Test containers version, should be aligned with version used in Quarkus -->
         <test-containers.version>1.18.3</test-containers.version>
         <keycloak.testcontainers.version>1.9.0</keycloak.testcontainers.version>
-        <keycloak-admin-client.version>21.1.2</keycloak-admin-client.version>
+        <keycloak-admin-client.version>22.0.1</keycloak-admin-client.version>
         <embedded-postgres.version>2.0.4</embedded-postgres.version>
         <strimzi.version>0.104.0</strimzi.version>
         <wiremock-jre8.version>2.35.0</wiremock-jre8.version>
@@ -326,12 +325,25 @@
             </dependency>
             <dependency>
                 <groupId>io.apicurio</groupId>
-                <artifactId>apicurio-registry-utils-tests</artifactId>
+                <artifactId>apicurio-registry-storage-sql</artifactId>
                 <version>${project.version}</version>
+                <type>test-jar</type>
             </dependency>
             <dependency>
                 <groupId>io.apicurio</groupId>
-                <artifactId>apicurio-registry-integration-tests-common</artifactId>
+                <artifactId>apicurio-registry-storage-kafkasql</artifactId>
+                <version>${project.version}</version>
+                <type>test-jar</type>
+            </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-registry-storage-mssql</artifactId>
+                <version>${project.version}</version>
+                <type>test-jar</type>
+            </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-registry-utils-tests</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -347,6 +359,11 @@
             <dependency>
                 <groupId>io.apicurio</groupId>
                 <artifactId>apicurio-registry-storage-kafkasql</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-registry-integration-tests</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -543,11 +560,6 @@
                 <version>${avro.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.networknt</groupId>
-                <artifactId>json-schema-validator</artifactId>
-                <version>${json-schema-validator.version}</version>
-            </dependency>
-            <dependency>
                 <groupId>com.squareup.wire</groupId>
                 <artifactId>wire-schema</artifactId>
                 <version>${wire-schema.version}</version>
@@ -628,11 +640,6 @@
                 <groupId>io.sentry</groupId>
                 <artifactId>sentry</artifactId>
                 <version>${sentry.version}</version><!--$NO-MVN-MAN-VER$-->
-            </dependency>
-            <dependency>
-                <groupId>org.yaml</groupId>
-                <artifactId>snakeyaml</artifactId>
-                <version>${snakeyaml.version}</version>
             </dependency>
 
             <!-- GraphQL -->
@@ -738,9 +745,9 @@
                 <scope>test</scope>
             </dependency>
             <dependency>
-                <groupId>org.testcontainers</groupId>
-                <artifactId>redpanda</artifactId>
-                <version>${test-containers.version}</version>
+                <groupId>io.zonky.test</groupId>
+                <artifactId>embedded-postgres</artifactId>
+                <version>${embedded-postgres.version}</version>
                 <scope>test</scope>
             </dependency>
             <dependency>
@@ -1057,14 +1064,6 @@
 
     <profiles>
         <profile>
-            <id>system-tests</id>
-            <modules>
-                <!-- Operator tests module -->
-                <module>system-tests</module>
-                <module>new-system-tests</module>
-            </modules>
-        </profile>
-        <profile>
             <id>ui</id>
             <activation>
                 <property>
@@ -1105,9 +1104,7 @@
         <profile>
             <id>integration-tests</id>
             <modules>
-                <module>integration-tests/integration-tests-common</module>
-                <module>integration-tests/legacy-tests</module>
-                <module>integration-tests/testsuite</module>
+                <module>integration-tests</module>
             </modules>
         </profile>
         <profile>

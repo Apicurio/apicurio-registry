@@ -16,24 +16,19 @@
 
 package io.apicurio.registry.ui.servlets;
 
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
+import io.apicurio.common.apps.config.Info;
+import io.apicurio.registry.ui.URLUtil;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import javax.annotation.PostConstruct;
 import javax.enterprise.context.ApplicationScoped;
-import javax.servlet.Filter;
-import javax.servlet.FilterChain;
-import javax.servlet.FilterConfig;
-import javax.servlet.ServletException;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
+import javax.inject.Inject;
+import javax.servlet.*;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-
-import org.eclipse.microprofile.config.inject.ConfigProperty;
-
-import io.apicurio.common.apps.config.Info;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 
 
 /**
@@ -41,7 +36,7 @@ import io.apicurio.common.apps.config.Info;
  */
 @ApplicationScoped
 public class RedirectFilter implements Filter {
-    
+
     @ConfigProperty(name = "registry.enable-redirects")
     @Info(category = "redirects", description = "Enable redirects", availableSince = "2.1.2.Final")
     Boolean redirectsEnabled;
@@ -51,11 +46,14 @@ public class RedirectFilter implements Filter {
     Map<String, String> redirectsConfig;
     Map<String, String> redirects = new HashMap<>();
 
+    @Inject
+    URLUtil urlUtil;
+
     @PostConstruct
     void init() {
         if (redirectsEnabled != null && redirectsEnabled) {
             redirectsConfig.values().forEach(value -> {
-                String [] split = value.split(",");
+                String[] split = value.split(",");
                 if (split != null && split.length == 2) {
                     String key = split[0];
                     String val = split[1];
@@ -74,7 +72,7 @@ public class RedirectFilter implements Filter {
 
     /**
      * @see javax.servlet.Filter#doFilter(javax.servlet.ServletRequest,
-     *      javax.servlet.ServletResponse, javax.servlet.FilterChain)
+     * javax.servlet.ServletResponse, javax.servlet.FilterChain)
      */
     @Override
     public void doFilter(ServletRequest req, ServletResponse res, FilterChain chain)
@@ -82,15 +80,15 @@ public class RedirectFilter implements Filter {
         if (redirectsEnabled != null && redirectsEnabled) {
             HttpServletRequest request = (HttpServletRequest) req;
             HttpServletResponse response = (HttpServletResponse) res;
-    
+
             String servletPath = request.getServletPath();
-    
+
             if (servletPath == null || "".equals(servletPath)) {
                 servletPath = "/";
             }
-    
+
             if (redirects.containsKey(servletPath)) {
-                response.sendRedirect(redirects.get(servletPath));
+                response.sendRedirect(urlUtil.getExternalAbsoluteURL(request, redirects.get(servletPath)).toString());
                 return;
             }
         }

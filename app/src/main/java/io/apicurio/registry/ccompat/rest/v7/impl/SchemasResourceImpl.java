@@ -40,7 +40,7 @@ public class SchemasResourceImpl extends AbstractResource implements SchemasReso
 
     @Override
     @Authorized(style = AuthorizedStyle.GlobalId, level = AuthorizedLevel.Read)
-    public SchemaInfo getSchema(int id, String subject) {
+    public SchemaInfo getSchema(int id, String subject, String groupId) {
         //subject is not used since contexts are not supported
         return facade.getSchemaById(id);
     }

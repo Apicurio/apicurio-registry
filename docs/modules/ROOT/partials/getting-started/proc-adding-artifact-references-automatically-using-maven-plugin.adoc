@@ -1,0 +1,110 @@
+// Metadata created by nebel
+// ParentAssemblies: assemblies/getting-started/assembly-managing-registry-artifacts-maven.adoc
+
+[id="adding-artifact-references-automatically-using-maven-plugin_{context}"]
+= Adding artifact references automatically using the {registry} Maven plug-in
+
+[role="_abstract"]
+{registry} artifact types such as Apache Avro, Google Protobuf, and JSON Schema can include _artifact references_ from one artifact file to another. You can create efficiencies by defining reusable schema or API artifacts, and then referencing them from multiple locations in artifact references.
+
+You can specify a single artifact and configure the {registry} Maven plugin to automatically detect all references to artifacts located in the same directory, and to automatically register those references.
+
+This section shows a simple example of using the Maven plug-in to register an Avro schema and automatically detect and register an artifact reference to a simple schema artifact. This example assumes that the parent `TradeKey` artifact and the nested `Exchange` schema artifact are both available in the same directory:
+
+.TradeKey schema with nested reference to Exchange schema
+[source,json]
+---- 
+{
+  "namespace": "com.kubetrade.schema.trade",
+  "type": "record",
+  "name": "TradeKey",
+  "fields": [
+    {
+      "name": "exchange",
+      "type": "com.kubetrade.schema.common.Exchange"
+    },
+    {
+      "name": "key",
+      "type": "string"
+    }
+  ]
+} 
+----
+
+.Exchange schema
+[source,json]
+---- 
+{
+  "namespace": "com.kubetrade.schema.common",
+  "type": "enum",
+  "name": "Exchange",
+  "symbols" : ["GEMINI"]
+} 
+----
+
+.Prerequisites
+* You have created a Maven project for your client application. For more details, see the https://maven.apache.org/index.html[Apache Maven documentation].
+* The `TradeKey` schema artifact and the nested `Exchange` schema artifact files are both located in the same directory.
+
+.Procedure
+. Update your Maven `pom.xml` file to use the `apicurio-registry-maven-plugin` to register the `TradeKey` schema, which includes a nested reference to the `Exchange` schema as follows:
++
+[source,xml]
+----
+<plugin>
+    <groupId>io.apicurio</groupId>
+    <artifactId>apicurio-registry-maven-plugin</artifactId>
+    <version>${apicurio-registry.version}</version>
+    <executions>
+        <execution>
+            <phase>generate-sources</phase>
+            <goals>
+                <goal>register</goal> <1>
+            </goals>
+            <configuration>
+                <registryUrl>MY-REGISTRY-URL/apis/registry/v2</registryUrl> <2>
+                <authServerUrl>MY-AUTH-SERVER</authServerUrl> 
+                <clientId>MY-CLIENT-ID</clientId>
+                <clientSecret>MY-CLIENT-SECRET</clientSecret> <3>
+                <clientScope>MY-CLIENT-SCOPE</clientScope>
+                <artifacts>
+                    <artifact>
+                        <groupId>test-group</groupId> <4>
+                        <artifactId>TradeKey</artifactId> 
+                        <version>2.0</version>
+                        <type>AVRO</type>
+                        <file>
+                            ${project.basedir}/src/main/resources/schemas/TradeKey.avsc <5>
+                        </file>
+                        <ifExists>RETURN_OR_UPDATE</ifExists>
+                        <canonicalize>true</canonicalize>
+                        <analyzeDirectory>true</analyzeDirectory> <6>
+                    </artifact>
+                </artifacts>
+            </configuration>
+        </execution>
+    </executions>
+</plugin>
+----
++
+<1> Specify `register` as the execution goal to upload the schema artifacts to {registry}.
+<2> Specify the {registry} URL by using the `../apis/registry/v2` endpoint.
+ifdef::apicurio-registry,rh-service-registry[]
+<3> If authentication is required, you can specify your authentication server and client credentials.
+endif::[]
+ifdef::rh-openshift-sr[]
+<3> Specify your service account ID and secret and the {org-name} Single Sign-On authentication server: `{sso-token-url}`
+endif::[]
+<4> Specify the parent artifact group ID that contains the references. You can specify the `default` group if you do not want to use a unique group ID.
+<5> Specify the location of the parent artifact file. All referenced artifacts must also be located in the same directory. 
+<6> Set the `<analyzeDirectory>` option to true to automatically detect and register all references to artifacts in the same directory. You can register multiple artifact references in this way.
+
+. Build your Maven project, for example, by using the `mvn package` command. 
+
+[role="_additional-resources"]
+.Additional resources
+ * For more details on using Apache Maven, see the https://maven.apache.org/index.html[Apache Maven documentation].
+ * For an open source example of using the {registry} Maven plug-in to automatically register multiple artifact references, see the link:https://github.com/Apicurio/apicurio-registry-examples/tree/main/avro-maven-with-references-auto[avro-maven-with-references-auto demonstration example].
+ * For more examples of artifact references, see the section on configuring each artifact type in {registry-client-serdes-config}.
+
+

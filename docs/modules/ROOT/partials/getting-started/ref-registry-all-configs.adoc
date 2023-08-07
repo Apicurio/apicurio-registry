@@ -1,11 +1,11 @@
 [id="all-registry-configs_{context}"]
-= All the available {registry} configuration options
+= {registry} configuration options
 
-This section contains a list of the configuration options available for {registry}.
+The following {registry} configuration options are available for each component category:
 
-== Category `api`:
-.Category `api` configuration options
-[.table-expandable,width="100%",cols="5,2,5,3,4",options="header"]
+== api
+.api configuration options
+[.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]
 |===
 |Name
 |Type
@@ -29,9 +29,9 @@ This section contains a list of the configuration options available for {registr
 |Disable APIs
 |===
 
-== Category `auth`:
-.Category `auth` configuration options
-[.table-expandable,width="100%",cols="5,2,5,3,4",options="header"]
+== auth
+.auth configuration options
+[.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]
 |===
 |Name
 |Type
@@ -93,6 +93,11 @@ This section contains a list of the configuration options available for {registr
 |`false`
 |`2.1.0.Final`
 |Enable basic auth client credentials
+|`registry.auth.basic-auth.scope`
+|`optional<string>`
+|
+|`2.5.0.Final`
+|Client credentials scope.
 |`registry.auth.client-id`
 |`string`
 |
@@ -160,9 +165,9 @@ This section contains a list of the configuration options available for {registr
 |Authentication server url.
 |===
 
-== Category `cache`:
-.Category `cache` configuration options
-[.table-expandable,width="100%",cols="5,2,5,3,4",options="header"]
+== cache
+.cache configuration options
+[.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]
 |===
 |Name
 |Type
@@ -176,9 +181,9 @@ This section contains a list of the configuration options available for {registr
 |Registry cache enabled
 |===
 
-== Category `ccompat`:
-.Category `ccompat` configuration options
-[.table-expandable,width="100%",cols="5,2,5,3,4",options="header"]
+== ccompat
+.ccompat configuration options
+[.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]
 |===
 |Name
 |Type
@@ -202,9 +207,9 @@ This section contains a list of the configuration options available for {registr
 |Canonical hash mode (compatibility API)
 |===
 
-== Category `download`:
-.Category `download` configuration options
-[.table-expandable,width="100%",cols="5,2,5,3,4",options="header"]
+== download
+.download configuration options
+[.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]
 |===
 |Name
 |Type
@@ -218,9 +223,9 @@ This section contains a list of the configuration options available for {registr
 |Download link expiry
 |===
 
-== Category `events`:
-.Category `events` configuration options
-[.table-expandable,width="100%",cols="5,2,5,3,4",options="header"]
+== events
+.events configuration options
+[.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]
 |===
 |Name
 |Type
@@ -234,9 +239,9 @@ This section contains a list of the configuration options available for {registr
 |Events Kafka sink enabled
 |===
 
-== Category `health`:
-.Category `health` configuration options
-[.table-expandable,width="100%",cols="5,2,5,3,4",options="header"]
+== health
+.health configuration options
+[.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]
 |===
 |Name
 |Type
@@ -335,9 +340,9 @@ This section contains a list of the configuration options available for {registr
 |Storage metrics cache check period
 |===
 
-== Category `import`:
-.Category `import` configuration options
-[.table-expandable,width="100%",cols="5,2,5,3,4",options="header"]
+== import
+.import configuration options
+[.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]
 |===
 |Name
 |Type
@@ -351,9 +356,9 @@ This section contains a list of the configuration options available for {registr
 |The import URL
 |===
 
-== Category `kafka`:
-.Category `kafka` configuration options
-[.table-expandable,width="100%",cols="5,2,5,3,4",options="header"]
+== kafka
+.kafka configuration options
+[.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]
 |===
 |Name
 |Type
@@ -372,9 +377,9 @@ This section contains a list of the configuration options available for {registr
 |Events Kafka topic partition
 |===
 
-== Category `limits`:
-.Category `limits` configuration options
-[.table-expandable,width="100%",cols="5,2,5,3,4",options="header"]
+== limits
+.limits configuration options
+[.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]
 |===
 |Name
 |Type
@@ -448,9 +453,9 @@ This section contains a list of the configuration options available for {registr
 |Storage metrics cache max size.
 |===
 
-== Category `log`:
-.Category `log` configuration options
-[.table-expandable,width="100%",cols="5,2,5,3,4",options="header"]
+== log
+.log configuration options
+[.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]
 |===
 |Name
 |Type
@@ -464,9 +469,9 @@ This section contains a list of the configuration options available for {registr
 |Log level
 |===
 
-== Category `mt`:
-.Category `mt` configuration options
-[.table-expandable,width="100%",cols="5,2,5,3,4",options="header"]
+== mt
+.mt configuration options
+[.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]
 |===
 |Name
 |Type
@@ -478,6 +483,11 @@ This section contains a list of the configuration options available for {registr
 |`false`
 |`2.0.0.Final`
 |Enable multitenancy
+|`registry.enable.multitenancy.standalone`
+|`boolean`
+|`false`
+|`2.5.0.Final`
+|Enable Standalone Multitenancy mode. In this mode, Registry provides basic multi-tenancy features, without dependencies on additional components to manage tenants and their metadata. A new tenant is simply created as soon as a tenant ID is extracted from the request for the first time. The tenant IDs must be managed externally, and tenants can be effectively deleted by deleting their data.
 |`registry.multitenancy.authorization.enabled`
 |`boolean`
 |`true`
@@ -600,9 +610,9 @@ This section contains a list of the configuration options available for {registr
 |Tenants context cache max size
 |===
 
-== Category `redirects`:
-.Category `redirects` configuration options
-[.table-expandable,width="100%",cols="5,2,5,3,4",options="header"]
+== redirects
+.redirects configuration options
+[.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]
 |===
 |Name
 |Type
@@ -619,11 +629,21 @@ This section contains a list of the configuration options available for {registr
 |
 |`2.1.2.Final`
 |Registry redirects
+|`registry.url.override.host`
+|`optional<string>`
+|
+|`2.5.0.Final`
+|Override the hostname used for generating externally-accessible URLs. The host and port overrides are useful when deploying Registry with HTTPS passthrough Ingress or Route. In cases like these, the request URL (and port) that is then re-used for redirection does not belong to actual external URL used by the client, because the request is proxied. The redirection then fails because the target URL is not reachable.
+|`registry.url.override.port`
+|`optional<integer>`
+|
+|`2.5.0.Final`
+|Override the port used for generating externally-accessible URLs.
 |===
 
-== Category `rest`:
-.Category `rest` configuration options
-[.table-expandable,width="100%",cols="5,2,5,3,4",options="header"]
+== rest
+.rest configuration options
+[.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]
 |===
 |Name
 |Type
@@ -647,9 +667,9 @@ This section contains a list of the configuration options available for {registr
 |Skip SSL validation when downloading artifacts from URL
 |===
 
-== Category `store`:
-.Category `store` configuration options
-[.table-expandable,width="100%",cols="5,2,5,3,4",options="header"]
+== store
+.store configuration options
+[.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]
 |===
 |Name
 |Type
@@ -678,9 +698,9 @@ This section contains a list of the configuration options available for {registr
 |SQL init
 |===
 
-== Category `ui`:
-.Category `ui` configuration options
-[.table-expandable,width="100%",cols="5,2,5,3,4",options="header"]
+== ui
+.ui configuration options
+[.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]
 |===
 |Name
 |Type

@@ -30,6 +30,7 @@ You can use the Maven plug-in to download artifacts from {registry}. This is oft
           <authServerUrl>MY-AUTH-SERVER</authServerUrl> 
           <clientId>MY-CLIENT-ID</clientId>
           <clientSecret>MY-CLIENT-SECRET</clientSecret> <3>
+          <clientScope>MY-CLIENT-SCOPE</clientScope>
           <artifacts>
               <artifact>
                   <groupId>TestGroup</groupId> <4>
@@ -51,16 +52,16 @@ You can use the Maven plug-in to download artifacts from {registry}. This is oft
 </plugin>
 ----
 +
-1. Specify `download` as the execution goal.
-2. Specify the {registry} URL with the `../apis/registry/v2` endpoint.
+<1> Specify `download` as the execution goal.
+<2> Specify the {registry} URL with the `../apis/registry/v2` endpoint.
 ifdef::apicurio-registry,rh-service-registry[]
-3. If authentication is required, you can specify your authentication server and client credentials.
+<3> If authentication is required, you can specify your authentication server and client credentials.
 endif::[]
 ifdef::rh-openshift-sr[]
-3. Specify your service account ID and secret and {org-name} Single Sign-On authentication server: `{sso-token-url}`
+<3> Specify your service account ID and secret and {org-name} Single Sign-On authentication server: `{sso-token-url}`
 endif::[]
-4. Specify the {registry} artifact group ID. You can specify the `default` group if you do not want to use a unique group.
-5. You can download multiple artifacts to a specified directory using the artifact ID. 
+<4> Specify the {registry} artifact group ID. You can specify the `default` group if you do not want to use a unique group.
+<5> You can download multiple artifacts to a specified directory using the artifact ID.
 
 . Build your Maven project, for example, by using the `mvn package` command. 
 

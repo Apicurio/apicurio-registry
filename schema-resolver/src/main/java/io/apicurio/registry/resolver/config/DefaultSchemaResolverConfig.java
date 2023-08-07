@@ -72,6 +72,10 @@ public class DefaultSchemaResolverConfig {
         return getString(AUTH_CLIENT_SECRET);
     }
 
+    public String getAuthClientScope() {
+        return getString(AUTH_CLIENT_SCOPE);
+    }
+
     public String getAuthUsername() {
         return getString(AUTH_USERNAME);
     }

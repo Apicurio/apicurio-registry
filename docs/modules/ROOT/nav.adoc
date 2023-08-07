@@ -13,10 +13,12 @@
 * Client applications
 ** xref:getting-started/assembly-managing-registry-artifacts-ui.adoc[]
 ** xref:getting-started/assembly-managing-registry-artifacts-api.adoc[]
-** xref:getting-started/assembly-managing-registry-artifacts-maven.adoc[]
 ** xref:getting-started/assembly-using-the-registry-client.adoc[]
+** xref:getting-started/assembly-managing-registry-artifacts-maven.adoc[]
 * Kafka client serializers/deserialisers
 ** xref:getting-started/assembly-using-kafka-client-serdes.adoc[]
 ** xref:getting-started/assembly-configuring-kafka-client-serdes.adoc[]
 * Reference
-** xref:getting-started/assembly-registry-reference.adoc[]
+** xref:getting-started/assembly-artifact-reference.adoc[]
+** xref:getting-started/assembly-rule-reference.adoc[]
+** xref:getting-started/assembly-config-reference.adoc[]

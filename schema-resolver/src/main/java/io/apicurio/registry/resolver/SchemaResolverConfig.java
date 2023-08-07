@@ -116,6 +116,11 @@ public class SchemaResolverConfig {
     public static final String AUTH_CLIENT_SECRET = "apicurio.auth.client.secret";
 
     /**
+     * The Scope of the Auth Service.
+     */
+    public static final String AUTH_CLIENT_SCOPE = "apicurio.auth.client.scope";
+
+    /**
      * The Username of the Auth Service.
      */
     public static final String AUTH_USERNAME = "apicurio.auth.username";

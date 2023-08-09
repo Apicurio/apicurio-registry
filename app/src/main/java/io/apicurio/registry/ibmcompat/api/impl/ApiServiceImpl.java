@@ -16,40 +16,12 @@
  */
 package io.apicurio.registry.ibmcompat.api.impl;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeSet;
-import java.util.stream.Collectors;
-
-import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
-import jakarta.ws.rs.BadRequestException;
-import jakarta.ws.rs.container.AsyncResponse;
-import jakarta.ws.rs.core.Response;
-
-import org.jetbrains.annotations.Nullable;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.common.apps.logging.Logged;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.ibmcompat.api.ApiService;
-import io.apicurio.registry.ibmcompat.model.EnabledModification;
-import io.apicurio.registry.ibmcompat.model.NewSchema;
-import io.apicurio.registry.ibmcompat.model.NewSchemaVersion;
-import io.apicurio.registry.ibmcompat.model.Schema;
-import io.apicurio.registry.ibmcompat.model.SchemaInfo;
-import io.apicurio.registry.ibmcompat.model.SchemaListItem;
-import io.apicurio.registry.ibmcompat.model.SchemaModificationPatch;
-import io.apicurio.registry.ibmcompat.model.SchemaState;
-import io.apicurio.registry.ibmcompat.model.SchemaSummary;
-import io.apicurio.registry.ibmcompat.model.SchemaVersion;
-import io.apicurio.registry.ibmcompat.model.StateModification;
+import io.apicurio.registry.ibmcompat.model.*;
 import io.apicurio.registry.rules.RuleApplicationType;
 import io.apicurio.registry.rules.RulesService;
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
@@ -65,16 +37,14 @@ import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.util.ArtifactIdGenerator;
 import io.apicurio.registry.util.VersionUtil;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
+import jakarta.ws.rs.BadRequestException;
+import jakarta.ws.rs.container.AsyncResponse;
+import jakarta.ws.rs.core.Response;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeSet;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static io.apicurio.registry.storage.RegistryStorage.ArtifactRetrievalBehavior.DEFAULT;

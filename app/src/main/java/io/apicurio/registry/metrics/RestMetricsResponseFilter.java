@@ -62,7 +62,7 @@ public class RestMetricsResponseFilter implements ContainerRequestFilter, Contai
     private ResourceInfo resourceInfo;
 
     // I couldn't figure out an easy way to use an annotation that can be applied on the whole REST resource class,
-    // instead of on each method (or javax.ws.rs.core.Application).
+    // instead of on each method (or jakarta.ws.rs.core.Application).
     // See https://docs.oracle.com/javaee/7/api/javax/ws/rs/NameBinding.html
     static final Pattern ENABLED_PATTERN = Pattern.compile("/apis/.*");
 

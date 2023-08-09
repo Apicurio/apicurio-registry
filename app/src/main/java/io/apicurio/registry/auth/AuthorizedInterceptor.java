@@ -18,9 +18,9 @@ package io.apicurio.registry.auth;
 
 import io.apicurio.common.apps.config.Info;
 import io.apicurio.common.apps.multitenancy.ApicurioTenantContext;
-import io.apicurio.registry.mt.MultitenancyProperties;
-import io.apicurio.registry.mt.TenantContext;
-import io.apicurio.registry.mt.TenantNotAuthorizedException;
+import io.apicurio.common.apps.multitenancy.MultitenancyProperties;
+import io.apicurio.common.apps.multitenancy.TenantContext;
+import io.apicurio.common.apps.multitenancy.exceptions.TenantNotAuthorizedException;
 import io.quarkus.security.ForbiddenException;
 import io.quarkus.security.UnauthorizedException;
 import io.quarkus.security.identity.SecurityIdentity;

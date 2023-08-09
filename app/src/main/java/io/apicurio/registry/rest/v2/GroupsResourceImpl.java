@@ -54,10 +54,11 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.jose4j.base64url.Base64;
 
-import javax.ws.rs.HttpMethod;
-import javax.ws.rs.NotAllowedException;
+import jakarta.ws.rs.HttpMethod;
+import jakarta.ws.rs.NotAllowedException;
 import java.io.BufferedInputStream;
 import java.io.InputStream;
+import java.math.BigInteger;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -277,15 +278,15 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
     @Override
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
-    public GroupSearchResults listGroups(Integer limit, Integer offset, SortOrder order, SortBy orderby) {
+    public GroupSearchResults listGroups(BigInteger limit, BigInteger offset, SortOrder order, SortBy orderby) {
         if (orderby == null) {
             orderby = SortBy.name;
         }
         if (offset == null) {
-            offset = 0;
+            offset = BigInteger.valueOf(0);
         }
         if (limit == null) {
-            limit = 20;
+            limit = BigInteger.valueOf(20);
         }
 
         final OrderBy oBy = OrderBy.valueOf(orderby.name());
@@ -293,7 +294,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
         Set<SearchFilter> filters = Collections.emptySet();
 
-        GroupSearchResultsDto resultsDto = storage.searchGroups(filters, oBy, oDir, offset, limit);
+        GroupSearchResultsDto resultsDto = storage.searchGroups(filters, oBy, oDir, offset.intValue(), limit.intValue());
         return V2ApiUtil.dtoToSearchResults(resultsDto);
     }
 
@@ -655,7 +656,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
      */
     @Override
     @Authorized(style = AuthorizedStyle.GroupOnly, level = AuthorizedLevel.Read)
-    public ArtifactSearchResults listArtifactsInGroup(String groupId, Integer limit, Integer offset,
+    public ArtifactSearchResults listArtifactsInGroup(String groupId, BigInteger limit, BigInteger offset,
                                                       SortOrder order, SortBy orderby) {
         requireParameter("groupId", groupId);
 
@@ -663,10 +664,10 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
             orderby = SortBy.name;
         }
         if (offset == null) {
-            offset = 0;
+            offset = BigInteger.valueOf(0);
         }
         if (limit == null) {
-            limit = 20;
+            limit = BigInteger.valueOf(20);
         }
 
         final OrderBy oBy = OrderBy.valueOf(orderby.name());
@@ -675,7 +676,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         Set<SearchFilter> filters = new HashSet<>();
         filters.add(SearchFilter.ofGroup(defaultGroupIdToNull(groupId)));
 
-        ArtifactSearchResultsDto resultsDto = storage.searchArtifacts(filters, oBy, oDir, offset, limit);
+        ArtifactSearchResultsDto resultsDto = storage.searchArtifacts(filters, oBy, oDir, offset.intValue(), limit.intValue());
         return V2ApiUtil.dtoToSearchResults(resultsDto);
     }
 
@@ -897,18 +898,18 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
      */
     @Override
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
-    public VersionSearchResults listArtifactVersions(String groupId, String artifactId, Integer offset, Integer limit) {
+    public VersionSearchResults listArtifactVersions(String groupId, String artifactId, BigInteger offset, BigInteger limit) {
         requireParameter("groupId", groupId);
         requireParameter("artifactId", artifactId);
 
         if (offset == null) {
-            offset = 0;
+            offset = BigInteger.valueOf(0);
         }
         if (limit == null) {
-            limit = 20;
+            limit = BigInteger.valueOf(20);
         }
 
-        VersionSearchResultsDto resultsDto = storage.searchVersions(defaultGroupIdToNull(groupId), artifactId, offset, limit);
+        VersionSearchResultsDto resultsDto = storage.searchVersions(defaultGroupIdToNull(groupId), artifactId, offset.intValue(), limit.intValue());
         return V2ApiUtil.dtoToSearchResults(resultsDto);
     }
 

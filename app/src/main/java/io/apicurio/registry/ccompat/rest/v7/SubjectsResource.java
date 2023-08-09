@@ -17,6 +17,8 @@
 package io.apicurio.registry.ccompat.rest.v7;
 
 import io.apicurio.registry.ccompat.dto.Schema;
+import io.apicurio.registry.ccompat.dto.SchemaInfo;
+import io.apicurio.registry.rest.Headers;
 import jakarta.validation.constraints.NotNull;
 import jakarta.ws.rs.*;
 

@@ -17,7 +17,7 @@
 package io.apicurio.registry.services;
 
 import io.apicurio.common.apps.config.Info;
-import io.apicurio.registry.mt.MultitenancyProperties;
+import io.apicurio.common.apps.multitenancy.MultitenancyProperties;
 import io.quarkus.runtime.StartupEvent;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Observes;

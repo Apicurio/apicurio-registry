@@ -19,8 +19,8 @@ package io.apicurio.registry.rest;
 import java.text.SimpleDateFormat;
 import java.util.TimeZone;
 
-import javax.annotation.PostConstruct;
-import javax.inject.Singleton;
+import jakarta.annotation.PostConstruct;
+import jakarta.inject.Singleton;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;

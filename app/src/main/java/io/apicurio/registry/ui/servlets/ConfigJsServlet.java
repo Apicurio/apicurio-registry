@@ -22,6 +22,7 @@ import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.auth.AuthConfig;
+import io.apicurio.registry.ui.URLUtil;
 import io.apicurio.registry.ui.beans.ConfigJs;
 import io.apicurio.registry.ui.config.UiConfigProperties;
 import io.apicurio.registry.utils.StringUtil;

@@ -64,6 +64,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import io.apicurio.tenantmanager.api.datamodel.ApicurioTenant;
 import io.apicurio.tenantmanager.api.datamodel.TenantStatusValue;
 
+import static io.apicurio.registry.storage.RegistryStorage.ArtifactRetrievalBehavior.DEFAULT;
+
 /**
  * @author eric.wittmann@gmail.com
  */

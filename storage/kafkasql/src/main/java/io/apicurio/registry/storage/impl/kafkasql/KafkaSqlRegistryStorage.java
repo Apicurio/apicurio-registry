@@ -94,12 +94,6 @@ import org.apache.kafka.common.config.TopicConfig;
 import org.apache.kafka.common.errors.TopicExistsException;
 import org.slf4j.Logger;
 
-import javax.annotation.PostConstruct;
-import javax.annotation.PreDestroy;
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.event.Event;
-import javax.enterprise.event.Observes;
-import javax.inject.Inject;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -118,6 +112,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
+
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -193,9 +188,10 @@ public class KafkaSqlRegistryStorage implements RegistryStorage {
             autoCreateTopics();
         }
     }
-    
+
     /**
      * Handles SQL storage CDI events.
+     *
      * @param event
      */
     public void handleSqlStorageEvent(@Observes SqlStorageEvent event) {
@@ -261,6 +257,7 @@ public class KafkaSqlRegistryStorage implements RegistryStorage {
      * Start the KSQL Kafka consumer thread which is responsible for subscribing to the kafka topic,
      * consuming JournalRecord entries found on that topic, and applying those journal entries to
      * the internal data model.
+     *
      * @param consumer
      */
     private void startConsumerThread(final KafkaConsumer<MessageKey, MessageValue> consumer) {
@@ -332,7 +329,7 @@ public class KafkaSqlRegistryStorage implements RegistryStorage {
     /**
      * Generate a new globalId.  This must be done by sending a message to Kafka so that all nodes in the cluster are
      * guaranteed to generate the same globalId.
-     *
+     * <p>
      * TODO we can improve performance of this by reserving batches of globalIds instead of doing it one at a time.  Not yet done
      *      due to a desire to avoid premature optimization.
      */
@@ -344,7 +341,7 @@ public class KafkaSqlRegistryStorage implements RegistryStorage {
     /**
      * Generate a new contentId.  This must be done by sending a message to Kafka so that all nodes in the cluster are
      * guaranteed to generate the same contentId.
-     *
+     * <p>
      * TODO we can improve performance of this by reserving batches of contentIds instead of doing it one at a time.  Not yet done
      *      due to a desire to avoid premature optimization.
      */
@@ -356,7 +353,7 @@ public class KafkaSqlRegistryStorage implements RegistryStorage {
     /**
      * Generate a new commentId.  This must be done by sending a message to Kafka so that all nodes in the cluster are
      * guaranteed to generate the same commentId.
-     *
+     * <p>
      * TODO we can improve performance of this by reserving batches of commentIds instead of doing it one at a time.  Not yet done
      *      due to a desire to avoid premature optimization.
      */
@@ -421,7 +418,7 @@ public class KafkaSqlRegistryStorage implements RegistryStorage {
      */
     @Override
     public ArtifactMetaDataDto createArtifact(String groupId, String artifactId, String version, String artifactType,
-            ContentHandle content, List<ArtifactReferenceDto> references) throws ArtifactAlreadyExistsException, RegistryStorageException {
+                                              ContentHandle content, List<ArtifactReferenceDto> references) throws ArtifactAlreadyExistsException, RegistryStorageException {
         return createArtifactWithMetadata(groupId, artifactId, version, artifactType, content, null, references);
     }
 
@@ -430,7 +427,7 @@ public class KafkaSqlRegistryStorage implements RegistryStorage {
      */
     @Override
     public ArtifactMetaDataDto createArtifactWithMetadata(String groupId, String artifactId, String version,
-            String artifactType, ContentHandle content, EditableArtifactMetaDataDto metaData, List<ArtifactReferenceDto> references) throws ArtifactAlreadyExistsException, RegistryStorageException {
+                                                          String artifactType, ContentHandle content, EditableArtifactMetaDataDto metaData, List<ArtifactReferenceDto> references) throws ArtifactAlreadyExistsException, RegistryStorageException {
         if (sqlStore.isArtifactExists(groupId, artifactId)) {
             throw new ArtifactAlreadyExistsException(groupId, artifactId);
         }
@@ -536,7 +533,7 @@ public class KafkaSqlRegistryStorage implements RegistryStorage {
      */
     @Override
     public ArtifactMetaDataDto updateArtifact(String groupId, String artifactId, String version, String artifactType,
-            ContentHandle content, List<ArtifactReferenceDto> references) throws ArtifactNotFoundException, RegistryStorageException {
+                                              ContentHandle content, List<ArtifactReferenceDto> references) throws ArtifactNotFoundException, RegistryStorageException {
         return updateArtifactWithMetadata(groupId, artifactId, version, artifactType, content, null, references);
     }
 
@@ -545,7 +542,7 @@ public class KafkaSqlRegistryStorage implements RegistryStorage {
      */
     @Override
     public ArtifactMetaDataDto updateArtifactWithMetadata(String groupId, String artifactId, String version,
-            String artifactType, ContentHandle content, EditableArtifactMetaDataDto metaData, List<ArtifactReferenceDto> references) throws ArtifactNotFoundException, RegistryStorageException {
+                                                          String artifactType, ContentHandle content, EditableArtifactMetaDataDto metaData, List<ArtifactReferenceDto> references) throws ArtifactNotFoundException, RegistryStorageException {
         if (!sqlStore.isArtifactExists(groupId, artifactId)) {
             throw new ArtifactNotFoundException(groupId, artifactId);
         }
@@ -639,7 +636,8 @@ public class KafkaSqlRegistryStorage implements RegistryStorage {
     @Override
     public void updateArtifactOwner(String groupId, String artifactId, ArtifactOwnerDto owner) throws ArtifactNotFoundException, RegistryStorageException {
         // Note: the next line will throw ArtifactNotFoundException if the artifact does not exist, so there is no need for an extra check.
-        /*ArtifactMetaDataDto metaDataDto = */sqlStore.getArtifactMetaData(groupId, artifactId, DEFAULT);
+        /*ArtifactMetaDataDto metaDataDto = */
+        sqlStore.getArtifactMetaData(groupId, artifactId, DEFAULT);
 
         UUID reqId = ConcurrentUtil.get(submitter.submitArtifactOwner(tenantContext.tenantId(), groupId, artifactId, ActionType.UPDATE, owner.getOwner()));
         coordinator.waitForResponse(reqId);
@@ -812,6 +810,7 @@ public class KafkaSqlRegistryStorage implements RegistryStorage {
     /**
      * Fetches the meta data for the given artifact version, validates the state (optionally), and then calls back the handler
      * with the metadata.  If the artifact is not found, this will throw an exception.
+     *
      * @param groupId
      * @param artifactId
      * @param version
@@ -899,13 +898,13 @@ public class KafkaSqlRegistryStorage implements RegistryStorage {
 
     private void updateArtifactState(ArtifactState currentState, String groupId, String artifactId, String version, ArtifactState newState, EditableArtifactMetaDataDto metaData) {
         artifactStateEx.applyState(
-            s ->  {
-                UUID reqId = ConcurrentUtil.get(submitter.submitArtifactVersion(tenantContext.tenantId(), groupId, artifactId,
-                        version, ActionType.UPDATE, newState, metaData));
-                coordinator.waitForResponse(reqId);
-            },
-            currentState,
-            newState
+                s -> {
+                    UUID reqId = ConcurrentUtil.get(submitter.submitArtifactVersion(tenantContext.tenantId(), groupId, artifactId,
+                            version, ActionType.UPDATE, newState, metaData));
+                    coordinator.waitForResponse(reqId);
+                },
+                currentState,
+                newState
         );
     }
 
@@ -1073,7 +1072,10 @@ public class KafkaSqlRegistryStorage implements RegistryStorage {
             // wait for a few seconds before we send the reset messages.  Due to partitioning,
             // we can't guarantee ordering of these next two messages, and we NEED them to
             // be consumed after all the import messages.
-            try { Thread.sleep(2000); } catch (Exception e) {}
+            try {
+                Thread.sleep(2000);
+            } catch (Exception e) {
+            }
 
             // Make sure the contentId sequence is set high enough
             resetContentId();
@@ -1170,7 +1172,7 @@ public class KafkaSqlRegistryStorage implements RegistryStorage {
 
     @Override
     public void deleteAllUserData() throws RegistryStorageException {
-        UUID reqId = ConcurrentUtil.get(submitter.submitGlobalAction(tenantContext.tenantId(),  ActionType.DELETE_ALL_USER_DATA));
+        UUID reqId = ConcurrentUtil.get(submitter.submitGlobalAction(tenantContext.tenantId(), ActionType.DELETE_ALL_USER_DATA));
         coordinator.waitForResponse(reqId);
     }
 
@@ -1374,10 +1376,12 @@ public class KafkaSqlRegistryStorage implements RegistryStorage {
         RuleConfigurationDto config = new RuleConfigurationDto(entity.configuration);
         submitter.submitArtifactRule(tenantContext.tenantId(), entity.groupId, entity.artifactId, entity.type, ActionType.IMPORT, config);
     }
+
     public void importComment(CommentEntity entity) {
         submitter.submitComment(tenantContext.tenantId(), entity.commentId, ActionType.IMPORT, entity.globalId,
                 entity.createdBy, new Date(entity.createdOn), entity.value);
     }
+
     protected void importArtifactVersion(ArtifactVersionEntity entity) {
         EditableArtifactMetaDataDto metaData = EditableArtifactMetaDataDto.builder()
                 .name(entity.name)
@@ -1389,13 +1393,16 @@ public class KafkaSqlRegistryStorage implements RegistryStorage {
                 entity.globalId, entity.artifactType, null, entity.createdBy, new Date(entity.createdOn), metaData, entity.versionId,
                 entity.state, entity.contentId, entity.isLatest);
     }
+
     protected void importContent(ContentEntity entity) {
         submitter.submitContent(tenantContext.tenantId(), entity.contentId, entity.contentHash, ActionType.IMPORT, entity.canonicalHash, ContentHandle.create(entity.contentBytes), entity.serializedReferences);
     }
+
     protected void importGlobalRule(GlobalRuleEntity entity) {
         RuleConfigurationDto config = new RuleConfigurationDto(entity.configuration);
         submitter.submitGlobalRule(tenantContext.tenantId(), entity.ruleType, ActionType.IMPORT, config);
     }
+
     protected void importGroup(GroupEntity entity) {
         GroupEntity e = entity;
         GroupMetaDataDto group = new GroupMetaDataDto();
@@ -1409,10 +1416,12 @@ public class KafkaSqlRegistryStorage implements RegistryStorage {
         group.setProperties(e.properties);
         submitter.submitGroup(tenantContext.tenantId(), ActionType.IMPORT, group);
     }
+
     private void resetContentId() {
         UUID reqId = ConcurrentUtil.get(submitter.submitGlobalId(tenantContext.tenantId(), ActionType.RESET));
         coordinator.waitForResponse(reqId);
     }
+
     private void resetGlobalId() {
         UUID reqId = ConcurrentUtil.get(submitter.submitContentId(tenantContext.tenantId(), ActionType.RESET));
         coordinator.waitForResponse(reqId);
@@ -1420,6 +1429,7 @@ public class KafkaSqlRegistryStorage implements RegistryStorage {
 
     /**
      * Canonicalize the given content, returns the content unchanged in the case of an error.
+     *
      * @param artifactType
      * @param content
      */
@@ -1429,6 +1439,7 @@ public class KafkaSqlRegistryStorage implements RegistryStorage {
 
     /**
      * Canonicalize the given content, returns the content unchanged in the case of an error.
+     *
      * @param artifactType
      * @param content
      */

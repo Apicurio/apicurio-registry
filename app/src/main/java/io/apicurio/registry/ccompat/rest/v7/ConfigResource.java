@@ -22,7 +22,7 @@ import io.apicurio.registry.rest.Headers;
 import jakarta.validation.constraints.NotNull;
 import jakarta.ws.rs.*;
 
-import javax.ws.rs.HeaderParam;
+import jakarta.ws.rs.HeaderParam;
 
 import static io.apicurio.registry.ccompat.rest.ContentTypes.*;
 

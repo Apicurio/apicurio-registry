@@ -17,6 +17,7 @@
 package io.apicurio.registry.rest.v2;
 
 import java.io.InputStream;
+import java.math.BigInteger;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -83,7 +84,7 @@ public class SearchResourceImpl implements SearchResource {
      */
     @Override
     @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Read)
-    public ArtifactSearchResults searchArtifacts(String name, Integer offset, Integer limit, SortOrder order,
+    public ArtifactSearchResults searchArtifacts(String name, BigInteger offset, BigInteger limit, SortOrder order,
             SortBy orderby, List<String> labels, List<String> properties, String description, String group,
             Long globalId, Long contentId)
     {
@@ -91,10 +92,10 @@ public class SearchResourceImpl implements SearchResource {
             orderby = SortBy.name;
         }
         if (offset == null) {
-            offset = 0;
+            offset = BigInteger.valueOf(0);
         }
         if (limit == null) {
-            limit = 20;
+            limit = BigInteger.valueOf(20);
         }
 
         final OrderBy oBy = OrderBy.valueOf(orderby.name());
@@ -144,7 +145,7 @@ public class SearchResourceImpl implements SearchResource {
             filters.add(SearchFilter.ofContentId(contentId));
         }
 
-        ArtifactSearchResultsDto results = storage.searchArtifacts(filters, oBy, oDir, offset, limit);
+        ArtifactSearchResultsDto results = storage.searchArtifacts(filters, oBy, oDir, offset.intValue(), limit.intValue());
         return V2ApiUtil.dtoToSearchResults(results);
     }
 
@@ -153,17 +154,16 @@ public class SearchResourceImpl implements SearchResource {
      */
     @Override
     @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Read)
-    public ArtifactSearchResults searchArtifactsByContent(Boolean canonical, String artifactType, Integer offset, Integer limit,
-            SortOrder order, SortBy orderby, InputStream data) {
+    public ArtifactSearchResults searchArtifactsByContent(Boolean canonical, String artifactType, BigInteger offset, BigInteger limit, SortOrder order, SortBy orderby, InputStream data) {
 
         if (orderby == null) {
             orderby = SortBy.name;
         }
         if (offset == null) {
-            offset = 0;
+            offset = BigInteger.valueOf(0);
         }
         if (limit == null) {
-            limit = 20;
+            limit = BigInteger.valueOf(20);
         }
         final OrderBy oBy = OrderBy.valueOf(orderby.name());
         final OrderDirection oDir = order == null || order == SortOrder.asc ? OrderDirection.asc : OrderDirection.desc;
@@ -189,7 +189,7 @@ public class SearchResourceImpl implements SearchResource {
         } else {
             throw new BadRequestException(CANONICAL_QUERY_PARAM_ERROR_MESSAGE);
         }
-        ArtifactSearchResultsDto results = storage.searchArtifacts(filters, oBy, oDir, offset, limit);
+        ArtifactSearchResultsDto results = storage.searchArtifacts(filters, oBy, oDir, offset.intValue(), limit.intValue());
         return V2ApiUtil.dtoToSearchResults(results);
     }
 
@@ -223,5 +223,4 @@ public class SearchResourceImpl implements SearchResource {
             return content;
         }
     }
-
 }

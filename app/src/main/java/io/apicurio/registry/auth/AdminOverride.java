@@ -19,17 +19,10 @@ package io.apicurio.registry.auth;
 import io.apicurio.common.apps.multitenancy.MultitenancyProperties;
 import io.apicurio.common.apps.multitenancy.TenantContext;
 import io.quarkus.security.identity.SecurityIdentity;
-import org.eclipse.microprofile.jwt.JsonWebToken;
-
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
-
 import org.eclipse.microprofile.jwt.JsonWebToken;
-
-import io.apicurio.registry.mt.MultitenancyProperties;
-import io.apicurio.registry.mt.TenantContext;
-import io.quarkus.security.identity.SecurityIdentity;
 
 import java.util.Optional;
 

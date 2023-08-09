@@ -21,7 +21,6 @@ import io.apicurio.registry.ccompat.dto.SubjectVersion;
 import io.apicurio.registry.rest.Headers;
 import jakarta.ws.rs.*;
 
-import javax.ws.rs.HeaderParam;
 import java.util.List;
 
 import static io.apicurio.registry.ccompat.rest.ContentTypes.*;

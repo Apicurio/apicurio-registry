@@ -1,4 +1,4 @@
-name: Release Workflow
+name: Milestone Release Workflow
 on:
   workflow_dispatch:
     inputs:

@@ -1920,7 +1920,9 @@ public class AvroData {
             case FIXED:
                 try {
                     byte[] bytes;
-                    if (jsonValue.isTextual()) {
+                    if (Decimal.LOGICAL_NAME.equalsIgnoreCase(schema.name())) {
+                        bytes = jsonValue.binaryValue();
+                    } else if (jsonValue.isTextual()) {
                         // Avro's JSON form may be a quoted string, so decode the binary value
                         String encoded = jsonValue.textValue();
                         bytes = encoded.getBytes(StandardCharsets.ISO_8859_1);

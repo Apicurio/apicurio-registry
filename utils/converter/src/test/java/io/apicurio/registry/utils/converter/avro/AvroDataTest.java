@@ -79,4 +79,41 @@ public class AvroDataTest {
         AvroData avroData = new AvroData(0);
         Assertions.assertDoesNotThrow(() -> avroData.toConnectData(avroSchema, outputRecord));
     }
+
+    @Test
+    public void testDecimal() {
+        final String s = "{"
+                + "  \"type\": \"record\","
+                + "  \"name\": \"sample\","
+                + "  \"namespace\": \"io.apicurio\","
+                + "  \"fields\": ["
+                + "    {"
+                + "      \"name\": \"somedecimal\","
+                + "      \"type\": [\n"
+                + "          {\n"
+                + "            \"type\": \"bytes\",\n"
+                + "            \"scale\": 4,\n"
+                + "            \"precision\": 4,\n"
+                + "            \"connect.version\": 1,\n"
+                + "            \"connect.parameters\": {\n"
+                + "              \"scale\": \"4\",\n"
+                + "              \"connect.decimal.precision\": \"4\"\n"
+                + "            },\n"
+                + "            \"connect.default\": \"AA==\",\n"
+                + "            \"connect.name\": \"org.apache.kafka.connect.data.Decimal\",\n"
+                + "            \"logicalType\": \"decimal\"\n"
+                + "          },\n"
+                + "          \"null\"\n"
+                + "       ],\n"
+                + "       \"default\": \"\\u0000\""
+                + "    }"
+                + "  ],"
+                + "\"connect.name\":\"io.apicurio.sample\"\n"
+                + "}";
+
+        org.apache.avro.Schema bSchema = new org.apache.avro.Schema.Parser().parse(s);
+        AvroData avroData = new AvroData(0);
+        org.apache.avro.Schema aSchema = avroData.fromConnectSchema(avroData.toConnectSchema(bSchema));
+        Assertions.assertEquals(bSchema.toString(), aSchema.toString());
+    }
 }

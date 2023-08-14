@@ -347,13 +347,13 @@ microsoft-kiota_abstractions = ">=0.4.0"
 
 [[package]]
 name = "microsoft-kiota-serialization-json"
-version = "0.3.7"
+version = "0.4.0"
 description = "Implementation of Kiota Serialization interfaces for JSON"
 optional = false
 python-versions = "*"
 files = [
-    {file = "microsoft_kiota_serialization_json-0.3.7-py2.py3-none-any.whl", hash = "sha256:613c68c2d87026801697f2a428d955e8b93da90e54b8704f469b8fb9346e9542"},
-    {file = "microsoft_kiota_serialization_json-0.3.7.tar.gz", hash = "sha256:7c18d1153e55d35718e31146fececb0ac6e819e0666db0f05510bbe4d287205e"},
+    {file = "microsoft_kiota_serialization_json-0.4.0-py2.py3-none-any.whl", hash = "sha256:43b4156990aaa3d1ce1847aa466996548f67288bdcf591d2282fb241c3e20a27"},
+    {file = "microsoft_kiota_serialization_json-0.4.0.tar.gz", hash = "sha256:8c967311bad089805f08f374930e77947244530406116ad2e950379824d1f739"},
 ]
 
 [package.dependencies]
@@ -588,4 +588,4 @@ zstd = ["zstandard (>=0.18.0)"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9"
-content-hash = "ff056f49d15b9bf91a5d38d531118caa9753e88f3afec465b36968246d1434e3"
+content-hash = "9f30dbe6001070a146db0ad3e69a0cee1ae8a19129ae928a5ebec668ac968253"

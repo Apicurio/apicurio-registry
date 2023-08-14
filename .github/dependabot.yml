@@ -6,21 +6,9 @@ updates:
       interval: daily
     open-pull-requests-limit: 10
     ignore:
-      - dependency-name: com.squareup.wire:wire-schema
-        versions:
-          - ">= 3.6.a, < 3.7"
-      - dependency-name: com.squareup.wire:wire-compiler
-        versions:
-          - ">= 3.6.a, < 3.7"
       - dependency-name: com.ibm.icu:icu4j
         versions:
           - ">= 69.1, < 70.1"
-      - dependency-name: org.apache.kafka:connect-api
-        versions:
-          - "> 2.2.1, < 2.3"
-      - dependency-name: org.apache.kafka:connect-api
-        versions:
-          - ">= 2.3.a, < 2.4"
       - dependency-name: org.apache.kafka:connect-api
         versions:
           - ">= 5.a, < 6"
@@ -39,39 +27,6 @@ updates:
       - dependency-name: org.apache.kafka:kafka-clients
         versions:
           - "> 2.3.0"
-      - dependency-name: io.quarkus:quarkus-maven-plugin
-        versions:
-          - 1.11.0.Final
-          - 1.11.1.Final
-          - 1.11.2.Final
-          - 1.12.0.Final
-          - 1.13.0.Final
-      - dependency-name: io.quarkus:quarkus-test-common
-        versions:
-          - 1.11.0.Final
-          - 1.11.1.Final
-          - 1.11.2.Final
-          - 1.12.0.Final
-          - 1.13.0.Final
-      - dependency-name: io.quarkus:quarkus-bom
-        versions:
-          - 1.11.0.Final
-          - 1.11.1.Final
-          - 1.11.2.Final
-          - 1.12.0.Final
-          - 1.13.0.Final
-      - dependency-name: io.confluent:kafka-connect-avro-converter
-        versions:
-          - 6.1.0
-      - dependency-name: io.confluent:kafka-json-schema-serializer
-        versions:
-          - 6.1.0
-      - dependency-name: io.confluent:kafka-protobuf-serializer
-        versions:
-          - 6.1.0
-      - dependency-name: io.confluent:kafka-avro-serializer
-        versions:
-          - 6.1.0
       - dependency-name: org.infinispan:infinispan-commons
         versions:
           - 12.1.0.Dev01
@@ -122,12 +77,13 @@ updates:
       - dependency-name: org.apache.kafka:connect-runtime
         versions:
           - 6.0.1-ce
-      - dependency-name: com.squareup.wire:wire-schema
-        versions:
-          - 3.5.0
       - dependency-name: org.junit.jupiter:junit-jupiter-engine
         versions:
           - 5.7.1
       - dependency-name: com.squareup.okhttp3:okhttp
         versions:
           - 4.9.1
+  - package-ecosystem: pip
+    directory: "/python-sdk"
+    schedule:
+      interval: daily

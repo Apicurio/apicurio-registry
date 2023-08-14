@@ -1,4 +1,4 @@
-name: Release Workflow
+name: Milestone Release Workflow
 on:
   workflow_dispatch:
     inputs:
@@ -16,20 +16,15 @@ on:
         description: 'Skip maven deploy'
         required: true
         default: 'false'
-      skip-python-sdk:
-        description: 'Skip python sdk deploy'
-        required: true
-        default: 'false'
+
 jobs:
   release:
     runs-on: ubuntu-20.04
     if: github.repository_owner == 'Apicurio'
-    env:
-      IS_PRE_RELEASE: false
     steps:
       - name: Log Metadata
         run: |
-          echo "Releasing Apicurio Registry version ${{ github.event.inputs.release-version }} from branch ${{ github.event.inputs.branch }}"
+          echo "Releasing Apicurio Registry (milestone) version ${{ github.event.inputs.release-version }} from branch ${{ github.event.inputs.branch }}"
           echo "Next Snapshot version will be ${{ github.event.inputs.snapshot-version }}"
 
       - name: Set up Node.js v12
@@ -51,9 +46,6 @@ jobs:
           echo "<settings><servers><server><id>${{ secrets.OSSRH_ID }}</id><username>${{ secrets.OSSRH_USERNAME }}</username><password>${{ secrets.OSSRH_TOKEN }}</password></server></servers><profiles><profile><id>${{ secrets.OSSRH_ID }}</id><activation><activeByDefault>true</activeByDefault></activation><properties><gpg.executable>gpg</gpg.executable><gpg.passphrase>${{ secrets.GPG_PASSPHRASE}}</gpg.passphrase></properties></profile></profiles></settings>" > /home/runner/.m2/settings.xml
           cat /home/runner/.m2/settings.xml
 
-      - name: Set up Gren
-        run: npm install github-release-notes -g
-
       - name: Apicurio Registry Checkout
         run: |
           mkdir registry
@@ -71,12 +63,6 @@ jobs:
         run: |
           cd registry
           mvn versions:set -DnewVersion=${{ github.event.inputs.release-version}} -DgenerateBackupPoms=false -DprocessAllModules=true
-
-          # take only the major and minor versions from release-version and then append .x.
-          DOCS_VERSION=$(echo "${{ github.event.inputs.release-version}}" | awk -F '.' '{print $1"."$2".x"}')
-          
-          sed -i  "s/version\:\s.*/version: \'${DOCS_VERSION}\'/g" docs/antora.yml
-          sed -i  "5s/\"version\"\:\s\".*\"/\"version\": \"${DOCS_VERSION}\"/g" app/src/main/resources-unfiltered/META-INF/resources/api-specifications/registry/v2/openapi.json
 
           # take only the major, minor and patch
           PYTHON_SDK_VERSION=$(echo "${{ github.event.inputs.release-version}}" | awk -F '.' '{print $1"."$2"."$3}')
@@ -103,66 +89,17 @@ jobs:
           (echo "===== Maven Deploy Attempt: 3 ====" && mvn deploy --batch-mode -Pprod -Psql -Pmssql -Pkafkasql -Prelease -DskipTests --settings /home/runner/.m2/settings.xml) || \
           (echo "==== Maven Deploy Step Failed ====" && exit 1)
 
-      # Python SDK release
-      - uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-      - name: Install Poetry
-        uses: snok/install-poetry@d45b6d76012debf457ab49dffc7fb7b2efe8071d
-        if: github.event.inputs.skip-python-sdk == 'false'
-
-
-      - name: Release Python SDK
-        run: |
-          cd registry
-          cd python-sdk
-          make publish
-        env:
-          PYPI_USERNAME: ${{ secrets.PYPI_USERNAME }}
-          PYPI_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
-        if: github.event.inputs.skip-python-sdk == 'false'
-
       - name: Commit Release Version Change
         run: |
           cd registry
           git add .
-          git commit -m "Automated update to Release Version:: ${{ github.event.inputs.release-version}}"
+          git commit -m "Automated update to Milestone Release Version:: ${{ github.event.inputs.release-version}}"
           git push
-
-      - name: Determine Release Type
-        if: "contains(github.event.inputs.release-version, 'RC')"
-        run: |
-          echo "This is a pre-release. Setting environment variable 'IS_PRE_RELEASE' to true"
-          echo "IS_PRE_RELEASE=true" >> $GITHUB_ENV
-
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@1e07f4398721186383de40550babbdf2b84acfc5
-        with:
-          name: ${{ github.event.inputs.release-version }}
-          tag_name: ${{ github.event.inputs.release-version }}
-          token: ${{ secrets.ACCESS_TOKEN }}
-          target_commitish: ${{ github.event.inputs.branch }}
-          prerelease: ${{ env.IS_PRE_RELEASE }}
-          files: |
-            registry/distro/docker/target/docker/app-files/apicurio-registry-app-${{ github.event.inputs.release-version }}-all.tar.gz
-            registry/distro/docker/target/docker/app-files/apicurio-registry-storage-sql-${{ github.event.inputs.release-version }}-all.tar.gz
-            registry/distro/docker/target/docker/app-files/apicurio-registry-storage-kafkasql-${{ github.event.inputs.release-version }}-all.tar.gz
-
-      - name: Generate Release Notes
-        run: |
-          cd registry
-          gren release --token=${{ secrets.GITHUB_TOKEN }} --override
 
       - name: Update Snapshot Version ${{ github.event.inputs.snapshot-version}}
         run: |
           cd registry
           mvn versions:set -DnewVersion=${{ github.event.inputs.snapshot-version}} -DgenerateBackupPoms=false -DprocessAllModules=true
-          
-          # take only the major and minor versions from snapshot-version and then append .x.
-          DOCS_VERSION=$(echo "${{ github.event.inputs.snapshot-version}}" | awk -F '.' '{print $1"."$2".x"}')
-          
-          sed -i  "s/version\:\s.*/version: \'${DOCS_VERSION}\'/g" docs/antora.yml
-          sed -i  "5s/\"version\"\:\s\".*\"/\"version\": \"${DOCS_VERSION}\"/g" app/src/main/resources-unfiltered/META-INF/resources/api-specifications/registry/v2/openapi.json
 
           # take only the major, minor and patch
           PYTHON_SDK_VERSION=$(echo "${{ github.event.inputs.release-version}}" | awk -F '.' '{print $1"."$2"."$3}')
@@ -175,16 +112,6 @@ jobs:
           git commit -m "Automated update to next Snapshot Version: ${{ github.event.inputs.snapshot-version}}"
           git push
 
-      # TODO: ${{ steps.create_release.outputs.html_url }} will not be available, since we're now using script to do github release. Need to explicitly fetch
-      # - name: Tweet About The Release
-      #   uses: ethomson/send-tweet-action@v1
-      #   with:
-      #     status: "Apicurio Registry version ${{ github.event.inputs.release-version}} is out!  Check out the release notes here: ${{ steps.create_release.outputs.html_url }}"
-      #     consumer-key: ${{ secrets.TWITTER_CONSUMER_API_KEY }}
-      #     consumer-secret: ${{ secrets.TWITTER_CONSUMER_API_SECRET }}
-      #     access-token: ${{ secrets.TWITTER_ACCESS_TOKEN }}
-      #     access-token-secret: ${{ secrets.TWITTER_ACCESS_TOKEN_SECRET }}
-
       - name: Google Chat Notification
         if: ${{ failure() }}
         uses: Co-qn/google-chat-notification@b9227d9daa4638c9782a5bd16c4abb86268127a1
@@ -192,11 +119,3 @@ jobs:
           name: ${{ github.workflow }}
           url: ${{ secrets.GOOGLE_CHAT_WEBHOOK }}
           status: ${{ job.status }}
-
-
-  job-trigger:
-    needs: [release]
-    uses: ./.github/workflows/tag-registry-examples.yaml
-    with:
-      release-version: ${{ github.event.inputs.release-version}}
-      snapshot-version: ${{ github.event.inputs.snapshot-version}}

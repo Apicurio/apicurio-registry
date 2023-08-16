@@ -8,7 +8,7 @@ import shutil
 import platform
 from pathlib import Path
 
-KIOTA_VERSION = "1.4.0"
+KIOTA_VERSION = "1.5.1"
 
 KIOTA_OS_NAMES = {"Windows": "win", "Darwin": "osx", "Linux": "linux"}
 KIOTA_ARCH_NAMES = {"32bit": "x86", "64bit": "x64"}

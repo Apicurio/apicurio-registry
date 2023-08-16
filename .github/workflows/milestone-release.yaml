@@ -1,0 +1,121 @@
+name: Milestone Release Workflow
+on:
+  workflow_dispatch:
+    inputs:
+      release-version:
+        description: 'Version being released'
+        required: true
+      snapshot-version:
+        description: 'Next snapshot version'
+        required: true
+      branch:
+        description: 'Branch to release from'
+        required: true
+        default: 'main'
+      skip-maven-deploy:
+        description: 'Skip maven deploy'
+        required: true
+        default: 'false'
+
+jobs:
+  release:
+    runs-on: ubuntu-20.04
+    if: github.repository_owner == 'Apicurio'
+    steps:
+      - name: Log Metadata
+        run: |
+          echo "Releasing Apicurio Registry (milestone) version ${{ github.event.inputs.release-version }} from branch ${{ github.event.inputs.branch }}"
+          echo "Next Snapshot version will be ${{ github.event.inputs.snapshot-version }}"
+
+      - name: Set up Node.js v12
+        uses: actions/setup-node@v1
+        with:
+          node-version: 12
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Set up settings.xml
+        run: |
+          pwd
+          mkdir -p /home/runner/.m2
+          chmod 755 /home/runner/.m2
+          echo "<settings><servers><server><id>${{ secrets.OSSRH_ID }}</id><username>${{ secrets.OSSRH_USERNAME }}</username><password>${{ secrets.OSSRH_TOKEN }}</password></server></servers><profiles><profile><id>${{ secrets.OSSRH_ID }}</id><activation><activeByDefault>true</activeByDefault></activation><properties><gpg.executable>gpg</gpg.executable><gpg.passphrase>${{ secrets.GPG_PASSPHRASE}}</gpg.passphrase></properties></profile></profiles></settings>" > /home/runner/.m2/settings.xml
+          cat /home/runner/.m2/settings.xml
+
+      - name: Apicurio Registry Checkout
+        run: |
+          mkdir registry
+          cd registry
+          git init
+          git config --global user.name "apicurio-ci"
+          git config --global user.email "apicurio.ci@gmail.com"
+          git remote add origin "https://apicurio-ci:${{ secrets.ACCESS_TOKEN }}@github.com/Apicurio/apicurio-registry.git"
+          git fetch
+          git checkout ${{ github.event.inputs.branch }}
+          git branch --set-upstream-to=origin/${{ github.event.inputs.branch }}
+          git pull
+
+      - name: Update Release Version ${{ github.event.inputs.release-version}}
+        run: |
+          cd registry
+          mvn versions:set -DnewVersion=${{ github.event.inputs.release-version}} -DgenerateBackupPoms=false -DprocessAllModules=true
+
+          # take only the major, minor and patch
+          PYTHON_SDK_VERSION=$(echo "${{ github.event.inputs.release-version}}" | awk -F '.' '{print $1"."$2"."$3}')
+          sed -i "s/^version.*/version \= \"${PYTHON_SDK_VERSION}\"/" python-sdk/pyproject.toml
+
+      - name: Build Registry (All Variants)
+        run: |
+          cd registry
+          make SKIP_TESTS=true BUILD_FLAGS='-Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5' build-all
+
+      - name: Import GPG Key
+        uses: crazy-max/ghaction-import-gpg@f6f458f535f4ccdf100400ee0755c0e857226a66
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+          PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+
+      - name: Maven Deploy
+        if: github.event.inputs.skip-maven-deploy == 'false'
+        run: |
+          cd registry
+          # Retry 3 times before the steps actually fails
+          (echo "===== Maven Deploy Attempt: 1 ====" && mvn deploy --batch-mode -Pprod -Psql -Pmssql -Pkafkasql -Prelease -DskipTests --settings /home/runner/.m2/settings.xml) || \
+          (echo "===== Maven Deploy Attempt: 2 ====" && mvn deploy --batch-mode -Pprod -Psql -Pmssql -Pkafkasql -Prelease -DskipTests --settings /home/runner/.m2/settings.xml) || \
+          (echo "===== Maven Deploy Attempt: 3 ====" && mvn deploy --batch-mode -Pprod -Psql -Pmssql -Pkafkasql -Prelease -DskipTests --settings /home/runner/.m2/settings.xml) || \
+          (echo "==== Maven Deploy Step Failed ====" && exit 1)
+
+      - name: Commit Release Version Change
+        run: |
+          cd registry
+          git add .
+          git commit -m "Automated update to Milestone Release Version:: ${{ github.event.inputs.release-version}}"
+          git push
+
+      - name: Update Snapshot Version ${{ github.event.inputs.snapshot-version}}
+        run: |
+          cd registry
+          mvn versions:set -DnewVersion=${{ github.event.inputs.snapshot-version}} -DgenerateBackupPoms=false -DprocessAllModules=true
+
+          # take only the major, minor and patch
+          PYTHON_SDK_VERSION=$(echo "${{ github.event.inputs.release-version}}" | awk -F '.' '{print $1"."$2"."$3}')
+          sed -i "s/^version.*/version \= \"${PYTHON_SDK_VERSION}\"/" python-sdk/pyproject.toml
+
+      - name: Commit Snapshot Version ${{ github.event.inputs.snapshot-version}}
+        run: |
+          cd registry
+          git add .
+          git commit -m "Automated update to next Snapshot Version: ${{ github.event.inputs.snapshot-version}}"
+          git push
+
+      - name: Google Chat Notification
+        if: ${{ failure() }}
+        uses: Co-qn/google-chat-notification@b9227d9daa4638c9782a5bd16c4abb86268127a1
+        with:
+          name: ${{ github.workflow }}
+          url: ${{ secrets.GOOGLE_CHAT_WEBHOOK }}
+          status: ${{ job.status }}

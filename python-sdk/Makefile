@@ -2,6 +2,7 @@
 clean:
 	rm -f openapi.json
 	rm -rf apicurioregistrysdk/client
+	rm -rf kiota_tmp
 
 install:
 	poetry install

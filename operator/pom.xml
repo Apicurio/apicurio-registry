@@ -26,7 +26,7 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <awaitility.version>4.2.0</awaitility.version>
         <kubernetes-client-java-gen.version>6.7.2</kubernetes-client-java-gen.version>
-        <sundrio.version>0.95.0</sundrio.version>
+        <sundrio.version>0.100.3</sundrio.version>
         <assertj.core.version>3.24.2</assertj.core.version>
         <quarkus.operator.sdk.version>5.1.4</quarkus.operator.sdk.version>
         <quarkus.container-image.group>apicurio</quarkus.container-image.group>

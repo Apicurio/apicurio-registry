@@ -43,7 +43,7 @@ jobs:
           cache: 'maven'
       
       - name: Run the tests in local mode
-        run: ./mvnw clean verify -P '!external_repos' -pl operator/controller -am
+        run: ./mvnw clean verify -P '!external_repos' -DskipOperatorTests=false -pl operator/controller -am
 
       - name: Run the tests in remote mode
         run: |

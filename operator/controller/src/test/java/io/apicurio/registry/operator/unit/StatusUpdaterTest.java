@@ -3,20 +3,21 @@ package io.apicurio.registry.operator.unit;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.apicur.registry.v1.ApicurioRegistry;
-import io.apicur.registry.v1.ApicurioRegistryBuilder;
 import io.apicur.registry.v1.apicurioregistrystatus.Conditions;
 import io.apicurio.registry.operator.StatusUpdater;
+import io.fabric8.kubernetes.api.model.ObjectMeta;
 import org.junit.jupiter.api.Test;
 
 public class StatusUpdaterTest {
 
-  private ApicurioRegistry defaultRegistry =
-      new ApicurioRegistryBuilder()
-          .withNewMetadata()
-          .withName("dummy")
-          .withNamespace("default")
-          .endMetadata()
-          .build();
+  private static final ApicurioRegistry defaultRegistry = new ApicurioRegistry();
+
+  static {
+    var meta = new ObjectMeta();
+    meta.setName("dummy");
+    meta.setNamespace("default");
+    defaultRegistry.setMetadata(meta);
+  }
 
   @Test
   void shouldReturnAnErrorStatus() {

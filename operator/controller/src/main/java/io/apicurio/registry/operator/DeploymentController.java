@@ -11,7 +11,7 @@ import io.javaoperatorsdk.operator.api.reconciler.Reconciler;
 import io.javaoperatorsdk.operator.api.reconciler.UpdateControl;
 import io.javaoperatorsdk.operator.api.reconciler.dependent.Dependent;
 import io.quarkus.logging.Log;
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 
 @ControllerConfiguration(dependents = {@Dependent(type = ApicurioDeployment.class)})
 public class DeploymentController

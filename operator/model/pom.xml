@@ -16,46 +16,20 @@
     <artifactId>apicurio-registry-operator-model</artifactId>
 
     <dependencies>
-        <!-- Quarkus -->
-        <dependency>
-            <groupId>io.quarkiverse.operatorsdk</groupId>
-            <artifactId>quarkus-operator-sdk</artifactId>
-        </dependency>
-
         <dependency>
             <groupId>io.fabric8</groupId>
             <artifactId>generator-annotations</artifactId>
             <version>${kubernetes-client-java-gen.version}</version>
         </dependency>
         <dependency>
-            <groupId>io.sundr</groupId>
-            <artifactId>builder-annotations</artifactId>
-            <version>${sundrio.version}</version>
-            <scope>provided</scope>
+            <groupId>io.fabric8</groupId>
+            <artifactId>kubernetes-client</artifactId>
+            <version>${kubernetes-client-java-gen.version}</version>
         </dependency>
-        <dependency>
-            <groupId>org.projectlombok</groupId>
-            <artifactId>lombok</artifactId>
-            <scope>provided</scope>
-        </dependency>
-
     </dependencies>
 
     <build>
         <plugins>
-
-            <plugin>
-                <groupId>io.quarkus</groupId>
-                <artifactId>quarkus-maven-plugin</artifactId>
-                <version>${quarkus.version}</version>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>build</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
 
             <plugin>
                 <groupId>io.fabric8</groupId>
@@ -70,7 +44,6 @@
                 </executions>
                 <configuration>
                     <source>src/main/resources/kubernetes/crd.yml</source>
-                    <extraAnnotations>true</extraAnnotations>
                 </configuration>
             </plugin>
 

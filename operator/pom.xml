@@ -25,10 +25,13 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <awaitility.version>4.2.0</awaitility.version>
-        <kubernetes-client-java-gen.version>6.7.2</kubernetes-client-java-gen.version>
-        <sundrio.version>0.95.0</sundrio.version>
+        <kubernetes-client-java-gen.version>6.8.1</kubernetes-client-java-gen.version>
         <assertj.core.version>3.24.2</assertj.core.version>
-        <quarkus.operator.sdk.version>5.1.4</quarkus.operator.sdk.version>
+        <bouncycastle.version>1.70</bouncycastle.version>
+        <!-- ATTENTION! The Quarkus version needs to be aligned with the Quarkus Operator SDK -->
+        <!-- TODO: possibly stabilize on something shared with the rest of the repo -->
+        <quarkus.version>3.2.0.Final</quarkus.version>
+        <quarkus.operator.sdk.version>6.2.1</quarkus.operator.sdk.version>
         <quarkus.container-image.group>apicurio</quarkus.container-image.group>
     </properties>
 
@@ -50,32 +53,7 @@
     </modules>
 
     <build>
-        <pluginManagement>
-            <plugins>
-                <plugin>
-                    <groupId>io.quarkus</groupId>
-                    <artifactId>quarkus-maven-plugin</artifactId>
-                    <version>${quarkus.version}</version>
-                </plugin>
-                <plugin>
-                    <artifactId>maven-compiler-plugin</artifactId>
-                    <version>${compiler-plugin.version}</version>
-                </plugin>
-            </plugins>
-        </pluginManagement>
         <plugins>
-            <plugin>
-                <groupId>io.quarkus</groupId>
-                <artifactId>quarkus-maven-plugin</artifactId>
-                <version>${quarkus.version}</version>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>build</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
 
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>

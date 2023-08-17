@@ -14,16 +14,15 @@ import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientBuilder;
 import io.fabric8.kubernetes.client.utils.Serialization;
 import io.javaoperatorsdk.operator.Operator;
-import io.javaoperatorsdk.operator.api.config.ConfigurationServiceProvider;
 import io.javaoperatorsdk.operator.api.reconciler.Reconciler;
 import io.quarkiverse.operatorsdk.runtime.QuarkusConfigurationService;
 import io.quarkus.logging.Log;
+import jakarta.enterprise.inject.Instance;
+import jakarta.enterprise.inject.spi.CDI;
+import jakarta.enterprise.util.TypeLiteral;
 import java.io.FileInputStream;
 import java.time.Duration;
 import java.util.UUID;
-import javax.enterprise.inject.Instance;
-import javax.enterprise.inject.spi.CDI;
-import javax.enterprise.util.TypeLiteral;
 import org.awaitility.Awaitility;
 import org.eclipse.microprofile.config.ConfigProvider;
 import org.junit.jupiter.api.AfterAll;
@@ -167,9 +166,11 @@ public class ITBase {
   }
 
   private static void createOperator() {
-    configuration.getClientConfiguration().setNamespace(namespace);
-    ConfigurationServiceProvider.reset();
-    operator = new Operator(client, configuration);
+    operator =
+        new Operator(
+            configurationServiceOverrider -> {
+              configurationServiceOverrider.withKubernetesClient(client);
+            });
   }
 
   private static void createNamespace() {

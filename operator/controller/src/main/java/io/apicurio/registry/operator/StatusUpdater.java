@@ -2,12 +2,11 @@ package io.apicurio.registry.operator;
 
 import io.apicur.registry.v1.ApicurioRegistry;
 import io.apicur.registry.v1.ApicurioRegistryStatus;
-import io.apicur.registry.v1.ApicurioRegistryStatusBuilder;
 import io.apicur.registry.v1.apicurioregistrystatus.Conditions;
-import io.apicur.registry.v1.apicurioregistrystatus.ConditionsBuilder;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
+import java.time.ZonedDateTime;
 import java.util.Arrays;
-import java.util.Date;
+import java.util.List;
 import java.util.stream.Collectors;
 
 public class StatusUpdater {
@@ -21,7 +20,7 @@ public class StatusUpdater {
   }
 
   public ApicurioRegistryStatus errorStatus(Exception e) {
-    var lastTransitionTime = new Date().toString();
+    ZonedDateTime lastTransitionTime = ZonedDateTime.now();
     if (registry != null
         && registry.getStatus() != null
         && registry.getStatus().getConditions().size() > 0
@@ -32,25 +31,26 @@ public class StatusUpdater {
     }
 
     var generation = registry.getMetadata() == null ? null : registry.getMetadata().getGeneration();
-    var errorCondition =
-        new ConditionsBuilder()
-            .withStatus(Conditions.Status.TRUE)
-            .withType(ERROR_TYPE)
-            .withObservedGeneration(generation)
-            .withLastTransitionTime("2017-07-21T17:32:28Z") // TODO: fixme
-            // https://github.com/fabric8io/kubernetes-client/pull/5279
-            .withMessage(
-                Arrays.stream(e.getStackTrace())
-                    .map(st -> st.toString())
-                    .collect(Collectors.joining("\n")))
-            .withReason("reasons")
-            .build();
+    var newLastTransitionTime = ZonedDateTime.now();
+    var errorCondition = new Conditions();
+    errorCondition.setStatus(Conditions.Status.TRUE);
+    errorCondition.setType(ERROR_TYPE);
+    errorCondition.setObservedGeneration(generation);
+    errorCondition.setLastTransitionTime(newLastTransitionTime);
+    errorCondition.setMessage(
+        Arrays.stream(e.getStackTrace())
+            .map(st -> st.toString())
+            .collect(Collectors.joining("\n")));
+    errorCondition.setReason("reasons");
 
-    return new ApicurioRegistryStatusBuilder().withConditions(errorCondition).build();
+    var status = new ApicurioRegistryStatus();
+    status.setConditions(List.of(errorCondition));
+
+    return status;
   }
 
   public ApicurioRegistryStatus next(Deployment deployment) {
-    var lastTransitionTime = new Date().toString();
+    var lastTransitionTime = ZonedDateTime.now();
     if (registry != null
         && registry.getStatus() != null
         && registry.getStatus().getConditions().size() > 0
@@ -61,17 +61,17 @@ public class StatusUpdater {
     }
 
     var generation = registry.getMetadata() == null ? null : registry.getMetadata().getGeneration();
-    var nextCondition =
-        new ConditionsBuilder()
-            .withStatus(Conditions.Status.TRUE)
-            .withType(ERROR_TYPE)
-            .withObservedGeneration(generation)
-            .withLastTransitionTime("2017-07-21T17:32:28Z") // TODO: fixme
-            // https://github.com/fabric8io/kubernetes-client/pull/5279
-            .withMessage("TODO")
-            .withReason("reasons")
-            .build();
+    var nextCondition = new Conditions();
+    nextCondition.setStatus(Conditions.Status.TRUE);
+    nextCondition.setType(ERROR_TYPE);
+    nextCondition.setObservedGeneration(generation);
+    nextCondition.setLastTransitionTime(lastTransitionTime);
+    nextCondition.setMessage("TODO");
+    nextCondition.setReason("reasons");
 
-    return new ApicurioRegistryStatusBuilder().withConditions(nextCondition).build();
+    var status = new ApicurioRegistryStatus();
+    status.setConditions(List.of(nextCondition));
+
+    return status;
   }
 }

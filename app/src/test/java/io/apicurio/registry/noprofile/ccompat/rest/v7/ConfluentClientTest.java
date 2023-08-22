@@ -14,10 +14,11 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.noprofile.ccompat.rest.v6;
+package io.apicurio.registry.noprofile.ccompat.rest.v7;
 
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.ccompat.dto.SchemaContent;
+import io.apicurio.registry.rest.Headers;
 import io.apicurio.registry.rest.v2.beans.Rule;
 import io.apicurio.registry.support.HealthUtils;
 import io.apicurio.registry.support.TestCmmn;
@@ -52,12 +53,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.nio.ByteBuffer;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
+import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -70,11 +66,33 @@ import static io.apicurio.registry.utils.tests.TestUtils.retry;
 public class ConfluentClientTest extends AbstractResourceTestBase {
 
     public SchemaRegistryClient buildClient() {
-
         final List<SchemaProvider> schemaProviders = Arrays
                 .asList(new JsonSchemaProvider(), new AvroSchemaProvider(), new ProtobufSchemaProvider());
+        return new CachedSchemaRegistryClient(new RestService("http://localhost:" + testPort + "/apis/ccompat/v7"), 3, schemaProviders, null, Map.of(Headers.GROUP_ID, "confluentV7-test-group"));
+    }
 
-        return new CachedSchemaRegistryClient(new RestService("http://localhost:" + testPort + "/apis/ccompat/v6"), 3, schemaProviders, null, null);
+    @Test
+    public void testSerdeProtobufSchema() throws Exception {
+        TestCmmn.UUID record = TestCmmn.UUID.newBuilder().setLsb(2).setMsb(1).build();
+
+        final SchemaRegistryClient client = buildClient();
+        final String subject = generateArtifactId();
+
+        final Map<String, Object> config = new HashMap<>();
+        config.put(KafkaProtobufSerializerConfig.AUTO_REGISTER_SCHEMAS, true);
+        config.put(KafkaProtobufSerializerConfig.SCHEMA_REGISTRY_URL_CONFIG, "http://localhost:" + testPort + "/apis/ccompat/v7");
+        config.put(KafkaProtobufDeserializerConfig.SPECIFIC_PROTOBUF_VALUE_TYPE, TestCmmn.UUID.class.getName());
+
+        try (KafkaProtobufSerializer<TestCmmn.UUID> serializer = new KafkaProtobufSerializer<>(client);
+             KafkaProtobufDeserializer<TestCmmn.UUID> deserializer = new KafkaProtobufDeserializer<>(client)) {
+
+            serializer.configure(config, false);
+            deserializer.configure(config, false);
+
+            byte[] bytes = serializer.serialize(subject, record);
+            TestCmmn.UUID deserialized = deserializer.deserialize(subject, bytes);
+            Assertions.assertEquals(record, deserialized);
+        }
     }
 
     @Test
@@ -188,7 +206,7 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
 
         final Properties config = new Properties();
         config.put(KafkaJsonSchemaSerializerConfig.AUTO_REGISTER_SCHEMAS, true);
-        config.put(KafkaJsonSchemaSerializerConfig.SCHEMA_REGISTRY_URL_CONFIG, "http://localhost:" + testPort + "/apis/ccompat/v6");
+        config.put(KafkaJsonSchemaSerializerConfig.SCHEMA_REGISTRY_URL_CONFIG, "http://localhost:" + testPort + "/apis/ccompat/v7");
 
         try (KafkaJsonSchemaSerializer serializer = new KafkaJsonSchemaSerializer(client, new HashMap(config));
              KafkaJsonSchemaDeserializer deserializer = new KafkaJsonSchemaDeserializer(client, config, SchemaContent.class)) {
@@ -196,32 +214,6 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
             byte[] bytes = serializer.serialize(subject, schemaContent);
             Object deserialized = deserializer.deserialize(subject, bytes);
             Assertions.assertEquals(schemaContent, deserialized);
-        }
-    }
-
-    @Test
-    public void testSerdeProtobufSchema() throws Exception {
-
-        TestCmmn.UUID record = TestCmmn.UUID.newBuilder().setLsb(2).setMsb(1).build();
-
-        final SchemaRegistryClient client = buildClient();
-        final String subject = generateArtifactId();
-
-        final Map<String, Object> config = new HashMap<>();
-        config.put(KafkaProtobufSerializerConfig.AUTO_REGISTER_SCHEMAS, true);
-        config.put(KafkaProtobufSerializerConfig.SCHEMA_REGISTRY_URL_CONFIG, "http://localhost:" + testPort + "/apis/ccompat/v6");
-        config.put(KafkaProtobufDeserializerConfig.SPECIFIC_PROTOBUF_VALUE_TYPE, TestCmmn.UUID.class.getName());
-
-
-        try (KafkaProtobufSerializer<TestCmmn.UUID> serializer = new KafkaProtobufSerializer<>(client);
-             KafkaProtobufDeserializer<TestCmmn.UUID> deserializer = new KafkaProtobufDeserializer<>(client)) {
-
-            serializer.configure(config, false);
-            deserializer.configure(config, false);
-
-            byte[] bytes = serializer.serialize(subject, record);
-            TestCmmn.UUID deserialized = deserializer.deserialize(subject, bytes);
-            Assertions.assertEquals(record, deserialized);
         }
     }
 

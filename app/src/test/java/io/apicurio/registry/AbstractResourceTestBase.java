@@ -49,6 +49,7 @@ import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.rest.client.auth.Auth;
+import io.confluent.kafka.schemaregistry.client.rest.RestService;
 import io.restassured.RestAssured;
 import io.restassured.parsing.Parser;
 import io.restassured.response.ValidatableResponse;
@@ -71,6 +72,8 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
     protected String registryV2ApiUrl;
     protected RegistryClient clientV2;
     protected AdminClient adminClientV2;
+    protected RestService confluentClient;
+
 
     @BeforeAll
     protected void beforeAll() throws Exception {
@@ -79,12 +82,17 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
         registryV2ApiUrl = registryApiBaseUrl + "/registry/v2";
         clientV2 = createRestClientV2();
         adminClientV2 = createAdminClientV2();
+        confluentClient = buildConfluentClient();
     }
 
     @AfterAll
     protected void afterAll() {
         //delete data to
         //storage.deleteAllUserData();
+    }
+
+    protected RestService buildConfluentClient() {
+        return new RestService("http://localhost:" + testPort + "/apis/ccompat/v7");
     }
 
     protected RegistryClient createRestClientV2() {

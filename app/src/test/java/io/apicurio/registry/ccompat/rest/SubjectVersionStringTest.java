@@ -53,7 +53,7 @@ public class SubjectVersionStringTest extends AbstractResourceTestBase {
                 .when()
                 .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
                 .body(objectMapper.writeValueAsString(schemaContent1))
-                .post("/ccompat/v6/subjects/{subject}/versions", SUBJECT)
+                .post("/ccompat/v7/subjects/{subject}/versions", SUBJECT)
                 .then()
                 .statusCode(200)
                 .extract().as(Schema.class);
@@ -63,7 +63,7 @@ public class SubjectVersionStringTest extends AbstractResourceTestBase {
         var versions1 = given()
                 .log().all()
                 .when()
-                .get("/ccompat/v6/subjects/{subject}/versions", SUBJECT)
+                .get("/ccompat/v7/subjects/{subject}/versions", SUBJECT)
                 .then()
                 .statusCode(200)
                 .extract().as(new TypeRef<List<Integer>>() {});
@@ -77,7 +77,7 @@ public class SubjectVersionStringTest extends AbstractResourceTestBase {
                 .when()
                 .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
                 .body(objectMapper.writeValueAsString(schemaContent2))
-                .post("/ccompat/v6/subjects/{subject}/versions", SUBJECT)
+                .post("/ccompat/v7/subjects/{subject}/versions", SUBJECT)
                 .then()
                 .statusCode(200)
                 .extract().as(Schema.class);
@@ -87,7 +87,7 @@ public class SubjectVersionStringTest extends AbstractResourceTestBase {
         var versions2 = given()
                 .log().all()
                 .when()
-                .get("/ccompat/v6/subjects/{subject}/versions", SUBJECT)
+                .get("/ccompat/v7/subjects/{subject}/versions", SUBJECT)
                 .then()
                 .statusCode(200)
                 .extract().as(new TypeRef<List<Integer>>() {});
@@ -109,7 +109,7 @@ public class SubjectVersionStringTest extends AbstractResourceTestBase {
         var response = given()
                 .log().all()
                 .when()
-                .get("/ccompat/v6/subjects/{subject}/versions/{version}", subject, version)
+                .get("/ccompat/v7/subjects/{subject}/versions/{version}", subject, version)
                 .then()
                 .extract().asString();
 
@@ -118,7 +118,7 @@ public class SubjectVersionStringTest extends AbstractResourceTestBase {
         return given()
                 .log().all()
                 .when()
-                .get("/ccompat/v6/subjects/{subject}/versions/{version}", subject, version)
+                .get("/ccompat/v7/subjects/{subject}/versions/{version}", subject, version)
                 .then()
                 .statusCode(200)
                 .extract().as(Schema.class);
@@ -127,7 +127,7 @@ public class SubjectVersionStringTest extends AbstractResourceTestBase {
     private void getSubjectVersionFail(String subject, String version, int expectedStatusCode) {
         given()
                 .when()
-                .get("/ccompat/v6/subjects/{subject}/versions/{version}", subject, version)
+                .get("/ccompat/v7/subjects/{subject}/versions/{version}", subject, version)
                 .then()
                 .statusCode(expectedStatusCode);
     }

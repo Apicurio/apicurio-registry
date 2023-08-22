@@ -172,12 +172,19 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
     public Schema getSchemaNormalize(String subject, SchemaInfo schema, boolean normalize, String groupId) throws ArtifactNotFoundException, RegistryStorageException {
         ArtifactVersionMetaDataDto amd;
 
-        final List<ArtifactReferenceDto> artifactReferenceDtos = parseReferences(schema.getReferences(), groupId);
+        final List<ArtifactReferenceDto> artifactReferences = parseReferences(schema.getReferences(), groupId);
+        final Map<String, ContentHandle> resolvedReferences = resolveReferences(schema.getReferences());
 
-        if (cconfig.canonicalHashModeEnabled.get() || normalize) {
-            amd = storage.getArtifactVersionMetaData(groupId, subject, true, ContentHandle.create(schema.getSchema()), artifactReferenceDtos);
+        String schemaType = schema.getSchemaType() == null ? ArtifactType.AVRO : schema.getSchemaType();
+
+        ArtifactTypeUtilProvider artifactTypeUtilProvider = factory.getArtifactTypeProvider(schemaType);
+
+        if (cconfig.canonicalHashModeEnabled.get()) {
+            amd = storage.getArtifactVersionMetaData(groupId, subject, true, ContentHandle.create(schema.getSchema()), artifactReferences);
+        } else if (normalize) {
+            amd = storage.getArtifactVersionMetaData(groupId, subject, false, artifactTypeUtilProvider.getContentNormalizer().normalize(ContentHandle.create(schema.getSchema()), resolvedReferences), artifactReferences);
         } else {
-            amd = storage.getArtifactVersionMetaData(groupId, subject, false, ContentHandle.create(schema.getSchema()), artifactReferenceDtos);
+            amd = storage.getArtifactVersionMetaData(groupId, subject, false, ContentHandle.create(schema.getSchema()), artifactReferences);
         }
         StoredArtifactDto storedArtifact = storage.getArtifactVersion(groupId, subject, amd.getVersion());
         return converter.convert(subject, storedArtifact);
@@ -192,12 +199,19 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
         }
 
         final List<ArtifactReferenceDto> artifactReferences = parseReferences(references, groupId);
+        final Map<String, ContentHandle> resolvedReferences = resolveReferences(references);
 
         try {
             ContentHandle content = ContentHandle.create(schema);
             ArtifactVersionMetaDataDto dto;
-            if (cconfig.canonicalHashModeEnabled.get() || normalize) {
+            if (cconfig.canonicalHashModeEnabled.get()) {
                 dto = storage.getArtifactVersionMetaData(groupId, subject, true, content, artifactReferences);
+            } else if (normalize) {
+                final String artifactType = ArtifactTypeUtil.determineArtifactType(ContentHandle.create(schema), null, null, resolvedReferences, factory.getAllArtifactTypes());
+                ArtifactTypeUtilProvider artifactTypeProvider = factory.getArtifactTypeProvider(artifactType);
+                ContentHandle normalizedContent = artifactTypeProvider.getContentNormalizer().normalize(content, resolvedReferences);
+                dto = storage.getArtifactVersionMetaData(groupId, subject, false, normalizedContent, artifactReferences);
+
             } else {
                 dto = storage.getArtifactVersionMetaData(groupId, subject, false, content, artifactReferences);
             }
@@ -208,7 +222,6 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
 
         // We validate the schema at creation time by inferring the type from the content
         try {
-            Map<String, ContentHandle> resolvedReferences = resolveReferences(references);
 
             final String artifactType = ArtifactTypeUtil.determineArtifactType(ContentHandle.create(schema), null, null, resolvedReferences, factory.getAllArtifactTypes());
             if (schemaType != null && !artifactType.equals(schemaType)) {
@@ -331,8 +344,9 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
         final Map<String, ContentHandle> resolvedReferences = storage.resolveReferences(parsedReferences);
         try {
             ContentHandle schemaContent;
+
             if (normalize) {
-                schemaContent = this.canonicalizeContent(artifactType, ContentHandle.create(schema), references);
+                schemaContent = factory.getArtifactTypeProvider(artifactType).getContentNormalizer().normalize(ContentHandle.create(schema), resolvedReferences);
             } else {
                 schemaContent = ContentHandle.create(schema);
             }

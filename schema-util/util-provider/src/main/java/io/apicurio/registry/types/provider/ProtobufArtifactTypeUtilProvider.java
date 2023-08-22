@@ -22,6 +22,8 @@ import io.apicurio.registry.content.dereference.ContentDereferencer;
 import io.apicurio.registry.content.dereference.ProtobufDereferencer;
 import io.apicurio.registry.content.extract.ContentExtractor;
 import io.apicurio.registry.content.extract.NoopContentExtractor;
+import io.apicurio.registry.content.normalization.ContentNormalizer;
+import io.apicurio.registry.content.normalize.ProtobufContentNormalizer;
 import io.apicurio.registry.content.refs.ProtobufReferenceFinder;
 import io.apicurio.registry.content.refs.ReferenceFinder;
 import io.apicurio.registry.rules.compatibility.CompatibilityChecker;
@@ -57,6 +59,11 @@ public class ProtobufArtifactTypeUtilProvider extends AbstractArtifactTypeUtilPr
     @Override
     protected ContentExtractor createContentExtractor() {
         return NoopContentExtractor.INSTANCE;
+    }
+
+    @Override
+    protected ContentNormalizer createContentNormalizer() {
+        return new ProtobufContentNormalizer();
     }
 
     @Override

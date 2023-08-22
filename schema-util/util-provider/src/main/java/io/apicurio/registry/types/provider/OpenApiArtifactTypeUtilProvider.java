@@ -22,6 +22,8 @@ import io.apicurio.registry.content.dereference.ContentDereferencer;
 import io.apicurio.registry.content.dereference.AsyncApiDereferencer;
 import io.apicurio.registry.content.extract.ContentExtractor;
 import io.apicurio.registry.content.extract.OpenApiContentExtractor;
+import io.apicurio.registry.content.normalization.ContentNormalizer;
+import io.apicurio.registry.content.normalization.NoOpContentNormalizer;
 import io.apicurio.registry.content.refs.OpenApiReferenceFinder;
 import io.apicurio.registry.content.refs.ReferenceFinder;
 import io.apicurio.registry.rules.compatibility.CompatibilityChecker;
@@ -58,6 +60,11 @@ public class OpenApiArtifactTypeUtilProvider extends AbstractArtifactTypeUtilPro
     @Override
     protected ContentExtractor createContentExtractor() {
         return new OpenApiContentExtractor();
+    }
+
+    @Override
+    protected ContentNormalizer createContentNormalizer() {
+        return new NoOpContentNormalizer();
     }
 
     @Override

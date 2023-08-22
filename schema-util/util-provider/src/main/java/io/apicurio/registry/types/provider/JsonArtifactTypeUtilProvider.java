@@ -22,6 +22,8 @@ import io.apicurio.registry.content.dereference.ContentDereferencer;
 import io.apicurio.registry.content.dereference.AsyncApiDereferencer;
 import io.apicurio.registry.content.extract.ContentExtractor;
 import io.apicurio.registry.content.extract.JsonContentExtractor;
+import io.apicurio.registry.content.normalization.ContentNormalizer;
+import io.apicurio.registry.content.normalize.JsonContentNormalizer;
 import io.apicurio.registry.content.refs.JsonSchemaReferenceFinder;
 import io.apicurio.registry.content.refs.ReferenceFinder;
 import io.apicurio.registry.rules.compatibility.CompatibilityChecker;
@@ -58,6 +60,11 @@ public class JsonArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvid
     @Override
     protected ContentExtractor createContentExtractor() {
         return new JsonContentExtractor();
+    }
+
+    @Override
+    protected ContentNormalizer createContentNormalizer() {
+        return new JsonContentNormalizer();
     }
 
     @Override

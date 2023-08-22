@@ -1,0 +1,32 @@
+// Metadata created by nebel
+// ParentAssemblies: assemblies/getting-started/as_registry-reference.adoc
+
+[id="registry-rule-types_{context}"]
+= {registry} content rule types
+
+[role="_abstract"]
+You can specify `VALIDITY` and `COMPATIBILITY` rule types to govern content evolution in {registry}.
+
+.{registry} content rule types
+[%header,cols=2*]
+|===
+|Type
+|Description
+|`VALIDITY`
+a| Validate data before adding it to the registry. The possible configuration values for this rule are:
+
+* `FULL`: The validation is both syntax and semantic.
+* `SYNTAX_ONLY`: The validation is syntax only.
+* `NONE`: All validation checks are disabled.
+
+|`COMPATIBILITY`
+a| Ensure that newly added artifacts are compatible with previously added versions. The possible configuration values for this rule are:
+
+* `FULL`: The new artifact is forward and backward compatible with the most recently added artifact.
+* `FULL_TRANSITIVE`: The new artifact is forward and backward compatible with all previously added artifacts.
+* `BACKWARD`: Clients using the new artifact can read data written using the most recently added artifact.
+* `BACKWARD_TRANSITIVE`: Clients using the new artifact can read data written using all previously added artifacts.
+* `FORWARD`: Clients using the most recently added artifact can read data written using the new artifact.
+* `FORWARD_TRANSITIVE`: Clients using all previously added artifacts can read data written using the new artifact.
+* `NONE`: All backward and forward compatibility checks are disabled.
+|===

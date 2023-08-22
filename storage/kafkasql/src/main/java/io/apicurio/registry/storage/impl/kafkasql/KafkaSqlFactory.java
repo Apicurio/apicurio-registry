@@ -37,9 +37,9 @@ import org.slf4j.Logger;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.UUID;
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.inject.Produces;
-import javax.inject.Inject;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Produces;
+import jakarta.inject.Inject;
 
 /**
  * @author eric.wittmann@gmail.com

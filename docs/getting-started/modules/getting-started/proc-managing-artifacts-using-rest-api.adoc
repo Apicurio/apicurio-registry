@@ -1,0 +1,75 @@
+// Metadata created by nebel
+// ParentAssemblies: assemblies/getting-started/as_managing-registry-artifacts-api.adoc
+
+[id="managing-artifacts-using-rest-api_{context}"]
+= Managing schema and API artifacts using {registry} REST API commands
+
+[role="_abstract"]
+This section shows a simple curl-based example of using the Core Registry API v2 to add and retrieve an Apache Avro schema artifact in {registry}. 
+
+.Prerequisites
+
+ifdef::apicurio-registry,rh-service-registry[]
+* {registry} is installed and running in your environment.
+endif::[]
+ifdef::rh-openshift-sr[]
+* You have a service account with the correct access permissions for {registry} instances.
+* You have created an access token using your service account credentials. 
+* You have logged in to the {registry-url}[{registry} web console]. 
+endif::[]
+
+.Procedure
+ifdef::rh-openshift-sr[]
+. In the {registry} web console, for the {registry} instance that you want to connect to, select the options icon (three vertical dots) and click *Connection*.
+. In the *Connection* page, copy the URL for the *Core Registry API* to a secure location. You will use this API endpoint to connect to the {registry} instance. 
+endif::[]
+
+. Add an artifact to {registry} using the `/groups/\{group\}/artifacts` operation. The following example `curl` command adds a simple artifact for a share price application:
++
+[source,bash]
+----
+$ curl -X POST -H "Content-Type: application/json; artifactType=AVRO" \ 
+  -H "X-Registry-ArtifactId: share-price" \ 
+  -H "Authorization: Bearer $ACCESS_TOKEN" \
+  --data '{"type":"record","name":"price","namespace":"com.example", \ 
+   "fields":[{"name":"symbol","type":"string"},{"name":"price","type":"string"}]}' \ 
+  MY-REGISTRY-URL/apis/registry/v2/groups/my-group/artifacts 
+----
++
+* This example adds an Avro schema artifact with an artifact ID of `share-price`. If you do not specify a unique artifact ID, {registry} generates one automatically as a UUID. 
+* `MY-REGISTRY-URL` is the 
+ifdef::apicurio-registry[]
+host name on which {registry} is deployed. For example: `\http://localhost:8080`.
+endif::[]
+ifdef::rh-service-registry[]
+host name on which {registry} is deployed. For example: `my-cluster-service-registry-myproject.example.com`. 
+endif::[]
+ifdef::rh-openshift-sr[]
+Core Registry API endpoint that you copied to connect to this {registry} instance. For example: `\https://service-registry.apps.app-sre-0.k3s7.p1.openshiftapps.com/t/f301375a-18a7-426c-bbd8-8e626a0a1d0e`. 
+endif::[]
+* This example specifies a group ID of `my-group` in the API path. If you do not specify a unique group ID, you must specify `../groups/default` in the API path. 
+
+. Verify that the response includes the expected JSON body to confirm that the artifact was added. For example:
++
+[source,bash]
+----
+{"createdBy":"","createdOn":"2021-04-16T09:07:51+0000","modifiedBy":"", 
+"modifiedOn":"2021-04-16T09:07:51+0000","id":"share-price","version":"1", 
+"type":"AVRO","globalId":2,"state":"ENABLED","groupId":"my-group","contentId":2} 
+----
++
+* No version was specified when adding the artifact, so the default version `1` is created automatically.
+* This was the second artifact added to {registry}, so the global ID and content ID have a value of `2`. 
+. Retrieve the artifact content from {registry} using its artifact ID in the API path. In this example, the specified ID is `share-price`:
++
+[source,bash]
+----
+$ curl -H "Authorization: Bearer $ACCESS_TOKEN" \
+ MY-REGISTRY-URL/apis/registry/v2/groups/my-group/artifacts/share-price 
+ {"type":"record","name":"price","namespace":"com.example", 
+  "fields":[{"name":"symbol","type":"string"},{"name":"price","type":"string"}]}
+----
+
+[role="_additional-resources"]
+.Additional resources
+* For more REST API sample requests, see the {registry-rest-api}

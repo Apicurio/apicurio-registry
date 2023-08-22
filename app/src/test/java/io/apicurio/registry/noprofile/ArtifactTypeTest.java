@@ -20,7 +20,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 
 import io.apicurio.registry.AbstractRegistryTestBase;
 import io.apicurio.registry.JsonSchemas;

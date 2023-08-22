@@ -1,0 +1,48 @@
+// Metadata created by nebel
+// ParentAssemblies: assemblies/getting-started/as_installing-the-registry.adoc
+
+[id="managing-artifacts-using-client-code_{context}"]
+= Managing artifacts using a {registry} client application
+
+You can also manage artifacts stored in {registry} using a Java client application. You create, read, update, or delete artifacts stored in the registry using the {registry} Java client classes.  
+
+.Prerequisites
+
+* See {registry-overview}
+* You must have implemented a client application in Java that imports the {registry} client classes: `io.apicurio.registry.client.RegistryClient` 
+* {registry} must be installed and running in your environment
+
+.Procedure
+
+* Update your client application to add a new artifact in the registry. The following example shows adding an Apache Avro schema artifact from a Kafka producer client application:
++
+[source,java,subs="+quotes,attributes"]
+----
+String registryUrl_node1 = PropertiesUtil.property(clientProperties, "registry.url.node1",
+  "http://my-cluster-service-registry-myproject.example.com/api"); <1>
+   try (RegistryService service = RegistryClient.create(registryUrl_node1)) 
+   {
+    String artifactId = ApplicationImpl.INPUT_TOPIC + "-value";
+    try {
+     service.getArtifactMetaData(artifactId); <2>
+    } 
+    catch (WebApplicationException e) {
+     CompletionStage < ArtifactMetaData > csa = service.createArtifact( <3>
+        "AVRO",
+        artifactId,
+         new ByteArrayInputStream(LogInput.SCHEMA$.toString().getBytes())
+        );
+    csa.toCompletableFuture().get();
+    }
+ }
+----
+<1> Configure the client application with the {registry} URL in the client properties. You must specify the {registry} URL with the `/api` endpoint. You can create properties for more than one registry node.
+<2> Check to see if the schema artifact already exists in the registry based on the artifact ID.
+<3> Add the new schema artifact in the registry.
+
+.Additional resources
+* For an example Java client application, see https://github.com/Apicurio/apicurio-registry-demo.
+ifdef::rh-service-registry[]
+* For details on how to use the {registry} Kafka client serializer/deserializer for Apache Avro in AMQ Streams producer and consumer applications, see
+link:https://access.redhat.com/documentation/en-us/red_hat_amq/{amq-version}/html/using_amq_streams_on_openshift/service-registry-str[Using AMQ Streams on Openshift].
+endif::[]

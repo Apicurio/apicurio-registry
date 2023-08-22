@@ -1,0 +1,28 @@
+// Metadata created by nebel
+include::{mod-loc}shared/all-attributes.adoc[]
+
+[id="configuring-kafka-client-serdes_{context}"]
+= Configuring Kafka serializers/deserializers in Java clients
+//If the assembly covers a task, start the title with a verb in the gerund form, such as Creating or Configuring.
+
+[role="_abstract"]
+This chapter provides detailed information on how to configure Kafka SerDes in your producer and consumer Java client applications:
+
+* xref:registry-serdes-concepts-constants_{context}[]
+* xref:registry-serdes-config-props_{context}[]
+* xref:registry-serdes-types-serde_{context}[]
+* xref:registry-serdes-types-avro_{context}[]
+* xref:registry-serdes-types-json_{context}[]
+* xref:registry-serdes-types-protobuf_{context}[]
+
+
+.Prerequisites
+* You have read {kafka-client-serdes}
+
+//INCLUDES
+include::{mod-loc}getting-started/con-registry-serdes-constants.adoc[leveloffset=+1]
+include::{mod-loc}getting-started/ref-registry-serdes-config-props.adoc[leveloffset=+1]
+include::{mod-loc}getting-started/con-registry-serdes-types.adoc[leveloffset=+1]
+include::{mod-loc}getting-started/con-registry-serdes-avro.adoc[leveloffset=+2]
+include::{mod-loc}getting-started/con-registry-serdes-json.adoc[leveloffset=+2]
+include::{mod-loc}getting-started/con-registry-serdes-protobuf.adoc[leveloffset=+2]

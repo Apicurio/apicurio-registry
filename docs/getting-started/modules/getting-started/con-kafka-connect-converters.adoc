@@ -1,0 +1,39 @@
+// Metadata created by nebel
+
+[id="kafka-connect_{context}"]
+= Stream data to external systems with Kafka Connect converters 
+
+[role="_abstract"]
+You can use {registry} with Apache Kafka Connect to stream data between Kafka and external systems. Using Kafka Connect, you can define connectors for different systems to move large volumes of data into and out of Kafka-based systems. 
+
+.{registry} and Kafka Connect architecture
+ifdef::apicurio-registry,rh-service-registry[]
+image::images/getting-started/registry-connect-architecture.png[Registry and Kafka Connect architecture]
+endif::[]
+ifdef::rh-openshift-sr[]
+image::../_images/introduction/registry-connect-architecture.png[Registry and Kafka Connect architecture]
+endif::[]
+
+{registry} provides the following features for Kafka Connect:
+
+* Storage for Kafka Connect schemas
+* Kafka Connect converters for Apache Avro and JSON Schema
+* Registry REST API to manage schemas
+
+You can use the Avro and JSON Schema converters to map Kafka Connect schemas into Avro or JSON schemas. Those schemas can then serialize message keys and values into the compact Avro binary format or human-readable JSON format. The converted JSON is also less verbose because the messages do not contain the schema information, only the schema ID.
+
+{registry} can manage and track the Avro and JSON schemas used in the Kafka topics. Because the schemas are stored in {registry} and decoupled from the message content, each message must only include a tiny schema identifier. For an I/O bound system like Kafka, this means more total throughput for producers and consumers.
+
+The Avro and JSON Schema serializers and deserializers (SerDes) provided by {registry} are also used by Kafka producers and consumers in this use case. Kafka consumer applications that you write to consume change events can use the Avro or JSON Serdes to deserialize these change events. You can install these SerDes into any Kafka-based system and use them along with Kafka Connect, or with Kafka Connect-based systems such as Debezium and Camel Kafka Connector.
+
+[role="_additional-resources"]
+.Additional resources
+
+* link:https://kafka.apache.org/documentation/#connect[Apache Kafka Connect documentation]
+ifdef::rh-service-registry,rh-openshift-sr[]
+* link:https://access.redhat.com/documentation/en-us/red_hat_integration/2021.q3/html-single/debezium_user_guide/index#configuring-debezium-connectors-to-use-avro-serialization[Configuring Debezium to use Apache Avro serialization] 
+endif::[] 
+ifdef::rh-service-registry[]
+* link:https://access.redhat.com/documentation/en-us/red_hat_integration/2021.q1/html-single/getting_started_with_camel_kafka_connector/index[Getting Started with Camel Kafka Connector]
+endif::[] 
+* link:https://debezium.io/blog/2020/04/09/using-debezium-wit-apicurio-api-schema-registry/[Demonstration of using Kafka Connect with Debezium and Apicurio Registry]

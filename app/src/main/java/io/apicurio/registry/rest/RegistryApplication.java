@@ -16,7 +16,7 @@
 
 package io.apicurio.registry.rest;
 
-import javax.ws.rs.core.Application;
+import jakarta.ws.rs.core.Application;
 
 /**
  * @author eric.wittmann@gmail.com

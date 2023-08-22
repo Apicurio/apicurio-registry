@@ -57,9 +57,9 @@
             <scope>provided</scope>
         </dependency>
 
-        <dependency>
+        <!--~~(No version provided)~~>--><dependency>
             <groupId>org.keycloak</groupId>
-            <artifactId>keycloak-admin-client</artifactId>
+            <artifactId>keycloak-admin-client-jakarta</artifactId>
             <scope>provided</scope>
         </dependency>
 

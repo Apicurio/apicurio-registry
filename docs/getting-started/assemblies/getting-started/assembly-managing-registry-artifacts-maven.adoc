@@ -1,0 +1,24 @@
+// Metadata created by nebel
+include::{mod-loc}shared/all-attributes.adoc[]
+
+[id="managing-registry-artifacts-maven_{context}"]
+= Managing {registry} content using the Maven plug-in
+
+[role="_abstract"]
+This chapter explains how to manage schema and API artifacts stored in the registry using the {registry} Maven plug-in:
+
+* xref:adding-artifacts-using-maven-plugin_{context}[]
+* xref:downloading-artifacts-using-maven-plugin_{context}[]
+* xref:adding-artifact-references-using-maven-plugin_{context}[]
+* xref:testing-artifacts-using-maven-plugin_{context}[]
+
+.Prerequisites
+* See {registry-overview}
+* {registry} must be installed and running in your environment
+* Maven must be installed and configured in your environment
+
+//INCLUDES
+include::{mod-loc}getting-started/proc-adding-artifacts-using-maven-plugin.adoc[leveloffset=+1]
+include::{mod-loc}getting-started/proc-downloading-artifacts-using-maven-plugin.adoc[leveloffset=+1]
+include::{mod-loc}getting-started/proc-adding-artifact-references-using-maven-plugin.adoc[leveloffset=+1]
+include::{mod-loc}getting-started/proc-testing-artifacts-using-maven-plugin.adoc[leveloffset=+1]

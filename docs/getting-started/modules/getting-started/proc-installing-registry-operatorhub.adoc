@@ -1,0 +1,51 @@
+// Metadata created by nebel
+//
+// ParentAssemblies: assemblies/getting-started/as_installing-the-registry.adoc
+
+[id="installing-registry-operatorhub_{context}"]
+= Installing {registry} from the OpenShift OperatorHub
+// Start the title of a procedure module with a verb, such as Creating or Create. See also _Wording of headings_ in _The IBM Style Guide_.
+
+[role="_abstract"]
+You can install the {registry} Operator on your OpenShift cluster from the OperatorHub. The OperatorHub is available from the OpenShift Container Platform web console and provides an interface for cluster administrators to discover and install Operators. For more details, see link:{LinkOpenShiftIntroOperator}[{NameOpenShiftIntroOperator}].
+
+NOTE: You can install more than one instance of {registry} depending on your environment. The number of instances depends on the number and type of artifacts stored in {registry} and on your chosen storage option.
+
+
+.Prerequisites
+
+* You must have cluster administrator access to an OpenShift cluster.
+
+.Procedure
+
+. In the OpenShift Container Platform web console, log in using an account with cluster administrator privileges.
+
+. Create a new OpenShift project:
+
+.. In the left navigation menu, click *Home*, *Project*, and then *Create Project*.
+.. Enter a project name, for example, `my-project`, and click *Create*.
+
+. In the left navigation menu, click *Operators* and then *OperatorHub*.
+ifdef::apicurio-registry[]
+. In the *Filter by keyword* text box, enter `registry` to find the *{registry} Operator*.
+endif::[]
+ifdef::rh-service-registry[]
+. In the *Filter by keyword* text box, enter `registry` to find the *Red Hat Integration - Service Registry Operator*.
+endif::[]
+. Read the information about the Operator, and click *Install* to display the Operator subscription page.
+
+. Select your subscription settings, for example:
+** *Update Channel*: Select one of the following:
+*** *2.x*: Includes all minor and patch updates, such as 2.3.0 and 2.0.3. For example, an installation on 2.0.x will upgrade to 2.3.x. 
+*** *2.0.x*: Includes patch updates only, such as 2.0.1 and 2.0.2. For example, an installation on 2.0.x will ignore 2.3.x.
+** *Installation Mode*: Select one of the following: 
+*** *All namespaces on the cluster (default)*
+*** *A specific namespace on the cluster*  and then *my-project*
+** *Approval Strategy*: Select *Automatic* or *Manual*
+. Click *Install*, and wait a few moments until the Operator is ready for use.
+
+[role="_additional-resources"]
+.Additional resources
+
+* link:{LinkOpenShiftAddOperator}[{NameOpenShiftAddOperator}]
+* link:https://github.com/Apicurio/apicurio-registry-operator[Apicurio Registry Operator community in GitHub]

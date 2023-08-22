@@ -34,8 +34,8 @@
             <artifactId>apicurio-registry-common</artifactId>
             <exclusions>
                 <exclusion>
-                    <artifactId>jboss-jaxrs-api_2.1_spec</artifactId>
-                    <groupId>org.jboss.spec.javax.ws.rs</groupId>
+                    <artifactId>jakarta.ws.rs-api</artifactId>
+                    <groupId>jakarta.ws.rs</groupId>
                 </exclusion>
             </exclusions>
         </dependency>

@@ -19,8 +19,8 @@ package io.apicurio.registry.storage.impl.sql;
 import java.sql.Connection;
 import java.sql.SQLException;
 
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 
 import io.agroal.api.AgroalDataSource;
 import io.apicurio.registry.storage.RegistryStorageException;

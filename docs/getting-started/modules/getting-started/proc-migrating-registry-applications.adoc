@@ -1,0 +1,108 @@
+// Metadata created by nebel
+// ParentAssemblies: assemblies/getting-started/as_managing-registry-artifacts.adoc
+
+[id="migrating-registry-applications_{context}"]
+= Migrating {registry} client applications
+
+[role="_abstract"]
+You must review your existing {registry} client applications to ensure that the Maven dependencies and Java client configuration meet the new requirements for version 2.x. For example, this includes new Maven dependencies for the {registry} Java REST client libraries or Kafka client serializer/deserializer (Serdes) libraries. You must also update your Java application configuration with the new registry v2 API path. 
+
+
+.Prerequisites 
+* Existing {registry} {registry-v1} Java client application or Kafka client producer and consumer Java applications with SerDes
+
+.Procedure
+. If you are using the {registry} Java REST client, you must change the Maven dependencies for the {registry} Java client libraries, which have been repackaged in version 2.x:
++
+[source, xml, subs="attributes+"]
+----
+<dependency>
+    <groupId>io.apicurio</groupId>
+    <artifactId>apicurio-registry-client</artifactId>
+    <version>{registry-release}</version>
+</dependency>
+----
+
+. In your Java client application, you must change your registry URL configuration, from pointing to the existing v1 API path to the new v2 path. For example:
++
+[source,java, subs="attributes+"]
+----
+public class ClientExample {
+
+    private static final RegistryRestClient client;
+
+     public static void main(String[] args) throws Exception {
+        // Create a registry client
+        String registryUrl = "https://new-registry.my-company.com/apis/registry/v2"; 
+        RegistryClient client = RegistryClientFactory.create(registryUrl); 
+    }
+}
+----
++
+You can find more details on the Java client in 
+ifdef::apicurio-registry[]
+{rest-client}. 
+endif::[]
+ifdef::rh-service-registry[]
+the link:{LinkServiceRegistryUser}#using-the-registry-client[{NameServiceRegistryUser}].
+endif::[]
+
+. If you are using the {registry} SerDes libraries, you must change the Maven dependencies, which have been repackaged in version 2.x. In {registry} {registry-v1}, the SerDes libraries were all provided with only one Maven dependency:
++
+[source, xml, subs="attributes+"]
+----
+<dependency>
+    <groupId>io.apicurio</groupId>
+    <artifactId>apicurio-registry-utils-serde</artifactId>
+    <version>1.3.2.Final</version>
+</dependency>
+----
++
+In {registry} 2.x, the SerDes libraries have been split into three Maven dependencies, one for each supported data format: `avro`, `protobuf`, and `json schema`, depending on your use cases:
++
+[source, xml, subs="attributes+"]
+----
+<dependency>
+    <groupId>io.apicurio</groupId>
+    <artifactId>apicurio-registry-serdes-avro-serde</artifactId>
+    <version>{registry-release}</version>
+</dependency>
+<dependency>
+    <groupId>io.apicurio</groupId>
+    <artifactId>apicurio-registry-serdes-protobuf-serde</artifactId>
+    <version>{registry-release}</version>
+</dependency>
+<dependency>
+    <groupId>io.apicurio</groupId>
+    <artifactId>apicurio-registry-serdes-jsonschema-serde</artifactId>
+    <version>{registry-release}</version>
+</dependency>
+----
+
+. In your Kafka producer and consumer Java applications, you must change your registry URL configuration from pointing to the existing v1 API path to the new v2 path. For example:
++
+_Existing registry v1 API path_:
++
+[source,java]
+----
+props.putIfAbsent(AbstractKafkaSerDe.REGISTRY_URL_CONFIG_PARAM, "http://old-registry.my-company.com/api");
+----
++
+_New registry v2 API path_:
++
+[source,java, subs="attributes+"]
+----
+props.putIfAbsent(SerdeConfig.REGISTRY_URL, "http://new-registry.my-company.com/apis/registry/v2");
+----
++
+The refactored SerDes libraries also include other important changes to configuration properties. For more details on SerDes configuration, see
+ifdef::apicurio-registry[]
+{kafka-client-serdes}. 
+endif::[]
+ifdef::rh-service-registry[]
+the link:{LinkServiceRegistryUser}#using-kafka-client-serdes[{NameServiceRegistryUser}].
+endif::[]
+
+[role="_additional-resources"]
+.Additional resources
+* For detailed configuration examples, see the link:https://github.com/Apicurio/apicurio-registry-examples/tree/2.0.x[Apicurio Registry example applications].

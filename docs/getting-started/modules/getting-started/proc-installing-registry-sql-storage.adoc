@@ -1,0 +1,61 @@
+// Metadata created by nebel
+// ParentAssemblies: assemblies/getting-started/as_installing-the-registry.adoc
+
+[id="installing-registry-sql-storage_{context}"]
+= Installing {registry} with SQL database storage
+
+[role="_abstract"]
+This section explains how to install and run {registry} with storage in a PostgreSQL database from a container image. This storage option is suitable for production environments.
+
+.Prerequisites
+
+* You must have Docker installed and the Docker daemon running.
+* Ensure that you can connect to the container repository: https://hub.docker.com/r/apicurio/apicurio-registry-sql. 
+* You must already have a PostgreSQL database server installed and running. For example: 
++
+[source,bash]
+----
+$ postgres -D /usr/local/pgsql/data
+----
++
+For more details, see https://www.postgresql.org/docs/12/server-start.html
+
+.Procedure
+. Get the {registry} container image:
++
+[source,bash]
+----
+$ docker pull apicurio/apicurio-registry-sql:VERSION
+----
++
+`VERSION` is the {registry} release version, for example, `{registry-docker-version}`. For more details, see https://hub.docker.com/r/apicurio/apicurio-registry-sql/tags.
+
+. Run the container image and specify the database connection URL and credentials for the PostgreSQL server as environment variables: 
++
+[source,bash]
+----
+$ docker run -it -p 8080:8080 \   
+-e "REGISTRY_DATASOURCE_URL=jdbc:postgresql://postgres/apicurio-registry" \
+-e "REGISTRY_DATASOURCE_USERNAME=apicurio-registry" \
+-e "REGISTRY_DATASOURCE_PASSWORD=password" \
+apicurio/apicurio-registry-sql:VERSION
+----
+
+. Send a test request using the {registry} REST API. For example, enter the following `curl` command to create a simple Avro schema artifact for a share price application in the registry:
++
+[source,bash]
+----
+$ curl -X POST -H "Content-type: application/json; artifactType=AVRO" -H "X-Registry-ArtifactId: share-price" --data '{"type":"record","name":"price","namespace":"com.example","fields":[{"name":"symbol","type":"string"},{"name":"price","type":"string"}]}' http://localhost:8080/apis/registry/v2/groups/my-group/artifacts
+----
+. Verify that the response includes the expected JSON body to confirm that the Avro schema artifact was created in the registry. For example:
++
+[source,bash]
+----
+{"name":"price","createdBy":"","createdOn":"2021-03-19T17:48:17+0000","modifiedOn":"2021-03-19T17:48:17+0000","id":"share-price","version":1,"type":"AVRO","globalId":12,"state":"ENABLED","groupId":"my-group","contentId":12}
+----
+
+[role="_additional-resources"]
+.Additional resources
+* For more REST API sample requests, see the link:{attachmentsdir}/registry-rest-api.htm[Apicurio Registry REST API documentation].
+* For demonstration examples, see link:https://github.com/Apicurio/apicurio-registry-examples[].
+* For more details on PostgreSQL, see the link:https://www.postgresql.org/docs/12/index.html[PostgreSQL documentation].

@@ -47,6 +47,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
+import jakarta.inject.Inject;
 import java.util.stream.Collectors;
 
 import static io.apicurio.registry.rest.v2.V2ApiUtil.defaultGroupIdToNull;

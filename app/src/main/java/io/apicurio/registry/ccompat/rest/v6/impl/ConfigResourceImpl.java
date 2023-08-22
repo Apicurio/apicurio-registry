@@ -32,7 +32,7 @@ import io.apicurio.registry.storage.RuleNotFoundException;
 import io.apicurio.registry.storage.dto.RuleConfigurationDto;
 import io.apicurio.registry.types.RuleType;
 
-import javax.interceptor.Interceptors;
+import jakarta.interceptor.Interceptors;
 
 import java.util.Optional;
 import java.util.function.Consumer;

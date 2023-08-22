@@ -3,7 +3,6 @@ package io.apicurio.registry.noprofile.ccompat.rest.v7;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.ccompat.rest.error.ErrorCode;
 import io.apicurio.registry.content.ContentHandle;
-import io.apicurio.registry.content.canon.AvroContentCanonicalizer;
 import io.confluent.kafka.schemaregistry.CompatibilityLevel;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.avro.AvroSchema;
@@ -30,8 +29,6 @@ import static org.junit.Assert.*;
 
 @QuarkusTest
 public class CCompatRestTest extends AbstractResourceTestBase {
-
-    private AvroContentCanonicalizer avroContentCanonicalizer = new AvroContentCanonicalizer();
 
     @Override
     protected void beforeEach() throws Exception {
@@ -145,7 +142,7 @@ public class CCompatRestTest extends AbstractResourceTestBase {
                 + "\"fields\":"
                 + "[{\"type\":\"string\",\"default\":null,\"name\":"
                 + "\"f" + "\"}]}";
-        String schema = avroContentCanonicalizer.canonicalize(ContentHandle.create(schemaString), Collections.emptyMap()).content();
+        String schema = new AvroSchema(schemaString).canonicalString();
 
         try {
             confluentClient.testCompatibility(schema, subject, "latest");
@@ -317,14 +314,14 @@ public class CCompatRestTest extends AbstractResourceTestBase {
                 + "\"fields\":"
                 + "[{\"type\":\"string\",\"name\":"
                 + "\"f" + "\"}]}";
-        String schema1 = avroContentCanonicalizer.canonicalize(ContentHandle.create(schema1String), Collections.emptyMap()).content();
+        String schema1 = new AvroSchema(schema1String).canonicalString();
 
         String schema2String = "{\"type\":\"record\","
                 + "\"name\":\"myrecord\","
                 + "\"fields\":"
                 + "[{\"type\":\"int\",\"name\":"
                 + "\"f" + "\"}]}";
-        String schema2 = avroContentCanonicalizer.canonicalize(ContentHandle.create(schema2String), Collections.emptyMap()).content();
+        String schema2 = new AvroSchema(schema2String).canonicalString();
 
         // ensure registering incompatible schemas will raise an error
         confluentClient.updateCompatibility(
@@ -1757,7 +1754,7 @@ public class CCompatRestTest extends AbstractResourceTestBase {
                 + "\"fields\":"
                 + "[{\"type\":\"string\",\"name\":"
                 + "\"f" + "\"}]}";
-        String schema1 = avroContentCanonicalizer.canonicalize(ContentHandle.create(schema1String), Collections.emptyMap()).content();
+        String schema1 = new AvroSchema(schema1String).canonicalString();
 
         String schema2String = "{\"type\":\"record\","
                 + "\"name\":\"myrecord\","
@@ -1767,7 +1764,8 @@ public class CCompatRestTest extends AbstractResourceTestBase {
                 + "{\"type\":\"string\",\"name\":"
                 + "\"g\" , \"default\":\"d\"}"
                 + "]}";
-        String schema2 = avroContentCanonicalizer.canonicalize(ContentHandle.create(schema2String), Collections.emptyMap()).content();
+        String schema2 = new AvroSchema(schema2String).canonicalString();
+
         confluentClient.updateCompatibility(
                 CompatibilityLevel.FULL.name, null);
         confluentClient.updateCompatibility(

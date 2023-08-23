@@ -125,6 +125,12 @@ public class AdminResourceImpl implements AdminResource {
     @Info(category = "download", description = "Download link expiry", availableSince = "2.1.2.Final")
     Supplier<Long> downloadHrefTtl;
 
+    private static final void requireParameter(String parameterName, Object parameterValue) {
+        if (parameterValue == null) {
+            throw new MissingRequiredParameterException(parameterName);
+        }
+    }
+
     /**
      * @see io.apicurio.registry.rest.v2.AdminResource#listArtifactTypes()
      */
@@ -163,15 +169,13 @@ public class AdminResourceImpl implements AdminResource {
     @Audited(extractParameters = {"0", KEY_RULE})
     @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
     public void createGlobalRule(Rule data) {
-        String type = data.getType();
+        RuleType type = data.getType();
         requireParameter("type", type);
-        if (type.trim().isEmpty()) {
-            throw new MissingRequiredParameterException("type");
-        }
 
         if (data.getConfig() == null || data.getConfig().isEmpty()) {
             throw new MissingRequiredParameterException("Config");
         }
+
         RuleConfigurationDto configDto = new RuleConfigurationDto();
         configDto.setConfiguration(data.getConfig());
         storage.createGlobalRule(data.getType(), configDto);

@@ -376,6 +376,15 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     public void createArtifactRule(String groupId, String artifactId, Rule data) {
         requireParameter("groupId", groupId);
         requireParameter("artifactId", artifactId);
+        String type = data.getType();
+        requireParameter("type", type);
+        if (type.trim().isEmpty()) {
+            throw new MissingRequiredParameterException("type");
+        }
+
+        if (data.getConfig() == null || data.getConfig().isEmpty()) {
+            throw new MissingRequiredParameterException("Config");
+        }
 
         RuleConfigurationDto config = new RuleConfigurationDto();
         config.setConfiguration(data.getConfig());

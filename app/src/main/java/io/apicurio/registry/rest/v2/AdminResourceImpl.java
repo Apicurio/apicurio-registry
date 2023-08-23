@@ -163,6 +163,15 @@ public class AdminResourceImpl implements AdminResource {
     @Audited(extractParameters = {"0", KEY_RULE})
     @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
     public void createGlobalRule(Rule data) {
+        String type = data.getType();
+        requireParameter("type", type);
+        if (type.trim().isEmpty()) {
+            throw new MissingRequiredParameterException("type");
+        }
+
+        if (data.getConfig() == null || data.getConfig().isEmpty()) {
+            throw new MissingRequiredParameterException("Config");
+        }
         RuleConfigurationDto configDto = new RuleConfigurationDto();
         configDto.setConfiguration(data.getConfig());
         storage.createGlobalRule(data.getType(), configDto);

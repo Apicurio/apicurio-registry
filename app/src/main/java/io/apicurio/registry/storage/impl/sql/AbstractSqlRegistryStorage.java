@@ -1811,26 +1811,62 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     @Override
     public List<String> getArtifactVersions(String groupId, String artifactId)
             throws ArtifactNotFoundException, RegistryStorageException {
+        return getArtifactVersions(groupId, artifactId, storageBehaviorProps.getDefaultArtifactRetrievalBehavior());
+    }
+
+    /**
+     * @see RegistryStorage#getArtifactVersions(java.lang.String, java.lang.String)
+     */
+    @Override
+    public List<String> getArtifactVersions(String groupId, String artifactId, ArtifactRetrievalBehavior behavior)
+            throws ArtifactNotFoundException, RegistryStorageException {
         log.debug("Getting a list of versions for artifact: {} {}", groupId, artifactId);
-        try {
-            return this.handles.withHandle(handle -> {
-                String sql = sqlStatements.selectArtifactVersions();
-                List<String> versions = handle.createQuery(sql)
-                        .bind(0, tenantContext.tenantId())
-                        .bind(1, normalizeGroupId(groupId))
-                        .bind(2, artifactId)
-                        .mapTo(String.class)
-                        .list();
-                if (versions.isEmpty()) {
-                    throw new ArtifactNotFoundException(groupId, artifactId);
+
+        switch (behavior) {
+            case DEFAULT:
+                try {
+                    return this.handles.withHandle(handle -> {
+                        String sql = sqlStatements.selectArtifactVersions();
+                        List<String> versions = handle.createQuery(sql)
+                                .bind(0, tenantContext.tenantId())
+                                .bind(1, normalizeGroupId(groupId))
+                                .bind(2, artifactId)
+                                .mapTo(String.class)
+                                .list();
+                        if (versions.isEmpty()) {
+                            throw new ArtifactNotFoundException(groupId, artifactId);
+                        }
+                        return versions;
+                    });
+                } catch (ArtifactNotFoundException anfe) {
+                    throw anfe;
+                } catch (Exception e) {
+                    throw new RegistryStorageException(e);
                 }
-                return versions;
-            });
-        } catch (ArtifactNotFoundException anfe) {
-            throw anfe;
-        } catch (Exception e) {
-            throw new RegistryStorageException(e);
+            case SKIP_DISABLED_LATEST:
+                try {
+                    return this.handles.withHandle(handle -> {
+                        String sql = sqlStatements.selectArtifactVersionsSkipDisabled();
+                        List<String> versions = handle.createQuery(sql)
+                                .bind(0, tenantContext.tenantId())
+                                .bind(1, normalizeGroupId(groupId))
+                                .bind(2, artifactId)
+                                .mapTo(String.class)
+                                .list();
+                        if (versions.isEmpty()) {
+                            throw new ArtifactNotFoundException(groupId, artifactId);
+                        }
+                        return versions;
+                    });
+                } catch (ArtifactNotFoundException anfe) {
+                    throw anfe;
+                } catch (Exception e) {
+                    throw new RegistryStorageException(e);
+                }
+            default:
+                throw new UnreachableCodeException();
         }
+
     }
 
     /**
@@ -2243,7 +2279,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     }
 
     protected CommentDto createArtifactVersionComment(String groupId, String artifactId, String version, IdGenerator commentId,
-            String createdBy, Date createdOn, String value) {
+                                                      String createdBy, Date createdOn, String value) {
         try {
             return this.handles.withHandle(handle -> {
                 String sql = sqlStatements.selectArtifactVersionMetaData();

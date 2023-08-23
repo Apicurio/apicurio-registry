@@ -491,6 +491,11 @@ public abstract class RegistryStorageDecorator implements RegistryStorage {
         return delegate.getArtifactVersions(groupId, artifactId);
     }
 
+    @Override
+    public List<String> getArtifactVersions(String groupId, String artifactId, ArtifactRetrievalBehavior behavior) throws ArtifactNotFoundException, RegistryStorageException {
+        return delegate.getArtifactVersions(groupId, artifactId, behavior);
+    }
+
     /**
      * @param groupId
      * @param artifactId

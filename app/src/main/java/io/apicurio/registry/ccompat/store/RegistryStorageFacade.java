@@ -68,8 +68,8 @@ public interface RegistryStorageFacade {
         return getSchema(subject, version, null);
     }
 
-    default List<Integer> getVersions(String subject) throws ArtifactNotFoundException, RegistryStorageException {
-        return getVersions(subject, null);
+    default List<Integer> getVersions(String subject, String groupId) throws ArtifactNotFoundException, RegistryStorageException {
+        return getVersions(subject, groupId, false);
     }
 
     default Schema getSchemaNormalize(String subject, SchemaInfo schema, boolean normalize) throws ArtifactNotFoundException, RegistryStorageException {
@@ -142,7 +142,7 @@ public interface RegistryStorageFacade {
 
     List<Integer> deleteSubject(String subject, boolean fpermanent, String groupId);
 
-    List<Integer> getVersions(String subject, String groupId);
+    List<Integer> getVersions(String subject, String groupId, boolean deleted);
 
     Long createSchema(String subject, String schema, String schemaType, List<SchemaReference> references, boolean fnormalize, String groupId);
 }

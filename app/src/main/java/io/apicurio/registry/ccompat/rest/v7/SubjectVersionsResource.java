@@ -74,7 +74,7 @@ public interface SubjectVersionsResource {
      * </ul>
      */
     @GET
-    List<Integer> listVersions(@PathParam("subject") String subject, @HeaderParam(Headers.GROUP_ID) String groupId) throws Exception;
+    List<Integer> listVersions(@PathParam("subject") String subject, @HeaderParam(Headers.GROUP_ID) String groupId, @QueryParam("deleted") Boolean deleted) throws Exception;
 
     /**
      * Register a new schema under the specified subject. If successfully registered,

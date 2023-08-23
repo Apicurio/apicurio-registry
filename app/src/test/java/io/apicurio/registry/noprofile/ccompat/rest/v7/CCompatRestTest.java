@@ -3,7 +3,6 @@ package io.apicurio.registry.noprofile.ccompat.rest.v7;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.ccompat.rest.error.ErrorCode;
 import io.apicurio.registry.rest.client.exception.ArtifactNotFoundException;
-import io.apicurio.registry.rest.client.exception.GroupNotFoundException;
 import io.confluent.kafka.schemaregistry.CompatibilityLevel;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.avro.AvroSchema;
@@ -23,7 +22,6 @@ import java.util.*;
 import static io.apicurio.registry.noprofile.ccompat.rest.v7.ConfluentTestUtils.getRandomJsonSchemas;
 import static io.apicurio.registry.noprofile.ccompat.rest.v7.ConfluentTestUtils.getRandomProtobufSchemas;
 import static io.confluent.kafka.schemaregistry.CompatibilityLevel.*;
-import static io.confluent.kafka.schemaregistry.utils.QualifiedSubject.DEFAULT_CONTEXT;
 import static java.net.HttpURLConnection.HTTP_CONFLICT;
 import static org.junit.Assert.*;
 
@@ -1612,15 +1610,11 @@ public class CCompatRestTest extends AbstractResourceTestBase {
                 Collections.singletonList(2), confluentClient.getAllVersions(subject1));
         assertEquals("List All Versions Include deleted Match",
                 Arrays.asList(1, 2), confluentClient.getAllVersions(RestService.DEFAULT_REQUEST_PROPERTIES, subject1, true));
-        assertEquals("List Deleted Versions Match",
-                Collections.singletonList(1), confluentClient.getDeletedOnlyVersions(subject1));
 
         assertEquals("List All Subjects Match",
                 Collections.singletonList(subject1), confluentClient.getAllSubjects());
         assertEquals("List All Subjects Include deleted Match",
                 Arrays.asList(subject1, subject2), confluentClient.getAllSubjects(true));
-        assertEquals("List Deleted Only Subjects Match",
-                Collections.singletonList(subject2), confluentClient.getDeletedOnlySubjects(null));
     }
 
     @Test

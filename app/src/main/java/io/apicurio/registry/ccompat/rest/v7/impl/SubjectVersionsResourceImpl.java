@@ -49,8 +49,8 @@ public class SubjectVersionsResourceImpl extends AbstractResource implements Sub
 
     @Override
     @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Read)
-    public List<Integer> listVersions(String subject, String groupId) throws Exception {
-        return facade.getVersions(subject, groupId);
+    public List<Integer> listVersions(String subject, String groupId, Boolean deleted) throws Exception {
+        return facade.getVersions(subject, groupId, deleted);
     }
 
     @Override

@@ -194,7 +194,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String selectArtifactVersionsSkipDisabled() {
-        return "SELECT version FROM versions WHERE tenantId = ? AND groupId = ? AND artifactId = ? AND v.state != 'DISABLED'";
+        return "SELECT version FROM versions WHERE tenantId = ? AND groupId = ? AND artifactId = ? AND state != 'DISABLED'";
     }
 
     /**

@@ -49,6 +49,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static io.apicurio.registry.storage.RegistryStorage.ArtifactRetrievalBehavior.DEFAULT;
+import static io.apicurio.registry.storage.RegistryStorage.ArtifactRetrievalBehavior.SKIP_DISABLED_LATEST;
 
 /**
  * @author Ales Justin
@@ -167,8 +168,12 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
     }
 
     @Override
-    public List<Integer> getVersions(String subject, String groupId) throws ArtifactNotFoundException, RegistryStorageException {
-        return storage.getArtifactVersions(groupId, subject).stream().map(VersionUtil::toLong).map(converter::convertUnsigned).sorted().collect(Collectors.toList());
+    public List<Integer> getVersions(String subject, String groupId, boolean deleted) throws ArtifactNotFoundException, RegistryStorageException {
+        if (deleted) {
+            return storage.getArtifactVersions(groupId, subject, DEFAULT).stream().map(VersionUtil::toLong).map(converter::convertUnsigned).sorted().collect(Collectors.toList());
+        } else {
+            return storage.getArtifactVersions(groupId, subject, SKIP_DISABLED_LATEST).stream().map(VersionUtil::toLong).map(converter::convertUnsigned).sorted().collect(Collectors.toList());
+        }
     }
 
     @Override

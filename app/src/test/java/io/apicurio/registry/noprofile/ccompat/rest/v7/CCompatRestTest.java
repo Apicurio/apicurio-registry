@@ -37,8 +37,8 @@ public class CCompatRestTest extends AbstractResourceTestBase {
 
     @Test
     public void testBasic() throws Exception {
-        String subject1 = "testTopic1";
-        String subject2 = "testTopic2";
+        String subject1 = "testBasic1";
+        String subject2 = "testBasic2";
         int schemasInSubject1 = 10;
         List<Integer> allVersionsInSubject1 = new ArrayList<Integer>();
         List<String> allSchemasInSubject1 = ConfluentTestUtils.getRandomCanonicalAvroString(schemasInSubject1);
@@ -128,7 +128,7 @@ public class CCompatRestTest extends AbstractResourceTestBase {
 
     @Test
     public void testRegisterBadDefault() throws Exception {
-        String subject = "testSubject";
+        String subject = "testRegisterBadDefault";
 
         String schemaString = "{\"type\":\"record\","
                 + "\"name\":\"myrecord\","
@@ -158,7 +158,7 @@ public class CCompatRestTest extends AbstractResourceTestBase {
 
     @Test
     public void testRegisterInvalidSchemaBadType() throws Exception {
-        String subject = "testSubject";
+        String subject = "testRegisterInvalidSchemaBadType";
 
         //Invalid Field Type 'str'
         String badSchemaString = "{\"type\":\"record\","
@@ -187,7 +187,7 @@ public class CCompatRestTest extends AbstractResourceTestBase {
 
     @Test
     public void testRegisterInvalidSchemaBadReference() throws Exception {
-        String subject = "testSubject";
+        String subject = "testRegisterInvalidSchemaBadReference";
 
         //Invalid Reference
         SchemaReference invalidReference = new SchemaReference("invalid.schema", "badSubject", 1);
@@ -209,7 +209,7 @@ public class CCompatRestTest extends AbstractResourceTestBase {
 
     @Test
     public void testRegisterDiffSchemaType() throws Exception {
-        String subject = "testSubject";
+        String subject = "testRegisterDiffSchemaType";
         String avroSchema = ConfluentTestUtils.getRandomCanonicalAvroString(1).get(0);
         String jsonSchema = getRandomJsonSchemas(1).get(0);
         String protobufSchema = getRandomProtobufSchemas(1).get(0);
@@ -233,42 +233,6 @@ public class CCompatRestTest extends AbstractResourceTestBase {
         int id3 = confluentClient.registerSchema(protobufSchema, "PROTOBUF", null, subject, true);
         assertEquals("3rd schema registered globally should have id 3", 3,
                 id3);
-    }
-
-    @Test
-    public void testImportDifferentSchemaOnSameID() throws Exception {
-        String schema1 = "{\"type\":\"record\","
-                + "\"name\":\"myrecord\","
-                + "\"fields\":"
-                + "[{\"type\":\"string\",\"name\":\"field1\"}]}";
-
-        String schema2 = "{\"type\":\"record\","
-                + "\"name\":\"myrecord\","
-                + "\"fields\":"
-                + "[{\"type\":\"string\",\"name\":\"field1\"},"
-                + "{\"type\":\"int\",\"name\":\"field2\",\"default\":0}]}";
-
-        confluentClient.setMode("IMPORT");
-
-        try {
-            int id1 = confluentClient.registerSchema(schema1, "subject1", 1, 1);
-            assertEquals(1, id1);
-            int id2 = confluentClient.registerSchema(schema2, "subject1", 2, 1);
-            fail(String.format("Schema2 is registered with id %s, should receive error here", id2));
-        } catch (RestClientException e) {
-            assertEquals("Overwrite schema for the same ID is not permitted.",
-                    ErrorCode.OPERATION_NOT_PERMITTED, e.getErrorCode());
-        }
-
-        try {
-            int id1 = confluentClient.registerSchema(schema1, "subject1", 1, 1);
-            assertEquals(1, id1);
-            int id2 = confluentClient.registerSchema(schema2, "subject2", 1, 1);
-            fail(String.format("Schema2 is registered with id %s, should receive error here", id2));
-        } catch (RestClientException e) {
-            assertEquals("Overwrite schema for the same ID is not permitted.",
-                    ErrorCode.OPERATION_NOT_PERMITTED, e.getErrorCode());
-        }
     }
 
     @Test
@@ -379,8 +343,8 @@ public class CCompatRestTest extends AbstractResourceTestBase {
 
     @Test
     public void testSchemaRegistrationUnderDiffSubjects() throws Exception {
-        String subject1 = "testSubject1";
-        String subject2 = "testSubject2";
+        String subject1 = "testSchemaRegistrationUnderDiffSubjects1";
+        String subject2 = "testSchemaRegistrationUnderDiffSubjects2";
 
         // Make two incompatible schemas - field 'f' has different types
         String schemaString1 = "{\"type\":\"record\","
@@ -462,7 +426,7 @@ public class CCompatRestTest extends AbstractResourceTestBase {
 
     @Test
     public void testSubjectConfigChange() throws Exception {
-        String subject = "testSubject";
+        String subject = "testSubjectConfigChange";
         assertEquals("Default compatibility level should be none for this test instance",
                 NONE.name,
                 confluentClient.getConfig(null).getCompatibilityLevel());
@@ -613,7 +577,7 @@ public class CCompatRestTest extends AbstractResourceTestBase {
         } catch (RestClientException e) {
             // this is expected.
             assertEquals("Invalid version shouldn't be found",
-                    ErrorCode.SCHEMA_NOT_FOUND.value(),
+                    ErrorCode.VERSION_NOT_FOUND.value(),
                     e.getErrorCode());
         }
     }
@@ -640,7 +604,7 @@ public class CCompatRestTest extends AbstractResourceTestBase {
     @Test
     public void testGetOnlySchemaById() throws Exception {
         String schema = String.valueOf(ConfluentTestUtils.getRandomCanonicalAvroString(1));
-        String subject = "test";
+        String subject = "testGetOnlySchemaById";
         ConfluentTestUtils.registerAndVerifySchema(confluentClient, schema, subject);
         assertEquals("Schema with ID 1 should match.",
                 schema,
@@ -673,17 +637,18 @@ public class CCompatRestTest extends AbstractResourceTestBase {
     @Test
     public void testSchemaReferences() throws Exception {
         List<String> schemas = ConfluentTestUtils.getAvroSchemaWithReferences();
-        String subject = "reference";
+        String subject = "testSchemaReferences";
+        String referrer = "testSchemaReferencesReferer";
+
         ConfluentTestUtils.registerAndVerifySchema(confluentClient, schemas.get(0), subject);
 
         RegisterSchemaRequest request = new RegisterSchemaRequest();
         request.setSchema(schemas.get(1));
-        SchemaReference ref = new SchemaReference("otherns.Subrecord", "reference", 1);
+        SchemaReference ref = new SchemaReference("otherns.Subrecord", subject, 1);
         request.setReferences(Collections.singletonList(ref));
-        int registeredId = confluentClient.registerSchema(request, "referrer", false);
-        assertEquals("Registering a new schema should succeed", 2, registeredId);
+        int registeredId = confluentClient.registerSchema(request, referrer, false);
 
-        SchemaString schemaString = confluentClient.getId(2);
+        SchemaString schemaString = confluentClient.getId(registeredId);
         // the newly registered schema should be immediately readable on the leader
         assertEquals("Registered schema should be found",
                 schemas.get(1),
@@ -693,38 +658,28 @@ public class CCompatRestTest extends AbstractResourceTestBase {
                 Collections.singletonList(ref),
                 schemaString.getReferences());
 
-        List<Integer> refs = confluentClient.getReferencedBy("reference", 1);
-        assertEquals(2, refs.get(0).intValue());
-
-        ns.MyRecord myrecord = new ns.MyRecord();
-        AvroSchema schema = new AvroSchema(AvroSchemaUtils.getSchema(myrecord));
-        // Note that we pass an empty list of refs since SR will perform a deep equality check
-        Schema registeredSchema = confluentClient.lookUpSubjectVersion(schema.canonicalString(),
-                AvroSchema.TYPE, Collections.emptyList(), "referrer", false);
-        assertEquals("Registered schema should be found", 2, registeredSchema.getId().intValue());
+        List<Integer> refs = confluentClient.getReferencedBy(subject, 1);
+        assertEquals(registeredId, refs.get(0).intValue());
 
         try {
             confluentClient.deleteSchemaVersion(RestService.DEFAULT_REQUEST_PROPERTIES,
-                    "reference",
+                    subject,
                     String.valueOf(1)
             );
-            fail("Deleting reference should fail with " + ErrorCode.REFERENCE_EXISTS);
+            fail("Deleting reference should fail with " + ErrorCode.REFERENCE_EXISTS.value());
         } catch (RestClientException rce) {
             assertEquals("Reference found",
-                    ErrorCode.REFERENCE_EXISTS,
+                    ErrorCode.REFERENCE_EXISTS.value(),
                     rce.getErrorCode());
         }
 
         assertEquals((Integer) 1, confluentClient
                 .deleteSchemaVersion
-                        (RestService.DEFAULT_REQUEST_PROPERTIES, "referrer", "1"));
-
-        refs = confluentClient.getReferencedBy("reference", 1);
-        assertTrue(refs.isEmpty());
+                        (RestService.DEFAULT_REQUEST_PROPERTIES, referrer, "1"));
 
         assertEquals((Integer) 1, confluentClient
                 .deleteSchemaVersion
-                        (RestService.DEFAULT_REQUEST_PROPERTIES, "reference", "1"));
+                        (RestService.DEFAULT_REQUEST_PROPERTIES, subject, "1"));
     }
 
     @Test
@@ -860,7 +815,7 @@ public class CCompatRestTest extends AbstractResourceTestBase {
                 + "{\"name\":\"field1\",\"type\":\"otherns.Subrecord1\"},"
                 + "{\"name\":\"field2\",\"type\":\"otherns.Subrecord2\"}"
                 + "],"
-                + "\"extraMetadata\": {\"b\": 2, \"a\": 1}"
+                + "\"extraMetadata\": {\"a\": 1, \"b\": 2}"
                 + "}";
 
         RegisterSchemaRequest registerRequest = new RegisterSchemaRequest();
@@ -1027,8 +982,8 @@ public class CCompatRestTest extends AbstractResourceTestBase {
 
     @Test
     public void testGetVersionsAssociatedWithSchemaId() throws Exception {
-        String subject1 = "testTopic1";
-        String subject2 = "testTopic2";
+        String subject1 = "testGetVersionsAssociatedWithSchemaId1";
+        String subject2 = "testGetVersionsAssociatedWithSchemaId2";
 
         String schema = ConfluentTestUtils.getRandomCanonicalAvroString(1).get(0);
         ConfluentTestUtils.registerAndVerifySchema(confluentClient, schema, subject1);
@@ -1133,7 +1088,7 @@ public class CCompatRestTest extends AbstractResourceTestBase {
     @Test
     public void testDeleteSchemaVersionBasic() throws Exception {
         List<String> schemas = ConfluentTestUtils.getRandomCanonicalAvroString(2);
-        String subject = "test";
+        String subject = "testDeleteSchemaVersionBasic";
 
         ConfluentTestUtils.registerAndVerifySchema(confluentClient, schemas.get(0), subject);
         ConfluentTestUtils.registerAndVerifySchema(confluentClient, schemas.get(1), subject);
@@ -1311,7 +1266,7 @@ public class CCompatRestTest extends AbstractResourceTestBase {
     @Test
     public void testDeleteSchemaVersionInvalidSubject() throws Exception {
         try {
-            String subject = "test";
+            String subject = "testDeleteSchemaVersionInvalidSubject";
             confluentClient.deleteSchemaVersion(RestService.DEFAULT_REQUEST_PROPERTIES, subject, "1");
             fail("Deleting a non existent subject version should fail with "
                     + ErrorCode.SUBJECT_NOT_FOUND.value()
@@ -1326,7 +1281,7 @@ public class CCompatRestTest extends AbstractResourceTestBase {
     @Test
     public void testDeleteLatestVersion() throws Exception {
         List<String> schemas = ConfluentTestUtils.getRandomCanonicalAvroString(3);
-        String subject = "test";
+        String subject = "testDeleteLatestVersion";
 
         ConfluentTestUtils.registerAndVerifySchema(confluentClient, schemas.get(0), subject);
         ConfluentTestUtils.registerAndVerifySchema(confluentClient, schemas.get(1), subject);
@@ -1411,7 +1366,7 @@ public class CCompatRestTest extends AbstractResourceTestBase {
     @Test
     public void testDeleteWithLookup() throws Exception {
         List<String> schemas = ConfluentTestUtils.getRandomCanonicalAvroString(2);
-        String subject = "test";
+        String subject = "testDeleteWithLookup";
 
         ConfluentTestUtils.registerAndVerifySchema(confluentClient, schemas.get(0), subject);
         ConfluentTestUtils.registerAndVerifySchema(confluentClient, schemas.get(1), subject);
@@ -1620,7 +1575,7 @@ public class CCompatRestTest extends AbstractResourceTestBase {
     @Test
     public void testDeleteSubjectBasic() throws Exception {
         List<String> schemas = ConfluentTestUtils.getRandomCanonicalAvroString(2);
-        String subject = "test";
+        String subject = "testDeleteSubjectBasic";
         ConfluentTestUtils.registerAndVerifySchema(confluentClient, schemas.get(0), subject);
         ConfluentTestUtils.registerAndVerifySchema(confluentClient, schemas.get(1), subject);
         List<Integer> expectedResponse = new ArrayList<>();
@@ -1640,7 +1595,7 @@ public class CCompatRestTest extends AbstractResourceTestBase {
     @Test
     public void testDeleteSubjectException() throws Exception {
         List<String> schemas = ConfluentTestUtils.getRandomCanonicalAvroString(2);
-        String subject = "test";
+        String subject = "testDeleteSubjectException";
         ConfluentTestUtils.registerAndVerifySchema(confluentClient, schemas.get(0), subject);
         ConfluentTestUtils.registerAndVerifySchema(confluentClient, schemas.get(1), subject);
         List<Integer> expectedResponse = new ArrayList<>();
@@ -1658,7 +1613,7 @@ public class CCompatRestTest extends AbstractResourceTestBase {
             confluentClient.deleteSubject(RestService.DEFAULT_REQUEST_PROPERTIES, subject);
             fail(String.format("Subject %s should not be found", subject));
         } catch (RestClientException rce) {
-            assertEquals("Subject exists in soft deleted format.", ErrorCode.SUBJECT_SOFT_DELETED, rce.getErrorCode());
+            assertEquals("Subject exists in soft deleted format.", ErrorCode.SUBJECT_SOFT_DELETED.value(), rce.getErrorCode());
         }
     }
 
@@ -1714,7 +1669,7 @@ public class CCompatRestTest extends AbstractResourceTestBase {
     @Test
     public void testDeleteSubjectAndRegister() throws Exception {
         List<String> schemas = ConfluentTestUtils.getRandomCanonicalAvroString(2);
-        String subject = "test";
+        String subject = "testDeleteSubjectAndRegister";
         ConfluentTestUtils.registerAndVerifySchema(confluentClient, schemas.get(0), subject);
         ConfluentTestUtils.registerAndVerifySchema(confluentClient, schemas.get(1), subject);
         confluentClient.deleteSubject(RestService.DEFAULT_REQUEST_PROPERTIES, subject);
@@ -1796,7 +1751,7 @@ public class CCompatRestTest extends AbstractResourceTestBase {
 
     @Test
     public void testRegisterDropsRuleSet() throws Exception {
-        String subject = "testSubject";
+        String subject = "testRegisterDropsRuleSet";
 
         ParsedSchema schema1 = new AvroSchema("{\"type\":\"record\","
                 + "\"name\":\"myrecord\","

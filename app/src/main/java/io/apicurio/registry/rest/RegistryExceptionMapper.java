@@ -16,10 +16,8 @@
 
 package io.apicurio.registry.rest;
 
+import io.apicurio.registry.ccompat.rest.error.*;
 import io.apicurio.registry.ccompat.rest.error.ConflictException;
-import io.apicurio.registry.ccompat.rest.error.ErrorCode;
-import io.apicurio.registry.ccompat.rest.error.SubjectNotSoftDeletedException;
-import io.apicurio.registry.ccompat.rest.error.UnprocessableEntityException;
 import io.apicurio.registry.rest.v2.beans.Error;
 import io.apicurio.registry.rules.RuleViolationException;
 import io.apicurio.registry.services.http.ErrorHttpResponse;
@@ -78,6 +76,7 @@ public class RegistryExceptionMapper implements ExceptionMapper<Throwable> {
         map.put(UnprocessableEntityException.class, ErrorCode.INVALID_SCHEMA.value());
         map.put(ConflictException.class, HTTP_CONFLICT);
         map.put(SubjectNotSoftDeletedException.class, ErrorCode.SUBJECT_NOT_SOFT_DELETED.value());
+        map.put(ReferenceExistsException.class, ErrorCode.REFERENCE_EXISTS.value());
         CONFLUENT_CODE_MAP = Collections.unmodifiableMap(map);
     }
 

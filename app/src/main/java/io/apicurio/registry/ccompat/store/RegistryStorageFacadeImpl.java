@@ -18,10 +18,10 @@ package io.apicurio.registry.ccompat.store;
 
 import io.apicurio.registry.ccompat.dto.*;
 import io.apicurio.registry.ccompat.rest.error.ConflictException;
+import io.apicurio.registry.ccompat.rest.error.ReferenceExistsException;
 import io.apicurio.registry.ccompat.rest.error.SubjectNotSoftDeletedException;
 import io.apicurio.registry.ccompat.rest.error.UnprocessableEntityException;
 import io.apicurio.registry.content.ContentHandle;
-import io.apicurio.registry.content.canon.ContentCanonicalizer;
 import io.apicurio.registry.rest.v2.beans.ArtifactReference;
 import io.apicurio.registry.rules.RuleApplicationType;
 import io.apicurio.registry.rules.RuleViolationException;
@@ -200,7 +200,8 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
                             StoredArtifactDto artifactVersion = storage.getArtifactVersion(groupId, subject, version);
                             Map<String, ContentHandle> artifactVersionReferences = storage.resolveReferences(artifactVersion.getReferences());
                             String dereferencedExistingContentSha = DigestUtils.sha256Hex(artifactTypeUtilProvider.getContentDereferencer().dereference(artifactVersion.getContent(), artifactVersionReferences).content());
-                            return dereferencedExistingContentSha.equals(DigestUtils.sha256Hex(schema.getSchema()));})
+                            return dereferencedExistingContentSha.equals(DigestUtils.sha256Hex(schema.getSchema()));
+                        })
                         .findAny()
                         .map(version -> storage.getArtifactVersionMetaData(groupId, subject, version))
                         .orElseThrow(() -> ex);
@@ -279,12 +280,20 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
     @Override
     public int deleteSchema(String subject, String versionString, boolean permanent, String groupId) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
         return VersionUtil.toInteger(parseVersionString(subject, versionString, groupId, version -> {
-            if (permanent) {
-                storage.deleteArtifactVersion(groupId, subject, version);
+            List<Long> globalIdsReferencingSchema = storage.getGlobalIdsReferencingArtifact(groupId, subject, version);
+
+            if (globalIdsReferencingSchema.isEmpty() || areAllSchemasDisabled(globalIdsReferencingSchema)) {
+                if (permanent) {
+                    storage.deleteArtifactVersion(groupId, subject, version);
+                } else {
+                    storage.updateArtifactState(groupId, subject, version, ArtifactState.DISABLED);
+                }
+                return version;
             } else {
-                storage.updateArtifactState(groupId, subject, version, ArtifactState.DISABLED);
+                //There are other schemas referencing this one, it cannot be deleted.
+                throw new ReferenceExistsException(String.format("There are subjects referencing %s", subject));
             }
-            return version;
+
         }));
     }
 
@@ -348,14 +357,10 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
     private ArtifactMetaDataDto createOrUpdateArtifact(String subject, String schema, String artifactType, List<SchemaReference> references, String groupId) {
         ArtifactMetaDataDto res;
         final List<ArtifactReferenceDto> parsedReferences = parseReferences(references, groupId);
-        final List<ArtifactReference> artifactReferences = parsedReferences.stream().map(dto -> {
-            return ArtifactReference.builder().name(dto.getName()).groupId(dto.getGroupId()).artifactId(dto.getArtifactId()).version(dto.getVersion()).build();
-        }).collect(Collectors.toList());
+        final List<ArtifactReference> artifactReferences = parsedReferences.stream().map(dto -> ArtifactReference.builder().name(dto.getName()).groupId(dto.getGroupId()).artifactId(dto.getArtifactId()).version(dto.getVersion()).build()).collect(Collectors.toList());
         final Map<String, ContentHandle> resolvedReferences = storage.resolveReferences(parsedReferences);
         try {
             ContentHandle schemaContent;
-
-
             schemaContent = ContentHandle.create(schema);
 
             if (!doesArtifactExist(subject, groupId)) {
@@ -449,6 +454,13 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
         return parseVersionString(subject, versionString, groupId, version -> storage.getContentIdsReferencingArtifact(groupId, subject, version));
     }
 
+    private boolean areAllSchemasDisabled(List<Long> globalIds) {
+        return globalIds.stream().anyMatch(globalId -> {
+            ArtifactState state = storage.getArtifactMetaData(globalId).getState();
+            return state.equals(ArtifactState.DISABLED);
+        });
+    }
+
     private boolean doesArtifactExist(String artifactId, String groupId) {
         try {
             storage.getArtifact(groupId, artifactId, DEFAULT);
@@ -491,22 +503,5 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
 
     private boolean isCcompatManagedType(String artifactType) {
         return artifactType.equals(ArtifactType.AVRO) || artifactType.equals(ArtifactType.PROTOBUF) || artifactType.equals(ArtifactType.JSON);
-    }
-
-    /**
-     * Canonicalize the given content, returns the content unchanged in the case of an error.
-     *
-     * @param artifactType
-     * @param content
-     */
-    private ContentHandle canonicalizeContent(String artifactType, ContentHandle content, List<SchemaReference> references) {
-        try {
-            ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(artifactType);
-            ContentCanonicalizer canonicalizer = provider.getContentCanonicalizer();
-            return canonicalizer.canonicalize(content, resolveReferences(references));
-        } catch (Exception e) {
-            log.debug("Failed to canonicalize content of type: {}", artifactType);
-            return content;
-        }
     }
 }

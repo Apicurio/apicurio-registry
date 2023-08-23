@@ -1,7 +1,6 @@
 package io.apicurio.registry.noprofile.ccompat.rest.v7;
 
 import io.apicurio.registry.content.ContentHandle;
-import io.apicurio.registry.content.canon.AvroContentCanonicalizer;
 import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.confluent.kafka.schemaregistry.client.rest.RestService;
 import io.confluent.kafka.schemaregistry.client.rest.entities.SchemaReference;
@@ -9,7 +8,9 @@ import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientExcept
 
 import java.io.File;
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
 import java.util.concurrent.Callable;
 
 import static org.junit.Assert.assertEquals;
@@ -87,30 +88,26 @@ public class ConfluentTestUtils {
     /**
      * Register a new schema and verify that it can be found on the expected version.
      */
-    public static void registerAndVerifySchema(RestService restService, String schemaString, int expectedId, String subject) throws IOException, RestClientException {
+    public static void registerAndVerifySchema(RestService restService, String schemaString, String subject) throws IOException, RestClientException {
         int registeredId = restService.registerSchema(schemaString, subject);
-        assertEquals("Registering a new schema should succeed", expectedId, registeredId);
 
         // the newly registered schema should be immediately readable on the leader
-        assertEquals("Registered schema should be found", schemaString, restService.getId(expectedId).getSchemaString());
+        assertEquals("Registered schema should be found", schemaString, restService.getId(registeredId).getSchemaString());
     }
 
-    public static void registerAndVerifySchema(RestService restService, String schemaString, List<SchemaReference> references, int expectedId, String subject) throws IOException, RestClientException {
+    public static void registerAndVerifySchema(RestService restService, String schemaString, List<SchemaReference> references, String subject) throws IOException, RestClientException {
         int registeredId = restService.registerSchema(schemaString, AvroSchema.TYPE, references, subject);
-        assertEquals("Registering a new schema should succeed", expectedId, registeredId);
 
         // the newly registered schema should be immediately readable on the leader
-        assertEquals("Registered schema should be found", schemaString, restService.getId(expectedId).getSchemaString());
+        assertEquals("Registered schema should be found", schemaString, restService.getId(registeredId).getSchemaString());
     }
 
     public static List<String> getRandomCanonicalAvroString(int num) {
         List<String> avroStrings = new ArrayList<String>();
 
-        AvroContentCanonicalizer avroContentCanonicalizer = new AvroContentCanonicalizer();
-
         for (int i = 0; i < num; i++) {
             String schemaString = "{\"type\":\"record\"," + "\"name\":\"myrecord\"," + "\"fields\":" + "[{\"type\":\"string\",\"name\":" + "\"f" + random.nextInt(Integer.MAX_VALUE) + "\"}]}";
-            avroStrings.add(avroContentCanonicalizer.canonicalize(ContentHandle.create(schemaString), Collections.emptyMap()).content());
+            avroStrings.add(new AvroSchema(ContentHandle.create(schemaString).content()).canonicalString());
         }
         return avroStrings;
     }

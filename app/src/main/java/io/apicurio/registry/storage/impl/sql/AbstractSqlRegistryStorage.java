@@ -475,10 +475,10 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     }
 
     /**
-     * @see RegistryStorage#getArtifactContentIds(String, String)
+     * @see RegistryStorage#getEnabledArtifactContentIds(String, String)
      */
     @Override
-    public List<Long> getArtifactContentIds(String groupId, String artifactId) {
+    public List<Long> getEnabledArtifactContentIds(String groupId, String artifactId) {
         return handles.withHandleNoException(handle -> {
             String sql = sqlStatements().selectArtifactContentIds();
 

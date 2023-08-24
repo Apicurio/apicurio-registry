@@ -29,7 +29,7 @@ public class DisableApisTestProfile implements QuarkusTestProfile {
     @Override
     public Map<String, String> getConfigOverrides() {
         Map<String, String> props = new HashMap<>();
-        props.put("registry.disable.apis", "/apis/ibmcompat/.*,/apis/ccompat/v6/subjects/[^/]+/versions.*,/ui/.*");
+        props.put("registry.disable.apis", "/apis/ccompat/v6/subjects/[^/]+/versions.*,/ui/.*");
         props.put("registry.rest.artifact.deletion.enabled", "false");
         return props;
     }

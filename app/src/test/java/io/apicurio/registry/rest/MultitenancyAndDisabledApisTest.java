@@ -84,8 +84,6 @@ public class MultitenancyAndDisabledApisTest {
     public void doTestDisabledApis(boolean disabledDirectAccess) throws Exception {
         doTestDisabledSubPathRegexp(disabledDirectAccess);
 
-        doTestDisabledPathExactMatch();
-
         doTestDisabledChildPathByParentPath(disabledDirectAccess);
 
         doTestUIDisabled();
@@ -122,22 +120,6 @@ public class MultitenancyAndDisabledApisTest {
         }
     }
 
-    private void doTestDisabledPathExactMatch() {
-        String schemaDefinition = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"f1\",\"type\":\"string\"}]}";
-        String schemaName = "testVerifySchema_userInfo";
-        String versionName = "testversion_1.0.0";
-
-        //the entire ibmcompat api is disabled
-        given()
-                .when()
-                .queryParam("verify", "true")
-                .contentType(CT_JSON)
-                .body("{\"name\":\"" + schemaName + "\",\"version\":\"" + versionName + "\",\"definition\":\"" + schemaDefinition + "\"}")
-                .post("/ibmcompat/v1/schemas")
-                .then()
-                .statusCode(404);
-    }
-
     private void doTestDisabledChildPathByParentPath(boolean disabledDirectAccess) throws Exception {
         String artifactContent = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"f1\",\"type\":\"string\"}]}";
         String schemaId = TestUtils.generateArtifactId();
@@ -156,14 +138,6 @@ public class MultitenancyAndDisabledApisTest {
         } else {
             req.statusCode(200);
         }
-
-
-        //the entire ibmcompat api is disabled
-        given()
-                .when()
-                .get("/ibmcompat/v1/schemas/" + schemaId)
-                .then()
-                .statusCode(404);
     }
 
 }

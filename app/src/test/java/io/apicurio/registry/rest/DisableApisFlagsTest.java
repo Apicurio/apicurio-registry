@@ -52,9 +52,6 @@ public class DisableApisFlagsTest extends AbstractResourceTestBase {
 
     @Test
     public void testRegexp() {
-
-        assertTrue(matcherService.isDisabled("/apis/ibmcompat/v1/schemas"));
-
         assertTrue(matcherService.isDisabled("/apis/ccompat/v6/subjects/abcfoo/versions"));
 
         assertFalse(matcherService.isDisabled("/apis/ccompat/v6/subjects"));
@@ -69,8 +66,6 @@ public class DisableApisFlagsTest extends AbstractResourceTestBase {
 
     public void doTestDisabledApis(boolean disabledDirectAccess) throws Exception {
         doTestDisabledSubPathRegexp(disabledDirectAccess);
-
-        doTestDisabledPathExactMatch();
 
         doTestDisabledChildPathByParentPath(disabledDirectAccess);
 
@@ -151,22 +146,6 @@ public class DisableApisFlagsTest extends AbstractResourceTestBase {
         }
     }
 
-    private static void doTestDisabledPathExactMatch() {
-        String schemaDefinition = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"f1\",\"type\":\"string\"}]}";
-        String schemaName = "testVerifySchema_userInfo";
-        String versionName = "testversion_1.0.0";
-
-        //the entire ibmcompat api is disabled
-        given()
-            .when()
-                .queryParam("verify", "true")
-                .contentType(CT_JSON)
-                .body("{\"name\":\"" + schemaName + "\",\"version\":\"" + versionName + "\",\"definition\":\"" + schemaDefinition + "\"}")
-                .post("/ibmcompat/v1/schemas")
-            .then()
-                .statusCode(404);
-    }
-
     private static void doTestDisabledChildPathByParentPath(boolean disabledDirectAccess) throws Exception {
         String artifactContent = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"f1\",\"type\":\"string\"}]}";
         String schemaId = TestUtils.generateArtifactId();
@@ -185,14 +164,6 @@ public class DisableApisFlagsTest extends AbstractResourceTestBase {
         } else {
             req.statusCode(200);
         }
-
-
-        //the entire ibmcompat api is disabled
-        given()
-            .when()
-                .get("/ibmcompat/v1/schemas/" + schemaId)
-            .then()
-                .statusCode(404);
     }
 
 

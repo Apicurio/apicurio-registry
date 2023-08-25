@@ -176,7 +176,7 @@
         <picocli.version>4.6.3</picocli.version>
 
         <!-- Confluent API / client -->
-        <confluent.version>7.4.0</confluent.version>
+        <confluent.version>7.5.0</confluent.version>
 
         <!-- Default Quarkus configuration profile -->
         <quarkus.profile>dev</quarkus.profile>

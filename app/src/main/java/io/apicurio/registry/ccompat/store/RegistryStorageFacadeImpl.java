@@ -319,7 +319,7 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
 
             resolvedReferences = storage.resolveReferences(referencesAsDtos);
 
-            if (references.size() != resolvedReferences.size()) {
+            if (references.size() > resolvedReferences.size()) {
                 //There are unresolvable references, which is not allowed.
                 throw new UnprocessableEntityException("Unresolved reference");
             }

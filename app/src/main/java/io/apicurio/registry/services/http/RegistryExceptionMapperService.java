@@ -17,10 +17,7 @@
 package io.apicurio.registry.services.http;
 
 import io.apicurio.common.apps.config.Info;
-import io.apicurio.registry.ccompat.rest.error.ConflictException;
-import io.apicurio.registry.ccompat.rest.error.ReferenceExistsException;
-import io.apicurio.registry.ccompat.rest.error.SubjectNotSoftDeletedException;
-import io.apicurio.registry.ccompat.rest.error.UnprocessableEntityException;
+import io.apicurio.registry.ccompat.rest.error.*;
 import io.apicurio.registry.metrics.health.liveness.LivenessUtil;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.common.apps.multitenancy.exceptions.TenantForbiddenException;
@@ -145,6 +142,8 @@ public class RegistryExceptionMapperService {
         map.put(TenantNotFoundException.class, HTTP_FORBIDDEN);
         map.put(TimeoutException.class, HTTP_UNAVAILABLE);
         map.put(SubjectNotSoftDeletedException.class, HTTP_CONFLICT);
+        map.put(SubjectSoftDeletedException.class, HTTP_NOT_FOUND);
+        map.put(SchemaNotFoundException.class, HTTP_NOT_FOUND);
         map.put(ReferenceExistsException.class, HTTP_UNPROCESSABLE_ENTITY);
         // TODO Merge this list with io.apicurio.registry.rest.RegistryExceptionMapper
         CODE_MAP = Collections.unmodifiableMap(map);

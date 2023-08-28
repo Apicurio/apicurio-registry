@@ -88,18 +88,22 @@ public class ConfluentTestUtils {
     /**
      * Register a new schema and verify that it can be found on the expected version.
      */
-    public static void registerAndVerifySchema(RestService restService, String schemaString, String subject) throws IOException, RestClientException {
+    public static int registerAndVerifySchema(RestService restService, String schemaString, String subject) throws IOException, RestClientException {
         int registeredId = restService.registerSchema(schemaString, subject);
 
         // the newly registered schema should be immediately readable on the leader
         assertEquals("Registered schema should be found", schemaString, restService.getId(registeredId).getSchemaString());
+
+        return registeredId;
     }
 
-    public static void registerAndVerifySchema(RestService restService, String schemaString, List<SchemaReference> references, String subject) throws IOException, RestClientException {
+    public static int registerAndVerifySchema(RestService restService, String schemaString, List<SchemaReference> references, String subject) throws IOException, RestClientException {
         int registeredId = restService.registerSchema(schemaString, AvroSchema.TYPE, references, subject);
 
         // the newly registered schema should be immediately readable on the leader
         assertEquals("Registered schema should be found", schemaString, restService.getId(registeredId).getSchemaString());
+
+        return registeredId;
     }
 
     public static List<String> getRandomCanonicalAvroString(int num) {

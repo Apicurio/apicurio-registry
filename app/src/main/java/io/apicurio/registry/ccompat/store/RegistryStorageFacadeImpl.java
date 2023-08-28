@@ -16,10 +16,17 @@
 
 package io.apicurio.registry.ccompat.store;
 
-import io.apicurio.registry.ccompat.dto.*;
+import io.apicurio.registry.ccompat.dto.CompatibilityCheckResponse;
+import io.apicurio.registry.ccompat.dto.Schema;
+import io.apicurio.registry.ccompat.dto.SchemaContent;
+import io.apicurio.registry.ccompat.dto.SchemaInfo;
+import io.apicurio.registry.ccompat.dto.SchemaReference;
+import io.apicurio.registry.ccompat.dto.SubjectVersion;
 import io.apicurio.registry.ccompat.rest.error.ConflictException;
 import io.apicurio.registry.ccompat.rest.error.ReferenceExistsException;
+import io.apicurio.registry.ccompat.rest.error.SchemaNotFoundException;
 import io.apicurio.registry.ccompat.rest.error.SubjectNotSoftDeletedException;
+import io.apicurio.registry.ccompat.rest.error.SubjectSoftDeletedException;
 import io.apicurio.registry.ccompat.rest.error.UnprocessableEntityException;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.rest.v2.beans.ArtifactReference;
@@ -27,7 +34,14 @@ import io.apicurio.registry.rules.RuleApplicationType;
 import io.apicurio.registry.rules.RuleViolationException;
 import io.apicurio.registry.rules.RulesService;
 import io.apicurio.registry.rules.UnprocessableSchemaException;
-import io.apicurio.registry.storage.*;
+import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
+import io.apicurio.registry.storage.ArtifactNotFoundException;
+import io.apicurio.registry.storage.InvalidArtifactStateException;
+import io.apicurio.registry.storage.InvalidArtifactTypeException;
+import io.apicurio.registry.storage.RegistryStorage;
+import io.apicurio.registry.storage.RegistryStorageException;
+import io.apicurio.registry.storage.RuleNotFoundException;
+import io.apicurio.registry.storage.VersionNotFoundException;
 import io.apicurio.registry.storage.dto.*;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
@@ -39,10 +53,13 @@ import io.apicurio.registry.util.ArtifactTypeUtil;
 import io.apicurio.registry.util.VersionUtil;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import org.apache.avro.AvroTypeException;
+import org.apache.avro.SchemaParseException;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.slf4j.Logger;
 
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -125,8 +142,12 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
             return deletedVersions.stream().map(VersionUtil::toLong).map(converter::convertUnsigned).sorted().collect(Collectors.toList());
 
         } else {
-            if (storage.isArtifactExists(groupId, subject)) {
-                return storage.getArtifactVersions(groupId, subject).stream().map(VersionUtil::toLong).map(converter::convertUnsigned).sorted().collect(Collectors.toList());
+            if (storage.isArtifactExists(groupId, subject) ) {
+                if (isArtifactActive(subject, groupId)) {
+                    return storage.getArtifactVersions(groupId, subject).stream().map(VersionUtil::toLong).map(converter::convertUnsigned).sorted().collect(Collectors.toList());
+                } else {
+                    throw new SubjectSoftDeletedException(String.format("Subject %s is in soft deleted state.", subject));
+                }
             } else {
                 return Collections.emptyList();
             }
@@ -161,11 +182,15 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
 
     @Override
     public Schema getSchema(String subject, String versionString, String groupId) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
-        return parseVersionString(subject, versionString, groupId, version -> {
-            ArtifactVersionMetaDataDto artifactVersionMetaDataDto = storage.getArtifactVersionMetaData(groupId, subject, version);
-            StoredArtifactDto storedArtifact = storage.getArtifactVersion(groupId, subject, version);
-            return converter.convert(subject, storedArtifact, artifactVersionMetaDataDto.getType());
-        });
+        if (doesArtifactExist(subject, groupId)) {
+            return parseVersionString(subject, versionString, groupId, version -> {
+                ArtifactVersionMetaDataDto artifactVersionMetaDataDto = storage.getArtifactVersionMetaData(groupId, subject, version);
+                StoredArtifactDto storedArtifact = storage.getArtifactVersion(groupId, subject, version);
+                return converter.convert(subject, storedArtifact, artifactVersionMetaDataDto.getType());
+            });
+        } else {
+            throw new ArtifactNotFoundException(groupId, subject);
+        }
     }
 
     @Override
@@ -179,39 +204,19 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
 
     @Override
     public Schema getSchemaNormalize(String subject, SchemaInfo schema, boolean normalize, String groupId) throws ArtifactNotFoundException, RegistryStorageException {
-        ArtifactVersionMetaDataDto amd;
-
-        final List<ArtifactReferenceDto> artifactReferences = parseReferences(schema.getReferences(), groupId);
-        final Map<String, ContentHandle> resolvedReferences = resolveReferences(schema.getReferences());
-
-        String schemaType = schema.getSchemaType() == null ? ArtifactType.AVRO : schema.getSchemaType();
-        ArtifactTypeUtilProvider artifactTypeUtilProvider = factory.getArtifactTypeProvider(schemaType);
-
-        if (cconfig.canonicalHashModeEnabled.get()) {
-            amd = storage.getArtifactVersionMetaData(groupId, subject, true, ContentHandle.create(schema.getSchema()), artifactReferences);
-        } else if (normalize) {
+        if (doesArtifactExist(subject, groupId)) {
             try {
-                amd = storage.getArtifactVersionMetaData(groupId, subject, false, artifactTypeUtilProvider.getContentNormalizer().normalize(ContentHandle.create(schema.getSchema()), resolvedReferences), artifactReferences);
-            } catch (ArtifactNotFoundException ex) {
-                //When comparing using content, sometimes the references might be inlined into the content, try to dereference the existing content and compare as a fallback. See https://github.com/Apicurio/apicurio-registry/issues/3588 for more information.
-                //If using this method there is no matching content either, just re-throw the exception.
-                amd = storage.getArtifactVersions(groupId, subject)
-                        .stream().filter(version -> {
-                            StoredArtifactDto artifactVersion = storage.getArtifactVersion(groupId, subject, version);
-                            Map<String, ContentHandle> artifactVersionReferences = storage.resolveReferences(artifactVersion.getReferences());
-                            String dereferencedExistingContentSha = DigestUtils.sha256Hex(artifactTypeUtilProvider.getContentDereferencer().dereference(artifactVersion.getContent(), artifactVersionReferences).content());
-                            return dereferencedExistingContentSha.equals(DigestUtils.sha256Hex(schema.getSchema()));
-                        })
-                        .findAny()
-                        .map(version -> storage.getArtifactVersionMetaData(groupId, subject, version))
-                        .orElseThrow(() -> ex);
+                ArtifactVersionMetaDataDto amd;
+                amd = lookupSchema(groupId, subject, schema.getSchema(), schema.getReferences(), schema.getSchemaType(), normalize);
+                StoredArtifactDto storedArtifact = storage.getArtifactVersion(groupId, subject, amd.getVersion());
+                return converter.convert(subject, storedArtifact);
+            } catch (ArtifactNotFoundException anf) {
+                throw new SchemaNotFoundException(String.format("The given schema does not match any schema under the subject %s", subject));
             }
-
         } else {
-            amd = storage.getArtifactVersionMetaData(groupId, subject, false, ContentHandle.create(schema.getSchema()), artifactReferences);
+            //If the artifact does not exist there is no need for looking up the schema, just fail.
+            throw new ArtifactNotFoundException(groupId, subject);
         }
-        StoredArtifactDto storedArtifact = storage.getArtifactVersion(groupId, subject, amd.getVersion());
-        return converter.convert(subject, storedArtifact);
     }
 
     @Override
@@ -222,23 +227,10 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
             throw new UnprocessableEntityException("The schema provided is null.");
         }
 
-        final List<ArtifactReferenceDto> artifactReferences = parseReferences(references, groupId);
         final Map<String, ContentHandle> resolvedReferences = resolveReferences(references);
 
         try {
-            ContentHandle content = ContentHandle.create(schema);
-            ArtifactVersionMetaDataDto dto;
-            if (cconfig.canonicalHashModeEnabled.get()) {
-                dto = storage.getArtifactVersionMetaData(groupId, subject, true, content, artifactReferences);
-            } else if (normalize) {
-                final String artifactType = ArtifactTypeUtil.determineArtifactType(ContentHandle.create(schema), null, null, resolvedReferences, factory.getAllArtifactTypes());
-                ArtifactTypeUtilProvider artifactTypeProvider = factory.getArtifactTypeProvider(artifactType);
-                ContentHandle normalizedContent = artifactTypeProvider.getContentNormalizer().normalize(content, resolvedReferences);
-                dto = storage.getArtifactVersionMetaData(groupId, subject, false, normalizedContent, artifactReferences);
-
-            } else {
-                dto = storage.getArtifactVersionMetaData(groupId, subject, false, content, artifactReferences);
-            }
+            ArtifactVersionMetaDataDto dto = lookupSchema(groupId, subject, schema, references, schemaType, normalize);
             return cconfig.legacyIdModeEnabled.get() ? dto.getGlobalId() : dto.getContentId();
         } catch (ArtifactNotFoundException nfe) {
             // This is OK - when it happens just move on and create
@@ -259,6 +251,59 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
         }
     }
 
+    private ArtifactVersionMetaDataDto lookupSchema(String groupId, String subject, String schema, List<SchemaReference> schemaReferences, String schemaType, boolean normalize) {
+        try {
+            final String type = schemaType == null ? ArtifactType.AVRO : schemaType;
+            final List<ArtifactReferenceDto> artifactReferences = parseReferences(schemaReferences, groupId);
+            final Map<String, ContentHandle> resolvedReferences = resolveReferences(schemaReferences);
+            ArtifactTypeUtilProvider artifactTypeProvider = factory.getArtifactTypeProvider(type);
+            ArtifactVersionMetaDataDto amd;
+
+            if (cconfig.canonicalHashModeEnabled.get()) {
+                amd = storage.getArtifactVersionMetaData(groupId, subject, true, ContentHandle.create(schema), artifactReferences);
+            } else if (normalize) {
+                try {
+                    String schemaNormalizedSha = DigestUtils.sha256Hex(artifactTypeProvider.getContentNormalizer().normalize(ContentHandle.create(schema), resolvedReferences).content());
+
+                    //Normalize given schema, compare with existing ones normalized, and check if the hashes are the same, also ensure that the given schema contains all the references of the existing one.
+                    amd = storage.getArtifactVersions(groupId, subject)
+                            .stream().filter(version -> {
+                                StoredArtifactDto artifactVersion = storage.getArtifactVersion(groupId, subject, version);
+                                Map<String, ContentHandle> artifactVersionReferences = storage.resolveReferences(artifactVersion.getReferences());
+                                String dereferencedExistingContentSha = DigestUtils.sha256Hex(artifactTypeProvider.getContentNormalizer().normalize(artifactVersion.getContent(), artifactVersionReferences).content());
+
+                                return schemaNormalizedSha.equals(dereferencedExistingContentSha) && new HashSet<>(artifactVersion.getReferences()).containsAll(artifactReferences);
+                            })
+                            .findAny()
+                            .map(version -> storage.getArtifactVersionMetaData(groupId, subject, version))
+                            .orElseThrow(() -> new ArtifactNotFoundException(groupId, subject));
+
+                } catch (ArtifactNotFoundException ex) {
+                    //When comparing using content, sometimes the references might be inlined into the content, try to dereference the existing content and compare as a fallback. See https://github.com/Apicurio/apicurio-registry/issues/3588 for more information.
+                    //If using this method there is no matching content either, just re-throw the exception.
+                    //This approach only works for schema types with dereference support (for now, only Avro in the ccompat API).
+                    amd = storage.getArtifactVersions(groupId, subject)
+                            .stream().filter(version -> {
+                                StoredArtifactDto artifactVersion = storage.getArtifactVersion(groupId, subject, version);
+                                Map<String, ContentHandle> artifactVersionReferences = storage.resolveReferences(artifactVersion.getReferences());
+                                String dereferencedExistingContentSha = DigestUtils.sha256Hex(artifactTypeProvider.getContentDereferencer().dereference(artifactVersion.getContent(), artifactVersionReferences).content());
+                                return dereferencedExistingContentSha.equals(DigestUtils.sha256Hex(schema));
+                            })
+                            .findAny()
+                            .map(version -> storage.getArtifactVersionMetaData(groupId, subject, version))
+                            .orElseThrow(() -> ex);
+                }
+
+            } else {
+                amd = storage.getArtifactVersionMetaData(groupId, subject, false, ContentHandle.create(schema), artifactReferences);
+            }
+
+            return amd;
+        } catch (SchemaParseException | AvroTypeException ex) {
+            throw new UnprocessableEntityException(ex.getMessage());
+        }
+    }
+
     private Map<String, ContentHandle> resolveReferences(List<SchemaReference> references) {
         Map<String, ContentHandle> resolvedReferences = Collections.emptyMap();
         if (references != null && !references.isEmpty()) {
@@ -273,7 +318,13 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
             }).collect(Collectors.toList());
 
             resolvedReferences = storage.resolveReferences(referencesAsDtos);
+
+            if (references.size() != resolvedReferences.size()) {
+                //There are unresolvable references, which is not allowed.
+                throw new UnprocessableEntityException("Unresolved reference");
+            }
         }
+
         return resolvedReferences;
     }
 

@@ -17,6 +17,7 @@
 package io.apicurio.registry.ccompat.rest.v7;
 
 
+import io.apicurio.registry.storage.error.ReadOnlyStorageException;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
@@ -24,10 +25,7 @@ import jakarta.ws.rs.Produces;
 
 import java.util.List;
 
-import static io.apicurio.registry.ccompat.rest.ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST;
-import static io.apicurio.registry.ccompat.rest.ContentTypes.COMPAT_SCHEMA_REGISTRY_V1;
-import static io.apicurio.registry.ccompat.rest.ContentTypes.JSON;
-import static io.apicurio.registry.ccompat.rest.ContentTypes.OCTET_STREAM;
+import static io.apicurio.registry.ccompat.rest.ContentTypes.*;
 
 /**
  * Note:
@@ -46,5 +44,5 @@ import static io.apicurio.registry.ccompat.rest.ContentTypes.OCTET_STREAM;
 public interface ContextResource {
 
     @GET
-    List<String> getContexts() throws Exception;
+    List<String> getContexts() throws ReadOnlyStorageException;
 }

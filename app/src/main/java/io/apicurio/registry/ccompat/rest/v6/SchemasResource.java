@@ -18,18 +18,11 @@ package io.apicurio.registry.ccompat.rest.v6;
 
 import io.apicurio.registry.ccompat.dto.SchemaInfo;
 import io.apicurio.registry.ccompat.dto.SubjectVersion;
+import jakarta.ws.rs.*;
 
-import jakarta.ws.rs.Consumes;
-import jakarta.ws.rs.GET;
-import jakarta.ws.rs.Path;
-import jakarta.ws.rs.PathParam;
-import jakarta.ws.rs.Produces;
 import java.util.List;
 
-import static io.apicurio.registry.ccompat.rest.ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST;
-import static io.apicurio.registry.ccompat.rest.ContentTypes.COMPAT_SCHEMA_REGISTRY_V1;
-import static io.apicurio.registry.ccompat.rest.ContentTypes.JSON;
-import static io.apicurio.registry.ccompat.rest.ContentTypes.OCTET_STREAM;
+import static io.apicurio.registry.ccompat.rest.ContentTypes.*;
 
 /**
  * Note:

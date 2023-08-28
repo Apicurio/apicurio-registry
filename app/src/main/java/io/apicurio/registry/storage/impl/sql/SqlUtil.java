@@ -16,16 +16,17 @@
 
 package io.apicurio.registry.storage.impl.sql;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
+import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
+import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.utils.StringUtil;
+
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 
 /**
  * @author eric.wittmann@gmail.com
@@ -38,6 +39,7 @@ public class SqlUtil {
 
     /**
      * Serializes the given collection of labels to a string for artifactStore in the DB.
+     *
      * @param labels
      */
     public static String serializeLabels(List<String> labels) {
@@ -56,6 +58,7 @@ public class SqlUtil {
 
     /**
      * Deserialize the labels from their string form to a <code>List&lt;String&gt;</code> form.
+     *
      * @param labelsStr
      */
     @SuppressWarnings("unchecked")
@@ -72,6 +75,7 @@ public class SqlUtil {
 
     /**
      * Serializes the given collection of properties to a string for artifactStore in the DB.
+     *
      * @param properties
      */
     public static String serializeProperties(Map<String, String> properties) {
@@ -90,6 +94,7 @@ public class SqlUtil {
 
     /**
      * Deserialize the properties from their string form to a Map<String, String> form.
+     *
      * @param propertiesStr
      */
     @SuppressWarnings("unchecked")
@@ -106,6 +111,7 @@ public class SqlUtil {
 
     /**
      * Serializes the given collection of references to a string for artifactStore in the DB.
+     *
      * @param references
      */
     public static String serializeReferences(List<ArtifactReferenceDto> references) {
@@ -121,6 +127,7 @@ public class SqlUtil {
 
     /**
      * Deserialize the references from their string form to a List<ArtifactReferenceDto> form.
+     *
      * @param references
      */
     public static List<ArtifactReferenceDto> deserializeReferences(String references) {
@@ -128,7 +135,8 @@ public class SqlUtil {
             if (StringUtil.isEmpty(references)) {
                 return Collections.emptyList();
             }
-            return mapper.readValue(references, new TypeReference<List<ArtifactReferenceDto>>(){});
+            return mapper.readValue(references, new TypeReference<List<ArtifactReferenceDto>>() {
+            });
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }
@@ -148,4 +156,23 @@ public class SqlUtil {
         return groupId;
     }
 
+
+    public static ArtifactMetaDataDto convert(String groupId, String artifactId, ArtifactVersionMetaDataDto versionMeta) {
+        ArtifactMetaDataDto artifactMeta = new ArtifactMetaDataDto();
+        artifactMeta.setGlobalId(versionMeta.getGlobalId());
+        artifactMeta.setContentId(versionMeta.getContentId());
+        artifactMeta.setGroupId(denormalizeGroupId(groupId));
+        artifactMeta.setId(artifactId);
+        artifactMeta.setModifiedBy(versionMeta.getCreatedBy());
+        artifactMeta.setModifiedOn(versionMeta.getCreatedOn());
+        artifactMeta.setState(versionMeta.getState());
+        artifactMeta.setName(versionMeta.getName());
+        artifactMeta.setDescription(versionMeta.getDescription());
+        artifactMeta.setLabels(versionMeta.getLabels());
+        artifactMeta.setProperties(versionMeta.getProperties());
+        artifactMeta.setType(versionMeta.getType());
+        artifactMeta.setVersion(versionMeta.getVersion());
+        artifactMeta.setVersionId(versionMeta.getVersionId());
+        return artifactMeta;
+    }
 }

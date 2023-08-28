@@ -31,11 +31,12 @@ import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessChe
 import io.apicurio.registry.rules.RuleApplicationType;
 import io.apicurio.registry.rules.RuleViolationException;
 import io.apicurio.registry.rules.RulesService;
-import io.apicurio.registry.storage.ArtifactNotFoundException;
-import io.apicurio.registry.storage.GroupAlreadyExistsException;
-import io.apicurio.registry.storage.GroupNotFoundException;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.*;
+import io.apicurio.registry.storage.error.ArtifactNotFoundException;
+import io.apicurio.registry.storage.error.GroupAlreadyExistsException;
+import io.apicurio.registry.storage.error.GroupNotFoundException;
+import io.apicurio.registry.storage.error.ReadOnlyStorageException;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
@@ -99,7 +100,7 @@ public class SchemagroupsResourceImpl implements SchemagroupsResource {
 
     @Override
     @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Write)
-    public void createGroup(String groupId, SchemaGroup data) {
+    public void createGroup(String groupId, SchemaGroup data) throws ReadOnlyStorageException {
         //createdOn and modifiedOn are set by the storage
         GroupMetaDataDto.GroupMetaDataDtoBuilder group = GroupMetaDataDto.builder()
                 .groupId(groupId)
@@ -128,7 +129,7 @@ public class SchemagroupsResourceImpl implements SchemagroupsResource {
 
     @Override
     @Authorized(style=AuthorizedStyle.GroupOnly, level=AuthorizedLevel.Write)
-    public void deleteGroup(String groupId) {
+    public void deleteGroup(String groupId) throws ReadOnlyStorageException {
         storage.deleteGroup(groupId);
     }
 
@@ -149,7 +150,7 @@ public class SchemagroupsResourceImpl implements SchemagroupsResource {
 
     @Override
     @Authorized(style=AuthorizedStyle.GroupOnly, level=AuthorizedLevel.Write)
-    public void deleteSchemasByGroup(String groupId) {
+    public void deleteSchemasByGroup(String groupId) throws ReadOnlyStorageException {
         verifyGroupExists(groupId);
         storage.deleteArtifacts(groupId);
     }
@@ -169,7 +170,7 @@ public class SchemagroupsResourceImpl implements SchemagroupsResource {
     //TODO spec says: If schema with identical content already exists, existing schema's ID is returned. Our storage API does not allow to know if some content belongs to any other artifactId
     @Override
     @Authorized(style=AuthorizedStyle.GroupAndArtifact, level=AuthorizedLevel.Write)
-    public SchemaId createSchema(String groupId, String schemaId, InputStream data) {
+    public SchemaId createSchema(String groupId, String schemaId, InputStream data) throws ReadOnlyStorageException {
 
         ContentHandle content = ContentHandle.create(data);
         if (content.bytes().length == 0) {
@@ -216,9 +217,9 @@ public class SchemagroupsResourceImpl implements SchemagroupsResource {
             }
         } catch (RuleViolationException ex) {
             if (ex.getRuleType() == RuleType.VALIDITY) {
-                throw new UnprocessableEntityException(ex.getMessage(), ex);
+                throw new UnprocessableEntityException(ex);
             } else {
-                throw new ConflictException(ex.getMessage(), ex);
+                throw new ConflictException(ex);
             }
         }
 
@@ -230,7 +231,7 @@ public class SchemagroupsResourceImpl implements SchemagroupsResource {
 
     @Override
     @Authorized(style=AuthorizedStyle.GroupAndArtifact, level=AuthorizedLevel.Write)
-    public void deleteSchema(String groupId, String schemaId) {
+    public void deleteSchema(String groupId, String schemaId) throws ReadOnlyStorageException {
         verifyGroupExists(groupId);
         storage.deleteArtifact(groupId, schemaId);
     }
@@ -258,7 +259,7 @@ public class SchemagroupsResourceImpl implements SchemagroupsResource {
 
     @Override
     @Authorized(style=AuthorizedStyle.GroupAndArtifact, level=AuthorizedLevel.Write)
-    public void deleteSchemaVersion(String groupId, String schemaId, Integer versionNumber) {
+    public void deleteSchemaVersion(String groupId, String schemaId, Integer versionNumber) throws ReadOnlyStorageException {
         verifyGroupExists(groupId);
         storage.deleteArtifactVersion(groupId, schemaId, VersionUtil.toString(versionNumber));
     }

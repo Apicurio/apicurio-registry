@@ -17,12 +17,6 @@
 
 package io.apicurio.registry.storage;
 
-import java.time.Instant;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.function.Function;
-
 import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
 import io.apicurio.common.apps.config.DynamicConfigStorage;
 import io.apicurio.common.apps.multitenancy.TenantContext;
@@ -45,10 +39,17 @@ import io.apicurio.registry.storage.dto.RuleConfigurationDto;
 import io.apicurio.registry.storage.dto.SearchFilter;
 import io.apicurio.registry.storage.dto.StoredArtifactDto;
 import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
+import io.apicurio.registry.storage.dto.*;
+import io.apicurio.registry.storage.error.*;
 import io.apicurio.registry.storage.impexp.EntityInputStream;
+import io.apicurio.registry.storage.impl.sql.IdGenerator;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.RuleType;
-import io.apicurio.registry.utils.impexp.Entity;
+import io.apicurio.registry.utils.impexp.*;
+
+import java.time.Instant;
+import java.util.*;
+import java.util.function.Function;
 
 /**
  * The artifactStore layer for the registry.
@@ -91,6 +92,10 @@ public interface RegistryStorage extends DynamicConfigStorage {
      */
     boolean isAlive();
 
+
+    boolean isReadOnly();
+
+
     /**
      * Update artifact state.
      *
@@ -101,7 +106,7 @@ public interface RegistryStorage extends DynamicConfigStorage {
      * @throws RegistryStorageException
      */
     void updateArtifactState(String groupId, String artifactId, ArtifactState state)
-            throws ArtifactNotFoundException, RegistryStorageException;
+            throws ArtifactNotFoundException, RegistryStorageException, ReadOnlyStorageException;
 
     /**
      * Update artifact state.
@@ -115,7 +120,7 @@ public interface RegistryStorage extends DynamicConfigStorage {
      * @throws RegistryStorageException
      */
     void updateArtifactState(String groupId, String artifactId, String version, ArtifactState state)
-            throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException;
+            throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException, ReadOnlyStorageException;
 
     /**
      * Creates a new artifact (from the given value) in the artifactStore.  The artifactId must be unique
@@ -133,7 +138,7 @@ public interface RegistryStorage extends DynamicConfigStorage {
      * @throws RegistryStorageException
      */
     ArtifactMetaDataDto createArtifact(String groupId, String artifactId, String version, String artifactType,
-                                       ContentHandle content, List<ArtifactReferenceDto> references) throws ArtifactAlreadyExistsException, RegistryStorageException;
+                                       ContentHandle content, List<ArtifactReferenceDto> references) throws ArtifactAlreadyExistsException, RegistryStorageException, ReadOnlyStorageException;
 
     /**
      * Creates a new artifact (from the given value including metadata) in the artifactStore.  The artifactId must be unique
@@ -150,7 +155,7 @@ public interface RegistryStorage extends DynamicConfigStorage {
      * @throws RegistryStorageException
      */
     ArtifactMetaDataDto createArtifactWithMetadata(String groupId, String artifactId, String version,
-                                                   String artifactType, ContentHandle content, EditableArtifactMetaDataDto metaData, List<ArtifactReferenceDto> references) throws ArtifactAlreadyExistsException, RegistryStorageException;
+                                                   String artifactType, ContentHandle content, EditableArtifactMetaDataDto metaData, List<ArtifactReferenceDto> references) throws ArtifactAlreadyExistsException, RegistryStorageException, ReadOnlyStorageException;
 
     /**
      * Deletes an artifact by its group and unique id. Returns list of artifact versions.
@@ -160,7 +165,7 @@ public interface RegistryStorage extends DynamicConfigStorage {
      * @throws ArtifactNotFoundException
      * @throws RegistryStorageException
      */
-    List<String> deleteArtifact(String groupId, String artifactId) throws ArtifactNotFoundException, RegistryStorageException;
+    List<String> deleteArtifact(String groupId, String artifactId) throws ArtifactNotFoundException, RegistryStorageException, ReadOnlyStorageException;
 
     /**
      * Deletes all artifacts in the given group. DOES NOT delete the group.
@@ -168,7 +173,7 @@ public interface RegistryStorage extends DynamicConfigStorage {
      * @param groupId (optional)
      * @throws RegistryStorageException
      */
-    void deleteArtifacts(String groupId) throws RegistryStorageException;
+    void deleteArtifacts(String groupId) throws RegistryStorageException, ReadOnlyStorageException;
 
     /**
      * Gets the most recent version of the value of the artifact with the given group and ID.
@@ -239,7 +244,8 @@ public interface RegistryStorage extends DynamicConfigStorage {
      * @throws RegistryStorageException
      */
     ArtifactMetaDataDto updateArtifact(String groupId, String artifactId, String version,
-                                       String artifactType, ContentHandle content, List<ArtifactReferenceDto> references) throws ArtifactNotFoundException, RegistryStorageException;
+                                       String artifactType, ContentHandle content, List<ArtifactReferenceDto> references)
+            throws ArtifactNotFoundException, RegistryStorageException, ReadOnlyStorageException;
 
     /**
      * Updates the artifact value by storing the given value and metadata as a new version of the artifact.  Previous value
@@ -257,7 +263,7 @@ public interface RegistryStorage extends DynamicConfigStorage {
      * @throws RegistryStorageException
      */
     ArtifactMetaDataDto updateArtifactWithMetadata(String groupId, String artifactId, String version,
-                                                   String artifactType, ContentHandle content, EditableArtifactMetaDataDto metaData, List<ArtifactReferenceDto> references) throws ArtifactNotFoundException, RegistryStorageException;
+                                                   String artifactType, ContentHandle content, EditableArtifactMetaDataDto metaData, List<ArtifactReferenceDto> references) throws ArtifactNotFoundException, RegistryStorageException, ReadOnlyStorageException;
 
     /**
      * Get all artifact ids.
@@ -331,7 +337,7 @@ public interface RegistryStorage extends DynamicConfigStorage {
      * @throws ArtifactNotFoundException
      * @throws RegistryStorageException
      */
-    void updateArtifactMetaData(String groupId, String artifactId, EditableArtifactMetaDataDto metaData) throws ArtifactNotFoundException, RegistryStorageException;
+    void updateArtifactMetaData(String groupId, String artifactId, EditableArtifactMetaDataDto metaData) throws ArtifactNotFoundException, RegistryStorageException, ReadOnlyStorageException;
 
     /**
      * Updates the owner (created-by) for an artifact by group and ID.
@@ -342,7 +348,7 @@ public interface RegistryStorage extends DynamicConfigStorage {
      * @throws ArtifactNotFoundException
      * @throws RegistryStorageException
      */
-    void updateArtifactOwner(String groupId, String artifactId, ArtifactOwnerDto owner) throws ArtifactNotFoundException, RegistryStorageException;
+    void updateArtifactOwner(String groupId, String artifactId, ArtifactOwnerDto owner) throws ArtifactNotFoundException, RegistryStorageException, ReadOnlyStorageException;
 
     /**
      * Gets a list of rules configured for a specific Artifact (by group and ID).  This will return only the names of the
@@ -368,7 +374,7 @@ public interface RegistryStorage extends DynamicConfigStorage {
      * @throws RegistryStorageException
      */
     void createArtifactRule(String groupId, String artifactId, RuleType rule, RuleConfigurationDto config)
-            throws ArtifactNotFoundException, RuleAlreadyExistsException, RegistryStorageException;
+            throws ArtifactNotFoundException, RuleAlreadyExistsException, RegistryStorageException, ReadOnlyStorageException;
 
     /**
      * Deletes all rules stored/configured for the artifact.
@@ -378,7 +384,7 @@ public interface RegistryStorage extends DynamicConfigStorage {
      * @throws ArtifactNotFoundException
      * @throws RegistryStorageException
      */
-    void deleteArtifactRules(String groupId, String artifactId) throws ArtifactNotFoundException, RegistryStorageException;
+    void deleteArtifactRules(String groupId, String artifactId) throws ArtifactNotFoundException, RegistryStorageException, ReadOnlyStorageException;
 
     /**
      * Gets all of the information for a single rule configured on a given artifact.
@@ -405,7 +411,7 @@ public interface RegistryStorage extends DynamicConfigStorage {
      * @throws RegistryStorageException
      */
     void updateArtifactRule(String groupId, String artifactId, RuleType rule, RuleConfigurationDto config)
-            throws ArtifactNotFoundException, RuleNotFoundException, RegistryStorageException;
+            throws ArtifactNotFoundException, RuleNotFoundException, RegistryStorageException, ReadOnlyStorageException;
 
     /**
      * Deletes a single stored/configured rule for a given artifact.
@@ -417,7 +423,7 @@ public interface RegistryStorage extends DynamicConfigStorage {
      * @throws RuleNotFoundException
      * @throws RegistryStorageException
      */
-    void deleteArtifactRule(String groupId, String artifactId, RuleType rule) throws ArtifactNotFoundException, RuleNotFoundException, RegistryStorageException;
+    void deleteArtifactRule(String groupId, String artifactId, RuleType rule) throws ArtifactNotFoundException, RuleNotFoundException, RegistryStorageException, ReadOnlyStorageException;
 
     /**
      * Gets a sorted set of all artifact versions that exist for a given artifact.
@@ -473,7 +479,7 @@ public interface RegistryStorage extends DynamicConfigStorage {
      * @throws VersionNotFoundException
      * @throws RegistryStorageException
      */
-    void deleteArtifactVersion(String groupId, String artifactId, String version) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException;
+    void deleteArtifactVersion(String groupId, String artifactId, String version) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException, ReadOnlyStorageException;
 
     /**
      * Gets the stored meta-data for a single version of an artifact.  This will return all meta-data for the
@@ -500,7 +506,7 @@ public interface RegistryStorage extends DynamicConfigStorage {
      * @throws VersionNotFoundException
      * @throws RegistryStorageException
      */
-    void updateArtifactVersionMetaData(String groupId, String artifactId, String version, EditableArtifactMetaDataDto metaData) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException;
+    void updateArtifactVersionMetaData(String groupId, String artifactId, String version, EditableArtifactMetaDataDto metaData) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException, ReadOnlyStorageException;
 
     /**
      * Deletes the user-editable meta-data for a singel version of a given artifact.  Only the client-editable
@@ -513,7 +519,7 @@ public interface RegistryStorage extends DynamicConfigStorage {
      * @throws VersionNotFoundException
      * @throws RegistryStorageException
      */
-    void deleteArtifactVersionMetaData(String groupId, String artifactId, String version) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException;
+    void deleteArtifactVersionMetaData(String groupId, String artifactId, String version) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException, ReadOnlyStorageException;
 
     /**
      * Gets a list of all global rule names.
@@ -530,14 +536,14 @@ public interface RegistryStorage extends DynamicConfigStorage {
      * @throws RuleAlreadyExistsException
      * @throws RegistryStorageException
      */
-    void createGlobalRule(RuleType rule, RuleConfigurationDto config) throws RuleAlreadyExistsException, RegistryStorageException;
+    void createGlobalRule(RuleType rule, RuleConfigurationDto config) throws RuleAlreadyExistsException, RegistryStorageException, ReadOnlyStorageException;
 
     /**
      * Deletes all of the globally configured rules.
      *
      * @throws RegistryStorageException
      */
-    void deleteGlobalRules() throws RegistryStorageException;
+    void deleteGlobalRules() throws RegistryStorageException, ReadOnlyStorageException;
 
     /**
      * Gets all information about a single global rule.
@@ -556,7 +562,7 @@ public interface RegistryStorage extends DynamicConfigStorage {
      * @throws RuleNotFoundException
      * @throws RegistryStorageException
      */
-    void updateGlobalRule(RuleType rule, RuleConfigurationDto config) throws RuleNotFoundException, RegistryStorageException;
+    void updateGlobalRule(RuleType rule, RuleConfigurationDto config) throws RuleNotFoundException, RegistryStorageException, ReadOnlyStorageException;
 
     /**
      * Deletes a single global rule.
@@ -565,7 +571,7 @@ public interface RegistryStorage extends DynamicConfigStorage {
      * @throws RuleNotFoundException
      * @throws RegistryStorageException
      */
-    void deleteGlobalRule(RuleType rule) throws RuleNotFoundException, RegistryStorageException;
+    void deleteGlobalRule(RuleType rule) throws RuleNotFoundException, RegistryStorageException, ReadOnlyStorageException;
 
     /**
      * Creates a new empty group and stores it's metadata. When creating an artifact the group is automatically created in it does not exist.
@@ -574,7 +580,7 @@ public interface RegistryStorage extends DynamicConfigStorage {
      * @throws GroupAlreadyExistsException
      * @throws RegistryStorageException
      */
-    void createGroup(GroupMetaDataDto group) throws GroupAlreadyExistsException, RegistryStorageException;
+    void createGroup(GroupMetaDataDto group) throws GroupAlreadyExistsException, RegistryStorageException, ReadOnlyStorageException;
 
     /**
      * Updates the metadata of an existent group.
@@ -582,7 +588,7 @@ public interface RegistryStorage extends DynamicConfigStorage {
      * @param group
      * @throws RegistryStorageException
      */
-    void updateGroupMetaData(GroupMetaDataDto group) throws GroupNotFoundException, RegistryStorageException;
+    void updateGroupMetaData(GroupMetaDataDto group) throws GroupNotFoundException, RegistryStorageException, ReadOnlyStorageException;
 
     /**
      * Deletes a group intified by the given groupId and DELETES ALL resources related to this group
@@ -591,7 +597,7 @@ public interface RegistryStorage extends DynamicConfigStorage {
      * @throws GroupNotFoundException
      * @throws RegistryStorageException
      */
-    void deleteGroup(String groupId) throws GroupNotFoundException, RegistryStorageException;
+    void deleteGroup(String groupId) throws GroupNotFoundException, RegistryStorageException, ReadOnlyStorageException;
 
     /**
      * Get all groupIds
@@ -626,7 +632,7 @@ public interface RegistryStorage extends DynamicConfigStorage {
      * @param preserveContentId Preserve content id. If false, content ids will be set to the next ids in the content id sequence. Content-Version mapping will be preserved.
      * @throws RegistryStorageException
      */
-    void importData(EntityInputStream entities, boolean preserveGlobalId, boolean preserveContentId) throws RegistryStorageException;
+    void importData(EntityInputStream entities, boolean preserveGlobalId, boolean preserveContentId) throws RegistryStorageException, ReadOnlyStorageException;
 
     /**
      * Counts the total number of artifacts
@@ -659,7 +665,7 @@ public interface RegistryStorage extends DynamicConfigStorage {
      * @param role
      * @param principalName
      */
-    void createRoleMapping(String principalId, String role, String principalName) throws RegistryStorageException;
+    void createRoleMapping(String principalId, String role, String principalName) throws RegistryStorageException, ReadOnlyStorageException;
 
     /**
      * Gets the list of all the role mappings in the registry.
@@ -687,19 +693,19 @@ public interface RegistryStorage extends DynamicConfigStorage {
      * @param principalId
      * @param role
      */
-    void updateRoleMapping(String principalId, String role) throws RegistryStorageException;
+    void updateRoleMapping(String principalId, String role) throws RegistryStorageException, ReadOnlyStorageException;
 
     /**
      * Deletes a single role mapping.
      *
      * @param principalId
      */
-    void deleteRoleMapping(String principalId) throws RegistryStorageException;
+    void deleteRoleMapping(String principalId) throws RegistryStorageException, ReadOnlyStorageException;
 
     /**
      * Deletes ALL user (tenant) data. Does not delete global data, such as log configuration.
      */
-    void deleteAllUserData();
+    void deleteAllUserData() throws ReadOnlyStorageException;
 
     /**
      * Called to create a single-use download "link".  This can then be consumed using
@@ -708,14 +714,14 @@ public interface RegistryStorage extends DynamicConfigStorage {
      * @param context
      * @throws RegistryStorageException
      */
-    String createDownload(DownloadContextDto context) throws RegistryStorageException;
+    String createDownload(DownloadContextDto context) throws RegistryStorageException, ReadOnlyStorageException;
 
     /**
      * Called to consume a download from the DB (single-use) and return its context info.
      *
      * @param downloadId
      */
-    DownloadContextDto consumeDownload(String downloadId) throws RegistryStorageException;
+    DownloadContextDto consumeDownload(String downloadId) throws RegistryStorageException, ReadOnlyStorageException;
 
     /**
      * Called to delete any expired rows in the downloads table.  This is basically cleaning up
@@ -723,7 +729,7 @@ public interface RegistryStorage extends DynamicConfigStorage {
      *
      * @throws RegistryStorageException
      */
-    void deleteAllExpiredDownloads() throws RegistryStorageException;
+    void deleteAllExpiredDownloads() throws RegistryStorageException, ReadOnlyStorageException;
 
     /**
      * Gets the raw value of a property, bypassing any caching that might be enabled.
@@ -806,34 +812,30 @@ public interface RegistryStorage extends DynamicConfigStorage {
      */
     GroupSearchResultsDto searchGroups(Set<SearchFilter> filters, OrderBy orderBy, OrderDirection orderDirection, Integer offset, Integer limit);
 
-    enum ArtifactRetrievalBehavior {
-        DEFAULT,
-        /**
-         * Skip artifact versions with DISABLED state
-         */
-        SKIP_DISABLED_LATEST
-    }
 
     /**
      * Creates a new comment for an artifact version.
+     *
      * @param groupId
      * @param artifactId
      * @param version
      * @param value
      */
-    CommentDto createArtifactVersionComment(String groupId, String artifactId, String version, String value);
+    CommentDto createArtifactVersionComment(String groupId, String artifactId, String version, String value) throws ReadOnlyStorageException;
 
     /**
      * Deletes a single comment for an artifact version.
+     *
      * @param groupId
      * @param artifactId
      * @param version
      * @param commentId
      */
-    void deleteArtifactVersionComment(String groupId, String artifactId, String version, String commentId);
+    void deleteArtifactVersionComment(String groupId, String artifactId, String version, String commentId) throws ReadOnlyStorageException;
 
     /**
      * Returns all comments for the given artifact version.
+     *
      * @param groupId
      * @param artifactId
      * @param version
@@ -842,12 +844,94 @@ public interface RegistryStorage extends DynamicConfigStorage {
 
     /**
      * Updates a single comment.
+     *
      * @param groupId
      * @param artifactId
      * @param version
      * @param commentId
      * @param value
      */
-    void updateArtifactVersionComment(String groupId, String artifactId, String version, String commentId, String value);
+    void updateArtifactVersionComment(String groupId, String artifactId, String version, String commentId, String value) throws ReadOnlyStorageException;
 
+
+    CommentDto createArtifactVersionCommentRaw(String groupId, String artifactId, String version, IdGenerator commentId,
+                                               String createdBy, Date createdOn, String value) throws ReadOnlyStorageException;
+
+
+    void resetGlobalId() throws ReadOnlyStorageException;
+
+
+    void resetContentId() throws ReadOnlyStorageException;
+
+
+    void resetCommentId() throws ReadOnlyStorageException;
+
+
+    long nextContentId() throws ReadOnlyStorageException;
+
+
+    long nextGlobalId() throws ReadOnlyStorageException;
+
+
+    long nextCommentId() throws ReadOnlyStorageException;
+
+
+    void importComment(CommentEntity entity) throws ReadOnlyStorageException;
+
+
+    void importGroup(GroupEntity entity) throws ReadOnlyStorageException;
+
+
+    void importGlobalRule(GlobalRuleEntity entity) throws ReadOnlyStorageException;
+
+
+    void importContent(ContentEntity entity) throws ReadOnlyStorageException;
+
+
+    void importArtifactVersion(ArtifactVersionEntity entity) throws ReadOnlyStorageException;
+
+
+    void importArtifactRule(ArtifactRuleEntity entity) throws ReadOnlyStorageException;
+
+
+    String normalizeVersion(String groupId, String artifactId, String version);
+
+
+    boolean isContentExists(String contentHash) throws RegistryStorageException;
+
+
+    boolean isArtifactRuleExists(String groupId, String artifactId, RuleType rule) throws RegistryStorageException;
+
+
+    boolean isGlobalRuleExists(RuleType rule) throws RegistryStorageException;
+
+
+    boolean isRoleMappingExists(String principalId);
+
+
+    void updateContentCanonicalHash(String newCanonicalHash, long contentId, String contentHash) throws ReadOnlyStorageException;
+
+
+    Optional<Long> contentIdFromHash(String contentHash);
+
+
+    ArtifactMetaDataDto updateArtifactWithMetadata(String groupId, String artifactId, String version,
+                                                   String artifactType, String contentHash, String createdBy, Date createdOn,
+                                                   EditableArtifactMetaDataDto metaData,
+                                                   IdGenerator globalIdGenerator) throws ReadOnlyStorageException;
+
+
+    ArtifactMetaDataDto createArtifactWithMetadata(String groupId, String artifactId, String version,
+                                                   String artifactType, String contentHash, String createdBy,
+                                                   Date createdOn, EditableArtifactMetaDataDto metaData, IdGenerator globalIdGenerator)
+            throws ArtifactNotFoundException, RegistryStorageException, ReadOnlyStorageException;
+
+
+    enum ArtifactRetrievalBehavior {
+        DEFAULT,
+        /**
+         * Skip artifact versions with DISABLED state
+         */
+        SKIP_DISABLED_LATEST
+    }
 }

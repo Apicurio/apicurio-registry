@@ -16,15 +16,8 @@
 
 package io.apicurio.registry.ccompat.rest.v6.impl;
 
-import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_ARTIFACT_ID;
-import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_VERSION;
-
-import java.util.List;
-
-import jakarta.inject.Inject;
-import jakarta.interceptor.Interceptors;
-import jakarta.ws.rs.BadRequestException;
-
+import io.apicurio.common.apps.logging.Logged;
+import io.apicurio.common.apps.logging.audit.Audited;
 import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
@@ -33,10 +26,17 @@ import io.apicurio.registry.ccompat.dto.SchemaId;
 import io.apicurio.registry.ccompat.dto.SchemaInfo;
 import io.apicurio.registry.ccompat.rest.v6.SubjectVersionsResource;
 import io.apicurio.registry.ccompat.store.FacadeConverter;
-import io.apicurio.common.apps.logging.Logged;
-import io.apicurio.common.apps.logging.audit.Audited;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
+import io.apicurio.registry.storage.error.ReadOnlyStorageException;
+import jakarta.inject.Inject;
+import jakarta.interceptor.Interceptors;
+import jakarta.ws.rs.BadRequestException;
+
+import java.util.List;
+
+import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_ARTIFACT_ID;
+import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_VERSION;
 
 /**
  * @author Ales Justin
@@ -50,35 +50,31 @@ public class SubjectVersionsResourceImpl extends AbstractResource implements Sub
     FacadeConverter converter;
 
     @Override
-    @Authorized(style=AuthorizedStyle.ArtifactOnly, level=AuthorizedLevel.Read)
-    public List<Integer> listVersions(String subject) throws Exception {
+    @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Read)
+    public List<Integer> listVersions(String subject) {
         return facade.getVersions(subject);
     }
 
     @Override
     @Audited(extractParameters = {"0", KEY_ARTIFACT_ID})
-    @Authorized(style=AuthorizedStyle.ArtifactOnly, level=AuthorizedLevel.Write)
-    public SchemaId register(String subject, SchemaInfo request) throws Exception {
+    @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Write)
+    public SchemaId register(String subject, SchemaInfo request) throws ReadOnlyStorageException {
         Long id = facade.createSchema(subject, request.getSchema(), request.getSchemaType(), request.getReferences(), false);
         int sid = converter.convertUnsigned(id);
         return new SchemaId(sid);
     }
 
     @Override
-    @Authorized(style=AuthorizedStyle.ArtifactOnly, level=AuthorizedLevel.Read)
-    public Schema getSchemaByVersion(
-            String subject,
-            String version) throws Exception {
+    @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Read)
+    public Schema getSchemaByVersion(String subject, String version) {
 
         return facade.getSchema(subject, version);
     }
 
     @Override
     @Audited(extractParameters = {"0", KEY_ARTIFACT_ID, "1", KEY_VERSION})
-    @Authorized(style=AuthorizedStyle.ArtifactOnly, level=AuthorizedLevel.Write)
-    public int deleteSchemaVersion(
-            String subject,
-            String version) throws Exception {
+    @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Write)
+    public int deleteSchemaVersion(String subject, String version) throws ReadOnlyStorageException {
 
         try {
             return facade.deleteSchema(subject, version, true);
@@ -88,17 +84,15 @@ public class SubjectVersionsResourceImpl extends AbstractResource implements Sub
     }
 
     @Override
-    @Authorized(style=AuthorizedStyle.ArtifactOnly, level=AuthorizedLevel.Read)
-    public String getSchemaOnly(
-            String subject,
-            String version) throws Exception {
+    @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Read)
+    public String getSchemaOnly(String subject, String version) {
 
         return facade.getSchema(subject, version).getSchema();
     }
 
     @Override
-    @Authorized(style=AuthorizedStyle.ArtifactOnly, level=AuthorizedLevel.Read)
-    public List<Long> getSchemasReferencedBy(String subject, String version) throws Exception {
+    @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Read)
+    public List<Long> getSchemasReferencedBy(String subject, String version) {
         return facade.getContentIdsReferencingArtifact(subject, version);
     }
 }

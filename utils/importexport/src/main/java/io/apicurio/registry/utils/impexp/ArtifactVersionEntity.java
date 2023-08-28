@@ -16,15 +16,25 @@
 
 package io.apicurio.registry.utils.impexp;
 
+import io.apicurio.registry.types.ArtifactState;
+import io.quarkus.runtime.annotations.RegisterForReflection;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.NoArgsConstructor;
+import lombok.ToString;
+
 import java.util.List;
 import java.util.Map;
 
-import io.apicurio.registry.types.ArtifactState;
-import io.quarkus.runtime.annotations.RegisterForReflection;
+import static lombok.AccessLevel.PRIVATE;
 
 /**
  * @author eric.wittmann@gmail.com
  */
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor(access = PRIVATE)
+@ToString
 @RegisterForReflection
 public class ArtifactVersionEntity extends Entity {
 

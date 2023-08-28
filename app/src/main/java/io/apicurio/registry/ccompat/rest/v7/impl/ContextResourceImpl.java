@@ -32,7 +32,7 @@ import java.util.List;
 public class ContextResourceImpl extends AbstractResource implements ContextResource {
 
     @Override
-    public List<String> getContexts() throws Exception {
+    public List<String> getContexts() {
         return List.of(":.:");
     }
 }

@@ -16,14 +16,16 @@
 
 package io.apicurio.registry.downloads;
 
+import io.apicurio.registry.exception.UnreachableCodeException;
 import io.apicurio.registry.storage.RegistryStorage;
+import io.apicurio.registry.storage.error.ReadOnlyStorageException;
 import io.apicurio.registry.types.Current;
 import io.quarkus.scheduler.Scheduled;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 import org.slf4j.Logger;
 
 import java.time.Instant;
-import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
 
 import static io.quarkus.scheduler.Scheduled.ConcurrentExecution.SKIP;
 
@@ -49,12 +51,20 @@ public class DownloadReaper {
     void run() {
         try {
             if(storage.isReady()) {
-                log.debug("Running download reaper job at {}", Instant.now());
-                reap();
+                if(!storage.isReadOnly()) {
+                    log.debug("Running download reaper job at {}", Instant.now());
+                    reap();
+                } else {
+                    log.debug("Skipping download reaper job because the storage is in read-only mode.");
+                }
             } else {
-                log.warn("Storage is not alive. Skipping download reaper job for now.");
+                log.debug("Skipping download reaper job because the storage is not ready.");
             }
-        } catch (Exception ex) {
+        }
+        catch (ReadOnlyStorageException ex) {
+            throw new UnreachableCodeException(ex);
+        }
+        catch (Exception ex) {
             log.error("Exception thrown when running download reaper job", ex);
         }
     }
@@ -62,7 +72,7 @@ public class DownloadReaper {
     /**
      * Delete any rows in the "downloads" table that represent downloads that have expired.
      */
-    void reap() {
+    void reap() throws ReadOnlyStorageException {
         storage.deleteAllExpiredDownloads();
     }
 }

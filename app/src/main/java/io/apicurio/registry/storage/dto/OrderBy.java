@@ -20,5 +20,5 @@ package io.apicurio.registry.storage.dto;
  * @author eric.wittmann@gmail.com
  */
 public enum OrderBy {
-    name, createdOn, id
+    name, createdOn, globalId
 }

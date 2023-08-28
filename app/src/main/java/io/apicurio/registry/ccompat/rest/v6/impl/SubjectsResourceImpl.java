@@ -26,6 +26,7 @@ import io.apicurio.registry.ccompat.dto.SchemaInfo;
 import io.apicurio.registry.ccompat.rest.v6.SubjectsResource;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
+import io.apicurio.registry.storage.error.ReadOnlyStorageException;
 import jakarta.interceptor.Interceptors;
 
 import java.util.List;
@@ -41,21 +42,21 @@ import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_ARTIFA
 public class SubjectsResourceImpl extends AbstractResource implements SubjectsResource {
 
     @Override
-    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Read)
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
     public List<String> listSubjects() {
         return facade.getSubjects(false);
     }
 
     @Override
-    @Authorized(style=AuthorizedStyle.ArtifactOnly, level=AuthorizedLevel.Read)
-    public Schema findSchemaByContent(String subject, SchemaInfo request) throws Exception {
+    @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Read)
+    public Schema findSchemaByContent(String subject, SchemaInfo request) {
         return facade.getSchemaNormalize(subject, request, false);
     }
 
     @Override
     @Audited(extractParameters = {"0", KEY_ARTIFACT_ID})
-    @Authorized(style=AuthorizedStyle.ArtifactOnly, level=AuthorizedLevel.Write)
-    public List<Integer> deleteSubject(String subject) throws Exception {
+    @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Write)
+    public List<Integer> deleteSubject(String subject) throws ReadOnlyStorageException {
         return facade.deleteSubject(subject, true);
     }
 

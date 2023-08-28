@@ -19,6 +19,7 @@ package io.apicurio.registry.ccompat.rest.v7;
 import io.apicurio.registry.ccompat.dto.Schema;
 import io.apicurio.registry.ccompat.dto.SchemaInfo;
 import io.apicurio.registry.rest.Headers;
+import io.apicurio.registry.storage.error.ReadOnlyStorageException;
 import jakarta.validation.constraints.NotNull;
 import jakarta.ws.rs.*;
 
@@ -88,7 +89,7 @@ public interface SubjectsResource {
     @Path("/{subject}")
     Schema findSchemaByContent(
             @PathParam("subject") String subject,
-            @NotNull SchemaInfo request, @QueryParam("normalize") Boolean normalize, @HeaderParam(Headers.GROUP_ID) String groupId) throws Exception;
+            @NotNull SchemaInfo request, @QueryParam("normalize") Boolean normalize, @HeaderParam(Headers.GROUP_ID) String groupId);
 
     /**
      * Deletes the specified subject and its associated compatibility level if registered.
@@ -114,5 +115,6 @@ public interface SubjectsResource {
     @DELETE
     @Path("/{subject}")
     List<Integer> deleteSubject(
-            @PathParam("subject") String subject, @QueryParam("permanent") Boolean permanent, @HeaderParam(Headers.GROUP_ID) String groupId) throws Exception;
+            @PathParam("subject") String subject, @QueryParam("permanent") Boolean permanent, @HeaderParam(Headers.GROUP_ID) String groupId)
+            throws ReadOnlyStorageException;
 }

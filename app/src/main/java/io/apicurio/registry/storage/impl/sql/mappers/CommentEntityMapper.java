@@ -16,11 +16,11 @@
 
 package io.apicurio.registry.storage.impl.sql.mappers;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
-
 import io.apicurio.registry.storage.impl.sql.jdb.RowMapper;
 import io.apicurio.registry.utils.impexp.CommentEntity;
+
+import java.sql.ResultSet;
+import java.sql.SQLException;
 
 /**
  * @author eric.wittmann@gmail.com

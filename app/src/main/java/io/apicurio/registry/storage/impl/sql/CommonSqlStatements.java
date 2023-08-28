@@ -506,6 +506,11 @@ public abstract class CommonSqlStatements implements SqlStatements {
         return "SELECT artifactId FROM artifacts WHERE tenantId = ? LIMIT ?";
     }
 
+    @Override
+    public String selectArtifactIdsInGroup() {
+        return "SELECT artifactId FROM artifacts WHERE tenantId = ? AND groupId = ? LIMIT ?";
+    }
+
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectArtifactMetaDataByGlobalId()
      */

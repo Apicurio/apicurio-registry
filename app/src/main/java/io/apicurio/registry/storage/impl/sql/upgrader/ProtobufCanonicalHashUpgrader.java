@@ -16,13 +16,6 @@
 
 package io.apicurio.registry.storage.impl.sql.upgrader;
 
-import java.util.Collections;
-import java.util.stream.Stream;
-
-import org.apache.commons.codec.digest.DigestUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.canon.ContentCanonicalizer;
 import io.apicurio.registry.content.canon.ProtobufContentCanonicalizer;
@@ -32,6 +25,12 @@ import io.apicurio.registry.storage.impl.sql.mappers.ContentEntityMapper;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.impexp.ContentEntity;
 import io.quarkus.runtime.annotations.RegisterForReflection;
+import org.apache.commons.codec.digest.DigestUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.Collections;
+import java.util.stream.Stream;
 
 /**
  * @author Fabian Martinez

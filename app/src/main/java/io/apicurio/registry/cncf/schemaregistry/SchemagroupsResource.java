@@ -1,22 +1,15 @@
 package io.apicurio.registry.cncf.schemaregistry;
 
-import java.io.InputStream;
-import java.util.List;
-
-import jakarta.ws.rs.Consumes;
-import jakarta.ws.rs.DELETE;
-import jakarta.ws.rs.GET;
-import jakarta.ws.rs.POST;
-import jakarta.ws.rs.PUT;
-import jakarta.ws.rs.Path;
-import jakarta.ws.rs.PathParam;
-import jakarta.ws.rs.Produces;
-import jakarta.ws.rs.core.Response;
-
 import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedStyle;
 import io.apicurio.registry.cncf.schemaregistry.beans.SchemaGroup;
 import io.apicurio.registry.cncf.schemaregistry.beans.SchemaId;
+import io.apicurio.registry.storage.error.ReadOnlyStorageException;
+import jakarta.ws.rs.*;
+import jakarta.ws.rs.core.Response;
+
+import java.io.InputStream;
+import java.util.List;
 
 /**
  * A JAX-RS interface.  An implementation of this interface must be provided.
@@ -45,7 +38,7 @@ public interface SchemagroupsResource {
   @PUT
   @Consumes("application/json")
   @Authorized(style=AuthorizedStyle.GroupOnly)
-  void createGroup(@PathParam("group-id") String groupId, SchemaGroup data);
+  void createGroup(@PathParam("group-id") String groupId, SchemaGroup data) throws ReadOnlyStorageException;
 
   /**
    * Delete schema group in schema registry namespace.
@@ -53,7 +46,7 @@ public interface SchemagroupsResource {
   @Path("/{group-id}")
   @DELETE
   @Authorized(style=AuthorizedStyle.GroupOnly)
-  void deleteGroup(@PathParam("group-id") String groupId);
+  void deleteGroup(@PathParam("group-id") String groupId) throws ReadOnlyStorageException;
 
   /**
    * Returns schema by group id.
@@ -69,7 +62,7 @@ public interface SchemagroupsResource {
   @Path("/{group-id}/schemas")
   @DELETE
   @Authorized(style=AuthorizedStyle.GroupOnly)
-  void deleteSchemasByGroup(@PathParam("group-id") String groupId);
+  void deleteSchemasByGroup(@PathParam("group-id") String groupId) throws ReadOnlyStorageException;
 
   /**
    * Get latest version of schema.
@@ -90,12 +83,12 @@ public interface SchemagroupsResource {
   @Consumes("application/json;format=avro")
   @Authorized
   SchemaId createSchema(@PathParam("group-id") String groupId,
-      @PathParam("schema-id") String schemaId, InputStream data);
+      @PathParam("schema-id") String schemaId, InputStream data) throws ReadOnlyStorageException;
 
   @Path("/{group-id}/schemas/{schema-id}")
   @DELETE
   @Authorized
-  void deleteSchema(@PathParam("group-id") String groupId, @PathParam("schema-id") String schemaId);
+  void deleteSchema(@PathParam("group-id") String groupId, @PathParam("schema-id") String schemaId) throws ReadOnlyStorageException;
 
   /**
    * Get list of versions for specified schema
@@ -116,5 +109,5 @@ public interface SchemagroupsResource {
   @DELETE
   @Authorized
   void deleteSchemaVersion(@PathParam("group-id") String groupId,
-      @PathParam("schema-id") String schemaId, @PathParam("version-number") Integer versionNumber);
+      @PathParam("schema-id") String schemaId, @PathParam("version-number") Integer versionNumber) throws ReadOnlyStorageException;
 }

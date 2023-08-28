@@ -22,8 +22,9 @@ import io.apicurio.registry.metrics.health.liveness.PersistenceExceptionLiveness
 import io.apicurio.registry.metrics.health.readiness.PersistenceTimeoutReadinessApply;
 import io.apicurio.registry.storage.RegistryStorage;
 import jakarta.annotation.PostConstruct;
-
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
+
 
 /**
  * An in-memory SQL implementation of the {@link RegistryStorage} interface.
@@ -37,13 +38,13 @@ import jakarta.enterprise.context.ApplicationScoped;
 @Logged
 public class InMemoryRegistryStorage extends AbstractSqlRegistryStorage {
 
-    public InMemoryRegistryStorage() {
-        super(true);
-    }
+    @Inject
+    DefaultHandleFactory handleFactory;
 
     @PostConstruct
     void onConstruct() {
         log.info("Using In Memory (H2) SQL storage.");
+        initialize(handleFactory, true);
     }
 
     /**

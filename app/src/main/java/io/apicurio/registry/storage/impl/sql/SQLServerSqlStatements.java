@@ -132,6 +132,11 @@ public class SQLServerSqlStatements extends CommonSqlStatements {
         return "SELECT TOP (?) artifactId FROM artifacts WHERE tenantId = ?";
     }
 
+    @Override
+    public String selectArtifactIdsInGroup() {
+        return "SELECT TOP (?) artifactId FROM artifacts WHERE tenantId = ? AND groupId = ?";
+    }
+
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectAllArtifactVersions()
      */

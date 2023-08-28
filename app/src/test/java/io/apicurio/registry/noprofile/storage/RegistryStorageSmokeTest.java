@@ -18,9 +18,9 @@ package io.apicurio.registry.noprofile.storage;
 
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.content.ContentHandle;
-import io.apicurio.registry.storage.ArtifactNotFoundException;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.*;
+import io.apicurio.registry.storage.error.ArtifactNotFoundException;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.types.RuleType;
@@ -52,7 +52,7 @@ public class RegistryStorageSmokeTest extends AbstractResourceTestBase {
         return storage;
     }
 
-    private void delete(String artifactId, boolean rule) {
+    private void delete(String artifactId, boolean rule) throws Exception {
         try {
             if (rule) {
                 getStorage().deleteArtifactRules(GROUP_ID, artifactId);

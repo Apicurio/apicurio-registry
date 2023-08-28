@@ -21,9 +21,9 @@ import io.apicurio.registry.metrics.StorageMetricsApply;
 import io.apicurio.registry.metrics.health.liveness.PersistenceExceptionLivenessApply;
 import io.apicurio.registry.metrics.health.readiness.PersistenceTimeoutReadinessApply;
 import io.apicurio.registry.storage.RegistryStorage;
-
 import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 
 /**
  * A MS SQL Server implementation of the {@link RegistryStorage} interface.
@@ -37,13 +37,13 @@ import jakarta.enterprise.context.ApplicationScoped;
 @Logged
 public class MsSqlRegistryStorage extends AbstractSqlRegistryStorage {
 
-    public MsSqlRegistryStorage() {
-        super(true);
-    }
+    @Inject
+    HandleFactory handleFactory;
 
     @PostConstruct
     void onConstruct() {
         log.info("Using MS SQL registry storage.");
+        initialize(handleFactory, true);
     }
 
 }

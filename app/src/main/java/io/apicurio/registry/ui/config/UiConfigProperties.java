@@ -16,23 +16,25 @@
 
 package io.apicurio.registry.ui.config;
 
+import io.apicurio.common.apps.config.Dynamic;
+import io.apicurio.common.apps.config.Info;
+import io.apicurio.registry.storage.RegistryStorage;
+import io.apicurio.registry.types.Current;
+import io.apicurio.registry.utils.RegistryProperties;
+import jakarta.annotation.PostConstruct;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.slf4j.Logger;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 import java.util.function.Supplier;
 
-import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
-import jakarta.annotation.PostConstruct;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
-import org.slf4j.Logger;
-
-import io.apicurio.common.apps.config.Dynamic;
-import io.apicurio.common.apps.config.Info;
-import io.apicurio.registry.utils.RegistryProperties;
-
 /**
  * Holds/accesses all configuration settings for the UI.
+ *
  * @author eric.wittmann@gmail.com
  */
 @ApplicationScoped
@@ -42,7 +44,8 @@ public class UiConfigProperties {
     Logger log;
 
     @Inject
-    @Dynamic(label = "UI read-only mode", description = "When selected, the Service Registry web console is set to read-only, preventing create, read, update, or delete operations.")
+    @Dynamic(label = "UI read-only mode", description = "When selected, Registry web console is set to read-only, " +
+            "preventing create, update, or delete operations.")
     @ConfigProperty(name = "registry.ui.features.readOnly", defaultValue = "false")
     @Info(category = "ui", description = "UI read-only mode", availableSince = "1.2.0.Final")
     Supplier<Boolean> featureReadOnly;
@@ -92,10 +95,17 @@ public class UiConfigProperties {
     @Info(category = "ui", description = "UI auth OIDC redirect URL", availableSince = "2.2.6.Final")
     String oidcRedirectUri;
 
+
+    @Inject
+    @Current
+    RegistryStorage storage;
+
+
     private final Map<String, Object> keycloakConfig;
 
     /**
      * Constructor.
+     *
      * @param kcProperties
      */
     public UiConfigProperties(@RegistryProperties(value = {"registry.ui.config.auth.keycloak"}) Properties kcProperties) {
@@ -119,7 +129,7 @@ public class UiConfigProperties {
     }
 
     public boolean isFeatureReadOnly() {
-        return featureReadOnly.get();
+        return featureReadOnly.get() || storage.isReadOnly();
     }
 
     public boolean isFeatureSettings() {

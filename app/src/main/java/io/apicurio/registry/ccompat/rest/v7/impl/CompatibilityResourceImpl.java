@@ -37,14 +37,14 @@ public class CompatibilityResourceImpl extends AbstractResource implements Compa
 
     @Override
     @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Write)
-    public CompatibilityCheckResponse testCompatibilityBySubjectName(String subject, SchemaContent request, Boolean verbose, String groupId) throws Exception {
+    public CompatibilityCheckResponse testCompatibilityBySubjectName(String subject, SchemaContent request, Boolean verbose, String groupId) {
         final boolean fverbose = verbose == null ? Boolean.FALSE : verbose;
         return facade.testCompatibilityBySubjectName(subject, request, fverbose, groupId);
     }
 
     @Override
     @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Write)
-    public CompatibilityCheckResponse testCompatibilityByVersion(String subject, String version, SchemaContent request, Boolean verbose, String groupId) throws Exception {
+    public CompatibilityCheckResponse testCompatibilityByVersion(String subject, String version, SchemaContent request, Boolean verbose, String groupId) {
         final boolean fverbose = verbose == null ? Boolean.FALSE : verbose;
         return facade.testCompatibilityByVersion(subject, version, request, fverbose, groupId);
     }

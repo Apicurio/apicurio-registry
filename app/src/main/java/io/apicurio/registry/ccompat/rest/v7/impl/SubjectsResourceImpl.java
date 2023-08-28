@@ -26,6 +26,7 @@ import io.apicurio.registry.ccompat.dto.SchemaInfo;
 import io.apicurio.registry.ccompat.rest.v7.SubjectsResource;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
+import io.apicurio.registry.storage.error.ReadOnlyStorageException;
 
 import jakarta.interceptor.Interceptors;
 import java.util.List;
@@ -49,7 +50,7 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
 
     @Override
     @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Read)
-    public Schema findSchemaByContent(String subject, SchemaInfo request, Boolean normalize, String groupId) throws Exception {
+    public Schema findSchemaByContent(String subject, SchemaInfo request, Boolean normalize, String groupId) {
         final boolean fnormalize = normalize == null ? Boolean.FALSE : normalize;
         return facade.getSchemaNormalize(subject, request, fnormalize, groupId);
     }
@@ -57,7 +58,8 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
     @Override
     @Audited(extractParameters = {"0", KEY_ARTIFACT_ID})
     @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Write)
-    public List<Integer> deleteSubject(String subject, Boolean permanent, String groupId) throws Exception {
+    public List<Integer> deleteSubject(String subject, Boolean permanent, String groupId)
+            throws ReadOnlyStorageException {
         final boolean fpermanent = permanent == null ? Boolean.FALSE : permanent;
         return facade.deleteSubject(subject, fpermanent, groupId);
     }

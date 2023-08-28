@@ -28,13 +28,15 @@ import io.apicurio.registry.ccompat.rest.v7.ConfigResource;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
-import io.apicurio.registry.storage.RuleNotFoundException;
 import io.apicurio.registry.storage.dto.RuleConfigurationDto;
+import io.apicurio.registry.storage.error.ReadOnlyStorageException;
+import io.apicurio.registry.storage.error.RuleNotFoundException;
 import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.utils.Functional.Runnable1Ex;
+import io.apicurio.registry.utils.Functional.RunnableEx;
 
 import jakarta.interceptor.Interceptors;
 import java.util.Optional;
-import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 /**
@@ -58,9 +60,9 @@ public class ConfigResourceImpl extends AbstractResource implements ConfigResour
         }
     }
 
-    private void updateCompatibilityLevel(CompatibilityLevelDto.Level level,
-                                          Consumer<RuleConfigurationDto> updater,
-                                          Runnable deleter) {
+    private <X extends Exception> void updateCompatibilityLevel(CompatibilityLevelDto.Level level,
+                                                                Runnable1Ex<RuleConfigurationDto, X> updater,
+                                                                RunnableEx<X> deleter) throws X {
         if (level == CompatibilityLevelDto.Level.NONE) {
             // delete the rule
             deleter.run();
@@ -71,7 +73,7 @@ public class ConfigResourceImpl extends AbstractResource implements ConfigResour
             } catch (IllegalArgumentException ex) {
                 throw new IllegalArgumentException("Illegal compatibility level: " + levelString);
             }
-            updater.accept(RuleConfigurationDto.builder()
+            updater.run(RuleConfigurationDto.builder()
                     .configuration(levelString).build()); // TODO config should take CompatibilityLevel as param
         }
     }
@@ -86,7 +88,7 @@ public class ConfigResourceImpl extends AbstractResource implements ConfigResour
     @Override
     @Audited(extractParameters = {"0", AuditingConstants.KEY_RULE})
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
-    public CompatibilityLevelDto updateGlobalCompatibilityLevel(CompatibilityLevelDto request) {
+    public CompatibilityLevelDto updateGlobalCompatibilityLevel(CompatibilityLevelDto request) throws ReadOnlyStorageException {
         updateCompatibilityLevel(request.getCompatibility(),
                 dto -> facade.createOrUpdateGlobalRule(RuleType.COMPATIBILITY, dto),
                 () -> facade.deleteGlobalRule(RuleType.COMPATIBILITY));
@@ -96,7 +98,8 @@ public class ConfigResourceImpl extends AbstractResource implements ConfigResour
     @Override
     @Audited(extractParameters = {"0", AuditingConstants.KEY_ARTIFACT_ID, "1", AuditingConstants.KEY_RULE})
     @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Write)
-    public CompatibilityLevelDto updateSubjectCompatibilityLevel(String subject, CompatibilityLevelDto request, String groupId) {
+    public CompatibilityLevelDto updateSubjectCompatibilityLevel(String subject, CompatibilityLevelDto request, String groupId)
+            throws ReadOnlyStorageException {
         updateCompatibilityLevel(request.getCompatibility(),
                 dto -> facade.createOrUpdateArtifactRule(subject, RuleType.COMPATIBILITY, dto, groupId),
                 () -> facade.deleteArtifactRule(subject, RuleType.COMPATIBILITY, groupId));
@@ -113,7 +116,7 @@ public class ConfigResourceImpl extends AbstractResource implements ConfigResour
     @Override
     @Audited(extractParameters = {"0", AuditingConstants.KEY_ARTIFACT_ID})
     @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Write)
-    public CompatibilityLevelParamDto deleteSubjectCompatibility(String subject, String groupId) {
+    public CompatibilityLevelParamDto deleteSubjectCompatibility(String subject, String groupId) throws ReadOnlyStorageException {
         final CompatibilityLevelParamDto compatibilityLevel = getCompatibilityLevel(() ->
                 facade.getArtifactRule(subject, RuleType.COMPATIBILITY, groupId).getConfiguration());
         if (!CompatibilityLevel.NONE.name().equals(compatibilityLevel.getCompatibilityLevel())) {

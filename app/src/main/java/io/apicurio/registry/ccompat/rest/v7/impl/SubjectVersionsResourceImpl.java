@@ -28,6 +28,7 @@ import io.apicurio.registry.ccompat.rest.v7.SubjectVersionsResource;
 import io.apicurio.registry.ccompat.store.FacadeConverter;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
+import io.apicurio.registry.storage.error.ReadOnlyStorageException;
 
 import jakarta.inject.Inject;
 import jakarta.interceptor.Interceptors;
@@ -49,14 +50,15 @@ public class SubjectVersionsResourceImpl extends AbstractResource implements Sub
 
     @Override
     @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Read)
-    public List<Integer> listVersions(String subject, String groupId) throws Exception {
+    public List<Integer> listVersions(String subject, String groupId) {
         return facade.getVersions(subject, groupId);
     }
 
     @Override
     @Audited(extractParameters = {"0", KEY_ARTIFACT_ID})
     @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Write)
-    public SchemaId register(String subject, SchemaInfo request, Boolean normalize, String groupId) throws Exception {
+    public SchemaId register(String subject, SchemaInfo request, Boolean normalize, String groupId)
+            throws ReadOnlyStorageException {
         final boolean fnormalize = normalize == null ? Boolean.FALSE : normalize;
         Long id = facade.createSchema(subject, request.getSchema(), request.getSchemaType(), request.getReferences(), fnormalize, groupId);
         int sid = converter.convertUnsigned(id);
@@ -65,14 +67,15 @@ public class SubjectVersionsResourceImpl extends AbstractResource implements Sub
 
     @Override
     @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Read)
-    public Schema getSchemaByVersion(String subject, String version, String groupId) throws Exception {
+    public Schema getSchemaByVersion(String subject, String version, String groupId) {
         return facade.getSchema(subject, version, groupId);
     }
 
     @Override
     @Audited(extractParameters = {"0", KEY_ARTIFACT_ID, "1", KEY_VERSION})
     @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Write)
-    public int deleteSchemaVersion(String subject, String version, Boolean permanent, String groupId) throws Exception {
+    public int deleteSchemaVersion(String subject, String version, Boolean permanent, String groupId)
+            throws ReadOnlyStorageException {
         try {
             final boolean fnormalize = permanent == null ? Boolean.FALSE : permanent;
             return facade.deleteSchema(subject, version, fnormalize, groupId);
@@ -83,13 +86,13 @@ public class SubjectVersionsResourceImpl extends AbstractResource implements Sub
 
     @Override
     @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Read)
-    public String getSchemaOnly(String subject, String version, String groupId) throws Exception {
+    public String getSchemaOnly(String subject, String version, String groupId) {
         return facade.getSchema(subject, version, groupId).getSchema();
     }
 
     @Override
     @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Read)
-    public List<Long> getSchemasReferencedBy(String subject, String version, String groupId) throws Exception {
+    public List<Long> getSchemasReferencedBy(String subject, String version, String groupId) {
         return facade.getContentIdsReferencingArtifact(subject, version, groupId);
     }
 }

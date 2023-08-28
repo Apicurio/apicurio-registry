@@ -16,13 +16,13 @@
 
 package io.apicurio.registry.ccompat.rest.v6.impl;
 
+import io.apicurio.common.apps.logging.Logged;
 import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
 import io.apicurio.registry.ccompat.dto.CompatibilityCheckResponse;
 import io.apicurio.registry.ccompat.dto.SchemaContent;
 import io.apicurio.registry.ccompat.rest.v6.CompatibilityResource;
-import io.apicurio.common.apps.logging.Logged;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
 
@@ -40,11 +40,8 @@ import jakarta.interceptor.Interceptors;
 public class CompatibilityResourceImpl extends AbstractResource implements CompatibilityResource {
 
     @Override
-    @Authorized(style=AuthorizedStyle.ArtifactOnly, level=AuthorizedLevel.Write)
-    public CompatibilityCheckResponse testCompatibilityBySubjectName(
-            String subject,
-            String versionString,
-            SchemaContent request) throws Exception {
+    @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Write)
+    public CompatibilityCheckResponse testCompatibilityBySubjectName(String subject, String versionString, SchemaContent request) {
 
         return facade.testCompatibilityByVersion(subject, versionString, request, false);
     }

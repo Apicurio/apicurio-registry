@@ -19,10 +19,9 @@ package io.apicurio.registry.ccompat.rest.v7;
 import io.apicurio.registry.ccompat.dto.CompatibilityLevelDto;
 import io.apicurio.registry.ccompat.dto.CompatibilityLevelParamDto;
 import io.apicurio.registry.rest.Headers;
+import io.apicurio.registry.storage.error.ReadOnlyStorageException;
 import jakarta.validation.constraints.NotNull;
 import jakarta.ws.rs.*;
-
-import jakarta.ws.rs.HeaderParam;
 
 import static io.apicurio.registry.ccompat.rest.ContentTypes.*;
 
@@ -73,7 +72,7 @@ public interface ConfigResource {
      */
     @PUT
     CompatibilityLevelDto updateGlobalCompatibilityLevel(
-            @NotNull CompatibilityLevelDto request);
+            @NotNull CompatibilityLevelDto request) throws ReadOnlyStorageException;
 
 
     // ----- Path: /config/{subject} -----
@@ -117,7 +116,7 @@ public interface ConfigResource {
     @PUT
     CompatibilityLevelDto updateSubjectCompatibilityLevel(
             @PathParam("subject") String subject,
-            @NotNull CompatibilityLevelDto request, @HeaderParam(Headers.GROUP_ID) String groupId);
+            @NotNull CompatibilityLevelDto request, @HeaderParam(Headers.GROUP_ID) String groupId) throws ReadOnlyStorageException;
 
     /**
      * Deletes the specified subject-level compatibility level config and reverts to the global default.
@@ -134,5 +133,5 @@ public interface ConfigResource {
     @Path("/{subject}")
     @DELETE
     CompatibilityLevelParamDto deleteSubjectCompatibility(
-            @PathParam("subject") String subject, @HeaderParam(Headers.GROUP_ID) String groupId);
+            @PathParam("subject") String subject, @HeaderParam(Headers.GROUP_ID) String groupId) throws ReadOnlyStorageException;
 }

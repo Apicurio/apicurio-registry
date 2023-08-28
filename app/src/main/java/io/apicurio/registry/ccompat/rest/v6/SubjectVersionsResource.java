@@ -21,21 +21,13 @@ import io.apicurio.registry.auth.AuthorizedStyle;
 import io.apicurio.registry.ccompat.dto.Schema;
 import io.apicurio.registry.ccompat.dto.SchemaId;
 import io.apicurio.registry.ccompat.dto.SchemaInfo;
-
+import io.apicurio.registry.storage.error.ReadOnlyStorageException;
 import jakarta.validation.constraints.NotNull;
-import jakarta.ws.rs.Consumes;
-import jakarta.ws.rs.DELETE;
-import jakarta.ws.rs.GET;
-import jakarta.ws.rs.POST;
-import jakarta.ws.rs.Path;
-import jakarta.ws.rs.PathParam;
-import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.*;
+
 import java.util.List;
 
-import static io.apicurio.registry.ccompat.rest.ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST;
-import static io.apicurio.registry.ccompat.rest.ContentTypes.COMPAT_SCHEMA_REGISTRY_V1;
-import static io.apicurio.registry.ccompat.rest.ContentTypes.JSON;
-import static io.apicurio.registry.ccompat.rest.ContentTypes.OCTET_STREAM;
+import static io.apicurio.registry.ccompat.rest.ContentTypes.*;
 
 /**
  * Note:
@@ -83,7 +75,7 @@ public interface SubjectVersionsResource {
      * </ul>
      */
     @GET
-    List<Integer> listVersions(@PathParam("subject") String subject) throws Exception;
+    List<Integer> listVersions(@PathParam("subject") String subject) throws ReadOnlyStorageException;
 
     /**
      * Register a new schema under the specified subject. If successfully registered,
@@ -117,10 +109,10 @@ public interface SubjectVersionsResource {
      *         Error code 50003 – Error while forwarding the request to the primary
      */
     @POST
-    @Authorized(style=AuthorizedStyle.ArtifactOnly)
+    @Authorized(style = AuthorizedStyle.ArtifactOnly)
     SchemaId register(
             @PathParam("subject") String subject,
-            @NotNull SchemaInfo request) throws Exception;
+            @NotNull SchemaInfo request) throws ReadOnlyStorageException;
 
 
     // ----- Path: /subjects/{subject}/versions/{version} -----
@@ -155,7 +147,7 @@ public interface SubjectVersionsResource {
     @Path("/{version}")
     Schema getSchemaByVersion(
             @PathParam("subject") String subject,
-            @PathParam("version") String version) throws Exception;
+            @PathParam("version") String version) throws ReadOnlyStorageException;
 
     /**
      * Deletes a specific version of the schema registered under this subject.
@@ -188,10 +180,10 @@ public interface SubjectVersionsResource {
      */
     @DELETE
     @Path("/{version}")
-    @Authorized(style=AuthorizedStyle.ArtifactOnly)
+    @Authorized(style = AuthorizedStyle.ArtifactOnly)
     int deleteSchemaVersion(
             @PathParam("subject") String subject,
-            @PathParam("version") String version) throws Exception;
+            @PathParam("version") String version) throws ReadOnlyStorageException;
 
 
     // ----- Path: /subjects/{subject}/versions/{version}/schema -----
@@ -223,7 +215,7 @@ public interface SubjectVersionsResource {
     @Path("/{version}/schema")
     String getSchemaOnly(
             @PathParam("subject") String subject,
-            @PathParam("version") String version) throws Exception;
+            @PathParam("version") String version) throws ReadOnlyStorageException;
 
     // ----- Path: /subjects/{subject}/versions/{version}/referencedby -----
 
@@ -253,7 +245,7 @@ public interface SubjectVersionsResource {
     @GET
     @Path("/{version}/referencedby")
     List<Long> getSchemasReferencedBy(
-            @PathParam("subject") String subject, @PathParam("version") String version) throws Exception;
+            @PathParam("subject") String subject, @PathParam("version") String version) throws ReadOnlyStorageException;
 
 
 }

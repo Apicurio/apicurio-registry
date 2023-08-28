@@ -18,21 +18,13 @@ package io.apicurio.registry.ccompat.rest.v6;
 
 import io.apicurio.registry.ccompat.dto.Schema;
 import io.apicurio.registry.ccompat.dto.SchemaInfo;
-
+import io.apicurio.registry.storage.error.ReadOnlyStorageException;
 import jakarta.validation.constraints.NotNull;
-import jakarta.ws.rs.Consumes;
-import jakarta.ws.rs.DELETE;
-import jakarta.ws.rs.GET;
-import jakarta.ws.rs.POST;
-import jakarta.ws.rs.Path;
-import jakarta.ws.rs.PathParam;
-import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.*;
+
 import java.util.List;
 
-import static io.apicurio.registry.ccompat.rest.ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST;
-import static io.apicurio.registry.ccompat.rest.ContentTypes.COMPAT_SCHEMA_REGISTRY_V1;
-import static io.apicurio.registry.ccompat.rest.ContentTypes.JSON;
-import static io.apicurio.registry.ccompat.rest.ContentTypes.OCTET_STREAM;
+import static io.apicurio.registry.ccompat.rest.ContentTypes.*;
 
 /**
  * Note:
@@ -96,8 +88,7 @@ public interface SubjectsResource {
     @Path("/{subject}")
     Schema findSchemaByContent(
             @PathParam("subject") String subject,
-            @NotNull SchemaInfo request) throws Exception;
-
+            @NotNull SchemaInfo request) throws ReadOnlyStorageException;
 
 
     /**
@@ -123,5 +114,5 @@ public interface SubjectsResource {
     @DELETE
     @Path("/{subject}")
     List<Integer> deleteSubject(
-            @PathParam("subject") String subject) throws Exception;
+            @PathParam("subject") String subject) throws ReadOnlyStorageException;
 }

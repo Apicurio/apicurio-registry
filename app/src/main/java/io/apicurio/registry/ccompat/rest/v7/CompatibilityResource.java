@@ -19,6 +19,7 @@ package io.apicurio.registry.ccompat.rest.v7;
 import io.apicurio.registry.ccompat.dto.CompatibilityCheckResponse;
 import io.apicurio.registry.ccompat.dto.SchemaContent;
 import io.apicurio.registry.rest.Headers;
+import io.apicurio.registry.storage.error.ReadOnlyStorageException;
 import jakarta.validation.constraints.NotNull;
 import jakarta.ws.rs.*;
 
@@ -62,7 +63,8 @@ public interface CompatibilityResource {
     @Path("/subjects/{subject}/versions")
     CompatibilityCheckResponse testCompatibilityBySubjectName(
             @PathParam("subject") String subject,
-            @NotNull SchemaContent request, @QueryParam("verbose") Boolean verbose, @HeaderParam(Headers.GROUP_ID) String groupId) throws Exception;
+            @NotNull SchemaContent request, @QueryParam("verbose") Boolean verbose, @HeaderParam(Headers.GROUP_ID) String groupId)
+            throws ReadOnlyStorageException;
 
     // ----- Path: /compatibility/subjects/{subject}/versions/{version} -----
 
@@ -94,6 +96,7 @@ public interface CompatibilityResource {
     CompatibilityCheckResponse testCompatibilityByVersion(
             @PathParam("subject") String subject,
             @PathParam("version") String version,
-            @NotNull SchemaContent request, @QueryParam("verbose") Boolean verbose, @HeaderParam(Headers.GROUP_ID) String groupId) throws Exception;
+            @NotNull SchemaContent request, @QueryParam("verbose") Boolean verbose, @HeaderParam(Headers.GROUP_ID) String groupId)
+            throws ReadOnlyStorageException;
 
 }

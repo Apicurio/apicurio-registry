@@ -27,7 +27,7 @@ import io.apicurio.registry.rest.HeadersHack;
 import io.apicurio.registry.rest.v2.beans.ArtifactReference;
 import io.apicurio.registry.rest.v2.beans.HandleReferencesType;
 import io.apicurio.registry.rest.v2.shared.CommonResourceOperations;
-import io.apicurio.registry.storage.ArtifactNotFoundException;
+import io.apicurio.registry.storage.error.ArtifactNotFoundException;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.ContentWrapperDto;
 import io.apicurio.registry.storage.dto.StoredArtifactDto;

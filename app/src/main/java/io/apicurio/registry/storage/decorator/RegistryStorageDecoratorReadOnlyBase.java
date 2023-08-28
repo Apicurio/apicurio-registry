@@ -228,19 +228,6 @@ public abstract class RegistryStorageDecoratorReadOnlyBase implements RegistrySt
 
 
     @Override
-    public LogConfigurationDto getLogConfiguration(String logger)
-            throws RegistryStorageException, LogConfigurationNotFoundException {
-        return delegate.getLogConfiguration(logger);
-    }
-
-
-    @Override
-    public List<LogConfigurationDto> listLogConfigurations() throws RegistryStorageException {
-        return delegate.listLogConfigurations();
-    }
-
-
-    @Override
     public List<String> getGroupIds(Integer limit) throws RegistryStorageException {
         return delegate.getGroupIds(limit);
     }

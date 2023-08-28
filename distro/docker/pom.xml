@@ -18,6 +18,7 @@
         <docker.sql.file>app-files/apicurio-registry-storage-sql-${project.version}-all.tar.gz</docker.sql.file>
         <docker.mssql.file>app-files/apicurio-registry-storage-mssql-${project.version}-all.tar.gz</docker.mssql.file>
         <docker.kafkasql.file>app-files/apicurio-registry-storage-kafkasql-${project.version}-all.tar.gz</docker.kafkasql.file>
+        <docker.gitops.file>app-files/apicurio-registry-storage-gitops-${project.version}-all.tar.gz</docker.gitops.file>
         <docker.tenant-manager.file>app-files/apicurio-registry-tenant-manager-api-${project.version}-all.tar.gz</docker.tenant-manager.file>
     </properties>
 
@@ -71,6 +72,14 @@
                                 </resource>
                                 <resource>
                                     <directory>${basedir}/../../storage/kafkasql/target</directory>
+                                    <filtering>false</filtering>
+                                    <includes>
+                                        <include>apicurio-*.tar.gz</include>
+                                        <include>apicurio-*runner</include>
+                                    </includes>
+                                </resource>
+                                <resource>
+                                    <directory>${basedir}/../../storage/gitops/target</directory>
                                     <filtering>false</filtering>
                                     <includes>
                                         <include>apicurio-*.tar.gz</include>
@@ -150,6 +159,18 @@
                 <dependency>
                     <groupId>io.apicurio</groupId>
                     <artifactId>apicurio-registry-storage-kafkasql</artifactId>
+                    <version>${project.version}</version>
+                    <scope>provided</scope>
+                </dependency>
+            </dependencies>
+        </profile>
+
+        <profile>
+            <id>gitops</id>
+            <dependencies>
+                <dependency>
+                    <groupId>io.apicurio</groupId>
+                    <artifactId>apicurio-registry-storage-gitops</artifactId>
                     <version>${project.version}</version>
                     <scope>provided</scope>
                 </dependency>

@@ -254,20 +254,6 @@ public class ReadOnlyRegistryStorageDecorator extends RegistryStorageDecoratorRe
 
 
     @Override
-    public void removeLogConfiguration(String logger) throws RegistryStorageException, LogConfigurationNotFoundException, ReadOnlyStorageException {
-        checkReadOnly();
-        delegate.removeLogConfiguration(logger);
-    }
-
-
-    @Override
-    public void setLogConfiguration(LogConfigurationDto logConfiguration) throws RegistryStorageException, ReadOnlyStorageException {
-        checkReadOnly();
-        delegate.setLogConfiguration(logConfiguration);
-    }
-
-
-    @Override
     public void createGroup(GroupMetaDataDto group) throws GroupAlreadyExistsException, RegistryStorageException, ReadOnlyStorageException {
         checkReadOnly();
         delegate.createGroup(group);

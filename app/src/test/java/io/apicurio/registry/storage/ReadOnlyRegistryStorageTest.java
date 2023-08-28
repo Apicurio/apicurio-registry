@@ -112,7 +112,6 @@ public class ReadOnlyRegistryStorageTest {
                 entry("getGroupIds1", new State(false, s -> s.getGroupIds(null))),
                 entry("getGroupMetaData1", new State(false, s -> s.getGroupMetaData(null))),
                 entry("getInboundArtifactReferences3", new State(false, s -> s.getInboundArtifactReferences(null, null, null))),
-                entry("getLogConfiguration1", new State(false, s -> s.getLogConfiguration(null))),
                 entry("getRawConfigProperty1", new State(false, s -> s.getRawConfigProperty(null))),
                 entry("getRoleForPrincipal1", new State(false, s -> s.getRoleForPrincipal(null))),
                 entry("getRoleMapping1", new State(false, s -> s.getRoleMapping(null))),
@@ -135,12 +134,10 @@ public class ReadOnlyRegistryStorageTest {
                 entry("isReadOnly0", new State(false, RegistryStorage::isReadOnly)),
                 entry("isReady0", new State(false, RegistryStorage::isReady)),
                 entry("isRoleMappingExists1", new State(false, s -> s.isRoleMappingExists(null))),
-                entry("listLogConfigurations0", new State(false, RegistryStorage::listLogConfigurations)),
                 entry("nextCommentId0", new State(true, RegistryStorage::nextCommentId)),
                 entry("nextContentId0", new State(true, RegistryStorage::nextContentId)),
                 entry("nextGlobalId0", new State(true, RegistryStorage::nextGlobalId)),
                 entry("normalizeVersion3", new State(false, s -> s.normalizeVersion(null, null, null))),
-                entry("removeLogConfiguration1", new State(true, s -> s.removeLogConfiguration(null))),
                 entry("resetCommentId0", new State(true, RegistryStorage::resetCommentId)),
                 entry("resetContentId0", new State(true, RegistryStorage::resetContentId)),
                 entry("resetGlobalId0", new State(true, RegistryStorage::resetGlobalId)),
@@ -153,7 +150,6 @@ public class ReadOnlyRegistryStorageTest {
                     dto.setName("test");
                     s.setConfigProperty(dto);
                 })),
-                entry("setLogConfiguration1", new State(true, s -> s.setLogConfiguration(null))),
                 entry("storageName0", new State(false, RegistryStorage::storageName)),
                 entry("supportsMultiTenancy0", new State(false, RegistryStorage::supportsMultiTenancy)),
                 entry("updateArtifact6", new State(true, s -> s.updateArtifact(null, null, null, null, null, null))),

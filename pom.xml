@@ -220,6 +220,8 @@
         <snakeyaml.version>2.2</snakeyaml.version>
         <guava.version>32.1.2-jre</guava.version>
         <woodstox-core.version>6.5.1</woodstox-core.version>
+        <jgit.version>6.5.0.202303070854-r</jgit.version>
+        <awaitility.version>4.2.0</awaitility.version>
 
         <!-- Kafka Connect -->
         <connect.version>3.5.1</connect.version>
@@ -640,6 +642,11 @@
                 <artifactId>sentry</artifactId>
                 <version>${sentry.version}</version><!--$NO-MVN-MAN-VER$-->
             </dependency>
+            <dependency>
+                <groupId>org.eclipse.jgit</groupId>
+                <artifactId>org.eclipse.jgit</artifactId>
+                <version>${jgit.version}</version>
+            </dependency>
 
             <!-- GraphQL -->
             <dependency>
@@ -775,6 +782,11 @@
                 <artifactId>truth-proto-extension</artifactId>
                 <version>${google.truth.extension.version}</version>
                 <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.awaitility</groupId>
+                <artifactId>awaitility</artifactId>
+                <version>${awaitility.version}</version>
             </dependency>
 
         </dependencies>
@@ -1089,6 +1101,12 @@
             <id>kafkasql</id>
             <modules>
                 <module>storage/kafkasql</module>
+            </modules>
+        </profile>
+        <profile>
+            <id>gitops</id>
+            <modules>
+                <module>storage/gitops</module>
             </modules>
         </profile>
         <profile>

@@ -310,19 +310,19 @@ public class ReadOnlyRegistryStorageDecorator extends RegistryStorageDecoratorRe
 
     @Override
     public void setConfigProperty(DynamicConfigPropertyDto propertyDto) {
-            if (delegate.isReadOnly() || !READ_ONLY_MODE_ENABLED_PROPERTY_NAME.equals(propertyDto.getName())) {
-                checkReadOnly();
-            }
-            delegate.setConfigProperty(propertyDto);
+        if (delegate.isReadOnly() || !READ_ONLY_MODE_ENABLED_PROPERTY_NAME.equals(propertyDto.getName())) {
+            checkReadOnly();
+        }
+        delegate.setConfigProperty(propertyDto);
     }
 
 
     @Override
     public void deleteConfigProperty(String propertyName) {
-            if (delegate.isReadOnly() || !READ_ONLY_MODE_ENABLED_PROPERTY_NAME.equals(propertyName)) {
-                checkReadOnly();
-            }
-            delegate.deleteConfigProperty(propertyName);
+        if (delegate.isReadOnly() || !READ_ONLY_MODE_ENABLED_PROPERTY_NAME.equals(propertyName)) {
+            checkReadOnly();
+        }
+        delegate.deleteConfigProperty(propertyName);
     }
 
 

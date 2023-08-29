@@ -318,6 +318,11 @@ public class GroupsResourceImpl implements GroupsResource {
     public void updateArtifactOwner(String groupId, String artifactId, ArtifactOwner data) {
         requireParameter("groupId", groupId);
         requireParameter("artifactId", artifactId);
+        requireParameter("data", data);
+
+        if (data.getOwner().isEmpty()) {
+            throw new MissingRequiredParameterException("Missing required owner");
+        }
 
         ArtifactOwnerDto dto = new ArtifactOwnerDto(data.getOwner());
         storage.updateArtifactOwner(defaultGroupIdToNull(groupId), artifactId, dto);

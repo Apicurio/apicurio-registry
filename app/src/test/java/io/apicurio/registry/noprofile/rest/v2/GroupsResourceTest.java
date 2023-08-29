@@ -143,40 +143,6 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .statusCode(200)
                 .body("openapi", not(equalTo("3.0.2")))
                 .body("info.title", not(equalTo("Empty API")));
-
-        // Test using v1 API to access artifact in the null group
-        given()
-                .when()
-                .pathParam("artifactId", "testDefaultGroup/EmptyAPI/1")
-                .get("/registry/v1/artifacts/{artifactId}")
-                .then()
-                .statusCode(200)
-                .body("openapi", equalTo("3.0.2"))
-                .body("info.title", equalTo("Empty API"));
-
-        // Create artifact using V1 API
-        createArtifact("testDefaultGroup/EmptyAPI/6", ArtifactType.OPENAPI, oaiArtifactContent);
-
-        // Test using v1 API to access artifact
-        given()
-                .when()
-                .pathParam("artifactId", "testDefaultGroup/EmptyAPI/6")
-                .get("/registry/v1/artifacts/{artifactId}")
-                .then()
-                .statusCode(200)
-                .body("openapi", equalTo("3.0.2"))
-                .body("info.title", equalTo("Empty API"));
-
-        // Test using v2 API to access artifact
-        given()
-                .when()
-                .pathParam("groupId", nullGroup)
-                .pathParam("artifactId", "testDefaultGroup/EmptyAPI/6")
-                .get("/registry/v2/groups/{groupId}/artifacts/{artifactId}")
-                .then()
-                .statusCode(200)
-                .body("openapi", equalTo("3.0.2"))
-                .body("info.title", equalTo("Empty API"));
     }
 
     @Test
@@ -1724,7 +1690,6 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         String title = "Empty API " + idx;
         String artifactId = "Empty-" + idx;
         this.createArtifact(group, artifactId, ArtifactType.OPENAPI, artifactContent.replaceAll("Empty API", title));
-        waitForArtifact(group, artifactId);
 
         Map<String, String> props = new HashMap<>();
         props.put("test-key", null);
@@ -1882,8 +1847,6 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .body("description", equalTo("An example API design using OpenAPI."))
                 .body("type", equalTo(artifactType));
 
-        this.waitForArtifact(GROUP, artifactId);
-
         // Get the artifact content (should be JSON)
         given()
                 .when()
@@ -1918,8 +1881,6 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .statusCode(200)
                 .body("id", equalTo(artifactId))
                 .body("type", equalTo(artifactType));
-
-        this.waitForArtifact(GROUP, artifactId);
 
         // Get the artifact content (should be XML)
         given()
@@ -1989,9 +1950,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .body("createdOn", anything())
                 .body("version", equalTo("2"))
                 .body("description", equalTo("An example API design using OpenAPI."));
-        Integer globalId2 = resp.extract().body().path("globalId");
-
-        this.waitForGlobalId(globalId2);
+        /*Integer globalId2 = */resp.extract().body().path("globalId");
 
         // Try to create the same artifact ID with ReturnOrUpdate - should return v1 (matching content)
         resp = given()
@@ -2164,15 +2123,6 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .body("openapi", equalTo("3.0.2"))
                 .body("info.title", equalTo("Empty API"));
 
-        given()
-                .when()
-                .pathParam("artifactId", artifactId)
-                .get("/registry/v1/artifacts/{artifactId}")
-                .then()
-                .statusCode(200)
-                .body("openapi", not(equalTo("3.0.2")))
-                .body("info.title", not(equalTo("Empty API")));
-
         // Verify the metadata
         given()
                 .when()
@@ -2188,21 +2138,6 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .body("createdOn", anything())
                 .body("name", equalTo("Empty API"))
                 .body("description", equalTo("An example API design using OpenAPI."));
-
-        given()
-                .when()
-                .pathParam("artifactId", artifactId)
-                .get("/registry/v1/artifacts/{artifactId}/meta")
-                .then()
-                .statusCode(200)
-                .body("groupId", nullValue())
-                .body("id", equalTo(artifactId))
-                .body("version", anything())
-                .body("type", equalTo(ArtifactType.OPENAPI))
-                .body("createdOn", anything())
-                .body("name", not(equalTo("Empty API")))
-                .body("description", not(equalTo("An example API design using OpenAPI.")));
-
     }
 
     @Test
@@ -2227,7 +2162,6 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .body("id", equalTo(artifactId))
                 .body("groupId", equalTo(groupId))
                 .body("version", equalTo("1.0.0"));
-        waitForArtifact(groupId, artifactId);
 
         // Make sure we can get the artifact content by version
         given()
@@ -2408,7 +2342,6 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .extract().as(ArtifactMetaData.class);
         // Save the metadata for artifact #1 for later use
         var referencedMD = metadata;
-        waitForArtifact(metadata.getId());
 
         // Create #2 referencing the #1, using different content
         List<ArtifactReference> references = List.of(ArtifactReference.builder()
@@ -2424,7 +2357,6 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         metadata = response
                 .statusCode(HTTP_OK)
                 .extract().as(ArtifactMetaData.class);
-        waitForArtifact(metadata.getId());
         // Save the referencing artifact metadata for later use
         var referencingMD = metadata;
         assertEquals(references, metadata.getReferences());

@@ -86,10 +86,6 @@ public class TestUtils {
         return getRegistryBaseUrl(port).concat("/apis");
     }
 
-    public static String getRegistryV1ApiUrl() {
-        return getRegistryApiUrl().concat("/registry/v1");
-    }
-
     public static String getRegistryV2ApiUrl() {
         return getRegistryApiUrl().concat("/registry/v2");
     }

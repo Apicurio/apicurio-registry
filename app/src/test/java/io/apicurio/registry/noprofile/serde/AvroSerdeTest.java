@@ -51,7 +51,6 @@ import io.confluent.kafka.serializers.KafkaAvroSerializer;
 import io.quarkus.test.junit.QuarkusTest;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
-import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.apache.kafka.common.serialization.Deserializer;
@@ -63,7 +62,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
-import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -95,9 +93,7 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
         String groupId = TestUtils.generateGroupId();
         String topic = generateArtifactId();
 
-        final Integer globalId = createArtifact(groupId, topic + "-" + recordName, ArtifactType.AVRO, schema.toString());
-
-        this.waitForGlobalId(globalId);
+        /*final Integer globalId = */createArtifact(groupId, topic + "-" + recordName, ArtifactType.AVRO, schema.toString());
 
         Map<String, Object> config = new HashMap<>();
         config.put(SerdeConfig.REGISTRY_URL, TestUtils.getRegistryV2ApiUrl(testPort));
@@ -389,10 +385,7 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
             byte[] bytes = serializer.serialize(artifactId, headers, record);
 
             Assertions.assertNotNull(headers.lastHeader(SerdeHeaders.HEADER_VALUE_GLOBAL_ID));
-            Header globalId = headers.lastHeader(SerdeHeaders.HEADER_VALUE_GLOBAL_ID);
-            long id = ByteBuffer.wrap(globalId.value()).getLong();
-
-            waitForGlobalId(id);
+            headers.lastHeader(SerdeHeaders.HEADER_VALUE_GLOBAL_ID);
 
             GenericData.Record ir = deserializer.deserialize(artifactId, headers, bytes);
 

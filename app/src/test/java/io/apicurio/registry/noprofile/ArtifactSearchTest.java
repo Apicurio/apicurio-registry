@@ -22,11 +22,10 @@ import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
-import io.apicurio.registry.AbstractResourceTestBase;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
+import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.rest.v2.beans.ArtifactSearchResults;
 import io.apicurio.registry.rest.v2.beans.EditableMetaData;
 import io.apicurio.registry.rest.v2.beans.SortBy;
@@ -62,10 +61,7 @@ public class ArtifactSearchTest extends AbstractResourceTestBase {
         String content = OPENAPI_CONTENT_TEMPLATE.replace("TITLE", title).replace("DESCRIPTION", description);
         ByteArrayInputStream artifactData = new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8));
 
-        ArtifactMetaData amd = clientV2.createArtifact(groupId, artifactId, ArtifactType.OPENAPI, artifactData);
-        long id = amd.getGlobalId();
-
-        this.waitForGlobalId(id);
+        clientV2.createArtifact(groupId, artifactId, ArtifactType.OPENAPI, artifactData);
 
         // Search against the name, with the exact name of the artifact
         ArtifactSearchResults results = clientV2.searchArtifacts(groupId, title, null, null, null, SortBy.name, SortOrder.asc, 0, 10);

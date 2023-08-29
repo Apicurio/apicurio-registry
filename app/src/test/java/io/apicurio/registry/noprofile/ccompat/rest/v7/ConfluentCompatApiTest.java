@@ -66,7 +66,6 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
                 .then()
                 .statusCode(200)
                 .body(anything());
-        this.waitForArtifact(SUBJECT);
 
         given()
                 .when()
@@ -119,8 +118,6 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
                 .extract().body().jsonPath().get("id");
         Assertions.assertNotNull(contentId1);
 
-        this.waitForArtifact(SUBJECT);
-
         final Integer contentId2 = given()
                 .when()
                 .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
@@ -132,8 +129,6 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
                 .extract().body().jsonPath().get("id");
 
         Assertions.assertNotNull(contentId2);
-
-        this.waitForContentId(contentId2);
 
         //check versions list
         var versionsConfluent = given()
@@ -255,8 +250,6 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
                 .extract().body().jsonPath().get("id");
 
         Assertions.assertNotNull(contentId1);
-
-        this.waitForArtifact(SUBJECT);
 
         SchemaContent minifiedSchemaContent = new SchemaContent(resourceToString("../avro-minified.avsc"));
 

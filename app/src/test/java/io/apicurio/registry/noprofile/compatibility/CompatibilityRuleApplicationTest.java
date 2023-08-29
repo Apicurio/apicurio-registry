@@ -151,7 +151,7 @@ public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {
         given()
                 .when()
                 .contentType(CT_JSON).body(rule)
-                .post("/registry/v1/rules")
+                .post("/registry/v2/admin/rules")
                 .then()
                 .statusCode(204)
                 .body(anything());
@@ -160,7 +160,7 @@ public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {
         TestUtils.retry(() -> {
             given()
                     .when()
-                    .get("/registry/v1/rules/COMPATIBILITY")
+                    .get("/registry/v2/admin/rules/COMPATIBILITY")
                     .then()
                     .statusCode(200)
                     .contentType(ContentType.JSON)
@@ -247,8 +247,7 @@ public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {
         String groupId = TestUtils.generateGroupId();
         String cityArtifactId = generateArtifactId();
 
-        final Integer cityDependencyGlobalId = createArtifact(groupId, cityArtifactId, ArtifactType.JSON, citySchema);
-        this.waitForGlobalId(cityDependencyGlobalId);
+        /*final Integer cityDependencyGlobalId = */createArtifact(groupId, cityArtifactId, ArtifactType.JSON, citySchema);
 
         final ArtifactReference cityReference = new ArtifactReference();
         cityReference.setVersion("1");
@@ -258,14 +257,12 @@ public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {
 
         String artifactId = generateArtifactId();
 
-        final Integer globalId = createArtifactWithReferences(groupId, artifactId, ArtifactType.JSON, citizenSchema , List.of(cityReference));
-        this.waitForGlobalId(globalId);
+        /*final Integer globalId = */createArtifactWithReferences(groupId, artifactId, ArtifactType.JSON, citizenSchema , List.of(cityReference));
 
         createArtifactRule(groupId, artifactId, RuleType.COMPATIBILITY, "BACKWARD");
 
         //Try to create the same artifact again, it should be validated with no issues.
         updateArtifactWithReferences(groupId, artifactId, ArtifactType.JSON, citizenSchema, List.of(cityReference));
-        this.waitForGlobalId(globalId);
     }
 
     private RuleViolation findCauseByContext(Set<RuleViolation> ruleViolations, String context) {

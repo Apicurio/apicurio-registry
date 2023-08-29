@@ -59,7 +59,6 @@ public class SubjectVersionStringTest extends AbstractResourceTestBase {
                 .extract().as(Schema.class);
 
         Assertions.assertNotNull(cid1);
-        this.waitForContentId(cid1.getId());
 
         var versions1 = given()
                 .log().all()
@@ -84,7 +83,6 @@ public class SubjectVersionStringTest extends AbstractResourceTestBase {
                 .extract().as(Schema.class);
 
         Assertions.assertNotNull(cid2);
-        this.waitForContentId(cid2.getId());
 
         var versions2 = given()
                 .log().all()

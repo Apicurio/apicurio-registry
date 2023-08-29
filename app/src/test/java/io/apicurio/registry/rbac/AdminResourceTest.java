@@ -592,7 +592,6 @@ public class AdminResourceTest extends AbstractResourceTestBase {
             String title = "Empty API " + idx;
             String artifactId = "Empty-" + idx;
             this.createArtifact(group, artifactId, ArtifactType.OPENAPI, artifactContent.replaceAll("Empty API", title));
-            waitForArtifact(group, artifactId);
         }
 
         ValidatableResponse response = given()
@@ -637,7 +636,6 @@ public class AdminResourceTest extends AbstractResourceTestBase {
             String artifactId = "Empty-" + idx;
             List<ArtifactReference> refs = idx > 0 ? getSingletonRefList(group, "Empty-" + (idx - 1), "1", "ref") : Collections.emptyList();
             this.createArtifactWithReferences(group, artifactId, ArtifactType.OPENAPI, artifactContent.replaceAll("Empty API", title), refs);
-            waitForArtifact(group, artifactId);
         }
 
         // Export data (browser flow).

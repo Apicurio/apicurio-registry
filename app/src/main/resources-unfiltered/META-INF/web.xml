@@ -67,8 +67,6 @@
         <filter-name>SpecUrlFilter</filter-name>
         <url-pattern>/apis/registry/v2</url-pattern>
         <url-pattern>/apis/registry/v2/</url-pattern>
-        <url-pattern>/apis/registry/v1</url-pattern>
-        <url-pattern>/apis/registry/v1/</url-pattern>
         <url-pattern>/apis/ccompat/v6</url-pattern>
         <url-pattern>/apis/ccompat/v6/</url-pattern>
         <url-pattern>/apis/ccompat/v7</url-pattern>
@@ -110,8 +108,6 @@
         <url-pattern>/apis/</url-pattern>
         <url-pattern>/apis/registry/v2</url-pattern>
         <url-pattern>/apis/registry/v2/</url-pattern>
-        <url-pattern>/apis/registry/v1</url-pattern>
-        <url-pattern>/apis/registry/v1/</url-pattern>
         <url-pattern>/apis/ccompat/v6</url-pattern>
         <url-pattern>/apis/ccompat/v6/</url-pattern>
         <url-pattern>/apis/ccompat/v7</url-pattern>

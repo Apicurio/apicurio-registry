@@ -63,7 +63,6 @@ public class IdsResourceTest extends AbstractResourceTestBase {
                     .statusCode(200)
                 .extract()
                     .as(ArtifactMetaData.class);
-        waitForArtifact(GROUP, artifactId1);
         // Create artifact 2
         ArtifactMetaData amd2 = given()
                 .when()
@@ -77,7 +76,6 @@ public class IdsResourceTest extends AbstractResourceTestBase {
                     .statusCode(200)
                 .extract()
                     .as(ArtifactMetaData.class);
-        waitForArtifact(GROUP, artifactId2);
 
         Assertions.assertNotNull(amd1.getGlobalId());
         Assertions.assertNotNull(amd1.getContentId());
@@ -163,11 +161,8 @@ public class IdsResourceTest extends AbstractResourceTestBase {
                 .statusCode(200)
                 .extract()
                 .as(ArtifactMetaData.class);
-        waitForArtifact(GROUP, artifactId);
 
         long globalId = amd.getGlobalId();
-
-        this.waitForGlobalId(globalId);
 
         // Get by globalId
         given()
@@ -194,10 +189,8 @@ public class IdsResourceTest extends AbstractResourceTestBase {
         // Create two artifacts with same artifactId but with different groupId
 
         long globalId1 = createArtifact(group1, artifactId, ArtifactType.OPENAPI, artifactContent);
-        this.waitForGlobalId(globalId1);
 
         long globalId2 = createArtifact(group2, artifactId, ArtifactType.OPENAPI, artifactContent);
-        this.waitForGlobalId(globalId2);
 
         // Get by globalId should not fail
         clientV2.getContentByGlobalId(globalId1);
@@ -226,7 +219,6 @@ public class IdsResourceTest extends AbstractResourceTestBase {
                     .statusCode(200)
                 .extract()
                     .as(ArtifactMetaData.class);
-        waitForArtifact(GROUP, artifactId);
 
         long contentId = amd.getContentId();
 
@@ -271,7 +263,6 @@ public class IdsResourceTest extends AbstractResourceTestBase {
             .post("/registry/v2/groups/{groupId}/artifacts")
             .then()
                 .statusCode(200);
-        waitForArtifact(GROUP, artifactId);
 
         // Get by contentHash
         given()

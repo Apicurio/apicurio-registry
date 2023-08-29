@@ -55,8 +55,6 @@ public class DownloadRegistryMojoTest extends RegistryMojoTestBase {
         Schema schema = Schema.createUnion(Arrays.asList(Schema.create(Schema.Type.STRING), Schema.create(Schema.Type.NULL)));
         clientV2.createArtifact(groupId, artifactId, ArtifactType.AVRO, new ByteArrayInputStream(schema.toString().getBytes(StandardCharsets.UTF_8)));
 
-        this.waitForArtifact(groupId, artifactId);
-
         List<DownloadArtifact> artifacts = new ArrayList<>();
         DownloadArtifact artifact = new DownloadArtifact();
         artifact.setGroupId(groupId);

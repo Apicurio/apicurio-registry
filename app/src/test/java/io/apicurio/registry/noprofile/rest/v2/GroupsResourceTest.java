@@ -62,6 +62,7 @@ import com.google.common.hash.Hashing;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.rest.client.exception.RuleViolationException;
 import io.apicurio.registry.rest.v2.beans.ArtifactContent;
+import io.apicurio.registry.rest.v2.beans.ArtifactOwner;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v2.beans.ArtifactReference;
 import io.apicurio.registry.rest.v2.beans.Comment;
@@ -181,6 +182,41 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .body("info.title", equalTo("Empty API"));
     }
 
+    @Test
+    public void testUpdateArtifactOwner() throws Exception {
+        String oaiArtifactContent = resourceToString("openapi-empty.json");
+        createArtifact("testUpdateArtifactOwner", "testUpdateArtifactOwner/EmptyAPI/1",ArtifactType.OPENAPI, oaiArtifactContent);
+
+        ArtifactOwner artifactOwner = new ArtifactOwner("newOwner");
+
+        given()
+                .when()
+                .contentType(CT_JSON)
+                .pathParam("groupId", "testUpdateArtifactOwner")
+                .pathParam("artifactId", "testUpdateArtifactOwner/EmptyAPI/1")
+                .body(artifactOwner)
+                .put("/registry/v2/groups/{groupId}/artifacts/{artifactId}/owner")
+                .then()
+                .statusCode(204);
+    }
+
+    @Test
+    public void testUpdateEmptyArtifactOwner() throws Exception {
+        String oaiArtifactContent = resourceToString("openapi-empty.json");
+        createArtifact("testUpdateEmptyArtifactOwner", "testUpdateEmptyArtifactOwner/EmptyAPI/1",ArtifactType.OPENAPI, oaiArtifactContent);
+
+        ArtifactOwner artifactOwner = new ArtifactOwner("");
+
+        given()
+                .when()
+                .contentType(CT_JSON)
+                .pathParam("groupId", "testUpdateEmptyArtifactOwner")
+                .pathParam("artifactId", "testUpdateEmptyArtifactOwner/EmptyAPI/1")
+                .body(artifactOwner)
+                .put("/registry/v2/groups/{groupId}/artifacts/{artifactId}/owner")
+                .then()
+                .statusCode(400);
+    }
 
     @Test
     public void testMultipleGroups() throws Exception {

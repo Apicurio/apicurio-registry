@@ -63,8 +63,6 @@ public class CCompatCanonicalModeTest extends AbstractResourceTestBase {
 
         assertNotNull(contentId1);
 
-        this.waitForArtifact(SUBJECT);
-
         SchemaContent minifiedSchemaContent = new SchemaContent(resourceToString("avro-minified.avsc"));
 
         //With the canonical hash mode enabled, getting the schema by content works
@@ -109,8 +107,6 @@ public class CCompatCanonicalModeTest extends AbstractResourceTestBase {
         assertNotNull(schemaId1.getId());
         assertTrue(schemaId1.getId() > 0);
 
-
-        this.waitForArtifact(subject1);
 
         // We are able to get the original content
         Schema schema1R = given()

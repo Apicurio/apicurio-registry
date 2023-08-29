@@ -22,10 +22,8 @@ import io.apicurio.registry.ccompat.dto.CompatibilityLevelDto;
 import io.apicurio.registry.ccompat.dto.CompatibilityLevelParamDto;
 import io.apicurio.registry.ccompat.dto.SchemaContent;
 import io.apicurio.registry.ccompat.rest.ContentTypes;
-import io.apicurio.registry.rest.v1.beans.UpdateState;
 import io.apicurio.registry.rest.v2.beans.VersionSearchResults;
 import io.apicurio.registry.types.ArtifactState;
-import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.path.json.JsonPath;
@@ -95,12 +93,10 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
         /*int id = */
         res.extract().jsonPath().getInt("id");
 
-        this.waitForArtifact(SUBJECT);
-
         // Verify
         given()
                 .when()
-                .get("/registry/v1/artifacts/{artifactId}", SUBJECT)
+                .get("/registry/v2/groups/default/artifacts/{artifactId}", SUBJECT)
                 .then()
                 .statusCode(200)
                 .body("", equalTo(new JsonPath(SCHEMA_SIMPLE).getMap("")));
@@ -129,12 +125,10 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
 
         int id = res.extract().jsonPath().getInt("id");
 
-        this.waitForArtifact(SUBJECT);
-
         // Verify
         given()
                 .when()
-                .get("/registry/v1/artifacts/{artifactId}", SUBJECT)
+                .get("/registry/v2/groups/default/artifacts/{artifactId}", SUBJECT)
                 .then()
                 .statusCode(200)
                 .body("", equalTo(new JsonPath(SCHEMA_SIMPLE_DEFAULT_QUOTED).getMap("")));
@@ -163,12 +157,10 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
 
         int id = res.extract().jsonPath().getInt("id");
 
-        this.waitForArtifact(SUBJECT);
-
         // Verify
         given()
                 .when()
-                .get("/registry/v1/artifacts/{artifactId}", SUBJECT)
+                .get("/registry/v2/groups/default/artifacts/{artifactId}", SUBJECT)
                 .then()
                 .statusCode(200)
                 .body("", equalTo(new JsonPath(SCHEMA_SIMPLE_JSON_QUOTED).getMap("")));
@@ -199,8 +191,6 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
                 .body("id", Matchers.allOf(Matchers.isA(Integer.class), Matchers.greaterThanOrEqualTo(0)));
         int id1 = res.extract().jsonPath().getInt("id");
 
-        this.waitForContentId(id1);
-
         // POST content2
         res = given()
                 .when()
@@ -210,9 +200,7 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
                 .then()
                 .statusCode(200)
                 .body("id", Matchers.allOf(Matchers.isA(Integer.class), Matchers.greaterThanOrEqualTo(0)));
-        int id2 = res.extract().jsonPath().getInt("id");
-
-        this.waitForContentId(id2);
+        /*int id2 = */res.extract().jsonPath().getInt("id");
 
         // POST content3 (duplicate of content1)
         res = given()
@@ -244,7 +232,6 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
                 .then()
                 .statusCode(200)
                 .body(anything());
-        this.waitForArtifact(SUBJECT);
         given()
                 .when()
                 .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
@@ -293,8 +280,6 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
                 .statusCode(200)
                 .body(anything());
 
-        this.waitForArtifact(SUBJECT);
-
         given()
                 .when()
                 .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
@@ -303,8 +288,6 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
                 .then()
                 .statusCode(200)
                 .body(anything());
-
-        this.waitForArtifactRule(SUBJECT, RuleType.COMPATIBILITY);
 
         // POST
         TestUtils.retry(() -> {
@@ -332,12 +315,10 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
                 .statusCode(200)
                 .body("id", Matchers.allOf(Matchers.isA(Integer.class), Matchers.greaterThanOrEqualTo(0)));
 
-        this.waitForArtifact(SUBJECT);
-
         //verify
         given()
                 .when()
-                .get("/registry/v1/artifacts/{artifactId}", SUBJECT)
+                .get("/registry/v2/groups/default/artifacts/{artifactId}", SUBJECT)
                 .then()
                 .statusCode(200)
                 .body("", equalTo(new JsonPath(SCHEMA_SIMPLE).getMap("")));
@@ -349,7 +330,7 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
                 .when()
                 .contentType(ContentTypes.JSON)
                 .body(updateState)
-                .put("/registry/v1/artifacts/{artifactId}/state", SUBJECT)
+                .put("/registry/v2/groups/default/artifacts/{artifactId}/state", SUBJECT)
                 .then()
                 .statusCode(204);
 
@@ -426,7 +407,6 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
 
     private void registerSchemaAndVerify(String schema, String subject, String schemaTye) throws Exception {
         registerSchemaInSubject(schema, subject);
-        this.waitForArtifact(subject);
         final Integer avroSchemaGlobalId = given().when().get(getBasePath() + "/subjects/{subject}/versions/latest", subject).body().jsonPath().get("id");
         verifySchemaType(avroSchemaGlobalId, schemaTye);
     }
@@ -474,8 +454,6 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
                 .extract().body().jsonPath().get("id");
         Assertions.assertNotNull(contentId1);
 
-        this.waitForArtifact(SUBJECT);
-
         //Register different schema in second subject
         // POST
         final Integer contentId2 = given()
@@ -490,9 +468,6 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
 
         Assertions.assertNotNull(contentId2);
 
-        this.waitForArtifact(SECOND_SUBJECT);
-        this.waitForContentId(contentId2);
-
         //Register again schema 1 in different subject gives same contentId
         // POST
         final Integer contentId3 = given()
@@ -506,9 +481,6 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
                 .extract().body().jsonPath().get("id");
 
         Assertions.assertNotNull(contentId3);
-
-        this.waitForArtifact(SECOND_SUBJECT);
-        this.waitForContentId(contentId3);
 
         TestUtils.retry(() -> {
             //Verify
@@ -546,9 +518,6 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
                 .extract().body().jsonPath().get("id");
         Assertions.assertNotNull(contentId1);
 
-        this.waitForArtifact(SUBJECT_1);
-        this.waitForContentId(contentId1);
-
         // Create artifact that references the first one
         // POST
         System.out.printf((SCHEMA_3_WRAPPED_TEMPLATE) + "%n", SUBJECT_1, 1);
@@ -558,9 +527,6 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
                 .body("id", Matchers.allOf(Matchers.isA(Integer.class), Matchers.greaterThanOrEqualTo(1)))
                 .extract().body().jsonPath().get("id");
         Assertions.assertNotNull(contentId2);
-
-        this.waitForArtifact(SUBJECT_2);
-        this.waitForContentId(contentId2);
 
         //Verify
         Integer[] versions = given().when()
@@ -613,7 +579,6 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
                 .then()
                 .statusCode(200)
                 .body(anything());
-        this.waitForArtifact(SUBJECT);
 
         given()
                 .when()
@@ -694,8 +659,6 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
                 .extract().body().jsonPath().get("id");
         Assertions.assertNotNull(contentId1);
 
-        this.waitForArtifact(SUBJECT);
-
         final Integer contentId2 = given()
                 .when()
                 .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
@@ -707,8 +670,6 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
                 .extract().body().jsonPath().get("id");
 
         Assertions.assertNotNull(contentId2);
-
-        this.waitForContentId(contentId2);
 
         //check versions list
         var versionsConfluent = given()
@@ -826,8 +787,6 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
                 .extract().body().jsonPath().get("id");
 
         Assertions.assertNotNull(contentId1);
-
-        this.waitForArtifact(SUBJECT);
 
         String minifiedSchema = resourceToString("../avro-minified.avsc");
         SchemaContent minifiedSchemaContent = new SchemaContent(minifiedSchema);

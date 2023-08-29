@@ -197,9 +197,6 @@ public class SpecUrlFilter implements Filter {
     private String generateSpecTitle(HttpServletRequest request) {
         String servletPath = request.getServletPath();
 
-        if (servletPath.contains("registry/v1")) {
-            return "Core Registry API (v1)";
-        }
         if (servletPath.contains("registry/v2")) {
             return "Core Registry API (v2)";
         }

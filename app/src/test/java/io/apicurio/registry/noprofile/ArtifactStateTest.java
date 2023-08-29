@@ -57,29 +57,25 @@ public class ArtifactStateTest extends AbstractResourceTestBase {
         String groupId = "ArtifactStateTest_testSmoke";
         String artifactId = generateArtifactId();
 
-        ArtifactMetaData amd1 = clientV2.createArtifact(groupId, artifactId, ArtifactType.JSON, new ByteArrayInputStream("{\"type\": \"string\"}".getBytes(StandardCharsets.UTF_8)));
-        this.waitForGlobalId(amd1.getGlobalId());
+        clientV2.createArtifact(groupId, artifactId, ArtifactType.JSON, new ByteArrayInputStream("{\"type\": \"string\"}".getBytes(StandardCharsets.UTF_8)));
 
-        ArtifactMetaData amd2 = clientV2.updateArtifact(
+        clientV2.updateArtifact(
                 groupId,
                 artifactId,
                 new ByteArrayInputStream("\"type\": \"int\"".getBytes(StandardCharsets.UTF_8))
         );
-        this.waitForGlobalId(amd2.getGlobalId());
 
-        ArtifactMetaData amd3 = clientV2.updateArtifact(
+        clientV2.updateArtifact(
                 groupId,
                 artifactId,
                 new ByteArrayInputStream("\"type\": \"float\"".getBytes(StandardCharsets.UTF_8))
         );
-        this.waitForGlobalId(amd3.getGlobalId());
 
         ArtifactMetaData amd = clientV2.getArtifactMetaData(groupId, artifactId);
         Assertions.assertEquals("3", amd.getVersion());
 
         // disable latest
         clientV2.updateArtifactState(groupId, artifactId, toUpdateState(ArtifactState.DISABLED));
-        this.waitForVersionState(groupId, artifactId, "3", ArtifactState.DISABLED);
 
         VersionMetaData tvmd = clientV2.getArtifactVersionMetaData(groupId, artifactId, "3");
         Assertions.assertEquals("3", tvmd.getVersion());
@@ -112,7 +108,6 @@ public class ArtifactStateTest extends AbstractResourceTestBase {
         });
 
         clientV2.updateArtifactVersionState(groupId, artifactId, "3", toUpdateState(ArtifactState.DEPRECATED));
-        this.waitForVersionState(groupId, artifactId, "3", ArtifactState.DEPRECATED);
 
         tamd = clientV2.getArtifactMetaData(groupId, artifactId);
         Assertions.assertEquals("3", tamd.getVersion()); // should be back to v3
@@ -138,7 +133,6 @@ public class ArtifactStateTest extends AbstractResourceTestBase {
 
         // can revert back to enabled from deprecated
         clientV2.updateArtifactVersionState(groupId, artifactId, "3", toUpdateState(ArtifactState.ENABLED));
-        this.waitForVersionState(groupId, artifactId, "3", ArtifactState.ENABLED);
 
         retry(() -> {
             ArtifactMetaData innerAmd = clientV2.getArtifactMetaData(groupId, artifactId);
@@ -175,7 +169,6 @@ public class ArtifactStateTest extends AbstractResourceTestBase {
         UpdateState state = new UpdateState();
         state.setState(ArtifactState.DISABLED);
         clientV2.updateArtifactState(groupId, artifactId, state);
-        this.waitForVersionState(groupId, artifactId, md.getVersion(), ArtifactState.DISABLED);
         retry(() -> {
             given()
                     .when()
@@ -191,7 +184,7 @@ public class ArtifactStateTest extends AbstractResourceTestBase {
             // Get the latest meta-data again - should not be accessible because it's DISABLED
             // and there is only a single version.
             try {
-                ArtifactMetaData actualMD = clientV2.getArtifactMetaData(groupId, artifactId);
+                clientV2.getArtifactMetaData(groupId, artifactId);
                 Assertions.fail("ArtifactNotFoundException expected");
             } catch (ArtifactNotFoundException ex) {
                 // OK
@@ -205,7 +198,6 @@ public class ArtifactStateTest extends AbstractResourceTestBase {
         // Now re-enable the artifact
         state.setState(ArtifactState.ENABLED);
         clientV2.updateArtifactVersionState(groupId, artifactId, md.getVersion(), state);
-        this.waitForVersionState(groupId, artifactId, md.getVersion(), ArtifactState.ENABLED);
 
         // Get the meta-data
         // Should be accessible now
@@ -238,7 +230,6 @@ public class ArtifactStateTest extends AbstractResourceTestBase {
         UpdateState state = new UpdateState();
         state.setState(ArtifactState.DEPRECATED);
         clientV2.updateArtifactState(groupId, artifactId, state);
-        this.waitForVersionState(groupId, artifactId, md.getVersion(), ArtifactState.DEPRECATED);
 
         retry(() -> {
             // Get the meta-data again - should be DEPRECATED
@@ -250,7 +241,6 @@ public class ArtifactStateTest extends AbstractResourceTestBase {
         // Set to disabled
         state.setState(ArtifactState.DISABLED);
         clientV2.updateArtifactState(groupId, artifactId, state);
-        this.waitForVersionState(groupId, artifactId, md.getVersion(), ArtifactState.DISABLED);
         retry(() -> {
             given()
                     .when()
@@ -266,7 +256,7 @@ public class ArtifactStateTest extends AbstractResourceTestBase {
             // Get the latest meta-data again - should not be accessible because it's DISABLED
             // and there is only a single version.
             try {
-                ArtifactMetaData actualMD = clientV2.getArtifactMetaData(groupId, artifactId);
+                clientV2.getArtifactMetaData(groupId, artifactId);
                 Assertions.fail("ArtifactNotFoundException expected");
             } catch (ArtifactNotFoundException ex) {
                 // OK

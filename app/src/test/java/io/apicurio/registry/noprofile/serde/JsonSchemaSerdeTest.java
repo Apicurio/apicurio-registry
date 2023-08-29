@@ -89,9 +89,7 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
         String groupId = TestUtils.generateGroupId();
         String artifactId = generateArtifactId();
 
-        final Integer globalId = createArtifact(groupId, artifactId, ArtifactType.JSON, IoUtil.toString(jsonSchema));
-
-        this.waitForGlobalId(globalId);
+        createArtifact(groupId, artifactId, ArtifactType.JSON, IoUtil.toString(jsonSchema));
 
         Person person = new Person("Ales", "Justin", 23);
 
@@ -144,8 +142,6 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
 
         Integer globalId = createArtifact(groupId, artifactId, ArtifactType.JSON, IoUtil.toString(jsonSchema));
 
-        this.waitForGlobalId(globalId);
-
         Person person = new Person("Ales", "Justin", 23);
 
         try (JsonSchemaKafkaSerializer<Person> serializer = new JsonSchemaKafkaSerializer<>(restClient, true);
@@ -189,8 +185,6 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
         String artifactId = generateArtifactId();
 
         Integer globalId = createArtifact(groupId, artifactId, ArtifactType.JSON, IoUtil.toString(jsonSchema));
-
-        this.waitForGlobalId(globalId);
 
         Person person = new Person("Ales", "Justin", 23);
 
@@ -242,11 +236,9 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
         String addressId = generateArtifactId();
 
 
-        final Integer cityDependencyGlobalId = createArtifact(groupId, cityArtifactId, ArtifactType.JSON, IoUtil.toString(citySchema));
-        this.waitForGlobalId(cityDependencyGlobalId);
+        createArtifact(groupId, cityArtifactId, ArtifactType.JSON, IoUtil.toString(citySchema));
 
-        final Integer qualificationsGlobalId = createArtifact(groupId, qualificationsId, ArtifactType.JSON, IoUtil.toString(qualificationSchema));
-        this.waitForGlobalId(qualificationsGlobalId);
+        createArtifact(groupId, qualificationsId, ArtifactType.JSON, IoUtil.toString(qualificationSchema));
 
         final ArtifactReference qualificationsReference = new ArtifactReference();
         qualificationsReference.setVersion("1");
@@ -254,8 +246,7 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
         qualificationsReference.setArtifactId(qualificationsId);
         qualificationsReference.setName("qualification.json");
 
-        final Integer addressGlobalID = createArtifact(groupId, addressId, ArtifactType.JSON, IoUtil.toString(addressSchema));
-        this.waitForGlobalId(addressGlobalID);
+        createArtifact(groupId, addressId, ArtifactType.JSON, IoUtil.toString(addressSchema));
 
         final ArtifactReference addressReference = new ArtifactReference();
         addressReference.setVersion("1");
@@ -269,8 +260,7 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
         cityReference.setArtifactId(cityArtifactId);
         cityReference.setName("city.json");
 
-        final Integer identifierDependencyGlobalId = createArtifact(groupId, identifierArtifactId, ArtifactType.JSON, IoUtil.toString(citizenIdentifier));
-        this.waitForGlobalId(identifierDependencyGlobalId);
+        createArtifact(groupId, identifierArtifactId, ArtifactType.JSON, IoUtil.toString(citizenIdentifier));
 
         final ArtifactReference identifierReference = new ArtifactReference();
         identifierReference.setVersion("1");
@@ -280,8 +270,7 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
 
         String artifactId = generateArtifactId();
 
-        final Integer globalId = createArtifactWithReferences(groupId, artifactId, ArtifactType.JSON, IoUtil.toString(citizenSchema), List.of(qualificationsReference, cityReference, identifierReference, addressReference));
-        this.waitForGlobalId(globalId);
+        createArtifactWithReferences(groupId, artifactId, ArtifactType.JSON, IoUtil.toString(citizenSchema), List.of(qualificationsReference, cityReference, identifierReference, addressReference));
 
         City city = new City("New York", 10001);
         CitizenIdentifier identifier = new CitizenIdentifier(123456789);
@@ -437,15 +426,15 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
                 .groupId("GLOBAL")//.version("4")
                 .artifactId("sample.account.json").build();
 
-        SchemaResolverConfigurer src = new SchemaResolverConfigurer(client);
+        SchemaResolverConfigurer<JsonSchema, Object> src = new SchemaResolverConfigurer<JsonSchema, Object>(client);
 
-        SchemaResolver sr = src.getSchemaResolver();
+        SchemaResolver<JsonSchema, Object> sr = src.getSchemaResolver();
         Map<String, String> configs = new HashMap<>();
         configs.put(SchemaResolverConfig.ARTIFACT_RESOLVER_STRATEGY_DEFAULT,
                 DefaultSchemaResolver.class.getName());
         configs.put(SchemaResolverConfig.CHECK_PERIOD_MS, "600000");
-        sr.configure(configs, new JsonSchemaParser());
-        ParsedSchema ps = sr.resolveSchemaByArtifactReference((artifactReference)).getParsedSchema();
+        sr.configure(configs, new JsonSchemaParser<Object>());
+        ParsedSchema<JsonSchema> ps = sr.resolveSchemaByArtifactReference((artifactReference)).getParsedSchema();
 
         validateDataWithSchema(ps, objectMapper.writeValueAsBytes(validationFor), objectMapper);
     }

@@ -182,8 +182,6 @@ public class ContentExtractorTest extends AbstractResourceTestBase {
 
         Assertions.assertEquals(name, amd.getName());
 
-        this.waitForArtifact(groupId, amd.getId());
-
         // test update
 
         // Avro schema names can only have letters, digits, and _
@@ -220,8 +218,6 @@ public class ContentExtractorTest extends AbstractResourceTestBase {
         ArtifactMetaData amd = clientV2.createArtifact(groupId, artifactId, ArtifactType.JSON, new ByteArrayInputStream(content.getBytes()));
 
         Assertions.assertEquals(name, amd.getName());
-
-        this.waitForArtifact(groupId, amd.getId());
 
         // test update
 
@@ -260,8 +256,6 @@ public class ContentExtractorTest extends AbstractResourceTestBase {
 
         Assertions.assertEquals(name, amd.getName());
 
-        this.waitForArtifact(groupId, amd.getId());
-
         // test update
 
         name = "api-" + generateArtifactId();
@@ -298,8 +292,6 @@ public class ContentExtractorTest extends AbstractResourceTestBase {
         ArtifactMetaData amd = clientV2.createArtifact(groupId, artifactId, ArtifactType.ASYNCAPI, new ByteArrayInputStream(content.getBytes()));
 
         Assertions.assertEquals(name, amd.getName());
-
-        this.waitForArtifact(groupId, amd.getId());
 
         // test update
 

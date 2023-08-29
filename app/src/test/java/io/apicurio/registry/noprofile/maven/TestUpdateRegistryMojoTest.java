@@ -63,7 +63,6 @@ public class TestUpdateRegistryMojoTest extends RegistryMojoTestBase {
                                                   " ]" +
                                                   "}");
         clientV2.createArtifact(groupId, artifactId, ArtifactType.AVRO, new ByteArrayInputStream(schema.toString().getBytes(StandardCharsets.UTF_8)));
-        this.waitForArtifact(groupId, artifactId);
 
         Rule rule = new Rule();
         rule.setType(RuleType.COMPATIBILITY);

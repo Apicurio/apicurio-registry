@@ -61,7 +61,6 @@ import com.google.common.hash.Hashing;
 
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.rest.client.exception.RuleViolationException;
-import io.apicurio.registry.rest.v2.beans.ArtifactContent;
 import io.apicurio.registry.rest.v2.beans.ArtifactOwner;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v2.beans.ArtifactReference;

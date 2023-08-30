@@ -60,6 +60,8 @@ import org.json.JSONObject;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;
@@ -399,8 +401,16 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
         }
     }
 
-    @Test
-    public void testAvroReflect() throws Exception {
+    @ParameterizedTest
+    @ValueSource(
+        strings = {
+            "io.apicurio.registry.serde.strategy.TopicIdStrategy",
+            "io.apicurio.registry.serde.avro.strategy.QualifiedRecordIdStrategy",
+            "io.apicurio.registry.serde.avro.strategy.RecordIdStrategy",
+            "io.apicurio.registry.serde.avro.strategy.TopicRecordIdStrategy"
+        }
+    )
+    public void testAvroReflect(String artifactResolverStrategy) throws Exception {
         try (AvroKafkaSerializer<Tester> serializer = new AvroKafkaSerializer<Tester>(restClient);
              AvroKafkaDeserializer<Tester> deserializer = new AvroKafkaDeserializer<Tester>(restClient)) {
 
@@ -408,6 +418,7 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
             config.put(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true");
             config.put(SerdeConfig.ENABLE_HEADERS, "false");
             config.put(AvroKafkaSerdeConfig.AVRO_DATUM_PROVIDER, ReflectAvroDatumProvider.class.getName());
+            config.put(SchemaResolverConfig.ARTIFACT_RESOLVER_STRATEGY, artifactResolverStrategy);
             serializer.configure(config, false);
 
             config = new HashMap<>();
@@ -416,7 +427,7 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
 
             String artifactId = generateArtifactId();
 
-            Tester tester = new Tester("Apicurio");
+            Tester tester = new Tester("Apicurio", Tester.TesterState.ONLINE);
             byte[] bytes = serializer.serialize(artifactId, tester);
 
             waitForSchema(globalId -> restClient.getContentByGlobalId(globalId) != null, bytes);

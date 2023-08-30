@@ -91,7 +91,10 @@ public class ErrorHandler implements RestClientErrorHandler {
         final Error error = new Error();
         error.setName(ex.getClass().getSimpleName());
         error.setMessage(ex.getMessage());
-        logger.debug("Error returned:", ex);
+//        if (logger.isDebugEnabled()) {
+            logger.error("Error returned from registry server.", ex);
+            logger.warn("Returning error with classname $", error);
+//        }
         return new RestClientException(error);
     }
 

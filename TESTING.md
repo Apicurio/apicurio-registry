@@ -23,7 +23,7 @@ Located under `integration-tests`. We have a set of tests for the current versio
 
 This set of tests are mainly designed to work in two different modes:
 
-+ Apicurio Registry and required infrastructure deployed locally (processes, docker containers, mocks, ...) by the testsuite. This uses the @QuarkusIntegrationTest annotation to run the required infrastructure. This is useful for running the tests in the IDE for debugging purposes. It also
++ Apicurio Registry and required infrastructure deployed locally (processes, docker containers, mocks, ...) by the testsuite. This uses the @QuarkusIntegrationTest annotation to run the required infrastructure. This is useful for running the tests in the IDE for debugging purposes.
 + Apicurio Registry and required infrasturcture are deployed externally and connection details have to be provided in order to execute the tests.
 
 ### ITs with local infrastructure
@@ -38,7 +38,7 @@ When executing the testsuite you normally provide two profiles:
 
 As you might expect, this testsuite mode depends on the rest of the project to be built first, in order to have the application jars/images available or the serdes module to be available as well.
 
-For running the smoke tests group using the sql variant, first run `mvn clean install -Psql` (this command will execute the unit tests for the sql variant, you can skip them using `-DskipTests`) and then run mvn verify -Plocal-sql -Psmoke. 
+For running the smoke tests group using the sql variant, first run `mvn clean install -Psql` (this command will execute the unit tests for the sql variant, you can skip them using `-DskipTests`) and then run `mvn verify -Plocal-sql -Psmoke`.
 
 
 ## ITs with infrastructure in Kubernetes/Openshift

@@ -34,7 +34,7 @@ public class QualifiedRecordIdStrategy implements ArtifactReferenceResolverStrat
      */
     @Override
     public io.apicurio.registry.resolver.strategy.ArtifactReference artifactReference(Record<Object> data, ParsedSchema<Schema> parsedSchema) {
-        if (parsedSchema != null && parsedSchema.getParsedSchema() != null && parsedSchema.getParsedSchema().getType() == Schema.Type.RECORD) {
+        if (parsedSchema != null && parsedSchema.getParsedSchema() != null && (parsedSchema.getParsedSchema().getType() == Schema.Type.RECORD || parsedSchema.getParsedSchema().getType() == Schema.Type.ENUM)) {
             return ArtifactReference.builder()
                                     .groupId(null)
                                     .artifactId(parsedSchema.getParsedSchema().getFullName())

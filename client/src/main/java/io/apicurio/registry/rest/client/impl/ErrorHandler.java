@@ -82,7 +82,10 @@ public class ErrorHandler implements RestClientErrorHandler {
         error.setName(ex.getClass().getSimpleName());
         error.setDetail(ex.getMessage());
         error.setMessage("Error trying to parse request body");
-        logger.debug("Error trying to parse request body:", ex);
+        if (logger.isDebugEnabled()) {
+            logger.error("Error trying to parse REST Client request body.", ex);
+            logger.warn("REST Client returning error with classname [{}] and message '{}'", error.getName(), error.getDetail());
+        }
         return new RestClientException(new Error());
     }
 
@@ -91,10 +94,10 @@ public class ErrorHandler implements RestClientErrorHandler {
         final Error error = new Error();
         error.setName(ex.getClass().getSimpleName());
         error.setMessage(ex.getMessage());
-//        if (logger.isDebugEnabled()) {
+        if (logger.isDebugEnabled()) {
             logger.error("Error returned from registry server.", ex);
-            logger.warn("Returning error with classname $", error);
-//        }
+            logger.warn("REST Client returning error with classname [{}] and message '{}'", error.getName(), error.getDetail());
+        }
         return new RestClientException(error);
     }
 

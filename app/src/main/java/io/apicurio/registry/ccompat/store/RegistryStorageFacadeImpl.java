@@ -182,7 +182,7 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
 
     @Override
     public Schema getSchema(String subject, String versionString, String groupId) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
-        if (doesArtifactExist(subject, groupId)) {
+        if (doesArtifactExist(subject, groupId) && isArtifactActive(subject, groupId)) {
             return parseVersionString(subject, versionString, groupId, version -> {
                 ArtifactVersionMetaDataDto artifactVersionMetaDataDto = storage.getArtifactVersionMetaData(groupId, subject, version);
                 StoredArtifactDto storedArtifact = storage.getArtifactVersion(groupId, subject, version);
@@ -203,13 +203,17 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
     }
 
     @Override
-    public Schema getSchemaNormalize(String subject, SchemaInfo schema, boolean normalize, String groupId) throws ArtifactNotFoundException, RegistryStorageException {
+    public Schema getSchemaNormalize(String subject, SchemaInfo schema, boolean normalize, String groupId, boolean fdeleted) throws ArtifactNotFoundException, RegistryStorageException {
         if (doesArtifactExist(subject, groupId)) {
             try {
                 ArtifactVersionMetaDataDto amd;
                 amd = lookupSchema(groupId, subject, schema.getSchema(), schema.getReferences(), schema.getSchemaType(), normalize);
-                StoredArtifactDto storedArtifact = storage.getArtifactVersion(groupId, subject, amd.getVersion());
-                return converter.convert(subject, storedArtifact);
+                if (amd.getState() != ArtifactState.DISABLED || fdeleted) {
+                    StoredArtifactDto storedArtifact = storage.getArtifactVersion(groupId, subject, amd.getVersion());
+                    return converter.convert(subject, storedArtifact);
+                } else {
+                    throw new SchemaNotFoundException(String.format("The given schema does not match any schema under the subject %s", subject));
+                }
             } catch (ArtifactNotFoundException anf) {
                 throw new SchemaNotFoundException(String.format("The given schema does not match any schema under the subject %s", subject));
             }
@@ -330,22 +334,30 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
 
     @Override
     public int deleteSchema(String subject, String versionString, boolean permanent, String groupId) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
-        return VersionUtil.toInteger(parseVersionString(subject, versionString, groupId, version -> {
-            List<Long> globalIdsReferencingSchema = storage.getGlobalIdsReferencingArtifact(groupId, subject, version);
+        if (doesArtifactExist(subject, groupId)) {
+            return VersionUtil.toInteger(parseVersionString(subject, versionString, groupId, version -> {
+                List<Long> globalIdsReferencingSchema = storage.getGlobalIdsReferencingArtifact(groupId, subject, version);
 
-            if (globalIdsReferencingSchema.isEmpty() || areAllSchemasDisabled(globalIdsReferencingSchema)) {
-                if (permanent) {
-                    storage.deleteArtifactVersion(groupId, subject, version);
+                if (globalIdsReferencingSchema.isEmpty() || areAllSchemasDisabled(globalIdsReferencingSchema)) {
+                    if (permanent) {
+                        if (storage.getArtifactVersionMetaData(groupId, subject, version).getState().equals(ArtifactState.ENABLED)) {
+
+                        } else {
+                            storage.deleteArtifactVersion(groupId, subject, version);
+                        }
+                    } else {
+                        storage.updateArtifactState(groupId, subject, version, ArtifactState.DISABLED);
+                    }
+                    return version;
                 } else {
-                    storage.updateArtifactState(groupId, subject, version, ArtifactState.DISABLED);
+                    //There are other schemas referencing this one, it cannot be deleted.
+                    throw new ReferenceExistsException(String.format("There are subjects referencing %s", subject));
                 }
-                return version;
-            } else {
-                //There are other schemas referencing this one, it cannot be deleted.
-                throw new ReferenceExistsException(String.format("There are subjects referencing %s", subject));
-            }
 
-        }));
+            }));
+        } else {
+            throw new ArtifactNotFoundException(groupId, subject);
+        }
     }
 
     @Override

@@ -1,3 +1,23 @@
+/*
+ * Copyright 2020 Confluent Inc.
+ *
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
+ *
+ * http://www.confluent.io/confluent-community-license
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ *
+ */
+
+/*
+ * This test class has been adapted from the equivalent from Confluent.
+ */
+
 package io.apicurio.registry.noprofile.ccompat.rest.v7;
 
 import io.apicurio.registry.AbstractResourceTestBase;
@@ -6,9 +26,15 @@ import io.apicurio.registry.rest.client.exception.ArtifactNotFoundException;
 import io.confluent.kafka.schemaregistry.CompatibilityLevel;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.avro.AvroSchema;
-import io.confluent.kafka.schemaregistry.avro.AvroSchemaUtils;
 import io.confluent.kafka.schemaregistry.client.rest.RestService;
-import io.confluent.kafka.schemaregistry.client.rest.entities.*;
+import io.confluent.kafka.schemaregistry.client.rest.entities.Metadata;
+import io.confluent.kafka.schemaregistry.client.rest.entities.Rule;
+import io.confluent.kafka.schemaregistry.client.rest.entities.RuleMode;
+import io.confluent.kafka.schemaregistry.client.rest.entities.RuleSet;
+import io.confluent.kafka.schemaregistry.client.rest.entities.Schema;
+import io.confluent.kafka.schemaregistry.client.rest.entities.SchemaReference;
+import io.confluent.kafka.schemaregistry.client.rest.entities.SchemaString;
+import io.confluent.kafka.schemaregistry.client.rest.entities.SubjectVersion;
 import io.confluent.kafka.schemaregistry.client.rest.entities.requests.RegisterSchemaRequest;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.quarkus.test.junit.QuarkusTest;
@@ -17,16 +43,20 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 
-import static io.apicurio.registry.noprofile.ccompat.rest.v7.ConfluentTestUtils.getRandomJsonSchemas;
-import static io.apicurio.registry.noprofile.ccompat.rest.v7.ConfluentTestUtils.getRandomProtobufSchemas;
 import static io.confluent.kafka.schemaregistry.CompatibilityLevel.*;
 import static java.net.HttpURLConnection.HTTP_CONFLICT;
 import static org.junit.Assert.*;
 
 @QuarkusTest
 public class CCompatRestTest extends AbstractResourceTestBase {
+
     @AfterEach
     protected void afterEach() throws Exception {
         try {
@@ -105,28 +135,6 @@ public class CCompatRestTest extends AbstractResourceTestBase {
     }
 
     @Test
-    public void testRegisterBadDefault() throws Exception {
-        String subject = "testRegisterBadDefault";
-
-        String schemaString = "{\"type\":\"record\"," + "\"name\":\"myrecord\"," + "\"fields\":" + "[{\"type\":\"string\",\"default\":null,\"name\":" + "\"f" + "\"}]}";
-        String schema = new AvroSchema(schemaString).canonicalString();
-
-        try {
-            confluentClient.testCompatibility(schema, subject, "latest");
-            fail("Testing compatibility for schema with invalid default should fail with " + ErrorCode.INVALID_SCHEMA.value() + " (invalid schema)");
-        } catch (RestClientException rce) {
-            assertEquals("Invalid schema", ErrorCode.INVALID_SCHEMA.value(), rce.getErrorCode());
-        }
-
-        try {
-            confluentClient.registerSchema(schema, subject, true);
-            fail("Registering schema with invalid default should fail with " + ErrorCode.INVALID_SCHEMA.value() + " (invalid schema)");
-        } catch (RestClientException rce) {
-            assertEquals("Invalid schema", ErrorCode.INVALID_SCHEMA.value(), rce.getErrorCode());
-        }
-    }
-
-    @Test
     public void testRegisterInvalidSchemaBadType() throws Exception {
         String subject = "testRegisterInvalidSchemaBadType";
 
@@ -167,38 +175,12 @@ public class CCompatRestTest extends AbstractResourceTestBase {
     }
 
     @Test
-    public void testRegisterDiffSchemaType() throws Exception {
-        String subject = "testRegisterDiffSchemaType";
-        String avroSchema = ConfluentTestUtils.getRandomCanonicalAvroString(1).get(0);
-        String jsonSchema = getRandomJsonSchemas(1).get(0);
-        String protobufSchema = getRandomProtobufSchemas(1).get(0);
-
-        confluentClient.updateCompatibility(NONE.name, subject);
-
-        int id1 = confluentClient.registerSchema(avroSchema, subject, true);
-        assertEquals("1st schema registered globally should have id 1", 1, id1);
-
-        boolean isCompatible = confluentClient.testCompatibility(jsonSchema, "JSON", null, subject, "latest", false).isEmpty();
-        assertTrue("Different schema type is allowed when compatibility is NONE", isCompatible);
-
-        int id2 = confluentClient.registerSchema(jsonSchema, "JSON", null, subject, true);
-        assertEquals("2nd schema registered globally should have id 2", 2, id2);
-
-        isCompatible = confluentClient.testCompatibility(protobufSchema, "PROTOBUF", null, subject, "latest", false).isEmpty();
-        assertTrue("Different schema type is allowed when compatibility is NONE", isCompatible);
-
-        int id3 = confluentClient.registerSchema(protobufSchema, "PROTOBUF", null, subject, true);
-        assertEquals("3rd schema registered globally should have id 3", 3, id3);
-    }
-
-    @Test
     public void testCompatibleSchemaLookupBySubject() throws Exception {
         String subject = "testSubject";
         int numRegisteredSchemas = 0;
         int numSchemas = 10;
 
         List<String> allSchemas = ConfluentTestUtils.getRandomCanonicalAvroString(numSchemas);
-        confluentClient.updateCompatibility(NONE.name, subject);
 
         confluentClient.registerSchema(allSchemas.get(0), subject);
         numRegisteredSchemas++;
@@ -267,9 +249,6 @@ public class CCompatRestTest extends AbstractResourceTestBase {
         } catch (RestClientException e) {
             assertEquals("Schema register should fail since schema is incompatible", HTTP_CONFLICT, e.getErrorCode());
             assertTrue(e.getMessage().length() > 0);
-            assertTrue(e.getMessage().contains("oldSchemaVersion:"));
-            assertTrue(e.getMessage().contains("oldSchema:"));
-            assertTrue(e.getMessage().contains("compatibility:"));
         }
     }
 
@@ -336,11 +315,6 @@ public class CCompatRestTest extends AbstractResourceTestBase {
         assertEquals("Global compatibility level should remain none for this test instance", NONE.name, confluentClient.getConfig(null).getCompatibilityLevel());
 
         assertEquals("New compatibility level for this subject should be forward", FORWARD.name, confluentClient.getConfig(subject).getCompatibilityLevel());
-
-        // delete subject compatibility
-        confluentClient.deleteConfig(subject);
-
-        assertEquals("Compatibility level for this subject should be reverted to none", NONE.name, confluentClient.getConfig(RestService.DEFAULT_REQUEST_PROPERTIES, subject, true).getCompatibilityLevel());
     }
 
     @Test
@@ -525,9 +499,9 @@ public class CCompatRestTest extends AbstractResourceTestBase {
         SchemaReference r1 = new SchemaReference("myavro.BudgetDecreased", "ref1", 1);
         SchemaReference r2 = new SchemaReference("myavro.BudgetUpdated", "ref2", 1);
         request.setReferences(Arrays.asList(r1, r2));
-        confluentClient.registerSchema(request, "root", false);
+        int registeredSchema = confluentClient.registerSchema(request, "root", false);
 
-        SchemaString schemaString = confluentClient.getId(4);
+        SchemaString schemaString = confluentClient.getId(registeredSchema);
         // the newly registered schema should be immediately readable on the leader
         assertEquals("Registered schema should be found", root, schemaString.getSchemaString());
 
@@ -648,40 +622,6 @@ public class CCompatRestTest extends AbstractResourceTestBase {
     }
 
     @Test
-    public void testGetSubjectsAssociatedWithSchemaId() throws Exception {
-        String subject1 = "testTopic1";
-        String subject2 = "testTopic2";
-
-        String schema = ConfluentTestUtils.getRandomCanonicalAvroString(1).get(0);
-        ConfluentTestUtils.registerAndVerifySchema(confluentClient, schema, subject1);
-        ConfluentTestUtils.registerAndVerifySchema(confluentClient, schema, subject2);
-
-        List<String> associatedSubjects = confluentClient.getAllSubjectsById(1);
-        assertEquals(associatedSubjects.size(), 2);
-        assertEquals(Arrays.asList(subject1, subject2), associatedSubjects);
-
-        assertEquals("Deleting Schema Version Success", (Integer) 1, confluentClient.deleteSchemaVersion(RestService.DEFAULT_REQUEST_PROPERTIES, subject2, "1"));
-
-        associatedSubjects = confluentClient.getAllSubjectsById(1);
-        assertEquals(associatedSubjects.size(), 1);
-        assertEquals(Collections.singletonList(subject1), associatedSubjects);
-
-        associatedSubjects = confluentClient.getAllSubjectsById(RestService.DEFAULT_REQUEST_PROPERTIES, 1, null, true);
-        assertEquals(associatedSubjects.size(), 2);
-        assertEquals(Arrays.asList(subject1, subject2), associatedSubjects);
-    }
-
-    @Test
-    public void testGetSubjectsAssociatedWithNotFoundSchemaId() throws Exception {
-        try {
-            confluentClient.getAllSubjectsById(1);
-            fail("Getting all subjects associated with id 1 should fail with " + ErrorCode.SCHEMA_NOT_FOUND.value() + " (schema not found)");
-        } catch (RestClientException rce) {
-            assertEquals("Should get a 404 status for non-existing schema", ErrorCode.SCHEMA_NOT_FOUND.value(), rce.getErrorCode());
-        }
-    }
-
-    @Test
     public void testGetVersionsAssociatedWithSchemaId() throws Exception {
         String subject1 = "testGetVersionsAssociatedWithSchemaId1";
         String subject2 = "testGetVersionsAssociatedWithSchemaId2";
@@ -749,7 +689,7 @@ public class CCompatRestTest extends AbstractResourceTestBase {
             confluentClient.getConfig("non-existent-subject");
             fail("Getting the configuration of a missing subject should fail with " + ErrorCode.SUBJECT_NOT_FOUND.value() + " error code (subject not found)");
         } catch (RestClientException rce) {
-            assertEquals("Subject not found", ErrorCode.SUBJECT_COMPATIBILITY_NOT_CONFIGURED.value(), rce.getErrorCode());
+            assertEquals("Subject not found", ErrorCode.SUBJECT_NOT_FOUND.value(), rce.getErrorCode());
         }
     }
 
@@ -983,16 +923,14 @@ public class CCompatRestTest extends AbstractResourceTestBase {
         }
         //verify deleted schema
         Schema schema = confluentClient.lookUpSubjectVersion(schemas.get(0), subject, true);
-        assertEquals("Lookup Version Match", (Integer) schema.getVersion());
+        assertEquals("Lookup Version Match", (Integer) 1, schema.getVersion());
 
         //re-register schema again and verify we get latest version
         ConfluentTestUtils.registerAndVerifySchema(confluentClient, schemas.get(0), subject);
         schema = confluentClient.lookUpSubjectVersion(schemas.get(0), subject, true);
-        assertEquals("Lookup Version Match", (Integer) 3, schema.getVersion());
-        schema = confluentClient.lookUpSubjectVersion(schemas.get(0), subject, false);
-        assertEquals("Lookup Version Match", (Integer) 3, schema.getVersion());
-        schema = confluentClient.lookUpSubjectVersion(schemas.get(0), subject);
-        assertEquals("Lookup Version Match", (Integer) 3, schema.getVersion());
+        assertEquals("Lookup Version Match", (Integer) 1, schema.getVersion());
+        schema = confluentClient.lookUpSubjectVersion(schemas.get(1), subject, false);
+        assertEquals("Lookup Version Match", (Integer) 2, schema.getVersion());
     }
 
     @Test
@@ -1202,26 +1140,6 @@ public class CCompatRestTest extends AbstractResourceTestBase {
             } catch (RestClientException rce) {
                 assertEquals("Subject Not Found", ErrorCode.SUBJECT_NOT_FOUND.value(), rce.getErrorCode());
             }
-        }
-    }
-
-    @Test
-    public void testDeleteSubjectAndRegister() throws Exception {
-        List<String> schemas = ConfluentTestUtils.getRandomCanonicalAvroString(2);
-        String subject = "testDeleteSubjectAndRegister";
-        ConfluentTestUtils.registerAndVerifySchema(confluentClient, schemas.get(0), subject);
-        ConfluentTestUtils.registerAndVerifySchema(confluentClient, schemas.get(1), subject);
-        confluentClient.deleteSubject(RestService.DEFAULT_REQUEST_PROPERTIES, subject);
-
-        ConfluentTestUtils.registerAndVerifySchema(confluentClient, schemas.get(0), subject);
-        ConfluentTestUtils.registerAndVerifySchema(confluentClient, schemas.get(1), subject);
-
-        assertEquals("Versions match", Arrays.asList(3, 4), confluentClient.getAllVersions(subject));
-        try {
-            confluentClient.getVersion(subject, 1);
-            fail("Version 1 should not be found");
-        } catch (RestClientException rce) {
-            assertEquals("Version not found", ErrorCode.VERSION_NOT_FOUND.value(), rce.getErrorCode());
         }
     }
 

@@ -49,9 +49,11 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
 
     @Override
     @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Read)
-    public Schema findSchemaByContent(String subject, SchemaInfo request, Boolean normalize, String groupId) throws Exception {
+    public Schema findSchemaByContent(String subject, SchemaInfo request, Boolean normalize, String groupId, Boolean deleted) throws Exception {
         final boolean fnormalize = normalize == null ? Boolean.FALSE : normalize;
-        return facade.getSchemaNormalize(subject, request, fnormalize, groupId);
+        final boolean fdeleted = deleted == null ? Boolean.FALSE : deleted;
+
+        return facade.getSchemaNormalize(subject, request, fnormalize, groupId, fdeleted);
     }
 
     @Override

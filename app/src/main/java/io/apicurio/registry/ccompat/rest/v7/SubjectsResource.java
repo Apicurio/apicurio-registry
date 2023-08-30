@@ -88,7 +88,7 @@ public interface SubjectsResource {
     @Path("/{subject}")
     Schema findSchemaByContent(
             @PathParam("subject") String subject,
-            @NotNull SchemaInfo request, @QueryParam("normalize") Boolean normalize, @HeaderParam(Headers.GROUP_ID) String groupId) throws Exception;
+            @NotNull SchemaInfo request, @QueryParam("normalize") Boolean normalize, @HeaderParam(Headers.GROUP_ID) String groupId, @QueryParam("deleted") Boolean deleted) throws Exception;
 
     /**
      * Deletes the specified subject and its associated compatibility level if registered.

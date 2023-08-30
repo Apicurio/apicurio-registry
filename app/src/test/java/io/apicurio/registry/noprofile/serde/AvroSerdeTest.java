@@ -403,14 +403,14 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
 
     @ParameterizedTest
     @ValueSource(
-        strings = {
-            "io.apicurio.registry.serde.strategy.TopicIdStrategy",
-            "io.apicurio.registry.serde.avro.strategy.QualifiedRecordIdStrategy",
-            "io.apicurio.registry.serde.avro.strategy.RecordIdStrategy",
-            "io.apicurio.registry.serde.avro.strategy.TopicRecordIdStrategy"
+        classes = {
+            io.apicurio.registry.serde.strategy.TopicIdStrategy.class,
+            io.apicurio.registry.serde.avro.strategy.QualifiedRecordIdStrategy.class,
+            io.apicurio.registry.serde.avro.strategy.RecordIdStrategy.class,
+            io.apicurio.registry.serde.avro.strategy.TopicRecordIdStrategy.class
         }
     )
-    public void testAvroReflect(String artifactResolverStrategy) throws Exception {
+    public void testAvroReflect(Class<?> artifactResolverStrategyClass) throws Exception {
         try (AvroKafkaSerializer<Tester> serializer = new AvroKafkaSerializer<Tester>(restClient);
              AvroKafkaDeserializer<Tester> deserializer = new AvroKafkaDeserializer<Tester>(restClient)) {
 
@@ -418,7 +418,7 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
             config.put(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true");
             config.put(SerdeConfig.ENABLE_HEADERS, "false");
             config.put(AvroKafkaSerdeConfig.AVRO_DATUM_PROVIDER, ReflectAvroDatumProvider.class.getName());
-            config.put(SchemaResolverConfig.ARTIFACT_RESOLVER_STRATEGY, artifactResolverStrategy);
+            config.put(SchemaResolverConfig.ARTIFACT_RESOLVER_STRATEGY, artifactResolverStrategyClass.getName());
             serializer.configure(config, false);
 
             config = new HashMap<>();

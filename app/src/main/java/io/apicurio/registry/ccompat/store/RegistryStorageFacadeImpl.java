@@ -269,6 +269,8 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
                 try {
                     String schemaNormalizedSha = DigestUtils.sha256Hex(artifactTypeProvider.getContentNormalizer().normalize(ContentHandle.create(schema), resolvedReferences).content());
 
+                    //FIXME create a normalizedHash and compare the content using it.
+
                     //Normalize given schema, compare with existing ones normalized, and check if the hashes are the same, also ensure that the given schema contains all the references of the existing one.
                     amd = storage.getArtifactVersions(groupId, subject)
                             .stream().filter(version -> {

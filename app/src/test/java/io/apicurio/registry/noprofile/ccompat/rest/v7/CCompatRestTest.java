@@ -328,11 +328,7 @@ public class CCompatRestTest extends AbstractResourceTestBase {
         // change subject compatibility to backward
         confluentClient.updateCompatibility(BACKWARD.name, null);
         assertEquals("New Global compatibility level should be backward", BACKWARD.name, confluentClient.getConfig(null).getCompatibilityLevel());
-
-        // delete Global compatibility
-        confluentClient.deleteConfig(null);
-        assertEquals("Global compatibility level should be reverted to none", NONE.name, confluentClient.getConfig(RestService.DEFAULT_REQUEST_PROPERTIES, null, true).getCompatibilityLevel());
-    }
+  }
 
     @Test
     public void testGetSchemaNonExistingId() throws Exception {

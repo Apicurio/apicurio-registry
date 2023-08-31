@@ -41,11 +41,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import jakarta.annotation.PostConstruct;
-import jakarta.enterprise.event.Event;
-import jakarta.inject.Inject;
-import jakarta.transaction.Transactional;
-
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -71,7 +66,6 @@ import io.apicurio.registry.storage.ContentNotFoundException;
 import io.apicurio.registry.storage.DownloadNotFoundException;
 import io.apicurio.registry.storage.GroupAlreadyExistsException;
 import io.apicurio.registry.storage.GroupNotFoundException;
-import io.apicurio.registry.storage.LogConfigurationNotFoundException;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.RegistryStorageException;
 import io.apicurio.registry.storage.RoleMappingAlreadyExistsException;
@@ -95,7 +89,6 @@ import io.apicurio.registry.storage.dto.DownloadContextDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.GroupMetaDataDto;
 import io.apicurio.registry.storage.dto.GroupSearchResultsDto;
-import io.apicurio.registry.storage.dto.LogConfigurationDto;
 import io.apicurio.registry.storage.dto.OrderBy;
 import io.apicurio.registry.storage.dto.OrderDirection;
 import io.apicurio.registry.storage.dto.RoleMappingDto;
@@ -111,7 +104,6 @@ import io.apicurio.registry.storage.impexp.EntityInputStream;
 import io.apicurio.registry.storage.impl.sql.jdb.Handle;
 import io.apicurio.registry.storage.impl.sql.jdb.Query;
 import io.apicurio.registry.storage.impl.sql.jdb.RowMapper;
-import io.apicurio.registry.storage.impl.sql.jdb.Update;
 import io.apicurio.registry.storage.impl.sql.mappers.ArtifactMetaDataDtoMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.ArtifactReferenceDtoMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.ArtifactRuleEntityMapper;
@@ -125,7 +117,6 @@ import io.apicurio.registry.storage.impl.sql.mappers.DynamicConfigPropertyDtoMap
 import io.apicurio.registry.storage.impl.sql.mappers.GlobalRuleEntityMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.GroupEntityMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.GroupMetaDataDtoMapper;
-import io.apicurio.registry.storage.impl.sql.mappers.LogConfigurationMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.RoleMappingDtoMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.RuleConfigurationDtoMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.SearchedArtifactMapper;
@@ -149,6 +140,10 @@ import io.apicurio.registry.utils.impexp.GlobalRuleEntity;
 import io.apicurio.registry.utils.impexp.GroupEntity;
 import io.apicurio.registry.utils.impexp.ManifestEntity;
 import io.quarkus.security.identity.SecurityIdentity;
+import jakarta.annotation.PostConstruct;
+import jakarta.enterprise.event.Event;
+import jakarta.inject.Inject;
+import jakarta.transaction.Transactional;
 
 
 /**
@@ -2649,82 +2644,6 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             return handle.createQuery(sql)
                     .bind(0, lastRefresh.toEpochMilli())
                     .mapTo(String.class)
-                    .list();
-        });
-    }
-
-    /**
-     * @see RegistryStorage#getLogConfiguration(java.lang.String)
-     */
-    @Override
-    public LogConfigurationDto getLogConfiguration(String logger) throws RegistryStorageException, LogConfigurationNotFoundException {
-        log.debug("Selecting a single log configuration: {}", logger);
-        try {
-            return this.handles.withHandle(handle -> {
-                String sql = sqlStatements.selectLogConfigurationByLogger();
-                Optional<LogConfigurationDto> res = handle.createQuery(sql)
-                        .bind(0, logger)
-                        .map(LogConfigurationMapper.instance)
-                        .findOne();
-                return res.orElseThrow(() -> new LogConfigurationNotFoundException(logger));
-            });
-        } catch (LogConfigurationNotFoundException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new RegistryStorageException(e);
-        }
-    }
-
-    /**
-     * @see RegistryStorage#setLogConfiguration(io.apicurio.registry.storage.dto.LogConfigurationDto)
-     */
-    @Override
-    @Transactional
-    public void setLogConfiguration(LogConfigurationDto logConfiguration) throws RegistryStorageException {
-        log.debug("Upsert log configuration: {}", logConfiguration.getLogger());
-        handles.withHandleNoException(handle -> {
-            String sql = sqlStatements.upsertLogConfiguration();
-
-            Update query = handle.createUpdate(sql)
-                    .bind(0, logConfiguration.getLogger())
-                    .bind(1, logConfiguration.getLogLevel().value());
-            if ("postgresql".equals(sqlStatements.dbType())) {
-                query.bind(2, logConfiguration.getLogLevel().value());
-            }
-            query.execute();
-
-            return null;
-        });
-    }
-
-    /**
-     * @see RegistryStorage#removeLogConfiguration(java.lang.String)
-     */
-    @Override
-    @Transactional
-    public void removeLogConfiguration(String logger) throws RegistryStorageException, LogConfigurationNotFoundException {
-        log.debug("Removing a log configuration: {}", logger);
-        handles.withHandleNoException(handle -> {
-            String sql = sqlStatements.deleteLogConfiguration();
-            int rowCount = handle.createUpdate(sql)
-                    .bind(0, logger)
-                    .execute();
-            if (rowCount == 0) {
-                throw new LogConfigurationNotFoundException(logger);
-            }
-            return null;
-        });
-    }
-
-    /**
-     * @see RegistryStorage#listLogConfigurations()
-     */
-    @Override
-    public List<LogConfigurationDto> listLogConfigurations() throws RegistryStorageException {
-        return handles.withHandleNoException(handle -> {
-            String sql = sqlStatements.selectAllLogConfigurations();
-            return handle.createQuery(sql)
-                    .map(LogConfigurationMapper.instance)
                     .list();
         });
     }

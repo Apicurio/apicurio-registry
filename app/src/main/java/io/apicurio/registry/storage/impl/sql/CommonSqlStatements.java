@@ -696,30 +696,6 @@ public abstract class CommonSqlStatements implements SqlStatements {
     }
 
     /**
-     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectLogConfigurationByLogger()
-     */
-    @Override
-    public String selectLogConfigurationByLogger() {
-        return "SELECT l.logger, l.loglevel FROM logconfiguration l WHERE l.logger = ?";
-    }
-
-    /**
-     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#deleteLogConfiguration()
-     */
-    @Override
-    public String deleteLogConfiguration() {
-        return "DELETE FROM logconfiguration WHERE logger = ?";
-    }
-
-    /**
-     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectAllLogConfigurations()
-     */
-    @Override
-    public String selectAllLogConfigurations() {
-        return "SELECT l.logger, l.loglevel FROM logconfiguration l";
-    }
-
-    /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#insertGroup()
      */
     @Override

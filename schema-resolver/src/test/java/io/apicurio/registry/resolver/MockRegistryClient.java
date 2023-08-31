@@ -285,26 +285,6 @@ public class MockRegistryClient implements RegistryClient {
     }
 
     @Override
-    public List<NamedLogConfiguration> listLogConfigurations() {
-        throw new UnsupportedOperationException("Unimplemented method 'listLogConfigurations'");
-    }
-
-    @Override
-    public NamedLogConfiguration getLogConfiguration(String logger) {
-        throw new UnsupportedOperationException("Unimplemented method 'getLogConfiguration'");
-    }
-
-    @Override
-    public NamedLogConfiguration setLogConfiguration(String logger, LogConfiguration data) {
-        throw new UnsupportedOperationException("Unimplemented method 'setLogConfiguration'");
-    }
-
-    @Override
-    public NamedLogConfiguration removeLogConfiguration(String logger) {
-        throw new UnsupportedOperationException("Unimplemented method 'removeLogConfiguration'");
-    }
-
-    @Override
     public InputStream exportData() {
         throw new UnsupportedOperationException("Unimplemented method 'exportData'");
     }

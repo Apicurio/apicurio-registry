@@ -50,9 +50,6 @@ public class MessageTypeToKeyClass {
                 case GlobalRule:
                     index.put(type, GlobalRuleKey.class);
                     break;
-                case LogConfig:
-                    index.put(type, LogConfigKey.class);
-                    break;
                 case ArtifactVersion:
                     index.put(type, ArtifactVersionKey.class);
                     break;

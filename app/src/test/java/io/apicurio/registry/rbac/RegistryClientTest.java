@@ -960,7 +960,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         artifactReference.setName("com.example.common.ItemId");
 
         final String secondArtifactId = generateArtifactId();
-        final Integer globalId = createArtifactWithReferences(groupId, secondArtifactId, ArtifactType.AVRO, SCHEMA_WITH_REFERENCE, List.of(artifactReference));
+        createArtifactWithReferences(groupId, secondArtifactId, ArtifactType.AVRO, SCHEMA_WITH_REFERENCE, List.of(artifactReference));
 
         //Create rule
         createArtifactRule(groupId, secondArtifactId, RuleType.COMPATIBILITY, "BACKWARD");
@@ -1203,23 +1203,6 @@ public class RegistryClientTest extends AbstractResourceTestBase {
     }
 
     @Test
-    public void smokeLogLevels() throws Exception {
-        final String logger = "smokeLogLevels";
-        /*final List<NamedLogConfiguration> namedLogConfigurations = */
-        clientV2.listLogConfigurations();
-
-        setLogLevel(logger, LogLevel.DEBUG);
-        final NamedLogConfiguration logConfiguration = clientV2.getLogConfiguration(logger);
-        assertEquals(LogLevel.DEBUG, logConfiguration.getLevel());
-        assertEquals(logger, logConfiguration.getName());
-
-        final List<NamedLogConfiguration> logConfigurations = clientV2.listLogConfigurations();
-        assertTrue(logConfigurations.size() >= 1);
-
-        clientV2.removeLogConfiguration(logger);
-    }
-
-    @Test
     @DisabledIfEnvironmentVariable(named = AbstractRegistryTestBase.CURRENT_ENV, matches = AbstractRegistryTestBase.CURRENT_ENV_MAS_REGEX)
     public void testDefaultGroup() throws Exception {
         String nullDefaultGroup = null;
@@ -1323,12 +1306,6 @@ public class RegistryClientTest extends AbstractResourceTestBase {
     private void prepareRuleTest(String groupId, String artifactId, RuleType ruleType, String ruleConfig) throws Exception {
         createArtifact(groupId, artifactId);
         createArtifactRule(groupId, artifactId, ruleType, ruleConfig);
-    }
-
-    private void setLogLevel(String log, LogLevel logLevel) {
-        final LogConfiguration logConfiguration = new LogConfiguration();
-        logConfiguration.setLevel(logLevel);
-        clientV2.setLogConfiguration(log, logConfiguration);
     }
 
     @Test

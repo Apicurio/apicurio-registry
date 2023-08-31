@@ -38,7 +38,6 @@ import io.apicurio.registry.storage.dto.DownloadContextDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.GroupMetaDataDto;
 import io.apicurio.registry.storage.dto.GroupSearchResultsDto;
-import io.apicurio.registry.storage.dto.LogConfigurationDto;
 import io.apicurio.registry.storage.dto.OrderBy;
 import io.apicurio.registry.storage.dto.OrderDirection;
 import io.apicurio.registry.storage.dto.RoleMappingDto;
@@ -567,37 +566,6 @@ public interface RegistryStorage extends DynamicConfigStorage {
      * @throws RegistryStorageException
      */
     void deleteGlobalRule(RuleType rule) throws RuleNotFoundException, RegistryStorageException;
-
-    /**
-     * Returns the log configuration persisted in the storage for the given logger
-     *
-     * @param logger
-     * @throws RegistryStorageException
-     */
-    LogConfigurationDto getLogConfiguration(String logger) throws RegistryStorageException, LogConfigurationNotFoundException;
-
-    /**
-     * Persists the given log configuration
-     *
-     * @param logConfiguration
-     * @throws RegistryStorageException
-     */
-    void setLogConfiguration(LogConfigurationDto logConfiguration) throws RegistryStorageException;
-
-    /**
-     * Removes the persisted log configuration for the given logger
-     *
-     * @param logger
-     * @throws RegistryStorageException
-     */
-    void removeLogConfiguration(String logger) throws RegistryStorageException, LogConfigurationNotFoundException;
-
-    /**
-     * Returns the list of log configuration persisted in the storage
-     *
-     * @throws RegistryStorageException
-     */
-    List<LogConfigurationDto> listLogConfigurations() throws RegistryStorageException;
 
     /**
      * Creates a new empty group and stores it's metadata. When creating an artifact the group is automatically created in it does not exist.

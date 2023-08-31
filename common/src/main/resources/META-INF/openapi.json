@@ -267,129 +267,6 @@
                 }
             ]
         },
-        "/admin/loggers": {
-            "summary": "Manage logger settings/configurations.",
-            "get": {
-                "tags": [
-                    "Admin"
-                ],
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "array",
-                                    "items": {
-                                        "$ref": "#/components/schemas/NamedLogConfiguration"
-                                    }
-                                }
-                            }
-                        },
-                        "description": "The list of logging configurations."
-                    },
-                    "500": {
-                        "$ref": "#/components/responses/ServerError"
-                    }
-                },
-                "operationId": "listLogConfigurations",
-                "summary": "List logging configurations",
-                "description": "List all of the configured logging levels.  These override the default\nlogging configuration."
-            }
-        },
-        "/admin/loggers/{logger}": {
-            "summary": "Manage logger settings/configurations.",
-            "get": {
-                "tags": [
-                    "Admin"
-                ],
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/NamedLogConfiguration"
-                                }
-                            }
-                        },
-                        "description": "The logger configuration for the named logger."
-                    },
-                    "500": {
-                        "$ref": "#/components/responses/ServerError"
-                    }
-                },
-                "operationId": "getLogConfiguration",
-                "summary": "Get a single logger configuration",
-                "description": "Returns the configured logger configuration for the provided logger name, if no logger configuration is persisted it will return the current default log configuration in the system."
-            },
-            "put": {
-                "requestBody": {
-                    "description": "The new logger configuration.",
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/LogConfiguration"
-                            }
-                        }
-                    },
-                    "required": true
-                },
-                "tags": [
-                    "Admin"
-                ],
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/NamedLogConfiguration"
-                                }
-                            }
-                        },
-                        "description": "The new configuration for the given logger."
-                    },
-                    "500": {
-                        "$ref": "#/components/responses/ServerError"
-                    }
-                },
-                "operationId": "setLogConfiguration",
-                "summary": "Set a logger's configuration",
-                "description": "Configures the logger referenced by the provided logger name with the given configuration."
-            },
-            "delete": {
-                "tags": [
-                    "Admin"
-                ],
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/NamedLogConfiguration"
-                                }
-                            }
-                        },
-                        "description": "The default logger configuration (now that the configuration for this logger has been removed, the \ndefault configuration is applied)."
-                    },
-                    "500": {
-                        "$ref": "#/components/responses/ServerError"
-                    }
-                },
-                "operationId": "removeLogConfiguration",
-                "summary": "Removes logger configuration",
-                "description": "Removes the configured logger configuration (if any) for the given logger."
-            },
-            "parameters": [
-                {
-                    "name": "logger",
-                    "description": "The name of a single logger.",
-                    "schema": {
-                        "type": "string"
-                    },
-                    "in": "path",
-                    "required": true
-                }
-            ]
-        },
         "/system/info": {
             "summary": "Retrieve system information",
             "get": {
@@ -3452,40 +3329,6 @@
                 "type": "string",
                 "example": "\"3.1.6\""
             },
-            "LogConfiguration": {
-                "description": "",
-                "required": [
-                    "level"
-                ],
-                "type": "object",
-                "properties": {
-                    "level": {
-                        "$ref": "#/components/schemas/LogLevel",
-                        "description": ""
-                    }
-                }
-            },
-            "NamedLogConfiguration": {
-                "description": "",
-                "type": "object",
-                "allOf": [
-                    {
-                        "required": [
-                            "name"
-                        ],
-                        "type": "object",
-                        "properties": {
-                            "name": {
-                                "description": "",
-                                "type": "string"
-                            }
-                        }
-                    },
-                    {
-                        "$ref": "#/components/schemas/LogConfiguration"
-                    }
-                ]
-            },
             "Properties": {
                 "description": "User-defined name-value pairs. Name and value must be strings.",
                 "type": "object",
@@ -3512,24 +3355,6 @@
                     "createdOn"
                 ],
                 "type": "string"
-            },
-            "LogLevel": {
-                "description": "",
-                "enum": [
-                    "DEBUG",
-                    "TRACE",
-                    "WARN",
-                    "ERROR",
-                    "SEVERE",
-                    "WARNING",
-                    "INFO",
-                    "CONFIG",
-                    "FINE",
-                    "FINER",
-                    "FINEST"
-                ],
-                "type": "string",
-                "x-codegen-package": "io.apicurio.registry.types"
             },
             "SystemInfo": {
                 "title": "Root Type for SystemInfo",

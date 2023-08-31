@@ -49,9 +49,6 @@ public class MessageTypeToValueClass {
                 case GlobalRule:
                     index.put(type, GlobalRuleValue.class);
                     break;
-                case LogConfig:
-                    index.put(type, LogConfigValue.class);
-                    break;
                 case ArtifactVersion:
                     index.put(type, ArtifactVersionValue.class);
                     break;

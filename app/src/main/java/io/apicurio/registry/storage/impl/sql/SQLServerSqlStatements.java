@@ -77,22 +77,6 @@ public class SQLServerSqlStatements extends CommonSqlStatements {
     }
 
     /**
-     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#upsertLogConfiguration()
-     */
-    @Override
-    public String upsertLogConfiguration() {
-        return String.join(" ",
-                "MERGE INTO logconfiguration AS target",
-                "USING (VALUES  (?, ?)) AS source (logger, loglevel)",
-                "ON target.logger = source.logger",
-                "WHEN MATCHED THEN",
-                    "UPDATE SET loglevel = ?",
-                "WHEN NOT MATCHED THEN",
-                    "INSERT (logger, loglevel)",
-                    "VALUES (source.logger, source.loglevel);");
-    }
-
-    /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#getNextSequenceValue()
      */
     @Override

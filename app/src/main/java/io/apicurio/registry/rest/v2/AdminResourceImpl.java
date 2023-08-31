@@ -17,14 +17,12 @@
 package io.apicurio.registry.rest.v2;
 
 import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_FOR_BROWSER;
-import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_LOGGER;
-import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_LOG_CONFIGURATION;
+import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_NAME;
 import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_PRINCIPAL_ID;
 import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_ROLE_MAPPING;
 import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_RULE;
 import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_RULE_TYPE;
 import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_UPDATE_ROLE;
-import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_NAME;
 import static io.apicurio.registry.util.DtoUtil.appAuthPropertyToRegistry;
 import static io.apicurio.registry.util.DtoUtil.registryAuthPropertyToApp;
 
@@ -39,15 +37,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.zip.ZipInputStream;
 
-import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
-import jakarta.interceptor.Interceptors;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.ws.rs.core.Context;
-import jakarta.ws.rs.core.MediaType;
-import jakarta.ws.rs.core.Response;
-
-import io.apicurio.registry.rest.v2.beans.ArtifactTypeInfo;
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
@@ -58,18 +47,16 @@ import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
 import io.apicurio.common.apps.config.DynamicConfigPropertyIndex;
 import io.apicurio.common.apps.config.Info;
 import io.apicurio.common.apps.logging.Logged;
+import io.apicurio.common.apps.logging.audit.Audited;
 import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
 import io.apicurio.registry.auth.RoleBasedAccessApiOperation;
-import io.apicurio.common.apps.logging.audit.Audited;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
-import io.apicurio.registry.rest.MissingRequiredParameterException;
+import io.apicurio.registry.rest.v2.beans.ArtifactTypeInfo;
 import io.apicurio.registry.rest.v2.beans.ConfigurationProperty;
 import io.apicurio.registry.rest.v2.beans.DownloadRef;
-import io.apicurio.registry.rest.v2.beans.LogConfiguration;
-import io.apicurio.registry.rest.v2.beans.NamedLogConfiguration;
 import io.apicurio.registry.rest.v2.beans.RoleMapping;
 import io.apicurio.registry.rest.v2.beans.Rule;
 import io.apicurio.registry.rest.v2.beans.UpdateConfigurationProperty;
@@ -77,7 +64,6 @@ import io.apicurio.registry.rest.v2.beans.UpdateRole;
 import io.apicurio.registry.rest.v2.shared.DataExporter;
 import io.apicurio.registry.rules.DefaultRuleDeletionException;
 import io.apicurio.registry.rules.RulesProperties;
-import io.apicurio.registry.services.LogConfigurationService;
 import io.apicurio.registry.storage.ConfigPropertyNotFoundException;
 import io.apicurio.registry.storage.InvalidPropertyValueException;
 import io.apicurio.registry.storage.RegistryStorage;
@@ -93,6 +79,13 @@ import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 import io.apicurio.registry.utils.impexp.Entity;
 import io.apicurio.registry.utils.impexp.EntityReader;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
+import jakarta.interceptor.Interceptors;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.ws.rs.core.Context;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
 
 /**
  * @author eric.wittmann@gmail.com
@@ -111,9 +104,6 @@ public class AdminResourceImpl implements AdminResource {
 
     @Inject
     RulesProperties rulesProperties;
-
-    @Inject
-    LogConfigurationService logConfigService;
 
     @Inject
     DynamicConfigPropertyIndex dynamicPropertyIndex;
@@ -255,47 +245,6 @@ public class AdminResourceImpl implements AdminResource {
                 throw ruleNotFoundException;
             }
         }
-    }
-
-    /**
-     * @see io.apicurio.registry.rest.v2.AdminResource#getLogConfiguration(java.lang.String)
-     */
-    @Override
-    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
-    public NamedLogConfiguration getLogConfiguration(String logger) {
-        return logConfigService.getLogConfiguration(logger);
-    }
-
-    /**
-     * @see io.apicurio.registry.rest.v2.AdminResource#listLogConfigurations()
-     */
-    @Override
-    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
-    public List<NamedLogConfiguration> listLogConfigurations() {
-        return logConfigService.listLogConfigurations();
-    }
-
-    /**
-     * @see io.apicurio.registry.rest.v2.AdminResource#removeLogConfiguration(java.lang.String)
-     */
-    @Override
-    @Audited(extractParameters = {"0", KEY_LOGGER})
-    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
-    public NamedLogConfiguration removeLogConfiguration(String logger) {
-        return logConfigService.removeLogLevelConfiguration(logger);
-    }
-
-    /**
-     * @see io.apicurio.registry.rest.v2.AdminResource#setLogConfiguration(java.lang.String, io.apicurio.registry.rest.v2.beans.LogConfiguration)
-     */
-    @Override
-    @Audited(extractParameters = {"0", KEY_LOGGER, "1", KEY_LOG_CONFIGURATION})
-    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
-    public NamedLogConfiguration setLogConfiguration(String logger, LogConfiguration data) {
-        if (data.getLevel() == null) {
-            throw new MissingRequiredParameterException("logLevel");
-        }
-        return logConfigService.setLogLevel(logger, data.getLevel());
     }
 
     /**

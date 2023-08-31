@@ -31,7 +31,7 @@ public enum MessageType {
     ArtifactRule(4),
     ArtifactVersion(5),
     Group(6),
-    LogConfig(7),
+//    LogConfig(7),
     GlobalId(8),
     ContentId(9),
     RoleMapping(10),

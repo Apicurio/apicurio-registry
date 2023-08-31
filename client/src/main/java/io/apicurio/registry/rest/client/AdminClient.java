@@ -17,8 +17,6 @@
 package io.apicurio.registry.rest.client;
 
 import io.apicurio.registry.rest.v2.beans.ArtifactTypeInfo;
-import io.apicurio.registry.rest.v2.beans.LogConfiguration;
-import io.apicurio.registry.rest.v2.beans.NamedLogConfiguration;
 import io.apicurio.registry.rest.v2.beans.RoleMapping;
 import io.apicurio.registry.rest.v2.beans.Rule;
 import io.apicurio.registry.types.RoleType;
@@ -45,14 +43,6 @@ public interface AdminClient extends Closeable {
     Rule getGlobalRuleConfig(RuleType rule);
 
     Rule updateGlobalRuleConfig(RuleType rule, Rule data);
-
-    NamedLogConfiguration setLogConfiguration(String log, LogConfiguration logConfiguration);
-
-    NamedLogConfiguration getLogConfiguration(String logger);
-
-    List<NamedLogConfiguration> listLogConfigurations();
-
-    NamedLogConfiguration removeLogConfiguration(String logger);
 
     void createRoleMapping(RoleMapping data);
 

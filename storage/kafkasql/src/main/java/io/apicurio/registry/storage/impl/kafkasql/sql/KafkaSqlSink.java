@@ -4,10 +4,6 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Supplier;
 
-import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.enterprise.context.control.ActivateRequestContext;
-import jakarta.inject.Inject;
-
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.header.Header;
 import org.slf4j.Logger;
@@ -40,7 +36,6 @@ import io.apicurio.registry.storage.impl.kafkasql.keys.GlobalActionKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.GlobalIdKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.GlobalRuleKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.GroupKey;
-import io.apicurio.registry.storage.impl.kafkasql.keys.LogConfigKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.MessageKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.RoleMappingKey;
 import io.apicurio.registry.storage.impl.kafkasql.values.AbstractMessageValue;
@@ -58,7 +53,6 @@ import io.apicurio.registry.storage.impl.kafkasql.values.GlobalActionValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.GlobalIdValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.GlobalRuleValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.GroupValue;
-import io.apicurio.registry.storage.impl.kafkasql.values.LogConfigValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.MessageValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.RoleMappingValue;
 import io.apicurio.registry.storage.impl.sql.IdGenerator;
@@ -71,6 +65,9 @@ import io.apicurio.registry.utils.impexp.CommentEntity;
 import io.apicurio.registry.utils.impexp.ContentEntity;
 import io.apicurio.registry.utils.impexp.GlobalRuleEntity;
 import io.apicurio.registry.utils.impexp.GroupEntity;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.context.control.ActivateRequestContext;
+import jakarta.inject.Inject;
 
 /**
  * @author Fabian Martinez
@@ -176,8 +173,6 @@ public class KafkaSqlSink {
                     return processGlobalId((GlobalIdKey) key, (GlobalIdValue) value);
                 case ContentId:
                     return processContentId((ContentIdKey) key, (ContentIdValue) value);
-                case LogConfig:
-                    return processLogConfig((LogConfigKey) key, (LogConfigValue) value);
                 case RoleMapping:
                     return processRoleMapping((RoleMappingKey) key, (RoleMappingValue) value);
                 case GlobalAction:
@@ -568,25 +563,6 @@ public class KafkaSqlSink {
                 return sqlStore.nextCommentId();
             case RESET:
                 sqlStore.resetCommentId();
-                return null;
-            default:
-                return unsupported(key, value);
-        }
-    }
-
-    /**
-     * Process a Kafka message of type "log config".  This includes updating and deleting
-     * log configurations.
-     * @param key
-     * @param value
-     */
-    private Object processLogConfig(LogConfigKey key, LogConfigValue value) {
-        switch (value.getAction()) {
-            case UPDATE:
-                sqlStore.setLogConfiguration(value.getConfig());
-                return null;
-            case DELETE:
-                sqlStore.removeLogConfiguration(value.getConfig().getLogger());
                 return null;
             default:
                 return unsupported(key, value);

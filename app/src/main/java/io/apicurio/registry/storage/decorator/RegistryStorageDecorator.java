@@ -16,6 +16,12 @@
 
 package io.apicurio.registry.storage.decorator;
 
+import java.time.Instant;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
+
 import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
@@ -23,7 +29,6 @@ import io.apicurio.registry.storage.ArtifactNotFoundException;
 import io.apicurio.registry.storage.ContentNotFoundException;
 import io.apicurio.registry.storage.GroupAlreadyExistsException;
 import io.apicurio.registry.storage.GroupNotFoundException;
-import io.apicurio.registry.storage.LogConfigurationNotFoundException;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.RegistryStorageException;
 import io.apicurio.registry.storage.RuleAlreadyExistsException;
@@ -40,7 +45,6 @@ import io.apicurio.registry.storage.dto.DownloadContextDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.GroupMetaDataDto;
 import io.apicurio.registry.storage.dto.GroupSearchResultsDto;
-import io.apicurio.registry.storage.dto.LogConfigurationDto;
 import io.apicurio.registry.storage.dto.OrderBy;
 import io.apicurio.registry.storage.dto.OrderDirection;
 import io.apicurio.registry.storage.dto.RoleMappingDto;
@@ -52,12 +56,6 @@ import io.apicurio.registry.storage.impexp.EntityInputStream;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.impexp.Entity;
-
-import java.time.Instant;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.function.Function;
 
 /**
  * @author Fabian Martinez
@@ -669,51 +667,6 @@ public abstract class RegistryStorageDecorator implements RegistryStorage {
     @Override
     public void deleteGlobalRule(RuleType rule) throws RuleNotFoundException, RegistryStorageException {
         delegate.deleteGlobalRule(rule);
-    }
-
-    /**
-     * @param logger
-     * @return
-     * @throws RegistryStorageException
-     * @throws LogConfigurationNotFoundException
-     * @see RegistryStorage#getLogConfiguration(java.lang.String)
-     */
-    @Override
-    public LogConfigurationDto getLogConfiguration(String logger)
-        throws RegistryStorageException, LogConfigurationNotFoundException {
-        return delegate.getLogConfiguration(logger);
-    }
-
-    /**
-     * @param logConfiguration
-     * @throws RegistryStorageException
-     * @see RegistryStorage#setLogConfiguration(io.apicurio.registry.storage.dto.LogConfigurationDto)
-     */
-    @Override
-    public void setLogConfiguration(LogConfigurationDto logConfiguration) throws RegistryStorageException {
-        delegate.setLogConfiguration(logConfiguration);
-    }
-
-    /**
-     * @param logger
-     * @throws RegistryStorageException
-     * @throws LogConfigurationNotFoundException
-     * @see RegistryStorage#removeLogConfiguration(java.lang.String)
-     */
-    @Override
-    public void removeLogConfiguration(String logger)
-        throws RegistryStorageException, LogConfigurationNotFoundException {
-        delegate.removeLogConfiguration(logger);
-    }
-
-    /**
-     * @return
-     * @throws RegistryStorageException
-     * @see RegistryStorage#listLogConfigurations()
-     */
-    @Override
-    public List<LogConfigurationDto> listLogConfigurations() throws RegistryStorageException {
-        return delegate.listLogConfigurations();
     }
 
     /**

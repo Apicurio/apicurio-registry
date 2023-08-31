@@ -22,8 +22,6 @@ import static io.apicurio.registry.rest.client.request.provider.Routes.CONFIG_PR
 import static io.apicurio.registry.rest.client.request.provider.Routes.EXPORT_PATH;
 import static io.apicurio.registry.rest.client.request.provider.Routes.IMPORT_PATH;
 import static io.apicurio.registry.rest.client.request.provider.Routes.LIST_ARTIFACT_PATH;
-import static io.apicurio.registry.rest.client.request.provider.Routes.LOGS_BASE_PATH;
-import static io.apicurio.registry.rest.client.request.provider.Routes.LOG_PATH;
 import static io.apicurio.registry.rest.client.request.provider.Routes.ROLE_MAPPINGS_BASE_PATH;
 import static io.apicurio.registry.rest.client.request.provider.Routes.ROLE_MAPPING_PATH;
 import static io.apicurio.registry.rest.client.request.provider.Routes.RULES_BASE_PATH;
@@ -45,8 +43,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.rest.Headers;
 import io.apicurio.registry.rest.v2.beans.ArtifactTypeInfo;
 import io.apicurio.registry.rest.v2.beans.ConfigurationProperty;
-import io.apicurio.registry.rest.v2.beans.LogConfiguration;
-import io.apicurio.registry.rest.v2.beans.NamedLogConfiguration;
 import io.apicurio.registry.rest.v2.beans.RoleMapping;
 import io.apicurio.registry.rest.v2.beans.Rule;
 import io.apicurio.registry.rest.v2.beans.UpdateConfigurationProperty;
@@ -63,47 +59,6 @@ import io.apicurio.rest.client.request.Request;
 public class AdminRequestsProvider {
 
     private static final ObjectMapper mapper = new ObjectMapper();
-
-    public static Request<NamedLogConfiguration> removeLogConfiguration(String logger) {
-        return new Request.RequestBuilder<NamedLogConfiguration>()
-                .operation(DELETE)
-                .path(Routes.LOG_PATH)
-                .pathParams(List.of(logger))
-                .responseType(new TypeReference<NamedLogConfiguration>() {
-                })
-                .build();
-    }
-
-    public static Request<NamedLogConfiguration> setLogConfiguration(String logger, LogConfiguration data) throws JsonProcessingException {
-        return new Request.RequestBuilder<NamedLogConfiguration>()
-                .operation(PUT)
-                .path(LOG_PATH)
-                .pathParams(List.of(logger))
-                .responseType(new TypeReference<NamedLogConfiguration>() {
-                })
-                .data(IoUtil.toStream(mapper.writeValueAsBytes(data)))
-                .build();
-    }
-
-    public static Request<NamedLogConfiguration> getLogConfiguration(String logger) {
-
-        return new Request.RequestBuilder<NamedLogConfiguration>()
-                .operation(GET)
-                .path(LOG_PATH)
-                .pathParams(List.of(logger))
-                .responseType(new TypeReference<NamedLogConfiguration>() {
-                })
-                .build();
-    }
-
-    public static Request<List<NamedLogConfiguration>> listLogConfigurations() {
-        return new Request.RequestBuilder<List<NamedLogConfiguration>>()
-                .operation(GET)
-                .path(LOGS_BASE_PATH)
-                .responseType(new TypeReference<List<NamedLogConfiguration>>() {
-                })
-                .build();
-    }
 
     public static Request<Void> deleteGlobalRule(RuleType rule) {
         return new Request.RequestBuilder<Void>()

@@ -476,26 +476,6 @@ public interface SqlStatements {
     public String deleteAllContent();
 
     /**
-     * A statement to select the log configuration for a given logger name
-     */
-    public String selectLogConfigurationByLogger();
-
-    /**
-     * A statement to "upsert" a row in the "logconfiguration" table
-     */
-    public String upsertLogConfiguration();
-
-    /**
-     * A statement to delete a row in the "logconfiguration" table
-     */
-    public String deleteLogConfiguration();
-
-    /**
-     * A statement to select all rows in the "logconfiguration" table
-     */
-    public String selectAllLogConfigurations();
-
-    /**
      * A statement used to insert a row into the groups table.
      */
     public String insertGroup();

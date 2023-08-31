@@ -71,14 +71,6 @@ public class H2SqlStatements extends CommonSqlStatements {
     }
 
     /**
-     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#upsertLogConfiguration()
-     */
-    @Override
-    public String upsertLogConfiguration() {
-        return "MERGE INTO logconfiguration (logger, loglevel) KEY (logger) VALUES(?, ?)";
-    }
-
-    /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#getNextSequenceValue()
      */
     @Override

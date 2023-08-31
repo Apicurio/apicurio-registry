@@ -21,9 +21,6 @@ import java.util.Date;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
-import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
-
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.header.internals.RecordHeader;
 
@@ -32,7 +29,6 @@ import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.storage.dto.DownloadContextDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.GroupMetaDataDto;
-import io.apicurio.registry.storage.dto.LogConfigurationDto;
 import io.apicurio.registry.storage.dto.RuleConfigurationDto;
 import io.apicurio.registry.storage.impl.kafkasql.keys.ArtifactKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.ArtifactOwnerKey;
@@ -49,7 +45,6 @@ import io.apicurio.registry.storage.impl.kafkasql.keys.GlobalActionKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.GlobalIdKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.GlobalRuleKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.GroupKey;
-import io.apicurio.registry.storage.impl.kafkasql.keys.LogConfigKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.MessageKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.RoleMappingKey;
 import io.apicurio.registry.storage.impl.kafkasql.values.ActionType;
@@ -67,12 +62,13 @@ import io.apicurio.registry.storage.impl.kafkasql.values.GlobalActionValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.GlobalIdValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.GlobalRuleValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.GroupValue;
-import io.apicurio.registry.storage.impl.kafkasql.values.LogConfigValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.MessageValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.RoleMappingValue;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.kafka.ProducerActions;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 
 /**
  * @author eric.wittmann@gmail.com
@@ -240,19 +236,6 @@ public class KafkaSqlSubmitter {
     }
     public CompletableFuture<UUID> submitRoleMapping(String tenantId, String principalId, ActionType action) {
         return submitRoleMapping(tenantId, principalId, action, null, null);
-    }
-
-
-    /* ******************************************************************************************
-     * Log Configuration
-     * ****************************************************************************************** */
-    public CompletableFuture<UUID> submitLogConfig(String tenantId, ActionType action, LogConfigurationDto config) {
-        LogConfigKey key = LogConfigKey.create(tenantId);
-        LogConfigValue value = LogConfigValue.create(action, config);
-        return send(key, value);
-    }
-    public CompletableFuture<UUID> submitLogConfig(String tenantId, ActionType action) {
-        return submitLogConfig(tenantId, action, null);
     }
 
 

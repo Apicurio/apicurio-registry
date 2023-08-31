@@ -218,18 +218,6 @@ public interface RegistryClient extends Closeable {
     void deleteGlobalRule(RuleType rule);
 
     @Deprecated
-    List<NamedLogConfiguration> listLogConfigurations();
-
-    @Deprecated
-    NamedLogConfiguration getLogConfiguration(String logger);
-
-    @Deprecated
-    NamedLogConfiguration setLogConfiguration(String logger, LogConfiguration data);
-
-    @Deprecated
-    NamedLogConfiguration removeLogConfiguration(String logger);
-
-    @Deprecated
     InputStream exportData();
 
     @Deprecated

@@ -33,6 +33,11 @@ public class RestClientException extends ApicurioRestClientException {
         super(error.getMessage());
         this.error = error;
     }
+    
+    public RestClientException(Throwable cause) {
+        super(cause);
+        this.error = Error.builder().message(cause.getMessage()).name(cause.getClass().getSimpleName()).build();
+    }
 
     public Error getError() {
         return error;

@@ -16,6 +16,35 @@
 
 package io.apicurio.registry.storage.impl.kafkasql;
 
+import static io.apicurio.registry.storage.RegistryStorage.ArtifactRetrievalBehavior.DEFAULT;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Date;
+import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Function;
+
+import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.kafka.clients.CommonClientConfigs;
+import org.apache.kafka.clients.consumer.ConsumerRecords;
+import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.common.config.TopicConfig;
+import org.apache.kafka.common.errors.TopicExistsException;
+import org.slf4j.Logger;
+
 import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
 import io.apicurio.common.apps.logging.Logged;
 import io.apicurio.common.apps.multitenancy.TenantContext;
@@ -32,7 +61,6 @@ import io.apicurio.registry.storage.ArtifactStateExt;
 import io.apicurio.registry.storage.ContentNotFoundException;
 import io.apicurio.registry.storage.GroupAlreadyExistsException;
 import io.apicurio.registry.storage.GroupNotFoundException;
-import io.apicurio.registry.storage.LogConfigurationNotFoundException;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.RegistryStorageException;
 import io.apicurio.registry.storage.RoleMappingNotFoundException;
@@ -53,7 +81,6 @@ import io.apicurio.registry.storage.dto.DownloadContextDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.GroupMetaDataDto;
 import io.apicurio.registry.storage.dto.GroupSearchResultsDto;
-import io.apicurio.registry.storage.dto.LogConfigurationDto;
 import io.apicurio.registry.storage.dto.OrderBy;
 import io.apicurio.registry.storage.dto.OrderDirection;
 import io.apicurio.registry.storage.dto.RoleMappingDto;
@@ -86,41 +113,12 @@ import io.apicurio.registry.utils.impexp.GlobalRuleEntity;
 import io.apicurio.registry.utils.impexp.GroupEntity;
 import io.apicurio.registry.utils.kafka.KafkaUtil;
 import io.quarkus.security.identity.SecurityIdentity;
-import org.apache.commons.codec.digest.DigestUtils;
-import org.apache.kafka.clients.CommonClientConfigs;
-import org.apache.kafka.clients.consumer.ConsumerRecords;
-import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.apache.kafka.common.config.TopicConfig;
-import org.apache.kafka.common.errors.TopicExistsException;
-import org.slf4j.Logger;
-
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.time.Duration;
-import java.time.Instant;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Date;
-import java.util.EnumSet;
-import java.util.HashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-import java.util.function.Function;
-
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Event;
 import jakarta.enterprise.event.Observes;
 import jakarta.inject.Inject;
-
-import static io.apicurio.registry.storage.RegistryStorage.ArtifactRetrievalBehavior.DEFAULT;
 
 /**
  * An implementation of a registry artifactStore that extends the basic SQL artifactStore but federates 'write' operations
@@ -935,42 +933,6 @@ public class KafkaSqlRegistryStorage implements RegistryStorage {
         metaDataDto.setLabels(metadata.getLabels());
         metaDataDto.setProperties(metadata.getProperties());
         updateArtifactState(metadata.getState(), groupId, artifactId, version, state, metaDataDto);
-    }
-
-    /**
-     * @see io.apicurio.registry.storage.RegistryStorage#getLogConfiguration(java.lang.String)
-     */
-    @Override
-    public LogConfigurationDto getLogConfiguration(String logger) throws RegistryStorageException, LogConfigurationNotFoundException {
-        return this.sqlStore.getLogConfiguration(logger);
-    }
-
-    /**
-     * @see io.apicurio.registry.storage.RegistryStorage#listLogConfigurations()
-     */
-    @Override
-    public List<LogConfigurationDto> listLogConfigurations() throws RegistryStorageException {
-        return this.sqlStore.listLogConfigurations();
-    }
-
-    /**
-     * @see io.apicurio.registry.storage.RegistryStorage#removeLogConfiguration(java.lang.String)
-     */
-    @Override
-    public void removeLogConfiguration(String logger) throws RegistryStorageException, LogConfigurationNotFoundException {
-        LogConfigurationDto dto = new LogConfigurationDto();
-        dto.setLogger(logger);
-        UUID reqId = ConcurrentUtil.get(submitter.submitLogConfig(tenantContext.tenantId(), ActionType.DELETE, dto));
-        coordinator.waitForResponse(reqId);
-    }
-
-    /**
-     * @see io.apicurio.registry.storage.RegistryStorage#setLogConfiguration(io.apicurio.registry.storage.dto.LogConfigurationDto)
-     */
-    @Override
-    public void setLogConfiguration(LogConfigurationDto logConfiguration) throws RegistryStorageException {
-        UUID reqId = ConcurrentUtil.get(submitter.submitLogConfig(tenantContext.tenantId(), ActionType.UPDATE, logConfiguration));
-        coordinator.waitForResponse(reqId);
     }
 
     protected EditableArtifactMetaDataDto extractMetaData(String artifactType, ContentHandle content) {

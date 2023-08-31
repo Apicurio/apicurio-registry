@@ -16,6 +16,16 @@
 
 package io.apicurio.tests.utils;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ThreadLocalRandom;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.RegistryClientFactory;
 import io.apicurio.registry.rest.v2.beans.ArtifactContent;
@@ -29,8 +39,6 @@ import io.apicurio.registry.rest.v2.beans.EditableMetaData;
 import io.apicurio.registry.rest.v2.beans.GroupMetaData;
 import io.apicurio.registry.rest.v2.beans.GroupSearchResults;
 import io.apicurio.registry.rest.v2.beans.IfExists;
-import io.apicurio.registry.rest.v2.beans.LogConfiguration;
-import io.apicurio.registry.rest.v2.beans.NamedLogConfiguration;
 import io.apicurio.registry.rest.v2.beans.NewComment;
 import io.apicurio.registry.rest.v2.beans.RoleMapping;
 import io.apicurio.registry.rest.v2.beans.Rule;
@@ -42,15 +50,6 @@ import io.apicurio.registry.rest.v2.beans.VersionMetaData;
 import io.apicurio.registry.rest.v2.beans.VersionSearchResults;
 import io.apicurio.registry.types.RoleType;
 import io.apicurio.registry.types.RuleType;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * @author Carles Arnal
@@ -509,38 +508,6 @@ public class LoadBalanceRegistryClient implements RegistryClient {
     @Override
     public void deleteGlobalRule(RuleType rule) {
         getTarget().deleteGlobalRule(rule);
-    }
-
-    /**
-     * @see RegistryClient#listLogConfigurations()
-     */
-    @Override
-    public List<NamedLogConfiguration> listLogConfigurations() {
-        return getTarget().listLogConfigurations();
-    }
-
-    /**
-     * @see RegistryClient#getLogConfiguration(String)
-     */
-    @Override
-    public NamedLogConfiguration getLogConfiguration(String logger) {
-        return getTarget().getLogConfiguration(logger);
-    }
-
-    /**
-     * @see RegistryClient#setLogConfiguration(String, LogConfiguration)
-     */
-    @Override
-    public NamedLogConfiguration setLogConfiguration(String logger, LogConfiguration data) {
-        return getTarget().setLogConfiguration(logger, data);
-    }
-
-    /**
-     * @see RegistryClient#removeLogConfiguration(String)
-     */
-    @Override
-    public NamedLogConfiguration removeLogConfiguration(String logger) {
-        return getTarget().removeLogConfiguration(logger);
     }
 
     @Override

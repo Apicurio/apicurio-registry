@@ -453,22 +453,6 @@ The following {registry} configuration options are available for each component 
 |Storage metrics cache max size.
 |===
 
-== log
-.log configuration options
-[.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]
-|===
-|Name
-|Type
-|Default
-|Available from
-|Description
-|`quarkus.log.level`
-|`string`
-|
-|`2.0.0.Final`
-|Log level
-|===
-
 == mt
 .mt configuration options
 [.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]

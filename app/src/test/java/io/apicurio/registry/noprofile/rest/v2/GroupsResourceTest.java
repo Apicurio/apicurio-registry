@@ -146,6 +146,53 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .body("openapi", not(equalTo("3.0.2")))
                 .body("info.title", not(equalTo("Empty API")));
     }
+    
+    @Test
+    public void testCreateArtifactRule() throws Exception
+    {
+    	String oaiArtifactContent = resourceToString("openapi-empty.json");
+    	createArtifact("testCreateArtifactRule", "testCreateArtifactRule/EmptyAPI/1", ArtifactType.OPENAPI, oaiArtifactContent);
+    	
+    	//Test Rule type null
+    	Rule nullType = new Rule();
+    	nullType.setType(null);
+    	nullType.setConfig("TestConfig");
+    	given()
+	        	.when()
+	    			.pathParam("groupId", "testCreateArtifactRule")
+	    			.pathParam("artifactId", "testCreateArtifactRule/EmptyAPI/1")
+	    			.body(nullType)
+	    			.post("/registry/v2/groups/{groupId}/artifacts/{artifactId/rules}")
+	        	.then()	
+	    			.statusCode(400);
+    	
+    	//Test Rule config null
+    	Rule nullConfig = new Rule();
+    	nullConfig.setType(RuleType.VALIDITY);
+    	nullConfig.setConfig(null);
+    	given()
+	        	.when()
+	    			.pathParam("groupId", "testCreateArtifactRule")
+	    			.pathParam("artifactId", "testCreateArtifactRule/EmptyAPI/1")
+	    			.body(nullConfig)
+	    			.post("/registry/v2/groups/{groupId}/artifacts/{artifactId/rules}")
+	        	.then()
+	    			.statusCode(400);
+    	
+    	//Test Rule config null
+    	Rule emptyConfig = new Rule();
+    	emptyConfig.setType(RuleType.VALIDITY);
+    	emptyConfig.setConfig("");
+    	given()
+	        	.when()
+	    			.pathParam("groupId", "testCreateArtifactRule")
+	    			.pathParam("artifactId", "testCreateArtifactRule/EmptyAPI/1")
+	    			.body(emptyConfig)
+	    			.post("/registry/v2/groups/{groupId}/artifacts/{artifactId/rules}")
+	        	.then()
+	    			.statusCode(400);
+    	
+    }
 
     @Test
     public void testUpdateArtifactOwner() throws Exception {

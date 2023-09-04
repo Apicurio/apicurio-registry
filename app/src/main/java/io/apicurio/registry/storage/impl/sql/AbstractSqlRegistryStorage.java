@@ -451,21 +451,15 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     /**
      * IMPORTANT: Private methods can't be @Transactional. Callers MUST have started a transaction.
      */
-    private void updateArtifactVersionStateRaw(long globalId, ArtifactState oldState, ArtifactState newState)
-            throws VersionNotFoundException {
+    private void updateArtifactVersionStateRaw(long globalId, ArtifactState oldState, ArtifactState newState) {
         handles.withHandleNoException(handle -> {
-            if (oldState != newState) {
-                artifactStateEx.applyState(s -> {
-                    int rowCount = handle.createUpdate(sqlStatements.updateArtifactVersionState())
-                            .bind(0, s.name())
-                            .bind(1, tenantContext.tenantId())
-                            .bind(2, globalId)
-                            .execute();
-                    if (rowCount == 0) {
-                        throw new VersionNotFoundException(globalId);
-                    }
-                }, oldState, newState);
-            }
+            artifactStateEx.applyState(s -> {
+                handle.createUpdate(sqlStatements.updateArtifactVersionState())
+                        .bind(0, s.name())
+                        .bind(1, tenantContext.tenantId())
+                        .bind(2, globalId)
+                        .execute();
+            }, oldState, newState);
             return null;
         });
     }

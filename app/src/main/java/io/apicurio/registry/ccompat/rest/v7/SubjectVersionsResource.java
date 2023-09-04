@@ -146,7 +146,7 @@ public interface SubjectVersionsResource {
     @Path("/{version}")
     Schema getSchemaByVersion(
             @PathParam("subject") String subject,
-            @PathParam("version") String version, @HeaderParam(Headers.GROUP_ID) String groupId) throws Exception;
+            @PathParam("version") String version, @HeaderParam(Headers.GROUP_ID) String groupId, @QueryParam("deleted") Boolean deleted) throws Exception;
 
     /**
      * Deletes a specific version of the schema registered under this subject.
@@ -214,7 +214,7 @@ public interface SubjectVersionsResource {
     @Path("/{version}/schema")
     String getSchemaOnly(
             @PathParam("subject") String subject,
-            @PathParam("version") String version, @HeaderParam(Headers.GROUP_ID) String groupId) throws Exception;
+            @PathParam("version") String version, @HeaderParam(Headers.GROUP_ID) String groupId, @QueryParam("deleted") Boolean deleted) throws Exception;
 
     // ----- Path: /subjects/{subject}/versions/{version}/referencedby -----
 

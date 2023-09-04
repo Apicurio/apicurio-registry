@@ -25,7 +25,8 @@ import io.apicurio.registry.ccompat.dto.SubjectVersion;
 import io.apicurio.registry.ccompat.rest.error.ConflictException;
 import io.apicurio.registry.ccompat.rest.error.ReferenceExistsException;
 import io.apicurio.registry.ccompat.rest.error.SchemaNotFoundException;
-import io.apicurio.registry.ccompat.rest.error.SchemaNotSoftDeleted;
+import io.apicurio.registry.ccompat.rest.error.SchemaNotSoftDeletedException;
+import io.apicurio.registry.ccompat.rest.error.SchemaSoftDeletedException;
 import io.apicurio.registry.ccompat.rest.error.SubjectNotSoftDeletedException;
 import io.apicurio.registry.ccompat.rest.error.SubjectSoftDeletedException;
 import io.apicurio.registry.ccompat.rest.error.UnprocessableEntityException;
@@ -112,6 +113,7 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
 
     @Override
     public List<SubjectVersion> getSubjectVersions(int contentId, boolean deleted) {
+        //FIXME simplify logic
         if (cconfig.legacyIdModeEnabled.get()) {
             ArtifactMetaDataDto artifactMetaData = storage.getArtifactMetaData(contentId);
             return Collections.singletonList(converter.convert(artifactMetaData.getId(), artifactMetaData.getVersionId()));
@@ -126,6 +128,7 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
 
     @Override
     public List<Integer> deleteSubject(String subject, boolean permanent, String groupId) throws ArtifactNotFoundException, RegistryStorageException {
+        //FIXME simplify logic
         if (permanent) {
             if (isArtifactActive(subject, groupId, DEFAULT)) {
                 throw new SubjectNotSoftDeletedException(String.format("Subject %s must be soft deleted first", subject));
@@ -167,6 +170,7 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
     public SchemaInfo getSchemaById(int contentId) throws ArtifactNotFoundException, RegistryStorageException {
         ContentHandle contentHandle;
         List<ArtifactReferenceDto> references;
+        //FIXME simplify logic
         if (cconfig.legacyIdModeEnabled.get()) {
             StoredArtifactDto artifactVersion = storage.getArtifactVersion(contentId);
             contentHandle = artifactVersion.getContent();
@@ -185,12 +189,17 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
     }
 
     @Override
-    public Schema getSchema(String subject, String versionString, String groupId) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
+    public Schema getSchema(String subject, String versionString, String groupId, boolean fdeleted) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
+        //FIXME simplify logic
         if (doesArtifactExist(subject, groupId) && isArtifactActive(subject, groupId, SKIP_DISABLED_LATEST)) {
             return parseVersionString(subject, versionString, groupId, version -> {
-                ArtifactVersionMetaDataDto artifactVersionMetaDataDto = storage.getArtifactVersionMetaData(groupId, subject, version);
-                StoredArtifactDto storedArtifact = storage.getArtifactVersion(groupId, subject, version);
-                return converter.convert(subject, storedArtifact, artifactVersionMetaDataDto.getType());
+                ArtifactVersionMetaDataDto amd = storage.getArtifactVersionMetaData(groupId, subject, version);
+                if (amd.getState() != ArtifactState.DISABLED || fdeleted) {
+                    StoredArtifactDto storedArtifact = storage.getArtifactVersion(groupId, subject, amd.getVersion());
+                    return converter.convert(subject, storedArtifact);
+                } else {
+                    throw new VersionNotFoundException(groupId, subject, version);
+                }
             });
         } else {
             throw new ArtifactNotFoundException(groupId, subject);
@@ -208,6 +217,7 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
 
     @Override
     public Schema getSchemaNormalize(String subject, SchemaInfo schema, boolean normalize, String groupId, boolean fdeleted) throws ArtifactNotFoundException, RegistryStorageException {
+        //FIXME simplify logic
         if (doesArtifactExist(subject, groupId)) {
             try {
                 ArtifactVersionMetaDataDto amd;
@@ -231,6 +241,7 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
     public Long createSchema(String subject, String schema, String schemaType, List<SchemaReference> references, boolean normalize, String groupId) throws ArtifactAlreadyExistsException, ArtifactNotFoundException, RegistryStorageException {
         // Check to see if this content is already registered - return the global ID of that content
         // if it exists.  If not, then register the new content.
+        //FIXME simplify logic
         if (null == schema) {
             throw new UnprocessableEntityException("The schema provided is null.");
         }
@@ -239,6 +250,9 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
 
         try {
             ArtifactVersionMetaDataDto dto = lookupSchema(groupId, subject, schema, references, schemaType, normalize);
+            if (dto.getState().equals(ArtifactState.DISABLED)) {
+                throw new ArtifactNotFoundException(groupId, subject);
+            }
             return cconfig.legacyIdModeEnabled.get() ? dto.getGlobalId() : dto.getContentId();
         } catch (ArtifactNotFoundException nfe) {
             // This is OK - when it happens just move on and create
@@ -260,10 +274,10 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
     }
 
     private ArtifactVersionMetaDataDto lookupSchema(String groupId, String subject, String schema, List<SchemaReference> schemaReferences, String schemaType, boolean normalize) {
+        //FIXME simplify logic
         try {
             final String type = schemaType == null ? ArtifactType.AVRO : schemaType;
             final List<ArtifactReferenceDto> artifactReferences = parseReferences(schemaReferences, groupId);
-            final Map<String, ContentHandle> resolvedReferences = resolveReferences(schemaReferences);
             ArtifactTypeUtilProvider artifactTypeProvider = factory.getArtifactTypeProvider(type);
             ArtifactVersionMetaDataDto amd;
 
@@ -325,13 +339,17 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
         if (doesArtifactExist(subject, groupId)) {
             return VersionUtil.toInteger(parseVersionString(subject, versionString, groupId, version -> {
                 List<Long> globalIdsReferencingSchema = storage.getGlobalIdsReferencingArtifact(groupId, subject, version);
+                ArtifactVersionMetaDataDto avmd = storage.getArtifactVersionMetaData(groupId, subject, version);
+                //FIXME simplify logic
                 if (globalIdsReferencingSchema.isEmpty() || areAllSchemasDisabled(globalIdsReferencingSchema)) {
                     if (permanent) {
-                        if (storage.getArtifactVersionMetaData(groupId, subject, version).getState().equals(ArtifactState.ENABLED)) {
-                            throw new SchemaNotSoftDeleted(String.format("Subject %s version %s must be soft deleted first", subject, versionString));
-                        } else {
+                        if (avmd.getState().equals(ArtifactState.ENABLED) || avmd.getState().equals(ArtifactState.DEPRECATED)) {
+                            throw new SchemaNotSoftDeletedException(String.format("Subject %s version %s must be soft deleted first", subject, versionString));
+                        } else if (avmd.getState().equals(ArtifactState.DISABLED)) {
                             storage.deleteArtifactVersion(groupId, subject, version);
                         }
+                    } else if (avmd.getState().equals(ArtifactState.DISABLED)) {
+                        throw new SchemaSoftDeletedException("Schema is already soft deleted");
                     } else {
                         storage.updateArtifactState(groupId, subject, version, ArtifactState.DISABLED);
                     }
@@ -367,6 +385,7 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
 
     @Override
     public CompatibilityCheckResponse testCompatibilityByVersion(String subject, String version, SchemaContent request, boolean verbose, String groupId) {
+        //FIXME simplify logic
         return parseVersionString(subject, version, groupId, v -> {
             try {
                 final ArtifactVersionMetaDataDto artifact = storage.getArtifactVersionMetaData(groupId, subject, v);

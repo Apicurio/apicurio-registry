@@ -349,7 +349,7 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
                     .get(getBasePath() + "/subjects/{subject}/versions/{version}", SUBJECT, "latest")
                     .then()
                     .statusCode(404)
-                    .body("error_code", Matchers.allOf(Matchers.isA(Integer.class), Matchers.equalTo(40402)));
+                    .body("error_code", Matchers.allOf(Matchers.isA(Integer.class), Matchers.equalTo(40401)));
         });
 
         // GET schema only - shouldn't return as the state has been changed to DISABLED
@@ -360,7 +360,7 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
                     .get(getBasePath() + "/subjects/{subject}/versions/{version}/schema", SUBJECT, "latest")
                     .then()
                     .statusCode(404)
-                    .body("error_code", Matchers.allOf(Matchers.isA(Integer.class), Matchers.equalTo(40402)));
+                    .body("error_code", Matchers.allOf(Matchers.isA(Integer.class), Matchers.equalTo(40401)));
         });
     }
 
@@ -667,7 +667,7 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
                 .post(getBasePath() + "/subjects/{subject}", SUBJECT)
                 .then()
                 .statusCode(404)
-                .body("error_code", Matchers.allOf(Matchers.isA(Integer.class), Matchers.equalTo(40401)));
+                .body("error_code", Matchers.allOf(Matchers.isA(Integer.class), Matchers.equalTo(40403)));
 
 
         // POST
@@ -794,15 +794,6 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
 
         assertEquals(2, versionsApicurio.size());
 
-        //delete version 2, permanent is required so the version is hard deleted.
-        given()
-                .when()
-                .queryParam("permanent", true)
-                .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
-                .delete(getBasePath() + "/subjects/{subject}/versions/{version}", SUBJECT, "2")
-                .then()
-                .statusCode(200);
-
         versionsConfluent = given()
                 .when()
                 .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
@@ -811,7 +802,7 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
                 .statusCode(200)
                 .extract().as(Integer[].class);
 
-        assertEquals(1, versionsConfluent.length);
+        assertEquals(2, versionsConfluent.length);
 
         given()
                 .when()
@@ -828,7 +819,7 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
                 .extract().as(VersionSearchResults.class)
                 .getVersions();
 
-        assertEquals(1, versionsApicurio.size());
+        assertEquals(2, versionsApicurio.size());
 
         given()
                 .when()

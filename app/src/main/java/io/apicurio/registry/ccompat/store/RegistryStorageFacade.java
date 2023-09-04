@@ -64,8 +64,8 @@ public interface RegistryStorageFacade {
     SchemaInfo getSchemaById(int contentId) throws RegistryStorageException;
 
 
-    default Schema getSchema(String subject, String version) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
-        return getSchema(subject, version, null);
+    default Schema getSchema(String subject, String version, boolean deleted) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
+        return getSchema(subject, version, null, deleted);
     }
 
     default List<Integer> getVersions(String subject, String groupId) throws ArtifactNotFoundException, RegistryStorageException {
@@ -132,7 +132,7 @@ public interface RegistryStorageFacade {
 
     int deleteSchema(String subject, String version, boolean fnormalize, String groupId);
 
-    Schema getSchema(String subject, String version, String groupId);
+    Schema getSchema(String subject, String version, String groupId, boolean fdeleted);
 
     List<Long> getContentIdsReferencingArtifact(String subject, String version, String groupId);
 

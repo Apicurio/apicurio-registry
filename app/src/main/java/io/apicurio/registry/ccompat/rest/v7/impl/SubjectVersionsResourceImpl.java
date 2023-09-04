@@ -66,8 +66,9 @@ public class SubjectVersionsResourceImpl extends AbstractResource implements Sub
 
     @Override
     @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Read)
-    public Schema getSchemaByVersion(String subject, String version, String groupId) throws Exception {
-        return facade.getSchema(subject, version, groupId);
+    public Schema getSchemaByVersion(String subject, String version, String groupId, Boolean deleted) throws Exception {
+        final boolean fdeleted = deleted == null ? Boolean.FALSE : deleted;
+        return facade.getSchema(subject, version, groupId, fdeleted);
     }
 
     @Override
@@ -84,8 +85,9 @@ public class SubjectVersionsResourceImpl extends AbstractResource implements Sub
 
     @Override
     @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Read)
-    public String getSchemaOnly(String subject, String version, String groupId) throws Exception {
-        return facade.getSchema(subject, version, groupId).getSchema();
+    public String getSchemaOnly(String subject, String version, String groupId, Boolean deleted) throws Exception {
+        final boolean fdeleted = deleted == null ? Boolean.FALSE : deleted;
+        return facade.getSchema(subject, version, groupId, fdeleted).getSchema();
     }
 
     @Override

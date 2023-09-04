@@ -1995,7 +1995,8 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
         log.debug("Deleting version {} of artifact {} {}", version, groupId, artifactId);
 
-        List<String> versions = getArtifactVersions(groupId, artifactId);
+        //For deleting artifact versions we need to list always every single version, including disabled ones.
+        List<String> versions = getArtifactVersions(groupId, artifactId, DEFAULT);
 
         // If the version we're deleting is the *only* version, then just delete the
         // entire artifact.

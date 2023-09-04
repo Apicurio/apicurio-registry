@@ -22,8 +22,6 @@ import io.apicurio.registry.content.dereference.AsyncApiDereferencer;
 import io.apicurio.registry.content.dereference.ContentDereferencer;
 import io.apicurio.registry.content.extract.AsyncApiContentExtractor;
 import io.apicurio.registry.content.extract.ContentExtractor;
-import io.apicurio.registry.content.normalization.ContentNormalizer;
-import io.apicurio.registry.content.normalization.NoOpContentNormalizer;
 import io.apicurio.registry.content.refs.AsyncApiReferenceFinder;
 import io.apicurio.registry.content.refs.ReferenceFinder;
 import io.apicurio.registry.rules.compatibility.CompatibilityChecker;
@@ -63,15 +61,10 @@ public class AsyncApiArtifactTypeUtilProvider extends AbstractArtifactTypeUtilPr
     }
 
     @Override
-    protected ContentNormalizer createContentNormalizer() {
-        return new NoOpContentNormalizer();
-    }
-
-    @Override
     public ContentDereferencer getContentDereferencer() {
         return new AsyncApiDereferencer();
     }
-    
+
     @Override
     public ReferenceFinder getReferenceFinder() {
         return new AsyncApiReferenceFinder();

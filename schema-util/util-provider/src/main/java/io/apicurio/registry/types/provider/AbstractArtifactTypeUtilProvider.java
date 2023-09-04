@@ -18,7 +18,6 @@ package io.apicurio.registry.types.provider;
 
 import io.apicurio.registry.content.canon.ContentCanonicalizer;
 import io.apicurio.registry.content.extract.ContentExtractor;
-import io.apicurio.registry.content.normalization.ContentNormalizer;
 import io.apicurio.registry.rules.compatibility.CompatibilityChecker;
 import io.apicurio.registry.rules.validity.ContentValidator;
 
@@ -31,7 +30,6 @@ public abstract class AbstractArtifactTypeUtilProvider implements ArtifactTypeUt
     private volatile ContentCanonicalizer canonicalizer;
     private volatile ContentValidator validator;
     private volatile ContentExtractor extractor;
-    private volatile ContentNormalizer normalizer;
 
     @Override
     public CompatibilityChecker getCompatibilityChecker() {
@@ -72,14 +70,4 @@ public abstract class AbstractArtifactTypeUtilProvider implements ArtifactTypeUt
     }
 
     protected abstract ContentExtractor createContentExtractor();
-
-    protected abstract ContentNormalizer createContentNormalizer();
-
-    @Override
-    public ContentNormalizer getContentNormalizer() {
-        if (normalizer == null) {
-            normalizer = createContentNormalizer();
-        }
-        return normalizer;
-    }
 }

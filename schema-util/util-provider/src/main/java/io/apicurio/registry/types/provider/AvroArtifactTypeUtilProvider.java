@@ -22,8 +22,6 @@ import io.apicurio.registry.content.dereference.AvroDereferencer;
 import io.apicurio.registry.content.dereference.ContentDereferencer;
 import io.apicurio.registry.content.extract.AvroContentExtractor;
 import io.apicurio.registry.content.extract.ContentExtractor;
-import io.apicurio.registry.content.normalization.ContentNormalizer;
-import io.apicurio.registry.content.normalize.AvroContentNormalizer;
 import io.apicurio.registry.content.refs.JsonSchemaReferenceFinder;
 import io.apicurio.registry.content.refs.ReferenceFinder;
 import io.apicurio.registry.rules.compatibility.AvroCompatibilityChecker;
@@ -60,11 +58,6 @@ public class AvroArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvid
     @Override
     protected ContentExtractor createContentExtractor() {
         return new AvroContentExtractor();
-    }
-
-    @Override
-    protected ContentNormalizer createContentNormalizer() {
-        return new AvroContentNormalizer();
     }
 
     @Override

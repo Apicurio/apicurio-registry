@@ -142,6 +142,7 @@ public class RegistryExceptionMapperService {
         map.put(TenantNotFoundException.class, HTTP_FORBIDDEN);
         map.put(TimeoutException.class, HTTP_UNAVAILABLE);
         map.put(SubjectNotSoftDeletedException.class, HTTP_CONFLICT);
+        map.put(SchemaNotSoftDeleted.class, HTTP_CONFLICT);
         map.put(SubjectSoftDeletedException.class, HTTP_NOT_FOUND);
         map.put(SchemaNotFoundException.class, HTTP_NOT_FOUND);
         map.put(ReferenceExistsException.class, HTTP_UNPROCESSABLE_ENTITY);

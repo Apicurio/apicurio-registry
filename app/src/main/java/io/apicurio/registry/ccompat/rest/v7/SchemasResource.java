@@ -108,5 +108,5 @@ public interface SchemasResource {
      */
     @GET
     @Path("/ids/{id}/versions")
-    List<SubjectVersion> getSubjectVersions(@PathParam("id") int id);
+    List<SubjectVersion> getSubjectVersions(@PathParam("id") int id, @QueryParam("deleted") Boolean deleted);
 }

@@ -42,7 +42,7 @@ public interface RegistryStorageFacade {
         return getSubjects(deleted, null);
     }
 
-    List<SubjectVersion> getSubjectVersions(int contentId);
+    List<SubjectVersion> getSubjectVersions(int contentId, boolean deleted);
 
     /**
      * @return List of <b>schema versions</b> in the deleted subject

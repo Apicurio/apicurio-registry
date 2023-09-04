@@ -49,6 +49,7 @@ import io.apicurio.registry.storage.impexp.EntityInputStream;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.impexp.Entity;
+import jakarta.transaction.Transactional;
 
 /**
  * The artifactStore layer for the registry.
@@ -240,6 +241,10 @@ public interface RegistryStorage extends DynamicConfigStorage {
      */
     ArtifactMetaDataDto updateArtifact(String groupId, String artifactId, String version,
                                        String artifactType, ContentHandle content, List<ArtifactReferenceDto> references) throws ArtifactNotFoundException, RegistryStorageException;
+
+    @Transactional
+    ArtifactMetaDataDto updateArtifact(String groupId, String artifactId, String version, String artifactType,
+                                       ContentHandle content, List<ArtifactReferenceDto> references, ArtifactRetrievalBehavior behavior) throws ArtifactNotFoundException, RegistryStorageException;
 
     /**
      * Updates the artifact value by storing the given value and metadata as a new version of the artifact.  Previous value

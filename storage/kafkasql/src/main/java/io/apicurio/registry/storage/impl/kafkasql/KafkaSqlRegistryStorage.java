@@ -535,6 +535,11 @@ public class KafkaSqlRegistryStorage implements RegistryStorage {
         return updateArtifactWithMetadata(groupId, artifactId, version, artifactType, content, null, references);
     }
 
+    @Override
+    public ArtifactMetaDataDto updateArtifact(String groupId, String artifactId, String version, String artifactType, ContentHandle content, List<ArtifactReferenceDto> references, ArtifactRetrievalBehavior behavior) throws ArtifactNotFoundException, RegistryStorageException {
+        return updateArtifactWithMetadata(groupId, artifactId, version, artifactType, content, null, references);
+    }
+
     /**
      * @see io.apicurio.registry.storage.RegistryStorage#updateArtifactWithMetadata (java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.types.ArtifactType, io.apicurio.registry.content.ContentHandle, io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto, java.util.List)
      */
@@ -726,6 +731,11 @@ public class KafkaSqlRegistryStorage implements RegistryStorage {
     @Override
     public List<String> getArtifactVersions(String groupId, String artifactId) throws ArtifactNotFoundException, RegistryStorageException {
         return sqlStore.getArtifactVersions(groupId, artifactId);
+    }
+
+    @Override
+    public List<String> getArtifactVersions(String groupId, String artifactId, ArtifactRetrievalBehavior behavior) throws ArtifactNotFoundException, RegistryStorageException {
+        return sqlStore.getArtifactVersions(groupId, artifactId, behavior);
     }
 
     /**
@@ -1000,8 +1010,8 @@ public class KafkaSqlRegistryStorage implements RegistryStorage {
     }
 
     @Override
-    public List<Long> getArtifactContentIds(String groupId, String artifactId) {
-        return sqlStore.getArtifactContentIds(groupId, artifactId);
+    public List<Long> getEnabledArtifactContentIds(String groupId, String artifactId) {
+        return sqlStore.getEnabledArtifactContentIds(groupId, artifactId);
     }
 
     /**

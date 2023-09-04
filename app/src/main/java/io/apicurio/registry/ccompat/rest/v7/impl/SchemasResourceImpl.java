@@ -53,7 +53,8 @@ public class SchemasResourceImpl extends AbstractResource implements SchemasReso
 
     @Override
     @Authorized(style = AuthorizedStyle.GlobalId, level = AuthorizedLevel.Read)
-    public List<SubjectVersion> getSubjectVersions(int id) {
-        return facade.getSubjectVersions(id);
+    public List<SubjectVersion> getSubjectVersions(int id, Boolean fdeleted) {
+        boolean deleted = fdeleted != null && fdeleted;
+        return facade.getSubjectVersions(id, deleted);
     }
 }

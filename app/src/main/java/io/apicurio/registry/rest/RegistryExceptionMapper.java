@@ -76,6 +76,7 @@ public class RegistryExceptionMapper implements ExceptionMapper<Throwable> {
         map.put(UnprocessableEntityException.class, ErrorCode.INVALID_SCHEMA.value());
         map.put(ConflictException.class, HTTP_CONFLICT);
         map.put(SubjectNotSoftDeletedException.class, ErrorCode.SUBJECT_NOT_SOFT_DELETED.value());
+        map.put(SchemaNotSoftDeleted.class, ErrorCode.SCHEMA_VERSION_NOT_SOFT_DELETED.value());
         map.put(SubjectSoftDeletedException.class, ErrorCode.SUBJECT_SOFT_DELETED.value());
         map.put(ReferenceExistsException.class, ErrorCode.REFERENCE_EXISTS.value());
         map.put(SchemaNotFoundException.class, ErrorCode.SCHEMA_NOT_FOUND.value());

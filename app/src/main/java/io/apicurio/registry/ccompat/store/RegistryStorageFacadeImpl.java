@@ -25,6 +25,7 @@ import io.apicurio.registry.ccompat.dto.SubjectVersion;
 import io.apicurio.registry.ccompat.rest.error.ConflictException;
 import io.apicurio.registry.ccompat.rest.error.ReferenceExistsException;
 import io.apicurio.registry.ccompat.rest.error.SchemaNotFoundException;
+import io.apicurio.registry.ccompat.rest.error.SchemaNotSoftDeleted;
 import io.apicurio.registry.ccompat.rest.error.SubjectNotSoftDeletedException;
 import io.apicurio.registry.ccompat.rest.error.SubjectSoftDeletedException;
 import io.apicurio.registry.ccompat.rest.error.UnprocessableEntityException;
@@ -59,7 +60,6 @@ import org.apache.commons.codec.digest.DigestUtils;
 import org.slf4j.Logger;
 
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -111,25 +111,29 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
     }
 
     @Override
-    public List<SubjectVersion> getSubjectVersions(int contentId) {
+    public List<SubjectVersion> getSubjectVersions(int contentId, boolean deleted) {
         if (cconfig.legacyIdModeEnabled.get()) {
             ArtifactMetaDataDto artifactMetaData = storage.getArtifactMetaData(contentId);
             return Collections.singletonList(converter.convert(artifactMetaData.getId(), artifactMetaData.getVersionId()));
         }
-
-        return storage.getArtifactVersionsByContentId(contentId).stream().map(artifactMetaData -> converter.convert(artifactMetaData.getId(), artifactMetaData.getVersionId())).collect(Collectors.toList());
+        return storage.getArtifactVersionsByContentId(contentId)
+                .stream()
+                .filter(artifactMetaData -> {
+                    return deleted || isArtifactActive(artifactMetaData.getId(), artifactMetaData.getGroupId(), DEFAULT);
+                }).map(artifactMetaData -> converter.convert(artifactMetaData.getId(), artifactMetaData.getVersionId()))
+                .collect(Collectors.toList());
     }
 
     @Override
     public List<Integer> deleteSubject(String subject, boolean permanent, String groupId) throws ArtifactNotFoundException, RegistryStorageException {
         if (permanent) {
-            if (isArtifactActive(subject, groupId)) {
+            if (isArtifactActive(subject, groupId, DEFAULT)) {
                 throw new SubjectNotSoftDeletedException(String.format("Subject %s must be soft deleted first", subject));
             } else {
                 return storage.deleteArtifact(groupId, subject).stream().map(VersionUtil::toInteger).map(converter::convertUnsigned).collect(Collectors.toList());
             }
 
-        } else if (isArtifactActive(subject, groupId)) {
+        } else if (isArtifactActive(subject, groupId, DEFAULT)) {
 
             List<String> deletedVersions = storage.getArtifactVersions(groupId, subject);
 
@@ -142,8 +146,8 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
             return deletedVersions.stream().map(VersionUtil::toLong).map(converter::convertUnsigned).sorted().collect(Collectors.toList());
 
         } else {
-            if (storage.isArtifactExists(groupId, subject) ) {
-                if (isArtifactActive(subject, groupId)) {
+            if (storage.isArtifactExists(groupId, subject)) {
+                if (isArtifactActive(subject, groupId, DEFAULT)) {
                     return storage.getArtifactVersions(groupId, subject).stream().map(VersionUtil::toLong).map(converter::convertUnsigned).sorted().collect(Collectors.toList());
                 } else {
                     throw new SubjectSoftDeletedException(String.format("Subject %s is in soft deleted state.", subject));
@@ -154,8 +158,8 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
         }
     }
 
-    private boolean isArtifactActive(String subject, String groupId) {
-        final ArtifactState state = storage.getArtifactMetaData(groupId, subject, DEFAULT).getState();
+    private boolean isArtifactActive(String subject, String groupId, RegistryStorage.ArtifactRetrievalBehavior retrievalBehavior) {
+        final ArtifactState state = storage.getArtifactMetaData(groupId, subject, retrievalBehavior).getState();
         return storage.isArtifactExists(groupId, subject) && (state.equals(ArtifactState.ENABLED) || state.equals(ArtifactState.DEPRECATED));
     }
 
@@ -182,7 +186,7 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
 
     @Override
     public Schema getSchema(String subject, String versionString, String groupId) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
-        if (doesArtifactExist(subject, groupId) && isArtifactActive(subject, groupId)) {
+        if (doesArtifactExist(subject, groupId) && isArtifactActive(subject, groupId, SKIP_DISABLED_LATEST)) {
             return parseVersionString(subject, versionString, groupId, version -> {
                 ArtifactVersionMetaDataDto artifactVersionMetaDataDto = storage.getArtifactVersionMetaData(groupId, subject, version);
                 StoredArtifactDto storedArtifact = storage.getArtifactVersion(groupId, subject, version);
@@ -263,27 +267,9 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
             ArtifactTypeUtilProvider artifactTypeProvider = factory.getArtifactTypeProvider(type);
             ArtifactVersionMetaDataDto amd;
 
-            if (cconfig.canonicalHashModeEnabled.get()) {
-                amd = storage.getArtifactVersionMetaData(groupId, subject, true, ContentHandle.create(schema), artifactReferences);
-            } else if (normalize) {
+            if (cconfig.canonicalHashModeEnabled.get() || normalize) {
                 try {
-                    String schemaNormalizedSha = DigestUtils.sha256Hex(artifactTypeProvider.getContentNormalizer().normalize(ContentHandle.create(schema), resolvedReferences).content());
-
-                    //FIXME create a normalizedHash and compare the content using it.
-
-                    //Normalize given schema, compare with existing ones normalized, and check if the hashes are the same, also ensure that the given schema contains all the references of the existing one.
-                    amd = storage.getArtifactVersions(groupId, subject)
-                            .stream().filter(version -> {
-                                StoredArtifactDto artifactVersion = storage.getArtifactVersion(groupId, subject, version);
-                                Map<String, ContentHandle> artifactVersionReferences = storage.resolveReferences(artifactVersion.getReferences());
-                                String dereferencedExistingContentSha = DigestUtils.sha256Hex(artifactTypeProvider.getContentNormalizer().normalize(artifactVersion.getContent(), artifactVersionReferences).content());
-
-                                return schemaNormalizedSha.equals(dereferencedExistingContentSha) && new HashSet<>(artifactVersion.getReferences()).containsAll(artifactReferences);
-                            })
-                            .findAny()
-                            .map(version -> storage.getArtifactVersionMetaData(groupId, subject, version))
-                            .orElseThrow(() -> new ArtifactNotFoundException(groupId, subject));
-
+                    amd = storage.getArtifactVersionMetaData(groupId, subject, true, ContentHandle.create(schema), artifactReferences);
                 } catch (ArtifactNotFoundException ex) {
                     //When comparing using content, sometimes the references might be inlined into the content, try to dereference the existing content and compare as a fallback. See https://github.com/Apicurio/apicurio-registry/issues/3588 for more information.
                     //If using this method there is no matching content either, just re-throw the exception.
@@ -339,11 +325,10 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
         if (doesArtifactExist(subject, groupId)) {
             return VersionUtil.toInteger(parseVersionString(subject, versionString, groupId, version -> {
                 List<Long> globalIdsReferencingSchema = storage.getGlobalIdsReferencingArtifact(groupId, subject, version);
-
                 if (globalIdsReferencingSchema.isEmpty() || areAllSchemasDisabled(globalIdsReferencingSchema)) {
                     if (permanent) {
                         if (storage.getArtifactVersionMetaData(groupId, subject, version).getState().equals(ArtifactState.ENABLED)) {
-
+                            throw new SchemaNotSoftDeleted(String.format("Subject %s version %s must be soft deleted first", subject, versionString));
                         } else {
                             storage.deleteArtifactVersion(groupId, subject, version);
                         }
@@ -433,7 +418,7 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
                 res = storage.createArtifact(groupId, subject, null, artifactType, schemaContent, parsedReferences);
             } else {
                 rulesService.applyRules(groupId, subject, artifactType, schemaContent, RuleApplicationType.UPDATE, artifactReferences, resolvedReferences);
-                res = storage.updateArtifact(groupId, subject, null, artifactType, schemaContent, parsedReferences);
+                res = storage.updateArtifact(groupId, subject, null, artifactType, schemaContent, parsedReferences, DEFAULT);
             }
         } catch (RuleViolationException ex) {
             if (ex.getRuleType() == RuleType.VALIDITY) {

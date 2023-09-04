@@ -1107,12 +1107,27 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     @Transactional
     public ArtifactMetaDataDto updateArtifact(String groupId, String artifactId, String version, String artifactType,
                                               ContentHandle content, List<ArtifactReferenceDto> references) throws ArtifactNotFoundException, RegistryStorageException {
-        return updateArtifact(groupId, artifactId, version, artifactType, content, references, null);
+        return updateArtifact(groupId, artifactId, version, artifactType, content, references, null, storageBehaviorProps.getDefaultArtifactRetrievalBehavior());
+    }
+
+    /**
+     * @see RegistryStorage#updateArtifact (java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.types.ArtifactType, io.apicurio.registry.content.ContentHandle)
+     */
+    @Override
+    @Transactional
+    public ArtifactMetaDataDto updateArtifact(String groupId, String artifactId, String version, String artifactType,
+                                              ContentHandle content, List<ArtifactReferenceDto> references, ArtifactRetrievalBehavior behavior) throws ArtifactNotFoundException, RegistryStorageException {
+        return updateArtifact(groupId, artifactId, version, artifactType, content, references, null, behavior);
     }
 
     protected ArtifactMetaDataDto updateArtifact(String groupId, String artifactId, String version, String artifactType,
                                                  ContentHandle content, List<ArtifactReferenceDto> references, IdGenerator globalIdGenerator) throws ArtifactNotFoundException, RegistryStorageException {
-        return updateArtifactWithMetadata(groupId, artifactId, version, artifactType, content, null, references, globalIdGenerator);
+        return updateArtifactWithMetadata(groupId, artifactId, version, artifactType, content, null, references, globalIdGenerator, storageBehaviorProps.getDefaultArtifactRetrievalBehavior());
+    }
+
+    protected ArtifactMetaDataDto updateArtifact(String groupId, String artifactId, String version, String artifactType,
+                                                 ContentHandle content, List<ArtifactReferenceDto> references, IdGenerator globalIdGenerator, ArtifactRetrievalBehavior retrievalBehavior) throws ArtifactNotFoundException, RegistryStorageException {
+        return updateArtifactWithMetadata(groupId, artifactId, version, artifactType, content, null, references, globalIdGenerator, retrievalBehavior);
     }
 
     /**
@@ -1123,12 +1138,12 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     public ArtifactMetaDataDto updateArtifactWithMetadata(String groupId, String artifactId, String version,
                                                           String artifactType, ContentHandle content, EditableArtifactMetaDataDto metaData, List<ArtifactReferenceDto> references)
             throws ArtifactNotFoundException, RegistryStorageException {
-        return updateArtifactWithMetadata(groupId, artifactId, version, artifactType, content, metaData, references, null);
+        return updateArtifactWithMetadata(groupId, artifactId, version, artifactType, content, metaData, references,null, storageBehaviorProps.getDefaultArtifactRetrievalBehavior());
     }
 
     protected ArtifactMetaDataDto updateArtifactWithMetadata(String groupId, String artifactId, String version,
                                                              String artifactType, ContentHandle content, EditableArtifactMetaDataDto metaData, List<ArtifactReferenceDto> references,
-                                                             IdGenerator globalIdGenerator) throws ArtifactNotFoundException, RegistryStorageException {
+                                                             IdGenerator globalIdGenerator, ArtifactRetrievalBehavior retrievalBehavior) throws ArtifactNotFoundException, RegistryStorageException {
 
         String createdBy = securityIdentity.getPrincipal().getName();
         Date createdOn = new Date();
@@ -1144,18 +1159,17 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         }
 
         return updateArtifactWithMetadata(groupId, artifactId, version, artifactType, contentId, createdBy, createdOn,
-                metaData, globalIdGenerator);
+                metaData, globalIdGenerator, retrievalBehavior);
     }
 
     protected ArtifactMetaDataDto updateArtifactWithMetadata(String groupId, String artifactId, String version,
                                                              String artifactType, long contentId, String createdBy, Date createdOn, EditableArtifactMetaDataDto metaData,
-                                                             IdGenerator globalIdGenerator)
+                                                             IdGenerator globalIdGenerator, ArtifactRetrievalBehavior retrievalBehavior)
             throws ArtifactNotFoundException, RegistryStorageException {
-
         log.debug("Updating artifact {} {} with a new version (content).", groupId, artifactId);
 
         // Get meta-data from previous (latest) version
-        ArtifactMetaDataDto latest = this.getLatestArtifactMetaDataInternal(groupId, artifactId, storageBehaviorProps.getDefaultArtifactRetrievalBehavior());
+        ArtifactMetaDataDto latest = this.getLatestArtifactMetaDataInternal(groupId, artifactId, retrievalBehavior);
 
         try {
             // Create version and return
@@ -1196,6 +1210,13 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             }
             throw new RegistryStorageException(e);
         }
+    }
+
+    protected ArtifactMetaDataDto updateArtifactWithMetadata(String groupId, String artifactId, String version,
+                                                             String artifactType, long contentId, String createdBy, Date createdOn, EditableArtifactMetaDataDto metaData,
+                                                             IdGenerator globalIdGenerator)
+            throws ArtifactNotFoundException, RegistryStorageException {
+        return updateArtifactWithMetadata(groupId, artifactId, version, artifactType, contentId, createdBy, createdOn, metaData, globalIdGenerator, storageBehaviorProps.getDefaultArtifactRetrievalBehavior());
     }
 
     /**

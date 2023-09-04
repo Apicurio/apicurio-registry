@@ -21,8 +21,6 @@ import io.apicurio.registry.content.canon.XmlContentCanonicalizer;
 import io.apicurio.registry.content.dereference.ContentDereferencer;
 import io.apicurio.registry.content.extract.ContentExtractor;
 import io.apicurio.registry.content.extract.WsdlOrXsdContentExtractor;
-import io.apicurio.registry.content.normalization.ContentNormalizer;
-import io.apicurio.registry.content.normalization.NoOpContentNormalizer;
 import io.apicurio.registry.content.refs.NoOpReferenceFinder;
 import io.apicurio.registry.content.refs.ReferenceFinder;
 import io.apicurio.registry.rules.compatibility.CompatibilityChecker;
@@ -74,11 +72,6 @@ public class WsdlArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvid
     @Override
     protected ContentExtractor createContentExtractor() {
         return new WsdlOrXsdContentExtractor();
-    }
-
-    @Override
-    protected ContentNormalizer createContentNormalizer() {
-        return new NoOpContentNormalizer();
     }
 
     @Override

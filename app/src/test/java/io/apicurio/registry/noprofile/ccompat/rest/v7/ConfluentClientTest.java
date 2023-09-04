@@ -1852,7 +1852,7 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
         Assertions.assertEquals(allSubjects, confluentClient.getAllSubjects(), "Getting all subjects should return empty");
 
         try {
-            registerAndVerifySchema(confluentClient, getBadSchema(), 1, subject1);
+            registerAndVerifySchema(confluentClient, getBadProtobufSchema(), 1, subject1);
             Assertions.fail("Registering bad schema should fail with " + ErrorCode.INVALID_SCHEMA);
         } catch (RestClientException rce) {
             Assertions.assertEquals(ErrorCode.INVALID_SCHEMA.value(), rce.getErrorCode(), "Invalid schema");
@@ -1980,7 +1980,7 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
         return schemas;
     }
 
-    public static String getBadSchema() {
+    public static String getBadProtobufSchema() {
         String schema =
                 "syntax = \"proto3\";\npackage io.confluent.kafka.serializers.protobuf.test;\n\n"
                         + "bad-message MyMessage {\n  string f"
@@ -1988,4 +1988,6 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
                         + " = 1;\n  bool is_active = 2;\n}\n";
         return schema;
     }
+
+
 }

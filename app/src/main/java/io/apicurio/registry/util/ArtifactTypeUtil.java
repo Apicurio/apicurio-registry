@@ -82,7 +82,8 @@ public final class ArtifactTypeUtil {
                 artifactType = ArtifactTypeUtil.discoverType(content, contentType, resolvedReferences);
             }
         }
-        return artifactType;    }
+        return artifactType;
+    }
 
     /**
      * Tries to figure out the artifact type by analyzing the content-type.

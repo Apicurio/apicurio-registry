@@ -285,19 +285,23 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
                 try {
                     amd = storage.getArtifactVersionMetaData(groupId, subject, true, ContentHandle.create(schema), artifactReferences);
                 } catch (ArtifactNotFoundException ex) {
-                    //When comparing using content, sometimes the references might be inlined into the content, try to dereference the existing content and compare as a fallback. See https://github.com/Apicurio/apicurio-registry/issues/3588 for more information.
-                    //If using this method there is no matching content either, just re-throw the exception.
-                    //This approach only works for schema types with dereference support (for now, only Avro in the ccompat API).
-                    amd = storage.getArtifactVersions(groupId, subject)
-                            .stream().filter(version -> {
-                                StoredArtifactDto artifactVersion = storage.getArtifactVersion(groupId, subject, version);
-                                Map<String, ContentHandle> artifactVersionReferences = storage.resolveReferences(artifactVersion.getReferences());
-                                String dereferencedExistingContentSha = DigestUtils.sha256Hex(artifactTypeProvider.getContentDereferencer().dereference(artifactVersion.getContent(), artifactVersionReferences).content());
-                                return dereferencedExistingContentSha.equals(DigestUtils.sha256Hex(schema));
-                            })
-                            .findAny()
-                            .map(version -> storage.getArtifactVersionMetaData(groupId, subject, version))
-                            .orElseThrow(() -> ex);
+                    if (type.equals(ArtifactType.AVRO)) {
+                        //When comparing using content, sometimes the references might be inlined into the content, try to dereference the existing content and compare as a fallback. See https://github.com/Apicurio/apicurio-registry/issues/3588 for more information.
+                        //If using this method there is no matching content either, just re-throw the exception.
+                        //This approach only works for schema types with dereference support (for now, only Avro in the ccompat API).
+                        amd = storage.getArtifactVersions(groupId, subject)
+                                .stream().filter(version -> {
+                                    StoredArtifactDto artifactVersion = storage.getArtifactVersion(groupId, subject, version);
+                                    Map<String, ContentHandle> artifactVersionReferences = storage.resolveReferences(artifactVersion.getReferences());
+                                    String dereferencedExistingContentSha = DigestUtils.sha256Hex(artifactTypeProvider.getContentDereferencer().dereference(artifactVersion.getContent(), artifactVersionReferences).content());
+                                    return dereferencedExistingContentSha.equals(DigestUtils.sha256Hex(schema));
+                                })
+                                .findAny()
+                                .map(version -> storage.getArtifactVersionMetaData(groupId, subject, version))
+                                .orElseThrow(() -> ex);
+                    } else {
+                        throw ex;
+                    }
                 }
 
             } else {

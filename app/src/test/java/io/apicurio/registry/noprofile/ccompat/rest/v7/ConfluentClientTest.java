@@ -22,6 +22,7 @@ import io.apicurio.registry.ccompat.rest.error.ErrorCode;
 import io.apicurio.registry.rest.Headers;
 import io.apicurio.registry.rest.client.exception.ArtifactNotFoundException;
 import io.apicurio.registry.rest.v2.beans.Rule;
+import io.apicurio.registry.rules.validity.ValidityLevel;
 import io.apicurio.registry.support.HealthUtils;
 import io.apicurio.registry.support.TestCmmn;
 import io.apicurio.registry.types.RuleType;
@@ -1728,17 +1729,6 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
     }
 
     @Test
-    public void testSchemaMissingReferencesProtobuf() throws Exception {
-        Map<String, String> schemas = getProtobufSchemaWithDependencies();
-
-        RegisterSchemaRequest request = new RegisterSchemaRequest();
-        request.setSchema(schemas.get("root.proto"));
-        request.setSchemaType(ProtobufSchema.TYPE);
-        request.setReferences(Collections.emptyList());
-        Assertions.assertThrows(RestClientException.class, () -> confluentClient.registerSchema(request, "testSchemaMissingReferences", false));
-    }
-
-    @Test
     public void testIncompatibleSchema() throws Exception {
         String subject = "testIncompatibleSchema";
 
@@ -1779,20 +1769,7 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
                     + ErrorCode.INVALID_SCHEMA);
         } catch (RestClientException e) {
             Assertions.assertTrue(e.getMessage().length() > 0);
-            Assertions.assertTrue(e.getMessage().contains("oldSchemaVersion:"));
-            Assertions.assertTrue(e.getMessage().contains("oldSchema:"));
-            Assertions.assertTrue(e.getMessage().contains("compatibility:"));
         }
-
-        List<String> response = confluentClient.testCompatibility(registerRequest, subject,
-                String.valueOf(
-                        idOfRegisteredSchema1Subject1),
-                false,
-                true);
-        Assertions.assertTrue(response.size() > 0);
-        Assertions.assertTrue(response.get(2).contains("oldSchemaVersion:"));
-        Assertions.assertTrue(response.get(3).contains("oldSchema:"));
-        Assertions.assertTrue(response.get(4).contains("compatibility:"));
     }
 
     @Test

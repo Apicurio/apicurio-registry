@@ -22,7 +22,6 @@ import io.apicurio.registry.ccompat.rest.error.ErrorCode;
 import io.apicurio.registry.rest.Headers;
 import io.apicurio.registry.rest.client.exception.ArtifactNotFoundException;
 import io.apicurio.registry.rest.v2.beans.Rule;
-import io.apicurio.registry.rules.validity.ValidityLevel;
 import io.apicurio.registry.support.HealthUtils;
 import io.apicurio.registry.support.TestCmmn;
 import io.apicurio.registry.types.RuleType;

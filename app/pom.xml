@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"
-         xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>io.apicurio</groupId>
@@ -500,30 +500,15 @@
                         <configuration>
                             <stringType>String</stringType>
                             <imports>
-                                <import>
-                                    ${project.basedir}/src/test/resources/io/apicurio/registry/serde/AvroSchemaE.avsc
-                                </import>
-                                <import>
-                                    ${project.basedir}/src/test/resources/io/apicurio/registry/serde/AvroSchemaA.avsc
-                                </import>
-                                <import>
-                                    ${project.basedir}/src/test/resources/io/apicurio/registry/serde/AvroSchemaD.avsc
-                                </import>
-                                <import>
-                                    ${project.basedir}/src/test/resources/io/apicurio/registry/serde/AvroSchemaC.avsc
-                                </import>
-                                <import>
-                                    ${project.basedir}/src/test/resources/io/apicurio/registry/serde/AvroSchemaB.avsc
-                                </import>
-                                <import>
-                                    ${project.basedir}/src/test/resources/io/apicurio/registry/ccompat/rest/subrecord.avsc
-                                </import>
-                                <import>
-                                    ${project.basedir}/src/test/resources/io/apicurio/registry/ccompat/rest/record.avsc
-                                </import>
+                                <import>${project.basedir}/src/test/resources/io/apicurio/registry/serde/AvroSchemaE.avsc</import>
+                                <import>${project.basedir}/src/test/resources/io/apicurio/registry/serde/AvroSchemaA.avsc</import>
+                                <import>${project.basedir}/src/test/resources/io/apicurio/registry/serde/AvroSchemaD.avsc</import>
+                                <import>${project.basedir}/src/test/resources/io/apicurio/registry/serde/AvroSchemaC.avsc</import>
+                                <import>${project.basedir}/src/test/resources/io/apicurio/registry/serde/AvroSchemaB.avsc</import>
+                                <import>${project.basedir}/src/test/resources/io/apicurio/registry/ccompat/rest/subrecord.avsc</import>
+                                <import>${project.basedir}/src/test/resources/io/apicurio/registry/ccompat/rest/record.avsc</import>
                             </imports>
-                            <sourceDirectory>${project.basedir}/src/test/resources/io/apicurio/registry/serde/
-                            </sourceDirectory>
+                            <sourceDirectory>${project.basedir}/src/test/resources/io/apicurio/registry/serde/</sourceDirectory>
                             <outputDirectory>${project.basedir}/target/generated-test-sources</outputDirectory>
                         </configuration>
                     </execution>
@@ -627,11 +612,8 @@
                                 </goals>
                                 <configuration>
                                     <systemPropertyVariables>
-                                        <native.image.path>
-                                            ${project.build.directory}/${project.build.finalName}-runner
-                                        </native.image.path>
-                                        <java.util.logging.manager>org.jboss.logmanager.LogManager
-                                        </java.util.logging.manager>
+                                        <native.image.path>${project.build.directory}/${project.build.finalName}-runner</native.image.path>
+                                        <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
                                         <maven.home>${maven.home}</maven.home>
                                     </systemPropertyVariables>
                                 </configuration>

@@ -535,11 +535,6 @@ public class KafkaSqlRegistryStorage implements RegistryStorage {
         return updateArtifactWithMetadata(groupId, artifactId, version, artifactType, content, null, references);
     }
 
-    @Override
-    public ArtifactMetaDataDto updateArtifact(String groupId, String artifactId, String version, String artifactType, ContentHandle content, List<ArtifactReferenceDto> references, ArtifactRetrievalBehavior behavior) throws ArtifactNotFoundException, RegistryStorageException {
-        return updateArtifactWithMetadata(groupId, artifactId, version, artifactType, content, null, references);
-    }
-
     /**
      * @see io.apicurio.registry.storage.RegistryStorage#updateArtifactWithMetadata (java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.types.ArtifactType, io.apicurio.registry.content.ContentHandle, io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto, java.util.List)
      */

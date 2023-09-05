@@ -16,39 +16,8 @@
 
 package io.apicurio.registry.storage.impl.sql;
 
-import static io.apicurio.registry.storage.RegistryStorage.ArtifactRetrievalBehavior.DEFAULT;
-import static io.apicurio.registry.storage.impl.sql.SqlUtil.denormalizeGroupId;
-import static io.apicurio.registry.storage.impl.sql.SqlUtil.normalizeGroupId;
-
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.time.Duration;
-import java.time.Instant;
-import java.util.Collections;
-import java.util.Date;
-import java.util.LinkedHashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.TreeSet;
-import java.util.UUID;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
-import org.apache.commons.codec.digest.DigestUtils;
-import org.apache.commons.lang3.tuple.Pair;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
-import org.slf4j.Logger;
-
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
 import io.apicurio.common.apps.config.Info;
 import io.apicurio.common.apps.core.System;
@@ -58,71 +27,13 @@ import io.apicurio.registry.content.canon.ContentCanonicalizer;
 import io.apicurio.registry.content.extract.ContentExtractor;
 import io.apicurio.registry.content.extract.ExtractedMetaData;
 import io.apicurio.registry.exception.UnreachableCodeException;
-import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
-import io.apicurio.registry.storage.ArtifactNotFoundException;
-import io.apicurio.registry.storage.ArtifactStateExt;
-import io.apicurio.registry.storage.CommentNotFoundException;
-import io.apicurio.registry.storage.ContentNotFoundException;
-import io.apicurio.registry.storage.DownloadNotFoundException;
-import io.apicurio.registry.storage.GroupAlreadyExistsException;
-import io.apicurio.registry.storage.GroupNotFoundException;
-import io.apicurio.registry.storage.RegistryStorage;
-import io.apicurio.registry.storage.RegistryStorageException;
-import io.apicurio.registry.storage.RoleMappingAlreadyExistsException;
-import io.apicurio.registry.storage.RoleMappingNotFoundException;
-import io.apicurio.registry.storage.RuleAlreadyExistsException;
-import io.apicurio.registry.storage.RuleNotFoundException;
-import io.apicurio.registry.storage.StorageBehaviorProperties;
-import io.apicurio.registry.storage.StorageEvent;
-import io.apicurio.registry.storage.StorageEventType;
-import io.apicurio.registry.storage.StorageException;
-import io.apicurio.registry.storage.VersionAlreadyExistsException;
-import io.apicurio.registry.storage.VersionNotFoundException;
-import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
-import io.apicurio.registry.storage.dto.ArtifactOwnerDto;
-import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
-import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
-import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
-import io.apicurio.registry.storage.dto.CommentDto;
-import io.apicurio.registry.storage.dto.ContentWrapperDto;
-import io.apicurio.registry.storage.dto.DownloadContextDto;
-import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
-import io.apicurio.registry.storage.dto.GroupMetaDataDto;
-import io.apicurio.registry.storage.dto.GroupSearchResultsDto;
-import io.apicurio.registry.storage.dto.OrderBy;
-import io.apicurio.registry.storage.dto.OrderDirection;
-import io.apicurio.registry.storage.dto.RoleMappingDto;
-import io.apicurio.registry.storage.dto.RuleConfigurationDto;
-import io.apicurio.registry.storage.dto.SearchFilter;
-import io.apicurio.registry.storage.dto.SearchFilterType;
-import io.apicurio.registry.storage.dto.SearchedArtifactDto;
-import io.apicurio.registry.storage.dto.SearchedGroupDto;
-import io.apicurio.registry.storage.dto.SearchedVersionDto;
-import io.apicurio.registry.storage.dto.StoredArtifactDto;
-import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
+import io.apicurio.registry.storage.*;
+import io.apicurio.registry.storage.dto.*;
 import io.apicurio.registry.storage.impexp.EntityInputStream;
 import io.apicurio.registry.storage.impl.sql.jdb.Handle;
 import io.apicurio.registry.storage.impl.sql.jdb.Query;
 import io.apicurio.registry.storage.impl.sql.jdb.RowMapper;
-import io.apicurio.registry.storage.impl.sql.mappers.ArtifactMetaDataDtoMapper;
-import io.apicurio.registry.storage.impl.sql.mappers.ArtifactReferenceDtoMapper;
-import io.apicurio.registry.storage.impl.sql.mappers.ArtifactRuleEntityMapper;
-import io.apicurio.registry.storage.impl.sql.mappers.ArtifactVersionEntityMapper;
-import io.apicurio.registry.storage.impl.sql.mappers.ArtifactVersionMetaDataDtoMapper;
-import io.apicurio.registry.storage.impl.sql.mappers.CommentDtoMapper;
-import io.apicurio.registry.storage.impl.sql.mappers.CommentEntityMapper;
-import io.apicurio.registry.storage.impl.sql.mappers.ContentEntityMapper;
-import io.apicurio.registry.storage.impl.sql.mappers.ContentMapper;
-import io.apicurio.registry.storage.impl.sql.mappers.DynamicConfigPropertyDtoMapper;
-import io.apicurio.registry.storage.impl.sql.mappers.GlobalRuleEntityMapper;
-import io.apicurio.registry.storage.impl.sql.mappers.GroupEntityMapper;
-import io.apicurio.registry.storage.impl.sql.mappers.GroupMetaDataDtoMapper;
-import io.apicurio.registry.storage.impl.sql.mappers.RoleMappingDtoMapper;
-import io.apicurio.registry.storage.impl.sql.mappers.RuleConfigurationDtoMapper;
-import io.apicurio.registry.storage.impl.sql.mappers.SearchedArtifactMapper;
-import io.apicurio.registry.storage.impl.sql.mappers.SearchedGroupMapper;
-import io.apicurio.registry.storage.impl.sql.mappers.SearchedVersionMapper;
-import io.apicurio.registry.storage.impl.sql.mappers.StoredArtifactMapper;
+import io.apicurio.registry.storage.impl.sql.mappers.*;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
@@ -144,6 +55,26 @@ import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.event.Event;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
+import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.commons.lang3.tuple.Pair;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.slf4j.Logger;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import static io.apicurio.registry.storage.RegistryStorage.ArtifactRetrievalBehavior.DEFAULT;
+import static io.apicurio.registry.storage.impl.sql.SqlUtil.denormalizeGroupId;
+import static io.apicurio.registry.storage.impl.sql.SqlUtil.normalizeGroupId;
 
 
 /**
@@ -1107,27 +1038,12 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     @Transactional
     public ArtifactMetaDataDto updateArtifact(String groupId, String artifactId, String version, String artifactType,
                                               ContentHandle content, List<ArtifactReferenceDto> references) throws ArtifactNotFoundException, RegistryStorageException {
-        return updateArtifact(groupId, artifactId, version, artifactType, content, references, null, storageBehaviorProps.getDefaultArtifactRetrievalBehavior());
-    }
-
-    /**
-     * @see RegistryStorage#updateArtifact (java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.types.ArtifactType, io.apicurio.registry.content.ContentHandle)
-     */
-    @Override
-    @Transactional
-    public ArtifactMetaDataDto updateArtifact(String groupId, String artifactId, String version, String artifactType,
-                                              ContentHandle content, List<ArtifactReferenceDto> references, ArtifactRetrievalBehavior behavior) throws ArtifactNotFoundException, RegistryStorageException {
-        return updateArtifact(groupId, artifactId, version, artifactType, content, references, null, behavior);
+        return updateArtifact(groupId, artifactId, version, artifactType, content, references, null);
     }
 
     protected ArtifactMetaDataDto updateArtifact(String groupId, String artifactId, String version, String artifactType,
                                                  ContentHandle content, List<ArtifactReferenceDto> references, IdGenerator globalIdGenerator) throws ArtifactNotFoundException, RegistryStorageException {
-        return updateArtifactWithMetadata(groupId, artifactId, version, artifactType, content, null, references, globalIdGenerator, storageBehaviorProps.getDefaultArtifactRetrievalBehavior());
-    }
-
-    protected ArtifactMetaDataDto updateArtifact(String groupId, String artifactId, String version, String artifactType,
-                                                 ContentHandle content, List<ArtifactReferenceDto> references, IdGenerator globalIdGenerator, ArtifactRetrievalBehavior retrievalBehavior) throws ArtifactNotFoundException, RegistryStorageException {
-        return updateArtifactWithMetadata(groupId, artifactId, version, artifactType, content, null, references, globalIdGenerator, retrievalBehavior);
+        return updateArtifactWithMetadata(groupId, artifactId, version, artifactType, content, null, references, globalIdGenerator);
     }
 
     /**
@@ -1138,12 +1054,14 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     public ArtifactMetaDataDto updateArtifactWithMetadata(String groupId, String artifactId, String version,
                                                           String artifactType, ContentHandle content, EditableArtifactMetaDataDto metaData, List<ArtifactReferenceDto> references)
             throws ArtifactNotFoundException, RegistryStorageException {
-        return updateArtifactWithMetadata(groupId, artifactId, version, artifactType, content, metaData, references,null, storageBehaviorProps.getDefaultArtifactRetrievalBehavior());
+
+
+        return updateArtifactWithMetadata(groupId, artifactId, version, artifactType, content, metaData, references,null);
     }
 
     protected ArtifactMetaDataDto updateArtifactWithMetadata(String groupId, String artifactId, String version,
                                                              String artifactType, ContentHandle content, EditableArtifactMetaDataDto metaData, List<ArtifactReferenceDto> references,
-                                                             IdGenerator globalIdGenerator, ArtifactRetrievalBehavior retrievalBehavior) throws ArtifactNotFoundException, RegistryStorageException {
+                                                             IdGenerator globalIdGenerator) throws ArtifactNotFoundException, RegistryStorageException {
 
         String createdBy = securityIdentity.getPrincipal().getName();
         Date createdOn = new Date();
@@ -1159,17 +1077,17 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         }
 
         return updateArtifactWithMetadata(groupId, artifactId, version, artifactType, contentId, createdBy, createdOn,
-                metaData, globalIdGenerator, retrievalBehavior);
+                metaData, globalIdGenerator);
     }
 
     protected ArtifactMetaDataDto updateArtifactWithMetadata(String groupId, String artifactId, String version,
                                                              String artifactType, long contentId, String createdBy, Date createdOn, EditableArtifactMetaDataDto metaData,
-                                                             IdGenerator globalIdGenerator, ArtifactRetrievalBehavior retrievalBehavior)
+                                                             IdGenerator globalIdGenerator)
             throws ArtifactNotFoundException, RegistryStorageException {
         log.debug("Updating artifact {} {} with a new version (content).", groupId, artifactId);
 
-        // Get meta-data from previous (latest) version
-        ArtifactMetaDataDto latest = this.getLatestArtifactMetaDataInternal(groupId, artifactId, retrievalBehavior);
+        //For the update we want to get meta-data from previous (latest) existing version, no matter the state.
+        ArtifactMetaDataDto latest = this.getLatestArtifactMetaDataInternal(groupId, artifactId, DEFAULT);
 
         try {
             // Create version and return
@@ -1210,13 +1128,6 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             }
             throw new RegistryStorageException(e);
         }
-    }
-
-    protected ArtifactMetaDataDto updateArtifactWithMetadata(String groupId, String artifactId, String version,
-                                                             String artifactType, long contentId, String createdBy, Date createdOn, EditableArtifactMetaDataDto metaData,
-                                                             IdGenerator globalIdGenerator)
-            throws ArtifactNotFoundException, RegistryStorageException {
-        return updateArtifactWithMetadata(groupId, artifactId, version, artifactType, contentId, createdBy, createdOn, metaData, globalIdGenerator, storageBehaviorProps.getDefaultArtifactRetrievalBehavior());
     }
 
     /**

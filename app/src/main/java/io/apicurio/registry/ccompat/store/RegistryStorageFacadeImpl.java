@@ -441,7 +441,7 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
                 res = storage.createArtifact(groupId, subject, null, artifactType, schemaContent, parsedReferences);
             } else {
                 rulesService.applyRules(groupId, subject, artifactType, schemaContent, RuleApplicationType.UPDATE, artifactReferences, resolvedReferences);
-                res = storage.updateArtifact(groupId, subject, null, artifactType, schemaContent, parsedReferences, DEFAULT);
+                res = storage.updateArtifact(groupId, subject, null, artifactType, schemaContent, parsedReferences);
             }
         } catch (RuleViolationException ex) {
             if (ex.getRuleType() == RuleType.VALIDITY) {

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.ccompat.store;
+package io.apicurio.registry.ccompat.rest.v7.impl;
 
 import java.util.function.Supplier;
 

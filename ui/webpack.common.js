@@ -27,7 +27,6 @@ process.argv.forEach(arg => {
 
 module.exports = (env, argv) => {
   const isProduction = argv && argv.mode === "production";
-  const clientGenVersion = "0.1.0" // Use resources/download-client-gen-dist.sh to update
   console.info("Is production build? %o", isProduction);
   return {
     entry: {
@@ -91,16 +90,11 @@ module.exports = (env, argv) => {
     plugins: [
       new WebpackShellPluginNext({
         onBuildStart:{
-          scripts: [
-            'echo Deleting client-gen/dist...',
-            'rm -rf client-gen/dist',
-            'echo Unzipping client-gen-' + clientGenVersion + '.zip...',
-            'unzip -q resources/client-gen-' + clientGenVersion + '.zip -d client-gen',
-            'echo Done!'
-          ],
+          scripts: [ 'resources/download-client-gen-dist.sh' ],
           blocking: true,
           parallel: false
-        }
+        },
+        safe: true,
       }),
       new CopyPlugin({
         patterns: [

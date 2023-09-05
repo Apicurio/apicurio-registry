@@ -265,6 +265,8 @@ public class SchemasConfluentIT extends ConfluentBaseIT {
             }
         });
 
+        confluentService.deleteSubject(subjectName, true);
+
         retryOp((rc) -> {
             TestUtils.assertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, () -> rc.getLatestArtifact(null, subjectName), errorCodeExtractor);
             TestUtils.assertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, () -> rc.listArtifactRules(null, subjectName), errorCodeExtractor);

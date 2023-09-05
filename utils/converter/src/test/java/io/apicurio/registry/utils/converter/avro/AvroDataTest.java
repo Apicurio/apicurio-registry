@@ -116,4 +116,21 @@ public class AvroDataTest {
         org.apache.avro.Schema aSchema = avroData.fromConnectSchema(avroData.toConnectSchema(bSchema));
         Assertions.assertEquals(bSchema.toString(), aSchema.toString());
     }
+
+    @Test
+    public void testSanitizeName() {
+        Assertions.assertEquals("Foo", AvroData.sanitizeName("Foo"));
+        Assertions.assertEquals("Foo_Bar", AvroData.sanitizeName("Foo Bar"));
+        Assertions.assertEquals("Foo_Bar", AvroData.sanitizeName("Foo.Bar"));
+        Assertions.assertEquals("_123Foo", AvroData.sanitizeName("123Foo"));
+        Assertions.assertEquals("_Baz_Bam_", AvroData.sanitizeName("#Baz Bam "));
+
+        Assertions.assertEquals("my.namespace", AvroData.sanitizeNamespace("my.namespace"));
+        Assertions.assertEquals("_.my.namespace", AvroData.sanitizeNamespace(".my.namespace"));
+        Assertions.assertEquals("my_namespace_is_great", AvroData.sanitizeNamespace("my namespace is great"));
+        Assertions.assertEquals("my_namespace.is_great", AvroData.sanitizeNamespace("my_namespace.is_great"));
+        Assertions.assertEquals("my_namespace.is_great_", AvroData.sanitizeNamespace("my_namespace.is_great!"));
+        Assertions.assertEquals("my_namespace.is_great_", AvroData.sanitizeNamespace("my_namespace.is_great "));
+    }
+    
 }

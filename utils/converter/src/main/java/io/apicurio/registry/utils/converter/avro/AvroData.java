@@ -17,13 +17,23 @@
 
 package io.apicurio.registry.utils.converter.avro;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.IntNode;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-
-import io.apicurio.registry.serde.avro.NonRecordContainer;
+import java.io.IOException;
+import java.math.BigDecimal;
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.IdentityHashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.avro.JsonProperties;
 import org.apache.avro.generic.GenericData;
@@ -48,21 +58,13 @@ import org.apache.kafka.connect.data.Time;
 import org.apache.kafka.connect.data.Timestamp;
 import org.apache.kafka.connect.errors.DataException;
 
-import java.io.IOException;
-import java.math.BigDecimal;
-import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.IdentityHashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.IntNode;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+
+import io.apicurio.registry.serde.avro.NonRecordContainer;
 
 
 /**
@@ -100,6 +102,9 @@ public class AvroData {
 
     public static final String AVRO_TYPE_ANYTHING = NAMESPACE + ".Anything";
 
+    private static final Pattern NAMESPACE_PATTERN = Pattern.compile("[^a-zA-Z_0-9\\.]+");
+    private static final Pattern NAME_PATTERN = Pattern.compile("[^a-zA-Z_0-9]+");
+    
     private static final Map<String, Schema.Type> NON_AVRO_TYPES_BY_TYPE_CODE = new HashMap<>();
 
     static {
@@ -770,6 +775,8 @@ public class AvroData {
             namespace = split[0];
             name = split[1];
         }
+        namespace = sanitizeNamespace(namespace);
+        name = sanitizeName(name);
 
         // Extra type annotation information for otherwise lossy conversions
         String connectType = null;
@@ -2118,6 +2125,26 @@ public class AvroData {
             default:
                 return equals;
         }
+    }
+
+    static String sanitizeNamespace(String namespace) {
+        return sanitizeWith(namespace, NAMESPACE_PATTERN);
+    }
+
+    static String sanitizeName(String name) {
+        return sanitizeWith(name, NAME_PATTERN);
+    }
+    
+    private static String sanitizeWith(String input, Pattern pattern) {
+        Matcher matcher = pattern.matcher(input);
+        String sanitized = matcher.replaceAll("_");
+
+        // Ensure the input starts with a letter or underscore
+        if (!Character.isLetter(sanitized.charAt(0)) && sanitized.charAt(0) != '_') {
+            sanitized = "_" + sanitized;
+        }
+
+        return sanitized;
     }
 
     private static class CyclicSchemaWrapper implements Schema {

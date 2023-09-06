@@ -17,7 +17,7 @@
  * limitations under the License.
  */
 
-package io.confluent.connect.schema;
+package io.apicurio.registry.utils.converter;
 
 import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Field;

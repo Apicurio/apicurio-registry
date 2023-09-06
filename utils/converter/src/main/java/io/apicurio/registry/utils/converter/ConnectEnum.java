@@ -17,13 +17,14 @@
  * limitations under the License.
  */
 
-package io.confluent.connect.schema;
+package io.apicurio.registry.utils.converter;
 
-import java.util.List;
-import java.util.Map;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.errors.DataException;
+
+import java.util.List;
+import java.util.Map;
 
 public class ConnectEnum {
 
@@ -93,7 +94,7 @@ public class ConnectEnum {
    * @param value the logical value
    * @return the encoded value
    */
-  public static <T extends java.lang.Enum<T>> String fromLogical(Schema schema, T value) {
+  public static <T extends Enum<T>> String fromLogical(Schema schema, T value) {
     if (!hasEnumSymbol(schema, value.name())) {
       throw new DataException(
           "Requested conversion of Enum object but the schema does not match.");
@@ -109,13 +110,13 @@ public class ConnectEnum {
    * @param symbol the enum symbol
    * @return the logical value
    */
-  public static <T extends java.lang.Enum<T>> T toLogical(Schema schema, Class<T> cls,
+  public static <T extends Enum<T>> T toLogical(Schema schema, Class<T> cls,
       String symbol) {
     if (!hasEnumSymbol(schema, symbol)) {
       throw new DataException(
           "Requested conversion of Enum object but the schema does not match.");
     }
-    return java.lang.Enum.valueOf(cls, symbol);
+    return Enum.valueOf(cls, symbol);
   }
 
   /**

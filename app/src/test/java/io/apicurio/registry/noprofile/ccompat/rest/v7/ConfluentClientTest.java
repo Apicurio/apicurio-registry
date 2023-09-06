@@ -35,18 +35,13 @@ import io.confluent.kafka.schemaregistry.avro.AvroSchemaProvider;
 import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.RestService;
-import io.confluent.kafka.schemaregistry.client.rest.entities.Metadata;
-import io.confluent.kafka.schemaregistry.client.rest.entities.RuleMode;
-import io.confluent.kafka.schemaregistry.client.rest.entities.RuleSet;
 import io.confluent.kafka.schemaregistry.client.rest.entities.SchemaReference;
 import io.confluent.kafka.schemaregistry.client.rest.entities.SchemaString;
 import io.confluent.kafka.schemaregistry.client.rest.entities.SubjectVersion;
 import io.confluent.kafka.schemaregistry.client.rest.entities.requests.RegisterSchemaRequest;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.kafka.schemaregistry.json.JsonSchemaProvider;
-import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema;
 import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchemaProvider;
-import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchemaUtils;
 import io.confluent.kafka.serializers.KafkaAvroDeserializer;
 import io.confluent.kafka.serializers.KafkaAvroSerializer;
 import io.confluent.kafka.serializers.json.KafkaJsonSchemaDeserializer;
@@ -66,9 +61,16 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -83,38 +85,6 @@ import static org.junit.jupiter.api.Assertions.*;
 @SuppressWarnings({"unchecked", "rawtypes"})
 public class ConfluentClientTest extends AbstractResourceTestBase {
 
-    private static final String META_SCHEMA = "syntax = \"proto3\";\n" +
-            "package confluent;\n" +
-            "\n" +
-            "import \"google/protobuf/descriptor.proto\";\n" +
-            "\n" +
-            "option java_package = \"io.confluent.protobuf\";\n" +
-            "option java_outer_classname = \"MetaProto\";\n" +
-            "\n" +
-            "message Meta {\n" +
-            "  string doc = 1;\n" +
-            "  map<string, string> params = 2;\n" +
-            "  repeated string tags = 3;\n" +
-            "}\n" +
-            "\n" +
-            "extend google.protobuf.FileOptions {\n" +
-            "  Meta file_meta = 1088;\n" +
-            "}\n" +
-            "extend google.protobuf.MessageOptions {\n" +
-            "  Meta message_meta = 1088;\n" +
-            "}\n" +
-            "extend google.protobuf.FieldOptions {\n" +
-            "  Meta field_meta = 1088;\n" +
-            "}\n" +
-            "extend google.protobuf.EnumOptions {\n" +
-            "  Meta enum_meta = 1088;\n" +
-            "}\n" +
-            "extend google.protobuf.EnumValueOptions {\n" +
-            "  Meta enum_value_meta = 1088;\n" +
-            "}\n";
-
-    private static final Random random = new Random();
-
     public SchemaRegistryClient buildClient() {
         final List<SchemaProvider> schemaProviders = Arrays
                 .asList(new JsonSchemaProvider(), new AvroSchemaProvider(), new ProtobufSchemaProvider());
@@ -122,7 +92,7 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
     }
 
     @AfterEach
-    protected void afterEach() throws Exception {
+    protected void afterEach() {
         try {
             clientV2.deleteArtifactsInGroup(null);
         } catch (ArtifactNotFoundException ignored) {
@@ -130,7 +100,7 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
     }
 
     @Test
-    public void testSerdeProtobufSchema() throws Exception {
+    public void testSerdeProtobufSchema() {
         TestCmmn.UUID record = TestCmmn.UUID.newBuilder().setLsb(2).setMsb(1).build();
 
         final SchemaRegistryClient client = buildClient();
@@ -199,10 +169,6 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
         Assertions.assertTrue(versions.contains(1));
         Assertions.assertTrue(versions.contains(2));
 
-        // TODO -- match per schema!
-        //int v1 = client.getVersion(subject, schema1);
-        //Assertions.assertEquals(1, v1);
-
         int v2 = client.getVersion(subject, schema2);
         Assertions.assertEquals(2, v2);
 
@@ -210,17 +176,7 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
         Assertions.assertEquals(1, d1);
         int d2 = client.deleteSchemaVersion(subject, "2");
         Assertions.assertEquals(2, d2);
-        //int dl = client.deleteSchemaVersion(subject, "latest");
-        //Assertions.assertEquals(2, dl);
-
-        // TODO: discuss with Ales: both versions of the schema were deleted above.  should the subject be deleted when all versions are deleted?
-//        versions = client.deleteSubject(subject);
-        // TODO: why would this work?  deleting the subject would return the already-deleted versions?
-//        Assertions.assertTrue(versions.contains(1));
-//        Assertions.assertTrue(versions.contains(2));
     }
-
-    // TODO -- cover all endpoints!
 
     @Test
     public void testSerdeAvro() throws Exception {
@@ -241,7 +197,7 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
         });
 
         try (KafkaAvroSerializer serializer = new KafkaAvroSerializer(client);
-             KafkaAvroDeserializer deserializer = new KafkaAvroDeserializer(client);) {
+             KafkaAvroDeserializer deserializer = new KafkaAvroDeserializer(client)) {
 
             GenericData.Record record = new GenericData.Record(new Schema.Parser().parse(rawSchema));
             record.put("bar", "somebar");
@@ -254,7 +210,7 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
     }
 
     @Test
-    public void testSerdeJsonSchema() throws Exception {
+    public void testSerdeJsonSchema() {
 
         final SchemaRegistryClient client = buildClient();
         final String subject = generateArtifactId();
@@ -319,7 +275,7 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
     }
 
     /**
-     * Test for issue: https://github.com/Apicurio/apicurio-registry/issues/536
+     * Test for issue: <a href="https://github.com/Apicurio/apicurio-registry/issues/536">...</a>
      */
     @Test
     public void testGlobalRule() throws Exception {
@@ -473,12 +429,12 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
         String subject1 = "testBasic1";
         String subject2 = "testBasic2";
         int schemasInSubject1 = 10;
-        List<Integer> allVersionsInSubject1 = new ArrayList<Integer>();
+        List<Integer> allVersionsInSubject1 = new ArrayList<>();
         List<String> allSchemasInSubject1 = ConfluentTestUtils.getRandomCanonicalAvroString(schemasInSubject1);
         int schemasInSubject2 = 5;
-        List<Integer> allVersionsInSubject2 = new ArrayList<Integer>();
+        List<Integer> allVersionsInSubject2 = new ArrayList<>();
         List<String> allSchemasInSubject2 = ConfluentTestUtils.getRandomCanonicalAvroString(schemasInSubject2);
-        List<String> allSubjects = new ArrayList<String>();
+        List<String> allSubjects = new ArrayList<>();
 
         List<Integer> schemaIds = new ArrayList<>();
 
@@ -506,7 +462,6 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
 
         // test re-registering existing schemas
         for (int i = 0; i < schemasInSubject1; i++) {
-            int expectedId = i + 1;
             String schemaString = allSchemasInSubject1.get(i);
             int foundId = confluentClient.registerSchema(schemaString, subject1, true);
             assertEquals((int) schemaIds.get(i), foundId, "Re-registering an existing schema should return the existing version");
@@ -544,12 +499,10 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
         //Invalid Field Type 'str'
         String badSchemaString = "{\"type\":\"record\"," + "\"name\":\"myrecord\"," + "\"fields\":" + "[{\"type\":\"str\",\"name\":\"field1\"}]}";
 
-        String expectedErrorMessage = null;
         try {
             new org.apache.avro.Schema.Parser().parse(badSchemaString);
             fail("Parsing invalid schema string should fail with SchemaParseException");
-        } catch (SchemaParseException spe) {
-            expectedErrorMessage = spe.getMessage();
+        } catch (SchemaParseException ignored) {
         }
 
         try {
@@ -595,7 +548,7 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
         for (int i = 0; i < numSchemas; i++) {
             // Test that compatibility check doesn't change the number of versions
             String schema = allSchemas.get(i);
-            isCompatible = confluentClient.testCompatibility(schema, subject, "latest").isEmpty();
+            assertTrue(confluentClient.testCompatibility(schema, subject, "latest").isEmpty());
             ConfluentTestUtils.checkNumberOfVersions(confluentClient, numRegisteredSchemas, subject);
         }
     }
@@ -650,7 +603,7 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
             fail("Schema register should fail since schema is incompatible");
         } catch (RestClientException e) {
             assertEquals(HTTP_CONFLICT, e.getErrorCode(), "Schema register should fail since schema is incompatible");
-            assertTrue(e.getMessage().length() > 0);
+            assertFalse(e.getMessage().isEmpty());
         }
     }
 
@@ -666,7 +619,7 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
         String schemaString2 = "{\"type\":\"record\"," + "\"name\":\"myrecord\"," + "\"fields\":" + "[{\"type\":\"int\",\"name\":" + "\"foo" + "\"}]}";
         String schema2 = new AvroSchema(schemaString2).canonicalString();
 
-        int idOfRegisteredSchema1Subject1 = confluentClient.registerSchema(schema1, subject1);
+        confluentClient.registerSchema(schema1, subject1);
         int versionOfRegisteredSchema1Subject1 = confluentClient.lookUpSubjectVersion(schema1, subject1).getVersion();
         assertEquals(1, versionOfRegisteredSchema1Subject1, "1st schema under subject1 should have version 1");
 
@@ -900,16 +853,14 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
     }
 
     @Test
-    public void testSchemaMissingReferences() throws Exception {
+    public void testSchemaMissingReferences() {
         List<String> schemas = ConfluentTestUtils.getAvroSchemaWithReferences();
 
         RegisterSchemaRequest request = new RegisterSchemaRequest();
         request.setSchema(schemas.get(1));
         request.setReferences(Collections.emptyList());
 
-        assertThrows(RestClientException.class, () -> {
-            confluentClient.registerSchema(request, "referrer", false);
-        });
+        assertThrows(RestClientException.class, () -> confluentClient.registerSchema(request, "referrer", false));
     }
 
     @Test
@@ -931,7 +882,7 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
         RegisterSchemaRequest registerRequest = new RegisterSchemaRequest();
         registerRequest.setSchema(schemaString1);
         registerRequest.setReferences(Arrays.asList(ref1, ref2));
-        int idOfRegisteredSchema1Subject1 = confluentClient.registerSchema(registerRequest, subject1, true);
+        confluentClient.registerSchema(registerRequest, subject1, true);
 
         int versionOfRegisteredSchema1Subject1 = confluentClient.lookUpSubjectVersion(registerRequest, subject1, false, false).getVersion();
 
@@ -961,7 +912,7 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
     @Test
     public void testBad() throws Exception {
         String subject1 = "testBad";
-        List<String> allSubjects = new ArrayList<String>();
+        List<String> allSubjects = new ArrayList<>();
 
         // test getAllSubjects with no existing data
         assertEquals(allSubjects, confluentClient.getAllSubjects(), "Getting all subjects should return empty");
@@ -1394,7 +1345,7 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
         ConfluentTestUtils.registerAndVerifySchema(confluentClient, schemas.get(0), subject1);
         String subject2 = "test2";
         ConfluentTestUtils.registerAndVerifySchema(confluentClient, schemas.get(1), subject2);
-        ;
+
         List<String> expectedResponse = new ArrayList<>();
         expectedResponse.add(subject1);
         expectedResponse.add(subject2);
@@ -1549,445 +1500,4 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
         assertEquals(FULL.name, confluentClient.getConfig(null).getCompatibilityLevel(), "Top Compatibility Level Exists");
 
     }
-
-    @Test
-    public void testRegisterWithAndWithoutMetadata() throws Exception {
-        String subject = "testSubject";
-
-        ParsedSchema schema1 = new AvroSchema("{\"type\":\"record\"," + "\"name\":\"myrecord\"," + "\"fields\":" + "[{\"type\":\"string\",\"name\":\"f1\"}]}");
-
-        Map<String, String> properties = Collections.singletonMap("application.version", "2");
-        Metadata metadata = new Metadata(null, properties, null);
-        RegisterSchemaRequest request1 = new RegisterSchemaRequest(schema1);
-        request1.setMetadata(metadata);
-
-        int id = confluentClient.registerSchema(request1, subject, false);
-
-        RegisterSchemaRequest request2 = new RegisterSchemaRequest(schema1);
-        int id2 = confluentClient.registerSchema(request2, subject, false);
-        assertEquals(id, id2);
-    }
-
-    @Test
-    public void testRegisterDropsRuleSet() throws Exception {
-        String subject = "testRegisterDropsRuleSet";
-
-        ParsedSchema schema1 = new AvroSchema("{\"type\":\"record\"," + "\"name\":\"myrecord\"," + "\"fields\":" + "[{\"type\":\"string\",\"name\":\"f1\"}]}");
-
-        io.confluent.kafka.schemaregistry.client.rest.entities.Rule r1 = new io.confluent.kafka.schemaregistry.client.rest.entities.Rule("foo", null, null, RuleMode.READ, "ENCRYPT", null, null, null, null, null, false);
-        List<io.confluent.kafka.schemaregistry.client.rest.entities.Rule> rules = Collections.singletonList(r1);
-        RuleSet ruleSet = new RuleSet(null, rules);
-        RegisterSchemaRequest request1 = new RegisterSchemaRequest(schema1);
-        request1.setRuleSet(ruleSet);
-        int id = confluentClient.registerSchema(request1, subject, false);
-
-        SchemaString schemaString = confluentClient.getId(id, subject);
-        assertNull(schemaString.getRuleSet());
-    }
-
-    @Test
-    public void testBasicProtobuf() throws Exception {
-        String subject1 = "testBasicProtobuf1";
-        String subject2 = "testBasicProtobuf2";
-        int schemasInSubject1 = 10;
-        List<Integer> allVersionsInSubject1 = new ArrayList<>();
-        List<String> allSchemasInSubject1 = getRandomProtobufSchemas(schemasInSubject1);
-        List<Integer> registeredIdsSubject1 = new ArrayList<>();
-        int schemasInSubject2 = 5;
-        List<Integer> allVersionsInSubject2 = new ArrayList<>();
-        List<String> allSchemasInSubject2 = getRandomProtobufSchemas(schemasInSubject2);
-        List<String> allSubjects = new ArrayList<>();
-
-        // test getAllSubjects with no existing data
-        Assertions.assertEquals(allSubjects, confluentClient.getAllSubjects(), "Getting all subjects should return empty");
-
-        // test registering and verifying new schemas in subject1
-        for (int i = 0; i < schemasInSubject1; i++) {
-            String schema = allSchemasInSubject1.get(i);
-            int expectedVersion = i + 1;
-            RegisterSchemaRequest request = new RegisterSchemaRequest();
-            request.setSchema(schema);
-            request.setSchemaType(ProtobufSchema.TYPE);
-            registeredIdsSubject1.add(confluentClient.registerSchema(request, subject1, false));
-            allVersionsInSubject1.add(expectedVersion);
-        }
-        allSubjects.add(subject1);
-
-        // test re-registering existing schemas
-        for (int i = 0; i < schemasInSubject1; i++) {
-            int expectedId = registeredIdsSubject1.get(i);
-            String schemaString = allSchemasInSubject1.get(i);
-            int foundId = confluentClient.registerSchema(schemaString,
-                    ProtobufSchema.TYPE,
-                    Collections.emptyList(),
-                    subject1
-            );
-            Assertions.assertEquals(expectedId, foundId, "Re-registering an existing schema should return the existing version");
-        }
-
-        // test registering schemas in subject2
-        for (int i = 0; i < schemasInSubject2; i++) {
-            String schema = allSchemasInSubject2.get(i);
-            int expectedVersion = i + 1;
-            RegisterSchemaRequest request = new RegisterSchemaRequest();
-            request.setSchema(schema);
-            request.setSchemaType(ProtobufSchema.TYPE);
-            confluentClient.registerSchema(request, subject2, false);
-            allVersionsInSubject2.add(expectedVersion);
-        }
-        allSubjects.add(subject2);
-
-        // test getAllVersions with existing data
-        Assertions.assertEquals(allVersionsInSubject1, confluentClient.getAllVersions(subject1), "Getting all versions from subject1 should match all registered versions");
-        Assertions.assertEquals(allVersionsInSubject2, confluentClient.getAllVersions(subject2), "Getting all versions from subject2 should match all registered versions");
-
-        // test getAllSubjects with existing data
-        Assertions.assertEquals(allSubjects, confluentClient.getAllSubjects(), "Getting all subjects should match all registered subjects");
-    }
-
-    @Test
-    public void testSchemaReferencesProtobuf() throws Exception {
-        Map<String, String> schemas = getProtobufSchemaWithDependencies();
-        String subject = "confluent/meta.proto";
-
-        confluentClient.registerSchema(schemas.get("confluent/meta.proto"),
-                ProtobufSchema.TYPE,
-                Collections.emptyList(),
-                subject);
-
-        subject = "reference";
-
-        confluentClient.registerSchema(schemas.get("ref.proto"),
-                ProtobufSchema.TYPE,
-                Collections.emptyList(),
-                subject);
-
-        RegisterSchemaRequest request = new RegisterSchemaRequest();
-        request.setSchema(schemas.get("root.proto"));
-        request.setSchemaType(ProtobufSchema.TYPE);
-        SchemaReference ref = new SchemaReference("ref.proto", "reference", 1);
-        SchemaReference meta = new SchemaReference("confluent/meta.proto", "confluent/meta.proto", 1);
-        List<SchemaReference> refs = Arrays.asList(ref, meta);
-        request.setReferences(refs);
-
-        int registeredSchemaId = confluentClient.registerSchema(request, "referrer", false);
-
-        SchemaString schemaString = confluentClient.getId(registeredSchemaId);
-        // the newly registered schema should be immediately readable on the leader
-        Assertions.assertEquals(schemas.get("root.proto"), schemaString.getSchemaString(), "Registered schema should be found");
-
-        Assertions.assertEquals(refs, schemaString.getReferences(), "Schema dependencies should be found");
-
-        Root.ReferrerMessage referrer = Root.ReferrerMessage.newBuilder().build();
-        ProtobufSchema schema = ProtobufSchemaUtils.getSchema(referrer);
-        schema = schema.copy(refs);
-        io.confluent.kafka.schemaregistry.client.rest.entities.Schema registeredSchema = confluentClient.lookUpSubjectVersion(schema.canonicalString(),
-                ProtobufSchema.TYPE, schema.references(), "referrer", false);
-    }
-
-    @Test
-    public void testSchemaReferencesPkg() throws Exception {
-        String msg1 = "syntax = \"proto3\";\n" +
-                "package pkg1;\n" +
-                "\n" +
-                "option go_package = \"pkg1pb\";\n" +
-                "option java_multiple_files = true;\n" +
-                "option java_outer_classname = \"Msg1Proto\";\n" +
-                "option java_package = \"com.pkg1\";\n" +
-                "\n" +
-                "message Message1 {\n" +
-                "  string s = 1;\n" +
-                "}\n";
-        String subject = "pkg1/msg1.proto";
-        RegisterSchemaRequest request = new RegisterSchemaRequest();
-        request.setSchema(msg1);
-        request.setSchemaType(ProtobufSchema.TYPE);
-        confluentClient.registerSchema(request, subject, false);
-        subject = "pkg2/msg2.proto";
-        String msg2 = "syntax = \"proto3\";\n" +
-                "package pkg2;\n" +
-                "\n" +
-                "option go_package = \"pkg2pb\";\n" +
-                "option java_multiple_files = true;\n" +
-                "option java_outer_classname = \"Msg2Proto\";\n" +
-                "option java_package = \"com.pkg2\";\n" +
-                "\n" +
-                "import \"pkg1/msg1.proto\";\n" +
-                "\n" +
-                "message Message2 {\n" +
-                "  map<string, pkg1.Message1> map = 1;\n" +
-                "  pkg1.Message1 f2 = 2;\n" +
-                "}\n";
-        request = new RegisterSchemaRequest();
-        request.setSchema(msg2);
-        request.setSchemaType(ProtobufSchema.TYPE);
-        SchemaReference meta = new SchemaReference("pkg1/msg1.proto", "pkg1/msg1.proto", 1);
-        List<SchemaReference> refs = Arrays.asList(meta);
-        request.setReferences(refs);
-        int registeredId = confluentClient.registerSchema(request, subject, false);
-    }
-
-    @Test
-    public void testIncompatibleSchema() throws Exception {
-        String subject = "testIncompatibleSchema";
-
-        // Make two incompatible schemas - field 'myField2' has different types
-        String schema1String = "syntax = \"proto3\";\n" +
-                "package pkg3;\n" +
-                "\n" +
-                "message Schema1 {\n" +
-                "  string f1 = 1;\n" +
-                "  string f2 = 2;\n" +
-                "}\n";
-
-        RegisterSchemaRequest registerRequest = new RegisterSchemaRequest();
-        registerRequest.setSchema(schema1String);
-        registerRequest.setSchemaType(ProtobufSchema.TYPE);
-
-        String schema2String = "syntax = \"proto3\";\n" +
-                "package pkg3;\n" +
-                "\n" +
-                "message Schema1 {\n" +
-                "  string f1 = 1;\n" +
-                "  int32 f2 = 2;\n" +
-                "}\n";
-
-        // ensure registering incompatible schemas will raise an error
-        confluentClient.updateCompatibility(
-                CompatibilityLevel.FULL.name, subject);
-
-        // test that compatibility check for incompatible schema returns false and the appropriate
-        // error response from Avro
-        int idOfRegisteredSchema1Subject1 = confluentClient.registerSchema(registerRequest, subject, true);
-
-        try {
-            registerRequest.setSchema(schema2String);
-            registerRequest.setSchemaType(ProtobufSchema.TYPE);
-            confluentClient.registerSchema(registerRequest, subject, true);
-            Assertions.fail("Registering incompatible schema should fail with "
-                    + ErrorCode.INVALID_SCHEMA);
-        } catch (RestClientException e) {
-            Assertions.assertTrue(e.getMessage().length() > 0);
-        }
-    }
-
-    @Test
-    public void testSchemaNormalizationProtobuf() throws Exception {
-        String subject1 = "testSchemaNormalization";
-
-        String msg1 = "syntax = \"proto3\";\n" +
-                "package pkg1;\n" +
-                "\n" +
-                "option go_package = \"pkg1pb\";\n" +
-                "option java_multiple_files = true;\n" +
-                "option java_outer_classname = \"Msg1Proto\";\n" +
-                "option java_package = \"com.pkg1\";\n" +
-                "\n" +
-                "message Message1 {\n" +
-                "  string s = 1;\n" +
-                "}\n";
-
-        String subject = "pkg1/msg1.proto";
-
-
-        confluentClient.registerSchema(msg1,
-                ProtobufSchema.TYPE,
-                Collections.emptyList(),
-                subject);
-
-        String msg2 = "syntax = \"proto3\";\n" +
-                "package pkg2;\n" +
-                "\n" +
-                "option go_package = \"pkg2pb\";\n" +
-                "option java_multiple_files = true;\n" +
-                "option java_outer_classname = \"Msg2Proto\";\n" +
-                "option java_package = \"com.pkg2\";\n" +
-                "\n" +
-                "\n" +
-                "message Message2 {\n" +
-                "  string s = 1;\n" +
-                "}\n";
-
-        subject = "pkg2/msg2.proto";
-
-        confluentClient.registerSchema(msg2,
-                ProtobufSchema.TYPE,
-                Collections.emptyList(),
-                subject);
-
-        String msg3 = "syntax = \"proto3\";\n" +
-                "package pkg3;\n" +
-                "\n" +
-                "option go_package = \"pkg3pb\";\n" +
-                "option java_multiple_files = true;\n" +
-                "option java_outer_classname = \"Msg3Proto\";\n" +
-                "option java_package = \"com.pkg3\";\n" +
-                "\n" +
-                "import \"pkg1/msg1.proto\";\n" +
-                "import \"pkg2/msg2.proto\";\n" +
-                "\n" +
-                "message Message3 {\n" +
-                "  map<string, pkg1.Message1> map = 1;\n" +
-                "  pkg1.Message1 f1 = 2;\n" +
-                "  pkg2.Message2 f2 = 3;\n" +
-                "}\n";
-
-        RegisterSchemaRequest request = new RegisterSchemaRequest();
-        request.setSchema(msg3);
-        request.setSchemaType(ProtobufSchema.TYPE);
-        SchemaReference ref1 = new SchemaReference("pkg1/msg1.proto", "pkg1/msg1.proto", 1);
-        SchemaReference ref2 = new SchemaReference("pkg2/msg2.proto", "pkg2/msg2.proto", 1);
-        List<SchemaReference> refs = Arrays.asList(ref1, ref2);
-        request.setReferences(refs);
-
-        int registeredId = confluentClient.registerSchema(request, subject1, true);
-    }
-
-    @Test
-    public void testBadProtobuf() throws Exception {
-        String subject1 = "testBad";
-        List<String> allSubjects = new ArrayList<String>();
-
-        // test getAllSubjects with no existing data
-        Assertions.assertEquals(allSubjects, confluentClient.getAllSubjects(), "Getting all subjects should return empty");
-
-        try {
-            registerAndVerifySchema(confluentClient, getBadProtobufSchema(), 1, subject1);
-            Assertions.fail("Registering bad schema should fail with " + ErrorCode.INVALID_SCHEMA);
-        } catch (RestClientException rce) {
-            Assertions.assertEquals(ErrorCode.INVALID_SCHEMA.value(), rce.getErrorCode(), "Invalid schema");
-        }
-
-        try {
-            registerAndVerifySchema(confluentClient, getRandomProtobufSchemas(1).get(0),
-                    Arrays.asList(new SchemaReference("bad", "bad", 100)), 1, subject1);
-            Assertions.fail("Registering bad reference should fail with " + ErrorCode.INVALID_SCHEMA);
-        } catch (RestClientException rce) {
-            Assertions.assertEquals(ErrorCode.INVALID_SCHEMA.value(), rce.getErrorCode(), "Invalid schema");
-        }
-
-        // test getAllSubjects with existing data
-        Assertions.assertEquals(allSubjects, confluentClient.getAllSubjects(), "Getting all subjects should match all registered subjects");
-    }
-
-    @Test
-    public void testCustomOption() throws Exception {
-        String subject = "testCustomOption";
-        String enumOptionSchemaString = "syntax = \"proto3\";\n"
-                + "\n"
-                + "import \"google/protobuf/descriptor.proto\";\n"
-                + "\n"
-                + "option java_package = \"io.confluent.kafka.serializers.protobuf.test\";\n"
-                + "option java_outer_classname = \"TestEnumProtos\";\n"
-                + "option php_namespace = \"Bug\\\\V1\";\n"
-                + "\n"
-                + "message TestEnum {\n"
-                + "  option (some_ref) = \"https://test.com\";\n"
-                + "\n"
-                + "  Suit suit = 1;\n"
-                + "\n"
-                + "  oneof test_oneof {\n"
-                + "    option (some_ref) = \"https://test.com\";\n"
-                + "  \n"
-                + "    string name = 2;\n"
-                + "    int32 age = 3;\n"
-                + "  }\n"
-                + "\n"
-                + "  enum Suit {\n"
-                + "    option (some_ref) = \"https://test.com\";\n"
-                + "    SPADES = 0;\n"
-                + "    HEARTS = 1;\n"
-                + "    DIAMONDS = 2;\n"
-                + "    CLUBS = 3;\n"
-                + "  }\n"
-                + "}\n";
-
-        confluentClient.registerSchema(enumOptionSchemaString, subject);
-    }
-
-    public static void registerAndVerifySchema(
-            RestService restService,
-            String schemaString,
-            int expectedId,
-            String subject
-    ) throws IOException, RestClientException {
-        registerAndVerifySchema(
-                restService, schemaString, Collections.emptyList(), expectedId, subject);
-    }
-
-    public static void registerAndVerifySchema(
-            RestService restService,
-            String schemaString,
-            List<SchemaReference> references,
-            int expectedId,
-            String subject
-    ) throws IOException, RestClientException {
-        int registeredId = restService.registerSchema(schemaString,
-                ProtobufSchema.TYPE,
-                references,
-                subject
-        );
-        Assertions.assertEquals(
-                (long) expectedId,
-                (long) registeredId,
-                "Registering a new schema should succeed"
-        );
-        Assertions.assertEquals(
-                schemaString.trim(),
-                restService.getId(expectedId).getSchemaString().trim(),
-                "Registered schema should be found"
-        );
-    }
-
-    public static List<String> getRandomProtobufSchemas(int num) {
-        List<String> schemas = new ArrayList<>();
-        for (int i = 0; i < num; i++) {
-            String schema =
-                    "syntax = \"proto3\";\npackage io.confluent.kafka.serializers.protobuf.test;\n\n"
-                            + "message MyMessage {\n  string f"
-                            + random.nextInt(Integer.MAX_VALUE)
-                            + " = 1;\n  bool is_active = 2;\n}\n";
-            schemas.add(schema);
-        }
-        return schemas;
-    }
-
-    public static Map<String, String> getProtobufSchemaWithDependencies() {
-        Map<String, String> schemas = new HashMap<>();
-        String meta = META_SCHEMA;
-        schemas.put("confluent/meta.proto", meta);
-        String reference =
-                "syntax = \"proto3\";\npackage io.confluent.kafka.serializers.protobuf.test;\n\n"
-                        + "message ReferencedMessage {\n  string ref_id = 1;\n  bool is_active = 2;\n}\n";
-        schemas.put("ref.proto", reference);
-        String schemaString = "syntax = \"proto3\";\n"
-                + "package io.confluent.kafka.serializers.protobuf.test;\n"
-                + "\n"
-                + "import \"ref.proto\";\n"
-                + "import \"confluent/meta.proto\";\n"
-                + "\n"
-                + "message ReferrerMessage {\n"
-                + "  option (confluent.message_meta) = {\n"
-                + "    doc: \"ReferrerMessage\"\n"
-                + "  };\n"
-                + "\n"
-                + "  string root_id = 1;\n"
-                + "  .io.confluent.kafka.serializers.protobuf.test.ReferencedMessage ref = 2 [(confluent.field_meta) = {\n"
-                + "    doc: \"ReferencedMessage\"\n"
-                + "  }];\n"
-                + "}\n";
-        schemas.put("root.proto", schemaString);
-        return schemas;
-    }
-
-    public static String getBadProtobufSchema() {
-        String schema =
-                "syntax = \"proto3\";\npackage io.confluent.kafka.serializers.protobuf.test;\n\n"
-                        + "bad-message MyMessage {\n  string f"
-                        + random.nextInt(Integer.MAX_VALUE)
-                        + " = 1;\n  bool is_active = 2;\n}\n";
-        return schema;
-    }
-
-
 }

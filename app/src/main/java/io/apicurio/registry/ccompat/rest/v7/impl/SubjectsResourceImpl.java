@@ -67,10 +67,10 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
     @Override
     @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Read)
     public Schema findSchemaByContent(String subject, SchemaInfo request, Boolean normalize, String groupId, Boolean deleted) throws Exception {
-        final boolean fnormalize = normalize == null ? Boolean.FALSE : normalize;
-        final boolean fdeleted = deleted == null ? Boolean.FALSE : deleted;
-
         if (doesArtifactExist(subject, groupId)) {
+            final boolean fnormalize = normalize == null ? Boolean.FALSE : normalize;
+            final boolean fdeleted = deleted == null ? Boolean.FALSE : deleted;
+
             try {
                 ArtifactVersionMetaDataDto amd;
                 amd = lookupSchema(groupId, subject, request.getSchema(), request.getReferences(), request.getSchemaType(), fnormalize);
@@ -94,36 +94,36 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
     @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Write)
     public List<Integer> deleteSubject(String subject, Boolean permanent, String groupId) throws Exception {
         final boolean fpermanent = permanent == null ? Boolean.FALSE : permanent;
-        //FIXME simplify logic
         if (fpermanent) {
-            if (isArtifactActive(subject, groupId, DEFAULT)) {
-                throw new SubjectNotSoftDeletedException(String.format("Subject %s must be soft deleted first", subject));
-            } else {
-                return storage.deleteArtifact(groupId, subject).stream().map(VersionUtil::toInteger).map(converter::convertUnsigned).collect(Collectors.toList());
-            }
-
+            return deleteSubjectPermanent(groupId, subject);
         } else if (isArtifactActive(subject, groupId, DEFAULT)) {
-
-            List<String> deletedVersions = storage.getArtifactVersions(groupId, subject);
-
-            try {
-                deletedVersions.forEach(version -> storage.updateArtifactState(groupId, subject, version, ArtifactState.DISABLED));
-            } catch (InvalidArtifactStateException ignored) {
-                log.warn("Invalid artifact state transition", ignored);
-            }
-
-            return deletedVersions.stream().map(VersionUtil::toLong).map(converter::convertUnsigned).sorted().collect(Collectors.toList());
-
+            return deleteSubjectVersions(groupId, subject);
         } else {
             if (storage.isArtifactExists(groupId, subject)) {
-                if (isArtifactActive(subject, groupId, DEFAULT)) {
-                    return storage.getArtifactVersions(groupId, subject).stream().map(VersionUtil::toLong).map(converter::convertUnsigned).sorted().collect(Collectors.toList());
-                } else {
-                    throw new SubjectSoftDeletedException(String.format("Subject %s is in soft deleted state.", subject));
-                }
+                //The artifact exist, it's in DISABLED state but the delete request is set to not permanent, throw ex.
+                throw new SubjectSoftDeletedException(String.format("Subject %s is in soft deleted state.", subject));
             } else {
                 return Collections.emptyList();
             }
         }
+    }
+
+    private List<Integer> deleteSubjectPermanent(String groupId, String subject) {
+        if (isArtifactActive(subject, groupId, DEFAULT)) {
+            throw new SubjectNotSoftDeletedException(String.format("Subject %s must be soft deleted first", subject));
+        } else {
+            return storage.deleteArtifact(groupId, subject).stream().map(VersionUtil::toInteger).map(converter::convertUnsigned).collect(Collectors.toList());
+        }
+    }
+
+    //Deleting artifact versions means updating all the versions status to DISABLED.
+    private List<Integer> deleteSubjectVersions(String groupId, String subject) {
+        List<String> deletedVersions = storage.getArtifactVersions(groupId, subject);
+        try {
+            deletedVersions.forEach(version -> storage.updateArtifactState(groupId, subject, version, ArtifactState.DISABLED));
+        } catch (InvalidArtifactStateException ignored) {
+            log.warn("Invalid artifact state transition", ignored);
+        }
+        return deletedVersions.stream().map(VersionUtil::toLong).map(converter::convertUnsigned).sorted().collect(Collectors.toList());
     }
 }

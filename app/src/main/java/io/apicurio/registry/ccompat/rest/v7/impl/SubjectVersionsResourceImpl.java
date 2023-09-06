@@ -103,13 +103,13 @@ public class SubjectVersionsResourceImpl extends AbstractResource implements Sub
         }
 
         if (!idFound) {
-            // We validate the schema at creation time by inferring the type from the content
             try {
-
+                // We validate the schema at creation time by inferring the type from the content
                 final String artifactType = ArtifactTypeUtil.determineArtifactType(ContentHandle.create(request.getSchema()), null, null, resolvedReferences, factory.getAllArtifactTypes());
                 if (request.getSchemaType() != null && !artifactType.equals(request.getSchemaType())) {
                     throw new UnprocessableEntityException(String.format("Given schema is not from type: %s", request.getSchemaType()));
                 }
+
                 ArtifactMetaDataDto artifactMeta = createOrUpdateArtifact(subject, request.getSchema(), artifactType, request.getReferences(), groupId);
                 sid = cconfig.legacyIdModeEnabled.get() ? artifactMeta.getGlobalId() : artifactMeta.getContentId();
             } catch (InvalidArtifactTypeException ex) {
@@ -134,24 +134,14 @@ public class SubjectVersionsResourceImpl extends AbstractResource implements Sub
     @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Write)
     public int deleteSchemaVersion(String subject, String versionString, Boolean permanent, String groupId) throws Exception {
         try {
-            final boolean fpermanent = permanent == null ? Boolean.FALSE : permanent;
             if (doesArtifactExist(subject, groupId)) {
+                final boolean fpermanent = permanent == null ? Boolean.FALSE : permanent;
+
                 return VersionUtil.toInteger(parseVersionString(subject, versionString, groupId, version -> {
                     List<Long> globalIdsReferencingSchema = storage.getGlobalIdsReferencingArtifact(groupId, subject, version);
                     ArtifactVersionMetaDataDto avmd = storage.getArtifactVersionMetaData(groupId, subject, version);
                     if (globalIdsReferencingSchema.isEmpty() || areAllSchemasDisabled(globalIdsReferencingSchema)) {
-                        if (fpermanent) {
-                            if (avmd.getState().equals(ArtifactState.ENABLED) || avmd.getState().equals(ArtifactState.DEPRECATED)) {
-                                throw new SchemaNotSoftDeletedException(String.format("Subject %s version %s must be soft deleted first", subject, versionString));
-                            } else if (avmd.getState().equals(ArtifactState.DISABLED)) {
-                                storage.deleteArtifactVersion(groupId, subject, version);
-                            }
-                        } else if (avmd.getState().equals(ArtifactState.DISABLED)) {
-                            throw new SchemaSoftDeletedException("Schema is already soft deleted");
-                        } else {
-                            storage.updateArtifactState(groupId, subject, version, ArtifactState.DISABLED);
-                        }
-                        return version;
+                        return processDeleteVersion(subject, versionString, groupId, version, fpermanent, avmd);
                     } else {
                         //There are other schemas referencing this one, it cannot be deleted.
                         throw new ReferenceExistsException(String.format("There are subjects referencing %s", subject));
@@ -164,6 +154,23 @@ public class SubjectVersionsResourceImpl extends AbstractResource implements Sub
         } catch (IllegalArgumentException ex) {
             throw new BadRequestException(ex);
         }
+    }
+
+    private String processDeleteVersion(String subject, String versionString, String groupId, String version, boolean fpermanent, ArtifactVersionMetaDataDto avmd) {
+        if (fpermanent) {
+            if (avmd.getState().equals(ArtifactState.ENABLED) || avmd.getState().equals(ArtifactState.DEPRECATED)) {
+                throw new SchemaNotSoftDeletedException(String.format("Subject %s version %s must be soft deleted first", subject, versionString));
+            } else if (avmd.getState().equals(ArtifactState.DISABLED)) {
+                storage.deleteArtifactVersion(groupId, subject, version);
+            }
+        } else {
+            if (avmd.getState().equals(ArtifactState.DISABLED)) {
+                throw new SchemaSoftDeletedException("Schema is already soft deleted");
+            } else {
+                storage.updateArtifactState(groupId, subject, version, ArtifactState.DISABLED);
+            }
+        }
+        return version;
     }
 
     @Override
@@ -184,7 +191,6 @@ public class SubjectVersionsResourceImpl extends AbstractResource implements Sub
     }
 
     protected Schema getSchema(String groupId, String subject, String versionString, boolean deleted) {
-        //FIXME simplify logic
         if (doesArtifactExist(subject, groupId) && isArtifactActive(subject, groupId, SKIP_DISABLED_LATEST)) {
             return parseVersionString(subject, versionString, groupId, version -> {
                 ArtifactVersionMetaDataDto amd = storage.getArtifactVersionMetaData(groupId, subject, version);

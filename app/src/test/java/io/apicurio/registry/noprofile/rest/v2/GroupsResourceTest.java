@@ -159,12 +159,13 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
     	nullType.setConfig("TestConfig");
     	given()
 	        	.when()
-	    			.pathParam("groupId", "testCreateArtifactRule")
-	    			.pathParam("artifactId", "testCreateArtifactRule/EmptyAPI/1")
-	    			.body(nullType)
-	    			.post("/registry/v2/groups/{groupId}/artifacts/{artifactId/rules}")
+	        	.contentType(CT_JSON)
+	    		.pathParam("groupId", "testCreateArtifactRule")
+	    		.pathParam("artifactId", "testCreateArtifactRule/EmptyAPI/1")
+	    		.body(nullType)
+	    		.post("/registry/v2/groups/{groupId}/artifacts/{artifactId}/rules")
 	        	.then()	
-	    			.statusCode(400);
+	    		.statusCode(400);
     	
     	//Test Rule config null
     	Rule nullConfig = new Rule();
@@ -172,25 +173,27 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
     	nullConfig.setConfig(null);
     	given()
 	        	.when()
-	    			.pathParam("groupId", "testCreateArtifactRule")
-	    			.pathParam("artifactId", "testCreateArtifactRule/EmptyAPI/1")
-	    			.body(nullConfig)
-	    			.post("/registry/v2/groups/{groupId}/artifacts/{artifactId/rules}")
+	        	.contentType(CT_JSON)
+	    		.pathParam("groupId", "testCreateArtifactRule")
+	    		.pathParam("artifactId", "testCreateArtifactRule/EmptyAPI/1")
+	    		.body(nullConfig)
+	    		.post("/registry/v2/groups/{groupId}/artifacts/{artifactId}/rules")
 	        	.then()
-	    			.statusCode(400);
+	    		.statusCode(400);
     	
-    	//Test Rule config null
+    	//Test Rule config empty
     	Rule emptyConfig = new Rule();
     	emptyConfig.setType(RuleType.VALIDITY);
     	emptyConfig.setConfig("");
     	given()
 	        	.when()
-	    			.pathParam("groupId", "testCreateArtifactRule")
-	    			.pathParam("artifactId", "testCreateArtifactRule/EmptyAPI/1")
-	    			.body(emptyConfig)
-	    			.post("/registry/v2/groups/{groupId}/artifacts/{artifactId/rules}")
+	        	.contentType(CT_JSON)
+	    		.pathParam("groupId", "testCreateArtifactRule")
+	    		.pathParam("artifactId", "testCreateArtifactRule/EmptyAPI/1")
+	    		.body(emptyConfig)
+	    		.post("/registry/v2/groups/{groupId}/artifacts/{artifactId}/rules")
 	        	.then()
-	    			.statusCode(400);
+	    		.statusCode(400);
     	
     }
 

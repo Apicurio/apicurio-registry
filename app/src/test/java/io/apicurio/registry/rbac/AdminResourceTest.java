@@ -101,6 +101,47 @@ public class AdminResourceTest extends AbstractResourceTestBase {
                 .statusCode(200)
                 .body(anything());
     }
+    
+    @Test
+    public void testCreateGlobalRule() throws Exception
+    {
+    	//Test Rule type null
+    	Rule nullType = new Rule();
+    	nullType.setType(null);
+    	nullType.setConfig("TestConfig");
+    	given()
+        	.when()
+        		.contentType(CT_JSON)
+        		.body(nullType)
+        		.post("/registry/v2/admin/rules")
+        	.then()
+        		.statusCode(400);
+    	
+    	//Test Rule config null
+    	Rule nullConfig = new Rule();
+    	nullConfig.setType(RuleType.VALIDITY);
+    	nullConfig.setConfig(null);
+    	given()
+        	.when()
+        		.contentType(CT_JSON)
+        		.body(nullConfig)
+        		.post("/registry/v2/admin/rules")
+        	.then()
+        		.statusCode(400);
+    	
+    	//Test Rule config empty
+    	Rule emptyConfig = new Rule();
+    	emptyConfig.setType(RuleType.VALIDITY);
+    	emptyConfig.setConfig("");
+    	given()
+        	.when()
+        		.contentType(CT_JSON)
+        		.body(emptyConfig)
+        		.post("/registry/v2/admin/rules")
+        	.then()
+        		.statusCode(400);
+    	
+    }
 
     @Test
     public void testGlobalRules() throws Exception {

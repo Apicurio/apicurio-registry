@@ -106,7 +106,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
         	.then()
         		.statusCode(400);
     	
-    	//Test Rule config null
+    	//Test Rule config empty
     	Rule emptyConfig = new Rule();
     	emptyConfig.setType(RuleType.VALIDITY);
     	emptyConfig.setConfig("");

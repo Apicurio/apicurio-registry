@@ -8,6 +8,7 @@ import org.eclipse.jgit.api.errors.GitAPIException;
 import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
@@ -35,6 +36,13 @@ public class GitTestRepository implements AutoCloseable {
                     .setDirectory(gitDir.toFile())
                     .setInitialBranch(gitRepoBranch)
                     .call();
+            Files.write(gitDir.resolve(".init"), "init".getBytes(StandardCharsets.UTF_8));
+            git.add()
+                    .addFilepattern(".")
+                    .call();
+            git.commit()
+                    .setMessage("Initial commit")
+                    .call();
             gitRepoUrl = "file://" + git.getRepository().getWorkTree().getAbsolutePath();
 
         } catch (IOException | GitAPIException e) {
@@ -43,21 +51,27 @@ public class GitTestRepository implements AutoCloseable {
     }
 
 
-    public File getWorkDir() {
-        return git.getRepository().getWorkTree();
-    }
-
-
     public void load(String sourceDir) {
         try {
             var sourcePath = Path.of(requireNonNull(Thread.currentThread().getContextClassLoader().getResource(sourceDir)).toURI());
-            FileUtils.cleanDirectory(git.getRepository().getWorkTree());
+            var files = FileUtils.listFiles(git.getRepository().getWorkTree(), null, true);
+            for (File f : files) {
+                var prefix = Path.of(git.getRepository().getWorkTree().getPath(), ".git");
+                if (!f.toPath().startsWith(prefix)) {
+                    FileUtils.delete(f);
+                }
+            }
             FileUtils.copyDirectory(sourcePath.toFile(), git.getRepository().getWorkTree());
-            git.add().call();
+            git.add()
+                    .setUpdate(true)
+                    .addFilepattern(".")
+                    .call();
+            git.add()
+                    .addFilepattern(".")
+                    .call();
             git.commit()
                     .setMessage("test")
                     .call();
-
         } catch (IOException | GitAPIException | URISyntaxException e) {
             throw new RuntimeException(e);
         }

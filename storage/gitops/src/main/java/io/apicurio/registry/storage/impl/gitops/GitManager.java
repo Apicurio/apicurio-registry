@@ -216,30 +216,36 @@ public class GitManager {
 
 
     private void processSettings(ProcessingState state) {
-        for (Setting setting : state.getCurrentRegistry().getSettings()) {
-            try {
-                var dto = new DynamicConfigPropertyDto();
-                dto.setName(setting.getName());
-                dto.setValue(setting.getValue());
-                log.debug("Importing {}", dto);
-                state.getStorage().setConfigProperty(dto);
-            } catch (Exception ex) {
-                state.recordError("Could not import configuration property %s: %s", setting.getName(), ex.getMessage());
+        var settings = state.getCurrentRegistry().getSettings();
+        if (settings != null) {
+            for (Setting setting : settings) {
+                try {
+                    var dto = new DynamicConfigPropertyDto();
+                    dto.setName(setting.getName());
+                    dto.setValue(setting.getValue());
+                    log.debug("Importing {}", dto);
+                    state.getStorage().setConfigProperty(dto);
+                } catch (Exception ex) {
+                    state.recordError("Could not import configuration property %s: %s", setting.getName(), ex.getMessage());
+                }
             }
         }
     }
 
 
     private void processGlobalRules(ProcessingState state) {
-        for (Rule globalRule : state.getCurrentRegistry().getGlobalRules()) {
-            try {
-                var e = new GlobalRuleEntity();
-                e.ruleType = RuleType.fromValue(globalRule.getType());
-                e.configuration = globalRule.getConfig();
-                log.debug("Importing {}", e);
-                state.getStorage().importGlobalRule(e);
-            } catch (Exception ex) {
-                state.recordError("Could not import global rule %s: %s", globalRule.getType(), ex.getMessage());
+        var globalRules = state.getCurrentRegistry().getGlobalRules();
+        if (globalRules != null) {
+            for (Rule globalRule : globalRules) {
+                try {
+                    var e = new GlobalRuleEntity();
+                    e.ruleType = RuleType.fromValue(globalRule.getType());
+                    e.configuration = globalRule.getConfig();
+                    log.debug("Importing {}", e);
+                    state.getStorage().importGlobalRule(e);
+                } catch (Exception ex) {
+                    state.recordError("Could not import global rule %s: %s", globalRule.getType(), ex.getMessage());
+                }
             }
         }
     }
@@ -294,18 +300,21 @@ public class GitManager {
 
 
     private void processArtifactRules(ProcessingState state, Artifact artifact) {
-        for (Rule rule : artifact.getRules()) {
-            try {
-                var e = new ArtifactRuleEntity();
-                e.groupId = artifact.getGroupId();
-                e.artifactId = artifact.getId();
-                e.type = RuleType.fromValue(rule.getType());
-                e.configuration = rule.getConfig();
-                log.debug("Importing {}", e);
-                state.getStorage().importArtifactRule(e);
-            } catch (Exception ex) {
-                state.recordError("Could not import rule %s for artifact '%s': %s",
-                        rule.getType(), artifact.getGroupId() + ":" + artifact.getId(), ex.getMessage());
+        var rules = artifact.getRules();
+        if (rules != null) {
+            for (Rule rule : rules) {
+                try {
+                    var e = new ArtifactRuleEntity();
+                    e.groupId = artifact.getGroupId();
+                    e.artifactId = artifact.getId();
+                    e.type = RuleType.fromValue(rule.getType());
+                    e.configuration = rule.getConfig();
+                    log.debug("Importing {}", e);
+                    state.getStorage().importArtifactRule(e);
+                } catch (Exception ex) {
+                    state.recordError("Could not import rule %s for artifact '%s': %s",
+                            rule.getType(), artifact.getGroupId() + ":" + artifact.getId(), ex.getMessage());
+                }
             }
         }
     }

@@ -65,7 +65,48 @@ public class UpgradeTestsDataInitializer {
         var versionMetadata = registryClient.getArtifactVersionMetaDataByContent(PREPARE_PROTO_GROUP, protoData.meta.getId(), true, null, IoUtil.toStream(test1content));
         assertEquals(protoData.meta.getContentId(), versionMetadata.getContentId());
 
-        assertEquals(3, registryClient.listArtifactsInGroup(PREPARE_PROTO_GROUP).getCount());
+
+
+        //Create some protobuf files with refs to check that the storage is able to migrate.
+        String modeContent = resourceToString("artifactTypes/" + "protobuf/mode.proto");
+        var modeData = CustomTestsUtils.createArtifact(registryClient, PREPARE_PROTO_GROUP, ArtifactType.PROTOBUF, modeContent);
+
+        var modeReference = new ArtifactReference();
+
+        modeReference.setName("mode.proto");
+        modeReference.setArtifactId(modeData.meta.getId());
+        modeReference.setGroupId(modeData.meta.getGroupId());
+        modeReference.setVersion(modeData.meta.getVersion());
+
+        var tableInfoReferences = List.of(modeReference);
+
+        String tableInfoContent = resourceToString("artifactTypes/" + "protobuf/table_info.proto");
+        var tableInfoData = CustomTestsUtils.createArtifactWithReferences(registryClient, PREPARE_PROTO_GROUP, ArtifactType.PROTOBUF, tableInfoContent, tableInfoReferences);
+
+        String tableNotificationTypeContent = resourceToString("artifactTypes/" + "protobuf/table_notification_type.proto");
+        var tableNotificationTypeData = CustomTestsUtils.createArtifact(registryClient, PREPARE_PROTO_GROUP, ArtifactType.PROTOBUF, tableNotificationTypeContent);
+
+        var tableInfoReference = new ArtifactReference();
+
+        tableInfoReference.setName("sample/table_info.proto");
+        tableInfoReference.setArtifactId(tableInfoData.meta.getId());
+        tableInfoReference.setGroupId(tableInfoData.meta.getGroupId());
+        tableInfoReference.setVersion(tableInfoData.meta.getVersion());
+
+
+        var tableNotificationTypeReference = new ArtifactReference();
+
+        tableNotificationTypeReference.setName("sample/table_notification_type.proto");
+        tableNotificationTypeReference.setArtifactId(tableNotificationTypeData.meta.getId());
+        tableNotificationTypeReference.setGroupId(tableNotificationTypeData.meta.getGroupId());
+        tableNotificationTypeReference.setVersion(tableNotificationTypeData.meta.getVersion());
+
+        var tableNotificationReferences = List.of(tableInfoReference, tableNotificationTypeReference);
+
+        String tableNotificationContent = resourceToString("artifactTypes/" + "protobuf/table_notification.proto");
+        var tableNotificationData = CustomTestsUtils.createArtifactWithReferences(registryClient, PREPARE_PROTO_GROUP, ArtifactType.PROTOBUF, tableNotificationContent, tableNotificationReferences);
+
+        assertEquals(7, registryClient.listArtifactsInGroup(PREPARE_PROTO_GROUP).getCount());
 
         //Once prepared, set the global variable, so we can compare during the test execution
         KafkaSqlStorageUpgradeIT.protoData = protoData;

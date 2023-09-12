@@ -74,7 +74,7 @@ public class KafkaSqlStorageUpgradeIT extends ApicurioRegistryBaseIT implements 
     @Test
     public void testStorageUpgradeProtobufUpgraderKafkaSql() throws Exception {
         //The check must be retried so the kafka storage has been bootstrapped
-        retry(() -> assertEquals(3, registryClient.listArtifactsInGroup(PREPARE_PROTO_GROUP).getCount()), 1000L);
+        retry(() -> assertEquals(7, registryClient.listArtifactsInGroup(PREPARE_PROTO_GROUP).getCount()), 1000L);
 
         var searchResults = registryClient.listArtifactsInGroup(PREPARE_PROTO_GROUP);
 
@@ -108,7 +108,7 @@ public class KafkaSqlStorageUpgradeIT extends ApicurioRegistryBaseIT implements 
         assertEquals(protoData.meta.getContentId(), versionMetadata.getContentId());
 
         //assert total num of artifacts
-        assertEquals(4, registryClient.listArtifactsInGroup(PREPARE_PROTO_GROUP).getCount());
+        assertEquals(8, registryClient.listArtifactsInGroup(PREPARE_PROTO_GROUP).getCount());
     }
 
     @Test

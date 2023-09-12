@@ -44,6 +44,11 @@ public class CustomTestsUtils {
         return new ArtifactData(meta, contentHash);
     }
 
+    public static ArtifactData createArtifactWithReferences(RegistryClient client, String groupId, String type, String content, List<ArtifactReference> references) throws Exception {
+        String artifactId = TestUtils.generateArtifactId();
+        return createArtifactWithReferences(groupId, artifactId, client, type, content, references);
+    }
+
     public static ArtifactData createArtifactWithReferences(String groupId, String artifactId, RegistryClient client, String type, String content, List<ArtifactReference> references) throws Exception {
         ArtifactMetaData meta = client.createArtifact(groupId, artifactId, null, type, IfExists.RETURN, false, null, null, ContentTypes.APPLICATION_CREATE_EXTENDED, null, null, IoUtil.toStream(content), references);
         TestUtils.retry(() -> client.getContentByGlobalId(meta.getGlobalId()));

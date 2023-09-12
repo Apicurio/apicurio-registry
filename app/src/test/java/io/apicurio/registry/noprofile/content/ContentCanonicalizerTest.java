@@ -79,7 +79,7 @@ public class ContentCanonicalizerTest extends AbstractRegistryTestBase {
                 "       { \"name\": \"last\", \"type\": \"string\" }\r\n" + 
                 "     ]\r\n" + 
                 "} ";
-        String expected = "{\"fields\":[{\"name\":\"first\",\"type\":\"string\"},{\"name\":\"last\",\"type\":\"string\"},{\"name\":\"middle\",\"type\":\"string\"}],\"name\":\"FullName\",\"namespace\":\"com.example\",\"type\":\"record\"}";
+        String expected = "{\"type\":\"record\",\"name\":\"FullName\",\"namespace\":\"com.example\",\"doc\":\"\",\"fields\":[{\"name\":\"first\",\"type\":\"string\",\"doc\":\"\"},{\"name\":\"middle\",\"type\":\"string\",\"doc\":\"\"},{\"name\":\"last\",\"type\":\"string\",\"doc\":\"\"}]}";
         
         ContentHandle content = ContentHandle.create(before);
         String actual = canonicalizer.canonicalize(content, Collections.emptyMap()).content();

@@ -1,0 +1,27 @@
+{
+  "type" : "record",
+  "name" : "PaymentProcessingBatchStatusChange",
+  "namespace" : "com.custom.beb.payments",
+  "fields" : [ {
+    "name" : "requestedExecutionDate",
+    "type" : [ "null", {
+      "type" : "record",
+      "name" : "Date",
+      "namespace" : "com.custom.beb.general",
+      "doc" : "Default value type for dates.",
+      "fields" : [ {
+        "name" : "value",
+        "type" : "int",
+        "doc" : "The value is the number of days since Unix epoch (1st of January, 1970).",
+        "logicalType" : "date"
+      } ]
+    } ],
+    "doc" : "(Optional) The date on which the initiating party has requested the payment order to be executed",
+    "default" : null
+  }, {
+    "name" : "effectiveExecutionDate",
+    "type" : [ "null", "com.custom.beb.general.Date" ],
+    "doc" : "(Optional) The effective date which has been calculated by ROM on which the batch is scheduled",
+    "default" : null
+  } ]
+}

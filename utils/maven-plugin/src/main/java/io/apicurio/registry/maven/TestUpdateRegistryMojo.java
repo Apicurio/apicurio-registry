@@ -85,7 +85,7 @@ public class TestUpdateRegistryMojo extends AbstractRegistryMojo {
                 String artifactId = artifact.getArtifactId();
                 String contentType = contentType(artifact);
                 try (InputStream data = new FileInputStream(artifact.getFile())) {
-                    getClient().testUpdateArtifact(groupId, artifactId, contentType, data);
+                    getClient().groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).test().put(data, config -> config.headers.add("Content-Type", contentType)).get();
                     getLog().info(String.format("[%s] / [%s] :: Artifact successfully tested (updating is allowed for the given content).", groupId, artifactId));
                 } catch (Exception e) {
                     errorCount++;

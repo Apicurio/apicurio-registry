@@ -16,20 +16,18 @@
 
 package io.apicurio.registry.noprofile;
 
-import java.io.ByteArrayInputStream;
-import java.nio.charset.StandardCharsets;
 import java.util.Collections;
-import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
+import io.apicurio.registry.rest.client.models.Properties;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import io.apicurio.registry.AbstractResourceTestBase;
-import io.apicurio.registry.rest.v2.beans.ArtifactSearchResults;
-import io.apicurio.registry.rest.v2.beans.EditableMetaData;
-import io.apicurio.registry.rest.v2.beans.SortBy;
-import io.apicurio.registry.rest.v2.beans.SortOrder;
+import io.apicurio.registry.rest.client.models.ArtifactContent;
+import io.apicurio.registry.rest.client.models.ArtifactSearchResults;
+import io.apicurio.registry.rest.client.models.EditableMetaData;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
@@ -53,18 +51,29 @@ public class ArtifactSearchTest extends AbstractResourceTestBase {
     void testCaseInsensitiveSearch() throws Exception {
         String groupId = "ArtifactSearchTest_testCaseInsensitiveSearch";
         // warm-up
-        clientV2.listArtifactsInGroup(groupId);
+        clientV2.groups().byGroupId(groupId).artifacts().get().get();
 
         String artifactId = UUID.randomUUID().toString();
         String title = "testCaseInsensitiveSearch";
         String description = "The quick brown FOX jumped over the Lazy dog.";
         String content = OPENAPI_CONTENT_TEMPLATE.replace("TITLE", title).replace("DESCRIPTION", description);
-        ByteArrayInputStream artifactData = new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8));
 
-        clientV2.createArtifact(groupId, artifactId, ArtifactType.OPENAPI, artifactData);
+        ArtifactContent data = new ArtifactContent();
+        data.setContent(content);
+        clientV2.groups().byGroupId(groupId).artifacts().post(data, config -> {
+            config.headers.add("X-Registry-ArtifactId", artifactId);
+            config.headers.add("X-Registry-ArtifactType", ArtifactType.OPENAPI);
+        }).get(3, TimeUnit.SECONDS);
 
         // Search against the name, with the exact name of the artifact
-        ArtifactSearchResults results = clientV2.searchArtifacts(groupId, title, null, null, null, SortBy.name, SortOrder.asc, 0, 10);
+        ArtifactSearchResults results = clientV2.search().artifacts().get(config -> {
+            config.queryParameters.group = groupId;
+            config.queryParameters.name = title;
+            config.queryParameters.order = "asc";
+            config.queryParameters.orderby = "name";
+            config.queryParameters.offset = 0;
+            config.queryParameters.limit = 10;
+        }).get(3, TimeUnit.SECONDS);
         Assertions.assertNotNull(results);
         Assertions.assertEquals(1, results.getCount());
 
@@ -73,49 +82,135 @@ public class ArtifactSearchTest extends AbstractResourceTestBase {
         metaData.setName(title);
         metaData.setDescription(description);
         metaData.setLabels(Collections.singletonList("testCaseInsensitiveSearchLabel"));
-        metaData.setProperties(Collections.singletonMap("testCaseInsensitiveSearchKey", "testCaseInsensitiveSearchValue"));
-        clientV2.updateArtifactMetaData(groupId, artifactId, metaData);
+        io.apicurio.registry.rest.client.models.Properties props = new Properties();
+        props.setAdditionalData(Collections.singletonMap("testCaseInsensitiveSearchKey", "testCaseInsensitiveSearchValue"));
+        metaData.setProperties(props);
+        clientV2.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).meta().put(metaData).get(3, TimeUnit.SECONDS);
 
         TestUtils.retry(() -> {
             // Now try various cases when searching by labels
-            ArtifactSearchResults ires = clientV2.searchArtifacts(groupId, null, null, List.of("testCaseInsensitiveSearchLabel"), null, SortBy.name, SortOrder.asc, 0, 10);
+            ArtifactSearchResults ires = clientV2.search().artifacts().get(config -> {
+                config.queryParameters.group = groupId;
+                config.queryParameters.order = "asc";
+                config.queryParameters.orderby = "name";
+                config.queryParameters.offset = 0;
+                config.queryParameters.limit = 10;
+                config.queryParameters.labels = new String[]{"testCaseInsensitiveSearchLabel"};
+            }).get(3, TimeUnit.SECONDS);
             Assertions.assertNotNull(ires);
             Assertions.assertEquals(1, ires.getCount());
-            ires = clientV2.searchArtifacts(groupId, null, null, List.of("testCaseInsensitiveSearchLabel".toLowerCase()), null, SortBy.name, SortOrder.asc, 0, 10);
+            ires = clientV2.search().artifacts().get(config -> {
+                config.queryParameters.group = groupId;
+                config.queryParameters.order = "asc";
+                config.queryParameters.orderby = "name";
+                config.queryParameters.offset = 0;
+                config.queryParameters.limit = 10;
+                config.queryParameters.labels = new String[]{"testCaseInsensitiveSearchLabel".toLowerCase()};
+            }).get(3, TimeUnit.SECONDS);
             Assertions.assertNotNull(ires);
             Assertions.assertEquals(1, ires.getCount());
-            ires = clientV2.searchArtifacts(groupId, null, null, List.of("testCaseInsensitiveSearchLabel".toUpperCase()), null, SortBy.name, SortOrder.asc, 0, 10);
+            ires = clientV2.search().artifacts().get(config -> {
+                config.queryParameters.group = groupId;
+                config.queryParameters.order = "asc";
+                config.queryParameters.orderby = "name";
+                config.queryParameters.offset = 0;
+                config.queryParameters.limit = 10;
+                config.queryParameters.labels = new String[]{"testCaseInsensitiveSearchLabel".toUpperCase()};
+            }).get(3, TimeUnit.SECONDS);
             Assertions.assertNotNull(ires);
             Assertions.assertEquals(1, ires.getCount());
-            ires = clientV2.searchArtifacts(groupId, null, null, List.of("TESTCaseInsensitiveSEARCHLabel"), null, SortBy.name, SortOrder.asc, 0, 10);
+            ires = clientV2.search().artifacts().get(config -> {
+                config.queryParameters.group = groupId;
+                config.queryParameters.order = "asc";
+                config.queryParameters.orderby = "name";
+                config.queryParameters.offset = 0;
+                config.queryParameters.limit = 10;
+                config.queryParameters.labels = new String[]{"TESTCaseInsensitiveSEARCHLabel"};
+            }).get(3, TimeUnit.SECONDS);
             Assertions.assertNotNull(ires);
             Assertions.assertEquals(1, ires.getCount());
 
             // Now try various cases when searching by properties and values
-            ArtifactSearchResults propertiesSearch = clientV2.searchArtifacts(groupId, null, null, null, List.of("testCaseInsensitiveSearchKey:testCaseInsensitiveSearchValue"), SortBy.name, SortOrder.asc, 0, 10);
+            ArtifactSearchResults propertiesSearch = clientV2.search().artifacts().get(config -> {
+                config.queryParameters.group = groupId;
+                config.queryParameters.order = "asc";
+                config.queryParameters.orderby = "name";
+                config.queryParameters.offset = 0;
+                config.queryParameters.limit = 10;
+                config.queryParameters.properties = new String[]{"testCaseInsensitiveSearchKey:testCaseInsensitiveSearchValue"};
+            }).get(3, TimeUnit.SECONDS);
             Assertions.assertNotNull(propertiesSearch);
             Assertions.assertEquals(1, propertiesSearch.getCount());
-            propertiesSearch = clientV2.searchArtifacts(groupId, null, null, null, List.of("testCaseInsensitiveSearchKey:testCaseInsensitiveSearchValue".toLowerCase()), SortBy.name, SortOrder.asc, 0, 10);
+            propertiesSearch = clientV2.search().artifacts().get(config -> {
+                config.queryParameters.group = groupId;
+                config.queryParameters.order = "asc";
+                config.queryParameters.orderby = "name";
+                config.queryParameters.offset = 0;
+                config.queryParameters.limit = 10;
+                config.queryParameters.properties = new String[]{"testCaseInsensitiveSearchKey:testCaseInsensitiveSearchValue".toLowerCase()};
+            }).get(3, TimeUnit.SECONDS);
             Assertions.assertNotNull(propertiesSearch);
             Assertions.assertEquals(1, propertiesSearch.getCount());
-            propertiesSearch = clientV2.searchArtifacts(groupId, null, null, null,  List.of("testCaseInsensitiveSearchKey:testCaseInsensitiveSearchValue".toUpperCase()), SortBy.name, SortOrder.asc, 0, 10);
+            propertiesSearch = clientV2.search().artifacts().get(config -> {
+                config.queryParameters.group = groupId;
+                config.queryParameters.order = "asc";
+                config.queryParameters.orderby = "name";
+                config.queryParameters.offset = 0;
+                config.queryParameters.limit = 10;
+                config.queryParameters.properties = new String[]{"testCaseInsensitiveSearchKey:testCaseInsensitiveSearchValue".toUpperCase()};
+            }).get(3, TimeUnit.SECONDS);
             Assertions.assertNotNull(propertiesSearch);
             Assertions.assertEquals(1, propertiesSearch.getCount());
-            propertiesSearch = clientV2.searchArtifacts(groupId, null, null, null, List.of("TESTCaseInsensitiveSEARCHKey:TESTCaseInsensitiveSearchVALUE"), SortBy.name, SortOrder.asc, 0, 10);
+            propertiesSearch = clientV2.search().artifacts().get(config -> {
+                config.queryParameters.group = groupId;
+                config.queryParameters.order = "asc";
+                config.queryParameters.orderby = "name";
+                config.queryParameters.offset = 0;
+                config.queryParameters.limit = 10;
+                config.queryParameters.properties = new String[]{"TESTCaseInsensitiveSEARCHKey:TESTCaseInsensitiveSearchVALUE".toUpperCase()};
+            }).get(3, TimeUnit.SECONDS);
             Assertions.assertNotNull(propertiesSearch);
             Assertions.assertEquals(1, propertiesSearch.getCount());
 
             // Now try various cases when searching by properties
-            ArtifactSearchResults propertiesKeySearch = clientV2.searchArtifacts(groupId, null, null, null, List.of("testCaseInsensitiveSearchKey"), SortBy.name, SortOrder.asc, 0, 10);
+            ArtifactSearchResults propertiesKeySearch = clientV2.search().artifacts().get(config -> {
+                config.queryParameters.group = groupId;
+                config.queryParameters.order = "asc";
+                config.queryParameters.orderby = "name";
+                config.queryParameters.offset = 0;
+                config.queryParameters.limit = 10;
+                config.queryParameters.properties = new String[]{"testCaseInsensitiveSearchKey"};
+            }).get(3, TimeUnit.SECONDS);
             Assertions.assertNotNull(propertiesKeySearch);
             Assertions.assertEquals(1, propertiesKeySearch.getCount());
-            propertiesKeySearch = clientV2.searchArtifacts(groupId, null, null, null, List.of("testCaseInsensitiveSearchKey".toLowerCase()), SortBy.name, SortOrder.asc, 0, 10);
+            propertiesKeySearch = clientV2.search().artifacts().get(config -> {
+                config.queryParameters.group = groupId;
+                config.queryParameters.order = "asc";
+                config.queryParameters.orderby = "name";
+                config.queryParameters.offset = 0;
+                config.queryParameters.limit = 10;
+                config.queryParameters.properties = new String[]{"testCaseInsensitiveSearchKey".toLowerCase()};
+            }).get(3, TimeUnit.SECONDS);
             Assertions.assertNotNull(propertiesKeySearch);
             Assertions.assertEquals(1, propertiesKeySearch.getCount());
-            propertiesKeySearch = clientV2.searchArtifacts(groupId, null, null, null,  List.of("testCaseInsensitiveSearchKey".toUpperCase()), SortBy.name, SortOrder.asc, 0, 10);
+            propertiesKeySearch = clientV2.search().artifacts().get(config -> {
+                config.queryParameters.group = groupId;
+                config.queryParameters.order = "asc";
+                config.queryParameters.orderby = "name";
+                config.queryParameters.offset = 0;
+                config.queryParameters.limit = 10;
+                config.queryParameters.properties = new String[]{"testCaseInsensitiveSearchKey".toUpperCase()};
+            }).get(3, TimeUnit.SECONDS);
             Assertions.assertNotNull(propertiesKeySearch);
             Assertions.assertEquals(1, propertiesKeySearch.getCount());
-            propertiesKeySearch = clientV2.searchArtifacts(groupId, null, null, null, List.of("TESTCaseInsensitiveSEARCHKey"), SortBy.name, SortOrder.asc, 0, 10);
+            propertiesKeySearch = clientV2.search().artifacts().get(config -> {
+                config.queryParameters.group = groupId;
+                config.queryParameters.order = "asc";
+                config.queryParameters.orderby = "name";
+                config.queryParameters.offset = 0;
+                config.queryParameters.limit = 10;
+                config.queryParameters.properties = new String[]{"TESTCaseInsensitiveSEARCHKey"};
+            }).get(3, TimeUnit.SECONDS);
             Assertions.assertNotNull(propertiesKeySearch);
             Assertions.assertEquals(1, propertiesSearch.getCount());
         });

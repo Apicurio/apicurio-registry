@@ -28,28 +28,78 @@
 
     <artifactId>apicurio-registry-client</artifactId>
 
+    <properties>
+        <kiota.libs.version>0.7.4</kiota.libs.version>
+    </properties>
+
     <dependencies>
         <dependency>
-            <groupId>io.apicurio</groupId>
-            <artifactId>apicurio-registry-common</artifactId>
-            <exclusions>
-                <exclusion>
-                    <artifactId>jakarta.ws.rs-api</artifactId>
-                    <groupId>jakarta.ws.rs</groupId>
-                </exclusion>
-            </exclusions>
+            <groupId>com.microsoft.kiota</groupId>
+            <artifactId>microsoft-kiota-abstractions</artifactId>
+            <version>${kiota.libs.version}</version>
         </dependency>
-
+        <dependency>
+            <groupId>com.microsoft.kiota</groupId>
+            <artifactId>microsoft-kiota-http-okHttp</artifactId>
+            <version>${kiota.libs.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.microsoft.kiota</groupId>
+            <artifactId>microsoft-kiota-serialization-json</artifactId>
+            <version>${kiota.libs.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.microsoft.kiota</groupId>
+            <artifactId>microsoft-kiota-serialization-text</artifactId>
+            <version>${kiota.libs.version}</version>
+            </dependency>
+        <dependency>
+            <groupId>com.microsoft.kiota</groupId>
+            <artifactId>microsoft-kiota-serialization-form</artifactId>
+            <version>${kiota.libs.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.microsoft.kiota</groupId>
+            <artifactId>microsoft-kiota-serialization-multipart</artifactId>
+            <version>${kiota.libs.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>jakarta.annotation</groupId>
+            <artifactId>jakarta.annotation-api</artifactId>
+            <version>2.1.1</version>
+        </dependency>
+        <!-- TODO: this is for OIDC auth, let's move it to a separate package maybe -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+        </dependency>
         <dependency>
             <groupId>io.apicurio</groupId>
-            <artifactId>apicurio-common-rest-client-jdk</artifactId>
+            <!-- used only for NotAuthorized ATM -->
+            <artifactId>apicurio-common-rest-client-common</artifactId>
         </dependency>
-
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
-        </dependency>
-
     </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+            <artifactId>kiota-maven-plugin</artifactId>
+            <groupId>com.redhat.cloud</groupId>
+            <version>0.0.6</version>
+            <executions>
+                <execution>
+                <goals>
+                    <goal>generate</goal>
+                </goals>
+                </execution>
+            </executions>
+            <configuration>
+                <file>../common/src/main/resources/META-INF/openapi.json</file>
+                <namespace>io.apicurio.registry.rest.client</namespace>
+                <clientClass>RegistryClient</clientClass>
+            </configuration>
+            </plugin>
+        </plugins>
+    </build>
 
 </project>

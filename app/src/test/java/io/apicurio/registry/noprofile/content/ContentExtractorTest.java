@@ -16,7 +16,7 @@
 
 package io.apicurio.registry.noprofile.content;
 
-import java.io.ByteArrayInputStream;
+import java.util.concurrent.TimeUnit;
 
 import jakarta.inject.Inject;
 
@@ -27,7 +27,8 @@ import org.junit.jupiter.api.Test;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.content.extract.ContentExtractor;
 import io.apicurio.registry.content.extract.ExtractedMetaData;
-import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
+import io.apicurio.registry.rest.client.models.ArtifactContent;
+import io.apicurio.registry.rest.client.models.ArtifactMetaData;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
@@ -178,7 +179,12 @@ public class ContentExtractorTest extends AbstractResourceTestBase {
         String name = "schema_" + System.currentTimeMillis();
         String content = String.format(avroFormat, name);
 
-        ArtifactMetaData amd = clientV2.createArtifact(groupId, artifactId, ArtifactType.AVRO, new ByteArrayInputStream(content.getBytes()));
+        ArtifactContent data = new ArtifactContent();
+        data.setContent(content);
+        ArtifactMetaData amd = clientV2.groups().byGroupId(groupId).artifacts().post(data, config -> {
+            config.headers.add("X-Registry-ArtifactId", artifactId);
+            config.headers.add("X-Registry-ArtifactType", ArtifactType.AVRO);
+        }).get(3, TimeUnit.SECONDS);
 
         Assertions.assertEquals(name, amd.getName());
 
@@ -187,8 +193,8 @@ public class ContentExtractorTest extends AbstractResourceTestBase {
         // Avro schema names can only have letters, digits, and _
         name = "schema_" + System.currentTimeMillis();
         content = String.format(avroFormat, name);
-
-        amd = clientV2.updateArtifact(groupId, artifactId, new ByteArrayInputStream(content.getBytes()));
+        data.setContent(content);
+        amd = clientV2.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).put(data).get(3, TimeUnit.SECONDS);
         Assertions.assertEquals(name, amd.getName());
     }
 
@@ -215,7 +221,12 @@ public class ContentExtractorTest extends AbstractResourceTestBase {
         String description = "Automatic description generated at: " + System.currentTimeMillis();
         String content = String.format(jsonFormat, name, description);
 
-        ArtifactMetaData amd = clientV2.createArtifact(groupId, artifactId, ArtifactType.JSON, new ByteArrayInputStream(content.getBytes()));
+        ArtifactContent data = new ArtifactContent();
+        data.setContent(content);
+        ArtifactMetaData amd = clientV2.groups().byGroupId(groupId).artifacts().post(data, config -> {
+            config.headers.add("X-Registry-ArtifactId", artifactId);
+            config.headers.add("X-Registry-ArtifactType", ArtifactType.JSON);
+        }).get(3, TimeUnit.SECONDS);
 
         Assertions.assertEquals(name, amd.getName());
 
@@ -223,8 +234,8 @@ public class ContentExtractorTest extends AbstractResourceTestBase {
 
         name = "schema-" + generateArtifactId();
         content = String.format(jsonFormat, name, description);
-
-        amd = clientV2.updateArtifact(groupId, artifactId, new ByteArrayInputStream(content.getBytes()));
+        data.setContent(content);
+        amd = clientV2.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).put(data).get(3, TimeUnit.SECONDS);
 
         Assertions.assertEquals(name, amd.getName());
     }
@@ -252,7 +263,12 @@ public class ContentExtractorTest extends AbstractResourceTestBase {
         String description = "Automatic description generated at: " + System.currentTimeMillis();
         String content = String.format(openapiFormat, name, description);
 
-        ArtifactMetaData amd = clientV2.createArtifact(groupId, artifactId, ArtifactType.OPENAPI, new ByteArrayInputStream(content.getBytes()));
+        ArtifactContent data = new ArtifactContent();
+        data.setContent(content);
+        ArtifactMetaData amd = clientV2.groups().byGroupId(groupId).artifacts().post(data, config -> {
+            config.headers.add("X-Registry-ArtifactId", artifactId);
+            config.headers.add("X-Registry-ArtifactType", ArtifactType.OPENAPI);
+        }).get(3, TimeUnit.SECONDS);
 
         Assertions.assertEquals(name, amd.getName());
 
@@ -260,8 +276,8 @@ public class ContentExtractorTest extends AbstractResourceTestBase {
 
         name = "api-" + generateArtifactId();
         content = String.format(openapiFormat, name, description);
-
-        amd = clientV2.updateArtifact(groupId, artifactId, new ByteArrayInputStream(content.getBytes()));
+        data.setContent(content);
+        amd = clientV2.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).put(data).get(3, TimeUnit.SECONDS);
 
         Assertions.assertEquals(name, amd.getName());
     }
@@ -289,7 +305,12 @@ public class ContentExtractorTest extends AbstractResourceTestBase {
         String description = "Automatic description generated at: " + System.currentTimeMillis();
         String content = String.format(asyncapiFormat, name, description);
 
-        ArtifactMetaData amd = clientV2.createArtifact(groupId, artifactId, ArtifactType.ASYNCAPI, new ByteArrayInputStream(content.getBytes()));
+        ArtifactContent data = new ArtifactContent();
+        data.setContent(content);
+        ArtifactMetaData amd = clientV2.groups().byGroupId(groupId).artifacts().post(data, config -> {
+            config.headers.add("X-Registry-ArtifactId", artifactId);
+            config.headers.add("X-Registry-ArtifactType", ArtifactType.ASYNCAPI);
+        }).get(3, TimeUnit.SECONDS);
 
         Assertions.assertEquals(name, amd.getName());
 
@@ -297,8 +318,8 @@ public class ContentExtractorTest extends AbstractResourceTestBase {
 
         name = "api-" + generateArtifactId();
         content = String.format(asyncapiFormat, name, description);
-
-        amd = clientV2.updateArtifact(groupId, artifactId, new ByteArrayInputStream(content.getBytes()));
+        data.setContent(content);
+        amd = clientV2.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).put(data).get(3, TimeUnit.SECONDS);
 
         Assertions.assertEquals(name, amd.getName());
     }
@@ -317,12 +338,17 @@ public class ContentExtractorTest extends AbstractResourceTestBase {
     }
 
     @Test
-    public void testWsdlClient() {
+    public void testWsdlClient() throws Exception {
         String artifactId = generateArtifactId();
 
         String content = wsdlFormat;
 
-        ArtifactMetaData amd = clientV2.createArtifact(groupId, artifactId, ArtifactType.WSDL, new ByteArrayInputStream(content.getBytes()));
+        ArtifactContent data = new ArtifactContent();
+        data.setContent(content);
+        ArtifactMetaData amd = clientV2.groups().byGroupId(groupId).artifacts().post(data, config -> {
+            config.headers.add("X-Registry-ArtifactId", artifactId);
+            config.headers.add("X-Registry-ArtifactType", ArtifactType.WSDL);
+        }).get(3, TimeUnit.SECONDS);
 
         Assertions.assertEquals("StockQuote", amd.getName());
         Assertions.assertNull(amd.getDescription());
@@ -342,12 +368,17 @@ public class ContentExtractorTest extends AbstractResourceTestBase {
     }
 
     @Test
-    public void testXsdClient() {
+    public void testXsdClient() throws Exception {
         String artifactId = generateArtifactId();
 
         String content = xsdFormat;
 
-        ArtifactMetaData amd = clientV2.createArtifact(groupId, artifactId, ArtifactType.XSD, new ByteArrayInputStream(content.getBytes()));
+        ArtifactContent data = new ArtifactContent();
+        data.setContent(content);
+        ArtifactMetaData amd = clientV2.groups().byGroupId(groupId).artifacts().post(data, config -> {
+            config.headers.add("X-Registry-ArtifactId", artifactId);
+            config.headers.add("X-Registry-ArtifactType", ArtifactType.XSD);
+        }).get(3, TimeUnit.SECONDS);
         Assertions.assertEquals("http://tempuri.org/PurchaseOrderSchema.xsd", amd.getName());
         Assertions.assertNull(amd.getDescription());
     }

@@ -17,12 +17,12 @@
 
 package io.apicurio.registry.maven;
 
-import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -31,6 +31,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.Stack;
+import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 import org.apache.avro.Schema;
@@ -48,9 +49,9 @@ import io.apicurio.registry.content.refs.ExternalReference;
 import io.apicurio.registry.content.refs.ReferenceFinder;
 import io.apicurio.registry.maven.refs.IndexedResource;
 import io.apicurio.registry.maven.refs.ReferenceIndex;
-import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
-import io.apicurio.registry.rest.v2.beans.ArtifactReference;
-import io.apicurio.registry.rest.v2.beans.IfExists;
+import io.apicurio.registry.rest.client.models.ArtifactContent;
+import io.apicurio.registry.rest.client.models.ArtifactMetaData;
+import io.apicurio.registry.rest.client.models.ArtifactReference;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
@@ -146,7 +147,7 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
                         registerDirectory(artifact);
                     } else {
 
-                        List<ArtifactReference> references = new ArrayList<>();
+                        List<io.apicurio.registry.rest.client.models.ArtifactReference> references = new ArrayList<>();
                         //First, we check if the artifact being processed has references defined
                         if (hasReferences(artifact)) {
                             references = registerArtifactReferences(artifact.getReferences());
@@ -166,7 +167,7 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
         }
     }
 
-    private ArtifactMetaData registerWithAutoRefs(RegisterArtifact artifact, ReferenceIndex index, Stack<RegisterArtifact> registrationStack) throws IOException {
+    private ArtifactMetaData registerWithAutoRefs(RegisterArtifact artifact, ReferenceIndex index, Stack<RegisterArtifact> registrationStack) throws IOException, ExecutionException, InterruptedException {
         if (loopDetected(artifact, registrationStack)) {
             throw new RuntimeException("Artifact reference loop detected (not supported): " + printLoop(registrationStack));
         }
@@ -202,24 +203,26 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
                 try {
                     ArtifactMetaData amd = registerWithAutoRefs(refArtifact, index, registrationStack);
                     iresource.setRegistration(amd);
-                } catch (IOException e) {
+                } catch (IOException | ExecutionException | InterruptedException e) {
                     throw new RuntimeException(e);
                 }
             }
 
-            return new ArtifactReference(
-                    iresource.getRegistration().getGroupId(),
-                    iresource.getRegistration().getId(),
-                    iresource.getRegistration().getVersion(),
+            var reference = new ArtifactReference();
+            reference.setName(externalRef.getFullReference());
+            reference.setVersion(iresource.getRegistration().getVersion());
+            reference.setGroupId(iresource.getRegistration().getGroupId());
+            reference.setArtifactId(iresource.getRegistration().getId(),
                     externalRef.getFullReference());
 
+            return reference;
         }).sorted((ref1, ref2) -> ref1.getName().compareTo(ref2.getName())).collect(Collectors.toList());
 
         registrationStack.pop();
         return registerArtifact(artifact, registeredReferences);
     }
 
-    private void registerDirectory(RegisterArtifact artifact) throws IOException {
+    private void registerDirectory(RegisterArtifact artifact) throws IOException, ExecutionException, InterruptedException {
         switch (artifact.getType()) {
             case ArtifactType.AVRO:
                 final AvroDirectoryParser avroDirectoryParser = new AvroDirectoryParser(getClient());
@@ -242,27 +245,60 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
     }
 
     private ArtifactMetaData registerArtifact(RegisterArtifact artifact, List<ArtifactReference> references) throws
-            FileNotFoundException {
+            FileNotFoundException, ExecutionException, InterruptedException {
         return registerArtifact(artifact, new FileInputStream(artifact.getFile()), references);
     }
 
-    private ArtifactMetaData registerArtifact(RegisterArtifact artifact, InputStream artifactContent, List<ArtifactReference> references) {
+    private ArtifactMetaData registerArtifact(RegisterArtifact artifact, InputStream artifactContent, List<ArtifactReference> references) throws ExecutionException, InterruptedException {
         String groupId = artifact.getGroupId();
         String artifactId = artifact.getArtifactId();
         String version = artifact.getVersion();
         String type = artifact.getType();
-        IfExists ifExists = artifact.getIfExists();
         Boolean canonicalize = artifact.getCanonicalize();
-        if (artifact.getMinify() != null && artifact.getMinify()) {
-            try {
+        String data = null;
+        try {
+            if (artifact.getMinify() != null && artifact.getMinify()) {
                 ObjectMapper objectMapper = new ObjectMapper();
                 JsonNode jsonNode = objectMapper.readValue(artifactContent, JsonNode.class);
-                artifactContent = new ByteArrayInputStream(jsonNode.toString().getBytes());
-            } catch (IOException e) {
-                throw new RuntimeException(e);
+                data = jsonNode.toString();
+            } else {
+                data = new String(artifactContent.readAllBytes(), StandardCharsets.UTF_8);
             }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
-        ArtifactMetaData amd = this.getClient().createArtifact(groupId, artifactId, version, type, ifExists, canonicalize, null, null, ContentTypes.APPLICATION_CREATE_EXTENDED, null, null, artifactContent, references);
+        ArtifactContent content = new ArtifactContent();
+        content.setContent(data);
+        content.setReferences(references.stream().map(r -> {
+            ArtifactReference ref = new ArtifactReference();
+            ref.setArtifactId(r.getArtifactId());
+            ref.setGroupId(r.getGroupId());
+            ref.setVersion(r.getVersion());
+            ref.setName(r.getName());
+            return ref;
+        }).collect(Collectors.toList()));
+        ArtifactMetaData amd = getClient()
+                .groups()
+                .byGroupId(groupId)
+                .artifacts()
+                .post(content, config -> {
+                    if (artifact.getIfExists() != null) {
+                        config.queryParameters.ifExists = artifact.getIfExists().value();
+                    }
+                    config.queryParameters.canonical = canonicalize;
+                    config.headers.add("Content-Type", ContentTypes.APPLICATION_CREATE_EXTENDED);
+                    if (artifactId != null) {
+                        config.headers.add("X-Registry-ArtifactId", artifactId);
+                    }
+                    if (type != null) {
+                        config.headers.add("X-Registry-ArtifactType", type);
+                    }
+                    if (version != null) {
+                        config.headers.add("X-Registry-Version", version);
+                    }
+                })
+                .get();
+
         getLog().info(String.format("Successfully registered artifact [%s] / [%s].  GlobalId is [%d]", groupId, artifactId, amd.getGlobalId()));
 
         return amd;
@@ -272,8 +308,8 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
         return artifact.getReferences() != null && !artifact.getReferences().isEmpty();
     }
 
-    private List<ArtifactReference> registerArtifactReferences
-            (List<RegisterArtifactReference> referencedArtifacts) throws FileNotFoundException {
+    private List<io.apicurio.registry.rest.client.models.ArtifactReference> registerArtifactReferences
+            (List<RegisterArtifactReference> referencedArtifacts) throws FileNotFoundException, ExecutionException, InterruptedException {
         List<ArtifactReference> references = new ArrayList<>();
         for (RegisterArtifactReference artifact : referencedArtifacts) {
             List<ArtifactReference> nestedReferences = new ArrayList<>();
@@ -317,12 +353,12 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
         return index;
     }
 
-    private void addExistingReferencesToIndex(ReferenceIndex index, List<ExistingReference> existingReferences) {
+    private void addExistingReferencesToIndex(ReferenceIndex index, List<ExistingReference> existingReferences) throws ExecutionException, InterruptedException {
         if (existingReferences != null && !existingReferences.isEmpty()) {
-            existingReferences.forEach(ref -> {
+            for (ExistingReference ref : existingReferences) {
                 ArtifactMetaData amd;
                 if (ref.getVersion() == null || "LATEST".equalsIgnoreCase(ref.getVersion())) {
-                    amd = getClient().getArtifactMetaData(ref.getGroupId(), ref.getArtifactId());
+                    amd = getClient().groups().byGroupId(ref.getGroupId()).artifacts().byArtifactId(ref.getArtifactId()).meta().get().get();
                 } else {
                     amd = new ArtifactMetaData();
                     amd.setGroupId(ref.getGroupId());
@@ -330,7 +366,7 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
                     amd.setVersion(ref.getVersion());
                 }
                 index.index(ref.getResourceName(), amd);
-            });
+            };
         }
     }
 

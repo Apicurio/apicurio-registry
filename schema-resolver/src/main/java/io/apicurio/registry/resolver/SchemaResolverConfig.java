@@ -19,8 +19,6 @@ package io.apicurio.registry.resolver;
 import io.apicurio.registry.resolver.data.Metadata;
 import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
 import io.apicurio.registry.resolver.strategy.DynamicArtifactReferenceResolverStrategy;
-import io.apicurio.registry.rest.client.config.ClientConfig;
-import io.apicurio.registry.rest.v2.beans.IfExists;
 
 /**
  * Contains the {@link DefaultSchemaResolver} configuration properties.
@@ -51,10 +49,10 @@ public class SchemaResolverConfig {
     public static final boolean AUTO_REGISTER_ARTIFACT_DEFAULT = false;
 
     /**
-     * Optional, one of {@link IfExists} to indicate the behavior of the client when there is a conflict creating an artifact because the artifact already exists.
+     * Optional, one of "IfExists" to indicate the behavior of the client when there is a conflict creating an artifact because the artifact already exists.
      */
     public static final String AUTO_REGISTER_ARTIFACT_IF_EXISTS = "apicurio.registry.auto-register.if-exists";
-    public static final String AUTO_REGISTER_ARTIFACT_IF_EXISTS_DEFAULT = IfExists.RETURN_OR_UPDATE.value();
+    public static final String AUTO_REGISTER_ARTIFACT_IF_EXISTS_DEFAULT = "RETURN_OR_UPDATE";
 
     /**
      * Optional, boolean to indicate whether serializer classes should attempt to find the latest artifact in the registry for the corresponding groupId/artifactId.
@@ -167,43 +165,6 @@ public class SchemaResolverConfig {
      */
     public static final String RETRY_BACKOFF_MS = "apicurio.registry.retry-backoff-ms";
     public static final long RETRY_BACKOFF_MS_DEFAULT = 300;
-
-    /**
-     * Config prefix that allows configuration of arbitrary HTTP client request headers used by
-     * the Registry REST Client in the serde class when communicating with the Registry.  For
-     * example, this could be used to pass authentication information:
-     *
-     * <code>apicurio.registry.request.headers.Authorization=BASIC Y2tlbnQ6a3J5cHQwbnIwY2tzIQ==</code>
-     */
-    public static final String REQUEST_HEADERS_PREFIX = ClientConfig.REGISTRY_REQUEST_HEADERS_PREFIX;
-    /**
-     * Location of a trust store to use when connecting to the registry via SSL.
-     */
-    public static final String REQUEST_TRUSTSTORE_LOCATION = ClientConfig.REGISTRY_REQUEST_TRUSTSTORE_LOCATION;
-    /**
-     * Type of trust store to use when connecting to the registry via SSL.
-     */
-    public static final String REQUEST_TRUSTSTORE_TYPE = ClientConfig.REGISTRY_REQUEST_TRUSTSTORE_TYPE;
-    /**
-     * Password of the trust store to use when connecting to the registry via SSL.
-     */
-    public static final String REQUEST_TRUSTSTORE_PASSWORD = ClientConfig.REGISTRY_REQUEST_TRUSTSTORE_PASSWORD;
-    /**
-     * Location of a keystore to use when e.g. connecting to the registry via mTLS.
-     */
-    public static final String REQUEST_KEYSTORE_LOCATION = ClientConfig.REGISTRY_REQUEST_KEYSTORE_LOCATION;
-    /**
-     * Type of keystore to use when e.g. connecting to the registry via mTLS.
-     */
-    public static final String REQUEST_KEYSTORE_TYPE = ClientConfig.REGISTRY_REQUEST_KEYSTORE_TYPE;
-    /**
-     * Password of the keystore to use when e.g. connecting to the registry via mTLS.
-     */
-    public static final String REQUEST_KEYSTORE_PASSWORD = ClientConfig.REGISTRY_REQUEST_KEYSTORE_PASSWORD;
-    /**
-     * Key password used when e.g. connecting to the registry via mTLS.
-     */
-    public static final String REQUEST_KEY_PASSWORD = ClientConfig.REGISTRY_REQUEST_KEY_PASSWORD;
 
     /**
      * Used to indicate the auto-register feature to try to dereference the schema before registering it in Registry.

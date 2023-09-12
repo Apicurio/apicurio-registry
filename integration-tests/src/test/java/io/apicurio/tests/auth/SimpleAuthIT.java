@@ -16,35 +16,27 @@
 
 package io.apicurio.tests.auth;
 
+import com.microsoft.kiota.authentication.AuthenticationProvider;
+import com.microsoft.kiota.authentication.BaseBearerTokenAuthenticationProvider;
+import com.microsoft.kiota.http.OkHttpRequestAdapter;
+import io.apicurio.registry.auth.OidcAccessTokenProvider;
 import io.apicurio.tests.ApicurioRegistryBaseIT;
 import io.apicurio.tests.utils.Constants;
 import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.rest.client.RegistryClientFactory;
-import io.apicurio.registry.rest.client.exception.ArtifactNotFoundException;
-import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
-import io.apicurio.registry.rest.v2.beans.Rule;
-import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.rest.client.models.*;
 import io.apicurio.registry.utils.tests.AuthTestProfile;
 import io.apicurio.registry.utils.tests.JWKSMockServer;
 import io.apicurio.registry.utils.tests.TestUtils;
-import io.apicurio.rest.client.auth.Auth;
-import io.apicurio.rest.client.auth.OidcAuth;
-import io.apicurio.rest.client.auth.exception.AuthErrorHandler;
-import io.apicurio.rest.client.auth.exception.ForbiddenException;
-import io.apicurio.rest.client.auth.exception.NotAuthorizedException;
-import io.apicurio.rest.client.spi.ApicurioHttpClient;
-import io.apicurio.rest.client.spi.ApicurioHttpClientFactory;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.quarkus.test.junit.TestProfile;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
-import java.io.ByteArrayInputStream;
-import java.util.Collections;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 /**
  * @author Carles Arnal
@@ -54,15 +46,6 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 @QuarkusIntegrationTest
 public class SimpleAuthIT extends ApicurioRegistryBaseIT {
 
-    ApicurioHttpClient httpClient;
-
-    protected ApicurioHttpClient getHttpClient() {
-        if (httpClient == null) {
-            httpClient = ApicurioHttpClientFactory.create(authServerUrlConfigured, new AuthErrorHandler());
-        }
-        return httpClient;
-    }
-
     @Override
     public void cleanArtifacts() throws Exception {
         //Don't clean
@@ -70,93 +53,120 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
 
     @Override
     protected RegistryClient createRegistryClient() {
-        Auth auth = new OidcAuth(getHttpClient(), JWKSMockServer.ADMIN_CLIENT_ID, "test1");
+        var auth = new BaseBearerTokenAuthenticationProvider(new OidcAccessTokenProvider(authServerUrlConfigured, JWKSMockServer.ADMIN_CLIENT_ID, "test1"));
         return createClient(auth);
     }
 
-    private RegistryClient createClient(Auth auth) {
-        return RegistryClientFactory.create(getRegistryBaseUrl(), Collections.emptyMap(), auth);
+    private RegistryClient createClient(AuthenticationProvider auth) {
+        var adapter = new OkHttpRequestAdapter(auth);
+        adapter.setBaseUrl(getRegistryBaseUrl());
+        return new RegistryClient(adapter);
     }
 
     @Test
     public void testWrongCreds() throws Exception {
-        Auth auth = new OidcAuth(getHttpClient(), JWKSMockServer.WRONG_CREDS_CLIENT_ID, "test55");
+        var auth = new BaseBearerTokenAuthenticationProvider(new OidcAccessTokenProvider(authServerUrlConfigured, JWKSMockServer.WRONG_CREDS_CLIENT_ID, "test55"));
         RegistryClient client = createClient(auth);
-        Assertions.assertThrows(NotAuthorizedException.class, () -> {
-            client.listArtifactsInGroup("foo");
+        var executionException = Assertions.assertThrows(ExecutionException.class, () -> {
+            client.groups().byGroupId("foo").artifacts().get().get(3, TimeUnit.SECONDS);
         });
+        assertNotAuthorized(executionException);
     }
 
     @Test
     public void testReadOnly() throws Exception {
-        Auth auth = new OidcAuth(getHttpClient(), JWKSMockServer.READONLY_CLIENT_ID, "test1");
+        var auth = new BaseBearerTokenAuthenticationProvider(new OidcAccessTokenProvider(authServerUrlConfigured, JWKSMockServer.READONLY_CLIENT_ID, "test1"));
         RegistryClient client = createClient(auth);
 
         String groupId = TestUtils.generateGroupId();
         String artifactId = TestUtils.generateArtifactId();
-        client.listArtifactsInGroup(groupId);
-        Assertions.assertThrows(ArtifactNotFoundException.class, () -> client.getArtifactMetaData(groupId, artifactId));
-        Assertions.assertThrows(ArtifactNotFoundException.class, () -> client.getLatestArtifact("abc", artifactId));
-        Assertions.assertThrows(ForbiddenException.class, () -> {
-            client.createArtifact("ccc", artifactId, ArtifactType.JSON, new ByteArrayInputStream("{}".getBytes()));
+        client.groups().byGroupId(groupId).artifacts().get().get(3, TimeUnit.SECONDS);
+        var executionException1 = Assertions.assertThrows(ExecutionException.class, () -> client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).meta().get().get(3, TimeUnit.SECONDS));
+        assertNotAuthorized(executionException1);
+        var executionException2 = Assertions.assertThrows(ExecutionException.class, () -> client.groups().byGroupId("abc").artifacts().byArtifactId(artifactId).get().get(3, TimeUnit.SECONDS));
+        assertNotAuthorized(executionException2);
+        var executionException3 = Assertions.assertThrows(ExecutionException.class, () -> {
+            ArtifactContent content = new ArtifactContent();
+            content.setContent("{}");
+            client.groups().byGroupId("ccc").artifacts().post(content, config -> {
+                config.headers.add("X-Registry-ArtifactId", artifactId);
+                config.headers.add("X-Registry-ArtifactType", ArtifactType.JSON);
+            }).get(3, TimeUnit.SECONDS);
         });
+        assertForbidden(executionException3);
         {
-            Auth devAuth = new OidcAuth(getHttpClient(), JWKSMockServer.DEVELOPER_CLIENT_ID, "test1");
+            var devAuth = new BaseBearerTokenAuthenticationProvider(new OidcAccessTokenProvider(authServerUrlConfigured, JWKSMockServer.DEVELOPER_CLIENT_ID, "test1"));
             RegistryClient devClient = createClient(devAuth);
-            ArtifactMetaData meta = devClient.createArtifact(groupId, artifactId, ArtifactType.JSON, new ByteArrayInputStream("{}".getBytes()));
-            TestUtils.retry(() -> devClient.getArtifactMetaData(groupId, meta.getId()));
+            ArtifactContent content = new ArtifactContent();
+            content.setContent("{}");
+            ArtifactMetaData meta = devClient.groups().byGroupId("ccc").artifacts().post(content, config -> {
+                config.headers.add("X-Registry-ArtifactId", artifactId);
+                config.headers.add("X-Registry-ArtifactType", ArtifactType.JSON);
+            }).get(3, TimeUnit.SECONDS);
+            TestUtils.retry(() -> devClient.groups().byGroupId(groupId).artifacts().byArtifactId(meta.getId()).meta().get().get(3, TimeUnit.SECONDS));
         }
-        assertNotNull(client.getLatestArtifact(groupId, artifactId));
+        assertTrue(client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get().get(3, TimeUnit.SECONDS).readAllBytes().length > 0);
     }
 
     @Test
     public void testDevRole() throws Exception {
-        Auth devAuth = new OidcAuth(getHttpClient(), JWKSMockServer.DEVELOPER_CLIENT_ID, "test1");
+        var devAuth = new BaseBearerTokenAuthenticationProvider(new OidcAccessTokenProvider(authServerUrlConfigured, JWKSMockServer.READONLY_CLIENT_ID, "test1"));
         RegistryClient client = createClient(devAuth);
 
         String groupId = TestUtils.generateGroupId();
         String artifactId = TestUtils.generateArtifactId();
         try {
-            client.listArtifactsInGroup(groupId);
+            client.groups().byGroupId(groupId).artifacts().get().get(3, TimeUnit.SECONDS);
 
-            client.createArtifact(groupId, artifactId, ArtifactType.JSON, new ByteArrayInputStream("{}".getBytes()));
-            TestUtils.retry(() -> client.getArtifactMetaData(groupId, artifactId));
+            ArtifactContent content = new ArtifactContent();
+            content.setContent("{}");
+            client.groups().byGroupId("ccc").artifacts().post(content, config -> {
+                config.headers.add("X-Registry-ArtifactId", artifactId);
+                config.headers.add("X-Registry-ArtifactType", ArtifactType.JSON);
+            }).get(3, TimeUnit.SECONDS);
+            TestUtils.retry(() -> client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).meta().get().get(3, TimeUnit.SECONDS));
 
-            assertNotNull(client.getLatestArtifact(groupId, artifactId));
+            assertTrue(client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get().get(3, TimeUnit.SECONDS).readAllBytes().length > 0);
 
             Rule ruleConfig = new Rule();
             ruleConfig.setType(RuleType.VALIDITY);
             ruleConfig.setConfig("NONE");
-            client.createArtifactRule(groupId, artifactId, ruleConfig);
+            client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).rules().post(ruleConfig);
 
-            Assertions.assertThrows(ForbiddenException.class, () -> {
-                client.createGlobalRule(ruleConfig);
+            var executionException = Assertions.assertThrows(ExecutionException.class, () -> {
+                client.admin().rules().post(ruleConfig).get(3, TimeUnit.SECONDS);
             });
+            assertForbidden(executionException);
         } finally {
-            client.deleteArtifact(groupId, artifactId);
+            client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).delete().get(3, TimeUnit.SECONDS);
         }
     }
 
     @Test
     public void testAdminRole() throws Exception {
-        Auth auth = new OidcAuth(getHttpClient(), JWKSMockServer.ADMIN_CLIENT_ID, "test1");
+        var devAuth = new BaseBearerTokenAuthenticationProvider(new OidcAccessTokenProvider(authServerUrlConfigured, JWKSMockServer.ADMIN_CLIENT_ID, "test1"));
         RegistryClient client = createClient(auth);
 
         String groupId = TestUtils.generateGroupId();
         String artifactId = TestUtils.generateArtifactId();
         try {
-            client.listArtifactsInGroup(groupId);
-            client.createArtifact(groupId, artifactId, ArtifactType.JSON, new ByteArrayInputStream("{}".getBytes()));
-            TestUtils.retry(() -> client.getArtifactMetaData(groupId, artifactId));
-            assertNotNull(client.getLatestArtifact(groupId, artifactId));
+            client.groups().byGroupId(groupId).artifacts().get().get(3, TimeUnit.SECONDS);
+            ArtifactContent content = new ArtifactContent();
+            content.setContent("{}");
+            client.groups().byGroupId("ccc").artifacts().post(content, config -> {
+                config.headers.add("X-Registry-ArtifactId", artifactId);
+                config.headers.add("X-Registry-ArtifactType", ArtifactType.JSON);
+            }).get(3, TimeUnit.SECONDS);
+            TestUtils.retry(() -> client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).meta().get().get(3, TimeUnit.SECONDS));
+            assertTrue(client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get().get(3, TimeUnit.SECONDS).readAllBytes().length > 0);
             Rule ruleConfig = new Rule();
             ruleConfig.setType(RuleType.VALIDITY);
             ruleConfig.setConfig("NONE");
-            client.createArtifactRule(groupId, artifactId, ruleConfig);
+            client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).rules().post(ruleConfig);
 
-            client.createGlobalRule(ruleConfig);
+            client.admin().rules().post(ruleConfig).get(3, TimeUnit.SECONDS);
         } finally {
-            client.deleteArtifact(groupId, artifactId);
+            client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).delete().get(3, TimeUnit.SECONDS);
         }
     }
 }

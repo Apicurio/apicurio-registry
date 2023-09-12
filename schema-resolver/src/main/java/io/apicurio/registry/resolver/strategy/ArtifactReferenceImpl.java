@@ -282,6 +282,9 @@ public class ArtifactReferenceImpl implements ArtifactReference {
         }
 
         public ArtifactReferenceImpl build() {
+            if (reference.getGroupId() == null) {
+                reference.setGroupId("default");
+            }
             return reference;
         }
 

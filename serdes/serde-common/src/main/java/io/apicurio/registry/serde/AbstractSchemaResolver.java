@@ -16,30 +16,31 @@
 
 package io.apicurio.registry.serde;
 
+import com.microsoft.kiota.RequestAdapter;
+import com.microsoft.kiota.authentication.AnonymousAuthenticationProvider;
+import com.microsoft.kiota.authentication.BaseBearerTokenAuthenticationProvider;
+import com.microsoft.kiota.http.OkHttpRequestAdapter;
+import io.apicurio.registry.auth.BasicAuthenticationProvider;
+import io.apicurio.registry.auth.OidcAccessTokenProvider;
 import io.apicurio.registry.resolver.ERCache;
 import io.apicurio.registry.resolver.ParsedSchemaImpl;
 import io.apicurio.registry.resolver.config.DefaultSchemaResolverConfig;
 import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
 import io.apicurio.registry.resolver.utils.Utils;
 import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.rest.client.RegistryClientFactory;
-import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
-import io.apicurio.registry.rest.v2.beans.VersionMetaData;
+import io.apicurio.registry.rest.client.models.ArtifactMetaData;
+import io.apicurio.registry.rest.client.models.VersionMetaData;
 import io.apicurio.registry.serde.data.KafkaSerdeMetadata;
 import io.apicurio.registry.serde.data.KafkaSerdeRecord;
 import io.apicurio.registry.serde.strategy.ArtifactReference;
 import io.apicurio.registry.utils.IoUtil;
-import io.apicurio.rest.client.auth.Auth;
-import io.apicurio.rest.client.auth.BasicAuth;
-import io.apicurio.rest.client.auth.OidcAuth;
-import io.apicurio.rest.client.auth.exception.AuthErrorHandler;
 import io.apicurio.rest.client.spi.ApicurioHttpClient;
-import io.apicurio.rest.client.spi.ApicurioHttpClientFactory;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ExecutionException;
 
 /**
  * This class is deprecated, it's recommended to migrate to the new implementation at {@link io.apicurio.registry.resolver.AbstractSchemaResolver}
@@ -117,7 +118,9 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
                     if (username != null) {
                         client = configureClientWithBasicAuth(config, baseUrl, username);
                     } else {
-                        client = RegistryClientFactory.create(baseUrl, config.originals());
+                        RequestAdapter adapter = new OkHttpRequestAdapter(new AnonymousAuthenticationProvider());
+                        adapter.setBaseUrl(baseUrl);
+                        client = new RegistryClient(adapter);
                     }
                 }
             } catch (Exception e) {
@@ -218,7 +221,14 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
             //TODO getContentByGlobalId have to return some minumum metadata (groupId, artifactId and version)
             //TODO or at least add some method to the api to return the version metadata by globalId
 //            ArtifactMetaData artifactMetadata = client.getArtifactMetaData("TODO", artifactId);
-            InputStream rawSchema = client.getContentByGlobalId(globalIdKey);
+            InputStream rawSchema = null;
+            try {
+                rawSchema = client.ids().globalIds().byGlobalId(globalIdKey).get().get();
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            } catch (ExecutionException e) {
+                throw new RuntimeException(e);
+            }
 
             byte[] schema = IoUtil.toBytes(rawSchema);
             S parsed = schemaParser.parseSchema(schema, Collections.emptyMap());
@@ -247,25 +257,20 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
 
     @Override
     public void close() throws IOException {
-        if (this.client != null) {
-            this.client.close();
-        }
-        if (this.authClient != null) {
-            this.authClient.close();
-        }
     }
 
     private RegistryClient configureClientWithBearerAuthentication(DefaultSchemaResolverConfig config, String registryUrl, String authServerUrl, String tokenEndpoint) {
-        Auth auth;
+        RequestAdapter auth;
         if (authServerUrl != null) {
             auth = configureAuthWithRealm(config, authServerUrl);
         } else {
             auth = configureAuthWithUrl(config, tokenEndpoint);
         }
-        return RegistryClientFactory.create(registryUrl, config.originals(), auth);
+        auth.setBaseUrl(registryUrl);
+        return new RegistryClient(auth);
     }
 
-    private OidcAuth configureAuthWithRealm(DefaultSchemaResolverConfig config, String authServerUrl) {
+    private RequestAdapter configureAuthWithRealm(DefaultSchemaResolverConfig config, String authServerUrl) {
         final String realm = config.getAuthRealm();
 
         if (realm == null) {
@@ -277,7 +282,7 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
         return configureAuthWithUrl(config, tokenEndpoint);
     }
 
-    private OidcAuth configureAuthWithUrl(DefaultSchemaResolverConfig config, String tokenEndpoint) {
+    private RequestAdapter configureAuthWithUrl(DefaultSchemaResolverConfig config, String tokenEndpoint) {
         final String clientId = config.getAuthClientId();
 
         if (clientId == null) {
@@ -289,8 +294,8 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
             throw new IllegalArgumentException("Missing registry auth secret, set " + SerdeConfig.AUTH_CLIENT_SECRET);
         }
 
-        authClient = ApicurioHttpClientFactory.create(tokenEndpoint, new AuthErrorHandler());
-        return new OidcAuth(authClient, clientId, clientSecret);
+        RequestAdapter adapter = new OkHttpRequestAdapter(new BaseBearerTokenAuthenticationProvider(new OidcAccessTokenProvider(tokenEndpoint, clientId, clientSecret)));
+        return adapter;
     }
 
     private RegistryClient configureClientWithBasicAuth(DefaultSchemaResolverConfig config, String registryUrl, String username) {
@@ -301,9 +306,10 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
             throw new IllegalArgumentException("Missing registry auth password, set " + SerdeConfig.AUTH_PASSWORD);
         }
 
-        Auth auth = new BasicAuth(username, password);
+        var adapter = new OkHttpRequestAdapter(new BasicAuthenticationProvider(username, password));
 
-        return RegistryClientFactory.create(registryUrl, config.originals(), auth);
+        adapter.setBaseUrl(registryUrl);
+        return new RegistryClient(adapter);
     }
 
     protected void loadFromArtifactMetaData(ArtifactMetaData artifactMetadata, SchemaLookupResult.SchemaLookupResultBuilder<S> resultBuilder) {

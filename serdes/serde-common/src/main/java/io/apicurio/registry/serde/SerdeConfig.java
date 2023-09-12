@@ -20,7 +20,6 @@ import java.util.Properties;
 
 import io.apicurio.registry.resolver.DefaultSchemaResolver;
 import io.apicurio.registry.resolver.SchemaResolverConfig;
-import io.apicurio.registry.rest.v2.beans.IfExists;
 import io.apicurio.registry.serde.config.IdOption;
 import io.apicurio.registry.serde.fallback.DefaultFallbackArtifactProvider;
 import io.apicurio.registry.serde.fallback.FallbackArtifactProvider;
@@ -199,43 +198,6 @@ public class SerdeConfig {
      */
     public static final String USE_ID = "apicurio.registry.use-id";
     public static final String USE_ID_DEFAULT = IdOption.globalId.name();
-
-    /**
-     * Config prefix that allows configuration of arbitrary HTTP client request headers used by
-     * the Registry REST Client in the serde class when communicating with the Registry.  For
-     * example, this could be used to pass authentication information:
-     *
-     * <code>apicurio.registry.request.headers.Authorization=BASIC Y2tlbnQ6a3J5cHQwbnIwY2tzIQ==</code>
-     */
-    public static final String REQUEST_HEADERS_PREFIX = SchemaResolverConfig.REQUEST_HEADERS_PREFIX;
-    /**
-     * Location of a trust store to use when connecting to the registry via SSL.
-     */
-    public static final String REQUEST_TRUSTSTORE_LOCATION = SchemaResolverConfig.REQUEST_TRUSTSTORE_LOCATION;
-    /**
-     * Type of trust store to use when connecting to the registry via SSL.
-     */
-    public static final String REQUEST_TRUSTSTORE_TYPE = SchemaResolverConfig.REQUEST_TRUSTSTORE_TYPE;
-    /**
-     * Password of the trust store to use when connecting to the registry via SSL.
-     */
-    public static final String REQUEST_TRUSTSTORE_PASSWORD = SchemaResolverConfig.REQUEST_TRUSTSTORE_PASSWORD;
-    /**
-     * Location of a keystore to use when e.g. connecting to the registry via mTLS.
-     */
-    public static final String REQUEST_KEYSTORE_LOCATION = SchemaResolverConfig.REQUEST_KEYSTORE_LOCATION;
-    /**
-     * Type of keystore to use when e.g. connecting to the registry via mTLS.
-     */
-    public static final String REQUEST_KEYSTORE_TYPE = SchemaResolverConfig.REQUEST_KEYSTORE_TYPE;
-    /**
-     * Password of the keystore to use when e.g. connecting to the registry via mTLS.
-     */
-    public static final String REQUEST_KEYSTORE_PASSWORD = SchemaResolverConfig.REQUEST_KEYSTORE_PASSWORD;
-    /**
-     * Key password used when e.g. connecting to the registry via mTLS.
-     */
-    public static final String REQUEST_KEY_PASSWORD = SchemaResolverConfig.REQUEST_KEY_PASSWORD;
 
     /**
      * Boolean used to enable or disable validation. Not applicable to all serde classes.  For example, the

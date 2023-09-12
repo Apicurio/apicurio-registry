@@ -20,22 +20,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.tests.ApicurioRegistryBaseIT;
 import io.apicurio.tests.utils.AvroGenericRecordSchemaFactory;
 import io.apicurio.tests.utils.Constants;
-import io.apicurio.registry.rest.client.exception.ArtifactAlreadyExistsException;
-import io.apicurio.registry.rest.client.exception.ArtifactNotFoundException;
-import io.apicurio.registry.rest.client.exception.InvalidArtifactIdException;
-import io.apicurio.registry.rest.client.exception.RuleViolationException;
-import io.apicurio.registry.rest.client.exception.VersionAlreadyExistsException;
-import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
-import io.apicurio.registry.rest.v2.beans.ArtifactSearchResults;
-import io.apicurio.registry.rest.v2.beans.IfExists;
-import io.apicurio.registry.rest.v2.beans.Rule;
-import io.apicurio.registry.rest.v2.beans.SortBy;
-import io.apicurio.registry.rest.v2.beans.SortOrder;
-import io.apicurio.registry.rest.v2.beans.UpdateState;
-import io.apicurio.registry.rest.v2.beans.VersionMetaData;
-import io.apicurio.registry.types.ArtifactState;
-import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.rest.client.models.*;
 import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
@@ -51,6 +36,7 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -76,10 +62,10 @@ class ArtifactsIT extends ApicurioRegistryBaseIT {
         rule.setConfig("FULL");
 
         LOGGER.info("Creating global rule:{}", rule.toString());
-        registryClient.createGlobalRule(rule);
+        registryClient.admin().rules().post(rule).get(3, TimeUnit.SECONDS);
 
         // Make sure we have rule
-        retryOp((rc) -> rc.getGlobalRuleConfig(rule.getType()));
+        retryOp((rc) -> rc.admin().rules().byRule(rule.getType()).get().get(3, TimeUnit.SECONDS));
 
         String groupId = TestUtils.generateArtifactId();
 
@@ -90,27 +76,33 @@ class ArtifactsIT extends ApicurioRegistryBaseIT {
         ArtifactMetaData amd1 = createArtifact(groupId, artifactId, ArtifactType.AVRO, artifactData);
         LOGGER.info("Created artifact {} with metadata {}", artifactId, amd1.toString());
 
-        InputStream latest = registryClient.getLatestArtifact(groupId, artifactId);
+        InputStream latest = registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get().get(3, TimeUnit.SECONDS);
         JsonNode response = mapper.readTree(latest);
 
         LOGGER.info("Artifact with name:{} and content:{} was created", response.get("name").asText(), response);
 
         String invalidArtifactDefinition = "<type>record</type>\n<name>test</name>";
-        artifactData = new ByteArrayInputStream(invalidArtifactDefinition.getBytes(StandardCharsets.UTF_8));
         String invalidArtifactId = "createAndUpdateArtifactId2";
 
         LOGGER.info("Invalid artifact sent {}", invalidArtifactDefinition);
-        ByteArrayInputStream iad = artifactData;
-        assertClientError(RuleViolationException.class.getSimpleName(), 409, () -> registryClient.createArtifact(groupId, invalidArtifactId, ArtifactType.AVRO, iad), errorCodeExtractor);
+        ArtifactContent content = new ArtifactContent();
+        content.setContent(invalidArtifactDefinition);
 
-        artifactData = new ByteArrayInputStream("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"bar\",\"type\":\"long\"}]}".getBytes(StandardCharsets.UTF_8));
-        ArtifactMetaData metaData = registryClient.updateArtifact(groupId, artifactId, artifactData);
+        assertClientError("RuleViolationException", 409, () ->
+                registryClient.groups().byGroupId("ccc").artifacts().post(content, config -> {
+                    config.headers.add("X-Registry-ArtifactId", invalidArtifactId);
+                    config.headers.add("X-Registry-ArtifactType", ArtifactType.AVRO);
+                }).get(3, TimeUnit.SECONDS));
+
+        var artifactData = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"bar\",\"type\":\"long\"}]}";
+        content.setContent(invalidArtifactDefinition);
+        ArtifactMetaData metaData = registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).put(content).get(3, TimeUnit.SECONDS);
         LOGGER.info("Artifact with ID {} was updated: {}", artifactId, metaData.toString());
         // Make sure artifact is fully registered
         ArtifactMetaData amd2 = metaData;
-        retryOp((rc) -> rc.getContentByGlobalId(amd2.getGlobalId()));
+        retryOp((rc) -> rc.ids().globalIds().byGlobalId(amd2.getGlobalId()).get().get(3, TimeUnit.SECONDS));
 
-        latest = registryClient.getLatestArtifact(groupId, artifactId);
+        latest = registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get().get(3, TimeUnit.SECONDS);
         response = mapper.readTree(latest);
 
         LOGGER.info("Artifact with ID {} was updated: {}", artifactId, response);
@@ -120,7 +112,7 @@ class ArtifactsIT extends ApicurioRegistryBaseIT {
         LOGGER.info("Available versions of artifact with ID {} are: {}", artifactId, apicurioVersions.toString());
         assertThat(apicurioVersions, hasItems("1", "2"));
 
-        InputStream version1 = registryClient.getArtifactVersion(groupId, artifactId, "1");
+        InputStream version1 = registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersion("1").get().get(3, TimeUnit.SECONDS);
         response = mapper.readTree(version1);
 
         LOGGER.info("Artifact with ID {} and version {}: {}", artifactId, 1, response);
@@ -137,7 +129,7 @@ class ArtifactsIT extends ApicurioRegistryBaseIT {
                 .mapToObj(i -> {
                     String artifactId = TestUtils.generateSubject();
                     try {
-                        return super.createArtifact(groupId, artifactId, ArtifactType.AVRO, new AvroGenericRecordSchemaFactory(groupId, artifactId, List.of("foo")).generateSchemaStream());
+                        return super.createArtifact(groupId, artifactId, ArtifactType.AVRO.name(), new AvroGenericRecordSchemaFactory(groupId, artifactId, List.of("foo")).generateSchemaStream());
                     } catch (Exception e) {
                         throw new RuntimeException(e);
                     }
@@ -147,10 +139,11 @@ class ArtifactsIT extends ApicurioRegistryBaseIT {
         LOGGER.info("Created  {} artifacts", artifacts.size());
 
         LOGGER.info("Removing all artifacts in group {}", groupId);
-        registryClient.deleteArtifactsInGroup(groupId);
+        registryClient.groups().byGroupId(groupId).delete().get(3, TimeUnit.SECONDS);
 
         for (ArtifactMetaData artifact : artifacts) {
-            retryAssertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, (rc) -> rc.getArtifactMetaData(artifact.getGroupId(), artifact.getId()), errorCodeExtractor);
+            retryAssertClientError("ArtifactNotFoundException", 404, (rc) ->
+                    rc.groups().byGroupId(artifact.getGroupId()).artifacts().byArtifactId(artifact.getId()).meta().get().get(3, TimeUnit.SECONDS), errorCodeExtractor);
         }
     }
 
@@ -161,11 +154,11 @@ class ArtifactsIT extends ApicurioRegistryBaseIT {
         ByteArrayInputStream artifactData = new ByteArrayInputStream("{\"type\":\"INVALID\",\"config\":\"invalid\"}".getBytes(StandardCharsets.UTF_8));
         String artifactId = TestUtils.generateArtifactId();
 
-        ArtifactMetaData amd = createArtifact(groupId, artifactId, ArtifactType.JSON, artifactData);
+        ArtifactMetaData amd = createArtifact(groupId, artifactId, ArtifactType.JSON.name(), artifactData);
 
         LOGGER.info("Created artifact {} with metadata {}", artifactId, amd);
 
-        InputStream latest = registryClient.getLatestArtifact(groupId, artifactId);
+        InputStream latest = registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get().get(3, TimeUnit.SECONDS);
         JsonNode response = mapper.readTree(latest);
 
         LOGGER.info("Got info about artifact with ID {}: {}", artifactId, response);
@@ -178,7 +171,7 @@ class ArtifactsIT extends ApicurioRegistryBaseIT {
         String groupId = TestUtils.generateGroupId();
         ByteArrayInputStream artifactData = new ByteArrayInputStream("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}".getBytes(StandardCharsets.UTF_8));
         String artifactId = TestUtils.generateArtifactId();
-        ArtifactMetaData metaData = createArtifact(groupId, artifactId, ArtifactType.AVRO, artifactData);
+        ArtifactMetaData metaData = createArtifact(groupId, artifactId, ArtifactType.AVRO.name(), artifactData);
         LOGGER.info("Created artifact {} with metadata {}", artifactId, metaData);
 
         artifactData = new ByteArrayInputStream("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}".getBytes(StandardCharsets.UTF_8));
@@ -197,11 +190,11 @@ class ArtifactsIT extends ApicurioRegistryBaseIT {
         ByteArrayInputStream artifactData = new ByteArrayInputStream("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}".getBytes(StandardCharsets.UTF_8));
         String groupId = TestUtils.generateGroupId();
         String artifactId = TestUtils.generateArtifactId();
-        ArtifactMetaData metaData = createArtifact(groupId, artifactId, ArtifactType.AVRO, artifactData);
+        ArtifactMetaData metaData = createArtifact(groupId, artifactId, ArtifactType.AVRO.name(), artifactData);
         LOGGER.info("Created artifact {} with metadata {}", artifactId, metaData.toString());
 
         ByteArrayInputStream iad = new ByteArrayInputStream("{\"type\":\"record\",\"name\":\"alreadyExistArtifact\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}".getBytes(StandardCharsets.UTF_8));
-        assertClientError(ArtifactAlreadyExistsException.class.getSimpleName(), 409, () -> createArtifact(groupId, artifactId, ArtifactType.AVRO, iad), true, errorCodeExtractor);
+        assertClientError("ArtifactAlreadyExistsException", 409, () -> createArtifact(groupId, artifactId, ArtifactType.AVRO.name(), iad), true, errorCodeExtractor);
     }
 
     @Test

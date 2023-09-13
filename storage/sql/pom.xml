@@ -32,6 +32,11 @@
             <artifactId>quarkus-jdbc-postgresql</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>jakarta.inject</groupId>
+            <artifactId>jakarta.inject-api</artifactId>
+        </dependency>
+
         <!-- Test Only -->
         <dependency>
             <groupId>io.apicurio</groupId>

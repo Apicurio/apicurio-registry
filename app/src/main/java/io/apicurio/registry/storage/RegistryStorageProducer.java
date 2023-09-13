@@ -16,24 +16,24 @@
 
 package io.apicurio.registry.storage;
 
-import java.util.Comparator;
-import java.util.List;
-import java.util.stream.Collectors;
-
-import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.enterprise.inject.Instance;
-import jakarta.enterprise.inject.Produces;
-import jakarta.inject.Inject;
-
-import org.slf4j.Logger;
-
 import io.apicurio.common.apps.config.DynamicConfigStorage;
 import io.apicurio.registry.storage.decorator.RegistryStorageDecorator;
 import io.apicurio.registry.storage.impl.sql.InMemoryRegistryStorage;
 import io.apicurio.registry.types.Current;
+import io.apicurio.registry.types.Raw;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Instance;
+import jakarta.enterprise.inject.Produces;
+import jakarta.inject.Inject;
+import org.slf4j.Logger;
+
+import java.util.Comparator;
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * @author Ales Justin
+ * @author Jakub Senko <em>m@jsenko.net</em>
  */
 @ApplicationScoped
 public class RegistryStorageProducer {
@@ -50,53 +50,65 @@ public class RegistryStorageProducer {
     @Inject
     Instance<RegistryStorageDecorator> decorators;
 
-    private RegistryStorage cachedImpl;
+    private RegistryStorage cachedCurrent;
+
+    private RegistryStorage cachedRaw;
+
 
     @Produces
     @ApplicationScoped
     @Current
-    public RegistryStorage realImpl() {
-        if (cachedImpl != null) {
-            return cachedImpl;
-        }
+    public RegistryStorage current() {
+        if (cachedCurrent == null) {
+            cachedCurrent = raw();
 
-        if (provider.isResolvable()) {
-            cachedImpl = provider.get().storage();
-        } else {
-            cachedImpl = defaultStorage.get();
-        }
+            Comparator<RegistryStorageDecorator> decoratorComparator = Comparator
+                    .comparing(RegistryStorageDecorator::order);
 
-        if (cachedImpl != null) {
-            log.info(String.format("Using RegistryStore: %s", cachedImpl.getClass().getName()));
-
-            Comparator<RegistryStorageDecorator> decoratorsComparator = Comparator.comparing(RegistryStorageDecorator::order);
-
-            List<RegistryStorageDecorator> declist = decorators.stream()
+            List<RegistryStorageDecorator> activeDecorators = decorators.stream()
                     .filter(RegistryStorageDecorator::isEnabled)
-                    .sorted(decoratorsComparator)
+                    .sorted(decoratorComparator)
                     .collect(Collectors.toList());
 
-            if (!declist.isEmpty()) {
-                log.debug("RegistryStorage decorators");
-                declist.forEach(d -> log.debug(d.getClass().getName()));
-            }
+            if (!activeDecorators.isEmpty()) {
+                log.debug("Following RegistryStorage decorators have been enabled (in order): {}",
+                        activeDecorators.stream().map(d -> d.getClass().getName()).collect(Collectors.toList()));
 
-            for (int i = declist.size() - 1 ; i >= 0; i--) {
-                RegistryStorageDecorator decorator = declist.get(i);
-                decorator.setDelegate(cachedImpl);
-                cachedImpl = decorator;
+                for (int i = activeDecorators.size() - 1; i >= 0; i--) {
+                    RegistryStorageDecorator decorator = activeDecorators.get(i);
+                    decorator.setDelegate(cachedCurrent);
+                    cachedCurrent = decorator;
+                }
+            } else {
+                log.debug("No RegistryStorage decorator has been enabled");
             }
-
-            return cachedImpl;
         }
 
-        throw new IllegalStateException("No RegistryStorage available on the classpath!");
+        return cachedCurrent;
     }
+
+
+    @Produces
+    @ApplicationScoped
+    @Raw
+    public RegistryStorage raw() {
+        if (cachedRaw == null) {
+            if (provider.isResolvable()) {
+                cachedRaw = provider.get().storage();
+            } else if (defaultStorage.isResolvable()) {
+                cachedRaw = defaultStorage.get();
+            } else {
+                throw new IllegalStateException("No (single) RegistryStorage available!");
+            }
+            log.info("Using the following RegistryStorage implementation: {}", cachedRaw.getClass().getName());
+        }
+        return cachedRaw;
+    }
+
 
     @Produces
     @ApplicationScoped
     public DynamicConfigStorage configStorage() {
-        return realImpl();
+        return current();
     }
-
 }

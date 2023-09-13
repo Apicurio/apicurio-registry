@@ -17,17 +17,17 @@
 package io.apicurio.registry.util;
 
 import io.apicurio.registry.AbstractRegistryTestBase;
-import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.content.ContentHandle;
-import io.apicurio.registry.storage.InvalidArtifactTypeException;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-
+import io.apicurio.registry.storage.error.InvalidArtifactTypeException;
+import io.apicurio.registry.types.ArtifactType;
 import org.apache.avro.Schema;
 import org.apache.avro.Schema.Type;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * @author eric.wittmann@gmail.com

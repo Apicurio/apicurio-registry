@@ -28,13 +28,14 @@ import io.apicurio.registry.ccompat.rest.v7.ConfigResource;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
-import io.apicurio.registry.storage.RuleNotFoundException;
 import io.apicurio.registry.storage.dto.RuleConfigurationDto;
+import io.apicurio.registry.storage.error.RuleNotFoundException;
 import io.apicurio.registry.types.RuleType;
-
+import io.apicurio.registry.utils.Functional.Runnable1Ex;
+import io.apicurio.registry.utils.Functional.RunnableEx;
 import jakarta.interceptor.Interceptors;
+
 import java.util.Optional;
-import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 /**
@@ -58,9 +59,9 @@ public class ConfigResourceImpl extends AbstractResource implements ConfigResour
         }
     }
 
-    private void updateCompatibilityLevel(CompatibilityLevelDto.Level level,
-                                          Consumer<RuleConfigurationDto> updater,
-                                          Runnable deleter) {
+    private <X extends Exception> void updateCompatibilityLevel(CompatibilityLevelDto.Level level,
+                                                                Runnable1Ex<RuleConfigurationDto, X> updater,
+                                                                RunnableEx<X> deleter) throws X {
         if (level == CompatibilityLevelDto.Level.NONE) {
             // delete the rule
             deleter.run();
@@ -71,7 +72,7 @@ public class ConfigResourceImpl extends AbstractResource implements ConfigResour
             } catch (IllegalArgumentException ex) {
                 throw new IllegalArgumentException("Illegal compatibility level: " + levelString);
             }
-            updater.accept(RuleConfigurationDto.builder()
+            updater.run(RuleConfigurationDto.builder()
                     .configuration(levelString).build()); // TODO config should take CompatibilityLevel as param
         }
     }

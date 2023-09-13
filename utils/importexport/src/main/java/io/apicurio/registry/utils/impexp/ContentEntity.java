@@ -17,12 +17,21 @@
 package io.apicurio.registry.utils.impexp;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-
 import io.quarkus.runtime.annotations.RegisterForReflection;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.NoArgsConstructor;
+import lombok.ToString;
+
+import static lombok.AccessLevel.PRIVATE;
 
 /**
  * @author eric.wittmann@gmail.com
  */
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor(access = PRIVATE)
+@ToString
 @RegisterForReflection
 public class ContentEntity extends Entity {
 
@@ -30,8 +39,11 @@ public class ContentEntity extends Entity {
     public String canonicalHash;
     public String contentHash;
     public String artifactType;
+
     @JsonIgnore
+    @ToString.Exclude
     public byte[] contentBytes;
+
     public String serializedReferences;
 
     /**

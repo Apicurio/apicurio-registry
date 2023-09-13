@@ -17,12 +17,6 @@
 
 package io.apicurio.registry.storage;
 
-import java.time.Instant;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.function.Function;
-
 import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
 import io.apicurio.common.apps.config.DynamicConfigStorage;
 import io.apicurio.common.apps.multitenancy.TenantContext;
@@ -45,10 +39,17 @@ import io.apicurio.registry.storage.dto.RuleConfigurationDto;
 import io.apicurio.registry.storage.dto.SearchFilter;
 import io.apicurio.registry.storage.dto.StoredArtifactDto;
 import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
+import io.apicurio.registry.storage.dto.*;
+import io.apicurio.registry.storage.error.*;
 import io.apicurio.registry.storage.impexp.EntityInputStream;
+import io.apicurio.registry.storage.impl.sql.IdGenerator;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.RuleType;
-import io.apicurio.registry.utils.impexp.Entity;
+import io.apicurio.registry.utils.impexp.*;
+
+import java.time.Instant;
+import java.util.*;
+import java.util.function.Function;
 
 /**
  * The artifactStore layer for the registry.
@@ -90,6 +91,10 @@ public interface RegistryStorage extends DynamicConfigStorage {
      * @return true if yes, false if no
      */
     boolean isAlive();
+
+
+    boolean isReadOnly();
+
 
     /**
      * Update artifact state.
@@ -806,16 +811,10 @@ public interface RegistryStorage extends DynamicConfigStorage {
      */
     GroupSearchResultsDto searchGroups(Set<SearchFilter> filters, OrderBy orderBy, OrderDirection orderDirection, Integer offset, Integer limit);
 
-    enum ArtifactRetrievalBehavior {
-        DEFAULT,
-        /**
-         * Skip artifact versions with DISABLED state
-         */
-        SKIP_DISABLED_LATEST
-    }
 
     /**
      * Creates a new comment for an artifact version.
+     *
      * @param groupId
      * @param artifactId
      * @param version
@@ -825,6 +824,7 @@ public interface RegistryStorage extends DynamicConfigStorage {
 
     /**
      * Deletes a single comment for an artifact version.
+     *
      * @param groupId
      * @param artifactId
      * @param version
@@ -834,6 +834,7 @@ public interface RegistryStorage extends DynamicConfigStorage {
 
     /**
      * Returns all comments for the given artifact version.
+     *
      * @param groupId
      * @param artifactId
      * @param version
@@ -842,6 +843,7 @@ public interface RegistryStorage extends DynamicConfigStorage {
 
     /**
      * Updates a single comment.
+     *
      * @param groupId
      * @param artifactId
      * @param version
@@ -850,4 +852,85 @@ public interface RegistryStorage extends DynamicConfigStorage {
      */
     void updateArtifactVersionComment(String groupId, String artifactId, String version, String commentId, String value);
 
+
+    CommentDto createArtifactVersionCommentRaw(String groupId, String artifactId, String version, IdGenerator commentId,
+                                               String createdBy, Date createdOn, String value);
+
+
+    void resetGlobalId();
+
+
+    void resetContentId();
+
+
+    void resetCommentId();
+
+
+    long nextContentId();
+
+
+    long nextGlobalId();
+
+
+    long nextCommentId();
+
+
+    void importComment(CommentEntity entity);
+
+
+    void importGroup(GroupEntity entity);
+
+
+    void importGlobalRule(GlobalRuleEntity entity);
+
+
+    void importContent(ContentEntity entity);
+
+
+    void importArtifactVersion(ArtifactVersionEntity entity);
+
+
+    void importArtifactRule(ArtifactRuleEntity entity);
+
+
+    String normalizeVersion(String groupId, String artifactId, String version);
+
+
+    boolean isContentExists(String contentHash) throws RegistryStorageException;
+
+
+    boolean isArtifactRuleExists(String groupId, String artifactId, RuleType rule) throws RegistryStorageException;
+
+
+    boolean isGlobalRuleExists(RuleType rule) throws RegistryStorageException;
+
+
+    boolean isRoleMappingExists(String principalId);
+
+
+    void updateContentCanonicalHash(String newCanonicalHash, long contentId, String contentHash);
+
+
+    Optional<Long> contentIdFromHash(String contentHash);
+
+
+    ArtifactMetaDataDto updateArtifactWithMetadata(String groupId, String artifactId, String version,
+                                                   String artifactType, String contentHash, String createdBy, Date createdOn,
+                                                   EditableArtifactMetaDataDto metaData,
+                                                   IdGenerator globalIdGenerator);
+
+
+    ArtifactMetaDataDto createArtifactWithMetadata(String groupId, String artifactId, String version,
+                                                   String artifactType, String contentHash, String createdBy,
+                                                   Date createdOn, EditableArtifactMetaDataDto metaData, IdGenerator globalIdGenerator)
+            throws ArtifactNotFoundException, RegistryStorageException;
+
+
+    enum ArtifactRetrievalBehavior {
+        DEFAULT,
+        /**
+         * Skip artifact versions with DISABLED state
+         */
+        SKIP_DISABLED_LATEST
+    }
 }

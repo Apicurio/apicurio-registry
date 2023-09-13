@@ -12,12 +12,12 @@
 * Role-based authorization for default admin, write, and read-only user roles. 
 * Content-based authorization for schema or API artifacts, where only the owner of the artifacts or artifact group can update or delete artifacts. 
 
-NOTE: {registry} authentication and authorization options are disabled by default.
+IMPORTANT: All authentication and authorization options in {registry} are disabled by default. Before enabling any of these options, you must first set the `AUTH_ENABLED` option to `true`. 
 
 This chapter provides details on the following configuration options: 
 
-* xref:registry-security-authn-keycloak[{registry} authentication using OpenID Connect with {keycloak}]
-* xref:registry-security-authn-http[{registry} authentication using HTTP basic]
+* xref:registry-security-authn-keycloak[{registry} authentication by using OpenID Connect with {keycloak}]
+* xref:registry-security-authn-http[{registry} authentication by using HTTP basic]
 * xref:registry-security-rbac-enabled[{registry} role-based authorization] 
 * xref:registry-security-obac-enabled[{registry} owner-only authorization] 
 * xref:registry-security-auth-read[{registry} authenticated read access] 
@@ -25,7 +25,7 @@ This chapter provides details on the following configuration options:
 
 [discrete]
 [id="registry-security-authn-keycloak"]
-== {registry} authentication using OpenID Connect with {keycloak} 
+== {registry} authentication by using OpenID Connect with {keycloak} 
 
 You can set the following environment variables to configure authentication for the {registry} web console and API with {keycloak}:
 
@@ -37,7 +37,7 @@ You can set the following environment variables to configure authentication for 
 |Type
 |Default
 |`AUTH_ENABLED`
-|Enables authentication in {registry}. When set to `true`, the environment variables that follow are required.
+|Enables authentication in {registry}. When set to `true`, the environment variables that follow are required for authentication in {keycloak}.
 |String
 |`false`
 |`KEYCLOAK_URL`
@@ -60,9 +60,9 @@ You can set the following environment variables to configure authentication for 
 
 [discrete]
 [id="registry-security-authn-http"]
-== {registry} authentication using HTTP basic
+== {registry} authentication by using HTTP basic
 
-By default, {registry} supports authentication using OpenID Connect. Users or API clients must obtain an access token to make authenticated calls to the {registry} REST API.  However, because some tools do not support OpenID Connect, you can also configure {registry} to support HTTP basic authentication by setting the following configuration option to `true`:
+By default, {registry} supports authentication by using OpenID Connect. Users or API clients must obtain an access token to make authenticated calls to the {registry} REST API.  However, because some tools do not support OpenID Connect, you can also configure {registry} to support HTTP basic authentication by setting the following configuration options to `true`:
 
 .Configuration for {registry} HTTP basic authentication
 [%header,cols="4,4,1,1"]
@@ -71,6 +71,10 @@ By default, {registry} supports authentication using OpenID Connect. Users or AP
 |Java system property
 |Type
 |Default value
+|`AUTH_ENABLED`
+|`registry.auth.enabled`
+|Boolean
+|`false`
 |`CLIENT_CREDENTIALS_BASIC_AUTH_ENABLED`
 |`registry.auth.basic-auth-client-credentials.enabled`
 |Boolean
@@ -102,7 +106,7 @@ When using {keycloak}, it is best to set this configuration to your {keycloak} J
 [id=registry-security-rbac-enabled]
 ==  {registry} role-based authorization
 
-You can set the following option to `true` to enable role-based authorization in {registry}:
+You can set the following options to `true` to enable role-based authorization in {registry}:
 
 .Configuration for {registry} role-based authorization
 [%header,cols="4,4,1,1"]
@@ -111,20 +115,24 @@ You can set the following option to `true` to enable role-based authorization in
 |Java system property
 |Type
 |Default value
+|`AUTH_ENABLED`
+|`registry.auth.enabled`
+|Boolean
+|`false`
 |`ROLE_BASED_AUTHZ_ENABLED`
 |`registry.auth.role-based-authorization`
 |Boolean
 |`false`
 |===
 
-You can then configure role-based authorization to use roles included in the user's authentication token (for example, granted when authenticating using {keycloak}), or to use role mappings managed internally by {registry}.
+You can then configure role-based authorization to use roles included in the user's authentication token (for example, granted when authenticating by using {keycloak}), or to use role mappings managed internally by {registry}.
 
 [discrete]
 === Use roles assigned in {keycloak}
 
 To enable using roles assigned by {keycloak}, set the following environment variables:
 
-.Configuration for {registry} role-based authorization using {keycloak}
+.Configuration for {registry} role-based authorization by using {keycloak}
 [id="registry-security-rbac-keycloak-settings"]
 [.table-expandable,width="100%",cols="6,6,2,3",options="header"]
 |===
@@ -151,7 +159,7 @@ To enable using roles assigned by {keycloak}, set the following environment vari
 |===
 
 When {registry} is configured to use roles from {keycloak}, you must assign {registry} users to at least one
-of the following user roles in {keycloak}. However, you can configure different user role names using the environment variables in xref:registry-security-rbac-keycloak-settings[].
+of the following user roles in {keycloak}. However, you can configure different user role names by using the environment variables in xref:registry-security-rbac-keycloak-settings[].
 
 .{registry} roles for authentication and authorization
 [.table-expandable,width="100%",cols="2,2,2,2,4",options="header"]
@@ -181,9 +189,9 @@ of the following user roles in {keycloak}. However, you can configure different 
 [discrete]
 === Manage roles directly in {registry}
 
-To enable using roles managed internally by {registry}, set the following environment variables:
+To enable using roles managed internally by {registry}, set the following environment variable:
 
-.Configuration for {registry} role-based authorization using internal role mappings
+.Configuration for {registry} role-based authorization by using internal role mappings
 [.table-expandable,width="100%",cols="6,6,2,3",options="header"]
 |===
 |Environment variable
@@ -196,7 +204,7 @@ To enable using roles managed internally by {registry}, set the following enviro
 |`token`
 |===
 
-When using internally managed role mappings, users can be assigned a role using the `/admin/roleMappings`
+When using internally managed role mappings, users can be assigned a role by using the `/admin/roleMappings`
 endpoint in the {registry} REST API.  For more details, see {registry-rest-api}.
 
 Users can be granted exactly one role: `ADMIN`, `DEVELOPER`, or `READ_ONLY`. Only users with admin
@@ -206,7 +214,7 @@ privileges can grant access to other users.
 [discrete]
 === {registry} admin-override configuration
 
-Because there are no default admin users in {registry}, it is usually helpful to configure another way for users to be identified as admins. You can configure this admin-override feature using the following environment variables:
+Because there are no default admin users in {registry}, it is usually helpful to configure another way for users to be identified as admins. You can configure this admin-override feature by using the following environment variables:
 
 .Configuration for {registry} admin-override 
 [.table-expandable,width="100%",cols="6,6,2,3",options="header"]
@@ -259,6 +267,11 @@ You can set the following options to `true` to enable owner-only authorization f
 |Type
 |Default value
 
+|`AUTH_ENABLED`
+|`registry.auth.enabled`
+|Boolean
+|`false`
+
 |`REGISTRY_AUTH_OBAC_ENABLED`
 |`registry.auth.owner-only-authorization`
 |Boolean
@@ -280,7 +293,7 @@ When owner-only authorization and group owner-only authorization are both enable
 
 When the authenticated read access option is enabled, {registry} grants at least read-only access to requests from any authenticated user in the same organization, regardless of their user role. 
 
-To enable authenticated read access, you must first enable role-based authorization, and then set the following option to `true`:
+To enable authenticated read access, you must first enable role-based authorization, and then ensure that the following options are set to `true`:
 
 .Configuration for authenticated read access
 [%header,cols="4,4,1,1"]
@@ -289,6 +302,10 @@ To enable authenticated read access, you must first enable role-based authorizat
 |Java system property
 |Type
 |Default value
+|`AUTH_ENABLED`
+|`registry.auth.enabled`
+|Boolean
+|`false`
 |`REGISTRY_AUTH_AUTHENTICATED_READS_ENABLED`
 |`registry.auth.authenticated-read-access.enabled`
 |Boolean
@@ -305,7 +322,7 @@ In addition to the two main types of authorization (role-based and owner-based a
 supports an anonymous read-only access option.
 
 To allow anonymous users, such as REST API calls with no authentication credentials, to make read-only 
-calls to the REST API, set the following option to `true`:
+calls to the REST API, set the following options to `true`:
 
 .Configuration for anonymous read-only access
 [%header,cols="4,4,1,1"]
@@ -314,6 +331,10 @@ calls to the REST API, set the following option to `true`:
 |Java system property
 |Type
 |Default value
+|`AUTH_ENABLED`
+|`registry.auth.enabled`
+|Boolean
+|`false`
 |`REGISTRY_AUTH_ANONYMOUS_READ_ACCESS_ENABLED`
 |`registry.auth.anonymous-read-access.enabled`
 |Boolean

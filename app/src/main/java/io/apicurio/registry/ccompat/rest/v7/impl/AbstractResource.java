@@ -18,7 +18,6 @@ package io.apicurio.registry.ccompat.rest.v7.impl;
 
 
 import io.apicurio.registry.ccompat.store.RegistryStorageFacade;
-import org.slf4j.Logger;
 
 import jakarta.inject.Inject;
 
@@ -29,9 +28,4 @@ public abstract class AbstractResource {
 
     @Inject
     RegistryStorageFacade facade;
-
-    @Inject
-    Logger log;
-
 }
-

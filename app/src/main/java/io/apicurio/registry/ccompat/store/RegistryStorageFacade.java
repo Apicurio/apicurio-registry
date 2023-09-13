@@ -16,21 +16,15 @@
 
 package io.apicurio.registry.ccompat.store;
 
-import io.apicurio.registry.ccompat.dto.CompatibilityCheckResponse;
-import io.apicurio.registry.ccompat.dto.Schema;
-import io.apicurio.registry.ccompat.dto.SchemaContent;
-import io.apicurio.registry.ccompat.dto.SchemaInfo;
-import io.apicurio.registry.ccompat.dto.SchemaReference;
-import io.apicurio.registry.ccompat.dto.SubjectVersion;
-import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
-import io.apicurio.registry.storage.ArtifactNotFoundException;
-import io.apicurio.registry.storage.RegistryStorageException;
-import io.apicurio.registry.storage.VersionNotFoundException;
+import io.apicurio.registry.ccompat.dto.*;
 import io.apicurio.registry.storage.dto.RuleConfigurationDto;
+import io.apicurio.registry.storage.error.ArtifactAlreadyExistsException;
+import io.apicurio.registry.storage.error.ArtifactNotFoundException;
+import io.apicurio.registry.storage.error.RegistryStorageException;
+import io.apicurio.registry.storage.error.VersionNotFoundException;
 import io.apicurio.registry.types.RuleType;
 
 import java.util.List;
-import java.util.function.Function;
 
 /**
  * @author Ales Justin
@@ -102,7 +96,7 @@ public interface RegistryStorageFacade {
         return testCompatibilityByVersion(subject, version, request, verbose, null);
     }
 
-    <T> T parseVersionString(String subject, String versionString, String groupId, Function<String, T> then);
+    String parseVersionString(String subject, String versionString, String groupId);
 
     RuleConfigurationDto getGlobalRule(RuleType ruleType);
 

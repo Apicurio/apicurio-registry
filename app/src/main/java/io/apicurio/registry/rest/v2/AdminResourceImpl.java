@@ -16,36 +16,7 @@
 
 package io.apicurio.registry.rest.v2;
 
-import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_FOR_BROWSER;
-import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_NAME;
-import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_PRINCIPAL_ID;
-import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_ROLE_MAPPING;
-import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_RULE;
-import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_RULE_TYPE;
-import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_UPDATE_ROLE;
-import static io.apicurio.registry.util.DtoUtil.appAuthPropertyToRegistry;
-import static io.apicurio.registry.util.DtoUtil.registryAuthPropertyToApp;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-import java.util.zip.ZipInputStream;
-
-import org.eclipse.microprofile.config.Config;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
-import org.slf4j.Logger;
-
-import io.apicurio.common.apps.config.Dynamic;
-import io.apicurio.common.apps.config.DynamicConfigPropertyDef;
-import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
-import io.apicurio.common.apps.config.DynamicConfigPropertyIndex;
-import io.apicurio.common.apps.config.Info;
+import io.apicurio.common.apps.config.*;
 import io.apicurio.common.apps.logging.Logged;
 import io.apicurio.common.apps.logging.audit.Audited;
 import io.apicurio.registry.auth.Authorized;
@@ -55,24 +26,18 @@ import io.apicurio.registry.auth.RoleBasedAccessApiOperation;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.rest.MissingRequiredParameterException;
-import io.apicurio.registry.rest.v2.beans.ArtifactTypeInfo;
-import io.apicurio.registry.rest.v2.beans.ConfigurationProperty;
-import io.apicurio.registry.rest.v2.beans.DownloadRef;
-import io.apicurio.registry.rest.v2.beans.RoleMapping;
-import io.apicurio.registry.rest.v2.beans.Rule;
-import io.apicurio.registry.rest.v2.beans.UpdateConfigurationProperty;
-import io.apicurio.registry.rest.v2.beans.UpdateRole;
+import io.apicurio.registry.rest.v2.beans.*;
 import io.apicurio.registry.rest.v2.shared.DataExporter;
 import io.apicurio.registry.rules.DefaultRuleDeletionException;
 import io.apicurio.registry.rules.RulesProperties;
-import io.apicurio.registry.storage.ConfigPropertyNotFoundException;
-import io.apicurio.registry.storage.InvalidPropertyValueException;
 import io.apicurio.registry.storage.RegistryStorage;
-import io.apicurio.registry.storage.RuleNotFoundException;
 import io.apicurio.registry.storage.dto.DownloadContextDto;
 import io.apicurio.registry.storage.dto.DownloadContextType;
 import io.apicurio.registry.storage.dto.RoleMappingDto;
 import io.apicurio.registry.storage.dto.RuleConfigurationDto;
+import io.apicurio.registry.storage.error.ConfigPropertyNotFoundException;
+import io.apicurio.registry.storage.error.InvalidPropertyValueException;
+import io.apicurio.registry.storage.error.RuleNotFoundException;
 import io.apicurio.registry.storage.impexp.EntityInputStream;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.types.RoleType;
@@ -87,6 +52,24 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import org.eclipse.microprofile.config.Config;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.slf4j.Logger;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import java.util.zip.ZipInputStream;
+
+import static io.apicurio.common.apps.logging.audit.AuditingConstants.*;
+import static io.apicurio.registry.util.DtoUtil.appAuthPropertyToRegistry;
+import static io.apicurio.registry.util.DtoUtil.registryAuthPropertyToApp;
 
 /**
  * @author eric.wittmann@gmail.com

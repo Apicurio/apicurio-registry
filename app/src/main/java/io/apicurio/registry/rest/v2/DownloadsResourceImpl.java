@@ -16,6 +16,18 @@
 
 package io.apicurio.registry.rest.v2;
 
+import io.apicurio.common.apps.logging.Logged;
+import io.apicurio.registry.auth.Authorized;
+import io.apicurio.registry.auth.AuthorizedLevel;
+import io.apicurio.registry.auth.AuthorizedStyle;
+import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
+import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
+import io.apicurio.registry.rest.v2.shared.DataExporter;
+import io.apicurio.registry.storage.RegistryStorage;
+import io.apicurio.registry.storage.dto.DownloadContextDto;
+import io.apicurio.registry.storage.dto.DownloadContextType;
+import io.apicurio.registry.storage.error.DownloadNotFoundException;
+import io.apicurio.registry.types.Current;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.interceptor.Interceptors;
@@ -24,19 +36,6 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.Response;
-
-import io.apicurio.registry.auth.Authorized;
-import io.apicurio.registry.auth.AuthorizedLevel;
-import io.apicurio.registry.auth.AuthorizedStyle;
-import io.apicurio.common.apps.logging.Logged;
-import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
-import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
-import io.apicurio.registry.rest.v2.shared.DataExporter;
-import io.apicurio.registry.storage.DownloadNotFoundException;
-import io.apicurio.registry.storage.RegistryStorage;
-import io.apicurio.registry.storage.dto.DownloadContextDto;
-import io.apicurio.registry.storage.dto.DownloadContextType;
-import io.apicurio.registry.types.Current;
 
 /**
  * @author eric.wittmann@gmail.com

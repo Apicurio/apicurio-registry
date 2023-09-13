@@ -16,7 +16,7 @@
 
 package io.apicurio.registry.storage.impl.kafkasql;
 
-import io.apicurio.registry.storage.impl.sql.HandleFactory;
+import io.apicurio.registry.storage.impl.sql.DefaultHandleFactory;
 import io.apicurio.registry.storage.impl.sql.upgrader.ReferencesCanonicalHashUpgrader;
 import io.apicurio.registry.storage.impl.sql.upgrader.ReferencesContentHashUpgrader;
 
@@ -31,7 +31,7 @@ public class KafkaSqlUpgrader {
 
 
     @Inject
-    HandleFactory handles;
+    DefaultHandleFactory handles;
 
     @Inject
     KafkaSqlProtobufCanonicalizerUpgrader protobufCanonicalizerUpgrader;

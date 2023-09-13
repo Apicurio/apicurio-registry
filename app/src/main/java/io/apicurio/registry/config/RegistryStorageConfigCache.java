@@ -19,8 +19,10 @@ package io.apicurio.registry.config;
 import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
 import io.apicurio.common.apps.config.Info;
 import io.apicurio.common.apps.multitenancy.TenantContext;
-import io.apicurio.registry.storage.RegistryStorageException;
 import io.apicurio.registry.storage.decorator.RegistryStorageDecorator;
+import io.apicurio.registry.storage.decorator.RegistryStorageDecoratorBase;
+import io.apicurio.registry.storage.decorator.RegistryStorageDecoratorOrderConstants;
+import io.apicurio.registry.storage.error.RegistryStorageException;
 import io.quarkus.scheduler.Scheduled;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -38,7 +40,7 @@ import static io.quarkus.scheduler.Scheduled.ConcurrentExecution.SKIP;
  * @author eric.wittmann@gmail.com
  */
 @ApplicationScoped
-public class RegistryStorageConfigCache extends RegistryStorageDecorator {
+public class RegistryStorageConfigCache extends RegistryStorageDecoratorBase implements RegistryStorageDecorator {
 
     private static final DynamicConfigPropertyDto NULL_DTO = new DynamicConfigPropertyDto();
 
@@ -68,8 +70,9 @@ public class RegistryStorageConfigCache extends RegistryStorageDecorator {
      */
     @Override
     public int order() {
-        return 5;
+        return RegistryStorageDecoratorOrderConstants.CONFIG_CACHE_DECORATOR;
     }
+
 
     /**
      * @see io.apicurio.registry.storage.decorator.RegistryStorageDecorator#setConfigProperty(io.apicurio.common.apps.config.DynamicConfigPropertyDto)

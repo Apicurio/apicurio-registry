@@ -370,6 +370,8 @@ public interface SqlStatements {
      */
     public String selectArtifactIds();
 
+    String selectArtifactIdsInGroup();
+
     /**
      * A statement to get an artifact's meta-data by version globalId.
      */

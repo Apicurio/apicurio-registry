@@ -31,7 +31,7 @@ jobs:
 
       # https://github.com/marketplace/actions/free-disk-space-ubuntu
       - name: Free Disk Space (Ubuntu)
-        uses: jlumbroso/free-disk-space@v1.2.0
+        uses: jlumbroso/free-disk-space@76866dbe54312617f00798d1762df7f43def6e5c
         with:
           android: true
           dotnet: true

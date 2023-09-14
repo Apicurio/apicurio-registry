@@ -43,9 +43,9 @@ logSerde.configure(config, false); <3>
 
 ----
 +
- * 1. The Avro serializer provided by {registry}.
- * 2. The Avro deserializer provided by {registry}.
- * 3. Configures the {registry} URL and the Avro reader for deserialization in Avro format.
+<1> The Avro serializer provided by {registry}.
+<2> The Avro deserializer provided by {registry}.
+<3> Configures the {registry} URL and the Avro reader for deserialization in Avro format.
 
 . Create the Kafka Streams client:
 +

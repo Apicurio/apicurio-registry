@@ -23,7 +23,7 @@ You can enable authentication for the {registry} web console and core REST API u
 {registry} provides role-based authorization for default admin, write, and read-only user roles. {registry} also provides content-based authorization at the schema or API level, where only the creator of the registry artifact can update or delete it. {registry} authentication and authorization settings are disabled by default. 
 
 .Prerequisites
-* {keycloak} is installed and running. For more details, see
+* {keycloak} is installed and running. For more details, see the 
 ifdef::apicurio-registry[]
 link:https://www.keycloak.org/documentation[{keycloak} user documentation]. 
 endif::[]
@@ -34,9 +34,9 @@ endif::[]
 
 .Procedure
 
-. In the {keycloak} Admin Console, create a {keycloak} realm for {registry}. By default, {registry} expects a realm name of `registry`. For more details on creating realms, see
+. In the {keycloak} Admin Console, create a {keycloak} realm for {registry}. By default, {registry} expects a realm name of `registry`. For details on creating realms, see the 
 ifdef::apicurio-registry[]
-link:https://www.keycloak.org/getting-started[Getting Started with {keycloak}]. 
+link:https://www.keycloak.org/documentation[{keycloak} user documentation]. 
 endif::[]
 ifdef::rh-service-registry[]
 the link:https://access.redhat.com/documentation/en-us/red_hat_single_sign-on/{keycloak-version}[{keycloak} user documentation].

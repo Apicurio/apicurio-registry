@@ -36,14 +36,14 @@ public class ClientExample {
 
     public static void main(String[] args) throws Exception {
        // Create a registry client
-       String registryUrl = "https://my-registry.my-domain.com/apis/registry/v2"; 
-       RegistryClient client = RegistryClientFactory.create(registryUrl); 
+       String registryUrl = "https://my-registry.my-domain.com/apis/registry/v2"; <1>
+       RegistryClient client = RegistryClientFactory.create(registryUrl); <2>
     }
 }
 ----
 +
-* If you specify an example {registry} URL of `\https://my-registry.my-domain.com`, the client will automatically append `/apis/registry/v2`.
-* For more options when creating a {registry} client, see the Java client configuration in the next section.
+<1> If you specify an example {registry} URL of `\https://my-registry.my-domain.com`, the client will automatically append `/apis/registry/v2`.
+<2> For more options when creating a {registry} client, see the Java client configuration in the next section.
 
 When the client is created, you can use all of the operations available in the {registry} REST API in the client. For more details, see the {registry-rest-api}.
 

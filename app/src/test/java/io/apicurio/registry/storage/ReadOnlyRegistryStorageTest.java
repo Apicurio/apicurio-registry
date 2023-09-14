@@ -20,7 +20,6 @@ import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
 import io.apicurio.common.apps.config.DynamicConfigStorage;
 import io.apicurio.registry.storage.error.ReadOnlyStorageException;
 import io.apicurio.registry.types.Current;
-import io.apicurio.registry.types.WrappedRegistryException;
 import io.apicurio.registry.utils.Functional.Runnable1Ex;
 import io.apicurio.registry.utils.tests.ApicurioTestTags;
 import io.quarkus.test.junit.QuarkusTest;
@@ -195,9 +194,6 @@ public class ReadOnlyRegistryStorageTest {
             try {
                 state.runnable.run(storage);
             } catch (Exception ex) {
-                if (ex instanceof WrappedRegistryException) {
-                    ex = ((WrappedRegistryException) ex).getWrapped();
-                }
                 if (ex instanceof ReadOnlyStorageException) {
                     Assertions.fail("Unexpected ReadOnlyStorageException for method " + method + " (read-only is not enabled).", ex);
                 }
@@ -219,9 +215,6 @@ public class ReadOnlyRegistryStorageTest {
                     Assertions.fail("Expected ReadOnlyStorageException for method " + method + " (read-only is enabled).");
                 }
             } catch (Exception ex) {
-                if (ex instanceof WrappedRegistryException) {
-                    ex = ((WrappedRegistryException) ex).getWrapped();
-                }
                 if (ex instanceof ReadOnlyStorageException) {
                     if (!state.writes) {
                         Assertions.fail("Unexpected ReadOnlyStorageException for method " + method + " (read-only is enabled).", ex);

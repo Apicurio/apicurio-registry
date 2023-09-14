@@ -23,7 +23,6 @@ import io.apicurio.registry.rules.RuleViolationException;
 import io.apicurio.registry.services.http.ErrorHttpResponse;
 import io.apicurio.registry.services.http.RegistryExceptionMapperService;
 import io.apicurio.registry.storage.error.*;
-import io.apicurio.registry.types.WrappedRegistryException;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.servlet.http.HttpServletRequest;
@@ -79,10 +78,6 @@ public class RegistryExceptionMapper implements ExceptionMapper<Throwable> {
      */
     @Override
     public Response toResponse(Throwable t) {
-
-        if (t instanceof WrappedRegistryException) {
-            t = ((WrappedRegistryException) t).getWrapped();
-        }
 
         ErrorHttpResponse res = exceptionMapper.mapException(t);
 

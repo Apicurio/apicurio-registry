@@ -24,7 +24,6 @@ import io.apicurio.common.apps.multitenancy.TenantIdResolver;
 import io.apicurio.registry.services.DisabledApisMatcherService;
 import io.apicurio.registry.services.http.ErrorHttpResponse;
 import io.apicurio.registry.services.http.RegistryExceptionMapperService;
-import io.apicurio.registry.types.WrappedRegistryException;
 import io.apicurio.tenantmanager.api.datamodel.TenantStatusValue;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -152,10 +151,6 @@ public class RegistryApplicationServletFilter implements Filter {
     }
 
     private void mapException(ServletResponse response, Throwable throwable) throws IOException {
-
-        if (throwable instanceof WrappedRegistryException) {
-            throwable = ((WrappedRegistryException) throwable).getWrapped();
-        }
 
         ErrorHttpResponse res = exceptionMapper.mapException(throwable);
         HttpServletResponse httpResponse = (HttpServletResponse) response;

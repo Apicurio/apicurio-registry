@@ -44,8 +44,8 @@ endif::[]
      {"name":"price","type":"string"}]}'    
    https://my-cluster-my-registry-my-project.example.com/apis/registry/v2/groups/my-group/artifacts -s <2> 
 ----
-. Simple Avro schema artifact. 
-. OpenShift route name that exposes {registry}. 
+<1> Simple Avro schema artifact. 
+<2> OpenShift route name that exposes {registry}. 
 
 [discrete]
 == Maven plug-in example
@@ -85,10 +85,10 @@ endif::[]
   </executions>
  </plugin>
 ----
-. Specify `register` as the execution goal to upload the schema artifact to the registry.
-. Specify the {registry} URL with the `../apis/registry/v2` endpoint.
-. Specify the {registry} artifact group ID.
-. You can upload multiple artifacts using the specified group ID, artifact ID, and location.
+<1> Specify `register` as the execution goal to upload the schema artifact to the registry.
+<2> Specify the {registry} URL with the `../apis/registry/v2` endpoint.
+<3> Specify the {registry} artifact group ID.
+<4> You can upload multiple artifacts using the specified group ID, artifact ID, and location.
 
 [discrete]
 == Configuration using a producer client example
@@ -111,5 +111,5 @@ try (RegistryService service = RegistryClient.create(registryUrl_node1)) {
     }
 }
 ----
-. You can register properties against more than one URL node.
-. Check to see if the schema already exists based on the artifact ID.
+<1> You can register properties against more than one URL node.
+<2> Check to see if the schema already exists based on the artifact ID.

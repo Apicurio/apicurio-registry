@@ -39,5 +39,5 @@ props.putIfAbsent(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG,
 props.putIfAbsent(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG,
     AvroKafkaDeserializer.class.getName()); <2>
 ----
-* 1. The deserializer provided by {registry}.
-* 2. The deserialization is in Apache Avro JSON format.
+<1> The deserializer provided by {registry}.
+<2> The deserialization is in Apache Avro JSON format.

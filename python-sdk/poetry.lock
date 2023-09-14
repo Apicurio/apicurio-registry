@@ -354,19 +354,19 @@ files = [
 
 [[package]]
 name = "microsoft-kiota-abstractions"
-version = "0.8.1"
+version = "0.8.3"
 description = "Core abstractions for kiota generated libraries in Python"
 optional = false
 python-versions = "*"
 files = [
-    {file = "microsoft_kiota_abstractions-0.8.1-py2.py3-none-any.whl", hash = "sha256:205a59c429a75dfe39062c4caff655061db131fa7cdb41a5273e6a350eebe689"},
-    {file = "microsoft_kiota_abstractions-0.8.1.tar.gz", hash = "sha256:f7f74731a6514d44a5633013b16d86dcd22830bbd4385711124109be63f21821"},
+    {file = "microsoft_kiota_abstractions-0.8.3-py2.py3-none-any.whl", hash = "sha256:688cbb2c6570bbe1bad53fdc3aa339f70e9a38dcb92cd9242692f0a834bbc790"},
+    {file = "microsoft_kiota_abstractions-0.8.3.tar.gz", hash = "sha256:52599aa0c714eba2a2b7d0cb1d56e5def9df3b9fb4db7207e18826a7fd2cb65b"},
 ]
 
 [package.dependencies]
 opentelemetry-api = ">=1.19.0"
 opentelemetry-sdk = ">=1.19.0"
-uritemplate = ">=4.1.1"
+std-uritemplate = ">=0.0.38"
 
 [[package]]
 name = "microsoft-kiota-http"
@@ -616,6 +616,17 @@ files = [
 ]
 
 [[package]]
+name = "std-uritemplate"
+version = "0.0.40"
+description = "std-uritemplate implementation for Python"
+optional = false
+python-versions = ">=3.8,<4.0"
+files = [
+    {file = "std_uritemplate-0.0.40-py3-none-any.whl", hash = "sha256:09eafcf1b140873036c5c77594e79e71176fd3f98c2ea0388b96288a61cf204f"},
+    {file = "std_uritemplate-0.0.40.tar.gz", hash = "sha256:d8484281f76240a987341b28ac617a435c80ab2d1b326df0499f56858bc0de0a"},
+]
+
+[[package]]
 name = "tomli"
 version = "2.0.1"
 description = "A lil' TOML parser"
@@ -635,17 +646,6 @@ python-versions = ">=3.7"
 files = [
     {file = "typing_extensions-4.7.1-py3-none-any.whl", hash = "sha256:440d5dd3af93b060174bf433bccd69b0babc3b15b1a8dca43789fd7f61514b36"},
     {file = "typing_extensions-4.7.1.tar.gz", hash = "sha256:b75ddc264f0ba5615db7ba217daeb99701ad295353c45f9e95963337ceeeffb2"},
-]
-
-[[package]]
-name = "uritemplate"
-version = "4.1.1"
-description = "Implementation of RFC 6570 URI Templates"
-optional = false
-python-versions = ">=3.6"
-files = [
-    {file = "uritemplate-4.1.1-py2.py3-none-any.whl", hash = "sha256:830c08b8d99bdd312ea4ead05994a38e8936266f84b9a7878232db50b044e02e"},
-    {file = "uritemplate-4.1.1.tar.gz", hash = "sha256:4346edfc5c3b79f694bccd6d6099a322bbeb628dbf2cd86eea55a456ce5124f0"},
 ]
 
 [[package]]

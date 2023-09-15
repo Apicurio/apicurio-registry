@@ -30,7 +30,6 @@ Get the current {registry} user.
 {registry} also provides compatibility with the following schema registries by including implementations of their respective REST APIs:
 
 * {registry} Core Registry API v1 
-* Confluent Schema Registry API v6
 * Confluent Schema Registry API v7
 * CNCF CloudEvents Schema Registry API v0
 

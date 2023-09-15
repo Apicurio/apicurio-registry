@@ -46,6 +46,7 @@ import io.apicurio.registry.storage.impl.sql.IdGenerator;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.impexp.*;
+import jakarta.transaction.Transactional;
 
 import java.time.Instant;
 import java.util.*;
@@ -95,6 +96,9 @@ public interface RegistryStorage extends DynamicConfigStorage {
 
     boolean isReadOnly();
 
+
+    @Transactional
+    List<Long> getArtifactContentIds(String groupId, String artifactId);
 
     /**
      * Update artifact state.
@@ -227,7 +231,7 @@ public interface RegistryStorage extends DynamicConfigStorage {
      * @param artifactId
      * @return
      */
-    List<Long> getArtifactContentIds(String groupId, String artifactId);
+    List<Long> getEnabledArtifactContentIds(String groupId, String artifactId);
 
     /**
      * Updates the artifact value by storing the given value as a new version of the artifact.  Previous value
@@ -433,6 +437,17 @@ public interface RegistryStorage extends DynamicConfigStorage {
      * @throws RegistryStorageException
      */
     List<String> getArtifactVersions(String groupId, String artifactId) throws ArtifactNotFoundException, RegistryStorageException;
+
+
+    /**
+     * Gets a sorted set of all artifact versions that exist for a given artifact.
+     *
+     * @param groupId    (optional)
+     * @param artifactId
+     * @throws ArtifactNotFoundException
+     * @throws RegistryStorageException
+     */
+    List<String> getArtifactVersions(String groupId, String artifactId, ArtifactRetrievalBehavior behavior) throws ArtifactNotFoundException, RegistryStorageException;
 
     /**
      * Fetch the versions of the given artifact

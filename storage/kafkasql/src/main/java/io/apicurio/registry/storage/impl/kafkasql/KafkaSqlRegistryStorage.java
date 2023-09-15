@@ -681,6 +681,10 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
         });
     }
 
+    @Override
+    public List<Long> getEnabledArtifactContentIds(String groupId, String artifactId) {
+        return sqlStore.getEnabledArtifactContentIds(groupId, artifactId);
+    }
 
     @Override
     public void createRoleMapping(String principalId, String role, String principalName) {

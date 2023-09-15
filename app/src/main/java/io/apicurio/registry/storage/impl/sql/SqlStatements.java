@@ -155,6 +155,11 @@ public interface SqlStatements {
     public String selectArtifactVersions();
 
     /**
+     * A statement used to select all version #s for a given artifactId.
+     */
+    public String selectArtifactVersionsSkipDisabled();
+
+    /**
      * A statement used to select all versions for a given artifactId.
      */
     public String selectAllArtifactVersions();

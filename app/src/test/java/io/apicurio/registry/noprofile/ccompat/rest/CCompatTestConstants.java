@@ -55,8 +55,6 @@ public class CCompatTestConstants {
 
     public static final String SCHEMA_INVALID_WRAPPED = "{\"schema\":\"{\\\"type\\\": \\\"bloop\\\"}\"}";
 
-    public static final String V6_BASE_PATH = "/ccompat/v6";
-
     public static final String V7_BASE_PATH = "/ccompat/v7";
 
 }

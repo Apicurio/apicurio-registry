@@ -682,6 +682,7 @@
                 <version>${woodstox-core.version}</version>
             </dependency>
 
+
             <!-- Tests -->
             <dependency>
                 <groupId>io.confluent</groupId>

@@ -399,4 +399,14 @@ public abstract class RegistryStorageDecoratorReadOnlyBase implements RegistrySt
     public String normalizeVersion(String groupId, String artifactId, String version) {
         return delegate.normalizeVersion(groupId, artifactId, version);
     }
+
+    @Override
+    public List<Long> getEnabledArtifactContentIds(String groupId, String artifactId) {
+        return delegate.getEnabledArtifactContentIds(groupId, artifactId);
+    }
+
+    @Override
+    public List<String> getArtifactVersions(String groupId, String artifactId, ArtifactRetrievalBehavior behavior) throws ArtifactNotFoundException, RegistryStorageException {
+        return delegate.getArtifactVersions(groupId, artifactId, behavior);
+    }
 }

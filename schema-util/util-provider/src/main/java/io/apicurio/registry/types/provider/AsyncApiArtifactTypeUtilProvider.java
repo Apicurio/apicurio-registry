@@ -64,7 +64,7 @@ public class AsyncApiArtifactTypeUtilProvider extends AbstractArtifactTypeUtilPr
     public ContentDereferencer getContentDereferencer() {
         return new AsyncApiDereferencer();
     }
-    
+
     @Override
     public ReferenceFinder getReferenceFinder() {
         return new AsyncApiReferenceFinder();

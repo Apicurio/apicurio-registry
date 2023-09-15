@@ -101,6 +101,8 @@ public class ReadOnlyRegistryStorageTest {
                 entry("getArtifactVersionMetaData3", new State(false, s -> s.getArtifactVersionMetaData(null, null, null))),
                 entry("getArtifactVersionMetaData5", new State(false, s -> s.getArtifactVersionMetaData(null, null, false, null, null))),
                 entry("getArtifactVersions2", new State(false, s -> s.getArtifactVersions(null, null))),
+                entry("getArtifactVersions3", new State(false, s -> s.getArtifactVersions(null, null, RegistryStorage.ArtifactRetrievalBehavior.DEFAULT))),
+                entry("getEnabledArtifactContentIds2", new State(false, s -> s.getEnabledArtifactContentIds(null, null))),
                 entry("getArtifactVersionsByContentId1", new State(false, s -> s.getArtifactVersionsByContentId(0))),
                 entry("getConfigProperties0", new State(false, DynamicConfigStorage::getConfigProperties)),
                 entry("getConfigProperty1", new State(false, s -> s.getConfigProperty(null))),

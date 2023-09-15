@@ -24,7 +24,11 @@ import io.apicurio.common.apps.core.System;
 import io.apicurio.common.apps.multitenancy.TenantContext;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.exception.UnreachableCodeException;
-import io.apicurio.registry.storage.*;
+import io.apicurio.registry.storage.ArtifactStateExt;
+import io.apicurio.registry.storage.RegistryStorage;
+import io.apicurio.registry.storage.StorageBehaviorProperties;
+import io.apicurio.registry.storage.StorageEvent;
+import io.apicurio.registry.storage.StorageEventType;
 import io.apicurio.registry.storage.dto.*;
 import io.apicurio.registry.storage.error.*;
 import io.apicurio.registry.storage.impexp.EntityInputStream;
@@ -39,7 +43,14 @@ import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 import io.apicurio.registry.util.DtoUtil;
 import io.apicurio.registry.utils.IoUtil;
-import io.apicurio.registry.utils.impexp.*;
+import io.apicurio.registry.utils.impexp.ArtifactRuleEntity;
+import io.apicurio.registry.utils.impexp.ArtifactVersionEntity;
+import io.apicurio.registry.utils.impexp.CommentEntity;
+import io.apicurio.registry.utils.impexp.ContentEntity;
+import io.apicurio.registry.utils.impexp.Entity;
+import io.apicurio.registry.utils.impexp.GlobalRuleEntity;
+import io.apicurio.registry.utils.impexp.GroupEntity;
+import io.apicurio.registry.utils.impexp.ManifestEntity;
 import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.enterprise.event.Event;
 import jakarta.inject.Inject;
@@ -382,6 +393,23 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                 throw new ContentNotFoundException(contentId);
             }
             return dtos;
+        });
+    }
+
+    /**
+     * @see RegistryStorage#getEnabledArtifactContentIds(String, String)
+     */
+    @Override
+    public List<Long> getEnabledArtifactContentIds(String groupId, String artifactId) {
+        return handles.withHandleNoException(handle -> {
+            String sql = sqlStatements().selectArtifactContentIds();
+
+            return handle.createQuery(sql)
+                    .bind(0, tenantContext.tenantId())
+                    .bind(1, normalizeGroupId(groupId))
+                    .bind(2, artifactId)
+                    .mapTo(Long.class)
+                    .list();
         });
     }
 
@@ -978,6 +1006,14 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                                                           EditableArtifactMetaDataDto metaData, List<ArtifactReferenceDto> references)
             throws ArtifactNotFoundException, RegistryStorageException {
 
+
+        return updateArtifactWithMetadata(groupId, artifactId, version, artifactType, content, metaData, references, null);
+    }
+
+    protected ArtifactMetaDataDto updateArtifactWithMetadata(String groupId, String artifactId, String version,
+                                                             String artifactType, ContentHandle content, EditableArtifactMetaDataDto metaData, List<ArtifactReferenceDto> references,
+                                                             IdGenerator globalIdGenerator) throws ArtifactNotFoundException, RegistryStorageException {
+
         String createdBy = securityIdentity.getPrincipal().getName();
         Date createdOn = new Date();
 
@@ -1003,11 +1039,10 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                                                               long contentId, String createdBy, Date createdOn,
                                                               EditableArtifactMetaDataDto metaData, IdGenerator globalIdGenerator)
             throws ArtifactNotFoundException, RegistryStorageException {
-
         log.debug("Updating artifact {} {} with a new version (content).", groupId, artifactId);
 
-        // Get meta-data from previous (latest) version
-        ArtifactMetaDataDto latest = getArtifactMetaData(groupId, artifactId, storageBehaviorProps.getDefaultArtifactRetrievalBehavior());
+        //For the update we want to get meta-data from previous (latest) existing version, no matter the state.
+        ArtifactMetaDataDto latest = this.getArtifactMetaData(groupId, artifactId, DEFAULT);
 
         try {
             // Create version and return
@@ -1656,25 +1691,62 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     @Transactional
     public List<String> getArtifactVersions(String groupId, String artifactId)
             throws ArtifactNotFoundException, RegistryStorageException {
+        return getArtifactVersions(groupId, artifactId, storageBehaviorProps.getDefaultArtifactRetrievalBehavior());
+    }
+
+    /**
+     * @see RegistryStorage#getArtifactVersions(java.lang.String, java.lang.String)
+     */
+    @Override
+    public List<String> getArtifactVersions(String groupId, String artifactId, ArtifactRetrievalBehavior behavior)
+            throws ArtifactNotFoundException, RegistryStorageException {
         log.debug("Getting a list of versions for artifact: {} {}", groupId, artifactId);
-        try {
-            return handles.withHandle(handle -> {
-                List<String> versions = handle.createQuery(sqlStatements.selectArtifactVersions())
-                        .bind(0, tenantContext.tenantId())
-                        .bind(1, normalizeGroupId(groupId))
-                        .bind(2, artifactId)
-                        .mapTo(String.class)
-                        .list();
-                if (versions.isEmpty()) {
-                    throw new ArtifactNotFoundException(groupId, artifactId);
+
+        switch (behavior) {
+            case DEFAULT:
+                try {
+                    return this.handles.withHandle(handle -> {
+                        String sql = sqlStatements.selectArtifactVersions();
+                        List<String> versions = handle.createQuery(sql)
+                                .bind(0, tenantContext.tenantId())
+                                .bind(1, normalizeGroupId(groupId))
+                                .bind(2, artifactId)
+                                .mapTo(String.class)
+                                .list();
+                        if (versions.isEmpty()) {
+                            throw new ArtifactNotFoundException(groupId, artifactId);
+                        }
+                        return versions;
+                    });
+                } catch (ArtifactNotFoundException anfe) {
+                    throw anfe;
+                } catch (Exception e) {
+                    throw new RegistryStorageException(e);
                 }
-                return versions;
-            });
-        } catch (ArtifactNotFoundException anfe) {
-            throw anfe;
-        } catch (Exception e) {
-            throw new RegistryStorageException(e);
+            case SKIP_DISABLED_LATEST:
+                try {
+                    return this.handles.withHandle(handle -> {
+                        String sql = sqlStatements.selectArtifactVersionsSkipDisabled();
+                        List<String> versions = handle.createQuery(sql)
+                                .bind(0, tenantContext.tenantId())
+                                .bind(1, normalizeGroupId(groupId))
+                                .bind(2, artifactId)
+                                .mapTo(String.class)
+                                .list();
+                        if (versions.isEmpty()) {
+                            throw new ArtifactNotFoundException(groupId, artifactId);
+                        }
+                        return versions;
+                    });
+                } catch (ArtifactNotFoundException anfe) {
+                    throw anfe;
+                } catch (Exception e) {
+                    throw new RegistryStorageException(e);
+                }
+            default:
+                throw new UnreachableCodeException();
         }
+
     }
 
 
@@ -1772,7 +1844,8 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
         log.debug("Deleting version {} of artifact {} {}", version, groupId, artifactId);
 
-        List<String> versions = getArtifactVersions(groupId, artifactId);
+        //For deleting artifact versions we need to list always every single version, including disabled ones.
+        List<String> versions = getArtifactVersions(groupId, artifactId, DEFAULT);
 
         // If the version we're deleting is the *only* version, then just delete the
         // entire artifact.

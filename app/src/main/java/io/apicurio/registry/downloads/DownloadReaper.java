@@ -19,11 +19,11 @@ package io.apicurio.registry.downloads;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.types.Current;
 import io.quarkus.scheduler.Scheduled;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 import org.slf4j.Logger;
 
 import java.time.Instant;
-import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
 
 import static io.quarkus.scheduler.Scheduled.ConcurrentExecution.SKIP;
 
@@ -49,12 +49,17 @@ public class DownloadReaper {
     void run() {
         try {
             if(storage.isReady()) {
-                log.debug("Running download reaper job at {}", Instant.now());
-                reap();
+                if(!storage.isReadOnly()) {
+                    log.debug("Running download reaper job at {}", Instant.now());
+                    reap();
+                } else {
+                    log.debug("Skipping download reaper job because the storage is in read-only mode.");
+                }
             } else {
-                log.warn("Storage is not alive. Skipping download reaper job for now.");
+                log.debug("Skipping download reaper job because the storage is not ready.");
             }
-        } catch (Exception ex) {
+        }
+        catch (Exception ex) {
             log.error("Exception thrown when running download reaper job", ex);
         }
     }

@@ -21,6 +21,7 @@ import java.util.Map;
 import io.apicurio.datamodels.Library;
 import io.apicurio.datamodels.TraverserDirection;
 import io.apicurio.datamodels.models.Document;
+import io.apicurio.datamodels.refs.IReferenceResolver;
 import io.apicurio.registry.content.ContentHandle;
 
 /**
@@ -30,10 +31,11 @@ public class ApicurioDataModelsContentDereferencer implements ContentDereference
 
     @Override
     public ContentHandle dereference(ContentHandle content, Map<String, ContentHandle> resolvedReferences) {
-        // TODO not yet implemented
-//        Document document = Library.readDocumentFromJSONString(content.content());
-//        Library.dereference(document);
-        return content;
+        Document document = Library.readDocumentFromJSONString(content.content());
+        IReferenceResolver resolver = new RegistryReferenceResolver(resolvedReferences);
+        Document dereferencedDoc = Library.dereferenceDocument(document, resolver, false);
+        String dereferencedContentStr = Library.writeDocumentToJSONString(dereferencedDoc);
+        return ContentHandle.create(dereferencedContentStr);
     }
     
     /**

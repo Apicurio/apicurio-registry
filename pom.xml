@@ -165,9 +165,9 @@
         <okio.version>3.5.0</okio.version>
         <okio-fake-file-system.version>3.4.0</okio-fake-file-system.version>
         <icu4j.version>73.2</icu4j.version>
-        <protobuf.version>3.24.2</protobuf.version>
+        <protobuf.version>3.24.3</protobuf.version>
         <xmlsec.version>3.0.2</xmlsec.version>
-        <protobuf.googleapi.types.version>2.23.0</protobuf.googleapi.types.version>
+        <protobuf.googleapi.types.version>2.24.0</protobuf.googleapi.types.version>
         <wsdl4j.version>1.6.3</wsdl4j.version>
         <google.truth.extension.version>1.1.5</google.truth.extension.version>
 
@@ -199,7 +199,7 @@
         <apicurio-tenant-manager.version>0.2.0.Final</apicurio-tenant-manager.version>
 
         <!-- GraphQL -->
-        <graphql.version>21.0</graphql.version>
+        <graphql.version>21.1</graphql.version>
 
         <!-- JSON Schema Validator -->
         <org.everit.json.schema.version>1.14.2</org.everit.json.schema.version><!-- TODO unification -->
@@ -229,7 +229,7 @@
 
         <!-- Scala -->
         <version.scala-maven.plugin>4.4.0</version.scala-maven.plugin>
-        <scala.version>2.13.11</scala.version>
+        <scala.version>2.13.12</scala.version>
 
         <!-- Plugin Versions -->
         <version.compiler.plugin>3.11.0</version.compiler.plugin>
@@ -258,10 +258,10 @@
         <!-- Test containers version, should be aligned with version used in Quarkus -->
         <test-containers.version>1.18.3</test-containers.version>
         <keycloak.testcontainers.version>1.9.0</keycloak.testcontainers.version>
-        <keycloak-admin-client.version>22.0.1</keycloak-admin-client.version>
+        <keycloak-admin-client.version>22.0.3</keycloak-admin-client.version>
         <embedded-postgres.version>2.0.4</embedded-postgres.version>
         <strimzi.version>0.104.0</strimzi.version>
-        <wiremock-jre8.version>2.35.0</wiremock-jre8.version>
+        <wiremock-jre8.version>2.35.1</wiremock-jre8.version>
     </properties>
 
     <dependencyManagement>

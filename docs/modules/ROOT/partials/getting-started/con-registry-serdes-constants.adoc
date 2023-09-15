@@ -5,9 +5,9 @@
 = {registry} serializer/deserializer configuration in client applications
  
 [role="_abstract"]
-You can configure specific client serializer/deserializer (SerDe) services and schema lookup strategies directly in a client application using the example constants shown in this section. Alternatively, you can configure the corresponding {registry} application properties in a file or an instance. 
+You can configure specific client serializer/deserializer services and schema lookup strategies directly in a client application using the example constants shown in this section. Alternatively, you can configure the corresponding {registry} application properties in a file or an instance. 
 
-The following sections show examples of commonly used SerDe constants and configuration options.
+The following sections show examples of commonly used SerDes constants and configuration options.
 
 
 [discrete]
@@ -44,8 +44,8 @@ public class SerdeConfig {
    public static final String SCHEMA_RESOLVER = "apicurio.registry.schema-resolver"; <2>
 ...      
 ----
-. Java class that implements the artifact resolver strategy and maps between the Kafka SerDe and artifact ID.  Defaults to the topic ID strategy. This is only used by the serializer class.
-. Java class that implements the schema resolver. Defaults to `DefaultSchemaResolver`. This is used by the serializer and deserializer classes.
+<1> Java class that implements the artifact resolver strategy and maps between the Kafka SerDe and artifact ID.  Defaults to the topic ID strategy. This is only used by the serializer class.
+<2> Java class that implements the schema resolver. Defaults to `DefaultSchemaResolver`. This is used by the serializer and deserializer classes.
 
 [role="_additional-resources"]
 .Additional resources
@@ -74,7 +74,7 @@ public class SerdeBasedConverter<S, T> extends SchemaResolverConfigurer<S, T> im
 [discrete]
 == Configuration for different schema types
 
-For details on how to configure SerDe for different schema technologies, see the following: 
+For details on how to configure SerDes for different schema technologies, see the following: 
 
 * xref:registry-serdes-types-avro_registry[]
 * xref:registry-serdes-types-json_registry[]

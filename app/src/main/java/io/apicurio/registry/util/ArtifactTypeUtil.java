@@ -16,32 +16,25 @@
 
 package io.apicurio.registry.util;
 
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Base64;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.regex.Pattern;
-
-import jakarta.ws.rs.BadRequestException;
-import jakarta.ws.rs.core.MediaType;
-
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.protobuf.DescriptorProtos;
+import graphql.schema.idl.SchemaParser;
+import graphql.schema.idl.TypeDefinitionRegistry;
+import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.storage.error.InvalidArtifactTypeException;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.protobuf.schema.FileDescriptorUtils;
+import io.apicurio.registry.utils.protobuf.schema.ProtobufFile;
+import jakarta.ws.rs.BadRequestException;
+import jakarta.ws.rs.core.MediaType;
 import org.apache.avro.Schema;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import graphql.schema.idl.SchemaParser;
-import graphql.schema.idl.TypeDefinitionRegistry;
-import io.apicurio.registry.content.ContentHandle;
-import io.apicurio.registry.utils.protobuf.schema.ProtobufFile;
-import io.apicurio.registry.storage.InvalidArtifactTypeException;
+import java.io.InputStream;
+import java.util.*;
+import java.util.regex.Pattern;
 
 /**
  * @author eric.wittmann@gmail.com
@@ -116,7 +109,7 @@ public final class ArtifactTypeUtil {
         return null;
     }
 
-    // TODO: should we move this to ArtifactTypeUtilProvider and make this logic injectable?
+    // TODO: should we move this to ArtifactTypeUtilProvider and make this logic injectable? yes!
     // as a first implementation forcing users to specify the type if it's custom sounds like a reasonable tradeoff
     /**
      * Method that discovers the artifact type from the raw content of an artifact. This will attempt to parse
@@ -124,7 +117,7 @@ public final class ArtifactTypeUtil {
      * is. Examples include Avro, Protobuf, OpenAPI, etc. Most of the supported artifact types are JSON
      * formatted. So in these cases we will need to look for some sort of type-specific marker in the content
      * of the artifact. The method does its best to figure out the type, but will default to Avro if all else
-     * fails.
+     * fails. TODO This default behavior does not sound right
      *  @param content
      * @param contentType
      * @param resolvedReferences

@@ -22,6 +22,7 @@ import static java.net.HttpURLConnection.HTTP_OK;
 import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.CoreMatchers.anything;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.endsWith;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.equalToObject;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
@@ -41,6 +42,7 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -143,6 +145,56 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .statusCode(200)
                 .body("openapi", not(equalTo("3.0.2")))
                 .body("info.title", not(equalTo("Empty API")));
+    }
+    
+    @Test
+    public void testCreateArtifactRule() throws Exception
+    {
+    	String oaiArtifactContent = resourceToString("openapi-empty.json");
+    	createArtifact("testCreateArtifactRule", "testCreateArtifactRule/EmptyAPI/1", ArtifactType.OPENAPI, oaiArtifactContent);
+    	
+    	//Test Rule type null
+    	Rule nullType = new Rule();
+    	nullType.setType(null);
+    	nullType.setConfig("TestConfig");
+    	given()
+	        	.when()
+	        	.contentType(CT_JSON)
+	    		.pathParam("groupId", "testCreateArtifactRule")
+	    		.pathParam("artifactId", "testCreateArtifactRule/EmptyAPI/1")
+	    		.body(nullType)
+	    		.post("/registry/v2/groups/{groupId}/artifacts/{artifactId}/rules")
+	        	.then()	
+	    		.statusCode(400);
+    	
+    	//Test Rule config null
+    	Rule nullConfig = new Rule();
+    	nullConfig.setType(RuleType.VALIDITY);
+    	nullConfig.setConfig(null);
+    	given()
+	        	.when()
+	        	.contentType(CT_JSON)
+	    		.pathParam("groupId", "testCreateArtifactRule")
+	    		.pathParam("artifactId", "testCreateArtifactRule/EmptyAPI/1")
+	    		.body(nullConfig)
+	    		.post("/registry/v2/groups/{groupId}/artifacts/{artifactId}/rules")
+	        	.then()
+	    		.statusCode(400);
+    	
+    	//Test Rule config empty
+    	Rule emptyConfig = new Rule();
+    	emptyConfig.setType(RuleType.VALIDITY);
+    	emptyConfig.setConfig("");
+    	given()
+	        	.when()
+	        	.contentType(CT_JSON)
+	    		.pathParam("groupId", "testCreateArtifactRule")
+	    		.pathParam("artifactId", "testCreateArtifactRule/EmptyAPI/1")
+	    		.body(emptyConfig)
+	    		.post("/registry/v2/groups/{groupId}/artifacts/{artifactId}/rules")
+	        	.then()
+	    		.statusCode(400);
+    	
     }
 
     @Test
@@ -2709,6 +2761,61 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
             clientV2.updateArtifact(GROUP, artifactId, "2", null, null, dataf_3, referencesf_3);
         });
 
+    }
+
+
+    @Test
+    public void testGetArtifactVersionWithReferences() throws Exception {
+        String referencedTypesContent = resourceToString("referenced-types.json");
+        String withExternalRefContent = resourceToString("openapi-with-external-ref.json");
+
+        // Create the artifact containing a type to be referenced
+        createArtifact(GROUP, "testGetArtifactVersionWithReferences/ReferencedTypes", ArtifactType.OPENAPI, referencedTypesContent);
+
+        // Create the artifact that references the type
+        List<ArtifactReference> refs = Collections.singletonList(
+                ArtifactReference.builder()
+                .name("./referenced-types.json#/components/schemas/Widget")
+                .groupId(GROUP)
+                .artifactId("testGetArtifactVersionWithReferences/ReferencedTypes")
+                .version("1")
+                .build());
+        createArtifactWithReferences(GROUP, "testGetArtifactVersionWithReferences/WithExternalRef", ArtifactType.OPENAPI, withExternalRefContent, refs);
+        
+        // Get the content of the artifact preserving external references
+        given()
+        .when()
+            .pathParam("groupId", GROUP)
+            .pathParam("artifactId", "testGetArtifactVersionWithReferences/WithExternalRef")
+        .get("/registry/v2/groups/{groupId}/artifacts/{artifactId}")
+        .then()
+            .statusCode(200)
+            .body("openapi", equalTo("3.0.2"))
+            .body("paths.widgets.get.responses.200.content.json.schema.items.$ref", equalTo("./referenced-types.json#/components/schemas/Widget"));
+        
+        // Get the content of the artifact rewriting external references
+        given()
+        .when()
+            .pathParam("groupId", GROUP)
+            .pathParam("artifactId", "testGetArtifactVersionWithReferences/WithExternalRef")
+            .queryParam("references", "REWRITE")
+        .get("/registry/v2/groups/{groupId}/artifacts/{artifactId}")
+        .then()
+            .statusCode(200)
+            .body("openapi", equalTo("3.0.2"))
+            .body("paths.widgets.get.responses.200.content.json.schema.items.$ref", endsWith("/apis/registry/v2/groups/GroupsResourceTest/artifacts/testGetArtifactVersionWithReferences%2FReferencedTypes/versions/1?references=REWRITE#/components/schemas/Widget"));
+        
+        // Get the content of the artifact inlining/dereferencing external references
+        given()
+        .when()
+            .pathParam("groupId", GROUP)
+            .pathParam("artifactId", "testGetArtifactVersionWithReferences/WithExternalRef")
+            .queryParam("references", "DEREFERENCE")
+        .get("/registry/v2/groups/{groupId}/artifacts/{artifactId}")
+        .then()
+            .statusCode(200)
+            .body("openapi", equalTo("3.0.2"))
+            .body("paths.widgets.get.responses.200.content.json.schema.items.$ref", equalTo("#/components/schemas/Widget"));
     }
 
 }

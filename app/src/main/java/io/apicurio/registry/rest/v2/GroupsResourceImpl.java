@@ -33,8 +33,8 @@ import io.apicurio.registry.rest.v2.beans.*;
 import io.apicurio.registry.rest.v2.shared.CommonResourceOperations;
 import io.apicurio.registry.rules.RuleApplicationType;
 import io.apicurio.registry.rules.RulesService;
-import io.apicurio.registry.storage.*;
 import io.apicurio.registry.storage.dto.*;
+import io.apicurio.registry.storage.error.*;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ReferenceType;
 import io.apicurio.registry.types.RuleType;
@@ -49,13 +49,13 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.interceptor.Interceptors;
 import jakarta.ws.rs.BadRequestException;
+import jakarta.ws.rs.HttpMethod;
+import jakarta.ws.rs.NotAllowedException;
 import jakarta.ws.rs.client.Client;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.jose4j.base64url.Base64;
 
-import jakarta.ws.rs.HttpMethod;
-import jakarta.ws.rs.NotAllowedException;
 import java.io.BufferedInputStream;
 import java.io.InputStream;
 import java.math.BigInteger;
@@ -376,6 +376,13 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     public void createArtifactRule(String groupId, String artifactId, Rule data) {
         requireParameter("groupId", groupId);
         requireParameter("artifactId", artifactId);
+
+        RuleType type = data.getType();
+        requireParameter("type", type);
+
+        if (data.getConfig() == null || data.getConfig().isEmpty()) {
+            throw new MissingRequiredParameterException("Config");
+        }
 
         RuleConfigurationDto config = new RuleConfigurationDto();
         config.setConfiguration(data.getConfig());

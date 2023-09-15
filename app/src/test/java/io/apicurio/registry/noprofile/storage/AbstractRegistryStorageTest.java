@@ -23,46 +23,25 @@ import io.apicurio.common.apps.multitenancy.context.ApicurioTenantContextImpl;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.mt.MockTenantMetadataService;
-import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
-import io.apicurio.registry.storage.ArtifactNotFoundException;
 import io.apicurio.registry.storage.RegistryStorage;
-import io.apicurio.registry.storage.RuleAlreadyExistsException;
-import io.apicurio.registry.storage.RuleNotFoundException;
-import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
-import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
-import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
-import io.apicurio.registry.storage.dto.CommentDto;
-import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
-import io.apicurio.registry.storage.dto.GroupMetaDataDto;
-import io.apicurio.registry.storage.dto.OrderBy;
-import io.apicurio.registry.storage.dto.OrderDirection;
-import io.apicurio.registry.storage.dto.RuleConfigurationDto;
-import io.apicurio.registry.storage.dto.SearchFilter;
-import io.apicurio.registry.storage.dto.StoredArtifactDto;
-import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
+import io.apicurio.registry.storage.dto.*;
+import io.apicurio.registry.storage.error.*;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.impexp.EntityType;
 import io.apicurio.registry.utils.tests.TestUtils;
+import io.apicurio.tenantmanager.api.datamodel.ApicurioTenant;
+import io.apicurio.tenantmanager.api.datamodel.TenantStatusValue;
+import jakarta.inject.Inject;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 
-import jakarta.inject.Inject;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
-
-import io.apicurio.tenantmanager.api.datamodel.ApicurioTenant;
-import io.apicurio.tenantmanager.api.datamodel.TenantStatusValue;
 
 import static io.apicurio.registry.storage.RegistryStorage.ArtifactRetrievalBehavior.DEFAULT;
 
@@ -305,7 +284,7 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
             storage().getArtifactVersion(GROUP_ID, artifactId, "1");
         });
 
-        Assertions.assertThrows(ArtifactNotFoundException.class, () -> {
+        Assertions.assertThrows(VersionNotFoundException.class, () -> {
             storage().getArtifactVersionMetaData(GROUP_ID, artifactId, "1");
         });
     }
@@ -617,7 +596,7 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         Assertions.assertThrows(ArtifactNotFoundException.class, () -> {
             storage().getArtifactVersion(GROUP_ID, artifactId, "1");
         });
-        Assertions.assertThrows(ArtifactNotFoundException.class, () -> {
+        Assertions.assertThrows(VersionNotFoundException.class, () -> {
             storage().getArtifactVersionMetaData(GROUP_ID, artifactId, "1");
         });
     }
@@ -645,7 +624,7 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         Assertions.assertThrows(ArtifactNotFoundException.class, () -> {
             storage().getArtifactVersion(GROUP_ID, aid1, "1");
         });
-        Assertions.assertThrows(ArtifactNotFoundException.class, () -> {
+        Assertions.assertThrows(VersionNotFoundException.class, () -> {
             storage().getArtifactVersionMetaData(GROUP_ID, aid1, "1");
         });
 
@@ -671,7 +650,7 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         Assertions.assertThrows(ArtifactNotFoundException.class, () -> {
             storage().getArtifactVersion(GROUP_ID, aid2, "1");
         });
-        Assertions.assertThrows(ArtifactNotFoundException.class, () -> {
+        Assertions.assertThrows(VersionNotFoundException.class, () -> {
             storage().getArtifactVersionMetaData(GROUP_ID, aid2, "1");
         });
 
@@ -726,7 +705,7 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         Assertions.assertThrows(ArtifactNotFoundException.class, () -> {
             storage().getArtifactVersion(GROUP_ID, aid3, "2");
         });
-        Assertions.assertThrows(ArtifactNotFoundException.class, () -> {
+        Assertions.assertThrows(VersionNotFoundException.class, () -> {
             storage().getArtifactVersionMetaData(GROUP_ID, aid3, "2");
         });
 

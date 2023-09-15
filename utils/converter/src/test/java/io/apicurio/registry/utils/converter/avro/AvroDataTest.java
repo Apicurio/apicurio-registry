@@ -11,20 +11,20 @@ public class AvroDataTest {
     @Test
     public void testIntWithConnectDefault() {
         final String s = "{"
-            + "  \"type\": \"record\","
-            + "  \"name\": \"sample\","
-            + "  \"namespace\": \"io.apicurio\","
-            + "  \"fields\": ["
-            + "    {"
-            + "      \"name\": \"prop\","
-            + "      \"type\": {"
-            + "        \"type\": \"int\","
-            + "        \"connect.default\": 42,"
-            + "        \"connect.version\": 1"
-            + "      }"
-            + "    }"
-            + "  ]"
-            + "}";
+                + "  \"type\": \"record\","
+                + "  \"name\": \"sample\","
+                + "  \"namespace\": \"io.apicurio\","
+                + "  \"fields\": ["
+                + "    {"
+                + "      \"name\": \"prop\","
+                + "      \"type\": {"
+                + "        \"type\": \"int\","
+                + "        \"connect.default\": 42,"
+                + "        \"connect.version\": 1"
+                + "      }"
+                + "    }"
+                + "  ]"
+                + "}";
 
         org.apache.avro.Schema avroSchema = new org.apache.avro.Schema.Parser().parse(s);
 
@@ -37,20 +37,20 @@ public class AvroDataTest {
     @Test
     public void testLongWithConnectDefault() {
         final String s = "{"
-            + "  \"type\": \"record\","
-            + "  \"name\": \"sample\","
-            + "  \"namespace\": \"io.apicurio\","
-            + "  \"fields\": ["
-            + "    {"
-            + "      \"name\": \"prop\","
-            + "      \"type\": {"
-            + "        \"type\": \"long\","
-            + "        \"connect.default\": 42,"
-            + "        \"connect.version\": 1"
-            + "      }"
-            + "    }"
-            + "  ]"
-            + "}";
+                + "  \"type\": \"record\","
+                + "  \"name\": \"sample\","
+                + "  \"namespace\": \"io.apicurio\","
+                + "  \"fields\": ["
+                + "    {"
+                + "      \"name\": \"prop\","
+                + "      \"type\": {"
+                + "        \"type\": \"long\","
+                + "        \"connect.default\": 42,"
+                + "        \"connect.version\": 1"
+                + "      }"
+                + "    }"
+                + "  ]"
+                + "}";
 
         org.apache.avro.Schema avroSchema = new org.apache.avro.Schema.Parser().parse(s);
 
@@ -63,19 +63,19 @@ public class AvroDataTest {
     @Test
     public void testAvroInt64WithInteger() {
         final String s = "{"
-            + "  \"type\": \"record\","
-            + "  \"name\": \"sample\","
-            + "  \"namespace\": \"io.apicurio\","
-            + "  \"fields\": ["
-            + "    {"
-            + "      \"name\": \"someprop\","
-            + "      \"type\": [\"long\",\"null\"]"
-            + "    }"
-            + "  ]"
-            + "}";
+                + "  \"type\": \"record\","
+                + "  \"name\": \"sample\","
+                + "  \"namespace\": \"io.apicurio\","
+                + "  \"fields\": ["
+                + "    {"
+                + "      \"name\": \"someprop\","
+                + "      \"type\": [\"long\",\"null\"]"
+                + "    }"
+                + "  ]"
+                + "}";
 
         org.apache.avro.Schema avroSchema = new org.apache.avro.Schema.Parser().parse(s);
-        GenericRecord outputRecord = new GenericRecordBuilder(avroSchema).set("someprop", 42).build();
+        GenericRecord outputRecord = new GenericRecordBuilder(avroSchema).set("someprop", (long) 42).build();
         AvroData avroData = new AvroData(0);
         Assertions.assertDoesNotThrow(() -> avroData.toConnectData(avroSchema, outputRecord));
     }
@@ -105,7 +105,7 @@ public class AvroDataTest {
                 + "          },\n"
                 + "          \"null\"\n"
                 + "       ],\n"
-                + "       \"default\": \"\\u0000\""
+                + "       \"default\": \"AA==\""
                 + "    }"
                 + "  ],"
                 + "\"connect.name\":\"io.apicurio.sample\"\n"

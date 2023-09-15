@@ -60,7 +60,7 @@ public class CompatibilityResourceImpl extends AbstractResource implements Compa
                 return CompatibilityCheckResponse.IS_NOT_COMPATIBLE;
             }
         } catch (UnprocessableSchemaException ex) {
-            throw new UnprocessableEntityException(ex.getMessage(), ex);
+            throw new UnprocessableEntityException(ex.getMessage());
         }
     }
 
@@ -81,7 +81,7 @@ public class CompatibilityResourceImpl extends AbstractResource implements Compa
                     return CompatibilityCheckResponse.IS_NOT_COMPATIBLE;
                 }
             } catch (UnprocessableSchemaException ex) {
-                throw new UnprocessableEntityException(ex.getMessage(), ex);
+                throw new UnprocessableEntityException(ex.getMessage());
             }
         });
     }

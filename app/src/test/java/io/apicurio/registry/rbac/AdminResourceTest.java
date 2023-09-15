@@ -16,36 +16,9 @@
 
 package io.apicurio.registry.rbac;
 
-import static io.restassured.RestAssured.given;
-import static org.hamcrest.CoreMatchers.anyOf;
-import static org.hamcrest.CoreMatchers.anything;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.notNullValue;
-import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-
-import java.io.ByteArrayInputStream;
-import java.io.InputStream;
-import java.util.Collections;
-import java.util.List;
-import java.util.UUID;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipInputStream;
-
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Tag;
-import org.junit.jupiter.api.Test;
-
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.rest.client.exception.ArtifactNotFoundException;
-import io.apicurio.registry.rest.v2.beans.ArtifactReference;
-import io.apicurio.registry.rest.v2.beans.Comment;
-import io.apicurio.registry.rest.v2.beans.RoleMapping;
-import io.apicurio.registry.rest.v2.beans.Rule;
-import io.apicurio.registry.rest.v2.beans.UpdateConfigurationProperty;
-import io.apicurio.registry.rest.v2.beans.UpdateRole;
+import io.apicurio.registry.rest.v2.beans.*;
 import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
 import io.apicurio.registry.rules.integrity.IntegrityLevel;
 import io.apicurio.registry.types.ArtifactType;
@@ -58,6 +31,25 @@ import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import io.restassured.http.ContentType;
 import io.restassured.response.ValidatableResponse;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+import java.util.Collections;
+import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
+
+import static io.restassured.RestAssured.given;
+import static org.hamcrest.CoreMatchers.anyOf;
+import static org.hamcrest.CoreMatchers.anything;
+import static org.hamcrest.Matchers.*;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * @author eric.wittmann@gmail.com
@@ -77,6 +69,47 @@ public class AdminResourceTest extends AbstractResourceTestBase {
             .then()
                 .statusCode(200)
                 .body(anything());
+    }
+    
+    @Test
+    public void testCreateGlobalRule() throws Exception
+    {
+    	//Test Rule type null
+    	Rule nullType = new Rule();
+    	nullType.setType(null);
+    	nullType.setConfig("TestConfig");
+    	given()
+        	.when()
+        		.contentType(CT_JSON)
+        		.body(nullType)
+        		.post("/registry/v2/admin/rules")
+        	.then()
+        		.statusCode(400);
+    	
+    	//Test Rule config null
+    	Rule nullConfig = new Rule();
+    	nullConfig.setType(RuleType.VALIDITY);
+    	nullConfig.setConfig(null);
+    	given()
+        	.when()
+        		.contentType(CT_JSON)
+        		.body(nullConfig)
+        		.post("/registry/v2/admin/rules")
+        	.then()
+        		.statusCode(400);
+    	
+    	//Test Rule config empty
+    	Rule emptyConfig = new Rule();
+    	emptyConfig.setType(RuleType.VALIDITY);
+    	emptyConfig.setConfig("");
+    	given()
+        	.when()
+        		.contentType(CT_JSON)
+        		.body(emptyConfig)
+        		.post("/registry/v2/admin/rules")
+        	.then()
+        		.statusCode(400);
+    	
     }
 
     @Test
@@ -614,7 +647,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
                 .then()
                     .statusCode(409)
                     .body("error_code", equalTo(409))
-                    .body("message", equalTo("A role mapping for this principal already exists."));
+                    .body("message", equalTo("A mapping for principal 'TestUser' and role 'DEVELOPER' already exists."));
         });
 
         // Add another mapping
@@ -685,7 +718,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
                 .statusCode(404)
                 .contentType(ContentType.JSON)
                 .body("error_code", equalTo(404))
-                .body("message", equalTo("Role mapping not found for principal."));
+                .body("message", equalTo("No mapping for principal 'UnknownPrincipal' and role 'READ_ONLY' was found."));
 
         // Delete a role mapping
         given()
@@ -704,7 +737,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
                     .statusCode(404)
                     .contentType(ContentType.JSON)
                     .body("error_code", equalTo(404))
-                    .body("message", equalTo("Role mapping not found for principal."));
+                    .body("message", equalTo("No role mapping for principal 'TestUser2' was found."));
         });
 
         // Get the list of mappings (should be 1 of them)

@@ -22,13 +22,7 @@ import io.apicurio.registry.rest.v2.beans.Error;
 import io.apicurio.registry.rules.RuleViolationException;
 import io.apicurio.registry.services.http.ErrorHttpResponse;
 import io.apicurio.registry.services.http.RegistryExceptionMapperService;
-import io.apicurio.registry.storage.AlreadyExistsException;
-import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
-import io.apicurio.registry.storage.ArtifactNotFoundException;
-import io.apicurio.registry.storage.ContentNotFoundException;
-import io.apicurio.registry.storage.VersionNotFoundException;
-import org.slf4j.Logger;
-
+import io.apicurio.registry.storage.error.*;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.servlet.http.HttpServletRequest;
@@ -37,6 +31,8 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.ext.ExceptionMapper;
 import jakarta.ws.rs.ext.Provider;
+import org.slf4j.Logger;
+
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -106,8 +102,8 @@ public class RegistryExceptionMapper implements ExceptionMapper<Throwable> {
             error.setErrorCode(CONFLUENT_CODE_MAP.getOrDefault(t.getClass(), 0));
         }
         return builder.type(MediaType.APPLICATION_JSON)
-                      .entity(error)
-                      .build();
+                .entity(error)
+                .build();
     }
 
     /**

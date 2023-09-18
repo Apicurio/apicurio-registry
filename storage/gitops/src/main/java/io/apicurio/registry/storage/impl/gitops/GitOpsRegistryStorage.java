@@ -240,6 +240,11 @@ public class GitOpsRegistryStorage extends AbstractReadOnlyRegistryStorage {
         return proxy(storage -> storage.getArtifactVersionsByContentId(contentId));
     }
 
+    @Override
+    public List<Long> getEnabledArtifactContentIds(String groupId, String artifactId) {
+        return proxy(storage -> storage.getEnabledArtifactContentIds(groupId, artifactId));
+    }
+
 
     @Override
     public List<Long> getArtifactContentIds(String groupId, String artifactId) {
@@ -298,6 +303,11 @@ public class GitOpsRegistryStorage extends AbstractReadOnlyRegistryStorage {
     @Override
     public List<String> getArtifactVersions(String groupId, String artifactId) {
         return proxy(storage -> storage.getArtifactVersions(groupId, artifactId));
+    }
+
+    @Override
+    public List<String> getArtifactVersions(String groupId, String artifactId, ArtifactRetrievalBehavior behavior) {
+        return proxy(storage -> storage.getArtifactVersions(groupId, artifactId, behavior));
     }
 
 

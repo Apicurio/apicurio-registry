@@ -220,7 +220,7 @@
         <snakeyaml.version>2.2</snakeyaml.version>
         <guava.version>32.1.2-jre</guava.version>
         <woodstox-core.version>6.5.1</woodstox-core.version>
-        <jgit.version>6.5.0.202303070854-r</jgit.version>
+        <jgit.version>6.6.1.202309021850-r</jgit.version>
         <awaitility.version>4.2.0</awaitility.version>
 
         <!-- Kafka Connect -->

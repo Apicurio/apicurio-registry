@@ -354,13 +354,13 @@ files = [
 
 [[package]]
 name = "microsoft-kiota-abstractions"
-version = "0.8.4"
+version = "0.8.5"
 description = "Core abstractions for kiota generated libraries in Python"
 optional = false
 python-versions = "*"
 files = [
-    {file = "microsoft_kiota_abstractions-0.8.4-py2.py3-none-any.whl", hash = "sha256:217976f1f9eecbb62d8d3b4bbd3beec93a43b3400c7e7cb5c234dbbf3ed6f80e"},
-    {file = "microsoft_kiota_abstractions-0.8.4.tar.gz", hash = "sha256:65ffcc9476dd15b284b6e803f9e3645fce904788e6d9a85f41d95d49c027cf61"},
+    {file = "microsoft_kiota_abstractions-0.8.5-py2.py3-none-any.whl", hash = "sha256:fc1d946bea05cbda8567f3133187c7d63849433709caf3712ac8c6812a63f404"},
+    {file = "microsoft_kiota_abstractions-0.8.5.tar.gz", hash = "sha256:abcef5380c4aba1d48b7168c25124aa612db73b46535df20368ff5264fb24c06"},
 ]
 
 [package.dependencies]

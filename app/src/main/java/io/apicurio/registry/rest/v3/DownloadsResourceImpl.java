@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.rest.v2;
+package io.apicurio.registry.rest.v3;
 
 import io.apicurio.common.apps.logging.Logged;
 import io.apicurio.registry.auth.Authorized;
@@ -22,7 +22,6 @@ import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
-import io.apicurio.registry.rest.shared.DataExporter;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.DownloadContextDto;
 import io.apicurio.registry.storage.dto.DownloadContextType;
@@ -43,7 +42,7 @@ import jakarta.ws.rs.core.Response;
 @ApplicationScoped
 @Interceptors({ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class})
 @Logged
-@Path("/apis/registry/v2/downloads")
+@Path("/apis/registry/v3/downloads")
 public class DownloadsResourceImpl {
 
     @Inject
@@ -51,7 +50,7 @@ public class DownloadsResourceImpl {
     RegistryStorage storage;
 
     @Inject
-    DataExporter exporter;
+    io.apicurio.registry.rest.shared.DataExporter exporter;
 
     @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.None)
     @GET
@@ -70,8 +69,8 @@ public class DownloadsResourceImpl {
 
     /**
      * A duplicate version of the above that will allow a filename to be added
-     * for download purposes.  So e.g. /apis/registry/v2/downloads/ABCD-1234 can
-     * be aliased as /apis/registry/v2/downloads/ABCD-1234/export.zip and work
+     * for download purposes.  So e.g. /apis/registry/v3/downloads/ABCD-1234 can
+     * be aliased as /apis/registry/v3/downloads/ABCD-1234/export.zip and work
      * the same way.  But when saving from a browser, the filename should be
      * useful.
      * @param downloadId

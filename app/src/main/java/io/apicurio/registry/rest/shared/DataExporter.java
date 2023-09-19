@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.rest.v2.shared;
+package io.apicurio.registry.rest.shared;
 
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.types.Current;

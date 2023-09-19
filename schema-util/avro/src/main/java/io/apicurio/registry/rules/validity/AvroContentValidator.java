@@ -23,7 +23,7 @@ import java.util.Map;
 import org.apache.avro.Schema;
 
 import io.apicurio.registry.content.ContentHandle;
-import io.apicurio.registry.rest.v2.beans.ArtifactReference;
+import io.apicurio.registry.rest.v3.beans.ArtifactReference;
 import io.apicurio.registry.rules.RuleViolation;
 import io.apicurio.registry.rules.RuleViolationException;
 import io.apicurio.registry.rules.integrity.IntegrityLevel;

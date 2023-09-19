@@ -25,7 +25,7 @@ jobs:
       - name: Validate OpenAPI schema with Spectral and RHOAS Guidelines (Common)
         run: npx rhoasapi lint common/src/main/resources/META-INF/openapi.json
       - name: Validate OpenAPI schema with Spectral and RHOAS Guidelines (Final)
-        run: npx rhoasapi lint app/src/main/resources-unfiltered/META-INF/resources/api-specifications/registry/v2/openapi.json
+        run: npx rhoasapi lint app/src/main/resources-unfiltered/META-INF/resources/api-specifications/registry/v3/openapi.json
       - name: Cleanup
         run: |
           rm .spectral.yaml

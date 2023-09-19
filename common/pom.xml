@@ -92,6 +92,7 @@
                 <version>1.1.0.Final</version>
                 <executions>
                     <execution>
+                        <id>generate-jaxrs-v2</id>
                         <phase>generate-sources</phase>
                         <goals>
                             <goal>generate</goal>
@@ -99,6 +100,19 @@
                         <configuration>
                             <projectSettings>
                                 <javaPackage>io.apicurio.registry.rest.v2</javaPackage>
+                            </projectSettings>
+                            <inputSpec>${project.basedir}/src/main/resources/META-INF/openapi-v2.json</inputSpec>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>generate-jaxrs</id>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>generate</goal>
+                        </goals>
+                        <configuration>
+                            <projectSettings>
+                                <javaPackage>io.apicurio.registry.rest.v3</javaPackage>
                             </projectSettings>
                             <inputSpec>${project.basedir}/src/main/resources/META-INF/openapi.json</inputSpec>
                         </configuration>

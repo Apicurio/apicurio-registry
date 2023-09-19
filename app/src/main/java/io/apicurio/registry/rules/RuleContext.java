@@ -17,7 +17,7 @@
 package io.apicurio.registry.rules;
 
 import io.apicurio.registry.content.ContentHandle;
-import io.apicurio.registry.rest.v2.beans.ArtifactReference;
+import io.apicurio.registry.rest.v3.beans.ArtifactReference;
 
 import java.util.List;
 import java.util.Map;

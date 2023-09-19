@@ -180,7 +180,7 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
             //TODO or at least add some method to the api to return the version metadata by globalId
 //            ArtifactMetaData artifactMetadata = client.getArtifactMetaData("TODO", artifactId);
 
-            InputStream rawSchema = client.getContentByGlobalId(globalIdKey, false,  true);
+            InputStream rawSchema = client.getContentByGlobalId(globalIdKey, false,  config.dereference());
 
             //Get the artifact references
             final List<io.apicurio.registry.rest.v2.beans.ArtifactReference> artifactReferences = client.getArtifactReferencesByGlobalId(globalId);

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.rest.v2;
+package io.apicurio.registry.rest.v3;
 
 import io.apicurio.common.apps.config.*;
 import io.apicurio.common.apps.logging.Logged;
@@ -27,7 +27,7 @@ import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.rest.MissingRequiredParameterException;
 import io.apicurio.registry.rest.shared.DataExporter;
-import io.apicurio.registry.rest.v2.beans.*;
+import io.apicurio.registry.rest.v3.beans.*;
 import io.apicurio.registry.rules.DefaultRuleDeletionException;
 import io.apicurio.registry.rules.RulesProperties;
 import io.apicurio.registry.storage.RegistryStorage;
@@ -49,7 +49,6 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.interceptor.Interceptors;
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.validation.constraints.NotNull;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
@@ -115,41 +114,9 @@ public class AdminResourceImpl implements AdminResource {
             throw new MissingRequiredParameterException(parameterName);
         }
     }
-    
-    /**
-     * @see io.apicurio.registry.rest.v2.AdminResource#getLogConfiguration(java.lang.String)
-     */
-    @Override
-    public NamedLogConfiguration getLogConfiguration(String logger) {
-        throw new UnsupportedOperationException();
-    }
-    
-    /**
-     * @see io.apicurio.registry.rest.v2.AdminResource#listLogConfigurations()
-     */
-    @Override
-    public List<NamedLogConfiguration> listLogConfigurations() {
-        throw new UnsupportedOperationException();
-    }
-    
-    /**
-     * @see io.apicurio.registry.rest.v2.AdminResource#removeLogConfiguration(java.lang.String)
-     */
-    @Override
-    public NamedLogConfiguration removeLogConfiguration(String logger) {
-        throw new UnsupportedOperationException();
-    }
-    
-    /**
-     * @see io.apicurio.registry.rest.v2.AdminResource#setLogConfiguration(java.lang.String, io.apicurio.registry.rest.v2.beans.LogConfiguration)
-     */
-    @Override
-    public NamedLogConfiguration setLogConfiguration(String logger, @NotNull LogConfiguration data) {
-        throw new UnsupportedOperationException();
-    }
 
     /**
-     * @see io.apicurio.registry.rest.v2.AdminResource#listArtifactTypes()
+     * @see io.apicurio.registry.rest.v3.AdminResource#listArtifactTypes()
      */
     @Override
     @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Read)
@@ -167,7 +134,7 @@ public class AdminResourceImpl implements AdminResource {
     }
 
     /**
-     * @see io.apicurio.registry.rest.v2.AdminResource#listGlobalRules()
+     * @see io.apicurio.registry.rest.v3.AdminResource#listGlobalRules()
      */
     @Override
     @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Read)
@@ -180,7 +147,7 @@ public class AdminResourceImpl implements AdminResource {
     }
 
     /**
-     * @see io.apicurio.registry.rest.v2.AdminResource#createGlobalRule(io.apicurio.registry.rest.v2.beans.Rule)
+     * @see io.apicurio.registry.rest.v3.AdminResource#createGlobalRule(io.apicurio.registry.rest.v3.beans.Rule)
      */
     @Override
     @Audited(extractParameters = {"0", KEY_RULE})
@@ -199,7 +166,7 @@ public class AdminResourceImpl implements AdminResource {
     }
 
     /**
-     * @see io.apicurio.registry.rest.v2.AdminResource#deleteAllGlobalRules()
+     * @see io.apicurio.registry.rest.v3.AdminResource#deleteAllGlobalRules()
      */
     @Override
     @Audited
@@ -209,7 +176,7 @@ public class AdminResourceImpl implements AdminResource {
     }
 
     /**
-     * @see io.apicurio.registry.rest.v2.AdminResource#getGlobalRuleConfig(io.apicurio.registry.types.RuleType)
+     * @see io.apicurio.registry.rest.v3.AdminResource#getGlobalRuleConfig(io.apicurio.registry.types.RuleType)
      */
     @Override
     @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Read)
@@ -231,7 +198,7 @@ public class AdminResourceImpl implements AdminResource {
     }
 
     /**
-     * @see io.apicurio.registry.rest.v2.AdminResource#updateGlobalRuleConfig(io.apicurio.registry.types.RuleType, io.apicurio.registry.rest.v2.beans.Rule)
+     * @see io.apicurio.registry.rest.v3.AdminResource#updateGlobalRuleConfig(io.apicurio.registry.types.RuleType, io.apicurio.registry.rest.v3.beans.Rule)
      */
     @Override
     @Audited(extractParameters = {"0", KEY_RULE_TYPE, "1", KEY_RULE})
@@ -257,7 +224,7 @@ public class AdminResourceImpl implements AdminResource {
     }
 
     /**
-     * @see io.apicurio.registry.rest.v2.AdminResource#deleteGlobalRule(io.apicurio.registry.types.RuleType)
+     * @see io.apicurio.registry.rest.v3.AdminResource#deleteGlobalRule(io.apicurio.registry.types.RuleType)
      */
     @Override
     @Audited(extractParameters = {"0", KEY_RULE_TYPE})
@@ -278,7 +245,7 @@ public class AdminResourceImpl implements AdminResource {
     }
 
     /**
-     * @see io.apicurio.registry.rest.v2.AdminResource#importData(Boolean, Boolean, java.io.InputStream)
+     * @see io.apicurio.registry.rest.v3.AdminResource#importData(Boolean, Boolean, java.io.InputStream)
      */
     @Override
     @Audited
@@ -306,7 +273,7 @@ public class AdminResourceImpl implements AdminResource {
     }
 
     /**
-     * @see io.apicurio.registry.rest.v2.AdminResource#exportData(java.lang.Boolean)
+     * @see io.apicurio.registry.rest.v3.AdminResource#exportData(java.lang.Boolean)
      */
     @Override
     @Audited(extractParameters = {"0", KEY_FOR_BROWSER})
@@ -328,7 +295,7 @@ public class AdminResourceImpl implements AdminResource {
     }
 
     /**
-     * @see io.apicurio.registry.rest.v2.AdminResource#createRoleMapping(io.apicurio.registry.rest.v2.beans.RoleMapping)
+     * @see io.apicurio.registry.rest.v3.AdminResource#createRoleMapping(io.apicurio.registry.rest.v3.beans.RoleMapping)
      */
     @Override
     @Audited(extractParameters = {"0", KEY_ROLE_MAPPING})
@@ -339,7 +306,7 @@ public class AdminResourceImpl implements AdminResource {
     }
 
     /**
-     * @see io.apicurio.registry.rest.v2.AdminResource#listRoleMappings()
+     * @see io.apicurio.registry.rest.v3.AdminResource#listRoleMappings()
      */
     @Override
     @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
@@ -352,7 +319,7 @@ public class AdminResourceImpl implements AdminResource {
     }
 
     /**
-     * @see io.apicurio.registry.rest.v2.AdminResource#getRoleMapping(java.lang.String)
+     * @see io.apicurio.registry.rest.v3.AdminResource#getRoleMapping(java.lang.String)
      */
     @Override
     @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
@@ -363,7 +330,7 @@ public class AdminResourceImpl implements AdminResource {
     }
 
     /**
-     * @see io.apicurio.registry.rest.v2.AdminResource#updateRoleMapping (java.lang.String, io.apicurio.registry.rest.v2.beans.Role)
+     * @see io.apicurio.registry.rest.v3.AdminResource#updateRoleMapping (java.lang.String, io.apicurio.registry.rest.v3.beans.Role)
      */
     @Override
     @Audited(extractParameters = {"0", KEY_PRINCIPAL_ID, "1", KEY_UPDATE_ROLE})
@@ -374,7 +341,7 @@ public class AdminResourceImpl implements AdminResource {
     }
 
     /**
-     * @see io.apicurio.registry.rest.v2.AdminResource#deleteRoleMapping(java.lang.String)
+     * @see io.apicurio.registry.rest.v3.AdminResource#deleteRoleMapping(java.lang.String)
      */
     @Override
     @Audited(extractParameters = {"0", KEY_PRINCIPAL_ID})
@@ -386,7 +353,7 @@ public class AdminResourceImpl implements AdminResource {
 
 
     /**
-     * @see io.apicurio.registry.rest.v2.AdminResource#listConfigProperties()
+     * @see io.apicurio.registry.rest.v3.AdminResource#listConfigProperties()
      */
     @Override
     @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
@@ -407,7 +374,7 @@ public class AdminResourceImpl implements AdminResource {
     }
 
     /**
-     * @see io.apicurio.registry.rest.v2.AdminResource#getConfigProperty(java.lang.String)
+     * @see io.apicurio.registry.rest.v3.AdminResource#getConfigProperty(java.lang.String)
      */
     @Override
     @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
@@ -424,7 +391,7 @@ public class AdminResourceImpl implements AdminResource {
     }
 
     /**
-     * @see io.apicurio.registry.rest.v2.AdminResource#updateConfigProperty(java.lang.String, io.apicurio.registry.rest.v2.beans.UpdateConfigurationProperty)
+     * @see io.apicurio.registry.rest.v3.AdminResource#updateConfigProperty(java.lang.String, io.apicurio.registry.rest.v3.beans.UpdateConfigurationProperty)
      */
     @Override
     @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
@@ -439,7 +406,7 @@ public class AdminResourceImpl implements AdminResource {
     }
 
     /**
-     * @see io.apicurio.registry.rest.v2.AdminResource#resetConfigProperty(java.lang.String)
+     * @see io.apicurio.registry.rest.v3.AdminResource#resetConfigProperty(java.lang.String)
      */
     @Override
     @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
@@ -465,7 +432,7 @@ public class AdminResourceImpl implements AdminResource {
     }
 
     private String createDownloadHref(String downloadId) {
-        return "/apis/registry/v2/downloads/" + downloadId;
+        return "/apis/registry/v3/downloads/" + downloadId;
     }
 
     private static ConfigurationProperty dtoToConfigurationProperty(DynamicConfigPropertyDef def, DynamicConfigPropertyDto dto) {

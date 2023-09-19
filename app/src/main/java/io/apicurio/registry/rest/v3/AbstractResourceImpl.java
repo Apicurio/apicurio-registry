@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.rest.v2;
+package io.apicurio.registry.rest.v3;
 
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -35,6 +35,7 @@ import io.apicurio.common.apps.config.Info;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.dereference.ContentDereferencer;
 import io.apicurio.registry.content.refs.JsonPointerExternalReference;
+import io.apicurio.registry.rest.v3.beans.HandleReferencesType;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.types.Current;
@@ -60,26 +61,32 @@ public abstract class AbstractResourceImpl {
     @Context
     HttpServletRequest request;
 
-    @ConfigProperty(name = "registry.apis.v2.base-href", defaultValue = "_")
+    @ConfigProperty(name = "registry.apis.v3.base-href", defaultValue = "_")
     @Info(category = "api", description = "API base href (URI)", availableSince = "2.5.0.Final")
     String apiBaseHref;
 
     /**
-     * Handle the content references.
-     * @param dereference
+     * Handle the content references based on the value of "HandleReferencesType" - this can either mean
+     * we need to fully dereference the content, or we need to rewrite the references, or we do nothing.
+     * @param referencesType
      * @param metaData
      * @param artifact
      * @param content
      */
-    protected ContentHandle handleContentReferences(Boolean dereference, String artifactType, 
+    protected ContentHandle handleContentReferences(HandleReferencesType referencesType, String artifactType, 
             ContentHandle content, List<ArtifactReferenceDto> references) {
         // Dereference or rewrite references
         if (!references.isEmpty()) {
-            if (dereference != null && dereference.booleanValue()) {
+            if (referencesType == HandleReferencesType.DEREFERENCE) {
                 ArtifactTypeUtilProvider artifactTypeProvider = factory.getArtifactTypeProvider(artifactType);
                 ContentDereferencer contentDereferencer = artifactTypeProvider.getContentDereferencer();
                 Map<String, ContentHandle> resolvedReferences = storage.resolveReferences(references);
                 content = contentDereferencer.dereference(content, resolvedReferences);
+            } else if (referencesType == HandleReferencesType.REWRITE) {
+                ArtifactTypeUtilProvider artifactTypeProvider = factory.getArtifactTypeProvider(artifactType);
+                ContentDereferencer contentDereferencer = artifactTypeProvider.getContentDereferencer();
+                Map<String, String> resolvedReferenceUrls = resolveReferenceUrls(references);
+                content = contentDereferencer.rewriteReferences(content, resolvedReferenceUrls);
             }
         }
         return content;
@@ -132,7 +139,7 @@ public abstract class AbstractResourceImpl {
             return null;
         }
 
-        String path = String.format("/apis/registry/v2/groups/%s/artifacts/%s/versions/%s?references=REWRITE",
+        String path = String.format("/apis/registry/v3/groups/%s/artifacts/%s/versions/%s?references=REWRITE",
                 URLEncoder.encode(reference.getGroupId(), StandardCharsets.UTF_8),
                 URLEncoder.encode(reference.getArtifactId(), StandardCharsets.UTF_8),
                 URLEncoder.encode(reference.getVersion(), StandardCharsets.UTF_8));

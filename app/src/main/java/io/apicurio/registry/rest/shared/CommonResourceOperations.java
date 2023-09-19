@@ -1,7 +1,7 @@
-package io.apicurio.registry.rest.v2.shared;
+package io.apicurio.registry.rest.shared;
 
-import io.apicurio.registry.rest.v2.V2ApiUtil;
-import io.apicurio.registry.rest.v2.beans.ArtifactReference;
+import io.apicurio.registry.rest.v3.V3ApiUtil;
+import io.apicurio.registry.rest.v3.beans.ArtifactReference;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.ContentWrapperDto;
 import io.apicurio.registry.types.Current;
@@ -21,7 +21,7 @@ public class CommonResourceOperations {
     public List<ArtifactReference> getReferencesByContentHash(String contentHash) {
         ContentWrapperDto artifact = storage.getArtifactByContentHash(contentHash);
         return artifact.getReferences().stream()
-                .map(V2ApiUtil::referenceDtoToReference)
+                .map(V3ApiUtil::referenceDtoToReference)
                 .collect(Collectors.toList());
     }
 }

@@ -31,7 +31,7 @@ import io.apicurio.datamodels.models.Referenceable;
 import io.apicurio.datamodels.models.visitors.AllNodeVisitor;
 import io.apicurio.datamodels.validation.ValidationProblem;
 import io.apicurio.registry.content.ContentHandle;
-import io.apicurio.registry.rest.v2.beans.ArtifactReference;
+import io.apicurio.registry.rest.v3.beans.ArtifactReference;
 import io.apicurio.registry.rules.RuleViolation;
 import io.apicurio.registry.rules.RuleViolationException;
 import io.apicurio.registry.rules.integrity.IntegrityLevel;

@@ -1,9 +1,9 @@
 {
     "openapi": "3.0.2",
     "info": {
-        "title": "Apicurio Registry API [v3]",
-        "version": "3.0.x",
-        "description": "Apicurio Registry is a datastore for standard event schemas and API designs. Apicurio Registry enables developers to manage and share the structure of their data using a REST interface. For example, client applications can dynamically push or pull the latest updates to or from the registry without needing to redeploy. Apicurio Registry also enables developers to create rules that govern how registry content can evolve over time. For example, this includes rules for content validation and version compatibility.\n\nThe Apicurio Registry REST API enables client applications to manage the artifacts in the registry. This API provides create, read, update, and delete operations for schema and API artifacts, rules, versions, and metadata. \n\nThe supported artifact types include:\n- Apache Avro schema\n- AsyncAPI specification\n- Google protocol buffers\n- GraphQL schema\n- JSON Schema\n- Kafka Connect schema\n- OpenAPI specification\n- Web Services Description Language\n- XML Schema Definition\n\n\n**Important**: The Apicurio Registry REST API is available from `https://MY-REGISTRY-URL/apis/registry/v3` by default. Therefore you must prefix all API operation paths with `../apis/registry/v3` in this case. For example: `../apis/registry/v3/ids/globalIds/{globalId}`.\n",
+        "title": "Apicurio Registry API [v2]",
+        "version": "2.4.x",
+        "description": "Apicurio Registry is a datastore for standard event schemas and API designs. Apicurio Registry enables developers to manage and share the structure of their data using a REST interface. For example, client applications can dynamically push or pull the latest updates to or from the registry without needing to redeploy. Apicurio Registry also enables developers to create rules that govern how registry content can evolve over time. For example, this includes rules for content validation and version compatibility.\n\nThe Apicurio Registry REST API enables client applications to manage the artifacts in the registry. This API provides create, read, update, and delete operations for schema and API artifacts, rules, versions, and metadata. \n\nThe supported artifact types include:\n- Apache Avro schema\n- AsyncAPI specification\n- Google protocol buffers\n- GraphQL schema\n- JSON Schema\n- Kafka Connect schema\n- OpenAPI specification\n- Web Services Description Language\n- XML Schema Definition\n\n\n**Important**: The Apicurio Registry REST API is available from `https://MY-REGISTRY-URL/apis/registry/v2` by default. Therefore you must prefix all API operation paths with `../apis/registry/v2` in this case. For example: `../apis/registry/v2/ids/globalIds/{globalId}`.\n",
         "contact": {
             "name": "Apicurio",
             "url": "https://github.com/apicurio/apicurio-registry",
@@ -15,6 +15,40 @@
         }
     },
     "paths": {
+        "/ids/contentIds/{contentId}/": {
+            "summary": "Access artifact content utilizing the unique content identifier for that content.",
+            "get": {
+                "tags": [
+                    "Artifacts"
+                ],
+                "responses": {
+                    "200": {
+                        "$ref": "#/components/responses/ArtifactContent"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "getContentById",
+                "summary": "Get artifact content by ID",
+                "description": "Gets the content for an artifact version in the registry using the unique content\nidentifier for that content.  This content ID may be shared by multiple artifact\nversions in the case where the artifact versions are identical.\n\nThis operation may fail for one of the following reasons:\n\n* No content with this `contentId` exists (HTTP error `404`)\n* A server error occurred (HTTP error `500`)\n"
+            },
+            "parameters": [
+                {
+                    "name": "contentId",
+                    "description": "Global identifier for a single artifact content.",
+                    "schema": {
+                        "format": "int64",
+                        "type": "integer"
+                    },
+                    "in": "path",
+                    "required": true
+                }
+            ]
+        },
         "/ids/globalIds/{globalId}": {
             "summary": "Access artifact content utilizing an artifact version's globally unique identifier.",
             "get": {
@@ -23,10 +57,10 @@
                 ],
                 "parameters": [
                     {
-                        "name": "references",
-                        "description": "Allows the user to specify how references in the content should be treated.",
+                        "name": "dereference",
+                        "description": "Allows the user to specify if the content should be dereferenced when being returned",
                         "schema": {
-                            "$ref": "#/components/schemas/HandleReferencesType"
+                            "type": "boolean"
                         },
                         "in": "query"
                     }
@@ -58,6 +92,69 @@
                     "required": true
                 }
             ]
+        },
+        "/ids/contentHashes/{contentHash}/": {
+            "summary": "Access artifact content utilizing the SHA-256 hash of the content.",
+            "get": {
+                "tags": [
+                    "Artifacts"
+                ],
+                "responses": {
+                    "200": {
+                        "$ref": "#/components/responses/ArtifactContent"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "getContentByHash",
+                "summary": "Get artifact content by SHA-256 hash",
+                "description": "Gets the content for an artifact version in the registry using the \nSHA-256 hash of the content.  This content hash may be shared by multiple artifact\nversions in the case where the artifact versions have identical content.\n\nThis operation may fail for one of the following reasons:\n\n* No content with this `contentHash` exists (HTTP error `404`)\n* A server error occurred (HTTP error `500`)\n"
+            },
+            "parameters": [
+                {
+                    "name": "contentHash",
+                    "description": "SHA-256 content hash for a single artifact content.",
+                    "schema": {
+                        "type": "string"
+                    },
+                    "in": "path",
+                    "required": true
+                }
+            ]
+        },
+        "/admin/artifactTypes": {
+            "summary": "The list of artifact types supported by this instance of Registry.",
+            "get": {
+                "tags": [
+                    "Artifact Type",
+                    "Admin"
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/ArtifactTypeInfo"
+                                    }
+                                }
+                            }
+                        },
+                        "description": "The list of available artifact types."
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "listArtifactTypes",
+                "summary": "List artifact types",
+                "description": "Gets a list of all the configured artifact types.\n\nThis operation can fail for the following reasons:\n\n* A server error occurred (HTTP error `500`)\n"
+            }
         },
         "/admin/rules": {
             "summary": "Manage the global rules that apply to all artifacts if not otherwise configured.",
@@ -231,6 +328,129 @@
                     "description": "The unique name/type of a rule.",
                     "schema": {
                         "$ref": "#/components/schemas/RuleType"
+                    },
+                    "in": "path",
+                    "required": true
+                }
+            ]
+        },
+        "/admin/loggers": {
+            "summary": "Manage logger settings/configurations.",
+            "get": {
+                "tags": [
+                    "Admin"
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/NamedLogConfiguration"
+                                    }
+                                }
+                            }
+                        },
+                        "description": "The list of logging configurations."
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "listLogConfigurations",
+                "summary": "List logging configurations",
+                "description": "List all of the configured logging levels.  These override the default\nlogging configuration."
+            }
+        },
+        "/admin/loggers/{logger}": {
+            "summary": "Manage logger settings/configurations.",
+            "get": {
+                "tags": [
+                    "Admin"
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/NamedLogConfiguration"
+                                }
+                            }
+                        },
+                        "description": "The logger configuration for the named logger."
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "getLogConfiguration",
+                "summary": "Get a single logger configuration",
+                "description": "Returns the configured logger configuration for the provided logger name, if no logger configuration is persisted it will return the current default log configuration in the system."
+            },
+            "put": {
+                "requestBody": {
+                    "description": "The new logger configuration.",
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/LogConfiguration"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "tags": [
+                    "Admin"
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/NamedLogConfiguration"
+                                }
+                            }
+                        },
+                        "description": "The new configuration for the given logger."
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "setLogConfiguration",
+                "summary": "Set a logger's configuration",
+                "description": "Configures the logger referenced by the provided logger name with the given configuration."
+            },
+            "delete": {
+                "tags": [
+                    "Admin"
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/NamedLogConfiguration"
+                                }
+                            }
+                        },
+                        "description": "The default logger configuration (now that the configuration for this logger has been removed, the \ndefault configuration is applied)."
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "removeLogConfiguration",
+                "summary": "Removes logger configuration",
+                "description": "Removes the configured logger configuration (if any) for the given logger."
+            },
+            "parameters": [
+                {
+                    "name": "logger",
+                    "description": "The name of a single logger.",
+                    "schema": {
+                        "type": "string"
                     },
                     "in": "path",
                     "required": true
@@ -749,10 +969,10 @@
                 ],
                 "parameters": [
                     {
-                        "name": "references",
-                        "description": "Allows the user to specify how references in the content should be treated.",
+                        "name": "dereference",
+                        "description": "Allows the user to specify if the content should be dereferenced when being returned",
                         "schema": {
-                            "$ref": "#/components/schemas/HandleReferencesType"
+                            "type": "boolean"
                         },
                         "in": "query"
                     }
@@ -1617,10 +1837,10 @@
                 ],
                 "parameters": [
                     {
-                        "name": "references",
-                        "description": "Allows the user to specify how references in the content should be treated.",
+                        "name": "dereference",
+                        "description": "Allows the user to specify if the content should be dereferenced when being returned",
                         "schema": {
-                            "$ref": "#/components/schemas/HandleReferencesType"
+                            "type": "boolean"
                         },
                         "in": "query",
                         "required": false
@@ -3007,104 +3227,7 @@
                 }
             ]
         },
-        "/ids/contentIds/{contentId}/": {
-            "summary": "Access artifact content utilizing the unique content identifier for that content.",
-            "get": {
-                "tags": [
-                    "Artifacts"
-                ],
-                "responses": {
-                    "200": {
-                        "$ref": "#/components/responses/ArtifactContent"
-                    },
-                    "404": {
-                        "$ref": "#/components/responses/NotFound"
-                    },
-                    "500": {
-                        "$ref": "#/components/responses/ServerError"
-                    }
-                },
-                "operationId": "getContentById",
-                "summary": "Get artifact content by ID",
-                "description": "Gets the content for an artifact version in the registry using the unique content\nidentifier for that content.  This content ID may be shared by multiple artifact\nversions in the case where the artifact versions are identical.\n\nThis operation may fail for one of the following reasons:\n\n* No content with this `contentId` exists (HTTP error `404`)\n* A server error occurred (HTTP error `500`)\n"
-            },
-            "parameters": [
-                {
-                    "name": "contentId",
-                    "description": "Global identifier for a single artifact content.",
-                    "schema": {
-                        "format": "int64",
-                        "type": "integer"
-                    },
-                    "in": "path",
-                    "required": true
-                }
-            ]
-        },
-        "/ids/contentHashes/{contentHash}/": {
-            "summary": "Access artifact content utilizing the SHA-256 hash of the content.",
-            "get": {
-                "tags": [
-                    "Artifacts"
-                ],
-                "responses": {
-                    "200": {
-                        "$ref": "#/components/responses/ArtifactContent"
-                    },
-                    "404": {
-                        "$ref": "#/components/responses/NotFound"
-                    },
-                    "500": {
-                        "$ref": "#/components/responses/ServerError"
-                    }
-                },
-                "operationId": "getContentByHash",
-                "summary": "Get artifact content by SHA-256 hash",
-                "description": "Gets the content for an artifact version in the registry using the \nSHA-256 hash of the content.  This content hash may be shared by multiple artifact\nversions in the case where the artifact versions have identical content.\n\nThis operation may fail for one of the following reasons:\n\n* No content with this `contentHash` exists (HTTP error `404`)\n* A server error occurred (HTTP error `500`)\n"
-            },
-            "parameters": [
-                {
-                    "name": "contentHash",
-                    "description": "SHA-256 content hash for a single artifact content.",
-                    "schema": {
-                        "type": "string"
-                    },
-                    "in": "path",
-                    "required": true
-                }
-            ]
-        },
-        "/admin/config/artifactTypes": {
-            "summary": "The list of artifact types supported by this instance of Registry.",
-            "get": {
-                "tags": [
-                    "Artifact Type",
-                    "Admin"
-                ],
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "array",
-                                    "items": {
-                                        "$ref": "#/components/schemas/ArtifactTypeInfo"
-                                    }
-                                }
-                            }
-                        },
-                        "description": "The list of available artifact types."
-                    },
-                    "500": {
-                        "$ref": "#/components/responses/ServerError"
-                    }
-                },
-                "operationId": "listArtifactTypes",
-                "summary": "List artifact types",
-                "description": "Gets a list of all the configured artifact types.\n\nThis operation can fail for the following reasons:\n\n* A server error occurred (HTTP error `500`)\n"
-            }
-        },
-        "x-codegen-contextRoot": "/apis/registry/v3"
+        "x-codegen-contextRoot": "/apis/registry/v2"
     },
     "components": {
         "schemas": {
@@ -3329,6 +3452,40 @@
                 "type": "string",
                 "example": "\"3.1.6\""
             },
+            "LogConfiguration": {
+                "description": "",
+                "required": [
+                    "level"
+                ],
+                "type": "object",
+                "properties": {
+                    "level": {
+                        "$ref": "#/components/schemas/LogLevel",
+                        "description": ""
+                    }
+                }
+            },
+            "NamedLogConfiguration": {
+                "description": "",
+                "type": "object",
+                "allOf": [
+                    {
+                        "required": [
+                            "name"
+                        ],
+                        "type": "object",
+                        "properties": {
+                            "name": {
+                                "description": "",
+                                "type": "string"
+                            }
+                        }
+                    },
+                    {
+                        "$ref": "#/components/schemas/LogConfiguration"
+                    }
+                ]
+            },
             "Properties": {
                 "description": "User-defined name-value pairs. Name and value must be strings.",
                 "type": "object",
@@ -3355,6 +3512,24 @@
                     "createdOn"
                 ],
                 "type": "string"
+            },
+            "LogLevel": {
+                "description": "",
+                "enum": [
+                    "DEBUG",
+                    "TRACE",
+                    "WARN",
+                    "ERROR",
+                    "SEVERE",
+                    "WARNING",
+                    "INFO",
+                    "CONFIG",
+                    "FINE",
+                    "FINER",
+                    "FINEST"
+                ],
+                "type": "string",
+                "x-codegen-package": "io.apicurio.registry.types"
             },
             "SystemInfo": {
                 "title": "Root Type for SystemInfo",
@@ -3510,7 +3685,7 @@
                 },
                 "example": {
                     "downloadId": "247-4987490-297845",
-                    "href": "https://54321.registry.examples.org/apis/registry/v3/downloads/247-4987490-297845"
+                    "href": "https://54321.registry.examples.org/apis/registry/v2/downloads/247-4987490-297845"
                 }
             },
             "ArtifactMetaData": {
@@ -3933,7 +4108,7 @@
                         }
                     ]
                 },
-                "x-codegen-extendsClass": "io.apicurio.registry.rest.v3.beans.Error"
+                "x-codegen-extendsClass": "io.apicurio.registry.rest.v2.beans.Error"
             },
             "ArtifactReference": {
                 "title": "Root Type for ArtifactReference",
@@ -4337,15 +4512,6 @@
                     "createdBy": "bwayne",
                     "createdOn": "2023-07-01T15:22:01Z"
                 }
-            },
-            "HandleReferencesType": {
-                "description": "How to handle references when retrieving content.  References can either be\nleft unchanged (`PRESERVE`), re-written so they are valid in the context of the\nregistry (`REWRITE`), or fully dereferenced such that all externally referenced\ncontent is internalized (`DEREFERENCE`).",
-                "enum": [
-                    "PRESERVE",
-                    "DEREFERENCE",
-                    "REWRITE"
-                ],
-                "type": "string"
             }
         },
         "responses": {

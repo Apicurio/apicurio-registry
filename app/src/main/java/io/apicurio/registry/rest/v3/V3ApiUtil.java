@@ -15,28 +15,27 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.rest.v2;
+package io.apicurio.registry.rest.v3;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.Date;
-import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
-import io.apicurio.registry.rest.v2.beans.ArtifactReference;
-import io.apicurio.registry.rest.v2.beans.ArtifactSearchResults;
-import io.apicurio.registry.rest.v2.beans.Comment;
-import io.apicurio.registry.rest.v2.beans.GroupMetaData;
-import io.apicurio.registry.rest.v2.beans.GroupSearchResults;
-import io.apicurio.registry.rest.v2.beans.SearchedArtifact;
-import io.apicurio.registry.rest.v2.beans.SearchedGroup;
-import io.apicurio.registry.rest.v2.beans.SearchedVersion;
-import io.apicurio.registry.rest.v2.beans.SortOrder;
-import io.apicurio.registry.rest.v2.beans.VersionMetaData;
-import io.apicurio.registry.rest.v2.beans.VersionSearchResults;
+import io.apicurio.registry.rest.v3.beans.ArtifactMetaData;
+import io.apicurio.registry.rest.v3.beans.ArtifactReference;
+import io.apicurio.registry.rest.v3.beans.ArtifactSearchResults;
+import io.apicurio.registry.rest.v3.beans.Comment;
+import io.apicurio.registry.rest.v3.beans.GroupMetaData;
+import io.apicurio.registry.rest.v3.beans.GroupSearchResults;
+import io.apicurio.registry.rest.v3.beans.SearchedArtifact;
+import io.apicurio.registry.rest.v3.beans.SearchedGroup;
+import io.apicurio.registry.rest.v3.beans.SearchedVersion;
+import io.apicurio.registry.rest.v3.beans.SortOrder;
+import io.apicurio.registry.rest.v3.beans.VersionMetaData;
+import io.apicurio.registry.rest.v3.beans.VersionSearchResults;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
@@ -50,9 +49,9 @@ import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
 /**
  * @author eric.wittmann@gmail.com
  */
-public final class V2ApiUtil {
+public final class V3ApiUtil {
 
-    private V2ApiUtil() {
+    private V3ApiUtil() {
     }
 
     /**
@@ -94,7 +93,7 @@ public final class V2ApiUtil {
         metaData.setLabels(dto.getLabels());
         metaData.setProperties(dto.getProperties());
         metaData.setReferences(Optional.ofNullable(dto.getReferences()).stream()
-                .flatMap(references -> references.stream().map(V2ApiUtil::referenceDtoToReference))
+                .flatMap(references -> references.stream().map(V3ApiUtil::referenceDtoToReference))
                 .collect(Collectors.toList()));
         return metaData;
     }
@@ -365,49 +364,5 @@ public final class V2ApiUtil {
 
     public static String nullGroupIdToDefault(String groupId) {
         return groupId != null ? groupId : "default";
-    }
-    
-    public static io.apicurio.registry.rest.v3.beans.ArtifactReference toV3(ArtifactReference reference) {
-        if (reference == null) {
-            return null;
-        }
-        return io.apicurio.registry.rest.v3.beans.ArtifactReference.builder()
-                .groupId(reference.getGroupId())
-                .artifactId(reference.getArtifactId())
-                .version(reference.getVersion())
-                .name(reference.getName())
-                .build();
-    }
-    
-    public static List<io.apicurio.registry.rest.v3.beans.ArtifactReference> toV3(List<ArtifactReference> references) {
-        if (references == null) {
-            return null;
-        }
-        return references.stream().map(reference -> {
-            var v3ref = toV3(reference);
-            return v3ref;
-        }).collect(Collectors.toList());
-    }
-    
-    public static ArtifactReference fromV3(io.apicurio.registry.rest.v3.beans.ArtifactReference reference) {
-        if (reference == null) {
-            return null;
-        }
-        return ArtifactReference.builder()
-                .groupId(reference.getGroupId())
-                .artifactId(reference.getArtifactId())
-                .version(reference.getVersion())
-                .name(reference.getName())
-                .build();
-    }
-
-    public static List<ArtifactReference> fromV3(List<io.apicurio.registry.rest.v3.beans.ArtifactReference> references) {
-        if (references == null) {
-            return null;
-        }
-        return references.stream().map(reference -> {
-            var ref = fromV3(reference);
-            return ref;
-        }).collect(Collectors.toList());
     }
 }

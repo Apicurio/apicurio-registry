@@ -17,41 +17,26 @@
     <div class="apidocs-body">
       <div class="apidocs-listing">
 
-        <!-- Apicurio Registry API (v2) -->
+        <!-- Apicurio Registry API (v3) -->
         <div class="apidocs-api default">
-          <div class="name">Core Registry API (Version 2)</div>
+          <div class="name">Core Registry API (Version 3)</div>
           <div class="description">
             The primary API for accessing Apicurio Registry.  This is the most recent API and is preferred for all use-cases.  All
             other APIs are supported for compatibility purposes only.
           </div>
           <div class="endpoint">
-            <a href="/apis/registry/v2" class="url"><code>/apis/registry/v2</code></a>
+            <a href="/apis/registry/v3" class="url"><code>/apis/registry/v3</code></a>
           </div>
         </div>
 
-        <!-- Apicurio Registry API (v1) -->
+        <!-- Apicurio Registry API (v2) -->
         <div class="apidocs-api deprecated">
-          <div class="name">Core Registry API (Version 1)</div>
+          <div class="name">Core Registry API (Version 2)</div>
           <div class="description">
-            The first version of the core Apicurio Registry API, this endpoint is supported to make upgrading consumers of the core
-            registry API easier.  Old consumers that expect to interact with the Registry using the first version of the API can
-            use this endpoint.
+            The previous version of the Apicurio Registry core API (<em>deprecated</em>).
           </div>
           <div class="endpoint">
-            <a href="/apis/registry/v1" class="url"><code>/apis/registry/v1</code></a>
-          </div>
-        </div>
-
-        <!-- Confluent Compatible API (v6) -->
-        <div class="apidocs-api">
-          <div class="name">Confluent Schema Registry API (Version 6)</div>
-          <div class="description">
-            To provide compatibility with Confluent Serdes (and other clients), Apicurio Registry implements the API defined by
-            the Confluent Schema Registry.  Use this endpoint if your tooling is compatible with v6 of that API.  This is only
-            provided for compatibility purposes, the core Registry API should be used instead when possible.
-          </div>
-          <div class="endpoint">
-            <a href="/apis/ccompat/v6" class="url"><code>/apis/ccompat/v6</code></a>
+            <a href="/apis/registry/v2" class="url"><code>/apis/registry/v2</code></a>
           </div>
         </div>
 

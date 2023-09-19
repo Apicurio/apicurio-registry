@@ -354,13 +354,13 @@ files = [
 
 [[package]]
 name = "microsoft-kiota-abstractions"
-version = "0.8.4"
+version = "0.8.5"
 description = "Core abstractions for kiota generated libraries in Python"
 optional = false
 python-versions = "*"
 files = [
-    {file = "microsoft_kiota_abstractions-0.8.4-py2.py3-none-any.whl", hash = "sha256:217976f1f9eecbb62d8d3b4bbd3beec93a43b3400c7e7cb5c234dbbf3ed6f80e"},
-    {file = "microsoft_kiota_abstractions-0.8.4.tar.gz", hash = "sha256:65ffcc9476dd15b284b6e803f9e3645fce904788e6d9a85f41d95d49c027cf61"},
+    {file = "microsoft_kiota_abstractions-0.8.5-py2.py3-none-any.whl", hash = "sha256:fc1d946bea05cbda8567f3133187c7d63849433709caf3712ac8c6812a63f404"},
+    {file = "microsoft_kiota_abstractions-0.8.5.tar.gz", hash = "sha256:abcef5380c4aba1d48b7168c25124aa612db73b46535df20368ff5264fb24c06"},
 ]
 
 [package.dependencies]
@@ -639,13 +639,13 @@ files = [
 
 [[package]]
 name = "typing-extensions"
-version = "4.7.1"
-description = "Backported and Experimental Type Hints for Python 3.7+"
+version = "4.8.0"
+description = "Backported and Experimental Type Hints for Python 3.8+"
 optional = false
-python-versions = ">=3.7"
+python-versions = ">=3.8"
 files = [
-    {file = "typing_extensions-4.7.1-py3-none-any.whl", hash = "sha256:440d5dd3af93b060174bf433bccd69b0babc3b15b1a8dca43789fd7f61514b36"},
-    {file = "typing_extensions-4.7.1.tar.gz", hash = "sha256:b75ddc264f0ba5615db7ba217daeb99701ad295353c45f9e95963337ceeeffb2"},
+    {file = "typing_extensions-4.8.0-py3-none-any.whl", hash = "sha256:8f92fc8806f9a6b641eaa5318da32b44d401efaac0f6678c9bc448ba3605faa0"},
+    {file = "typing_extensions-4.8.0.tar.gz", hash = "sha256:df8e4339e9cb77357558cbdbceca33c303714cf861d1eef15e1070055ae8b7ef"},
 ]
 
 [[package]]

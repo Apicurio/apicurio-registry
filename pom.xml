@@ -155,7 +155,7 @@
         <quarkus.version>3.0.4.Final</quarkus.version>
 
         <!-- Jandex -->
-        <jandex.version>1.1.1</jandex.version>
+        <jandex.version>1.2.1</jandex.version>
 
         <!-- Schema types -->
         <avro.version>1.11.2</avro.version>
@@ -220,7 +220,7 @@
         <snakeyaml.version>2.2</snakeyaml.version>
         <guava.version>32.1.2-jre</guava.version>
         <woodstox-core.version>6.5.1</woodstox-core.version>
-        <jgit.version>6.5.0.202303070854-r</jgit.version>
+        <jgit.version>6.7.0.202309050840-r</jgit.version>
         <awaitility.version>4.2.0</awaitility.version>
 
         <!-- Kafka Connect -->
@@ -237,7 +237,7 @@
         <version.compiler.plugin>3.11.0</version.compiler.plugin>
         <version.deploy.plugin>3.1.1</version.deploy.plugin>
         <version.failsafe.plugin>3.1.2</version.failsafe.plugin>
-        <version.javadoc.plugin>3.5.0</version.javadoc.plugin>
+        <version.javadoc.plugin>3.6.0</version.javadoc.plugin>
         <version.source.plugin>3.3.0</version.source.plugin>
         <version.surefire.plugin>3.1.2</version.surefire.plugin>
         <version.jar.plugin>3.3.0</version.jar.plugin>
@@ -845,14 +845,6 @@
                     <groupId>org.jboss.jandex</groupId>
                     <artifactId>jandex-maven-plugin</artifactId>
                     <version>${jandex.version}</version>
-                    <executions>
-                        <execution>
-                            <id>make-index</id>
-                            <goals>
-                                <goal>jandex</goal>
-                            </goals>
-                        </execution>
-                    </executions>
                 </plugin>
                 <plugin>
                     <groupId>io.quarkus</groupId>
@@ -923,6 +915,18 @@
             </plugins>
         </pluginManagement>
         <plugins>
+            <plugin>
+                <groupId>org.jboss.jandex</groupId>
+                <artifactId>jandex-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>make-index</id>
+                        <goals>
+                            <goal>jandex</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>properties-maven-plugin</artifactId>

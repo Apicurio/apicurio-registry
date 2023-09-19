@@ -109,7 +109,7 @@
                                     <version>${project.version}</version>
                                     <type>jar</type>
                                     <overWrite>true</overWrite>
-                                    <includes>**/openapi.json,**/web.xml,**/application.properties</includes>
+                                    <includes>**/web.xml,**/application.properties</includes>
                                 </artifactItem>
                             </artifactItems>
                             <outputDirectory>${project.build.outputDirectory}</outputDirectory>

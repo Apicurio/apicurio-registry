@@ -188,10 +188,6 @@ export class RoleList extends PureComponent<RoleListProps, RoleListState> {
     }
 
     private removeRoleConfirmModalBodyText() {
-        if (Services.getConfigService().featureMultiTenant()) {
-            return `Do you really want to revoke ${this.state.revokingPrincipalId}'s access?`;
-        } else {
-            return `${this.state.revokingPrincipalId} will no longer have access to this Service Registry instance.`;
-        }
+        return `${this.state.revokingPrincipalId} will no longer have access to this Service Registry instance.`;
     }
 }

@@ -30,19 +30,19 @@ export class LoggerService implements Service {
     }
 
     public debug(message: any, ...optionalParams: any[]): void {
-        console.debug((this.config.featureMultiTenant() ? "{MT}::" : "") + message, ...optionalParams);
+        console.debug(message, ...optionalParams);
     }
 
     public info(message: any, ...optionalParams: any[]): void {
-        console.info((this.config.featureMultiTenant() ? "{MT}::" : "") + message, ...optionalParams);
+        console.info(message, ...optionalParams);
     }
 
     public warn(message: any, ...optionalParams: any[]): void {
-        console.warn((this.config.featureMultiTenant() ? "{MT}::" : "") + message, ...optionalParams);
+        console.warn(message, ...optionalParams);
     }
 
     public error(message: any, ...optionalParams: any[]): void {
-        console.error((this.config.featureMultiTenant() ? "{MT}::" : "") + message, ...optionalParams);
+        console.error(message, ...optionalParams);
     }
 
 }

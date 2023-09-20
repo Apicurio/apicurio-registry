@@ -74,7 +74,6 @@ export declare type Alerts = {
 export interface FeaturesConfig {
     readOnly?: boolean;
     breadcrumbs?: boolean;
-    multiTenant?: boolean;
     roleManagement?: boolean;
     settings?: boolean;
     alerts?: Alerts;

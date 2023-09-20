@@ -69,10 +69,6 @@ export class RoleMappingsEmptyState extends PureComponent<RoleMappingsEmptyState
     }
 
     private emptyStateBodyText() {
-        if (Services.getConfigService().featureMultiTenant()) {
-            return "The Service Registry instance owner and organization administrators have access to resources in this instance. Grant other accounts access by assigning roles.";
-        } else {
-            return "There are currently no role mappings configured for the registry.  Click the \"Grant access\" button above to grant access to a user.";
-        }
+        return "There are currently no role mappings configured for the registry.  Click the \"Grant access\" button above to grant access to a user.";
     }
 }

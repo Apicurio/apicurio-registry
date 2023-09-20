@@ -28,12 +28,12 @@ This set of tests are mainly designed to work in two different modes:
 
 ### ITs with local infrastructure
 
-This is the normal mode used when you execute the testsuite. Because Apicurio Registry supports various storage backends and various deployment time configurations(such as multitenancy, authentication,...) this tests deploy different components depending on the test executed. This is achieved using Quarkus profiles. For example, when a multitenancy test is executed, a tenant-manager instance will be deployed.
+This is the normal mode used when you execute the testsuite. Because Apicurio Registry supports various storage backends and various deployment time configurations(such as authentication,...) this tests deploy different components depending on the test executed. This is achieved using Quarkus profiles.
 
 When running from the terminal, the configuration is provided via maven profiles. You can find all the available maven profiles [here](integration-tests/pom.xml)
 
 When executing the testsuite you normally provide two profiles:
-+ test profile (which determines the tests that will be executed), with the following options: all, ci, smoke, serdes, ui, acceptance, auth, multitenancy, migration, sqlit, kafkasqlit.
++ test profile (which determines the tests that will be executed), with the following options: all, ci, smoke, serdes, ui, acceptance, auth, migration, sqlit, kafkasqlit.
 + storage variant to test (which determines the storage backend that will be deployed, and therefore tested), the available options for running the test locally are: local-mem , local-sql, local-mssql , local-kafka.
 
 As you might expect, this testsuite mode depends on the rest of the project to be built first, in order to have the application jars/images available or the serdes module to be available as well.

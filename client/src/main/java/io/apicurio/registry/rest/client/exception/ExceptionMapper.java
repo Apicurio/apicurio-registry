@@ -59,10 +59,6 @@ public class ExceptionMapper {
                 return new InvalidArtifactTypeException(ex.getError());
             case "LimitExceededException":
                 return new LimitExceededException(ex.getError());
-            case "TenantNotFoundException":
-                return new TenantNotFoundException(ex.getError());
-            case "TenantNotAuthorizedException":
-                return new TenantNotAuthorizedException(ex.getError());
             case "ContentNotFoundException":
                 return new ContentNotFoundException(ex.getError());
             case "InvalidGroupIdException":
@@ -73,8 +69,6 @@ public class ExceptionMapper {
                 return new LogConfigurationNotFoundException(ex.getError());
             case "GroupNotFoundException":
                 return new GroupNotFoundException(ex.getError());
-            case "TenantManagerClientException":
-                return new TenantManagerClientException(ex.getError());
             case "ParametersConflictException":
                 return new ParametersConflictException(ex.getError());
             case "ConfigPropertyNotFoundException":

@@ -41,15 +41,9 @@ public class AdminOverride {
     @Inject
     Instance<JsonWebToken> jsonWebToken;
 
-    @Inject
-    TenantContext tenantContext;
-
-    @Inject
-    MultitenancyProperties mtProperties;
-
     public boolean isAdmin() {
         // When multi-tenancy is enabled, the owner of the tenant is always an admin.
-        if (mtProperties.isMultitenancyEnabled() && authConfig.isTenantOwnerAdminEnabled() && isTenantOwner()) {
+        if (authConfig.isTenantOwnerAdminEnabled()) {
             return true;
         }
 
@@ -65,14 +59,6 @@ public class AdminOverride {
             }
         }
         return false;
-    }
-
-    private boolean isTenantOwner() {
-        String tOwner = tenantContext.tenantOwner();
-        return tOwner != null &&
-                securityIdentity != null &&
-                securityIdentity.getPrincipal() != null &&
-                tOwner.equals(securityIdentity.getPrincipal().getName());
     }
 
     private boolean hasAdminRole() {

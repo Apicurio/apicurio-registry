@@ -613,7 +613,7 @@ public interface SqlStatements {
 
     public String selectConfigPropertyByName();
 
-    public String selectTenantIdsByConfigModifiedOn();
+    public String selectStaleConfigProperties();
 
     public String deleteAllReferences();
 

@@ -28,7 +28,6 @@ public interface Headers {
     String GROUP_ID = "X-Registry-GroupId";
     String ARTIFACT_ID = "X-Registry-ArtifactId";
     String VERSION = "X-Registry-Version";
-    String TENANT_ID = "X-Tenant-Id";
     String ARTIFACT_TYPE = "X-Registry-ArtifactType";
     String HASH_ALGO = "X-Registry-Hash-Algorithm";
     String ARTIFACT_HASH = "X-Registry-Content-Hash";

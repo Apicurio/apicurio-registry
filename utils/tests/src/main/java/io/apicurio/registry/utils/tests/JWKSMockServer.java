@@ -162,7 +162,6 @@ public class JWKSMockServer implements QuarkusTestResourceLifecycleManager {
 
         //Set registry properties
         props.put("registry.keycloak.url", authServerUrl);
-        props.put("tenant-manager.keycloak.url.configured", tokenEndpoint);
         props.put("registry.keycloak.realm", realm);
         props.put("registry.auth.enabled", "true");
         props.put("registry.auth.role-based-authorization", "true");

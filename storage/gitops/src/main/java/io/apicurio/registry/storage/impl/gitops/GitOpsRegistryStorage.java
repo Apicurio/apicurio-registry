@@ -187,13 +187,6 @@ public class GitOpsRegistryStorage extends AbstractReadOnlyRegistryStorage {
         return "gitops";
     }
 
-
-    @Override
-    public boolean supportsMultiTenancy() {
-        return false;
-    }
-
-
     @Override
     public boolean isReady() {
         return true;
@@ -404,12 +397,6 @@ public class GitOpsRegistryStorage extends AbstractReadOnlyRegistryStorage {
     @Override
     public DynamicConfigPropertyDto getRawConfigProperty(String propertyName) {
         return proxy(storage -> storage.getRawConfigProperty(propertyName));
-    }
-
-
-    @Override
-    public List<String> getTenantsWithStaleConfigProperties(Instant since) {
-        return proxy(storage -> storage.getTenantsWithStaleConfigProperties(since));
     }
 
 

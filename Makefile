@@ -441,14 +441,6 @@ run-sql-migration-integration-tests:
 	@echo "----------------------------------------------------------------------"
 	./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pmigration -Premote-sql -pl integration-tests -Dmaven.javadoc.skip=true --no-transfer-progress
 
-.PHONY: run-sql-multitenancy-integration-tests ## Runs multitenancy integration tests
-run-sql-multitenancy-integration-tests:
-	@echo "----------------------------------------------------------------------"
-	@echo "               Running Multitenancy Integration Tests                 "
-	@echo "----------------------------------------------------------------------"
-	./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pmultitenancy -Premote-sql -pl integration-tests -Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false
-
-
 ############################################# KafkaSql Integration Tests #########################################################################
 
 
@@ -520,7 +512,7 @@ run-mssql-migration-integration-tests:
 
 
 .PHONY: integration-tests ## Runs all integration tests [SKIP_TESTS, BUILD_FLAGS]
-integration-tests: build-all  run-ui-tests run-sql-integration-tests run-mssql-integration-tests run-mssql-clustered-integration-tests run-kafkasql-integration-tests run-multitenancy-integration-tests run-sql-migration-integration-tests run-mssql-migration-integration-tests run-kafkasql-migration-integration-tests run-sql-auth-integration-tests run-mssql-auth-integration-tests run-kafkasql-auth-integration-tests run-sql-legacy-tests run-mssql-legacy-tests run-kafkasql-legacy-tests
+integration-tests: build-all  run-ui-tests run-sql-integration-tests run-mssql-integration-tests run-mssql-clustered-integration-tests run-kafkasql-integration-tests run-sql-migration-integration-tests run-mssql-migration-integration-tests run-kafkasql-migration-integration-tests run-sql-auth-integration-tests run-mssql-auth-integration-tests run-kafkasql-auth-integration-tests run-sql-legacy-tests run-mssql-legacy-tests run-kafkasql-legacy-tests
 
 # Please declare your targets as .PHONY in the format shown below, so that the 'make help' parses the information correctly.
 #

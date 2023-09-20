@@ -201,7 +201,7 @@
                                 </goals>
                                 <configuration>
                                     <excludeArtifactIds>
-                                        apicurio-common-app-components-config-index,apicurio-common-app-components-logging,apicurio-common-app-components-config-definitions,apicurio-common-app-components-config-impl,apicurio-common-app-components-core,apicurio-common-app-components-multitenancy
+                                        apicurio-common-app-components-config-index,apicurio-common-app-components-logging,apicurio-common-app-components-config-definitions,apicurio-common-app-components-config-impl,apicurio-common-app-components-core
                                     </excludeArtifactIds>
                                     <includeGroupIds>io.apicurio</includeGroupIds>
                                     <includeTypes>jar,maven-plugin</includeTypes>
@@ -290,7 +290,7 @@
                                 </goals>
                                 <configuration>
                                     <excludeArtifactIds>
-                                        apicurio-registry-app,apicurio-common-app-components-config-index,apicurio-common-app-components-logging,apicurio-common-app-components-config-definitions,apicurio-common-app-components-config-impl,apicurio-common-app-components-core,apicurio-common-app-components-multitenancy
+                                        apicurio-registry-app,apicurio-common-app-components-config-index,apicurio-common-app-components-logging,apicurio-common-app-components-config-definitions,apicurio-common-app-components-config-impl,apicurio-common-app-components-core
                                     </excludeArtifactIds>
                                     <includeGroupIds>io.apicurio</includeGroupIds>
                                     <includeTypes>jar,maven-plugin</includeTypes>
@@ -379,7 +379,7 @@
                                 </goals>
                                 <configuration>
                                     <excludeArtifactIds>
-                                        apicurio-registry-app,apicurio-common-app-components-config-index,apicurio-common-app-components-logging,apicurio-common-app-components-config-definitions,apicurio-common-app-components-config-impl,apicurio-common-app-components-core,apicurio-common-app-components-multitenancy
+                                        apicurio-registry-app,apicurio-common-app-components-config-index,apicurio-common-app-components-logging,apicurio-common-app-components-config-definitions,apicurio-common-app-components-config-impl,apicurio-common-app-components-core
                                     </excludeArtifactIds>
                                     <includeGroupIds>io.apicurio</includeGroupIds>
                                     <includeTypes>jar,maven-plugin</includeTypes>
@@ -576,7 +576,7 @@
             <id>acceptance</id>
             <properties>
                 <skipTests>false</skipTests>
-                <groups>acceptance &amp; !multitenancy</groups>
+                <groups>acceptance</groups>
             </properties>
         </profile>
 
@@ -587,34 +587,6 @@
                 <skipTests>false</skipTests>
             </properties>
         </profile>
-
-        <profile>
-            <id>multitenancy</id>
-            <properties>
-                <groups>multitenancy</groups>
-                <skipTests>false</skipTests>
-            </properties>
-            <build>
-                <plugins>
-                    <plugin>
-                        <artifactId>maven-failsafe-plugin</artifactId>
-                        <executions>
-                            <execution>
-                                <goals>
-                                    <goal>integration-test</goal>
-                                </goals>
-                                <configuration>
-                                    <systemPropertyVariables>
-                                        <multitenancy.tests>true</multitenancy.tests>
-                                    </systemPropertyVariables>
-                                </configuration>
-                            </execution>
-                        </executions>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-
         <profile>
             <id>migration</id>
             <properties>
@@ -638,11 +610,6 @@
                                 <goals>
                                     <goal>integration-test</goal>
                                 </goals>
-                                <configuration>
-                                    <systemPropertyVariables>
-                                        <multitenancy.tests>true</multitenancy.tests>
-                                    </systemPropertyVariables>
-                                </configuration>
                             </execution>
                         </executions>
                     </plugin>

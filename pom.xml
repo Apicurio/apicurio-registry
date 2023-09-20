@@ -442,12 +442,6 @@
             </dependency>
             <dependency>
                 <groupId>io.apicurio</groupId>
-                <artifactId>apicurio-common-app-components-multitenancy</artifactId>
-                <version>${apicurio-common-app-components.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>io.apicurio</groupId>
                 <artifactId>apicurio-registry-schema-util-provider</artifactId>
                 <version>${project.version}</version>
             </dependency>

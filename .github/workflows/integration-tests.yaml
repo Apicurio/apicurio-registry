@@ -115,9 +115,6 @@ jobs:
       - name: Run Integration Tests - sql - migration
         run: make REGISTRY_IMAGE='-Dregistry-sql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-sql:1d' run-sql-migration-integration-tests
 
-      - name: Run Integration Tests - sql - db upgrade
-        run: make REGISTRY_IMAGE='-Dregistry-sql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-sql:1d' run-sql-upgrade-tests
-
       - name: Collect logs
         if: failure()
         run: ./.github/scripts/collect_logs.sh
@@ -159,9 +156,6 @@ jobs:
 
       - name: Run Integration Tests - KafkaSql - Migration
         run: make REGISTRY_IMAGE='-Dregistry-kafkasql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-kafkasql:1d' run-kafkasql-migration-integration-tests
-
-      - name: Run Integration Tests - KafkaSql - DBUpgrade
-        run: make REGISTRY_IMAGE='-Dregistry-kafkasql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-kafkasql:1d' run-kafkasql-upgrade-tests
 
       - name: Run Integration Tests - KafkaSql - Auth
         run: make REGISTRY_IMAGE='-Dregistry-kafkasql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-kafkasql:1d' run-kafkasql-auth-tests

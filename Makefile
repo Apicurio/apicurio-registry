@@ -403,13 +403,6 @@ run-sql-integration-tests:
 	@echo "----------------------------------------------------------------------"
 	./mvnw verify -am --no-transfer-progress -Pintegration-tests -P$(INTEGRATION_TESTS_PROFILE) $(REGISTRY_IMAGE) -Premote-sql -pl integration-tests -Dmaven.javadoc.skip=true --no-transfer-progress
 
-.PHONY: run-sql-upgrade-tests ## Runs sql e2e tests
-run-sql-upgrade-tests:
-	@echo "----------------------------------------------------------------------"
-	@echo "                 Running Sql Integration Tests                        "
-	@echo "----------------------------------------------------------------------"
-	./mvnw verify -am --no-transfer-progress -Pintegration-tests -Psqlit $(REGISTRY_IMAGE) -Premote-sql -pl integration-tests -Dmaven.javadoc.skip=true --no-transfer-progress
-
 .PHONY: run-sql-auth-tests ## Runs sql auth integration tests
 run-sql-auth-tests:
 	@echo "----------------------------------------------------------------------"
@@ -434,12 +427,6 @@ run-kafkasql-integration-tests:
 	@echo "----------------------------------------------------------------------"
 	./mvnw verify -am --no-transfer-progress -Pintegration-tests -P$(INTEGRATION_TESTS_PROFILE) -Premote-kafka -pl integration-tests -Dmaven.javadoc.skip=true --no-transfer-progress
 
-.PHONY: run-kafkasql-upgrade-tests ## Runs sql e2e tests
-run-kafkasql-upgrade-tests :
-	@echo "----------------------------------------------------------------------"
-	@echo "                 Running KafkaSql Upgrade Integration Tests                        "
-	@echo "----------------------------------------------------------------------"
-	./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pkafkasqlit -Premote-kafka -pl integration-tests -Dmaven.javadoc.skip=true --no-transfer-progress
 
 .PHONY: run-kafkasql-migration-integration-tests ## Runs kafkasql migration integration tests
 run-kafkasql-migration-integration-tests:

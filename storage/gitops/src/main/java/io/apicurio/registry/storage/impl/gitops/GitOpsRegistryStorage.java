@@ -399,6 +399,11 @@ public class GitOpsRegistryStorage extends AbstractReadOnlyRegistryStorage {
         return proxy(storage -> storage.getRawConfigProperty(propertyName));
     }
 
+    @Override
+    public List<DynamicConfigPropertyDto> getStaleConfigProperties(Instant since) {
+        return proxy(storage -> storage.getStaleConfigProperties(since));
+    }
+
 
     @Override
     public boolean isContentExists(String contentHash) {

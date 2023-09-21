@@ -111,9 +111,6 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
     ArtifactStateExt artifactStateEx;
 
     @Inject
-    KafkaSqlUpgrader upgrader;
-
-    @Inject
     Event<StorageEvent> storageEvent;
 
     private volatile boolean bootstrapped = false;
@@ -228,7 +225,6 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
                             if (record.key().getType() == MessageType.Bootstrap) {
                                 BootstrapKey bkey = (BootstrapKey) record.key();
                                 if (bkey.getBootstrapId().equals(bootstrapId)) {
-                                    upgrader.upgrade();
                                     this.bootstrapped = true;
                                     storageEvent.fireAsync(StorageEvent.builder()
                                             .type(StorageEventType.READY)

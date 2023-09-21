@@ -34,7 +34,6 @@ public interface MetricsConstants {
 
     // Storage tags/labels
 
-    String STORAGE_METHOD_CALL_TAG_TENANT = "tenant_id";
     String STORAGE_METHOD_CALL_TAG_METHOD = "method";
     String STORAGE_METHOD_CALL_TAG_SUCCESS = "success";
 }

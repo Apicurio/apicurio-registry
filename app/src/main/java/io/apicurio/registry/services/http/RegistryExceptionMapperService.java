@@ -17,9 +17,6 @@
 package io.apicurio.registry.services.http;
 
 import io.apicurio.common.apps.config.Info;
-import io.apicurio.common.apps.multitenancy.exceptions.TenantForbiddenException;
-import io.apicurio.common.apps.multitenancy.exceptions.TenantNotAuthorizedException;
-import io.apicurio.common.apps.multitenancy.exceptions.TenantNotFoundException;
 import io.apicurio.registry.ccompat.rest.error.ConflictException;
 import io.apicurio.registry.ccompat.rest.error.ReferenceExistsException;
 import io.apicurio.registry.ccompat.rest.error.SchemaNotFoundException;
@@ -30,7 +27,7 @@ import io.apicurio.registry.ccompat.rest.error.SubjectSoftDeletedException;
 import io.apicurio.registry.ccompat.rest.error.UnprocessableEntityException;
 import io.apicurio.registry.metrics.health.liveness.LivenessUtil;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
-import io.apicurio.registry.mt.limits.LimitExceededException;
+import io.apicurio.registry.limits.LimitExceededException;
 import io.apicurio.registry.rest.MissingRequiredParameterException;
 import io.apicurio.registry.rest.ParametersConflictException;
 import io.apicurio.registry.rest.v2.beans.Error;
@@ -43,7 +40,6 @@ import io.apicurio.registry.rules.UnprocessableSchemaException;
 import io.apicurio.registry.storage.error.*;
 import io.apicurio.rest.client.auth.exception.ForbiddenException;
 import io.apicurio.rest.client.auth.exception.NotAuthorizedException;
-import io.apicurio.tenantmanager.client.exception.TenantManagerClientException;
 import io.smallrye.mutiny.TimeoutException;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -98,7 +94,7 @@ public class RegistryExceptionMapperService {
         map.put(ContentNotFoundException.class, HTTP_NOT_FOUND);
         map.put(DefaultRuleDeletionException.class, HTTP_CONFLICT);
         map.put(DownloadNotFoundException.class, HTTP_NOT_FOUND);
-        map.put(ForbiddenException.class, HTTP_FORBIDDEN); // From io.apicurio.common.apps.multitenancy.TenantManagerService
+        map.put(ForbiddenException.class, HTTP_FORBIDDEN);
         map.put(GroupNotFoundException.class, HTTP_NOT_FOUND);
         map.put(InvalidArtifactIdException.class, HTTP_BAD_REQUEST);
         map.put(InvalidArtifactStateException.class, HTTP_BAD_REQUEST);
@@ -109,7 +105,7 @@ public class RegistryExceptionMapperService {
         map.put(LimitExceededException.class, HTTP_CONFLICT);
         map.put(LogConfigurationNotFoundException.class, HTTP_NOT_FOUND);
         map.put(MissingRequiredParameterException.class, HTTP_BAD_REQUEST);
-        map.put(NotAuthorizedException.class, HTTP_FORBIDDEN); // From io.apicurio.common.apps.multitenancy.TenantManagerService
+        map.put(NotAuthorizedException.class, HTTP_FORBIDDEN);
         map.put(NotFoundException.class, HTTP_NOT_FOUND);
         map.put(ParametersConflictException.class, HTTP_CONFLICT);
         map.put(ReadOnlyStorageException.class, HTTP_CONFLICT);
@@ -124,10 +120,6 @@ public class RegistryExceptionMapperService {
         map.put(SchemaSoftDeletedException.class, HTTP_CONFLICT);
         map.put(SubjectNotSoftDeletedException.class, HTTP_CONFLICT);
         map.put(SubjectSoftDeletedException.class, HTTP_NOT_FOUND);
-        map.put(TenantForbiddenException.class, HTTP_FORBIDDEN);
-        map.put(TenantManagerClientException.class, HTTP_INTERNAL_ERROR);
-        map.put(TenantNotAuthorizedException.class, HTTP_FORBIDDEN);
-        map.put(TenantNotFoundException.class, HTTP_FORBIDDEN); // Not using HTTP_NOT_FOUND to prevent leaking information by scanning for existing tenants
         map.put(TimeoutException.class, HTTP_UNAVAILABLE);
         map.put(UnprocessableEntityException.class, HTTP_UNPROCESSABLE_ENTITY);
         map.put(UnprocessableSchemaException.class, HTTP_UNPROCESSABLE_ENTITY);

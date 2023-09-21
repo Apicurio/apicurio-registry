@@ -1,6 +1,5 @@
 package io.apicurio.registry.metrics;
 
-import io.apicurio.common.apps.multitenancy.TenantContext;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import org.eclipse.microprofile.context.ThreadContext;
@@ -16,7 +15,6 @@ import static io.apicurio.registry.metrics.MetricsConstants.STORAGE_METHOD_CALL;
 import static io.apicurio.registry.metrics.MetricsConstants.STORAGE_METHOD_CALL_DESCRIPTION;
 import static io.apicurio.registry.metrics.MetricsConstants.STORAGE_METHOD_CALL_TAG_METHOD;
 import static io.apicurio.registry.metrics.MetricsConstants.STORAGE_METHOD_CALL_TAG_SUCCESS;
-import static io.apicurio.registry.metrics.MetricsConstants.STORAGE_METHOD_CALL_TAG_TENANT;
 
 /**
  * Fail readiness check if the duration of processing a artifactStore operation is too high.
@@ -29,9 +27,6 @@ public class StorageMetricsInterceptor {
 
     @Inject
     MeterRegistry registry;
-
-    @Inject
-    TenantContext tenantContext;
 
     @Inject
     ThreadContext threadContext;
@@ -70,7 +65,6 @@ public class StorageMetricsInterceptor {
         Timer timer = Timer
             .builder(STORAGE_METHOD_CALL)
             .description(STORAGE_METHOD_CALL_DESCRIPTION)
-            .tag(STORAGE_METHOD_CALL_TAG_TENANT, this.tenantContext.getTenantIdOrElse(""))
             .tag(STORAGE_METHOD_CALL_TAG_METHOD, getMethodString(method))
             .tag(STORAGE_METHOD_CALL_TAG_SUCCESS, String.valueOf(success))
             .register(registry);

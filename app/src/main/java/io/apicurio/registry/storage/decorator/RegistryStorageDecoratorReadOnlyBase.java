@@ -55,13 +55,6 @@ public abstract class RegistryStorageDecoratorReadOnlyBase implements RegistrySt
         return delegate.storageName();
     }
 
-
-    @Override
-    public boolean supportsMultiTenancy() {
-        return delegate.supportsMultiTenancy();
-    }
-
-
     @Override
     public boolean isReady() {
         return delegate.isReady();

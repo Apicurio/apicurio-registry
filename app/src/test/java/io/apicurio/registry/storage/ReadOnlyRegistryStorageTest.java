@@ -152,7 +152,6 @@ public class ReadOnlyRegistryStorageTest {
                     s.setConfigProperty(dto);
                 })),
                 entry("storageName0", new State(false, RegistryStorage::storageName)),
-                entry("supportsMultiTenancy0", new State(false, RegistryStorage::supportsMultiTenancy)),
                 entry("updateArtifact6", new State(true, s -> s.updateArtifact(null, null, null, null, null, null))),
                 entry("updateArtifactMetaData3", new State(true, s -> s.updateArtifactMetaData(null, null, null))),
                 entry("updateArtifactOwner3", new State(true, s -> s.updateArtifactOwner(null, null, null))),

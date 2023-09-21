@@ -85,10 +85,6 @@ public class AuthConfig {
     @Info(category = "auth", description = "Auth roles source", availableSince = "2.1.0.Final")
     String roleSource;
 
-    @ConfigProperty(name = "registry.auth.tenant-owner-is-admin.enabled", defaultValue = "true")
-    @Info(category = "auth", description = "Auth tenant owner admin enabled", availableSince = "2.1.0.Final")
-    boolean tenantOwnerIsAdminEnabled;
-
     @ConfigProperty(name = "registry.auth.admin-override.enabled", defaultValue = "false")
     @Info(category = "auth", description = "Auth admin override enabled", availableSince = "2.1.0.Final")
     boolean adminOverrideEnabled;
@@ -125,7 +121,6 @@ public class AuthConfig {
             log.debug("   Role Source: " + roleSource);
         }
         log.debug("OBAC Enabled: " + ownerOnlyAuthorizationEnabled);
-        log.debug("Tenant Owner is Admin: " + tenantOwnerIsAdminEnabled);
         log.debug("Admin Override Enabled: " + adminOverrideEnabled);
         if (adminOverrideEnabled) {
             log.debug("   Admin Override from: " + adminOverrideFrom);
@@ -147,10 +142,6 @@ public class AuthConfig {
 
     public boolean isObacEnabled() {
         return this.ownerOnlyAuthorizationEnabled.get();
-    }
-
-    public boolean isTenantOwnerAdminEnabled() {
-        return this.tenantOwnerIsAdminEnabled;
     }
 
     public boolean isAdminOverrideEnabled() {

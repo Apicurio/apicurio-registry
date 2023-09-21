@@ -513,7 +513,7 @@ public interface SqlStatements {
     public String selectGroupByGroupId();
 
     /*
-     * The next few statements support globalId and contentId management, having into account a multitenant environment
+     * The next few statements support globalId and contentId management.
      */
 
     public String getNextSequenceValue();

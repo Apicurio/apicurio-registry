@@ -21,7 +21,6 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import io.apicurio.common.apps.config.Info;
-import io.apicurio.common.apps.multitenancy.TenantContext;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.types.Current;
 import io.quarkus.runtime.StartupEvent;
@@ -37,12 +36,12 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * This class provides a set of per-tenant counters. Counters such as "number of artifacts"
+ * This class provides a set of counters. Counters such as "number of artifacts"
  * This counters have to be "distributed" or at least work in a clustered deployment.
- * Currently this implementation uses {@link Cache} for storing the counters,
+ * Currently, this implementation uses {@link Cache} for storing the counters,
  * it's "auto-eviction" nature allows to re-initialize the counters with information from the database periodically,
  * making it "useful" for clustered deployments.
- *
+ * <p>
  * This implementation is far from perfect, ideally redis or some other externalized cache should be used, but for now
  * this implementation could work, it's extremely simple and it does not require the deployment of external infrastructure.
  *
@@ -64,74 +63,63 @@ public class StorageMetricsStore {
     @Info(category = "limits", description = "Storage metrics cache max size.", availableSince = "2.4.1.Final")
     Long cacheMaxSize;
 
-    @Inject
-    TenantContext tenantContext;
+    private static final String TOTAL_SCHEMAS_KEY = "TOTAL_SCHEMAS";
+    private static final String ARTIFACT_COUNTER = "ARTIFACTS_COUNTER";
 
     @Inject
     @Current
     RegistryStorage storage;
 
     //NOTE all of this could be changed in the future with a global cache shared between all registry replicas
-    private LoadingCache<String, AtomicLong> totalSchemasCounters;
-    private LoadingCache<String, AtomicLong> artifactsCounters;
+    private LoadingCache<String, AtomicLong> countersCache;
     private LoadingCache<ArtifactVersionKey, AtomicLong> artifactVersionsCounters;
 
     CacheLoader<String, AtomicLong> totalSchemaCountersLoader;
-    CacheLoader<String, AtomicLong> artifactsCountersLoader;
     CacheLoader<ArtifactVersionKey, AtomicLong> artifactVersionsCountersLoader;
 
     @EqualsAndHashCode
     private static class ArtifactVersionKey {
-        String tenantId;
         String groupId;
         String artifactId;
     }
 
     public void onStart(@Observes StartupEvent ev) {
-        createTotalSchemasCache();
-        createTotalArtifactsCache();
+        createCountersCache();
         createTotalArtifactVersionsCache();
     }
 
-    private void createTotalSchemasCache() {
+    private void createCountersCache() {
         totalSchemaCountersLoader = new CacheLoader<>() {
             @Override
-            public AtomicLong load(@NotNull String tenantId) {
-                log.info("Initializing total schemas counter, tid {}", tenantContext.tenantId());
-                long count = storage.countTotalArtifactVersions();
-                return new AtomicLong(count); }
+            public AtomicLong load(@NotNull String key) {
+                if (key.equals(TOTAL_SCHEMAS_KEY)) {
+                    log.info("Initializing total schemas counter");
+                    long count = storage.countTotalArtifactVersions();
+                    return new AtomicLong(count);
+                } else {
+                    log.info("Initializing total schemas counter");
+                    long count = storage.countArtifacts();
+                    return new AtomicLong(count);
+                }
+            }
         };
 
-        totalSchemasCounters = CacheBuilder
+        countersCache = CacheBuilder
                 .newBuilder()
                 .expireAfterWrite(limitsCheckPeriod, TimeUnit.MILLISECONDS)
                 .maximumSize(cacheMaxSize)
                 .build(totalSchemaCountersLoader);
     }
 
-    private void createTotalArtifactsCache() {
-        artifactsCountersLoader = new CacheLoader<>() {
-            @Override
-            public AtomicLong load(@NotNull String tenantId) {
-                log.info("Initializing total artifacts counter, tid {}", tenantContext.tenantId());
-                long count = storage.countArtifacts();
-                return new AtomicLong(count); }
-        };
-
-        artifactsCounters = CacheBuilder
-                .newBuilder()
-                .expireAfterWrite(limitsCheckPeriod, TimeUnit.MILLISECONDS)
-                .maximumSize(cacheMaxSize)
-                .build(artifactsCountersLoader);
-    }
 
     private void createTotalArtifactVersionsCache() {
         artifactVersionsCountersLoader = new CacheLoader<>() {
             @Override
             public AtomicLong load(@NotNull ArtifactVersionKey artifactVersionKey) {
-                log.info("Initializing total artifact versions counter for artifact gid {} ai {}, tid {}", artifactVersionKey.groupId, artifactVersionKey.artifactId, tenantContext.tenantId());
+                log.info("Initializing total artifact versions counter for artifact gid {} ai {}", artifactVersionKey.groupId, artifactVersionKey.artifactId);
                 long count = storage.countArtifactVersions(artifactVersionKey.groupId, artifactVersionKey.artifactId);
-                return new AtomicLong(count); }
+                return new AtomicLong(count);
+            }
         };
 
         artifactVersionsCounters = CacheBuilder
@@ -142,16 +130,15 @@ public class StorageMetricsStore {
     }
 
     public long getOrInitializeTotalSchemasCounter() {
-        return totalSchemasCounters.getUnchecked(tenantContext.tenantId()).get();
+        return countersCache.getUnchecked(TOTAL_SCHEMAS_KEY).get();
     }
 
     public long getOrInitializeArtifactsCounter() {
-        return artifactsCounters.getUnchecked(tenantContext.tenantId()).get();
+        return countersCache.getUnchecked(ARTIFACT_COUNTER).get();
     }
 
     public long getOrInitializeArtifactVersionsCounter(String groupId, String artifactId) {
         ArtifactVersionKey avk = new ArtifactVersionKey();
-        avk.tenantId = tenantContext.tenantId();
         avk.groupId = groupId;
         avk.artifactId = artifactId;
 
@@ -159,8 +146,8 @@ public class StorageMetricsStore {
     }
 
     public void incrementTotalSchemasCounter() {
-        log.info("Incrementing total schemas counter, tid {}", tenantContext.tenantId());
-        AtomicLong counter = totalSchemasCounters.getUnchecked(tenantContext.tenantId());
+        log.info("Incrementing total schemas counter");
+        AtomicLong counter = countersCache.getUnchecked(TOTAL_SCHEMAS_KEY);
         if (counter == null) {
             //cached counter expired, do nothing, it will be reloaded from DB on the next read
             return;
@@ -170,7 +157,7 @@ public class StorageMetricsStore {
     }
 
     public void incrementArtifactsCounter() {
-        AtomicLong counter = artifactsCounters.getUnchecked(tenantContext.tenantId());
+        AtomicLong counter = countersCache.getUnchecked(ARTIFACT_COUNTER);
         if (counter == null) {
             //cached counter expired, do nothing, it will be reloaded from DB on the next read
             return;
@@ -181,7 +168,6 @@ public class StorageMetricsStore {
 
     public void incrementArtifactVersionsCounter(String groupId, String artifactId) {
         ArtifactVersionKey avk = new ArtifactVersionKey();
-        avk.tenantId = tenantContext.tenantId();
         avk.groupId = groupId;
         avk.artifactId = artifactId;
         AtomicLong counter = artifactVersionsCounters.getUnchecked(avk);
@@ -194,19 +180,17 @@ public class StorageMetricsStore {
     }
 
     public void resetTotalSchemasCounter() {
-        totalSchemasCounters.invalidate(tenantContext.tenantId());
+        countersCache.invalidate(TOTAL_SCHEMAS_KEY);
     }
 
     public void resetArtifactsCounter() {
-        artifactsCounters.invalidate(tenantContext.tenantId());
+        countersCache.invalidate(ARTIFACT_COUNTER);
     }
 
     public void resetArtifactVersionsCounter(String groupId, String artifactId) {
         ArtifactVersionKey avk = new ArtifactVersionKey();
-        avk.tenantId = tenantContext.tenantId();
         avk.groupId = groupId;
         avk.artifactId = artifactId;
         artifactVersionsCounters.invalidate(avk);
     }
-
 }

@@ -18,13 +18,12 @@ package io.apicurio.registry.rest.v2;
 
 import io.apicurio.common.apps.core.System;
 import io.apicurio.common.apps.logging.Logged;
-import io.apicurio.common.apps.multitenancy.TenantContext;
 import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
-import io.apicurio.registry.mt.limits.RegistryTenantLimitsConfiguration;
+import io.apicurio.registry.limits.RegistryLimitsConfiguration;
 import io.apicurio.registry.rest.v2.beans.Limits;
 import io.apicurio.registry.rest.v2.beans.SystemInfo;
 
@@ -44,7 +43,7 @@ public class SystemResourceImpl implements SystemResource {
     System system;
 
     @Inject
-    TenantContext tctx;
+    RegistryLimitsConfiguration registryLimitsConfiguration;
 
     /**
      * @see io.apicurio.registry.rest.v2.SystemResource#getSystemInfo()
@@ -65,7 +64,7 @@ public class SystemResourceImpl implements SystemResource {
      */
     @Override
     public Limits getResourceLimits() {
-        var limitsConfig = (RegistryTenantLimitsConfiguration) tctx.limitsConfig();
+        var limitsConfig = registryLimitsConfiguration;
         var limits = new Limits();
         limits.setMaxTotalSchemasCount(limitsConfig.getMaxTotalSchemasCount());
         limits.setMaxSchemaSizeBytes(limitsConfig.getMaxSchemaSizeBytes());

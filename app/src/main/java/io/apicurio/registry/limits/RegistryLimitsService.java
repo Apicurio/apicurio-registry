@@ -14,10 +14,8 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.mt.limits;
+package io.apicurio.registry.limits;
 
-import io.apicurio.common.apps.multitenancy.TenantContext;
-import io.apicurio.common.apps.multitenancy.limits.TenantLimitsService;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.metrics.StorageMetricsStore;
@@ -36,7 +34,7 @@ import java.util.function.Function;
  * @author Fabian Martinez
  */
 @ApplicationScoped
-public class RegistryTenantLimitsService implements TenantLimitsService {
+public class RegistryLimitsService {
 
     //FIXME improve error messages
     private static final String MAX_TOTAL_SCHEMAS_EXCEEDED_MSG = "Maximum number of artifact versions exceeded";
@@ -55,24 +53,24 @@ public class RegistryTenantLimitsService implements TenantLimitsService {
     Logger log;
 
     @Inject
-    TenantContext tenantContext;
+    StorageMetricsStore storageMetricsStore;
 
     @Inject
-    StorageMetricsStore storageMetricsStore;
+    RegistryLimitsConfiguration registryLimitsConfiguration;
 
     private LimitsCheckResult checkTotalSchemas() {
 
-        if (isLimitDisabled(RegistryTenantLimitsConfiguration::getMaxTotalSchemasCount)) {
+        if (isLimitDisabled(RegistryLimitsConfiguration::getMaxTotalSchemasCount)) {
             //limits check disabled
             return LimitsCheckResult.ok();
         }
 
         long currentTotalSchemas = storageMetricsStore.getOrInitializeTotalSchemasCounter();
 
-        if (currentTotalSchemas < ((RegistryTenantLimitsConfiguration) tenantContext.limitsConfig()).getMaxTotalSchemasCount()) {
+        if (currentTotalSchemas < registryLimitsConfiguration.getMaxTotalSchemasCount()) {
             return LimitsCheckResult.ok();
         } else {
-            log.debug("Limit reached, current total schemas {} , max total schemas {}", currentTotalSchemas, ((RegistryTenantLimitsConfiguration) tenantContext.limitsConfig()).getMaxTotalSchemasCount());
+            log.debug("Limit reached, current total schemas {} , max total schemas {}", currentTotalSchemas, registryLimitsConfiguration.getMaxTotalSchemasCount());
             return LimitsCheckResult.disallowed(MAX_TOTAL_SCHEMAS_EXCEEDED_MSG);
         }
     }
@@ -94,31 +92,31 @@ public class RegistryTenantLimitsService implements TenantLimitsService {
             return ssr;
         }
 
-        if (isLimitDisabled(RegistryTenantLimitsConfiguration::getMaxArtifactsCount)) {
+        if (isLimitDisabled(RegistryLimitsConfiguration::getMaxArtifactsCount)) {
             //limits check disabled
             return LimitsCheckResult.ok();
         }
 
         long currentArtifacts = storageMetricsStore.getOrInitializeArtifactsCounter();
 
-        if (currentArtifacts < ((RegistryTenantLimitsConfiguration) tenantContext.limitsConfig()).getMaxArtifactsCount()) {
+        if (currentArtifacts < registryLimitsConfiguration.getMaxArtifactsCount()) {
             return LimitsCheckResult.ok();
         } else {
-            log.debug("Limit reached, current artifacts {} , max artifacts allowed {}", currentArtifacts, ((RegistryTenantLimitsConfiguration) tenantContext.limitsConfig()).getMaxArtifactsCount());
+            log.debug("Limit reached, current artifacts {} , max artifacts allowed {}", currentArtifacts, registryLimitsConfiguration.getMaxArtifactsCount());
             return LimitsCheckResult.disallowed(MAX_ARTIFACTS_EXCEEDED_MSG);
         }
     }
 
     private LimitsCheckResult checkSchemaSize(ContentHandle content) {
-        if (isLimitDisabled(RegistryTenantLimitsConfiguration::getMaxSchemaSizeBytes) || content == null) {
+        if (isLimitDisabled(RegistryLimitsConfiguration::getMaxSchemaSizeBytes) || content == null) {
             return LimitsCheckResult.ok();
         }
 
         var size = content.getSizeBytes();
-        if (size <= ((RegistryTenantLimitsConfiguration) tenantContext.limitsConfig()).getMaxSchemaSizeBytes()) {
+        if (size <= registryLimitsConfiguration.getMaxSchemaSizeBytes()) {
             return LimitsCheckResult.ok();
         } else {
-            log.debug("Limit reached, schema size is {} , max schema size is {}", size, ((RegistryTenantLimitsConfiguration) tenantContext.limitsConfig()).getMaxSchemaSizeBytes());
+            log.debug("Limit reached, schema size is {} , max schema size is {}", size, registryLimitsConfiguration.getMaxSchemaSizeBytes());
             return LimitsCheckResult.disallowed(MAX_SCHEMA_SIZE_EXCEEDED_MSG);
         }
     }
@@ -140,17 +138,17 @@ public class RegistryTenantLimitsService implements TenantLimitsService {
             return ssr;
         }
 
-        if (isLimitDisabled(RegistryTenantLimitsConfiguration::getMaxVersionsPerArtifactCount)) {
+        if (isLimitDisabled(RegistryLimitsConfiguration::getMaxVersionsPerArtifactCount)) {
             //limits check disabled
             return LimitsCheckResult.ok();
         }
 
         long currentArtifactVersions = storageMetricsStore.getOrInitializeArtifactVersionsCounter(groupId, artifactId);
 
-        if (currentArtifactVersions < ((RegistryTenantLimitsConfiguration) tenantContext.limitsConfig()).getMaxVersionsPerArtifactCount()) {
+        if (currentArtifactVersions < registryLimitsConfiguration.getMaxVersionsPerArtifactCount()) {
             return LimitsCheckResult.ok();
         } else {
-            log.debug("Limit reached, current versions per artifact for artifact {}/{} {} , max versions per artifacts allowed {}", groupId, artifactId, currentArtifactVersions, ((RegistryTenantLimitsConfiguration) tenantContext.limitsConfig()).getMaxVersionsPerArtifactCount());
+            log.debug("Limit reached, current versions per artifact for artifact {}/{} {} , max versions per artifacts allowed {}", groupId, artifactId, currentArtifactVersions, registryLimitsConfiguration.getMaxVersionsPerArtifactCount());
             return LimitsCheckResult.disallowed(MAX_VERSIONS_PER_ARTIFACT_EXCEEDED_MSG);
         }
     }
@@ -176,38 +174,38 @@ public class RegistryTenantLimitsService implements TenantLimitsService {
     }
 
     public LimitsCheckResult checkMetaData(EditableArtifactMetaDataDto meta) {
-        if (meta == null || ((RegistryTenantLimitsConfiguration) tenantContext.limitsConfig()) == null) {
+        if (meta == null || registryLimitsConfiguration == null) {
             return LimitsCheckResult.ok();
         }
         List<String> errorMessages = new ArrayList<>();
 
         //name is limited at db level to 512 chars
-        if (meta.getName() != null && isLimitEnabled(RegistryTenantLimitsConfiguration::getMaxArtifactNameLengthChars)) {
-            if (meta.getName().length() > ((RegistryTenantLimitsConfiguration) tenantContext.limitsConfig()).getMaxArtifactNameLengthChars()) {
+        if (meta.getName() != null && isLimitEnabled(RegistryLimitsConfiguration::getMaxArtifactNameLengthChars)) {
+            if (meta.getName().length() > registryLimitsConfiguration.getMaxArtifactNameLengthChars()) {
                 errorMessages.add(MAX_NAME_LENGTH_EXCEEDED_MSG);
             }
         }
 
         //description is limited at db level to 1024 chars
-        if (meta.getDescription() != null && isLimitEnabled(RegistryTenantLimitsConfiguration::getMaxArtifactDescriptionLengthChars)) {
+        if (meta.getDescription() != null && isLimitEnabled(RegistryLimitsConfiguration::getMaxArtifactDescriptionLengthChars)) {
 
-            if (meta.getDescription().length() > ((RegistryTenantLimitsConfiguration) tenantContext.limitsConfig()).getMaxArtifactDescriptionLengthChars()) {
+            if (meta.getDescription().length() > registryLimitsConfiguration.getMaxArtifactDescriptionLengthChars()) {
                 errorMessages.add(MAX_DESC_LENGTH_EXCEEDED_MSG);
             }
         }
 
         if (meta.getLabels() != null) {
-            if (isLimitEnabled(RegistryTenantLimitsConfiguration::getMaxArtifactLabelsCount) &&
-                    meta.getLabels().size() > ((RegistryTenantLimitsConfiguration) tenantContext.limitsConfig()).getMaxArtifactLabelsCount()) {
+            if (isLimitEnabled(RegistryLimitsConfiguration::getMaxArtifactLabelsCount) &&
+                    meta.getLabels().size() > registryLimitsConfiguration.getMaxArtifactLabelsCount()) {
 
                 errorMessages.add(MAX_LABELS_EXCEEDED_MSG);
 
-            } else if (isLimitEnabled(RegistryTenantLimitsConfiguration::getMaxLabelSizeBytes)) {
+            } else if (isLimitEnabled(RegistryLimitsConfiguration::getMaxLabelSizeBytes)) {
 
                 meta.getLabels().forEach(l -> {
 
                     if (l.getBytes(StandardCharsets.UTF_8).length >
-                            ((RegistryTenantLimitsConfiguration) tenantContext.limitsConfig()).getMaxLabelSizeBytes()) {
+                            registryLimitsConfiguration.getMaxLabelSizeBytes()) {
                         errorMessages.add(MAX_LABEL_SIZE_EXCEEDED_MSG);
                     }
                 });
@@ -215,23 +213,23 @@ public class RegistryTenantLimitsService implements TenantLimitsService {
         }
 
         if (meta.getProperties() != null) {
-            if (isLimitEnabled(RegistryTenantLimitsConfiguration::getMaxArtifactPropertiesCount) &&
-                    meta.getProperties().size() > ((RegistryTenantLimitsConfiguration) tenantContext.limitsConfig()).getMaxArtifactPropertiesCount()) {
+            if (isLimitEnabled(RegistryLimitsConfiguration::getMaxArtifactPropertiesCount) &&
+                    meta.getProperties().size() > registryLimitsConfiguration.getMaxArtifactPropertiesCount()) {
 
                 errorMessages.add(MAX_PROPERTIES_EXCEEDED_MSG);
 
-            } else if (isLimitEnabled(RegistryTenantLimitsConfiguration::getMaxPropertyKeySizeBytes) ||
-                    isLimitEnabled(RegistryTenantLimitsConfiguration::getMaxPropertyValueSizeBytes)){
+            } else if (isLimitEnabled(RegistryLimitsConfiguration::getMaxPropertyKeySizeBytes) ||
+                    isLimitEnabled(RegistryLimitsConfiguration::getMaxPropertyValueSizeBytes)){
 
                 meta.getProperties().entrySet().forEach(e -> {
 
-                    if (isLimitEnabled(RegistryTenantLimitsConfiguration::getMaxPropertyKeySizeBytes) &&
-                            e.getKey().length() > ((RegistryTenantLimitsConfiguration) tenantContext.limitsConfig()).getMaxPropertyKeySizeBytes()) {
+                    if (isLimitEnabled(RegistryLimitsConfiguration::getMaxPropertyKeySizeBytes) &&
+                            e.getKey().length() > registryLimitsConfiguration.getMaxPropertyKeySizeBytes()) {
                         errorMessages.add(MAX_PROP_KEY_SIZE_EXCEEDED_MSG);
                     }
 
-                    if (isLimitEnabled(RegistryTenantLimitsConfiguration::getMaxPropertyValueSizeBytes) &&
-                            e.getValue().length() > ((RegistryTenantLimitsConfiguration) tenantContext.limitsConfig()).getMaxPropertyValueSizeBytes()) {
+                    if (isLimitEnabled(RegistryLimitsConfiguration::getMaxPropertyValueSizeBytes) &&
+                            e.getValue().length() > registryLimitsConfiguration.getMaxPropertyValueSizeBytes()) {
                         errorMessages.add(MAX_PROP_VALUE_SIZE_EXCEEDED_MSG);
                     }
                 });
@@ -245,9 +243,9 @@ public class RegistryTenantLimitsService implements TenantLimitsService {
         }
     }
 
-    private boolean isLimitEnabled(Function<RegistryTenantLimitsConfiguration, Long> limitGetter) {
-        if (((RegistryTenantLimitsConfiguration) tenantContext.limitsConfig()) != null) {
-            Long limit = limitGetter.apply(((RegistryTenantLimitsConfiguration) tenantContext.limitsConfig()));
+    private boolean isLimitEnabled(Function<RegistryLimitsConfiguration, Long> limitGetter) {
+        if (registryLimitsConfiguration != null) {
+            Long limit = limitGetter.apply(registryLimitsConfiguration);
             if (limit != null && limit >= 0) {
                 return true;
             }
@@ -255,7 +253,7 @@ public class RegistryTenantLimitsService implements TenantLimitsService {
         return false;
     }
 
-    private boolean isLimitDisabled(Function<RegistryTenantLimitsConfiguration, Long> limitGetter) {
+    private boolean isLimitDisabled(Function<RegistryLimitsConfiguration, Long> limitGetter) {
         return !isLimitEnabled(limitGetter);
     }
 

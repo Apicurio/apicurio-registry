@@ -27,7 +27,6 @@ public class ConfigJsFeatures {
     public boolean readOnly;
     public boolean settings;
     public boolean breadcrumbs;
-    public boolean multiTenant;
     public boolean roleManagement;
 
 }

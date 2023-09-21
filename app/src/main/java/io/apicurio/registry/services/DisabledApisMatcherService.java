@@ -17,7 +17,6 @@
 package io.apicurio.registry.services;
 
 import io.apicurio.common.apps.config.Info;
-import io.apicurio.common.apps.multitenancy.MultitenancyProperties;
 import io.quarkus.runtime.StartupEvent;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Observes;
@@ -41,13 +40,8 @@ public class DisabledApisMatcherService {
     Logger log;
 
     private static final String UI_PATTERN = "/ui/.*";
-    //private static final String APIS_PATTERN = "/apis/.*";
-    //private static final String API_PATTERN = "/api/.*";
 
     private final List<Pattern> disabledPatternsList = new ArrayList<>();
-
-    @Inject
-    MultitenancyProperties mtProperties;
 
     @Inject
     @ConfigProperty(name = "registry.disable.apis")
@@ -57,11 +51,7 @@ public class DisabledApisMatcherService {
     public void init(@Observes StartupEvent ev) {
 
         List<String> regexps = new ArrayList<>();
-        // TODO Both the UI and the default tenant is disabled in Standalone Multitenancy mode
-        if (mtProperties.isMultitenancyEnabled()/* && !mtProperties.isStandaloneMultitenancyEnabled()*/) {
-            log.debug("Adding UI to disabled APIs, direct access to UI is disabled in multitenancy deployments");
-            regexps.add(UI_PATTERN);
-        }
+
         disableRegexps.ifPresent(regexps::addAll);
         for (String regexp : regexps) {
             try {

@@ -46,7 +46,6 @@ public class RegistryStorageConfigCache extends RegistryStorageDecoratorBase imp
     @Inject
     Logger log;
 
-
     @ConfigProperty(name = "registry.config.cache.enabled", defaultValue = "true")
     @Info(category = "cache", description = "Registry cache enabled", availableSince = "2.2.2.Final")
     boolean enabled;

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.mt.limits;
+package io.apicurio.registry.limits;
 
 import io.apicurio.registry.types.RegistryException;
 

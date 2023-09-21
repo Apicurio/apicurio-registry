@@ -28,7 +28,7 @@ import java.time.Instant;
 import static io.quarkus.scheduler.Scheduled.ConcurrentExecution.SKIP;
 
 /**
- * Periodically cleanup data of tenants marked as deleted.
+ * Periodically cleanup data of downloads marked as deleted.
  *
  * @author Jakub Senko <em>m@jsenko.net</em>
  */

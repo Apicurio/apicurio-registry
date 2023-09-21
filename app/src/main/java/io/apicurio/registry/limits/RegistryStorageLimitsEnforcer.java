@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.mt.limits;
+package io.apicurio.registry.limits;
 
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.storage.RegistryStorage;
@@ -51,10 +51,10 @@ public class RegistryStorageLimitsEnforcer extends RegistryStorageDecoratorBase 
     ThreadContext threadContext;
 
     @Inject
-    RegistryTenantLimitsService limitsService;
+    RegistryLimitsService limitsService;
 
     @Inject
-    RegistryTenantLimitsConfigurationService limitsConfiguration;
+    RegistryLimitsConfigurationProducer limitsConfiguration;
 
     /**
      * @see io.apicurio.registry.storage.decorator.RegistryStorageDecorator#isEnabled()

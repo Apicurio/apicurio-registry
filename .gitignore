@@ -23,7 +23,6 @@ website
 **/bin
 
 apicurio-codegen
-/multitenancy/
 /docs/.jbang/
 
 python-sdk/dist

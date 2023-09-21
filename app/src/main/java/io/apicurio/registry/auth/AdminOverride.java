@@ -16,8 +16,6 @@
 
 package io.apicurio.registry.auth;
 
-import io.apicurio.common.apps.multitenancy.MultitenancyProperties;
-import io.apicurio.common.apps.multitenancy.TenantContext;
 import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Instance;
@@ -42,11 +40,6 @@ public class AdminOverride {
     Instance<JsonWebToken> jsonWebToken;
 
     public boolean isAdmin() {
-        // When multi-tenancy is enabled, the owner of the tenant is always an admin.
-        if (authConfig.isTenantOwnerAdminEnabled()) {
-            return true;
-        }
-
         if (!authConfig.adminOverrideEnabled) {
             return false;
         }

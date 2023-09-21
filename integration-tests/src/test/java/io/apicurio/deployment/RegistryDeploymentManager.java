@@ -45,10 +45,6 @@ import static io.apicurio.deployment.KubernetesTestResources.APPLICATION_SERVICE
 import static io.apicurio.deployment.KubernetesTestResources.E2E_NAMESPACE_RESOURCE;
 import static io.apicurio.deployment.KubernetesTestResources.KEYCLOAK_RESOURCES;
 import static io.apicurio.deployment.KubernetesTestResources.REGISTRY_OPENSHIFT_ROUTE;
-import static io.apicurio.deployment.KubernetesTestResources.TENANT_MANAGER_DATABASE;
-import static io.apicurio.deployment.KubernetesTestResources.TENANT_MANAGER_OPENSHIFT_ROUTE;
-import static io.apicurio.deployment.KubernetesTestResources.TENANT_MANAGER_RESOURCES;
-import static io.apicurio.deployment.KubernetesTestResources.TENANT_MANAGER_SERVICE;
 import static io.apicurio.deployment.KubernetesTestResources.TEST_NAMESPACE;
 
 public class RegistryDeploymentManager implements TestExecutionListener {
@@ -129,16 +125,10 @@ public class RegistryDeploymentManager implements TestExecutionListener {
     }
 
     static void prepareTestsInfra(String externalResources, String registryResources, boolean startKeycloak, String
-            registryImage, boolean startTenantManager) throws IOException {
+            registryImage) throws IOException {
         if (startKeycloak) {
             LOGGER.info("Deploying Keycloak resources ##################################################");
             deployResource(KEYCLOAK_RESOURCES);
-        }
-
-        if (startTenantManager) {
-            LOGGER.info("Deploying Tenant Manager resources ##################################################");
-            deployResource(TENANT_MANAGER_DATABASE);
-            deployResource(TENANT_MANAGER_RESOURCES);
         }
 
         if (externalResources != null) {
@@ -168,10 +158,10 @@ public class RegistryDeploymentManager implements TestExecutionListener {
         kubernetesClient.pods()
                 .inNamespace(TEST_NAMESPACE).waitUntilReady(360, TimeUnit.SECONDS);
 
-        setupTestNetworking(startTenantManager);
+        setupTestNetworking();
     }
 
-    private static void setupTestNetworking(boolean startTenantManager) {
+    private static void setupTestNetworking() {
         if (Constants.TEST_PROFILE.equals(Constants.UI)) {
             //In the UI tests we use a port forward to make the application available to the testsuite.
             registryPortForward = kubernetesClient.services()
@@ -196,25 +186,11 @@ public class RegistryDeploymentManager implements TestExecutionListener {
                     LOGGER.warn("The registry route already exists: ", ex);
                 }
 
-                try {
-                    final Route tenantManagerRoute = openShiftClient.routes()
-                            .load(RegistryDeploymentManager.class.getResourceAsStream(TENANT_MANAGER_OPENSHIFT_ROUTE))
-                            .create();
-
-                    System.setProperty("tenant.manager.external.endpoint", tenantManagerRoute.getSpec().getHost());
-                } catch (Exception ex) {
-                    LOGGER.warn("The tenant manger route already exists: ", ex);
-                }
 
             } else {
                 //If we're running the cluster tests but no external endpoint has been provided, set the value of the load balancer.
                 if (System.getProperty("quarkus.http.test-host").equals("localhost")) {
                     System.setProperty("quarkus.http.test-host", kubernetesClient.services().inNamespace(TEST_NAMESPACE).withName(APPLICATION_SERVICE).get().getSpec().getClusterIP());
-                }
-
-                //If we're running the cluster tests but no external endpoint has been provided, set the value of the load balancer.
-                if (startTenantManager && System.getProperty("tenant.manager.external.endpoint") == null) {
-                    System.setProperty("tenant.manager.external.endpoint", kubernetesClient.services().inNamespace(TEST_NAMESPACE).withName(TENANT_MANAGER_SERVICE).get().getSpec().getClusterIP());
                 }
             }
         }

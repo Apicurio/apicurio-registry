@@ -305,14 +305,6 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
         }
     }
 
-    public static String getTenantManagerUrl() {
-        if (System.getProperty("tenant.manager.external.endpoint") != null) {
-            return String.format("http://%s:%s", System.getProperty("tenant.manager.external.endpoint"), 8585);
-        }
-
-        return "http://localhost:8585";
-    }
-
     public static String getKeycloakBaseUrl() {
         if (System.getProperty("keycloak.external.endpoint") != null) {
             return String.format("http://%s:%s", System.getProperty("keycloak.external.endpoint"), 8090);

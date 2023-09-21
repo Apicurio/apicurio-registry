@@ -1025,7 +1025,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
      * e.g. in actual http request
      */
     private String getContentType() {
-        return request.getContentType();
+        return getRequest().getContentType();
     }
 
     private static final void requireParameter(String parameterName, Object parameterValue) {

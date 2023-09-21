@@ -16,7 +16,6 @@
 
 package io.apicurio.registry;
 
-import static io.apicurio.registry.rest.v2.V2ApiUtil.defaultGroupIdToNull;
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.equalTo;
 
@@ -287,7 +286,7 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
             references = Collections.emptyList();
         }
         return references.stream()
-                .peek(r -> r.setGroupId(defaultGroupIdToNull(r.getGroupId())))
+                .peek(r -> r.setGroupId(V2ApiUtil.defaultGroupIdToNull(r.getGroupId())))
                 .map(V2ApiUtil::referenceToDto)
                 .collect(Collectors.toList());
     }

@@ -23,37 +23,29 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
-import jakarta.interceptor.Interceptors;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.ws.rs.BadRequestException;
-import jakarta.ws.rs.core.Context;
-
 import org.apache.commons.codec.digest.DigestUtils;
-import org.slf4j.Logger;
 
+import io.apicurio.common.apps.logging.Logged;
 import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.canon.ContentCanonicalizer;
-import io.apicurio.common.apps.logging.Logged;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.rest.v3.beans.ArtifactSearchResults;
 import io.apicurio.registry.rest.v3.beans.SortBy;
 import io.apicurio.registry.rest.v3.beans.SortOrder;
-import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
 import io.apicurio.registry.storage.dto.OrderBy;
 import io.apicurio.registry.storage.dto.OrderDirection;
 import io.apicurio.registry.storage.dto.SearchFilter;
-import io.apicurio.registry.types.Current;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
-import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 import io.apicurio.registry.util.ContentTypeUtil;
 import io.apicurio.registry.utils.StringUtil;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.interceptor.Interceptors;
+import jakarta.ws.rs.BadRequestException;
 
 /**
  * @author eric.wittmann@gmail.com
@@ -61,23 +53,10 @@ import io.apicurio.registry.utils.StringUtil;
 @ApplicationScoped
 @Interceptors({ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class})
 @Logged
-public class SearchResourceImpl implements SearchResource {
+public class SearchResourceImpl extends AbstractResourceImpl implements SearchResource {
 
     private static final String EMPTY_CONTENT_ERROR_MESSAGE = "Empty content is not allowed.";
     private static final String CANONICAL_QUERY_PARAM_ERROR_MESSAGE = "When setting 'canonical' to 'true', the 'artifactType' query parameter is also required.";
-
-    @Inject
-    Logger log;
-
-    @Inject
-    @Current
-    RegistryStorage storage;
-
-    @Inject
-    ArtifactTypeUtilProviderFactory factory;
-
-    @Context
-    HttpServletRequest request;
 
     /**
      * @see io.apicurio.registry.rest.v3.SearchResource#searchArtifacts(java.lang.String, java.lang.Integer, java.lang.Integer, io.apicurio.registry.rest.v3.beans.SortOrder, io.apicurio.registry.rest.v3.beans.SortBy, java.util.List, java.util.List, java.lang.String, java.lang.String, java.lang.Long, java.lang.Long)
@@ -198,7 +177,7 @@ public class SearchResourceImpl implements SearchResource {
      * e.g. in actual http request
      */
     private String getContentType() {
-        return request.getContentType();
+        return getRequest().getContentType();
     }
 
     private String sha256Hash(ContentHandle chandle) {

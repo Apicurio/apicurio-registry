@@ -22,11 +22,9 @@ import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
-import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.DownloadContextDto;
 import io.apicurio.registry.storage.dto.DownloadContextType;
 import io.apicurio.registry.storage.error.DownloadNotFoundException;
-import io.apicurio.registry.types.Current;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.interceptor.Interceptors;
@@ -43,11 +41,7 @@ import jakarta.ws.rs.core.Response;
 @Interceptors({ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class})
 @Logged
 @Path("/apis/registry/v3/downloads")
-public class DownloadsResourceImpl {
-
-    @Inject
-    @Current
-    RegistryStorage storage;
+public class DownloadsResourceImpl extends AbstractResourceImpl {
 
     @Inject
     io.apicurio.registry.rest.shared.DataExporter exporter;

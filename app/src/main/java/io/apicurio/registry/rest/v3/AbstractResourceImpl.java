@@ -24,10 +24,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import jakarta.inject.Inject;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.ws.rs.core.Context;
-
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 
@@ -35,6 +31,7 @@ import io.apicurio.common.apps.config.Info;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.dereference.ContentDereferencer;
 import io.apicurio.registry.content.refs.JsonPointerExternalReference;
+import io.apicurio.registry.rest.RequestAccessor;
 import io.apicurio.registry.rest.v3.beans.HandleReferencesType;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
@@ -42,6 +39,9 @@ import io.apicurio.registry.types.Current;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 import io.apicurio.registry.utils.StringUtil;
+import jakarta.inject.Inject;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.ws.rs.core.Context;
 
 /**
  * @author eric.wittmann@gmail.com
@@ -59,11 +59,24 @@ public abstract class AbstractResourceImpl {
     ArtifactTypeUtilProviderFactory factory;
 
     @Context
-    HttpServletRequest request;
+    private HttpServletRequest _request;
+    
+    @Inject
+    private RequestAccessor requestAccessor;
 
     @ConfigProperty(name = "registry.apis.v3.base-href", defaultValue = "_")
     @Info(category = "api", description = "API base href (URI)", availableSince = "2.5.0.Final")
     String apiBaseHref;
+    
+    /**
+     * Gets the currently in-scope HTTP request.
+     */
+    protected HttpServletRequest getRequest() {
+        if (_request != null) {
+            return _request;
+        }
+        return requestAccessor.getRequest();
+    }
 
     /**
      * Handle the content references based on the value of "HandleReferencesType" - this can either mean
@@ -124,9 +137,9 @@ public abstract class AbstractResourceImpl {
             if (!"_".equals(apiBaseHref)) {
                 baseHref = new URI(apiBaseHref);
             } else {
-                baseHref = getApiBaseHrefFromXForwarded(request);
+                baseHref = getApiBaseHrefFromXForwarded(getRequest());
                 if (baseHref == null) {
-                    baseHref = getApiBaseHrefFromRequest(request);
+                    baseHref = getApiBaseHrefFromRequest(getRequest());
                 }
             }
         } catch (URISyntaxException e) {

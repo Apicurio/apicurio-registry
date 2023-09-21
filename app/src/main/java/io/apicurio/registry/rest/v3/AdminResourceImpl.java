@@ -16,7 +16,36 @@
 
 package io.apicurio.registry.rest.v3;
 
-import io.apicurio.common.apps.config.*;
+import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_FOR_BROWSER;
+import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_NAME;
+import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_PRINCIPAL_ID;
+import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_ROLE_MAPPING;
+import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_RULE;
+import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_RULE_TYPE;
+import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_UPDATE_ROLE;
+import static io.apicurio.registry.util.DtoUtil.appAuthPropertyToRegistry;
+import static io.apicurio.registry.util.DtoUtil.registryAuthPropertyToApp;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import java.util.zip.ZipInputStream;
+
+import org.eclipse.microprofile.config.Config;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.slf4j.Logger;
+
+import io.apicurio.common.apps.config.Dynamic;
+import io.apicurio.common.apps.config.DynamicConfigPropertyDef;
+import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
+import io.apicurio.common.apps.config.DynamicConfigPropertyIndex;
+import io.apicurio.common.apps.config.Info;
 import io.apicurio.common.apps.logging.Logged;
 import io.apicurio.common.apps.logging.audit.Audited;
 import io.apicurio.registry.auth.Authorized;
@@ -27,7 +56,13 @@ import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.rest.MissingRequiredParameterException;
 import io.apicurio.registry.rest.shared.DataExporter;
-import io.apicurio.registry.rest.v3.beans.*;
+import io.apicurio.registry.rest.v3.beans.ArtifactTypeInfo;
+import io.apicurio.registry.rest.v3.beans.ConfigurationProperty;
+import io.apicurio.registry.rest.v3.beans.DownloadRef;
+import io.apicurio.registry.rest.v3.beans.RoleMapping;
+import io.apicurio.registry.rest.v3.beans.Rule;
+import io.apicurio.registry.rest.v3.beans.UpdateConfigurationProperty;
+import io.apicurio.registry.rest.v3.beans.UpdateRole;
 import io.apicurio.registry.rules.DefaultRuleDeletionException;
 import io.apicurio.registry.rules.RulesProperties;
 import io.apicurio.registry.storage.RegistryStorage;
@@ -48,28 +83,8 @@ import io.apicurio.registry.utils.impexp.EntityReader;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.interceptor.Interceptors;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
-import org.eclipse.microprofile.config.Config;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
-import org.slf4j.Logger;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-import java.util.zip.ZipInputStream;
-
-import static io.apicurio.common.apps.logging.audit.AuditingConstants.*;
-import static io.apicurio.registry.util.DtoUtil.appAuthPropertyToRegistry;
-import static io.apicurio.registry.util.DtoUtil.registryAuthPropertyToApp;
 
 /**
  * @author eric.wittmann@gmail.com
@@ -77,7 +92,7 @@ import static io.apicurio.registry.util.DtoUtil.registryAuthPropertyToApp;
 @ApplicationScoped
 @Interceptors({ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class})
 @Logged
-public class AdminResourceImpl implements AdminResource {
+public class AdminResourceImpl extends AbstractResourceImpl implements AdminResource {
 
     @Inject
     Logger log;
@@ -100,9 +115,6 @@ public class AdminResourceImpl implements AdminResource {
 
     @Inject
     DataExporter exporter;
-
-    @Context
-    HttpServletRequest request;
 
     @Dynamic(label = "Download link expiry", description = "The number of seconds that a generated link to a .zip download file is active before expiring.")
     @ConfigProperty(name = "registry.download.href.ttl", defaultValue = "30")
@@ -279,7 +291,7 @@ public class AdminResourceImpl implements AdminResource {
     @Audited(extractParameters = {"0", KEY_FOR_BROWSER})
     @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
     public Response exportData(Boolean forBrowser) {
-        String acceptHeader = request.getHeader("Accept");
+        String acceptHeader = getRequest().getHeader("Accept");
         if (Boolean.TRUE.equals(forBrowser) || MediaType.APPLICATION_JSON.equals(acceptHeader)) {
             long expires = System.currentTimeMillis() + (downloadHrefTtl.get() * 1000);
             DownloadContextDto downloadCtx = DownloadContextDto.builder().type(DownloadContextType.EXPORT).expires(expires).build();

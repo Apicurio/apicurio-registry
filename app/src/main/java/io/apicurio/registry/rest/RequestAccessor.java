@@ -14,31 +14,29 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.rest.v2;
+package io.apicurio.registry.rest;
 
-import org.slf4j.Logger;
-
-import io.apicurio.registry.rest.RequestAccessor;
-import jakarta.inject.Inject;
+import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.ws.rs.core.Context;
 
 /**
  * @author eric.wittmann@gmail.com
  */
-public abstract class AbstractResourceImpl {
+@ApplicationScoped
+public class RequestAccessor {
     
-    @Inject
-    Logger log;
+    private static final ThreadLocal<HttpServletRequest> local = new ThreadLocal<>();
+
+    public HttpServletRequest getRequest() {
+        return local.get();
+    }
     
-    @Context
-    private HttpServletRequest request;
+    public void setRequest(HttpServletRequest request) {
+        local.set(request);
+    }
     
-    @Inject
-    private RequestAccessor requestAccessor;
-    
-    protected void requireHttpServletRequest() {
-        requestAccessor.setRequest(request);
+    public void clearRequest(HttpServletRequest request) {
+        local.set(null);
     }
 
 }

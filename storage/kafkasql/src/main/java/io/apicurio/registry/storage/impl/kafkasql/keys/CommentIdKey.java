@@ -25,7 +25,7 @@ import java.util.UUID;
  * @author eric.wittmann@gmail.com
  */
 @RegisterForReflection
-public class CommentIdKey extends AbstractMessageKey {
+public class CommentIdKey implements MessageKey {
 
     private static final String COMMENT_ID_PARTITION_KEY = "__apicurio_registry_comment_id__";
 
@@ -34,13 +34,9 @@ public class CommentIdKey extends AbstractMessageKey {
     /**
      * Creator method.
      *
-     * @param tenantId
-     * @param ruleType
      */
-    public static final CommentIdKey create(String tenantId) {
-        CommentIdKey key = new CommentIdKey();
-        key.setTenantId(tenantId);
-        return key;
+    public static final CommentIdKey create() {
+        return new CommentIdKey();
     }
 
     /**
@@ -56,7 +52,7 @@ public class CommentIdKey extends AbstractMessageKey {
      */
     @Override
     public String getPartitionKey() {
-        return getTenantId() + COMMENT_ID_PARTITION_KEY;
+        return COMMENT_ID_PARTITION_KEY;
     }
 
     public String getUuid() {

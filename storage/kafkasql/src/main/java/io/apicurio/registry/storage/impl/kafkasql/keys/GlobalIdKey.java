@@ -25,7 +25,7 @@ import java.util.UUID;
  * @author eric.wittmann@gmail.com
  */
 @RegisterForReflection
-public class GlobalIdKey extends AbstractMessageKey {
+public class GlobalIdKey implements MessageKey {
 
     private static final String GLOBAL_ID_PARTITION_KEY = "__apicurio_registry_global_id__";
 
@@ -33,14 +33,9 @@ public class GlobalIdKey extends AbstractMessageKey {
 
     /**
      * Creator method.
-     *
-     * @param tenantId
-     * @param ruleType
      */
-    public static final GlobalIdKey create(String tenantId) {
-        GlobalIdKey key = new GlobalIdKey();
-        key.setTenantId(tenantId);
-        return key;
+    public static final GlobalIdKey create() {
+        return new GlobalIdKey();
     }
 
     /**
@@ -56,7 +51,7 @@ public class GlobalIdKey extends AbstractMessageKey {
      */
     @Override
     public String getPartitionKey() {
-        return getTenantId() + GLOBAL_ID_PARTITION_KEY;
+        return GLOBAL_ID_PARTITION_KEY;
     }
 
     public String getUuid() {

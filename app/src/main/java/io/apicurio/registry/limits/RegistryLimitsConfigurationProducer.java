@@ -23,8 +23,6 @@ import jakarta.ws.rs.Produces;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 
-import jakarta.annotation.PostConstruct;
-
 /**
  * @author Fabian Martinez
  */

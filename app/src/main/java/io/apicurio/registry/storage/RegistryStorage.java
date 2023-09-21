@@ -707,7 +707,7 @@ public interface RegistryStorage extends DynamicConfigStorage {
     void deleteRoleMapping(String principalId) throws RegistryStorageException;
 
     /**
-     * Deletes ALL user (tenant) data. Does not delete global data, such as log configuration.
+     * Deletes ALL user data. Does not delete global data, such as log configuration.
      */
     void deleteAllUserData();
 

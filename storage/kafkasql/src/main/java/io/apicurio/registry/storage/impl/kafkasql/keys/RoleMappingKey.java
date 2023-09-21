@@ -23,7 +23,7 @@ import io.quarkus.runtime.annotations.RegisterForReflection;
  * @author eric.wittmann@gmail.com
  */
 @RegisterForReflection
-public class RoleMappingKey extends AbstractMessageKey {
+public class RoleMappingKey implements MessageKey {
 
     private static final String ROLE_MAPPING_PARTITION_KEY = "__apicurio_registry_role_mapping__";
 
@@ -31,12 +31,10 @@ public class RoleMappingKey extends AbstractMessageKey {
 
     /**
      * Creator method.
-     * @param tenantId
      * @param principalId
      */
-    public static final RoleMappingKey create(String tenantId, String principalId) {
+    public static final RoleMappingKey create(String principalId) {
         RoleMappingKey key = new RoleMappingKey();
-        key.setTenantId(tenantId);
         key.setString(principalId);
         return key;
     }
@@ -54,7 +52,7 @@ public class RoleMappingKey extends AbstractMessageKey {
      */
     @Override
     public String getPartitionKey() {
-        return getTenantId() + ROLE_MAPPING_PARTITION_KEY;
+        return ROLE_MAPPING_PARTITION_KEY;
     }
 
     /**

@@ -2,9 +2,6 @@ package io.apicurio.registry.storage.impl.kafkasql.sql;
 
 import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
 import io.apicurio.common.apps.logging.Logged;
-import io.apicurio.common.apps.multitenancy.ApicurioTenantContext;
-import io.apicurio.common.apps.multitenancy.TenantContext;
-import io.apicurio.common.apps.multitenancy.TenantContextLoader;
 import io.apicurio.registry.storage.dto.ArtifactOwnerDto;
 import io.apicurio.registry.storage.dto.GroupMetaDataDto;
 import io.apicurio.registry.storage.error.ArtifactAlreadyExistsException;
@@ -48,12 +45,6 @@ public class KafkaSqlSink {
 
     @Inject
     KafkaSqlSubmitter submitter;
-
-    @Inject
-    TenantContext tenantContext;
-
-    @Inject
-    TenantContextLoader tcl;
 
     /**
      * Called by the {@link KafkaSqlRegistryStorage} main Kafka consumer loop to process a single
@@ -112,51 +103,41 @@ public class KafkaSqlSink {
         MessageKey key = record.key();
         MessageValue value = record.value();
 
-        String tenantId = key.getTenantId();
-        if (tenantId != null) {
-            ApicurioTenantContext tctx = tcl.loadBatchJobContext(tenantId);
-            tenantContext.setContext(tctx);
-        }
-        try {
-            MessageType messageType = key.getType();
-            switch (messageType) {
-                case Group:
-                    return processGroupMessage((GroupKey) key, (GroupValue) value);
-                case Artifact:
-                    return processArtifactMessage((ArtifactKey) key, (ArtifactValue) value);
-                case ArtifactRule:
-                    return processArtifactRuleMessage((ArtifactRuleKey) key, (ArtifactRuleValue) value);
-                case ArtifactVersion:
-                    return processArtifactVersion((ArtifactVersionKey) key, (ArtifactVersionValue) value);
-                case Content:
-                    return processContent((ContentKey) key, (ContentValue) value);
-                case GlobalRule:
-                    return processGlobalRule((GlobalRuleKey) key, (GlobalRuleValue) value);
-                case GlobalId:
-                    return processGlobalId((GlobalIdKey) key, (GlobalIdValue) value);
-                case ContentId:
-                    return processContentId((ContentIdKey) key, (ContentIdValue) value);
-                case RoleMapping:
-                    return processRoleMapping((RoleMappingKey) key, (RoleMappingValue) value);
-                case GlobalAction:
-                    return processGlobalAction((GlobalActionKey) key, (GlobalActionValue) value);
-                case Download:
-                    return processDownload((DownloadKey) key, (DownloadValue) value);
-                case ConfigProperty:
-                    return processConfigProperty((ConfigPropertyKey) key, (ConfigPropertyValue) value);
-                case ArtifactOwner:
-                    return processArtifactOwnerMessage((ArtifactOwnerKey) key, (ArtifactOwnerValue) value);
-                case CommentId:
-                    return processCommentId((CommentIdKey) key, (CommentIdValue) value);
-                case Comment:
-                    return processComment((CommentKey) key, (CommentValue) value);
-                default:
-                    log.warn("Unrecognized message type: {}", record.key());
-                    throw new RegistryStorageException("Unexpected message type: " + messageType.name());
-            }
-        } finally {
-            log.debug("Clearing tenant id after message processed");
-            tenantContext.clearContext();
+        MessageType messageType = key.getType();
+        switch (messageType) {
+            case Group:
+                return processGroupMessage((GroupKey) key, (GroupValue) value);
+            case Artifact:
+                return processArtifactMessage((ArtifactKey) key, (ArtifactValue) value);
+            case ArtifactRule:
+                return processArtifactRuleMessage((ArtifactRuleKey) key, (ArtifactRuleValue) value);
+            case ArtifactVersion:
+                return processArtifactVersion((ArtifactVersionKey) key, (ArtifactVersionValue) value);
+            case Content:
+                return processContent((ContentKey) key, (ContentValue) value);
+            case GlobalRule:
+                return processGlobalRule((GlobalRuleKey) key, (GlobalRuleValue) value);
+            case GlobalId:
+                return processGlobalId((GlobalIdKey) key, (GlobalIdValue) value);
+            case ContentId:
+                return processContentId((ContentIdKey) key, (ContentIdValue) value);
+            case RoleMapping:
+                return processRoleMapping((RoleMappingKey) key, (RoleMappingValue) value);
+            case GlobalAction:
+                return processGlobalAction((GlobalActionKey) key, (GlobalActionValue) value);
+            case Download:
+                return processDownload((DownloadKey) key, (DownloadValue) value);
+            case ConfigProperty:
+                return processConfigProperty((ConfigPropertyKey) key, (ConfigPropertyValue) value);
+            case ArtifactOwner:
+                return processArtifactOwnerMessage((ArtifactOwnerKey) key, (ArtifactOwnerValue) value);
+            case CommentId:
+                return processCommentId((CommentIdKey) key, (CommentIdValue) value);
+            case Comment:
+                return processComment((CommentKey) key, (CommentValue) value);
+            default:
+                log.warn("Unrecognized message type: {}", record.key());
+                throw new RegistryStorageException("Unexpected message type: " + messageType.name());
         }
     }
 

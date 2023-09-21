@@ -30,7 +30,6 @@ import jakarta.ws.rs.core.MediaType;
 import org.slf4j.Logger;
 
 import java.io.IOException;
-import java.util.Optional;
 
 /**
  * This Servlet Filter combines various functionalities that can be configured using config properties:

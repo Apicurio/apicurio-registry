@@ -23,18 +23,16 @@ import io.quarkus.runtime.annotations.RegisterForReflection;
  * @author eric.wittmann@gmail.com
  */
 @RegisterForReflection
-public class ConfigPropertyKey extends AbstractMessageKey {
+public class ConfigPropertyKey implements MessageKey {
 
     private String propertyName;
 
     /**
      * Creator method.
-     * @param tenantId
      * @param propertyName
      */
-    public static final ConfigPropertyKey create(String tenantId, String propertyName) {
+    public static final ConfigPropertyKey create(String propertyName) {
         ConfigPropertyKey key = new ConfigPropertyKey();
-        key.setTenantId(tenantId);
         key.setPropertyName(propertyName);
         return key;
     }
@@ -52,7 +50,7 @@ public class ConfigPropertyKey extends AbstractMessageKey {
      */
     @Override
     public String getPartitionKey() {
-        return getTenantId() + "/" + getPropertyName();
+        return getPropertyName();
     }
 
     /**

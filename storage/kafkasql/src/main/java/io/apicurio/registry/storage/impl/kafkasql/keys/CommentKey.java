@@ -25,7 +25,7 @@ import io.quarkus.runtime.annotations.RegisterForReflection;
  * @author eric.wittmann@gmail.com
  */
 @RegisterForReflection
-public class CommentKey extends AbstractMessageKey {
+public class CommentKey implements MessageKey {
 
     private String groupId;
     private String artifactId;
@@ -39,15 +39,13 @@ public class CommentKey extends AbstractMessageKey {
 
     /**
      * Creator method.
-     * @param tenantId
      * @param groupId
      * @param artifactId
      * @param version
      * @param commentId
      */
-    public static final CommentKey create(String tenantId, String groupId, String artifactId, String version, String commentId) {
+    public static final CommentKey create(String groupId, String artifactId, String version, String commentId) {
         CommentKey key = new CommentKey();
-        key.setTenantId(tenantId);
         key.setGroupId(groupId);
         key.setArtifactId(artifactId);
         key.setVersion(version);
@@ -68,7 +66,7 @@ public class CommentKey extends AbstractMessageKey {
      */
     @Override
     public String getPartitionKey() {
-        return getTenantId() + "/" + groupId + "/" + artifactId + "/" + version;
+        return groupId + "/" + artifactId + "/" + version;
     }
 
     /**

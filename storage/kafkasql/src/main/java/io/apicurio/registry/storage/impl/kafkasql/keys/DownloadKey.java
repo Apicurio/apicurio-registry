@@ -23,7 +23,7 @@ import io.quarkus.runtime.annotations.RegisterForReflection;
  * @author eric.wittmann@gmail.com
  */
 @RegisterForReflection
-public class DownloadKey extends AbstractMessageKey {
+public class DownloadKey implements MessageKey {
 
     private static final String DOWNLOAD_PARTITION_KEY = "__apicurio_registry_download__";
 
@@ -31,12 +31,10 @@ public class DownloadKey extends AbstractMessageKey {
 
     /**
      * Creator method.
-     * @param tenantId
      * @param downloadId
      */
-    public static final DownloadKey create(String tenantId, String downloadId) {
+    public static final DownloadKey create(String downloadId) {
         DownloadKey key = new DownloadKey();
-        key.setTenantId(tenantId);
         key.setDownloadId(downloadId);
         return key;
     }
@@ -54,7 +52,7 @@ public class DownloadKey extends AbstractMessageKey {
      */
     @Override
     public String getPartitionKey() {
-        return getTenantId() + DOWNLOAD_PARTITION_KEY;
+        return DOWNLOAD_PARTITION_KEY;
     }
 
     /**

@@ -364,23 +364,6 @@ mem-native-scratch-image:
 .PHONY: multiarch-registry-images ## Builds and pushes multi-arch registry images for all variants. Variables available for override [IMAGE_REPO, IMAGE_TAG]
 multiarch-registry-images: mem-multiarch-images sql-multiarch-images mssql-multiarch-images kafkasql-multiarch-images mem-native-scratch-image gitops-multiarch-images
 
-
-.PHONY: pr-check ## Builds and runs basic tests for multitenant registry pipelines
-pr-check:
-	CURRENT_ENV=mas mvn clean install -Pno-docker -Dskip.npm -Pprod -Psql -am -pl storage/sql \
-		-Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false
-	./scripts/clean-postgres.sh
-	CURRENT_ENV=mas NO_DOCKER=true mvn verify -Pintegration-tests -Psql -am -pl integration-tests \
-		-Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false
-
-.PHONY: build-project ## Builds the components for multitenant registry pipelines
-build-project:
-# run unit tests for app module
-	CURRENT_ENV=mas mvn clean install -Pno-docker -Dskip.npm -Pprod -Psql -am -pl app -Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false
-# build everything without running tests in order to be able to build container images
-	CURRENT_ENV=mas mvn clean install -Pprod -Pno-docker -Dskip.npm -Psql -Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false -DskipTests
-
-
 .PHONY: run-ui-tests ## Runs ui e2e tests
 run-ui-tests:
 	@echo "----------------------------------------------------------------------"

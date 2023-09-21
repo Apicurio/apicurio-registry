@@ -23,7 +23,7 @@ import io.quarkus.runtime.annotations.RegisterForReflection;
  * @author eric.wittmann@gmail.com
  */
 @RegisterForReflection
-public class ArtifactVersionKey extends AbstractMessageKey {
+public class ArtifactVersionKey implements MessageKey {
 
     private String groupId;
     private String artifactId;
@@ -31,14 +31,12 @@ public class ArtifactVersionKey extends AbstractMessageKey {
 
     /**
      * Creator method.
-     * @param tenantId
      * @param groupId
      * @param artifactId
      * @param version
      */
-    public static final ArtifactVersionKey create(String tenantId, String groupId, String artifactId, String version) {
+    public static final ArtifactVersionKey create(String groupId, String artifactId, String version) {
         ArtifactVersionKey key = new ArtifactVersionKey();
-        key.setTenantId(tenantId);
         key.setGroupId(groupId);
         key.setArtifactId(artifactId);
         key.setVersion(version);
@@ -58,7 +56,7 @@ public class ArtifactVersionKey extends AbstractMessageKey {
      */
     @Override
     public String getPartitionKey() {
-        return getTenantId() + "/" + groupId + "/" + artifactId;
+        return groupId + "/" + artifactId;
     }
 
     /**

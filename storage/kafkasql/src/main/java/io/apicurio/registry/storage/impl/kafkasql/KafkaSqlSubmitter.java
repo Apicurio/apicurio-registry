@@ -108,8 +108,8 @@ public class KafkaSqlSubmitter {
     /* ******************************************************************************************
      * Content
      * ****************************************************************************************** */
-    public CompletableFuture<UUID> submitContent(String tenantId, long contentId, String contentHash, ActionType action, String canonicalHash, ContentHandle content, String serializedReferences) {
-        ContentKey key = ContentKey.create(tenantId, contentId, contentHash);
+    public CompletableFuture<UUID> submitContent(long contentId, String contentHash, ActionType action, String canonicalHash, ContentHandle content, String serializedReferences) {
+        ContentKey key = ContentKey.create( contentId, contentHash);
         ContentValue value = ContentValue.create(action, canonicalHash, content, serializedReferences);
         return send(key, value);
     }
@@ -118,13 +118,13 @@ public class KafkaSqlSubmitter {
     /* ******************************************************************************************
      * Group
      * ****************************************************************************************** */
-    public CompletableFuture<UUID> submitGroup(String tenantId, ActionType action, GroupMetaDataDto meta) {
-        GroupKey key = GroupKey.create(tenantId, meta.getGroupId());
+    public CompletableFuture<UUID> submitGroup(ActionType action, GroupMetaDataDto meta) {
+        GroupKey key = GroupKey.create(meta.getGroupId());
         GroupValue value = GroupValue.create(action, meta);
         return send(key, value);
     }
-    public CompletableFuture<UUID> submitGroup(String tenantId, String groupId, ActionType action, boolean onlyArtifacts) {
-        GroupKey key = GroupKey.create(tenantId, groupId);
+    public CompletableFuture<UUID> submitGroup(String groupId, ActionType action, boolean onlyArtifacts) {
+        GroupKey key = GroupKey.create( groupId);
         GroupValue value = GroupValue.create(action, onlyArtifacts);
         return send(key, value);
     }
@@ -133,44 +133,44 @@ public class KafkaSqlSubmitter {
     /* ******************************************************************************************
      * Artifact
      * ****************************************************************************************** */
-    public CompletableFuture<UUID> submitArtifact(String tenantId, String groupId, String artifactId, String version, ActionType action,
+    public CompletableFuture<UUID> submitArtifact(String groupId, String artifactId, String version, ActionType action,
             Long globalId, String artifactType, String contentHash, String createdBy, Date createdOn,
             EditableArtifactMetaDataDto metaData, Integer versionId, ArtifactState state, Long contentId, Boolean latest) {
-        ArtifactKey key = ArtifactKey.create(tenantId, groupId, artifactId);
+        ArtifactKey key = ArtifactKey.create( groupId, artifactId);
         ArtifactValue value = ArtifactValue.create(action, globalId, version, artifactType, contentHash, createdBy, createdOn, metaData,
                 versionId, state, contentId, latest);
         return send(key, value);
     }
-    public CompletableFuture<UUID> submitArtifact(String tenantId, String groupId, String artifactId, String version, ActionType action,
+    public CompletableFuture<UUID> submitArtifact(String groupId, String artifactId, String version, ActionType action,
             Long globalId, String artifactType, String contentHash, String createdBy, Date createdOn,
             EditableArtifactMetaDataDto metaData) {
-        return submitArtifact(tenantId, groupId, artifactId, version, action, globalId, artifactType, contentHash, createdBy, createdOn,
+        return submitArtifact( groupId, artifactId, version, action, globalId, artifactType, contentHash, createdBy, createdOn,
                 metaData, null, null, null, null);
     }
-    public CompletableFuture<UUID> submitArtifact(String tenantId, String groupId, String artifactId, ActionType action) {
-        return this.submitArtifact(tenantId, groupId, artifactId, null, action, null, null, null, null, null, null);
+    public CompletableFuture<UUID> submitArtifact(String groupId, String artifactId, ActionType action) {
+        return this.submitArtifact( groupId, artifactId, null, action, null, null, null, null, null, null);
     }
 
 
     /* ******************************************************************************************
      * Version
      * ****************************************************************************************** */
-    public CompletableFuture<UUID> submitArtifactVersion(String tenantId, String groupId, String artifactId, String version, ActionType action, ArtifactState state,
+    public CompletableFuture<UUID> submitArtifactVersion(String groupId, String artifactId, String version, ActionType action, ArtifactState state,
             EditableArtifactMetaDataDto metaData) {
-        ArtifactVersionKey key = ArtifactVersionKey.create(tenantId, groupId, artifactId, version);
+        ArtifactVersionKey key = ArtifactVersionKey.create( groupId, artifactId, version);
         ArtifactVersionValue value = ArtifactVersionValue.create(action, state, metaData);
         return send(key, value);
     }
-    public CompletableFuture<UUID> submitVersion(String tenantId, String groupId, String artifactId, String version, ActionType action) {
-        return submitArtifactVersion(tenantId, groupId, artifactId, version, action, null, null);
+    public CompletableFuture<UUID> submitVersion(String groupId, String artifactId, String version, ActionType action) {
+        return submitArtifactVersion( groupId, artifactId, version, action, null, null);
     }
 
 
     /* ******************************************************************************************
      * Artifact Owner
      * ****************************************************************************************** */
-    public CompletableFuture<UUID> submitArtifactOwner(String tenantId, String groupId, String artifactId, ActionType action, String owner) {
-        ArtifactOwnerKey key = ArtifactOwnerKey.create(tenantId, groupId, artifactId);
+    public CompletableFuture<UUID> submitArtifactOwner(String groupId, String artifactId, ActionType action, String owner) {
+        ArtifactOwnerKey key = ArtifactOwnerKey.create( groupId, artifactId);
         ArtifactOwnerValue value = ArtifactOwnerValue.create(action, owner);
         return send(key, value);
     }
@@ -179,71 +179,71 @@ public class KafkaSqlSubmitter {
     /* ******************************************************************************************
      * Artifact Rule
      * ****************************************************************************************** */
-    public CompletableFuture<UUID> submitArtifactRule(String tenantId, String groupId, String artifactId, RuleType rule, ActionType action,
+    public CompletableFuture<UUID> submitArtifactRule(String groupId, String artifactId, RuleType rule, ActionType action,
             RuleConfigurationDto config) {
-        ArtifactRuleKey key = ArtifactRuleKey.create(tenantId, groupId, artifactId, rule);
+        ArtifactRuleKey key = ArtifactRuleKey.create( groupId, artifactId, rule);
         ArtifactRuleValue value = ArtifactRuleValue.create(action, config);
         return send(key, value);
     }
-    public CompletableFuture<UUID> submitArtifactRule(String tenantId, String groupId, String artifactId, RuleType rule, ActionType action) {
-        return submitArtifactRule(tenantId, groupId, artifactId, rule, action, null);
+    public CompletableFuture<UUID> submitArtifactRule(String groupId, String artifactId, RuleType rule, ActionType action) {
+        return submitArtifactRule( groupId, artifactId, rule, action, null);
     }
 
 
     /* ******************************************************************************************
      * Artifact Version comments
      * ****************************************************************************************** */
-    public CompletableFuture<UUID> submitComment(String tenantId, String groupId, String artifactId, String version, 
+    public CompletableFuture<UUID> submitComment(String groupId, String artifactId, String version,
             String commentId, ActionType action, long globalId, String createdBy, Date createdOn, String value) {
-        CommentKey key = CommentKey.create(tenantId, groupId, artifactId, version, commentId);
+        CommentKey key = CommentKey.create( groupId, artifactId, version, commentId);
         CommentValue cv = CommentValue.create(action, globalId, createdBy, createdOn, value);
         return send(key, cv);
     }
-    public CompletableFuture<UUID> submitComment(String tenantId, String groupId, String artifactId, String version, 
+    public CompletableFuture<UUID> submitComment(String groupId, String artifactId, String version,
             String commentId, ActionType action, String createdBy, Date createdOn, String value) {
-        return submitComment(tenantId, groupId, artifactId, version, commentId, action, -1, createdBy, createdOn, value);
+        return submitComment( groupId, artifactId, version, commentId, action, -1, createdBy, createdOn, value);
     }
-    public CompletableFuture<UUID> submitComment(String tenantId, String groupId, String artifactId, String version, 
+    public CompletableFuture<UUID> submitComment(String groupId, String artifactId, String version,
             String commentId, ActionType action) {
-        return submitComment(tenantId, groupId, artifactId, version, commentId, action, null, null, null);
+        return submitComment( groupId, artifactId, version, commentId, action, null, null, null);
     }
-    public CompletableFuture<UUID> submitComment(String tenantId, String commentId, ActionType action, long globalId, 
+    public CompletableFuture<UUID> submitComment(String commentId, ActionType action, long globalId,
             String createdBy, Date createdOn, String value) {
-        return submitComment(tenantId, "<import-comments>", "_", "_", commentId, action, globalId, createdBy, createdOn, value);
+        return submitComment( "<import-comments>", "_", "_", commentId, action, globalId, createdBy, createdOn, value);
     }
 
 
     /* ******************************************************************************************
      * Global Rule
      * ****************************************************************************************** */
-    public CompletableFuture<UUID> submitGlobalRule(String tenantId, RuleType rule, ActionType action, RuleConfigurationDto config) {
-        GlobalRuleKey key = GlobalRuleKey.create(tenantId, rule);
+    public CompletableFuture<UUID> submitGlobalRule(RuleType rule, ActionType action, RuleConfigurationDto config) {
+        GlobalRuleKey key = GlobalRuleKey.create(rule);
         GlobalRuleValue value = GlobalRuleValue.create(action, config);
         return send(key, value);
     }
-    public CompletableFuture<UUID> submitGlobalRule(String tenantId, RuleType rule, ActionType action) {
-        return submitGlobalRule(tenantId, rule, action, null);
+    public CompletableFuture<UUID> submitGlobalRule(RuleType rule, ActionType action) {
+        return submitGlobalRule( rule, action, null);
     }
 
 
     /* ******************************************************************************************
      * Role Mappings
      * ****************************************************************************************** */
-    public CompletableFuture<UUID> submitRoleMapping(String tenantId, String principalId, ActionType action, String role, String principalName) {
-        RoleMappingKey key = RoleMappingKey.create(tenantId, principalId);
+    public CompletableFuture<UUID> submitRoleMapping(String principalId, ActionType action, String role, String principalName) {
+        RoleMappingKey key = RoleMappingKey.create( principalId);
         RoleMappingValue value = RoleMappingValue.create(action, role, principalName);
         return send(key, value);
     }
-    public CompletableFuture<UUID> submitRoleMapping(String tenantId, String principalId, ActionType action) {
-        return submitRoleMapping(tenantId, principalId, action, null, null);
+    public CompletableFuture<UUID> submitRoleMapping(String principalId, ActionType action) {
+        return submitRoleMapping( principalId, action, null, null);
     }
 
 
     /* ******************************************************************************************
      * Global ID
      * ****************************************************************************************** */
-    public CompletableFuture<UUID> submitGlobalId(String tenantId, ActionType action) {
-        GlobalIdKey key = GlobalIdKey.create(tenantId);
+    public CompletableFuture<UUID> submitGlobalId(ActionType action) {
+        GlobalIdKey key = GlobalIdKey.create();
         GlobalIdValue value = GlobalIdValue.create(action);
         return send(key, value);
     }
@@ -252,8 +252,8 @@ public class KafkaSqlSubmitter {
     /* ******************************************************************************************
      * Content ID
      * ****************************************************************************************** */
-    public CompletableFuture<UUID> submitContentId(String tenantId, ActionType action) {
-        ContentIdKey key = ContentIdKey.create(tenantId);
+    public CompletableFuture<UUID> submitContentId(ActionType action) {
+        ContentIdKey key = ContentIdKey.create();
         ContentIdValue value = ContentIdValue.create(action);
         return send(key, value);
     }
@@ -262,8 +262,8 @@ public class KafkaSqlSubmitter {
     /* ******************************************************************************************
      * Comment ID
      * ****************************************************************************************** */
-    public CompletableFuture<UUID> submitCommentId(String tenantId, ActionType action) {
-        CommentIdKey key = CommentIdKey.create(tenantId);
+    public CompletableFuture<UUID> submitCommentId(ActionType action) {
+        CommentIdKey key = CommentIdKey.create();
         CommentIdValue value = CommentIdValue.create(action);
         return send(key, value);
     }
@@ -273,13 +273,13 @@ public class KafkaSqlSubmitter {
      * Downloads
      * ****************************************************************************************** */
 
-    public CompletableFuture<UUID> submitDownload(String tenantId, String downloadId, ActionType action, DownloadContextDto context) {
-        DownloadKey key = DownloadKey.create(tenantId, downloadId);
+    public CompletableFuture<UUID> submitDownload(String downloadId, ActionType action, DownloadContextDto context) {
+        DownloadKey key = DownloadKey.create( downloadId);
         DownloadValue value = DownloadValue.create(action, context);
         return send(key, value);
     }
-    public CompletableFuture<UUID> submitDownload(String tenantId, String downloadId, ActionType action) {
-        return submitDownload(tenantId, downloadId, action, null);
+    public CompletableFuture<UUID> submitDownload(String downloadId, ActionType action) {
+        return submitDownload( downloadId, action, null);
     }
 
 
@@ -287,21 +287,21 @@ public class KafkaSqlSubmitter {
      * Config properties
      * ****************************************************************************************** */
 
-    public CompletableFuture<UUID> submitConfigProperty(String tenantId, String propertyName, ActionType action, String propertyValue) {
-        ConfigPropertyKey key = ConfigPropertyKey.create(tenantId, propertyName);
+    public CompletableFuture<UUID> submitConfigProperty(String propertyName, ActionType action, String propertyValue) {
+        ConfigPropertyKey key = ConfigPropertyKey.create( propertyName);
         ConfigPropertyValue value = ConfigPropertyValue.create(action, propertyValue);
         return send(key, value);
     }
-    public CompletableFuture<UUID> submitConfigProperty(String tenantId, String propertyName, ActionType action) {
-        return submitConfigProperty(tenantId, propertyName, action, null);
+    public CompletableFuture<UUID> submitConfigProperty(String propertyName, ActionType action) {
+        return submitConfigProperty( propertyName, action, null);
     }
 
 
     /* ******************************************************************************************
      * Global actions
      * ****************************************************************************************** */
-    public CompletableFuture<UUID> submitGlobalAction(String tenantId, ActionType action) {
-        GlobalActionKey key = GlobalActionKey.create(tenantId);
+    public CompletableFuture<UUID> submitGlobalAction(ActionType action) {
+        GlobalActionKey key = GlobalActionKey.create();
         GlobalActionValue value = GlobalActionValue.create(action);
         return send(key, value);
     }
@@ -310,12 +310,12 @@ public class KafkaSqlSubmitter {
     /* ******************************************************************************************
      * Tombstones
      * ****************************************************************************************** */
-    public void submitArtifactVersionTombstone(String tenantId, String groupId, String artifactId, String version) {
-        ArtifactVersionKey key = ArtifactVersionKey.create(tenantId, groupId, artifactId, version);
+    public void submitArtifactVersionTombstone(String groupId, String artifactId, String version) {
+        ArtifactVersionKey key = ArtifactVersionKey.create( groupId, artifactId, version);
         send(key, null);
     }
-    public void submitArtifactRuleTombstone(String tenantId, String groupId, String artifactId, RuleType rule) {
-        ArtifactRuleKey key = ArtifactRuleKey.create(tenantId, groupId, artifactId, rule);
+    public void submitArtifactRuleTombstone(String groupId, String artifactId, RuleType rule) {
+        ArtifactRuleKey key = ArtifactRuleKey.create(groupId, artifactId, rule);
         send(key, null);
     }
     public void submitBootstrap(String bootstrapId) {

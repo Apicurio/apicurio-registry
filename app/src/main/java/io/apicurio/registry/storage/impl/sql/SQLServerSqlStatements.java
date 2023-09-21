@@ -69,11 +69,11 @@ public class SQLServerSqlStatements extends CommonSqlStatements {
     public String upsertContent() {
         return String.join(" ",
                 "MERGE INTO content AS target",
-                "USING (VALUES (?, ?, ?, ?, ?, ?)) AS source (tenantId, contentId, canonicalHash, contentHash, content, artifactreferences)",
-                "ON (target.tenantId = source.tenantId AND target.contentHash = source.contentHash)",
+                "USING (VALUES (?, ?, ?, ?, ?, ?)) AS source (contentId, canonicalHash, contentHash, content, artifactreferences)",
+                "ON (target.contentHash = source.contentHash)",
                 "WHEN NOT MATCHED THEN",
-                    "INSERT (tenantId, contentId, canonicalHash, contentHash, content, artifactreferences)",
-                    "VALUES (source.tenantId, source.contentId, source.canonicalHash, source.contentHash, source.content, source.artifactreferences);");
+                    "INSERT (contentId, canonicalHash, contentHash, content, artifactreferences)",
+                    "VALUES (source.contentId, source.canonicalHash, source.contentHash, source.content, source.artifactreferences);");
     }
 
     /**
@@ -83,13 +83,13 @@ public class SQLServerSqlStatements extends CommonSqlStatements {
     public String getNextSequenceValue() {
         return String.join(" ",
                 "MERGE INTO sequences AS target",
-                "USING (VALUES  (?, ?)) AS source (tenantId, name)",
-                "ON (target.tenantId = source.tenantId AND target.name = source.name)",
+                "USING (VALUES  (?, ?)) AS source (name)",
+                "ON (target.name = source.name)",
                 "WHEN MATCHED THEN",
                     "UPDATE SET value = target.value + 1",
                 "WHEN NOT MATCHED THEN",
-                    "INSERT (tenantId, name, value)",
-                    "VALUES (source.tenantId, source.name, 1)",
+                    "INSERT (name, value)",
+                    "VALUES (source.name, 1)",
                 "OUTPUT INSERTED.value;");
     }
 
@@ -100,13 +100,13 @@ public class SQLServerSqlStatements extends CommonSqlStatements {
     public String resetSequenceValue() {
         return String.join(" ",
                 "MERGE INTO sequences AS target",
-                "USING (VALUES (?, ?, ?)) AS source (tenantId, name, value)",
-                "ON (target.tenantId = source.tenantId AND target.name = source.name)",
+                "USING (VALUES (?, ?, ?)) AS source (name, value)",
+                "ON (target.name = source.name)",
                 "WHEN MATCHED THEN",
                     "UPDATE SET value = ?",
                 "WHEN NOT MATCHED THEN",
-                    "INSERT (tenantId, name, value)",
-                    "VALUES (source.tenantId, source.name, source.value)",
+                    "INSERT (name, value)",
+                    "VALUES (source.name, source.value)",
                 "OUTPUT INSERTED.value;");
     }
 
@@ -117,11 +117,11 @@ public class SQLServerSqlStatements extends CommonSqlStatements {
     public String upsertReference() {
         return String.join(" ",
                 "MERGE INTO artifactreferences AS target",
-                "USING (VALUES (?, ?, ?, ?, ?, ?)) AS source (tenantId, contentId, groupId, artifactId, version, name)",
-                "ON (target.tenantId = source.tenantId AND target.contentId = source.contentId AND target.name = source.name)",
+                "USING (VALUES (?, ?, ?, ?, ?, ?)) AS source (contentId, groupId, artifactId, version, name)",
+                "ON (target.contentId = source.contentId AND target.name = source.name)",
                 "WHEN NOT MATCHED THEN",
-                "INSERT (tenantId, contentId, groupId, artifactId, version, name)",
-                "VALUES (source.tenantId, source.contentId, source.groupId, source.artifactId, source.version, source.name);");
+                "INSERT (contentId, groupId, artifactId, version, name)",
+                "VALUES (source.contentId, source.groupId, source.artifactId, source.version, source.name);");
     }
 
     /**
@@ -129,12 +129,12 @@ public class SQLServerSqlStatements extends CommonSqlStatements {
      */
     @Override
     public String selectArtifactIds() {
-        return "SELECT TOP (?) artifactId FROM artifacts WHERE tenantId = ?";
+        return "SELECT TOP (?) artifactId FROM artifacts ";
     }
 
     @Override
     public String selectArtifactIdsInGroup() {
-        return "SELECT TOP (?) artifactId FROM artifacts WHERE tenantId = ? AND groupId = ?";
+        return "SELECT TOP (?) artifactId FROM artifacts WHERE groupId = ?";
     }
 
     /**
@@ -143,8 +143,8 @@ public class SQLServerSqlStatements extends CommonSqlStatements {
     @Override
     public String selectAllArtifactVersions() {
         return "SELECT v.*, a.type FROM versions v "
-                + "JOIN artifacts a ON a.tenantId = v.tenantId AND a.groupId = v.groupId AND a.artifactId = v.artifactId "
-                + "WHERE a.tenantId = ? AND a.groupId = ? AND a.artifactId = ? "
+                + "JOIN artifacts a ON a.groupId = v.groupId AND a.artifactId = v.artifactId "
+                + "WHERE a.groupId = ? AND a.artifactId = ? "
                 + "ORDER BY v.globalId ASC OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
     }
 
@@ -154,7 +154,7 @@ public class SQLServerSqlStatements extends CommonSqlStatements {
     @Override
     public String selectGroups() {
         //TODO pagination?
-        return "SELECT TOP (?) * FROM groups WHERE tenantId = ?"
+        return "SELECT TOP (?) * FROM groups "
                 + "ORDER BY groupId ASC";
     }
 

@@ -24,7 +24,7 @@ import io.quarkus.runtime.annotations.RegisterForReflection;
  * @author eric.wittmann@gmail.com
  */
 @RegisterForReflection
-public class GlobalRuleKey extends AbstractMessageKey {
+public class GlobalRuleKey implements MessageKey {
 
     private static final String GLOBAL_RULE_PARTITION_KEY = "__apicurio_registry_global_rule__";
 
@@ -32,12 +32,10 @@ public class GlobalRuleKey extends AbstractMessageKey {
 
     /**
      * Creator method.
-     * @param tenantId
      * @param ruleType
      */
-    public static final GlobalRuleKey create(String tenantId, RuleType ruleType) {
+    public static final GlobalRuleKey create(RuleType ruleType) {
         GlobalRuleKey key = new GlobalRuleKey();
-        key.setTenantId(tenantId);
         key.setRuleType(ruleType);
         return key;
     }
@@ -55,7 +53,7 @@ public class GlobalRuleKey extends AbstractMessageKey {
      */
     @Override
     public String getPartitionKey() {
-        return getTenantId() + GLOBAL_RULE_PARTITION_KEY;
+        return GLOBAL_RULE_PARTITION_KEY;
     }
 
     /**

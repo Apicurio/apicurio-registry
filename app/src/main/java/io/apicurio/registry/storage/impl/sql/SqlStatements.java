@@ -478,7 +478,7 @@ public interface SqlStatements {
     public String deleteAllOrphanedContent();
 
     /**
-     * A statement to delete all content owned by a tenantId
+     * A statement to delete all content
      */
     public String deleteAllContent();
 

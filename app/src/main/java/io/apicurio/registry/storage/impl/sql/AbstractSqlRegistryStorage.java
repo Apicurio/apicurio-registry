@@ -1052,7 +1052,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         final Integer adjustedLimit = limit == null ? Integer.MAX_VALUE : limit;
         return handles.withHandleNoException(handle -> {
             Query query = handle.createQuery(sqlStatements.selectArtifactIdsInGroup());
-            query.bind(0, adjustedLimit).bind(1, normalizeGroupId(groupId));
+            query.bind(1, adjustedLimit).bind(0, normalizeGroupId(groupId));
             return new HashSet<>(query.mapTo(String.class).list());
         });
     }

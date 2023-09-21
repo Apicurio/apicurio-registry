@@ -25,7 +25,6 @@ public class H2SqlStatements extends CommonSqlStatements {
 
     /**
      * Constructor.
-     * @param config
      */
     public H2SqlStatements() {
     }
@@ -67,7 +66,7 @@ public class H2SqlStatements extends CommonSqlStatements {
      */
     @Override
     public String upsertContent() {
-        return "INSERT INTO content (contentId, canonicalHash, contentHash, content, artifactreferences) VALUES (?, ?, ?, ?, ?, ?)";
+        return "INSERT INTO content (contentId, canonicalHash, contentHash, content, artifactreferences) VALUES (?, ?, ?, ?, ?)";
     }
 
     /**
@@ -91,7 +90,7 @@ public class H2SqlStatements extends CommonSqlStatements {
      */
     @Override
     public String resetSequenceValue() {
-        return "MERGE INTO sequences (name, seq_value) KEY (name) VALUES(?, ?, ?)";
+        return "MERGE INTO sequences (name, seq_value) KEY (name) VALUES(?, ?)";
     }
 
     /**
@@ -99,7 +98,7 @@ public class H2SqlStatements extends CommonSqlStatements {
      */
     @Override
     public String insertSequenceValue() {
-        return "INSERT INTO sequences (name, seq_value) VALUES (?, ?, ?)";
+        return "INSERT INTO sequences (name, seq_value) VALUES (?, ?)";
     }
 
     /**
@@ -107,6 +106,6 @@ public class H2SqlStatements extends CommonSqlStatements {
      */
     @Override
     public String upsertReference() {
-        return "INSERT INTO artifactreferences (contentId, groupId, artifactId, version, name) VALUES (?, ?, ?, ?, ?, ?)";
+        return "INSERT INTO artifactreferences (contentId, groupId, artifactId, version, name) VALUES (?, ?, ?, ?, ?)";
     }
 }

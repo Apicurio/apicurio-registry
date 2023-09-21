@@ -81,7 +81,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String insertGlobalRule() {
-        return "INSERT INTO globalrules (type, configuration) VALUES (?, ?, ?)";
+        return "INSERT INTO globalrules (type, configuration) VALUES (?, ?)";
     }
 
     /**
@@ -129,7 +129,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String insertArtifact() {
-        return "INSERT INTO artifacts (groupId, artifactId, type, createdBy, createdOn) VALUES (?, ?, ?, ?, ?, ?)";
+        return "INSERT INTO artifacts (groupId, artifactId, type, createdBy, createdOn) VALUES (?, ?, ?, ?, ?)";
     }
 
     /**
@@ -163,9 +163,9 @@ public abstract class CommonSqlStatements implements SqlStatements {
     public String insertVersion(boolean firstVersion) {
         String query;
         if (firstVersion) {
-            query = "INSERT INTO versions (globalId, groupId, artifactId, version, versionId, state, name, description, createdBy, createdOn, labels, properties, contentId) VALUES (?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?)";
+            query = "INSERT INTO versions (globalId, groupId, artifactId, version, versionId, state, name, description, createdBy, createdOn, labels, properties, contentId) VALUES (?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?)";
         } else {
-            query = "INSERT INTO versions (globalId, groupId, artifactId, version, versionId, state, name, description, createdBy, createdOn, labels, properties, contentId) VALUES (?, ?, ?, ?, ?, (SELECT MAX(versionId) + 1 FROM versions WHERE groupId = ? AND artifactId = ?), ?, ?, ?, ?, ?, ?, ?, ?)";
+            query = "INSERT INTO versions (globalId, groupId, artifactId, version, versionId, state, name, description, createdBy, createdOn, labels, properties, contentId) VALUES (?, ?, ?, ?, (SELECT MAX(versionId) + 1 FROM versions WHERE groupId = ? AND artifactId = ?), ?, ?, ?, ?, ?, ?, ?, ?)";
         }
         return query;
     }
@@ -355,7 +355,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String insertArtifactRule() {
-        return "INSERT INTO rules (groupId, artifactId, type, configuration) VALUES (?, ?, ?, ?, ?)";
+        return "INSERT INTO rules (groupId, artifactId, type, configuration) VALUES (?, ?, ?, ?)";
     }
 
     /**
@@ -575,7 +575,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String insertLabel() {
-        return "INSERT INTO labels (globalId, label) VALUES (?, ?, ?)";
+        return "INSERT INTO labels (globalId, label) VALUES (?, ?)";
     }
 
     /**
@@ -583,7 +583,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String insertProperty() {
-        return "INSERT INTO properties (globalId, pkey, pvalue) VALUES (?, ?, ?, ?)";
+        return "INSERT INTO properties (globalId, pkey, pvalue) VALUES (?, ?, ?)";
     }
 
 
@@ -711,7 +711,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String insertGroup() {
-        return "INSERT INTO groups (groupId, description, artifactsType, createdBy, createdOn, modifiedBy, modifiedOn, properties) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        return "INSERT INTO groups (groupId, description, artifactsType, createdBy, createdOn, modifiedBy, modifiedOn, properties) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
     }
 
     /**
@@ -811,7 +811,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String importArtifactRule() {
-        return "INSERT INTO rules (groupId, artifactId, type, configuration) VALUES (?, ?, ?, ?, ?)";
+        return "INSERT INTO rules (groupId, artifactId, type, configuration) VALUES (?, ?, ?, ?)";
     }
 
     /**
@@ -820,7 +820,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
     @Override
     public String importArtifactVersion() {
         return "INSERT INTO versions (globalId, groupId, artifactId, version, versionId, state, name, description, createdBy, createdOn, labels, properties, contentId) "
-                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
     }
 
     /**
@@ -828,7 +828,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String importContent() {
-        return "INSERT INTO content (contentId, canonicalHash, contentHash, content, artifactreferences) VALUES (?, ?, ?, ?, ?, ?)";
+        return "INSERT INTO content (contentId, canonicalHash, contentHash, content, artifactreferences) VALUES (?, ?, ?, ?, ?)";
     }
 
     /**
@@ -836,7 +836,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String importGlobalRule() {
-        return "INSERT INTO globalrules (type, configuration) VALUES (?, ?, ?)";
+        return "INSERT INTO globalrules (type, configuration) VALUES (?, ?)";
     }
 
     /**
@@ -845,7 +845,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
     @Override
     public String importGroup() {
         return "INSERT INTO groups (groupId, description, artifactsType, createdBy, createdOn, modifiedBy, modifiedOn, properties) "
-                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
     }
 
     /**
@@ -893,7 +893,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String insertRoleMapping() {
-        return "INSERT INTO acls (principalId, role, principalName) VALUES (?, ?, ?, ?)";
+        return "INSERT INTO acls (principalId, role, principalName) VALUES (?, ?, ?)";
     }
 
     /**
@@ -957,7 +957,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String insertDownload() {
-        return "INSERT INTO downloads (downloadId, expires, context) VALUES (?, ?, ?, ?)";
+        return "INSERT INTO downloads (downloadId, expires, context) VALUES (?, ?, ?)";
     }
 
     /**
@@ -1013,7 +1013,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String insertConfigProperty() {
-        return "INSERT INTO config (pname, pvalue, modifiedOn) VALUES (?, ?, ?, ?)";
+        return "INSERT INTO config (pname, pvalue, modifiedOn) VALUES (?, ?, ?)";
     }
 
     /**
@@ -1059,7 +1059,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
 
     @Override
     public String insertSequenceValue() {
-        return "INSERT INTO sequences (name, value) VALUES (?, ?, ?)";
+        return "INSERT INTO sequences (name, value) VALUES (?, ?)";
     }
 
     @Override
@@ -1069,7 +1069,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
 
     @Override
     public String insertComment() {
-        return "INSERT INTO comments (commentId, globalId, createdBy, createdOn, cvalue) VALUES (?, ?, ?, ?, ?, ?)";
+        return "INSERT INTO comments (commentId, globalId, createdBy, createdOn, cvalue) VALUES (?, ?, ?, ?, ?)";
     }
     
     @Override

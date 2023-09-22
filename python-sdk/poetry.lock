@@ -387,13 +387,13 @@ opentelemetry-sdk = ">=1.20.0"
 
 [[package]]
 name = "microsoft-kiota-serialization-json"
-version = "0.4.0"
+version = "0.4.1"
 description = "Implementation of Kiota Serialization interfaces for JSON"
 optional = false
 python-versions = "*"
 files = [
-    {file = "microsoft_kiota_serialization_json-0.4.0-py2.py3-none-any.whl", hash = "sha256:43b4156990aaa3d1ce1847aa466996548f67288bdcf591d2282fb241c3e20a27"},
-    {file = "microsoft_kiota_serialization_json-0.4.0.tar.gz", hash = "sha256:8c967311bad089805f08f374930e77947244530406116ad2e950379824d1f739"},
+    {file = "microsoft_kiota_serialization_json-0.4.1-py2.py3-none-any.whl", hash = "sha256:d8a25c434c44d7b1dbb9b36ecb8e6306610df9e497915642c67415c38eebfcf3"},
+    {file = "microsoft_kiota_serialization_json-0.4.1.tar.gz", hash = "sha256:41b73ae93c023687514d52e72a1772b5a0d127d1a4104ee159e9d6ae830841ff"},
 ]
 
 [package.dependencies]

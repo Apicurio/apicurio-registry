@@ -746,7 +746,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         String sql;
         Long contentId;
         boolean insertReferences = true;
-        if (Set.of("mssql", "postgresql").contains(sqlStatements.dbType())) {
+        if (Set.of("mysql", "mssql", "postgresql").contains(sqlStatements.dbType())) {
             sql = sqlStatements.upsertContent();
             handle.createUpdate(sql)
                     .bind(0, tenantContext.tenantId())
@@ -3973,7 +3973,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     }
 
     private long nextSequenceValue(Handle handle, String sequenceName) {
-        if (Set.of("mssql", "postgresql").contains(sqlStatements.dbType())) {
+        if (Set.of("mysql", "mssql", "postgresql").contains(sqlStatements.dbType())) {
             return handle.createQuery(sqlStatements.getNextSequenceValue())
                     .bind(0, tenantContext.tenantId())
                     .bind(1, sequenceName)

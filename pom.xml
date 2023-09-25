@@ -158,7 +158,7 @@
         <jandex.version>1.2.1</jandex.version>
 
         <!-- Schema types -->
-        <avro.version>1.11.2</avro.version>
+        <avro.version>1.11.3</avro.version>
         <wire-schema.version>4.8.1</wire-schema.version>
         <wire-compiler.version>4.5.0</wire-compiler.version>
         <okio-jvm.version>3.5.0</okio-jvm.version>

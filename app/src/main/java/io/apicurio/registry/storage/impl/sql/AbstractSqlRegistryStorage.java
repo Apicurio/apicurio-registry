@@ -434,12 +434,12 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
      */
     private void updateArtifactVersionStateRaw(long globalId, ArtifactState oldState, ArtifactState newState) {
         handles.withHandleNoException(handle -> {
-                artifactStateEx.applyState(s -> {
-                    handle.createUpdate(sqlStatements.updateArtifactVersionState())
-                            .bind(0, s.name())
-                            .bind(1, globalId)
-                            .execute();
-                }, oldState, newState);
+            artifactStateEx.applyState(s -> {
+                handle.createUpdate(sqlStatements.updateArtifactVersionState())
+                        .bind(0, s.name())
+                        .bind(1, globalId)
+                        .execute();
+            }, oldState, newState);
             return null;
         });
     }
@@ -610,7 +610,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             // If we don't find a row, we insert one and then return its content ID.
             Long contentId;
             boolean insertReferences = true;
-            if (Set.of("mssql", "postgresql").contains(sqlStatements.dbType())) {
+            if (Set.of("mysql", "mssql", "postgresql").contains(sqlStatements.dbType())) {
 
                 handle.createUpdate(sqlStatements.upsertContent())
                         .bind(0, nextContentId())
@@ -3364,7 +3364,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
      */
     private long nextSequenceValue(String sequenceName) {
         return handles.withHandleNoException(handle -> {
-            if (Set.of("mssql", "postgresql").contains(sqlStatements.dbType())) {
+            if (Set.of("mysql", "mssql", "postgresql").contains(sqlStatements.dbType())) {
                 return handle.createQuery(sqlStatements.getNextSequenceValue())
                         .bind(0, sequenceName)
                         .mapTo(Long.class)

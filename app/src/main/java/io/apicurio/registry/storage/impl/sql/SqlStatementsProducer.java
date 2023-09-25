@@ -51,6 +51,9 @@ public class SqlStatementsProducer {
         if ("postgresql".equals(databaseType)) {
             return new PostgreSQLSqlStatements();
         }
+        if ("mysql".equals(databaseType)) {
+            return new MySQLSqlStatements();
+        }
         throw new RuntimeException("Unsupported database type: " + databaseType);
     }
 

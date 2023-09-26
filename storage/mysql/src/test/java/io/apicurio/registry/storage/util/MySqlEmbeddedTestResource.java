@@ -28,15 +28,16 @@ import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
  * @author bruno.ariev@gmail.com
  */
 public class MySqlEmbeddedTestResource implements QuarkusTestResourceLifecycleManager {
-    
-    private static final String DB_PASSWORD = "mysql";
 
     private static final DockerImageName IMAGE = DockerImageName
             .parse("mysql")
             .withTag("8.0-debian");
 
     private MySQLContainer database = new MySQLContainer<>(IMAGE)
-            .withPassword("mysql");
+            .withDatabaseName("apicurio")
+            .withUsername("apicurio")
+            .withPassword("apicurio");
+
 
     /**
      * Constructor.
@@ -51,14 +52,13 @@ public class MySqlEmbeddedTestResource implements QuarkusTestResourceLifecycleMa
     @Override
     public Map<String, String> start() {
         System.out.println("[MySqlEmbeddedTestResource] MySQL test resource starting.");
-
         String currentEnv = System.getenv("CURRENT_ENV");
 
         if ("mas".equals(currentEnv)) {
             Map<String, String> props = new HashMap<>();
-            props.put("quarkus.datasource.jdbc.url", "jdbc:sqlserver://mysql;");
-            props.put("quarkus.datasource.username", "mysql");
-            props.put("quarkus.datasource.password", "mysql");
+            props.put("quarkus.datasource.jdbc.url", "jdbc:mysql://localhost:3307/apicurio");
+            props.put("quarkus.datasource.username", "apicurio");
+            props.put("quarkus.datasource.password", "apicurio");
             return props;
         } else {
             return startMySql();
@@ -67,13 +67,11 @@ public class MySqlEmbeddedTestResource implements QuarkusTestResourceLifecycleMa
 
     private Map<String, String> startMySql() {
         database.start();
-
         String datasourceUrl = database.getJdbcUrl();
-
         Map<String, String> props = new HashMap<>();
         props.put("quarkus.datasource.jdbc.url", datasourceUrl);
-        props.put("quarkus.datasource.username", "SA");
-        props.put("quarkus.datasource.password", DB_PASSWORD);
+        props.put("quarkus.datasource.username", "apicurio");
+        props.put("quarkus.datasource.password", "apicurio");
         return props;
     }
 
@@ -85,7 +83,7 @@ public class MySqlEmbeddedTestResource implements QuarkusTestResourceLifecycleMa
         if (database != null) {
             database.close();
         }
-        System.out.println("[MsSqlEmbeddedTestResource] MS SQLServer test resource stopped.");
+        System.out.println("[MySqlEmbeddedTestResource] MySQL test resource stopped.");
     }
 
 }

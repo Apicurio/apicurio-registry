@@ -60,7 +60,8 @@ public class MySQLSqlStatements extends CommonSqlStatements {
         return String.join(" ",
                 "SELECT COUNT(*) AS count",
                 "FROM information_schema.tables",
-                "WHERE table_name = 'artifacts';");
+                "WHERE table_name = 'artifacts';"
+        );
     }
 
     /**
@@ -71,7 +72,8 @@ public class MySQLSqlStatements extends CommonSqlStatements {
         return String.join(" ",
                 "INSERT IGNORE INTO content",
                 "(tenantId, contentId, canonicalHash, contentHash, content, artifactreferences)",
-                "VALUES (?, ?, ?, ?, ?, ?);");
+                "VALUES (?, ?, ?, ?, ?, ?);"
+        );
     }
 
     /**
@@ -82,7 +84,8 @@ public class MySQLSqlStatements extends CommonSqlStatements {
         return String.join(" ",
                 "INSERT INTO logconfiguration (logger, loglevel)",
                 "VALUES (?, ?)",
-                "ON DUPLICATE KEY UPDATE loglevel = ?;");
+                "ON DUPLICATE KEY UPDATE loglevel = ?;"
+        );
     }
 
     /**
@@ -105,7 +108,8 @@ public class MySQLSqlStatements extends CommonSqlStatements {
         return String.join(" ",
                 "INSERT INTO sequences (tenantId, name, value)",
                 "VALUES (?, ?, ?)",
-                "ON DUPLICATE KEY UPDATE value = ?;");
+                "ON DUPLICATE KEY UPDATE value = ?;"
+        );
     }
 
     /**
@@ -116,7 +120,128 @@ public class MySQLSqlStatements extends CommonSqlStatements {
         return String.join(" ",
                 "INSERT IGNORE INTO artifactreferences",
                 "(tenantId, contentId, groupId, artifactId, version, name)",
-                "VALUES (?, ?, ?, ?, ?, ?);");
+                "VALUES (?, ?, ?, ?, ?, ?);"
+        );
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectArtifactCountById()
+     * In MySQL, 'groups' is a reserved keyword. To query the table, it must be enclosed in backticks: `groups`
+     */
+    @Override
+    public String selectGroupCountById() {
+        return String.join(" ",
+                "SELECT COUNT(g.groupId)",
+                "FROM `groups` g",
+                "WHERE g.tenantId = ? AND g.groupId = ?"
+        );
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#insertGroup()
+     * In MySQL, 'groups' is a reserved keyword. To query the table, it must be enclosed in backticks: `groups`
+     */
+    @Override
+    public String insertGroup() {
+        return String.join(" ",
+                "INSERT INTO `groups`",
+                "(tenantId, groupId, description, artifactsType, createdBy, createdOn, modifiedBy, modifiedOn, properties)",
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
+        );
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#updateGroup()
+     * In MySQL, 'groups' is a reserved keyword. To query the table, it must be enclosed in backticks: `groups`
+     */
+    @Override
+    public String updateGroup() {
+        return String.join(" ",
+                "UPDATE `groups` " +
+                        "SET description = ? , artifactsType = ? , modifiedBy = ? , modifiedOn = ? , properties = ? " +
+                        "WHERE tenantId = ? AND groupId = ?"
+        );
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#deleteGroup()
+     * In MySQL, 'groups' is a reserved keyword. To query the table, it must be enclosed in backticks: `groups`
+     */
+    @Override
+    public String deleteGroup() {
+        return String.join(" ",
+                "DELETE",
+                "FROM `groups` ",
+                "WHERE tenantId = ? AND groupId = ?"
+        );
+    }
+
+    /**
+     * @see SqlStatements#deleteAllGroups()
+     * In MySQL, 'groups' is a reserved keyword. To query the table, it must be enclosed in backticks: `groups`
+     */
+    @Override
+    public String deleteAllGroups() {
+        return String.join(" ",
+                "DELETE",
+                "FROM `groups`",
+                "WHERE tenantId = ?"
+        );
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectGroups()
+     * In MySQL, 'groups' is a reserved keyword. To query the table, it must be enclosed in backticks: `groups`
+     */
+    @Override
+    public String selectGroups() {
+        //TODO pagination?
+        return String.join(" ",
+                "SELECT g.*",
+                "FROM `groups` g",
+                "WHERE g.tenantId = ?",
+                "ORDER BY g.groupId ASC",
+                "LIMIT ?"
+        );
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectGroupByGroupId()
+     * In MySQL, 'groups' is a reserved keyword. To query the table, it must be enclosed in backticks: `groups`
+     */
+    @Override
+    public String selectGroupByGroupId() {
+        return String.join(" ",
+                "SELECT g.*",
+                "FROM `groups` g",
+                "WHERE g.tenantId = ? AND g.groupId = ?"
+        );
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#exportGroups()
+     * In MySQL, 'groups' is a reserved keyword. To query the table, it must be enclosed in backticks: `groups`
+     */
+    @Override
+    public String exportGroups() {
+        return String.join(" ",
+                "SELECT *",
+                "FROM `groups` g",
+                "WHERE g.tenantId = ?"
+        );
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#importGroup()
+     * In MySQL, 'groups' is a reserved keyword. To query the table, it must be enclosed in backticks: `groups`
+     */
+    @Override
+    public String importGroup() {
+        return String.join(" ",
+                "INSERT INTO `groups`",
+                "(tenantId, groupId, description, artifactsType, createdBy, createdOn, modifiedBy, modifiedOn, properties)",
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
+        );
     }
 
 }

@@ -81,3 +81,6 @@ CREATE TABLE artifactreferences (tenantId VARCHAR(128) NOT NULL, contentId BIGIN
 ALTER TABLE artifactreferences ADD PRIMARY KEY (tenantId, contentId, name);
 ALTER TABLE artifactreferences ADD CONSTRAINT FK_artifactreferences_1 FOREIGN KEY (tenantId, contentId) REFERENCES content (tenantId, contentId) ON DELETE CASCADE;
 
+-- Required for the method `getNextSequenceValue()` on MySQLSqlStatements since  MySQL does not have an equivalent
+-- to Postgres' RETURNING or SQLServer's OUTPUT functionalities
+CREATE PROCEDURE GetNextSequenceValue(IN in_tenantId varchar(255), IN in_name varchar(255), IN in_value int) BEGIN INSERT INTO sequences (tenantId, name, value) VALUES (in_tenantId, in_name, in_value) ON DUPLICATE KEY UPDATE value = value + 1; SELECT value FROM sequences WHERE tenantId = in_tenantId AND name = in_name; END;

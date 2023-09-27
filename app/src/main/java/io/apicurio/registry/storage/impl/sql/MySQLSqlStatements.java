@@ -93,11 +93,7 @@ public class MySQLSqlStatements extends CommonSqlStatements {
      */
     @Override
     public String getNextSequenceValue() {
-        //TODO: Create a Stored Procedure to return the VALUE after the UPSERT
-        return String.join(" ",
-                "INSERT INTO sequences (tenantId, name, value)",
-                        "VALUES (?, ?, 1)",
-                        "ON DUPLICATE KEY UPDATE value = sequences.value + 1;");
+        return "CALL GetNextSequenceValue(?, ?, 1)";
     }
 
     /**

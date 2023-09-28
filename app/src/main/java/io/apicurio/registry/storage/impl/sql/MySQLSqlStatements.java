@@ -41,7 +41,7 @@ public class MySQLSqlStatements extends CommonSqlStatements {
      */
     @Override
     public boolean isPrimaryKeyViolation(Exception error) {
-        return error.getMessage().contains("violates unique constraint");
+        return error.getMessage().contains("Duplicate entry");
     }
 
     /**

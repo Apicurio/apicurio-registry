@@ -77,6 +77,18 @@ public class MySQLSqlStatements extends CommonSqlStatements {
     }
 
     /**
+     * @see SqlStatements#upsertReference()
+     */
+    @Override
+    public String upsertReference() {
+        return String.join(" ",
+                "INSERT IGNORE INTO artifactreferences",
+                "(tenantId, contentId, groupId, artifactId, version, name)",
+                "VALUES (?, ?, ?, ?, ?, ?);"
+        );
+    }
+
+    /**
      * @see SqlStatements#upsertLogConfiguration()
      */
     @Override
@@ -90,6 +102,8 @@ public class MySQLSqlStatements extends CommonSqlStatements {
 
     /**
      * @see SqlStatements#getNextSequenceValue()
+     * MySQL doesn't have an equivalent to Postgres' RETURNING or SQLServer's OUTPUT,
+     * so Store Procedure was required to replicate the behavior
      */
     @Override
     public String getNextSequenceValue() {
@@ -109,14 +123,43 @@ public class MySQLSqlStatements extends CommonSqlStatements {
     }
 
     /**
-     * @see SqlStatements#upsertReference()
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#insertVersion(boolean)
+     * MySQL doesn't handle 'INSERT INTO... VALUES (..., (SELECT...), ...)' well,
+     * instead use 'INSERT INTO... SELECT...'
      */
     @Override
-    public String upsertReference() {
+    public String insertVersion(boolean firstVersion) {
+        if (firstVersion) {
+            return String.join(" ",
+                    "INSERT INTO versions",
+                    "(globalId, tenantId, groupId, artifactId, version, versionId, state, name, description, createdBy, createdOn, labels, properties, contentId)",
+                    "VALUES (?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?)"
+            );
+        }
         return String.join(" ",
-                "INSERT IGNORE INTO artifactreferences",
-                "(tenantId, contentId, groupId, artifactId, version, name)",
-                "VALUES (?, ?, ?, ?, ?, ?);"
+                String.join(" ",
+                        "INSERT INTO versions",
+                        "(globalId, tenantId, groupId, artifactId, version, versionId, state, name, description, createdBy, createdOn, labels, properties, contentId)",
+                        "SELECT",
+                        "? as globalId,", "? as tenantId,", "? as groupId,", "? as artifactId,", "? as version,",
+                        "(SELECT MAX(versionId) + 1 FROM versions WHERE tenantId = ? AND groupId = ? AND artifactId = ?) as versionId,",
+                        "? as state,", "? as name,", "? as description,", "? as createdBy,", "? as createdOn,",
+                        "? as labels,", "? as properties,", "? as contentId"
+                )
+        );
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#autoUpdateVersionForGlobalId()
+     * MySQL doesn't behave well with 'UPDATE... SET version = (SELECT... WHERE) WHERE...',
+     * so a CTE was necessary here
+     */
+    @Override
+    public String autoUpdateVersionForGlobalId() {
+        return String.join(" ",
+                "WITH v as (SELECT versionId  FROM versions WHERE tenantId = ? AND globalId = ?)",
+                "UPDATE versions SET version = (SELECT versionId FROM v)",
+                "WHERE tenantId = ? AND globalId = ?"
         );
     }
 
@@ -156,9 +199,9 @@ public class MySQLSqlStatements extends CommonSqlStatements {
     @Override
     public String updateGroup() {
         return String.join(" ",
-                "UPDATE artifactgroups " +
-                        "SET description = ? , artifactsType = ? , modifiedBy = ? , modifiedOn = ? , properties = ? " +
-                        "WHERE tenantId = ? AND groupId = ?"
+                "UPDATE artifactgroups ",
+                "SET description = ? , artifactsType = ? , modifiedBy = ? , modifiedOn = ? , properties = ? ",
+                "WHERE tenantId = ? AND groupId = ?"
         );
     }
 

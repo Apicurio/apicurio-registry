@@ -46,7 +46,7 @@ This should result in Quarkus and the in-memory registry starting up, with the u
   and `PostgreSQL` driver in *prod* mode.
 - `-Pmssql` enables a build of `storage/mssql` module and produces `apicurio-registry-storage-mssql-<version>-all.zip`. This artifact uses `H2` driver in *dev* mode,
   and `SQL Server` driver in *prod* mode.
-- `-Pmysql` enables a build of `storage/mssql` module and produces `apicurio-registry-storage-mssql-<version>-all.zip`. This artifact uses `H2` driver in *dev* mode,
+- `-Pmysql` enables a build of `storage/mysql` module and produces `apicurio-registry-storage-mysql-<version>-all.zip`. This artifact uses `H2` driver in *dev* mode,
   and `MySQL` driver in *prod* mode.
 - `-Pkafkasql` enables a build of the `storage/kafkasql` module and produces the `apicurio-registry-storage-kafkasql-<version>-all.zip` artifact.
 - `-Pnative` *(experimental)* builds native executables. See [Building a native executable](https://quarkus.io/guides/maven-tooling#building-a-native-executable).
@@ -59,7 +59,7 @@ The following parameters are available for executable files:
 
 ### SQL
  - In the *dev* mode, the application expects an H2 server running at `jdbc:h2:tcp://localhost:9123/mem:registry`.
- - In the *prod* mode, you have to provide connection configuration for a PostgreSQL (or SQL Server) server as follows:
+ - In the *prod* mode, you have to provide connection configuration for a PostgreSQL (or SQL Server, or MySQL) server as follows:
   
 |Option|Command argument|Env. variable|
 |---|---|---|

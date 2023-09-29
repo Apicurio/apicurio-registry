@@ -17,6 +17,7 @@
         <docker.app.file>app-files/apicurio-registry-app-${project.version}-all.tar.gz</docker.app.file>
         <docker.sql.file>app-files/apicurio-registry-storage-sql-${project.version}-all.tar.gz</docker.sql.file>
         <docker.mssql.file>app-files/apicurio-registry-storage-mssql-${project.version}-all.tar.gz</docker.mssql.file>
+        <docker.mysql.file>app-files/apicurio-registry-storage-mysql-${project.version}-all.tar.gz</docker.mysql.file>
         <docker.kafkasql.file>app-files/apicurio-registry-storage-kafkasql-${project.version}-all.tar.gz</docker.kafkasql.file>
         <docker.gitops.file>app-files/apicurio-registry-storage-gitops-${project.version}-all.tar.gz</docker.gitops.file>
     </properties>
@@ -63,6 +64,14 @@
                                 </resource>
                                 <resource>
                                     <directory>${basedir}/../../storage/mssql/target</directory>
+                                    <filtering>false</filtering>
+                                    <includes>
+                                        <include>apicurio-*.tar.gz</include>
+                                        <include>apicurio-*runner</include>
+                                    </includes>
+                                </resource>
+                                <resource>
+                                    <directory>${basedir}/../../storage/mysql/target</directory>
                                     <filtering>false</filtering>
                                     <includes>
                                         <include>apicurio-*.tar.gz</include>
@@ -138,6 +147,18 @@
                 <dependency>
                     <groupId>io.apicurio</groupId>
                     <artifactId>apicurio-registry-storage-mssql</artifactId>
+                    <version>${project.version}</version>
+                    <scope>provided</scope>
+                </dependency>
+            </dependencies>
+        </profile>
+
+        <profile>
+            <id>mysql</id>
+            <dependencies>
+                <dependency>
+                    <groupId>io.apicurio</groupId>
+                    <artifactId>apicurio-registry-storage-mysql</artifactId>
                     <version>${project.version}</version>
                     <scope>provided</scope>
                 </dependency>

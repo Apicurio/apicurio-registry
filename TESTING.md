@@ -34,7 +34,7 @@ When running from the terminal, the configuration is provided via maven profiles
 
 When executing the testsuite you normally provide two profiles:
 + test profile (which determines the tests that will be executed), with the following options: all, ci, smoke, serdes, ui, acceptance, auth, migration, sqlit, kafkasqlit.
-+ storage variant to test (which determines the storage backend that will be deployed, and therefore tested), the available options for running the test locally are: local-mem , local-sql, local-mssql , local-kafka.
++ storage variant to test (which determines the storage backend that will be deployed, and therefore tested), the available options for running the test locally are: local-mem, local-sql, local-mssql, local-mysql, local-kafka.
 
 As you might expect, this testsuite mode depends on the rest of the project to be built first, in order to have the application jars/images available or the serdes module to be available as well.
 

@@ -73,7 +73,8 @@ Be sure to test your pull request using all storage variants:
 
 1. SQL storage (using the `-Psql` profile)
 2. SQL Server storage (using the `-Pmssql` profile)
-3. KafkaSQL storage (using the `-Pkafkasql` profile)
+3. MySQL storage (using the `-Pmysql` profile)
+4. KafkaSQL storage (using the `-Pkafkasql` profile)
 
 ### Customizing Registry supported ArtifactTypes
 

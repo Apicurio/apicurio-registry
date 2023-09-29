@@ -67,14 +67,16 @@ public class ArtifactStateExt {
     }
 
     public void applyState(Consumer<ArtifactState> consumer, ArtifactState previousState, ArtifactState newState) {
-        if (previousState != null) {
-            if (canTransition(previousState, newState)) {
-                consumer.accept(newState);
+        if ( previousState != newState) {
+            if (previousState != null) {
+                if (canTransition(previousState, newState)) {
+                    consumer.accept(newState);
+                } else {
+                    throw new InvalidArtifactStateException(previousState, newState);
+                }
             } else {
-                throw new InvalidArtifactStateException(previousState, newState);
+                consumer.accept(newState);
             }
-        } else {
-            consumer.accept(newState);
         }
     }
 }

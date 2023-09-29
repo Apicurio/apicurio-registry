@@ -25,7 +25,6 @@ jobs:
     env:
       RELEASE_TYPE: release
     steps:
-
       - name: View Disk Usage
         run: df -h
 

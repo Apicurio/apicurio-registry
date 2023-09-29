@@ -5,6 +5,7 @@ override DOCKERFILE_LOCATION := ./distro/docker/target/docker
 MEM_DOCKERFILE ?= Dockerfile.jvm
 SQL_DOCKERFILE ?= Dockerfile.sql.jvm
 MSSQL_DOCKERFILE ?= Dockerfile.mssql.jvm
+MYSQL_DOCKERFILE ?= Dockerfile.mysql.jvm
 KAFKASQL_DOCKERFILE ?= Dockerfile.kafkasql.jvm
 DOCKER_BUILD_WORKSPACE ?= $(DOCKERFILE_LOCATION)
 
@@ -54,7 +55,7 @@ build-all:
 	@echo "----------------------------------------------------------------------"
 	@echo "                   Building All Modules                               "
 	@echo "----------------------------------------------------------------------"
-	./mvnw -T 1.5C clean install --no-transfer-progress -Pprod -Psql -Pmssql -Pkafkasql -DskipTests=$(SKIP_TESTS) $(BUILD_FLAGS)
+	./mvnw -T 1.5C clean install --no-transfer-progress -Pprod -Psql -Pmssql -Pmysql -Pkafkasql -DskipTests=$(SKIP_TESTS) $(BUILD_FLAGS)
 
 .PHONY: build-in-memory ## Builds and test in-memory module. Variables available for override [SKIP_TESTS, BUILD_FLAGS]
 build-in-memory:
@@ -203,6 +204,24 @@ push-mssql-image:
 	@echo "------------------------------------------------------------------------"
 	docker push $(IMAGE_REPO)/apicurio/apicurio-registry-mssql:$(IMAGE_TAG)
 
+.PHONY: build-mysql-image ## Builds docker image for 'mysql' storage variant. Variables available for override [MYSQL_DOCKERFILE, IMAGE_REPO, IMAGE_TAG, DOCKER_BUILD_WORKSPACE]
+build-mysql-image:
+	@echo "------------------------------------------------------------------------"
+	@echo " Building Image For MySQL Storage Variant "
+	@echo " Repository: $(IMAGE_REPO)"
+	@echo " Tag: $(IMAGE_TAG)"
+	@echo "------------------------------------------------------------------------"
+	docker build -f $(DOCKERFILE_LOCATION)/$(MYSQL_DOCKERFILE) -t $(IMAGE_REPO)/apicurio/apicurio-registry-mysql:$(IMAGE_TAG) $(DOCKER_BUILD_WORKSPACE)
+
+.PHONY: push-mysql-image ## Pushes docker image for 'mysql' storage variant. Variables available for override [IMAGE_REPO, IMAGE_TAG]
+push-mysql-image:
+	@echo "------------------------------------------------------------------------"
+	@echo " Pushing Image For MySQL Storage Variant"
+	@echo " Repository: $(IMAGE_REPO)"
+	@echo " Tag: $(IMAGE_TAG)"
+	@echo "------------------------------------------------------------------------"
+	docker push $(IMAGE_REPO)/apicurio/apicurio-registry-mysql:$(IMAGE_TAG)
+
 .PHONY: build-kafkasql-image ## Builds docker image for kafkasql storage variant. Variables available for override [KAFKASQL_DOCKERFILE, IMAGE_REPO, IMAGE_TAG, DOCKER_BUILD_WORKSPACE]
 build-kafkasql-image:
 	@echo "------------------------------------------------------------------------"
@@ -275,6 +294,16 @@ mssql-multiarch-images:
 	@echo " Tag: $(IMAGE_TAG)"
 	@echo "------------------------------------------------------------------------"
 	docker buildx build --push -f $(DOCKERFILE_LOCATION)/$(MSSQL_DOCKERFILE) -t $(IMAGE_REPO)/apicurio/apicurio-registry-mssql:$(IMAGE_TAG) --platform $(IMAGE_PLATFORMS) $(DOCKER_BUILD_WORKSPACE)
+
+.PHONY: mysql-multiarch-images ## Builds and pushes multi-arch images for 'mysql' storage variant. Variables available for override [MYSQL_DOCKERFILE, IMAGE_REPO, IMAGE_TAG, DOCKER_BUILD_WORKSPACE]
+mysql-multiarch-images:
+	@echo "------------------------------------------------------------------------"
+	@echo " Building Multi-arch Images For MySQL Storage Variant "
+	@echo " Supported Platforms: $(IMAGE_PLATFORMS)"
+	@echo " Repository: $(IMAGE_REPO)"
+	@echo " Tag: $(IMAGE_TAG)"
+	@echo "------------------------------------------------------------------------"
+	docker buildx build --push -f $(DOCKERFILE_LOCATION)/$(MYSQL_DOCKERFILE) -t $(IMAGE_REPO)/apicurio/apicurio-registry-mysql:$(IMAGE_TAG) --platform $(IMAGE_PLATFORMS) $(DOCKER_BUILD_WORKSPACE)
 
 .PHONY: kafkasql-multiarch-images ## Builds and pushes multi-arch images for kafkasql storage variant. Variables available for override [KAFKASQL_DOCKERFILE, IMAGE_REPO, IMAGE_TAG, DOCKER_BUILD_WORKSPACE]
 kafkasql-multiarch-images:
@@ -367,6 +396,20 @@ run-mssql-clustered-integration-tests: build-integration-tests-common
 	@echo "----------------------------------------------------------------------"
 	./mvnw verify --no-transfer-progress -Pintegration-tests -Pclustered -Pmssql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress
 
+.PHONY: run-mysql-integration-tests ## Runs mysql integration tests
+run-mysql-integration-tests: build-integration-tests-common
+	@echo "----------------------------------------------------------------------"
+	@echo "                 Running SQL Server Integration Tests                 "
+	@echo "----------------------------------------------------------------------"
+	./mvnw verify --no-transfer-progress -Pintegration-tests -P$(INTEGRATION_TESTS_PROFILE) -Pmysql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress
+
+.PHONY: run-mysql-clustered-integration-tests ## Runs mysql clustered integration tests
+run-mysql-clustered-integration-tests: build-integration-tests-common
+	@echo "----------------------------------------------------------------------"
+	@echo "               Running SQL Server clustered Integration Tests         "
+	@echo "----------------------------------------------------------------------"
+	./mvnw verify --no-transfer-progress -Pintegration-tests -Pclustered -Pmysql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress
+
 .PHONY: run-kafkasql-integration-tests ## Runs kafkasql integration tests
 run-kafkasql-integration-tests: build-integration-tests-common
 	@echo "----------------------------------------------------------------------"
@@ -402,6 +445,13 @@ run-mssql-migration-integration-tests: build-integration-tests-common
 	@echo "----------------------------------------------------------------------"
 	./mvnw verify --no-transfer-progress -Pintegration-tests -Pmigration -mssql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress
 
+.PHONY: run-mysql-migration-integration-tests ## Runs sql migration integration tests
+run-mysql-migration-integration-tests: build-integration-tests-common
+	@echo "----------------------------------------------------------------------"
+	@echo "               Running MySQL Migration Integration Tests                "
+	@echo "----------------------------------------------------------------------"
+	./mvnw verify --no-transfer-progress -Pintegration-tests -Pmigration -Pmysql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress
+
 .PHONY: run-kafkasql-migration-integration-tests ## Runs kafkasql migration integration tests
 run-kafkasql-migration-integration-tests: build-integration-tests-common
 	@echo "----------------------------------------------------------------------"
@@ -423,6 +473,13 @@ run-mssql-auth-integration-tests: build-integration-tests-common
 	@echo "----------------------------------------------------------------------"
 	./mvnw verify --no-transfer-progress -Pintegration-tests -Pauth -mssql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress
 
+.PHONY: run-mysql-auth-integration-tests ## Runs mysql auth integration tests
+run-mysql-auth-integration-tests: build-integration-tests-common
+	@echo "----------------------------------------------------------------------"
+	@echo "                  Running MySQL Auth Integration Tests                  "
+	@echo "----------------------------------------------------------------------"
+	./mvnw verify --no-transfer-progress -Pintegration-tests -Pauth -Pmysql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress
+
 .PHONY: run-kafkasql-auth-integration-tests ## Runs kafkasql auth integration tests
 run-kafkasql-auth-integration-tests: build-integration-tests-common
 	@echo "----------------------------------------------------------------------"
@@ -443,6 +500,13 @@ run-mssql-legacy-tests: build-integration-tests-common
 	@echo "                     Running SQL Server Legacy Tests                  "
 	@echo "----------------------------------------------------------------------"
 	./mvnw verify --no-transfer-progress -Pintegration-tests -P$(INTEGRATION_TESTS_PROFILE) -mssql -pl integration-tests/legacy-tests -Dmaven.javadoc.skip=true --no-transfer-progress
+
+.PHONY: run-mysql-legacy-tests ## Runs mysql legacy tests
+run-mysql-legacy-tests: build-integration-tests-common
+	@echo "----------------------------------------------------------------------"
+	@echo "                        Running MySQL Legacy Tests                      "
+	@echo "----------------------------------------------------------------------"
+	./mvnw verify --no-transfer-progress -Pintegration-tests -P$(INTEGRATION_TESTS_PROFILE) -Pmysql -pl integration-tests/legacy-tests -Dmaven.javadoc.skip=true --no-transfer-progress
 
 .PHONY: run-kafkasql-legacy-tests ## Runs kafkasql legacy tests
 run-kafkasql-legacy-tests: build-integration-tests-common

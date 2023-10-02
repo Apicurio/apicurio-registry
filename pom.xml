@@ -158,7 +158,7 @@
 
         <!-- Schema types -->
         <avro.version>1.11.2</avro.version>
-        <json-schema-validator.version>1.0.86</json-schema-validator.version>
+        <json-schema-validator.version>1.0.87</json-schema-validator.version>
         <wire-schema.version>4.5.5</wire-schema.version>
         <wire-compiler.version>4.3.0</wire-compiler.version>
         <okio-jvm.version>3.4.0</okio-jvm.version>

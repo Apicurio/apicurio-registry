@@ -226,7 +226,7 @@
 
         <!-- Scala -->
         <version.scala-maven.plugin>4.4.0</version.scala-maven.plugin>
-        <scala.version>2.13.11</scala.version>
+        <scala.version>2.13.12</scala.version>
 
         <!-- Plugin Versions -->
         <version.compiler.plugin>3.11.0</version.compiler.plugin>

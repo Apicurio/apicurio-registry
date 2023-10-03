@@ -523,7 +523,6 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
                     handle.createUpdate(sqlStatements.autoUpdateVersionForGlobalId())
                             .bind(0, globalId)
-                            .bind(1, globalId)
                             .execute();
                 }
 

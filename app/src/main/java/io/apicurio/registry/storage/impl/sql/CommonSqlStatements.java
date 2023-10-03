@@ -153,7 +153,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String autoUpdateVersionForGlobalId() {
-        return "UPDATE versions SET version = (SELECT versionId FROM versions WHERE globalId = ?) WHERE globalId = ?";
+        return "UPDATE versions SET version = versionId WHERE globalId = ?";
     }
 
     /**

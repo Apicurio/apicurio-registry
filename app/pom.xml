@@ -141,12 +141,6 @@
             <artifactId>quarkus-agroal</artifactId>
         </dependency>
 
-        <!-- Sentry -->
-        <dependency>
-            <groupId>io.sentry</groupId>
-            <artifactId>sentry</artifactId>
-        </dependency>
-
         <!-- Third Party Libraries -->
         <dependency>
             <groupId>commons-codec</groupId>

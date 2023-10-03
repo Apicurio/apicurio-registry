@@ -211,7 +211,6 @@
         <httpclient.version>4.5.14</httpclient.version>
         <apicurio-common-rest-client.version>0.1.18.Final</apicurio-common-rest-client.version>
         <apicurio-common-app-components.version>0.2.2.Final</apicurio-common-app-components.version>
-        <sentry.version>1.7.30</sentry.version>
         <kafka-oauth-client.version>0.14.0</kafka-oauth-client.version>
         <kafka-clients.version>3.5.1</kafka-clients.version>
         <snakeyaml.version>2.1</snakeyaml.version>
@@ -622,11 +621,6 @@
                 <groupId>org.apache.httpcomponents</groupId>
                 <artifactId>httpclient</artifactId>
                 <version>${httpclient.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.sentry</groupId>
-                <artifactId>sentry</artifactId>
-                <version>${sentry.version}</version><!--$NO-MVN-MAN-VER$-->
             </dependency>
             <dependency>
                 <groupId>org.eclipse.jgit</groupId>

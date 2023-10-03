@@ -23,18 +23,16 @@ import io.quarkus.runtime.annotations.RegisterForReflection;
  * @author eric.wittmann@gmail.com
  */
 @RegisterForReflection
-public class GroupKey extends AbstractMessageKey {
+public class GroupKey implements MessageKey {
 
     private String groupId;
 
     /**
      * Creator method.
-     * @param tenantId
      * @param groupId
      */
-    public static final GroupKey create(String tenantId, String groupId) {
+    public static final GroupKey create(String groupId) {
         GroupKey key = new GroupKey();
-        key.setTenantId(tenantId);
         key.setGroupId(groupId);
         return key;
     }
@@ -52,7 +50,7 @@ public class GroupKey extends AbstractMessageKey {
      */
     @Override
     public String getPartitionKey() {
-        return getTenantId() + "/" + groupId;
+        return groupId;
     }
 
     /**

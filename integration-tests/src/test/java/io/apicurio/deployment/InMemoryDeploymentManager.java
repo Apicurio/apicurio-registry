@@ -16,7 +16,6 @@
 
 package io.apicurio.deployment;
 
-import static io.apicurio.deployment.KubernetesTestResources.APPLICATION_IN_MEMORY_MULTITENANT_RESOURCES;
 import static io.apicurio.deployment.KubernetesTestResources.APPLICATION_IN_MEMORY_RESOURCES;
 import static io.apicurio.deployment.KubernetesTestResources.APPLICATION_IN_MEMORY_SECURED_RESOURCES;
 import static io.apicurio.deployment.RegistryDeploymentManager.prepareTestsInfra;
@@ -24,16 +23,10 @@ import static io.apicurio.deployment.RegistryDeploymentManager.prepareTestsInfra
 public class InMemoryDeploymentManager {
 
     static void deployInMemoryApp(String registryImage) throws Exception {
-        switch (Constants.TEST_PROFILE) {
-            case Constants.AUTH:
-                prepareTestsInfra(null, APPLICATION_IN_MEMORY_SECURED_RESOURCES, true, registryImage, false);
-                break;
-            case Constants.MULTITENANCY:
-                prepareTestsInfra(null, APPLICATION_IN_MEMORY_MULTITENANT_RESOURCES, false, registryImage, true);
-                break;
-            default:
-                prepareTestsInfra(null, APPLICATION_IN_MEMORY_RESOURCES, false, registryImage, false);
-                break;
+        if (Constants.TEST_PROFILE.equals(Constants.AUTH)) {
+            prepareTestsInfra(null, APPLICATION_IN_MEMORY_SECURED_RESOURCES, true, registryImage);
+        } else {
+            prepareTestsInfra(null, APPLICATION_IN_MEMORY_RESOURCES, false, registryImage);
         }
     }
 }

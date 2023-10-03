@@ -25,7 +25,7 @@ import java.util.UUID;
  * @author eric.wittmann@gmail.com
  */
 @RegisterForReflection
-public class ContentIdKey extends AbstractMessageKey {
+public class ContentIdKey implements MessageKey {
 
     private static final String CONTENT_ID_PARTITION_KEY = "__apicurio_registry_content_id__";
 
@@ -34,12 +34,9 @@ public class ContentIdKey extends AbstractMessageKey {
     /**
      * Creator method.
      *
-     * @param tenantId
-     * @param ruleType
      */
-    public static final ContentIdKey create(String tenantId) {
+    public static final ContentIdKey create() {
         ContentIdKey key = new ContentIdKey();
-        key.setTenantId(tenantId);
         return key;
     }
 
@@ -56,7 +53,7 @@ public class ContentIdKey extends AbstractMessageKey {
      */
     @Override
     public String getPartitionKey() {
-        return getTenantId() + CONTENT_ID_PARTITION_KEY;
+        return CONTENT_ID_PARTITION_KEY;
     }
 
     public String getUuid() {

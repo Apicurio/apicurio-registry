@@ -117,7 +117,7 @@ public class ReadOnlyRegistryStorageTest {
                 entry("getRoleForPrincipal1", new State(false, s -> s.getRoleForPrincipal(null))),
                 entry("getRoleMapping1", new State(false, s -> s.getRoleMapping(null))),
                 entry("getRoleMappings0", new State(false, RegistryStorage::getRoleMappings)),
-                entry("getTenantsWithStaleConfigProperties1", new State(false, s -> s.getTenantsWithStaleConfigProperties(null))),
+                entry("getStaleConfigProperties1", new State(false, s -> s.getStaleConfigProperties(null))),
                 entry("importArtifactRule1", new State(true, s -> s.importArtifactRule(null))),
                 entry("importArtifactVersion1", new State(true, s -> s.importArtifactVersion(null))),
                 entry("importComment1", new State(true, s -> s.importComment(null))),
@@ -152,7 +152,6 @@ public class ReadOnlyRegistryStorageTest {
                     s.setConfigProperty(dto);
                 })),
                 entry("storageName0", new State(false, RegistryStorage::storageName)),
-                entry("supportsMultiTenancy0", new State(false, RegistryStorage::supportsMultiTenancy)),
                 entry("updateArtifact6", new State(true, s -> s.updateArtifact(null, null, null, null, null, null))),
                 entry("updateArtifactMetaData3", new State(true, s -> s.updateArtifactMetaData(null, null, null))),
                 entry("updateArtifactOwner3", new State(true, s -> s.updateArtifactOwner(null, null, null))),

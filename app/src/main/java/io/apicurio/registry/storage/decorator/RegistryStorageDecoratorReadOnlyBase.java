@@ -55,13 +55,6 @@ public abstract class RegistryStorageDecoratorReadOnlyBase implements RegistrySt
         return delegate.storageName();
     }
 
-
-    @Override
-    public boolean supportsMultiTenancy() {
-        return delegate.supportsMultiTenancy();
-    }
-
-
     @Override
     public boolean isReady() {
         return delegate.isReady();
@@ -295,8 +288,8 @@ public abstract class RegistryStorageDecoratorReadOnlyBase implements RegistrySt
 
 
     @Override
-    public List<String> getTenantsWithStaleConfigProperties(Instant since) {
-        return delegate.getTenantsWithStaleConfigProperties(since);
+    public List<DynamicConfigPropertyDto> getStaleConfigProperties(Instant since) {
+        return delegate.getStaleConfigProperties(since);
     }
 
 

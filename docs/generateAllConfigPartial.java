@@ -154,11 +154,7 @@ public class generateAllConfigPartial {
             }
             switch (annotation.target().kind()) {
                 case FIELD:
-                    configName = configName.replace("app.authn.", "registry.auth.")
-                            .replace("app.multitenancy", "registry.multitenancy")
-                            .replace("app.enable.multitenancy", "registry.enable.multitenancy")
-                            .replace("app.tenant.manager", "registry.tenant.manager")
-                            .replace("app.tenants.", "registry.tenants.");
+                    configName = configName.replace("app.authn.", "registry.auth.");
 
 
                     var defaultValue = Optional.ofNullable(annotation.value("defaultValue")).map(v -> v.value().toString()).orElse("");
@@ -179,15 +175,6 @@ public class generateAllConfigPartial {
 
                     var category = Optional.ofNullable(info.get().value("category")).map(v -> v.value().toString()).orElse("");
                     var description = Optional.ofNullable(info.get().value("description")).map(v -> v.value().toString()).orElse("");
-
-                    // TODO Remove this after updating common-app-components to 0.1.22
-                    if ("registry.enable.multitenancy.standalone".equals(configName)) {
-                        description = "Enable Standalone Multitenancy mode. " +
-                                "In this mode, Registry provides basic multi-tenancy features, without dependencies on additional components " +
-                                "to manage tenants and their metadata. A new tenant is simply created as soon as a tenant ID is extracted " +
-                                "from the request for the first time. The tenant IDs must be managed externally, " +
-                                "and tenants can be effectively deleted by deleting their data.";
-                    }
 
                     var availableSince = Optional.ofNullable(info.get().value("registryAvailableSince"))
                             .map(v -> v.value().toString()).
@@ -226,7 +213,6 @@ public class generateAllConfigPartial {
         // TODO: include all the relevant jars, to be determined
         // Extract configuration from Jandex
         extractConfigurations(baseDir + "/../app/target/lib/io.apicurio.apicurio-common-app-components-auth-" + commonComponentsVersion + ".jar", allConfiguration);
-        extractConfigurations(baseDir + "/../app/target/lib/io.apicurio.apicurio-common-app-components-multitenancy-" + commonComponentsVersion + ".jar", allConfiguration);
         extractConfigurations(baseDir + "/../app/target/apicurio-registry-app-" + currentVersion + ".jar", allConfiguration);
 
         // TODO

@@ -19,7 +19,6 @@ package io.apicurio.registry.storage;
 
 import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
 import io.apicurio.common.apps.config.DynamicConfigStorage;
-import io.apicurio.common.apps.multitenancy.TenantContext;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.ArtifactOwnerDto;
@@ -39,7 +38,6 @@ import io.apicurio.registry.storage.dto.RuleConfigurationDto;
 import io.apicurio.registry.storage.dto.SearchFilter;
 import io.apicurio.registry.storage.dto.StoredArtifactDto;
 import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
-import io.apicurio.registry.storage.dto.*;
 import io.apicurio.registry.storage.error.*;
 import io.apicurio.registry.storage.impexp.EntityInputStream;
 import io.apicurio.registry.storage.impl.sql.IdGenerator;
@@ -64,14 +62,6 @@ public interface RegistryStorage extends DynamicConfigStorage {
      * The storage name
      */
     String storageName();
-
-    /**
-     * Returns true if the storage implementation supports multitenancy.
-     * If the storage supports multitenancy, it will get the tenant information from the {@link TenantContext}
-     *
-     * @return if multitenancy is supported
-     */
-    boolean supportsMultiTenancy();
 
     /**
      * Is the storage initialized and ready to be used?
@@ -717,7 +707,7 @@ public interface RegistryStorage extends DynamicConfigStorage {
     void deleteRoleMapping(String principalId) throws RegistryStorageException;
 
     /**
-     * Deletes ALL user (tenant) data. Does not delete global data, such as log configuration.
+     * Deletes ALL user data. Does not delete global data, such as log configuration.
      */
     void deleteAllUserData();
 
@@ -754,13 +744,13 @@ public interface RegistryStorage extends DynamicConfigStorage {
     DynamicConfigPropertyDto getRawConfigProperty(String propertyName);
 
     /**
-     * Gets a list of tenantIds with stale configuration properties.  This would inform a caching
-     * layer that a tenant-specific cache should be invalidated.
+     * Gets a list of properties with stale state.  This would inform a caching
+     * layer that the cache should be invalidated.
      *
      * @param since instant representing the last time this check was done (has anything changed since)
-     * @return a list of tenant IDs with stale configs
+     * @return a list of stale configs
      */
-    List<String> getTenantsWithStaleConfigProperties(Instant since);
+    List<DynamicConfigPropertyDto> getStaleConfigProperties(Instant since);
 
 
     /**

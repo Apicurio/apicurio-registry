@@ -478,7 +478,7 @@ public interface SqlStatements {
     public String deleteAllOrphanedContent();
 
     /**
-     * A statement to delete all content owned by a tenantId
+     * A statement to delete all content
      */
     public String deleteAllContent();
 
@@ -513,7 +513,7 @@ public interface SqlStatements {
     public String selectGroupByGroupId();
 
     /*
-     * The next few statements support globalId and contentId management, having into account a multitenant environment
+     * The next few statements support globalId and contentId management.
      */
 
     public String getNextSequenceValue();
@@ -613,7 +613,7 @@ public interface SqlStatements {
 
     public String selectConfigPropertyByName();
 
-    public String selectTenantIdsByConfigModifiedOn();
+    public String selectStaleConfigProperties();
 
     public String deleteAllReferences();
 

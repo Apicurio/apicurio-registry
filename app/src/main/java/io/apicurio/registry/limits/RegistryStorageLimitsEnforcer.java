@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.mt.limits;
+package io.apicurio.registry.limits;
 
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.storage.RegistryStorage;
@@ -37,9 +37,8 @@ import java.util.concurrent.CompletionStage;
 import java.util.function.Supplier;
 
 /**
- * Decorator of {@link RegistryStorage} that applies per-tenant limits enforcement, with this is possible to limit how many artifacts a tenant can create...
- * This feature can also be applied to non multitenancy scenarios, there is the notion of default tenant that can have limits configuration.
- * All of that is abstracted with the TenantLimitsService and the TenantLimitsConfigurationService
+ * Decorator of {@link RegistryStorage} that applies limits enforcement, with this is possible to limit how many artifacts can be created in registry...
+ * All of that is abstracted with the LimitsService and the LimitsConfigurationService
  *
  * @author Fabian Martinez
  */
@@ -51,10 +50,10 @@ public class RegistryStorageLimitsEnforcer extends RegistryStorageDecoratorBase 
     ThreadContext threadContext;
 
     @Inject
-    RegistryTenantLimitsService limitsService;
+    RegistryLimitsService limitsService;
 
     @Inject
-    RegistryTenantLimitsConfigurationService limitsConfiguration;
+    RegistryLimitsConfigurationProducer limitsConfiguration;
 
     /**
      * @see io.apicurio.registry.storage.decorator.RegistryStorageDecorator#isEnabled()
@@ -192,7 +191,7 @@ public class RegistryStorageLimitsEnforcer extends RegistryStorageDecoratorBase 
 
     /**
      * Notice the "threadContext.withContextCapture" because of using CompletionStage it's possible that certain operations may be executed in different threads.
-     * But we have the TenantContext that stores per-tenant configurations in a ThreadLocale variable. We need context propagation to move the ThreadLocale context
+     * We need context propagation to move the ThreadLocale context
      * from one thread to another, that's why we use withContextCapture
      *
      * @param checker

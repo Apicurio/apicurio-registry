@@ -48,7 +48,7 @@ import io.quarkus.test.junit.TestProfile;
 public class LimitsTest extends AbstractResourceTestBase {
 
     @Test
-    public void testLimitsNoMultitenancy() throws Exception {
+    public void testLimits() throws Exception {
 
         InputStream jsonSchema = getClass().getResourceAsStream("/io/apicurio/registry/util/json-schema.json");
         Assertions.assertNotNull(jsonSchema);

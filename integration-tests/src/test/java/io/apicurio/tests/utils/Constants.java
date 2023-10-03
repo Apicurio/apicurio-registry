@@ -47,11 +47,6 @@ public interface Constants {
     String ACCEPTANCE = "acceptance";
 
     /**
-     * Tag for multitenancy tests, only storages that support multitenancy
-     */
-    String MULTITENANCY = "multitenancy";
-
-    /**
      * Tag for clustered tests, the suite will deploy the registry as a cluster of 2 replicas
      */
     String CLUSTERED = "clustered";

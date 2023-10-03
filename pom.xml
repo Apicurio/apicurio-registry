@@ -195,9 +195,6 @@
         <!-- Apicurio Data Models (OpenAPI and AsyncAPI support) -->
         <apicurio-data-models.version>2.0.4</apicurio-data-models.version>
 
-        <!-- Apicurio Tenant Manager -->
-        <apicurio-tenant-manager.version>0.2.0.Final</apicurio-tenant-manager.version>
-
         <!-- GraphQL -->
         <graphql.version>21.1</graphql.version>
 
@@ -389,16 +386,6 @@
             </dependency>
             <dependency>
                 <groupId>io.apicurio</groupId>
-                <artifactId>apicurio-tenant-manager-datamodel</artifactId>
-                <version>${apicurio-tenant-manager.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.apicurio</groupId>
-                <artifactId>apicurio-tenant-manager-client</artifactId>
-                <version>${apicurio-tenant-manager.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.apicurio</groupId>
                 <artifactId>apicurio-registry-utils-import-export</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -453,12 +440,6 @@
                 <artifactId>apicurio-common-app-components-auth</artifactId>
                 <version>${apicurio-common-app-components.version}</version>
             </dependency>
-            <dependency>
-                <groupId>io.apicurio</groupId>
-                <artifactId>apicurio-common-app-components-multitenancy</artifactId>
-                <version>${apicurio-common-app-components.version}</version>
-            </dependency>
-
             <dependency>
                 <groupId>io.apicurio</groupId>
                 <artifactId>apicurio-registry-schema-util-provider</artifactId>

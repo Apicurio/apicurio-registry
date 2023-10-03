@@ -26,11 +26,6 @@ public class Constants {
     static final String REGISTRY_IMAGE = "registry-image";
 
     /**
-     * Tag for migration tests, the suite will deploy two registries and perform data migration between the two
-     */
-    static final String MULTITENANCY = "multitenancy";
-
-    /**
      * Tag for auth tests profile.
      */
     static final String AUTH = "auth";

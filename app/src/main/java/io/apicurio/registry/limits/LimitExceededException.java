@@ -14,24 +14,22 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.mt;
+package io.apicurio.registry.limits;
 
-import java.util.HashMap;
-import java.util.Map;
-
-import io.quarkus.test.junit.QuarkusTestProfile;
+import io.apicurio.registry.types.RegistryException;
 
 /**
  * @author Fabian Martinez
  */
-public class MultitenancyNoAuthTestProfile implements QuarkusTestProfile {
+public class LimitExceededException extends RegistryException {
 
-    @Override
-    public Map<String, String> getConfigOverrides() {
-        Map<String, String> props = new HashMap<>();
-        props.put("registry.enable.multitenancy", "true");
-        props.put("registry.disable.apis", "");
-        return props;
+    private static final long serialVersionUID = -8689268705454834808L;
+
+    public LimitExceededException(String message) {
+        super(message);
     }
 
+    public LimitExceededException(String message, Throwable cause) {
+        super(message, cause);
+    }
 }

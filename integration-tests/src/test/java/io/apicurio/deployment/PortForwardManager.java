@@ -77,7 +77,7 @@ public class PortForwardManager implements BeforeAllCallback, AfterAllCallback, 
                     .withName(KEYCLOAK_SERVICE)
                     .portForward(8090, 8090);
         } catch (IllegalStateException | IOException ex) {
-            logger.warn("Error found forwarding tenant manager port, the port forwarding might be running already, continuing...", ex);
+            logger.warn("Error found forwarding keycloak port, the port forwarding might be running already, continuing...", ex);
         }
     }
 

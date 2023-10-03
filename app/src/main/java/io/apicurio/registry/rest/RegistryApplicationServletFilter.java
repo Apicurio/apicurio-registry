@@ -18,13 +18,9 @@ package io.apicurio.registry.rest;
 
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.apicurio.common.apps.multitenancy.MultitenancyProperties;
-import io.apicurio.common.apps.multitenancy.TenantContext;
-import io.apicurio.common.apps.multitenancy.TenantIdResolver;
 import io.apicurio.registry.services.DisabledApisMatcherService;
 import io.apicurio.registry.services.http.ErrorHttpResponse;
 import io.apicurio.registry.services.http.RegistryExceptionMapperService;
-import io.apicurio.tenantmanager.api.datamodel.TenantStatusValue;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.servlet.*;
@@ -34,14 +30,10 @@ import jakarta.ws.rs.core.MediaType;
 import org.slf4j.Logger;
 
 import java.io.IOException;
-import java.util.Optional;
 
 /**
  * This Servlet Filter combines various functionalities that can be configured using config properties:
- * <p>
- * Multitenancy: the registry can accept per-tenant URLs, accepting requests like /t/{tenantId}/...rest of the api...
- * <p>
- * Disable APIs: it's possible to provide a list of regular expresions to disable API paths.
+ * Disable APIs: it's possible to provide a list of regular expressions to disable API paths.
  * The list of regular expressions will be applied to all incoming requests, if any of them match the request will get a 404 response.
  * Note: this is implemented in a servlet to be able to disable the web UI (/ui), because the web is served with Servlets
  *
@@ -56,15 +48,6 @@ public class RegistryApplicationServletFilter implements Filter {
     Logger log;
 
     @Inject
-    MultitenancyProperties mtProperties;
-
-    @Inject
-    TenantIdResolver tenantIdResolver;
-
-    @Inject
-    TenantContext tenantContext;
-
-    @Inject
     DisabledApisMatcherService disabledApisMatcherService;
 
     @Inject
@@ -75,62 +58,12 @@ public class RegistryApplicationServletFilter implements Filter {
      */
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
-        StringBuilder rewriteContext = new StringBuilder();
         HttpServletRequest req = (HttpServletRequest) request;
         String requestURI = req.getRequestURI();
 
         if (requestURI != null) {
-            Optional<String> tenantIdOpt;
-            try {
 
-                tenantIdOpt = tenantIdResolver.resolveTenantId(
-                        // Request URI
-                        requestURI,
-                        // Function to get an HTTP request header value
-                        req::getHeader,
-                        // Function to get the serverName from the HTTP request
-                        req::getServerName,
-                        // Handler/callback to do some URL rewriting only if needed
-                        (tenantId) -> {
-                            String actualUri = requestURI.substring(tenantIdResolver.tenantPrefixLength(tenantId));
-                            if (actualUri.length() == 0) {
-                                actualUri = "/";
-                            }
-
-                            log.debug("tenantId[{}] Rewriting request {} to {}", tenantId, requestURI, actualUri);
-
-                            rewriteContext.append(actualUri);
-                        });
-            } catch (Throwable throwable) {
-                mapException(response, throwable);
-                //important to return, to stop the filters chain
-                return;
-            }
-
-
-            boolean rewriteRequest = tenantIdOpt.isPresent() && rewriteContext.length() != 0;
-            String evaluatedURI = requestURI;
-            if (rewriteRequest) {
-                evaluatedURI = rewriteContext.toString();
-            }
-
-            try {
-                var tenantStatus = tenantContext.getTenantStatus();
-                if (mtProperties.isMultitenancyEnabled() && tenantStatus != TenantStatusValue.READY) {
-                    log.debug("Request {} is rejected because the tenant is not ready. Status is {}",
-                            requestURI, tenantStatus.value());
-                    HttpServletResponse httpResponse = (HttpServletResponse) response;
-                    httpResponse.reset();
-                    httpResponse.setStatus(HttpServletResponse.SC_NOT_FOUND);
-                    //important to return, to stop the filters chain
-                    return;
-                }
-            } catch (Throwable throwable) {
-                mapException(response, throwable);
-                return;
-            }
-
-            boolean disabled = disabledApisMatcherService.isDisabled(evaluatedURI);
+            boolean disabled = disabledApisMatcherService.isDisabled(requestURI);
 
             if (disabled) {
                 HttpServletResponse httpResponse = (HttpServletResponse) response;
@@ -138,13 +71,7 @@ public class RegistryApplicationServletFilter implements Filter {
                 httpResponse.setStatus(HttpServletResponse.SC_NOT_FOUND);
                 //important to return, to stop the filters chain
                 return;
-            } else if (rewriteRequest) {
-                RequestDispatcher dispatcher = req.getRequestDispatcher(rewriteContext.toString());
-                dispatcher.forward(req, response);
-                //important to return, to stop the filters chain
-                return;
             }
-
         }
 
         chain.doFilter(request, response);

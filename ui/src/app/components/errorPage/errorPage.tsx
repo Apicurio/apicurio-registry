@@ -132,7 +132,7 @@ export class ErrorPage extends PureComponent<ErrorPageProps, ErrorPageState> {
             editorHeight: "250px",
             editorWidth: "100%",
             isShowDetails: false,
-            canShowDetails: !Services.getConfigService().featureMultiTenant()
+            canShowDetails: true
         };
     }
 

@@ -16,11 +16,6 @@
 
 package io.apicurio.registry.auth;
 
-import io.apicurio.common.apps.config.Info;
-import io.apicurio.common.apps.multitenancy.ApicurioTenantContext;
-import io.apicurio.common.apps.multitenancy.MultitenancyProperties;
-import io.apicurio.common.apps.multitenancy.TenantContext;
-import io.apicurio.common.apps.multitenancy.exceptions.TenantNotAuthorizedException;
 import io.quarkus.security.ForbiddenException;
 import io.quarkus.security.UnauthorizedException;
 import io.quarkus.security.identity.SecurityIdentity;
@@ -30,18 +25,13 @@ import jakarta.inject.Inject;
 import jakarta.interceptor.AroundInvoke;
 import jakarta.interceptor.Interceptor;
 import jakarta.interceptor.InvocationContext;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.jwt.JsonWebToken;
 import org.slf4j.Logger;
-
-import java.util.List;
-import java.util.Optional;
 
 /**
  * This class implements authorization logic for the registry.  It is driven by a combination of the
  * security identity (authenticated user) and configured security level of the operation the user is
- * attempting to perform. In a multitenant deployment, this authorization interceptor also checks if
- * the user accessing the tenant has the proper permission level. This interceptor will be triggered
+ * attempting to perform. This interceptor will be triggered
  * for any method that is annotated with the {@link Authorized} annotation. Please ensure that all
  * JAX-RS operations are propertly annotated.
  *
@@ -73,34 +63,8 @@ public class AuthorizedInterceptor {
     @Inject
     OwnerBasedAccessController obac;
 
-    @Inject
-    MultitenancyProperties mtProperties;
-
-    @Inject
-    TenantContext tenantContext;
-
-    @ConfigProperty(name = "registry.organization-id.claim-name")
-    @Info(category = "mt", description = "Organization ID claim name", availableSince = "2.1.0.Final")
-    List<String> organizationIdClaims;
-
     @AroundInvoke
     public Object authorizeMethod(InvocationContext context) throws Exception {
-
-        //execute multitenancy related authorization checks
-        if (mtProperties.isMultitenancyEnabled()) {
-
-            //if multitenancy is enabled but no tenant context is loaded, because no tenant was resolved from request, reject it
-            //this is to avoid access to default tenant "_" when multitenancy is enabled
-            if (!tenantContext.isLoaded()) {
-                log.warn("Request is rejected because the tenant could not be found, and access to default tenant is disabled in a multitenant deployment");
-                throw new ForbiddenException("Default tenant access is not allowed in multitenancy mode.");
-            }
-
-            //If multitenancy authorization is enabled, check tenant access.
-            if (mtProperties.isMultitenancyAuthorizationEnabled()) {
-                checkTenantAuthorization(tenantContext.currentContext());
-            }
-        }
 
         // If the user is trying to invoke a role-mapping operation, deny it if
         // database based RBAC is not enabled.
@@ -174,36 +138,4 @@ public class AuthorizedInterceptor {
 
         return context.proceed();
     }
-
-    private void checkTenantAuthorization(ApicurioTenantContext tenant) {
-        if (authConfig.isAuthEnabled()) {
-            if (!isTokenResolvable()) {
-                log.debug("Tenant access attempted without JWT token for tenant {} [allowing because some endpoints allow anonymous access]", tenant.getTenantId());
-                return;
-            }
-            String accessedOrganizationId = null;
-
-            for (String organizationIdClaim : organizationIdClaims) {
-                final Optional<Object> claimValue = jsonWebToken.get().claim(organizationIdClaim);
-                if (claimValue.isPresent()) {
-                    accessedOrganizationId = (String) claimValue.get();
-                    break;
-                }
-            }
-
-            if (null == accessedOrganizationId || !tenantCanAccessOrganization(tenant, accessedOrganizationId)) {
-                log.warn("User not authorized to access tenant.");
-                throw new TenantNotAuthorizedException("Tenant not authorized");
-            }
-        }
-    }
-
-    private boolean isTokenResolvable() {
-        return jsonWebToken.isResolvable() && jsonWebToken.get().getRawToken() != null;
-    }
-
-    private boolean tenantCanAccessOrganization(ApicurioTenantContext tenant, String accessedOrganizationId) {
-        return tenant == null || accessedOrganizationId.equals(tenant.getOrganizationId());
-    }
-
 }

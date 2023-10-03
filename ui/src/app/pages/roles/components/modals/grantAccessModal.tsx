@@ -344,11 +344,7 @@ export class GrantAccessModal extends PureComponent<GrantAccessModalProps, Grant
     }
 
     private modalDescription() {
-        if (Services.getConfigService().featureMultiTenant()) {
-            return "Grant access to resources in this Service Registry instance by assigning a role to an account.";
-        } else {
-            return "Grant access to resources in the Registry by assigning permissions to an account";
-        }
+        return "Grant access to resources in the Registry by assigning permissions to an account";
     }
 
     private escapePressed = (): void => {

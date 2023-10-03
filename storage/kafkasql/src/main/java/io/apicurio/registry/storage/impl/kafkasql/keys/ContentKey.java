@@ -23,7 +23,7 @@ import io.quarkus.runtime.annotations.RegisterForReflection;
  * @author eric.wittmann@gmail.com
  */
 @RegisterForReflection
-public class ContentKey extends AbstractMessageKey {
+public class ContentKey implements MessageKey {
 
     private String contentHash;
     private long contentId;
@@ -33,9 +33,8 @@ public class ContentKey extends AbstractMessageKey {
      * @param contentId
      * @param contentHash
      */
-    public static final ContentKey create(String tenantId, long contentId, String contentHash) {
+    public static final ContentKey create(long contentId, String contentHash) {
         ContentKey key = new ContentKey();
-        key.setTenantId(tenantId);
         key.setContentId(contentId);
         key.setContentHash(contentHash);
         return key;
@@ -54,7 +53,7 @@ public class ContentKey extends AbstractMessageKey {
      */
     @Override
     public String getPartitionKey() {
-        return getTenantId() + contentHash;
+        return contentHash;
     }
 
     /**

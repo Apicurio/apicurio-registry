@@ -37,7 +37,7 @@ public enum ActionType {
     RESET(6),
 
     /**
-     * Deletes ALL user (tenant) data. Does not delete global data, such as log configuration.
+     * Deletes ALL user data. Does not delete global data, such as log configuration.
      */
     DELETE_ALL_USER_DATA(7);
 

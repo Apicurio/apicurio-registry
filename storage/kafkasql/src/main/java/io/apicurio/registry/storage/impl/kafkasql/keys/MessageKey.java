@@ -40,9 +40,4 @@ public interface MessageKey {
      */
     @JsonIgnore
     public String getPartitionKey();
-
-    /**
-     * Returns the tenantId for this key.
-     */
-    public String getTenantId();
 }

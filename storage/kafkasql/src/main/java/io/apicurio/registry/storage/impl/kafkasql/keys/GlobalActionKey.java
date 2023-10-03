@@ -20,20 +20,18 @@ import io.apicurio.registry.storage.impl.kafkasql.MessageType;
 import io.quarkus.runtime.annotations.RegisterForReflection;
 
 /**
- * Key that carries no additional information (tenantId excepted).
+ * Key that carries no additional information.
  * Does not apply to a specific resource, but to the entire node.
  *
  * @author Jakub Senko <em>m@jsenko.net</em>
  */
 @RegisterForReflection
-public class GlobalActionKey extends AbstractMessageKey {
+public class GlobalActionKey implements MessageKey {
 
     private static final String EMPTY_PARTITION_KEY = "__apicurio_registry_global_action__";
 
-    public static GlobalActionKey create(String tenantId) {
-        GlobalActionKey key = new GlobalActionKey();
-        key.setTenantId(tenantId);
-        return key;
+    public static GlobalActionKey create() {
+        return new GlobalActionKey();
     }
 
     /**
@@ -49,7 +47,7 @@ public class GlobalActionKey extends AbstractMessageKey {
      */
     @Override
     public String getPartitionKey() {
-        return getTenantId() + EMPTY_PARTITION_KEY;
+        return EMPTY_PARTITION_KEY;
     }
 
     /**

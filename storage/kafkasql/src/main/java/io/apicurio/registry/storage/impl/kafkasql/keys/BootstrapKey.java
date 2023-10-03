@@ -67,12 +67,4 @@ public class BootstrapKey implements MessageKey {
         this.bootstrapId = bootstrapId;
     }
 
-    /**
-     * @see io.apicurio.registry.storage.impl.kafkasql.keys.MessageKey#getTenantId()
-     */
-    @Override
-    public String getTenantId() {
-        return null;
-    }
-
 }

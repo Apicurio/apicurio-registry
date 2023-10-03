@@ -293,13 +293,11 @@ push-gitops-native-image:
 	@echo "------------------------------------------------------------------------"
 	docker push $(IMAGE_REPO)/$(IMAGE_GROUP)/apicurio-registry-gitops-native:$(IMAGE_TAG)
 
-
 .PHONY: build-all-images ## Builds all the Images. Variables available for override [IMAGE_REPO, IMAGE_TAG]
-build-all-images: build-mem-image build-sql-image build-mssql-image build-kafkasql-image build-gitops-image
+build-all-images: build-mem-image build-sql-image build-mssql-image build-mysql-image build-kafkasql-image build-gitops-image
 
 .PHONY: push-all-images ## Pushes all the Images. Variables available for override [IMAGE_REPO, IMAGE_TAG]
-push-all-images: push-mem-image push-sql-image push-mssql-image push-kafkasql-image push-gitops-image
-
+push-all-images: push-mem-image push-sql-image push-mssql-image push-mysql-image push-kafkasql-image push-gitops-image
 
 .PHONY: mem-multiarch-images ## Builds and pushes multi-arch images for 'in-memory' storage variant. Variables available for override [MEM_DOCKERFILE, IMAGE_REPO, IMAGE_TAG, DOCKER_BUILD_WORKSPACE]
 mem-multiarch-images:
@@ -362,7 +360,7 @@ mem-native-scratch-image:
 	docker buildx build --push -f $(DOCKERFILE_LOCATION)/$(MEM_SCRATCH_DOCKERFILE) -t $(IMAGE_REPO)/$(IMAGE_GROUP)/apicurio-registry-mem-native-scratch:$(IMAGE_TAG) --platform $(IMAGE_PLATFORMS) $(DOCKER_BUILD_WORKSPACE)
 
 .PHONY: multiarch-registry-images ## Builds and pushes multi-arch registry images for all variants. Variables available for override [IMAGE_REPO, IMAGE_TAG]
-multiarch-registry-images: mem-multiarch-images sql-multiarch-images mssql-multiarch-images kafkasql-multiarch-images mem-native-scratch-image gitops-multiarch-images
+multiarch-registry-images: mem-multiarch-images sql-multiarch-images mssql-multiarch-images mysql-multiarch-images kafkasql-multiarch-images mem-native-scratch-image gitops-multiarch-images
 
 .PHONY: run-ui-tests ## Runs ui e2e tests
 run-ui-tests:

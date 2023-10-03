@@ -159,15 +159,18 @@
         <!-- Schema types -->
         <avro.version>1.11.3</avro.version>
         <json-schema-validator.version>1.0.87</json-schema-validator.version>
-        <wire-schema.version>4.5.5</wire-schema.version>
-        <wire-compiler.version>4.3.0</wire-compiler.version>
-        <okio-jvm.version>3.4.0</okio-jvm.version>
+        <!-- Protobuf -->
+        <wire-schema.version>4.5.1</wire-schema.version>
+        <wire-compiler.version>4.9.1</wire-compiler.version>
+        <okio-jvm.version>3.5.0</okio-jvm.version>
         <okio.version>3.6.0</okio.version>
         <okio-fake-file-system.version>3.4.0</okio-fake-file-system.version>
-        <icu4j.version>73.2</icu4j.version>
         <protobuf.version>3.24.3</protobuf.version>
+        <protobuf.googleapi.types.version>2.25.1</protobuf.googleapi.types.version>
+        <kotlin.version>1.9.0</kotlin.version>
+
+        <icu4j.version>73.2</icu4j.version>
         <xmlsec.version>3.0.2</xmlsec.version>
-        <protobuf.googleapi.types.version>2.22.0</protobuf.googleapi.types.version>
         <wsdl4j.version>1.6.3</wsdl4j.version>
         <google.truth.extension.version>1.1.5</google.truth.extension.version>
 
@@ -175,7 +178,7 @@
         <picocli.version>4.6.3</picocli.version>
 
         <!-- Confluent API / client -->
-        <confluent.version>7.3.0</confluent.version>
+        <confluent.version>7.4.0</confluent.version>
 
         <!-- Default Quarkus configuration profile -->
         <quarkus.profile>dev</quarkus.profile>
@@ -190,36 +193,36 @@
         <skipCommitIdPlugin>true</skipCommitIdPlugin>
 
         <!-- Apicurio Data Models (OpenAPI and AsyncAPI support) -->
-        <apicurio-data-models.version>2.0.3</apicurio-data-models.version>
+        <apicurio-data-models.version>2.0.4</apicurio-data-models.version>
 
         <!-- Apicurio Tenant Manager -->
         <apicurio-tenant-manager.version>0.1.3.Final</apicurio-tenant-manager.version>
 
         <!-- GraphQL -->
-        <graphql.version>21.0</graphql.version>
+        <graphql.version>21.1</graphql.version>
 
         <!-- JSON Schema Validator -->
         <org.everit.json.schema.version>1.14.2</org.everit.json.schema.version><!-- TODO unification -->
         <jackson-datatype-json-org.version>2.15.2</jackson-datatype-json-org.version>
-        <jackson-dataformat-yaml.version>2.14.2</jackson-dataformat-yaml.version>
+        <jackson-dataformat-yaml.version>2.15.2</jackson-dataformat-yaml.version>
 
         <!-- Dependency versions -->
-        <lombok.version>1.18.28</lombok.version>
+        <lombok.version>1.18.30</lombok.version>
         <h2.version>1.4.199</h2.version>
         <commons-codec.version>1.16.0</commons-codec.version>
         <jboss-slf4j.version>1.2.1.Final</jboss-slf4j.version>
         <httpclient.version>4.5.14</httpclient.version>
         <apicurio-common-rest-client.version>0.1.18.Final</apicurio-common-rest-client.version>
-        <apicurio-common-app-components.version>0.1.21.Final</apicurio-common-app-components.version>
+        <apicurio-common-app-components.version>0.1.22.Final</apicurio-common-app-components.version>
         <sentry.version>1.7.30</sentry.version>
         <kafka-oauth-client.version>0.13.0</kafka-oauth-client.version>
-        <kafka-clients.version>2.8.1</kafka-clients.version>
+        <kafka-clients.version>3.5.1</kafka-clients.version>
         <snakeyaml.version>2.2</snakeyaml.version>
         <guava.version>32.1.2-jre</guava.version>
         <woodstox-core.version>6.5.1</woodstox-core.version>
 
         <!-- Kafka Connect -->
-        <connect.version>2.8.1</connect.version>
+        <connect.version>3.5.1</connect.version>
 
         <!-- Specifications -->
         <annotation-api.version>1.3.5</annotation-api.version>
@@ -554,6 +557,16 @@
             </dependency>
             <dependency>
                 <groupId>com.squareup.wire</groupId>
+                <artifactId>wire-runtime-jvm</artifactId>
+                <version>${wire-schema.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.squareup.wire</groupId>
+                <artifactId>wire-schema-jvm</artifactId>
+                <version>${wire-schema.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.squareup.wire</groupId>
                 <artifactId>wire-compiler</artifactId>
                 <version>${wire-compiler.version}</version>
                 <!-- Excluding as the latest version is not present and this is not required -->
@@ -563,6 +576,11 @@
                         <artifactId>wire-grpc-client</artifactId>
                     </exclusion>
                 </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>org.jetbrains.kotlin</groupId>
+                <artifactId>kotlin-stdlib</artifactId>
+                <version>${kotlin.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.ibm.icu</groupId>
@@ -652,7 +670,11 @@
                 <artifactId>jackson-dataformat-yaml</artifactId>
                 <version>${jackson-dataformat-yaml.version}</version>
             </dependency>
-
+            <dependency>
+                <groupId>org.yaml</groupId>
+                <artifactId>snakeyaml</artifactId>
+                <version>${snakeyaml.version}</version>
+            </dependency>
             <dependency>
                 <groupId>io.strimzi</groupId>
                 <artifactId>kafka-oauth-client</artifactId>

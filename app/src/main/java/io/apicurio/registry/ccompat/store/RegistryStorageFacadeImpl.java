@@ -58,8 +58,8 @@ import io.apicurio.registry.util.ArtifactTypeUtil;
 import io.apicurio.registry.util.VersionUtil;
 import org.slf4j.Logger;
 
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;

@@ -4,9 +4,9 @@ import io.apicurio.common.apps.config.Info;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
-import javax.servlet.http.HttpServletRequest;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
+import jakarta.servlet.http.HttpServletRequest;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Optional;

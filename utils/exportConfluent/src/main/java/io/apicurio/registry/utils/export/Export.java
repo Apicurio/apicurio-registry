@@ -56,7 +56,7 @@ import io.apicurio.registry.utils.impexp.ManifestEntity;
 import io.quarkus.runtime.QuarkusApplication;
 import io.quarkus.runtime.annotations.QuarkusMain;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManager;

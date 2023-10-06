@@ -309,22 +309,22 @@ The following {registry} configuration options are available for each component 
 |`1.0.2.Final`
 |Status reset window duration of response liveness check
 |`registry.metrics.ResponseTimeoutReadinessCheck.counterResetWindowDurationSec`
-|`integer`
+|`instance<integer>`
 |`60`
 |`1.0.2.Final`
 |Counter reset window duration of response readiness check
 |`registry.metrics.ResponseTimeoutReadinessCheck.errorThreshold`
-|`integer`
+|`instance<integer>`
 |`1`
 |`1.0.2.Final`
 |Error threshold of response readiness check
 |`registry.metrics.ResponseTimeoutReadinessCheck.statusResetWindowDurationSec`
-|`integer`
+|`instance<integer>`
 |`300`
 |`1.0.2.Final`
 |Status reset window duration of response readiness check
 |`registry.metrics.ResponseTimeoutReadinessCheck.timeoutSec`
-|`integer`
+|`instance<integer>`
 |`10`
 |`1.0.2.Final`
 |Timeout of response readiness check

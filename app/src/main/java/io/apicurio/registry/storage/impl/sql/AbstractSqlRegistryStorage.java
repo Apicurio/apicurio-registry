@@ -41,11 +41,11 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import javax.annotation.PostConstruct;
-import javax.enterprise.event.Event;
-import javax.inject.Inject;
-import javax.transaction.Transactional;
+import jakarta.enterprise.event.Event;
+import jakarta.inject.Inject;
+import jakarta.transaction.Transactional;
 
+import jakarta.annotation.PostConstruct;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.eclipse.microprofile.config.inject.ConfigProperty;

@@ -21,8 +21,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 
 import io.apicurio.common.apps.logging.Logged;
 import io.apicurio.registry.content.ContentHandle;

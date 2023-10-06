@@ -87,6 +87,7 @@ import org.jose4j.base64url.Base64;
 
 import java.io.BufferedInputStream;
 import java.io.InputStream;
+import java.math.BigInteger;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -102,17 +103,17 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
-import javax.interceptor.Interceptors;
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.BadRequestException;
-import javax.ws.rs.HttpMethod;
-import javax.ws.rs.NotAllowedException;
-import javax.ws.rs.client.Client;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
+import jakarta.interceptor.Interceptors;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.ws.rs.BadRequestException;
+import jakarta.ws.rs.HttpMethod;
+import jakarta.ws.rs.NotAllowedException;
+import jakarta.ws.rs.client.Client;
+import jakarta.ws.rs.core.Context;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
 
 import static io.apicurio.common.apps.logging.audit.AuditingConstants.*;
 import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_OWNER;
@@ -337,15 +338,15 @@ public class GroupsResourceImpl implements GroupsResource {
 
     @Override
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
-    public GroupSearchResults listGroups(Integer limit, Integer offset, SortOrder order, SortBy orderby) {
+    public GroupSearchResults listGroups(BigInteger limit, BigInteger offset, SortOrder order, SortBy orderby) {
         if (orderby == null) {
             orderby = SortBy.name;
         }
         if (offset == null) {
-            offset = 0;
+            offset = BigInteger.valueOf(0);
         }
         if (limit == null) {
-            limit = 20;
+            limit = BigInteger.valueOf(20);
         }
 
         final OrderBy oBy = OrderBy.valueOf(orderby.name());
@@ -353,7 +354,7 @@ public class GroupsResourceImpl implements GroupsResource {
 
         Set<SearchFilter> filters = Collections.emptySet();
 
-        GroupSearchResultsDto resultsDto = storage.searchGroups(filters, oBy, oDir, offset, limit);
+        GroupSearchResultsDto resultsDto = storage.searchGroups(filters, oBy, oDir, offset.intValue(), limit.intValue());
         return V2ApiUtil.dtoToSearchResults(resultsDto);
     }
 
@@ -716,11 +717,11 @@ public class GroupsResourceImpl implements GroupsResource {
     }
 
     /**
-     * @see io.apicurio.registry.rest.v2.GroupsResource#listArtifactsInGroup(java.lang.String, java.lang.Integer, java.lang.Integer, io.apicurio.registry.rest.v2.beans.SortOrder, io.apicurio.registry.rest.v2.beans.SortBy)
+     * @see io.apicurio.registry.rest.v2.GroupsResource#listArtifactsInGroup (java.lang.String, java.lang.Integer, java.lang.Integer, io.apicurio.registry.rest.v2.beans.SortOrder, io.apicurio.registry.rest.v2.beans.SortBy)
      */
     @Override
     @Authorized(style = AuthorizedStyle.GroupOnly, level = AuthorizedLevel.Read)
-    public ArtifactSearchResults listArtifactsInGroup(String groupId, Integer limit, Integer offset,
+    public ArtifactSearchResults listArtifactsInGroup(String groupId, BigInteger limit, BigInteger offset,
                                                       SortOrder order, SortBy orderby) {
         requireParameter("groupId", groupId);
 
@@ -728,10 +729,10 @@ public class GroupsResourceImpl implements GroupsResource {
             orderby = SortBy.name;
         }
         if (offset == null) {
-            offset = 0;
+            offset = BigInteger.valueOf(0);
         }
         if (limit == null) {
-            limit = 20;
+            limit = BigInteger.valueOf(20);
         }
 
         final OrderBy oBy = OrderBy.valueOf(orderby.name());
@@ -740,7 +741,7 @@ public class GroupsResourceImpl implements GroupsResource {
         Set<SearchFilter> filters = new HashSet<>();
         filters.add(SearchFilter.ofGroup(defaultGroupIdToNull(groupId)));
 
-        ArtifactSearchResultsDto resultsDto = storage.searchArtifacts(filters, oBy, oDir, offset, limit);
+        ArtifactSearchResultsDto resultsDto = storage.searchArtifacts(filters, oBy, oDir, offset.intValue(), limit.intValue());
         return V2ApiUtil.dtoToSearchResults(resultsDto);
     }
 
@@ -958,22 +959,22 @@ public class GroupsResourceImpl implements GroupsResource {
     }
 
     /**
-     * @see io.apicurio.registry.rest.v2.GroupsResource#listArtifactVersions(java.lang.String, java.lang.String, java.lang.Integer, java.lang.Integer)
+     * @see io.apicurio.registry.rest.v2.GroupsResource#listArtifactVersions (java.lang.String, java.lang.String, java.lang.Integer, java.lang.Integer)
      */
     @Override
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
-    public VersionSearchResults listArtifactVersions(String groupId, String artifactId, Integer offset, Integer limit) {
+    public VersionSearchResults listArtifactVersions(String groupId, String artifactId, BigInteger offset, BigInteger limit) {
         requireParameter("groupId", groupId);
         requireParameter("artifactId", artifactId);
 
         if (offset == null) {
-            offset = 0;
+            offset = BigInteger.valueOf(0);
         }
         if (limit == null) {
-            limit = 20;
+            limit = BigInteger.valueOf(20);
         }
 
-        VersionSearchResultsDto resultsDto = storage.searchVersions(defaultGroupIdToNull(groupId), artifactId, offset, limit);
+        VersionSearchResultsDto resultsDto = storage.searchVersions(defaultGroupIdToNull(groupId), artifactId, offset.intValue(), limit.intValue());
         return V2ApiUtil.dtoToSearchResults(resultsDto);
     }
 

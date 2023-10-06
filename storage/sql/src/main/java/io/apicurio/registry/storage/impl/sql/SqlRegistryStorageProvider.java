@@ -16,8 +16,8 @@
 
 package io.apicurio.registry.storage.impl.sql;
 
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.RegistryStorageProvider;

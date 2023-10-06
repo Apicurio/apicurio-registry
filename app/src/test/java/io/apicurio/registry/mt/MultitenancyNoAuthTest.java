@@ -58,7 +58,7 @@ import java.io.ByteArrayInputStream;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.equalTo;

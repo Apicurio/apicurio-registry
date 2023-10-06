@@ -24,8 +24,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 
-import javax.ws.rs.BadRequestException;
-import javax.ws.rs.core.MediaType;
+import jakarta.ws.rs.BadRequestException;
+import jakarta.ws.rs.core.MediaType;
 
 import com.google.protobuf.DescriptorProtos;
 import io.apicurio.registry.types.ArtifactType;

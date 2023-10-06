@@ -18,7 +18,7 @@ package io.apicurio.registry.noprofile.content;
 
 import java.io.ByteArrayInputStream;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 
 import io.apicurio.registry.content.ContentHandle;
 import org.junit.jupiter.api.Assertions;

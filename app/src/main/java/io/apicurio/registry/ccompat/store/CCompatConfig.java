@@ -18,7 +18,7 @@ package io.apicurio.registry.ccompat.store;
 
 import java.util.function.Supplier;
 
-import javax.inject.Singleton;
+import jakarta.inject.Singleton;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 

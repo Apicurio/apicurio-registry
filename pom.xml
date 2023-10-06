@@ -1103,7 +1103,6 @@
             <id>integration-tests</id>
             <modules>
                 <module>integration-tests/integration-tests-common</module>
-                <module>integration-tests/legacy-tests</module>
                 <module>integration-tests/testsuite</module>
             </modules>
         </profile>

@@ -264,8 +264,6 @@ jobs:
         run: ./mvnw verify -Pintegration-tests -Pacceptance -Pinmemory -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress -DtestNative=true
       - name: Run Integration Tests - inmemory auth
         run: ./mvnw verify -Pintegration-tests -Pauth -Pinmemory -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress -DtestNative=true
-      - name: Run Legacy Tests - inmemory
-        run: ./mvnw verify -Pintegration-tests -Pacceptance -Pinmemory -pl integration-tests/legacy-tests -Dmaven.javadoc.skip=true --no-transfer-progress -DtestNative=true
 
       - name: Collect logs
         if: failure()
@@ -362,8 +360,6 @@ jobs:
         run: ./mvnw verify -Pintegration-tests -Pmigration -Psql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress -DtestNative=true
       - name: Run Integration Tests - sql auth
         run: ./mvnw verify -Pintegration-tests -Pauth -Psql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress -DtestNative=true
-      - name: Run Legacy Tests - sql
-        run: ./mvnw verify -Pintegration-tests -Pacceptance -Psql -pl integration-tests/legacy-tests -Dmaven.javadoc.skip=true --no-transfer-progress -DtestNative=true
 
       - name: Collect logs
         if: failure()

@@ -55,15 +55,13 @@ public class CCompatCanonicalModeTest extends AbstractResourceTestBase {
                 .when()
                 .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
                 .body(MAPPER.writeValueAsString(schemaContent))
-                .post("/ccompat/v6/subjects/{subject}/versions", SUBJECT)
+                .post("/ccompat/v7/subjects/{subject}/versions", SUBJECT)
                 .then()
                 .statusCode(200)
                 .body("id", Matchers.allOf(Matchers.isA(Integer.class), Matchers.greaterThanOrEqualTo(0)))
                 .extract().body().jsonPath().get("id");
 
         assertNotNull(contentId1);
-
-        this.waitForArtifact(SUBJECT);
 
         SchemaContent minifiedSchemaContent = new SchemaContent(resourceToString("avro-minified.avsc"));
 
@@ -72,7 +70,7 @@ public class CCompatCanonicalModeTest extends AbstractResourceTestBase {
                 .when()
                 .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
                 .body(MAPPER.writeValueAsString(minifiedSchemaContent))
-                .post("/ccompat/v6/subjects/{subject}", SUBJECT)
+                .post("/ccompat/v7/subjects/{subject}", SUBJECT)
                 .then()
                 .statusCode(200);
 
@@ -82,7 +80,7 @@ public class CCompatCanonicalModeTest extends AbstractResourceTestBase {
                 .when()
                 .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
                 .body(MAPPER.writeValueAsString(minifiedSchemaContent))
-                .post("/ccompat/v6/subjects/{subject}/versions", SUBJECT)
+                .post("/ccompat/v7/subjects/{subject}/versions", SUBJECT)
                 .then()
                 .statusCode(200)
                 .body("id", Matchers.allOf(Matchers.isA(Integer.class), Matchers.equalTo(contentId1)))
@@ -100,7 +98,7 @@ public class CCompatCanonicalModeTest extends AbstractResourceTestBase {
                 .when()
                 .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
                 .body(MAPPER.writeValueAsString(schemaContent))
-                .post("/ccompat/v6/subjects/{subject}/versions", subject1)
+                .post("/ccompat/v7/subjects/{subject}/versions", subject1)
                 .then()
                 .statusCode(200)
                 .extract().as(SchemaId.class);
@@ -110,13 +108,11 @@ public class CCompatCanonicalModeTest extends AbstractResourceTestBase {
         assertTrue(schemaId1.getId() > 0);
 
 
-        this.waitForArtifact(subject1);
-
         // We are able to get the original content
         Schema schema1R = given()
                 .when()
                 .contentType(ContentTypes.JSON)
-                .get("/ccompat/v6/subjects/{subject}/versions/latest", subject1)
+                .get("/ccompat/v7/subjects/{subject}/versions/latest", subject1)
                 .then()
                 .statusCode(200)
                 .extract().as(Schema.class);

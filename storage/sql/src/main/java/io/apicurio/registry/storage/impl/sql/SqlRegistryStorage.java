@@ -21,8 +21,8 @@ import io.apicurio.registry.metrics.StorageMetricsApply;
 import io.apicurio.registry.metrics.health.liveness.PersistenceExceptionLivenessApply;
 import io.apicurio.registry.metrics.health.readiness.PersistenceTimeoutReadinessApply;
 import io.apicurio.registry.storage.RegistryStorage;
-import jakarta.annotation.PostConstruct;
 
+import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
 
 /**

@@ -196,7 +196,7 @@
         <apicurio-tenant-manager.version>0.2.0.Final</apicurio-tenant-manager.version>
 
         <!-- GraphQL -->
-        <graphql.version>21.1</graphql.version>
+        <graphql.version>21.0</graphql.version>
 
         <!-- JSON Schema Validator -->
         <org.everit.json.schema.version>1.14.2</org.everit.json.schema.version><!-- TODO unification -->
@@ -213,13 +213,13 @@
         <apicurio-common-app-components.version>0.2.2.Final</apicurio-common-app-components.version>
         <sentry.version>1.7.30</sentry.version>
         <kafka-oauth-client.version>0.14.0</kafka-oauth-client.version>
-        <kafka-clients.version>2.8.1</kafka-clients.version>
+        <kafka-clients.version>3.5.1</kafka-clients.version>
         <snakeyaml.version>2.2</snakeyaml.version>
         <guava.version>32.1.2-jre</guava.version>
         <woodstox-core.version>6.5.1</woodstox-core.version>
 
         <!-- Kafka Connect -->
-        <connect.version>2.8.1</connect.version>
+        <connect.version>3.5.1</connect.version>
 
         <!-- Specifications -->
         <annotation-api.version>1.3.5</annotation-api.version>
@@ -321,12 +321,25 @@
             </dependency>
             <dependency>
                 <groupId>io.apicurio</groupId>
-                <artifactId>apicurio-registry-utils-tests</artifactId>
+                <artifactId>apicurio-registry-storage-sql</artifactId>
                 <version>${project.version}</version>
+                <type>test-jar</type>
             </dependency>
             <dependency>
                 <groupId>io.apicurio</groupId>
-                <artifactId>apicurio-registry-integration-tests-common</artifactId>
+                <artifactId>apicurio-registry-storage-kafkasql</artifactId>
+                <version>${project.version}</version>
+                <type>test-jar</type>
+            </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-registry-storage-mssql</artifactId>
+                <version>${project.version}</version>
+                <type>test-jar</type>
+            </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-registry-utils-tests</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -341,12 +354,12 @@
             </dependency>
             <dependency>
                 <groupId>io.apicurio</groupId>
-                <artifactId>apicurio-registry-storage-mysql</artifactId>
+                <artifactId>apicurio-registry-storage-kafkasql</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>io.apicurio</groupId>
-                <artifactId>apicurio-registry-storage-kafkasql</artifactId>
+                <artifactId>apicurio-registry-integration-tests</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -543,11 +556,6 @@
                 <version>${avro.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.networknt</groupId>
-                <artifactId>json-schema-validator</artifactId>
-                <version>${json-schema-validator.version}</version>
-            </dependency>
-            <dependency>
                 <groupId>com.squareup.wire</groupId>
                 <artifactId>wire-schema</artifactId>
                 <version>${wire-schema.version}</version>
@@ -733,9 +741,9 @@
                 <scope>test</scope>
             </dependency>
             <dependency>
-                <groupId>org.testcontainers</groupId>
-                <artifactId>redpanda</artifactId>
-                <version>${test-containers.version}</version>
+                <groupId>io.zonky.test</groupId>
+                <artifactId>embedded-postgres</artifactId>
+                <version>${embedded-postgres.version}</version>
                 <scope>test</scope>
             </dependency>
             <dependency>
@@ -921,6 +929,10 @@
                                     <name>skipAppTests</name>
                                     <value>${skipAppTests}</value>
                                 </property>
+                                <property>
+                                    <name>skipOperatorTests</name>
+                                    <value>${skipOperatorTests}</value>
+                                </property>
                             </properties>
                         </configuration>
                     </execution>
@@ -1048,14 +1060,6 @@
 
     <profiles>
         <profile>
-            <id>system-tests</id>
-            <modules>
-                <!-- Operator tests module -->
-                <module>system-tests</module>
-                <module>new-system-tests</module>
-            </modules>
-        </profile>
-        <profile>
             <id>ui</id>
             <activation>
                 <property>
@@ -1102,8 +1106,7 @@
         <profile>
             <id>integration-tests</id>
             <modules>
-                <module>integration-tests/integration-tests-common</module>
-                <module>integration-tests/testsuite</module>
+                <module>integration-tests</module>
             </modules>
         </profile>
         <profile>

@@ -213,7 +213,7 @@ export class SettingsPage extends PageComponent<SettingsPageProps, SettingsPageS
         this.setSingleState("searchedProperties", filteredProperties);
     }
 
-    private onSearchCriteria = (criteria: string): void => {
+    private onSearchCriteria = (_evt: any, criteria: string): void => {
         this.setSingleState("searchCriteria", criteria);
     };
 
@@ -225,7 +225,7 @@ export class SettingsPage extends PageComponent<SettingsPageProps, SettingsPageS
         this.setMultiState({
             searchCriteria: ""
         }, this.onSearchSettings);
-    }
+    };
 
     private onPropertyChange = (property: ConfigurationProperty, newValue: string): void => {
         property.value = newValue;

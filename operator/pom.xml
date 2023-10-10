@@ -30,7 +30,7 @@
         <bouncycastle.version>1.70</bouncycastle.version>
         <!-- ATTENTION! The Quarkus version needs to be aligned with the Quarkus Operator SDK -->
         <!-- TODO: possibly stabilize on something shared with the rest of the repo -->
-        <quarkus.version>3.2.0.Final</quarkus.version>
+        <quarkus.version>3.4.2</quarkus.version>
         <quarkus.operator.sdk.version>6.3.3</quarkus.operator.sdk.version>
         <quarkus.container-image.group>apicurio</quarkus.container-image.group>
     </properties>

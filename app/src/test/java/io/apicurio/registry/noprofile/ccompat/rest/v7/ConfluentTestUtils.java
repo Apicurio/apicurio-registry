@@ -54,7 +54,7 @@ public class ConfluentTestUtils {
     }
 
     public static void registerAndVerifySchema(RestService restService, String schemaString, List<SchemaReference> references, String subject) throws IOException, RestClientException {
-        int registeredId = restService.registerSchema(schemaString, AvroSchema.TYPE, references, subject);
+        int registeredId = restService.registerSchema(schemaString, AvroSchema.TYPE, references, subject).getId();
 
         // the newly registered schema should be immediately readable on the leader
         assertEquals("Registered schema should be found", schemaString, restService.getId(registeredId).getSchemaString());

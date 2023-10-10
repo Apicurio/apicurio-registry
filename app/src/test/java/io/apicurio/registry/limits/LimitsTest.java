@@ -125,8 +125,8 @@ public class LimitsTest extends AbstractResourceTestBase {
                 }).get(3, TimeUnit.SECONDS);
         });
         Assertions.assertNotNull(executionException2.getCause());
-        Assertions.assertEquals(ApiException.class, executionException2.getCause().getClass());
-        Assertions.assertEquals(409, ((ApiException)executionException2.getCause()).responseStatusCode);
+        Assertions.assertEquals(io.apicurio.registry.rest.client.models.Error.class, executionException2.getCause().getClass());
+        Assertions.assertEquals(409, ((io.apicurio.registry.rest.client.models.Error)executionException2.getCause()).getErrorCode());
     }
 
 }

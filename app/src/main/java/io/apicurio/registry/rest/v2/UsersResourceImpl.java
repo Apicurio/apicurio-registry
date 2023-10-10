@@ -16,9 +16,9 @@
 
 package io.apicurio.registry.rest.v2;
 
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
-import javax.interceptor.Interceptors;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
+import jakarta.interceptor.Interceptors;
 
 import org.slf4j.Logger;
 

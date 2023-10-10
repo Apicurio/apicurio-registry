@@ -29,7 +29,7 @@ import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-import javax.enterprise.inject.Typed;
+import jakarta.enterprise.inject.Typed;
 
 import static io.apicurio.registry.noprofile.ccompat.rest.CCompatTestConstants.*;
 import static io.restassured.RestAssured.given;

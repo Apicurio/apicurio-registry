@@ -26,7 +26,7 @@ import io.quarkus.test.junit.TestProfile;
 import io.vertx.core.Vertx;
 import org.junit.jupiter.api.Tag;
 
-import javax.enterprise.inject.Typed;
+import jakarta.enterprise.inject.Typed;
 
 
 /**

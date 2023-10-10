@@ -59,7 +59,7 @@ import io.quarkus.runtime.QuarkusApplication;
 import io.quarkus.runtime.annotations.QuarkusMain;
 import org.jboss.logging.Logger;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.X509TrustManager;
 

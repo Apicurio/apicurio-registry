@@ -71,7 +71,7 @@ public class KafkaSqlProtobufCanonicalizerUpgrader implements IDbUpgrader {
         String canonicalContentHash = DigestUtils.sha256Hex(canonicalContentBytes);
 
         if (canonicalContentHash.equals(tenantContentEntity.contentEntity.canonicalHash)) {
-            logger.debug("Skipping content because the canonical has is up to date, updating contentId {}", contentEntity.contentId);
+            logger.debug("Skipping content because the canonical hash is up to date, updating contentId {}", contentEntity.contentId);
             return;
         }
 

@@ -20,6 +20,7 @@ import com.microsoft.kiota.authentication.AuthenticationProvider;
 import com.microsoft.kiota.authentication.BaseBearerTokenAuthenticationProvider;
 import com.microsoft.kiota.http.OkHttpRequestAdapter;
 import io.apicurio.registry.auth.OidcAccessTokenProvider;
+import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.tests.ApicurioRegistryBaseIT;
 import io.apicurio.tests.utils.Constants;
 import io.apicurio.registry.rest.client.RegistryClient;
@@ -145,7 +146,7 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
     @Test
     public void testAdminRole() throws Exception {
         var devAuth = new BaseBearerTokenAuthenticationProvider(new OidcAccessTokenProvider(authServerUrlConfigured, JWKSMockServer.ADMIN_CLIENT_ID, "test1"));
-        RegistryClient client = createClient(auth);
+        RegistryClient client = createClient(devAuth);
 
         String groupId = TestUtils.generateGroupId();
         String artifactId = TestUtils.generateArtifactId();

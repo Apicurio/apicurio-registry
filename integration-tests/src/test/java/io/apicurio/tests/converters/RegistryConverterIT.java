@@ -55,6 +55,9 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
 
 /**
@@ -139,7 +142,19 @@ public class RegistryConverterIT extends ApicurioRegistryBaseIT {
             byte[] bytes = converter.fromConnectData(subject, sc, struct);
 
             // some impl details ...
-            TestUtils.waitForSchema(globalId -> registryClient.getContentByGlobalId(globalId) != null, bytes);
+            TestUtils.waitForSchema(globalId -> {
+                try {
+                    return registryClient.ids().globalIds().byGlobalId(globalId).get().get(3, TimeUnit.SECONDS).readAllBytes().length > 0;
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                } catch (ExecutionException e) {
+                    throw new RuntimeException(e);
+                } catch (TimeoutException e) {
+                    throw new RuntimeException(e);
+                }
+            }, bytes);
 
             Struct ir = (Struct) converter.toConnectData(subject, bytes).value();
             Assertions.assertEquals((short) 3, ir.get("int16Test"));
@@ -187,7 +202,19 @@ public class RegistryConverterIT extends ApicurioRegistryBaseIT {
             byte[] bytes = converter.fromConnectData(subject, sc, struct);
 
             // some impl details ...
-            TestUtils.waitForSchema(globalId -> registryClient.getContentByGlobalId(globalId) != null, bytes);
+            TestUtils.waitForSchema(globalId -> {
+                try {
+                    return registryClient.ids().globalIds().byGlobalId(globalId).get().get(3, TimeUnit.SECONDS).readAllBytes().length > 0;
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                } catch (ExecutionException e) {
+                    throw new RuntimeException(e);
+                } catch (TimeoutException e) {
+                    throw new RuntimeException(e);
+                }
+            }, bytes);
             Struct ir = (Struct) converter.toConnectData(subject, bytes).value();
             AvroData avroData = new AvroData(10);
             Assertions.assertEquals(expectedSchema, avroData.fromConnectSchema(ir.schema()).toString(true));
@@ -215,7 +242,19 @@ public class RegistryConverterIT extends ApicurioRegistryBaseIT {
             byte[] bytes = converter.fromConnectData(subject, sc, struct);
 
             // some impl details ...
-            TestUtils.waitForSchema(globalId -> registryClient.getContentByGlobalId(globalId) != null, bytes);
+            TestUtils.waitForSchema(globalId -> {
+                try {
+                    return registryClient.ids().globalIds().byGlobalId(globalId).get().get(3, TimeUnit.SECONDS).readAllBytes().length > 0;
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                } catch (ExecutionException e) {
+                    throw new RuntimeException(e);
+                } catch (TimeoutException e) {
+                    throw new RuntimeException(e);
+                }
+            }, bytes);
 
             Struct ir = (Struct) converter.toConnectData(subject, bytes).value();
             Assertions.assertEquals("somebar", ir.get("bar").toString());
@@ -267,7 +306,19 @@ public class RegistryConverterIT extends ApicurioRegistryBaseIT {
             byte[] bytes = converter.fromConnectData("extjson", sc, struct);
 
             // some impl details ...
-            TestUtils.waitForSchemaCustom(globalId -> restClient.getContentByGlobalId(globalId) != null, bytes, fn);
+            TestUtils.waitForSchemaCustom(globalId -> {
+                try {
+                    return restClient.ids().globalIds().byGlobalId(globalId).get().get(3, TimeUnit.SECONDS).readAllBytes().length > 0;
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                } catch (ExecutionException e) {
+                    throw new RuntimeException(e);
+                } catch (TimeoutException e) {
+                    throw new RuntimeException(e);
+                }
+            }, bytes, fn);
 
             //noinspection rawtypes
             Map ir = (Map) converter.toConnectData("extjson", bytes).value();

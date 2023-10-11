@@ -18,9 +18,9 @@ package io.apicurio.tests.smokeTests.apicurio;
 
 import io.apicurio.tests.ApicurioRegistryBaseIT;
 import io.apicurio.tests.utils.Constants;
-import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
-import io.apicurio.registry.rest.v2.beans.EditableMetaData;
-import io.apicurio.registry.rest.v2.beans.VersionMetaData;
+import io.apicurio.registry.rest.client.models.ArtifactMetaData;
+import io.apicurio.registry.rest.client.models.EditableMetaData;
+import io.apicurio.registry.rest.client.models.VersionMetaData;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
@@ -32,6 +32,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
@@ -55,11 +56,11 @@ class MetadataIT extends ApicurioRegistryBaseIT {
         ArtifactMetaData metaData = createArtifact(groupId, artifactId, ArtifactType.AVRO, artifactData);
         LOGGER.info("Created artifact {} with metadata {}", artifactId, metaData);
 
-        ArtifactMetaData artifactMetaData = registryClient.getArtifactMetaData(groupId, artifactId);
+        ArtifactMetaData artifactMetaData = registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).meta().get().get(3, TimeUnit.SECONDS);
         LOGGER.info("Got metadata of artifact with ID {}: {}", artifactId, artifactMetaData);
 
-        assertThat(artifactMetaData.getCreatedOn().getTime(), OrderingComparison.greaterThan(0L));
-        assertThat(artifactMetaData.getModifiedOn().getTime(), OrderingComparison.greaterThan(0L));
+        assertThat(artifactMetaData.getCreatedOn().toInstant().toEpochMilli(), OrderingComparison.greaterThan(0L));
+        assertThat(artifactMetaData.getModifiedOn().toInstant().toEpochMilli(), OrderingComparison.greaterThan(0L));
         assertThat(artifactMetaData.getId(), is(artifactId));
         assertThat(artifactMetaData.getVersion(), is("1"));
         assertThat(artifactMetaData.getType(), is("AVRO"));
@@ -69,10 +70,10 @@ class MetadataIT extends ApicurioRegistryBaseIT {
         emd.setName("Artifact Updated Name");
         emd.setDescription("The description of the artifact.");
 
-        registryClient.updateArtifactMetaData(groupId, artifactId, emd);
+        registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).meta().put(emd);
 
         retryOp((rc) -> {
-            ArtifactMetaData amd = rc.getArtifactMetaData(groupId, artifactId);
+            ArtifactMetaData amd = rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).meta().get().get(3, TimeUnit.SECONDS);
             LOGGER.info("Got metadata of artifact with ID {}: {}", artifactId, amd);
 
             assertThat(amd.getId(), is(artifactId));
@@ -99,9 +100,9 @@ class MetadataIT extends ApicurioRegistryBaseIT {
         metaData = updateArtifact(groupId, artifactId, artifactUpdateData);
         LOGGER.info("Artifact with ID {} was updated: {}", artifactId, metaData);
 
-        retryOp((rc) -> rc.getArtifactVersionMetaData(groupId, artifactId, "2"));
+        retryOp((rc) -> rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersion("2").meta().get().get(3, TimeUnit.SECONDS));
 
-        VersionMetaData versionMetaData = registryClient.getArtifactVersionMetaData(groupId, artifactId, "2");
+        VersionMetaData versionMetaData = registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersion("2").meta().get().get(3, TimeUnit.SECONDS);
 
         LOGGER.info("Got metadata of artifact with ID {}: {}", artifactId, versionMetaData);
 
@@ -113,10 +114,10 @@ class MetadataIT extends ApicurioRegistryBaseIT {
         emd.setName("Artifact Updated Name");
         emd.setDescription("The description of the artifact.");
 
-        registryClient.updateArtifactVersionMetaData(groupId, artifactId, "2", emd);
+        registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersion("2").meta().put(emd).get(3, TimeUnit.SECONDS);
 
         retryOp((rc) -> {
-            ArtifactMetaData artifactMetaData = rc.getArtifactMetaData(groupId, artifactId);
+            ArtifactMetaData artifactMetaData = rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).meta().get().get(3, TimeUnit.SECONDS);
             LOGGER.info("Got metadata of artifact with ID {}: {}", artifactId, artifactMetaData);
             assertThat(artifactMetaData.getVersion(), is("2"));
             assertThat(artifactMetaData.getType(), is("AVRO"));
@@ -125,7 +126,7 @@ class MetadataIT extends ApicurioRegistryBaseIT {
             assertThat(artifactMetaData.getModifiedOn(), notNullValue());
         });
 
-        versionMetaData = registryClient.getArtifactVersionMetaData(groupId, artifactId, "1");
+        versionMetaData = registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersion("1").meta().get().get(3, TimeUnit.SECONDS);
 
         LOGGER.info("Got metadata of artifact with ID {} version 1: {}", artifactId, versionMetaData);
         assertThat(versionMetaData.getVersion(), is("1"));

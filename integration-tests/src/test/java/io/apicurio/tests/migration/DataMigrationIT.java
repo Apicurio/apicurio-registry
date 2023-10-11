@@ -3,7 +3,7 @@ package io.apicurio.tests.migration;
 import com.microsoft.kiota.authentication.AnonymousAuthenticationProvider;
 import com.microsoft.kiota.http.OkHttpRequestAdapter;
 import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.rest.v2.beans.ArtifactReference;
+import io.apicurio.registry.rest.client.models.ArtifactReference;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.tests.ApicurioRegistryBaseIT;

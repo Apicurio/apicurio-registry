@@ -17,11 +17,12 @@
 package io.apicurio.tests.migration;
 
 import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.rest.v2.beans.ArtifactReference;
-import io.apicurio.registry.rest.v2.beans.Rule;
+import io.apicurio.registry.rest.client.models.ArtifactContent;
+import io.apicurio.registry.rest.client.models.ArtifactReference;
+import io.apicurio.registry.rest.client.models.Rule;
+import io.apicurio.registry.rest.client.models.RuleType;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.impexp.ArtifactVersionEntity;
 import io.apicurio.registry.utils.impexp.ContentEntity;
@@ -43,6 +44,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.zip.ZipOutputStream;
 
@@ -60,8 +62,12 @@ public class MigrationTestsDataInitializer {
         JsonSchemaMsgFactory jsonSchema = new JsonSchemaMsgFactory();
         for (int idx = 0; idx < 50; idx++) {
             String artifactId = idx + "-" + UUID.randomUUID().toString();
-            var amd = source.createArtifact("default", artifactId, jsonSchema.getSchemaStream());
-            TestUtils.retry(() -> source.getContentByGlobalId(amd.getGlobalId()));
+            ArtifactContent content = new ArtifactContent();
+            content.setContent(new String(jsonSchema.getSchemaStream().readAllBytes(), StandardCharsets.UTF_8));
+            var amd = source.groups().byGroupId("default").artifacts().post(content, config -> {
+                config.headers.add("X-Registry-ArtifactId", artifactId);
+                }).get(3, TimeUnit.SECONDS);
+            TestUtils.retry(() -> source.ids().globalIds().byGlobalId(amd.getGlobalId()));
             migrateGlobalIds.add(amd.getGlobalId());
         }
 
@@ -69,9 +75,16 @@ public class MigrationTestsDataInitializer {
             AvroGenericRecordSchemaFactory avroSchema = new AvroGenericRecordSchemaFactory(List.of("a" + idx));
             String artifactId = "avro-" + idx;
             List<ArtifactReference> references = idx > 0 ? getSingletonRefList("migrateTest", "avro-" + (idx - 1), "1", "myRef" + idx) : Collections.emptyList();
-            var amd = source.createArtifact("migrateTest", artifactId, avroSchema.generateSchemaStream(), references);
-            TestUtils.retry(() -> source.getContentByGlobalId(amd.getGlobalId()));
-            assertTrue(matchesReferences(references, source.getArtifactReferencesByGlobalId(amd.getGlobalId())));
+
+            ArtifactContent content = new ArtifactContent();
+            content.setContent(new String(avroSchema.generateSchemaStream().readAllBytes(), StandardCharsets.UTF_8));
+            content.setReferences(references);
+            var amd = source.groups().byGroupId("migrateTest").artifacts().post(content, config -> {
+                config.headers.add("X-Registry-ArtifactId", artifactId);
+            }).get(3, TimeUnit.SECONDS);
+
+            TestUtils.retry(() -> source.ids().globalIds().byGlobalId(amd.getGlobalId()).get().get(3, TimeUnit.SECONDS));
+            assertTrue(matchesReferences(references, source.ids().globalIds().byGlobalId(amd.getGlobalId()).references().get().get(3, TimeUnit.SECONDS)));
             migrateReferencesMap.put(amd.getGlobalId(), references);
             migrateGlobalIds.add(amd.getGlobalId());
 

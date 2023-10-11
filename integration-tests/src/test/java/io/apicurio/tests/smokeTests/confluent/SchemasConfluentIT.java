@@ -254,7 +254,7 @@ public class SchemasConfluentIT extends ConfluentBaseIT {
         TestUtils.waitFor("waiting for content to be created", Constants.POLL_INTERVAL, Constants.TIMEOUT_GLOBAL, () -> {
             try {
                 return registryClient.ids().contentIds().byContentId(contentId).get().get(3, TimeUnit.SECONDS).readAllBytes().length > 0;
-            } catch (InterruptedException | ExecutionException | TimeoutException cnfe) {
+            } catch (InterruptedException | ExecutionException | TimeoutException | IOException cnfe) {
                 return false;
             }
         });

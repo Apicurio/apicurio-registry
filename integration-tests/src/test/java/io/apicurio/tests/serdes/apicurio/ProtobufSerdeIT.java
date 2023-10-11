@@ -22,7 +22,7 @@ import io.apicurio.tests.common.serdes.proto.TestCmmn;
 import io.apicurio.tests.protobuf.ProtobufTestMessage;
 import io.apicurio.tests.utils.Constants;
 import io.apicurio.tests.utils.KafkaFacade;
-import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
+import io.apicurio.registry.rest.client.models.ArtifactMetaData;
 import io.apicurio.registry.serde.SerdeConfig;
 import io.apicurio.registry.serde.protobuf.ProtobufKafkaDeserializer;
 import io.apicurio.registry.serde.protobuf.ProtobufKafkaDeserializerConfig;
@@ -37,6 +37,8 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -424,15 +426,18 @@ public class ProtobufSerdeIT extends ApicurioRegistryBaseIT {
             .withProducerProperty(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true")
             .withAfterProduceValidator(() -> {
                 return TestUtils.retry(() -> {
-                    ArtifactMetaData meta = registryClient.getArtifactMetaData(null, artifactId);
-                    registryClient.getContentByGlobalId(meta.getGlobalId());
+                    ArtifactMetaData meta = registryClient.groups().byGroupId("default").artifacts().byArtifactId(artifactId).meta().get().get(3, TimeUnit.SECONDS);
+                    registryClient.ids().globalIds().byGlobalId(meta.getGlobalId()).get().get(3, TimeUnit.SECONDS);
                     return true;
                 });
             })
             .build()
             .test();
 
-        int versions = registryClient.listArtifactVersions(null, artifactId, 0, 10).getCount();
+        int versions = registryClient.groups().byGroupId("default").artifacts().byArtifactId(artifactId).versions().get(config -> {
+            config.queryParameters.offset = 0;
+            config.queryParameters.limit = 10;
+        }).get(3, TimeUnit.SECONDS).getCount();
         assertEquals(1, versions);
 
     }
@@ -457,15 +462,18 @@ public class ProtobufSerdeIT extends ApicurioRegistryBaseIT {
             .withConsumerProperty(SerdeConfig.DESERIALIZER_SPECIFIC_VALUE_RETURN_CLASS, DynamicMessage.class.getName())
             .withAfterProduceValidator(() -> {
                 return TestUtils.retry(() -> {
-                    ArtifactMetaData meta = registryClient.getArtifactMetaData(null, artifactId);
-                    registryClient.getContentByGlobalId(meta.getGlobalId());
+                    ArtifactMetaData meta = registryClient.groups().byGroupId("default").artifacts().byArtifactId(artifactId).meta().get().get(3, TimeUnit.SECONDS);
+                    registryClient.ids().globalIds().byGlobalId(meta.getGlobalId()).get().get(3, TimeUnit.SECONDS);
                     return true;
                 });
             })
             .build()
             .test();
 
-        int versions = registryClient.listArtifactVersions(null, artifactId, 0, 10).getCount();
+        int versions = registryClient.groups().byGroupId("default").artifacts().byArtifactId(artifactId).versions().get(config -> {
+            config.queryParameters.offset = 0;
+            config.queryParameters.limit = 10;
+        }).get(3, TimeUnit.SECONDS).getCount();
         assertEquals(1, versions);
     }
 
@@ -489,15 +497,18 @@ public class ProtobufSerdeIT extends ApicurioRegistryBaseIT {
             .withConsumerProperty(ProtobufKafkaDeserializerConfig.DERIVE_CLASS_FROM_SCHEMA, "true")
             .withAfterProduceValidator(() -> {
                 return TestUtils.retry(() -> {
-                    ArtifactMetaData meta = registryClient.getArtifactMetaData(null, artifactId);
-                    registryClient.getContentByGlobalId(meta.getGlobalId());
+                    ArtifactMetaData meta = registryClient.groups().byGroupId("default").artifacts().byArtifactId(artifactId).meta().get().get(3, TimeUnit.SECONDS);
+                    registryClient.ids().globalIds().byGlobalId(meta.getGlobalId()).get().get(3, TimeUnit.SECONDS);
                     return true;
                 });
             })
             .build()
             .test();
 
-        int versions = registryClient.listArtifactVersions(null, artifactId, 0, 10).getCount();
+        int versions = registryClient.groups().byGroupId("default").artifacts().byArtifactId(artifactId).versions().get(config -> {
+            config.queryParameters.offset = 0;
+            config.queryParameters.limit = 10;
+        }).get(3, TimeUnit.SECONDS).getCount();
         assertEquals(1, versions);
     }
 
@@ -522,8 +533,8 @@ public class ProtobufSerdeIT extends ApicurioRegistryBaseIT {
                 .withConsumerProperty(ProtobufKafkaDeserializerConfig.DERIVE_CLASS_FROM_SCHEMA, "true")
                 .withAfterProduceValidator(() -> {
                     return TestUtils.retry(() -> {
-                        ArtifactMetaData meta = registryClient.getArtifactMetaData(null, artifactId);
-                        registryClient.getContentByGlobalId(meta.getGlobalId());
+                        ArtifactMetaData meta = registryClient.groups().byGroupId("default").artifacts().byArtifactId(artifactId).meta().get().get(3, TimeUnit.SECONDS);
+                        registryClient.ids().globalIds().byGlobalId(meta.getGlobalId()).get().get(3, TimeUnit.SECONDS);
                         return true;
                     });
                 })

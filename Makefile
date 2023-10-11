@@ -5,6 +5,7 @@ override DOCKERFILE_LOCATION := ./distro/docker/target/docker
 MEM_DOCKERFILE ?= Dockerfile.jvm
 SQL_DOCKERFILE ?= Dockerfile.sql.jvm
 MSSQL_DOCKERFILE ?= Dockerfile.mssql.jvm
+MYSQL_DOCKERFILE ?= Dockerfile.mysql.jvm
 KAFKASQL_DOCKERFILE ?= Dockerfile.kafkasql.jvm
 DOCKER_BUILD_WORKSPACE ?= $(DOCKERFILE_LOCATION)
 
@@ -57,7 +58,7 @@ build-all:
 	@echo "----------------------------------------------------------------------"
 	@echo "                   Building All Modules                               "
 	@echo "----------------------------------------------------------------------"
-	./mvnw -T 1.5C clean install --no-transfer-progress -Pprod -Psql -Pmssql -Pkafkasql -DskipTests=$(SKIP_TESTS) $(BUILD_FLAGS)
+	./mvnw -T 1.5C clean install --no-transfer-progress -Pprod -Psql -Pmssql -Pmysql -Pkafkasql -DskipTests=$(SKIP_TESTS) $(BUILD_FLAGS)
 
 .PHONY: build-in-memory ## Builds and test in-memory module. Variables available for override [SKIP_TESTS, BUILD_FLAGS]
 build-in-memory:
@@ -141,6 +142,15 @@ build-mem-native-scratch-image:
 	@echo "------------------------------------------------------------------------"
 	docker build -f $(DOCKERFILE_LOCATION)/Dockerfile.native-scratch -t $(IMAGE_REPO)/$(IMAGE_GROUP)/apicurio-registry-mem-native-scratch:$(IMAGE_TAG) ./
 
+.PHONY: build-mem-native-scratch-image ## Builds native docker image from scratch for 'mem' storage variant. Variables available for override [IMAGE_REPO, IMAGE_TAG]
+build-mem-native-scratch-image:
+	@echo "------------------------------------------------------------------------"
+	@echo " Building Image For In-Memory Storage Variant (using Native Executable)"
+	@echo " Repository: $(IMAGE_REPO)"
+	@echo " Tag: $(IMAGE_TAG)"
+	@echo "------------------------------------------------------------------------"
+	docker build -f $(DOCKERFILE_LOCATION)/Dockerfile.native-scratch -t $(IMAGE_REPO)/apicurio/apicurio-registry-mem-native-scratch:$(IMAGE_TAG) ./
+
 
 .PHONY: push-mem-native-image ## Pushes native docker image for 'mem' storage variant. Variables available for override [IMAGE_REPO, IMAGE_TAG]
 push-mem-native-image:
@@ -206,6 +216,24 @@ push-mssql-image:
 	@echo "------------------------------------------------------------------------"
 	docker push $(IMAGE_REPO)/$(IMAGE_GROUP)/apicurio-registry-mssql:$(IMAGE_TAG)
 
+.PHONY: build-mysql-image ## Builds docker image for 'mysql' storage variant. Variables available for override [MYSQL_DOCKERFILE, IMAGE_REPO, IMAGE_TAG, DOCKER_BUILD_WORKSPACE]
+build-mysql-image:
+	@echo "------------------------------------------------------------------------"
+	@echo " Building Image For MySQL Storage Variant "
+	@echo " Repository: $(IMAGE_REPO)"
+	@echo " Tag: $(IMAGE_TAG)"
+	@echo "------------------------------------------------------------------------"
+	docker build -f $(DOCKERFILE_LOCATION)/$(MYSQL_DOCKERFILE) -t $(IMAGE_REPO)/apicurio/apicurio-registry-mysql:$(IMAGE_TAG) $(DOCKER_BUILD_WORKSPACE)
+
+.PHONY: push-mysql-image ## Pushes docker image for 'mysql' storage variant. Variables available for override [IMAGE_REPO, IMAGE_TAG]
+push-mysql-image:
+	@echo "------------------------------------------------------------------------"
+	@echo " Pushing Image For MySQL Storage Variant"
+	@echo " Repository: $(IMAGE_REPO)"
+	@echo " Tag: $(IMAGE_TAG)"
+	@echo "------------------------------------------------------------------------"
+	docker push $(IMAGE_REPO)/apicurio/apicurio-registry-mysql:$(IMAGE_TAG)
+
 .PHONY: build-kafkasql-image ## Builds docker image for kafkasql storage variant. Variables available for override [KAFKASQL_DOCKERFILE, IMAGE_REPO, IMAGE_TAG, DOCKER_BUILD_WORKSPACE]
 build-kafkasql-image:
 	@echo "------------------------------------------------------------------------"
@@ -243,10 +271,10 @@ push-kafkasql-native-image:
 	docker push $(IMAGE_REPO)/$(IMAGE_GROUP)/apicurio-registry-kafkasql-native:$(IMAGE_TAG)
 
 .PHONY: build-all-images ## Builds all the Images. Variables available for override [IMAGE_REPO, IMAGE_TAG]
-build-all-images: build-mem-image build-sql-image build-mssql-image build-kafkasql-image
+build-all-images: build-mem-image build-sql-image build-mssql-image build-kafkasql-image build-mysql-image
 
 .PHONY: push-all-images ## Pushes all the Images. Variables available for override [IMAGE_REPO, IMAGE_TAG]
-push-all-images: push-mem-image push-sql-image push-mssql-image push-kafkasql-image
+push-all-images: push-mem-image push-sql-image push-mssql-image push-kafkasql-image push-mysql-image
 
 
 .PHONY: mem-multiarch-images ## Builds and pushes multi-arch images for 'in-memory' storage variant. Variables available for override [MEM_DOCKERFILE, IMAGE_REPO, IMAGE_TAG, DOCKER_BUILD_WORKSPACE]
@@ -279,6 +307,16 @@ mssql-multiarch-images:
 	@echo "------------------------------------------------------------------------"
 	docker buildx build --push -f $(DOCKERFILE_LOCATION)/$(MSSQL_DOCKERFILE) -t $(IMAGE_REPO)/$(IMAGE_GROUP)/apicurio-registry-mssql:$(IMAGE_TAG) --platform $(IMAGE_PLATFORMS) $(DOCKER_BUILD_WORKSPACE)
 
+.PHONY: mysql-multiarch-images ## Builds and pushes multi-arch images for 'mysql' storage variant. Variables available for override [MYSQL_DOCKERFILE, IMAGE_REPO, IMAGE_TAG, DOCKER_BUILD_WORKSPACE]
+mysql-multiarch-images:
+	@echo "------------------------------------------------------------------------"
+	@echo " Building Multi-arch Images For MySQL Storage Variant "
+	@echo " Supported Platforms: $(IMAGE_PLATFORMS)"
+	@echo " Repository: $(IMAGE_REPO)"
+	@echo " Tag: $(IMAGE_TAG)"
+	@echo "------------------------------------------------------------------------"
+	docker buildx build --push -f $(DOCKERFILE_LOCATION)/$(MYSQL_DOCKERFILE) -t $(IMAGE_REPO)/apicurio/apicurio-registry-mysql:$(IMAGE_TAG) --platform $(IMAGE_PLATFORMS) $(DOCKER_BUILD_WORKSPACE)
+
 .PHONY: kafkasql-multiarch-images ## Builds and pushes multi-arch images for kafkasql storage variant. Variables available for override [KAFKASQL_DOCKERFILE, IMAGE_REPO, IMAGE_TAG, DOCKER_BUILD_WORKSPACE]
 kafkasql-multiarch-images:
 	@echo "------------------------------------------------------------------------"
@@ -299,8 +337,18 @@ mem-native-scratch-image:
 	@echo "------------------------------------------------------------------------"
 	docker buildx build --push -f $(DOCKERFILE_LOCATION)/$(MEM_SCRATCH_DOCKERFILE) -t $(IMAGE_REPO)/$(IMAGE_GROUP)/apicurio-registry-mem-native-scratch:$(IMAGE_TAG) --platform $(IMAGE_PLATFORMS) $(DOCKER_BUILD_WORKSPACE)
 
+.PHONY: mem-native-scratch-image ## Builds and pushes multi-arch images for mem storage variant based on scratch. Variables available for override [MEM_SCRATCH_DOCKERFILE, IMAGE_REPO, IMAGE_TAG, DOCKER_BUILD_WORKSPACE]
+mem-native-scratch-image:
+	@echo "------------------------------------------------------------------------"
+	@echo " Building Multi-arch Images For Mem Storage Variant on Scratch"
+	@echo " Supported Platforms: $(IMAGE_PLATFORMS)"
+	@echo " Repository: $(IMAGE_REPO)"
+	@echo " Tag: $(IMAGE_TAG)"
+	@echo "------------------------------------------------------------------------"
+	docker buildx build --push -f $(DOCKERFILE_LOCATION)/$(MEM_SCRATCH_DOCKERFILE) -t $(IMAGE_REPO)/apicurio/apicurio-registry-mem-native-scratch:$(IMAGE_TAG) --platform $(IMAGE_PLATFORMS) $(DOCKER_BUILD_WORKSPACE)
+
 .PHONY: multiarch-registry-images ## Builds and pushes multi-arch registry images for all variants. Variables available for override [IMAGE_REPO, IMAGE_TAG]
-multiarch-registry-images: mem-multiarch-images sql-multiarch-images mssql-multiarch-images kafkasql-multiarch-images mem-native-scratch-image
+multiarch-registry-images: mem-multiarch-images sql-multiarch-images mssql-multiarch-images kafkasql-multiarch-images mem-native-scratch-image mysql-multiarch-images
 
 
 .PHONY: pr-check ## Builds and runs basic tests for multitenant registry pipelines

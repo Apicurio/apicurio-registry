@@ -19,9 +19,9 @@ package io.apicurio.registry.rest;
 import java.text.SimpleDateFormat;
 import java.util.TimeZone;
 
-import javax.annotation.PostConstruct;
-import javax.inject.Singleton;
+import jakarta.inject.Singleton;
 
+import jakarta.annotation.PostConstruct;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,7 +29,6 @@ import org.slf4j.LoggerFactory;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 
-import io.apicurio.common.apps.config.Info;
 import io.quarkus.jackson.ObjectMapperCustomizer;
 
 /**
@@ -44,10 +43,8 @@ public class JacksonDateTimeCustomizer implements ObjectMapperCustomizer {
     private static final String DEFAULT_DATE_TIME_FORMAT_TZ = "UTC";
     
     @ConfigProperty(name = "registry.apis.v2.date-format", defaultValue = DEFAULT_DATE_TIME_FORMAT)
-    @Info(category = "api", description = "API date format", availableSince = "2.4.3.Final")
     String dateFormat;
     @ConfigProperty(name = "registry.apis.v2.date-format-timezone", defaultValue = DEFAULT_DATE_TIME_FORMAT_TZ)
-    @Info(category = "api", description = "API date format (TZ)", availableSince = "2.4.3.Final")
     String timezone;
 
     @PostConstruct

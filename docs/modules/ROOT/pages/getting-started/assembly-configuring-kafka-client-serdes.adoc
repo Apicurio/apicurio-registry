@@ -6,7 +6,7 @@ include::{mod-loc}shared/all-attributes.adoc[]
 //If the assembly covers a task, start the title with a verb in the gerund form, such as Creating or Configuring.
 
 [role="_abstract"]
-This chapter provides detailed information on how to configure Kafka SerDes in your producer and consumer Java client applications:
+This chapter provides detailed information on how to configure Kafka serializers/deserializers (SerDes) in your producer and consumer Java client applications:
 
 * xref:registry-serdes-concepts-constants_{context}[]
 * xref:registry-serdes-config-props_{context}[]

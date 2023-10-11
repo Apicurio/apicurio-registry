@@ -16,9 +16,9 @@
 
 package io.apicurio.registry.storage.impl.sql;
 
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.inject.Produces;
-import javax.inject.Inject;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Produces;
+import jakarta.inject.Inject;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
@@ -52,6 +52,9 @@ public class SqlStatementsProducer {
         }
         if ("postgresql".equals(databaseType)) {
             return new PostgreSQLSqlStatements();
+        }
+        if ("mysql".equals(databaseType)) {
+            return new MySQLSqlStatements();
         }
         throw new RuntimeException("Unsupported database type: " + databaseType);
     }

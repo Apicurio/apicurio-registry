@@ -16,7 +16,7 @@
 
 package io.apicurio.registry.auth;
 
-import javax.interceptor.InvocationContext;
+import jakarta.interceptor.InvocationContext;
 
 /**
  * @author eric.wittmann@gmail.com

@@ -18,11 +18,9 @@ package io.apicurio.registry.rbac;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 
 import java.util.List;
 
-import io.apicurio.registry.rest.v2.beans.ArtifactTypeInfo;
 import io.apicurio.registry.utils.tests.ApicurioTestTags;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Tag;
@@ -140,15 +138,6 @@ public class AdminClientTest extends AbstractResourceTestBase {
         assertEquals(1, logConfigurations.size());
 
         adminClientV2.removeLogConfiguration(logger);
-    }
-
-    @Test
-    public void listArtifactTypes() {
-        final List<ArtifactTypeInfo> artifactTypes = adminClientV2.listArtifactTypes();
-
-        assertTrue(artifactTypes.size() > 0);
-        assertTrue(artifactTypes.stream().anyMatch(t -> t.getName().equals("OPENAPI")));
-        assertFalse(artifactTypes.stream().anyMatch(t -> t.getName().equals("UNKNOWN")));
     }
 
     @Test

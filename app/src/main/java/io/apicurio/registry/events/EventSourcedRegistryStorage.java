@@ -44,14 +44,14 @@ import io.apicurio.registry.storage.dto.SearchFilter;
 import io.apicurio.registry.storage.dto.StoredArtifactDto;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.RuleType;
-import org.slf4j.Logger;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import javax.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 
 /**
  * @author Fabian Martinez
@@ -59,15 +59,8 @@ import javax.enterprise.context.ApplicationScoped;
 @ApplicationScoped
 public class EventSourcedRegistryStorage extends RegistryStorageDecorator {
 
-    final Logger log;
-
-    final EventsService eventsService;
-
-    // Need to have an eager evaluation of the EventsService implementation
-    EventSourcedRegistryStorage(EventsService eventService, Logger log) {
-        this.log = log;
-        this.eventsService = eventService;
-    }
+    @Inject
+    EventsService eventsService;
 
     private void fireEvent(RegistryEventType type, String artifactId, Object data, Throwable error) {
         if (error == null && data != null) {
@@ -80,10 +73,6 @@ public class EventSourcedRegistryStorage extends RegistryStorageDecorator {
      */
     @Override
     public boolean isEnabled() {
-        if (!eventsService.isReady()) {
-            throw new RuntimeException("Events Service not configured, please report this as a bug.");
-        }
-        log.info("Events service is configured: " + eventsService.isConfigured());
         return eventsService.isConfigured();
     }
 

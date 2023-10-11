@@ -16,6 +16,40 @@
     },
     "paths": {
         "x-codegen-contextRoot": "/apis/registry/v2",
+        "/ids/contentIds/{contentId}/": {
+            "summary": "Access artifact content utilizing the unique content identifier for that content.",
+            "get": {
+                "tags": [
+                    "Artifacts"
+                ],
+                "summary": "Get artifact content by ID",
+                "description": "Gets the content for an artifact version in the registry using the unique content\nidentifier for that content.  This content ID may be shared by multiple artifact\nversions in the case where the artifact versions are identical.\n\nThis operation may fail for one of the following reasons:\n\n* No content with this `contentId` exists (HTTP error `404`)\n* A server error occurred (HTTP error `500`)\n",
+                "operationId": "getContentById",
+                "responses": {
+                    "200": {
+                        "$ref": "#/components/responses/ArtifactContent"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                }
+            },
+            "parameters": [
+                {
+                    "name": "contentId",
+                    "in": "path",
+                    "description": "Global identifier for a single artifact content.",
+                    "required": true,
+                    "schema": {
+                        "format": "int64",
+                        "type": "integer"
+                    }
+                }
+            ]
+        },
         "/ids/globalIds/{globalId}": {
             "summary": "Access artifact content utilizing an artifact version's globally unique identifier.",
             "get": {
@@ -27,11 +61,11 @@
                 "operationId": "getContentByGlobalId",
                 "parameters": [
                     {
-                        "name": "references",
+                        "name": "dereference",
                         "in": "query",
-                        "description": "Allows the user to specify how references in the content should be treated.",
+                        "description": "Allows the user to specify if the content should be dereferenced when being returned",
                         "schema": {
-                            "$ref": "#/components/schemas/HandleReferencesType"
+                            "type": "boolean"
                         }
                     }
                 ],
@@ -56,6 +90,39 @@
                     "schema": {
                         "format": "int64",
                         "type": "integer"
+                    }
+                }
+            ]
+        },
+        "/ids/contentHashes/{contentHash}/": {
+            "summary": "Access artifact content utilizing the SHA-256 hash of the content.",
+            "get": {
+                "tags": [
+                    "Artifacts"
+                ],
+                "summary": "Get artifact content by SHA-256 hash",
+                "description": "Gets the content for an artifact version in the registry using the \nSHA-256 hash of the content.  This content hash may be shared by multiple artifact\nversions in the case where the artifact versions have identical content.\n\nThis operation may fail for one of the following reasons:\n\n* No content with this `contentHash` exists (HTTP error `404`)\n* A server error occurred (HTTP error `500`)\n",
+                "operationId": "getContentByHash",
+                "responses": {
+                    "200": {
+                        "$ref": "#/components/responses/ArtifactContent"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                }
+            },
+            "parameters": [
+                {
+                    "name": "contentHash",
+                    "in": "path",
+                    "description": "SHA-256 content hash for a single artifact content.",
+                    "required": true,
+                    "schema": {
+                        "type": "string"
                     }
                 }
             ]
@@ -906,11 +973,11 @@
                 "operationId": "getArtifactVersion",
                 "parameters": [
                     {
-                        "name": "references",
+                        "name": "dereference",
                         "in": "query",
-                        "description": "Allows the user to specify how references in the content should be treated.",
+                        "description": "Allows the user to specify if the content should be dereferenced when being returned",
                         "schema": {
-                            "$ref": "#/components/schemas/HandleReferencesType"
+                            "type": "boolean"
                         }
                     }
                 ],
@@ -1774,12 +1841,12 @@
                 "operationId": "getLatestArtifact",
                 "parameters": [
                     {
-                        "name": "references",
+                        "name": "dereference",
                         "in": "query",
-                        "description": "Allows the user to specify how references in the content should be treated.",
+                        "description": "Allows the user to specify if the content should be dereferenced when being returned",
                         "required": false,
                         "schema": {
-                            "$ref": "#/components/schemas/HandleReferencesType"
+                            "type": "boolean"
                         }
                     }
                 ],
@@ -3160,73 +3227,6 @@
                     }
                 }
             ]
-        },
-        "/ids/contentIds/{contentId}/": {
-            "summary": "Access artifact content utilizing the unique content identifier for that content.",
-            "get": {
-                "tags": [
-                    "Artifacts"
-                ],
-                "summary": "Get artifact content by ID",
-                "description": "Gets the content for an artifact version in the registry using the unique content\nidentifier for that content.  This content ID may be shared by multiple artifact\nversions in the case where the artifact versions are identical.\n\nThis operation may fail for one of the following reasons:\n\n* No content with this `contentId` exists (HTTP error `404`)\n* A server error occurred (HTTP error `500`)\n",
-                "operationId": "getContentById",
-                "responses": {
-                    "200": {
-                        "$ref": "#/components/responses/ArtifactContent"
-                    },
-                    "404": {
-                        "$ref": "#/components/responses/NotFound"
-                    },
-                    "500": {
-                        "$ref": "#/components/responses/ServerError"
-                    }
-                }
-            },
-            "parameters": [
-                {
-                    "name": "contentId",
-                    "in": "path",
-                    "description": "Global identifier for a single artifact content.",
-                    "required": true,
-                    "schema": {
-                        "format": "int64",
-                        "type": "integer"
-                    }
-                }
-            ]
-        },
-        "/ids/contentHashes/{contentHash}/": {
-            "summary": "Access artifact content utilizing the SHA-256 hash of the content.",
-            "get": {
-                "tags": [
-                    "Artifacts"
-                ],
-                "summary": "Get artifact content by SHA-256 hash",
-                "description": "Gets the content for an artifact version in the registry using the \nSHA-256 hash of the content.  This content hash may be shared by multiple artifact\nversions in the case where the artifact versions have identical content.\n\nThis operation may fail for one of the following reasons:\n\n* No content with this `contentHash` exists (HTTP error `404`)\n* A server error occurred (HTTP error `500`)\n",
-                "operationId": "getContentByHash",
-                "responses": {
-                    "200": {
-                        "$ref": "#/components/responses/ArtifactContent"
-                    },
-                    "404": {
-                        "$ref": "#/components/responses/NotFound"
-                    },
-                    "500": {
-                        "$ref": "#/components/responses/ServerError"
-                    }
-                }
-            },
-            "parameters": [
-                {
-                    "name": "contentHash",
-                    "in": "path",
-                    "description": "SHA-256 content hash for a single artifact content.",
-                    "required": true,
-                    "schema": {
-                        "type": "string"
-                    }
-                }
-            ]
         }
     },
     "components": {
@@ -4494,7 +4494,7 @@
                 "type": "object",
                 "properties": {
                     "value": {
-                        "maxLength": 1024,
+                        "maxLength": 1024.0,
                         "type": "string"
                     },
                     "createdOn": {
@@ -4516,15 +4516,6 @@
                     "createdBy": "bwayne",
                     "createdOn": "2023-07-01T15:22:01Z"
                 }
-            },
-            "HandleReferencesType": {
-                "description": "How to handle references when retrieving content.  References can either be\nleft unchanged (`PRESERVE`), re-written so they are valid in the context of the\nregistry (`REWRITE`), or fully dereferenced such that all externally referenced\ncontent is internalized (`DEREFERENCE`).",
-                "enum": [
-                    "PRESERVE",
-                    "DEREFERENCE",
-                    "REWRITE"
-                ],
-                "type": "string"
             }
         },
         "responses": {
@@ -4717,7 +4708,6 @@
         }
     ],
     "x-codegen": {
-        "suppress-date-time-formatting": true,
         "bean-annotations": [
             "io.quarkus.runtime.annotations.RegisterForReflection",
             {

@@ -16,7 +16,7 @@
 
 package io.apicurio.registry.storage;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 
 import io.apicurio.registry.noprofile.storage.AbstractRegistryStorageTest;
 import io.apicurio.registry.storage.impl.sql.InMemoryRegistryStorage;

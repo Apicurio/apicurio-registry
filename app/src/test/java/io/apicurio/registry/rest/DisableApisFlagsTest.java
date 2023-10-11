@@ -28,7 +28,7 @@ import io.quarkus.test.junit.TestProfile;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import java.util.UUID;
 
 import static io.restassured.RestAssured.given;

@@ -32,13 +32,14 @@ import io.apicurio.tenantmanager.api.datamodel.SortOrder;
 import io.apicurio.tenantmanager.api.datamodel.TenantStatusValue;
 import io.apicurio.tenantmanager.client.TenantManagerClient;
 import io.quarkus.scheduler.Scheduled;
+
+import jakarta.annotation.PostConstruct;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.faulttolerance.Retry;
 import org.slf4j.Logger;
 
-import javax.annotation.PostConstruct;
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;

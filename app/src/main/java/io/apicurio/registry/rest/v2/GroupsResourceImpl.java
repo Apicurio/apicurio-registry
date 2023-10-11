@@ -16,57 +16,7 @@
 
 package io.apicurio.registry.rest.v2;
 
-import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_ARTIFACT_ID;
-import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_ARTIFACT_TYPE;
-import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_CANONICAL;
-import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_DESCRIPTION;
-import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_DESCRIPTION_ENCODED;
-import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_EDITABLE_METADATA;
-import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_FROM_URL;
-import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_GROUP_ID;
-import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_IF_EXISTS;
-import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_NAME;
-import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_NAME_ENCODED;
-import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_RULE;
-import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_RULE_TYPE;
-import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_SHA;
-import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_UPDATE_STATE;
-import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_VERSION;
-import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_OWNER;
-import static io.apicurio.registry.rest.v2.V2ApiUtil.defaultGroupIdToNull;
-
-import java.io.BufferedInputStream;
-import java.io.InputStream;
-import java.net.MalformedURLException;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.URL;
-import java.nio.charset.StandardCharsets;
-import java.security.KeyManagementException;
-import java.security.NoSuchAlgorithmException;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
-
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
-import javax.interceptor.Interceptors;
-import javax.ws.rs.BadRequestException;
-import javax.ws.rs.HttpMethod;
-import javax.ws.rs.NotAllowedException;
-import javax.ws.rs.client.Client;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-
-import org.jose4j.base64url.Base64;
-
 import com.google.common.hash.Hashing;
-
 import io.apicurio.common.apps.logging.Logged;
 import io.apicurio.common.apps.logging.audit.Audited;
 import io.apicurio.registry.auth.Authorized;
@@ -89,7 +39,6 @@ import io.apicurio.registry.rest.v2.beans.CreateGroupMetaData;
 import io.apicurio.registry.rest.v2.beans.EditableMetaData;
 import io.apicurio.registry.rest.v2.beans.GroupMetaData;
 import io.apicurio.registry.rest.v2.beans.GroupSearchResults;
-import io.apicurio.registry.rest.v2.beans.HandleReferencesType;
 import io.apicurio.registry.rest.v2.beans.IfExists;
 import io.apicurio.registry.rest.v2.beans.NewComment;
 import io.apicurio.registry.rest.v2.beans.Rule;
@@ -105,6 +54,7 @@ import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
 import io.apicurio.registry.storage.InvalidArtifactIdException;
 import io.apicurio.registry.storage.InvalidGroupIdException;
+import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.VersionNotFoundException;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.ArtifactOwnerDto;
@@ -122,8 +72,10 @@ import io.apicurio.registry.storage.dto.SearchFilter;
 import io.apicurio.registry.storage.dto.StoredArtifactDto;
 import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
 import io.apicurio.registry.types.ArtifactState;
+import io.apicurio.registry.types.Current;
 import io.apicurio.registry.types.ReferenceType;
 import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 import io.apicurio.registry.util.ArtifactIdGenerator;
 import io.apicurio.registry.util.ArtifactTypeUtil;
 import io.apicurio.registry.util.ContentTypeUtil;
@@ -131,6 +83,41 @@ import io.apicurio.registry.utils.ArtifactIdValidator;
 import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.JAXRSClientUtil;
 import io.quarkus.security.identity.SecurityIdentity;
+import org.jose4j.base64url.Base64;
+
+import java.io.BufferedInputStream;
+import java.io.InputStream;
+import java.math.BigInteger;
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.security.KeyManagementException;
+import java.security.NoSuchAlgorithmException;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
+import jakarta.interceptor.Interceptors;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.ws.rs.BadRequestException;
+import jakarta.ws.rs.HttpMethod;
+import jakarta.ws.rs.NotAllowedException;
+import jakarta.ws.rs.client.Client;
+import jakarta.ws.rs.core.Context;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
+
+import static io.apicurio.common.apps.logging.audit.AuditingConstants.*;
+import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_OWNER;
+import static io.apicurio.registry.rest.v2.V2ApiUtil.defaultGroupIdToNull;
 
 /**
  * Implements the {@link GroupsResource} JAX-RS interface.
@@ -140,17 +127,27 @@ import io.quarkus.security.identity.SecurityIdentity;
 @ApplicationScoped
 @Interceptors({ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class})
 @Logged
-public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsResource {
+public class GroupsResourceImpl implements GroupsResource {
 
     private static final String EMPTY_CONTENT_ERROR_MESSAGE = "Empty content is not allowed.";
     @SuppressWarnings("unused")
     private static final Integer GET_GROUPS_LIMIT = 1000;
 
     @Inject
+    @Current
+    RegistryStorage storage;
+
+    @Inject
     RulesService rulesService;
 
     @Inject
     ArtifactIdGenerator idGenerator;
+
+    @Inject
+    ArtifactTypeUtilProviderFactory factory;
+
+    @Context
+    HttpServletRequest request;
 
     @Inject
     RestConfig restConfig;
@@ -162,16 +159,16 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     CommonResourceOperations common;
 
     /**
-     * @see io.apicurio.registry.rest.v2.GroupsResource#getLatestArtifact(java.lang.String, java.lang.String, io.apicurio.registry.rest.v2.beans.HandleReferencesType)
+     * @see io.apicurio.registry.rest.v2.GroupsResource#getLatestArtifact(java.lang.String, java.lang.String, java.lang.Boolean)
      */
     @Override
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
-    public Response getLatestArtifact(String groupId, String artifactId, HandleReferencesType references) {
+    public Response getLatestArtifact(String groupId, String artifactId, Boolean dereference) {
         requireParameter("groupId", groupId);
         requireParameter("artifactId", artifactId);
 
-        if (references == null) {
-            references = HandleReferencesType.PRESERVE;
+        if (dereference == null) {
+            dereference = Boolean.FALSE;
         }
 
         ArtifactMetaDataDto metaData = storage.getArtifactMetaData(defaultGroupIdToNull(groupId), artifactId);
@@ -183,8 +180,13 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         MediaType contentType = factory.getArtifactMediaType(metaData.getType());
 
         ContentHandle contentToReturn = artifact.getContent();
-        contentToReturn = handleContentReferences(references, metaData.getType(), contentToReturn, artifact.getReferences());  
-        
+
+        //TODO:carnalca when dereferencing is implemented, we should return the content dereferenced here
+        /*
+        if (dereference && !artifact.getReferences().isEmpty()) {
+            contentToReturn = factory.getArtifactTypeProvider(metaData.getType()).getContentDereferencer().dereference(artifact.getContent(), storage.resolveReferences(artifact.getReferences()));
+        }
+        */
         Response.ResponseBuilder builder = Response.ok(contentToReturn, contentType);
         checkIfDeprecated(metaData::getState, groupId, artifactId, metaData.getVersion(), builder);
         return builder.build();
@@ -336,15 +338,15 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
     @Override
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
-    public GroupSearchResults listGroups(Integer limit, Integer offset, SortOrder order, SortBy orderby) {
+    public GroupSearchResults listGroups(BigInteger limit, BigInteger offset, SortOrder order, SortBy orderby) {
         if (orderby == null) {
             orderby = SortBy.name;
         }
         if (offset == null) {
-            offset = 0;
+            offset = BigInteger.valueOf(0);
         }
         if (limit == null) {
-            limit = 20;
+            limit = BigInteger.valueOf(20);
         }
 
         final OrderBy oBy = OrderBy.valueOf(orderby.name());
@@ -352,7 +354,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
         Set<SearchFilter> filters = Collections.emptySet();
 
-        GroupSearchResultsDto resultsDto = storage.searchGroups(filters, oBy, oDir, offset, limit);
+        GroupSearchResultsDto resultsDto = storage.searchGroups(filters, oBy, oDir, offset.intValue(), limit.intValue());
         return V2ApiUtil.dtoToSearchResults(resultsDto);
     }
 
@@ -539,17 +541,17 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     }
 
     /**
-     * @see io.apicurio.registry.rest.v2.GroupsResource#getArtifactVersion(java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.rest.v2.beans.HandleReferencesType)
+     * @see io.apicurio.registry.rest.v2.GroupsResource#getArtifactVersion(java.lang.String, java.lang.String, java.lang.String, java.lang.Boolean)
      */
     @Override
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
-    public Response getArtifactVersion(String groupId, String artifactId, String version, HandleReferencesType references) {
+    public Response getArtifactVersion(String groupId, String artifactId, String version, Boolean dereference) {
         requireParameter("groupId", groupId);
         requireParameter("artifactId", artifactId);
         requireParameter("version", version);
 
-        if (references == null) {
-            references = HandleReferencesType.PRESERVE;
+        if (dereference == null) {
+            dereference = Boolean.FALSE;
         }
 
         ArtifactVersionMetaDataDto metaData = storage.getArtifactVersionMetaData(defaultGroupIdToNull(groupId), artifactId, version);
@@ -561,7 +563,12 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         MediaType contentType = factory.getArtifactMediaType(metaData.getType());
 
         ContentHandle contentToReturn = artifact.getContent();
-        contentToReturn = handleContentReferences(references, metaData.getType(), contentToReturn, artifact.getReferences());  
+        //TODO:carnalca when dereferencing is implemented, we should return the content dereferenced here
+        /*
+        if (dereference && !artifact.getReferences().isEmpty()) {
+            contentToReturn = factory.getArtifactTypeProvider(metaData.getType()).getContentDereferencer().dereference(artifact.getContent(), storage.resolveReferences(artifact.getReferences()));
+        }
+        */
 
         Response.ResponseBuilder builder = Response.ok(contentToReturn, contentType);
         checkIfDeprecated(metaData::getState, groupId, artifactId, version, builder);
@@ -710,11 +717,11 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     }
 
     /**
-     * @see io.apicurio.registry.rest.v2.GroupsResource#listArtifactsInGroup(java.lang.String, java.lang.Integer, java.lang.Integer, io.apicurio.registry.rest.v2.beans.SortOrder, io.apicurio.registry.rest.v2.beans.SortBy)
+     * @see io.apicurio.registry.rest.v2.GroupsResource#listArtifactsInGroup (java.lang.String, java.lang.Integer, java.lang.Integer, io.apicurio.registry.rest.v2.beans.SortOrder, io.apicurio.registry.rest.v2.beans.SortBy)
      */
     @Override
     @Authorized(style = AuthorizedStyle.GroupOnly, level = AuthorizedLevel.Read)
-    public ArtifactSearchResults listArtifactsInGroup(String groupId, Integer limit, Integer offset,
+    public ArtifactSearchResults listArtifactsInGroup(String groupId, BigInteger limit, BigInteger offset,
                                                       SortOrder order, SortBy orderby) {
         requireParameter("groupId", groupId);
 
@@ -722,10 +729,10 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
             orderby = SortBy.name;
         }
         if (offset == null) {
-            offset = 0;
+            offset = BigInteger.valueOf(0);
         }
         if (limit == null) {
-            limit = 20;
+            limit = BigInteger.valueOf(20);
         }
 
         final OrderBy oBy = OrderBy.valueOf(orderby.name());
@@ -734,7 +741,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         Set<SearchFilter> filters = new HashSet<>();
         filters.add(SearchFilter.ofGroup(defaultGroupIdToNull(groupId)));
 
-        ArtifactSearchResultsDto resultsDto = storage.searchArtifacts(filters, oBy, oDir, offset, limit);
+        ArtifactSearchResultsDto resultsDto = storage.searchArtifacts(filters, oBy, oDir, offset.intValue(), limit.intValue());
         return V2ApiUtil.dtoToSearchResults(resultsDto);
     }
 
@@ -952,22 +959,22 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     }
 
     /**
-     * @see io.apicurio.registry.rest.v2.GroupsResource#listArtifactVersions(java.lang.String, java.lang.String, java.lang.Integer, java.lang.Integer)
+     * @see io.apicurio.registry.rest.v2.GroupsResource#listArtifactVersions (java.lang.String, java.lang.String, java.lang.Integer, java.lang.Integer)
      */
     @Override
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
-    public VersionSearchResults listArtifactVersions(String groupId, String artifactId, Integer offset, Integer limit) {
+    public VersionSearchResults listArtifactVersions(String groupId, String artifactId, BigInteger offset, BigInteger limit) {
         requireParameter("groupId", groupId);
         requireParameter("artifactId", artifactId);
 
         if (offset == null) {
-            offset = 0;
+            offset = BigInteger.valueOf(0);
         }
         if (limit == null) {
-            limit = 20;
+            limit = BigInteger.valueOf(20);
         }
 
-        VersionSearchResultsDto resultsDto = storage.searchVersions(defaultGroupIdToNull(groupId), artifactId, offset, limit);
+        VersionSearchResultsDto resultsDto = storage.searchVersions(defaultGroupIdToNull(groupId), artifactId, offset.intValue(), limit.intValue());
         return V2ApiUtil.dtoToSearchResults(resultsDto);
     }
 
@@ -1170,5 +1177,4 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                 .map(V2ApiUtil::referenceToDto)
                 .collect(Collectors.toList());
     }
-
 }

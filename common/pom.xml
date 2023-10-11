@@ -17,8 +17,8 @@
 
     <dependencies>
         <dependency>
-            <groupId>org.jboss.spec.javax.ws.rs</groupId>
-            <artifactId>jboss-jaxrs-api_2.1_spec</artifactId>
+            <groupId>jakarta.ws.rs</groupId>
+            <artifactId>jakarta.ws.rs-api</artifactId>
         </dependency>
 
         <dependency>
@@ -37,7 +37,7 @@
             <artifactId>quarkus-jackson</artifactId>
             <scope>provided</scope>
         </dependency>
-        
+
         <dependency>
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-resteasy-jackson</artifactId>
@@ -75,7 +75,19 @@
         </dependency>
 
     </dependencies>
-    
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-data-models</artifactId>
+                <version>1.1.26</version>
+                <scope>compile</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+
     <build>
         <extensions>
             <extension>
@@ -89,7 +101,7 @@
             <plugin>
                 <groupId>io.apicurio</groupId>
                 <artifactId>apicurio-codegen-maven-plugin</artifactId>
-                <version>1.0.12.1</version>
+                <version>1.1.0.Final</version>
                 <executions>
                     <execution>
                         <phase>generate-sources</phase>

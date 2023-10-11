@@ -22,8 +22,9 @@ import io.apicurio.registry.metrics.health.liveness.PersistenceExceptionLiveness
 import io.apicurio.registry.metrics.health.readiness.PersistenceTimeoutReadinessApply;
 import io.apicurio.registry.storage.RegistryStorage;
 
-import javax.annotation.PostConstruct;
-import javax.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.context.ApplicationScoped;
+
+import jakarta.annotation.PostConstruct;
 
 /**
  * An in-memory SQL implementation of the {@link RegistryStorage} interface.

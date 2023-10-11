@@ -41,11 +41,11 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import javax.annotation.PostConstruct;
-import javax.enterprise.event.Event;
-import javax.inject.Inject;
-import javax.transaction.Transactional;
+import jakarta.enterprise.event.Event;
+import jakarta.inject.Inject;
+import jakarta.transaction.Transactional;
 
+import jakarta.annotation.PostConstruct;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -746,7 +746,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         String sql;
         Long contentId;
         boolean insertReferences = true;
-        if (Set.of("mssql", "postgresql").contains(sqlStatements.dbType())) {
+        if (Set.of("mysql", "mssql", "postgresql").contains(sqlStatements.dbType())) {
             sql = sqlStatements.upsertContent();
             handle.createUpdate(sql)
                     .bind(0, tenantContext.tenantId())
@@ -3973,7 +3973,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     }
 
     private long nextSequenceValue(Handle handle, String sequenceName) {
-        if (Set.of("mssql", "postgresql").contains(sqlStatements.dbType())) {
+        if (Set.of("mysql", "mssql", "postgresql").contains(sqlStatements.dbType())) {
             return handle.createQuery(sqlStatements.getNextSequenceValue())
                     .bind(0, tenantContext.tenantId())
                     .bind(1, sequenceName)

@@ -16,8 +16,8 @@
 
 package io.apicurio.registry.rules;
 
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 
 import io.apicurio.registry.rules.compatibility.CompatibilityRuleExecutor;
 import io.apicurio.registry.rules.integrity.IntegrityRuleExecutor;

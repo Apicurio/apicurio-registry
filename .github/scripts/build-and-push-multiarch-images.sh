@@ -13,9 +13,9 @@ RELEASE_TYPE="$4"      # Either 'snapshot' or 'release' or 'pre-release'
 RELEASE_VERSION=${5:-$defvalue}   # Release version (Pass the release version if you also want images tagged with the release version)
 
 # Check if variant type is valid
-if [[ ($VARIANT != "mem-multiarch-images") &&  ($VARIANT != "sql-multiarch-images") &&  ($VARIANT != "kafkasql-multiarch-images") && ($VARIANT != "multiarch-registry-images") ]]
+if [[ ($VARIANT != "mem-multiarch-images") &&  ($VARIANT != "sql-multiarch-images") &&  ($VARIANT != "kafkasql-multiarch-images") && ($VARIANT != "multiarch-registry-images") && ($VARIANT != "mysql-multiarch-images") ]]
 then
-    echo "ERROR: Illegal value '${VARIANT}' for variable '$VARIANT'. Values can only be [mem-multiarch-images, sql-multiarch-images, kafkasql-multiarch-images, multiarch-registry-images]"
+    echo "ERROR: Illegal value '${VARIANT}' for variable '$VARIANT'. Values can only be [mem-multiarch-images, sql-multiarch-images, kafkasql-multiarch-images, multiarch-registry-images, mysql-multiarch-images]"
     exit 1
 fi
 

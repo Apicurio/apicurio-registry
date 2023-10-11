@@ -1,0 +1,24 @@
+// Metadata created by nebel
+include::{mod-loc}shared/all-attributes.adoc[]
+
+[id="registry-config-reference_{context}"]
+= {registry} configuration reference
+//If the assembly covers a task, start the title with a verb in the gerund form, such as Creating or Configuring.
+
+[role="_abstract"]
+This chapter provides reference information on the configuration options that are available for {registry}. 
+
+* xref:all-registry-configs_{context}[]
+
+.Additional resources
+* For details on setting configuration options by using the Core Registry API, see the `/admin/config/properties` endpoint in the {registry-rest-api}.
+* For details on client configuration options for Kafka serializers and deserializers, see 
+ifdef::apicurio-registry[]
+{registry-client-serdes-config}.
+endif::[]
+ifdef::rh-service-registry[]
+the link:{LinkServiceRegistryUser}[{NameServiceRegistryUser}].
+endif::[]
+
+//INCLUDES
+include::{mod-loc}getting-started/ref-registry-all-configs.adoc[leveloffset=+1]

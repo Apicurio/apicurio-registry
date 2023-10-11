@@ -32,6 +32,6 @@ props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, AvroKafkaSerializer.class.
 props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, AvroKafkaSerializer.class.getName()); <2>
 props.put(SerdeConfig.FIND_LATEST_ARTIFACT, Boolean.TRUE); <3>
 ----
-* 1. The serializer for the message key provided by {registry}.
-* 2. The serializer for the message value provided by {registry}.
-* 3. The lookup strategy to find the global ID for the schema.
+<1> The serializer for the message key provided by {registry}.
+<2> The serializer for the message value provided by {registry}.
+<3> The lookup strategy to find the global ID for the schema.

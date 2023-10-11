@@ -51,5 +51,5 @@ ifdef::apicurio-registry,rh-service-registry[]
 .Additional resources
 * xref:adding-artifacts-using-console_{context}[]
 * xref:configuring-rules-using-console_{context}[]
-* {registry-reference}
+* {registry-rule-reference}
 endif::[]

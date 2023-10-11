@@ -60,6 +60,8 @@ import org.json.JSONObject;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;
@@ -400,7 +402,66 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
     }
 
     @Test
-    public void testAvroReflect() throws Exception {
+    public void testReferenceRaw() throws Exception {
+        Schema.Parser parser = new Schema.Parser();
+        Schema eventTypeSchema = parser.parse("{\n" +
+                "    \"type\": \"enum\",\n" +
+                "    \"namespace\": \"test\",\n" +
+                "    \"name\": \"EventType\",\n" +
+                "    \"symbols\": [\"CREATED\", \"DELETED\", \"UNDEFINED\", \"UPDATED\"]\n" +
+                "  }\n");
+//        Schema schema = parser.parse("{\n" +
+//                "    \"type\": \"record\",\n" +
+//                "    \"namespace\": \"test\",\n" +
+//                "    \"name\": \"ValidateEvent\",\n" +
+//                "    \"fields\": [\n" +
+//                "     {\n" +
+//                "        \"type\": \"EventType\",\n" +
+//                "        \"name\": \"eventType\",\n" +
+//                "        \"default\": \"UNDEFINED\"\n" +
+//                "      }\n" +
+//                "]}");
+        try (AvroKafkaSerializer<GenericData.EnumSymbol> serializer = new AvroKafkaSerializer<GenericData.EnumSymbol>(restClient);
+             Deserializer<GenericData.EnumSymbol> deserializer = new AvroKafkaDeserializer<>(restClient)) {
+
+            Map<String, String> config = new HashMap<>();
+            config.put(SerdeConfig.ENABLE_HEADERS, "true");
+            config.put(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true");
+            config.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, RecordIdStrategy.class.getName());
+            serializer.configure(config, false);
+
+            config = new HashMap<>();
+            config.put(SerdeConfig.ENABLE_HEADERS, "true");
+            deserializer.configure(config, false);
+
+            GenericData.EnumSymbol record = new GenericData.EnumSymbol(eventTypeSchema, "UNDEFINED");
+
+            String artifactId = generateArtifactId();
+            Headers headers = new RecordHeaders();
+            byte[] bytes = serializer.serialize(artifactId, headers, record);
+
+            Assertions.assertNotNull(headers.lastHeader(SerdeHeaders.HEADER_VALUE_GLOBAL_ID));
+            Header globalId = headers.lastHeader(SerdeHeaders.HEADER_VALUE_GLOBAL_ID);
+            long id = ByteBuffer.wrap(globalId.value()).getLong();
+
+            waitForGlobalId(id);
+
+            GenericData.EnumSymbol ir = deserializer.deserialize(artifactId, headers, bytes);
+
+            Assertions.assertEquals(record, ir);
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(
+        classes = {
+            io.apicurio.registry.serde.strategy.TopicIdStrategy.class,
+            io.apicurio.registry.serde.avro.strategy.QualifiedRecordIdStrategy.class,
+            io.apicurio.registry.serde.avro.strategy.RecordIdStrategy.class,
+            io.apicurio.registry.serde.avro.strategy.TopicRecordIdStrategy.class
+        }
+    )
+    public void testAvroReflect(Class<?> artifactResolverStrategyClass) throws Exception {
         try (AvroKafkaSerializer<Tester> serializer = new AvroKafkaSerializer<Tester>(restClient);
              AvroKafkaDeserializer<Tester> deserializer = new AvroKafkaDeserializer<Tester>(restClient)) {
 
@@ -408,6 +469,7 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
             config.put(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true");
             config.put(SerdeConfig.ENABLE_HEADERS, "false");
             config.put(AvroKafkaSerdeConfig.AVRO_DATUM_PROVIDER, ReflectAvroDatumProvider.class.getName());
+            config.put(SchemaResolverConfig.ARTIFACT_RESOLVER_STRATEGY, artifactResolverStrategyClass.getName());
             serializer.configure(config, false);
 
             config = new HashMap<>();
@@ -416,7 +478,7 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
 
             String artifactId = generateArtifactId();
 
-            Tester tester = new Tester("Apicurio");
+            Tester tester = new Tester("Apicurio", Tester.TesterState.ONLINE);
             byte[] bytes = serializer.serialize(artifactId, tester);
 
             waitForSchema(globalId -> restClient.getContentByGlobalId(globalId) != null, bytes);

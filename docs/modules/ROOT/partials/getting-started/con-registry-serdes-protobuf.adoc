@@ -57,7 +57,7 @@ When a complex Protobuf message with an `import` statement is used, the imported
 
 For example, the following `table_info.proto` schema file includes the imported `mode.proto` schema file:
 
-.table_info.proto file with imported .mode.proto file
+.table_info.proto file with imported mode.proto file
 [source,bash]
 ---- 
 syntax = "proto3";

@@ -36,6 +36,8 @@ import org.slf4j.LoggerFactory;
 import jakarta.ws.rs.WebApplicationException;
 import java.io.IOException;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import static io.apicurio.tests.utils.Constants.SMOKE;
@@ -167,24 +169,42 @@ public class SchemasConfluentIT extends ConfluentBaseIT {
     }
 
     @Test
-    void createInvalidSchemaDefinition() throws TimeoutException, RestClientException, IOException {
+    void createInvalidSchemaDefinition() throws Exception {
         String subjectName = TestUtils.generateArtifactId();
         ParsedSchema schema = new AvroSchema("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}");
         createArtifactViaConfluentClient(schema, subjectName);
-        TestUtils.waitFor("artifactCreated", Constants.POLL_INTERVAL, Constants.TIMEOUT_GLOBAL, () -> registryClient.getArtifactMetaData(null, subjectName) != null);
+
+        TestUtils.waitFor("artifactCreated", Constants.POLL_INTERVAL, Constants.TIMEOUT_GLOBAL, () -> {
+            try {
+                return registryClient.groups().byGroupId("default").artifacts().byArtifactId(subjectName).meta().get().get(3, TimeUnit.SECONDS) != null;
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            } catch (ExecutionException e) {
+                throw new RuntimeException(e);
+            } catch (TimeoutException e) {
+                throw new RuntimeException(e);
+            }
+        });
+
         String invalidSchema = "{\"schema\":\"{\\\"type\\\": \\\"bloop\\\"}\"}";
 
         Rule rule = new Rule();
         rule.setType(RuleType.COMPATIBILITY);
         rule.setConfig("BACKWARD");
-        registryClient.createArtifactRule("default", subjectName, rule);
+        registryClient.groups().byGroupId("default").artifacts().byArtifactId(subjectName).rules().post(rule).get(3, TimeUnit.SECONDS);
 
         TestUtils.waitFor("artifact rule created", Constants.POLL_INTERVAL, Constants.TIMEOUT_GLOBAL, () -> {
             try {
-                Rule r = registryClient.getArtifactRuleConfig("default", subjectName, RuleType.COMPATIBILITY);
+                Rule r = registryClient.groups().byGroupId("default").artifacts().byArtifactId(subjectName).rules().byRule(RuleType.COMPATIBILITY.name()).get().get(3, TimeUnit.SECONDS);
                 return r != null && r.getConfig() != null && r.getConfig().equalsIgnoreCase("BACKWARD");
             } catch (WebApplicationException e) {
                 return false;
+            } catch (ExecutionException e) {
+                throw new RuntimeException(e);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            } catch (TimeoutException e) {
+                throw new RuntimeException(e);
             }
         });
         ConfluentSubjectsUtils.createSchema(invalidSchema, subjectName, 422);
@@ -206,9 +226,17 @@ public class SchemasConfluentIT extends ConfluentBaseIT {
 
         TestUtils.waitFor("artifact created", Constants.POLL_INTERVAL, Constants.TIMEOUT_GLOBAL, () -> {
             try {
-                return registryClient.getLatestArtifact(null, subjectName) != null;
+                return registryClient.groups().byGroupId("default").artifacts().byArtifactId(subjectName).get().get(3, TimeUnit.SECONDS).readAllBytes().length > 0;
             } catch (WebApplicationException e) {
                 return false;
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            } catch (ExecutionException e) {
+                throw new RuntimeException(e);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            } catch (TimeoutException e) {
+                throw new RuntimeException(e);
             }
         });
     }
@@ -219,41 +247,55 @@ public class SchemasConfluentIT extends ConfluentBaseIT {
         String name = "schemaname";
         String subjectName = TestUtils.generateArtifactId();
         ParsedSchema schema = new AvroSchema("{\"type\":\"record\",\"name\":\"" + name + "\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}");
-        int contentId = createArtifactViaConfluentClient(schema, subjectName);
+        long contentId = createArtifactViaConfluentClient(schema, subjectName);
 
         assertThat(1, is(confluentService.getAllSubjects().size()));
 
         TestUtils.waitFor("waiting for content to be created", Constants.POLL_INTERVAL, Constants.TIMEOUT_GLOBAL, () -> {
             try {
-                return registryClient.getContentById(contentId) != null;
-            } catch (ContentNotFoundException cnfe) {
+                return registryClient.ids().contentIds().byContentId(contentId).get().get(3, TimeUnit.SECONDS).readAllBytes().length > 0;
+            } catch (InterruptedException | ExecutionException | TimeoutException cnfe) {
                 return false;
             }
         });
 
         TestUtils.waitFor("artifact created", Constants.POLL_INTERVAL, Constants.TIMEOUT_GLOBAL, () -> {
             try {
-                return registryClient.getLatestArtifact(null, subjectName) != null;
+                return registryClient.groups().byGroupId("default").artifacts().byArtifactId(subjectName).get().get(3, TimeUnit.SECONDS).readAllBytes().length > 0;
             } catch (WebApplicationException e) {
                 return false;
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            } catch (ExecutionException e) {
+                throw new RuntimeException(e);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            } catch (TimeoutException e) {
+                throw new RuntimeException(e);
             }
         });
 
         Rule rule = new Rule();
         rule.setType(RuleType.VALIDITY);
         rule.setConfig("FULL");
-        registryClient.createArtifactRule(null, subjectName, rule);
+        registryClient.groups().byGroupId("default").artifacts().byArtifactId(subjectName).rules().post(rule).get(3, TimeUnit.SECONDS);
 
         TestUtils.waitFor("artifact rule created", Constants.POLL_INTERVAL, Constants.TIMEOUT_GLOBAL, () -> {
             try {
-                Rule r = registryClient.getArtifactRuleConfig(null, subjectName, RuleType.VALIDITY);
+                Rule r = registryClient.groups().byGroupId("default").artifacts().byArtifactId(subjectName).rules().byRule(RuleType.VALIDITY.name()).get().get(3, TimeUnit.SECONDS);
                 return r != null && r.getConfig() != null && r.getConfig().equalsIgnoreCase("FULL");
             } catch (WebApplicationException e) {
                 return false;
+            } catch (ExecutionException e) {
+                throw new RuntimeException(e);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            } catch (TimeoutException e) {
+                throw new RuntimeException(e);
             }
         });
 
-        List<RuleType> rules = registryClient.listArtifactRules(null, subjectName);
+        List<RuleType> rules = registryClient.groups().byGroupId("default").artifacts().byArtifactId(subjectName).rules().get().get(3, TimeUnit.SECONDS);
         assertThat(1, is(rules.size()));
 
         confluentService.deleteSubject(subjectName);
@@ -269,9 +311,9 @@ public class SchemasConfluentIT extends ConfluentBaseIT {
         confluentService.deleteSubject(subjectName, true);
 
         retryOp((rc) -> {
-            TestUtils.assertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, () -> rc.getLatestArtifact(null, subjectName), errorCodeExtractor);
-            TestUtils.assertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, () -> rc.listArtifactRules(null, subjectName), errorCodeExtractor);
-            TestUtils.assertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, () -> rc.getArtifactRuleConfig(null, subjectName, rules.get(0)), errorCodeExtractor);
+            TestUtils.assertClientError("ArtifactNotFoundException", 404, () -> rc.groups().byGroupId("default").artifacts().byArtifactId(subjectName).get().get(3, TimeUnit.SECONDS), errorCodeExtractor);
+            TestUtils.assertClientError("ArtifactNotFoundException", 404, () -> rc.groups().byGroupId("default").artifacts().byArtifactId(subjectName).rules().get().get(3, TimeUnit.SECONDS), errorCodeExtractor);
+            TestUtils.assertClientError("ArtifactNotFoundException", 404, () -> rc.groups().byGroupId("default").artifacts().byArtifactId(subjectName).rules().byRule(rules.get(0).name()).get().get(3, TimeUnit.SECONDS), errorCodeExtractor);
         });
         //if rule was actually deleted creating same artifact again shouldn't fail
         createArtifactViaConfluentClient(schema, subjectName);

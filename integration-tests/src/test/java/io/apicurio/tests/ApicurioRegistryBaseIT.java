@@ -103,7 +103,11 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
 
     protected RegistryClient createRegistryClient() {
         var adapter = new OkHttpRequestAdapter(new AnonymousAuthenticationProvider());
-        adapter.setBaseUrl(getRegistryBaseUrl());
+        adapter.setBaseUrl(getRegistryV2ApiUrl());
+
+        if (true)
+            throw new RuntimeException("Going to connect to " + getRegistryV2ApiUrl());
+
         return new RegistryClient(adapter);
     }
 
@@ -284,16 +288,8 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
         return getRegistryBaseUrl().concat("/apis");
     }
 
-    public static String getRegistryApiUrl(int port) {
-        return getRegistryBaseUrl(port).concat("/apis");
-    }
-
     public static String getRegistryV2ApiUrl() {
         return getRegistryApiUrl().concat("/registry/v2");
-    }
-
-    public static String getRegistryV2ApiUrl(int testPort) {
-        return getRegistryApiUrl(testPort).concat("/registry/v2");
     }
 
     public static String getRegistryBaseUrl() {

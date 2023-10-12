@@ -104,10 +104,6 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
     protected RegistryClient createRegistryClient() {
         var adapter = new OkHttpRequestAdapter(new AnonymousAuthenticationProvider());
         adapter.setBaseUrl(getRegistryV2ApiUrl());
-
-        if (true)
-            throw new RuntimeException("Going to connect to " + getRegistryV2ApiUrl());
-
         return new RegistryClient(adapter);
     }
 

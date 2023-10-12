@@ -15,15 +15,16 @@
  */
 package io.apicurio.registry.resolver;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 
 import org.junit.jupiter.api.Test;
 
 import io.apicurio.registry.resolver.data.Record;
 import io.apicurio.registry.resolver.strategy.ArtifactReference;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 public class AbstractSchemaResolverTest {
     @Test
@@ -34,6 +35,31 @@ public class AbstractSchemaResolverTest {
             resolver.configure(configs, null);
 
             assertDoesNotThrow(() -> {resolver.schemaCache.checkInitialized();});
+        }
+    }
+
+    @Test
+    void testSupportsFailureTolerantSchemaCache() throws Exception {
+        Map<String, Object> configs = new HashMap<>();
+        configs.put(SchemaResolverConfig.REGISTRY_URL, "http://localhost");
+        configs.put(SchemaResolverConfig.FAULT_TOLERANT_REFRESH, true);
+
+        try (TestAbstractSchemaResolver<Object, Object> resolver = new TestAbstractSchemaResolver<>()) {
+            resolver.configure(configs, null);
+
+            assertTrue(resolver.schemaCache.isFaultTolerantRefresh());
+        }
+    }
+
+    @Test
+    void testDefaultsToFailureTolerantSchemaCacheDisabled() throws Exception {
+        Map<String, Object> configs = new HashMap<>();
+        configs.put(SchemaResolverConfig.REGISTRY_URL, "http://localhost");
+
+        try (TestAbstractSchemaResolver<Object, Object> resolver = new TestAbstractSchemaResolver<>()) {
+            resolver.configure(configs, null);
+
+            assertFalse(resolver.schemaCache.isFaultTolerantRefresh());
         }
     }
 

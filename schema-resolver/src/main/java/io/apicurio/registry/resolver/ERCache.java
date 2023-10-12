@@ -18,6 +18,8 @@ package io.apicurio.registry.resolver;
 
 import io.apicurio.registry.resolver.strategy.ArtifactCoordinates;
 import io.apicurio.registry.rest.client.exception.RateLimitedClientException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -36,6 +38,7 @@ import java.util.function.Supplier;
  */
 public class ERCache<V> {
 
+    private final static Logger log = LoggerFactory.getLogger(ERCache.class);
     /** Global ID index */
     private final Map<Long, WrappedValue<V>> index1 = new ConcurrentHashMap<>();
     /** Data content index */
@@ -56,6 +59,7 @@ public class ERCache<V> {
     private Duration lifetime = Duration.ZERO;
     private Duration backoff = Duration.ofMillis(200);
     private long retries;
+    private boolean faultTolerantRefresh;
 
     // === Configuration
 
@@ -69,6 +73,16 @@ public class ERCache<V> {
 
     public void configureRetryCount(long retries) {
         this.retries = retries;
+    }
+
+    /**
+     * If set to {@code true}, will log the load error instead of throwing it when an exception occurs trying to refresh
+     * a cache entry.  This will still honor retries before enacting this behavior.
+     *
+     * @param faultTolerantRefresh  Whether to enable fault tolerant refresh behavior.
+     */
+    public void configureFaultTolerantRefresh(boolean faultTolerantRefresh) {
+        this.faultTolerantRefresh = faultTolerantRefresh;
     }
 
     public void configureGlobalIdKeyExtractor(Function<V, Long> keyExtractor) {
@@ -89,6 +103,16 @@ public class ERCache<V> {
 
     public void configureContentHashKeyExtractor(Function<V, String> keyExtractor) {
         this.keyExtractor5 = keyExtractor;
+    }
+
+    /**
+     * Return whether fault tolerant refresh is enabled.
+     *
+     * @return  {@code true} if it's enabled.
+     * @see #configureFaultTolerantRefresh(boolean)
+     */
+    public boolean isFaultTolerantRefresh() {
+        return this.faultTolerantRefresh;
     }
 
     public void checkInitialized() {
@@ -161,6 +185,11 @@ public class ERCache<V> {
                 // Return
                 result = newValue.ok;
             } else {
+                if (faultTolerantRefresh && value != null) {
+                    log.warn("Error updating cache value.  Fault tolerant load using expired value", newValue.error);
+                    return value.value;
+                }
+                log.error("Failed to update cache value for key: " + key, newValue.error);
                 throw newValue.error;
             }
         }

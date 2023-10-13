@@ -201,7 +201,7 @@
         <!-- JSON Schema Validator -->
         <org.everit.json.schema.version>1.14.2</org.everit.json.schema.version><!-- TODO unification -->
         <jackson-datatype-json-org.version>2.15.3</jackson-datatype-json-org.version>
-        <jackson-dataformat-yaml.version>2.14.2</jackson-dataformat-yaml.version>
+        <jackson-dataformat-yaml.version>2.15.3</jackson-dataformat-yaml.version>
 
         <!-- Dependency versions -->
         <lombok.version>1.18.30</lombok.version>

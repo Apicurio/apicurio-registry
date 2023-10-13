@@ -75,51 +75,61 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
      */
     @Parameter(required = true)
     List<RegisterArtifact> artifacts;
-    
+
+    /**
+     * Set this to 'true' to skip register. Convenient in case you want to skip for specific occasions.
+     */
+    @Parameter(property = "skipRegister", defaultValue = "false")
+    boolean skip;
+
     DefaultArtifactTypeUtilProviderImpl utilProviderFactory = new DefaultArtifactTypeUtilProviderImpl();
 
     /**
      * Validate the configuration.
      */
-    protected void validate() throws MojoExecutionException {
+    protected boolean validate() throws MojoExecutionException {
+        if (skip) {
+            getLog().info("register is skipped.");
+            return false;
+        }
+
         if (artifacts == null || artifacts.isEmpty()) {
             getLog().warn("No artifacts are configured for registration.");
-        } else {
-            int idx = 0;
-            int errorCount = 0;
-            for (RegisterArtifact artifact : artifacts) {
-                if (artifact.getGroupId() == null) {
-                    getLog().error(String.format("GroupId is required when registering an artifact.  Missing from artifacts[%d].", idx));
-                    errorCount++;
-                }
-                if (artifact.getArtifactId() == null) {
-                    getLog().error(String.format("ArtifactId is required when registering an artifact.  Missing from artifacts[%s].", idx));
-                    errorCount++;
-                }
-                if (artifact.getFile() == null) {
-                    getLog().error(String.format("File is required when registering an artifact.  Missing from artifacts[%s].", idx));
-                    errorCount++;
-                } else if (!artifact.getFile().exists()) {
-                    getLog().error(String.format("Artifact file to register is configured but file does not exist: %s", artifact.getFile().getPath()));
-                    errorCount++;
-                }
-
-                idx++;
-            }
-
-            if (errorCount > 0) {
-                throw new MojoExecutionException("Invalid configuration of the Register Artifact(s) mojo. See the output log for details.");
-            }
+            return false;
         }
+
+        int idx = 0;
+        int errorCount = 0;
+        for (RegisterArtifact artifact : artifacts) {
+            if (artifact.getGroupId() == null) {
+                getLog().error(String.format("GroupId is required when registering an artifact.  Missing from artifacts[%d].", idx));
+                errorCount++;
+            }
+            if (artifact.getArtifactId() == null) {
+                getLog().error(String.format("ArtifactId is required when registering an artifact.  Missing from artifacts[%s].", idx));
+                errorCount++;
+            }
+            if (artifact.getFile() == null) {
+                getLog().error(String.format("File is required when registering an artifact.  Missing from artifacts[%s].", idx));
+                errorCount++;
+            } else if (!artifact.getFile().exists()) {
+                getLog().error(String.format("Artifact file to register is configured but file does not exist: %s", artifact.getFile().getPath()));
+                errorCount++;
+            }
+
+            idx++;
+        }
+
+        if (errorCount > 0) {
+            throw new MojoExecutionException("Invalid configuration of the Register Artifact(s) mojo. See the output log for details.");
+        }
+        return true;
     }
 
     @Override
     protected void executeInternal() throws MojoExecutionException {
-        validate();
-
         int errorCount = 0;
-        if (artifacts != null) {
-
+        if (validate()) {
             for (RegisterArtifact artifact : artifacts) {
                 String groupId = artifact.getGroupId();
                 String artifactId = artifact.getArtifactId();
@@ -161,24 +171,24 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
             throw new RuntimeException("Artifact reference loop detected (not supported): " + printLoop(registrationStack));
         }
         registrationStack.push(artifact);
-        
+
         // Read the artifact content.
         ContentHandle artifactContent = readContent(artifact.getFile());
-        
+
         // Find all references in the content
         ArtifactTypeUtilProvider provider = this.utilProviderFactory.getArtifactTypeProvider(artifact.getType());
         ReferenceFinder referenceFinder = provider.getReferenceFinder();
         Set<ExternalReference> externalReferences = referenceFinder.findExternalReferences(artifactContent);
-        
+
         // Register all of the references first, then register the artifact.
         List<ArtifactReference> registeredReferences = externalReferences.stream().map(externalRef -> {
             IndexedResource iresource = index.lookup(externalRef.getResource(), Paths.get(artifact.getFile().toURI()));
-            
+
             // TODO: need a way to resolve references that are not local (already registered in the registry)
             if (iresource == null) {
                 throw new RuntimeException("Reference could not be resolved.  From: " + artifact.getFile().getName() + "  To: " + externalRef.getFullReference());
             }
-            
+
             // If the resource isn't already registered, then register it now.
             if (!iresource.isRegistered()) {
                 // TODO: determine the artifactId better (type-specific logic here?)
@@ -198,7 +208,7 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
             }
 
             return new ArtifactReference(
-                    iresource.getRegistration().getGroupId(), 
+                    iresource.getRegistration().getGroupId(),
                     iresource.getRegistration().getId(),
                     iresource.getRegistration().getVersion(),
                     externalRef.getFullReference());
@@ -279,6 +289,10 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
 
     public void setArtifacts(List<RegisterArtifact> artifacts) {
         this.artifacts = artifacts;
+    }
+
+    public void setSkip(boolean skip) {
+        this.skip = skip;
     }
 
     private static ArtifactReference buildReferenceFromMetadata(ArtifactMetaData amd, String referenceName) {

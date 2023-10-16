@@ -720,6 +720,16 @@ public class AdminResourceTest extends AbstractResourceTestBase {
                 .body("error_code", equalTo(404))
                 .body("message", equalTo("No mapping for principal 'UnknownPrincipal' and role 'READ_ONLY' was found."));
 
+        //Update a mapping with null RoleType
+        update.setRole(null);
+        given()
+            .when()
+                .contentType(CT_JSON)
+                .body(update)
+                .put("/registry/v2/admin/roleMappings/TestUser")
+            .then()
+                .statusCode(400);
+
         // Delete a role mapping
         given()
             .when()

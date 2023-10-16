@@ -242,7 +242,7 @@ public class BasicConfluentSerDesIT extends ConfluentBaseIT {
 
         String schemaKey2 = "key2";
         AvroGenericRecordSchemaFactory avroSchema2 = new AvroGenericRecordSchemaFactory(recordName, List.of(schemaKey, schemaKey2));
-        createArtifactVersion(null, subjectName, avroSchema2.generateSchemaStream());
+        createArtifactVersion("default", subjectName, avroSchema2.generateSchemaStream());
 
         producer = tester.createProducer(StringSerializer.class, KafkaAvroSerializer.class, topicName, strategy);
         tester.produceMessages(producer, topicName, avroSchema2::generateRecord, messageCount);
@@ -270,7 +270,7 @@ public class BasicConfluentSerDesIT extends ConfluentBaseIT {
 
         String schemaKey3 = "key3";
         AvroGenericRecordSchemaFactory avroSchema3 = new AvroGenericRecordSchemaFactory(recordName, List.of(schemaKey, schemaKey2, schemaKey3));
-        createArtifactVersion(null, subjectName, avroSchema3.generateSchemaStream());
+        createArtifactVersion("default", subjectName, avroSchema3.generateSchemaStream());
 
         producer = tester.createProducer(StringSerializer.class, KafkaAvroSerializer.class, topicName, strategy);
         tester.produceMessages(producer, topicName, avroSchema3::generateRecord, messageCount);

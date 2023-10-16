@@ -1,0 +1,6 @@
+syntax = "proto3";
+package mypackage2;
+
+message Version {
+  string id = 1;
+}

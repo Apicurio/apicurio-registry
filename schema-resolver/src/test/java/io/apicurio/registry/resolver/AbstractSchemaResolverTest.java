@@ -63,6 +63,18 @@ public class AbstractSchemaResolverTest {
         }
     }
 
+    @Test
+    void testDefaultsToCacheLatestEnabled() throws Exception {
+        Map<String, Object> configs = new HashMap<>();
+        configs.put(SchemaResolverConfig.REGISTRY_URL, "http://localhost");
+
+        try (TestAbstractSchemaResolver<Object, Object> resolver = new TestAbstractSchemaResolver<>()) {
+            resolver.configure(configs, null);
+
+            assertTrue(resolver.schemaCache.isCacheLatest());
+        }
+    }
+
     class TestAbstractSchemaResolver<SCHEMA, DATA> extends AbstractSchemaResolver<SCHEMA, DATA> {
 
         @Override

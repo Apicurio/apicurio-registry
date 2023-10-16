@@ -55,7 +55,7 @@ fi
 
 case $BRANCH_NAME in
 
-  "main")
+  "main"|"2.5.x")
        # if main branch, build images with tag "latest-${RELEASE_TYPE}"
        make IMAGE_REPO=${IMAGE_REPOSITORY} IMAGE_TAG=latest-${RELEASE_TYPE} ${VARIANT}
        ;;

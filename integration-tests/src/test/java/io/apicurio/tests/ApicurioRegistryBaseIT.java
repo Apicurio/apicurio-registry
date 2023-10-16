@@ -127,7 +127,7 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
             ArtifactSearchResults artifacts = registryClient.search().artifacts().get().get(3, TimeUnit.SECONDS);
             for (SearchedArtifact artifact : artifacts.getArtifacts()) {
                 try {
-                    registryClient.groups().byGroupId(artifact.getGroupId()).artifacts().byArtifactId(artifact.getId()).delete().get(3, TimeUnit.SECONDS);
+                    registryClient.groups().byGroupId(normalizeGroupId(artifact.getGroupId())).artifacts().byArtifactId(artifact.getId()).delete().get(3, TimeUnit.SECONDS);
                     registryClient.groups().byGroupId("default").artifacts().delete().get(3, TimeUnit.SECONDS);
                 } catch (ExecutionException e) {
                     //because of async storage artifact may be already deleted but listed anyway
@@ -150,6 +150,10 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
         }, "CleanArtifacts", 5);
     }
 
+    private static String normalizeGroupId(String groupId) {
+        return groupId != null ? groupId : "default";
+    }
+
     protected ArtifactMetaData createArtifact(String groupId, String artifactId, String artifactType, InputStream artifact) throws Exception {
         ArtifactContent content = new ArtifactContent();
         content.setContent(new String(artifact.readAllBytes(), StandardCharsets.UTF_8));
@@ -162,7 +166,7 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
 
         // make sure we have schema registered
         ensureClusterSync(amd.getGlobalId());
-        ensureClusterSync(amd.getGroupId(), amd.getId(), String.valueOf(amd.getVersion()));
+        ensureClusterSync(normalizeGroupId(amd.getGroupId()), amd.getId(), String.valueOf(amd.getVersion()));
 
         return amd;
     }
@@ -194,7 +198,7 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
 
         //wait for storage
         ensureClusterSync(meta.getGlobalId());
-        ensureClusterSync(meta.getGroupId(), meta.getId(), String.valueOf(meta.getVersion()));
+        ensureClusterSync(normalizeGroupId(meta.getGroupId()), meta.getId(), String.valueOf(meta.getVersion()));
 
         return meta;
     }
@@ -206,7 +210,7 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
 
         //wait for storage
         ensureClusterSync(meta.getGlobalId());
-        ensureClusterSync(meta.getGroupId(), meta.getId(), String.valueOf(meta.getVersion()));
+        ensureClusterSync(normalizeGroupId(meta.getGroupId()), meta.getId(), String.valueOf(meta.getVersion()));
 
         return meta;
     }

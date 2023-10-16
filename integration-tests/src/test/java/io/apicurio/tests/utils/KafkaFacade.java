@@ -84,7 +84,7 @@ public class KafkaFacade implements AutoCloseable {
         this.kafkaContainer = new RedpandaContainer("docker.redpanda.com/vectorized/redpanda");
         kafkaContainer.addEnv("KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR", "1");
         kafkaContainer.addEnv("KAFKA_TRANSACTION_STATE_LOG_MIN_ISR", "1");
-        kafkaContainer.addEnv("KAFKA_ADVERTISED_LISTENERS", "PLAINTEXT://broker:9092,PLAINTEXT_HOST://localhost:29092");
+        //kafkaContainer.addEnv("KAFKA_ADVERTISED_LISTENERS", "PLAINTEXT://broker:9092,PLAINTEXT_HOST://localhost:9092");
         kafkaContainer.start();
 
     }

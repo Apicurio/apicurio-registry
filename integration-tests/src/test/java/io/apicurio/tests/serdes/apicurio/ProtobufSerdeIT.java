@@ -194,7 +194,7 @@ public class ProtobufSerdeIT extends ApicurioRegistryBaseIT {
         ProtobufUUIDTestMessage schemaV2 = new ProtobufUUIDTestMessage();
 
         createArtifact("default", artifactId, ArtifactType.PROTOBUF, schemaV1.generateArtificialSchemaStream());
-        updateArtifact(null, artifactId, schemaV2.generateSchemaStream());
+        updateArtifact("default", artifactId, schemaV2.generateSchemaStream());
 
         //by default the artifact is found by content so this should work by finding the version 1 of the artifact
         new SimpleSerdesTesterBuilder<ProtobufTestMessage, ProtobufTestMessage>()

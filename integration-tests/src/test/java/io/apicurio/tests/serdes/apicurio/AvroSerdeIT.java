@@ -91,7 +91,7 @@ public class AvroSerdeIT extends ApicurioRegistryBaseIT {
 
         AvroGenericRecordSchemaFactory avroSchema = new AvroGenericRecordSchemaFactory("myrecordapicurio1", List.of("key1"));
 
-        createArtifact(null, artifactId, ArtifactType.AVRO, avroSchema.generateSchemaStream());
+        createArtifact("default", artifactId, ArtifactType.AVRO, avroSchema.generateSchemaStream());
 
         new SimpleSerdesTesterBuilder<GenericRecord, GenericRecord>()
             .withTopic(topicName)
@@ -432,7 +432,7 @@ public class AvroSerdeIT extends ApicurioRegistryBaseIT {
         kafkaCluster.createTopic(topicName3, 1, 1);
 
         AvroGenericRecordSchemaFactory avroSchema = new AvroGenericRecordSchemaFactory(subjectName, List.of(schemaKey));
-        createArtifact(null, subjectName, ArtifactType.AVRO, avroSchema.generateSchemaStream());
+        createArtifact("default", subjectName, ArtifactType.AVRO, avroSchema.generateSchemaStream());
 
         SerdesTester<String, GenericRecord, GenericRecord> tester = new SerdesTester<>();
 
@@ -598,7 +598,7 @@ public class AvroSerdeIT extends ApicurioRegistryBaseIT {
         //create several artifacts before to ensure the globalId and contentId are not the same
         AvroGenericRecordSchemaFactory avroSchema = new AvroGenericRecordSchemaFactory("myrecordapicurioz", List.of("keyz"));
         //create a duplicated artifact beforehand with the same content to force the contentId and globalId sequences to return different ids
-        createArtifact(null, TestUtils.generateArtifactId(), ArtifactType.AVRO, avroSchema.generateSchemaStream());
+        createArtifact("default", TestUtils.generateArtifactId(), ArtifactType.AVRO, avroSchema.generateSchemaStream());
 
         new WrongConfiguredConsumerTesterBuilder<GenericRecord, GenericRecord>()
                 .withTopic(topicName)
@@ -635,7 +635,7 @@ public class AvroSerdeIT extends ApicurioRegistryBaseIT {
         //create artifact before to ensure the globalId and contentId are not the same
         AvroGenericRecordSchemaFactory avroSchema = new AvroGenericRecordSchemaFactory("myrecordapicurioz", List.of("keyz"));
         //create a duplicated artifact beforehand with the same content to force the contentId and globalId sequences to return different ids
-        createArtifact(null, TestUtils.generateArtifactId(), ArtifactType.AVRO, avroSchema.generateSchemaStream());
+        createArtifact("default", TestUtils.generateArtifactId(), ArtifactType.AVRO, avroSchema.generateSchemaStream());
 
         new WrongConfiguredConsumerTesterBuilder<GenericRecord, GenericRecord>()
                 .withTopic(topicName)

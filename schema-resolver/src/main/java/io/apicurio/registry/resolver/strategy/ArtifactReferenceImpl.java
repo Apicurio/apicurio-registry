@@ -63,7 +63,7 @@ public class ArtifactReferenceImpl implements ArtifactReference {
      */
     @Override
     public boolean hasValue() {
-        return groupId != null || artifactId != null || version != null || globalId != null || contentId != null;
+        return artifactId != null || version != null || globalId != null || contentId != null;
     }
 
     /**

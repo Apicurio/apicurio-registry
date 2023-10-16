@@ -56,8 +56,7 @@ public class SerdesTester<K, P, C> {
     private static final Logger LOGGER = LoggerFactory.getLogger(SerdesTester.class);
 
     private static final int MILLIS_PER_MESSAGE = 700;
-    private static final String BOOTSTRAP_SERVERS = "localhost:9092";
-    private static final String MAC_OS_BOOTSTRAP_SERVERS = "docker.host.internal:9092";
+    private static final String BOOTSTRAP_SERVERS = "docker.host.internal:29092";
 
     private boolean autoClose = true;
 

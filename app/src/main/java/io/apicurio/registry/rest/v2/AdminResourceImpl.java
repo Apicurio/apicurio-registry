@@ -391,6 +391,8 @@ public class AdminResourceImpl implements AdminResource {
     @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
     @RoleBasedAccessApiOperation
     public void updateRoleMapping(String principalId, UpdateRole data) {
+        requireParameter("principalId", principalId);
+        requireParameter("role", data.getRole());
         storage.updateRoleMapping(principalId, data.getRole().name());
     }
 

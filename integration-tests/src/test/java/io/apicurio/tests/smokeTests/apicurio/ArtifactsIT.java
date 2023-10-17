@@ -72,7 +72,7 @@ class ArtifactsIT extends ApicurioRegistryBaseIT {
         // Make sure we have rule
         retryOp((rc) -> rc.admin().rules().byRule(rule.getType().name()).get().get(3, TimeUnit.SECONDS));
 
-        String groupId = TestUtils.generateArtifactId();
+        String groupId = TestUtils.generateGroupId();
 
         String artifactId = TestUtils.generateArtifactId();
 

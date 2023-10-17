@@ -408,7 +408,7 @@ class ArtifactsIT extends ApicurioRegistryBaseIT {
         // "InvalidArtifactIdException"
         assertNotNull(executionException.getCause());
         Assertions.assertEquals(io.apicurio.registry.rest.client.models.Error.class, executionException.getCause().getClass());
-        Assertions.assertEquals(409, ((io.apicurio.registry.rest.client.models.Error)executionException.getCause()).getErrorCode());
+        Assertions.assertEquals(400, ((io.apicurio.registry.rest.client.models.Error)executionException.getCause()).getErrorCode());
         Assertions.assertEquals("InvalidArtifactIdException", ((io.apicurio.registry.rest.client.models.Error)executionException.getCause()).getName());
 
         createArtifact(groupId, artifactId, content, 400);

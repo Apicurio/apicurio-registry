@@ -106,6 +106,34 @@ public class ERCacheTest {
         assertFalse(cache.containsByContentHash(contentHashKey));
     }
 
+    @Test
+    void testThrowsLoadExceptionsByDefault() {
+        String contentHashKey = "another key";
+        ERCache<String> cache = newCache(contentHashKey);
+        Function<String, String> staticValueLoader = (key) -> {throw new IllegalStateException("load failure");};
+
+        assertThrows(IllegalStateException.class, () -> {cache.getByContentHash(contentHashKey, staticValueLoader);});
+    }
+
+    @Test
+    void testHoldsLoadExceptionsWhenFaultTolerantRefreshEnabled() {
+        String contentHashKey = "another key";
+        ERCache<String> cache = newCache(contentHashKey);
+        cache.configureLifetime(Duration.ZERO);
+        cache.configureFaultTolerantRefresh(true);
+
+        // Seed a value
+        Function<String, String> workingLoader = (key) -> {return "some value";};
+        String originalLoadValue = cache.getByContentHash(contentHashKey, workingLoader);
+
+        // Refresh with a failing loader
+        Function<String, String> failingLoader = (key) -> {throw new IllegalStateException("load failure");};
+        String failingLoadValue = cache.getByContentHash(contentHashKey, failingLoader);
+
+        assertEquals("some value", originalLoadValue);
+        assertEquals("some value", failingLoadValue);
+    }
+
     private ERCache<String> newCache(String contentHashKey) {
         ERCache<String> cache = new ERCache<>();
         cache.configureLifetime(Duration.ofDays(30));

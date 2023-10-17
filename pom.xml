@@ -151,16 +151,16 @@
         <node.version>16.17.0</node.version>
 
         <!-- Quarkus Version -->
-        <quarkus.version>3.0.4.Final</quarkus.version>
+        <quarkus.version>3.2.6.Final</quarkus.version>
 
         <!-- Jandex -->
-        <jandex.version>1.2.3</jandex.version>
+        <jandex.version>1.2.1</jandex.version>
 
         <!-- Schema types -->
         <avro.version>1.11.3</avro.version>
         <json-schema-validator.version>1.0.87</json-schema-validator.version>
         <wire-schema.version>4.9.1</wire-schema.version>
-        <wire-compiler.version>4.3.0</wire-compiler.version>
+        <wire-compiler.version>4.8.0</wire-compiler.version>
         <okio-jvm.version>3.6.0</okio-jvm.version>
         <okio.version>3.6.0</okio.version>
         <okio-fake-file-system.version>3.4.0</okio-fake-file-system.version>
@@ -175,7 +175,7 @@
         <picocli.version>4.6.3</picocli.version>
 
         <!-- Confluent API / client -->
-        <confluent.version>7.3.0</confluent.version>
+        <confluent.version>7.5.1</confluent.version>
 
         <!-- Default Quarkus configuration profile -->
         <quarkus.profile>dev</quarkus.profile>
@@ -213,9 +213,9 @@
         <apicurio-common-app-components.version>0.2.2.Final</apicurio-common-app-components.version>
         <sentry.version>1.7.30</sentry.version>
         <kafka-oauth-client.version>0.14.0</kafka-oauth-client.version>
-        <kafka-clients.version>2.8.1</kafka-clients.version>
-        <snakeyaml.version>2.2</snakeyaml.version>
-        <guava.version>32.1.3-jre</guava.version>
+        <kafka-clients.version>3.5.1</kafka-clients.version>
+        <snakeyaml.version>2.1</snakeyaml.version>
+        <guava.version>32.1.2-jre</guava.version>
         <woodstox-core.version>6.5.1</woodstox-core.version>
 
         <!-- Kafka Connect -->
@@ -253,9 +253,9 @@
         <os-maven-plugin.version>1.7.1</os-maven-plugin.version>
 
         <!-- Test containers version, should be aligned with version used in Quarkus -->
-        <test-containers.version>1.17.6</test-containers.version>
-        <selenium.version>3.141.59</selenium.version>
-        <keycloak-admin-client.version>21.1.1</keycloak-admin-client.version>
+        <test-containers.version>1.18.3</test-containers.version>
+        <keycloak.testcontainers.version>1.9.0</keycloak.testcontainers.version>
+        <keycloak-admin-client.version>21.1.2</keycloak-admin-client.version>
         <embedded-postgres.version>2.0.4</embedded-postgres.version>
         <strimzi.version>0.105.0</strimzi.version>
         <wiremock-jre8.version>2.35.1</wiremock-jre8.version>
@@ -583,6 +583,11 @@
                 </exclusions>
             </dependency>
             <dependency>
+                <artifactId>kotlinx-serialization-core</artifactId>
+                <groupId>org.jetbrains.kotlinx</groupId>
+                <version>1.5.1</version>
+            </dependency>
+            <dependency>
                 <groupId>com.ibm.icu</groupId>
                 <artifactId>icu4j</artifactId>
                 <version>${icu4j.version}</version>
@@ -749,18 +754,6 @@
                 <groupId>org.testcontainers</groupId>
                 <artifactId>redpanda</artifactId>
                 <version>${test-containers.version}</version>
-                <scope>test</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.testcontainers</groupId>
-                <artifactId>selenium</artifactId>
-                <version>${test-containers.version}</version>
-                <scope>test</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.seleniumhq.selenium</groupId>
-                <artifactId>selenium-java</artifactId>
-                <version>${selenium.version}</version>
                 <scope>test</scope>
             </dependency>
             <dependency>

@@ -463,7 +463,7 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
         // test re-registering existing schemas
         for (int i = 0; i < schemasInSubject1; i++) {
             String schemaString = allSchemasInSubject1.get(i);
-            int foundId = confluentClient.registerSchema(schemaString, subject1, true);
+            int foundId = confluentClient.registerSchema(schemaString, subject1, true).getId();
             assertEquals((int) schemaIds.get(i), foundId, "Re-registering an existing schema should return the existing version");
         }
 
@@ -487,8 +487,8 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
     @Test
     public void testRegisterSameSchemaOnDifferentSubject() throws Exception {
         String schema = ConfluentTestUtils.getRandomCanonicalAvroString(1).get(0);
-        int id1 = confluentClient.registerSchema(schema, "subject1", true);
-        int id2 = confluentClient.registerSchema(schema, "subject2", true);
+        int id1 = confluentClient.registerSchema(schema, "subject1", true).getId();
+        int id2 = confluentClient.registerSchema(schema, "subject2", true).getId();
         assertEquals(id1, id2, "Registering the same schema under different subjects should return the same id");
     }
 
@@ -791,7 +791,7 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
         request.setSchema(schemas.get(1));
         SchemaReference ref = new SchemaReference("otherns.Subrecord", subject, 1);
         request.setReferences(Collections.singletonList(ref));
-        int registeredId = confluentClient.registerSchema(request, referrer, false);
+        int registeredId = confluentClient.registerSchema(request, referrer, false).getId();
 
         SchemaString schemaString = confluentClient.getId(registeredId);
         // the newly registered schema should be immediately readable on the leader
@@ -843,7 +843,7 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
         SchemaReference r1 = new SchemaReference("myavro.BudgetDecreased", "ref1", 1);
         SchemaReference r2 = new SchemaReference("myavro.BudgetUpdated", "ref2", 1);
         request.setReferences(Arrays.asList(r1, r2));
-        int registeredSchema = confluentClient.registerSchema(request, "root", false);
+        int registeredSchema = confluentClient.registerSchema(request, "root", false).getId();
 
         SchemaString schemaString = confluentClient.getId(registeredSchema);
         // the newly registered schema should be immediately readable on the leader

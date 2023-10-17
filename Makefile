@@ -369,7 +369,7 @@ run-ui-tests:
 	@echo "----------------------------------------------------------------------"
 	@echo "                         Running UI Tests                             "
 	@echo "----------------------------------------------------------------------"
-	./mvnw -am verify --no-transfer-progress -Pintegration-tests -Pui -Premote-sql -pl integration-tests -Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false
+	./mvnw -am verify --no-transfer-progress -Pintegration-tests $(REGISTRY_IMAGE) -Pui -Premote-sql -pl integration-tests -Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false
 
 
 ############################################# In-Memory Integration Tests #########################################################################
@@ -415,7 +415,7 @@ run-sql-migration-integration-tests:
 	@echo "----------------------------------------------------------------------"
 	@echo "               Running SQL Migration Integration Tests                "
 	@echo "----------------------------------------------------------------------"
-	./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pmigration -Premote-sql -pl integration-tests -Dmaven.javadoc.skip=true --no-transfer-progress
+	./mvnw verify -am --no-transfer-progress -Pintegration-tests $(REGISTRY_IMAGE) -Pmigration -Premote-sql -pl integration-tests -Dmaven.javadoc.skip=true --no-transfer-progress
 
 ############################################# KafkaSql Integration Tests #########################################################################
 
@@ -425,7 +425,7 @@ run-kafkasql-integration-tests:
 	@echo "----------------------------------------------------------------------"
 	@echo "                 Running KafkaSql Integration Tests                        "
 	@echo "----------------------------------------------------------------------"
-	./mvnw verify -am --no-transfer-progress -Pintegration-tests -P$(INTEGRATION_TESTS_PROFILE) -Premote-kafka -pl integration-tests -Dmaven.javadoc.skip=true --no-transfer-progress
+	./mvnw verify -am --no-transfer-progress -Pintegration-tests $(REGISTRY_IMAGE) -P$(INTEGRATION_TESTS_PROFILE) -Premote-kafka -pl integration-tests -Dmaven.javadoc.skip=true --no-transfer-progress
 
 
 .PHONY: run-kafkasql-migration-integration-tests ## Runs kafkasql migration integration tests
@@ -433,14 +433,14 @@ run-kafkasql-migration-integration-tests:
 	@echo "----------------------------------------------------------------------"
 	@echo "             Running KafkaSQL Migration Integration Tests             "
 	@echo "----------------------------------------------------------------------"
-	./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pmigration -Premote-kafka -pl integration-tests -Dmaven.javadoc.skip=true --no-transfer-progress
+	./mvnw verify -am --no-transfer-progress -Pintegration-tests $(REGISTRY_IMAGE) -Pmigration -Premote-kafka -pl integration-tests -Dmaven.javadoc.skip=true --no-transfer-progress
 
 .PHONY: run-kafkasql-auth-tests ## Runs kafkasql auth integration tests
 run-kafkasql-auth-tests:
 	@echo "----------------------------------------------------------------------"
 	@echo "                Running KafkaSQL Auth Integration Tests               "
 	@echo "----------------------------------------------------------------------"
-	./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pauth -Premote-kafka -pl integration-tests -Dmaven.javadoc.skip=true --no-transfer-progress
+	./mvnw verify -am --no-transfer-progress -Pintegration-tests $(REGISTRY_IMAGE) -Pauth -Premote-kafka -pl integration-tests -Dmaven.javadoc.skip=true --no-transfer-progress
 
 ############################################# MSSQL Integration Tests #########################################################################
 
@@ -449,35 +449,35 @@ run-mssql-integration-tests:
 	@echo "----------------------------------------------------------------------"
 	@echo "                 Running SQL Server Integration Tests                 "
 	@echo "----------------------------------------------------------------------"
-	./mvnw verify -am --no-transfer-progress -Pintegration-tests -P$(INTEGRATION_TESTS_PROFILE) -Pmssql -pl integration-tests -Dmaven.javadoc.skip=true --no-transfer-progress
+	./mvnw verify -am --no-transfer-progress -Pintegration-tests $(REGISTRY_IMAGE) -P$(INTEGRATION_TESTS_PROFILE) -Pmssql -pl integration-tests -Dmaven.javadoc.skip=true --no-transfer-progress
 
 .PHONY: run-mssql-clustered-integration-tests ## Runs mssql clustered integration tests
 run-mssql-clustered-integration-tests:
 	@echo "----------------------------------------------------------------------"
 	@echo "               Running SQL Server clustered Integration Tests         "
 	@echo "----------------------------------------------------------------------"
-	./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pclustered -Pmssql -pl integration-tests -Dmaven.javadoc.skip=true --no-transfer-progress
+	./mvnw verify -am --no-transfer-progress -Pintegration-tests $(REGISTRY_IMAGE) -Pclustered -Pmssql -pl integration-tests -Dmaven.javadoc.skip=true --no-transfer-progress
 
 .PHONY: run-mssql-legacy-tests ## Runs mssql legacy tests
 run-mssql-legacy-tests:
 	@echo "----------------------------------------------------------------------"
 	@echo "                     Running SQL Server Legacy Tests                  "
 	@echo "----------------------------------------------------------------------"
-	./mvnw verify -am --no-transfer-progress -Pintegration-tests -P$(INTEGRATION_TESTS_PROFILE) -mssql -pl integration-tests/legacy-tests -Dmaven.javadoc.skip=true --no-transfer-progress
+	./mvnw verify -am --no-transfer-progress -Pintegration-tests $(REGISTRY_IMAGE) -P$(INTEGRATION_TESTS_PROFILE) -mssql -pl integration-tests/legacy-tests -Dmaven.javadoc.skip=true --no-transfer-progress
 
 .PHONY: run-mssql-auth-integration-tests ## Runs mssql auth integration tests
 run-mssql-auth-integration-tests:
 	@echo "----------------------------------------------------------------------"
 	@echo "                Running SQL Server Auth Integration Tests             "
 	@echo "----------------------------------------------------------------------"
-	./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pauth -mssql -pl integration-tests -Dmaven.javadoc.skip=true --no-transfer-progress
+	./mvnw verify -am --no-transfer-progress -Pintegration-tests $(REGISTRY_IMAGE) -Pauth -mssql -pl integration-tests -Dmaven.javadoc.skip=true --no-transfer-progress
 
 .PHONY: run-mssql-migration-integration-tests ## Runs mssql migration integration tests
 run-mssql-migration-integration-tests:
 	@echo "----------------------------------------------------------------------"
 	@echo "             Running SQL Server Migration Integration Tests           "
 	@echo "----------------------------------------------------------------------"
-	./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pmigration -mssql -pl integration-tests -Dmaven.javadoc.skip=true --no-transfer-progress
+	./mvnw verify -am --no-transfer-progress -Pintegration-tests $(REGISTRY_IMAGE) -Pmigration -mssql -pl integration-tests -Dmaven.javadoc.skip=true --no-transfer-progress
 
 
 

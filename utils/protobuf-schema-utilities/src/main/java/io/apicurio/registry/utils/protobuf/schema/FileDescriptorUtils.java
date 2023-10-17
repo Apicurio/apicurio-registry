@@ -629,7 +629,7 @@ public class FileDescriptorUtils {
      * This method generates the synthetic one-of from a Proto3 optional field.
      */
     private static OneOf getProto3OptionalField(Field field) {
-        return new OneOf("_" + field.getName(), "", Collections.singletonList(field));
+        return new OneOf("_" + field.getName(), "", Collections.singletonList(field), field.getLocation(), field.getOptions());
     }
 
     private static EnumDescriptorProto enumElementToProto(EnumType enumElem) {
@@ -922,7 +922,7 @@ public class FileDescriptorUtils {
     }
 
     private static OneOfElement toOneof(String name, ImmutableList.Builder<FieldElement> fields) {
-        return new OneOfElement(name, "", fields.build(), Collections.emptyList(), Collections.emptyList());
+        return new OneOfElement(name, "", fields.build(), Collections.emptyList(), Collections.emptyList(), DEFAULT_LOCATION);
     }
 
     private static EnumElement toEnum(EnumDescriptorProto ed) {

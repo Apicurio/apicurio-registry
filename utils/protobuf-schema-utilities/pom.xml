@@ -34,6 +34,16 @@
         <dependency>
             <groupId>com.squareup.wire</groupId>
             <artifactId>wire-compiler</artifactId>
+            <exclusions>
+                <exclusion>
+                    <artifactId>kotlinx-serialization-core</artifactId>
+                    <groupId>org.jetbrains.kotlinx</groupId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <artifactId>kotlinx-serialization-core</artifactId>
+            <groupId>org.jetbrains.kotlinx</groupId>
         </dependency>
         <dependency>
             <groupId>com.ibm.icu</groupId>

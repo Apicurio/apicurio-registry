@@ -34,8 +34,8 @@
             <artifactId>junit-platform-launcher</artifactId>
         </dependency>
         <dependency>
-            <artifactId>jakarta.ws.rs-api</artifactId>
             <groupId>jakarta.ws.rs</groupId>
+            <artifactId>jakarta.ws.rs-api</artifactId>
         </dependency>
         <dependency>
             <groupId>io.apicurio</groupId>
@@ -94,13 +94,8 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>io.strimzi</groupId>
-            <artifactId>strimzi-test-container</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
             <groupId>org.testcontainers</groupId>
-            <artifactId>kafka</artifactId>
+            <artifactId>redpanda</artifactId>
         </dependency>
         <dependency>
             <groupId>io.zonky.test</groupId>
@@ -194,18 +189,23 @@
                         <artifactId>maven-dependency-plugin</artifactId>
                         <executions>
                             <execution>
-                                <id>unpack-app-dependencies</id>
-                                <phase>process-classes</phase>
+                                <id>unpack-static-resources</id>
+                                <phase>generate-resources</phase>
                                 <goals>
-                                    <goal>unpack-dependencies</goal>
+                                    <goal>unpack</goal>
                                 </goals>
                                 <configuration>
-                                    <excludeArtifactIds>
-                                        apicurio-common-app-components-config-index,apicurio-common-app-components-logging,apicurio-common-app-components-config-definitions,apicurio-common-app-components-config-impl,apicurio-common-app-components-core
-                                    </excludeArtifactIds>
-                                    <includeGroupIds>io.apicurio</includeGroupIds>
-                                    <includeTypes>jar,maven-plugin</includeTypes>
-                                    <outputDirectory>${project.build.directory}/classes</outputDirectory>
+                                    <artifactItems>
+                                        <artifactItem>
+                                            <groupId>${project.groupId}</groupId>
+                                            <artifactId>apicurio-registry-app</artifactId>
+                                            <version>${project.version}</version>
+                                            <type>jar</type>
+                                            <overWrite>true</overWrite>
+                                            <includes>**/web.xml,**/application.properties</includes>
+                                        </artifactItem>
+                                    </artifactItems>
+                                    <outputDirectory>${project.build.outputDirectory}</outputDirectory>
                                     <overWriteReleases>false</overWriteReleases>
                                     <overWriteSnapshots>true</overWriteSnapshots>
                                 </configuration>
@@ -283,18 +283,23 @@
                         <artifactId>maven-dependency-plugin</artifactId>
                         <executions>
                             <execution>
-                                <id>unpack-app-dependencies</id>
-                                <phase>process-classes</phase>
+                                <id>unpack-static-resources</id>
+                                <phase>generate-resources</phase>
                                 <goals>
-                                    <goal>unpack-dependencies</goal>
+                                    <goal>unpack</goal>
                                 </goals>
                                 <configuration>
-                                    <excludeArtifactIds>
-                                        apicurio-registry-app,apicurio-common-app-components-config-index,apicurio-common-app-components-logging,apicurio-common-app-components-config-definitions,apicurio-common-app-components-config-impl,apicurio-common-app-components-core
-                                    </excludeArtifactIds>
-                                    <includeGroupIds>io.apicurio</includeGroupIds>
-                                    <includeTypes>jar,maven-plugin</includeTypes>
-                                    <outputDirectory>${project.build.directory}/classes</outputDirectory>
+                                    <artifactItems>
+                                        <artifactItem>
+                                            <groupId>${project.groupId}</groupId>
+                                            <artifactId>apicurio-registry-storage-sql</artifactId>
+                                            <version>${project.version}</version>
+                                            <type>jar</type>
+                                            <overWrite>true</overWrite>
+                                            <includes>**/web.xml,**/application.properties</includes>
+                                        </artifactItem>
+                                    </artifactItems>
+                                    <outputDirectory>${project.build.outputDirectory}</outputDirectory>
                                     <overWriteReleases>false</overWriteReleases>
                                     <overWriteSnapshots>true</overWriteSnapshots>
                                 </configuration>
@@ -372,18 +377,23 @@
                         <artifactId>maven-dependency-plugin</artifactId>
                         <executions>
                             <execution>
-                                <id>unpack-app-dependencies</id>
-                                <phase>process-classes</phase>
+                                <id>unpack-static-resources</id>
+                                <phase>generate-resources</phase>
                                 <goals>
-                                    <goal>unpack-dependencies</goal>
+                                    <goal>unpack</goal>
                                 </goals>
                                 <configuration>
-                                    <excludeArtifactIds>
-                                        apicurio-registry-app,apicurio-common-app-components-config-index,apicurio-common-app-components-logging,apicurio-common-app-components-config-definitions,apicurio-common-app-components-config-impl,apicurio-common-app-components-core
-                                    </excludeArtifactIds>
-                                    <includeGroupIds>io.apicurio</includeGroupIds>
-                                    <includeTypes>jar,maven-plugin</includeTypes>
-                                    <outputDirectory>${project.build.directory}/classes</outputDirectory>
+                                    <artifactItems>
+                                        <artifactItem>
+                                            <groupId>${project.groupId}</groupId>
+                                            <artifactId>apicurio-registry-storage-kafkasql</artifactId>
+                                            <version>${project.version}</version>
+                                            <type>jar</type>
+                                            <overWrite>true</overWrite>
+                                            <includes>**/web.xml,**/application.properties</includes>
+                                        </artifactItem>
+                                    </artifactItems>
+                                    <outputDirectory>${project.build.outputDirectory}</outputDirectory>
                                     <overWriteReleases>false</overWriteReleases>
                                     <overWriteSnapshots>true</overWriteSnapshots>
                                 </configuration>

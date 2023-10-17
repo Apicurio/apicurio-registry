@@ -169,13 +169,11 @@ public class SchemasConfluentIT extends ConfluentBaseIT {
     }
 
     @Test
-    void createInvalidSchemaDefinition() throws TimeoutException {
+    void createInvalidSchemaDefinition() throws TimeoutException, RestClientException, IOException {
         String subjectName = TestUtils.generateArtifactId();
-
-        ConfluentSubjectsUtils.createSchema("{\"schema\": \"{\\\"type\\\": \\\"record\\\",\\\"name\\\": \\\"myrecord1\\\",\\\"fields\\\": [{\\\"name\\\": \\\"foo1\\\",\\\"type\\\": \\\"string\\\"}]}\"}\"", subjectName, 200);
-
+        ParsedSchema schema = new AvroSchema("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}");
+        createArtifactViaConfluentClient(schema, subjectName);
         TestUtils.waitFor("artifactCreated", Constants.POLL_INTERVAL, Constants.TIMEOUT_GLOBAL, () -> registryClient.getArtifactMetaData(null, subjectName) != null);
-
         String invalidSchema = "{\"schema\":\"{\\\"type\\\": \\\"bloop\\\"}\"}";
 
         Rule rule = new Rule();

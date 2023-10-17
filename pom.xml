@@ -199,7 +199,7 @@
         <graphql.version>21.1</graphql.version>
 
         <!-- JSON Schema Validator -->
-        <org.everit.json.schema.version>1.14.2</org.everit.json.schema.version><!-- TODO unification -->
+        <org.everit.json.schema.version>1.14.3</org.everit.json.schema.version><!-- TODO unification -->
         <jackson-datatype-json-org.version>2.15.3</jackson-datatype-json-org.version>
         <jackson-dataformat-yaml.version>2.14.2</jackson-dataformat-yaml.version>
 

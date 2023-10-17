@@ -86,8 +86,8 @@
             <type>test-jar</type>
         </dependency>
         <dependency>
-            <groupId>io.strimzi</groupId>
-            <artifactId>strimzi-test-container</artifactId>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>redpanda</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>

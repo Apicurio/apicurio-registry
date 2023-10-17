@@ -41,7 +41,15 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
           cache: 'maven'
-      
+
+      - name: Workaround jackson-coreutils
+        run: |
+          # upstream issue: https://github.com/java-json-tools/jackson-coreutils/issues/59
+          rm -rf ~/.m2/repository/com/github/java-json-tools
+          mkdir -p /tmp/coreutils-workaround
+          ( cd /tmp/coreutils-workaround && mvn dependency:get -DremoteRepositories=https://repo1.maven.org/maven2 -Dartifact=com.github.java-json-tools:jackson-coreutils:2.0 )
+
+
       - name: Run the tests in local mode
         run: ./mvnw clean verify -P '!external_repos' -DskipOperatorTests=false -pl operator/controller -am
 

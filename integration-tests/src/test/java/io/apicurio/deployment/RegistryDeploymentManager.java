@@ -22,8 +22,8 @@ import io.fabric8.kubernetes.client.KubernetesClientBuilder;
 import io.fabric8.kubernetes.client.LocalPortForward;
 import io.fabric8.kubernetes.client.dsl.Resource;
 import io.fabric8.openshift.api.model.Route;
+import io.fabric8.openshift.client.DefaultOpenShiftClient;
 import io.fabric8.openshift.client.OpenShiftClient;
-import io.fabric8.openshift.client.impl.OpenShiftClientImpl;
 import org.junit.platform.launcher.TestExecutionListener;
 import org.junit.platform.launcher.TestPlan;
 import org.slf4j.Logger;
@@ -173,7 +173,7 @@ public class RegistryDeploymentManager implements TestExecutionListener {
             //For openshift, a route to the application is created we use it to set up the networking needs.
             if (Boolean.parseBoolean(System.getProperty("openshift.resources"))) {
 
-                OpenShiftClient openShiftClient = new OpenShiftClientImpl();
+                OpenShiftClient openShiftClient = new DefaultOpenShiftClient();
 
                 try {
                     final Route registryRoute = openShiftClient.routes()

@@ -17,10 +17,10 @@
 package io.apicurio.registry.test.utils;
 
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
-import io.strimzi.test.container.StrimziKafkaContainer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.output.Slf4jLogConsumer;
+import org.testcontainers.redpanda.RedpandaContainer;
 
 import java.util.Map;
 
@@ -32,12 +32,12 @@ import java.util.Map;
 public class KafkaTestContainerManager implements QuarkusTestResourceLifecycleManager {
     private static final Logger log = LoggerFactory.getLogger(KafkaTestContainerManager.class);
 
-    private StrimziKafkaContainer kafka;
+    private RedpandaContainer kafka;
 
     @Override
     public Map<String, String> start() {
         log.info("Starting the Kafka Test Container");
-        kafka = new StrimziKafkaContainer();
+        kafka = new RedpandaContainer("docker.redpanda.com/vectorized/redpanda");
 
         kafka.addEnv("KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR", "1");
         kafka.addEnv("KAFKA_TRANSACTION_STATE_LOG_MIN_ISR", "1");

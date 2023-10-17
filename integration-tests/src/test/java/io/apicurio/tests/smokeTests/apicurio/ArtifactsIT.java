@@ -99,8 +99,7 @@ class ArtifactsIT extends ApicurioRegistryBaseIT {
                     config.headers.add("X-Registry-ArtifactType", ArtifactType.AVRO);
                 }).get(3, TimeUnit.SECONDS), errorCodeExtractor);
 
-
-        content.setContent(invalidArtifactDefinition);
+        content.setContent(artifactData);
         ArtifactMetaData metaData = registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).put(content).get(3, TimeUnit.SECONDS);
         LOGGER.info("Artifact with ID {} was updated: {}", artifactId, metaData.toString());
         // Make sure artifact is fully registered

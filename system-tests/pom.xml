@@ -26,7 +26,7 @@
         <version.slf4.simple>2.0.9</version.slf4.simple>
         <version.strimzi.api>0.37.0</version.strimzi.api>
         <version.eclipse.jgit>6.7.0.202309050840-r</version.eclipse.jgit>
-        <version.org.json>20230618</version.org.json>
+        <version.org.json>20231013</version.org.json>
         <version.apache.commons>3.13.0</version.apache.commons>
         <version.apache.httpcomponents>5.2.3</version.apache.httpcomponents>
         <version.apache.maven.artifact>3.9.5</version.apache.maven.artifact>

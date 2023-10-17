@@ -16,6 +16,10 @@
 
 package io.apicurio.tests.utils;
 
+import com.github.dockerjava.api.command.CreateContainerCmd;
+import com.github.dockerjava.api.model.ExposedPort;
+import com.github.dockerjava.api.model.PortBinding;
+import com.github.dockerjava.api.model.Ports;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.tenantmanager.api.datamodel.SortBy;
 import io.apicurio.tenantmanager.api.datamodel.SortOrder;
@@ -34,6 +38,7 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.Collections;
 import java.util.Map;
+import java.util.function.Consumer;
 
 public class TenantManagerTestResource implements QuarkusTestResourceLifecycleManager {
 
@@ -59,6 +64,10 @@ public class TenantManagerTestResource implements QuarkusTestResourceLifecycleMa
 
             String datasourceUrl = database.getJdbcUrl("postgres", "postgres");
 
+            if (System.getProperty("os.name").contains("Mac OS")) {
+                datasourceUrl = datasourceUrl.replace("localhost", "docker.for.mac.host.internal");
+            }
+
             String tenantManagerUrl = startTenantManagerApplication("quay.io/apicurio/apicurio-tenant-manager-api:latest", datasourceUrl, "postgres", "postgres");
 
             try {
@@ -76,6 +85,11 @@ public class TenantManagerTestResource implements QuarkusTestResourceLifecycleMa
     }
 
     private String startTenantManagerApplication(String tenantManagerImageName, String jdbcUrl, String username, String password) {
+        int hostPort = 8585;
+        int containerExposedPort = 8585;
+        //Using a deprecated feature is ok, this test will be gone in Registry 3.x
+        Consumer<CreateContainerCmd> cmd = e -> e.withPortBindings(new PortBinding(Ports.Binding.bindPort(hostPort), new ExposedPort(containerExposedPort)));
+
         tenantManagerContainer = new GenericContainer<>(tenantManagerImageName)
                 .withEnv(Map.of("DATASOURCE_URL", jdbcUrl,
                         "REGISTRY_ROUTE_URL", "",
@@ -83,12 +97,13 @@ public class TenantManagerTestResource implements QuarkusTestResourceLifecycleMa
                         "DATASOURCE_PASSWORD", password,
                         "QUARKUS_HTTP_PORT", "8585",
                         "ENABLE_TEST_STATUS_TRANSITION", "true"))
-                .withNetworkMode("host");
+                .withExposedPorts(containerExposedPort)
+                .withCreateContainerCmdModifier(cmd);
 
         tenantManagerContainer.start();
         tenantManagerContainer.waitingFor(Wait.forLogMessage(".*Installed features:*", 1));
 
-        return "http://localhost:8585";
+        return "http://localhost:" + tenantManagerContainer.getMappedPort(8585);
     }
 
     @Override

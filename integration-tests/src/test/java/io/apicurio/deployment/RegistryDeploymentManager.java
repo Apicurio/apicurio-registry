@@ -22,8 +22,8 @@ import io.fabric8.kubernetes.client.KubernetesClientBuilder;
 import io.fabric8.kubernetes.client.LocalPortForward;
 import io.fabric8.kubernetes.client.dsl.Resource;
 import io.fabric8.openshift.api.model.Route;
+import io.fabric8.openshift.client.DefaultOpenShiftClient;
 import io.fabric8.openshift.client.OpenShiftClient;
-import io.fabric8.openshift.client.impl.OpenShiftClientImpl;
 import org.junit.platform.launcher.TestExecutionListener;
 import org.junit.platform.launcher.TestPlan;
 import org.slf4j.Logger;
@@ -183,32 +183,33 @@ public class RegistryDeploymentManager implements TestExecutionListener {
             //For openshift, a route to the application is created we use it to set up the networking needs.
             if (Boolean.parseBoolean(System.getProperty("openshift.resources"))) {
 
-                OpenShiftClient openShiftClient = new OpenShiftClientImpl();
+                try (OpenShiftClient openShiftClient = new DefaultOpenShiftClient()) {
 
-                try {
-                    final Route registryRoute = openShiftClient.routes()
-                            .load(RegistryDeploymentManager.class.getResourceAsStream(REGISTRY_OPENSHIFT_ROUTE))
-                            .create();
-                    System.setProperty("quarkus.http.test-host", registryRoute.getSpec().getHost());
-                    System.setProperty("quarkus.http.test-port", "80");
+                    try {
+                        final Route registryRoute = openShiftClient.routes()
+                                .load(RegistryDeploymentManager.class.getResourceAsStream(REGISTRY_OPENSHIFT_ROUTE))
+                                .create();
+                        System.setProperty("quarkus.http.test-host", registryRoute.getSpec().getHost());
+                        System.setProperty("quarkus.http.test-port", "80");
 
-                } catch (Exception ex) {
-                    LOGGER.warn("The registry route already exists: ", ex);
-                }
+                    } catch (Exception ex) {
+                        LOGGER.warn("The registry route already exists: ", ex);
+                    }
 
-                try {
-                    final Route tenantManagerRoute = openShiftClient.routes()
-                            .load(RegistryDeploymentManager.class.getResourceAsStream(TENANT_MANAGER_OPENSHIFT_ROUTE))
-                            .create();
+                    try {
+                        final Route tenantManagerRoute = openShiftClient.routes()
+                                .load(RegistryDeploymentManager.class.getResourceAsStream(TENANT_MANAGER_OPENSHIFT_ROUTE))
+                                .create();
 
-                    System.setProperty("tenant.manager.external.endpoint", tenantManagerRoute.getSpec().getHost());
-                } catch (Exception ex) {
-                    LOGGER.warn("The tenant manger route already exists: ", ex);
+                        System.setProperty("tenant.manager.external.endpoint", tenantManagerRoute.getSpec().getHost());
+                    } catch (Exception ex) {
+                        LOGGER.warn("The tenant manger route already exists: ", ex);
+                    }
                 }
 
             } else {
                 //If we're running the cluster tests but no external endpoint has been provided, set the value of the load balancer.
-                if (System.getProperty("quarkus.http.test-host").equals("localhost")) {
+                if (System.getProperty("quarkus.http.test-host").equals("localhost") && !System.getProperty("os.name").contains("Mac OS")) {
                     System.setProperty("quarkus.http.test-host", kubernetesClient.services().inNamespace(TEST_NAMESPACE).withName(APPLICATION_SERVICE).get().getSpec().getClusterIP());
                 }
 

@@ -57,6 +57,7 @@ public class SerdesTester<K, P, C> {
 
     private static final int MILLIS_PER_MESSAGE = 700;
     private static final String BOOTSTRAP_SERVERS = "localhost:9092";
+    private static final String MAC_OS_BOOTSTRAP_SERVERS = "docker.host.internal:9092";
 
     private boolean autoClose = true;
 
@@ -223,8 +224,13 @@ public class SerdesTester<K, P, C> {
         String bootsrapServers = KafkaFacade.getInstance().bootstrapServers();
         if (bootsrapServers == null) {
             Properties props = new Properties();
-            props.put(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, BOOTSTRAP_SERVERS);
-            return props;
+            if (System.getProperty("os.name").contains("Mac OS")) {
+                LOGGER.info("Picking mac os specific bootstrap servers");
+                props.put(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, MAC_OS_BOOTSTRAP_SERVERS);
+            } else {
+                LOGGER.info("Picking linux specific bootstrap servers");
+                props.put(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, BOOTSTRAP_SERVERS);
+            }            return props;
         } else {
             return KafkaFacade.getInstance().connectionProperties();
         }

@@ -199,18 +199,23 @@
                         <artifactId>maven-dependency-plugin</artifactId>
                         <executions>
                             <execution>
-                                <id>unpack-app-dependencies</id>
-                                <phase>process-classes</phase>
+                                <id>unpack-static-resources</id>
+                                <phase>generate-resources</phase>
                                 <goals>
-                                    <goal>unpack-dependencies</goal>
+                                    <goal>unpack</goal>
                                 </goals>
                                 <configuration>
-                                    <excludeArtifactIds>
-                                        apicurio-common-app-components-config-index,apicurio-common-app-components-logging,apicurio-common-app-components-config-definitions,apicurio-common-app-components-config-impl,apicurio-common-app-components-core,apicurio-common-app-components-multitenancy
-                                    </excludeArtifactIds>
-                                    <includeGroupIds>io.apicurio</includeGroupIds>
-                                    <includeTypes>jar,maven-plugin</includeTypes>
-                                    <outputDirectory>${project.build.directory}/classes</outputDirectory>
+                                    <artifactItems>
+                                        <artifactItem>
+                                            <groupId>${project.groupId}</groupId>
+                                            <artifactId>apicurio-registry-app</artifactId>
+                                            <version>${project.version}</version>
+                                            <type>jar</type>
+                                            <overWrite>true</overWrite>
+                                            <includes>**/web.xml,**/application.properties</includes>
+                                        </artifactItem>
+                                    </artifactItems>
+                                    <outputDirectory>${project.build.outputDirectory}</outputDirectory>
                                     <overWriteReleases>false</overWriteReleases>
                                     <overWriteSnapshots>true</overWriteSnapshots>
                                 </configuration>
@@ -288,18 +293,23 @@
                         <artifactId>maven-dependency-plugin</artifactId>
                         <executions>
                             <execution>
-                                <id>unpack-app-dependencies</id>
-                                <phase>process-classes</phase>
+                                <id>unpack-static-resources</id>
+                                <phase>generate-resources</phase>
                                 <goals>
-                                    <goal>unpack-dependencies</goal>
+                                    <goal>unpack</goal>
                                 </goals>
                                 <configuration>
-                                    <excludeArtifactIds>
-                                        apicurio-registry-app,apicurio-common-app-components-config-index,apicurio-common-app-components-logging,apicurio-common-app-components-config-definitions,apicurio-common-app-components-config-impl,apicurio-common-app-components-core,apicurio-common-app-components-multitenancy
-                                    </excludeArtifactIds>
-                                    <includeGroupIds>io.apicurio</includeGroupIds>
-                                    <includeTypes>jar,maven-plugin</includeTypes>
-                                    <outputDirectory>${project.build.directory}/classes</outputDirectory>
+                                    <artifactItems>
+                                        <artifactItem>
+                                            <groupId>${project.groupId}</groupId>
+                                            <artifactId>apicurio-registry-storage-sql</artifactId>
+                                            <version>${project.version}</version>
+                                            <type>jar</type>
+                                            <overWrite>true</overWrite>
+                                            <includes>**/web.xml,**/application.properties</includes>
+                                        </artifactItem>
+                                    </artifactItems>
+                                    <outputDirectory>${project.build.outputDirectory}</outputDirectory>
                                     <overWriteReleases>false</overWriteReleases>
                                     <overWriteSnapshots>true</overWriteSnapshots>
                                 </configuration>
@@ -377,18 +387,23 @@
                         <artifactId>maven-dependency-plugin</artifactId>
                         <executions>
                             <execution>
-                                <id>unpack-app-dependencies</id>
-                                <phase>process-classes</phase>
+                                <id>unpack-static-resources</id>
+                                <phase>generate-resources</phase>
                                 <goals>
-                                    <goal>unpack-dependencies</goal>
+                                    <goal>unpack</goal>
                                 </goals>
                                 <configuration>
-                                    <excludeArtifactIds>
-                                        apicurio-registry-app,apicurio-common-app-components-config-index,apicurio-common-app-components-logging,apicurio-common-app-components-config-definitions,apicurio-common-app-components-config-impl,apicurio-common-app-components-core,apicurio-common-app-components-multitenancy
-                                    </excludeArtifactIds>
-                                    <includeGroupIds>io.apicurio</includeGroupIds>
-                                    <includeTypes>jar,maven-plugin</includeTypes>
-                                    <outputDirectory>${project.build.directory}/classes</outputDirectory>
+                                    <artifactItems>
+                                        <artifactItem>
+                                            <groupId>${project.groupId}</groupId>
+                                            <artifactId>apicurio-registry-storage-kafkasql</artifactId>
+                                            <version>${project.version}</version>
+                                            <type>jar</type>
+                                            <overWrite>true</overWrite>
+                                            <includes>**/web.xml,**/application.properties</includes>
+                                        </artifactItem>
+                                    </artifactItems>
+                                    <outputDirectory>${project.build.outputDirectory}</outputDirectory>
                                     <overWriteReleases>false</overWriteReleases>
                                     <overWriteSnapshots>true</overWriteSnapshots>
                                 </configuration>

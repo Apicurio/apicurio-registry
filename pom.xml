@@ -253,8 +253,8 @@
         <os-maven-plugin.version>1.7.1</os-maven-plugin.version>
 
         <!-- Test containers version, should be aligned with version used in Quarkus -->
-        <test-containers.version>1.19.1</test-containers.version>
-        <keycloak.testcontainers.version>1.9.0</keycloak.testcontainers.version>
+        <test-containers.version>1.17.6</test-containers.version>
+        <selenium.version>3.141.59</selenium.version>
         <keycloak-admin-client.version>21.1.1</keycloak-admin-client.version>
         <embedded-postgres.version>2.0.4</embedded-postgres.version>
         <strimzi.version>0.104.0</strimzi.version>
@@ -752,6 +752,18 @@
                 <scope>test</scope>
             </dependency>
             <dependency>
+                <groupId>org.testcontainers</groupId>
+                <artifactId>selenium</artifactId>
+                <version>${test-containers.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.seleniumhq.selenium</groupId>
+                <artifactId>selenium-java</artifactId>
+                <version>${selenium.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
                 <groupId>io.zonky.test</groupId>
                 <artifactId>embedded-postgres</artifactId>
                 <version>${embedded-postgres.version}</version>
@@ -762,11 +774,6 @@
                 <artifactId>quarkus-test-common</artifactId>
                 <version>${quarkus.version}</version>
                 <scope>test</scope>
-            </dependency>
-            <dependency>
-                <groupId>com.github.dasniko</groupId>
-                <artifactId>testcontainers-keycloak</artifactId>
-                <version>${keycloak.testcontainers.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.keycloak</groupId>

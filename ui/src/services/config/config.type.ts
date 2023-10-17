@@ -57,17 +57,13 @@ export type AlertProps = {
      */
     requestId?: string;
     /**
-     * Unique sentry error ID.
-     */
-    sentryId?: string;
-    /**
      * data-testid attribute
      */
     dataTestId?: string;
 };
 
 export declare type Alerts = {
-    addAlert: ({ id, title, variant, description, dataTestId, autoDismiss, dismissable, dismissDelay, requestId, sentryId }: AlertProps) => void;
+    addAlert: ({ id, title, variant, description, dataTestId, autoDismiss, dismissable, dismissDelay, requestId }: AlertProps) => void;
 };
 
 

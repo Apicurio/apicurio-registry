@@ -64,6 +64,15 @@ public class SchemaResolverConfig {
     public static final boolean FIND_LATEST_ARTIFACT_DEFAULT = false;
 
     /**
+     * If {@code true}, will log exceptions instead of throwing them when an error occurs trying to refresh a schema
+     * in the cache.  This is useful for production situations where a stale schema is better than completely failing
+     * schema resolution.  Note that this will not impact trying of retries, as retries are attempted before this flag
+     * is considered.
+     */
+    public static final String FAULT_TOLERANT_REFRESH = "apicurio.registry.fault-tolerant-refresh";
+    public static final boolean FAULT_TOLERANT_REFRESH_DEFAULT = false;
+
+    /**
      * Only applicable for serializers
      * Optional, set explicitly the groupId used for querying/creating an artifact.
      * Overrides the groupId returned by the {@link ArtifactReferenceResolverStrategy}

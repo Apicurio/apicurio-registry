@@ -64,7 +64,6 @@ import io.quarkus.test.junit.TestProfile;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.IOUtils;
 import org.jetbrains.annotations.NotNull;
-import org.junit.Assert;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -206,7 +205,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         assertTrue(groupIds.containsAll(List.of(groupId, group1Id, group2Id, group3Id)));
         clientV2.deleteArtifactGroup(groupId);
 
-        Assert.assertThrows(GroupNotFoundException.class, () -> clientV2.getArtifactGroup(groupId));
+        assertThrows(GroupNotFoundException.class, () -> clientV2.getArtifactGroup(groupId));
     }
 
     @Test

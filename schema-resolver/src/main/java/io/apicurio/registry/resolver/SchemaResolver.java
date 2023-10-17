@@ -59,6 +59,14 @@ public interface SchemaResolver<SCHEMA, DATA> extends Closeable {
      */
     public SchemaLookupResult<SCHEMA> resolveSchemaByArtifactReference(ArtifactReference reference);
 
+    /** Retrieve Schema Metadata by Schema Content
+     * @param artifactGroup
+     * @param artifactId
+     * @param schema
+     * @return SchemaLookupResult
+     */
+    public SchemaLookupResult<SCHEMA> getSchemaMetadataByContent(String artifactGroup, String artifactId, ParsedSchema<SCHEMA> schema);
+
     /**
      * Hard reset cache
      */

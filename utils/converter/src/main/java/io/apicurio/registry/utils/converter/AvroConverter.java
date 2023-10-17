@@ -19,6 +19,7 @@ package io.apicurio.registry.utils.converter;
 import io.apicurio.registry.serde.avro.AvroKafkaDeserializer;
 import io.apicurio.registry.serde.avro.AvroKafkaSerializer;
 import io.apicurio.registry.serde.avro.NonRecordContainer;
+import io.apicurio.registry.serde.data.ContainerWithVersion;
 import io.apicurio.registry.utils.converter.avro.AvroData;
 import io.apicurio.registry.utils.converter.avro.AvroDataConfig;
 import org.apache.avro.generic.GenericContainer;
@@ -82,11 +83,21 @@ public class AvroConverter<T> extends SerdeBasedConverter<org.apache.avro.Schema
     }
 
     @Override
-    protected SchemaAndValue toSchemaAndValue(T result) {
+    public SchemaAndValue toConnectData(String topic, byte[] bytes) {
+        ContainerWithVersion<T> result = ((AvroKafkaDeserializer<T>)deserializer).deserializeWithVersion(topic, bytes);
+        if (result == null) {
+            return SchemaAndValue.NULL;
+        }
+        return toSchemaAndValue(result);
+    }
+
+    protected SchemaAndValue toSchemaAndValue(ContainerWithVersion<T> containerWithVersion) {
+        T result = containerWithVersion.container();
+
         if (result instanceof GenericContainer) {
             GenericContainer container = (GenericContainer) result;
             Object value = container;
-            Integer version = null; // TODO
+            Integer version = containerWithVersion.schemaVersionAsInteger();
             if (result instanceof NonRecordContainer) {
                 @SuppressWarnings("rawtypes")
                 NonRecordContainer nrc = (NonRecordContainer) result;
@@ -96,5 +107,6 @@ public class AvroConverter<T> extends SerdeBasedConverter<org.apache.avro.Schema
         }
         return new SchemaAndValue(null, result);
     }
+
 
 }

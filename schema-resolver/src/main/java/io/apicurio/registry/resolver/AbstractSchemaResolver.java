@@ -23,6 +23,7 @@ import io.apicurio.registry.resolver.strategy.ArtifactReference;
 import io.apicurio.registry.resolver.utils.Utils;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.RegistryClientFactory;
+import io.apicurio.registry.rest.v2.beans.ArtifactContent;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v2.beans.VersionMetaData;
 import io.apicurio.registry.utils.IoUtil;
@@ -35,12 +36,15 @@ import io.apicurio.rest.client.spi.ApicurioHttpClientFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+
+import static io.apicurio.registry.resolver.SchemaResolverConfig.EXPLICIT_ARTIFACT_GROUP_ID;
 
 /**
  * Base implementation of {@link SchemaResolver}
@@ -145,6 +149,34 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
         return this.schemaParser;
     }
 
+    @Override
+    public SchemaLookupResult<S> getSchemaMetadataByContent(String artifactGroup, String artifactId, ParsedSchema<S> schema) {
+        if (artifactGroup == null && explicitArtifactGroupId == null) {
+            throw new RuntimeException("Unable to retrieve Schema Metadata without artifact group set. Maybe set " + EXPLICIT_ARTIFACT_GROUP_ID + "?");
+        }
+
+        ArtifactContent artifactContent = new ArtifactContent();
+        artifactContent.setContent(new String(schema.getRawSchema(), StandardCharsets.UTF_8));
+
+
+        VersionMetaData metadata = client.getArtifactVersionMetaDataByContent(
+                artifactGroup != null ? artifactGroup : explicitArtifactGroupId,
+                artifactId,
+                true,
+                artifactContent);
+
+        SchemaLookupResult.SchemaLookupResultBuilder<S> result = SchemaLookupResult.builder();
+
+        return result
+                .contentId(metadata.getContentId())
+                .globalId(metadata.getGlobalId())
+                .version(metadata.getVersion())
+                .parsedSchema((schema))
+                .groupId(metadata.getGroupId())
+                .artifactId(metadata.getId())
+                .build();
+    }
+
     /**
      * Resolve an artifact reference for the given record, and optional parsed schema.  This will use
      * the artifact resolver strategy and then override the values from that strategy with any explicitly configured
@@ -176,7 +208,7 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
 
     protected SchemaLookupResult<S> resolveSchemaByGlobalId(long globalId) {
         return schemaCache.getByGlobalId(globalId, globalIdKey -> {
-            //TODO getContentByGlobalId have to return some minumum metadata (groupId, artifactId and version)
+            //TODO getContentByGlobalId have to return some minimum metadata (groupId, artifactId and version)
             //TODO or at least add some method to the api to return the version metadata by globalId
 //            ArtifactMetaData artifactMetadata = client.getArtifactMetaData("TODO", artifactId);
 
@@ -234,6 +266,8 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
                 .setRawSchema(schema);
     }
 
+
+
     /**
      * @see io.apicurio.registry.resolver.SchemaResolver#reset()
      */
@@ -241,6 +275,8 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
     public void reset() {
         this.schemaCache.clear();
     }
+
+
 
     /**
      * @see java.io.Closeable#close()

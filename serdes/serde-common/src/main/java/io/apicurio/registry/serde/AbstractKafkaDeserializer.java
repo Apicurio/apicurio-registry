@@ -107,7 +107,9 @@ public abstract class AbstractKafkaDeserializer<T, U> extends AbstractKafkaSerDe
         int start = buffer.position() + buffer.arrayOffset();
 
         return readData(schema.getParsedSchema(), buffer, start, length);
+
     }
+
 
     @Override
     public U deserialize(String topic, Headers headers, byte[] data) {
@@ -142,7 +144,7 @@ public abstract class AbstractKafkaDeserializer<T, U> extends AbstractKafkaSerDe
         return readData(headers, schema.getParsedSchema(), buffer, start, length);
     }
 
-    private SchemaLookupResult<T> resolve(String topic, Headers headers, byte[] data, ArtifactReference artifactReference) {
+    protected SchemaLookupResult<T> resolve(String topic, Headers headers, byte[] data, ArtifactReference artifactReference) {
         try {
             return getSchemaResolver().resolveSchemaByArtifactReference(artifactReference);
         } catch (RuntimeException e) {

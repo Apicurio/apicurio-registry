@@ -76,7 +76,7 @@ class ArtifactsIT extends ApicurioRegistryBaseIT {
 
         String artifactId = TestUtils.generateArtifactId();
 
-        var artifactData = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"bar\",\"type\":\"long\"}]}";
+        var artifactData = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
 
         ArtifactMetaData amd1 = createArtifact(groupId, artifactId, ArtifactType.AVRO, IoUtil.toStream(artifactData));
         LOGGER.info("Created artifact {} with metadata {}", artifactId, amd1.toString());
@@ -99,6 +99,7 @@ class ArtifactsIT extends ApicurioRegistryBaseIT {
                     config.headers.add("X-Registry-ArtifactType", ArtifactType.AVRO);
                 }).get(3, TimeUnit.SECONDS), errorCodeExtractor);
 
+        artifactData = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"bar\",\"type\":\"long\"}]}";
         content.setContent(artifactData);
         ArtifactMetaData metaData = registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).put(content).get(3, TimeUnit.SECONDS);
         LOGGER.info("Artifact with ID {} was updated: {}", artifactId, metaData.toString());

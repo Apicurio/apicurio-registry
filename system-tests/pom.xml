@@ -23,13 +23,13 @@
         <lombok.version>1.18.28</lombok.version>
         <operator.version>1.0.0-v2.0.0.final</operator.version>
         <version.hamcrest>2.2</version.hamcrest>
-        <version.slf4.simple>2.0.7</version.slf4.simple>
-        <version.strimzi.api>0.36.0</version.strimzi.api>
-        <version.eclipse.jgit>6.6.0.202305301015-r</version.eclipse.jgit>
-        <version.org.json>20230618</version.org.json>
-        <version.apache.commons>3.12.0</version.apache.commons>
-        <version.apache.httpcomponents>5.2.2</version.apache.httpcomponents>
-        <version.apache.maven.artifact>3.9.3</version.apache.maven.artifact>
+        <version.slf4.simple>2.0.9</version.slf4.simple>
+        <version.strimzi.api>0.38.0</version.strimzi.api>
+        <version.eclipse.jgit>6.7.0.202309050840-r</version.eclipse.jgit>
+        <version.org.json>20231013</version.org.json>
+        <version.apache.commons>3.13.0</version.apache.commons>
+        <version.apache.httpcomponents>5.2.3</version.apache.httpcomponents>
+        <version.apache.maven.artifact>3.9.5</version.apache.maven.artifact>
     </properties>
 
     <dependencies>

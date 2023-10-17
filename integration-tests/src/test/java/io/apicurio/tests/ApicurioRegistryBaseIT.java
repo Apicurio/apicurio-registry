@@ -508,9 +508,9 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
             runnable.run();
             Assertions.fail("Expected (but didn't get) a registry client application exception with code: " + expectedCode);
         } catch (Exception e) {
-            // DEBUG in CI
-            e.printStackTrace();
             assertNotNull(e.getCause());
+            log.error("DEBUG: " + ((io.apicurio.registry.rest.client.models.Error)e.getCause()).getName());
+            log.error("DEBUG: " + ((io.apicurio.registry.rest.client.models.Error)e.getCause()).getErrorCode());
             Assertions.assertEquals(expectedErrorName, ((io.apicurio.registry.rest.client.models.Error)e.getCause()).getName());
             Assertions.assertEquals(expectedCode, ((io.apicurio.registry.rest.client.models.Error)e.getCause()).getErrorCode());
         }

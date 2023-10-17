@@ -152,7 +152,7 @@
         <node.version>16.17.0</node.version>
 
         <!-- Quarkus Version -->
-        <quarkus.version>3.2.0.Final</quarkus.version>
+        <quarkus.version>3.2.6.Final</quarkus.version>
 
         <!-- Jandex -->
         <jandex.version>1.2.1</jandex.version>
@@ -200,7 +200,7 @@
 
         <!-- JSON Schema Validator -->
         <org.everit.json.schema.version>1.14.2</org.everit.json.schema.version><!-- TODO unification -->
-        <jackson-datatype-json-org.version>2.15.3</jackson-datatype-json-org.version>
+        <jackson-datatype-json-org.version>2.15.2</jackson-datatype-json-org.version>
         <jackson-dataformat-yaml.version>2.14.2</jackson-dataformat-yaml.version>
 
         <!-- Dependency versions -->

@@ -196,7 +196,7 @@ jobs:
         run: minikube tunnel &> /dev/null &
 
       - name: Run UI tests
-        run: make REGISTRY_IMAGE='-Dregistry-sql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-mem:1d' run-ui-tests
+        run: make REGISTRY_IMAGE='-Dregistry-sql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-sql:1d' run-ui-tests
 
       - name: Collect logs
         if: failure()

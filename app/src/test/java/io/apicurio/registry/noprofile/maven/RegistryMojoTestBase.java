@@ -24,6 +24,7 @@ import org.apache.avro.Schema;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 
 import java.io.File;
@@ -35,13 +36,14 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import static org.junit.Assert.assertTrue;
-
 /**
  * @author Ales Justin
  */
 public class RegistryMojoTestBase extends AbstractResourceTestBase {
     protected File tempDirectory;
+
+    protected final static String KEY_SUBJECT = "TestSubject-key";
+    protected final static String VALUE_SUBJECT = "TestSubject-value";
 
     @BeforeEach
     public void createTempDirectory() throws IOException {
@@ -66,35 +68,38 @@ public class RegistryMojoTestBase extends AbstractResourceTestBase {
     }
 
     protected void testRegister(RegisterRegistryMojo mojo, String groupId) throws IOException, MojoFailureException, MojoExecutionException {
-        String keySubject = "TestSubject-key";
-        String valueSubject = "TestSubject-value";
         Schema keySchema = Schema.create(Schema.Type.STRING);
         Schema valueSchema = Schema.createUnion(Arrays.asList(Schema.create(Schema.Type.STRING), Schema.create(Schema.Type.NULL)));
-        File keySchemaFile = new File(this.tempDirectory, keySubject + ".avsc");
-        File valueSchemaFile = new File(this.tempDirectory, valueSubject + ".avsc");
+        File keySchemaFile = new File(this.tempDirectory, KEY_SUBJECT + ".avsc");
+        File valueSchemaFile = new File(this.tempDirectory, VALUE_SUBJECT + ".avsc");
         writeContent(keySchemaFile, keySchema.toString(true).getBytes(StandardCharsets.UTF_8));
         writeContent(valueSchemaFile, valueSchema.toString(true).getBytes(StandardCharsets.UTF_8));
 
-        assertTrue(keySchemaFile.isFile());
-        assertTrue(valueSchemaFile.isFile());
+        Assertions.assertTrue(keySchemaFile.isFile());
+        Assertions.assertTrue(valueSchemaFile.isFile());
 
+        List<RegisterArtifact> artifacts = createArtifacts(groupId, keySchemaFile, valueSchemaFile);
+
+        mojo.setArtifacts(artifacts);
+        mojo.execute();
+    }
+
+    private static List<RegisterArtifact> createArtifacts(String groupId, File keySchemaFile, File valueSchemaFile) {
         List<RegisterArtifact> artifacts = new ArrayList<>();
 
         RegisterArtifact keySchemaArtifact = new RegisterArtifact();
         keySchemaArtifact.setGroupId(groupId);
-        keySchemaArtifact.setArtifactId(keySubject);
+        keySchemaArtifact.setArtifactId(KEY_SUBJECT);
         keySchemaArtifact.setType(ArtifactType.AVRO);
         keySchemaArtifact.setFile(keySchemaFile);
         artifacts.add(keySchemaArtifact);
 
         RegisterArtifact valueSchemaArtifact = new RegisterArtifact();
         valueSchemaArtifact.setGroupId(groupId);
-        valueSchemaArtifact.setArtifactId(valueSubject);
+        valueSchemaArtifact.setArtifactId(VALUE_SUBJECT);
         valueSchemaArtifact.setType(ArtifactType.AVRO);
         valueSchemaArtifact.setFile(valueSchemaFile);
         artifacts.add(valueSchemaArtifact);
-
-        mojo.setArtifacts(artifacts);
-        mojo.execute();
+        return artifacts;
     }
 }

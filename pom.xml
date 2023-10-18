@@ -152,7 +152,7 @@
         <node.version>16.17.0</node.version>
 
         <!-- Quarkus Version -->
-        <quarkus.version>3.2.6.Final</quarkus.version>
+        <quarkus.version>3.4.3</quarkus.version>
 
         <!-- Jandex -->
         <jandex.version>1.2.1</jandex.version>
@@ -212,7 +212,7 @@
         <apicurio-common-rest-client.version>0.1.18.Final</apicurio-common-rest-client.version>
         <apicurio-common-app-components.version>0.2.2.Final</apicurio-common-app-components.version>
         <kafka-oauth-client.version>0.14.0</kafka-oauth-client.version>
-        <kafka-clients.version>3.5.1</kafka-clients.version>
+        <kafka-clients.version>3.6.0</kafka-clients.version>
         <snakeyaml.version>2.1</snakeyaml.version>
         <guava.version>32.1.2-jre</guava.version>
         <woodstox-core.version>6.5.1</woodstox-core.version>

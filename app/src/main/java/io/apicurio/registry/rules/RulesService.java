@@ -80,4 +80,9 @@ public interface RulesService {
     public void applyRules(String groupId, String artifactId, String artifactVersion, String artifactType, 
             ContentHandle updatedContent, List<ArtifactReference> references, Map<String, ContentHandle> resolvedReferences)
             throws RuleViolationException;
+
+
+    public void applyRulesCompat(String groupId, String artifactId, String artifactVersion, String artifactType,
+                                 ContentHandle updatedContent, List<ArtifactReference> references,
+                                 Map<String, ContentHandle> resolvedReferences) throws RuleViolationException;
 }

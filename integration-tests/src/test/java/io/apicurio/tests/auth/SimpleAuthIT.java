@@ -60,7 +60,7 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
 
     private RegistryClient createClient(AuthenticationProvider auth) {
         var adapter = new OkHttpRequestAdapter(auth);
-        adapter.setBaseUrl(getRegistryBaseUrl());
+        adapter.setBaseUrl(getRegistryV2ApiUrl());
         return new RegistryClient(adapter);
     }
 

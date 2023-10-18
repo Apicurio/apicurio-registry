@@ -214,7 +214,7 @@
         <sentry.version>1.7.30</sentry.version>
         <kafka-oauth-client.version>0.14.0</kafka-oauth-client.version>
         <kafka-clients.version>3.5.1</kafka-clients.version>
-        <snakeyaml.version>2.1</snakeyaml.version>
+        <snakeyaml.version>2.2</snakeyaml.version>
         <guava.version>32.1.2-jre</guava.version>
         <woodstox-core.version>6.5.1</woodstox-core.version>
 

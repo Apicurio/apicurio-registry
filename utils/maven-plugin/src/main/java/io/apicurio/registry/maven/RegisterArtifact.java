@@ -35,8 +35,10 @@ public class RegisterArtifact {
     private Boolean canonicalize;
     private Boolean minify;
     private Boolean analyzeDirectory;
+    private Boolean autoRefs;
     private String contentType;
     private List<RegisterArtifactReference> references;
+    private List<ExistingReference> existingReferences;
 
     /**
      * Constructor.
@@ -190,5 +192,21 @@ public class RegisterArtifact {
 
     public void setAnalyzeDirectory(Boolean analyzeDirectory) {
         this.analyzeDirectory = analyzeDirectory;
+    }
+
+    public Boolean getAutoRefs() {
+        return autoRefs;
+    }
+    
+    public void setAutoRefs(Boolean autoRefs) {
+        this.autoRefs = autoRefs;
+    }
+
+    public List<ExistingReference> getExistingReferences() {
+        return existingReferences;
+    }
+
+    public void setExistingReferences(List<ExistingReference> existingReferences) {
+        this.existingReferences = existingReferences;
     }
 }

@@ -198,10 +198,9 @@ jobs:
         if: github.event_name == 'push'
         run: docker login -u "${{ secrets.QUAY_USERNAME }}" -p "${{ secrets.QUAY_PASSWORD }}" quay.io
 
-      - name: Build and Push In Memory Multi-arch Images to Quay.io
+      - name: Build and Push KafkaSQL Multi-arch Images to Quay.io
         if: github.event_name == 'push'
         run: ./.github/scripts/build-and-push-multiarch-images.sh ${GITHUB_REF#refs/heads/} quay.io kafkasql-multiarch-images snapshot
-
 
   build-mem-native-images:
     name: Build and Test In Memory native images
@@ -255,15 +254,29 @@ jobs:
         run: |
           make BUILD_FLAGS='-DskipUiBuild' build-mem-native
 
-      - name: Prepare Tenant Manager
-        run: make build-integration-tests-multitenancy
+      - name: Build and Push Temporary image for testing
+        env:
+          IMAGE_REPO: ttl.sh/${{ github.sha }}
+          # maximum allowed
+          IMAGE_TAG: 1d
+        run: make build-mem-native-image push-mem-native-image
 
-      - name: Build integration-tests-common
-        run: ./mvnw install -Pintegration-tests -pl integration-tests/integration-tests-common
+      - name: Setup Minikube
+        uses: manusa/actions-setup-minikube@v2.7.2
+        with:
+          minikube version: 'v1.31.1'
+          kubernetes version: 'v1.26.3'
+          github token: ${{ secrets.GITHUB_TOKEN }}
+          driver: docker
+
+      - name: Prepare minikube tunnel
+        run: minikube tunnel &> /dev/null &
+
       - name: Run Integration Tests - inmemory
-        run: ./mvnw verify -Pintegration-tests -Pacceptance -Pinmemory -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress -DtestNative=true
-      - name: Run Integration Tests - inmemory auth
-        run: ./mvnw verify -Pintegration-tests -Pauth -Pinmemory -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress -DtestNative=true
+        run: make REGISTRY_IMAGE='-Dregistry-in-memory-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-mem-native:1d' run-in-memory-integration-tests
+
+      - name: Run Integration Tests - inmemory - auth
+        run: make REGISTRY_IMAGE='-Dregistry-in-memory-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-mem-native:1d' run-in-memory-auth-tests
 
       - name: Collect logs
         if: failure()
@@ -321,10 +334,10 @@ jobs:
 
       - name: Build Sql Variant
         if: github.ref == 'refs/heads/main'
-        run: make SKIP_TESTS=true BUILD_FLAGS='-DskipCommitIdPlugin=false -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5 --no-transfer-progress' build-sql
+        run: make SKIP_TESTS=true BUILD_FLAGS='-DskipUiBuild=false -Dmaven.javadoc.skip=true --no-transfer-progress -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5' build-sql
       - name: Build Sql Variant Without UI
         if: github.ref != 'refs/heads/main'
-        run: make SKIP_TESTS=true BUILD_FLAGS='-DskipUiBuild -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5 --no-transfer-progress' build-sql
+        run: make SKIP_TESTS=true BUILD_FLAGS='-DskipUiBuild=true -Dmaven.javadoc.skip=true --no-transfer-progress -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5' build-sql
 
       - name: Verify docs generation
         run: |
@@ -347,19 +360,35 @@ jobs:
         if: github.ref != 'refs/heads/main'
         run: make BUILD_FLAGS='-DskipUiBuild' build-sql-native
 
-      - name: Prepare Tenant Manager
-        run: make build-integration-tests-multitenancy
+      - name: Build and Push Temporary image for testing
+        env:
+          IMAGE_REPO: ttl.sh/${{ github.sha }}
+          # maximum allowed
+          IMAGE_TAG: 1d
+        run: make build-sql-native-image push-sql-native-image
 
-      - name: Build integration-tests-common
-        run: ./mvnw install -Pintegration-tests -pl integration-tests/integration-tests-common
-      - name: Run Integration Tests - multitenancy
-        run: ./mvnw verify -Pintegration-tests -Pmultitenancy -Psql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false -DtestNative=true
+      - name: Setup Minikube
+        uses: manusa/actions-setup-minikube@v2.7.2
+        with:
+          minikube version: 'v1.31.1'
+          kubernetes version: 'v1.26.3'
+          github token: ${{ secrets.GITHUB_TOKEN }}
+          driver: docker
+
+      - name: Prepare minikube tunnel
+        run: minikube tunnel &> /dev/null &
+
       - name: Run Integration Tests - sql
-        run: ./mvnw verify -Pintegration-tests -Pacceptance -Psql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress -DtestNative=true
-      - name: Run Integration Tests - sql migration
-        run: ./mvnw verify -Pintegration-tests -Pmigration -Psql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress -DtestNative=true
+        run: make REGISTRY_IMAGE='-Dregistry-sql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-sql-native:1d' run-sql-integration-tests
+
       - name: Run Integration Tests - sql auth
-        run: ./mvnw verify -Pintegration-tests -Pauth -Psql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress -DtestNative=true
+        run: make REGISTRY_IMAGE='-Dregistry-sql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-sql-native:1d' run-sql-auth-tests
+
+      - name: Run Integration Tests - sql migration
+        run: make REGISTRY_IMAGE='-Dregistry-sql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-sql-native:1d' run-sql-migration-integration-tests
+
+      - name: Run Integration Tests - sql multitenancy
+        run: make REGISTRY_IMAGE='-Dregistry-sql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-sql-native:1d' run-sql-multitenancy-integration-tests
 
       - name: Collect logs
         if: failure()

@@ -1,19 +1,19 @@
 <?xml version="1.0"?>
 <project
-    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"
-    xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+        xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"
+        xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>io.apicurio</groupId>
         <artifactId>apicurio-registry-storage</artifactId>
-        <version>2.4.13-SNAPSHOT</version>
+        <version>2.5.0-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
-    
+
     <artifactId>apicurio-registry-storage-kafkasql</artifactId>
     <packaging>jar</packaging>
     <name>apicurio-registry-storage-kafkasql</name>
-    
+
     <dependencies>
         <!-- Project Deps -->
         <dependency>
@@ -25,7 +25,7 @@
             <groupId>io.apicurio</groupId>
             <artifactId>apicurio-registry-utils-kafka</artifactId>
         </dependency>
-        
+
         <!-- Third Party Deps -->
         <dependency>
             <groupId>commons-codec</groupId>
@@ -35,10 +35,7 @@
             <groupId>commons-io</groupId>
             <artifactId>commons-io</artifactId>
         </dependency>
-        <dependency>
-            <groupId>io.strimzi</groupId>
-            <artifactId>kafka-oauth-client</artifactId>
-        </dependency>
+
         <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>redpanda</artifactId>
@@ -58,7 +55,7 @@
             </exclusions>
         </dependency>
     </dependencies>
-    
+
     <build>
         <resources>
             <resource>
@@ -96,18 +93,23 @@
                         </configuration>
                     </execution>
                     <execution>
-                        <id>unpack-app-dependencies</id>
-                        <phase>process-classes</phase>
+                        <id>unpack-static-resources</id>
+                        <phase>generate-resources</phase>
                         <goals>
-                            <goal>unpack-dependencies</goal>
+                            <goal>unpack</goal>
                         </goals>
                         <configuration>
-                            <includeGroupIds>io.apicurio</includeGroupIds>
-                            <excludeArtifactIds>apicurio-common-app-components-config-index,apicurio-common-app-components-logging,apicurio-common-app-components-config-definitions,apicurio-common-app-components-config-impl,apicurio-common-app-components-core,apicurio-common-app-components-multitenancy</excludeArtifactIds>
-                            <includeTypes>jar,maven-plugin</includeTypes>
-                            <outputDirectory>
-                                ${project.build.directory}/classes
-                            </outputDirectory>
+                            <artifactItems>
+                                <artifactItem>
+                                    <groupId>${project.groupId}</groupId>
+                                    <artifactId>apicurio-registry-app</artifactId>
+                                    <version>${project.version}</version>
+                                    <type>jar</type>
+                                    <overWrite>true</overWrite>
+                                    <includes>**/web.xml,**/application.properties</includes>
+                                </artifactItem>
+                            </artifactItems>
+                            <outputDirectory>${project.build.outputDirectory}</outputDirectory>
                             <overWriteReleases>false</overWriteReleases>
                             <overWriteSnapshots>true</overWriteSnapshots>
                         </configuration>
@@ -225,7 +227,7 @@
             </plugin>
         </plugins>
     </build>
-    
+
     <profiles>
         <profile>
             <id>no-slow-tests</id>
@@ -252,8 +254,11 @@
                                 </goals>
                                 <configuration>
                                     <systemPropertyVariables>
-                                        <native.image.path>${project.build.directory}/${project.build.finalName}-runner</native.image.path>
-                                        <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
+                                        <native.image.path>
+                                            ${project.build.directory}/${project.build.finalName}-runner
+                                        </native.image.path>
+                                        <java.util.logging.manager>org.jboss.logmanager.LogManager
+                                        </java.util.logging.manager>
                                         <maven.home>${maven.home}</maven.home>
                                     </systemPropertyVariables>
                                 </configuration>

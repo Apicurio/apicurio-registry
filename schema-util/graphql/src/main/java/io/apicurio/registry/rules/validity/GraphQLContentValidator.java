@@ -46,6 +46,7 @@ public class GraphQLContentValidator implements ContentValidator {
             try {
                 new SchemaParser().parse(content.content());
             } catch (Exception e) {
+                e.printStackTrace();
                 throw new RuleViolationException("Syntax violation for GraphQL artifact.", RuleType.VALIDITY, level.name(), e);
             }
         }

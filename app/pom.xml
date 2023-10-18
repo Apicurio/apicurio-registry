@@ -5,7 +5,7 @@
     <parent>
         <groupId>io.apicurio</groupId>
         <artifactId>apicurio-registry</artifactId>
-        <version>2.4.13-SNAPSHOT</version>
+        <version>2.5.0-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
@@ -272,11 +272,6 @@
             <artifactId>apicurio-registry-utils-kafka</artifactId>
             <scope>test</scope>
             <type>test-jar</type>
-        </dependency>
-        <dependency>
-            <groupId>io.strimzi</groupId>
-            <artifactId>strimzi-test-container</artifactId>
-            <scope>test</scope>
         </dependency>
     </dependencies>
 

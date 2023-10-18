@@ -16,6 +16,7 @@
 
 package io.apicurio.registry.storage.util;
 
+import io.apicurio.registry.utils.tests.PostgreSqlEmbeddedTestResource;
 import io.quarkus.test.common.QuarkusTestResource;
 
 /**

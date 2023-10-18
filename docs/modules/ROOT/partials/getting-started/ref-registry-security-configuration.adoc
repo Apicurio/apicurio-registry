@@ -12,7 +12,7 @@
 * Role-based authorization for default admin, write, and read-only user roles. 
 * Content-based authorization for schema or API artifacts, where only the owner of the artifacts or artifact group can update or delete artifacts. 
 
-IMPORTANT: All authentication and authorization options in {registry} are disabled by default. Before enabling any of these options, you must first set the `AUTH_ENABLED` option to `true`. 
+IMPORTANT: All authentication and authorization options in {registry} are disabled by default. Before enabling any of these options, you must first set the `AUTH_ENABLED` option to `true`.
 
 This chapter provides details on the following configuration options: 
 
@@ -25,7 +25,7 @@ This chapter provides details on the following configuration options:
 
 [discrete]
 [id="registry-security-authn-keycloak"]
-== {registry} authentication by using OpenID Connect with {keycloak} 
+== {registry} authentication by using OpenID Connect with {keycloak}
 
 You can set the following environment variables to configure authentication for the {registry} web console and API with {keycloak}:
 
@@ -82,9 +82,9 @@ By default, {registry} supports authentication by using OpenID Connect. Users or
 |===
 
 [discrete]
-=== {registry} HTTP basic client credentials cache expiry 
+=== {registry} HTTP basic client credentials cache expiry
 
-You can also configure the HTTP basic client credentials cache expiry time. By default, when using HTTP basic authentication, {registry} caches JWT tokens, and does not issue a new token when there is no need. You can configure the cache expiry time for JWT tokens, which is set to 10 mins by default. 
+You can also configure the HTTP basic client credentials cache expiry time. By default, when using HTTP basic authentication, {registry} caches JWT tokens, and does not issue a new token when there is no need. You can configure the cache expiry time for JWT tokens, which is set to 10 mins by default.
 
 When using {keycloak}, it is best to set this configuration to your {keycloak} JWT expiry time minus one minute. For example, if you have the expiry time set to `5` mins in {keycloak}, you should set the following configuration option to `4` mins:
 

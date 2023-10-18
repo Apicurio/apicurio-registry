@@ -21,6 +21,7 @@ import static io.apicurio.registry.rest.client.request.provider.Routes.CONFIG_PR
 import static io.apicurio.registry.rest.client.request.provider.Routes.CONFIG_PROPERTY_PATH;
 import static io.apicurio.registry.rest.client.request.provider.Routes.EXPORT_PATH;
 import static io.apicurio.registry.rest.client.request.provider.Routes.IMPORT_PATH;
+import static io.apicurio.registry.rest.client.request.provider.Routes.LIST_ARTIFACT_PATH;
 import static io.apicurio.registry.rest.client.request.provider.Routes.LOGS_BASE_PATH;
 import static io.apicurio.registry.rest.client.request.provider.Routes.LOG_PATH;
 import static io.apicurio.registry.rest.client.request.provider.Routes.ROLE_MAPPINGS_BASE_PATH;
@@ -42,6 +43,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.apicurio.registry.rest.Headers;
+import io.apicurio.registry.rest.v2.beans.ArtifactTypeInfo;
 import io.apicurio.registry.rest.v2.beans.ConfigurationProperty;
 import io.apicurio.registry.rest.v2.beans.LogConfiguration;
 import io.apicurio.registry.rest.v2.beans.NamedLogConfiguration;
@@ -177,6 +179,14 @@ public class AdminRequestsProvider {
                 .responseType(new TypeReference<Void>() {})
                 .data(data)
                 .headers(new HashMap<>(Map.of(Request.CONTENT_TYPE, "application/zip", Headers.PRESERVE_GLOBAL_ID, Boolean.toString(preserveGlobalIds), Headers.PRESERVE_CONTENT_ID, Boolean.toString(preserveContentIds))))
+                .build();
+    }
+
+    public static Request<List<ArtifactTypeInfo>> listArtifactTypes() {
+        return new Request.RequestBuilder<List<ArtifactTypeInfo>>()
+                .operation(GET)
+                .path(LIST_ARTIFACT_PATH)
+                .responseType(new TypeReference<List<ArtifactTypeInfo>>() {})
                 .build();
     }
 

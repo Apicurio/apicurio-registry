@@ -14,11 +14,13 @@ DOCKER_BUILD_WORKSPACE ?= $(DOCKERFILE_LOCATION)
 
 # You can override these variables from the command line.
 IMAGE_REPO ?= docker.io
+IMAGE_GROUP ?= apicurio
 IMAGE_TAG ?= latest
 IMAGE_PLATFORMS ?= linux/amd64,linux/arm64,linux/s390x,linux/ppc64le
 SKIP_TESTS ?= false
 INTEGRATION_TESTS_PROFILE ?= ci
 BUILD_FLAGS ?=
+REGISTRY_IMAGE ?=
 
 
 # Colour Codes for help message
@@ -42,6 +44,7 @@ help:
 	@printf "$(BLUE)SKIP_TESTS$(NC)             Skips Tests. The Default value is '$(SKIP_TESTS)'\n"
 	@printf "$(BLUE)BUILD_FLAGS$(NC)            Additional maven build flags. By Default, it doesn't pass any additional flags.\n"
 	@printf "$(BLUE)IMAGE_REPO$(NC)             Image Repository of the image. Default is '$(IMAGE_REPO)'\n"
+	@printf "$(BLUE)IMAGE_GROUP$(NC)            Image Group of the image. Default is '$(IMAGE_GROUP)'\n"
 	@printf "$(BLUE)IMAGE_TAG$(NC)              Image tag. Default is '$(IMAGE_TAG)'\n"
 	@printf "$(BLUE)IMAGE_PLATFORMS$(NC)        Supported Platforms for Multi-arch Images. Default platforms are '$(IMAGE_PLATFORMS)'\n"
 	@printf "$(BLUE)DOCKERFILE_LOCATION$(NC)    Path to the dockerfile. Default is '$(DOCKERFILE_LOCATION)'\n"
@@ -108,7 +111,7 @@ build-mem-image:
 	@echo " Repository: $(IMAGE_REPO)"
 	@echo " Tag: $(IMAGE_TAG)"
 	@echo "------------------------------------------------------------------------"
-	docker build -f $(DOCKERFILE_LOCATION)/$(MEM_DOCKERFILE) -t $(IMAGE_REPO)/apicurio/apicurio-registry-mem:$(IMAGE_TAG) $(DOCKER_BUILD_WORKSPACE)
+	docker build -f $(DOCKERFILE_LOCATION)/$(MEM_DOCKERFILE) -t $(IMAGE_REPO)/$(IMAGE_GROUP)/apicurio-registry-mem:$(IMAGE_TAG) $(DOCKER_BUILD_WORKSPACE)
 
 
 .PHONY: push-mem-image ## Pushes docker image for 'in-memory' storage variant. Variables available for override [IMAGE_REPO, IMAGE_TAG]
@@ -118,7 +121,7 @@ push-mem-image:
 	@echo " Repository: $(IMAGE_REPO)"
 	@echo " Tag: $(IMAGE_TAG)"
 	@echo "------------------------------------------------------------------------"
-	docker push $(IMAGE_REPO)/apicurio/apicurio-registry-mem:$(IMAGE_TAG)
+	docker push $(IMAGE_REPO)/$(IMAGE_GROUP)/apicurio-registry-mem:$(IMAGE_TAG)
 
 
 .PHONY: build-mem-native-image ## Builds native docker image for 'mem' storage variant. Variables available for override [IMAGE_REPO, IMAGE_TAG]
@@ -128,7 +131,16 @@ build-mem-native-image:
 	@echo " Repository: $(IMAGE_REPO)"
 	@echo " Tag: $(IMAGE_TAG)"
 	@echo "------------------------------------------------------------------------"
-	docker build -f $(DOCKERFILE_LOCATION)/Dockerfile.native -t $(IMAGE_REPO)/apicurio/apicurio-registry-mem-native:$(IMAGE_TAG) app/
+	docker build -f $(DOCKERFILE_LOCATION)/Dockerfile.native -t $(IMAGE_REPO)/$(IMAGE_GROUP)/apicurio-registry-mem-native:$(IMAGE_TAG) app/
+
+.PHONY: build-mem-native-scratch-image ## Builds native docker image from scratch for 'mem' storage variant. Variables available for override [IMAGE_REPO, IMAGE_TAG]
+build-mem-native-scratch-image:
+	@echo "------------------------------------------------------------------------"
+	@echo " Building Image For In-Memory Storage Variant (using Native Executable)"
+	@echo " Repository: $(IMAGE_REPO)"
+	@echo " Tag: $(IMAGE_TAG)"
+	@echo "------------------------------------------------------------------------"
+	docker build -f $(DOCKERFILE_LOCATION)/Dockerfile.native-scratch -t $(IMAGE_REPO)/$(IMAGE_GROUP)/apicurio-registry-mem-native-scratch:$(IMAGE_TAG) ./
 
 .PHONY: build-mem-native-scratch-image ## Builds native docker image from scratch for 'mem' storage variant. Variables available for override [IMAGE_REPO, IMAGE_TAG]
 build-mem-native-scratch-image:
@@ -147,7 +159,7 @@ push-mem-native-image:
 	@echo " Repository: $(IMAGE_REPO)"
 	@echo " Tag: $(IMAGE_TAG)"
 	@echo "------------------------------------------------------------------------"
-	docker push $(IMAGE_REPO)/apicurio/apicurio-registry-mem-native:$(IMAGE_TAG)
+	docker push $(IMAGE_REPO)/$(IMAGE_GROUP)/apicurio-registry-mem-native:$(IMAGE_TAG)
 
 
 .PHONY: build-sql-image ## Builds docker image for 'sql' storage variant. Variables available for override [SQL_DOCKERFILE, IMAGE_REPO, IMAGE_TAG, DOCKER_BUILD_WORKSPACE]
@@ -157,7 +169,7 @@ build-sql-image:
 	@echo " Repository: $(IMAGE_REPO)"
 	@echo " Tag: $(IMAGE_TAG)"
 	@echo "------------------------------------------------------------------------"
-	docker build -f $(DOCKERFILE_LOCATION)/$(SQL_DOCKERFILE) -t $(IMAGE_REPO)/apicurio/apicurio-registry-sql:$(IMAGE_TAG) $(DOCKER_BUILD_WORKSPACE)
+	docker build -f $(DOCKERFILE_LOCATION)/$(SQL_DOCKERFILE) -t $(IMAGE_REPO)/$(IMAGE_GROUP)/apicurio-registry-sql:$(IMAGE_TAG) $(DOCKER_BUILD_WORKSPACE)
 
 .PHONY: push-sql-image ## Pushes docker image for 'sql' storage variant. Variables available for override [IMAGE_REPO, IMAGE_TAG]
 push-sql-image:
@@ -166,7 +178,7 @@ push-sql-image:
 	@echo " Repository: $(IMAGE_REPO)"
 	@echo " Tag: $(IMAGE_TAG)"
 	@echo "------------------------------------------------------------------------"
-	docker push $(IMAGE_REPO)/apicurio/apicurio-registry-sql:$(IMAGE_TAG)
+	docker push $(IMAGE_REPO)/$(IMAGE_GROUP)/apicurio-registry-sql:$(IMAGE_TAG)
 
 .PHONY: build-sql-native-image ## Builds native docker image for 'sql' storage variant. Variables available for override [IMAGE_REPO, IMAGE_TAG]
 build-sql-native-image:
@@ -175,7 +187,7 @@ build-sql-native-image:
 	@echo " Repository: $(IMAGE_REPO)"
 	@echo " Tag: $(IMAGE_TAG)"
 	@echo "------------------------------------------------------------------------"
-	docker build -f $(DOCKERFILE_LOCATION)/Dockerfile.native -t $(IMAGE_REPO)/apicurio/apicurio-registry-sql-native:$(IMAGE_TAG) storage/sql
+	docker build -f $(DOCKERFILE_LOCATION)/Dockerfile.native -t $(IMAGE_REPO)/$(IMAGE_GROUP)/apicurio-registry-sql-native:$(IMAGE_TAG) storage/sql
 
 .PHONY: push-sql-native-image ## Pushes native docker image for 'sql' storage variant. Variables available for override [IMAGE_REPO, IMAGE_TAG]
 push-sql-native-image:
@@ -184,7 +196,7 @@ push-sql-native-image:
 	@echo " Repository: $(IMAGE_REPO)"
 	@echo " Tag: $(IMAGE_TAG)"
 	@echo "------------------------------------------------------------------------"
-	docker push $(IMAGE_REPO)/apicurio/apicurio-registry-sql-native:$(IMAGE_TAG)
+	docker push $(IMAGE_REPO)/$(IMAGE_GROUP)/apicurio-registry-sql-native:$(IMAGE_TAG)
 
 .PHONY: build-mssql-image ## Builds docker image for 'mssql' storage variant. Variables available for override [MSSQL_DOCKERFILE, IMAGE_REPO, IMAGE_TAG, DOCKER_BUILD_WORKSPACE]
 build-mssql-image:
@@ -193,7 +205,7 @@ build-mssql-image:
 	@echo " Repository: $(IMAGE_REPO)"
 	@echo " Tag: $(IMAGE_TAG)"
 	@echo "------------------------------------------------------------------------"
-	docker build -f $(DOCKERFILE_LOCATION)/$(MSSQL_DOCKERFILE) -t $(IMAGE_REPO)/apicurio/apicurio-registry-mssql:$(IMAGE_TAG) $(DOCKER_BUILD_WORKSPACE)
+	docker build -f $(DOCKERFILE_LOCATION)/$(MSSQL_DOCKERFILE) -t $(IMAGE_REPO)/$(IMAGE_GROUP)/apicurio-registry-mssql:$(IMAGE_TAG) $(DOCKER_BUILD_WORKSPACE)
 
 .PHONY: push-mssql-image ## Pushes docker image for 'mssql' storage variant. Variables available for override [IMAGE_REPO, IMAGE_TAG]
 push-mssql-image:
@@ -202,7 +214,7 @@ push-mssql-image:
 	@echo " Repository: $(IMAGE_REPO)"
 	@echo " Tag: $(IMAGE_TAG)"
 	@echo "------------------------------------------------------------------------"
-	docker push $(IMAGE_REPO)/apicurio/apicurio-registry-mssql:$(IMAGE_TAG)
+	docker push $(IMAGE_REPO)/$(IMAGE_GROUP)/apicurio-registry-mssql:$(IMAGE_TAG)
 
 .PHONY: build-mysql-image ## Builds docker image for 'mysql' storage variant. Variables available for override [MYSQL_DOCKERFILE, IMAGE_REPO, IMAGE_TAG, DOCKER_BUILD_WORKSPACE]
 build-mysql-image:
@@ -229,7 +241,7 @@ build-kafkasql-image:
 	@echo " Repository: $(IMAGE_REPO)"
 	@echo " Tag: $(IMAGE_TAG)"
 	@echo "------------------------------------------------------------------------"
-	docker build -f $(DOCKERFILE_LOCATION)/$(KAFKASQL_DOCKERFILE) -t $(IMAGE_REPO)/apicurio/apicurio-registry-kafkasql:$(IMAGE_TAG) $(DOCKER_BUILD_WORKSPACE)
+	docker build -f $(DOCKERFILE_LOCATION)/$(KAFKASQL_DOCKERFILE) -t $(IMAGE_REPO)/$(IMAGE_GROUP)/apicurio-registry-kafkasql:$(IMAGE_TAG) $(DOCKER_BUILD_WORKSPACE)
 
 .PHONY: push-kafkasql-image ## Pushes docker image for 'kafkasql' storage variant. Variables available for override [IMAGE_REPO, IMAGE_TAG]
 push-kafkasql-image:
@@ -238,7 +250,7 @@ push-kafkasql-image:
 	@echo " Repository: $(IMAGE_REPO)"
 	@echo " Tag: $(IMAGE_TAG)"
 	@echo "------------------------------------------------------------------------"
-	docker push $(IMAGE_REPO)/apicurio/apicurio-registry-kafkasql:$(IMAGE_TAG)
+	docker push $(IMAGE_REPO)/$(IMAGE_GROUP)/apicurio-registry-kafkasql:$(IMAGE_TAG)
 
 .PHONY: build-kafkasql-native-image ## Builds native docker image for kafkasql storage variant. Variables available for override [IMAGE_REPO, IMAGE_TAG]
 build-kafkasql-native-image:
@@ -247,7 +259,7 @@ build-kafkasql-native-image:
 	@echo " Repository: $(IMAGE_REPO)"
 	@echo " Tag: $(IMAGE_TAG)"
 	@echo "------------------------------------------------------------------------"
-	docker build -f $(DOCKERFILE_LOCATION)/Dockerfile.native -t $(IMAGE_REPO)/apicurio/apicurio-registry-kafkasql-native:$(IMAGE_TAG) storage/kafkasql
+	docker build -f $(DOCKERFILE_LOCATION)/Dockerfile.native -t $(IMAGE_REPO)/$(IMAGE_GROUP)/apicurio-registry-kafkasql-native:$(IMAGE_TAG) storage/kafkasql
 
 .PHONY: push-kafkasql-native-image ## Pushes native docker image for 'kafkasql' storage variant. Variables available for override [IMAGE_REPO, IMAGE_TAG]
 push-kafkasql-native-image:
@@ -256,7 +268,7 @@ push-kafkasql-native-image:
 	@echo " Repository: $(IMAGE_REPO)"
 	@echo " Tag: $(IMAGE_TAG)"
 	@echo "------------------------------------------------------------------------"
-	docker push $(IMAGE_REPO)/apicurio/apicurio-registry-kafkasql-native:$(IMAGE_TAG)
+	docker push $(IMAGE_REPO)/$(IMAGE_GROUP)/apicurio-registry-kafkasql-native:$(IMAGE_TAG)
 
 .PHONY: build-all-images ## Builds all the Images. Variables available for override [IMAGE_REPO, IMAGE_TAG]
 build-all-images: build-mem-image build-sql-image build-mssql-image build-kafkasql-image build-mysql-image
@@ -273,7 +285,7 @@ mem-multiarch-images:
 	@echo " Repository: $(IMAGE_REPO)"
 	@echo " Tag: $(IMAGE_TAG)"
 	@echo "------------------------------------------------------------------------"
-	docker buildx build --push -f $(DOCKERFILE_LOCATION)/$(MEM_DOCKERFILE) -t $(IMAGE_REPO)/apicurio/apicurio-registry-mem:$(IMAGE_TAG) --platform $(IMAGE_PLATFORMS) $(DOCKER_BUILD_WORKSPACE)
+	docker buildx build --push -f $(DOCKERFILE_LOCATION)/$(MEM_DOCKERFILE) -t $(IMAGE_REPO)/$(IMAGE_GROUP)/apicurio-registry-mem:$(IMAGE_TAG) --platform $(IMAGE_PLATFORMS) $(DOCKER_BUILD_WORKSPACE)
 
 .PHONY: sql-multiarch-images ## Builds and pushes multi-arch images for 'sql' storage variant. Variables available for override [SQL_DOCKERFILE, IMAGE_REPO, IMAGE_TAG, DOCKER_BUILD_WORKSPACE]
 sql-multiarch-images:
@@ -283,7 +295,7 @@ sql-multiarch-images:
 	@echo " Repository: $(IMAGE_REPO)"
 	@echo " Tag: $(IMAGE_TAG)"
 	@echo "------------------------------------------------------------------------"
-	docker buildx build --push -f $(DOCKERFILE_LOCATION)/$(SQL_DOCKERFILE) -t $(IMAGE_REPO)/apicurio/apicurio-registry-sql:$(IMAGE_TAG) --platform $(IMAGE_PLATFORMS) $(DOCKER_BUILD_WORKSPACE)
+	docker buildx build --push -f $(DOCKERFILE_LOCATION)/$(SQL_DOCKERFILE) -t $(IMAGE_REPO)/$(IMAGE_GROUP)/apicurio-registry-sql:$(IMAGE_TAG) --platform $(IMAGE_PLATFORMS) $(DOCKER_BUILD_WORKSPACE)
 
 .PHONY: mssql-multiarch-images ## Builds and pushes multi-arch images for 'mssql' storage variant. Variables available for override [MSSQL_DOCKERFILE, IMAGE_REPO, IMAGE_TAG, DOCKER_BUILD_WORKSPACE]
 mssql-multiarch-images:
@@ -293,7 +305,7 @@ mssql-multiarch-images:
 	@echo " Repository: $(IMAGE_REPO)"
 	@echo " Tag: $(IMAGE_TAG)"
 	@echo "------------------------------------------------------------------------"
-	docker buildx build --push -f $(DOCKERFILE_LOCATION)/$(MSSQL_DOCKERFILE) -t $(IMAGE_REPO)/apicurio/apicurio-registry-mssql:$(IMAGE_TAG) --platform $(IMAGE_PLATFORMS) $(DOCKER_BUILD_WORKSPACE)
+	docker buildx build --push -f $(DOCKERFILE_LOCATION)/$(MSSQL_DOCKERFILE) -t $(IMAGE_REPO)/$(IMAGE_GROUP)/apicurio-registry-mssql:$(IMAGE_TAG) --platform $(IMAGE_PLATFORMS) $(DOCKER_BUILD_WORKSPACE)
 
 .PHONY: mysql-multiarch-images ## Builds and pushes multi-arch images for 'mysql' storage variant. Variables available for override [MYSQL_DOCKERFILE, IMAGE_REPO, IMAGE_TAG, DOCKER_BUILD_WORKSPACE]
 mysql-multiarch-images:
@@ -313,7 +325,17 @@ kafkasql-multiarch-images:
 	@echo " Repository: $(IMAGE_REPO)"
 	@echo " Tag: $(IMAGE_TAG)"
 	@echo "------------------------------------------------------------------------"
-	docker buildx build --push -f $(DOCKERFILE_LOCATION)/$(KAFKASQL_DOCKERFILE) -t $(IMAGE_REPO)/apicurio/apicurio-registry-kafkasql:$(IMAGE_TAG) --platform $(IMAGE_PLATFORMS) $(DOCKER_BUILD_WORKSPACE)
+	docker buildx build --push -f $(DOCKERFILE_LOCATION)/$(KAFKASQL_DOCKERFILE) -t $(IMAGE_REPO)/$(IMAGE_GROUP)/apicurio-registry-kafkasql:$(IMAGE_TAG) --platform $(IMAGE_PLATFORMS) $(DOCKER_BUILD_WORKSPACE)
+
+.PHONY: mem-native-scratch-image ## Builds and pushes multi-arch images for mem storage variant based on scratch. Variables available for override [MEM_SCRATCH_DOCKERFILE, IMAGE_REPO, IMAGE_TAG, DOCKER_BUILD_WORKSPACE]
+mem-native-scratch-image:
+	@echo "------------------------------------------------------------------------"
+	@echo " Building Multi-arch Images For Mem Storage Variant on Scratch"
+	@echo " Supported Platforms: $(IMAGE_PLATFORMS)"
+	@echo " Repository: $(IMAGE_REPO)"
+	@echo " Tag: $(IMAGE_TAG)"
+	@echo "------------------------------------------------------------------------"
+	docker buildx build --push -f $(DOCKERFILE_LOCATION)/$(MEM_SCRATCH_DOCKERFILE) -t $(IMAGE_REPO)/$(IMAGE_GROUP)/apicurio-registry-mem-native-scratch:$(IMAGE_TAG) --platform $(IMAGE_PLATFORMS) $(DOCKER_BUILD_WORKSPACE)
 
 .PHONY: mem-native-scratch-image ## Builds and pushes multi-arch images for mem storage variant based on scratch. Variables available for override [MEM_SCRATCH_DOCKERFILE, IMAGE_REPO, IMAGE_TAG, DOCKER_BUILD_WORKSPACE]
 mem-native-scratch-image:
@@ -326,8 +348,7 @@ mem-native-scratch-image:
 	docker buildx build --push -f $(DOCKERFILE_LOCATION)/$(MEM_SCRATCH_DOCKERFILE) -t $(IMAGE_REPO)/apicurio/apicurio-registry-mem-native-scratch:$(IMAGE_TAG) --platform $(IMAGE_PLATFORMS) $(DOCKER_BUILD_WORKSPACE)
 
 .PHONY: multiarch-registry-images ## Builds and pushes multi-arch registry images for all variants. Variables available for override [IMAGE_REPO, IMAGE_TAG]
-multiarch-registry-images: mem-multiarch-images sql-multiarch-images mssql-multiarch-images kafkasql-multiarch-images mysql-multiarch-images
-
+multiarch-registry-images: mem-multiarch-images sql-multiarch-images mssql-multiarch-images kafkasql-multiarch-images mem-native-scratch-image mysql-multiarch-images
 
 
 .PHONY: pr-check ## Builds and runs basic tests for multitenant registry pipelines
@@ -335,7 +356,7 @@ pr-check:
 	CURRENT_ENV=mas mvn clean install -Pno-docker -Dskip.npm -Pprod -Psql -am -pl storage/sql \
 		-Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false
 	./scripts/clean-postgres.sh
-	CURRENT_ENV=mas NO_DOCKER=true mvn verify -Pintegration-tests -Psql -am -pl integration-tests/testsuite \
+	CURRENT_ENV=mas NO_DOCKER=true mvn verify -Pintegration-tests -Psql -am -pl integration-tests \
 		-Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false
 
 .PHONY: build-project ## Builds the components for multitenant registry pipelines
@@ -345,178 +366,147 @@ build-project:
 # build everything without running tests in order to be able to build container images
 	CURRENT_ENV=mas mvn clean install -Pprod -Pno-docker -Dskip.npm -Psql -Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false -DskipTests
 
-.PHONY: build-integration-tests-multitenancy ## Builds Tenant manager
-build-integration-tests-multitenancy:
-	@echo "----------------------------------------------------------------------"
-	@echo "           Building Tenant Manager for Integration Tests              "
-	@echo "----------------------------------------------------------------------"
-	rm -rf multitenancy
-	git clone https://github.com/Apicurio/apicurio-tenant-manager.git --branch="main" --depth 1 multitenancy
-	( cd multitenancy && .././mvnw clean install --no-transfer-progress -DskipTests=true )
 
-.PHONY: build-integration-tests-common ## Builds integration-tests-common
-build-integration-tests-common:
-	@echo "----------------------------------------------------------------------"
-	@echo "                 Building Integration Tests Common                    "
-	@echo "----------------------------------------------------------------------"
-	./mvnw -T 1.5C package install --no-transfer-progress -Pintegration-tests -pl integration-tests/integration-tests-common
-
-.PHONY: run-ui-tests ## Runs sql integration tests
-run-ui-tests: build-integration-tests-common
+.PHONY: run-ui-tests ## Runs ui e2e tests
+run-ui-tests:
 	@echo "----------------------------------------------------------------------"
 	@echo "                         Running UI Tests                             "
 	@echo "----------------------------------------------------------------------"
-	./mvnw verify --no-transfer-progress -Pintegration-tests -Pui -Pinmemory -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false
+	./mvnw -am verify --no-transfer-progress -Pintegration-tests -Pui -Premote-sql -pl integration-tests -Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false
 
-.PHONY: run-sql-integration-tests ## Runs sql integration tests
-run-sql-integration-tests: build-integration-tests-common
+
+############################################# In-Memory Integration Tests #########################################################################
+
+
+
+
+.PHONY: run-in-memory-integration-tests ## Runs mem e2e tests
+run-in-memory-integration-tests:
+	@echo "----------------------------------------------------------------------"
+	@echo "                 Running In Memory Integration Tests                        "
+	@echo "----------------------------------------------------------------------"
+	./mvnw verify -am --no-transfer-progress -Pintegration-tests -P$(INTEGRATION_TESTS_PROFILE) $(REGISTRY_IMAGE) -Premote-mem -pl integration-tests -Dmaven.javadoc.skip=true --no-transfer-progress
+
+
+.PHONY: run-in-memory-auth-tests ## Runs mem auth integration tests
+run-in-memory-auth-tests:
+	@echo "----------------------------------------------------------------------"
+	@echo "                  Running In Memory Auth Integration Tests                  "
+	@echo "----------------------------------------------------------------------"
+	./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pauth $(REGISTRY_IMAGE) -Premote-mem -pl integration-tests -Dmaven.javadoc.skip=true --no-transfer-progress
+
+
+############################################# SQL Integration Tests #########################################################################
+
+
+.PHONY: run-sql-integration-tests ## Runs sql e2e tests
+run-sql-integration-tests:
 	@echo "----------------------------------------------------------------------"
 	@echo "                 Running Sql Integration Tests                        "
 	@echo "----------------------------------------------------------------------"
-	./mvnw verify --no-transfer-progress -Pintegration-tests -P$(INTEGRATION_TESTS_PROFILE) -Psql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress
+	./mvnw verify -am --no-transfer-progress -Pintegration-tests -P$(INTEGRATION_TESTS_PROFILE) $(REGISTRY_IMAGE) -Premote-sql -pl integration-tests -Dmaven.javadoc.skip=true --no-transfer-progress
 
-.PHONY: run-sql-clustered-integration-tests ## Runs sql clustered integration tests
-run-sql-clustered-integration-tests: build-integration-tests-common
+.PHONY: run-sql-upgrade-tests ## Runs sql e2e tests
+run-sql-upgrade-tests:
 	@echo "----------------------------------------------------------------------"
-	@echo "               Running Sql clustered Integration Tests                "
+	@echo "                 Running Sql Integration Tests                        "
 	@echo "----------------------------------------------------------------------"
-	./mvnw verify --no-transfer-progress -Pintegration-tests -Pclustered -Psql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress
+	./mvnw verify -am --no-transfer-progress -Pintegration-tests -Psqlit $(REGISTRY_IMAGE) -Premote-sql -pl integration-tests -Dmaven.javadoc.skip=true --no-transfer-progress
 
-.PHONY: run-mssql-integration-tests ## Runs mssql integration tests
-run-mssql-integration-tests: build-integration-tests-common
-	@echo "----------------------------------------------------------------------"
-	@echo "                 Running SQL Server Integration Tests                 "
-	@echo "----------------------------------------------------------------------"
-	./mvnw verify --no-transfer-progress -Pintegration-tests -P$(INTEGRATION_TESTS_PROFILE) -Pmssql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress
-
-.PHONY: run-mssql-clustered-integration-tests ## Runs mssql clustered integration tests
-run-mssql-clustered-integration-tests: build-integration-tests-common
-	@echo "----------------------------------------------------------------------"
-	@echo "               Running SQL Server clustered Integration Tests         "
-	@echo "----------------------------------------------------------------------"
-	./mvnw verify --no-transfer-progress -Pintegration-tests -Pclustered -Pmssql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress
-
-.PHONY: run-mysql-integration-tests ## Runs mysql integration tests
-run-mysql-integration-tests: build-integration-tests-common
-	@echo "----------------------------------------------------------------------"
-	@echo "                 Running SQL Server Integration Tests                 "
-	@echo "----------------------------------------------------------------------"
-	./mvnw verify --no-transfer-progress -Pintegration-tests -P$(INTEGRATION_TESTS_PROFILE) -Pmysql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress
-
-.PHONY: run-mysql-clustered-integration-tests ## Runs mysql clustered integration tests
-run-mysql-clustered-integration-tests: build-integration-tests-common
-	@echo "----------------------------------------------------------------------"
-	@echo "               Running SQL Server clustered Integration Tests         "
-	@echo "----------------------------------------------------------------------"
-	./mvnw verify --no-transfer-progress -Pintegration-tests -Pclustered -Pmysql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress
-
-.PHONY: run-kafkasql-integration-tests ## Runs kafkasql integration tests
-run-kafkasql-integration-tests: build-integration-tests-common
-	@echo "----------------------------------------------------------------------"
-	@echo "                 Running KafkaSql Integration Tests                        "
-	@echo "----------------------------------------------------------------------"
-	./mvnw verify --no-transfer-progress -Pintegration-tests -P$(INTEGRATION_TESTS_PROFILE) -Pkafkasql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress
-
-.PHONY: run-kafkasql-clustered-integration-tests ## Runs kafkasql clustered integration tests
-run-kafkasql-clustered-integration-tests: build-integration-tests-common
-	@echo "----------------------------------------------------------------------"
-	@echo "               Running KafkaSql clustered Integration Tests                "
-	@echo "----------------------------------------------------------------------"
-	./mvnw verify --no-transfer-progress -Pintegration-tests -Pclustered -Pkafkasql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress
-
-.PHONY: run-multitenancy-integration-tests ## Runs multitenancy integration tests
-run-multitenancy-integration-tests: build-integration-tests-common
-	@echo "----------------------------------------------------------------------"
-	@echo "               Running Multitenancy Integration Tests                 "
-	@echo "----------------------------------------------------------------------"
-	./mvnw verify --no-transfer-progress -Pintegration-tests -Pmultitenancy -Psql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false
-
-.PHONY: run-sql-migration-integration-tests ## Runs sql migration integration tests
-run-sql-migration-integration-tests: build-integration-tests-common
-	@echo "----------------------------------------------------------------------"
-	@echo "               Running SQL Migration Integration Tests                "
-	@echo "----------------------------------------------------------------------"
-	./mvnw verify --no-transfer-progress -Pintegration-tests -Pmigration -Psql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress
-
-.PHONY: run-mssql-migration-integration-tests ## Runs mssql migration integration tests
-run-mssql-migration-integration-tests: build-integration-tests-common
-	@echo "----------------------------------------------------------------------"
-	@echo "             Running SQL Server Migration Integration Tests           "
-	@echo "----------------------------------------------------------------------"
-	./mvnw verify --no-transfer-progress -Pintegration-tests -Pmigration -mssql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress
-
-.PHONY: run-mysql-migration-integration-tests ## Runs sql migration integration tests
-run-mysql-migration-integration-tests: build-integration-tests-common
-	@echo "----------------------------------------------------------------------"
-	@echo "               Running MySQL Migration Integration Tests                "
-	@echo "----------------------------------------------------------------------"
-	./mvnw verify --no-transfer-progress -Pintegration-tests -Pmigration -Pmysql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress
-
-.PHONY: run-kafkasql-migration-integration-tests ## Runs kafkasql migration integration tests
-run-kafkasql-migration-integration-tests: build-integration-tests-common
-	@echo "----------------------------------------------------------------------"
-	@echo "             Running KafkaSQL Migration Integration Tests             "
-	@echo "----------------------------------------------------------------------"
-	./mvnw verify --no-transfer-progress -Pintegration-tests -Pmigration -Pkafkasql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress
-
-.PHONY: run-sql-auth-integration-tests ## Runs sql auth integration tests
-run-sql-auth-integration-tests: build-integration-tests-common
+.PHONY: run-sql-auth-tests ## Runs sql auth integration tests
+run-sql-auth-tests:
 	@echo "----------------------------------------------------------------------"
 	@echo "                  Running SQL Auth Integration Tests                  "
 	@echo "----------------------------------------------------------------------"
-	./mvnw verify --no-transfer-progress -Pintegration-tests -Pauth -Psql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress
+	./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pauth $(REGISTRY_IMAGE) -Premote-sql -pl integration-tests -Dmaven.javadoc.skip=true --no-transfer-progress
 
-.PHONY: run-mssql-auth-integration-tests ## Runs mssql auth integration tests
-run-mssql-auth-integration-tests: build-integration-tests-common
+.PHONY: run-sql-migration-integration-tests ## Runs sql migration integration tests
+run-sql-migration-integration-tests:
 	@echo "----------------------------------------------------------------------"
-	@echo "                Running SQL Server Auth Integration Tests             "
+	@echo "               Running SQL Migration Integration Tests                "
 	@echo "----------------------------------------------------------------------"
-	./mvnw verify --no-transfer-progress -Pintegration-tests -Pauth -mssql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress
+	./mvnw verify -am --no-transfer-progress -Pintegration-tests $(REGISTRY_IMAGE) -Pmigration -Premote-sql -pl integration-tests -Dmaven.javadoc.skip=true --no-transfer-progress
 
-.PHONY: run-mysql-auth-integration-tests ## Runs mysql auth integration tests
-run-mysql-auth-integration-tests: build-integration-tests-common
+.PHONY: run-sql-multitenancy-integration-tests ## Runs multitenancy integration tests
+run-sql-multitenancy-integration-tests:
 	@echo "----------------------------------------------------------------------"
-	@echo "                  Running MySQL Auth Integration Tests                  "
+	@echo "               Running Multitenancy Integration Tests                 "
 	@echo "----------------------------------------------------------------------"
-	./mvnw verify --no-transfer-progress -Pintegration-tests -Pauth -Pmysql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress
+	./mvnw verify -am --no-transfer-progress -Pintegration-tests $(REGISTRY_IMAGE) -Pmultitenancy -Premote-sql -pl integration-tests -Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false
 
-.PHONY: run-kafkasql-auth-integration-tests ## Runs kafkasql auth integration tests
-run-kafkasql-auth-integration-tests: build-integration-tests-common
+
+############################################# KafkaSql Integration Tests #########################################################################
+
+
+.PHONY: run-kafkasql-integration-tests ## Runs kafkasql integration tests
+run-kafkasql-integration-tests:
+	@echo "----------------------------------------------------------------------"
+	@echo "                 Running KafkaSql Integration Tests                        "
+	@echo "----------------------------------------------------------------------"
+	./mvnw verify -am --no-transfer-progress -Pintegration-tests $(REGISTRY_IMAGE) -P$(INTEGRATION_TESTS_PROFILE) -Premote-kafka -pl integration-tests -Dmaven.javadoc.skip=true --no-transfer-progress
+
+.PHONY: run-kafkasql-upgrade-tests ## Runs sql e2e tests
+run-kafkasql-upgrade-tests :
+	@echo "----------------------------------------------------------------------"
+	@echo "                 Running KafkaSql Upgrade Integration Tests                        "
+	@echo "----------------------------------------------------------------------"
+	./mvnw verify -am --no-transfer-progress -Pintegration-tests $(REGISTRY_IMAGE) -Pkafkasqlit -Premote-kafka -pl integration-tests -Dmaven.javadoc.skip=true --no-transfer-progress
+
+.PHONY: run-kafkasql-migration-integration-tests ## Runs kafkasql migration integration tests
+run-kafkasql-migration-integration-tests:
+	@echo "----------------------------------------------------------------------"
+	@echo "             Running KafkaSQL Migration Integration Tests             "
+	@echo "----------------------------------------------------------------------"
+	./mvnw verify -am --no-transfer-progress -Pintegration-tests $(REGISTRY_IMAGE) -Pmigration -Premote-kafka -pl integration-tests -Dmaven.javadoc.skip=true --no-transfer-progress
+
+.PHONY: run-kafkasql-auth-tests ## Runs kafkasql auth integration tests
+run-kafkasql-auth-tests:
 	@echo "----------------------------------------------------------------------"
 	@echo "                Running KafkaSQL Auth Integration Tests               "
 	@echo "----------------------------------------------------------------------"
-	./mvnw verify --no-transfer-progress -Pintegration-tests -Pauth -Pkafkasql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress
+	./mvnw verify -am --no-transfer-progress -Pintegration-tests $(REGISTRY_IMAGE) -Pauth -Premote-kafka -pl integration-tests -Dmaven.javadoc.skip=true --no-transfer-progress
 
-.PHONY: run-sql-legacy-tests ## Runs sql legacy tests
-run-sql-legacy-tests: build-integration-tests-common
+############################################# MSSQL Integration Tests #########################################################################
+
+.PHONY: run-mssql-integration-tests ## Runs mssql integration tests
+run-mssql-integration-tests:
 	@echo "----------------------------------------------------------------------"
-	@echo "                        Running SQL Legacy Tests                      "
+	@echo "                 Running SQL Server Integration Tests                 "
 	@echo "----------------------------------------------------------------------"
-	./mvnw verify --no-transfer-progress -Pintegration-tests -P$(INTEGRATION_TESTS_PROFILE) -Psql -pl integration-tests/legacy-tests -Dmaven.javadoc.skip=true --no-transfer-progress
+	./mvnw verify -am --no-transfer-progress -Pintegration-tests $(REGISTRY_IMAGE) -P$(INTEGRATION_TESTS_PROFILE) -Pmssql -pl integration-tests -Dmaven.javadoc.skip=true --no-transfer-progress
+
+.PHONY: run-mssql-clustered-integration-tests ## Runs mssql clustered integration tests
+run-mssql-clustered-integration-tests:
+	@echo "----------------------------------------------------------------------"
+	@echo "               Running SQL Server clustered Integration Tests         "
+	@echo "----------------------------------------------------------------------"
+	./mvnw verify -am --no-transfer-progress -Pintegration-tests $(REGISTRY_IMAGE) -Pclustered -Pmssql -pl integration-tests -Dmaven.javadoc.skip=true --no-transfer-progress
 
 .PHONY: run-mssql-legacy-tests ## Runs mssql legacy tests
-run-mssql-legacy-tests: build-integration-tests-common
+run-mssql-legacy-tests:
 	@echo "----------------------------------------------------------------------"
 	@echo "                     Running SQL Server Legacy Tests                  "
 	@echo "----------------------------------------------------------------------"
-	./mvnw verify --no-transfer-progress -Pintegration-tests -P$(INTEGRATION_TESTS_PROFILE) -mssql -pl integration-tests/legacy-tests -Dmaven.javadoc.skip=true --no-transfer-progress
+	./mvnw verify -am --no-transfer-progress -Pintegration-tests $(REGISTRY_IMAGE) -P$(INTEGRATION_TESTS_PROFILE) -mssql -pl integration-tests/legacy-tests -Dmaven.javadoc.skip=true --no-transfer-progress
 
-.PHONY: run-mysql-legacy-tests ## Runs mysql legacy tests
-run-mysql-legacy-tests: build-integration-tests-common
+.PHONY: run-mssql-auth-integration-tests ## Runs mssql auth integration tests
+run-mssql-auth-integration-tests:
 	@echo "----------------------------------------------------------------------"
-	@echo "                        Running MySQL Legacy Tests                      "
+	@echo "                Running SQL Server Auth Integration Tests             "
 	@echo "----------------------------------------------------------------------"
-	./mvnw verify --no-transfer-progress -Pintegration-tests -P$(INTEGRATION_TESTS_PROFILE) -Pmysql -pl integration-tests/legacy-tests -Dmaven.javadoc.skip=true --no-transfer-progress
+	./mvnw verify -am --no-transfer-progress -Pintegration-tests $(REGISTRY_IMAGE) -Pauth -mssql -pl integration-tests -Dmaven.javadoc.skip=true --no-transfer-progress
 
-.PHONY: run-kafkasql-legacy-tests ## Runs kafkasql legacy tests
-run-kafkasql-legacy-tests: build-integration-tests-common
+.PHONY: run-mssql-migration-integration-tests ## Runs mssql migration integration tests
+run-mssql-migration-integration-tests:
 	@echo "----------------------------------------------------------------------"
-	@echo "                     Running KafkaSQL Legacy Tests                    "
+	@echo "             Running SQL Server Migration Integration Tests           "
 	@echo "----------------------------------------------------------------------"
-	./mvnw verify --no-transfer-progress -Pintegration-tests -P$(INTEGRATION_TESTS_PROFILE) -Pkafkasql -pl integration-tests/legacy-tests -Dmaven.javadoc.skip=true --no-transfer-progress
+	./mvnw verify -am --no-transfer-progress -Pintegration-tests $(REGISTRY_IMAGE) -Pmigration -mssql -pl integration-tests -Dmaven.javadoc.skip=true --no-transfer-progress
+
+
 
 .PHONY: integration-tests ## Runs all integration tests [SKIP_TESTS, BUILD_FLAGS]
-integration-tests: build-all build-integration-tests-common run-ui-tests run-sql-integration-tests run-sql-clustered-integration-tests run-mssql-integration-tests run-mssql-clustered-integration-tests run-mysql-integration-tests run-mysql-clustered-integration-tests run-kafkasql-integration-tests run-kafkasql-clustered-integration-tests run-multitenancy-integration-tests run-sql-migration-integration-tests run-mssql-migration-integration-tests run-kafkasql-migration-integration-tests run-sql-auth-integration-tests run-mssql-auth-integration-tests run-kafkasql-auth-integration-tests run-sql-legacy-tests run-mssql-legacy-tests run-kafkasql-legacy-tests
+integration-tests: build-all  run-ui-tests run-sql-integration-tests run-mssql-integration-tests run-mssql-clustered-integration-tests run-kafkasql-integration-tests run-multitenancy-integration-tests run-sql-migration-integration-tests run-mssql-migration-integration-tests run-kafkasql-migration-integration-tests run-sql-auth-integration-tests run-mssql-auth-integration-tests run-kafkasql-auth-integration-tests run-sql-legacy-tests run-mssql-legacy-tests run-kafkasql-legacy-tests
 
 # Please declare your targets as .PHONY in the format shown below, so that the 'make help' parses the information correctly.
 #

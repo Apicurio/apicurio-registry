@@ -38,8 +38,6 @@ Here is the port mapping:
 - 8080 for Keycloak
 - 8081 for the Registry
 
-```
-
 #### Starting the environment
 
 You can start the whole stack with these commands:

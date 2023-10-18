@@ -560,7 +560,7 @@
             <dependency>
                 <artifactId>kotlinx-serialization-core</artifactId>
                 <groupId>org.jetbrains.kotlinx</groupId>
-                <version>1.5.1</version>
+                <version>1.6.0</version>
             </dependency>
             <dependency>
                 <groupId>com.ibm.icu</groupId>

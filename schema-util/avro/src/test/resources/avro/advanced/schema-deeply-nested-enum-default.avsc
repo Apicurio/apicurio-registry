@@ -1,0 +1,86 @@
+{
+  "type": "record",
+  "name": "PSCEventValue",
+  "namespace": "com.custom.beb.distribution.preparesigncommunications",
+  "doc": "Event value data for PSC",
+  "fields": [
+    {
+      "name": "signCommunicationData",
+      "type": [
+        "null",
+        {
+          "type": "record",
+          "name": "SignCommunicationData",
+          "doc": "The assembled sign communication data Only when status = SUCCESS",
+          "fields": [
+            {
+              "name": "orderLines",
+              "type": {
+                "type": "array",
+                "items": {
+                  "type": "record",
+                  "name": "OrderLines",
+                  "doc": "Order_lines represent the products that require sign communication data",
+                  "fields": [
+                    {
+                      "name": "parties",
+                      "type": {
+                        "type": "array",
+                        "items": {
+                          "type": "record",
+                          "name": "Parties",
+                          "doc": "The beneficiaries of the product or service",
+                          "fields": [
+                            {
+                              "name": "legalRepresentatives",
+                              "type": {
+                                "type": "array",
+                                "items": {
+                                  "type": "record",
+                                  "name": "LegalRepresentatives",
+                                  "doc": "Legal representatives for the order line, containing a.o. the signees and contracting parties",
+                                  "fields": [
+                                    {
+                                      "name": "inviteSignMethodCode",
+                                      "type": {
+                                        "type": "enum",
+                                        "name": "InviteSignMethodCode",
+                                        "symbols": [
+                                          "Employee",
+                                          "Centralmailing",
+                                          "RASS"
+                                        ],
+                                        "default": null
+                                      },
+                                      "doc": "Channel for inviting the signee. For every legal representative where signee_ind is true and exempt_ind is false"
+                                    },
+                                    {
+                                      "name": "legalRepresentatives",
+                                      "type": [
+                                        "null",
+                                        "LegalRepresentatives"
+                                      ],
+                                      "doc": "List of sub legalRepresentatives",
+                                      "default": null
+                                    }
+                                  ]
+                                }
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              "doc": "Order_lines represent the products that require sign communication data. Note that this does not have to be an actual order in Siebel but can also be another object  like a servicerequest"
+            }
+          ]
+        }
+      ],
+      "doc": "The assembled sign communication data",
+      "default": null
+    }
+  ]
+}

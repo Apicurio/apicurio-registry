@@ -36,7 +36,7 @@ public class CCompatConfig {
     @Info(category = "ccompat", description = "Legacy ID mode (compatibility API)", availableSince = "2.0.2.Final")
     Supplier<Boolean> legacyIdModeEnabled;
 
-    @Dynamic(label = "Canonical hash mode (compatibility API)", description = "When selected, the Schema Registy compatibility API uses the canonical hash instead of the regular hash of the content.")
+    @Dynamic(label = "Canonical hash mode (compatibility API)", description = "When selected, the Schema Registry compatibility API uses the canonical hash instead of the regular hash of the content.")
     @ConfigProperty(name = "registry.ccompat.use-canonical-hash", defaultValue = "false")
     @Info(category = "ccompat", description = "Canonical hash mode (compatibility API)", availableSince = "2.3.0.Final")
     Supplier<Boolean> canonicalHashModeEnabled;

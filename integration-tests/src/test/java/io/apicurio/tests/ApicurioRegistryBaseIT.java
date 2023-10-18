@@ -179,7 +179,7 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
             config.queryParameters.ifExists = ifExists;
             config.headers.add("X-Registry-ArtifactId", artifactId);
             config.headers.add("X-Registry-ArtifactType", artifactType);
-            config.headers.add("X-Registry-ArtifactVersion", version);
+            config.headers.add("X-Registry-Version", version);
         }).get(3, TimeUnit.SECONDS);
 
         // make sure we have schema registered
@@ -509,8 +509,6 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
             Assertions.fail("Expected (but didn't get) a registry client application exception with code: " + expectedCode);
         } catch (Exception e) {
             assertNotNull(e.getCause());
-            log.error("DEBUG: " + ((io.apicurio.registry.rest.client.models.Error)e.getCause()).getName());
-            log.error("DEBUG: " + ((io.apicurio.registry.rest.client.models.Error)e.getCause()).getErrorCode());
             Assertions.assertEquals(expectedErrorName, ((io.apicurio.registry.rest.client.models.Error)e.getCause()).getName());
             Assertions.assertEquals(expectedCode, ((io.apicurio.registry.rest.client.models.Error)e.getCause()).getErrorCode());
         }

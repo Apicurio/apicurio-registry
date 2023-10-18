@@ -211,9 +211,9 @@ class ArtifactsIT extends ApicurioRegistryBaseIT {
         ArtifactMetaData metaData = createArtifact(groupId, artifactId, "1.1", "FAIL", ArtifactType.AVRO, artifactData);
         LOGGER.info("Created artifact {} with metadata {}", artifactId, metaData.toString());
 
-        String sameArtifactData = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
+        ByteArrayInputStream sameArtifactData = new ByteArrayInputStream("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}".getBytes(StandardCharsets.UTF_8));
 
-        assertClientError("VersionAlreadyExistsException", 409, () -> createArtifact(groupId, artifactId, "1.1", "UPDATE", ArtifactType.AVRO, IoUtil.toStream(sameArtifactData)), true, errorCodeExtractor);
+        assertClientError("VersionAlreadyExistsException", 409, () -> createArtifact(groupId, artifactId, "1.1", "UPDATE", ArtifactType.AVRO, sameArtifactData), true, errorCodeExtractor);
     }
 
     @Test

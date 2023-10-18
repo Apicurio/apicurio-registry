@@ -23,6 +23,7 @@ import org.testcontainers.containers.wait.strategy.Wait;
 import java.util.Collections;
 import java.util.Map;
 
+import static io.apicurio.registry.utils.tests.TestUtils.getRegistryBaseUrl;
 import static io.apicurio.registry.utils.tests.TestUtils.getRegistryV2ApiUrl;
 
 public abstract class AbstractTestDataInitializer implements QuarkusTestResourceLifecycleManager {
@@ -58,7 +59,7 @@ public abstract class AbstractTestDataInitializer implements QuarkusTestResource
         registryContainer.start();
         registryContainer.waitingFor(Wait.forLogMessage(".*Installed features:*", 1));
 
-        this.registryUrl = getRegistryV2ApiUrl(8081);
+        this.registryUrl = getRegistryBaseUrl(8081);
 
         return registryUrl;
     }

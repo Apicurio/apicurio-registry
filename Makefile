@@ -372,7 +372,7 @@ run-ui-tests:
 	@echo "----------------------------------------------------------------------"
 	@echo "                         Running UI Tests                             "
 	@echo "----------------------------------------------------------------------"
-	./mvnw -am verify --no-transfer-progress -Pintegration-tests -Pui -Premote-sql -pl integration-tests -Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false
+	./mvnw -am verify --no-transfer-progress -Pintegration-tests $(REGISTRY_IMAGE) -Pui -Premote-sql -pl integration-tests -Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false
 
 
 ############################################# In-Memory Integration Tests #########################################################################

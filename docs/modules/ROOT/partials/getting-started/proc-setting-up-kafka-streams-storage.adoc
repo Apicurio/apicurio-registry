@@ -109,10 +109,9 @@ WARNING: You must configure the Kafka topic used by {registry} (named `kafkasql-
 .Additional resources
 
 ifdef::apicurio-registry[]
-For more details on installing Strimzi and on creating Kafka clusters and topics, see https://strimzi.io/docs/overview/latest/
+* For more details on installing Strimzi and on creating Kafka clusters and topics, see https://strimzi.io/docs/overview/latest/
 endif::[]
 
 ifdef::rh-service-registry[]
-//* For more details, including how to configure Transport Layer Security (TLS) and Salted Challenge Response Authentication Mechanism (SCRAM), see the link:https://github.com/redhat-integration/apicurio-registry-install-examples[example custom resource definitions] provided for registry installation.
-* For more details on creating Kafka clusters and topics using {kafka-streams}, see link:https://access.redhat.com/documentation/en-us/red_hat_amq_streams/{amq-version}/html/deploying_and_upgrading_amq_streams_on_openshift/index[Deploying and Upgrading AMQ Streams on OpenShift].
+* For more details on creating Kafka clusters and topics using {kafka-streams}, see link:{LinkDeployStreamsOpenShift}[{NameDeployStreamsOpenShift}].
 endif::[]

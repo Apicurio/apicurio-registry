@@ -11,7 +11,7 @@ These applications demonstrate use cases such as the following examples:
 * Apache Avro Kafka SerDes
 * Apache Avro Maven plug-in
 * Apache Camel Quarkus and Kafka
-* Cloud Events 
+* CloudEvents 
 * Confluent Kafka SerDes
 * Custom ID strategy
 * Event-driven architecture with Debezium

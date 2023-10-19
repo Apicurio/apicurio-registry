@@ -14,7 +14,7 @@ ifdef::apicurio-registry[]
 * {registry-overview}
 endif::[]
 ifdef::rh-service-registry[]
-* Read the introduction in the link:{LinkServiceRegistryUser}[{NameServiceRegistryUser}]
+* Read the introduction in the link:{LinkServiceRegistryUser}[{NameServiceRegistryUser}].
 endif::[]
 
 ifdef::apicurio-registry[]

@@ -366,13 +366,13 @@ std-uritemplate = ">=0.0.38"
 
 [[package]]
 name = "microsoft-kiota-http"
-version = "0.6.1"
+version = "0.6.2"
 description = "Kiota http request adapter implementation for httpx library"
 optional = false
 python-versions = "*"
 files = [
-    {file = "microsoft_kiota_http-0.6.1-py2.py3-none-any.whl", hash = "sha256:03f6ebf1d0f27ccb84542681e12d7f8a816c193518a19e15d5af009e76b46667"},
-    {file = "microsoft_kiota_http-0.6.1.tar.gz", hash = "sha256:7274c3599419091c07e8c3fb69e0c108c90c80df5ab6a81f179fe576d8f497bf"},
+    {file = "microsoft_kiota_http-0.6.2-py2.py3-none-any.whl", hash = "sha256:6190ea9813cbd17d84b39b297288f91e68951a580046836ff4a863aad5e1eee4"},
+    {file = "microsoft_kiota_http-0.6.2.tar.gz", hash = "sha256:d2d28ac01d17d91740bd35ed57dc31dc980eb1c27c32c817d866671ce35758e5"},
 ]
 
 [package.dependencies]

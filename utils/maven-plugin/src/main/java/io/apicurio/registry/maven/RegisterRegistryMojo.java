@@ -212,8 +212,7 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
             reference.setName(externalRef.getFullReference());
             reference.setVersion(iresource.getRegistration().getVersion());
             reference.setGroupId(iresource.getRegistration().getGroupId());
-            reference.setArtifactId(iresource.getRegistration().getId(),
-                    externalRef.getFullReference());
+            reference.setArtifactId(iresource.getRegistration().getId());
 
             return reference;
         }).sorted((ref1, ref2) -> ref1.getName().compareTo(ref2.getName())).collect(Collectors.toList());

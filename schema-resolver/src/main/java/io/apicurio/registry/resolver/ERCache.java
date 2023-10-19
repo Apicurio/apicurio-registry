@@ -18,9 +18,6 @@ package io.apicurio.registry.resolver;
 
 import com.microsoft.kiota.ApiException;
 import io.apicurio.registry.resolver.strategy.ArtifactCoordinates;
-import io.apicurio.registry.rest.client.exception.RateLimitedClientException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -40,7 +37,6 @@ import java.util.function.Supplier;
  */
 public class ERCache<V> {
 
-    private final static Logger log = LoggerFactory.getLogger(ERCache.class);
     /** Global ID index */
     private final Map<Long, WrappedValue<V>> index1 = new ConcurrentHashMap<>();
     /** Data content index */
@@ -209,10 +205,8 @@ public class ERCache<V> {
                 result = newValue.ok;
             } else {
                 if (faultTolerantRefresh && value != null) {
-                    log.warn("Error updating cache value.  Fault tolerant load using expired value", newValue.error);
                     return value.value;
                 }
-                log.error("Failed to update cache value for key: " + key, newValue.error);
                 throw newValue.error;
             }
         }

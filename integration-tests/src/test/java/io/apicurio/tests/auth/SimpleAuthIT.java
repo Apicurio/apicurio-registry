@@ -20,15 +20,19 @@ import com.microsoft.kiota.authentication.AuthenticationProvider;
 import com.microsoft.kiota.authentication.BaseBearerTokenAuthenticationProvider;
 import com.microsoft.kiota.http.OkHttpRequestAdapter;
 import io.apicurio.registry.auth.OidcAccessTokenProvider;
+import io.apicurio.registry.rest.client.RegistryClient;
+import io.apicurio.registry.rest.client.models.ArtifactContent;
+import io.apicurio.registry.rest.client.models.ArtifactMetaData;
+import io.apicurio.registry.rest.client.models.Rule;
+import io.apicurio.registry.rest.client.models.RuleType;
+import io.apicurio.registry.rest.client.models.UserInfo;
 import io.apicurio.registry.rules.validity.ValidityLevel;
 import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.tests.ApicurioRegistryBaseIT;
-import io.apicurio.tests.utils.Constants;
-import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.rest.client.models.*;
 import io.apicurio.registry.utils.tests.AuthTestProfile;
 import io.apicurio.registry.utils.tests.JWKSMockServer;
 import io.apicurio.registry.utils.tests.TestUtils;
+import io.apicurio.tests.ApicurioRegistryBaseIT;
+import io.apicurio.tests.utils.Constants;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.quarkus.test.junit.TestProfile;
 import org.junit.jupiter.api.Assertions;
@@ -125,7 +129,7 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
 
         UserInfo userInfo = client.users().me().get().get(3, TimeUnit.SECONDS);
         assertNotNull(userInfo);
-        Assertions.assertEquals("readonly-client", userInfo.getUsername());
+        Assertions.assertEquals("service-account-readonly-client", userInfo.getUsername());
         Assertions.assertFalse(userInfo.getAdmin());
         Assertions.assertFalse(userInfo.getDeveloper());
         Assertions.assertTrue(userInfo.getViewer());
@@ -162,7 +166,7 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
 
             UserInfo userInfo = client.users().me().get().get(3, TimeUnit.SECONDS);
             assertNotNull(userInfo);
-            Assertions.assertEquals("developer-client", userInfo.getUsername());
+            Assertions.assertEquals("service-account-developer-client", userInfo.getUsername());
             Assertions.assertFalse(userInfo.getAdmin());
             Assertions.assertTrue(userInfo.getDeveloper());
             Assertions.assertFalse(userInfo.getViewer());
@@ -199,7 +203,7 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
 
             UserInfo userInfo = client.users().me().get().get(3, TimeUnit.SECONDS);
             assertNotNull(userInfo);
-            Assertions.assertEquals("admin-client", userInfo.getUsername());
+            Assertions.assertEquals("service-account-admin-client", userInfo.getUsername());
             Assertions.assertTrue(userInfo.getAdmin());
             Assertions.assertFalse(userInfo.getDeveloper());
             Assertions.assertFalse(userInfo.getViewer());
@@ -211,7 +215,7 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
     protected void assertArtifactNotFound(ExecutionException executionException) {
         Assertions.assertNotNull(executionException.getCause());
         Assertions.assertEquals(io.apicurio.registry.rest.client.models.Error.class, executionException.getCause().getClass());
-        Assertions.assertEquals("ArtifactNotFoundException", ((io.apicurio.registry.rest.client.models.Error)executionException.getCause()).getName());
-        Assertions.assertEquals(404, ((io.apicurio.registry.rest.client.models.Error)executionException.getCause()).getErrorCode());
+        Assertions.assertEquals("ArtifactNotFoundException", ((io.apicurio.registry.rest.client.models.Error) executionException.getCause()).getName());
+        Assertions.assertEquals(404, ((io.apicurio.registry.rest.client.models.Error) executionException.getCause()).getErrorCode());
     }
 }

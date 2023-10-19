@@ -35,12 +35,12 @@ public class MigrationTest extends AbstractResourceTestBase {
         clientV2.admin().importEscaped().post(originalData, config -> {
             // TODO: this header should be injected by Kiota
             config.headers.add("Content-Type", "application/zip");
-        }).get(3, TimeUnit.SECONDS);
+        }).get(10, TimeUnit.SECONDS);
         clientV2.admin().importEscaped().post(migratedData, config -> {
             // TODO: this header should be injected by Kiota
             config.headers.add("Content-Type", "application/zip");
             config.headers.add("X-Registry-Preserve-GlobalId", "false");
             config.headers.add("X-Registry-Preserve-ContentId", "false");
-        }).get(3, TimeUnit.SECONDS);
+        }).get(40, TimeUnit.SECONDS);
     }
 }

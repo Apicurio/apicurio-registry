@@ -99,7 +99,8 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
         String groupId = TestUtils.generateGroupId();
         String topic = generateArtifactId();
 
-        /*final Integer globalId = */createArtifact(groupId, topic + "-" + recordName, ArtifactType.AVRO, schema.toString());
+        /*final Integer globalId = */
+        createArtifact(groupId, topic + "-" + recordName, ArtifactType.AVRO, schema.toString());
 
         Map<String, Object> config = new HashMap<>();
         config.put(SerdeConfig.REGISTRY_URL, TestUtils.getRegistryV2ApiUrl(testPort));
@@ -457,12 +458,12 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
 
     @ParameterizedTest
     @ValueSource(
-        classes = {
-            io.apicurio.registry.serde.strategy.TopicIdStrategy.class,
-            io.apicurio.registry.serde.avro.strategy.QualifiedRecordIdStrategy.class,
-            io.apicurio.registry.serde.avro.strategy.RecordIdStrategy.class,
-            io.apicurio.registry.serde.avro.strategy.TopicRecordIdStrategy.class
-        }
+            classes = {
+                    io.apicurio.registry.serde.strategy.TopicIdStrategy.class,
+                    io.apicurio.registry.serde.avro.strategy.QualifiedRecordIdStrategy.class,
+                    io.apicurio.registry.serde.avro.strategy.RecordIdStrategy.class,
+                    io.apicurio.registry.serde.avro.strategy.TopicRecordIdStrategy.class
+            }
     )
     public void testAvroReflect(Class<?> artifactResolverStrategyClass) throws Exception {
         try (AvroKafkaSerializer<Tester> serializer = new AvroKafkaSerializer<Tester>(restClient);
@@ -524,9 +525,9 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
              AvroKafkaDeserializer<GenericData.Record> deserializer1 = new AvroKafkaDeserializer<GenericData.Record>(restClient)) {
             byte[] bytes = serializer1.serialize(subject, record);
 
-            TestUtils.retry(() -> TestUtils.waitForSchema(globalId -> {
+            TestUtils.retry(() -> TestUtils.waitForSchema(contentId -> {
                 try {
-                    return restClient.ids().globalIds().byGlobalId(globalId).get().get().readAllBytes().length > 0;
+                    return restClient.ids().contentIds().byContentId(contentId).get().get().readAllBytes().length > 0;
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 } catch (InterruptedException e) {
@@ -558,5 +559,4 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
             Assertions.assertEquals("somebar", ir.get("bar").toString());
         }
     }
-
 }

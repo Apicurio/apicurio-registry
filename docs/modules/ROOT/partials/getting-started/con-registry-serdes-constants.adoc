@@ -5,13 +5,14 @@
 = {registry} serializer/deserializer configuration in client applications
  
 [role="_abstract"]
-You can configure specific client serializer/deserializer services and schema lookup strategies directly in a client application using the example constants shown in this section. Alternatively, you can configure the corresponding {registry} application properties in a file or an instance. 
+You can configure specific client serializer/deserializer (SerDes) services and schema lookup strategies directly 
+in a client application using the example constants shown in this section. Alternatively, you can configure the corresponding {registry} application properties in a file or an instance. 
 
 The following sections show examples of commonly used SerDes constants and configuration options.
 
 
 [discrete]
-== Configuration for SerDe services
+== Configuration for SerDes services
 
 [source,java,subs="+quotes,attributes"]
 ----
@@ -22,7 +23,7 @@ public class SerdeConfig {
    public static final String ENABLE_CONFLUENT_ID_HANDLER = "apicurio.registry.as-confluent"; <3>
 ----
 . The required URL of {registry}.
-. Extends ID handling to support other ID formats and make them compatible with {registry} SerDe services.
+. Extends ID handling to support other ID formats and make them compatible with {registry} SerDes services.
 For example, changing the default ID format from `Long` to `Integer` supports the Confluent ID format.
 . Simplifies the handling of Confluent IDs. If set to `true`, an `Integer` is used for the global ID lookup.
 The setting should not be used with the `ID_HANDLER` option.
@@ -34,7 +35,7 @@ The setting should not be used with the `ID_HANDLER` option.
 
 
 [discrete]
-== Configuration for SerDe lookup strategies
+== Configuration for SerDes lookup strategies
 
 [source,java,subs="+quotes,attributes"]
 ----
@@ -44,7 +45,7 @@ public class SerdeConfig {
    public static final String SCHEMA_RESOLVER = "apicurio.registry.schema-resolver"; <2>
 ...      
 ----
-<1> Java class that implements the artifact resolver strategy and maps between the Kafka SerDe and artifact ID.  Defaults to the topic ID strategy. This is only used by the serializer class.
+<1> Java class that implements the artifact resolver strategy and maps between the Kafka SerDes and artifact ID.  Defaults to the topic ID strategy. This is only used by the serializer class.
 <2> Java class that implements the schema resolver. Defaults to `DefaultSchemaResolver`. This is used by the serializer and deserializer classes.
 
 [role="_additional-resources"]

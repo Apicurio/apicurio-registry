@@ -5,7 +5,7 @@
 = {registry} authentication and authorization configuration options
 
 [role="_abstract"]
-{registry} provides authentication options for OpenID Connect with {keycloak} or HTTP basic authentication.  
+{registry} provides authentication options for OpenID Connect with {keycloak} and HTTP basic authentication.  
 
 {registry} provides authorization options for role-based and content-based approaches: 
 

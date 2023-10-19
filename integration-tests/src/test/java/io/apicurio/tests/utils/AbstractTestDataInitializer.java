@@ -24,7 +24,6 @@ import java.util.Collections;
 import java.util.Map;
 
 import static io.apicurio.registry.utils.tests.TestUtils.getRegistryBaseUrl;
-import static io.apicurio.registry.utils.tests.TestUtils.getRegistryV2ApiUrl;
 
 public abstract class AbstractTestDataInitializer implements QuarkusTestResourceLifecycleManager {
 

@@ -57,7 +57,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class MigrationTestsDataInitializer {
 
-    public static void initializeMigrateTest(RegistryClient source) throws Exception {
+    public static void initializeMigrateTest(RegistryClient source, String registryBaseUrl) throws Exception {
         migrateGlobalIds = new ArrayList<>();
         migrateReferencesMap = new HashMap<>();
 
@@ -113,10 +113,10 @@ public class MigrationTestsDataInitializer {
 
         var downloadHref = source.admin().export().get().get(3, TimeUnit.SECONDS).getHref();
         OkHttpClient client = new OkHttpClient();
-        DataMigrationIT.migrateDataToImport = client.newCall(new Request.Builder().url(downloadHref).build()).execute().body().byteStream();
+        DataMigrationIT.migrateDataToImport = client.newCall(new Request.Builder().url(registryBaseUrl + downloadHref).build()).execute().body().byteStream();
     }
 
-    public static void initializeDoNotPreserveIdsImport(RegistryClient source) throws Exception {
+    public static void initializeDoNotPreserveIdsImport(RegistryClient source, String registryBaseUrl) throws Exception {
         // Fill the source registry with data
         JsonSchemaMsgFactory jsonSchema = new JsonSchemaMsgFactory();
         for (int idx = 0; idx < 50; idx++) {
@@ -153,7 +153,7 @@ public class MigrationTestsDataInitializer {
 
         var downloadHref = source.admin().export().get().get(3, TimeUnit.SECONDS).getHref();
         OkHttpClient client = new OkHttpClient();
-        DoNotPreserveIdsImportIT.doNotPreserveIdsImportDataToImport = client.newCall(new Request.Builder().url(downloadHref).build()).execute().body().byteStream();
+        DoNotPreserveIdsImportIT.doNotPreserveIdsImportDataToImport = client.newCall(new Request.Builder().url(registryBaseUrl + downloadHref).build()).execute().body().byteStream();
         DoNotPreserveIdsImportIT.jsonSchema = jsonSchema;
     }
 

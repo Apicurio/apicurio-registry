@@ -399,6 +399,22 @@
                                     <overWriteSnapshots>true</overWriteSnapshots>
                                 </configuration>
                             </execution>
+                            <execution>
+                                <id>unpack-test-dependencies</id>
+                                <phase>process-test-classes</phase>
+                                <goals>
+                                    <goal>unpack-dependencies</goal>
+                                </goals>
+                                <configuration>
+                                    <includeGroupIds>io.apicurio</includeGroupIds>
+                                    <includeTypes>test-jar</includeTypes>
+                                    <includeScope>test</includeScope>
+                                    <outputDirectory>${project.build.directory}/test-classes</outputDirectory>
+                                    <includes>**/*KafkaSqlServiceInitializer.class, **/*.properties</includes>
+                                    <overWriteReleases>false</overWriteReleases>
+                                    <overWriteSnapshots>true</overWriteSnapshots>
+                                </configuration>
+                            </execution>
                         </executions>
                     </plugin>
                     <plugin>

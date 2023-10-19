@@ -96,7 +96,7 @@ public class DataMigrationIT extends ApicurioRegistryBaseIT {
                     source.groups().byGroupId("default").artifacts().get().get(3, TimeUnit.SECONDS);
                 });
 
-                MigrationTestsDataInitializer.initializeMigrateTest(source);
+                MigrationTestsDataInitializer.initializeMigrateTest(source, this.getRegistryUrl(8081));
 
             } catch (Exception ex) {
                 log.error("Error filling origin registry with data:", ex);

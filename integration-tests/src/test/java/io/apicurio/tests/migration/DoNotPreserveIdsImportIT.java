@@ -135,7 +135,7 @@ public class DoNotPreserveIdsImportIT extends ApicurioRegistryBaseIT {
                     source.groups().byGroupId("default").artifacts().get().get(3, TimeUnit.SECONDS);
                 });
 
-                MigrationTestsDataInitializer.initializeDoNotPreserveIdsImport(source);
+                MigrationTestsDataInitializer.initializeDoNotPreserveIdsImport(source, getRegistryUrl(8081));
 
             } catch (Exception ex) {
                 log.error("Error filling origin registry with data:", ex);

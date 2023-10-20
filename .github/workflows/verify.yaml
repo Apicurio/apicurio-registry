@@ -61,12 +61,7 @@ jobs:
           echo "Platforms: ${{ steps.buildx.outputs.platforms }}"
 
       - name: Build and Test In Memory Variant
-        if: github.ref == 'refs/heads/main'
         run: make SKIP_TESTS=false BUILD_FLAGS='-DskipCommitIdPlugin=false -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5 --no-transfer-progress' build-in-memory
-
-      - name: Build and Test In Memory Variant Without UI
-        if: github.ref != 'refs/heads/main'
-        run: make SKIP_TESTS=false BUILD_FLAGS='-DskipUiBuild -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5 --no-transfer-progress' build-in-memory
 
       - name: Login to DockerHub Registry
         if: github.event_name == 'push'
@@ -120,12 +115,7 @@ jobs:
           echo "Platforms: ${{ steps.buildx.outputs.platforms }}"
 
       - name: Build and Test SQL Variant
-        if: github.ref == 'refs/heads/main'
         run: make SKIP_TESTS=false BUILD_FLAGS='-DskipCommitIdPlugin=false -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5 --no-transfer-progress' build-sql
-
-      - name: Build and Test SQL Variant Without UI
-        if: github.ref != 'refs/heads/main'
-        run: make SKIP_TESTS=false BUILD_FLAGS='-DskipUiBuild -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5 --no-transfer-progress' build-sql
 
       - name: Login to DockerHub Registry
         if: github.event_name == 'push'
@@ -179,12 +169,7 @@ jobs:
           echo "Platforms: ${{ steps.buildx.outputs.platforms }}"
 
       - name: Build and Test KafkaSQL Variant
-        if: github.ref == 'refs/heads/main'
         run: make SKIP_TESTS=false BUILD_FLAGS='-DskipCommitIdPlugin=false -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5 --no-transfer-progress' build-kafkasql
-
-      - name: Build and Test KafkaSQL Variant Without UI
-        if: github.ref != 'refs/heads/main'
-        run: make SKIP_TESTS=false BUILD_FLAGS='-DskipUiBuild -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5 --no-transfer-progress' build-kafkasql
 
       - name: Login to DockerHub Registry
         if: github.event_name == 'push'
@@ -238,12 +223,7 @@ jobs:
           echo "Platforms: ${{ steps.buildx.outputs.platforms }}"
 
       - name: Build and Test GitOps Variant
-        if: github.ref == 'refs/heads/main'
         run: make SKIP_TESTS=false BUILD_FLAGS='-DskipCommitIdPlugin=false -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5 --no-transfer-progress' build-gitops
-
-      - name: Build and Test GitOps Variant Without UI
-        if: github.ref != 'refs/heads/main'
-        run: make SKIP_TESTS=false BUILD_FLAGS='-DskipUiBuild -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5 --no-transfer-progress' build-gitops
 
       - name: Login to DockerHub Registry
         if: github.event_name == 'push'
@@ -284,12 +264,7 @@ jobs:
           ( cd /tmp/coreutils-workaround && mvn dependency:get -DremoteRepositories=https://repo1.maven.org/maven2 -Dartifact=com.github.java-json-tools:jackson-coreutils:2.0 )
 
       - name: Build inmemory Variant
-        if: github.ref == 'refs/heads/main'
         run: make SKIP_TESTS=true BUILD_FLAGS='-DskipCommitIdPlugin=false -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5 --no-transfer-progress' build-in-memory
-
-      - name: Build inmemory Variant Without UI
-        if: github.ref != 'refs/heads/main'
-        run: make SKIP_TESTS=true BUILD_FLAGS='-DskipUiBuild=true -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5 --no-transfer-progress' build-in-memory
 
       - name: Verify docs generation
         run: |
@@ -302,16 +277,8 @@ jobs:
       - name: Build Native executables
         env:
           SKIP_TESTS: "true"
-        if: github.ref == 'refs/heads/main'
         run: |
           make build-mem-native
-
-      - name: Build Native executables without UI
-        env:
-          SKIP_TESTS: "true"
-        if: github.ref != 'refs/heads/main'
-        run: |
-          make BUILD_FLAGS='-DskipUiBuild' build-mem-native
 
       - name: Build and Push Temporary image for testing
         env:
@@ -392,11 +359,7 @@ jobs:
           ( cd /tmp/coreutils-workaround && mvn dependency:get -DremoteRepositories=https://repo1.maven.org/maven2 -Dartifact=com.github.java-json-tools:jackson-coreutils:2.0 )
 
       - name: Build Sql Variant
-        if: github.ref == 'refs/heads/main'
         run: make SKIP_TESTS=true BUILD_FLAGS='-Dmaven.javadoc.skip=true --no-transfer-progress -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5' build-sql
-      - name: Build Sql Variant Without UI
-        if: github.ref != 'refs/heads/main'
-        run: make SKIP_TESTS=true BUILD_FLAGS='-DskipUiBuild=true -Dmaven.javadoc.skip=true --no-transfer-progress -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5' build-sql
 
       - name: Verify docs generation
         run: |
@@ -409,15 +372,8 @@ jobs:
       - name: Build Native executables
         env:
           SKIP_TESTS: "true"
-        if: github.ref == 'refs/heads/main'
         run: |
           make build-sql-native
-
-      - name: Build Native executables without UI
-        env:
-          SKIP_TESTS: "true"
-        if: github.ref != 'refs/heads/main'
-        run: make BUILD_FLAGS='-DskipUiBuild' build-sql-native
 
       - name: Build and Push Temporary image for testing
         env:

@@ -398,13 +398,13 @@ pendulum = ">=2.1.2"
 
 [[package]]
 name = "microsoft-kiota-serialization-text"
-version = "0.2.1"
+version = "0.3.0"
 description = "Implementation of Kiota Serialization interfaces for text/plain"
 optional = false
 python-versions = "*"
 files = [
-    {file = "microsoft_kiota_serialization_text-0.2.1-py2.py3-none-any.whl", hash = "sha256:e69339482c9d9055c323a48de5c4c8df20ebda767ebeed5ca6f7598a570a4885"},
-    {file = "microsoft_kiota_serialization_text-0.2.1.tar.gz", hash = "sha256:8be05b391fd3148ba79d020c92d6c79e485474a68b282dca03d844728381665a"},
+    {file = "microsoft_kiota_serialization_text-0.3.0-py2.py3-none-any.whl", hash = "sha256:d0e98a28ef3ccbc545469b19d03e1085774721bd30e113a96255512613d39021"},
+    {file = "microsoft_kiota_serialization_text-0.3.0.tar.gz", hash = "sha256:7967174333d9e322bd6937dac577e9eaf890b52ecc040515050e02c52823a90c"},
 ]
 
 [package.dependencies]
@@ -810,4 +810,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9"
-content-hash = "50fa78df22f170ae8b8da374360223a41c3a4ceb53967c0afd4d2bcda3831816"
+content-hash = "0c6e6d73d8dc214cc9345df3cd4a05cd4866f50be2df52a17dc444489cae7d66"

@@ -29,9 +29,14 @@ def generate_kiota_client_files(setup_kwargs):
 
     kiota_release_name = f"{kiota_os_name}-{kiota_arch_name}.zip"
     # Detecting the Kiota version from a .csproj file so that it can be updated by automatic tool (e.g. Dependabot)
-    kiota_version = ET.parse(os.path.join(sys.path[0], "kiota-version.csproj")).getroot().find(".//*[@Include='Microsoft.OpenApi.Kiota.Builder']").get("Version")
+    kiota_version = (
+        ET.parse(os.path.join(sys.path[0], "kiota-version.csproj"))
+        .getroot()
+        .find(".//*[@Include='Microsoft.OpenApi.Kiota.Builder']")
+        .get("Version")
+    )
     print(f"Using Kiota version: {kiota_version}")
-    # Download the Kiota release archive    
+    # Download the Kiota release archive
     url = f"https://github.com/microsoft/kiota/releases/download/v{kiota_version}/{kiota_release_name}"
 
     tmpdir = os.path.join(sys.path[0], "kiota_tmp", kiota_version)

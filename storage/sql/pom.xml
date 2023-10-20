@@ -81,6 +81,7 @@
                 <artifactId>maven-dependency-plugin</artifactId>
                 <executions>
                     <execution>
+                        <?m2e ignore?>
                         <id>unpack-static-resources</id>
                         <phase>generate-resources</phase>
                         <goals>
@@ -103,6 +104,7 @@
                         </configuration>
                     </execution>
                     <execution>
+                        <?m2e ignore?>
                         <id>unpack-test-dependencies</id>
                         <phase>process-test-classes</phase>
                         <goals>
@@ -127,6 +129,7 @@
                 <version>${apicurio-common-app-components.version}</version>
                 <executions>
                     <execution>
+                        <?m2e ignore?>
                         <id>merge-properties</id>
                         <phase>process-classes</phase>
                         <goals>
@@ -142,6 +145,7 @@
                         </configuration>
                     </execution>
                     <execution>
+                        <?m2e ignore?>
                         <id>merge-test-properties</id>
                         <phase>process-test-classes</phase>
                         <goals>

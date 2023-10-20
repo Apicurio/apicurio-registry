@@ -23,7 +23,8 @@ import io.apicurio.tests.ui.pages.ArtifactDetailsPage;
 import io.apicurio.tests.ui.pages.UploadArtifactDialog;
 import io.apicurio.tests.utils.Constants;
 import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
+import io.apicurio.registry.rest.client.models.ArtifactContent;
+import io.apicurio.registry.rest.client.models.ArtifactMetaData;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
@@ -35,8 +36,8 @@ import org.openqa.selenium.WebElement;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.ByteArrayInputStream;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -86,7 +87,7 @@ public class UploadArtifactsIT extends ApicurioRegistryBaseIT {
 
         waitForArtifactWeb(page, groupId, webArtifactId);
 
-        ArtifactMetaData meta = TestUtils.retry(() -> client.getArtifactMetaData(groupId, webArtifactId));
+        ArtifactMetaData meta = TestUtils.retry(() -> client.groups().byGroupId(groupId).artifacts().byArtifactId(webArtifactId).meta().get().get(3, TimeUnit.SECONDS));
         assertEquals(type, meta.getType());
     }
 
@@ -188,8 +189,11 @@ public class UploadArtifactsIT extends ApicurioRegistryBaseIT {
         assertEquals(0, webArtifacts.size());
 
         String content = resourceToString("artifactTypes/" + "protobuf/tutorial_v1.proto");
-        ArtifactMetaData meta =
-            registryClient.createArtifact(null, null, ArtifactType.PROTOBUF, new ByteArrayInputStream(content.getBytes()));
+        ArtifactContent artifactContent = new ArtifactContent();
+        artifactContent.setContent(content);
+        ArtifactMetaData meta = registryClient.groups().byGroupId("default").artifacts().post(artifactContent, config -> {
+            config.headers.add("X-Registry-ArtifactType", ArtifactType.PROTOBUF);
+        }).get(3, TimeUnit.SECONDS);
 
         ArtifactListItem webArtifact = waitForArtifactWeb(page, null, meta.getId());
 
@@ -210,7 +214,7 @@ public class UploadArtifactsIT extends ApicurioRegistryBaseIT {
 
         assertEquals(artifactId, webArtifactId);
 
-        assertEquals(1, registryClient.listArtifactsInGroup(null).getCount());
+        assertEquals(1, registryClient.groups().byGroupId("default").artifacts().get().get(3, TimeUnit.SECONDS).getCount());
         page.goBackToArtifactsList();
 
         ArtifactListItem webArtifact = waitForArtifactWeb(page, null, webArtifactId);

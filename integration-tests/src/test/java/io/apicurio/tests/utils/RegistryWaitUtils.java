@@ -35,19 +35,7 @@ public class RegistryWaitUtils {
     }
 
     public static void retry(RegistryClient registryClient, ConsumerExc<RegistryClient> registryOp) throws Exception {
-        if (registryClient instanceof LoadBalanceRegistryClient) {
-            LoadBalanceRegistryClient loadBalanceRegistryClient = (LoadBalanceRegistryClient) registryClient;
-
-            var nodes = loadBalanceRegistryClient.getRegistryNodes();
-
-            TestUtils.retry(() -> {
-                for (LoadBalanceRegistryClient.RegistryClientHolder target : nodes) {
-                    registryOp.run(target.client);
-                }
-            });
-        } else {
-            TestUtils.retry(() -> registryOp.run(registryClient));
-        }
+        TestUtils.retry(() -> registryOp.run(registryClient));
     }
 
 }

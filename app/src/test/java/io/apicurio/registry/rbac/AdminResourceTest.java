@@ -16,14 +16,28 @@
 
 package io.apicurio.registry.rbac;
 
+import static io.restassured.RestAssured.given;
+import static org.hamcrest.CoreMatchers.anyOf;
+import static org.hamcrest.CoreMatchers.anything;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import io.apicurio.registry.AbstractResourceTestBase;
-import io.apicurio.registry.rest.client.exception.ArtifactNotFoundException;
-import io.apicurio.registry.rest.v2.beans.*;
+import io.apicurio.registry.rest.client.models.ArtifactContent;
+import io.apicurio.registry.rest.client.models.ArtifactReference;
+import io.apicurio.registry.rest.client.models.Comment;
+import io.apicurio.registry.rest.client.models.RoleMapping;
+import io.apicurio.registry.rest.client.models.Rule;
+import io.apicurio.registry.rest.client.models.UpdateConfigurationProperty;
+import io.apicurio.registry.rest.client.models.UpdateRole;
+import io.apicurio.registry.rest.client.models.RoleType;
+import io.apicurio.registry.rest.client.models.RuleType;
 import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
 import io.apicurio.registry.rules.integrity.IntegrityLevel;
 import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.types.RoleType;
-import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.tests.ApicurioTestTags;
 import io.apicurio.registry.utils.tests.ApplicationRbacEnabledProfile;
 import io.apicurio.registry.utils.tests.TestUtils;
@@ -35,21 +49,15 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
-import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
-
-import static io.restassured.RestAssured.given;
-import static org.hamcrest.CoreMatchers.anyOf;
-import static org.hamcrest.CoreMatchers.anything;
-import static org.hamcrest.Matchers.*;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * @author eric.wittmann@gmail.com
@@ -70,7 +78,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
                 .statusCode(200)
                 .body(anything());
     }
-    
+
     @Test
     public void testCreateGlobalRule() throws Exception
     {
@@ -85,7 +93,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
         		.post("/registry/v2/admin/rules")
         	.then()
         		.statusCode(400);
-    	
+
     	//Test Rule config null
     	Rule nullConfig = new Rule();
     	nullConfig.setType(RuleType.VALIDITY);
@@ -97,7 +105,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
         		.post("/registry/v2/admin/rules")
         	.then()
         		.statusCode(400);
-    	
+
     	//Test Rule config empty
     	Rule emptyConfig = new Rule();
     	emptyConfig.setType(RuleType.VALIDITY);
@@ -109,7 +117,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
         		.post("/registry/v2/admin/rules")
         	.then()
         		.statusCode(400);
-    	
+
     }
 
     @Test
@@ -311,7 +319,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
                     .body("type", equalTo("INTEGRITY"))
                     .body("config", equalTo("NO_DUPLICATES"));
         });
-        
+
         // Update the rule config
         String newConfig = IntegrityLevel.NO_DUPLICATES + "," + IntegrityLevel.REFS_EXIST;
         rule.setType(RuleType.INTEGRITY);
@@ -469,7 +477,13 @@ public class AdminResourceTest extends AbstractResourceTestBase {
             String title = "Empty API " + idx + " " + suffix;
             String artifactId = "Empty-" + idx;
             List<ArtifactReference> refs = idx > 0 ? getSingletonRefList(group, "Empty-" + (idx - 1), "1", "ref") : Collections.emptyList();
-            this.createArtifactWithReferences(group, artifactId, ArtifactType.OPENAPI, artifactContent.replaceAll("Empty API", title), refs);
+            ArtifactContent content = new ArtifactContent();
+            content.setContent(artifactContent.replaceAll("Empty API", title));
+            content.setReferences(refs);
+            clientV2.groups().byGroupId(group).artifacts().post(content, config -> {
+                config.headers.add("X-Registry-ArtifactId", artifactId);
+                config.headers.add("X-Registry-ArtifactType", ArtifactType.OPENAPI);
+            }).get(3, TimeUnit.SECONDS);
         }
 
         // Export data (browser flow).
@@ -525,7 +539,10 @@ public class AdminResourceTest extends AbstractResourceTestBase {
 
     @Test
     void testImport() throws Exception {
-        var result = clientV2.searchArtifacts(null, null, null, null, null, null, null, 0, 5);
+        var result = clientV2.search().artifacts().get(config -> {
+            config.queryParameters.offset = 0;
+            config.queryParameters.limit = 5;
+        }).get(3, TimeUnit.SECONDS);
         int artifactsBefore = result.getCount();
 
         try (InputStream data = resourceToInputStream("../rest/v2/export.zip")) {
@@ -554,38 +571,51 @@ public class AdminResourceTest extends AbstractResourceTestBase {
         // Verify artifacts were imported
         // Verify all artifact versions were imported
         //total num of artifacts 3
-        result = clientV2.searchArtifacts(null, null, null, null, null, null, null, 0, 5);
+        result = clientV2.search().artifacts().get(config -> {
+            config.queryParameters.offset = 0;
+            config.queryParameters.limit = 5;
+        }).get(3, TimeUnit.SECONDS);
         int newArtifacts = result.getCount().intValue() - artifactsBefore;
         assertEquals(3, newArtifacts);
-        
+
         // Verify comments were imported
-        List<Comment> comments = clientV2.getArtifactVersionComments("ImportTest", "Artifact-1", "1.0.2");
+        List<Comment> comments = clientV2.groups().byGroupId("ImportTest").artifacts().byArtifactId("Artifact-1").versions().byVersion("1.0.2").comments().get().get(3, TimeUnit.SECONDS);
         assertNotNull(comments);
         assertEquals(2, comments.size());
         assertEquals("COMMENT-2", comments.get(0).getValue());
         assertEquals("COMMENT-1", comments.get(1).getValue());
 
-        comments = clientV2.getArtifactVersionComments("ImportTest", "Artifact-2", "1.0.1");
+        comments = clientV2.groups().byGroupId("ImportTest").artifacts().byArtifactId("Artifact-2").versions().byVersion("1.0.1").comments().get().get(3, TimeUnit.SECONDS);
         assertNotNull(comments);
         assertEquals(1, comments.size());
         assertEquals("COMMENT-3", comments.get(0).getValue());
 
         // Verify artifact rules were imported
-        var rule = clientV2.getArtifactRuleConfig("ImportTest", "Artifact-1", RuleType.VALIDITY);
+        var rule = clientV2.groups().byGroupId("ImportTest").artifacts().byArtifactId("Artifact-1").rules().byRule(RuleType.VALIDITY.getValue()).get().get(3, TimeUnit.SECONDS);
         assertNotNull(rule);
         assertEquals("SYNTAX_ONLY", rule.getConfig());
 
         //the biggest globalId in the export file is 1005
-        assertNotNull(clientV2.getContentByGlobalId(1005));
+        assertNotNull(clientV2.ids().globalIds().byGlobalId(1005L).get().get(3, TimeUnit.SECONDS));
 
         //this is the artifactId for the artifact with globalId 1005
-        var lastArtifactMeta = clientV2.getArtifactMetaData("ImportTest", "Artifact-3");
+        var lastArtifactMeta = clientV2.groups().byGroupId("ImportTest").artifacts().byArtifactId("Artifact-3").meta().get().get(3, TimeUnit.SECONDS);
         assertEquals("1.0.2", lastArtifactMeta.getVersion());
-        assertEquals(1005, lastArtifactMeta.getGlobalId());
+        assertEquals(1005L, lastArtifactMeta.getGlobalId());
 
-        Assertions.assertThrows(ArtifactNotFoundException.class, () -> clientV2.getContentByGlobalId(1006));
+        var executionException = Assertions.assertThrows(ExecutionException.class, () -> clientV2.ids().globalIds().byGlobalId(1006L).get().get(3, TimeUnit.SECONDS));
+        //ArtifactNotFoundException
+        Assertions.assertNotNull(executionException.getCause());
+        Assertions.assertEquals(io.apicurio.registry.rest.client.models.Error.class, executionException.getCause().getClass());
+        Assertions.assertEquals("ArtifactNotFoundException", ((io.apicurio.registry.rest.client.models.Error)executionException.getCause()).getName());
+        Assertions.assertEquals(404, ((io.apicurio.registry.rest.client.models.Error)executionException.getCause()).getErrorCode());
 
-        var meta = clientV2.createArtifact(null, "newartifact", ArtifactType.JSON, new ByteArrayInputStream("{}".getBytes()));
+        ArtifactContent content = new ArtifactContent();
+        content.setContent("{}");
+        var meta = clientV2.groups().byGroupId("default").artifacts().post(content, config -> {
+            config.headers.add("X-Registry-ArtifactId", "newartifact");
+            config.headers.add("X-Registry-ArtifactType", ArtifactType.OPENAPI);
+        }).get(3, TimeUnit.SECONDS);
         assertEquals(1006, meta.getGlobalId().intValue());
     }
 

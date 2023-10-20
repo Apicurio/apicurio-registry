@@ -16,19 +16,18 @@
 
 package io.apicurio.registry.noprofile.compatibility;
 
+import com.microsoft.kiota.ApiException;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.JsonSchemas;
 import io.apicurio.registry.content.ContentHandle;
-import io.apicurio.registry.rest.client.exception.UnprocessableSchemaException;
-import io.apicurio.registry.rest.v2.beans.ArtifactReference;
-import io.apicurio.registry.rest.v2.beans.Rule;
+import io.apicurio.registry.rest.client.models.ArtifactContent;
+import io.apicurio.registry.rest.client.models.Rule;
+import io.apicurio.registry.rest.client.models.RuleType;
 import io.apicurio.registry.rules.*;
 import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
 import io.apicurio.registry.rules.compatibility.CompatibilityRuleExecutor;
 import io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType;
 import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.types.RuleType;
-import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.http.ContentType;
@@ -39,6 +38,8 @@ import org.junit.jupiter.api.Test;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.CoreMatchers.anything;
@@ -249,7 +250,7 @@ public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {
 
         /*final Integer cityDependencyGlobalId = */createArtifact(groupId, cityArtifactId, ArtifactType.JSON, citySchema);
 
-        final ArtifactReference cityReference = new ArtifactReference();
+        final io.apicurio.registry.rest.v2.beans.ArtifactReference cityReference = new io.apicurio.registry.rest.v2.beans.ArtifactReference();
         cityReference.setVersion("1");
         cityReference.setGroupId(groupId);
         cityReference.setArtifactId(cityArtifactId);
@@ -259,7 +260,7 @@ public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {
 
         /*final Integer globalId = */createArtifactWithReferences(groupId, artifactId, ArtifactType.JSON, citizenSchema , List.of(cityReference));
 
-        createArtifactRule(groupId, artifactId, RuleType.COMPATIBILITY, "BACKWARD");
+        createArtifactRule(groupId, artifactId, io.apicurio.registry.types.RuleType.COMPATIBILITY, "BACKWARD");
 
         //Try to create the same artifact again, it should be validated with no issues.
         updateArtifactWithReferences(groupId, artifactId, ArtifactType.JSON, citizenSchema, List.of(cityReference));
@@ -281,14 +282,19 @@ public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {
         Rule rule = new Rule();
         rule.setType(RuleType.COMPATIBILITY);
         rule.setConfig(CompatibilityLevel.FULL.name());
-        clientV2.createArtifactRule("default", artifactId, rule);
+        clientV2.groups().byGroupId("default").artifacts().byArtifactId(artifactId).rules().post(rule).get(3, TimeUnit.SECONDS);
 
         // This will result in org.apache.avro.AvroTypeException in the compatibility checker,
         // which is rethrown as UnprocessableSchemaException.
         // TODO: Do we want such cases to result in RuleViolationException instead?
-        Assertions.assertThrows(UnprocessableSchemaException.class, () -> {
-            clientV2.updateArtifact("default", artifactId, IoUtil.toStream(INVALID_SCHEMA_WITH_MAP));
+        var executionException = Assertions.assertThrows(ExecutionException.class, () -> {
+            ArtifactContent content = new ArtifactContent();
+            content.setContent(INVALID_SCHEMA_WITH_MAP);
+            clientV2.groups().byGroupId("default").artifacts().byArtifactId(artifactId).put(content).get(3, TimeUnit.SECONDS);
         });
+        Assertions.assertNotNull(executionException.getCause());
+        Assertions.assertEquals(com.microsoft.kiota.ApiException.class, executionException.getCause().getClass());
+        Assertions.assertEquals(422, ((ApiException)executionException.getCause()).responseStatusCode);
     }
 
     @Test
@@ -298,14 +304,19 @@ public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {
         Rule rule = new Rule();
         rule.setType(RuleType.COMPATIBILITY);
         rule.setConfig(CompatibilityLevel.FULL.name());
-        clientV2.createArtifactRule("default", artifactId, rule);
+        clientV2.groups().byGroupId("default").artifacts().byArtifactId(artifactId).rules().post(rule).get(3, TimeUnit.SECONDS);
 
         // This will result in org.apache.avro.AvroTypeException in the compatibility checker,
         // which is rethrown as UnprocessableSchemaException.
         // TODO: Do we want such cases to result in RuleViolationException instead?
-        Assertions.assertThrows(UnprocessableSchemaException.class, () -> {
-            clientV2.updateArtifact("default", artifactId, IoUtil.toStream(INVALID_SCHEMA_WITH_MAP));
+        var executionException = Assertions.assertThrows(ExecutionException.class, () -> {
+            ArtifactContent content = new ArtifactContent();
+            content.setContent(INVALID_SCHEMA_WITH_MAP);
+            clientV2.groups().byGroupId("default").artifacts().byArtifactId(artifactId).put(content).get(3, TimeUnit.SECONDS);
         });
+        Assertions.assertNotNull(executionException.getCause());
+        Assertions.assertEquals(com.microsoft.kiota.ApiException.class, executionException.getCause().getClass());
+        Assertions.assertEquals(422, ((ApiException)executionException.getCause()).responseStatusCode);
     }
 
 
@@ -324,18 +335,22 @@ public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {
         Rule rule = new Rule();
         rule.setType(RuleType.COMPATIBILITY);
         rule.setConfig(CompatibilityLevel.BACKWARD_TRANSITIVE.name());
-        clientV2.createArtifactRule("default", artifactId, rule);
+        clientV2.groups().byGroupId("default").artifacts().byArtifactId(artifactId).rules().post(rule).get(3, TimeUnit.SECONDS);
 
         //Should fail, the new version is not compatible with the first one
-        Assertions.assertThrows(io.apicurio.registry.rest.client.exception.RuleViolationException.class, () -> {
-            clientV2.updateArtifact("default", artifactId, IoUtil.toStream(SCHEMA_WITH_MAP));
+        var executionException = Assertions.assertThrows(ExecutionException.class, () -> {
+            ArtifactContent content = new ArtifactContent();
+            content.setContent(SCHEMA_WITH_MAP);
+            clientV2.groups().byGroupId("default").artifacts().byArtifactId(artifactId).put(content).get(3, TimeUnit.SECONDS);
         });
 
         //Change rule to backward, should pass since the new version is compatible with the latest one
         rule = new Rule();
         rule.setType(RuleType.COMPATIBILITY);
         rule.setConfig(CompatibilityLevel.BACKWARD.name());
-        clientV2.updateArtifactRuleConfig("default", artifactId, RuleType.COMPATIBILITY, rule);
-        clientV2.updateArtifact("default", artifactId, IoUtil.toStream(SCHEMA_WITH_MAP));
+        clientV2.groups().byGroupId("default").artifacts().byArtifactId(artifactId).rules().byRule(RuleType.COMPATIBILITY.getValue()).put(rule).get(3, TimeUnit.SECONDS);
+        ArtifactContent content = new ArtifactContent();
+        content.setContent(SCHEMA_WITH_MAP);
+        clientV2.groups().byGroupId("default").artifacts().byArtifactId(artifactId).put(content).get(3, TimeUnit.SECONDS);
     }
 }

@@ -84,7 +84,7 @@ updates:
         versions:
           - 4.9.1
 
-  - package-ecosystem: pip
+  - package-ecosystem: nuget
     directory: "/python-sdk"
     schedule:
       interval: daily

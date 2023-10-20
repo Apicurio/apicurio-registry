@@ -22,6 +22,8 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.microsoft.kiota.authentication.AnonymousAuthenticationProvider;
+import com.microsoft.kiota.http.OkHttpRequestAdapter;
 import io.apicurio.registry.resolver.DefaultSchemaResolver;
 import io.apicurio.registry.resolver.ParsedSchema;
 import io.apicurio.registry.resolver.SchemaParser;
@@ -39,8 +41,6 @@ import io.apicurio.registry.resolver.data.Metadata;
 import io.apicurio.registry.resolver.data.Record;
 import io.apicurio.registry.resolver.strategy.ArtifactReference;
 import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.rest.client.RegistryClientFactory;
-import io.apicurio.registry.rest.client.exception.ArtifactNotFoundException;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
@@ -55,7 +55,9 @@ public class SchemaResolverTest extends AbstractResourceTestBase {
 
     @BeforeEach
     public void createIsolatedClient() {
-        restClient = RegistryClientFactory.create(TestUtils.getRegistryV2ApiUrl(testPort));
+        var adapter = new OkHttpRequestAdapter(new AnonymousAuthenticationProvider());
+        adapter.setBaseUrl(TestUtils.getRegistryV2ApiUrl(testPort));
+        restClient = new RegistryClient(adapter);
     }
 
     @Test
@@ -102,7 +104,7 @@ public class SchemaResolverTest extends AbstractResourceTestBase {
 
         GenericRecord avroRecord = new GenericData.Record(schema);
         avroRecord.put("bar", "somebar");
-        Record<GenericRecord> record = new CustomResolverRecord(avroRecord, ArtifactReference.builder().artifactId(artifactId).build());
+        Record<GenericRecord> record = new CustomResolverRecord(avroRecord, ArtifactReference.builder().groupId("default").artifactId(artifactId).build());
         var lookup = resolver.resolveSchema(record);
 
         assertNull(lookup.getGroupId());
@@ -110,7 +112,15 @@ public class SchemaResolverTest extends AbstractResourceTestBase {
         assertEquals(schema.toString(), new String(lookup.getParsedSchema().getRawSchema()));
         assertNull(lookup.getParsedSchema().getParsedSchema());
 
-        Assertions.assertThrows(ArtifactNotFoundException.class, () -> resolver.resolveSchema(new CustomResolverRecord(avroRecord, ArtifactReference.builder().artifactId("foo").build())));
+        var runtimeException = Assertions.assertThrows(RuntimeException.class, () -> resolver.resolveSchema(new CustomResolverRecord(avroRecord, ArtifactReference.builder().groupId("default").artifactId("foo").build())));
+        // TODO: this seems excessive to me ...
+        io.apicurio.registry.rest.client.models.Error error = (io.apicurio.registry.rest.client.models.Error) runtimeException // wrapped because it was thrown in a lambda
+                .getCause() // RuntimeException thrown by ERCache
+                .getCause() // ExecutionException thrown by the Async layer of Kiota
+                .getCause(); // finally the "real" error
+        assertEquals("ArtifactNotFoundException", error.getName());
+        assertEquals(404, error.getErrorCode());
+
         resolver.close();
     }
 

@@ -20,7 +20,6 @@ import io.apicurio.tests.ui.selenium.SeleniumChrome;
 import io.apicurio.tests.ui.selenium.SeleniumProvider;
 import io.apicurio.tests.ui.selenium.resources.ArtifactListItem;
 import io.apicurio.tests.utils.Constants;
-import io.apicurio.registry.rest.client.exception.ArtifactNotFoundException;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
@@ -31,6 +30,7 @@ import org.junit.jupiter.api.extension.ExtensionContext;
 
 import java.time.Duration;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import static org.hamcrest.CoreMatchers.hasItems;
@@ -61,12 +61,12 @@ public class DeleteArtifactIT extends ApicurioRegistryBaseIT {
 
         String content1 = resourceToString("artifactTypes/" + "protobuf/tutorial_v1.proto");
         String artifactId1 = page.uploadArtifact(groupId, null, ArtifactType.PROTOBUF, content1);
-        assertEquals(1, registryClient.listArtifactsInGroup(groupId).getCount());
+        assertEquals(1, registryClient.groups().byGroupId(groupId).artifacts().get().get(3, TimeUnit.SECONDS).getCount());
         page.goBackToArtifactsList();
 
         String content2 = resourceToString("artifactTypes/" + "jsonSchema/person_v1.json");
         String artifactId2 = page.uploadArtifact(groupId, null, ArtifactType.JSON, content2);
-        assertEquals(2, registryClient.listArtifactsInGroup(groupId).getCount());
+        assertEquals(2, registryClient.groups().byGroupId(groupId).artifacts().get().get(3, TimeUnit.SECONDS).getCount());
         page.goBackToArtifactsList();
 
         TestUtils.retry(() -> {
@@ -111,13 +111,13 @@ public class DeleteArtifactIT extends ApicurioRegistryBaseIT {
         page.openWebPage();
 
         String content1 = resourceToString("artifactTypes/" + "protobuf/tutorial_v1.proto");
-        String artifactId1 = page.uploadArtifact(null, null, ArtifactType.PROTOBUF, content1);
-        assertEquals(1, registryClient.listArtifactsInGroup(null).getCount());
+        String artifactId1 = page.uploadArtifact("default", null, ArtifactType.PROTOBUF, content1);
+        assertEquals(1, registryClient.groups().byGroupId("default").artifacts().get().get(3, TimeUnit.SECONDS).getCount());
         page.goBackToArtifactsList();
 
         String content2 = resourceToString("artifactTypes/" + "jsonSchema/person_v1.json");
-        String artifactId2 = page.uploadArtifact(null, null, ArtifactType.JSON, content2);
-        assertEquals(2, registryClient.listArtifactsInGroup(null).getCount());
+        String artifactId2 = page.uploadArtifact("default", null, ArtifactType.JSON, content2);
+        assertEquals(2, registryClient.groups().byGroupId("default").artifacts().get().get(3, TimeUnit.SECONDS).getCount());
         page.goBackToArtifactsList();
 
         TestUtils.waitFor("Artifacts list updated", Constants.POLL_INTERVAL, Constants.TIMEOUT_GLOBAL, () -> {
@@ -136,8 +136,8 @@ public class DeleteArtifactIT extends ApicurioRegistryBaseIT {
         });
         assertTrue(webArtifacts.isEmpty());
 
-        registryClient.deleteArtifact(null, artifactId1);
-        retryAssertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, (rc) -> rc.getArtifactMetaData(null, artifactId1), errorCodeExtractor);
+        registryClient.groups().byGroupId("default").artifacts().byArtifactId(artifactId1).delete().get(3, TimeUnit.SECONDS);
+        retryAssertClientError("ArtifactNotFoundException", 404, (rc) -> rc.groups().byGroupId("default").artifacts().byArtifactId(artifactId1).meta().get().get(3, TimeUnit.SECONDS), errorCodeExtractor);
 
         selenium.refreshPage();
         TestUtils.waitFor("Artifacts list updated", Constants.POLL_INTERVAL, Constants.TIMEOUT_GLOBAL, () -> {
@@ -151,8 +151,8 @@ public class DeleteArtifactIT extends ApicurioRegistryBaseIT {
         webArtifacts = page.getArtifactsList();
         assertEquals(artifactId2, webArtifacts.get(0).getArtifactId());
 
-        registryClient.deleteArtifact(null, artifactId2);
-        retryAssertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, (rc) -> rc.getArtifactMetaData(null, artifactId2), errorCodeExtractor);
+        registryClient.groups().byGroupId("default").artifacts().byArtifactId(artifactId2).delete().get(3, TimeUnit.SECONDS);
+        retryAssertClientError("ArtifactNotFoundException", 404, (rc) -> rc.groups().byGroupId("default").artifacts().byArtifactId(artifactId2).meta().get().get(3, TimeUnit.SECONDS), errorCodeExtractor);
 
         selenium.refreshPage();
         TestUtils.waitFor("Artifacts list updated", Constants.POLL_INTERVAL, Constants.TIMEOUT_GLOBAL, () -> {

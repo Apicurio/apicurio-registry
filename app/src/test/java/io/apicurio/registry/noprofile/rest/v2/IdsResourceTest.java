@@ -31,6 +31,8 @@ import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
 
+import java.util.concurrent.TimeUnit;
+
 /**
  * @author eric.wittmann@gmail.com
  */
@@ -193,8 +195,8 @@ public class IdsResourceTest extends AbstractResourceTestBase {
         long globalId2 = createArtifact(group2, artifactId, ArtifactType.OPENAPI, artifactContent);
 
         // Get by globalId should not fail
-        clientV2.getContentByGlobalId(globalId1);
-        clientV2.getContentByGlobalId(globalId2);
+        clientV2.ids().globalIds().byGlobalId(globalId1).get().get(3, TimeUnit.SECONDS);
+        clientV2.ids().globalIds().byGlobalId(globalId2).get().get(3, TimeUnit.SECONDS);
 
     }
 

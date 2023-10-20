@@ -15,12 +15,12 @@
  */
 package io.apicurio.tests.smokeTests.apicurio;
 
-import io.apicurio.tests.ApicurioRegistryBaseIT;
-import io.apicurio.registry.rest.client.exception.RuleViolationException;
-import io.apicurio.registry.rest.v2.beans.Rule;
-import io.apicurio.registry.rest.v2.beans.VersionMetaData;
 import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.types.RuleType;
+import io.apicurio.tests.ApicurioRegistryBaseIT;
+import io.apicurio.registry.rest.client.models.ArtifactContent;
+import io.apicurio.registry.rest.client.models.Rule;
+import io.apicurio.registry.rest.client.models.RuleType;
+import io.apicurio.registry.rest.client.models.VersionMetaData;
 import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
@@ -29,6 +29,7 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import static io.apicurio.tests.utils.Constants.SMOKE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -49,44 +50,49 @@ class AllArtifactTypesIT extends ApicurioRegistryBaseIT {
         Rule rule = new Rule();
         rule.setType(RuleType.VALIDITY);
         rule.setConfig("SYNTAX_ONLY");
-        registryClient.createGlobalRule(rule);
+        registryClient.admin().rules().post(rule).get(3, TimeUnit.SECONDS);
 
         // Make sure we have rule
-        retryOp((rc) -> rc.getGlobalRuleConfig(rule.getType()));
+        retryOp((rc) -> rc.admin().rules().byRule(rule.getType().name()).get().get(3, TimeUnit.SECONDS));
 
         // Create artifact
         createArtifact(groupId, artifactId, atype, IoUtil.toStream(v1Content));
 
         // Test update (valid content)
-        retryOp((rc) -> rc.testUpdateArtifact(groupId, artifactId, IoUtil.toStream(v2Content)));
+        retryOp((rc) -> rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).test().put(IoUtil.toStream(v2Content)).get(3, TimeUnit.SECONDS));
 
         // Test update (invalid content)
-        retryAssertClientError(RuleViolationException.class.getSimpleName(), 409, (rc) -> rc.testUpdateArtifact(groupId, artifactId, IoUtil.toStream("{\"This is not a valid content.")), errorCodeExtractor);
+        retryAssertClientError("RuleViolationException", 409, (rc) -> rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).test().put(IoUtil.toStream("{\"This is not a valid content.")).get(3, TimeUnit.SECONDS), errorCodeExtractor);
 
         // Update artifact (valid v2 content)
         createArtifactVersion(groupId, artifactId, IoUtil.toStream(v2Content));
 
         // Find artifact by content
-        VersionMetaData byContent = registryClient.getArtifactVersionMetaDataByContent(groupId, artifactId, false, IoUtil.toStream(v1Content));
+        ArtifactContent content = new ArtifactContent();
+        content.setContent(v1Content);
+        VersionMetaData byContent = registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).meta().post(content, config -> {
+            config.queryParameters.canonical = false;
+        }).get(3, TimeUnit.SECONDS);
         assertNotNull(byContent);
         assertNotNull(byContent.getGlobalId());
         assertEquals(artifactId, byContent.getId());
         assertNotNull(byContent.getVersion());
 
         // Update artifact (invalid content)
-        TestUtils.assertClientError(RuleViolationException.class.getSimpleName(), 409, () -> registryClient.createArtifactVersion(groupId, artifactId, null, IoUtil.toStream("{\"This is not a valid content.")), errorCodeExtractor);
+        content.setContent("{\"This is not a valid content.");
+        TestUtils.assertClientError("RuleViolationException", 409, () -> registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().post(content).get(3, TimeUnit.SECONDS), errorCodeExtractor);
 
         // Override Validation rule for the artifact
         rule.setConfig("NONE");
-        registryClient.createArtifactRule(groupId, artifactId, rule);
+        registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).rules().post(rule).get(3, TimeUnit.SECONDS);
 
         // Make sure we have rule
-        retryOp((rc) -> rc.getArtifactRuleConfig(groupId, artifactId, rule.getType()));
+        retryOp((rc) -> rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).rules().byRule(rule.getType().name()).get().get(3, TimeUnit.SECONDS));
 
         // Update artifact (invalid content) - should work now
         VersionMetaData amd2 = createArtifactVersion(groupId, artifactId, IoUtil.toStream("{\"This is not a valid content."));
         // Make sure artifact is fully registered
-        retryOp((rc) -> rc.getContentByGlobalId(amd2.getGlobalId()));
+        retryOp((rc) -> rc.ids().globalIds().byGlobalId(amd2.getGlobalId()).get().get(3, TimeUnit.SECONDS));
     }
 
     @Test
@@ -129,9 +135,9 @@ class AllArtifactTypesIT extends ApicurioRegistryBaseIT {
 
     @AfterEach
     void deleteRules() throws Exception {
-        registryClient.deleteAllGlobalRules();
+        registryClient.admin().rules().delete().get(3, TimeUnit.SECONDS);
         retryOp((rc) -> {
-            List<RuleType> rules = rc.listGlobalRules();
+            List<RuleType> rules = rc.admin().rules().get().get(3, TimeUnit.SECONDS);
             assertEquals(0, rules.size(), "All global rules not deleted");
         });
     }

@@ -189,7 +189,7 @@ public class RegistryDeploymentManager implements TestExecutionListener {
 
             } else {
                 //If we're running the cluster tests but no external endpoint has been provided, set the value of the load balancer.
-                if (System.getProperty("quarkus.http.test-host").equals("localhost")) {
+                if (System.getProperty("quarkus.http.test-host").equals("localhost") && !System.getProperty("os.name").contains("Mac OS")) {
                     System.setProperty("quarkus.http.test-host", kubernetesClient.services().inNamespace(TEST_NAMESPACE).withName(APPLICATION_SERVICE).get().getSpec().getClusterIP());
                 }
             }

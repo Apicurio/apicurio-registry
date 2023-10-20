@@ -20,7 +20,7 @@ import java.nio.file.Path;
 import java.util.Set;
 
 import io.apicurio.registry.content.ContentHandle;
-import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
+import io.apicurio.registry.rest.client.models.ArtifactMetaData;
 import io.apicurio.registry.types.ArtifactType;
 
 /**

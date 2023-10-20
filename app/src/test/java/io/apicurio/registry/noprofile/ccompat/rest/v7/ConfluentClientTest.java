@@ -20,11 +20,10 @@ import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.ccompat.dto.SchemaContent;
 import io.apicurio.registry.ccompat.rest.error.ErrorCode;
 import io.apicurio.registry.rest.Headers;
-import io.apicurio.registry.rest.client.exception.ArtifactNotFoundException;
-import io.apicurio.registry.rest.v2.beans.Rule;
+import io.apicurio.registry.rest.client.models.Rule;
+import io.apicurio.registry.rest.client.models.RuleType;
 import io.apicurio.registry.support.HealthUtils;
 import io.apicurio.registry.support.TestCmmn;
-import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.confluent.connect.avro.AvroConverter;
 import io.confluent.kafka.schemaregistry.CompatibilityLevel;
@@ -71,7 +70,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
@@ -92,10 +93,10 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
     }
 
     @AfterEach
-    protected void afterEach() {
+    protected void afterEach() throws Exception {
         try {
-            clientV2.deleteArtifactsInGroup(null);
-        } catch (ArtifactNotFoundException ignored) {
+            clientV2.groups().byGroupId("default").artifacts().delete().get(3, TimeUnit.SECONDS);
+        } catch (ExecutionException ignored) {
         }
     }
 
@@ -284,7 +285,7 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
         Rule rule = new Rule();
         rule.setType(RuleType.COMPATIBILITY);
         rule.setConfig("BACKWARD");
-        adminClientV2.createGlobalRule(rule);
+        clientV2.admin().rules().post(rule).get(3, TimeUnit.SECONDS);
 
         String subject = generateArtifactId();
         ParsedSchema schema = new AvroSchema("{\"type\":\"record\",\"name\":\"myrecord3\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");

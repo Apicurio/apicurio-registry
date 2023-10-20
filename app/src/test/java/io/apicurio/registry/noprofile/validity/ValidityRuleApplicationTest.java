@@ -20,13 +20,18 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import io.apicurio.registry.AbstractResourceTestBase;
-import io.apicurio.registry.rest.client.exception.RuleViolationException;
-import io.apicurio.registry.rest.v2.beans.Rule;
+import io.apicurio.registry.rest.client.models.ArtifactContent;
+import io.apicurio.registry.rest.client.models.Rule;
+import io.apicurio.registry.rest.client.models.RuleType;
 import io.apicurio.registry.rules.validity.ValidityLevel;
 import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.types.RuleType;
-import io.apicurio.registry.utils.IoUtil;
 import io.quarkus.test.junit.QuarkusTest;
+
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 /**
  * @author eric.wittmann@gmail.com
@@ -84,11 +89,16 @@ public class ValidityRuleApplicationTest extends AbstractResourceTestBase {
         Rule rule = new Rule();
         rule.setType(RuleType.VALIDITY);
         rule.setConfig(ValidityLevel.FULL.name());
-        clientV2.createArtifactRule("default", artifactId, rule);
+        clientV2.groups().byGroupId("default").artifacts().byArtifactId(artifactId).rules().post(rule).get(3, TimeUnit.SECONDS);
 
-        Assertions.assertThrows(RuleViolationException.class, () -> {
-            clientV2.updateArtifact("default", artifactId, IoUtil.toStream(INVALID_SCHEMA));
+        var executionException = Assertions.assertThrows(ExecutionException.class, () -> {
+            ArtifactContent content = new ArtifactContent();
+            content.setContent(INVALID_SCHEMA);
+            clientV2.groups().byGroupId("default").artifacts().byArtifactId(artifactId).put(content).get(3, TimeUnit.SECONDS);
         });
+        assertNotNull(executionException.getCause());
+        assertEquals("RuleViolationException", ((io.apicurio.registry.rest.client.models.Error)executionException.getCause()).getName());
+        assertEquals(409, ((io.apicurio.registry.rest.client.models.Error)executionException.getCause()).getErrorCode());
     }
 
     @Test
@@ -98,11 +108,16 @@ public class ValidityRuleApplicationTest extends AbstractResourceTestBase {
         Rule rule = new Rule();
         rule.setType(RuleType.VALIDITY);
         rule.setConfig(ValidityLevel.FULL.name());
-        clientV2.createArtifactRule("default", artifactId, rule);
+        clientV2.groups().byGroupId("default").artifacts().byArtifactId(artifactId).rules().post(rule).get(3, TimeUnit.SECONDS);
 
-        Assertions.assertThrows(RuleViolationException.class, () -> {
-            clientV2.updateArtifact("default", artifactId, IoUtil.toStream(INVALID_SCHEMA_WITH_MAP));
+        var executionException = Assertions.assertThrows(ExecutionException.class, () -> {
+            ArtifactContent content = new ArtifactContent();
+            content.setContent(INVALID_SCHEMA_WITH_MAP);
+            clientV2.groups().byGroupId("default").artifacts().byArtifactId(artifactId).put(content).get(3, TimeUnit.SECONDS);
         });
+        assertNotNull(executionException.getCause());
+        assertEquals("RuleViolationException", ((io.apicurio.registry.rest.client.models.Error)executionException.getCause()).getName());
+        assertEquals(409, ((io.apicurio.registry.rest.client.models.Error)executionException.getCause()).getErrorCode());
     }
 
 }

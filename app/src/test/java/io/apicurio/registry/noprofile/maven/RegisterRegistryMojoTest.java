@@ -17,10 +17,12 @@
 package io.apicurio.registry.noprofile.maven;
 
 import io.apicurio.registry.maven.RegisterRegistryMojo;
+import io.apicurio.registry.rest.client.exception.ArtifactNotFoundException;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -33,6 +35,8 @@ import java.io.IOException;
 public class RegisterRegistryMojoTest extends RegistryMojoTestBase {
     RegisterRegistryMojo mojo;
 
+    private static final String groupId = "RegisterRegistryMojoTest";
+
     @BeforeEach
     public void createMojo() {
         this.mojo = new RegisterRegistryMojo();
@@ -41,6 +45,18 @@ public class RegisterRegistryMojoTest extends RegistryMojoTestBase {
 
     @Test
     public void testRegister() throws IOException, MojoFailureException, MojoExecutionException {
-        super.testRegister(mojo, "RegisterRegistryMojoTest");
+        super.testRegister(mojo, groupId);
+
+        Assertions.assertNotNull(clientV2.getArtifactMetaData(groupId, KEY_SUBJECT));
+        Assertions.assertNotNull(clientV2.getArtifactMetaData(groupId, VALUE_SUBJECT));
+    }
+
+    @Test
+    public void testSkipRegister() throws IOException, MojoFailureException, MojoExecutionException {
+        this.mojo.setSkip(true);
+        super.testRegister(mojo, groupId);
+
+        Assertions.assertThrows(ArtifactNotFoundException.class, () -> clientV2.getArtifactMetaData(groupId, KEY_SUBJECT));
+        Assertions.assertThrows(ArtifactNotFoundException.class, () -> clientV2.getArtifactMetaData(groupId, VALUE_SUBJECT));
     }
 }

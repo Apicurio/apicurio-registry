@@ -25,6 +25,9 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Consumer;
 
+import io.apicurio.registry.resolver.SchemaLookupResult;
+import io.apicurio.registry.resolver.strategy.ArtifactReference;
+import io.apicurio.registry.serde.data.ContainerWithVersion;
 import org.apache.avro.Schema;
 import org.apache.avro.io.DatumReader;
 import org.apache.avro.io.DecoderFactory;
@@ -87,6 +90,37 @@ public class AvroKafkaDeserializer<U> extends AbstractKafkaDeserializer<Schema, 
     public SchemaParser<Schema, U> schemaParser() {
         return parser;
     }
+
+    public ContainerWithVersion<U> deserializeWithVersion(String topic, byte[] data) {
+        if (data == null) {
+            return null;
+        }
+
+        ByteBuffer buffer = getByteBuffer(data);
+        ArtifactReference artifactReference = getIdHandler().readId(buffer);
+
+        SchemaLookupResult<Schema> schema = resolveWithVersion(topic, data, artifactReference);
+
+        int length = buffer.limit() - 1 - getIdHandler().idSize();
+        int start = buffer.position() + buffer.arrayOffset();
+
+        return new ContainerWithVersion<>(readData(schema.getParsedSchema(), buffer, start, length),
+                schema.getVersion());
+
+    }
+
+    private SchemaLookupResult<Schema> resolveWithVersion(String topic, byte[] data, ArtifactReference artifactReference) {
+        SchemaLookupResult<Schema> schemaWithoutVersion = resolve(topic, null, data, artifactReference);
+
+        ParsedSchema<Schema> parsedSchema = schemaWithoutVersion.getParsedSchema();
+
+        return getSchemaResolver()
+                .getSchemaMetadataByContent(
+                        null,
+                        parsedSchema.getParsedSchema().getFullName(),
+                        parsedSchema);
+    }
+
 
     @Override
     protected U readData(ParsedSchema<Schema> schema, ByteBuffer buffer, int start, int length) {

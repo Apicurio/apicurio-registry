@@ -131,6 +131,11 @@
             <artifactId>quarkus-smallrye-fault-tolerance</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-container-image-docker</artifactId>
+        </dependency>
+
         <!-- Persistence -->
         <dependency>
             <groupId>io.quarkus</groupId>

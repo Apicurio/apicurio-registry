@@ -7,8 +7,7 @@ import sys
 import shutil
 import platform
 from pathlib import Path
-
-KIOTA_VERSION = "1.5.1"
+import xml.etree.ElementTree as ET
 
 KIOTA_OS_NAMES = {"Windows": "win", "Darwin": "osx", "Linux": "linux"}
 KIOTA_ARCH_NAMES = {"32bit": "x86", "64bit": "x64"}
@@ -29,10 +28,13 @@ def generate_kiota_client_files(setup_kwargs):
         kiota_arch_name = "arm64"
 
     kiota_release_name = f"{kiota_os_name}-{kiota_arch_name}.zip"
-    # Download the Kiota release archive
-    url = f"https://github.com/microsoft/kiota/releases/download/v{KIOTA_VERSION}/{kiota_release_name}"
+    # Detecting the Kiota version from a .csproj file so that it can be updated by automatic tool (e.g. Dependabot)
+    kiota_version = ET.parse(os.path.join(sys.path[0], "kiota-version.csproj")).getroot().find(".//*[@Include='Microsoft.OpenApi.Kiota.Builder']").get("Version")
+    print(f"Using Kiota version: {kiota_version}")
+    # Download the Kiota release archive    
+    url = f"https://github.com/microsoft/kiota/releases/download/v{kiota_version}/{kiota_release_name}"
 
-    tmpdir = os.path.join(sys.path[0], "kiota_tmp", KIOTA_VERSION)
+    tmpdir = os.path.join(sys.path[0], "kiota_tmp", kiota_version)
     if not os.path.exists(tmpdir):
         print(f"Downloading Kiota from URL: {url}")
         response = requests.get(url)

@@ -224,8 +224,10 @@ over-cleaning these files, find the **os-maven-plugin-1.6.2.jar** JAR in your
 
 ## IntelliJ IDE
 
-Some notes about using the IntelliJ IDE with the Apicurio Registry codebase.  After
-importing the registry into your workspace, we recommend to ignore the `client` sub-module.
+Some notes about using the IntelliJ IDE with the Apicurio Registry codebase.
+IntelliJ seems to struggle with multiple sub-modules including generated code.
+After importing the registry into your workspace, we recommend to ignore
+the `client` sub-module.
 
 Right click on `client/pom.xml` -> Maven -> Ignore Projects (click)
 

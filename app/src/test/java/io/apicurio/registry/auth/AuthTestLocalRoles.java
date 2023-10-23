@@ -16,24 +16,22 @@
 
 package io.apicurio.registry.auth;
 
+import com.microsoft.kiota.authentication.BaseBearerTokenAuthenticationProvider;
+import com.microsoft.kiota.http.OkHttpRequestAdapter;
 import io.apicurio.common.apps.config.Info;
 import io.apicurio.registry.AbstractResourceTestBase;
-import io.apicurio.registry.rest.client.AdminClient;
 import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.rest.v2.beans.RoleMapping;
-import io.apicurio.registry.rest.v2.beans.Rule;
+import io.apicurio.registry.rest.client.models.ArtifactContent;
+import io.apicurio.registry.rest.client.models.RoleMapping;
+import io.apicurio.registry.rest.client.models.RoleType;
+import io.apicurio.registry.rest.client.models.Rule;
+import io.apicurio.registry.rest.client.models.RuleType;
+import io.apicurio.registry.rest.client.models.UpdateRole;
 import io.apicurio.registry.rules.validity.ValidityLevel;
-import io.apicurio.registry.types.RoleType;
-import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.tests.ApicurioTestTags;
 import io.apicurio.registry.utils.tests.AuthTestProfileWithLocalRoles;
 import io.apicurio.registry.utils.tests.JWKSMockServer;
-import io.apicurio.rest.client.auth.Auth;
-import io.apicurio.rest.client.auth.OidcAuth;
-import io.apicurio.rest.client.auth.exception.AuthErrorHandler;
-import io.apicurio.rest.client.auth.exception.ForbiddenException;
-import io.apicurio.rest.client.spi.ApicurioHttpClient;
-import io.apicurio.rest.client.spi.ApicurioHttpClientFactory;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -41,9 +39,9 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
-import java.io.ByteArrayInputStream;
-import java.nio.charset.StandardCharsets;
 import java.util.UUID;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Tests local role mappings (managed in the database via the role-mapping API).
@@ -66,88 +64,131 @@ public class AuthTestLocalRoles extends AbstractResourceTestBase {
     @Info(category = "auth", description = "Auth token endpoint", availableSince = "2.1.0.Final")
     String authServerUrlConfigured;
 
-    ApicurioHttpClient httpClient;
-
-
-    @Override
-    protected AdminClient createAdminClientV2() {
-        httpClient = ApicurioHttpClientFactory.create(authServerUrlConfigured, new AuthErrorHandler());
-        Auth auth = new OidcAuth(httpClient, JWKSMockServer.ADMIN_CLIENT_ID, "test1");
-        return this.createAdminClient(auth);
-    }
-
-    /**
-     * @see io.apicurio.registry.AbstractResourceTestBase#createRestClientV2()
-     */
     @Override
     protected RegistryClient createRestClientV2() {
-        httpClient = ApicurioHttpClientFactory.create(authServerUrlConfigured, new AuthErrorHandler());
-        Auth auth = new OidcAuth(httpClient, JWKSMockServer.ADMIN_CLIENT_ID, "test1");
-        return this.createClient(auth);
+        var adapter = new OkHttpRequestAdapter(
+                new BaseBearerTokenAuthenticationProvider(
+                        new OidcAccessTokenProvider(authServerUrlConfigured, JWKSMockServer.ADMIN_CLIENT_ID, "test1")));
+        adapter.setBaseUrl(registryV2ApiUrl);
+        return new RegistryClient(adapter);
+    }
+
+    private static final ArtifactContent content = new ArtifactContent();
+    private static final Rule rule = new Rule();
+
+    static {
+        content.setContent(TEST_CONTENT);
+
+        rule.setConfig(ValidityLevel.FULL.name());
+        rule.setType(RuleType.VALIDITY);
     }
 
     @Test
     public void testLocalRoles() throws Exception {
-        Auth authAdmin = new OidcAuth(httpClient, JWKSMockServer.ADMIN_CLIENT_ID, "test1");
-        AdminClient clientAdmin = createAdminClient(authAdmin);
+        var adapterAdmin = new OkHttpRequestAdapter(
+                new BaseBearerTokenAuthenticationProvider(
+                        new OidcAccessTokenProvider(authServerUrlConfigured, JWKSMockServer.ADMIN_CLIENT_ID, "test1")));
+        adapterAdmin.setBaseUrl(registryV2ApiUrl);
+        RegistryClient clientAdmin = new RegistryClient(adapterAdmin);
 
-        Auth auth = new OidcAuth(httpClient, JWKSMockServer.NO_ROLE_CLIENT_ID, "test1");
-        RegistryClient client = createClient(auth);
+        var adapterAuth = new OkHttpRequestAdapter(
+                new BaseBearerTokenAuthenticationProvider(
+                        new OidcAccessTokenProvider(authServerUrlConfigured, JWKSMockServer.NO_ROLE_CLIENT_ID, "test1")));
+        adapterAuth.setBaseUrl(registryV2ApiUrl);
+        RegistryClient client = new RegistryClient(adapterAuth);
 
         // User is authenticated but no roles assigned yet - operations should fail.
-        Assertions.assertThrows(ForbiddenException.class, () -> {
-            client.listArtifactsInGroup("default");
+        var executionException1 = Assertions.assertThrows(ExecutionException.class, () -> {
+            client.groups().byGroupId("default").artifacts().get().get(3, TimeUnit.SECONDS);
         });
-        Assertions.assertThrows(ForbiddenException.class, () -> {
-            client.createArtifact(getClass().getSimpleName(), UUID.randomUUID().toString(), new ByteArrayInputStream(TEST_CONTENT.getBytes(StandardCharsets.UTF_8)));
+        assertForbidden(executionException1);
+
+        var executionException2 = Assertions.assertThrows(ExecutionException.class, () -> {
+            client
+                .groups()
+                .byGroupId(UUID.randomUUID().toString())
+                .artifacts()
+                .post(content, config -> config.headers.add("X-Registry-ArtifactId", getClass().getSimpleName()))
+                .get(3, TimeUnit.SECONDS);
         });
-        Assertions.assertThrows(ForbiddenException.class, () -> {
-            Rule rule = new Rule();
-            rule.setConfig(ValidityLevel.FULL.name());
-            rule.setType(RuleType.VALIDITY);
-            client.createGlobalRule(rule);
+        assertForbidden(executionException2);
+
+        var executionException3 = Assertions.assertThrows(ExecutionException.class, () -> {
+            client.admin().rules().post(rule).get(3, TimeUnit.SECONDS);
         });
+        assertForbidden(executionException3);
 
         // Now let's grant read-only access to the user.
-        RoleMapping mapping = new RoleMapping();
-        mapping.setPrincipalId(JWKSMockServer.NO_ROLE_CLIENT_ID);
-        mapping.setRole(RoleType.READ_ONLY);
-        clientAdmin.createRoleMapping(mapping);
+        var roMapping = new RoleMapping();
+        roMapping.setPrincipalId(JWKSMockServer.NO_ROLE_CLIENT_ID);
+        roMapping.setRole(RoleType.READ_ONLY);
+
+        clientAdmin.admin().roleMappings().post(roMapping).get(3, TimeUnit.SECONDS);
 
         // Now the user should be able to read but nothing else
-        client.listArtifactsInGroup("default");
-        Assertions.assertThrows(ForbiddenException.class, () -> {
-            client.createArtifact(getClass().getSimpleName(), UUID.randomUUID().toString(), new ByteArrayInputStream(TEST_CONTENT.getBytes(StandardCharsets.UTF_8)));
+        client.groups().byGroupId("default").artifacts().get().get(3, TimeUnit.SECONDS);
+
+        var executionException4 = Assertions.assertThrows(ExecutionException.class, () -> {
+            client
+                    .groups()
+                    .byGroupId(UUID.randomUUID().toString())
+                    .artifacts()
+                    .post(content, config -> {
+                        config.headers.add("X-Registry-ArtifactType", ArtifactType.AVRO);
+                        config.headers.add("X-Registry-ArtifactId", getClass().getSimpleName());
+                    }).get(3, TimeUnit.SECONDS);
         });
-        Assertions.assertThrows(ForbiddenException.class, () -> {
-            Rule rule = new Rule();
-            rule.setConfig(ValidityLevel.FULL.name());
-            rule.setType(RuleType.VALIDITY);
-            client.createGlobalRule(rule);
+        assertForbidden(executionException4);
+        var executionException5 = Assertions.assertThrows(ExecutionException.class, () -> {
+            client.admin().rules().post(rule).get(3, TimeUnit.SECONDS);
         });
+        assertForbidden(executionException5);
 
         // Now let's update the user's access to Developer
-        clientAdmin.updateRoleMapping(JWKSMockServer.NO_ROLE_CLIENT_ID, RoleType.DEVELOPER);
+        var devMapping = new UpdateRole();
+        devMapping.setRole(RoleType.DEVELOPER);
+
+        clientAdmin
+                .admin()
+                .roleMappings()
+                .byPrincipalId(JWKSMockServer.NO_ROLE_CLIENT_ID)
+                .put(devMapping)
+                .get(3, TimeUnit.SECONDS);
 
         // Now the user can read and write but not admin
-        client.listArtifactsInGroup("default");
-        client.createArtifact(getClass().getSimpleName(), UUID.randomUUID().toString(), new ByteArrayInputStream(TEST_CONTENT.getBytes(StandardCharsets.UTF_8)));
-        Assertions.assertThrows(ForbiddenException.class, () -> {
-            Rule rule = new Rule();
-            rule.setConfig(ValidityLevel.FULL.name());
-            rule.setType(RuleType.VALIDITY);
-            client.createGlobalRule(rule);
+        client.groups().byGroupId("default").artifacts().get().get(3, TimeUnit.SECONDS);
+        client
+                .groups()
+                .byGroupId(UUID.randomUUID().toString())
+                .artifacts()
+                .post(content, config -> {
+                    config.headers.add("X-Registry-ArtifactId", getClass().getSimpleName());
+                }).get(3, TimeUnit.SECONDS);
+        var executionException6 = Assertions.assertThrows(ExecutionException.class, () -> {
+            client.admin().rules().post(rule).get(3, TimeUnit.SECONDS);
         });
+        assertForbidden(executionException6);
 
         // Finally let's update the level to Admin
-        clientAdmin.updateRoleMapping(JWKSMockServer.NO_ROLE_CLIENT_ID, RoleType.ADMIN);
+        var adminMapping = new UpdateRole();
+        adminMapping.setRole(RoleType.ADMIN);
+
+        clientAdmin
+                .admin()
+                .roleMappings()
+                .byPrincipalId(JWKSMockServer.NO_ROLE_CLIENT_ID)
+                .put(adminMapping)
+                .get(3, TimeUnit.SECONDS);
 
         // Now the user can do everything
-        client.listArtifactsInGroup("default");
-        client.createArtifact(getClass().getSimpleName(), UUID.randomUUID().toString(), new ByteArrayInputStream(TEST_CONTENT.getBytes(StandardCharsets.UTF_8)));
-        Rule rule = new Rule();
-        rule.setConfig(ValidityLevel.FULL.name());
-        rule.setType(RuleType.VALIDITY);
-        client.createGlobalRule(rule);
+        client.groups().byGroupId("default").artifacts().get().get(3, TimeUnit.SECONDS);
+        client
+                .groups()
+                .byGroupId(UUID.randomUUID().toString())
+                .artifacts()
+                .post(content, config -> {
+                    config.headers.add("X-Registry-ArtifactId", getClass().getSimpleName());
+                }).get(3, TimeUnit.SECONDS);
+        client.admin().rules().post(rule).get(3, TimeUnit.SECONDS);
     }
 }

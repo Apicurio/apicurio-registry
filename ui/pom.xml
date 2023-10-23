@@ -66,6 +66,7 @@
                     </execution>
                     <!-- Install npm dependencies -->
                     <execution>
+                        <?m2e ignore?>
                         <id>npm install</id>
                         <phase>compile</phase>
                         <goals>
@@ -78,6 +79,7 @@
                     </execution>
                     <!-- Lint the app -->
                     <execution>
+                        <?m2e ignore?>
                         <id>npm run lint</id>
                         <phase>compile</phase>
                         <goals>
@@ -89,6 +91,7 @@
                     </execution>
                     <!-- Build the app -->
                     <execution>
+                        <?m2e ignore?>
                         <id>npm build</id>
                         <phase>compile</phase>
                         <goals>

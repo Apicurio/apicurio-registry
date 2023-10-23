@@ -6,7 +6,7 @@ import com.squareup.wire.schema.internal.parser.ProtoFileElement;
 import com.squareup.wire.schema.internal.parser.ProtoParser;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.rest.v2.beans.ArtifactReference;
+import io.apicurio.registry.rest.client.models.ArtifactReference;
 import io.apicurio.registry.utils.protobuf.schema.FileDescriptorUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,6 +22,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 public class ProtobufDirectoryParser extends AbstractDirectoryParser<Descriptors.FileDescriptor> {
@@ -73,7 +74,7 @@ public class ProtobufDirectoryParser extends AbstractDirectoryParser<Descriptors
     }
 
     @Override
-    public List<ArtifactReference> handleSchemaReferences(RegisterArtifact rootArtifact, Descriptors.FileDescriptor protoSchema, Map<String, ContentHandle> fileContents) throws FileNotFoundException {
+    public List<ArtifactReference> handleSchemaReferences(RegisterArtifact rootArtifact, Descriptors.FileDescriptor protoSchema, Map<String, ContentHandle> fileContents) throws FileNotFoundException, ExecutionException, InterruptedException {
         Set<ArtifactReference> references = new HashSet<>();
         final Set<Descriptors.FileDescriptor> baseDeps = new HashSet<>(Arrays.asList(FileDescriptorUtils.baseDependencies()));
         final ProtoFileElement rootSchemaElement = FileDescriptorUtils.fileDescriptorToProtoFile(protoSchema.toProto());

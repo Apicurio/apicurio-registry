@@ -16,12 +16,11 @@
 
 package io.apicurio.registry.noprofile.maven;
 
-import java.io.ByteArrayInputStream;
 import java.io.File;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import io.apicurio.registry.maven.DownloadArtifact;
 import io.apicurio.registry.maven.DownloadRegistryMojo;
@@ -30,6 +29,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import io.apicurio.registry.rest.client.models.ArtifactContent;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
@@ -53,7 +53,12 @@ public class DownloadRegistryMojoTest extends RegistryMojoTestBase {
         String artifactId = generateArtifactId();
 
         Schema schema = Schema.createUnion(Arrays.asList(Schema.create(Schema.Type.STRING), Schema.create(Schema.Type.NULL)));
-        clientV2.createArtifact(groupId, artifactId, ArtifactType.AVRO, new ByteArrayInputStream(schema.toString().getBytes(StandardCharsets.UTF_8)));
+        ArtifactContent data = new ArtifactContent();
+        data.setContent(schema.toString());
+        clientV2.groups().byGroupId(groupId).artifacts().post(data, config -> {
+            config.headers.add("X-Registry-ArtifactId", artifactId);
+            config.headers.add("X-Registry-ArtifactType", ArtifactType.AVRO);
+        }).get(3, TimeUnit.SECONDS);
 
         List<DownloadArtifact> artifacts = new ArrayList<>();
         DownloadArtifact artifact = new DownloadArtifact();

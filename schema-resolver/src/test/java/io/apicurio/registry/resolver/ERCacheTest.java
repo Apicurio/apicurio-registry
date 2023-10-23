@@ -113,7 +113,7 @@ public class ERCacheTest {
         ERCache<String> cache = newCache(contentHashKey);
         Function<String, String> staticValueLoader = (key) -> {throw new IllegalStateException("load failure");};
 
-        assertThrows(IllegalStateException.class, () -> {cache.getByContentHash(contentHashKey, staticValueLoader);});
+        assertThrows(RuntimeException.class, () -> {cache.getByContentHash(contentHashKey, staticValueLoader);});
     }
 
     @Test

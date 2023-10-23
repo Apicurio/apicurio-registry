@@ -19,7 +19,7 @@ package io.apicurio.registry.maven;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.rest.v2.beans.ArtifactReference;
+import io.apicurio.registry.rest.client.models.ArtifactReference;
 import io.apicurio.registry.rules.compatibility.jsonschema.JsonUtil;
 import org.everit.json.schema.ArraySchema;
 import org.everit.json.schema.ObjectSchema;
@@ -39,6 +39,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 public class JsonSchemaDirectoryParser extends AbstractDirectoryParser<Schema> {
@@ -56,7 +57,7 @@ public class JsonSchemaDirectoryParser extends AbstractDirectoryParser<Schema> {
     }
 
     @Override
-    public List<ArtifactReference> handleSchemaReferences(RegisterArtifact rootArtifact, org.everit.json.schema.Schema rootSchema, Map<String, ContentHandle> fileContents) throws FileNotFoundException {
+    public List<ArtifactReference> handleSchemaReferences(RegisterArtifact rootArtifact, org.everit.json.schema.Schema rootSchema, Map<String, ContentHandle> fileContents) throws FileNotFoundException, ExecutionException, InterruptedException {
 
         if (rootSchema instanceof ObjectSchema) {
 

@@ -16,23 +16,15 @@
 
 package io.apicurio.registry.auth;
 
+import com.microsoft.kiota.authentication.BaseBearerTokenAuthenticationProvider;
+import com.microsoft.kiota.http.OkHttpRequestAdapter;
 import io.apicurio.common.apps.config.Info;
 import io.apicurio.registry.AbstractResourceTestBase;
-import io.apicurio.registry.rest.client.AdminClient;
 import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.rest.client.RegistryClientFactory;
-import io.apicurio.registry.rest.v2.beans.Rule;
 import io.apicurio.registry.rules.validity.ValidityLevel;
-import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.tests.ApicurioTestTags;
 import io.apicurio.registry.utils.tests.AuthTestProfileWithHeaderRoles;
 import io.apicurio.registry.utils.tests.JWKSMockServer;
-import io.apicurio.rest.client.auth.Auth;
-import io.apicurio.rest.client.auth.OidcAuth;
-import io.apicurio.rest.client.auth.exception.AuthErrorHandler;
-import io.apicurio.rest.client.auth.exception.ForbiddenException;
-import io.apicurio.rest.client.spi.ApicurioHttpClient;
-import io.apicurio.rest.client.spi.ApicurioHttpClientFactory;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -40,14 +32,10 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
-import java.io.ByteArrayInputStream;
-import java.nio.charset.StandardCharsets;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 
-import static io.apicurio.rest.client.config.ApicurioClientConfig.APICURIO_REQUEST_HEADERS_PREFIX;
 
 @QuarkusTest
 @TestProfile(AuthTestProfileWithHeaderRoles.class)
@@ -65,98 +53,128 @@ public class HeaderRoleSourceTest extends AbstractResourceTestBase {
     @Info(category = "auth", description = "Auth token endpoint", availableSince = "2.1.0.Final")
     String authServerUrlConfigured;
 
-    ApicurioHttpClient httpClient;
-
     @Override
-    protected AdminClient createAdminClientV2() {
-        httpClient = ApicurioHttpClientFactory.create(authServerUrlConfigured, new AuthErrorHandler());
-        Auth auth = new OidcAuth(httpClient, JWKSMockServer.ADMIN_CLIENT_ID, "test1");
-        return this.createAdminClient(auth);
-    }
-
-    protected RegistryClient createAdminClientRole(Auth auth) {
-        Map<String, Object> headers = new HashMap<>();
-        headers.put(APICURIO_REQUEST_HEADERS_PREFIX + "x-registry-role", "sr-admin");
-        return RegistryClientFactory.create(registryV2ApiUrl, headers, auth);
-    }
-
-    protected RegistryClient createDevClientRole(Auth auth) {
-        Map<String, Object> headers = new HashMap<>();
-        headers.put(APICURIO_REQUEST_HEADERS_PREFIX + "x-registry-role", "sr-developer");
-        return RegistryClientFactory.create(registryV2ApiUrl, headers, auth);
-    }
-
-    protected RegistryClient createNoRoleClient(Auth auth) {
-        return RegistryClientFactory.create(registryV2ApiUrl, Collections.emptyMap(), auth);
-    }
-
-    protected RegistryClient createReadClientRole(Auth auth) {
-        Map<String, Object> headers = new HashMap<>();
-        headers.put(APICURIO_REQUEST_HEADERS_PREFIX + "x-registry-role", "sr-readonly");
-        return RegistryClientFactory.create(registryV2ApiUrl, headers, auth);
+    protected RegistryClient createRestClientV2() {
+        var adapter = new OkHttpRequestAdapter(
+                new BaseBearerTokenAuthenticationProvider(
+                        new OidcAccessTokenProvider(authServerUrlConfigured, JWKSMockServer.ADMIN_CLIENT_ID, "test1")));
+        adapter.setBaseUrl(registryV2ApiUrl);
+        return new RegistryClient(adapter);
     }
 
     @Test
     public void testLocalRoles() throws Exception {
-        Auth auth = new OidcAuth(httpClient, JWKSMockServer.NO_ROLE_CLIENT_ID, "test1");
-        RegistryClient noRoleClient = createNoRoleClient(auth);
+        var content = new io.apicurio.registry.rest.client.models.ArtifactContent();
+        content.setContent(TEST_CONTENT);
 
-        Auth authRead = new OidcAuth(httpClient, JWKSMockServer.DEVELOPER_CLIENT_ID, "test1");
-        RegistryClient readClient = createReadClientRole(authRead);
+        var rule = new io.apicurio.registry.rest.client.models.Rule();
+        rule.setConfig(ValidityLevel.FULL.name());
+        rule.setType(io.apicurio.registry.rest.client.models.RuleType.VALIDITY);
 
-        Auth authDev = new OidcAuth(httpClient, JWKSMockServer.READONLY_CLIENT_ID, "test1");
-        RegistryClient devClient = createDevClientRole(authDev);
+        var noRoleAdapter = new OkHttpRequestAdapter(
+                new BaseBearerTokenAuthenticationProvider(
+                        new OidcAccessTokenProvider(authServerUrlConfigured, JWKSMockServer.NO_ROLE_CLIENT_ID, "test1")));
+        noRoleAdapter.setBaseUrl(registryV2ApiUrl);
+        var noRoleClient = new RegistryClient(noRoleAdapter);
 
-        Auth authAdmin = new OidcAuth(httpClient, JWKSMockServer.ADMIN_CLIENT_ID, "test1");
-        RegistryClient adminClient = createAdminClientRole(authAdmin);
+        var readAdapter = new OkHttpRequestAdapter(
+                new BaseBearerTokenAuthenticationProvider(
+                        new OidcAccessTokenProvider(authServerUrlConfigured, JWKSMockServer.READONLY_CLIENT_ID, "test1")));
+        readAdapter.setBaseUrl(registryV2ApiUrl);
+        var readClient = new RegistryClient(readAdapter);
+
+        var devAdapter = new OkHttpRequestAdapter(
+                new BaseBearerTokenAuthenticationProvider(
+                        new OidcAccessTokenProvider(authServerUrlConfigured, JWKSMockServer.DEVELOPER_CLIENT_ID, "test1")));
+        devAdapter.setBaseUrl(registryV2ApiUrl);
+        var devClient = new RegistryClient(devAdapter);
+
+        var adminAdapter = new OkHttpRequestAdapter(
+                new BaseBearerTokenAuthenticationProvider(
+                        new OidcAccessTokenProvider(authServerUrlConfigured, JWKSMockServer.ADMIN_CLIENT_ID, "test1")));
+        adminAdapter.setBaseUrl(registryV2ApiUrl);
+        var adminClient = new RegistryClient(adminAdapter);
 
 
         // User is authenticated but no roles assigned - operations should fail.
-        Assertions.assertThrows(ForbiddenException.class, () -> {
-            noRoleClient.listArtifactsInGroup("default");
+        var executionException1 = Assertions.assertThrows(ExecutionException.class, () -> {
+            noRoleClient.groups().byGroupId("default").artifacts().get().get(3, TimeUnit.SECONDS);
         });
+        assertForbidden(executionException1);
 
-        Assertions.assertThrows(ForbiddenException.class, () -> {
-            noRoleClient.createArtifact(getClass().getSimpleName(), UUID.randomUUID().toString(), new ByteArrayInputStream(TEST_CONTENT.getBytes(StandardCharsets.UTF_8)));
+        var executionException2 = Assertions.assertThrows(ExecutionException.class, () -> {
+            noRoleClient
+                .groups()
+                .byGroupId(UUID.randomUUID().toString())
+                .artifacts()
+                .post(content, config -> {
+                    config.headers.add("X-Registry-ArtifactId", getClass().getSimpleName());
+                }).get(3, TimeUnit.SECONDS);
         });
+        assertForbidden(executionException2);
 
-        Assertions.assertThrows(ForbiddenException.class, () -> {
-            Rule rule = new Rule();
-            rule.setConfig(ValidityLevel.FULL.name());
-            rule.setType(RuleType.VALIDITY);
-            noRoleClient.createGlobalRule(rule);
+        var executionException3 = Assertions.assertThrows(ExecutionException.class, () -> {
+            noRoleClient.admin().rules().post(rule).get(3, TimeUnit.SECONDS);
         });
+        assertForbidden(executionException3);
 
 
         // Now using the read client user should be able to read but nothing else
-        readClient.listArtifactsInGroup("default");
-        Assertions.assertThrows(ForbiddenException.class, () -> {
-            readClient.createArtifact(getClass().getSimpleName(), UUID.randomUUID().toString(), new ByteArrayInputStream(TEST_CONTENT.getBytes(StandardCharsets.UTF_8)));
+        readClient.groups().byGroupId("default").artifacts().get(config -> {
+            config.headers.add("X-Registry-Role", "sr-readonly");
+        }).get(3, TimeUnit.SECONDS);
+        var executionException4 = Assertions.assertThrows(ExecutionException.class, () -> {
+            readClient
+                    .groups()
+                    .byGroupId(UUID.randomUUID().toString())
+                    .artifacts()
+                    .post(content, config -> {
+                        config.headers.add("X-Registry-ArtifactId", getClass().getSimpleName());
+                        config.headers.add("X-Registry-Role", "sr-readonly");
+                    }).get(3, TimeUnit.SECONDS);
         });
-        Assertions.assertThrows(ForbiddenException.class, () -> {
-            Rule rule = new Rule();
-            rule.setConfig(ValidityLevel.FULL.name());
-            rule.setType(RuleType.VALIDITY);
-            readClient.createGlobalRule(rule);
-        });
+        assertForbidden(executionException4);
 
+        var executionException5 = Assertions.assertThrows(ExecutionException.class, () -> {
+            readClient.admin().rules().post(rule, config -> {
+                config.headers.add("X-Registry-Role", "sr-readonly");
+            }).get(3, TimeUnit.SECONDS);
+        });
+        assertForbidden(executionException5);
 
         // the user can read and write with the developer client but not admin
-        devClient.listArtifactsInGroup("default");
-        devClient.createArtifact(getClass().getSimpleName(), UUID.randomUUID().toString(), new ByteArrayInputStream(TEST_CONTENT.getBytes(StandardCharsets.UTF_8)));
-        Assertions.assertThrows(ForbiddenException.class, () -> {
-            Rule rule = new Rule();
-            rule.setConfig(ValidityLevel.FULL.name());
-            rule.setType(RuleType.VALIDITY);
-            devClient.createGlobalRule(rule);
+        devClient.groups().byGroupId("default").artifacts().get(config -> {
+            config.headers.add("X-Registry-Role", "sr-developer");
+        }).get(3, TimeUnit.SECONDS);
+        devClient
+            .groups()
+            .byGroupId(UUID.randomUUID().toString())
+            .artifacts()
+            .post(content, config -> {
+                config.headers.add("X-Registry-ArtifactId", getClass().getSimpleName());
+                config.headers.add("X-Registry-Role", "sr-developer");
+            }).get(3, TimeUnit.SECONDS);
+        var executionException6 = Assertions.assertThrows(ExecutionException.class, () -> {
+            devClient.admin().rules().post(rule, config -> {
+                config.headers.add("X-Registry-Role", "sr-developer");
+            }).get(3, TimeUnit.SECONDS);
         });
+        assertForbidden(executionException6);
 
         // the user can do everything with the admin client
-        adminClient.listArtifactsInGroup("default");
-        adminClient.createArtifact(getClass().getSimpleName(), UUID.randomUUID().toString(), new ByteArrayInputStream(TEST_CONTENT.getBytes(StandardCharsets.UTF_8)));
-        Rule rule = new Rule();
-        rule.setConfig(ValidityLevel.FULL.name());
-        rule.setType(RuleType.VALIDITY);
-        adminClient.createGlobalRule(rule);
+        adminClient.groups().byGroupId("default").artifacts().get(config -> {
+            config.headers.add("X-Registry-Role", "sr-admin");
+        }).get(3, TimeUnit.SECONDS);
+        adminClient
+                .groups()
+                .byGroupId(UUID.randomUUID().toString())
+                .artifacts()
+                .post(content, config -> {
+                    config.headers.add("X-Registry-ArtifactId", getClass().getSimpleName());
+                    config.headers.add("X-Registry-Role", "sr-admin");
+                }).get(3, TimeUnit.SECONDS);
+        adminClient.admin().rules().post(rule, config -> {
+            config.headers.add("X-Registry-Role", "sr-admin");
+        }).get(3, TimeUnit.SECONDS);
     }
 }

@@ -17,7 +17,6 @@
 package io.apicurio.registry;
 
 import static io.apicurio.registry.rest.v2.V2ApiUtil.defaultGroupIdToNull;
-import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.equalTo;
 
 import java.io.ByteArrayOutputStream;
@@ -26,8 +25,18 @@ import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
+import com.microsoft.kiota.ApiException;
+import com.microsoft.kiota.RequestAdapter;
+import com.microsoft.kiota.authentication.AnonymousAuthenticationProvider;
+import com.microsoft.kiota.http.OkHttpRequestAdapter;
+import io.apicurio.registry.rest.client.models.ArtifactMetaData;
+import io.apicurio.registry.rest.v2.beans.ArtifactReference;
+import io.apicurio.rest.client.auth.exception.NotAuthorizedException;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -35,20 +44,13 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 
-import io.apicurio.registry.rest.client.AdminClient;
-import io.apicurio.registry.rest.client.AdminClientFactory;
 import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.rest.client.RegistryClientFactory;
 import io.apicurio.registry.rest.v2.V2ApiUtil;
-import io.apicurio.registry.rest.v2.beans.ArtifactContent;
-import io.apicurio.registry.rest.v2.beans.ArtifactReference;
-import io.apicurio.registry.rest.v2.beans.Rule;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.types.ArtifactMediaTypes;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.tests.TestUtils;
-import io.apicurio.rest.client.auth.Auth;
 import io.confluent.kafka.schemaregistry.client.rest.RestService;
 import io.restassured.RestAssured;
 import io.restassured.parsing.Parser;
@@ -71,7 +73,6 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
     public String registryApiBaseUrl;
     protected String registryV2ApiUrl;
     protected RegistryClient clientV2;
-    protected AdminClient adminClientV2;
     protected RestService confluentClient;
 
 
@@ -81,7 +82,6 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
         registryApiBaseUrl = String.format(serverUrl, testPort);
         registryV2ApiUrl = registryApiBaseUrl + "/registry/v2";
         clientV2 = createRestClientV2();
-        adminClientV2 = createAdminClientV2();
         confluentClient = buildConfluentClient();
     }
 
@@ -95,20 +95,12 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
         return new RestService("http://localhost:" + testPort + "/apis/ccompat/v7");
     }
 
+    protected final RequestAdapter anonymousAdapter = new OkHttpRequestAdapter(new AnonymousAuthenticationProvider());
+    
     protected RegistryClient createRestClientV2() {
-        return RegistryClientFactory.create(registryV2ApiUrl);
-    }
-
-    protected AdminClient createAdminClientV2() {
-        return AdminClientFactory.create(registryV2ApiUrl);
-    }
-
-    protected RegistryClient createClient(Auth auth) {
-        return RegistryClientFactory.create(registryV2ApiUrl, Collections.emptyMap(), auth);
-    }
-
-    protected AdminClient createAdminClient(Auth auth) {
-        return AdminClientFactory.create(registryV2ApiUrl, Collections.emptyMap(), auth);
+        anonymousAdapter.setBaseUrl(registryV2ApiUrl);
+        var client = new RegistryClient(anonymousAdapter);
+        return client;
     }
 
     @BeforeEach
@@ -125,135 +117,172 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
     protected void deleteGlobalRules(int expectedDefaultRulesCount) throws Exception {
         // Delete all global rules
         TestUtils.retry(() -> {
-            adminClientV2.deleteAllGlobalRules();
-            Assertions.assertEquals(expectedDefaultRulesCount, adminClientV2.listGlobalRules().size());
+            try {
+                clientV2.admin().rules().delete().get(3, TimeUnit.SECONDS);
+            } catch (Exception err) {
+                // ignore
+            }
+            Assertions.assertEquals(expectedDefaultRulesCount, clientV2.admin().rules().get().get(3, TimeUnit.SECONDS).size());
         });
     }
 
-    protected Integer createArtifact(String artifactId, String artifactType, String artifactContent) throws Exception {
+    protected Long createArtifact(String artifactId, String artifactType, String artifactContent) throws Exception {
         return createArtifact("default", artifactId, artifactType, artifactContent);
     }
 
 
-    protected Integer createArtifact(String groupId, String artifactId, String artifactType, String artifactContent) throws Exception {
-        ValidatableResponse response = given()
-                .when()
-                .contentType(CT_JSON)
-                .pathParam("groupId", groupId)
-                .header("X-Registry-ArtifactId", artifactId)
-                .header("X-Registry-ArtifactType", artifactType)
-                .body(artifactContent)
-                .post("/registry/v2/groups/{groupId}/artifacts")
-                .then()
-                .statusCode(200)
-                .body("id", equalTo(artifactId))
-                .body("type", equalTo(artifactType));
+    protected Long createArtifact(String groupId, String artifactId, String artifactType, String artifactContent) throws Exception {
+        var content = new io.apicurio.registry.rest.client.models.ArtifactContent();
+        content.setContent(artifactContent);
+        var result = clientV2
+                .groups()
+                .byGroupId(groupId)
+                .artifacts()
+                .post(content, config -> {
+                    config.headers.add("X-Registry-ArtifactId", artifactId);
+                    config.headers.add("X-Registry-ArtifactType", artifactType);
+                })
+                .get(3, TimeUnit.SECONDS);
 
-        return response.extract().body().path("globalId");
+        assert( result.getId().equals(artifactId) );
+        assert( result.getType().equals(artifactType) );
+
+        return result.getGlobalId();
     }
 
-    protected Integer createArtifactWithReferences(String groupId, String artifactId, String artifactType, String artifactContent, List<ArtifactReference> artifactReferences) throws Exception {
+    protected Long createArtifactWithReferences(String groupId, String artifactId, String artifactType, String artifactContent, List<ArtifactReference> artifactReferences) throws Exception {
 
-        ValidatableResponse response = createArtifactExtendedRaw(groupId, artifactId, artifactType, artifactContent, artifactReferences)
-                .statusCode(200)
-                .body("id", equalTo(artifactId))
-                .body("type", equalTo(artifactType));
+        var response = createArtifactExtendedRaw(groupId, artifactId, artifactType, artifactContent, artifactReferences);
 
-        return response.extract().body().path("globalId");
+        assert( response.getType().equals(artifactType) );
+        assert( response.getId().equals(artifactId) );
+
+        return response.getGlobalId();
     }
 
-    protected Integer updateArtifactWithReferences(String groupId, String artifactId, String artifactType, String artifactContent, List<ArtifactReference> artifactReferences) throws Exception {
+    protected Long updateArtifactWithReferences(String groupId, String artifactId, String artifactType, String artifactContent, List<ArtifactReference> artifactReferences) throws Exception {
 
-        ValidatableResponse response = updateArtifactExtendedRaw(groupId, artifactId, artifactType, artifactContent, artifactReferences)
-                .statusCode(200)
-                .body("id", equalTo(artifactId))
-                .body("type", equalTo(artifactType));
+        var response = updateArtifactExtendedRaw(groupId, artifactId, artifactType, artifactContent, artifactReferences);
 
-        return response.extract().body().path("globalId");
+        assert( response.getType().equals(artifactType) );
+        assert( response.getId().equals(artifactId) );
+
+        return response.getGlobalId();
     }
 
-    protected ValidatableResponse createArtifactExtendedRaw(String groupId, String artifactId, String artifactType, String artifactContent, List<ArtifactReference> artifactReferences) throws Exception {
+    protected ArtifactMetaData createArtifactExtendedRaw(String groupId, String artifactId, String artifactType, String artifactContent, List<ArtifactReference> artifactReferences) throws Exception {
 
-        ArtifactContent ArtifactContent = new ArtifactContent();
-        ArtifactContent.setContent(artifactContent);
-        ArtifactContent.setReferences(artifactReferences);
+        var content = new io.apicurio.registry.rest.client.models.ArtifactContent();
+        content.setContent(artifactContent);
+        if (artifactReferences != null) {
+            var references = artifactReferences.stream().map(r -> {
+                var ref = new io.apicurio.registry.rest.client.models.ArtifactReference();
+                ref.setArtifactId(r.getArtifactId());
+                ref.setGroupId(r.getGroupId());
+                ref.setVersion(r.getVersion());
+                ref.setName(r.getName());
+                return ref;
+            }).collect(Collectors.toList());
+            content.setReferences(references);
+        }
 
-        var request = given()
-                .when()
-                .contentType(CT_JSON_EXTENDED)
-                .pathParam("groupId", groupId);
-
-        if (artifactId != null)
-            request.header("X-Registry-ArtifactId", artifactId);
-        if (artifactType != null)
-            request.header("X-Registry-ArtifactType", artifactType);
-
-        return request
-                .body(ArtifactContent)
-                .post("/registry/v2/groups/{groupId}/artifacts")
-                .then();
+        return clientV2
+                .groups()
+                .byGroupId(groupId)
+                .artifacts()
+                .post(content, config -> {
+                    if (artifactId != null) {
+                        config.headers.add("X-Registry-ArtifactId", artifactId);
+                    }
+                    if (artifactType != null) {
+                        config.headers.add("X-Registry-ArtifactType", artifactType);
+                    }
+                })
+                .get(3, TimeUnit.SECONDS);
     }
 
-    protected ValidatableResponse updateArtifactExtendedRaw(String groupId, String artifactId, String artifactType, String artifactContent, List<ArtifactReference> artifactReferences) throws Exception {
+    protected ArtifactMetaData updateArtifactExtendedRaw(String groupId, String artifactId, String artifactType, String artifactContent, List<ArtifactReference> artifactReferences) throws Exception {
 
-        ArtifactContent contentCreateRequest = new ArtifactContent();
+        var contentCreateRequest = new io.apicurio.registry.rest.client.models.ArtifactContent();
         contentCreateRequest.setContent(artifactContent);
-        contentCreateRequest.setReferences(artifactReferences);
+        var references = artifactReferences.stream().map(r -> {
+            var ref = new io.apicurio.registry.rest.client.models.ArtifactReference();
+            ref.setArtifactId(r.getArtifactId());
+            ref.setGroupId(r.getGroupId());
+            ref.setVersion(r.getVersion());
+            ref.setName(r.getName());
+            return ref;
+        }).collect(Collectors.toList());
+        contentCreateRequest.setReferences(references);
 
-        var request = given()
-                .when()
-                .contentType(CT_JSON_EXTENDED)
-                .pathParam("groupId", groupId)
-                .pathParam("artifactId", artifactId);
-
-        if (artifactId != null)
-            request.header("X-Registry-ArtifactId", artifactId);
-        if (artifactType != null)
-            request.header("X-Registry-ArtifactType", artifactType);
-
-        return request
-                .body(contentCreateRequest)
-                .put("/registry/v2/groups/{groupId}/artifacts/{artifactId}")
-                .then();
+        return clientV2
+                .groups()
+                .byGroupId(groupId)
+                .artifacts()
+                .byArtifactId(artifactId)
+                .put(contentCreateRequest, config -> {
+                    config.headers.add("X-Registry-ArtifactId", artifactId);
+                    config.headers.add("X-Registry-ArtifactType", artifactType);
+                })
+                .get(3, TimeUnit.SECONDS);
     }
 
-
-    protected Integer createArtifactVersion(String artifactId, String artifactType, String artifactContent) throws Exception {
+    protected Long createArtifactVersion(String artifactId, String artifactType, String artifactContent) throws Exception {
         return createArtifactVersion("default", artifactId, artifactType, artifactContent);
     }
 
-    protected Integer createArtifactVersion(String groupId, String artifactId, String artifactType, String artifactContent) throws Exception {
-        ValidatableResponse response = given()
-                .when()
-                .contentType(CT_JSON)
-                .pathParam("groupId", groupId)
-                .pathParam("artifactId", artifactId)
-                .header("X-Registry-ArtifactType", artifactType)
-                .body(artifactContent)
-                .post("/registry/v2/groups/{groupId}/artifacts/{artifactId}/versions")
-                .then()
-                .statusCode(200)
-                .body("id", equalTo(artifactId))
-                .body("type", equalTo(artifactType));
+    protected Long createArtifactVersion(String groupId, String artifactId, String artifactType, String artifactContent) throws Exception {
+        var content = new io.apicurio.registry.rest.client.models.ArtifactContent();
+        content.setContent(artifactContent);
 
-        return response.extract().body().path("globalId");
+        var version = clientV2
+                .groups()
+                .byGroupId(groupId)
+                .artifacts()
+                .byArtifactId(artifactId)
+                .versions()
+                .post(content, config -> {config.headers.add("X-Registry-ArtifactType", artifactType); })
+                .get(3, TimeUnit.SECONDS);
+
+        assert( version.getId().equals(artifactId) );
+        assert( version.getType().equals(artifactType) );
+
+        return version.getGlobalId();
     }
 
-    protected void createArtifactRule(String groupId, String artifactId, RuleType ruleType, String ruleConfig) {
-        final Rule rule = new Rule();
+    protected void createArtifactRule(String groupId, String artifactId, RuleType ruleType, String ruleConfig) throws ExecutionException, InterruptedException, TimeoutException {
+        var rule = new io.apicurio.registry.rest.client.models.Rule();
         rule.setConfig(ruleConfig);
-        rule.setType(ruleType);
-        clientV2.createArtifactRule(groupId, artifactId, rule);
+        rule.setType(io.apicurio.registry.rest.client.models.RuleType.forValue(ruleType.value()));
+
+        clientV2
+                .groups()
+                .byGroupId(groupId)
+                .artifacts()
+                .byArtifactId(artifactId)
+                .rules()
+                .post(rule)
+                .get(3, TimeUnit.SECONDS);
     }
 
     @SuppressWarnings("deprecation")
-    protected Rule createGlobalRule(RuleType ruleType, String ruleConfig) {
-        final Rule rule = new Rule();
+    protected io.apicurio.registry.rest.client.models.Rule createGlobalRule(RuleType ruleType, String ruleConfig) throws ExecutionException, InterruptedException, TimeoutException {
+        var rule = new io.apicurio.registry.rest.client.models.Rule();
         rule.setConfig(ruleConfig);
-        rule.setType(ruleType);
-        clientV2.createGlobalRule(rule);
+        rule.setType(io.apicurio.registry.rest.client.models.RuleType.forValue(ruleType.value()));
 
-        return rule;
+        clientV2
+            .admin()
+            .rules()
+            .post(rule)
+            .get(3, TimeUnit.SECONDS);
+        // TODO: verify this get
+        return clientV2
+                .admin()
+                .rules()
+                .byRule(ruleType.value())
+                .get()
+                .get(3, TimeUnit.SECONDS);
     }
 
     /**
@@ -298,5 +327,23 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
                 .peek(r -> r.setGroupId(defaultGroupIdToNull(r.getGroupId())))
                 .map(V2ApiUtil::referenceToDto)
                 .collect(Collectors.toList());
+    }
+
+    protected void assertForbidden(ExecutionException executionException) {
+        Assertions.assertNotNull(executionException.getCause());
+        Assertions.assertEquals(ApiException.class, executionException.getCause().getClass());
+        Assertions.assertEquals(403, ((ApiException)executionException.getCause()).responseStatusCode);
+    }
+
+    protected void assertNotAuthorized(ExecutionException executionException) {
+        Assertions.assertNotNull(executionException.getCause());
+
+        if (executionException.getCause() instanceof  NotAuthorizedException) {
+            // thrown by the token provider adapter
+        } else {
+            // mapped by Kiota
+            Assertions.assertEquals(ApiException.class, executionException.getCause().getClass());
+            Assertions.assertEquals(401, ((ApiException) executionException.getCause()).responseStatusCode);
+        }
     }
 }

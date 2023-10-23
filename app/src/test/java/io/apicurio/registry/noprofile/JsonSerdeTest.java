@@ -18,8 +18,9 @@ package io.apicurio.registry.noprofile;
 
 import static io.apicurio.registry.utils.tests.TestUtils.retry;
 
-import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import io.apicurio.registry.AbstractResourceTestBase;
 import org.apache.kafka.common.header.Headers;
@@ -27,7 +28,8 @@ import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
+import io.apicurio.registry.rest.client.models.ArtifactContent;
+import io.apicurio.registry.rest.client.models.ArtifactMetaData;
 import io.apicurio.registry.serde.SerdeConfig;
 import io.apicurio.registry.serde.jsonschema.JsonSchemaKafkaDeserializer;
 import io.apicurio.registry.serde.jsonschema.JsonSchemaKafkaSerializer;
@@ -44,15 +46,20 @@ public class JsonSerdeTest extends AbstractResourceTestBase {
     @Test
     public void testSchema() throws Exception {
         String groupId = "JsonSerdeTest_testSchema";
-        InputStream jsonSchema = getClass().getResourceAsStream("/io/apicurio/registry/util/json-schema.json");
+        String jsonSchema = new String(getClass().getResourceAsStream("/io/apicurio/registry/util/json-schema.json").readAllBytes(), StandardCharsets.UTF_8);
         Assertions.assertNotNull(jsonSchema);
 
         String artifactId = generateArtifactId();
 
-        ArtifactMetaData amd = clientV2.createArtifact(groupId, artifactId + "-value", ArtifactType.JSON, jsonSchema);
+        ArtifactContent content = new ArtifactContent();
+        content.setContent(jsonSchema);
+        ArtifactMetaData amd = clientV2.groups().byGroupId(groupId).artifacts().post(content, config -> {
+            config.headers.add("X-Registry-ArtifactId", artifactId + "-value");
+            config.headers.add("X-Registry-ArtifactType", ArtifactType.JSON);
+        }).get(3, TimeUnit.SECONDS);
 
         // make sure we have schema registered
-        retry(() -> clientV2.getContentByGlobalId(amd.getGlobalId()));
+        retry(() -> clientV2.ids().globalIds().byGlobalId(amd.getGlobalId()).get().get(3, TimeUnit.SECONDS));
 
         Person person = new Person("Ales", "Justin", 23);
 

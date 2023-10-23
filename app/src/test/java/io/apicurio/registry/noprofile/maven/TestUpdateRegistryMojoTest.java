@@ -16,11 +16,11 @@
 
 package io.apicurio.registry.noprofile.maven;
 
-import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import io.apicurio.registry.maven.TestArtifact;
 import io.apicurio.registry.maven.TestUpdateRegistryMojo;
@@ -30,9 +30,11 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import io.apicurio.registry.rest.v2.beans.Rule;
+import io.apicurio.registry.rest.client.models.ArtifactContent;
+import io.apicurio.registry.rest.client.models.ArtifactMetaData;
+import io.apicurio.registry.rest.client.models.Rule;
+import io.apicurio.registry.rest.client.models.RuleType;
 import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
 
@@ -62,16 +64,21 @@ public class TestUpdateRegistryMojoTest extends RegistryMojoTestBase {
                                                   "     {\"name\": \"favorite_number\",  \"type\": \"int\"}" +
                                                   " ]" +
                                                   "}");
-        clientV2.createArtifact(groupId, artifactId, ArtifactType.AVRO, new ByteArrayInputStream(schema.toString().getBytes(StandardCharsets.UTF_8)));
+        ArtifactContent content = new ArtifactContent();
+        content.setContent(schema.toString());
+        ArtifactMetaData meta = clientV2.groups().byGroupId(groupId).artifacts().post(content, config -> {
+            config.headers.add("X-Registry-ArtifactId", artifactId);
+            config.headers.add("X-Registry-ArtifactType", ArtifactType.AVRO);
+        }).get(3, TimeUnit.SECONDS);
 
         Rule rule = new Rule();
         rule.setType(RuleType.COMPATIBILITY);
         rule.setConfig("BACKWARD");
-        clientV2.createArtifactRule(groupId, artifactId, rule);
+        clientV2.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).rules().post(rule).get(2, TimeUnit.SECONDS);
 
         // Wait for the rule configuration to be set.
         TestUtils.retry(() -> {
-            Rule rconfig = clientV2.getArtifactRuleConfig(groupId, artifactId, RuleType.COMPATIBILITY);
+            Rule rconfig = clientV2.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).rules().byRule(RuleType.COMPATIBILITY.getValue()).get().get(3, TimeUnit.SECONDS);
             Assertions.assertEquals("BACKWARD", rconfig.getConfig());
         });
 

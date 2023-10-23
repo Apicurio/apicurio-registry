@@ -59,6 +59,7 @@ public class ERCache<V> {
     private Duration lifetime = Duration.ZERO;
     private Duration backoff = Duration.ofMillis(200);
     private long retries;
+    private boolean cacheLatest;
     private boolean faultTolerantRefresh;
 
     // === Configuration
@@ -73,6 +74,16 @@ public class ERCache<V> {
 
     public void configureRetryCount(long retries) {
         this.retries = retries;
+    }
+
+    /**
+     * If {@code true}, will cache schema lookups that either have `latest` or no version specified.  Setting this to false
+     * will effectively disable caching for schema lookups that do not specify a version.
+     * 
+     * @param cacheLatest  Whether to enable cache of artifacts without a version specified.
+     */
+    public void configureCacheLatest(boolean cacheLatest) {
+        this.cacheLatest = cacheLatest;
     }
 
     /**
@@ -103,6 +114,16 @@ public class ERCache<V> {
 
     public void configureContentHashKeyExtractor(Function<V, String> keyExtractor) {
         this.keyExtractor5 = keyExtractor;
+    }
+
+    /**
+     * Return whether caching of artifact lookups with {@code null} versions is enabled.
+     * 
+     * @return  {@code true} if it's enabled.
+     * @see #configureCacheLatest(boolean) 
+     */
+    public boolean isCacheLatest() {
+        return this.cacheLatest;
     }
 
     /**
@@ -181,7 +202,7 @@ public class ERCache<V> {
             });
             if (newValue.isOk()) {
                 // Index
-                reindex(new WrappedValue<>(lifetime, Instant.now(), newValue.ok));
+                reindex(new WrappedValue<>(lifetime, Instant.now(), newValue.ok), key);
                 // Return
                 result = newValue.ok;
             } else {
@@ -197,11 +218,18 @@ public class ERCache<V> {
         return result;
     }
 
-    private void reindex(WrappedValue<V> newValue) {
+    private <T> void reindex(WrappedValue<V> newValue, T lookupKey) {
         Optional.ofNullable(keyExtractor1.apply(newValue.value)).ifPresent(k -> index1.put(k, newValue));
         Optional.ofNullable(keyExtractor2.apply(newValue.value)).ifPresent(k -> index2.put(k, newValue));
         Optional.ofNullable(keyExtractor3.apply(newValue.value)).ifPresent(k -> index3.put(k, newValue));
-        Optional.ofNullable(keyExtractor4.apply(newValue.value)).ifPresent(k -> index4.put(k, newValue));
+        Optional.ofNullable(keyExtractor4.apply(newValue.value)).ifPresent(k -> {
+            index4.put(k, newValue);
+            // By storing the lookup key, we ensure that a null/latest lookup gets cached, as the key extractor will
+            // automatically add the version to the new key
+            if (this.cacheLatest && k.getClass().equals(lookupKey.getClass())) {
+                index4.put((ArtifactCoordinates) lookupKey, newValue);
+            }
+        });
         Optional.ofNullable(keyExtractor5.apply(newValue.value)).ifPresent(k -> index5.put(k, newValue));
     }
 

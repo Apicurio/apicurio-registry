@@ -26,7 +26,8 @@ import javax.annotation.PostConstruct;
 import javax.enterprise.context.ApplicationScoped;
 
 /**
- * A MySQL Server implementation of the {@link RegistryStorage} interface.
+ * A SQL implementation of the {@link RegistryStorage} interface.  This impl does not
+ * use any ORM technology - it simply uses native SQL for all operations.
  *
  * @author bruno.ariev@gmail.com
  */
@@ -37,13 +38,13 @@ import javax.enterprise.context.ApplicationScoped;
 @Logged
 public class MySqlRegistryStorage extends AbstractSqlRegistryStorage {
 
-    public MySqlRegistryStorage() {
-        super(true);
-    }
+    @Inject
+    HandleFactory handleFactory;
 
     @PostConstruct
     void onConstruct() {
-        log.info("Using MySQL registry storage.");
+        log.info("Using MySQL artifactStore.");
+        initialize(handleFactory, true);
     }
 
 }

@@ -17,7 +17,7 @@
 package io.apicurio.tests.smokeTests.confluent;
 
 import io.apicurio.tests.ConfluentBaseIT;
-import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.rest.client.models.RuleType;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.avro.AvroSchema;
@@ -29,6 +29,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import static io.apicurio.tests.utils.Constants.SMOKE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -81,9 +82,9 @@ class RulesResourceConfluentIT extends ConfluentBaseIT {
     @AfterAll
     void clearRules() throws Exception {
         LOGGER.info("Removing all global rules");
-        registryClient.deleteAllGlobalRules();
+        registryClient.admin().rules().delete().get(3, TimeUnit.SECONDS);
         retryOp((rc) -> {
-            List<RuleType> rules = rc.listGlobalRules();
+            List<RuleType> rules = rc.admin().rules().get().get(3, TimeUnit.SECONDS);
             assertEquals(0, rules.size(), "All global rules not deleted");
         });
     }

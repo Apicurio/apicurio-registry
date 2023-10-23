@@ -21,6 +21,7 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.Mojo;
@@ -80,7 +81,7 @@ public class DownloadRegistryMojo extends AbstractRegistryMojo {
     }
 
     @Override
-    protected void executeInternal() throws MojoExecutionException {
+    protected void executeInternal() throws MojoExecutionException, ExecutionException, InterruptedException {
         validate();
 
         int errorCount = 0;
@@ -95,7 +96,7 @@ public class DownloadRegistryMojo extends AbstractRegistryMojo {
         }
     }
 
-    private int downloadArtifact(DownloadArtifact artifact) {
+    private int downloadArtifact(DownloadArtifact artifact) throws ExecutionException, InterruptedException {
         int errorCount = 0;
         String groupId = artifact.getGroupId();
         String artifactId = artifact.getArtifactId();
@@ -105,8 +106,8 @@ public class DownloadRegistryMojo extends AbstractRegistryMojo {
         getLog().info(String.format("Downloading artifact [%s] / [%s] (version %s).", groupId, artifactId, version));
 
         try (InputStream content = version == null ?
-                getClient().getLatestArtifact(groupId, artifactId) :
-                getClient().getArtifactVersion(groupId, artifactId, version)) {
+                getClient().groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get().get() :
+                getClient().groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersion(version).get().get()) {
 
             if (!artifact.getFile().getParentFile().exists()) {
                 artifact.getFile().getParentFile().mkdirs();

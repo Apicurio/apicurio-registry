@@ -16,22 +16,21 @@
 
 package io.apicurio.registry.resolver;
 
+import com.microsoft.kiota.RequestAdapter;
+import com.microsoft.kiota.authentication.AnonymousAuthenticationProvider;
+import com.microsoft.kiota.authentication.BaseBearerTokenAuthenticationProvider;
+import com.microsoft.kiota.http.OkHttpRequestAdapter;
+import io.apicurio.registry.auth.BasicAuthenticationProvider;
+import io.apicurio.registry.auth.OidcAccessTokenProvider;
 import io.apicurio.registry.resolver.config.DefaultSchemaResolverConfig;
 import io.apicurio.registry.resolver.data.Record;
-import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
 import io.apicurio.registry.resolver.strategy.ArtifactReference;
+import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
 import io.apicurio.registry.resolver.utils.Utils;
 import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.rest.client.RegistryClientFactory;
-import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
-import io.apicurio.registry.rest.v2.beans.VersionMetaData;
+import io.apicurio.registry.rest.client.models.ArtifactMetaData;
+import io.apicurio.registry.rest.client.models.VersionMetaData;
 import io.apicurio.registry.utils.IoUtil;
-import io.apicurio.rest.client.auth.Auth;
-import io.apicurio.rest.client.auth.BasicAuth;
-import io.apicurio.rest.client.auth.OidcAuth;
-import io.apicurio.rest.client.auth.exception.AuthErrorHandler;
-import io.apicurio.rest.client.spi.ApicurioHttpClient;
-import io.apicurio.rest.client.spi.ApicurioHttpClientFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -41,6 +40,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ExecutionException;
 
 /**
  * Base implementation of {@link SchemaResolver}
@@ -56,7 +56,6 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
     protected DefaultSchemaResolverConfig config;
     protected SchemaParser<S, T> schemaParser;
     protected RegistryClient client;
-    protected ApicurioHttpClient authClient;
     protected ArtifactReferenceResolverStrategy<S, T> artifactResolverStrategy;
 
     protected String explicitArtifactGroupId;
@@ -85,7 +84,9 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
                     if (username != null) {
                         client = configureClientWithBasicAuth(config, baseUrl, username);
                     } else {
-                        client = RegistryClientFactory.create(baseUrl, config.originals());
+                        var adapter = new OkHttpRequestAdapter(new AnonymousAuthenticationProvider());
+                        adapter.setBaseUrl(baseUrl);
+                        client = new RegistryClient(adapter);
                     }
                 }
             } catch (Exception e) {
@@ -182,20 +183,32 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
             //TODO or at least add some method to the api to return the version metadata by globalId
 //            ArtifactMetaData artifactMetadata = client.getArtifactMetaData("TODO", artifactId);
 
-            InputStream rawSchema = client.getContentByGlobalId(globalIdKey, false,  true);
+            InputStream rawSchema = null;
+            ParsedSchemaImpl<S> ps = null;
+            try {
+                rawSchema = client.ids().globalIds().byGlobalId(globalId).get(config -> {
+                    config.headers.add("CANONICAL", "false");
+                    config.headers.add("DEREFERENCE", "true");
+                }).get();
 
-            //Get the artifact references
-            final List<io.apicurio.registry.rest.v2.beans.ArtifactReference> artifactReferences = client.getArtifactReferencesByGlobalId(globalId);
-            //If there are any references for the schema being parsed, resolve them before parsing the schema
-            final Map<String, ParsedSchema<S>> resolvedReferences = resolveReferences(artifactReferences);
+                //Get the artifact references
+                final List<io.apicurio.registry.rest.client.models.ArtifactReference> artifactReferences = client.ids().globalIds().byGlobalId(globalId).references().get().get();
+                //If there are any references for the schema being parsed, resolve them before parsing the schema
+                final Map<String, ParsedSchema<S>> resolvedReferences = resolveReferences(artifactReferences);
 
-            byte[] schema = IoUtil.toBytes(rawSchema);
-            S parsed = schemaParser.parseSchema(schema, resolvedReferences);
+                byte[] schema = IoUtil.toBytes(rawSchema);
+                S parsed = schemaParser.parseSchema(schema, resolvedReferences);
 
-            ParsedSchemaImpl<S> ps = new ParsedSchemaImpl<S>()
-                    .setParsedSchema(parsed)
-                    .setSchemaReferences(new ArrayList<>(resolvedReferences.values()))
-                    .setRawSchema(schema);
+                ps = new ParsedSchemaImpl<S>()
+                        .setParsedSchema(parsed)
+                        .setSchemaReferences(new ArrayList<>(resolvedReferences.values()))
+                        .setRawSchema(schema);
+
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            } catch (ExecutionException e) {
+                throw new RuntimeException(e);
+            }
 
             SchemaLookupResult.SchemaLookupResultBuilder<S> result = SchemaLookupResult.builder();
 
@@ -210,17 +223,33 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
         });
     }
 
-    protected Map<String, ParsedSchema<S>> resolveReferences(List<io.apicurio.registry.rest.v2.beans.ArtifactReference> artifactReferences) {
+    protected Map<String, ParsedSchema<S>> resolveReferences(List<io.apicurio.registry.rest.client.models.ArtifactReference> artifactReferences) {
         Map<String, ParsedSchema<S>> resolvedReferences = new HashMap<>();
         artifactReferences.forEach(reference -> {
-            final InputStream referenceContent = client.getArtifactVersion(reference.getGroupId(), reference.getArtifactId(), reference.getVersion());
-            final List<io.apicurio.registry.rest.v2.beans.ArtifactReference> referenceReferences = client.getArtifactReferencesByCoordinates(reference.getGroupId(), reference.getArtifactId(), reference.getVersion());
-            if (!referenceReferences.isEmpty()) {
-                final Map<String, ParsedSchema<S>> nestedReferences = resolveReferences(referenceReferences);
-                resolvedReferences.putAll(nestedReferences);
-                resolvedReferences.put(reference.getName(), parseSchemaFromStream(reference.getName(), referenceContent, resolveReferences(referenceReferences)));
-            } else {
-                resolvedReferences.put(reference.getName(), parseSchemaFromStream(reference.getName(), referenceContent, Collections.emptyMap()));
+            try {
+                final InputStream referenceContent = client.groups().byGroupId(reference.getGroupId() == null ? "default" : reference.getGroupId()).artifacts().byArtifactId(reference.getArtifactId()).versions().byVersion(reference.getVersion()).get().get();
+                final List<io.apicurio.registry.rest.client.models.ArtifactReference> referenceReferences = client
+                    .groups()
+                    .byGroupId(reference.getGroupId() == null ? "default" : reference.getGroupId()) // TODO verify the old logic: .pathParams(List.of(groupId == null ? "null" : groupId, artifactId, version)) GroupRequestsProvider.java
+                    .artifacts()
+                    .byArtifactId(reference.getArtifactId())
+                    .versions()
+                    .byVersion(reference.getVersion())
+                    .references()
+                    .get()
+                    .get();
+
+                if (!referenceReferences.isEmpty()) {
+                    final Map<String, ParsedSchema<S>> nestedReferences = resolveReferences(referenceReferences);
+                    resolvedReferences.putAll(nestedReferences);
+                    resolvedReferences.put(reference.getName(), parseSchemaFromStream(reference.getName(), referenceContent, resolveReferences(referenceReferences)));
+                } else {
+                    resolvedReferences.put(reference.getName(), parseSchemaFromStream(reference.getName(), referenceContent, Collections.emptyMap()));
+                }
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            } catch (ExecutionException e) {
+                throw new RuntimeException(e);
             }
         });
         return resolvedReferences;
@@ -249,25 +278,20 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
      */
     @Override
     public void close() throws IOException {
-        if (this.client != null) {
-            this.client.close();
-        }
-        if (this.authClient != null) {
-            this.authClient.close();
-        }
     }
 
     private RegistryClient configureClientWithBearerAuthentication(DefaultSchemaResolverConfig config, String registryUrl, String authServerUrl, String tokenEndpoint) {
-        Auth auth;
+        RequestAdapter auth;
         if (authServerUrl != null) {
             auth = configureAuthWithRealm(config, authServerUrl);
         } else {
             auth = configureAuthWithUrl(config, tokenEndpoint);
         }
-        return RegistryClientFactory.create(registryUrl, config.originals(), auth);
+        auth.setBaseUrl(registryUrl);
+        return new RegistryClient(auth);
     }
 
-    private OidcAuth configureAuthWithRealm(DefaultSchemaResolverConfig config, String authServerUrl) {
+    private RequestAdapter configureAuthWithRealm(DefaultSchemaResolverConfig config, String authServerUrl) {
         final String realm = config.getAuthRealm();
 
         if (realm == null) {
@@ -279,7 +303,7 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
         return configureAuthWithUrl(config, tokenEndpoint);
     }
 
-    private OidcAuth configureAuthWithUrl(DefaultSchemaResolverConfig config, String tokenEndpoint) {
+    private RequestAdapter configureAuthWithUrl(DefaultSchemaResolverConfig config, String tokenEndpoint) {
         final String clientId = config.getAuthClientId();
 
         if (clientId == null) {
@@ -293,8 +317,10 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
 
         final String clientScope = config.getAuthClientScope();
 
-        authClient = ApicurioHttpClientFactory.create(tokenEndpoint, new AuthErrorHandler());
-        return new OidcAuth(authClient, clientId, clientSecret, null, clientScope);
+        RequestAdapter adapter = new OkHttpRequestAdapter(
+                new BaseBearerTokenAuthenticationProvider(
+                        new OidcAccessTokenProvider(tokenEndpoint, clientId, clientSecret, null, clientScope)));
+        return adapter;
     }
 
     private RegistryClient configureClientWithBasicAuth(DefaultSchemaResolverConfig config, String registryUrl, String username) {
@@ -305,9 +331,10 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
             throw new IllegalArgumentException("Missing registry auth password, set " + SchemaResolverConfig.AUTH_PASSWORD);
         }
 
-        Auth auth = new BasicAuth(username, password);
+        var adapter = new OkHttpRequestAdapter(new BasicAuthenticationProvider(username, password));
 
-        return RegistryClientFactory.create(registryUrl, config.originals(), auth);
+        adapter.setBaseUrl(registryUrl);
+        return new RegistryClient(adapter);
     }
 
     protected void loadFromArtifactMetaData(ArtifactMetaData artifactMetadata, SchemaLookupResult.SchemaLookupResultBuilder<S> resultBuilder) {

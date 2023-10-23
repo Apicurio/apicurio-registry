@@ -22,6 +22,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.microsoft.kiota.RequestAdapter;
 import org.junit.jupiter.api.Test;
 
 import io.apicurio.registry.resolver.strategy.ArtifactReference;
@@ -33,11 +34,12 @@ public class DefaultSchemaResolverTest {
         DefaultSchemaResolver<String, String> resolver = new DefaultSchemaResolver<>();
         String contentHash = "content hash value";
         String schemaContent = "schema content";
-        RegistryClient client = new MockRegistryClient(schemaContent);
+        RequestAdapter mockRequestAdapter = new MockRequestAdapter(schemaContent);
+        RegistryClient client = new RegistryClient(mockRequestAdapter);
         resolver.setClient(client);
         Map<String, String> configs = new HashMap<>();
         SchemaParser<String, String> schemaParser = new MockSchemaParser();
-        resolver.configure(configs, schemaParser);            
+        resolver.configure(configs, schemaParser);
 
         ArtifactReference reference = ArtifactReference.builder().contentHash(contentHash).build();
         SchemaLookupResult<String> result = resolver.resolveSchemaByArtifactReference(reference);
@@ -51,7 +53,8 @@ public class DefaultSchemaResolverTest {
         DefaultSchemaResolver<String, String> resolver = new DefaultSchemaResolver<>();
         String contentHash = "another content hash value";
         String schemaContent = "more schema content";
-        MockRegistryClient client = new MockRegistryClient(schemaContent);
+        MockRequestAdapter adapter = new MockRequestAdapter(schemaContent);
+        RegistryClient client = new RegistryClient(adapter);
         resolver.setClient(client);
         Map<String, String> configs = new HashMap<>();
         SchemaParser<String, String> schemaParser = new MockSchemaParser();
@@ -65,7 +68,7 @@ public class DefaultSchemaResolverTest {
         assertEquals(schemaContent, new String(result1.getParsedSchema().getRawSchema(), StandardCharsets.UTF_8));
         assertEquals(contentHash, result2.getContentHash());
         assertEquals(schemaContent, new String(result2.getParsedSchema().getRawSchema(), StandardCharsets.UTF_8));
-        assertEquals(1, client.timesGetContentByHashCalled);
+        assertEquals(1, adapter.timesGetContentByHashCalled);
     }
 
 }

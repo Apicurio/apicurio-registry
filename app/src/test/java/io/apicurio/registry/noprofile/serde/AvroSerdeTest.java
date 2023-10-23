@@ -22,12 +22,13 @@ import com.kubetrade.schema.trade.AvroSchemaC;
 import com.kubetrade.schema.trade.AvroSchemaD;
 import com.kubetrade.schema.trade.AvroSchemaE;
 import com.kubetrade.schema.trade.AvroSchemaF;
+import com.microsoft.kiota.authentication.AnonymousAuthenticationProvider;
+import com.microsoft.kiota.http.OkHttpRequestAdapter;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.resolver.SchemaResolverConfig;
 import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
 import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.rest.client.RegistryClientFactory;
-import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
+import io.apicurio.registry.rest.client.models.ArtifactMetaData;
 import io.apicurio.registry.serde.SerdeConfig;
 import io.apicurio.registry.serde.SerdeHeaders;
 import io.apicurio.registry.serde.avro.AvroKafkaDeserializer;
@@ -63,11 +64,15 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.function.Supplier;
 
 import static io.apicurio.registry.utils.tests.TestUtils.waitForSchema;
@@ -78,12 +83,13 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  */
 @QuarkusTest
 public class AvroSerdeTest extends AbstractResourceTestBase {
-
     private RegistryClient restClient;
 
     @BeforeEach
     public void createIsolatedClient() {
-        restClient = RegistryClientFactory.create(TestUtils.getRegistryV2ApiUrl(testPort));
+        var adapter = new OkHttpRequestAdapter(new AnonymousAuthenticationProvider());
+        adapter.setBaseUrl(TestUtils.getRegistryV2ApiUrl(testPort));
+        restClient = new RegistryClient(adapter);
     }
 
     @Test
@@ -94,7 +100,8 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
         String groupId = TestUtils.generateGroupId();
         String topic = generateArtifactId();
 
-        /*final Integer globalId = */createArtifact(groupId, topic + "-" + recordName, ArtifactType.AVRO, schema.toString());
+        /*final Integer globalId = */
+        createArtifact(groupId, topic + "-" + recordName, ArtifactType.AVRO, schema.toString());
 
         Map<String, Object> config = new HashMap<>();
         config.put(SerdeConfig.REGISTRY_URL, TestUtils.getRegistryV2ApiUrl(testPort));
@@ -146,13 +153,28 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
 
     @Test
     public void testAvro() throws Exception {
-        testAvroAutoRegisterIdInBody(RecordIdStrategy.class, () -> restClient.getArtifactMetaData("test-group-avro", "myrecord3"));
-
+        testAvroAutoRegisterIdInBody(RecordIdStrategy.class, () -> {
+            try {
+                return restClient.groups().byGroupId("test-group-avro").artifacts().byArtifactId("myrecord3").meta().get().get();
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            } catch (ExecutionException e) {
+                throw new RuntimeException(e);
+            }
+        });
     }
 
     @Test
     public void testAvroQualifiedRecordIdStrategy() throws Exception {
-        testAvroAutoRegisterIdInBody(QualifiedRecordIdStrategy.class, () -> restClient.getArtifactMetaData(null, "test-group-avro.myrecord3"));
+        testAvroAutoRegisterIdInBody(QualifiedRecordIdStrategy.class, () -> {
+            try {
+                return restClient.groups().byGroupId("default").artifacts().byArtifactId("test-group-avro.myrecord3").meta().get().get();
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            } catch (ExecutionException e) {
+                throw new RuntimeException(e);
+            }
+        });
     }
 
     private void testAvroAutoRegisterIdInBody(Class<? extends ArtifactReferenceResolverStrategy<?, ?>> strategy, Supplier<ArtifactMetaData> artifactFinder) throws Exception {
@@ -178,10 +200,20 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
 
             // some impl details ...
             waitForSchema(globalId -> {
-                if (restClient.getContentByGlobalId(globalId) != null) {
-                    ArtifactMetaData artifactMetadata = artifactFinder.get();
-                    assertEquals(globalId, artifactMetadata.getGlobalId());
-                    return true;
+                try {
+                    if (restClient.ids().globalIds().byGlobalId(globalId).get().get(3, TimeUnit.SECONDS).readAllBytes().length > 0) {
+                        ArtifactMetaData artifactMetadata = artifactFinder.get();
+                        assertEquals(globalId, artifactMetadata.getGlobalId());
+                        return true;
+                    }
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                } catch (ExecutionException e) {
+                    throw new RuntimeException(e);
+                } catch (TimeoutException e) {
+                    throw new RuntimeException(e);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
                 }
                 return false;
             }, bytes);
@@ -221,7 +253,17 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
             Assertions.assertEquals("somebar", msgAsJson.getString("bar"));
 
             // some impl details ...
-            waitForSchema(globalId -> restClient.getContentByGlobalId(globalId) != null, bytes);
+            waitForSchema(globalId -> {
+                try {
+                    return restClient.ids().globalIds().byGlobalId(globalId).get().get().readAllBytes().length > 0;
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                } catch (ExecutionException e) {
+                    throw new RuntimeException(e);
+                }
+            }, bytes);
 
             GenericData.Record ir = deserializer.deserialize(artifactId, bytes);
 
@@ -284,7 +326,17 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
             Assertions.assertEquals("CSymbol", msgAsJson.getJSONObject("schemaC").getString("symbol"));
 
             // some impl details ...
-            waitForSchema(globalId -> restClient.getContentByGlobalId(globalId) != null, bytes);
+            waitForSchema(globalId -> {
+                try {
+                    return restClient.ids().globalIds().byGlobalId(globalId).get().get().readAllBytes().length > 0;
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                } catch (ExecutionException e) {
+                    throw new RuntimeException(e);
+                }
+            }, bytes);
 
             AvroSchemaB ir = deserializer.deserialize(artifactId, bytes);
 
@@ -354,7 +406,17 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
             Assertions.assertEquals("CSymbol", msgAsJson.getJSONObject("schemaC").getString("symbol"));
 
             // some impl details ...
-            waitForSchema(globalId -> restClient.getContentByGlobalId(globalId) != null, bytes);
+            waitForSchema(globalId -> {
+                try {
+                    return restClient.ids().globalIds().byGlobalId(globalId).get().get().readAllBytes().length > 0;
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                } catch (ExecutionException e) {
+                    throw new RuntimeException(e);
+                }
+            }, bytes);
 
             AvroSchemaB ir = deserializer.deserialize(artifactId, bytes);
 
@@ -397,12 +459,12 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
 
     @ParameterizedTest
     @ValueSource(
-        classes = {
-            io.apicurio.registry.serde.strategy.TopicIdStrategy.class,
-            io.apicurio.registry.serde.avro.strategy.QualifiedRecordIdStrategy.class,
-            io.apicurio.registry.serde.avro.strategy.RecordIdStrategy.class,
-            io.apicurio.registry.serde.avro.strategy.TopicRecordIdStrategy.class
-        }
+            classes = {
+                    io.apicurio.registry.serde.strategy.TopicIdStrategy.class,
+                    io.apicurio.registry.serde.avro.strategy.QualifiedRecordIdStrategy.class,
+                    io.apicurio.registry.serde.avro.strategy.RecordIdStrategy.class,
+                    io.apicurio.registry.serde.avro.strategy.TopicRecordIdStrategy.class
+            }
     )
     public void testAvroReflect(Class<?> artifactResolverStrategyClass) throws Exception {
         testAvroReflect(
@@ -453,7 +515,17 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
             Tester tester = testerFactory.get();
             byte[] bytes = serializer.serialize(artifactId, tester);
 
-            waitForSchema(globalId -> restClient.getContentByGlobalId(globalId) != null, bytes);
+            waitForSchema(globalId -> {
+                try {
+                    return restClient.ids().globalIds().byGlobalId(globalId).get().get().readAllBytes().length > 0;
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                } catch (ExecutionException e) {
+                    throw new RuntimeException(e);
+                }
+            }, bytes);
 
             Tester deserializedTester = deserializer.deserialize(artifactId, bytes);
 
@@ -483,7 +555,17 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
              AvroKafkaDeserializer<GenericData.Record> deserializer1 = new AvroKafkaDeserializer<GenericData.Record>(restClient)) {
             byte[] bytes = serializer1.serialize(subject, record);
 
-            TestUtils.retry(() -> TestUtils.waitForSchema(globalId -> restClient.getContentById(globalId) != null, bytes, bb -> (long) bb.getInt()));
+            TestUtils.retry(() -> TestUtils.waitForSchema(contentId -> {
+                try {
+                    return restClient.ids().contentIds().byContentId(contentId).get().get().readAllBytes().length > 0;
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                } catch (ExecutionException e) {
+                    throw new RuntimeException(e);
+                }
+            }, bytes, bb -> (long) bb.getInt()));
 
             deserializer1.asLegacyId();
             Map<String, String> config = new HashMap<>();
@@ -507,5 +589,4 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
             Assertions.assertEquals("somebar", ir.get("bar").toString());
         }
     }
-
 }

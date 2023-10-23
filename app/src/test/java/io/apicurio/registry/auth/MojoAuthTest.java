@@ -16,20 +16,16 @@
 
 package io.apicurio.registry.auth;
 
+import com.microsoft.kiota.authentication.BaseBearerTokenAuthenticationProvider;
+import com.microsoft.kiota.http.OkHttpRequestAdapter;
 import io.apicurio.common.apps.config.Info;
 import io.apicurio.registry.maven.RegisterRegistryMojo;
-import io.apicurio.registry.rest.client.AdminClient;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.noprofile.maven.RegistryMojoTestBase;
 import io.apicurio.registry.utils.tests.ApicurioTestTags;
 import io.apicurio.registry.utils.tests.AuthTestProfile;
 import io.apicurio.registry.utils.tests.JWKSMockServer;
 import io.apicurio.registry.utils.tests.TestUtils;
-import io.apicurio.rest.client.auth.Auth;
-import io.apicurio.rest.client.auth.OidcAuth;
-import io.apicurio.rest.client.auth.exception.AuthErrorHandler;
-import io.apicurio.rest.client.spi.ApicurioHttpClient;
-import io.apicurio.rest.client.spi.ApicurioHttpClientFactory;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import org.apache.maven.plugin.MojoExecutionException;
@@ -60,25 +56,13 @@ public class MojoAuthTest extends RegistryMojoTestBase {
     String testUsername = "sr-test-user";
     String testPassword = "sr-test-password";
 
-    ApicurioHttpClient httpClient;
-
-    /**
-     * @see io.apicurio.registry.AbstractResourceTestBase#createRestClientV2()
-     */
     @Override
     protected RegistryClient createRestClientV2() {
-        httpClient = ApicurioHttpClientFactory.create(authServerUrlConfigured, new AuthErrorHandler());
-        System.out.println("Auth is " + authEnabled);
-        Auth auth = new OidcAuth(httpClient, JWKSMockServer.ADMIN_CLIENT_ID, "test1");
-        return this.createClient(auth);
-    }
-
-    @Override
-    protected AdminClient createAdminClientV2() {
-        httpClient = ApicurioHttpClientFactory.create(authServerUrlConfigured, new AuthErrorHandler());
-        System.out.println("Auth is " + authEnabled);
-        Auth auth = new OidcAuth(httpClient, JWKSMockServer.ADMIN_CLIENT_ID, "test1");
-        return this.createAdminClient(auth);
+        var adapter = new OkHttpRequestAdapter(
+                new BaseBearerTokenAuthenticationProvider(
+                        new OidcAccessTokenProvider(authServerUrlConfigured, JWKSMockServer.ADMIN_CLIENT_ID, "test1")));
+        adapter.setBaseUrl(registryV2ApiUrl);
+        return new RegistryClient(adapter);
     }
 
     @Test

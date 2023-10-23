@@ -16,21 +16,16 @@
 
 package io.apicurio.tests;
 
+import com.microsoft.kiota.ApiException;
+import com.microsoft.kiota.authentication.AnonymousAuthenticationProvider;
+import com.microsoft.kiota.http.OkHttpRequestAdapter;
 import io.apicurio.deployment.PortForwardManager;
 import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.rest.client.RegistryClientFactory;
-import io.apicurio.registry.rest.client.exception.ArtifactNotFoundException;
-import io.apicurio.registry.rest.client.exception.RestClientException;
-import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
-import io.apicurio.registry.rest.v2.beans.ArtifactSearchResults;
-import io.apicurio.registry.rest.v2.beans.IfExists;
-import io.apicurio.registry.rest.v2.beans.SearchedArtifact;
-import io.apicurio.registry.rest.v2.beans.SearchedVersion;
-import io.apicurio.registry.rest.v2.beans.VersionMetaData;
+import io.apicurio.registry.rest.client.models.*;
 import io.apicurio.registry.utils.tests.SimpleDisplayName;
 import io.apicurio.registry.utils.tests.TestUtils;
+import io.apicurio.rest.client.auth.exception.NotAuthorizedException;
 import io.apicurio.tests.utils.Constants;
-import io.apicurio.tests.utils.LoadBalanceRegistryClient;
 import io.apicurio.tests.utils.RegistryWaitUtils;
 import io.apicurio.tests.utils.RestConstants;
 import io.apicurio.tests.utils.TestSeparator;
@@ -69,6 +64,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
@@ -77,6 +74,7 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import static io.restassured.RestAssured.given;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -97,14 +95,16 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
 
     protected final Logger logger = LoggerFactory.getLogger(this.getClass().getName());
 
-    protected Function<Exception, Integer> errorCodeExtractor = e -> ((RestClientException) e).getError().getErrorCode();
+    protected Function<Exception, Integer> errorCodeExtractor = e -> ((ApiException)((ExecutionException) e).getCause()).responseStatusCode;
 
     protected RegistryClient registryClient;
 
     protected String authServerUrlConfigured;
 
     protected RegistryClient createRegistryClient() {
-        return RegistryClientFactory.create(getRegistryBaseUrl());
+        var adapter = new OkHttpRequestAdapter(new AnonymousAuthenticationProvider());
+        adapter.setBaseUrl(getRegistryV2ApiUrl());
+        return new RegistryClient(adapter);
     }
 
     @BeforeAll
@@ -124,34 +124,63 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
         // Retrying to delete artifacts can solve the problem with bad order caused by artifacts references
         // TODO: Solve problem with artifact references circle - maybe use of deleteAllUserData for cleaning artifacts after IT
         retry(() -> {
-            ArtifactSearchResults artifacts = registryClient.searchArtifacts(null, null, null, null, null, null, null, null, null);
+            ArtifactSearchResults artifacts = registryClient.search().artifacts().get().get(3, TimeUnit.SECONDS);
             for (SearchedArtifact artifact : artifacts.getArtifacts()) {
                 try {
-                    registryClient.deleteArtifact(artifact.getGroupId(), artifact.getId());
-                    registryClient.deleteArtifactsInGroup(null);
-                } catch (ArtifactNotFoundException e) {
+                    registryClient.groups().byGroupId(normalizeGroupId(artifact.getGroupId())).artifacts().byArtifactId(artifact.getId()).delete().get(3, TimeUnit.SECONDS);
+                    registryClient.groups().byGroupId("default").artifacts().delete().get(3, TimeUnit.SECONDS);
+                } catch (ExecutionException e) {
                     //because of async storage artifact may be already deleted but listed anyway
                     logger.info(e.getMessage());
                 } catch (Exception e) {
                     logger.error("", e);
                 }
             }
-            ensureClusterSync(client -> assertTrue(client.searchArtifacts(null, null, null, null, null, null, null, null, null).getCount() == 0));
+            ensureClusterSync(client -> {
+                try {
+                    assertTrue(client.search().artifacts().get().get(3, TimeUnit.SECONDS).getCount() == 0);
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                } catch (ExecutionException e) {
+                    throw new RuntimeException(e);
+                } catch (TimeoutException e) {
+                    throw new RuntimeException(e);
+                }
+            });
         }, "CleanArtifacts", 5);
     }
 
+    private static String normalizeGroupId(String groupId) {
+        return groupId != null ? groupId : "default";
+    }
+
     protected ArtifactMetaData createArtifact(String groupId, String artifactId, String artifactType, InputStream artifact) throws Exception {
-        ArtifactMetaData amd = registryClient.createArtifact(groupId, artifactId, null, artifactType, IfExists.FAIL, false, artifact);
+        ArtifactContent content = new ArtifactContent();
+        content.setContent(new String(artifact.readAllBytes(), StandardCharsets.UTF_8));
+        ArtifactMetaData amd = registryClient.groups().byGroupId(groupId).artifacts().post(content, config -> {
+            config.queryParameters.canonical = false;
+            config.queryParameters.ifExists = "FAIL";
+            config.headers.add("X-Registry-ArtifactId", artifactId);
+            config.headers.add("X-Registry-ArtifactType", artifactType);
+        }).get(3, TimeUnit.SECONDS);
 
         // make sure we have schema registered
         ensureClusterSync(amd.getGlobalId());
-        ensureClusterSync(amd.getGroupId(), amd.getId(), String.valueOf(amd.getVersion()));
+        ensureClusterSync(normalizeGroupId(amd.getGroupId()), amd.getId(), String.valueOf(amd.getVersion()));
 
         return amd;
     }
 
-    protected ArtifactMetaData createArtifact(String groupId, String artifactId, String version, IfExists ifExists, String artifactType, InputStream artifact) throws Exception {
-        ArtifactMetaData amd = registryClient.createArtifact(groupId, artifactId, version, artifactType, ifExists, false, artifact);
+    protected ArtifactMetaData createArtifact(String groupId, String artifactId, String version, String ifExists, String artifactType, InputStream artifact) throws Exception {
+        ArtifactContent content = new ArtifactContent();
+        content.setContent(new String(artifact.readAllBytes(), StandardCharsets.UTF_8));
+        ArtifactMetaData amd = registryClient.groups().byGroupId(groupId).artifacts().post(content, config -> {
+            config.queryParameters.canonical = false;
+            config.queryParameters.ifExists = ifExists;
+            config.headers.add("X-Registry-ArtifactId", artifactId);
+            config.headers.add("X-Registry-ArtifactType", artifactType);
+            config.headers.add("X-Registry-Version", version);
+        }).get(3, TimeUnit.SECONDS);
 
         // make sure we have schema registered
         ensureClusterSync(amd.getGlobalId());
@@ -161,21 +190,27 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
     }
 
     protected VersionMetaData createArtifactVersion(String groupId, String artifactId, InputStream artifact) throws Exception {
-        VersionMetaData meta = registryClient.createArtifactVersion(groupId, artifactId, null, artifact);
+        ArtifactContent content = new ArtifactContent();
+        content.setContent(new String(artifact.readAllBytes(), StandardCharsets.UTF_8));
+        VersionMetaData meta = registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().post(content, config -> {
+            config.headers.add("X-Registry-ArtifactId", artifactId);
+        }).get(3, TimeUnit.SECONDS);
 
         //wait for storage
         ensureClusterSync(meta.getGlobalId());
-        ensureClusterSync(meta.getGroupId(), meta.getId(), String.valueOf(meta.getVersion()));
+        ensureClusterSync(normalizeGroupId(meta.getGroupId()), meta.getId(), String.valueOf(meta.getVersion()));
 
         return meta;
     }
 
     protected ArtifactMetaData updateArtifact(String groupId, String artifactId, InputStream artifact) throws Exception {
-        ArtifactMetaData meta = registryClient.updateArtifact(groupId, artifactId, artifact);
+        ArtifactContent content = new ArtifactContent();
+        content.setContent(new String(artifact.readAllBytes(), StandardCharsets.UTF_8));
+        ArtifactMetaData meta = registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).put(content).get(3, TimeUnit.SECONDS);
 
         //wait for storage
         ensureClusterSync(meta.getGlobalId());
-        ensureClusterSync(meta.getGroupId(), meta.getId(), String.valueOf(meta.getVersion()));
+        ensureClusterSync(normalizeGroupId(meta.getGroupId()), meta.getId(), String.valueOf(meta.getVersion()));
 
         return meta;
     }
@@ -193,64 +228,40 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
     }
 
     private void ensureClusterSync(Long globalId) throws Exception {
-        if (registryClient instanceof LoadBalanceRegistryClient) {
-            LoadBalanceRegistryClient loadBalanceRegistryClient = (LoadBalanceRegistryClient) registryClient;
-
-            var nodes = loadBalanceRegistryClient.getRegistryNodes();
-
-            retry(() -> {
-                for (LoadBalanceRegistryClient.RegistryClientHolder target : nodes) {
-                    target.client.getContentByGlobalId(globalId);
-                }
-            });
-        } else {
-            retry(() -> registryClient.getContentByGlobalId(globalId));
-        }
+        retry(() -> registryClient.ids().globalIds().byGlobalId(globalId));
     }
 
     private void ensureClusterSync(String groupId, String artifactId, String version) throws Exception {
-        if (registryClient instanceof LoadBalanceRegistryClient) {
-            LoadBalanceRegistryClient loadBalanceRegistryClient = (LoadBalanceRegistryClient) registryClient;
-
-            var nodes = loadBalanceRegistryClient.getRegistryNodes();
-
-            retry(() -> {
-                for (LoadBalanceRegistryClient.RegistryClientHolder target : nodes) {
-                    target.client.getArtifactVersionMetaData(groupId, artifactId, version);
-                }
-            });
-        } else {
-            retry(() -> registryClient.getArtifactVersionMetaData(groupId, artifactId, version));
-        }
+        retry(() -> registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersion(version).meta().get().get(3, TimeUnit.SECONDS));
     }
 
     private void ensureClusterSync(Consumer<RegistryClient> function) throws Exception {
-        if (registryClient instanceof LoadBalanceRegistryClient) {
-            LoadBalanceRegistryClient loadBalanceRegistryClient = (LoadBalanceRegistryClient) registryClient;
-
-            var nodes = loadBalanceRegistryClient.getRegistryNodes();
-
-            retry(() -> {
-                for (LoadBalanceRegistryClient.RegistryClientHolder target : nodes) {
-                    function.accept(target.client);
-                }
-            });
-        } else {
-            retry(() -> function.accept(registryClient));
-        }
+        retry(() -> function.accept(registryClient));
     }
 
     protected List<String> listArtifactVersions(RegistryClient rc, String groupId, String artifactId) {
-        return rc.listArtifactVersions(groupId, artifactId, 0, 10)
-                .getVersions()
-                .stream()
-                .map(SearchedVersion::getVersion)
-                .collect(Collectors.toList());
+        try {
+            return rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId)
+                    .versions().get(config -> {
+                        config.queryParameters.limit = 10;
+                        config.queryParameters.offset = 0;
+                    }).get(3, TimeUnit.SECONDS)
+                    .getVersions()
+                    .stream()
+                    .map(SearchedVersion::getVersion)
+                    .collect(Collectors.toList());
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        } catch (ExecutionException e) {
+            throw new RuntimeException(e);
+        } catch (TimeoutException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public static String resourceToString(String resourceName) {
         try (InputStream stream = Thread.currentThread().getContextClassLoader().getResourceAsStream(resourceName)) {
-            Assertions.assertNotNull(stream, "Resource not found: " + resourceName);
+            assertNotNull(stream, "Resource not found: " + resourceName);
             return new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8)).lines().collect(Collectors.joining("\n"));
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -277,16 +288,8 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
         return getRegistryBaseUrl().concat("/apis");
     }
 
-    public static String getRegistryApiUrl(int port) {
-        return getRegistryBaseUrl(port).concat("/apis");
-    }
-
     public static String getRegistryV2ApiUrl() {
         return getRegistryApiUrl().concat("/registry/v2");
-    }
-
-    public static String getRegistryV2ApiUrl(int testPort) {
-        return getRegistryApiUrl(testPort).concat("/registry/v2");
     }
 
     public static String getRegistryBaseUrl() {
@@ -505,8 +508,9 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
             runnable.run();
             Assertions.fail("Expected (but didn't get) a registry client application exception with code: " + expectedCode);
         } catch (Exception e) {
-            Assertions.assertEquals(expectedErrorName, e.getClass().getSimpleName(), () -> "e: " + e);
-            Assertions.assertEquals(expectedCode, errorCodeExtractor.apply(e));
+            assertNotNull(e.getCause());
+            Assertions.assertEquals(expectedErrorName, ((io.apicurio.registry.rest.client.models.Error)e.getCause()).getName());
+            Assertions.assertEquals(expectedCode, ((io.apicurio.registry.rest.client.models.Error)e.getCause()).getErrorCode());
         }
     }
 
@@ -719,5 +723,23 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
                 .statusCode(returnCode)
                 .extract()
                 .response();
+    }
+
+    protected void assertNotAuthorized(ExecutionException executionException) {
+        assertNotNull(executionException.getCause());
+
+        if (executionException.getCause() instanceof NotAuthorizedException) {
+            // thrown by the token provider adapter
+        } else {
+            // mapped by Kiota
+            Assertions.assertEquals(ApiException.class, executionException.getCause().getClass());
+            Assertions.assertEquals(401, ((ApiException) executionException.getCause()).responseStatusCode);
+        }
+    }
+
+    protected void assertForbidden(ExecutionException executionException) {
+        assertNotNull(executionException.getCause());
+        Assertions.assertEquals(ApiException.class, executionException.getCause().getClass());
+        Assertions.assertEquals(403, ((ApiException)executionException.getCause()).responseStatusCode);
     }
 }

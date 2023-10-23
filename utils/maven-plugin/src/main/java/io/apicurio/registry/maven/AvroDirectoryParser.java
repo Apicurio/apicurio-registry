@@ -19,7 +19,7 @@ package io.apicurio.registry.maven;
 
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.rest.v2.beans.ArtifactReference;
+import io.apicurio.registry.rest.client.models.ArtifactReference;
 import org.apache.avro.Schema;
 import org.apache.avro.SchemaParseException;
 import org.slf4j.Logger;
@@ -35,6 +35,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 public class AvroDirectoryParser extends AbstractDirectoryParser<Schema> {
@@ -52,7 +53,7 @@ public class AvroDirectoryParser extends AbstractDirectoryParser<Schema> {
     }
 
     @Override
-    public List<ArtifactReference> handleSchemaReferences(RegisterArtifact rootArtifact, Schema rootSchema, Map<String, ContentHandle> fileContents) throws FileNotFoundException {
+    public List<ArtifactReference> handleSchemaReferences(RegisterArtifact rootArtifact, Schema rootSchema, Map<String, ContentHandle> fileContents) throws FileNotFoundException, ExecutionException, InterruptedException {
 
         Set<ArtifactReference> references = new HashSet<>();
 

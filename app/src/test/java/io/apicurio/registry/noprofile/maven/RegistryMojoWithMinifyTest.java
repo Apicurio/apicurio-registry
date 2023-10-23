@@ -29,6 +29,7 @@ import java.io.File;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author Ales Justin
@@ -67,14 +68,14 @@ public class RegistryMojoWithMinifyTest extends RegistryMojoTestBase {
 
         // Wait for the artifact to be created.
         TestUtils.retry(() -> {
-            InputStream artifactInputStream = clientV2.getLatestArtifact(groupId, "userInfoMinified");
+            InputStream artifactInputStream = clientV2.groups().byGroupId(groupId).artifacts().byArtifactId("userInfoMinified").get().get(3, TimeUnit.SECONDS);
             String artifactContent = new String(artifactInputStream.readAllBytes(), StandardCharsets.UTF_8);
             Assertions.assertEquals("{\"type\":\"record\",\"name\":\"userInfo\",\"namespace\":\"my.example\",\"fields\":[{\"name\":\"age\",\"type\":\"int\"}]}", artifactContent);
         });
 
         // Wait for the artifact to be created.
         TestUtils.retry(() -> {
-            InputStream artifactInputStream = clientV2.getLatestArtifact(groupId, "userInfoNotMinified");
+            InputStream artifactInputStream = clientV2.groups().byGroupId(groupId).artifacts().byArtifactId("userInfoNotMinified").get().get(3, TimeUnit.SECONDS);
             String artifactContent = new String(artifactInputStream.readAllBytes(), StandardCharsets.UTF_8);
             Assertions.assertEquals("{\n" +
                     "  \"type\" : \"record\",\n" +

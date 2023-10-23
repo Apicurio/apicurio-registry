@@ -34,6 +34,7 @@ import java.util.function.BooleanSupplier;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
+import com.microsoft.kiota.ApiException;
 import org.apache.http.HttpStatus;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
@@ -339,9 +340,15 @@ public class TestUtils {
         try {
             runnable.run();
             Assertions.fail("Expected (but didn't get) a registry client application exception with code: " + expectedCode);
-        } catch (Exception e) {
-            Assertions.assertEquals(expectedErrorName, e.getClass().getSimpleName(), () -> "e: " + e);
-            Assertions.assertEquals(expectedCode, errorCodeExtractor.apply(e));
+        } catch (Exception ex) {
+            // Unwrapping the ExecutionException
+            var e = ex.getCause();
+            if (e instanceof io.apicurio.registry.rest.client.models.Error) {
+                Assertions.assertEquals(expectedErrorName, ((io.apicurio.registry.rest.client.models.Error) e).getName(), () -> "e: " + e);
+                Assertions.assertEquals(expectedCode, errorCodeExtractor.apply(ex));
+            } else {
+                Assertions.assertEquals(expectedCode, ((ApiException) e).responseStatusCode);
+            }
         }
     }
 

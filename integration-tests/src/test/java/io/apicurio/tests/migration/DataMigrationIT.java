@@ -1,8 +1,9 @@
 package io.apicurio.tests.migration;
 
+import com.microsoft.kiota.authentication.AnonymousAuthenticationProvider;
+import com.microsoft.kiota.http.OkHttpRequestAdapter;
 import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.rest.client.RegistryClientFactory;
-import io.apicurio.registry.rest.v2.beans.ArtifactReference;
+import io.apicurio.registry.rest.client.models.ArtifactReference;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.tests.ApicurioRegistryBaseIT;
@@ -23,6 +24,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import static io.apicurio.tests.migration.MigrationTestsDataInitializer.matchesReferences;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -50,20 +53,25 @@ public class DataMigrationIT extends ApicurioRegistryBaseIT {
      */
     @Test
     public void migrate() throws Exception {
-        RegistryClient dest = RegistryClientFactory.create(ApicurioRegistryBaseIT.getRegistryV2ApiUrl());
-        dest.importData(migrateDataToImport);
+        var adapter = new OkHttpRequestAdapter(new AnonymousAuthenticationProvider());
+        adapter.setBaseUrl(ApicurioRegistryBaseIT.getRegistryV2ApiUrl());
+        RegistryClient dest = new RegistryClient(adapter);
+
+        var importReq = dest.admin().importEscaped().toPostRequestInformation(migrateDataToImport);
+        importReq.headers.replace("Content-Type", Set.of("application/zip"));
+        adapter.sendPrimitiveAsync(importReq, Void.class, new HashMap<>());
 
         retry(() -> {
             for (long gid : migrateGlobalIds) {
-                dest.getContentByGlobalId(gid);
+                dest.ids().globalIds().byGlobalId(gid).get().get(3, TimeUnit.SECONDS);
                 if (migrateReferencesMap.containsKey(gid)) {
                     List<ArtifactReference> srcReferences = migrateReferencesMap.get(gid);
-                    List<ArtifactReference> destReferences = dest.getArtifactReferencesByGlobalId(gid);
+                    List<ArtifactReference> destReferences = dest.ids().globalIds().byGlobalId(gid).references().get().get(3, TimeUnit.SECONDS);
                     assertTrue(matchesReferences(srcReferences, destReferences));
                 }
             }
-            assertEquals("SYNTAX_ONLY", dest.getArtifactRuleConfig("migrateTest", "avro-0", RuleType.VALIDITY).getConfig());
-            assertEquals("BACKWARD", dest.getGlobalRuleConfig(RuleType.COMPATIBILITY).getConfig());
+            assertEquals("SYNTAX_ONLY", dest.groups().byGroupId("migrateTest").artifacts().byArtifactId("avro-0").rules().byRule(RuleType.VALIDITY.name()).get().get(3, TimeUnit.SECONDS).getConfig());
+            assertEquals("BACKWARD", dest.admin().rules().byRule(RuleType.COMPATIBILITY.name()).get().get(3, TimeUnit.SECONDS).getConfig());
         });
     }
 
@@ -77,16 +85,18 @@ public class DataMigrationIT extends ApicurioRegistryBaseIT {
         public Map<String, String> start() {
 
             String registryBaseUrl = startRegistryApplication("quay.io/apicurio/apicurio-registry-mem:latest-release");
-            RegistryClient source = RegistryClientFactory.create(registryBaseUrl);
+            var adapter = new OkHttpRequestAdapter(new AnonymousAuthenticationProvider());
+            adapter.setBaseUrl(registryBaseUrl);
+            RegistryClient source = new RegistryClient(adapter);
 
             try {
 
                 //Warm up until the source registry is ready.
                 TestUtils.retry(() -> {
-                    source.listArtifactsInGroup(null);
+                    source.groups().byGroupId("default").artifacts().get().get(3, TimeUnit.SECONDS);
                 });
 
-                MigrationTestsDataInitializer.initializeMigrateTest(source);
+                MigrationTestsDataInitializer.initializeMigrateTest(source, this.getRegistryUrl(8081));
 
             } catch (Exception ex) {
                 log.error("Error filling origin registry with data:", ex);

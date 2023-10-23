@@ -17,25 +17,22 @@
 
 package io.apicurio.registry.maven;
 
+import com.microsoft.kiota.authentication.AnonymousAuthenticationProvider;
+import com.microsoft.kiota.authentication.AuthenticationProvider;
+import com.microsoft.kiota.authentication.BaseBearerTokenAuthenticationProvider;
+import com.microsoft.kiota.http.OkHttpRequestAdapter;
+import io.apicurio.registry.auth.BasicAuthenticationProvider;
+import io.apicurio.registry.auth.OidcAccessTokenProvider;
 import io.apicurio.registry.types.ContentTypes;
-import io.apicurio.rest.client.auth.Auth;
-import io.apicurio.rest.client.auth.BasicAuth;
-import io.apicurio.rest.client.auth.OidcAuth;
-import io.apicurio.rest.client.auth.exception.AuthErrorHandler;
-import io.apicurio.rest.client.spi.ApicurioHttpClient;
-import io.apicurio.rest.client.spi.ApicurioHttpClientFactory;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.Parameter;
 
 import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.rest.client.RegistryClientFactory;
 
-import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.util.Collections;
 import java.util.Locale;
+import java.util.concurrent.ExecutionException;
 
 /**
  * Base class for all Registry Mojo's.
@@ -71,20 +68,21 @@ public abstract class AbstractRegistryMojo extends AbstractMojo {
     String password;
 
     private RegistryClient client;
-    private ApicurioHttpClient httpClient;
 
     protected RegistryClient getClient() {
         if (client == null) {
+            AuthenticationProvider provider = null;
             if (authServerUrl != null && clientId != null && clientSecret != null) {
-                httpClient = ApicurioHttpClientFactory.create(authServerUrl, new AuthErrorHandler());
-                Auth auth = new OidcAuth(httpClient, clientId, clientSecret, null, clientScope);
-                client = RegistryClientFactory.create(registryUrl, Collections.emptyMap(), auth);
+                provider = new BaseBearerTokenAuthenticationProvider(new OidcAccessTokenProvider(authServerUrl, clientId, clientSecret, null, clientScope));
             } else if (username != null && password != null) {
-                Auth auth = new BasicAuth(username, password);
-                client = RegistryClientFactory.create(registryUrl, Collections.emptyMap(), auth);
+                provider = new BasicAuthenticationProvider(username, password);
             } else {
-                client = RegistryClientFactory.create(registryUrl);
+                provider = new AnonymousAuthenticationProvider();
             }
+
+            var adapter = new OkHttpRequestAdapter(provider);
+            adapter.setBaseUrl(registryUrl);
+            client = new RegistryClient(adapter);
         }
         return client;
     }
@@ -95,24 +93,21 @@ public abstract class AbstractRegistryMojo extends AbstractMojo {
 
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
-        executeInternal();
+        try {
+            executeInternal();
+        } catch (ExecutionException e) {
+            throw new MojoExecutionException(e);
+        } catch (InterruptedException e) {
+            throw new MojoFailureException(e);
+        }
         closeClients();
     }
 
     private void closeClients() {
-        try {
-            if (this.client != null) {
-                this.client.close();
-            }
-            if (this.httpClient != null) {
-                this.httpClient.close();
-            }
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
+        // TODO: check there are no connection leaks etc...
     }
 
-    protected abstract void executeInternal() throws MojoExecutionException, MojoFailureException;
+    protected abstract void executeInternal() throws MojoExecutionException, MojoFailureException, ExecutionException, InterruptedException;
 
     protected String getContentTypeByExtension(String fileName){
         if(fileName == null) return null;

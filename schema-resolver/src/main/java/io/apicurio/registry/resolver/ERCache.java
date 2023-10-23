@@ -16,10 +16,8 @@
 
 package io.apicurio.registry.resolver;
 
+import com.microsoft.kiota.ApiException;
 import io.apicurio.registry.resolver.strategy.ArtifactCoordinates;
-import io.apicurio.registry.rest.client.exception.RateLimitedClientException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -27,6 +25,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -38,7 +37,6 @@ import java.util.function.Supplier;
  */
 public class ERCache<V> {
 
-    private final static Logger log = LoggerFactory.getLogger(ERCache.class);
     /** Global ID index */
     private final Map<Long, WrappedValue<V>> index1 = new ConcurrentHashMap<>();
     /** Data content index */
@@ -79,7 +77,7 @@ public class ERCache<V> {
     /**
      * If {@code true}, will cache schema lookups that either have `latest` or no version specified.  Setting this to false
      * will effectively disable caching for schema lookups that do not specify a version.
-     * 
+     *
      * @param cacheLatest  Whether to enable cache of artifacts without a version specified.
      */
     public void configureCacheLatest(boolean cacheLatest) {
@@ -118,9 +116,9 @@ public class ERCache<V> {
 
     /**
      * Return whether caching of artifact lookups with {@code null} versions is enabled.
-     * 
+     *
      * @return  {@code true} if it's enabled.
-     * @see #configureCacheLatest(boolean) 
+     * @see #configureCacheLatest(boolean)
      */
     public boolean isCacheLatest() {
         return this.cacheLatest;
@@ -207,10 +205,8 @@ public class ERCache<V> {
                 result = newValue.ok;
             } else {
                 if (faultTolerantRefresh && value != null) {
-                    log.warn("Error updating cache value.  Fault tolerant load using expired value", newValue.error);
                     return value.value;
                 }
-                log.error("Failed to update cache value for key: " + key, newValue.error);
                 throw newValue.error;
             }
         }
@@ -256,16 +252,14 @@ public class ERCache<V> {
                     return Result.ok(value);
                 else {
                     return Result.error(new NullPointerException("Could not retrieve schema for the cache. " +
-                        "Loading function returned null."));
+                            "Loading function returned null."));
                 }
             } catch (RuntimeException e) {
-                // Rethrow the exception if we are not going to retry any more OR
-                // the exception is NOT caused by throttling. This prevents
-                // retries in cases where it does not make sense,
-                // e.g. an ArtifactNotFoundException is thrown.
-                // TODO Add additional exceptions that should cause a retry.
-                if (i == retries || !(e instanceof RateLimitedClientException))
-                    return Result.error(e);
+                // TODO: verify if this is really needed, retries are already baked into the adapter ...
+                if (i == retries || !(e.getCause() != null && e.getCause() instanceof ExecutionException
+                        && e.getCause().getCause() != null && e.getCause().getCause() instanceof ApiException
+                        && (((ApiException) e.getCause().getCause()).responseStatusCode == 429)))
+                    return Result.error(new RuntimeException(e));
             }
             try {
                 Thread.sleep(backoff.toMillis());

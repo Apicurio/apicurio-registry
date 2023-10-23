@@ -47,7 +47,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 
+import io.apicurio.registry.rest.client.models.Error;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.hamcrest.Matchers;
 import org.jose4j.base64url.Base64;
@@ -60,7 +63,6 @@ import org.junit.jupiter.api.condition.OS;
 import com.google.common.hash.Hashing;
 
 import io.apicurio.registry.AbstractResourceTestBase;
-import io.apicurio.registry.rest.client.exception.RuleViolationException;
 import io.apicurio.registry.rest.v2.beans.ArtifactOwner;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
@@ -148,13 +150,13 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .body("openapi", not(equalTo("3.0.2")))
                 .body("info.title", not(equalTo("Empty API")));
     }
-    
+
     @Test
     public void testCreateArtifactRule() throws Exception
     {
     	String oaiArtifactContent = resourceToString("openapi-empty.json");
     	createArtifact("testCreateArtifactRule", "testCreateArtifactRule/EmptyAPI/1", ArtifactType.OPENAPI, oaiArtifactContent);
-    	
+
     	//Test Rule type null
     	Rule nullType = new Rule();
     	nullType.setType(null);
@@ -166,9 +168,9 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
 	    		.pathParam("artifactId", "testCreateArtifactRule/EmptyAPI/1")
 	    		.body(nullType)
 	    		.post("/registry/v2/groups/{groupId}/artifacts/{artifactId}/rules")
-	        	.then()	
+	        	.then()
 	    		.statusCode(400);
-    	
+
     	//Test Rule config null
     	Rule nullConfig = new Rule();
     	nullConfig.setType(RuleType.VALIDITY);
@@ -182,7 +184,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
 	    		.post("/registry/v2/groups/{groupId}/artifacts/{artifactId}/rules")
 	        	.then()
 	    		.statusCode(400);
-    	
+
     	//Test Rule config empty
     	Rule emptyConfig = new Rule();
     	emptyConfig.setType(RuleType.VALIDITY);
@@ -196,7 +198,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
 	    		.post("/registry/v2/groups/{groupId}/artifacts/{artifactId}/rules")
 	        	.then()
 	    		.statusCode(400);
-    	
+
     }
 
     @Test
@@ -2044,7 +2046,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         final String artifactDescription = "ArtifactDescriptionFromHeader";
 
         // Create OpenAPI artifact - indicate the type via a header param
-        Integer globalId1 = createArtifact(GROUP, artifactId, ArtifactType.OPENAPI, artifactContent);
+        var globalId1 = createArtifact(GROUP, artifactId, ArtifactType.OPENAPI, artifactContent);
 
         // Try to create the same artifact ID (should fail)
         given()
@@ -2108,7 +2110,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
 
         Integer globalId3 = resp.extract().body().path("globalId");
 
-        assertEquals(globalId1, globalId3);
+        assertEquals(globalId1, globalId3.longValue());
 
         // Try to create the same artifact ID with ReturnOrUpdate and updated content - should create a new version
         // and use name and description from headers
@@ -2477,10 +2479,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         String artifactContent = getRandomValidJsonSchemaContent();
 
         // Create #1 without references
-        var response = createArtifactExtendedRaw("default", null, null, artifactContent, null);
-        var metadata = response
-                .statusCode(HTTP_OK)
-                .extract().as(ArtifactMetaData.class);
+        var metadata = createArtifactExtendedRaw("default", null, null, artifactContent, null);
         // Save the metadata for artifact #1 for later use
         var referencedMD = metadata;
 
@@ -2493,15 +2492,14 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .build());
         artifactContent = getRandomValidJsonSchemaContent();
 
-        response = createArtifactExtendedRaw("default", null, null, artifactContent, references);
-
-        metadata = response
-                .statusCode(HTTP_OK)
-                .extract().as(ArtifactMetaData.class);
+        metadata = createArtifactExtendedRaw("default", null, null, artifactContent, references);
         // Save the referencing artifact metadata for later use
         var referencingMD = metadata;
-        assertEquals(references, metadata.getReferences());
-
+        assertEquals(references.size(), metadata.getReferences().size());
+        assertEquals(references.get(0).getName(), metadata.getReferences().get(0).getName());
+        assertEquals(references.get(0).getVersion(), metadata.getReferences().get(0).getVersion());
+        assertEquals(references.get(0).getArtifactId(), metadata.getReferences().get(0).getArtifactId());
+        assertEquals(references.get(0).getGroupId(), metadata.getReferences().get(0).getGroupId());
 
         // Trying to use different references with the same content is ok, but the contentId and contentHash is different.
         List<ArtifactReference> references2 = List.of(ArtifactReference.builder()
@@ -2511,19 +2509,12 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .name("foo2")
                 .build());
 
-        response = createArtifactExtendedRaw("default", null, null, artifactContent, references2);
-
-        var secondMetadata = response
-                .statusCode(HTTP_OK)
-                .extract().as(ArtifactMetaData.class);
+        var secondMetadata = createArtifactExtendedRaw("default", null, null, artifactContent, references2);
 
         assertNotEquals(secondMetadata.getContentId(), metadata.getContentId());
 
         // Same references are not an issue
-        response = createArtifactExtendedRaw("default2", null, null, artifactContent, references);
-        metadata = response
-                .statusCode(HTTP_OK)
-                .extract().as(ArtifactMetaData.class);
+        metadata = createArtifactExtendedRaw("default2", null, null, artifactContent, references);
 
         // Get references via globalId
         var referenceResponse = given()
@@ -2621,7 +2612,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         outputStream.write(referencesBytes);
         return outputStream.toByteArray();
     }
-    
+
     @Test
     public void testArtifactComments() throws Exception {
         String artifactId = "testArtifactComments/EmptyAPI";
@@ -2641,7 +2632,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .extract().as(new TypeRef<List<Comment>>() {
                 });
         assertEquals(0, comments.size());
-        
+
         // Create a new comment
         NewComment nc = NewComment.builder().value("COMMENT_1").build();
         Comment comment1 = given()
@@ -2659,7 +2650,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         assertNotNull(comment1.getValue());
         assertNotNull(comment1.getCreatedOn());
         assertEquals("COMMENT_1", comment1.getValue());
-        
+
         // Create another new comment
         nc = NewComment.builder().value("COMMENT_2").build();
         Comment comment2 = given()
@@ -2677,7 +2668,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         assertNotNull(comment2.getValue());
         assertNotNull(comment2.getCreatedOn());
         assertEquals("COMMENT_2", comment2.getValue());
-        
+
         // Get the list of comments (should have 2)
         comments = given()
                 .when()
@@ -2780,76 +2771,126 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
 
         // Now try registering an artifact with a valid reference
         InputStream data = new ByteArrayInputStream(artifactContent.getBytes(StandardCharsets.UTF_8));
-        List<ArtifactReference> references = new ArrayList<>();
-        references.add(ArtifactReference.builder()
-                .groupId(GROUP)
-                .artifactId(artifactId)
-                .version("1")
-                .name("other.json#/defs/Foo")
-                .build());
-        clientV2.updateArtifact(GROUP, artifactId, "2", null, null, data, references);
+        var reference = new io.apicurio.registry.rest.client.models.ArtifactReference();
+        reference.setVersion("1");
+        reference.setGroupId(GROUP);
+        reference.setArtifactId(artifactId);
+        reference.setName("other.json#/defs/Foo");
+
+        var content = new io.apicurio.registry.rest.client.models.ArtifactContent();
+        content.setContent(new String(data.readAllBytes(), StandardCharsets.UTF_8));
+        content.setReferences(List.of(reference));
+
+        clientV2
+                .groups()
+                .byGroupId(GROUP)
+                .artifacts()
+                .byArtifactId(artifactId)
+                .put(content, config -> {
+                    config.headers.add("X-Registry-Version", "2");
+                    config.headers.add("X-Registry-ArtifactId", artifactId);
+                })
+                .get(3, TimeUnit.SECONDS);
 
         // Now try registering an artifact with an INVALID reference
         data = new ByteArrayInputStream(artifactContent.getBytes(StandardCharsets.UTF_8));
-        references = new ArrayList<>();
-        references.add(ArtifactReference.builder()
-                .groupId(GROUP)
-                .artifactId("ArtifactThatDoesNotExist")
-                .version("1")
-                .name("other.json#/defs/Foo")
-                .build());
+        reference = new io.apicurio.registry.rest.client.models.ArtifactReference();
+        reference.setGroupId(GROUP);
+        reference.setArtifactId("ArtifactThatDoesNotExist");
+        reference.setVersion("1");
+        reference.setName("other.json#/defs/Foo");
+
         final InputStream dataf_1 = data;
-        final List<ArtifactReference> referencesf_1 = references;
-        Assertions.assertThrows(RuleViolationException.class, () -> {
-            clientV2.updateArtifact(GROUP, artifactId, "2", null, null, dataf_1, referencesf_1);
+        final var referencesf_1 = List.of(reference);
+        // TODO: go on from here
+        var contentf_1 = new io.apicurio.registry.rest.client.models.ArtifactContent();
+        contentf_1.setContent(new String(dataf_1.readAllBytes(), StandardCharsets.UTF_8));
+        contentf_1.setReferences(referencesf_1);
+        var executionException_1 = Assertions.assertThrows(ExecutionException.class, () -> {
+            clientV2
+                    .groups()
+                    .byGroupId(GROUP)
+                    .artifacts()
+                    .byArtifactId(artifactId)
+                    .put(contentf_1, config -> {
+                        config.headers.add("X-Registry-Version", "2");
+                        config.headers.add("X-Registry-ArtifactId", artifactId);
+                    })
+                    .get(3, TimeUnit.SECONDS);
         });
+        Assertions.assertNotNull(executionException_1.getCause());
+        var error = executionException_1.getCause();
+        Assertions.assertEquals(Error.class, error.getClass());
+        Assertions.assertEquals(409, ((Error) error).getErrorCode());
+        Assertions.assertEquals("RuleViolationException", ((Error) error).getName());
+
 
         // Now try registering an artifact with both a valid and invalid ref
         data = new ByteArrayInputStream(artifactContent.getBytes(StandardCharsets.UTF_8));
-        references = new ArrayList<>();
+        var references = new ArrayList<io.apicurio.registry.rest.client.models.ArtifactReference>();
         // valid ref
-        references.add(ArtifactReference.builder()
-                .groupId(GROUP)
-                .artifactId(artifactId)
-                .version("1")
-                .name("other.json#/defs/Foo")
-                .build());
+        var validRef = new io.apicurio.registry.rest.client.models.ArtifactReference();
+        validRef.setGroupId(GROUP);
+        validRef.setArtifactId(artifactId);
+        validRef.setVersion("1");
+        validRef.setName("other.json#/defs/Foo");
         // invalid ref
-        references.add(ArtifactReference.builder()
-                .groupId(GROUP)
-                .artifactId("ArtifactThatDoesNotExist")
-                .version("1")
-                .name("other.json#/defs/Bar")
-                .build());
+        var invalidRef = new io.apicurio.registry.rest.client.models.ArtifactReference();
+        invalidRef.setGroupId(GROUP);
+        invalidRef.setArtifactId("ArtifactThatDoesNotExist");
+        invalidRef.setVersion("1");
+        invalidRef.setName("other.json#/defs/Foo");
+
         final InputStream dataf_2 = data;
-        final List<ArtifactReference> referencesf_2 = references;
-        Assertions.assertThrows(RuleViolationException.class, () -> {
-            clientV2.updateArtifact(GROUP, artifactId, "2", null, null, dataf_2, referencesf_2);
+        final var referencesf_2 = List.of(validRef, invalidRef);
+        var contentf_2 = new io.apicurio.registry.rest.client.models.ArtifactContent();
+        contentf_2.setContent(new String(dataf_2.readAllBytes(), StandardCharsets.UTF_8));
+        contentf_2.setReferences(referencesf_2);
+        var executionException_2 = Assertions.assertThrows(ExecutionException.class, () -> {
+            clientV2
+                    .groups()
+                    .byGroupId(GROUP)
+                    .artifacts()
+                    .byArtifactId(artifactId)
+                    .put(contentf_2, config -> {
+                        config.headers.add("X-Registry-Version", "2");
+                        config.headers.add("X-Registry-ArtifactId", artifactId);
+                    })
+                    .get(3, TimeUnit.SECONDS);
         });
+
+        Assertions.assertNotNull(executionException_2.getCause());
+        var error_2 = executionException_2.getCause();
+        Assertions.assertEquals(Error.class, error_2.getClass());
+        Assertions.assertEquals(409, ((Error) error_2).getErrorCode());
+        Assertions.assertEquals("RuleViolationException", ((Error) error_2).getName());
 
         // Now try registering an artifact with a duplicate ref
         data = new ByteArrayInputStream(artifactContent.getBytes(StandardCharsets.UTF_8));
-        references = new ArrayList<>();
-        // valid ref
-        references.add(ArtifactReference.builder()
-                .groupId(GROUP)
-                .artifactId(artifactId)
-                .version("1")
-                .name("other.json#/defs/Foo")
-                .build());
-        // duplicate ref
-        references.add(ArtifactReference.builder()
-                .groupId(GROUP)
-                .artifactId(artifactId)
-                .version("1")
-                .name("other.json#/defs/Foo")
-                .build());
+
         final InputStream dataf_3 = data;
-        final List<ArtifactReference> referencesf_3 = references;
-        Assertions.assertThrows(RuleViolationException.class, () -> {
-            clientV2.updateArtifact(GROUP, artifactId, "2", null, null, dataf_3, referencesf_3);
+        var referencesf_3 = List.of(validRef, validRef);
+        var contentf_3 = new io.apicurio.registry.rest.client.models.ArtifactContent();
+        contentf_3.setContent(new String(dataf_3.readAllBytes(), StandardCharsets.UTF_8));
+        contentf_3.setReferences(referencesf_3);
+        var executionException_3 = Assertions.assertThrows(ExecutionException.class, () -> {
+            clientV2
+                    .groups()
+                    .byGroupId(GROUP)
+                    .artifacts()
+                    .byArtifactId(artifactId)
+                    .put(contentf_2, config -> {
+                        config.headers.add("X-Registry-Version", "2");
+                        config.headers.add("X-Registry-ArtifactId", artifactId);
+                    })
+                    .get(3, TimeUnit.SECONDS);
         });
 
+        Assertions.assertNotNull(executionException_3.getCause());
+        var error_3 = executionException_3.getCause();
+        Assertions.assertEquals(Error.class, error_3.getClass());
+        Assertions.assertEquals(409, ((Error) error_3).getErrorCode());
+        Assertions.assertEquals("RuleViolationException", ((Error) error_3).getName());
     }
 
 
@@ -2870,7 +2911,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .version("1")
                 .build());
         createArtifactWithReferences(GROUP, "testGetArtifactVersionWithReferences/WithExternalRef", ArtifactType.OPENAPI, withExternalRefContent, refs);
-        
+
         // Get the content of the artifact preserving external references
         given()
         .when()
@@ -2881,7 +2922,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
             .statusCode(200)
             .body("openapi", equalTo("3.0.2"))
             .body("paths.widgets.get.responses.200.content.json.schema.items.$ref", equalTo("./referenced-types.json#/components/schemas/Widget"));
-        
+
         // Get the content of the artifact rewriting external references
         given()
         .when()
@@ -2893,7 +2934,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
             .statusCode(200)
             .body("openapi", equalTo("3.0.2"))
             .body("paths.widgets.get.responses.200.content.json.schema.items.$ref", endsWith("/apis/registry/v2/groups/GroupsResourceTest/artifacts/testGetArtifactVersionWithReferences%2FReferencedTypes/versions/1?references=REWRITE#/components/schemas/Widget"));
-        
+
         // Get the content of the artifact inlining/dereferencing external references
         given()
         .when()

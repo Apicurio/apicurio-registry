@@ -16,17 +16,14 @@
 
 package io.apicurio.registry.noprofile.rest.v2.impexp;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
 import java.util.UUID;
 
-import io.apicurio.registry.rest.client.AdminClient;
-import io.apicurio.registry.rest.client.AdminClientFactory;
+import com.microsoft.kiota.authentication.AnonymousAuthenticationProvider;
+import com.microsoft.kiota.http.OkHttpRequestAdapter;
 import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.rest.client.RegistryClientFactory;
-import io.apicurio.registry.rbac.AdminResourceTest;
-import io.apicurio.registry.rest.v2.beans.Rule;
-import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.rest.client.models.ArtifactContent;
+import io.apicurio.registry.rest.client.models.Rule;
+import io.apicurio.registry.rest.client.models.RuleType;
 
 /**
  * Used to create the export.zip file used by the import test in {@link AdminResourceTest}.
@@ -43,42 +40,67 @@ public class ExportLoader {
             "    }\r\n" +
             "}";
 
-    public static void main(String[] args) throws IOException {
-        RegistryClient client = RegistryClientFactory.create("http://localhost:8080/apis/registry/v2");
-        AdminClient adminClient = AdminClientFactory.create("http://localhost:8080/apis/registry/v2");
+    public static void main(String[] args) throws Exception {
+        var adapter = new OkHttpRequestAdapter(new AnonymousAuthenticationProvider());
+        adapter.setBaseUrl("http://localhost:8080/apis/registry/v2");
+        RegistryClient client = new RegistryClient(adapter);
         for (int idx = 0; idx < 1000; idx++) {
             System.out.println("Iteration: " + idx);
-            try (ByteArrayInputStream data = new ByteArrayInputStream(CONTENT.replace("1.0.0", "1.0." + idx).getBytes())) {
-                String artifactId = UUID.randomUUID().toString();
-                client.createArtifact("default", artifactId, data);
-                client.deleteArtifact("default", artifactId);
-            }
+            String data = CONTENT.replace("1.0.0", "1.0." + idx);
+            String artifactId = UUID.randomUUID().toString();
+            ArtifactContent content = new ArtifactContent();
+            content.setContent(data);
+            client.groups().byGroupId("default").artifacts().post(content, config -> {
+                config.headers.add("X-Registry-ArtifactId", artifactId);
+            }).get();
+            client.groups().byGroupId("default").artifacts().byArtifactId(artifactId).delete().get();
         }
 
         String testContent = CONTENT.replace("Empty API", "Test Artifact");
 
-        ByteArrayInputStream data = new ByteArrayInputStream(testContent.replace("1.0.0", "1.0.1").getBytes());
-        client.createArtifact("ImportTest", "Artifact-1", "1.0.1", data);
-        data = new ByteArrayInputStream(testContent.replace("1.0.0", "1.0.2").getBytes());
-        client.createArtifactVersion("ImportTest", "Artifact-1", "1.0.2", data);
-        data = new ByteArrayInputStream(testContent.replace("1.0.0", "1.0.3").getBytes());
-        client.createArtifactVersion("ImportTest", "Artifact-1", "1.0.3", data);
+        ArtifactContent content = new ArtifactContent();
+        String data = testContent.replace("1.0.0", "1.0.1");
+        content.setContent(data);
+        client.groups().byGroupId("ImportTest").artifacts().byArtifactId("Artifact-1").versions().post(content, config -> {
+            config.headers.add("X-Registry-ArtifactId", "Artifact-1");
+            config.headers.add("X-Registry-Version", "1.0.1");
+        }).get();
+        data = testContent.replace("1.0.0", "1.0.2");
+        content.setContent(data);
+        client.groups().byGroupId("ImportTest").artifacts().byArtifactId("Artifact-1").versions().post(content, config -> {
+            config.headers.add("X-Registry-ArtifactId", "Artifact-1");
+            config.headers.add("X-Registry-Version", "1.0.2");
+        }).get();
+        data = testContent.replace("1.0.0", "1.0.3");
+        content.setContent(data);
+        client.groups().byGroupId("ImportTest").artifacts().byArtifactId("Artifact-1").versions().post(content, config -> {
+            config.headers.add("X-Registry-ArtifactId", "Artifact-1");
+            config.headers.add("X-Registry-Version", "1.0.3");
+        }).get();
 
-        data = new ByteArrayInputStream(testContent.replace("1.0.0", "1.0.1").getBytes());
-        client.createArtifact("ImportTest", "Artifact-2", "1.0.1", data);
+        data = testContent.replace("1.0.0", "1.0.1");
+        content.setContent(data);
+        client.groups().byGroupId("ImportTest").artifacts().byArtifactId("Artifact-1").versions().post(content, config -> {
+            config.headers.add("X-Registry-ArtifactId", "Artifact-2");
+            config.headers.add("X-Registry-Version", "1.0.1");
+        }).get();
 
-        data = new ByteArrayInputStream(testContent.replace("1.0.0", "1.0.2").getBytes());
-        client.createArtifact("ImportTest", "Artifact-3", "1.0.2", data);
+        data = testContent.replace("1.0.0", "1.0.2");
+        content.setContent(data);
+        client.groups().byGroupId("ImportTest").artifacts().byArtifactId("Artifact-1").versions().post(content, config -> {
+            config.headers.add("X-Registry-ArtifactId", "Artifact-3");
+            config.headers.add("X-Registry-Version", "1.0.2");
+        }).get();
 
         Rule rule = new Rule();
         rule.setType(RuleType.VALIDITY);
         rule.setConfig("SYNTAX_ONLY");
-        client.createArtifactRule("ImportTest", "Artifact-1", rule);
+        client.groups().byGroupId("ImportTest").artifacts().byArtifactId("Artifact-1").rules().post(rule).get();
 
         rule = new Rule();
         rule.setType(RuleType.COMPATIBILITY);
         rule.setConfig("BACKWARD");
-        adminClient.createGlobalRule(rule);
+        client.admin().rules().post(rule);
     }
 
 }

@@ -124,7 +124,7 @@ public class DoNotPreserveIdsImportIT extends ApicurioRegistryBaseIT {
         @Override
         public Map<String, String> start() {
 
-            String registryBaseUrl = startRegistryApplication("quay.io/apicurio/apicurio-registry-mem:latest-release");
+            String registryBaseUrl = startRegistryApplication("quay.io/apicurio/apicurio-registry-mem:2.4.14.Final");
             var adapter = new OkHttpRequestAdapter(new AnonymousAuthenticationProvider());
             adapter.setBaseUrl(registryBaseUrl);
             RegistryClient source = new RegistryClient(adapter);

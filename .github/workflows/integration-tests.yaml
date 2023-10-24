@@ -41,8 +41,9 @@ jobs:
       - name: Get maven wrapper
         run: mvn -N io.takari:maven:wrapper -Dmaven=3.8.2
 
+      # Build image just for one platform
       - name: Build Sql Variant
-        run: mvn package -am -Psql -pl storage/sql -DskipTests -Dregistry.build.sql-image=true -Dquarkus.container-image.image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-sql:1d
+        run: mvn package -am -Psql -pl storage/sql -DskipTests -Dregistry.build.sql-image=true -Dquarkus.docker.buildx.platform= -Dquarkus.container-image.image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-sql:1d
 
 
   prepare-kafkasql-tests:
@@ -65,7 +66,7 @@ jobs:
         run: mvn -N io.takari:maven:wrapper -Dmaven=3.8.2
 
       - name: Build kafkasql Variant
-        run: mvn package -am -Pkafkasql -pl storage/kafkasql -DskipTests -Dregistry.build.kafkasql-image=true -Dquarkus.container-image.image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-kafkasql:1d
+        run: mvn package -am -Pkafkasql -pl storage/kafkasql -DskipTests -Dregistry.build.kafkasql-image=true -Dquarkus.docker.buildx.platform= -Dquarkus.container-image.image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-kafkasql:1d
 
   integration-tests-sql:
     name: Integration Tests SQL

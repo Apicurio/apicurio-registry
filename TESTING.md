@@ -38,7 +38,7 @@ When executing the testsuite you normally provide two profiles:
 
 As you might expect, this testsuite mode depends on the rest of the project to be built first, in order to have the application jars/images available or the serdes module to be available as well.
 
-For running the smoke tests group using the sql variant, first run `mvn clean install -Psql` (this command will execute the unit tests for the sql variant, you can skip them using `-DskipTests`) and then run `mvn verify -Plocal-sql -Psmoke`.
+For running the smoke tests group using the sql variant, first run `mvn clean install -Psql` (this command will execute the unit tests for the sql variant, you can skip them using `-DskipTests`) and then run `mvn clean verify -Plocal-sql -Psmoke`.
 
 
 ## ITs with infrastructure in Kubernetes/Openshift

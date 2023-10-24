@@ -111,6 +111,7 @@
                             <goal>unpack-dependencies</goal>
                         </goals>
                         <configuration>
+                            <excludeTypes>io.apicurio.registry.storage.InMemoryRegistryStorageTest</excludeTypes>
                             <includeGroupIds>io.apicurio</includeGroupIds>
                             <includeTypes>test-jar</includeTypes>
                             <includeScope>test</includeScope>
@@ -222,18 +223,6 @@
     </build>
     
     <profiles>
-        <profile>
-            <id>no-docker</id>
-            <properties>
-                <groups>!docker</groups>
-            </properties>
-        </profile>
-        <profile>
-            <id>no-slow-tests</id>
-            <properties>
-                <groups>!slow</groups>
-            </properties>
-        </profile>
         <profile>
             <id>native</id>
             <activation>

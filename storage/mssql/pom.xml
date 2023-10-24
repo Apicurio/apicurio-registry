@@ -215,13 +215,4 @@
             </plugin>
         </plugins>
     </build>
-
-    <profiles>
-        <profile>
-            <id>no-docker</id>
-            <properties>
-                <groups>!docker</groups>
-            </properties>
-        </profile>
-    </profiles>
 </project>

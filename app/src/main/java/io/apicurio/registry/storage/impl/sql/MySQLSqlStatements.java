@@ -26,7 +26,8 @@ public class MySQLSqlStatements extends CommonSqlStatements {
     /**
      * Constructor.
      */
-    public MySQLSqlStatements() { }
+    public MySQLSqlStatements() {
+    }
 
     /**
      * @see SqlStatements#dbType()
@@ -71,32 +72,8 @@ public class MySQLSqlStatements extends CommonSqlStatements {
     public String upsertContent() {
         return String.join(" ",
                 "INSERT IGNORE INTO content",
-                "(tenantId, contentId, canonicalHash, contentHash, content, artifactreferences)",
+                "(contentId, canonicalHash, contentHash, content, artifactreferences)",
                 "VALUES (?, ?, ?, ?, ?, ?);"
-        );
-    }
-
-    /**
-     * @see SqlStatements#upsertReference()
-     */
-    @Override
-    public String upsertReference() {
-        return String.join(" ",
-                "INSERT IGNORE INTO artifactreferences",
-                "(tenantId, contentId, groupId, artifactId, version, name)",
-                "VALUES (?, ?, ?, ?, ?, ?);"
-        );
-    }
-
-    /**
-     * @see SqlStatements#upsertLogConfiguration()
-     */
-    @Override
-    public String upsertLogConfiguration() {
-        return String.join(" ",
-                "INSERT INTO logconfiguration (logger, loglevel)",
-                "VALUES (?, ?)",
-                "ON DUPLICATE KEY UPDATE loglevel = ?;"
         );
     }
 
@@ -107,7 +84,7 @@ public class MySQLSqlStatements extends CommonSqlStatements {
      */
     @Override
     public String getNextSequenceValue() {
-        return "CALL GetNextSequenceValue(?, ?, 1)";
+        return "CALL GetNextSequenceValue(?, 1)";
     }
 
     /**
@@ -115,11 +92,133 @@ public class MySQLSqlStatements extends CommonSqlStatements {
      */
     @Override
     public String resetSequenceValue() {
+        return "INSERT INTO sequences (name, value) VALUES (?, ?) ON DUPLICATE KEY UPDATE value = ?";
+    }
+
+    /**
+     * @see SqlStatements#upsertReference()
+     */
+    @Override
+    public String upsertReference() {
         return String.join(" ",
-                "INSERT INTO sequences (tenantId, name, value)",
-                "VALUES (?, ?, ?)",
-                "ON DUPLICATE KEY UPDATE value = ?;"
+                "INSERT IGNORE INTO artifactreferences",
+                "(contentId, groupId, artifactId, version, name)",
+                "VALUES (?, ?, ?, ?, ?);"
         );
+    }
+
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectArtifactCountById()
+     * In MySQL, 'groups' is a reserved keyword. We've changed it to artifactgroups,
+     * so one doesn't have to bother enclosing the table name with ` backticks
+     */
+    @Override
+    public String selectGroupCountById() {
+        return "SELECT COUNT(g.groupId) FROM artifactgroups g WHERE g.groupId = ?";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#insertGroup()
+     * In MySQL, 'groups' is a reserved keyword. We've changed it to artifactgroups,
+     * so one doesn't have to bother enclosing the table name with ` backticks
+     */
+    @Override
+    public String insertGroup() {
+        return String.join(" ",
+                "INSERT INTO artifactgroups",
+                "(groupId, description, artifactsType, createdBy, createdOn, modifiedBy, modifiedOn, properties)",
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+        );
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#updateGroup()
+     * In MySQL, 'groups' is a reserved keyword. We've changed it to artifactgroups,
+     * so one doesn't have to bother enclosing the table name with ` backticks
+     */
+    @Override
+    public String updateGroup() {
+        return String.join(" ",
+                "UPDATE artifactgroups",
+                "SET description = ? , artifactsType = ? , modifiedBy = ? , modifiedOn = ? , properties = ?",
+                "WHERE groupId = ?"
+        );
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#deleteGroup()
+     * In MySQL, 'groups' is a reserved keyword. We've changed it to artifactgroups,
+     * so one doesn't have to bother enclosing the table name with ` backticks
+     */
+    @Override
+    public String deleteGroup() {
+        return  "DELETE FROM artifactgroups WHERE groupId = ?";
+    }
+
+    /**
+     * @see SqlStatements#deleteAllGroups()
+     * In MySQL, 'groups' is a reserved keyword. We've changed it to artifactgroups,
+     * so one doesn't have to bother enclosing the table name with ` backticks
+     */
+    @Override
+    public String deleteAllGroups() {
+        return "DELETE FROM artifactgroups";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectGroups()
+     * In MySQL, 'groups' is a reserved keyword. We've changed it to artifactgroups,
+     * so one doesn't have to bother enclosing the table name with ` backticks
+     */
+    @Override
+    public String selectGroups() {
+        //TODO pagination?
+        return "SELECT g.* FROM artifactgroups g ORDER BY g.groupId ASC LIMIT ?";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectGroupByGroupId()
+     * In MySQL, 'groups' is a reserved keyword. We've changed it to artifactgroups,
+     * so one doesn't have to bother enclosing the table name with ` backticks
+     */
+    @Override
+    public String selectGroupByGroupId() {
+        return "SELECT g.* FROM artifactgroups g WHERE g.groupId = ?";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#exportGroups()
+     * In MySQL, 'groups' is a reserved keyword. We've changed it to artifactgroups,
+     * so one doesn't have to bother enclosing the table name with ` backticks
+     */
+    @Override
+    public String exportGroups() {
+        return "SELECT * FROM artifactgroups g";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#importGroup()
+     * In MySQL, 'groups' is a reserved keyword. We've changed it to artifactgroups,
+     * so one doesn't have to bother enclosing the table name with ` backticks
+     */
+    @Override
+    public String importGroup() {
+        return String.join(" ",
+                "INSERT INTO artifactgroups",
+                "(groupId, description, artifactsType, createdBy, createdOn, modifiedBy, modifiedOn, properties)",
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+        );
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#autoUpdateVersionForGlobalId()
+     * MySQL doesn't behave well with 'UPDATE... SET version = (SELECT... WHERE) WHERE...',
+     * so a CTE was necessary here
+     */
+    @Override
+    public String autoUpdateVersionForGlobalId() {
+        return "UPDATE versions SET version = versionId WHERE globalId = ?";
     }
 
     /**
@@ -132,163 +231,25 @@ public class MySQLSqlStatements extends CommonSqlStatements {
         if (firstVersion) {
             return String.join(" ",
                     "INSERT INTO versions",
-                    "(globalId, tenantId, groupId, artifactId, version, versionId, state, name, description, createdBy, createdOn, labels, properties, contentId)",
-                    "VALUES (?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?)"
+                    "(globalId, groupId, artifactId, version, versionId, state, name, description, createdBy, createdOn, labels, properties, contentId)",
+                    "VALUES (?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?)"
             );
         }
         return String.join(" ",
                 String.join(" ",
                         "INSERT INTO versions",
-                        "(globalId, tenantId, groupId, artifactId, version, versionId, state, name, description, createdBy, createdOn, labels, properties, contentId)",
+                        "(globalId, groupId, artifactId, version, versionId, state, name, description, createdBy, createdOn, labels, properties, contentId)",
                         "SELECT",
-                        "? as globalId,", "? as tenantId,", "? as groupId,", "? as artifactId,", "? as version,",
-                        "(SELECT MAX(versionId) + 1 FROM versions WHERE tenantId = ? AND groupId = ? AND artifactId = ?) as versionId,",
+                        "? as globalId,", "? as groupId,", "? as artifactId,", "? as version,",
+                        "(SELECT MAX(versionId) + 1 FROM versions WHERE groupId = ? AND artifactId = ?) as versionId,",
                         "? as state,", "? as name,", "? as description,", "? as createdBy,", "? as createdOn,",
                         "? as labels,", "? as properties,", "? as contentId"
                 )
         );
     }
 
-    /**
-     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#autoUpdateVersionForGlobalId()
-     * MySQL doesn't behave well with 'UPDATE... SET version = (SELECT... WHERE) WHERE...',
-     * so a CTE was necessary here
-     */
-    @Override
-    public String autoUpdateVersionForGlobalId() {
-        return String.join(" ",
-                "WITH v as (SELECT versionId  FROM versions WHERE tenantId = ? AND globalId = ?)",
-                "UPDATE versions SET version = (SELECT versionId FROM v)",
-                "WHERE tenantId = ? AND globalId = ?"
-        );
-    }
 
-    /**
-     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectArtifactCountById()
-     * In MySQL, 'groups' is a reserved keyword. We've changed it to artifactgroups,
-     * so one doesn't have to bother enclosing the table name with ` backticks
-     */
-    @Override
-    public String selectGroupCountById() {
-        return String.join(" ",
-                "SELECT COUNT(g.groupId)",
-                "FROM artifactgroups g",
-                "WHERE g.tenantId = ? AND g.groupId = ?"
-        );
-    }
 
-    /**
-     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#insertGroup()
-     * In MySQL, 'groups' is a reserved keyword. We've changed it to artifactgroups,
-     * so one doesn't have to bother enclosing the table name with ` backticks
-     */
-    @Override
-    public String insertGroup() {
-        return String.join(" ",
-                "INSERT INTO artifactgroups",
-                "(tenantId, groupId, description, artifactsType, createdBy, createdOn, modifiedBy, modifiedOn, properties)",
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
-        );
-    }
 
-    /**
-     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#updateGroup()
-     * In MySQL, 'groups' is a reserved keyword. We've changed it to artifactgroups,
-     * so one doesn't have to bother enclosing the table name with ` backticks
-     */
-    @Override
-    public String updateGroup() {
-        return String.join(" ",
-                "UPDATE artifactgroups ",
-                "SET description = ? , artifactsType = ? , modifiedBy = ? , modifiedOn = ? , properties = ? ",
-                "WHERE tenantId = ? AND groupId = ?"
-        );
-    }
 
-    /**
-     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#deleteGroup()
-     * In MySQL, 'groups' is a reserved keyword. We've changed it to artifactgroups,
-     * so one doesn't have to bother enclosing the table name with ` backticks
-     */
-    @Override
-    public String deleteGroup() {
-        return String.join(" ",
-                "DELETE",
-                "FROM artifactgroups ",
-                "WHERE tenantId = ? AND groupId = ?"
-        );
-    }
-
-    /**
-     * @see SqlStatements#deleteAllGroups()
-     * In MySQL, 'groups' is a reserved keyword. We've changed it to artifactgroups,
-     * so one doesn't have to bother enclosing the table name with ` backticks
-     */
-    @Override
-    public String deleteAllGroups() {
-        return String.join(" ",
-                "DELETE",
-                "FROM artifactgroups",
-                "WHERE tenantId = ?"
-        );
-    }
-
-    /**
-     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectGroups()
-     * In MySQL, 'groups' is a reserved keyword. We've changed it to artifactgroups,
-     * so one doesn't have to bother enclosing the table name with ` backticks
-     */
-    @Override
-    public String selectGroups() {
-        //TODO pagination?
-        return String.join(" ",
-                "SELECT g.*",
-                "FROM artifactgroups g",
-                "WHERE g.tenantId = ?",
-                "ORDER BY g.groupId ASC",
-                "LIMIT ?"
-        );
-    }
-
-    /**
-     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectGroupByGroupId()
-     * In MySQL, 'groups' is a reserved keyword. We've changed it to artifactgroups,
-     * so one doesn't have to bother enclosing the table name with ` backticks
-     */
-    @Override
-    public String selectGroupByGroupId() {
-        return String.join(" ",
-                "SELECT g.*",
-                "FROM artifactgroups g",
-                "WHERE g.tenantId = ? AND g.groupId = ?"
-        );
-    }
-
-    /**
-     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#exportGroups()
-     * In MySQL, 'groups' is a reserved keyword. We've changed it to artifactgroups,
-     * so one doesn't have to bother enclosing the table name with ` backticks
-     */
-    @Override
-    public String exportGroups() {
-        return String.join(" ",
-                "SELECT *",
-                "FROM artifactgroups g",
-                "WHERE g.tenantId = ?"
-        );
-    }
-
-    /**
-     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#importGroup()
-     * In MySQL, 'groups' is a reserved keyword. We've changed it to artifactgroups,
-     * so one doesn't have to bother enclosing the table name with ` backticks
-     */
-    @Override
-    public String importGroup() {
-        return String.join(" ",
-                "INSERT INTO artifactgroups",
-                "(tenantId, groupId, description, artifactsType, createdBy, createdOn, modifiedBy, modifiedOn, properties)",
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
-        );
-    }
 }

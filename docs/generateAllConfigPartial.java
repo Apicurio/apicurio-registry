@@ -212,7 +212,7 @@ public class generateAllConfigPartial {
 
         // TODO: include all the relevant jars, to be determined
         // Extract configuration from Jandex
-        extractConfigurations(baseDir + "/../app/target/lib/io.apicurio.apicurio-common-app-components-auth-" + commonComponentsVersion + ".jar", allConfiguration);
+        extractConfigurations(baseDir + "/../app/target/quarkus-app/lib/main/io.apicurio.apicurio-common-app-components-auth-" + commonComponentsVersion + ".jar", allConfiguration);
         extractConfigurations(baseDir + "/../app/target/apicurio-registry-app-" + currentVersion + ".jar", allConfiguration);
 
         // TODO

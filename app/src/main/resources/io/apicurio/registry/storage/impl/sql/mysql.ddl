@@ -77,3 +77,7 @@ CREATE INDEX IDX_config_1 ON config (modifiedOn);
 CREATE TABLE artifactreferences (contentId BIGINT NOT NULL, groupId VARCHAR(512), artifactId VARCHAR(512) NOT NULL, version VARCHAR(256), name VARCHAR(512) NOT NULL);
 ALTER TABLE artifactreferences ADD PRIMARY KEY (contentId, name);
 ALTER TABLE artifactreferences ADD FOREIGN KEY (contentId) REFERENCES content (contentId) ON DELETE CASCADE;
+
+-- Required for the method `getNextSequenceValue()` on MySQLSqlStatements since MySQL does not have an equivalent
+-- to Postgres' RETURNING or SQLServer's OUTPUT functionalities
+CREATE PROCEDURE GetNextSequenceValue(IN in_name varchar(32), IN in_value int) BEGIN INSERT INTO sequences (name, value) VALUES (in_name, in_value) ON DUPLICATE KEY UPDATE value = value + 1; SELECT value FROM sequences WHERE name = in_name; END;

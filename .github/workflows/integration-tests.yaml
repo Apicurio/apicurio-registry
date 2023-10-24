@@ -42,14 +42,7 @@ jobs:
         run: mvn -N io.takari:maven:wrapper -Dmaven=3.8.2
 
       - name: Build Sql Variant
-        run: make SKIP_TESTS=true BUILD_FLAGS='-Dmaven.javadoc.skip=true --no-transfer-progress -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5' build-sql
-
-      - name: Build and Push Sql image
-        env:
-          IMAGE_REPO: ttl.sh/${{ github.sha }}
-          # maximum allowed
-          IMAGE_TAG: 1d
-        run: make build-sql-image push-sql-image
+        run: mvn package -am -Psql -pl storage/sql -DskipTests -Dregistry.build.sql-image=true -Dquarkus.container-image.image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-sql:1d
 
 
   prepare-kafkasql-tests:
@@ -72,14 +65,7 @@ jobs:
         run: mvn -N io.takari:maven:wrapper -Dmaven=3.8.2
 
       - name: Build kafkasql Variant
-        run: make SKIP_TESTS=true BUILD_FLAGS='-Dmaven.javadoc.skip=true --no-transfer-progress -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5' build-kafkasql
-
-      - name: Build and Push kafkasql image
-        env:
-          IMAGE_REPO: ttl.sh/${{ github.sha }}
-          # maximum allowed
-          IMAGE_TAG: 1d
-        run: make build-kafkasql-image push-kafkasql-image
+        run: mvn package -am -Pkafkasql -pl storage/kafkasql -DskipTests -Dregistry.build.kafkasql-image=true -Dquarkus.container-image.image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-kafkasql:1d
 
   integration-tests-sql:
     name: Integration Tests SQL
@@ -107,13 +93,13 @@ jobs:
         run: minikube tunnel &> /dev/null &
 
       - name: Run Integration Tests - sql
-        run: make REGISTRY_IMAGE='-Dregistry-sql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-sql:1d' run-sql-integration-tests
+        run: ./mvnw verify -am -Pintegration-tests -pl integration-tests -Premote-sql -Pci -Dregistry-sql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-sql:1d
 
       - name: Run Integration Tests - sql - auth
-        run: make REGISTRY_IMAGE='-Dregistry-sql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-sql:1d' run-sql-auth-tests
+        run: ./mvnw verify -am -Pintegration-tests -pl integration-tests -Premote-sql -Pauth -Dregistry-sql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-sql:1d
 
       - name: Run Integration Tests - sql - migration
-        run: make REGISTRY_IMAGE='-Dregistry-sql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-sql:1d' run-sql-migration-integration-tests
+        run: ./mvnw verify -am -Pintegration-tests -pl integration-tests -Premote-sql -Pmigration -Dregistry-sql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-sql:1d
 
       - name: Collect logs
         if: failure()
@@ -151,14 +137,14 @@ jobs:
       - name: Prepare minikube tunnel
         run: minikube tunnel &> /dev/null &
 
-      - name: Run Integration Tests - KafkaSql
-        run: make REGISTRY_IMAGE='-Dregistry-kafkasql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-kafkasql:1d' run-kafkasql-integration-tests
+      - name: Run Integration Tests - kafkasql
+        run: ./mvnw verify -am -Pintegration-tests -pl integration-tests -Premote-kafka -Pci -Dregistry-kafkasql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-kafkasql:1d
 
-      - name: Run Integration Tests - KafkaSql - Migration
-        run: make REGISTRY_IMAGE='-Dregistry-kafkasql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-kafkasql:1d' run-kafkasql-migration-integration-tests
+      - name: Run Integration Tests - kafksql - auth
+        run: ./mvnw verify -am -Pintegration-tests -pl integration-tests -Premote-kafka -Pauth -Dregistry-kafkasql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-kafkasql:1d
 
-      - name: Run Integration Tests - KafkaSql - Auth
-        run: make REGISTRY_IMAGE='-Dregistry-kafkasql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-kafkasql:1d' run-kafkasql-auth-tests
+      - name: Run Integration Tests - kafkasql - migration
+        run: ./mvnw verify -am -Pintegration-tests -pl integration-tests -Premote-kafka -Pmigration -Dregistry-kafkasql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-kafkasql:1d
 
       - name: Collect logs
         if: failure()
@@ -196,7 +182,7 @@ jobs:
         run: minikube tunnel &> /dev/null &
 
       - name: Run UI tests
-        run: make REGISTRY_IMAGE='-Dregistry-sql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-sql:1d' run-ui-tests
+        run: ./mvnw verify -am -Pintegration-tests -pl integration-tests -Premote-sql -Pui -Dregistry-sql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-sql:1d
 
       - name: Collect logs
         if: failure()

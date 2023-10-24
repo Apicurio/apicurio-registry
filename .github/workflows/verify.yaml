@@ -23,7 +23,6 @@ concurrency:
 
 env:
   TESTCONTAINERS_RYUK_DISABLED: true
-  BUILD_IMAGES: github.event_name == 'push'
 
 jobs:
   build-verify:
@@ -62,18 +61,18 @@ jobs:
           echo "Platforms: ${{ steps.buildx.outputs.platforms }}"
 
       - name: Login to DockerHub Registry
-        if: ${{ env.BUILD_IMAGES }}
+        if: github.event_name == 'push'
         run: echo ${{ secrets.DOCKERHUB_PASSWORD }} | docker login -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
 
       - name: Login to Quay.io Registry
-        if: ${{ env.BUILD_IMAGES }}
+        if: github.event_name == 'push'
         run: docker login -u "${{ secrets.QUAY_USERNAME }}" -p "${{ secrets.QUAY_PASSWORD }}" quay.io
 
       - name: Create Image and publish it to Quay.io
-        run: mvn package -am -pl app -Dregistry.build.mem-image=${{ env.BUILD_IMAGES }}
+        run: mvn package -am -pl app -DskipUiBuild -Dregistry.build.mem-image=${{ github.event_name == 'push' }}
 
       - name: Create Image and publish it to Docker.io
-        run: mvn package -am -pl app -Dregistry.build.mem-image=${{ env.BUILD_IMAGES }} -Dquarkus.container-image.registry=docker.io -DskipTests
+        run: mvn package -am -pl app -DskipUiBuild -Dregistry.build.mem-image=${{ github.event_name == 'push' }} -Dquarkus.container-image.registry=docker.io -DskipTests
 
   build-verify-sql:
     name: Verify SQL Build
@@ -111,18 +110,18 @@ jobs:
           echo "Platforms: ${{ steps.buildx.outputs.platforms }}"
 
       - name: Login to DockerHub Registry
-        if: ${{ env.BUILD_IMAGES }}
+        if: github.event_name == 'push'
         run: echo ${{ secrets.DOCKERHUB_PASSWORD }} | docker login -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
 
       - name: Login to Quay.io Registry
-        if: ${{ env.BUILD_IMAGES }}
+        if: github.event_name == 'push'
         run: docker login -u "${{ secrets.QUAY_USERNAME }}" -p "${{ secrets.QUAY_PASSWORD }}" quay.io
 
       - name: Create Image and publish it to Quay.io
-        run: mvn package -am -Psql -pl storage/sql -DskipAppTests -Dregistry.build.sql-image=${{ env.BUILD_IMAGES }}
+        run: mvn package -am -Psql -pl storage/sql -DskipUiBuild -DskipAppTests -Dregistry.build.sql-image=${{ github.event_name == 'push' }}
 
       - name: Create Image and publish it to Docker.io
-        run: mvn package -am -Psql -pl storage/sql -DskipTests -Dregistry.build.sql-image=${{ env.BUILD_IMAGES }} -Dquarkus.container-image.registry=docker.io
+        run: mvn package -am -Psql -pl storage/sql -DskipUiBuild -DskipTests -Dregistry.build.sql-image=${{ github.event_name == 'push' }} -Dquarkus.container-image.registry=docker.io
 
 
   build-verify-kafkasql:
@@ -161,18 +160,18 @@ jobs:
           echo "Platforms: ${{ steps.buildx.outputs.platforms }}"
 
       - name: Login to DockerHub Registry
-        if: ${{ env.BUILD_IMAGES }}
+        if: github.event_name == 'push'
         run: echo ${{ secrets.DOCKERHUB_PASSWORD }} | docker login -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
 
       - name: Login to Quay.io Registry
-        if: ${{ env.BUILD_IMAGES }}
+        if: github.event_name == 'push'
         run: docker login -u "${{ secrets.QUAY_USERNAME }}" -p "${{ secrets.QUAY_PASSWORD }}" quay.io
 
       - name: Create Image and publish it to Quay.io
-        run: mvn package -am -Pkafkasql -DskipAppTests -pl storage/kafkasql -Dregistry.build.kafkasql-image=${{env.BUILD_IMAGES}}
+        run: mvn package -am -Pkafkasql -DskipUiBuild -DskipAppTests -pl storage/kafkasql -Dregistry.build.kafkasql-image=${{ github.event_name == 'push' }}
 
       - name: Create Image and publish it to Docker.io
-        run: mvn package -am -Pkafkasql -DskipTests -pl storage/kafkasql -Dregistry.build.kafkasql-image=${{ env.BUILD_IMAGES }}
+        run: mvn package -am -Pkafkasql -DskipUiBuild -DskipTests -pl storage/kafkasql -Dregistry.build.kafkasql-image=${{ github.event_name == 'push' }}
 
 
   notify-sdk:

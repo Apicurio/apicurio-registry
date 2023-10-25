@@ -39,10 +39,16 @@ import kotlin.ranges.IntRange;
 import metadata.ProtobufSchemaMetadata;
 import additionalTypes.Decimals;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -119,41 +125,55 @@ public class FileDescriptorUtils {
     private static final OptionElement.Kind booleanKind =  OptionElement.Kind.BOOLEAN;
     private static final OptionElement.Kind stringKind =  OptionElement.Kind.STRING;
     private static final OptionElement.Kind enumKind =  OptionElement.Kind.ENUM;
+    private static final FileDescriptor[] WELL_KNOWN_DEPENDENCIES;
 
-    public static FileDescriptor[] baseDependencies() {
+    static {
         //Support all the Protobuf WellKnownTypes
         //and the protos from Google API, https://github.com/googleapis/googleapis
-        return new FileDescriptor[] {
-            ApiProto.getDescriptor().getFile(),
-            FieldMaskProto.getDescriptor().getFile(),
-            SourceContextProto.getDescriptor().getFile(),
-            StructProto.getDescriptor().getFile(),
-            TypeProto.getDescriptor().getFile(),
-            TimestampProto.getDescriptor().getFile(),
-            WrappersProto.getDescriptor().getFile(),
-            AnyProto.getDescriptor().getFile(),
-            EmptyProto.getDescriptor().getFile(),
-            DurationProto.getDescriptor().getFile(),
-            TimeOfDayProto.getDescriptor().getFile(),
-            DateProto.getDescriptor().getFile(),
-            CalendarPeriodProto.getDescriptor().getFile(),
-            ColorProto.getDescriptor().getFile(),
-            DayOfWeek.getDescriptor().getFile(),
-            LatLng.getDescriptor().getFile(),
-            FractionProto.getDescriptor().getFile(),
-            MoneyProto.getDescriptor().getFile(),
-            MonthProto.getDescriptor().getFile(),
-            PhoneNumberProto.getDescriptor().getFile(),
-            PostalAddressProto.getDescriptor().getFile(),
-            CalendarPeriodProto.getDescriptor().getFile(),
-            LocalizedTextProto.getDescriptor().getFile(),
-            IntervalProto.getDescriptor().getFile(),
-            ExprProto.getDescriptor().getFile(),
-            QuaternionProto.getDescriptor().getFile(),
-            PostalAddressProto.getDescriptor().getFile(),
-            ProtobufSchemaMetadata.getDescriptor().getFile(),
-            Decimals.getDescriptor().getFile()
+        WELL_KNOWN_DEPENDENCIES = new FileDescriptor[]{
+                ApiProto.getDescriptor().getFile(),
+                FieldMaskProto.getDescriptor().getFile(),
+                SourceContextProto.getDescriptor().getFile(),
+                StructProto.getDescriptor().getFile(),
+                TypeProto.getDescriptor().getFile(),
+                TimestampProto.getDescriptor().getFile(),
+                WrappersProto.getDescriptor().getFile(),
+                AnyProto.getDescriptor().getFile(),
+                EmptyProto.getDescriptor().getFile(),
+                DurationProto.getDescriptor().getFile(),
+                TimeOfDayProto.getDescriptor().getFile(),
+                DateProto.getDescriptor().getFile(),
+                CalendarPeriodProto.getDescriptor().getFile(),
+                ColorProto.getDescriptor().getFile(),
+                DayOfWeek.getDescriptor().getFile(),
+                LatLng.getDescriptor().getFile(),
+                FractionProto.getDescriptor().getFile(),
+                MoneyProto.getDescriptor().getFile(),
+                MonthProto.getDescriptor().getFile(),
+                PhoneNumberProto.getDescriptor().getFile(),
+                PostalAddressProto.getDescriptor().getFile(),
+                CalendarPeriodProto.getDescriptor().getFile(),
+                LocalizedTextProto.getDescriptor().getFile(),
+                IntervalProto.getDescriptor().getFile(),
+                ExprProto.getDescriptor().getFile(),
+                QuaternionProto.getDescriptor().getFile(),
+                PostalAddressProto.getDescriptor().getFile(),
+                ProtobufSchemaMetadata.getDescriptor().getFile(),
+                Decimals.getDescriptor().getFile()
         };
+    }
+
+    public static FileDescriptor[] baseDependencies() {
+        return WELL_KNOWN_DEPENDENCIES.clone();
+    }
+
+    private static Map<String, FileDescriptor> mutableBaseDependenciesByName(int ensureCapacity) {
+        // return a map using WELL_KNOWN_DEPENDENCIES to populate it
+        final Map<String, FileDescriptor> deps = new HashMap<>(WELL_KNOWN_DEPENDENCIES.length + ensureCapacity);
+        for (FileDescriptor fd : WELL_KNOWN_DEPENDENCIES) {
+            deps.put(fd.getName(), fd);
+        }
+        return deps;
     }
 
     public static FileDescriptor protoFileToFileDescriptor(ProtoFileElement element)
@@ -189,6 +209,298 @@ public class FileDescriptorUtils {
         Descriptors.FileDescriptor[] dependenciesArray = new Descriptors.FileDescriptor[joinedDependencies.size()];
 
         return FileDescriptor.buildFrom(toFileDescriptorProto(schemaDefinition, protoFileName, optionalPackageName, schemaDefs), joinedDependencies.toArray(dependenciesArray));
+    }
+
+    public static final class ReadSchemaException extends Exception {
+        private final File file;
+
+        private ReadSchemaException(File file, Throwable cause) {
+            super(cause);
+            this.file = file;
+        }
+
+        public File file() {
+            return file;
+        }
+    }
+
+    /**
+     * Same as {@link #parseProtoFileWithDependencies(File, Set, Map)}, but with {@code requiredSchemaDeps} set to {@code null}.
+     */
+    public static FileDescriptor parseProtoFileWithDependencies(File mainProtoFile, Set<File> dependencies)
+            throws DescriptorValidationException, ReadSchemaException, ParseSchemaException {
+        return parseProtoFileWithDependencies(mainProtoFile, dependencies, null);
+    }
+
+    /**
+     * Same as {@link #parseProtoFileWithDependencies(File, Set, Map, boolean)}, but with {@code failFast} set to {@code true}
+     * and {@code requiredSchemaDeps} set to {@code null}.
+     */
+
+    public static FileDescriptor parseProtoFileWithDependencies(File mainProtoFile, Set<File> dependencies,
+                                                                Map<String, String> requiredSchemaDeps)
+            throws ReadSchemaException, DescriptorValidationException, ParseSchemaException {
+        return parseProtoFileWithDependencies(mainProtoFile, dependencies, requiredSchemaDeps, true);
+    }
+
+    /**
+     * Parse a proto file with its dependencies to produce a {@link FileDescriptor} of it, trying to resolve any
+     * transitive dependency.<br>
+     * During the resolution of dependencies process, depending on {@code failFast}, the process will fail as soon as
+     * any parsing error happen in the list of provided dependencies, regardless been required or not, or it will proceed
+     * until a required dependency cannot be resolved.<br>
+     * If {@code requiredSchemaDeps} is provided, it will be populated with the required dependencies, which keys are in the
+     * form of {@code packageName/fileName} and the value is the schema definition of the dependency.
+     */
+    public static FileDescriptor parseProtoFileWithDependencies(File mainProtoFile, Set<File> dependencies,
+                                                                Map<String, String> requiredSchemaDeps, boolean failFast)
+            throws DescriptorValidationException, ReadSchemaException, ParseSchemaException {
+        Objects.requireNonNull(mainProtoFile);
+        Objects.requireNonNull(dependencies);
+
+        final Map<String, FileDescriptor> resolvedDeps = mutableBaseDependenciesByName(dependencies.size());
+        final Map<String, String> schemaDeps = new HashMap<>(dependencies.size());
+        final Map<String, ProtoFileElement> cachedProtoFileDependencies = new HashMap<>(dependencies.size());
+        readAndParseSchemas(dependencies, schemaDeps, cachedProtoFileDependencies, failFast);
+        // fail-fast won't apply to the main proto file
+        final String schemaDefinition;
+        try {
+            schemaDefinition = new String(Files.readAllBytes(mainProtoFile.toPath()), StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            throw new ReadSchemaException(mainProtoFile, e);
+        }
+        final ProtoFileElement mainProtoElement;
+        try {
+            mainProtoElement = ProtoParser.Companion.parse(Location.get(mainProtoFile.getAbsolutePath()), schemaDefinition);
+        } catch (Throwable t) {
+            throw new ParseSchemaException(mainProtoFile.getName(), t);
+        }
+        if (requiredSchemaDeps != null) {
+            requiredSchemaDeps.clear();
+        }
+        return resolveFileDescriptor(mainProtoElement, schemaDefinition, mainProtoFile.getName(), schemaDeps,
+                resolvedDeps, requiredSchemaDeps, new HashSet<>(), cachedProtoFileDependencies);
+    }
+
+    private static void readAndParseSchemas(Collection<File> schemas, Map<String, String> schemaContents,
+                                            Map<String, ProtoFileElement> protoFileElements, boolean failFast)
+            throws ReadSchemaException, ParseSchemaException {
+        Objects.requireNonNull(schemas);
+        for (File schema : schemas) {
+            final String schemaContent;
+            try {
+                schemaContent = new String(Files.readAllBytes(schema.toPath()), StandardCharsets.UTF_8);
+            } catch (IOException e) {
+                if (failFast) {
+                    throw new ReadSchemaException(schema, e);
+                }
+                continue;
+            }
+            final ProtoFileElement protoFile;
+            try {
+                protoFile = ProtoParser.Companion.parse(Location.get(schema.getAbsolutePath()), schemaContent);
+            } catch (Throwable t) {
+                if (failFast) {
+                    throw new ParseSchemaException(schema.getName(), t);
+                }
+                continue;
+            }
+            final String protoFullName = toProtoFullName(protoFile, schema.getName());
+            protoFileElements.put(protoFullName, protoFile);
+            schemaContents.put(protoFullName, schemaContent);
+        }
+    }
+
+    public static final class ProtobufSchemaContent {
+        private final String fileName;
+        private final String schemaDefinition;
+
+        private ProtobufSchemaContent(String fileName, String schemaDefinition) {
+            Objects.requireNonNull(fileName);
+            Objects.requireNonNull(schemaDefinition);
+            this.fileName = fileName;
+            this.schemaDefinition = schemaDefinition;
+        }
+
+        public String fileName() {
+            return fileName;
+        }
+
+        public String schemaDefinition() {
+            return schemaDefinition;
+        }
+
+        public static ProtobufSchemaContent of(String fileName, String schemaDefinition) {
+            return new ProtobufSchemaContent(fileName, schemaDefinition);
+        }
+    }
+
+    public static final class ParseSchemaException extends Exception {
+        private final String fileName;
+
+        private ParseSchemaException(String fileName, Throwable cause) {
+            super(cause);
+            this.fileName = fileName;
+        }
+
+        public String fileName() {
+            return fileName;
+        }
+    }
+
+    private static void parseSchemas(Collection<ProtobufSchemaContent> schemas, Map<String, String> schemaContents,
+                                     Map<String, ProtoFileElement> protoFileElements, boolean failFast) throws ParseSchemaException {
+        Objects.requireNonNull(schemas);
+        for (ProtobufSchemaContent schema : schemas) {
+            final ProtoFileElement protoFile;
+            try {
+                protoFile = ProtoParser.Companion.parse(DEFAULT_LOCATION, schema.schemaDefinition());
+            } catch (Throwable t) {
+                if (failFast) {
+                    throw new ParseSchemaException(schema.fileName(), t);
+                }
+                // ignore and move on!
+                continue;
+            }
+            final String protoFullName = toProtoFullName(protoFile, schema.fileName());
+            protoFileElements.put(protoFullName, protoFile);
+            schemaContents.put(protoFullName, schema.schemaDefinition());
+        }
+    }
+
+    /**
+     * Same as {@link #parseProtoFileWithDependencies(ProtobufSchemaContent, Collection, Map, boolean)},
+     * but with {@code failFast} set to {@code true} and {@code requiredSchemaDeps} set to {@code null}.
+     */
+    public static FileDescriptor parseProtoFileWithDependencies(ProtobufSchemaContent mainProtoFile,
+                                                                Collection<ProtobufSchemaContent> dependencies)
+            throws DescriptorValidationException, ParseSchemaException {
+        return parseProtoFileWithDependencies(mainProtoFile, dependencies, null, true);
+    }
+
+    /**
+     * Parse a proto file with its dependencies to produce a {@link FileDescriptor} of it, trying to resolve any
+     * transitive dependency.<br>
+     * Both the dependencies and the main proto file must be provided as {@link ProtobufSchemaContent}, still unparsed,
+     * and which {@link ProtobufSchemaContent#fileName()} doesn't require to specify the package name, automatically
+     * later resolved by parsing {@link ProtobufSchemaContent#schemaDefinition()}.<br>
+     * During the resolution of dependencies process, depending on {@code failFast}, the process will fail as soon as
+     * any parsing error happen in the list of provided dependencies, regardless been required or not, or it will proceed
+     * until a required dependency cannot be resolved.<br>
+     * If {@code requiredSchemaDeps} is provided, it will be populated with the required dependencies, which keys are in the
+     * form of {@code packageName/fileName} and the value is the schema definition of the dependency.
+     */
+    public static FileDescriptor parseProtoFileWithDependencies(ProtobufSchemaContent mainProtoFile,
+                                                                Collection<ProtobufSchemaContent> dependencies,
+                                                                Map<String, String> requiredSchemaDeps,
+                                                                boolean failFast)
+            throws DescriptorValidationException, ParseSchemaException {
+        Objects.requireNonNull(mainProtoFile);
+        Objects.requireNonNull(dependencies);
+        final Map<String, FileDescriptor> resolvedDependencies = mutableBaseDependenciesByName(dependencies.size());
+        final Map<String, String> schemaDefinitions = new HashMap<>(dependencies.size());
+        final Map<String, ProtoFileElement> protoFileElements = new HashMap<>(dependencies.size());
+        parseSchemas(dependencies, schemaDefinitions, protoFileElements, failFast);
+        final ProtoFileElement mainProtoElement;
+        try {
+            mainProtoElement = ProtoParser.Companion.parse(DEFAULT_LOCATION, mainProtoFile.schemaDefinition());
+        } catch (Throwable t) {
+            throw new ParseSchemaException(mainProtoFile.fileName(), t);
+        }
+        return resolveFileDescriptor(mainProtoElement, mainProtoFile.schemaDefinition(), mainProtoFile.fileName(),
+                schemaDefinitions, resolvedDependencies, requiredSchemaDeps, new HashSet<>(), protoFileElements);
+    }
+
+    private static FileDescriptor resolveFileDescriptor(ProtoFileElement mainProtoElement,
+                                                        String schemaDefinition,
+                                                        String protoFileName,
+                                                        Map<String, String> schemaDefinitions,
+                                                        Map<String, FileDescriptor> resolvedDependencies,
+                                                        Map<String, String> requiredDependentSchemas,
+                                                        Set<String> unresolvedImportNames,
+                                                        Map<String, ProtoFileElement> cachedProtoFileDependencies) throws DescriptorValidationException {
+        final String mainProtoImportName = toProtoFullName(mainProtoElement, protoFileName);
+        if (!unresolvedImportNames.add(mainProtoImportName)) {
+            // TODO we can do better here, we can actually print the whole chain of dependencies
+            throw new IllegalStateException("Circular Dependency found");
+        }
+        List<String> directDependencyNames = mainProtoElement.getImports();
+        if (requiredDependentSchemas == null) {
+            requiredDependentSchemas = new HashMap<>(directDependencyNames.size());
+        }
+        // TODO we can make a singleton of empty fd
+        final FileDescriptor[] directDependencyFds = new FileDescriptor[directDependencyNames.size()];
+        for (int i = 0; i < directDependencyFds.length; i++) {
+            final String depFullName = directDependencyNames.get(i);
+            FileDescriptor fdDep = resolvedDependencies.get(depFullName);
+            final String schemaDep = schemaDefinitions.get(depFullName);
+            // this has never been resolved before
+            if (fdDep == null) {
+                if (schemaDep == null) {
+                    // In theory this is a REQUIRED dep, meaning that it should be better to fail-fast.
+                    // We could end up here because of:
+                    // - fail-fast is false and some error happened while reading/parsing schemas
+                    // - the schema wasn't in the dependencies
+                    // In both cases we can just ignore the required dependency and let the validation fail later
+                    continue;
+                }
+                final String fileName = extractProtoFileName(depFullName);
+                // try reuse the existing requiredDependentSchemas:
+                // in case of a chain of single-children dependencies it means reusing the same map!
+                final Map<String, String> requiredSubDependencies = requiredDependentSchemas.isEmpty() ? requiredDependentSchemas : new HashMap<>();
+                final ProtoFileElement protoFile;
+                if (cachedProtoFileDependencies != null) {
+                    protoFile = cachedProtoFileDependencies.get(depFullName);
+                    // In theory this is a REQUIRED dep, meaning that it should be better to fail-fast.
+                    // We could end up here because of:
+                    // - fail-fast is false and some error happened while reading/parsing schemas
+                    // - the schema wasn't in the dependencies
+                    // In both cases we can just ignore the required dependency and let the validation fail later
+                    if (protoFile == null) {
+                        continue;
+                    }
+                } else {
+                    protoFile = ProtoParser.Companion.parse(DEFAULT_LOCATION, schemaDep);
+                }
+                fdDep = resolveFileDescriptor(protoFile, schemaDep, fileName, schemaDefinitions, resolvedDependencies, requiredSubDependencies, unresolvedImportNames, cachedProtoFileDependencies);
+                // no need to add anything
+                if (requiredDependentSchemas != requiredSubDependencies) {
+                    requiredDependentSchemas.putAll(requiredSubDependencies);
+                }
+                // we have accumulated new requiredSubDependencies, we need to add them to the requiredDependentSchemas
+                resolvedDependencies.put(depFullName, fdDep);
+            }
+            // this is the case of a well-known dependency
+            if (schemaDep != null) {
+                // no need to add it earlier actually
+                requiredDependentSchemas.put(depFullName, schemaDep);
+            }
+            directDependencyFds[i] = fdDep;
+        }
+        final boolean removed = unresolvedImportNames.remove(mainProtoImportName);
+        assert removed : "unresolvedNames should contain depName";
+        // TODO we risk to have few dependencies files to be re-written in a whole new in-memory fs
+        Descriptors.FileDescriptor mainProtoFd = FileDescriptor.buildFrom(toFileDescriptorProto(schemaDefinition, protoFileName,
+                Optional.ofNullable(mainProtoElement.getPackageName()), requiredDependentSchemas), directDependencyFds);
+        return mainProtoFd;
+    }
+
+    private static String toProtoFullName(ProtoFileElement protoFile, String protoFileName) {
+        return protoFile.getPackageName() + '/' + protoFileName;
+    }
+
+    /**
+     * Extract the proto file name out of a full proto file name, which is in the form of {@code packageName/fileName}.
+     */
+    public static String extractProtoFileName(String protoFullName) {
+        int beforeStartFileName = protoFullName.lastIndexOf('/');
+        final String fileName;
+        if (beforeStartFileName != -1) {
+            fileName = protoFullName.substring(beforeStartFileName + 1);
+        } else {
+            fileName = protoFullName;
+        }
+        return fileName;
     }
 
     private static FileDescriptorProto toFileDescriptorProto(String schemaDefinition, String protoFileName, Optional<String> optionalPackageName) {

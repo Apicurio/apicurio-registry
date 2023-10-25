@@ -1,9 +1,7 @@
 package io.apicurio.registry.maven;
 
 import com.google.protobuf.Descriptors;
-import com.squareup.wire.schema.Location;
 import com.squareup.wire.schema.internal.parser.ProtoFileElement;
-import com.squareup.wire.schema.internal.parser.ProtoParser;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.ArtifactReference;
@@ -20,7 +18,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
@@ -41,40 +38,49 @@ public class ProtobufDirectoryParser extends AbstractDirectoryParser<Descriptors
                 .filter(file -> !file.getName().equals(protoFile.getName()))
                 .collect(Collectors.toSet());
 
-        Map<String, Descriptors.FileDescriptor> parsedFiles = new HashMap<>();
-        Map<String, ContentHandle> schemaDefs = new HashMap<>();
+        try {
+            final Map<String, String> requiredSchemaDefs = new HashMap<>();
+            final Descriptors.FileDescriptor schemaDescriptor = FileDescriptorUtils.parseProtoFileWithDependencies(protoFile, protoFiles, requiredSchemaDefs);
+            assert allDependenciesHaveSamePackageName(requiredSchemaDefs, schemaDescriptor.getPackage()) : "All dependencies must have the same package name as the main proto file";
+            Map<String, ContentHandle> schemaContents = convertSchemaDefs(requiredSchemaDefs, schemaDescriptor.getPackage());
+            return new DescriptorWrapper(schemaDescriptor, schemaContents);
+        } catch (Descriptors.DescriptorValidationException e) {
+            throw new RuntimeException("Failed to read schema file: " + protoFile, e);
+        } catch (FileDescriptorUtils.ReadSchemaException e) {
+            log.warn("Error processing Avro schema with name {}. This usually means that the references are not ready yet to read it", e.file());
+            throw new RuntimeException(e.getCause());
+        } catch (FileDescriptorUtils.ParseSchemaException e) {
+            log.warn("Error processing Avro schema with name {}. This usually means that the references are not ready yet to parse it", e.fileName());
+            throw new RuntimeException(e.getCause());
+        }
+    }
 
-        // Add file to set of parsed files to avoid circular dependencies
-        while (parsedFiles.size() != protoFiles.size()) {
-            boolean fileParsed = false;
-            for (File fileToProcess : protoFiles) {
-                if (fileToProcess.getName().equals(protoFile.getName()) || parsedFiles.containsKey(fileToProcess.getName())) {
-                    continue;
-                }
-                try {
-                    final ContentHandle schemaContent = readSchemaContent(fileToProcess);
-                    parsedFiles.put(fileToProcess.getName(), parseProtoFile(fileToProcess, schemaDefs, parsedFiles, schemaContent));
-                    schemaDefs.put(fileToProcess.getName(), schemaContent);
-                    fileParsed = true;
-                } catch (Exception ex) {
-                    log.warn("Error processing Avro schema with name {}. This usually means that the references are not ready yet to parse it", fileToProcess.getName());
-                }
-            }
+    private static boolean allDependenciesHaveSamePackageName(Map<String, String> schemas, String mainProtoPackageName) {
+           return schemas.keySet().stream().allMatch(fullDepName -> fullDepName.contains(mainProtoPackageName));
+    }
 
-            //If no schema has been processed during this iteration, that means there is an error in the configuration, throw exception.
-            if (!fileParsed) {
-                throw new IllegalStateException("Error found in the directory structure. Check that all required files are present.");
+    /**
+     * Converts the schema definitions to a map of ContentHandle, stripping any package information from the key,
+     * which is not needed for the schema registry, given that the dependent schemas are *always* in the same package
+     * of the main proto file.
+     */
+    private Map<String, ContentHandle> convertSchemaDefs(Map<String, String> requiredSchemaDefs, String mainProtoPackageName) {
+        if (requiredSchemaDefs.isEmpty()) {
+            return Map.of();
+        }
+        Map<String, ContentHandle> schemaDefs = new HashMap<>(requiredSchemaDefs.size());
+        for (Map.Entry<String, String> entry : requiredSchemaDefs.entrySet()) {
+            if (schemaDefs.put(FileDescriptorUtils.extractProtoFileName(entry.getKey()),
+                    ContentHandle.create(entry.getValue())) != null) {
+                log.warn("There's a clash of dependency name, likely due to stripping the expected package name ie {}: dependencies: {}",
+                        mainProtoPackageName, Arrays.toString(requiredSchemaDefs.keySet().toArray(new Object[0])));
             }
         }
-
-        //parse the main schema
-        final ContentHandle schemaContent = readSchemaContent(protoFile);
-        final Descriptors.FileDescriptor schemaDescriptor = parseProtoFile(protoFile, schemaDefs, parsedFiles, schemaContent);
-        return new DescriptorWrapper(schemaDescriptor, schemaDefs);
+        return schemaDefs;
     }
 
     @Override
-    public List<ArtifactReference> handleSchemaReferences(RegisterArtifact rootArtifact, Descriptors.FileDescriptor protoSchema, Map<String, ContentHandle> fileContents) throws FileNotFoundException, ExecutionException, InterruptedException {
+    public List<ArtifactReference> handleSchemaReferences(RegisterArtifact rootArtifact, Descriptors.FileDescriptor protoSchema, Map<String, ContentHandle> fileContents) throws FileNotFoundException, InterruptedException, ExecutionException {
         Set<ArtifactReference> references = new HashSet<>();
         final Set<Descriptors.FileDescriptor> baseDeps = new HashSet<>(Arrays.asList(FileDescriptorUtils.baseDependencies()));
         final ProtoFileElement rootSchemaElement = FileDescriptorUtils.fileDescriptorToProtoFile(protoSchema.toProto());
@@ -96,21 +102,6 @@ public class ProtobufDirectoryParser extends AbstractDirectoryParser<Descriptors
         }
 
         return new ArrayList<>(references);
-    }
-
-    private Descriptors.FileDescriptor parseProtoFile(File protoFile, Map<String, ContentHandle> schemaDefs, Map<String, Descriptors.FileDescriptor> dependencies, ContentHandle schemaContent) {
-        ProtoFileElement protoFileElement = ProtoParser.Companion.parse(Location.get(protoFile.getAbsolutePath()), schemaContent.content());
-        try {
-
-            final Map<String, String> schemaStrings = schemaDefs.entrySet()
-                    .stream()
-                    .collect(Collectors.toMap(Map.Entry::getKey,
-                            e -> e.getValue().content()));
-
-            return FileDescriptorUtils.protoFileToFileDescriptor(schemaContent.content(), protoFile.getName(), Optional.ofNullable(protoFileElement.getPackageName()), schemaStrings, dependencies);
-        } catch (Descriptors.DescriptorValidationException e) {
-            throw new RuntimeException("Failed to read schema file: " + protoFile, e);
-        }
     }
 
     public static class DescriptorWrapper implements ParsedDirectoryWrapper<Descriptors.FileDescriptor> {

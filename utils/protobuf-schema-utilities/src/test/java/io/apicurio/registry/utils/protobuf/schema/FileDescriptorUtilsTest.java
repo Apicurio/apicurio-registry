@@ -2,6 +2,8 @@ package io.apicurio.registry.utils.protobuf.schema;
 
 import com.google.protobuf.DescriptorProtos;
 import com.google.protobuf.Descriptors;
+import com.google.protobuf.DynamicMessage;
+import com.google.protobuf.Timestamp;
 import com.squareup.wire.schema.internal.parser.ProtoFileElement;
 import com.squareup.wire.schema.internal.parser.ProtoParser;
 import io.apicurio.registry.utils.protobuf.schema.syntax2.TestOrderingSyntax2;
@@ -22,16 +24,29 @@ import io.apicurio.registry.utils.protobuf.schema.syntax3.customoptions.TestSynt
 import io.apicurio.registry.utils.protobuf.schema.syntax3.jsonname.TestSyntax3JsonName;
 import io.apicurio.registry.utils.protobuf.schema.syntax3.options.TestOrderingSyntax3Options;
 import io.apicurio.registry.utils.protobuf.schema.syntax3.references.TestOrderingSyntax3References;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static com.google.common.truth.extensions.proto.ProtoTruth.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class FileDescriptorUtilsTest {
@@ -68,6 +83,22 @@ public class FileDescriptorUtilsTest {
             )
             .map(Descriptors.FileDescriptor::getFile)
             .map(Arguments::of);
+    }
+
+    private static Stream<Arguments> testParseWithDepsProtoFilesProvider() {
+        ClassLoader classLoader = FileDescriptorUtilsTest.class.getClassLoader();
+        File mainProtoFile = new File(Objects.requireNonNull(classLoader.getResource("parseWithDeps/producer.proto")).getFile());
+        // do the same with the deps
+        File[] deps = Stream.of(
+                "mypackage0/producerId.proto",
+                "mypackage2/version.proto",
+                "broken/helloworld.proto"
+        ).map(s -> new File(Objects.requireNonNull(classLoader.getResource("parseWithDeps/" + s)).getFile())).toArray(File[]::new);
+        return Stream.of(
+                Arguments.of(true, true, mainProtoFile, deps),
+                Arguments.of(false, true, mainProtoFile, deps),
+                Arguments.of(true, false, mainProtoFile, deps),
+                Arguments.of(false, false, mainProtoFile, deps));
     }
 
     @Test
@@ -137,6 +168,88 @@ public class FileDescriptorUtilsTest {
             + "}\n";
 
         assertEquals(expectedFileDescriptorProto, actualFileDescriptorProto);
+    }
+
+
+    @ParameterizedTest
+    @MethodSource("testParseWithDepsProtoFilesProvider")
+    public void testParseProtoFileAndDependenciesOnDifferentPackagesAndKnownType(boolean failFast, boolean readFiles, File mainProtoFile, File[] deps)
+            throws Descriptors.DescriptorValidationException, FileDescriptorUtils.ParseSchemaException, FileDescriptorUtils.ReadSchemaException {
+        final Descriptors.FileDescriptor mainProtoFd;
+        final Map<String, String> requiredSchemaDeps = new HashMap<>(2);
+        if (!readFiles) {
+            if (failFast) {
+                // it fail-fast by default
+                Assertions.assertThrowsExactly(FileDescriptorUtils.ParseSchemaException.class, () ->
+                        FileDescriptorUtils.parseProtoFileWithDependencies(mainProtoFile, Set.of(deps))
+                );
+                return;
+            }
+            mainProtoFd = FileDescriptorUtils.parseProtoFileWithDependencies(mainProtoFile, Set.of(deps), requiredSchemaDeps, false);
+        } else {
+            if (failFast) {
+                // it fail-fast by default
+                Assertions.assertThrowsExactly(FileDescriptorUtils.ParseSchemaException.class, () ->
+                        FileDescriptorUtils.parseProtoFileWithDependencies(readSchemaContent(mainProtoFile), readSchemaContents(deps))
+                );
+                return;
+            }
+            mainProtoFd = FileDescriptorUtils.parseProtoFileWithDependencies(readSchemaContent(mainProtoFile), readSchemaContents(deps), requiredSchemaDeps, false);
+
+        }
+        final Map<String, String> expectedSchemaDeps = Map.of(
+                "mypackage0/producerId.proto", readSelectedFileSchemaAsString("producerId.proto", deps),
+                "mypackage2/version.proto", readSelectedFileSchemaAsString("version.proto", deps)
+        );
+        Assertions.assertEquals(expectedSchemaDeps, requiredSchemaDeps);
+        Assertions.assertNotNull(mainProtoFd.findServiceByName("MyService"));
+        Assertions.assertNotNull(mainProtoFd.findServiceByName("MyService").findMethodByName("Foo"));
+        Descriptors.Descriptor producer = mainProtoFd.findMessageTypeByName("Producer");
+        // create a dynamic message with all fields populated
+        DynamicMessage.Builder builder = DynamicMessage.newBuilder(producer);
+        builder.setField(producer.findFieldByName("name"), "name");
+        builder.setField(producer.findFieldByName("timestamp"),
+                Timestamp.newBuilder()
+                        .setSeconds(1634123456)
+                        .setNanos(789000000)
+                        .build());
+        Descriptors.FieldDescriptor personId = producer.findFieldByName("id");
+        // assert that the id field is the expected msg type
+        assertEquals("mypackage0.ProducerId", personId.getMessageType().getFullName());
+        Descriptors.FieldDescriptor versionId = personId.getMessageType().findFieldByName("id");
+        assertEquals("mypackage2.Version", versionId.getMessageType().getFullName());
+        // populate all the rest of the fields in the dynamic message
+        builder.setField(personId,
+                DynamicMessage.newBuilder(personId.getMessageType())
+                        .setField(versionId,
+                                DynamicMessage.newBuilder(versionId.getMessageType())
+                                        .setField(versionId.getMessageType().findFieldByName("id"), "id")
+                                        .build())
+                        .setField(personId.getMessageType().findFieldByName("name"), "name")
+                        .build());
+        assertNotNull(builder.build());
+    }
+
+    private static Collection<FileDescriptorUtils.ProtobufSchemaContent> readSchemaContents(File[] files) {
+        return Arrays.stream(files).map(FileDescriptorUtilsTest::readSchemaContent).collect(Collectors.toList());
+    }
+
+    private static FileDescriptorUtils.ProtobufSchemaContent readSchemaContent(File file) {
+        return FileDescriptorUtils.ProtobufSchemaContent.of(file.getName(), readSchemaAsString(file));
+    }
+
+    private static String readSelectedFileSchemaAsString(String fileName, File[] files) {
+        return Stream.of(files).filter(f -> f.getName().equals(fileName)).collect(Collectors.reducing((a, b) -> {
+            throw new IllegalStateException("More than one file with name " + fileName + " found");
+        })).map(FileDescriptorUtilsTest::readSchemaAsString).get();
+    }
+
+    private static String readSchemaAsString(File file) {
+        try {
+            return new String(Files.readAllBytes(file.toPath()), StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private Descriptors.FileDescriptor schemaTextToFileDescriptor(String schema, String fileName) throws Exception {

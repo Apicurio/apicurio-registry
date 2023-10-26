@@ -29,7 +29,7 @@
     <artifactId>apicurio-registry-client</artifactId>
 
     <properties>
-        <kiota.libs.version>0.7.4</kiota.libs.version>
+        <kiota.libs.version>0.7.5</kiota.libs.version>
     </properties>
 
     <dependencies>
@@ -85,7 +85,7 @@
             <plugin>
             <artifactId>kiota-maven-plugin</artifactId>
             <groupId>com.redhat.cloud</groupId>
-            <version>0.0.6</version>
+            <version>999-SNAPSHOT</version>
             <executions>
                 <execution>
                 <goals>

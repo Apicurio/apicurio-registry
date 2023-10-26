@@ -95,7 +95,7 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
 
     protected final Logger logger = LoggerFactory.getLogger(this.getClass().getName());
 
-    protected Function<Exception, Integer> errorCodeExtractor = e -> ((ApiException)((ExecutionException) e).getCause()).responseStatusCode;
+    protected Function<Exception, Integer> errorCodeExtractor = e -> ((ApiException)((ExecutionException) e).getCause()).getResponseStatusCode();
 
     protected RegistryClient registryClient;
 
@@ -733,13 +733,13 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
         } else {
             // mapped by Kiota
             Assertions.assertEquals(ApiException.class, executionException.getCause().getClass());
-            Assertions.assertEquals(401, ((ApiException) executionException.getCause()).responseStatusCode);
+            Assertions.assertEquals(401, ((ApiException) executionException.getCause()).getResponseStatusCode());
         }
     }
 
     protected void assertForbidden(ExecutionException executionException) {
         assertNotNull(executionException.getCause());
         Assertions.assertEquals(ApiException.class, executionException.getCause().getClass());
-        Assertions.assertEquals(403, ((ApiException)executionException.getCause()).responseStatusCode);
+        Assertions.assertEquals(403, ((ApiException)executionException.getCause()).getResponseStatusCode());
     }
 }

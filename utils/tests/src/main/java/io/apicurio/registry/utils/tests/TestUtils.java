@@ -347,7 +347,7 @@ public class TestUtils {
                 Assertions.assertEquals(expectedErrorName, ((io.apicurio.registry.rest.client.models.Error) e).getName(), () -> "e: " + e);
                 Assertions.assertEquals(expectedCode, errorCodeExtractor.apply(ex));
             } else {
-                Assertions.assertEquals(expectedCode, ((ApiException) e).responseStatusCode);
+                Assertions.assertEquals(expectedCode, ((ApiException) e).getResponseStatusCode());
             }
         }
     }

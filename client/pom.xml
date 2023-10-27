@@ -85,7 +85,7 @@
             <plugin>
             <artifactId>kiota-maven-plugin</artifactId>
             <groupId>com.redhat.cloud</groupId>
-            <version>0.0.6</version>
+            <version>0.0.7</version>
             <executions>
                 <execution>
                 <goals>

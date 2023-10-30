@@ -28,7 +28,6 @@ import { FromNow } from "@app/components/common/FromNow.tsx";
 export type InfoTabContentProps = {
     artifact: ArtifactMetaData;
     isLatest: boolean;
-    codegenEnabled: boolean;
     rules: Rule[];
     onEnableRule: (ruleType: string) => void;
     onDisableRule: (ruleType: string) => void;

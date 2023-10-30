@@ -1,11 +1,10 @@
 var ApicurioRegistryConfig = {
     artifacts: {
-        url: "http://localhost:8080/apis/registry"
+        url: "http://localhost:8080/apis/registry/v2"
     },
     ui: {
         contextPath: "/",
-        navPrefixPath: "/",
-        codegenEnabled: true
+        navPrefixPath: "/"
     },
     auth: {
         type: "oidc",

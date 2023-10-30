@@ -30,7 +30,7 @@ export class UsersService extends BaseService {
     public updateCurrentUser(): Promise<UserInfo> {
         if (this.auth?.isAuthenticated()) {
             // TODO cache the response for a few minutes to limit the # of times this is called per minute??
-            const endpoint: string = this.endpoint("/v2/users/me");
+            const endpoint: string = this.endpoint("/users/me");
             return this.httpGet<UserInfo>(endpoint).then(userInfo => {
                 this.currentUserInfo = userInfo;
                 return userInfo;

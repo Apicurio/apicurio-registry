@@ -67,7 +67,7 @@ export interface ClientGeneration {
 export class GroupsService extends BaseService {
 
     public createArtifact(data: CreateArtifactData): Promise<ArtifactMetaData> {
-        const endpoint: string = this.endpoint("/v2/groups/:groupId/artifacts", { groupId: data.groupId });
+        const endpoint: string = this.endpoint("/groups/:groupId/artifacts", { groupId: data.groupId });
         const headers: any = {};
         if (data.id) {
             headers["X-Registry-ArtifactId"] = data.id;
@@ -93,7 +93,7 @@ export class GroupsService extends BaseService {
     public createArtifactVersion(groupId: string|null, artifactId: string, data: CreateVersionData): Promise<VersionMetaData> {
         groupId = this.normalizeGroupId(groupId);
 
-        const endpoint: string = this.endpoint("/v2/groups/:groupId/artifacts/:artifactId/versions", { groupId, artifactId });
+        const endpoint: string = this.endpoint("/groups/:groupId/artifacts/:artifactId/versions", { groupId, artifactId });
         const headers: any = {};
         if (data.type) {
             headers["X-Registry-ArtifactType"] = data.type;
@@ -121,7 +121,7 @@ export class GroupsService extends BaseService {
                 queryParams[criteria.type] = criteria.value;
             }
         }
-        const endpoint: string = this.endpoint("/v2/search/artifacts", {}, queryParams);
+        const endpoint: string = this.endpoint("/search/artifacts", {}, queryParams);
         return this.httpGet<ArtifactsSearchResults>(endpoint, undefined, (data) => {
             const results: ArtifactsSearchResults = {
                 artifacts: data.artifacts,
@@ -136,9 +136,9 @@ export class GroupsService extends BaseService {
     public getArtifactMetaData(groupId: string|null, artifactId: string, version: string): Promise<ArtifactMetaData> {
         groupId = this.normalizeGroupId(groupId);
 
-        let endpoint: string = this.endpoint("/v2/groups/:groupId/artifacts/:artifactId/versions/:version/meta", { groupId, artifactId, version });
+        let endpoint: string = this.endpoint("/groups/:groupId/artifacts/:artifactId/versions/:version/meta", { groupId, artifactId, version });
         if (version === "latest") {
-            endpoint = this.endpoint("/v2/groups/:groupId/artifacts/:artifactId/meta", { groupId, artifactId });
+            endpoint = this.endpoint("/groups/:groupId/artifacts/:artifactId/meta", { groupId, artifactId });
         }
         return this.httpGet<ArtifactMetaData>(endpoint);
     }
@@ -147,7 +147,7 @@ export class GroupsService extends BaseService {
         const queryParams: any = {
             refType: refType || "OUTBOUND"
         };
-        const endpoint: string = this.endpoint("/v2/ids/globalIds/:globalId/references", { globalId }, queryParams);
+        const endpoint: string = this.endpoint("/ids/globalIds/:globalId/references", { globalId }, queryParams);
         return this.httpGet<ArtifactReference[]>(endpoint);
     }
 
@@ -158,9 +158,9 @@ export class GroupsService extends BaseService {
     public updateArtifactMetaData(groupId: string|null, artifactId: string, version: string, metaData: EditableMetaData): Promise<void> {
         groupId = this.normalizeGroupId(groupId);
 
-        let endpoint: string = this.endpoint("/v2/groups/:groupId/artifacts/:artifactId/versions/:version/meta", { groupId, artifactId, version });
+        let endpoint: string = this.endpoint("/groups/:groupId/artifacts/:artifactId/versions/:version/meta", { groupId, artifactId, version });
         if (version === "latest") {
-            endpoint = this.endpoint("/v2/groups/:groupId/artifacts/:artifactId/meta", { groupId, artifactId });
+            endpoint = this.endpoint("/groups/:groupId/artifacts/:artifactId/meta", { groupId, artifactId });
         }
         return this.httpPut<EditableMetaData>(endpoint, metaData);
     }
@@ -168,7 +168,7 @@ export class GroupsService extends BaseService {
     public updateArtifactOwner(groupId: string|null, artifactId: string, newOwner: string): Promise<void> {
         groupId = this.normalizeGroupId(groupId);
 
-        const endpoint: string = this.endpoint("/v2/groups/:groupId/artifacts/:artifactId/owner", { groupId, artifactId });
+        const endpoint: string = this.endpoint("/groups/:groupId/artifacts/:artifactId/owner", { groupId, artifactId });
         const artifactOwner: ArtifactOwner = {
             owner: newOwner
         };
@@ -178,9 +178,9 @@ export class GroupsService extends BaseService {
     public getArtifactContent(groupId: string|null, artifactId: string, version: string): Promise<string> {
         groupId = this.normalizeGroupId(groupId);
 
-        let endpoint: string = this.endpoint("/v2/groups/:groupId/artifacts/:artifactId/versions/:version", { groupId, artifactId, version });
+        let endpoint: string = this.endpoint("/groups/:groupId/artifacts/:artifactId/versions/:version", { groupId, artifactId, version });
         if (version === "latest") {
-            endpoint = this.endpoint("/v2/groups/:groupId/artifacts/:artifactId", { groupId, artifactId });
+            endpoint = this.endpoint("/groups/:groupId/artifacts/:artifactId", { groupId, artifactId });
         }
 
         const options: any = this.options({
@@ -196,7 +196,7 @@ export class GroupsService extends BaseService {
         groupId = this.normalizeGroupId(groupId);
 
         this.logger?.info("[GroupsService] Getting the list of versions for artifact: ", groupId, artifactId);
-        const endpoint: string = this.endpoint("/v2/groups/:groupId/artifacts/:artifactId/versions", { groupId, artifactId }, {
+        const endpoint: string = this.endpoint("/groups/:groupId/artifacts/:artifactId/versions", { groupId, artifactId }, {
             limit: 500,
             offset: 0
         });
@@ -209,7 +209,7 @@ export class GroupsService extends BaseService {
         groupId = this.normalizeGroupId(groupId);
 
         this.logger?.info("[GroupsService] Getting the list of rules for artifact: ", groupId, artifactId);
-        const endpoint: string = this.endpoint("/v2/groups/:groupId/artifacts/:artifactId/rules", { groupId, artifactId });
+        const endpoint: string = this.endpoint("/groups/:groupId/artifacts/:artifactId/rules", { groupId, artifactId });
         return this.httpGet<string[]>(endpoint).then( ruleTypes => {
             return Promise.all(ruleTypes.map(rt => this.getArtifactRule(groupId, artifactId, rt)));
         });
@@ -218,7 +218,7 @@ export class GroupsService extends BaseService {
     public getArtifactRule(groupId: string|null, artifactId: string, type: string): Promise<Rule> {
         groupId = this.normalizeGroupId(groupId);
 
-        const endpoint: string = this.endpoint("/v2/groups/:groupId/artifacts/:artifactId/rules/:rule", {
+        const endpoint: string = this.endpoint("/groups/:groupId/artifacts/:artifactId/rules/:rule", {
             groupId,
             artifactId,
             rule: type
@@ -231,7 +231,7 @@ export class GroupsService extends BaseService {
 
         this.logger?.info("[GroupsService] Creating rule:", type);
 
-        const endpoint: string = this.endpoint("/v2/groups/:groupId/artifacts/:artifactId/rules", { groupId, artifactId });
+        const endpoint: string = this.endpoint("/groups/:groupId/artifacts/:artifactId/rules", { groupId, artifactId });
         const body: Rule = {
             config,
             type
@@ -243,7 +243,7 @@ export class GroupsService extends BaseService {
         groupId = this.normalizeGroupId(groupId);
 
         this.logger?.info("[GroupsService] Updating rule:", type);
-        const endpoint: string = this.endpoint("/v2/groups/:groupId/artifacts/:artifactId/rules/:rule", {
+        const endpoint: string = this.endpoint("/groups/:groupId/artifacts/:artifactId/rules/:rule", {
             groupId,
             artifactId,
             "rule": type
@@ -256,7 +256,7 @@ export class GroupsService extends BaseService {
         groupId = this.normalizeGroupId(groupId);
 
         this.logger?.info("[GroupsService] Deleting rule:", type);
-        const endpoint: string = this.endpoint("/v2/groups/:groupId/artifacts/:artifactId/rules/:rule", {
+        const endpoint: string = this.endpoint("/groups/:groupId/artifacts/:artifactId/rules/:rule", {
             groupId,
             artifactId,
             "rule": type
@@ -268,7 +268,7 @@ export class GroupsService extends BaseService {
         groupId = this.normalizeGroupId(groupId);
 
         this.logger?.info("[GroupsService] Deleting artifact:", groupId, artifactId);
-        const endpoint: string = this.endpoint("/v2/groups/:groupId/artifacts/:artifactId", { groupId, artifactId });
+        const endpoint: string = this.endpoint("/groups/:groupId/artifacts/:artifactId", { groupId, artifactId });
         return this.httpDelete(endpoint);
     }
 

@@ -365,7 +365,6 @@ export const ArtifactVersionPage: FunctionComponent<ArtifactVersionPageProps> = 
         <Tab eventKey="overview" title="Overview" key="overview" tabContentId="tab-info">
             <InfoTabContent artifact={artifact}
                 isLatest={version === "latest"}
-                codegenEnabled={Services.getConfigService().uiCodegenEnabled()}
                 rules={rules}
                 onEnableRule={doEnableRule}
                 onDisableRule={doDisableRule}

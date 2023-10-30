@@ -10,7 +10,7 @@
         "clean": "rimraf dist && npm run clean-app && npm run clean-docs",
         "build-app": "npm run build --prefix ./ui-app",
         "build-docs": "npm run build --prefix ./ui-docs",
-        "build": "npm run build-app && npm run build-docs",
+        "build": "npm run build-app && npm run build-docs && node .scripts/generate-version.cjs",
         "package": "node .scripts/package.cjs"
     },
     "devDependencies": {

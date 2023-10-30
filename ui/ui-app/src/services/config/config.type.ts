@@ -65,7 +65,6 @@ export interface ArtifactsConfig {
 export interface UiConfig {
     contextPath?: string;
     navPrefixPath?: string;
-    codegenEnabled?: boolean;
 }
 
 export interface AuthConfig {

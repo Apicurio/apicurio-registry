@@ -35,6 +35,8 @@ public class DefaultSchemaResolverConfig {
             entry(ARTIFACT_RESOLVER_STRATEGY, ARTIFACT_RESOLVER_STRATEGY_DEFAULT),
             entry(AUTO_REGISTER_ARTIFACT, AUTO_REGISTER_ARTIFACT_DEFAULT),
             entry(AUTO_REGISTER_ARTIFACT_IF_EXISTS, AUTO_REGISTER_ARTIFACT_IF_EXISTS_DEFAULT),
+            entry(CACHE_LATEST, CACHE_LATEST_DEFAULT),
+            entry(FAULT_TOLERANT_REFRESH, FAULT_TOLERANT_REFRESH_DEFAULT),
             entry(FIND_LATEST_ARTIFACT, FIND_LATEST_ARTIFACT_DEFAULT),
             entry(CHECK_PERIOD_MS, CHECK_PERIOD_MS_DEFAULT),
             entry(RETRY_COUNT, RETRY_COUNT_DEFAULT),
@@ -95,6 +97,14 @@ public class DefaultSchemaResolverConfig {
 
     public String autoRegisterArtifactIfExists() {
         return getStringOneOf(AUTO_REGISTER_ARTIFACT_IF_EXISTS, "FAIL", "UPDATE", "RETURN", "RETURN_OR_UPDATE");
+    }
+
+    public boolean getCacheLatest() {
+        return getBoolean(CACHE_LATEST);
+    }
+
+    public boolean getFaultTolerantRefresh() {
+        return getBoolean(FAULT_TOLERANT_REFRESH);
     }
 
     public boolean findLatest() {

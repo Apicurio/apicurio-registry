@@ -23,11 +23,11 @@ import io.quarkus.runtime.StartupEvent;
 import org.slf4j.Logger;
 
 import java.util.Date;
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.event.Observes;
-import javax.inject.Inject;
-import javax.inject.Named;
-import javax.transaction.Transactional;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.event.Observes;
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
+import jakarta.transaction.Transactional;
 
 import static io.apicurio.registry.storage.impl.sql.SqlUtil.normalizeGroupId;
 

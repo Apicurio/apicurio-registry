@@ -16,7 +16,7 @@
 
 package io.apicurio.registry.types;
 
-import javax.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.MediaType;
 
 /**
  * @author eric.wittmann@gmail.com

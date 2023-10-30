@@ -16,8 +16,8 @@
 
 package io.apicurio.registry.rules.validity;
 
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 
 import io.apicurio.common.apps.logging.Logged;
 import io.apicurio.registry.rules.RuleContext;

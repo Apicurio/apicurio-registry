@@ -16,7 +16,7 @@
 
 package io.apicurio.registry.ccompat.rest.v6.impl;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 
 import org.slf4j.Logger;
 

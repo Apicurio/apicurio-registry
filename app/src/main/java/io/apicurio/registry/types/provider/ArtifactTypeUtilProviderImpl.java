@@ -16,8 +16,8 @@
 
 package io.apicurio.registry.types.provider;
 
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.inject.Default;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Default;
 
 @Default
 @ApplicationScoped

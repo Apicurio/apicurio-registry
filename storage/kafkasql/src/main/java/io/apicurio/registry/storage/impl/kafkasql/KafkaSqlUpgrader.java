@@ -20,8 +20,8 @@ import io.apicurio.registry.storage.impl.sql.HandleFactory;
 import io.apicurio.registry.storage.impl.sql.upgrader.ReferencesCanonicalHashUpgrader;
 import io.apicurio.registry.storage.impl.sql.upgrader.ReferencesContentHashUpgrader;
 
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 
 /**
  * @author Fabian Martinez

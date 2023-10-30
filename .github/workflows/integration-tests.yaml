@@ -7,7 +7,7 @@ on:
       - 'README*'
       - 'docs/**'
       - '.github/workflows/**'
-    branches: [main, '[1-9].[1-9].x']
+    branches: [main, '[1-9].[1-9].x', 2.4.x, 2.5.x]
   pull_request:
     paths-ignore:
       - '.gitignore'
@@ -22,8 +22,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  prepare-integration-tests:
-    name: Prepare for Integration Tests
+  prepare-sql-tests:
+    name: Prepare for SQL Integration Tests
     runs-on: ubuntu-20.04
     if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
     steps:
@@ -38,33 +38,53 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
-      - name: Workaround jackson-coreutils
-        run: |
-          # upstream issue: https://github.com/java-json-tools/jackson-coreutils/issues/59
-          rm -rf ~/.m2/repository/com/github/java-json-tools
-          mkdir -p /tmp/coreutils-workaround
-          ( cd /tmp/coreutils-workaround && mvn dependency:get -DremoteRepositories=https://repo1.maven.org/maven2 -Dartifact=com.github.java-json-tools:jackson-coreutils:2.0 )
+      - name: Get maven wrapper
+        run: mvn -N io.takari:maven:wrapper -Dmaven=3.8.2
+
+      - name: Build Sql Variant
+        run: make SKIP_TESTS=true BUILD_FLAGS='-Dmaven.javadoc.skip=true --no-transfer-progress -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5' build-sql
+
+      - name: Build and Push Sql image
+        env:
+          IMAGE_REPO: ttl.sh/${{ github.sha }}
+          # maximum allowed
+          IMAGE_TAG: 1d
+        run: make build-sql-image push-sql-image
+
+
+  prepare-kafkasql-tests:
+    name: Prepare for KafkaSQL Integration Tests
+    runs-on: ubuntu-20.04
+    if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
+    steps:
+      - name: Show Actor
+        run: echo ${{github.actor}}
+      - name: Checkout Code
+        uses: actions/checkout@v3
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'maven'
 
       - name: Get maven wrapper
         run: mvn -N io.takari:maven:wrapper -Dmaven=3.8.2
 
-      - name: Build integration-tests-common
-        run: ./mvnw install -Pintegration-tests -pl integration-tests/integration-tests-common -am
+      - name: Build kafkasql Variant
+        run: make SKIP_TESTS=true BUILD_FLAGS='-DskipUiBuild=true -Dmaven.javadoc.skip=true --no-transfer-progress -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5' build-kafkasql
 
-      - name: Store Apicurio artifacts
-        id: store-apicurio
-        uses: actions/upload-artifact@v3
-        with:
-          name: apicurio-artifacts.zip
-          retention-days: 1
-          path: |
-            ~/.m2/repository/io/apicurio
-            !~/.m2/repository/io/apicurio/**/*.tar.gz
+      - name: Build and Push kafkasql image
+        env:
+          IMAGE_REPO: ttl.sh/${{ github.sha }}
+          # maximum allowed
+          IMAGE_TAG: 1d
+        run: make build-kafkasql-image push-kafkasql-image
 
   integration-tests-sql:
     name: Integration Tests SQL
     runs-on: ubuntu-20.04
-    needs: prepare-integration-tests
+    needs: prepare-sql-tests
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
@@ -75,40 +95,37 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
-      - name: Download built apicurio artifacts
-        id: download-apicurio
-        uses: actions/download-artifact@v3
+      - name: Setup Minikube
+        uses: manusa/actions-setup-minikube@v2.7.2
         with:
-          path: ~/.m2/repository/io/apicurio
-          name: apicurio-artifacts.zip
+          minikube version: 'v1.31.1'
+          kubernetes version: 'v1.26.3'
+          github token: ${{ secrets.GITHUB_TOKEN }}
+          driver: docker
 
-      - name: Prepare Tenant Manager
-        run: make build-integration-tests-multitenancy
-
-      - name: Build Sql Variant
-        run: make SKIP_TESTS=true BUILD_FLAGS='-DskipUiBuild=true -Dmaven.javadoc.skip=true --no-transfer-progress -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5' build-sql
+      - name: Prepare minikube tunnel
+        run: minikube tunnel &> /dev/null &
 
       - name: Run Integration Tests - sql
-        run: ./mvnw verify -Pintegration-tests -Pci -Psql -Psqlit -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false
-      - name: Run Integration Tests - sql clustered
-        run: ./mvnw verify -Pintegration-tests -Pclustered -Psql -Psqlit -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false
-      - name: Run Integration Tests - sql migration
-        run: ./mvnw verify -Pintegration-tests -Pmigration -Psql -Psqlit -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false
-      - name: Run Integration Tests - sql auth
-        run: ./mvnw verify -Pintegration-tests -Pauth -Psql -Psqlit -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false
-      - name: Run Integration Tests - multitenancy
-        run: ./mvnw verify -Pintegration-tests -Pmultitenancy -Psql -Psqlit -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false
-      - name: Run Integration Tests - sql dbupgrade
-        run: ./mvnw verify -Pintegration-tests -Pdbupgrade -Psql -Psqlit -pl integration-tests/testsuite -DtrimStackTrace=false -Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false
+        run: make REGISTRY_IMAGE='-Dregistry-sql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-sql:1d' run-sql-integration-tests
 
-      - name: Run Legacy Tests - sql
-        env:
-          TEST_APP_ENV_ENABLE_CCOMPAT_LEGACY_ID_MODE: "true"
-        run: ./mvnw verify -Pintegration-tests -Pci -Psql -Psqlit -pl integration-tests/legacy-tests -Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false
+      - name: Run Integration Tests - sql - auth
+        run: make REGISTRY_IMAGE='-Dregistry-sql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-sql:1d' run-sql-auth-tests
+
+      - name: Run Integration Tests - sql - migration
+        run: make REGISTRY_IMAGE='-Dregistry-sql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-sql:1d' run-sql-migration-integration-tests
+
+      - name: Run Integration Tests - sql - db upgrade
+        run: make REGISTRY_IMAGE='-Dregistry-sql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-sql:1d' run-sql-upgrade-tests
+
+      - name: Run Integration Tests - sql - multitenancy
+        run: make REGISTRY_IMAGE='-Dregistry-sql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-sql:1d' run-sql-multitenancy-integration-tests
+
 
       - name: Collect logs
         if: failure()
         run: ./.github/scripts/collect_logs.sh
+
       - name: Upload tests logs artifacts
         if: failure()
         uses: actions/upload-artifact@v1.0.0
@@ -119,7 +136,7 @@ jobs:
   integration-tests-kafkasql:
     name: Integration Tests KafkaSql
     runs-on: ubuntu-20.04
-    needs: prepare-integration-tests
+    needs: prepare-kafkasql-tests
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
@@ -130,31 +147,28 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
-      - name: Download built apicurio artifacts
-        id: download-apicurio
-        uses: actions/download-artifact@v3
+      - name: Setup Minikube
+        uses: manusa/actions-setup-minikube@v2.7.2
         with:
-          path: ~/.m2/repository/io/apicurio
-          name: apicurio-artifacts.zip
+          minikube version: 'v1.31.1'
+          kubernetes version: 'v1.26.3'
+          github token: ${{ secrets.GITHUB_TOKEN }}
+          driver: docker
 
-      - name: Build KafkaSql variant
-        run: make SKIP_TESTS=true BUILD_FLAGS='-DskipUiBuild=true -Dmaven.javadoc.skip=true --no-transfer-progress -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5' build-kafkasql
+      - name: Prepare minikube tunnel
+        run: minikube tunnel &> /dev/null &
 
-      - name: Run Integration Tests - kafkasql
-        run: ./mvnw verify -Pintegration-tests -Pci -Pkafkasql -Pkafkasqlit -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false
-      - name: Run Integration Tests - kafkasql clustered
-        run: ./mvnw verify -Pintegration-tests -Pclustered -Pkafkasql -Pkafkasqlit -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false
-      - name: Run Integration Tests - kafkasql migration
-        run: ./mvnw verify -Pintegration-tests -Pmigration -Pkafkasql -Pkafkasqlit -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false
-      - name: Run Integration Tests - kafkasql auth
-        run: ./mvnw verify -Pintegration-tests -Pauth -Pkafkasql -Pkafkasqlit -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false
-      - name: Run Integration Tests - kafkasql dbupgrade
-        run: ./mvnw verify -Pintegration-tests -Pdbupgrade -Pkafkasql -Pkafkasqlit -pl integration-tests/testsuite -DtrimStackTrace=false -Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false
+      - name: Run Integration Tests - KafkaSql
+        run: make REGISTRY_IMAGE='-Dregistry-kafkasql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-kafkasql:1d' run-kafkasql-integration-tests
 
-      - name: Run Legacy Tests - kafkasql
-        env:
-          TEST_APP_ENV_ENABLE_CCOMPAT_LEGACY_ID_MODE: "true"
-        run: ./mvnw verify -Pintegration-tests -Pci -Pkafkasql -Pkafkasqlit -pl integration-tests/legacy-tests -Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false
+      - name: Run Integration Tests - KafkaSql - Migration
+        run: make REGISTRY_IMAGE='-Dregistry-kafkasql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-kafkasql:1d' run-kafkasql-migration-integration-tests
+
+      - name: Run Integration Tests - KafkaSql - DBUpgrade
+        run: make REGISTRY_IMAGE='-Dregistry-kafkasql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-kafkasql:1d' run-kafkasql-upgrade-tests
+
+      - name: Run Integration Tests - KafkaSql - Auth
+        run: make REGISTRY_IMAGE='-Dregistry-kafkasql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-kafkasql:1d' run-kafkasql-auth-tests
 
       - name: Collect logs
         if: failure()
@@ -169,7 +183,7 @@ jobs:
   integration-tests-ui:
     name: Integration Tests UI
     runs-on: ubuntu-20.04
-    needs: prepare-integration-tests
+    needs: prepare-sql-tests
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
@@ -180,18 +194,19 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
-      - name: Download built apicurio artifacts
-        id: download-apicurio
-        uses: actions/download-artifact@v3
+      - name: Setup Minikube
+        uses: manusa/actions-setup-minikube@v2.7.2
         with:
-          path: ~/.m2/repository/io/apicurio
-          name: apicurio-artifacts.zip
+          minikube version: 'v1.31.1'
+          kubernetes version: 'v1.26.3'
+          github token: ${{ secrets.GITHUB_TOKEN }}
+          driver: docker
 
-      - name: Build In-memory variant
-        run: make SKIP_TESTS=true BUILD_FLAGS='-Dmaven.javadoc.skip=true --no-transfer-progress -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5' build-in-memory
+      - name: Prepare minikube tunnel
+        run: minikube tunnel &> /dev/null &
 
       - name: Run UI tests
-        run: ./mvnw verify -Pintegration-tests -Pui -Pinmemory -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false
+        run: make REGISTRY_IMAGE='-Dregistry-sql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-sql:1d' run-ui-tests
 
       - name: Collect logs
         if: failure()

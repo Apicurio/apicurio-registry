@@ -21,7 +21,7 @@ import io.apicurio.registry.ccompat.rest.v7.ContextResource;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
 
-import javax.interceptor.Interceptors;
+import jakarta.interceptor.Interceptors;
 import java.util.List;
 
 /**

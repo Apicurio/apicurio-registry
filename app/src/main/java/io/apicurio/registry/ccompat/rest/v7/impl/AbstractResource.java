@@ -20,7 +20,7 @@ package io.apicurio.registry.ccompat.rest.v7.impl;
 import io.apicurio.registry.ccompat.store.RegistryStorageFacade;
 import org.slf4j.Logger;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 
 /**
  * @author Carles Arnal

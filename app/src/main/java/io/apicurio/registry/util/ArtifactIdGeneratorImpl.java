@@ -17,7 +17,7 @@
 package io.apicurio.registry.util;
 
 import java.util.UUID;
-import javax.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.context.ApplicationScoped;
 
 /**
  * @author eric.wittmann@gmail.com

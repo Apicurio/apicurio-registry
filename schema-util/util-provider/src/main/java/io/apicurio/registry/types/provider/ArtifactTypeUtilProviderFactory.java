@@ -16,7 +16,7 @@
 
 package io.apicurio.registry.types.provider;
 
-import javax.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.MediaType;
 import java.util.List;
 
 /**

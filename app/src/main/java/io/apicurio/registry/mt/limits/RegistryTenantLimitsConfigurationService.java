@@ -23,12 +23,13 @@ import io.apicurio.common.apps.multitenancy.limits.TenantLimitsConfigurationServ
 import io.apicurio.tenantmanager.api.datamodel.ApicurioTenant;
 import io.apicurio.tenantmanager.api.datamodel.ResourceType;
 import io.apicurio.tenantmanager.api.datamodel.TenantResource;
+
+import jakarta.annotation.PostConstruct;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 
-import javax.annotation.PostConstruct;
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;

@@ -22,8 +22,8 @@ import io.quarkus.scheduler.Scheduled;
 import org.slf4j.Logger;
 
 import java.time.Instant;
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 
 import static io.quarkus.scheduler.Scheduled.ConcurrentExecution.SKIP;
 

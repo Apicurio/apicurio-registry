@@ -1,6 +1,6 @@
 package io.apicurio.registry.util;
 
-import javax.transaction.Transactional;
+import jakarta.transaction.Transactional;
 
 import org.slf4j.Logger;
 

@@ -27,7 +27,7 @@ import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.types.ArtifactType;
 
-import javax.interceptor.Interceptors;
+import jakarta.interceptor.Interceptors;
 import java.util.Arrays;
 import java.util.List;
 

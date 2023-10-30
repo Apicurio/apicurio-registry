@@ -18,7 +18,7 @@ package io.apicurio.registry.rest;
 
 import java.util.function.Supplier;
 
-import javax.ws.rs.core.Response;
+import jakarta.ws.rs.core.Response;
 
 import io.apicurio.registry.types.ArtifactState;
 

@@ -29,8 +29,8 @@ import io.apicurio.registry.utils.impexp.ContentEntity;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.slf4j.Logger;
 
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Collections;

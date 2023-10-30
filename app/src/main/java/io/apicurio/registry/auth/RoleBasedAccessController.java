@@ -16,9 +16,9 @@
 
 package io.apicurio.registry.auth;
 
-import javax.inject.Inject;
-import javax.inject.Singleton;
-import javax.interceptor.InvocationContext;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
+import jakarta.interceptor.InvocationContext;
 
 /**
  * @author eric.wittmann@gmail.com
@@ -36,7 +36,7 @@ public class RoleBasedAccessController extends AbstractAccessController {
     HeaderRoleProvider headerRoleProvider;
 
     /**
-     * @see io.apicurio.registry.auth.IAccessController#isAuthorized(javax.interceptor.InvocationContext)
+     * @see io.apicurio.registry.auth.IAccessController#isAuthorized(jakarta.interceptor.InvocationContext)
      */
     @Override
     public boolean isAuthorized(InvocationContext context) {

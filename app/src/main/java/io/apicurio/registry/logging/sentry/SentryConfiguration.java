@@ -19,8 +19,8 @@ package io.apicurio.registry.logging.sentry;
 import io.apicurio.common.apps.core.System;
 import io.apicurio.common.apps.logging.sentry.AbstractSentryConfiguration;
 
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 
 @ApplicationScoped
 public class SentryConfiguration extends AbstractSentryConfiguration {

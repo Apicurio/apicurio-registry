@@ -22,6 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 
 import org.junit.jupiter.api.Test;
@@ -104,6 +105,84 @@ public class ERCacheTest {
         cache.clear();
 
         assertFalse(cache.containsByContentHash(contentHashKey));
+    }
+
+    @Test
+    void testThrowsLoadExceptionsByDefault() {
+        String contentHashKey = "another key";
+        ERCache<String> cache = newCache(contentHashKey);
+        Function<String, String> staticValueLoader = (key) -> {throw new IllegalStateException("load failure");};
+
+        assertThrows(IllegalStateException.class, () -> {cache.getByContentHash(contentHashKey, staticValueLoader);});
+    }
+
+    @Test
+    void testHoldsLoadExceptionsWhenFaultTolerantRefreshEnabled() {
+        String contentHashKey = "another key";
+        ERCache<String> cache = newCache(contentHashKey);
+        cache.configureLifetime(Duration.ZERO);
+        cache.configureFaultTolerantRefresh(true);
+
+        // Seed a value
+        Function<String, String> workingLoader = (key) -> {return "some value";};
+        String originalLoadValue = cache.getByContentHash(contentHashKey, workingLoader);
+
+        // Refresh with a failing loader
+        Function<String, String> failingLoader = (key) -> {throw new IllegalStateException("load failure");};
+        String failingLoadValue = cache.getByContentHash(contentHashKey, failingLoader);
+
+        assertEquals("some value", originalLoadValue);
+        assertEquals("some value", failingLoadValue);
+    }
+
+    @Test
+    void testCanCacheLatestWhenEnabled() {
+        ERCache<String> cache = newCache("some key");
+        cache.configureLifetime(Duration.ofMinutes(10));
+        cache.configureCacheLatest(true);
+
+        ArtifactCoordinates latestKey = new ArtifactCoordinates.ArtifactCoordinatesBuilder()
+            .artifactId("someArtifactId")
+            .groupId("someGroupId")
+            .build();
+        final AtomicInteger loadCount = new AtomicInteger(0);
+        Function<ArtifactCoordinates, String> countingLoader = (key) -> {
+            loadCount.incrementAndGet();
+            return "some value";
+        };
+
+        // Seed a value
+        String firstLookupValue = cache.getByArtifactCoordinates(latestKey, countingLoader);
+        // Try the same lookup
+        String secondLookupValue = cache.getByArtifactCoordinates(latestKey, countingLoader);
+
+        assertEquals(firstLookupValue, secondLookupValue);
+        assertEquals(1, loadCount.get());
+    }
+
+    @Test
+    void doesNotCacheLatestWhenDisabled() {
+        ERCache<String> cache = newCache("some key");
+        cache.configureLifetime(Duration.ofMinutes(10));
+        cache.configureCacheLatest(false);
+
+        ArtifactCoordinates latestKey = new ArtifactCoordinates.ArtifactCoordinatesBuilder()
+            .artifactId("someArtifactId")
+            .groupId("someGroupId")
+            .build();
+        final AtomicInteger loadCount = new AtomicInteger(0);
+        Function<ArtifactCoordinates, String> countingLoader = (key) -> {
+            loadCount.incrementAndGet();
+            return "some value";
+        };
+
+        // Seed a value
+        String firstLookupValue = cache.getByArtifactCoordinates(latestKey, countingLoader);
+        // Try the same lookup
+        String secondLookupValue = cache.getByArtifactCoordinates(latestKey, countingLoader);
+
+        assertEquals(firstLookupValue, secondLookupValue);
+        assertEquals(2, loadCount.get());
     }
 
     private ERCache<String> newCache(String contentHashKey) {

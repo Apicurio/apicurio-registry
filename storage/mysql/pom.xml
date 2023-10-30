@@ -111,18 +111,25 @@
                 <version>${apicurio-common-app-components.version}</version>
                 <executions>
                     <execution>
-                        <id>merge-properties</id>
-                        <phase>process-classes</phase>
+                        <id>unpack-static-resources</id>
+                        <phase>generate-resources</phase>
                         <goals>
-                            <goal>merge</goal>
+                            <goal>unpack</goal>
                         </goals>
                         <configuration>
-                            <output>${project.build.outputDirectory}/application.properties</output>
-                            <inputs>
-                                <param>${project.build.outputDirectory}/application.properties</param>
-                                <param>${project.build.outputDirectory}/overlay.properties</param>
-                            </inputs>
-                            <deleteInputs>true</deleteInputs>
+                            <artifactItems>
+                                <artifactItem>
+                                    <groupId>${project.groupId}</groupId>
+                                    <artifactId>apicurio-registry-app</artifactId>
+                                    <version>${project.version}</version>
+                                    <type>jar</type>
+                                    <overWrite>true</overWrite>
+                                    <includes>**/web.xml,**/application.properties</includes>
+                                </artifactItem>
+                            </artifactItems>
+                            <outputDirectory>${project.build.outputDirectory}</outputDirectory>
+                            <overWriteReleases>false</overWriteReleases>
+                            <overWriteSnapshots>true</overWriteSnapshots>
                         </configuration>
                     </execution>
                     <execution>

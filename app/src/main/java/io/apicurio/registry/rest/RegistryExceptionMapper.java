@@ -29,14 +29,14 @@ import io.apicurio.registry.storage.ContentNotFoundException;
 import io.apicurio.registry.storage.VersionNotFoundException;
 import org.slf4j.Logger;
 
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.ext.ExceptionMapper;
-import javax.ws.rs.ext.Provider;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.ws.rs.core.Context;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.ext.ExceptionMapper;
+import jakarta.ws.rs.ext.Provider;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -78,7 +78,7 @@ public class RegistryExceptionMapper implements ExceptionMapper<Throwable> {
     }
 
     /**
-     * @see javax.ws.rs.ext.ExceptionMapper#toResponse(java.lang.Throwable)
+     * @see jakarta.ws.rs.ext.ExceptionMapper#toResponse(java.lang.Throwable)
      */
     @Override
     public Response toResponse(Throwable t) {

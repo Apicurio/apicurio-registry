@@ -16,7 +16,7 @@
 
 package io.apicurio.registry.ccompat.rest.error;
 
-import javax.ws.rs.NotFoundException;
+import jakarta.ws.rs.NotFoundException;
 
 /**
  * @author Ales Justin

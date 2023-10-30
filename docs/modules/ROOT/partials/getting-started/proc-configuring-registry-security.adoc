@@ -152,13 +152,13 @@ TIP: For an example of setting environment variables on OpenShift, see xref:conf
 
 [role="_additional-resources"]
 .Additional resources
-* For details on configuring non-default user role names, see xref:registry-security-settings_{context}[]
-* For an open source example application and Keycloak realm, see https://github.com/Apicurio/apicurio-registry/tree/2.0.x/distro/docker-compose[Docker Compose-based example of using Keycloak with Apicurio Registry]
+* For details on configuring non-default user role names, see xref:registry-security-settings_{context}[].
+* For an open source example application and Keycloak realm, see https://github.com/Apicurio/apicurio-registry/tree/{registry-version}.x/distro/docker-compose[Docker Compose example of Apicurio Registry with Keycloak].
 * For details on how to use {keycloak} in a production environment, see
 ifdef::apicurio-registry[]
-the link:https://www.keycloak.org/documentation[Keycloak documentation]
+the link:https://www.keycloak.org/documentation[Keycloak documentation].
 endif::[]
 ifdef::rh-service-registry[]
-see link:https://access.redhat.com/documentation/en-us/red_hat_single_sign-on/{keycloak-version}/[{keycloak} documentation]
+the link:https://access.redhat.com/documentation/en-us/red_hat_single_sign-on/{keycloak-version}/[{keycloak} documentation].
 endif::[]
-* For details on custom security configuration, the see https://quarkus.io/guides/security-openid-connect-web-authentication[Quarkus Open ID Connect documentation] 
+

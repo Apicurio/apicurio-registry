@@ -16,9 +16,9 @@
 
 package io.apicurio.registry.auth;
 
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.inject.Instance;
-import javax.inject.Inject;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Instance;
+import jakarta.inject.Inject;
 
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.types.Current;

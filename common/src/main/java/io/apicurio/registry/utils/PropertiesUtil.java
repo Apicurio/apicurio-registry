@@ -5,7 +5,7 @@ import org.eclipse.microprofile.config.spi.ConfigProviderResolver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.enterprise.inject.spi.InjectionPoint;
+import jakarta.enterprise.inject.spi.InjectionPoint;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;

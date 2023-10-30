@@ -27,7 +27,6 @@ import java.util.List;
 import java.util.Properties;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
 import org.apache.kafka.clients.CommonClientConfigs;
@@ -41,7 +40,6 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
-import org.rnorth.ducttape.unreliables.Unreliables;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.events.dto.RegistryEventType;
 import io.apicurio.registry.types.ArtifactType;
@@ -62,7 +60,7 @@ public class KafkaEventsTest extends AbstractResourceTestBase {
 
     @Test
     @Timeout(value = 60, unit = TimeUnit.SECONDS)
-    public void testKafkaEvents() throws TimeoutException {
+    public void testKafkaEvents() throws Exception {
 
         Consumer<UUID, String> kafkaConsumer = createConsumer(
                 Serdes.UUID().deserializer().getClass().getName(),
@@ -89,7 +87,7 @@ public class KafkaEventsTest extends AbstractResourceTestBase {
 
         List<ConsumerRecord<UUID, String>> allRecords = new ArrayList<>();
 
-        Unreliables.retryUntilTrue(40, TimeUnit.SECONDS, () -> {
+        TestUtils.retry( () ->  {
             kafkaConsumer.poll(Duration.ofMillis(50))
                     .iterator()
                     .forEachRemaining(allRecords::add);
@@ -102,10 +100,6 @@ public class KafkaEventsTest extends AbstractResourceTestBase {
                     return new String(r.headers().lastHeader("ce_type").value());
                 })
                 .collect(Collectors.toList());
-
-//        assertLinesMatch(
-//                Arrays.asList(RegistryEventType.ARTIFACT_CREATED.cloudEventType(), RegistryEventType.ARTIFACT_UPDATED.cloudEventType()),
-//                events);
 
         assertTrue(
                 events.containsAll(Arrays.asList(RegistryEventType.ARTIFACT_CREATED.cloudEventType(), RegistryEventType.ARTIFACT_UPDATED.cloudEventType()))

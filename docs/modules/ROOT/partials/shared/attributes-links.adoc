@@ -148,13 +148,13 @@
 
 
 // Service Registry titles
-:ServiceRegistryURLVersion: 2023.q2
+:ServiceRegistryURLVersion: 2023.q3
 :RegistryProductURL: service_registry 
 
 ifdef::RHAF[]
 :productpkg: red_hat_build_of_apicurio_registry 
 :RegistryProductURL: apicurio_registry
-:ServiceRegistryURLVersion: 2.3
+:ServiceRegistryURLVersion: 2.4
 endif::[]
 
 :LinkServiceRegistryInstall: https://access.redhat.com/documentation/en-us/{productpkg}/{ServiceRegistryURLVersion}/html-single/installing_and_deploying_{RegistryProductURL}_on_openshift/index
@@ -182,8 +182,8 @@ endif::[]
 :LinkStreamsOpenShift: https://access.redhat.com/documentation/en-us/red_hat_amq_streams/{AMQStreamsURLVersion}/html-single/using_amq_streams_on_openshift/index
 :NameStreamsOpenShift: Using {StreamsName} on OpenShift
 
-:LinkDeployStreamsOpenShift: https://access.redhat.com/documentation/en-us/red_hat_amq_streams/{AMQStreamsURLVersion}/html-single/deploying_and_upgrading_amq_streams_on_openshift/index
-:NameDeployStreamsOpenShift: Deploying and Upgrading {StreamsName} on OpenShift
+:LinkDeployStreamsOpenShift: https://access.redhat.com/documentation/en-us/red_hat_amq_streams/{AMQStreamsURLVersion}/html-single/deploying_and_managing_amq_streams_on_openshift/index
+:NameDeployStreamsOpenShift: Deploying and Managing {StreamsName} on OpenShift
 
 :LinkStreamsRhel: https://access.redhat.com/documentation/en-us/red_hat_amq_streams/{AMQStreamsURLVersion}/html-single/using_amq_streams_on_rhel/index
 :NameStreamsRhel: Using {StreamsName} on RHEL

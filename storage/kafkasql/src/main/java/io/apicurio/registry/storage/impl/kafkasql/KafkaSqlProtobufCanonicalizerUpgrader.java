@@ -25,7 +25,6 @@ import io.apicurio.registry.storage.impl.sql.jdb.Handle;
 import io.apicurio.registry.storage.impl.sql.jdb.RowMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.ContentEntityMapper;
 import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.utils.ConcurrentUtil;
 import io.apicurio.registry.utils.impexp.ContentEntity;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.slf4j.Logger;
@@ -35,8 +34,6 @@ import jakarta.inject.Inject;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Collections;
-import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 import java.util.stream.Stream;
 
 @ApplicationScoped
@@ -48,12 +45,8 @@ public class KafkaSqlProtobufCanonicalizerUpgrader implements IDbUpgrader {
     @Inject
     KafkaSqlSubmitter submitter;
 
-    @Inject
-    KafkaSqlCoordinator coordinator;
-
     @Override
     public void upgrade(Handle dbHandle) throws Exception {
-
         String sql = "SELECT c.contentId, c.content, c.canonicalHash, c.contentHash, c.artifactreferences, v.tenantId "
                 + "FROM versions v "
                 + "JOIN content c on c.contentId = v.contentId "
@@ -68,30 +61,23 @@ public class KafkaSqlProtobufCanonicalizerUpgrader implements IDbUpgrader {
         try (stream) {
             stream.forEach(this::updateCanonicalHash);
         }
-
     }
 
     protected void updateCanonicalHash(TenantContentEntity tenantContentEntity) {
-
         ContentEntity contentEntity = tenantContentEntity.contentEntity;
-
         ContentHandle content = ContentHandle.create(contentEntity.contentBytes);
         ContentHandle canonicalContent = canonicalizeContent(content);
         byte[] canonicalContentBytes = canonicalContent.bytes();
         String canonicalContentHash = DigestUtils.sha256Hex(canonicalContentBytes);
 
         if (canonicalContentHash.equals(tenantContentEntity.contentEntity.canonicalHash)) {
-            //canonical hash is correct, skipping
+            logger.debug("Skipping content because the canonical hash is up to date, updating contentId {}", contentEntity.contentId);
             return;
         }
 
         logger.debug("Protobuf content canonicalHash outdated value detected, updating contentId {}", contentEntity.contentId);
 
-        CompletableFuture<UUID> future = submitter
-                .submitContent(tenantContentEntity.tenantId, contentEntity.contentId, contentEntity.contentHash, ActionType.UPDATE, canonicalContentHash, null, contentEntity.serializedReferences != null ? contentEntity.serializedReferences : null);
-        UUID uuid = ConcurrentUtil.get(future);
-        coordinator.waitForResponse(uuid);
-
+        submitter.submitContent(tenantContentEntity.tenantId, contentEntity.contentId, contentEntity.contentHash, ActionType.UPDATE, canonicalContentHash, null, contentEntity.serializedReferences != null ? contentEntity.serializedReferences : null);
     }
 
     protected ContentHandle canonicalizeContent(ContentHandle content) {

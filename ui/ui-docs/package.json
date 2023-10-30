@@ -6,7 +6,6 @@
   "license": "Apache-2.0",
   "private": true,
   "scripts": {
-    "postinstall": "node .fix_yaml.cjs",
     "clean": "rimraf dist",
     "dev": "vite",
     "build": "tsc && vite build",

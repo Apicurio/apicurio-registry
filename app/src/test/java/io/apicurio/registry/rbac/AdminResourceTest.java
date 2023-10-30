@@ -805,7 +805,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
     @Test
     public void testConfigProperties() throws Exception {
         String property1Name = "registry.ccompat.legacy-id-mode.enabled";
-        String property2Name = "registry.ui.features.readOnly";
+        String property2Name = "registry.rest.artifact.deletion.enabled";
 
         // Start with default mappings
         given()
@@ -814,35 +814,36 @@ public class AdminResourceTest extends AbstractResourceTestBase {
             .then()
                 .statusCode(200)
                 .contentType(ContentType.JSON);
-        TestUtils.retry(() -> {
-            given()
-                .when()
-                    .pathParam("propertyName", property1Name)
-                    .get("/registry/v2/admin/config/properties/{propertyName}")
-                .then()
-                    .statusCode(200)
-                    .contentType(ContentType.JSON)
-                    .body("name", equalTo(property1Name))
-                    .body("value", equalTo("false"));
-        });
-        TestUtils.retry(() -> {
-            given()
-                .when()
-                    .pathParam("propertyName", property2Name)
-                    .get("/registry/v2/admin/config/properties/{propertyName}")
-                .then()
-                    .statusCode(200)
-                    .contentType(ContentType.JSON)
-                    .body("name", equalTo(property2Name))
-                    .body("value", equalTo("false"));
-        });
+        
+        // Fetch property 1, should be false
+        given()
+            .when()
+                .pathParam("propertyName", property1Name)
+                .get("/registry/v2/admin/config/properties/{propertyName}")
+            .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .body("name", equalTo(property1Name))
+                .body("value", equalTo("false"));
 
-        // Set value for a property
+        // Fetch property 2, should be false
+        given()
+            .when()
+                .pathParam("propertyName", property2Name)
+                .get("/registry/v2/admin/config/properties/{propertyName}")
+            .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .body("name", equalTo(property2Name))
+                .body("value", equalTo("true"));
+
+        // Set value for property 1
         UpdateConfigurationProperty update = new UpdateConfigurationProperty();
         update.setValue("true");
         given()
             .when()
-                .contentType(CT_JSON).body(update)
+                .contentType(CT_JSON)
+                .body(update)
                 .pathParam("propertyName", property1Name)
                 .put("/registry/v2/admin/config/properties/{propertyName}")
             .then()
@@ -850,21 +851,19 @@ public class AdminResourceTest extends AbstractResourceTestBase {
                 .body(anything());
 
         // Verify the property was set.
-        TestUtils.retry(() -> {
-            given()
-                .when()
-                    .pathParam("propertyName", property1Name)
-                    .get("/registry/v2/admin/config/properties/{propertyName}")
-                .then()
-                    .statusCode(200)
-                    .contentType(ContentType.JSON)
-                    .body("name", equalTo(property1Name))
-                    .body("value", equalTo("true"));
-        });
+        given()
+            .when()
+                .pathParam("propertyName", property1Name)
+                .get("/registry/v2/admin/config/properties/{propertyName}")
+            .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .body("name", equalTo(property1Name))
+                .body("value", equalTo("true"));
 
-        // Set another property
+        // Set value for property 2
         update = new UpdateConfigurationProperty();
-        update.setValue("true");
+        update.setValue("false");
         given()
             .when()
                 .contentType(CT_JSON).body(update)
@@ -875,17 +874,15 @@ public class AdminResourceTest extends AbstractResourceTestBase {
                 .body(anything());
 
         // Verify the property was set.
-        TestUtils.retry(() -> {
-            given()
-                .when()
-                    .pathParam("propertyName", property2Name)
-                    .get("/registry/v2/admin/config/properties/{propertyName}")
-                .then()
-                    .statusCode(200)
-                    .contentType(ContentType.JSON)
-                    .body("name", equalTo(property2Name))
-                    .body("value", equalTo("true"));
-        });
+        given()
+            .when()
+                .pathParam("propertyName", property2Name)
+                .get("/registry/v2/admin/config/properties/{propertyName}")
+            .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .body("name", equalTo(property2Name))
+                .body("value", equalTo("false"));
 
         // Reset a config property
         given()
@@ -897,17 +894,15 @@ public class AdminResourceTest extends AbstractResourceTestBase {
                 .body(anything());
 
         // Verify the property was reset.
-        TestUtils.retry(() -> {
-            given()
-                .when()
-                    .pathParam("propertyName", property2Name)
-                    .get("/registry/v2/admin/config/properties/{propertyName}")
-                .then()
-                    .statusCode(200)
-                    .contentType(ContentType.JSON)
-                    .body("name", equalTo(property2Name))
-                    .body("value", equalTo("false"));
-        });
+        given()
+            .when()
+                .pathParam("propertyName", property2Name)
+                .get("/registry/v2/admin/config/properties/{propertyName}")
+            .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .body("name", equalTo(property2Name))
+                .body("value", equalTo("true"));
 
         // Reset the other property
         given()
@@ -920,17 +915,15 @@ public class AdminResourceTest extends AbstractResourceTestBase {
                 .body(anything());
 
         // Verify the property was reset
-        TestUtils.retry(() -> {
-            given()
-                .when()
-                    .pathParam("propertyName", property1Name)
-                    .get("/registry/v2/admin/config/properties/{propertyName}")
-                .then()
-                    .statusCode(200)
-                    .contentType(ContentType.JSON)
-                    .body("name", equalTo(property1Name))
-                    .body("value", equalTo("false"));
-        });
+        given()
+            .when()
+                .pathParam("propertyName", property1Name)
+                .get("/registry/v2/admin/config/properties/{propertyName}")
+            .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .body("name", equalTo(property1Name))
+                .body("value", equalTo("false"));
 
         // Try to set a config property that doesn't exist.
         update = new UpdateConfigurationProperty();

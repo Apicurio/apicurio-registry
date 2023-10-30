@@ -51,7 +51,6 @@ jobs:
           IMAGE_TAG: 1d
         run: make build-sql-image push-sql-image
 
-
   prepare-kafkasql-tests:
     name: Prepare for KafkaSQL Integration Tests
     runs-on: ubuntu-20.04
@@ -72,7 +71,7 @@ jobs:
         run: mvn -N io.takari:maven:wrapper -Dmaven=3.8.2
 
       - name: Build kafkasql Variant
-        run: make SKIP_TESTS=true BUILD_FLAGS='-DskipUiBuild=true -Dmaven.javadoc.skip=true --no-transfer-progress -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5' build-kafkasql
+        run: make SKIP_TESTS=true BUILD_FLAGS='-Dmaven.javadoc.skip=true --no-transfer-progress -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5' build-kafkasql
 
       - name: Build and Push kafkasql image
         env:
@@ -170,40 +169,40 @@ jobs:
           name: tests-logs
           path: artifacts
 
-  integration-tests-ui:
-    name: Integration Tests UI
-    runs-on: ubuntu-20.04
-    needs: prepare-sql-tests
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
-      - name: Set up JDK 17
-        uses: actions/setup-java@v3
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-          cache: 'maven'
+  # integration-tests-ui:
+  #   name: Integration Tests UI
+  #   runs-on: ubuntu-20.04
+  #   needs: prepare-sql-tests
+  #   steps:
+  #     - name: Checkout Code
+  #       uses: actions/checkout@v3
+  #     - name: Set up JDK 17
+  #       uses: actions/setup-java@v3
+  #       with:
+  #         java-version: '17'
+  #         distribution: 'temurin'
+  #         cache: 'maven'
 
-      - name: Setup Minikube
-        uses: manusa/actions-setup-minikube@v2.7.2
-        with:
-          minikube version: 'v1.31.1'
-          kubernetes version: 'v1.26.3'
-          github token: ${{ secrets.GITHUB_TOKEN }}
-          driver: docker
+  #     - name: Setup Minikube
+  #       uses: manusa/actions-setup-minikube@v2.7.2
+  #       with:
+  #         minikube version: 'v1.31.1'
+  #         kubernetes version: 'v1.26.3'
+  #         github token: ${{ secrets.GITHUB_TOKEN }}
+  #         driver: docker
 
-      - name: Prepare minikube tunnel
-        run: minikube tunnel &> /dev/null &
+  #     - name: Prepare minikube tunnel
+  #       run: minikube tunnel &> /dev/null &
 
-      - name: Run UI tests
-        run: make REGISTRY_IMAGE='-Dregistry-sql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-sql:1d' run-ui-tests
+  #     - name: Run UI tests
+  #       run: make REGISTRY_IMAGE='-Dregistry-sql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-sql:1d' run-ui-tests
 
-      - name: Collect logs
-        if: failure()
-        run: ./.github/scripts/collect_logs.sh
-      - name: Upload tests logs artifacts
-        if: failure()
-        uses: actions/upload-artifact@v1.0.0
-        with:
-          name: tests-logs
-          path: artifacts
+  #     - name: Collect logs
+  #       if: failure()
+  #       run: ./.github/scripts/collect_logs.sh
+  #     - name: Upload tests logs artifacts
+  #       if: failure()
+  #       uses: actions/upload-artifact@v1.0.0
+  #       with:
+  #         name: tests-logs
+  #         path: artifacts

@@ -49,9 +49,15 @@ public class AdminOverride {
                 return hasAdminRole();
             } else if ("claim".equals(authConfig.adminOverrideType)) {
                 return hasAdminClaim();
+            } else if ("user".equals(authConfig.adminOverrideType)) {
+                return isAdminUser();
             }
         }
         return false;
+    }
+
+    private boolean isAdminUser() {
+        return authConfig.adminOverrideUser.equals(securityIdentity.getPrincipal().getName());
     }
 
     private boolean hasAdminRole() {

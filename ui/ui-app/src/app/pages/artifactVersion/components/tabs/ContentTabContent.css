@@ -1,0 +1,31 @@
+.code-wrapper {
+    width: 100%;
+    flex-grow: 1;
+    position: relative;
+}
+
+.code-wrapper .format-btn {
+    position: absolute;
+    right: 20px;
+    top: 10px;
+    background-color: #667;
+    border: 1px solid #999;
+}
+.code-wrapper .format-btn:hover {
+    background-color: #445;
+    border: 1px solid #777;
+}
+.code-wrapper .format-btn.hidden {
+    display: none;
+    visibility: hidden;
+}
+
+.formatting-buttons {
+    position: absolute;
+    right: 25px;
+    top: 10px;
+    z-index: 1;
+}
+
+#artifactContent {
+}

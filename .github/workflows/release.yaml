@@ -106,8 +106,6 @@ jobs:
           npm run build
           npm run package
 
-      # TODO: run UI tests
-
       - name: Import GPG Key
         uses: crazy-max/ghaction-import-gpg@f6f458f535f4ccdf100400ee0755c0e857226a66
         env:
@@ -131,7 +129,6 @@ jobs:
       - name: Install Poetry
         uses: snok/install-poetry@d45b6d76012debf457ab49dffc7fb7b2efe8071d
         if: github.event.inputs.skip-python-sdk == 'false'
-
 
       - name: Release Python SDK
         run: |
@@ -186,8 +183,19 @@ jobs:
           sed -i  "5s/\"version\"\:\s\".*\"/\"version\": \"${DOCS_VERSION}\"/g" app/src/main/resources-unfiltered/META-INF/resources/api-specifications/registry/v2/openapi.json
 
           # take only the major, minor and patch
-          PYTHON_SDK_VERSION=$(echo "${{ github.event.inputs.release-version}}" | awk -F '.' '{print $1"."$2"."$3}')
+          PYTHON_SDK_VERSION=$(echo "${{ github.event.inputs.snapshot-version}}" | awk -F '.' '{print $1"."$2"."$3}')
           sed -i "s/^version.*/version \= \"${PYTHON_SDK_VERSION}\"/" python-sdk/pyproject.toml
+
+          # take only the major, minor and patch
+          UI_VERSION=$(echo "${{ github.event.inputs.snapshot-version}}" | awk -F '.' '{print $1"."$2"."$3}')
+          cd ui
+          npm version $UI_VERSION
+          cd ui-app
+          npm version $UI_VERSION
+          cd ../ui-docs
+          npm version $UI_VERSION
+          cd ../tests
+          npm version $UI_VERSION
 
       - name: Commit Snapshot Version ${{ github.event.inputs.snapshot-version}}
         run: |
@@ -196,16 +204,6 @@ jobs:
           git commit -m "Automated update to next Snapshot Version: ${{ github.event.inputs.snapshot-version}}"
           git push
 
-      # TODO: ${{ steps.create_release.outputs.html_url }} will not be available, since we're now using script to do github release. Need to explicitly fetch
-      # - name: Tweet About The Release
-      #   uses: ethomson/send-tweet-action@v1
-      #   with:
-      #     status: "Apicurio Registry version ${{ github.event.inputs.release-version}} is out!  Check out the release notes here: ${{ steps.create_release.outputs.html_url }}"
-      #     consumer-key: ${{ secrets.TWITTER_CONSUMER_API_KEY }}
-      #     consumer-secret: ${{ secrets.TWITTER_CONSUMER_API_SECRET }}
-      #     access-token: ${{ secrets.TWITTER_ACCESS_TOKEN }}
-      #     access-token-secret: ${{ secrets.TWITTER_ACCESS_TOKEN_SECRET }}
-
       - name: Google Chat Notification
         if: ${{ failure() }}
         uses: Co-qn/google-chat-notification@b9227d9daa4638c9782a5bd16c4abb86268127a1
@@ -213,11 +211,3 @@ jobs:
           name: ${{ github.workflow }}
           url: ${{ secrets.GOOGLE_CHAT_WEBHOOK }}
           status: ${{ job.status }}
-
-
-  job-trigger:
-    needs: [release]
-    uses: ./.github/workflows/tag-registry-examples.yaml
-    with:
-      release-version: ${{ github.event.inputs.release-version}}
-      snapshot-version: ${{ github.event.inputs.snapshot-version}}

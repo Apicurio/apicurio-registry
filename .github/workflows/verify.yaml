@@ -401,8 +401,6 @@ jobs:
           cd ui/tests
           npm run lint
 
-      # TODO: run playwright tests!
-
       - name: Login to DockerHub Registry
         if: github.event_name == 'push'
         run: echo ${{ secrets.DOCKERHUB_PASSWORD }} | docker login -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin

@@ -164,7 +164,7 @@
         <okio-jvm.version>3.6.0</okio-jvm.version>
         <okio.version>3.6.0</okio.version>
         <okio-fake-file-system.version>3.4.0</okio-fake-file-system.version>
-        <icu4j.version>73.2</icu4j.version>
+        <icu4j.version>74.1</icu4j.version>
         <protobuf.version>3.24.4</protobuf.version>
         <xmlsec.version>4.0.0</xmlsec.version>
         <protobuf.googleapi.types.version>2.27.0</protobuf.googleapi.types.version>

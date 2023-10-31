@@ -313,35 +313,13 @@
             </dependency>
             <dependency>
                 <groupId>io.apicurio</groupId>
-                <artifactId>apicurio-registry-storage-sql</artifactId>
-                <version>${project.version}</version>
-                <type>test-jar</type>
-            </dependency>
-            <dependency>
-                <groupId>io.apicurio</groupId>
                 <artifactId>apicurio-registry-storage-kafkasql</artifactId>
                 <version>${project.version}</version>
                 <type>test-jar</type>
             </dependency>
             <dependency>
                 <groupId>io.apicurio</groupId>
-                <artifactId>apicurio-registry-storage-mssql</artifactId>
-                <version>${project.version}</version>
-                <type>test-jar</type>
-            </dependency>
-            <dependency>
-                <groupId>io.apicurio</groupId>
                 <artifactId>apicurio-registry-utils-tests</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.apicurio</groupId>
-                <artifactId>apicurio-registry-storage-sql</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.apicurio</groupId>
-                <artifactId>apicurio-registry-storage-mssql</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -1041,18 +1019,6 @@
     </build>
 
     <profiles>
-        <profile>
-            <id>sql</id>
-            <modules>
-                <module>storage/sql</module>
-            </modules>
-        </profile>
-        <profile>
-            <id>mssql</id>
-            <modules>
-                <module>storage/mssql</module>
-            </modules>
-        </profile>
         <profile>
             <id>kafkasql</id>
             <modules>

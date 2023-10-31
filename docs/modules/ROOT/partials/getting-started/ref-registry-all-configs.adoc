@@ -519,21 +519,16 @@ The following {registry} configuration options are available for each component 
 |Default
 |Available from
 |Description
-|`quarkus.datasource.db-kind`
-|`string`
-|`postgresql`
-|`2.0.0.Final`
-|Datasource Db kind
-|`quarkus.datasource.jdbc.url`
-|`string`
-|
-|`2.1.0.Final`
-|Datasource jdbc URL
 |`registry.sql.init`
 |`boolean`
 |`true`
 |`2.0.0.Final`
 |SQL init
+|`registry.storage.db-kind`
+|`string`
+|`postgresql`
+|`2.0.0.Final`
+|Datasource Db kind
 |`registry.storage.read-only`
 |`boolean [dynamic]`
 |`false`

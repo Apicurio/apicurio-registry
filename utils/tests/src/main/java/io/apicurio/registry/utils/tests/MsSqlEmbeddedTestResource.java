@@ -14,15 +14,16 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.storage.util;
+package io.apicurio.registry.utils.tests;
 
-import java.util.HashMap;
-import java.util.Map;
-
+import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
+import org.eclipse.microprofile.config.ConfigProvider;
 import org.testcontainers.containers.MSSQLServerContainer;
 import org.testcontainers.utility.DockerImageName;
 
-import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * @author eric.wittmann@gmail.com
@@ -44,23 +45,31 @@ public class MsSqlEmbeddedTestResource implements QuarkusTestResourceLifecycleMa
     }
 
     /**
-     * @see io.quarkus.test.common.QuarkusTestResourceLifecycleManager#start()
+     * @see QuarkusTestResourceLifecycleManager#start()
      */
     @Override
     public Map<String, String> start() {
-        System.out.println("[MsSqlEmbeddedTestResource] MS SQLServer test resource starting.");
+        if (!Boolean.parseBoolean(System.getProperty("cluster.tests")) && isMssqlStorage()) {
 
-        String currentEnv = System.getenv("CURRENT_ENV");
+            System.out.println("[MsSqlEmbeddedTestResource] MS SQLServer test resource starting.");
 
-        if ("mas".equals(currentEnv)) {
-            Map<String, String> props = new HashMap<>();
-            props.put("quarkus.datasource.jdbc.url", "jdbc:sqlserver://mssql;");
-            props.put("quarkus.datasource.username", "test");
-            props.put("quarkus.datasource.password", "test");
-            return props;
-        } else {
-            return startMsSql();
+            String currentEnv = System.getenv("CURRENT_ENV");
+
+            if ("mas".equals(currentEnv)) {
+                Map<String, String> props = new HashMap<>();
+                props.put("quarkus.datasource.mssql.jdbc.url", "jdbc:sqlserver://mssql;");
+                props.put("quarkus.datasource.mssql.username", "test");
+                props.put("quarkus.datasource.mssql.password", "test");
+                return props;
+            } else {
+                return startMsSql();
+            }
         }
+        return Collections.emptyMap();
+    }
+
+    private static boolean isMssqlStorage() {
+        return ConfigProvider.getConfig().getValue("registry.storage.db-kind", String.class).equals("mssql");
     }
 
     private Map<String, String> startMsSql() {
@@ -69,14 +78,14 @@ public class MsSqlEmbeddedTestResource implements QuarkusTestResourceLifecycleMa
         String datasourceUrl = database.getJdbcUrl();
 
         Map<String, String> props = new HashMap<>();
-        props.put("quarkus.datasource.jdbc.url", datasourceUrl);
-        props.put("quarkus.datasource.username", "SA");
-        props.put("quarkus.datasource.password", DB_PASSWORD);
+        props.put("quarkus.datasource.mssql.jdbc.url", datasourceUrl);
+        props.put("quarkus.datasource.mssql.username", "SA");
+        props.put("quarkus.datasource.mssql.password", DB_PASSWORD);
         return props;
     }
 
     /**
-     * @see io.quarkus.test.common.QuarkusTestResourceLifecycleManager#stop()
+     * @see QuarkusTestResourceLifecycleManager#stop()
      */
     @Override
     public void stop() {

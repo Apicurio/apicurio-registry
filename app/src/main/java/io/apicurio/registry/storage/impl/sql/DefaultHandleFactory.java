@@ -16,17 +16,15 @@
 
 package io.apicurio.registry.storage.impl.sql;
 
-import jakarta.enterprise.context.ApplicationScoped;
+import io.agroal.api.AgroalDataSource;
 import org.slf4j.Logger;
 
 /**
  * @author eric.wittmann@gmail.com
  */
-@ApplicationScoped
 public class DefaultHandleFactory extends AbstractHandleFactory {
 
-
-    public DefaultHandleFactory(RegistryDataSource dataSource, Logger log) {
-        initialize(dataSource.getDataSourceInstance(), "default", log);
+    public DefaultHandleFactory(AgroalDataSource dataSource, Logger logger) {
+        initialize(dataSource, "default", logger);
     }
 }

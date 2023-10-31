@@ -44,9 +44,11 @@ public class PostgreSqlEmbeddedTestResource implements QuarkusTestResourceLifecy
 
             if (currentEnv != null && "mas".equals(currentEnv)) {
                 Map<String, String> props = new HashMap<>();
-                props.put("quarkus.datasource.postgresql.jdbc.url", "jdbc:postgresql://localhost:5432/test");
-                props.put("quarkus.datasource.postgresql.username", "test");
-                props.put("quarkus.datasource.postgresql.password", "test");
+                props.put("registry.storage.db-kind", "postgresql");
+                props.put("registry.datasource.jdbc.url", "jdbc:postgresql://localhost:5432/test");
+                props.put("registry.datasource.username", "test");
+                props.put("registry.datasource.password", "test");
+                props.put("registry.datasource.driver-classname", "org.postgresql.Driver");
                 return props;
             } else {
                 return startPostgresql();
@@ -69,13 +71,11 @@ public class PostgreSqlEmbeddedTestResource implements QuarkusTestResourceLifecy
         String datasourceUrl = database.getJdbcUrl("postgres", "postgres");
 
         Map<String, String> props = new HashMap<>();
-        props.put("quarkus.datasource.postgresql.jdbc.url", datasourceUrl);
-        props.put("quarkus.datasource.postgresql.username", "postgres");
-        props.put("quarkus.datasource.postgresql.password", "postgres");
-
-        System.setProperty("quarkus.datasource.postgresql.jdbc.url", datasourceUrl);
-        System.setProperty("quarkus.datasource.postgresql.username", "postgres");
-        System.setProperty("quarkus.datasource.postgresql.password", "postgres");
+        props.put("registry.storage.db-kind", "postgresql");
+        props.put("registry.datasource.jdbc.url", datasourceUrl);
+        props.put("registry.datasource.driver-classname", "org.postgresql.Driver");
+        props.put("registry.datasource.username", "postgres");
+        props.put("registry.datasource.password", "postgres");
 
         return props;
     }

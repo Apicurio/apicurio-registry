@@ -32,7 +32,7 @@ public class SqlStatementsProducer {
     @Inject
     Logger log;
 
-    @ConfigProperty(name = "registry.storage.db-kind", defaultValue = "postgresql")
+    @ConfigProperty(name = "registry.storage.db-kind", defaultValue = "h2")
     @Info(category = "storage", description = "Datasource Db kind", availableSince = "2.0.0.Final")
     String databaseType;
 

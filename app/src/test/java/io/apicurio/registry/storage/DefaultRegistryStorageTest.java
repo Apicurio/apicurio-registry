@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Red Hat
+ * Copyright 2022 Red Hat
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,28 +14,32 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.storage.impl.sql;
+package io.apicurio.registry.storage;
 
 import jakarta.inject.Inject;
 
 import io.apicurio.registry.noprofile.storage.AbstractRegistryStorageTest;
-import io.apicurio.registry.storage.RegistryStorage;
+import io.apicurio.registry.storage.impl.sql.InMemoryRegistryStorage;
+import io.apicurio.registry.utils.tests.ApicurioTestTags;
 import io.quarkus.test.junit.QuarkusTest;
+import org.junit.jupiter.api.Tag;
 
 /**
  * @author eric.wittmann@gmail.com
  */
 @QuarkusTest
-public class SqlRegistryStorageTest extends AbstractRegistryStorageTest {
+@Tag(ApicurioTestTags.SLOW)
+public class DefaultRegistryStorageTest extends AbstractRegistryStorageTest {
 
     @Inject
-    SqlRegistryStorage storage;
+    InMemoryRegistryStorage storage;
 
     /**
-     * @see AbstractRegistryStorageTest#storage()
+     * @see io.apicurio.registry.storage.AbstractRegistryStorageTest#storage()
      */
     @Override
     protected RegistryStorage storage() {
         return storage;
     }
+
 }

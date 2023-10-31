@@ -142,6 +142,10 @@
         </dependency>
         <dependency>
             <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-jdbc-postgresql</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.quarkus</groupId>
             <artifactId>quarkus-agroal</artifactId>
         </dependency>
 
@@ -262,6 +266,12 @@
         <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>redpanda</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.zonky.test</groupId>
+            <artifactId>embedded-postgres</artifactId>
+            <version>${embedded-postgres.version}</version><!--$NO-MVN-MAN-VER$-->
             <scope>test</scope>
         </dependency>
     </dependencies>

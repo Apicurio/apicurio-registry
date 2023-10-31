@@ -14,19 +14,15 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.storage.impl.sql;
+package io.apicurio.registry.storage.util;
 
-import jakarta.enterprise.context.ApplicationScoped;
-import org.slf4j.Logger;
+import io.apicurio.registry.utils.tests.PostgreSqlEmbeddedTestResource;
+import io.quarkus.test.common.QuarkusTestResource;
 
 /**
- * @author eric.wittmann@gmail.com
+ * @author Fabian Martinez
  */
-@ApplicationScoped
-public class DefaultHandleFactory extends AbstractHandleFactory {
+@QuarkusTestResource(value = PostgreSqlEmbeddedTestResource.class)
+public class SqlStorageTestResources {
 
-
-    public DefaultHandleFactory(RegistryDataSource dataSource, Logger log) {
-        initialize(dataSource.getDataSourceInstance(), "default", log);
-    }
 }

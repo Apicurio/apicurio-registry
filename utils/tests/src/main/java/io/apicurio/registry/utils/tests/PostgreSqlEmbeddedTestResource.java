@@ -18,6 +18,7 @@ package io.apicurio.registry.utils.tests;
 
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
 import io.zonky.test.db.postgres.embedded.EmbeddedPostgres;
+import org.eclipse.microprofile.config.ConfigProvider;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -37,21 +38,25 @@ public class PostgreSqlEmbeddedTestResource implements QuarkusTestResourceLifecy
      */
     @Override
     public Map<String, String> start() {
-        if (!Boolean.parseBoolean(System.getProperty("cluster.tests"))) {
+        if (!Boolean.parseBoolean(System.getProperty("cluster.tests")) && isPostgresqlStorage()) {
 
             String currentEnv = System.getenv("CURRENT_ENV");
 
             if (currentEnv != null && "mas".equals(currentEnv)) {
                 Map<String, String> props = new HashMap<>();
-                props.put("quarkus.datasource.jdbc.url", "jdbc:postgresql://localhost:5432/test");
-                props.put("quarkus.datasource.username", "test");
-                props.put("quarkus.datasource.password", "test");
+                props.put("quarkus.datasource.postgresql.jdbc.url", "jdbc:postgresql://localhost:5432/test");
+                props.put("quarkus.datasource.postgresql.username", "test");
+                props.put("quarkus.datasource.postgresql.password", "test");
                 return props;
             } else {
                 return startPostgresql();
             }
         }
         return Collections.emptyMap();
+    }
+
+    private static boolean isPostgresqlStorage() {
+        return ConfigProvider.getConfig().getValue("registry.storage.db-kind", String.class).equals("postgresql");
     }
 
     private Map<String, String> startPostgresql() {
@@ -64,13 +69,13 @@ public class PostgreSqlEmbeddedTestResource implements QuarkusTestResourceLifecy
         String datasourceUrl = database.getJdbcUrl("postgres", "postgres");
 
         Map<String, String> props = new HashMap<>();
-        props.put("quarkus.datasource.jdbc.url", datasourceUrl);
-        props.put("quarkus.datasource.username", "postgres");
-        props.put("quarkus.datasource.password", "postgres");
+        props.put("quarkus.datasource.postgresql.jdbc.url", datasourceUrl);
+        props.put("quarkus.datasource.postgresql.username", "postgres");
+        props.put("quarkus.datasource.postgresql.password", "postgres");
 
-        System.setProperty("quarkus.datasource.jdbc.url", datasourceUrl);
-        System.setProperty("quarkus.datasource.username", "postgres");
-        System.setProperty("quarkus.datasource.password", "postgres");
+        System.setProperty("quarkus.datasource.postgresql.jdbc.url", datasourceUrl);
+        System.setProperty("quarkus.datasource.postgresql.username", "postgres");
+        System.setProperty("quarkus.datasource.postgresql.password", "postgres");
 
         return props;
     }

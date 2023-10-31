@@ -251,7 +251,7 @@ jobs:
       - name: Run UI tests
         run: |
           echo "Starting Registry App (In Memory)"
-          docker run -it -p 8080:8080 -d ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-mem:1d
+          docker run -it -p 8080:8080 -d --env CORS_ALLOWED_ORIGINS=* ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-mem:1d
           echo "Starting Registry UI"
           docker run -it -p 8888:8080 -d ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-ui:1d
 
@@ -260,12 +260,23 @@ jobs:
           npx playwright install --with-deps
 
           echo "App System Info:"
-          curl http://localhost:8080/apis/registry/v2/system/info
+          echo "--"
+          curl -s http://localhost:8080/apis/registry/v2/system/info
+          echo "--"
+          echo ""
           echo "UI Config Info:"
-          curl http://localhost:8888/config.js
+          echo "--"
+          curl -s http://localhost:8888/config.js
+          echo "--"
+          echo ""
           echo "UI Version Info:"
-          curl http://localhost:8888/version.js
-
+          curl -s http://localhost:8888/version.js
+          echo "--"
+          echo "UI index.html:"
+          echo "--"
+          curl -s http://localhost:8888
+          echo "--"
+          echo ""
           echo "-------------------------"
           echo "Running Playwright tests!"
           echo "-------------------------"

@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 
-const REGISTRY_UI_URL: string = process.env["REGISTRY_UI_URL"] || "http://localhost:8081/";
+const REGISTRY_UI_URL: string = process.env["REGISTRY_UI_URL"] || "http://localhost:8888/";
 
 test("App - Has Title", async ({ page }) => {
     await page.goto(REGISTRY_UI_URL);

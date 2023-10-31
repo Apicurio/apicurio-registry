@@ -411,7 +411,7 @@ class ArtifactsIT extends ApicurioRegistryBaseIT {
         // It's impossible to send those characters as early checks are kicking in in Kiota code
         if (artifactId.contains("%")) {
             Assertions.assertEquals(ApiException.class, executionException.getCause().getClass());
-            Assertions.assertEquals(404, ((ApiException)executionException.getCause()).responseStatusCode);
+            Assertions.assertEquals(404, ((ApiException)executionException.getCause()).getResponseStatusCode());
         } else {
             Assertions.assertEquals(IllegalArgumentException.class, executionException.getCause().getClass());
         }

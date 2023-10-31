@@ -84,7 +84,7 @@ public abstract class AbstractRegistryTestBase {
     protected void assertForbidden(ExecutionException executionException) {
         Assertions.assertNotNull(executionException.getCause());
         Assertions.assertEquals(ApiException.class, executionException.getCause().getClass());
-        Assertions.assertEquals(403, ((ApiException)executionException.getCause()).responseStatusCode);
+        Assertions.assertEquals(403, ((ApiException)executionException.getCause()).getResponseStatusCode());
     }
 
     protected void assertNotAuthorized(ExecutionException executionException) {
@@ -95,7 +95,7 @@ public abstract class AbstractRegistryTestBase {
         } else {
             // mapped by Kiota
             Assertions.assertEquals(ApiException.class, executionException.getCause().getClass());
-            Assertions.assertEquals(401, ((ApiException) executionException.getCause()).responseStatusCode);
+            Assertions.assertEquals(401, ((ApiException) executionException.getCause()).getResponseStatusCode());
         }
     }
 

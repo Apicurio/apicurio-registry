@@ -1550,7 +1550,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
             });
             Assertions.assertNotNull(executionException.getCause());
             Assertions.assertEquals(ApiException.class, executionException.getCause().getClass());
-            Assertions.assertEquals(409, ((ApiException)executionException.getCause()).responseStatusCode);
+            Assertions.assertEquals(409, ((ApiException)executionException.getCause()).getResponseStatusCode());
         });
 
         // Add another mapping
@@ -1707,7 +1707,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         // InvalidPropertyValueException
         Assertions.assertNotNull(executionException2.getCause());
         Assertions.assertEquals(ApiException.class, executionException2.getCause().getClass());
-        Assertions.assertEquals(400, ((ApiException)executionException2.getCause()).responseStatusCode);
+        Assertions.assertEquals(400, ((ApiException)executionException2.getCause()).getResponseStatusCode());
     }
 
     @Test
@@ -1743,7 +1743,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
             var executionException1 = Assertions.assertThrows(ExecutionException.class, () -> client.groups().byGroupId("test").artifacts().byArtifactId("test").get().get(30, TimeUnit.SECONDS));
             Assertions.assertNotNull(executionException1.getCause());
             Assertions.assertEquals(ApiException.class, executionException1.getCause().getClass());
-            Assertions.assertEquals(429, ((ApiException)executionException1.getCause()).responseStatusCode);
+            Assertions.assertEquals(429, ((ApiException)executionException1.getCause()).getResponseStatusCode());
 
             ArtifactContent content = new ArtifactContent();
             content.setContent("{}");
@@ -1752,12 +1752,12 @@ public class RegistryClientTest extends AbstractResourceTestBase {
             }).get(30, TimeUnit.SECONDS));
             Assertions.assertNotNull(executionException2.getCause());
             Assertions.assertEquals(ApiException.class, executionException2.getCause().getClass());
-            Assertions.assertEquals(429, ((ApiException)executionException2.getCause()).responseStatusCode);
+            Assertions.assertEquals(429, ((ApiException)executionException2.getCause()).getResponseStatusCode());
 
             var executionException3 = Assertions.assertThrows(ExecutionException.class, () -> client.ids().globalIds().byGlobalId(5L).get().get(30, TimeUnit.SECONDS));
             Assertions.assertNotNull(executionException3.getCause());
             Assertions.assertEquals(ApiException.class, executionException3.getCause().getClass());
-            Assertions.assertEquals(429, ((ApiException)executionException3.getCause()).responseStatusCode);
+            Assertions.assertEquals(429, ((ApiException)executionException3.getCause()).getResponseStatusCode());
         } finally {
             mock.stop();
         }

@@ -163,7 +163,7 @@ public class AdminClientTest extends AbstractResourceTestBase {
                 clientV2.admin().roleMappings().post(mapping).get(3, TimeUnit.SECONDS);
             });
             assertNotNull(executionException.getCause());
-            assertEquals(409, ((ApiException)executionException.getCause()).responseStatusCode);
+            assertEquals(409, ((ApiException)executionException.getCause()).getResponseStatusCode());
         });
 
         // Add another mapping
@@ -212,7 +212,7 @@ public class AdminClientTest extends AbstractResourceTestBase {
                 clientV2.admin().roleMappings().byPrincipalId("TestUser2").get().get(3, TimeUnit.SECONDS);
             });
             assertNotNull(executionException2.getCause());
-            assertEquals(404, ((ApiException)executionException2.getCause()).responseStatusCode);
+            assertEquals(404, ((ApiException)executionException2.getCause()).getResponseStatusCode());
         });
 
         // Get the list of mappings (should be 1 of them)

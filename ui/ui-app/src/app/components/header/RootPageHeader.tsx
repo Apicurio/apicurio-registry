@@ -38,23 +38,23 @@ export const RootPageHeader: FunctionComponent<RootPageHeaderProps> = (props: Ro
     };
 
     const tabs: any[] = [
-        <Tab key={0} eventKey={0} title={<TabTitleText>Artifacts</TabTitleText>} />,
-        <Tab key={1} eventKey={1} title={<TabTitleText>Global rules</TabTitleText>} />
+        <Tab data-testid="artifacts-tab" key={0} eventKey={0} title={<TabTitleText>Artifacts</TabTitleText>} />,
+        <Tab data-testid="rules-tab" key={1} eventKey={1} title={<TabTitleText>Global rules</TabTitleText>} />
     ];
     if (Services.getConfigService().featureRoleManagement()) {
         tabs.push(
-            <Tab key={2} eventKey={2} title={<TabTitleText>Access</TabTitleText>} />
+            <Tab data-testid="access-tab" key={2} eventKey={2} title={<TabTitleText>Access</TabTitleText>} />
         );
     }
     if (Services.getConfigService().featureSettings()) {
         tabs.push(
-            <Tab key={3} eventKey={3} title={<TabTitleText>Settings</TabTitleText>} />
+            <Tab data-testid="settings-tab" key={3} eventKey={3} title={<TabTitleText>Settings</TabTitleText>} />
         );
     }
     return (
         <div>
             <IfAuth isAdmin={true}>
-                <Tabs activeKey={props.tabKey} onSelect={handleTabClick} children={tabs} />
+                <Tabs className="root-tabs" activeKey={props.tabKey} onSelect={handleTabClick} children={tabs} />
             </IfAuth>
         </div>
     );

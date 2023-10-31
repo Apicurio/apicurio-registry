@@ -32,16 +32,16 @@ jobs:
           echo "Releasing Apicurio Registry version ${{ github.event.inputs.release-version }} from branch ${{ github.event.inputs.branch }}"
           echo "Next Snapshot version will be ${{ github.event.inputs.snapshot-version }}"
 
-      - name: Set up Node.js v12
-        uses: actions/setup-node@v1
-        with:
-          node-version: 12
-
       - name: Set up JDK 17
         uses: actions/setup-java@v3
         with:
           java-version: '17'
           distribution: 'temurin'
+
+      - name: Set up Node.js v16
+        uses: actions/setup-node@v1
+        with:
+          node-version: 16
 
       - name: Set up settings.xml
         run: |
@@ -82,10 +82,31 @@ jobs:
           PYTHON_SDK_VERSION=$(echo "${{ github.event.inputs.release-version}}" | awk -F '.' '{print $1"."$2"."$3}')
           sed -i "s/^version.*/version \= \"${PYTHON_SDK_VERSION}\"/" python-sdk/pyproject.toml
 
+          # take only the major, minor and patch
+          UI_VERSION=$(echo "${{ github.event.inputs.release-version}}" | awk -F '.' '{print $1"."$2"."$3}')
+          cd ui
+          npm version $UI_VERSION
+          cd ui-app
+          npm version $UI_VERSION
+          cd ../ui-docs
+          npm version $UI_VERSION
+          cd ../tests
+          npm version $UI_VERSION
+
       - name: Build Registry (All Variants)
         run: |
           cd registry
           make SKIP_TESTS=true BUILD_FLAGS='-Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5' build-all
+
+      - name: Build Registry UI
+        run: |
+          cd registry/ui
+          npm install
+          npm run lint
+          npm run build
+          npm run package
+
+      # TODO: run UI tests
 
       - name: Import GPG Key
         uses: crazy-max/ghaction-import-gpg@f6f458f535f4ccdf100400ee0755c0e857226a66

@@ -248,27 +248,27 @@ jobs:
           cache: 'npm'
           cache-dependency-path: 'ui/tests/package-lock.json'
 
-      - name: Start App
-        run: |
-          docker run -it -p 8080:8080 -d ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-mem:1d
-
-      - name: Start UI
-        run: |
-          docker run -it -p 8888:8080 -d ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-ui:1d
-
-      - name: Install Test Dependencies
-        run: |
-          cd ui/tests
-          npm install
-
-      - name: Install Playwright Browsers
-        run: |
-          cd ui/tests
-          npx playwright install --with-deps
-
       - name: Run UI tests
         run: |
+          echo "Starting Registry App (In Memory)"
+          docker run -it -p 8080:8080 -d ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-mem:1d
+          echo "Starting Registry UI"
+          docker run -it -p 8888:8080 -d ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-ui:1d
+
           cd ui/tests
+          npm install
+          npx playwright install --with-deps
+
+          echo "App System Info:"
+          curl http://localhost:8080/apis/registry/v2/system/info
+          echo "UI Config Info:"
+          curl http://localhost:8888/config.js
+          echo "UI Version Info:"
+          curl http://localhost:8888/version.js
+
+          echo "-------------------------"
+          echo "Running Playwright tests!"
+          echo "-------------------------"
           npm run test
 
       - name: Upload Test Report
@@ -285,7 +285,7 @@ jobs:
 
       - name: Upload tests logs artifacts
         if: failure()
-        uses: actions/upload-artifact@v1.0.0
+        uses: actions/upload-artifact@v3
         with:
           name: tests-logs
           path: artifacts

@@ -103,11 +103,7 @@ jobs:
         with:
           node-version: 16
           cache: 'npm'
-          cache-dependency-path:
-            - 'ui/package-lock.json'
-            - 'ui/ui-app/package-lock.json'
-            - 'ui/ui-docs/package-lock.json'
-            - 'ui/tests/package-lock.json'
+          cache-dependency-path: 'ui/**/package-lock.json'
 
       - name: Get maven wrapper
         run: mvn -N io.takari:maven:wrapper -Dmaven=3.8.2

@@ -94,6 +94,6 @@ public class AuthTestAnonymousCredentials extends AbstractResourceTestBase {
         });
         Assertions.assertNotNull(executionException.getCause());
         Assertions.assertEquals(ApiException.class, executionException.getCause().getClass());
-        Assertions.assertEquals(401, ((ApiException)executionException.getCause()).responseStatusCode);
+        Assertions.assertEquals(401, ((ApiException)executionException.getCause()).getResponseStatusCode());
     }
 }

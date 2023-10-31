@@ -29,7 +29,7 @@
     <artifactId>apicurio-registry-client</artifactId>
 
     <properties>
-        <kiota.libs.version>0.7.4</kiota.libs.version>
+        <kiota.libs.version>0.7.8</kiota.libs.version>
     </properties>
 
     <dependencies>

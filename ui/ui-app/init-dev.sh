@@ -8,7 +8,7 @@ CONFIG_TYPE=$1
 
 if [ "x$CONFIG_TYPE" = "x" ]
 then
-  CONFIG_TYPE="keycloakjs"
+  CONFIG_TYPE="none"
 fi
 
 cp config/version.js version.js

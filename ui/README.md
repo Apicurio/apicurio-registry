@@ -48,6 +48,10 @@ directory.  This bundle is then suitable for including in e.g. a container image
 If you would like to contribute code changes to the UI, you will want to run the UI application(s)
 in DEV mode.
 
+**Warning**: For the dev version of the UI to work, you will need two files that are not checked into
+version control:  `config.js` and `version.js`.  To ensure you have these files, run the `init-dev.sh`
+script from the `ui-app` directory.  For more details see [ui-app/README.md](ui-app/README.md).
+
 ```
 npm run dev
 ```

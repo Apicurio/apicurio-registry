@@ -3,5 +3,3 @@ node_modules
 dist
 node
 resources/client-gen*
-version.js
-config.js

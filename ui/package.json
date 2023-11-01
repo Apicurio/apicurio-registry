@@ -10,7 +10,7 @@
         "clean": "rimraf dist && npm run clean-app && npm run clean-docs",
         "lint-app": "npm run lint --prefix ./ui-app",
         "lint-docs": "npm run lint --prefix ./ui-docs",
-        "lint": "npm run lint-app && npm run lint-docs && node .scripts/generate-version.cjs",
+        "lint": "npm run lint-app && npm run lint-docs",
         "build-app": "npm run build --prefix ./ui-app",
         "build-docs": "npm run build --prefix ./ui-docs",
         "build": "npm run build-app && npm run build-docs && node .scripts/generate-version.cjs",

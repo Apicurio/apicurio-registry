@@ -15,7 +15,7 @@ const info = {
     name: "Apicurio Registry",
     version: packageJson.version,
     builtOn: new Date(),
-    url: "http://www.apicur.io/"
+    url: "https://www.apicur.io/registry/"
 };
 
 const FILE_CONTENT = `

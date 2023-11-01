@@ -16,6 +16,7 @@ on:
       - docs/**
     branches:
       - main
+      - test-remove-me
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

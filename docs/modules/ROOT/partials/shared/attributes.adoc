@@ -31,6 +31,10 @@ ifndef::service-registry-downstream[]
 :registry-kafka-version: 3.5
 :keycloak: Keycloak
 :keycloak-version: 18.0
+:kubernetes: Kubernetes
+:kubernetes-with-article: a Kubernetes
+:kubernetes-client: kubectl
+:kubernetes-namespace: namespace
 endif::[]
 
 // downstream
@@ -49,6 +53,10 @@ ifdef::service-registry-downstream[]
 :keycloak: {org-name} Single Sign-On
 :keycloak-version: 7.6
 :sso-token-url: \https://sso.redhat.com/auth/realms/redhat-external/protocol/openid-connect/token
+:kubernetes: OpenShift
+:kubernetes-with-article: an OpenShift
+:kubernetes-client: oc
+:kubernetes-namespace: project
 
 ifdef::RHAF[]
 :prodnamefull: {org-name} Application Foundations

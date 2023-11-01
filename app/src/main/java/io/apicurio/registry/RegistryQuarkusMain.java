@@ -27,4 +27,12 @@ public class RegistryQuarkusMain {
     public static void main(String... args) {
         Quarkus.run(args);
     }
+
+    public static boolean unused() {
+        if (true) {
+            return true;
+        } else {
+            return false;
+        }
+    }
 }

@@ -109,6 +109,10 @@ public class AuthConfig {
     @Info(category = "auth", description = "Auth admin override claim value", availableSince = "2.1.0.Final")
     String adminOverrideClaimValue;
 
+    @ConfigProperty(name = "registry.auth.admin-override.user", defaultValue = "admin")
+    @Info(category = "auth", description = "Auth admin override user name", availableSince = "3.0.0.Final")
+    String adminOverrideUser;
+
     @PostConstruct
     void onConstruct() {
         log.debug("===============================");

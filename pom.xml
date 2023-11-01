@@ -186,9 +186,6 @@
         <!-- Default Skip Operator build value -->
         <skipOperatorTests>true</skipOperatorTests>
 
-        <!-- Default Skip UI value -->
-        <skipUiBuild>false</skipUiBuild>
-
         <!-- Skip commit id plugin -->
         <skipCommitIdPlugin>true</skipCommitIdPlugin>
 
@@ -273,11 +270,6 @@
             <dependency>
                 <groupId>io.apicurio</groupId>
                 <artifactId>apicurio-registry-app</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.apicurio</groupId>
-                <artifactId>apicurio-registry-ui</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -922,10 +914,6 @@
                                     <value>${quarkus.profile}</value>
                                 </property>
                                 <property>
-                                    <name>skipUiBuild</name>
-                                    <value>${skipUiBuild}</value>
-                                </property>
-                                <property>
                                     <name>skipAppTests</name>
                                     <value>${skipAppTests}</value>
                                 </property>
@@ -1059,17 +1047,6 @@
     </build>
 
     <profiles>
-        <profile>
-            <id>ui</id>
-            <activation>
-                <property>
-                    <name>!skipUiBuild</name>
-                </property>
-            </activation>
-            <modules>
-                <module>ui</module>
-            </modules>
-        </profile>
         <profile>
             <id>sql</id>
             <modules>

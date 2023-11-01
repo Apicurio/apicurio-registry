@@ -1,0 +1,3 @@
+tr.mas--ResponsiveTable__Tr--deleted > td {
+  color: var(--pf-global--Color--200);
+}

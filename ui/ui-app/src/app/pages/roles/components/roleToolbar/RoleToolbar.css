@@ -1,0 +1,9 @@
+.roles-toolbar .filter-types-toggle span.pf-v5-c-menu-toggle__text {
+    width: 125px;
+    text-align: left;
+}
+
+.roles-toolbar .role-types-toggle span.pf-v5-c-menu-toggle__text {
+    width: 200px;
+    text-align: left;
+}

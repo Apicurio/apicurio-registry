@@ -1,30 +1,84 @@
-# Apicurio Registry UI
+## Description
+This module is the user interface for Apicurio Registry.  It is a single page React application
+using the following technology stack:
 
-Apicurio Registry React based Single Page Application based on Patternfly 4
+* Node/npm
+* Typescript
+* Vite
+* Patternfly
 
-## Requirements
-This project requires node version 16.x.x and npm version > 8.3.x.
-Prior to building this project make sure you have these applications installed.
+The UI is broken up into multiple React applications that are composed together to provide the
+full functionality.  This is done to separate concerns and more easily manage upgrade and CVEs.
 
-## Development Scripts
+The main UI component is `ui-app` and contains the bulk of the user experience.  Additional UI
+components (for example `ui-docs`) provide specific functionality extracted and isolated for
+reasons mentioned above.
 
-Install development/build dependencies
-`npm install`
+## Building the UI
+**Note**: You will need to have Node/NPM installed to work with the UI.  Version 16 or later of Node.js 
+should be sufficient.
 
-Run a full build
-`npm run build`
+### Install Dependencies
 
-Initialize config.js
-`./init-dev.sh none`
+```
+npm install
+```
 
-Note: the init-dev.sh script just copies an appropriate file from config/config-*.js to the right place.  You can either specify `none` or `keycloakjs` as the argument to the script.  The choice depends on how you are running the back-end component.
+This will result in dependencies being installed for all UI modules (e.g. `ui-app` **and** `ui-docs`).
+You should see a `node_modules` in each directory if this completes successfully.
 
-Start the development server
-`npm run start`
+### Build
+```
+npm run build
+```
 
-Once the development server is running you can access the UI via http://localhost:8888
+This will transpile/build the code for all UI modules.  The result should be a `dist` directory in
+each UI module.
 
-Note that you will need a registry back-end running for the UI to actually work.  The easiest way to do this is using 
-docker, but you could also run the registry from maven or any other way you choose.  Here is how you do it with Docker:
+### Package
+```
+npm run package
+```
 
-`docker run -it -p 8080:8080 apicurio/apicurio-registry-mem:latest-snapshot`
+This will bundle up all of the UI modules into a single `dist` directory at the root of the `ui` 
+directory.  This bundle is then suitable for including in e.g. a container image.
+
+## Developing the UI
+
+If you would like to contribute code changes to the UI, you will want to run the UI application(s)
+in DEV mode.
+
+```
+npm run dev
+```
+
+This will start the UI in dev mode, hosted (by default) on port 8888.  When running successfully,
+you should see output similar to:
+
+```
+  VITE v4.4.11  ready in 149 ms
+
+  ➜  Local:   http://127.0.0.1:8888/
+  ➜  Network: use --host to expose
+  ➜  press h to show help
+```
+
+You can then access the UI on port 8888 or your localhost.
+
+**Note**:  you will need the REST API running for the UI to work.  See the README at the root of
+this repository for examples of how to do that.
+
+
+## Testing
+Whenever changes are made to the UI, it is helpful to add new tests to the [Playwright-based](https://playwright.dev/)
+test suite.  The test suite can be found in the `tests` directory.
+
+You can run the tests like this:
+
+```
+cd tests
+npm install
+npm run test
+```
+
+The tests assume that the UI is running on localhost port 8888.

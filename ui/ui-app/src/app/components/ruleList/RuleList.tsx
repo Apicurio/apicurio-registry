@@ -1,0 +1,205 @@
+import React, { FunctionComponent } from "react";
+import "./RuleList.css";
+import { Button, Flex, FlexItem, Grid, GridItem, Tooltip } from "@patternfly/react-core";
+import { CheckIcon, CodeBranchIcon, OkIcon, TrashIcon } from "@patternfly/react-icons";
+import { CompatibilityDropdown, IfAuth, IfFeature, IntegrityDropdown, ValidityDropdown } from "@app/components";
+import { Rule } from "@models/rule.model.ts";
+
+
+export type RuleListProps = {
+    onEnableRule: (ruleType: string) => void;
+    onDisableRule: (ruleType: string) => void;
+    onConfigureRule: (ruleType: string, config: string) => void;
+    rules: Rule[];
+};
+
+const NAME_COLUMN_WIDTH: string = "250px";
+
+export const RuleList: FunctionComponent<RuleListProps> = (props: RuleListProps) => {
+
+    const isRuleEnabled = (ruleType: string): boolean => {
+        return props.rules.filter(rule => rule.type === ruleType).length > 0;
+    };
+
+    const getRuleRowClasses = (ruleType: string): string => {
+        const classes: string[] = [ "rule" ];
+        if (ruleType === "COMPATIBILITY") {
+            classes.push("compatibility-rule");
+        } else if (ruleType === "VALIDITY") {
+            classes.push("validity-rule");
+        } else if (ruleType === "INTEGRITY") {
+            classes.push("integrity-rule");
+        }
+        if (!isRuleEnabled(ruleType)) {
+            classes.push("disabled-state-text");
+        }
+        return classes.join(" ");
+    };
+
+    const getRuleConfig = (ruleType: string): string => {
+        const frules: Rule[] = props.rules.filter(r => r.type === ruleType);
+        if (frules.length === 1) {
+            return frules[0].config;
+        } else {
+            return "UNKNOWN";
+        }
+    };
+
+    const doEnableRule = (ruleType: string): (() => void) => {
+        return () => {
+            props.onEnableRule(ruleType);
+        };
+    };
+
+    const doDisableRule = (ruleType: string): (() => void) => {
+        return () => {
+            props.onDisableRule(ruleType);
+        };
+    };
+
+    const doConfigureRule = (ruleType: string): ((config: string) => void) => {
+        return (config: string) => {
+            props.onConfigureRule(ruleType, config);
+        };
+    };
+
+    let validityRuleActions: React.ReactElement = (
+        <Button variant="secondary"
+            key="enable-action"
+            data-testid="rules-validity-enable"
+            onClick={doEnableRule("VALIDITY")}>Enable</Button>
+    );
+    if (isRuleEnabled("VALIDITY")) {
+        validityRuleActions = (
+            <React.Fragment>
+                <ValidityDropdown value={getRuleConfig("VALIDITY")}
+                    onSelect={doConfigureRule("VALIDITY")} />
+                <Button variant="plain"
+                    key="delete-action"
+                    data-testid="rules-validity-disable"
+                    title="Disable the  validity rule"
+                    onClick={doDisableRule("VALIDITY")}><TrashIcon /></Button>
+            </React.Fragment>
+        );
+    }
+    let compatibilityRuleActions: React.ReactElement = (
+        <Button variant="secondary"
+            key="enable-action"
+            data-testid="rules-compatibility-enable"
+            onClick={doEnableRule("COMPATIBILITY")}>Enable</Button>
+    );
+    if (isRuleEnabled("COMPATIBILITY")) {
+        compatibilityRuleActions = (
+            <React.Fragment>
+                <CompatibilityDropdown value={getRuleConfig("COMPATIBILITY")}
+                    onSelect={doConfigureRule("COMPATIBILITY")} />
+                <Button variant="plain"
+                    key="delete-action"
+                    data-testid="rules-compatibility-disable"
+                    title="Disable the compatibility rule"
+                    onClick={doDisableRule("COMPATIBILITY")}><TrashIcon /></Button>
+            </React.Fragment>
+        );
+    }
+    let integrityRuleActions: React.ReactElement = (
+        <Button variant="secondary"
+            key="enable-action"
+            data-testid="rules-integrity-enable"
+            onClick={doEnableRule("INTEGRITY")}>Enable</Button>
+    );
+    if (isRuleEnabled("INTEGRITY")) {
+        integrityRuleActions = (
+            <React.Fragment>
+                <IntegrityDropdown value={getRuleConfig("INTEGRITY")}
+                    onSelect={doConfigureRule("INTEGRITY")} />
+                <Button variant="plain"
+                    key="delete-action"
+                    data-testid="rules-integrity-disable"
+                    title="Disable the integrity rule"
+                    onClick={doDisableRule("INTEGRITY")}><TrashIcon /></Button>
+            </React.Fragment>
+        );
+    }
+
+    const validityDescription = (
+        <span>Ensure that content is <em>valid</em> when updating this artifact.</span>
+    );
+    const compatibilityDescription = (
+        <span>Enforce a compatibility level when updating this artifact (for example, select Backward for backwards compatibility).</span>
+    );
+    const integrityDescription = (
+        <span>Enforce artifact reference integrity when creating or updating artifacts.  Enable and configure this rule to ensure that artifact references provided are correct.</span>
+    );
+
+    return (
+        <Grid className="rule-list">
+            <GridItem span={12} className={getRuleRowClasses("VALIDITY")}>
+                <Flex flexWrap={{ default: "nowrap" }}>
+                    <FlexItem style={{ width: NAME_COLUMN_WIDTH, minWidth: NAME_COLUMN_WIDTH }}>
+                        <OkIcon className="rule-icon" />
+                        <span className="rule-name" id="validity-rule-name">Validity rule</span>
+                    </FlexItem>
+                    <FlexItem grow={{ default: "grow" }} className="rule-description">
+                        <Tooltip content={validityDescription} position="bottom-start">
+                            {
+                                validityDescription
+                            }
+                        </Tooltip>
+                    </FlexItem>
+                    <FlexItem className="rule-actions">
+                        <IfAuth isDeveloper={true}>
+                            <IfFeature feature="readOnly" isNot={true}>
+                                { validityRuleActions}
+                            </IfFeature>
+                        </IfAuth>
+                    </FlexItem>
+                </Flex>
+            </GridItem>
+            <GridItem span={12} className={getRuleRowClasses("COMPATIBILITY")}>
+                <Flex flexWrap={{ default: "nowrap" }}>
+                    <FlexItem style={{ width: NAME_COLUMN_WIDTH, minWidth: NAME_COLUMN_WIDTH }}>
+                        <CodeBranchIcon className="rule-icon" />
+                        <span className="rule-name" id="compatibility-rule-name">Compatibility rule</span>
+                    </FlexItem>
+                    <FlexItem grow={{ default: "grow" }} className="rule-description">
+                        <Tooltip content={compatibilityDescription} position="bottom-start">
+                            {
+                                compatibilityDescription
+                            }
+                        </Tooltip>
+                    </FlexItem>
+                    <FlexItem className="rule-actions">
+                        <IfAuth isDeveloper={true}>
+                            <IfFeature feature="readOnly" isNot={true}>
+                                { compatibilityRuleActions }
+                            </IfFeature>
+                        </IfAuth>
+                    </FlexItem>
+                </Flex>
+            </GridItem>
+            <GridItem span={12} className={getRuleRowClasses("INTEGRITY")}>
+                <Flex flexWrap={{ default: "nowrap" }}>
+                    <FlexItem style={{ width: NAME_COLUMN_WIDTH, minWidth: NAME_COLUMN_WIDTH }}>
+                        <CheckIcon className="rule-icon" />
+                        <span className="rule-name" id="integrity-rule-name">Integrity rule</span>
+                    </FlexItem>
+                    <FlexItem grow={{ default: "grow" }} className="rule-description">
+                        <Tooltip content={integrityDescription} position="bottom-start">
+                            {
+                                integrityDescription
+                            }
+                        </Tooltip>
+                    </FlexItem>
+                    <FlexItem className="rule-actions">
+                        <IfAuth isDeveloper={true}>
+                            <IfFeature feature="readOnly" isNot={true}>
+                                { integrityRuleActions }
+                            </IfFeature>
+                        </IfAuth>
+                    </FlexItem>
+                </Flex>
+            </GridItem>
+        </Grid>
+    );
+
+};

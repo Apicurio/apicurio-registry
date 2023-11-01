@@ -14,10 +14,9 @@
   ~ See the License for the specific language governing permissions and
   ~ limitations under the License.
   -->
-
 <project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <parent>
         <artifactId>apicurio-registry</artifactId>
         <groupId>io.apicurio</groupId>
@@ -25,13 +24,10 @@
         <relativePath>../pom.xml</relativePath>
     </parent>
     <modelVersion>4.0.0</modelVersion>
-
     <artifactId>apicurio-registry-client</artifactId>
-
     <properties>
         <kiota.libs.version>0.7.8</kiota.libs.version>
     </properties>
-
     <dependencies>
         <dependency>
             <groupId>com.microsoft.kiota</groupId>
@@ -52,7 +48,7 @@
             <groupId>com.microsoft.kiota</groupId>
             <artifactId>microsoft-kiota-serialization-text</artifactId>
             <version>${kiota.libs.version}</version>
-            </dependency>
+        </dependency>
         <dependency>
             <groupId>com.microsoft.kiota</groupId>
             <artifactId>microsoft-kiota-serialization-form</artifactId>
@@ -66,7 +62,6 @@
         <dependency>
             <groupId>jakarta.annotation</groupId>
             <artifactId>jakarta.annotation-api</artifactId>
-            <version>2.1.1</version>
         </dependency>
         <!-- TODO: this is for OIDC auth, let's move it to a separate package maybe -->
         <dependency>
@@ -79,27 +74,43 @@
             <artifactId>apicurio-common-rest-client-common</artifactId>
         </dependency>
     </dependencies>
-
     <build>
         <plugins>
             <plugin>
-            <artifactId>kiota-maven-plugin</artifactId>
-            <groupId>com.redhat.cloud</groupId>
-            <version>0.0.7</version>
-            <executions>
-                <execution>
-                <goals>
-                    <goal>generate</goal>
-                </goals>
-                </execution>
-            </executions>
-            <configuration>
-                <file>../common/src/main/resources/META-INF/openapi.json</file>
-                <namespace>io.apicurio.registry.rest.client</namespace>
-                <clientClass>RegistryClient</clientClass>
-            </configuration>
+                <artifactId>kiota-maven-plugin</artifactId>
+                <groupId>com.redhat.cloud</groupId>
+                <version>0.0.7</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>generate</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <file>../common/src/main/resources/META-INF/openapi.json</file>
+                    <namespace>io.apicurio.registry.rest.client</namespace>
+                    <clientClass>RegistryClient</clientClass>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>build-helper-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>add-source</id>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>add-source</goal>
+                        </goals>
+                        <configuration>
+                            <sources>
+                                <source>${project.build.directory}/generated-sources/kiota/</source>
+                            </sources>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>
-
 </project>

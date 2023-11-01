@@ -17,13 +17,13 @@ RUN mkdir -p /etc/pki/nginx/private && \
 RUN chmod -R g+w /opt/app-root/src /usr/local/bin/
 
 # Copy configuration scripts
-COPY --chown=1001:0 .build-scripts/create-config.cjs /usr/local/bin/create-config.cjs
-COPY --chown=1001:0 .build-scripts/entrypoint.sh /usr/local/bin/entrypoint.sh
+COPY --chown=1001:0 .docker-scripts/create-config.cjs /usr/local/bin/create-config.cjs
+COPY --chown=1001:0 .docker-scripts/entrypoint.sh /usr/local/bin/entrypoint.sh
 
 # Copy nginx config
-COPY --chown=1001:0 .build-scripts/nginx.conf /etc/nginx/nginx.conf
+COPY --chown=1001:0 .docker-scripts/nginx.conf /etc/nginx/nginx.conf
 
-# To avoid build-scripts failure in windows, convert text files from DOS line
+# To avoid docker-scripts failure in windows, convert text files from DOS line
 # endings (carriage return + line feed) to Unix line endings (line feed).
 RUN dos2unix /usr/local/bin/create-config.cjs && \
     dos2unix /usr/local/bin/entrypoint.sh && \

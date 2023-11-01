@@ -14,7 +14,8 @@
         "build-app": "npm run build --prefix ./ui-app",
         "build-docs": "npm run build --prefix ./ui-docs",
         "build": "npm run build-app && npm run build-docs && node .scripts/generate-version.cjs",
-        "package": "node .scripts/package.cjs"
+        "package": "node .scripts/package.cjs",
+        "dev": "npm run dev --prefix ./ui-app"
     },
     "devDependencies": {
         "rimraf": "5.0.5",

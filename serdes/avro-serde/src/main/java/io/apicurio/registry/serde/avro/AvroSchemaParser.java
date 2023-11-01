@@ -37,9 +37,11 @@ import java.util.stream.Collectors;
 public class AvroSchemaParser<U> implements SchemaParser<Schema, U> {
 
     private AvroDatumProvider<U> avroDatumProvider;
+    private boolean removeJavaProperties;
 
-    public AvroSchemaParser(AvroDatumProvider<U> avroDatumProvider) {
+    public AvroSchemaParser(AvroDatumProvider<U> avroDatumProvider, boolean removeJavaProperties) {
         this.avroDatumProvider = avroDatumProvider;
+        this.removeJavaProperties = removeJavaProperties;
     }
 
     /**
@@ -55,7 +57,7 @@ public class AvroSchemaParser<U> implements SchemaParser<Schema, U> {
      */
     @Override
     public Schema parseSchema(byte[] rawSchema, Map<String, ParsedSchema<Schema>> resolvedReferences) {
-        return AvroSchemaUtils.parse(IoUtil.toString(rawSchema), new ArrayList<>(resolvedReferences.values()));
+        return AvroSchemaUtils.parse(IoUtil.toString(rawSchema), new ArrayList<>(resolvedReferences.values()), removeJavaProperties);
     }
 
     /**

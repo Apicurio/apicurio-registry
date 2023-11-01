@@ -43,11 +43,16 @@ public class AvroKafkaSerdeConfig extends BaseKafkaSerDeConfig {
     public static final String USE_SPECIFIC_AVRO_READER = "apicurio.registry.use-specific-avro-reader";
     public static final boolean USE_SPECIFIC_AVRO_READER_DEFAULT = false;
 
+    public static final String AVRO_REMOVE_JAVA_PROPERTIES = "apicurio.registry.avro-remove-java-properties";
+
+    public static final boolean AVRO_REMOVE_JAVA_PROPERTIES_DEFAULT = false;
+
     private static ConfigDef configDef() {
         ConfigDef configDef = new ConfigDef()
                 .define(AVRO_ENCODING, Type.STRING, AvroEncoding.BINARY.name(), Importance.MEDIUM, "TODO docs")
                 .define(AVRO_DATUM_PROVIDER, Type.CLASS, AVRO_DATUM_PROVIDER_DEFAULT, Importance.MEDIUM, "TODO docs")
-                .define(USE_SPECIFIC_AVRO_READER, Type.BOOLEAN, USE_SPECIFIC_AVRO_READER_DEFAULT, Importance.MEDIUM, "TODO docs");
+                .define(USE_SPECIFIC_AVRO_READER, Type.BOOLEAN, USE_SPECIFIC_AVRO_READER_DEFAULT, Importance.MEDIUM, "TODO docs")
+                .define(AVRO_REMOVE_JAVA_PROPERTIES, Type.BOOLEAN, AVRO_REMOVE_JAVA_PROPERTIES_DEFAULT, Importance.MEDIUM, "TODO docs");
         return configDef;
     }
 
@@ -70,6 +75,10 @@ public class AvroKafkaSerdeConfig extends BaseKafkaSerDeConfig {
 
     public boolean useSpecificAvroReader() {
         return this.getBoolean(USE_SPECIFIC_AVRO_READER);
+    }
+
+    public boolean removeJavaProperties() {
+        return this.getBoolean(AVRO_REMOVE_JAVA_PROPERTIES);
     }
 
 }

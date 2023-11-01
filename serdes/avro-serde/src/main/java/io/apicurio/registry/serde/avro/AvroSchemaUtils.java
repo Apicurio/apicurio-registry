@@ -17,6 +17,10 @@
 
 package io.apicurio.registry.serde.avro;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.apicurio.registry.resolver.ParsedSchema;
 import io.apicurio.registry.utils.IoUtil;
 import org.apache.avro.Schema;
@@ -28,6 +32,7 @@ import org.apache.kafka.common.errors.SerializationException;
 import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -39,6 +44,7 @@ import java.util.Map;
 public class AvroSchemaUtils {
 
     private static final Map<String, Schema> primitiveSchemas;
+    private static final ObjectMapper jsonMapper = new ObjectMapper();
 
     static {
         Schema.Parser parser = new Schema.Parser();
@@ -58,20 +64,54 @@ public class AvroSchemaUtils {
         return parser.parse(schemaString);
     }
 
-    public static Schema parse(String schema) {
-        return parse(schema, Collections.emptyList());
+    public static Schema parse(String schema, boolean removeJavaProperties ) {
+        return parse(schema, Collections.emptyList(), removeJavaProperties);
     }
 
-    public static Schema parse(String schema, List<ParsedSchema<Schema>> references) {
+    public static Schema parse(String schema, List<ParsedSchema<Schema>> references, boolean removeJavaProperties) {
         //First try to parse without references, useful when the content is dereferenced
+        Schema parsedSchema = null;
         try {
             final Schema.Parser parser = new Schema.Parser();
-            return parser.parse(schema);
+            parsedSchema = parser.parse(schema);
         } catch (SchemaParseException e) {
             //If we fail to parse the content from the main schema, then parse first the references and then the main schema
             final Schema.Parser parser = new Schema.Parser();
             handleReferences(parser, references);
-            return parser.parse(schema);
+            parsedSchema = parser.parse(schema);
+        }
+
+        if (removeJavaProperties) {
+            final Schema.Parser parser = new Schema.Parser();
+            parsedSchema = removeJavaProperties(parser, parsedSchema);
+        }
+        return parsedSchema;
+    }
+
+    private static Schema removeJavaProperties(Schema.Parser parser, Schema schema) {
+        try {
+            JsonNode node = jsonMapper.readTree(schema.toString());
+            removeProperty(parser, node, "avro.java.string");
+            return parser.parse(node.toString());
+        } catch (Exception e) {
+            throw new SerializationException("Could not parse schema: " + schema.toString());
+        }
+    }
+
+    private static void removeProperty(Schema.Parser parser, JsonNode node, String propertyName) {
+        if (node.isObject()) {
+            ObjectNode objectNode = (ObjectNode) node;
+            objectNode.remove(propertyName);
+            Iterator<JsonNode> elements = objectNode.elements();
+            while (elements.hasNext()) {
+                removeProperty(parser, elements.next(), propertyName);
+            }
+        } else if (node.isArray()) {
+            ArrayNode arrayNode = (ArrayNode) node;
+            Iterator<JsonNode> elements = arrayNode.elements();
+            while (elements.hasNext()) {
+                removeProperty(parser, elements.next(), propertyName);
+            }
         }
     }
 

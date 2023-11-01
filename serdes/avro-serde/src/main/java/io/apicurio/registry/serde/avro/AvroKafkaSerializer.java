@@ -86,7 +86,7 @@ public class AvroKafkaSerializer<U> extends AbstractKafkaSerializer<Schema, U> {
         avroHeaders = new AvroSerdeHeaders(isKey);
 
         //important to instantiate the SchemaParser before calling super.configure
-        parser = new AvroSchemaParser<>(avroDatumProvider);
+        parser = new AvroSchemaParser<>(avroDatumProvider, config.removeJavaProperties());
 
         super.configure(config, isKey);
     }

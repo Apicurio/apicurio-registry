@@ -148,13 +148,13 @@
 
 
 // Service Registry titles
-:ServiceRegistryURLVersion: 2023.q2
+:ServiceRegistryURLVersion: 2023.q3
 :RegistryProductURL: service_registry 
 
 ifdef::RHAF[]
 :productpkg: red_hat_build_of_apicurio_registry 
 :RegistryProductURL: apicurio_registry
-:ServiceRegistryURLVersion: 2.3
+:ServiceRegistryURLVersion: 2.4
 endif::[]
 
 :LinkServiceRegistryInstall: https://access.redhat.com/documentation/en-us/{productpkg}/{ServiceRegistryURLVersion}/html-single/installing_and_deploying_{RegistryProductURL}_on_openshift/index
@@ -166,7 +166,7 @@ endif::[]
 :LinkServiceRegistryMigration: https://access.redhat.com/documentation/en-us/{productpkg}/{ServiceRegistryURLVersion}/html-single/migrating_{RegistryProductURL}_deployments/index
 :NameServiceRegistryMigration: Migrating {registry-name-full} deployments
 
-:LinkServiceRegistryRESTAPI: https://access.redhat.com/webassets/avalon/d/Red_Hat_Integration-2023.q2-Service_Registry_User_Guide-en-US/files/registry-rest-api.htm
+:LinkServiceRegistryRESTAPI: https://access.redhat.com/webassets/avalon/d/Red_Hat_Integration-2023.q3-Service_Registry_User_Guide-en-US/files/registry-rest-api.htm
 :NameServiceRegistryRESTAPI: Apicurio Registry v2 core REST API documentation
 
 :LinkOpenShiftAddOperator: https://docs.openshift.com/container-platform/latest/operators/admin/olm-adding-operators-to-cluster.html
@@ -177,7 +177,7 @@ endif::[]
 
 // AMQ Streams titles
 :StreamsName: AMQ Streams
-:AMQStreamsURLVersion: 2.4
+:AMQStreamsURLVersion: 2.5
 
 :LinkStreamsOpenShift: https://access.redhat.com/documentation/en-us/red_hat_amq_streams/{AMQStreamsURLVersion}/html-single/using_amq_streams_on_openshift/index
 :NameStreamsOpenShift: Using {StreamsName} on OpenShift

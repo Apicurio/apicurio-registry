@@ -3,6 +3,117 @@
 
 The following {registry} configuration options are available for each component category:
 
+== 
+. configuration options
+[.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]
+|===
+|Name
+|Type
+|Default
+|Available from
+|Description
+|`registry.kafkasql.bootstrap.servers`
+|`string`
+|
+|
+|
+|`registry.kafkasql.consumer.poll.timeout`
+|`integer`
+|`1000`
+|
+|
+|`registry.kafkasql.coordinator.response-timeout`
+|`integer`
+|`30000`
+|
+|
+|`registry.kafkasql.security.protocol`
+|`optional<string>`
+|
+|
+|
+|`registry.kafkasql.security.sasl.client-id`
+|`string`
+|
+|
+|
+|`registry.kafkasql.security.sasl.client-secret`
+|`string`
+|
+|
+|
+|`registry.kafkasql.security.sasl.enabled`
+|`boolean`
+|`false`
+|
+|
+|`registry.kafkasql.security.sasl.login.callback.handler.class`
+|`string`
+|
+|
+|
+|`registry.kafkasql.security.sasl.mechanism`
+|`string`
+|
+|
+|
+|`registry.kafkasql.security.sasl.token.endpoint`
+|`string`
+|
+|
+|
+|`registry.kafkasql.security.ssl.truststore.location`
+|`optional<string>`
+|
+|
+|
+|`registry.kafkasql.security.ssl.truststore.type`
+|`optional<string>`
+|
+|
+|
+|`registry.kafkasql.ssl.key.password`
+|`optional<string>`
+|
+|
+|
+|`registry.kafkasql.ssl.keystore.location`
+|`optional<string>`
+|
+|
+|
+|`registry.kafkasql.ssl.keystore.password`
+|`optional<string>`
+|
+|
+|
+|`registry.kafkasql.ssl.keystore.type`
+|`optional<string>`
+|
+|
+|
+|`registry.kafkasql.ssl.truststore.password`
+|`optional<string>`
+|
+|
+|
+|`registry.kafkasql.topic`
+|`string`
+|`kafkasql-journal`
+|
+|
+|`registry.kafkasql.topic.auto-create`
+|`boolean`
+|`true`
+|
+|
+|`registry.storage.kind`
+|`string`
+|
+|
+|
+|===
+
 == api
 .api configuration options
 [.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]
@@ -519,6 +630,41 @@ The following {registry} configuration options are available for each component 
 |Default
 |Available from
 |Description
+|`registry.datasource.driver-classname`
+|`string`
+|`org.h2.Driver`
+|`2.0.0.Final`
+|Datasource Db kind
+|`registry.datasource.jdbc.initial-size`
+|`string`
+|`20`
+|`2.0.0.Final`
+|Datasource Db kind
+|`registry.datasource.jdbc.max-size`
+|`string`
+|`100`
+|`2.0.0.Final`
+|Datasource Db kind
+|`registry.datasource.jdbc.min-size`
+|`string`
+|`20`
+|`2.0.0.Final`
+|Datasource Db kind
+|`registry.datasource.jdbc.url`
+|`string`
+|`jdbc:h2:mem:registry_db`
+|`2.0.0.Final`
+|Datasource Db kind
+|`registry.datasource.password`
+|`string`
+|`sa`
+|`2.0.0.Final`
+|Datasource Db kind
+|`registry.datasource.username`
+|`string`
+|`sa`
+|`2.0.0.Final`
+|Datasource Db kind
 |`registry.sql.init`
 |`boolean`
 |`true`
@@ -526,7 +672,7 @@ The following {registry} configuration options are available for each component 
 |SQL init
 |`registry.storage.db-kind`
 |`string`
-|`postgresql`
+|`h2`
 |`2.0.0.Final`
 |Datasource Db kind
 |`registry.storage.read-only`

@@ -17,6 +17,7 @@
 package io.apicurio.registry.storage.impl.kafkasql;
 
 import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
+import io.apicurio.common.apps.config.Info;
 import io.apicurio.common.apps.logging.Logged;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.metrics.StorageMetricsApply;
@@ -110,6 +111,7 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
     Logger log;
 
     @ConfigProperty(name = "registry.storage.kind")
+    @Info
     String registryStorageType;
 
     @Inject

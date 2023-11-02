@@ -68,6 +68,11 @@ The following {registry} configuration options are available for each component 
 |`role`
 |`2.1.0.Final`
 |Auth admin override type
+|`registry.auth.admin-override.user`
+|`string`
+|`admin`
+|`3.0.0.Final`
+|Auth admin override user name
 |`registry.auth.anonymous-read-access.enabled`
 |`boolean [dynamic]`
 |`false`
@@ -550,71 +555,5 @@ The following {registry} configuration options are available for each component 
 |`true`
 |`2.4.2-SNAPSHOT`
 |Skip artifact versions with DISABLED state when retrieving latest artifact version
-|===
-
-== ui
-.ui configuration options
-[.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]
-|===
-|Name
-|Type
-|Default
-|Available from
-|Description
-|`quarkus.oidc.tenant-enabled`
-|`boolean`
-|`false`
-|`2.0.0.Final`
-|UI OIDC tenant enabled
-|`registry.ui.config.apiUrl`
-|`string`
-|
-|`1.3.0.Final`
-|UI APIs URL
-|`registry.ui.config.auth.oidc.client-id`
-|`string`
-|`none`
-|`2.2.6.Final`
-|UI auth OIDC client ID
-|`registry.ui.config.auth.oidc.redirect-url`
-|`string`
-|`none`
-|`2.2.6.Final`
-|UI auth OIDC redirect URL
-|`registry.ui.config.auth.oidc.url`
-|`string`
-|`none`
-|`2.2.6.Final`
-|UI auth OIDC URL
-|`registry.ui.config.auth.type`
-|`string`
-|`none`
-|`2.2.6.Final`
-|UI auth type
-|`registry.ui.config.uiCodegenEnabled`
-|`boolean`
-|`true`
-|`2.4.2.Final`
-|UI codegen enabled
-|`registry.ui.config.uiContextPath`
-|`string`
-|`/ui/`
-|`2.1.0.Final`
-|UI context path
-|`registry.ui.features.readOnly`
-|`boolean [dynamic]`
-|`false`
-|`1.2.0.Final`
-|UI read-only mode
-|`registry.ui.features.settings`
-|`boolean`
-|`false`
-|`2.2.2.Final`
-|UI features settings
-|`registry.ui.root`
-|`string`
-|
-|`2.3.0.Final`
-|Overrides the UI root context (useful when relocating the UI context using an inbound proxy)
 |===
 

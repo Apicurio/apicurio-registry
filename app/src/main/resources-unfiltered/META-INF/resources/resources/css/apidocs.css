@@ -7,15 +7,17 @@
 }
 
 .apidocs-header {
-	background-image: url(/resources/images/apicurio_logo_darkbkg_350px.png);
+	background-image: url(/resources/images/apicurio_registry_logo_reverse.svg);
 	background-repeat: no-repeat;
 	background-position: 9px 9px;
-	text-indent: 350px;
+	background-size: 400px;
+	text-indent: 420px;
 	line-height: 64px;
 	font-size: 32px;
 	background-color: black;
 	color: #eee;
 	padding: 4px;
+	padding-top: 10px;
 }
 
 .apidocs-subheader {

@@ -294,7 +294,7 @@ public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {
         });
         Assertions.assertNotNull(executionException.getCause());
         Assertions.assertEquals(com.microsoft.kiota.ApiException.class, executionException.getCause().getClass());
-        Assertions.assertEquals(422, ((ApiException)executionException.getCause()).responseStatusCode);
+        Assertions.assertEquals(422, ((ApiException)executionException.getCause()).getResponseStatusCode());
     }
 
     @Test
@@ -316,7 +316,7 @@ public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {
         });
         Assertions.assertNotNull(executionException.getCause());
         Assertions.assertEquals(com.microsoft.kiota.ApiException.class, executionException.getCause().getClass());
-        Assertions.assertEquals(422, ((ApiException)executionException.getCause()).responseStatusCode);
+        Assertions.assertEquals(422, ((ApiException)executionException.getCause()).getResponseStatusCode());
     }
 
 

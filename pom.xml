@@ -164,10 +164,10 @@
         <okio-jvm.version>3.6.0</okio-jvm.version>
         <okio.version>3.6.0</okio.version>
         <okio-fake-file-system.version>3.4.0</okio-fake-file-system.version>
-        <icu4j.version>73.2</icu4j.version>
+        <icu4j.version>74.1</icu4j.version>
         <protobuf.version>3.24.4</protobuf.version>
-        <xmlsec.version>3.0.2</xmlsec.version>
-        <protobuf.googleapi.types.version>2.26.0</protobuf.googleapi.types.version>
+        <xmlsec.version>4.0.0</xmlsec.version>
+        <protobuf.googleapi.types.version>2.27.0</protobuf.googleapi.types.version>
         <wsdl4j.version>1.6.3</wsdl4j.version>
         <google.truth.extension.version>1.1.5</google.truth.extension.version>
 
@@ -186,9 +186,6 @@
         <!-- Default Skip Operator build value -->
         <skipOperatorTests>true</skipOperatorTests>
 
-        <!-- Default Skip UI value -->
-        <skipUiBuild>false</skipUiBuild>
-
         <!-- Skip commit id plugin -->
         <skipCommitIdPlugin>true</skipCommitIdPlugin>
 
@@ -196,7 +193,7 @@
         <apicurio-data-models.version>2.0.4</apicurio-data-models.version>
 
         <!-- GraphQL -->
-        <graphql.version>21.2</graphql.version>
+        <graphql.version>21.3</graphql.version>
 
         <!-- JSON Schema Validator -->
         <org.everit.json.schema.version>1.14.3</org.everit.json.schema.version><!-- TODO unification -->
@@ -232,18 +229,17 @@
         <!-- Plugin Versions -->
         <version.compiler.plugin>3.11.0</version.compiler.plugin>
         <version.deploy.plugin>3.1.1</version.deploy.plugin>
-        <version.failsafe.plugin>3.1.2</version.failsafe.plugin>
+        <version.failsafe.plugin>3.2.1</version.failsafe.plugin>
         <version.javadoc.plugin>3.6.0</version.javadoc.plugin>
         <version.source.plugin>3.3.0</version.source.plugin>
-        <version.surefire.plugin>3.1.2</version.surefire.plugin>
+        <version.surefire.plugin>3.2.1</version.surefire.plugin>
         <version.jar.plugin>3.3.0</version.jar.plugin>
-        <version.checkstyle.plugin>3.3.0</version.checkstyle.plugin>
-        <version.properties.plugin>1.2.0</version.properties.plugin>
-        <version.dependency.plugin>3.6.0</version.dependency.plugin>
+        <version.checkstyle.plugin>3.3.1</version.checkstyle.plugin>
+        <version.properties.plugin>1.2.1</version.properties.plugin>
+        <version.dependency.plugin>3.6.1</version.dependency.plugin>
         <version.assembly.plugin>3.6.0</version.assembly.plugin>
         <version.resources.plugin>3.3.1</version.resources.plugin>
-        <version.clean.plugin>3.3.1</version.clean.plugin>
-        <version.frontend-maven.plugin>1.12.1</version.frontend-maven.plugin>
+        <version.clean.plugin>3.3.2</version.clean.plugin>
         <version.maven-antrun.plugin>3.1.0</version.maven-antrun.plugin>
 
         <!-- Plugin Deps -->
@@ -273,11 +269,6 @@
             <dependency>
                 <groupId>io.apicurio</groupId>
                 <artifactId>apicurio-registry-app</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.apicurio</groupId>
-                <artifactId>apicurio-registry-ui</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -852,11 +843,6 @@
                     <version>${version.clean.plugin}</version>
                 </plugin>
                 <plugin>
-                    <groupId>com.github.eirslett</groupId>
-                    <artifactId>frontend-maven-plugin</artifactId>
-                    <version>${version.frontend-maven.plugin}</version>
-                </plugin>
-                <plugin>
                     <groupId>io.gatling</groupId>
                     <artifactId>gatling-maven-plugin</artifactId>
                     <version>${version.gatling.plugin}</version>
@@ -920,10 +906,6 @@
                                 <property>
                                     <name>quarkus.profile</name>
                                     <value>${quarkus.profile}</value>
-                                </property>
-                                <property>
-                                    <name>skipUiBuild</name>
-                                    <value>${skipUiBuild}</value>
                                 </property>
                                 <property>
                                     <name>skipAppTests</name>
@@ -1059,17 +1041,6 @@
     </build>
 
     <profiles>
-        <profile>
-            <id>ui</id>
-            <activation>
-                <property>
-                    <name>!skipUiBuild</name>
-                </property>
-            </activation>
-            <modules>
-                <module>ui</module>
-            </modules>
-        </profile>
         <profile>
             <id>sql</id>
             <modules>

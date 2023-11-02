@@ -162,36 +162,27 @@ public class RegistryDeploymentManager implements TestExecutionListener {
     }
 
     private static void setupTestNetworking() {
-        if (Constants.TEST_PROFILE.equals(Constants.UI)) {
-            //In the UI tests we use a port forward to make the application available to the testsuite.
-            registryPortForward = kubernetesClient.services()
-                    .inNamespace(TEST_NAMESPACE)
-                    .withName(APPLICATION_SERVICE)
-                    .portForward(8080, 8080);
+        //For openshift, a route to the application is created we use it to set up the networking needs.
+        if (Boolean.parseBoolean(System.getProperty("openshift.resources"))) {
+
+            OpenShiftClient openShiftClient = new DefaultOpenShiftClient();
+
+            try {
+                final Route registryRoute = openShiftClient.routes()
+                        .load(RegistryDeploymentManager.class.getResourceAsStream(REGISTRY_OPENSHIFT_ROUTE))
+                        .create();
+                System.setProperty("quarkus.http.test-host", registryRoute.getSpec().getHost());
+                System.setProperty("quarkus.http.test-port", "80");
+
+            } catch (Exception ex) {
+                LOGGER.warn("The registry route already exists: ", ex);
+            }
+
+
         } else {
-
-            //For openshift, a route to the application is created we use it to set up the networking needs.
-            if (Boolean.parseBoolean(System.getProperty("openshift.resources"))) {
-
-                OpenShiftClient openShiftClient = new DefaultOpenShiftClient();
-
-                try {
-                    final Route registryRoute = openShiftClient.routes()
-                            .load(RegistryDeploymentManager.class.getResourceAsStream(REGISTRY_OPENSHIFT_ROUTE))
-                            .create();
-                    System.setProperty("quarkus.http.test-host", registryRoute.getSpec().getHost());
-                    System.setProperty("quarkus.http.test-port", "80");
-
-                } catch (Exception ex) {
-                    LOGGER.warn("The registry route already exists: ", ex);
-                }
-
-
-            } else {
-                //If we're running the cluster tests but no external endpoint has been provided, set the value of the load balancer.
-                if (System.getProperty("quarkus.http.test-host").equals("localhost") && !System.getProperty("os.name").contains("Mac OS")) {
-                    System.setProperty("quarkus.http.test-host", kubernetesClient.services().inNamespace(TEST_NAMESPACE).withName(APPLICATION_SERVICE).get().getSpec().getClusterIP());
-                }
+            //If we're running the cluster tests but no external endpoint has been provided, set the value of the load balancer.
+            if (System.getProperty("quarkus.http.test-host").equals("localhost") && !System.getProperty("os.name").contains("Mac OS")) {
+                System.setProperty("quarkus.http.test-host", kubernetesClient.services().inNamespace(TEST_NAMESPACE).withName(APPLICATION_SERVICE).get().getSpec().getClusterIP());
             }
         }
     }

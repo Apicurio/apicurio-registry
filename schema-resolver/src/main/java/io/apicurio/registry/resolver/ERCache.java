@@ -258,7 +258,7 @@ public class ERCache<V> {
                 // TODO: verify if this is really needed, retries are already baked into the adapter ...
                 if (i == retries || !(e.getCause() != null && e.getCause() instanceof ExecutionException
                         && e.getCause().getCause() != null && e.getCause().getCause() instanceof ApiException
-                        && (((ApiException) e.getCause().getCause()).responseStatusCode == 429)))
+                        && (((ApiException) e.getCause().getCause()).getResponseStatusCode() == 429)))
                     return Result.error(new RuntimeException(e));
             }
             try {

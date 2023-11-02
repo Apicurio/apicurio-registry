@@ -86,26 +86,34 @@ public class AuthorizedInterceptor {
         Authorized annotation = context.getMethod().getAnnotation(Authorized.class);
 
         // If the securityIdentity is not set (or is anonymous)...
-        if (securityIdentity == null || securityIdentity.isAnonymous()) {
-            // Anonymous users are allowed to perform "None" operations.
-            if (annotation.level() == AuthorizedLevel.None) {
-                log.trace("Anonymous user is being granted access to unprotected operation.");
-                return context.proceed();
+        try {
+            if (securityIdentity == null || securityIdentity.isAnonymous()) {
+                System.out.println("=====> Identity was null or anon: " + securityIdentity);
+    
+                // Anonymous users are allowed to perform "None" operations.
+                if (annotation.level() == AuthorizedLevel.None) {
+                    log.trace("Anonymous user is being granted access to unprotected operation.");
+                    return context.proceed();
+                }
+    
+                // Anonymous users are allowed to perform read-only operations, but only if
+                // registry.auth.anonymous-read-access.enabled is set to 'true'
+                if (authConfig.anonymousReadAccessEnabled.get() && annotation.level() == AuthorizedLevel.Read) {
+                    log.trace("Anonymous user is being granted access to read-only operation.");
+                    return context.proceed();
+                }
+    
+                // Otherwise just fail - auth was enabled but no credentials provided.
+                log.warn("Authentication credentials missing and required for protected endpoint.");
+                throw new UnauthorizedException("User is not authenticated.");
             }
-
-            // Anonymous users are allowed to perform read-only operations, but only if
-            // registry.auth.anonymous-read-access.enabled is set to 'true'
-            if (authConfig.anonymousReadAccessEnabled.get() && annotation.level() == AuthorizedLevel.Read) {
-                log.trace("Anonymous user is being granted access to read-only operation.");
-                return context.proceed();
-            }
-
-            // Otherwise just fail - auth was enabled but no credentials provided.
-            log.warn("Authentication credentials missing and required for protected endpoint.");
-            throw new UnauthorizedException("User is not authenticated.");
+        } catch (Throwable t) {
+            t.printStackTrace();
+            throw t;
         }
 
-        log.trace("principalId:" + securityIdentity.getPrincipal().getName());
+        log.info("principalId:" + securityIdentity.getPrincipal().getName());
+        log.info("roles:" + securityIdentity.getRoles());
 
         // If the user is authenticated and the operation auth level is None, allow it
         if (annotation.level() == AuthorizedLevel.None) {

@@ -49,17 +49,6 @@
     </filter-mapping>
 
     <filter>
-        <filter-name>BaseHrefFilter</filter-name>
-        <filter-class>io.apicurio.registry.ui.servlets.BaseHrefFilter</filter-class>
-    </filter>
-    <filter-mapping>
-        <filter-name>BaseHrefFilter</filter-name>
-        <url-pattern>/ui/*</url-pattern>
-        <dispatcher>REQUEST</dispatcher>
-        <dispatcher>FORWARD</dispatcher>
-    </filter-mapping>
-
-    <filter>
         <filter-name>SpecUrlFilter</filter-name>
         <filter-class>io.apicurio.registry.ui.servlets.SpecUrlFilter</filter-class>
     </filter>
@@ -74,27 +63,6 @@
         <dispatcher>REQUEST</dispatcher>
         <dispatcher>FORWARD</dispatcher>
     </filter-mapping>
-
-    <servlet>
-        <servlet-name>ReactAppServlet</servlet-name>
-        <servlet-class>io.apicurio.registry.ui.servlets.ReactAppServlet</servlet-class>
-    </servlet>
-    <servlet-mapping>
-        <servlet-name>ReactAppServlet</servlet-name>
-        <url-pattern>/ui/roles/*</url-pattern>
-        <url-pattern>/ui/rules/*</url-pattern>
-        <url-pattern>/ui/artifacts/*</url-pattern>
-        <url-pattern>/ui/settings/*</url-pattern>
-    </servlet-mapping>
-
-    <servlet>
-        <servlet-name>ConfigJsServlet</servlet-name>
-        <servlet-class>io.apicurio.registry.ui.servlets.ConfigJsServlet</servlet-class>
-    </servlet>
-    <servlet-mapping>
-        <servlet-name>ConfigJsServlet</servlet-name>
-        <url-pattern>/ui/config.js</url-pattern>
-    </servlet-mapping>
 
     <servlet>
         <servlet-name>ApiDocsServlet</servlet-name>

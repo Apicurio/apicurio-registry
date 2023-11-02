@@ -5,7 +5,6 @@ on:
       tag:
         description: 'Release tag name'
         required: true
-  
   release:
     types: [released, prereleased]
 
@@ -25,7 +24,6 @@ jobs:
     env:
       RELEASE_TYPE: release
     steps:
-
       - name: View Disk Usage
         run: df -h
 
@@ -95,12 +93,25 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Build Project
+      - name: Set up Node.js v16
+        uses: actions/setup-node@v1
+        with:
+          node-version: 16
+
+      - name: Build Registry
         run: cd registry && make SKIP_TESTS=true BUILD_FLAGS='-Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5' build-all
-      
+
+      - name: Build Registry UI
+        run: |
+          cd registry/ui
+          npm install
+          npm run lint
+          npm run build
+          npm run package
+
       - name: Login to DockerHub Registry
         run: echo ${{ secrets.DOCKERHUB_PASSWORD }} | docker login -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
-       
+
       - name: Build and Push Multi-arch Images to Docker.io
         run: cd registry && ./.github/scripts/build-and-push-multiarch-images.sh ${BRANCH} docker.io multiarch-registry-images ${RELEASE_TYPE} ${RELEASE_VERSION}
 
@@ -109,6 +120,19 @@ jobs:
 
       - name: Build and Push Multi-arch Images to Quay.io
         run: cd registry && ./.github/scripts/build-and-push-multiarch-images.sh ${BRANCH} quay.io multiarch-registry-images ${RELEASE_TYPE} ${RELEASE_VERSION}
+
+      - name: Build and Push UI Multi-arch Images
+        if: github.event_name == 'push'
+        run: |
+          cd registry/ui
+          docker buildx build --push -f ./Dockerfile \
+              -t docker.io/apicurio/apicurio-registry-ui:latest \
+              -t docker.io/apicurio/apicurio-registry-ui:latest-release \
+              -t docker.io/apicurio/apicurio-registry-ui:$RELEASE_VERSION \
+              -t quay.io/apicurio/apicurio-registry-ui:latest \
+              -t quay.io/apicurio/apicurio-registry-ui:latest-release \
+              -t quay.io/apicurio/apicurio-registry-ui:$RELEASE_VERSION \
+              --platform linux/amd64,linux/arm64,linux/s390x,linux/ppc64le .
 
       - name: Google Chat Notification
         if: ${{ failure() }}

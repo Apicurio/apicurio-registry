@@ -44,7 +44,7 @@ public abstract class AbstractTestDataInitializer implements QuarkusTestResource
 
     @Override
     public Map<String, String> start() {
-        startRegistryApplication("quay.io/apicurio/apicurio-registry-mem:latest-release");
+        startRegistryApplication("quay.io/apicurio/apicurio-registry-mem:2.4.14.Final");
         return Collections.emptyMap();
     }
 
@@ -63,7 +63,8 @@ public abstract class AbstractTestDataInitializer implements QuarkusTestResource
 
         registryContainer = new GenericContainer<>(imageName)
                 .withEnv(Map.of(
-                        "QUARKUS_HTTP_PORT", "8081"))
+                        "QUARKUS_HTTP_PORT", "8081",
+                        "REGISTRY_APIS_V2_DATE_FORMAT","yyyy-MM-dd'T'HH:mm:ss'Z'"))
                 .withExposedPorts(containerExposedPort)
                 .withCreateContainerCmdModifier(cmd);
 

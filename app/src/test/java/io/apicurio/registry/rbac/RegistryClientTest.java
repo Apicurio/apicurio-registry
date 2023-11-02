@@ -120,7 +120,6 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         final String description = "testCreateArtifactDescription";
 
         //Execution
-        final InputStream stream = IoUtil.toStream(ARTIFACT_CONTENT.getBytes(StandardCharsets.UTF_8));
         ArtifactContent content = new ArtifactContent();
         content.setContent(ARTIFACT_CONTENT);
         final ArtifactMetaData created = clientV2.groups().byGroupId(groupId).artifacts().post(content, config -> {
@@ -1254,7 +1253,6 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         final String name = "testUpdateYamlArtifactName";
         final String description = "testUpdateYamlArtifactDescription";
 
-        final InputStream stream = IoUtil.toStream(UPDATED_OPENAPI_YAML_CONTENT.getBytes(StandardCharsets.UTF_8));
         //Execution
         ArtifactContent content = new ArtifactContent();
         content.setContent(UPDATED_OPENAPI_YAML_CONTENT);
@@ -1552,7 +1550,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
             });
             Assertions.assertNotNull(executionException.getCause());
             Assertions.assertEquals(ApiException.class, executionException.getCause().getClass());
-            Assertions.assertEquals(409, ((ApiException)executionException.getCause()).responseStatusCode);
+            Assertions.assertEquals(409, ((ApiException)executionException.getCause()).getResponseStatusCode());
         });
 
         // Add another mapping
@@ -1625,7 +1623,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
     @Test
     public void testConfigProperties() throws Exception {
         String property1Name = "registry.ccompat.legacy-id-mode.enabled";
-        String property2Name = "registry.ui.features.readOnly";
+        String property2Name = "registry.rest.artifact.deletion.enabled";
 
         // Start with all default values
         List<ConfigurationProperty> configProperties = clientV2.admin().config().properties().get().get(3, TimeUnit.SECONDS);
@@ -1635,7 +1633,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         Assertions.assertEquals("false", anonymousRead.get().getValue());
         Optional<ConfigurationProperty> obacLimit = configProperties.stream().filter(cp -> cp.getName().equals(property2Name)).findFirst();
         Assertions.assertTrue(obacLimit.isPresent());
-        Assertions.assertEquals("false", obacLimit.get().getValue());
+        Assertions.assertEquals("true", obacLimit.get().getValue());
 
         // Change value of anonymous read access
         UpdateConfigurationProperty updateProp = new UpdateConfigurationProperty();
@@ -1643,64 +1641,52 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         clientV2.admin().config().properties().byPropertyName(property1Name).put(updateProp).get(3, TimeUnit.SECONDS);
 
         // Verify the property was set.
-        TestUtils.retry(() -> {
-            ConfigurationProperty prop = clientV2.admin().config().properties().byPropertyName(property1Name).get().get(3, TimeUnit.SECONDS);
-            Assertions.assertEquals(property1Name, prop.getName());
-            Assertions.assertEquals("true", prop.getValue());
-        });
-        TestUtils.retry(() -> {
-            List<ConfigurationProperty> properties = clientV2.admin().config().properties().get().get(3, TimeUnit.SECONDS);
-            ConfigurationProperty prop = properties.stream().filter(cp -> cp.getName().equals(property1Name)).findFirst().get();
-            Assertions.assertEquals(property1Name, prop.getName());
-            Assertions.assertEquals("true", prop.getValue());
-        });
+        ConfigurationProperty prop = clientV2.admin().config().properties().byPropertyName(property1Name).get().get(3, TimeUnit.SECONDS);
+        Assertions.assertEquals(property1Name, prop.getName());
+        Assertions.assertEquals("true", prop.getValue());
+
+        List<ConfigurationProperty> properties = clientV2.admin().config().properties().get().get(3, TimeUnit.SECONDS);
+        prop = properties.stream().filter(cp -> cp.getName().equals(property1Name)).findFirst().get();
+        Assertions.assertEquals(property1Name, prop.getName());
+        Assertions.assertEquals("true", prop.getValue());
 
         // Set another property
-        updateProp.setValue("true");
+        updateProp.setValue("false");
         clientV2.admin().config().properties().byPropertyName(property2Name).put(updateProp).get(3, TimeUnit.SECONDS);
 
         // Verify the property was set.
-        TestUtils.retry(() -> {
-            ConfigurationProperty prop = clientV2.admin().config().properties().byPropertyName(property2Name).get().get(3, TimeUnit.SECONDS);
-            Assertions.assertEquals(property2Name, prop.getName());
-            Assertions.assertEquals("true", prop.getValue());
-        });
-        TestUtils.retry(() -> {
-            List<ConfigurationProperty> properties = clientV2.admin().config().properties().get().get(3, TimeUnit.SECONDS);
-            ConfigurationProperty prop = properties.stream().filter(cp -> cp.getName().equals(property2Name)).findFirst().get();
-            Assertions.assertEquals("true", prop.getValue());
-        });
+        prop = clientV2.admin().config().properties().byPropertyName(property2Name).get().get(3, TimeUnit.SECONDS);
+        Assertions.assertEquals(property2Name, prop.getName());
+        Assertions.assertEquals("false", prop.getValue());
+        
+        properties = clientV2.admin().config().properties().get().get(3, TimeUnit.SECONDS);
+        prop = properties.stream().filter(cp -> cp.getName().equals(property2Name)).findFirst().get();
+        Assertions.assertEquals("false", prop.getValue());
 
         // Reset a config property
         clientV2.admin().config().properties().byPropertyName(property2Name).delete().get(3, TimeUnit.SECONDS);
 
         // Verify the property was reset.
-        TestUtils.retry(() -> {
-            ConfigurationProperty prop = clientV2.admin().config().properties().byPropertyName(property2Name).get().get(3, TimeUnit.SECONDS);
-            Assertions.assertEquals(property2Name, prop.getName());
-            Assertions.assertEquals("false", prop.getValue());
-        });
-        TestUtils.retry(() -> {
-            List<ConfigurationProperty> properties = clientV2.admin().config().properties().get().get(3, TimeUnit.SECONDS);
-            ConfigurationProperty prop = properties.stream().filter(cp -> cp.getName().equals(property2Name)).findFirst().get();
-            Assertions.assertEquals("false", prop.getValue());
-        });
+        prop = clientV2.admin().config().properties().byPropertyName(property2Name).get().get(3, TimeUnit.SECONDS);
+        Assertions.assertEquals(property2Name, prop.getName());
+        Assertions.assertEquals("true", prop.getValue());
+
+        properties = clientV2.admin().config().properties().get().get(3, TimeUnit.SECONDS);
+        prop = properties.stream().filter(cp -> cp.getName().equals(property2Name)).findFirst().get();
+        Assertions.assertEquals("true", prop.getValue());
 
         // Reset the other property
         clientV2.admin().config().properties().byPropertyName(property1Name).delete().get(3, TimeUnit.SECONDS);
 
         // Verify the property was reset.
-        TestUtils.retry(() -> {
-            ConfigurationProperty prop = clientV2.admin().config().properties().byPropertyName(property1Name).get().get(3, TimeUnit.SECONDS);
-            Assertions.assertEquals(property1Name, prop.getName());
-            Assertions.assertEquals("false", prop.getValue());
-        });
-        TestUtils.retry(() -> {
-            List<ConfigurationProperty> properties = clientV2.admin().config().properties().get().get(3, TimeUnit.SECONDS);
-            ConfigurationProperty prop = properties.stream().filter(cp -> cp.getName().equals(property1Name)).findFirst().get();
-            Assertions.assertEquals(property1Name, prop.getName());
-            Assertions.assertEquals("false", prop.getValue());
-        });
+        prop = clientV2.admin().config().properties().byPropertyName(property1Name).get().get(3, TimeUnit.SECONDS);
+        Assertions.assertEquals(property1Name, prop.getName());
+        Assertions.assertEquals("false", prop.getValue());
+        
+        properties = clientV2.admin().config().properties().get().get(3, TimeUnit.SECONDS);
+        prop = properties.stream().filter(cp -> cp.getName().equals(property1Name)).findFirst().get();
+        Assertions.assertEquals(property1Name, prop.getName());
+        Assertions.assertEquals("false", prop.getValue());
 
         // Try to set a config property that doesn't exist.
         var executionException1 = Assertions.assertThrows(ExecutionException.class, () -> {
@@ -1721,7 +1707,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         // InvalidPropertyValueException
         Assertions.assertNotNull(executionException2.getCause());
         Assertions.assertEquals(ApiException.class, executionException2.getCause().getClass());
-        Assertions.assertEquals(400, ((ApiException)executionException2.getCause()).responseStatusCode);
+        Assertions.assertEquals(400, ((ApiException)executionException2.getCause()).getResponseStatusCode());
     }
 
     @Test
@@ -1733,7 +1719,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
 
         ArtifactContent content = new ArtifactContent();
         content.setContent(IOUtils.toString(artifactContent));
-        var postReq = clientV2.groups().byGroupId(groupId).artifacts().post(content, config -> {
+        /*var postReq = */clientV2.groups().byGroupId(groupId).artifacts().post(content, config -> {
             config.headers.add("X-Registry-ArtifactId", artifactId);
             config.headers.add("X-Registry-ArtifactType", ArtifactType.AVRO);
         }).get(3, TimeUnit.SECONDS);
@@ -1743,7 +1729,6 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         assertEquals(ArtifactType.AVRO, meta.getType());
 
         assertTrue(clientV2.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get().get(3, TimeUnit.SECONDS).readAllBytes().length > 0);
-
     }
 
     @Test
@@ -1758,7 +1743,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
             var executionException1 = Assertions.assertThrows(ExecutionException.class, () -> client.groups().byGroupId("test").artifacts().byArtifactId("test").get().get(30, TimeUnit.SECONDS));
             Assertions.assertNotNull(executionException1.getCause());
             Assertions.assertEquals(ApiException.class, executionException1.getCause().getClass());
-            Assertions.assertEquals(429, ((ApiException)executionException1.getCause()).responseStatusCode);
+            Assertions.assertEquals(429, ((ApiException)executionException1.getCause()).getResponseStatusCode());
 
             ArtifactContent content = new ArtifactContent();
             content.setContent("{}");
@@ -1767,12 +1752,12 @@ public class RegistryClientTest extends AbstractResourceTestBase {
             }).get(30, TimeUnit.SECONDS));
             Assertions.assertNotNull(executionException2.getCause());
             Assertions.assertEquals(ApiException.class, executionException2.getCause().getClass());
-            Assertions.assertEquals(429, ((ApiException)executionException2.getCause()).responseStatusCode);
+            Assertions.assertEquals(429, ((ApiException)executionException2.getCause()).getResponseStatusCode());
 
             var executionException3 = Assertions.assertThrows(ExecutionException.class, () -> client.ids().globalIds().byGlobalId(5L).get().get(30, TimeUnit.SECONDS));
             Assertions.assertNotNull(executionException3.getCause());
             Assertions.assertEquals(ApiException.class, executionException3.getCause().getClass());
-            Assertions.assertEquals(429, ((ApiException)executionException3.getCause()).responseStatusCode);
+            Assertions.assertEquals(429, ((ApiException)executionException3.getCause()).getResponseStatusCode());
         } finally {
             mock.stop();
         }

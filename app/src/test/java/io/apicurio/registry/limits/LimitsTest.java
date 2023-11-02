@@ -109,7 +109,7 @@ public class LimitsTest extends AbstractResourceTestBase {
         });
         Assertions.assertNotNull(executionException1.getCause());
         Assertions.assertEquals(ApiException.class, executionException1.getCause().getClass());
-        Assertions.assertEquals(409, ((ApiException)executionException1.getCause()).responseStatusCode);
+        Assertions.assertEquals(409, ((ApiException)executionException1.getCause()).getResponseStatusCode());
 
         //schema number 3 , exceeds the max number of schemas
         var executionException2 = Assertions.assertThrows(ExecutionException.class, () -> {

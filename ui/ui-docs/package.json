@@ -1,0 +1,36 @@
+{
+  "name": "@apicurio/registry-ui-docs",
+  "version": "3.0.0",
+  "description": "Apicurio Registry UI Docs",
+  "repository": "https://github.com/Apicurio/apicurio-registry.git",
+  "license": "Apache-2.0",
+  "private": true,
+  "scripts": {
+    "clean": "rimraf dist",
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives"
+  },
+  "devDependencies": {
+    "@apicurio/eslint-config": "0.2.0",
+    "@types/react": "18.2.33",
+    "@types/react-dom": "18.2.14",
+    "@typescript-eslint/eslint-plugin": "6.9.1",
+    "@typescript-eslint/parser": "6.9.1",
+    "@vitejs/plugin-react-swc": "3.4.1",
+    "eslint": "8.52.0",
+    "eslint-plugin-react-hooks": "4.6.0",
+    "eslint-plugin-react-refresh": "0.4.4",
+    "rimraf": "3.0.2",
+    "typescript": "5.2.2",
+    "vite": "4.4.11",
+    "vite-tsconfig-paths": "4.2.1"
+  },
+  "dependencies": {
+    "@patternfly/patternfly": "5.1.0",
+    "@patternfly/react-core": "5.1.1",
+    "@patternfly/react-icons": "5.1.1",
+    "react": "18.2.0",
+    "react-dom": "18.2.0"
+  }
+}

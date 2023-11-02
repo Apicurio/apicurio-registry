@@ -153,6 +153,15 @@
             <artifactId>mssql-jdbc</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>commons-io</groupId>
+            <artifactId>commons-io</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.strimzi</groupId>
+            <artifactId>kafka-oauth-client</artifactId>
+        </dependency>
+
         <!-- Third Party Libraries -->
         <dependency>
             <groupId>commons-codec</groupId>

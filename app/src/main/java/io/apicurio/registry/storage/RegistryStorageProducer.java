@@ -18,7 +18,7 @@ package io.apicurio.registry.storage;
 
 import io.apicurio.common.apps.config.DynamicConfigStorage;
 import io.apicurio.registry.storage.decorator.RegistryStorageDecorator;
-import io.apicurio.registry.storage.impl.sql.InMemoryRegistryStorage;
+import io.apicurio.registry.storage.impl.sql.SqlRegistryStorage;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.types.Raw;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -42,7 +42,7 @@ public class RegistryStorageProducer {
     Logger log;
 
     @Inject
-    Instance<InMemoryRegistryStorage> defaultStorage;
+    Instance<SqlRegistryStorage> defaultStorage;
 
     @Inject
     Instance<RegistryStorageProvider> provider;
@@ -53,7 +53,6 @@ public class RegistryStorageProducer {
     private RegistryStorage cachedCurrent;
 
     private RegistryStorage cachedRaw;
-
 
     @Produces
     @ApplicationScoped

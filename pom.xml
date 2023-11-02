@@ -313,18 +313,7 @@
             </dependency>
             <dependency>
                 <groupId>io.apicurio</groupId>
-                <artifactId>apicurio-registry-storage-kafkasql</artifactId>
-                <version>${project.version}</version>
-                <type>test-jar</type>
-            </dependency>
-            <dependency>
-                <groupId>io.apicurio</groupId>
                 <artifactId>apicurio-registry-utils-tests</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.apicurio</groupId>
-                <artifactId>apicurio-registry-storage-kafkasql</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -1019,12 +1008,6 @@
     </build>
 
     <profiles>
-        <profile>
-            <id>kafkasql</id>
-            <modules>
-                <module>storage/kafkasql</module>
-            </modules>
-        </profile>
         <profile>
             <id>gitops</id>
             <modules>

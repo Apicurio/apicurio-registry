@@ -1,7 +1,4 @@
 import "./App.css";
-import "@patternfly/patternfly/patternfly.css";
-import "@patternfly/patternfly/patternfly-addons.css";
-
 import { FunctionComponent } from "react";
 
 

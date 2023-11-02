@@ -2,6 +2,11 @@ import React, { FunctionComponent, useEffect, useState } from "react";
 import { Services } from "@services/services";
 import { EmptyState, EmptyStateBody, EmptyStateHeader, EmptyStateIcon, Spinner } from "@patternfly/react-core";
 import { ErrorCircleOIcon } from "@patternfly/react-icons";
+import { If } from "@app/components";
+
+enum AuthState {
+    AUTHENTICATING, AUTHENTICATED, AUTHENTICATION_FAILED
+}
 
 /**
  * Properties
@@ -14,45 +19,37 @@ export type OidcAuthProps = {
  * Protect the application with OIDC authentication.
  */
 export const ApplicationAuth: FunctionComponent<OidcAuthProps> = (props: OidcAuthProps) => {
-    const [authenticating, setAuthenticating] = useState(true);
-    const [authenticated, setAuthenticated] = useState(false);
+    const [authState, setAuthState] = useState(AuthState.AUTHENTICATING);
 
     useEffect(() => {
         Services.getAuthService().authenticate().then(() => {
-            setAuthenticated(true);
-            setAuthenticating(false);
+            Services.getLoggerService().info("[ApplicationAuth] Authentication successful.");
+            setAuthState(AuthState.AUTHENTICATED);
         }).catch(error => {
             Services.getLoggerService().error("[ApplicationAuth] Authentication failed: ", error);
-            setAuthenticating(false);
-            setAuthenticated(false);
+            setAuthState(AuthState.AUTHENTICATION_FAILED);
         });
     }, []);
 
-    const authenticatingEmptyState = (
-        <EmptyState>
-            <EmptyStateHeader titleText="Loading" headingLevel="h4" />
-            <EmptyStateBody>
-                <Spinner size="xl" aria-label="Loading spinner" />
-            </EmptyStateBody>
-        </EmptyState>
+    return (
+        <>
+            <If condition={authState === AuthState.AUTHENTICATING}>
+                <EmptyState>
+                    <EmptyStateHeader titleText="Loading" headingLevel="h4" />
+                    <EmptyStateBody>
+                        <Spinner size="xl" aria-label="Loading spinner" />
+                    </EmptyStateBody>
+                </EmptyState>
+            </If>
+            <If condition={authState === AuthState.AUTHENTICATION_FAILED}>
+                <EmptyState>
+                    <EmptyStateHeader titleText="Empty state" headingLevel="h4" icon={<EmptyStateIcon icon={ErrorCircleOIcon} />} />
+                    <EmptyStateBody>
+                        Authentication failed.
+                    </EmptyStateBody>
+                </EmptyState>
+            </If>
+            <If condition={authState === AuthState.AUTHENTICATED} children={props.children} />
+        </>
     );
-
-    const authenticationFailedEmptyState = (
-        <EmptyState>
-            <EmptyStateHeader titleText="Empty state" headingLevel="h4" icon={<EmptyStateIcon icon={ErrorCircleOIcon} />} />
-            <EmptyStateBody>
-                Authentication failed.
-            </EmptyStateBody>
-        </EmptyState>
-    );
-
-    if (authenticating) {
-        return authenticatingEmptyState;
-    }
-    if (!authenticated) {
-        return authenticationFailedEmptyState;
-    }
-    if (authenticated) {
-        return props.children;
-    }
 };

@@ -39,6 +39,7 @@ export class AuthService implements Service {
             if (authenticatedUser) {
                 this.oidcUser = authenticatedUser;
                 this.userManager?.startSilentRenew();
+                return Promise.resolve(authenticatedUser);
             } else {
                 console.warn("Not authenticated!");
                 return this.doLogin();
@@ -69,9 +70,7 @@ export class AuthService implements Service {
     public doLogin = (): Promise<any> => {
         return this.userManager?.signinRedirect().then(() => {
             this.userManager?.startSilentRenew();
-            this.userManager?.signinRedirectCallback();
-        }).catch(reason => {
-            console.error("Error logging in (OIDC): ", reason);
+            return this.userManager?.signinRedirectCallback();
         }) || Promise.reject("(doLogin) User manager is undefined.");
     };
 
@@ -135,6 +134,7 @@ export class AuthService implements Service {
             if (url.searchParams.get("state") || url.searchParams.get("code")) {
                 return this.userManager?.signinRedirectCallback().then(user => {
                     this.oidcUser = user;
+                    return Promise.resolve(user);
                 }) || Promise.reject(new Error("User manager undefined."));
             } else {
                 return this.authenticateUsingOidc();

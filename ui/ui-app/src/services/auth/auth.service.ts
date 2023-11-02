@@ -35,13 +35,15 @@ export class AuthService implements Service {
     };
 
     public authenticateUsingOidc = (): Promise<any> => {
+        console.debug("======> calling getUser() on user manager");
         return this.userManager?.getUser().then((authenticatedUser) => {
+            console.debug("======> authenticated user: ", authenticatedUser);
             if (authenticatedUser) {
                 this.oidcUser = authenticatedUser;
                 this.userManager?.startSilentRenew();
                 return Promise.resolve(authenticatedUser);
             } else {
-                console.warn("Not authenticated!");
+                console.warn("Not authenticated, call doLogin!");
                 return this.doLogin();
             }
         }) || Promise.reject(new Error("(authenticateUsingOidc) User manager is undefined."));
@@ -68,8 +70,11 @@ export class AuthService implements Service {
     }
 
     public doLogin = (): Promise<any> => {
+        console.debug("======> doLogin(), calling signinRedirect on user manager");
         return this.userManager?.signinRedirect().then(() => {
+            console.debug("======> starting silent renew()");
             this.userManager?.startSilentRenew();
+            console.debug("======> calling redirect callback on user manager()");
             return this.userManager?.signinRedirectCallback();
         }) || Promise.reject("(doLogin) User manager is undefined.");
     };
@@ -128,15 +133,19 @@ export class AuthService implements Service {
     }
 
     public authenticate(): Promise<any> {
+        console.debug("======> authenticate()");
         if (this.config?.authType() === "oidc") {
+            console.debug("======> authenticate() is oidc");
             this.enabled = true;
             const url = new URL(window.location.href);
             if (url.searchParams.get("state") || url.searchParams.get("code")) {
+                console.debug("======> calling signinRedirectCallback");
                 return this.userManager?.signinRedirectCallback().then(user => {
                     this.oidcUser = user;
                     return Promise.resolve(user);
                 }) || Promise.reject(new Error("User manager undefined."));
             } else {
+                console.debug("======> calling authenticateUsingOidc()");
                 return this.authenticateUsingOidc();
             }
         } else {

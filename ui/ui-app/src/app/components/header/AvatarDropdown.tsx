@@ -1,13 +1,5 @@
 import React, { FunctionComponent, useState } from "react";
-import "./AvatarDropdown.css";
-import {
-    Avatar,
-    Dropdown,
-    DropdownItem,
-    DropdownList,
-    MenuToggle,
-    MenuToggleElement
-} from "@patternfly/react-core";
+import { Avatar, Dropdown, DropdownItem, DropdownList, MenuToggle, MenuToggleElement } from "@patternfly/react-core";
 import { Services } from "@services/services.ts";
 
 
@@ -27,23 +19,26 @@ export const AvatarDropdown: FunctionComponent<AvatarDropdownProps> = () => {
         setIsOpen(!isOpen);
     };
 
+    const icon = (
+        <Avatar src="/avatar.png" alt="User" />
+    );
+
     return (
         <Dropdown
             isOpen={isOpen}
             onSelect={onSelect}
             onOpenChange={(isOpen: boolean) => setIsOpen(isOpen)}
-            popperProps={{
-                position: "right"
-            }}
             toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
                 <MenuToggle
                     ref={toggleRef}
-                    aria-label="kebab dropdown toggle"
-                    variant="plain"
                     onClick={onToggle}
+                    isFullHeight={true}
                     isExpanded={isOpen}
+                    icon={icon}
                 >
-                    <Avatar src="/avatar.png" alt="User" />
+                    {
+                        Services.getUsersService().currentUser().displayName || "User"
+                    }
                 </MenuToggle>
             )}
             shouldFocusToggleOnSelect

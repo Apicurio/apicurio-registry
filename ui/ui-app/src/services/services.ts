@@ -7,6 +7,7 @@ import { DownloaderService } from "./downloader";
 import { AuthService } from "./auth";
 import { UsersService } from "./users";
 import { AlertsService } from "./alerts";
+import { VersionService } from "@services/version";
 
 // TODO convert all of the services into React hooks
 
@@ -23,6 +24,10 @@ export class Services {
 
     public static getConfigService(): ConfigService {
         return Services.all.config;
+    }
+
+    public static getVersionService(): VersionService {
+        return Services.all.version;
     }
 
     public static getDownloaderService(): DownloaderService {
@@ -53,6 +58,7 @@ export class Services {
         groups: new GroupsService(),
         users: new UsersService(),
         config: new ConfigService(),
+        version: new VersionService(),
         downloader: new DownloaderService(),
         admin: new AdminService(),
         logger: new LoggerService(),

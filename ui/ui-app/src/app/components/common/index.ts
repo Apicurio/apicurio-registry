@@ -1,6 +1,5 @@
 export * from "./ArtifactTypeIcon.tsx";
 export * from "./If.tsx";
-export * from "./IfAuth.tsx";
 export * from "./IfFeature.tsx";
 export * from "./IfNotEmpty.tsx";
 export * from "./UrlUpload.tsx";

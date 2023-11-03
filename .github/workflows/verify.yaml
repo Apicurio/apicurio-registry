@@ -437,3 +437,11 @@ jobs:
           repository: Apicurio/apicurio-registry-client-sdk-${{ matrix.language }}
           event-type: on-oas-updated
           client-payload: '{"openapi_file_path": "app/src/main/resources-unfiltered/META-INF/resources/api-specifications/registry/v2/openapi.json"}'
+
+  # Trigger a deployment workflow in the apicurio-operate-first repository, which will
+  # deploy the `latest-snapshot` version of registry into the 3scale OpenShift cluster
+  # that we just built and pushed in the steps above.
+  trigger-3scale-deploy:
+    needs: [build-verify-sql, build-verify-ui]
+    if: github.event_name == 'push'
+    uses: apicurio/apicurio-operate-first/.github/workflows/deploy_latest_registry.yml@main

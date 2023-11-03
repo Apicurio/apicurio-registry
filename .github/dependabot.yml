@@ -225,30 +225,30 @@ updates:
         versions:
           - 4.9.1
 
-- package-ecosystem: npm
-  directory: "/ui"
-  schedule:
-    interval: daily
-  open-pull-requests-limit: 10
-  versioning-strategy: increase
+  - package-ecosystem: npm
+    directory: "/ui"
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+    versioning-strategy: increase
 
-- package-ecosystem: npm
-  directory: "/ui/ui-app"
-  schedule:
-    interval: daily
-  open-pull-requests-limit: 10
-  versioning-strategy: increase
+  - package-ecosystem: npm
+    directory: "/ui/ui-app"
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+    versioning-strategy: increase
 
-- package-ecosystem: npm
-  directory: "/ui/ui-docs"
-  schedule:
-    interval: daily
-  open-pull-requests-limit: 10
-  versioning-strategy: increase
+  - package-ecosystem: npm
+    directory: "/ui/ui-docs"
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+    versioning-strategy: increase
 
-- package-ecosystem: npm
-  directory: "/ui/tests"
-  schedule:
-    interval: daily
-  open-pull-requests-limit: 10
-  versioning-strategy: increase
+  - package-ecosystem: npm
+    directory: "/ui/tests"
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+    versioning-strategy: increase

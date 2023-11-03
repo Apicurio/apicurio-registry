@@ -48,7 +48,6 @@ public class PostgreSqlEmbeddedTestResource implements QuarkusTestResourceLifecy
                 props.put("registry.datasource.jdbc.url", "jdbc:postgresql://localhost:5432/test");
                 props.put("registry.datasource.username", "test");
                 props.put("registry.datasource.password", "test");
-                props.put("registry.datasource.driver-classname", "org.postgresql.Driver");
                 return props;
             } else {
                 return startPostgresql();
@@ -73,7 +72,6 @@ public class PostgreSqlEmbeddedTestResource implements QuarkusTestResourceLifecy
         Map<String, String> props = new HashMap<>();
         props.put("registry.storage.db-kind", "postgresql");
         props.put("registry.datasource.jdbc.url", datasourceUrl);
-        props.put("registry.datasource.driver-classname", "org.postgresql.Driver");
         props.put("registry.datasource.username", "postgres");
         props.put("registry.datasource.password", "postgres");
 

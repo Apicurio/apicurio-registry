@@ -17,6 +17,7 @@
 package io.apicurio.registry.storage.impl.sql;
 
 import io.agroal.api.AgroalDataSource;
+import io.apicurio.registry.types.Current;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Produces;
 import jakarta.inject.Inject;
@@ -39,7 +40,7 @@ public class HandleFactoryProducer {
         return new DefaultHandleFactory(dataSource, logger);
     }
 
-    public static class DefaultHandleFactory extends AbstractHandleFactory  {
+    public static class DefaultHandleFactory extends AbstractHandleFactory {
         public DefaultHandleFactory(AgroalDataSource dataSource, Logger logger) {
             initialize(dataSource, "default", logger);
         }

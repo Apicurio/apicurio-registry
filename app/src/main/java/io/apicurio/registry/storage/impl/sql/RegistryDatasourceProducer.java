@@ -46,14 +46,12 @@ public class RegistryDatasourceProducer {
     @Info(category = "storage", description = "Datasource Db kind", availableSince = "2.0.0.Final")
     String maxSize;
 
-    @ConfigProperty(name = "registry.datasource.driver-classname", defaultValue = "org.h2.Driver")
-    @Info(category = "storage", description = "Datasource Db kind", availableSince = "2.0.0.Final")
-    String driverClassName;
-
     @Produces
     @ApplicationScoped
     public AgroalDataSource produceDatasource() throws SQLException {
         log.debug("Creating an instance of ISqlStatements for DB: " + databaseType);
+
+        final RegistryDatabaseKind databaseKind = RegistryDatabaseKind.valueOf(databaseType);
 
         Map<String, String> props = new HashMap<>();
 
@@ -63,7 +61,7 @@ public class RegistryDatasourceProducer {
         props.put(AgroalPropertiesReader.JDBC_URL, jdbcUrl);
         props.put(AgroalPropertiesReader.PRINCIPAL, username);
         props.put(AgroalPropertiesReader.CREDENTIAL, password);
-        props.put(AgroalPropertiesReader.PROVIDER_CLASS_NAME, driverClassName);
+        props.put(AgroalPropertiesReader.PROVIDER_CLASS_NAME, databaseKind.getDriverClassName());
 
         AgroalDataSource datasource = AgroalDataSource.from(new AgroalPropertiesReader()
                 .readProperties(props)

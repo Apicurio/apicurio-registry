@@ -1,5 +1,4 @@
 import { FunctionComponent, useState } from "react";
-import "./AppHeaderToolbar.css";
 import { Button, Toolbar, ToolbarContent, ToolbarGroup, ToolbarItem } from "@patternfly/react-core";
 import { QuestionCircleIcon } from "@patternfly/react-icons";
 import { AvatarDropdown, IfAuth } from "@app/components";

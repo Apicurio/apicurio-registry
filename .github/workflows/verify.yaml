@@ -383,7 +383,7 @@ jobs:
   # deploy the `latest-snapshot` version of registry into the 3scale OpenShift cluster
   # that we just built and pushed in the steps above.
   trigger-3scale-deploy:
-    needs: [build-verify-sql, build-verify-ui]
+    needs: [build-verify, build-verify-ui]
     if: github.event_name == 'push'
     uses: apicurio/apicurio-3scale-gitops/.github/workflows/deploy_latest_registry.yml@main
     secrets: inherit

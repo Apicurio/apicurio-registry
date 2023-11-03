@@ -23,6 +23,8 @@ spec:
                   fieldPath: metadata.namespace
             - name: KAFKA_BOOTSTRAP_SERVERS
               value: kafka-service:9092
+            - name: REGISTRY_STORAGE_DB_KIND
+              value: "kafkasql"
             - name: AUTH_ENABLED
               value: "true"
             - name: KEYCLOAK_API_CLIENT_ID

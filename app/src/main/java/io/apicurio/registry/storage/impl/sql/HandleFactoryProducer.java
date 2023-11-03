@@ -17,7 +17,6 @@
 package io.apicurio.registry.storage.impl.sql;
 
 import io.agroal.api.AgroalDataSource;
-import io.apicurio.registry.types.Current;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Produces;
 import jakarta.inject.Inject;

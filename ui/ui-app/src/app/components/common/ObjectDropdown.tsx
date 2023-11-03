@@ -9,8 +9,6 @@ import {
 } from "@patternfly/react-core";
 import { EllipsisVIcon } from "@patternfly/react-icons";
 
-export const ObjectDropdownItemDivider = {};
-
 /**
  * Properties
  */
@@ -19,6 +17,7 @@ export type ObjectDropdownProps = {
     items: any[];
     onSelect: (value: any | undefined) => void;
     itemToString: (value: any) => string;
+    itemIsDivider?: (value: any) => boolean;
     noSelectionLabel?: string;
     menuAppendTo?: HTMLElement | (() => HTMLElement) | "inline";
     isKebab?: boolean;
@@ -77,7 +76,7 @@ export const ObjectDropdown: FunctionComponent<ObjectDropdownProps> = (props: Ob
                 {
                     props.items.map((item, index) => {
                         return (
-                            item == ObjectDropdownItemDivider ?
+                            (props.itemIsDivider && props.itemIsDivider(item)) ?
                                 <Divider component="li" key={`divider-${index}`} />
                                 :
                                 <DropdownItem value={index} key={`action-${index}`}>

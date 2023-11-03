@@ -1,5 +1,7 @@
 var ApicurioInfo = {
-    version: "Apicurio Registry",
+    name: "Apicurio Registry",
+    version: "DEV",
+    digest: "DEV",
     builtOn: new Date(),
     url: "http://www.apicur.io/"
 };

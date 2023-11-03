@@ -115,7 +115,6 @@
         <module>serdes/avro-serde</module>
         <module>serdes/protobuf-serde</module>
         <module>serdes/jsonschema-serde</module>
-        <module>storage</module>
         <module>distro</module>
         <module>docs</module>
         <module>client</module>
@@ -1009,12 +1008,6 @@
 
     <profiles>
         <profile>
-            <id>gitops</id>
-            <modules>
-                <module>storage/gitops</module>
-            </modules>
-        </profile>
-        <profile>
             <id>prod</id>
             <activation>
                 <activeByDefault>false</activeByDefault>
@@ -1147,6 +1140,10 @@
                     <id>jitpack.io</id>
                     <url>https://jitpack.io</url>
                 </repository>
+                    <repository>
+                        <id>jgit-repository</id>
+                        <url>https://repo.eclipse.org/content/groups/releases/</url>
+                    </repository>
             </repositories>
         </profile>
     </profiles>

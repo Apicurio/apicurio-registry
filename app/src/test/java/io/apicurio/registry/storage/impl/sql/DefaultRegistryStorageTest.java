@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Red Hat
+ * Copyright 2022 Red Hat
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,28 +16,30 @@
 
 package io.apicurio.registry.storage.impl.sql;
 
-import io.agroal.api.AgroalDataSource;
-import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.enterprise.inject.Produces;
+import io.apicurio.registry.storage.RegistryStorage;
 import jakarta.inject.Inject;
-import jakarta.inject.Named;
-import org.slf4j.Logger;
+
+import io.apicurio.registry.noprofile.storage.AbstractRegistryStorageTest;
+import io.apicurio.registry.utils.tests.ApicurioTestTags;
+import io.quarkus.test.junit.QuarkusTest;
+import org.junit.jupiter.api.Tag;
 
 /**
  * @author eric.wittmann@gmail.com
  */
-public class HandleFactoryProducer {
+@QuarkusTest
+@Tag(ApicurioTestTags.SLOW)
+public class DefaultRegistryStorageTest extends AbstractRegistryStorageTest {
 
     @Inject
-    @Named("application")
-    AgroalDataSource dataSource;
+    SqlRegistryStorage storage;
 
-    @Inject
-    Logger logger;
-
-    @Produces
-    @ApplicationScoped
-    public HandleFactory produceHandleFactory() {
-        return new DefaultHandleFactory(dataSource, logger);
+    /**
+     * @see io.apicurio.registry.storage.AbstractRegistryStorageTest#storage()
+     */
+    @Override
+    protected RegistryStorage storage() {
+        return storage;
     }
+
 }

@@ -23,7 +23,7 @@ spec:
                   fieldPath: metadata.namespace
             - name: KAFKA_BOOTSTRAP_SERVERS
               value: kafka-service:9092
-            - name: REGISTRY_STORAGE_DB_KIND
+            - name: REGISTRY_STORAGE_KIND
               value: "kafkasql"
           image: registry-image
           imagePullPolicy: Always

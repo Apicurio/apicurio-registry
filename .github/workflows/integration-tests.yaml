@@ -45,13 +45,9 @@ jobs:
         run: ./mvnw -T 1.5C clean install --no-transfer-progress -Pprod -DskipTests=true -Dmaven.javadoc.skip=true --no-transfer-progress -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5
 
       - name: Build and Push Application image
-        env:
-          IMAGE_REPO: ttl.sh/${{ github.sha }}
-          # maximum allowed
-          IMAGE_TAG: 1d
         run: |
-          docker build -f ./distro/docker/target/docker/Dockerfile.jvm -t $(IMAGE_REPO)/$(IMAGE_GROUP)/apicurio-registry:$(IMAGE_TAG) $(DOCKER_BUILD_WORKSPACE)
-          docker push $(IMAGE_REPO)/$(IMAGE_GROUP)/apicurio-registry:$(IMAGE_TAG)
+          docker build -f ./distro/docker/target/docker/Dockerfile.jvm -t ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:1d ./distro/docker/target/docker
+          docker push ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:1d
 
   prepare-ui-tests:
     name: Prepare for UI Integration Tests
@@ -98,7 +94,7 @@ jobs:
           docker push $IMAGE_REPO/apicurio/apicurio-registry-ui:$IMAGE_TAG
 
   integration-tests-h2:
-    name: Integration Tests
+    name: Integration Tests H2
     runs-on: ubuntu-20.04
     needs: prepare-integration-tests
     steps:
@@ -143,7 +139,7 @@ jobs:
           path: artifacts
 
   integration-tests-postgresql:
-    name: Integration Tests
+    name: Integration Tests Postgresql
     runs-on: ubuntu-20.04
     needs: prepare-integration-tests
     steps:
@@ -189,7 +185,7 @@ jobs:
 
 
   integration-tests-kafkasql:
-    name: Integration Tests
+    name: Integration Tests KafkaSql
     runs-on: ubuntu-20.04
     needs: prepare-integration-tests
     steps:

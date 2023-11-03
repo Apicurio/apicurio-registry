@@ -23,5 +23,4 @@ public class PostgresqlTestProfile implements QuarkusTestProfile {
             return Collections.emptyList();
         }
     }
-
 }

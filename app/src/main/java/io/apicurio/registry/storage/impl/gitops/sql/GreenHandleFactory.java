@@ -14,30 +14,18 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.storage.impl.sql;
+package io.apicurio.registry.storage.impl.gitops.sql;
 
 import io.agroal.api.AgroalDataSource;
-import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.enterprise.inject.Produces;
-import jakarta.inject.Inject;
-import jakarta.inject.Named;
+import io.apicurio.registry.storage.impl.sql.AbstractHandleFactory;
 import org.slf4j.Logger;
 
 /**
- * @author eric.wittmann@gmail.com
+ * @author Jakub Senko <em>m@jsenko.net</em>
  */
-public class HandleFactoryProducer {
+public class GreenHandleFactory extends AbstractHandleFactory {
 
-    @Inject
-    @Named("application")
-    AgroalDataSource dataSource;
-
-    @Inject
-    Logger logger;
-
-    @Produces
-    @ApplicationScoped
-    public HandleFactory produceHandleFactory() {
-        return new DefaultHandleFactory(dataSource, logger);
+    public GreenHandleFactory(AgroalDataSource dataSource, Logger log) {
+        initialize(dataSource, "green", log);
     }
 }

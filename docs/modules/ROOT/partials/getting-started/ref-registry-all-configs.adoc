@@ -350,6 +350,37 @@ The following {registry} configuration options are available for each component 
 |Events Kafka sink enabled
 |===
 
+== gitops
+.gitops configuration options
+[.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]
+|===
+|Name
+|Type
+|Default
+|Available from
+|Description
+|`registry.gitops.id`
+|`string`
+|
+|`3.0.0`
+|Identifier of this Registry instance. Only data that references this identifier will be loaded.
+|`registry.gitops.repo.origin.branch`
+|`string`
+|`main`
+|`3.0.0`
+|Name of the branch in the remote git repository containing data to be loaded.
+|`registry.gitops.repo.origin.uri`
+|`string`
+|
+|`3.0.0`
+|URI of the remote git repository containing data to be loaded.
+|`registry.gitops.workdir`
+|`string`
+|`/tmp/apicurio-registry-gitops`
+|`3.0.0`
+|Path to GitOps working directory, which is used to store the local git repository.
+|===
+
 == health
 .health configuration options
 [.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]
@@ -630,9 +661,64 @@ The following {registry} configuration options are available for each component 
 |Default
 |Available from
 |Description
-|`registry.datasource.driver-classname`
+|`registry.datasource.blue.db-kind`
 |`string`
-|`org.h2.Driver`
+|`h2`
+|`2.0.0.Final`
+|Datasource Db kind
+|`registry.datasource.blue.jdbc.initial-size`
+|`string`
+|`20`
+|`2.0.0.Final`
+|Datasource Db kind
+|`registry.datasource.blue.jdbc.max-size`
+|`string`
+|`100`
+|`2.0.0.Final`
+|Datasource Db kind
+|`registry.datasource.blue.jdbc.min-size`
+|`string`
+|`20`
+|`2.0.0.Final`
+|Datasource Db kind
+|`registry.datasource.blue.password`
+|`string`
+|`sa`
+|`2.0.0.Final`
+|Datasource Db kind
+|`registry.datasource.blue.username`
+|`string`
+|`sa`
+|`2.0.0.Final`
+|Datasource Db kind
+|`registry.datasource.green.db-kind`
+|`string`
+|`h2`
+|`2.0.0.Final`
+|Datasource Db kind
+|`registry.datasource.green.jdbc.initial-size`
+|`string`
+|`20`
+|`2.0.0.Final`
+|Datasource Db kind
+|`registry.datasource.green.jdbc.max-size`
+|`string`
+|`100`
+|`2.0.0.Final`
+|Datasource Db kind
+|`registry.datasource.green.jdbc.min-size`
+|`string`
+|`20`
+|`2.0.0.Final`
+|Datasource Db kind
+|`registry.datasource.green.password`
+|`string`
+|`sa`
+|`2.0.0.Final`
+|Datasource Db kind
+|`registry.datasource.green.username`
+|`string`
+|`sa`
 |`2.0.0.Final`
 |Datasource Db kind
 |`registry.datasource.jdbc.initial-size`
@@ -650,14 +736,14 @@ The following {registry} configuration options are available for each component 
 |`20`
 |`2.0.0.Final`
 |Datasource Db kind
-|`registry.datasource.jdbc.url`
-|`string`
-|`jdbc:h2:mem:registry_db`
-|`2.0.0.Final`
-|Datasource Db kind
 |`registry.datasource.password`
 |`string`
 |`sa`
+|`2.0.0.Final`
+|Datasource Db kind
+|`registry.datasource.url`
+|`string`
+|`jdbc:h2:mem:registry_db`
 |`2.0.0.Final`
 |Datasource Db kind
 |`registry.datasource.username`

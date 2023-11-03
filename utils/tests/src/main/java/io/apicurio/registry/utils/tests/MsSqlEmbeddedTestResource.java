@@ -58,7 +58,7 @@ public class MsSqlEmbeddedTestResource implements QuarkusTestResourceLifecycleMa
             if ("mas".equals(currentEnv)) {
                 Map<String, String> props = new HashMap<>();
                 props.put("registry.storage.db-kind", "mssql");
-                props.put("registry.datasource.jdbc.url", "jdbc:sqlserver://mssql;");
+                props.put("registry.datasource.url", "jdbc:sqlserver://mssql;");
                 props.put("registry.datasource.username", "test");
                 props.put("registry.datasource.password", "test");
                 return props;
@@ -80,7 +80,7 @@ public class MsSqlEmbeddedTestResource implements QuarkusTestResourceLifecycleMa
 
         Map<String, String> props = new HashMap<>();
         props.put("registry.storage.db-kind", "mssql");
-        props.put("registry.datasource.jdbc.url", datasourceUrl);
+        props.put("registry.datasource.url", datasourceUrl);
         props.put("registry.datasource.username", "SA");
         props.put("registry.datasource.password", DB_PASSWORD);
         return props;

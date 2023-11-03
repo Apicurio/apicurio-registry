@@ -69,7 +69,7 @@ public class SQLServerSqlStatements extends CommonSqlStatements {
     public String upsertContent() {
         return String.join(" ",
                 "MERGE INTO content AS target",
-                "USING (VALUES (?, ?, ?, ?, ?, ?)) AS source (contentId, canonicalHash, contentHash, content, artifactreferences)",
+                "USING (VALUES (?, ?, ?, ?, ?)) AS source (contentId, canonicalHash, contentHash, content, artifactreferences)",
                 "ON (target.contentHash = source.contentHash)",
                 "WHEN NOT MATCHED THEN",
                     "INSERT (contentId, canonicalHash, contentHash, content, artifactreferences)",
@@ -83,7 +83,7 @@ public class SQLServerSqlStatements extends CommonSqlStatements {
     public String getNextSequenceValue() {
         return String.join(" ",
                 "MERGE INTO sequences AS target",
-                "USING (VALUES  (?, ?)) AS source (name)",
+                "USING (VALUES  (?)) AS source (name)",
                 "ON (target.name = source.name)",
                 "WHEN MATCHED THEN",
                     "UPDATE SET value = target.value + 1",
@@ -100,7 +100,7 @@ public class SQLServerSqlStatements extends CommonSqlStatements {
     public String resetSequenceValue() {
         return String.join(" ",
                 "MERGE INTO sequences AS target",
-                "USING (VALUES (?, ?, ?)) AS source (name, value)",
+                "USING (VALUES (?, ?)) AS source (name, value)",
                 "ON (target.name = source.name)",
                 "WHEN MATCHED THEN",
                     "UPDATE SET value = ?",
@@ -117,7 +117,7 @@ public class SQLServerSqlStatements extends CommonSqlStatements {
     public String upsertReference() {
         return String.join(" ",
                 "MERGE INTO artifactreferences AS target",
-                "USING (VALUES (?, ?, ?, ?, ?, ?)) AS source (contentId, groupId, artifactId, version, name)",
+                "USING (VALUES (?, ?, ?, ?, ?)) AS source (contentId, groupId, artifactId, version, name)",
                 "ON (target.contentId = source.contentId AND target.name = source.name)",
                 "WHEN NOT MATCHED THEN",
                 "INSERT (contentId, groupId, artifactId, version, name)",

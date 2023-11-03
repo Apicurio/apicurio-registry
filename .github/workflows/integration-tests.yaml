@@ -62,32 +62,12 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v3
 
-      - name: Set up JDK 17
-        uses: actions/setup-java@v3
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-          cache: 'maven'
-
       - name: Set up Node
         uses: actions/setup-node@v3
         with:
           node-version: 16
           cache: 'npm'
           cache-dependency-path: 'ui/**/package-lock.json'
-
-      - name: Get maven wrapper
-        run: mvn -N io.takari:maven:wrapper -Dmaven=3.8.2
-
-      - name: Build In-Memory Variant
-        run: make SKIP_TESTS=true BUILD_FLAGS='-Dmaven.javadoc.skip=true --no-transfer-progress -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5' build-in-memory
-
-      - name: Build and Push In-Memory image
-        env:
-          IMAGE_REPO: ttl.sh/${{ github.sha }}
-          # maximum allowed
-          IMAGE_TAG: 1d
-        run: make build-mem-image push-mem-image
 
       - name: Install UI Dependencies
         run: |
@@ -140,14 +120,32 @@ jobs:
       - name: Prepare minikube tunnel
         run: minikube tunnel &> /dev/null &
 
-      - name: Run Integration Tests - sql
-        run: make REGISTRY_IMAGE='-Dregistry-mem-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-mem:1d' run-in-memory-integration-tests
+      - name: Run Integration Tests - H2
+        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pci -Dregistry-mem-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-mem:1d  -Premote-mem -pl integration-tests -Dmaven.javadoc.skip=true --no-transfer-progress
 
-      - name: Run Integration Tests - sql - auth
-        run: make REGISTRY_IMAGE='-Dregistry-mem-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-mem:1d' run-in-memory-auth-tests
+      - name: Run Integration Tests - auth - H2
+        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pauth -Dregistry-mem-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-mem:1d  -Premote-mem -pl integration-tests -Dmaven.javadoc.skip=true --no-transfer-progress
 
-      - name: Run Integration Tests - sql - migration
-        run: make REGISTRY_IMAGE='-Dregistry-mem-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-mem:1d' run-in-memory-migration-integration-tests
+      - name: Run Integration Tests - migration - H2
+        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pmigration -Dregistry-mem-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-mem:1d  -Premote-mem -pl integration-tests -Dmaven.javadoc.skip=true --no-transfer-progress
+
+      - name: Run Integration Tests - Postgresql
+        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pci -Dregistry-sql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-mem:1d  -Premote-sql -pl integration-tests -Dmaven.javadoc.skip=true --no-transfer-progress
+
+      - name: Run Integration Tests - auth - Postgresql
+        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pauth -Dregistry-sql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-mem:1d  -Premote-sql -pl integration-tests -Dmaven.javadoc.skip=true --no-transfer-progress
+
+      - name: Run Integration Tests - migration - Postgresql
+        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pmigration -Dregistry-sql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-mem:1d  -Premote-sql -pl integration-tests -Dmaven.javadoc.skip=true --no-transfer-progress
+
+      - name: Run Integration Tests - Kafkasql
+        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pci -Dregistry-kafkasql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-mem:1d  -Premote-sql -pl integration-tests -Dmaven.javadoc.skip=true --no-transfer-progress
+
+      - name: Run Integration Tests - auth - Kafkasql
+        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pauth -Dregistry-kafkasql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-mem:1d  -Premote-sql -pl integration-tests -Dmaven.javadoc.skip=true --no-transfer-progress
+
+      - name: Run Integration Tests - migration - Kafkasql
+        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pmigration -Dregistry-kafkasql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-mem:1d  -Premote-sql -pl integration-tests -Dmaven.javadoc.skip=true --no-transfer-progress
 
       - name: Collect logs
         if: failure()
@@ -163,7 +161,7 @@ jobs:
   integration-tests-ui:
     name: Integration Tests UI
     runs-on: ubuntu-20.04
-    needs: prepare-ui-tests
+    needs: [prepare-ui-tests, prepare-integration-tests]
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3

@@ -43,6 +43,48 @@ npm run package
 This will bundle up all of the UI modules into a single `dist` directory at the root of the `ui` 
 directory.  This bundle is then suitable for including in e.g. a container image.
 
+### Containerize
+Once the UI is built and packaged, docker/podman can be used to build a container image.  This
+can be done by using the included `build-docker.sh` script or with the following command (or
+equivalent):
+
+```
+docker build -t="apicurio/apicurio-registry-ui:latest-snapshot" --rm .
+```
+
+## Running the Container Image
+You can build the UI container image locally (see the steps above) or you can pull the latest
+container image with this command:
+
+```
+docker pull apicurio/apicurio-registry-ui:latest-snapshot
+```
+
+Either way, you can run the UI using docker with the following command:
+
+```
+docker run -it -p 8888:8080 apicurio/apicurio-registry-ui:latest-snapshot
+```
+
+Running without passing any environment variables will result in sensible defaults for running
+the UI locally against a default locally run backend.  However, the following environment
+variables can be used to control the behavior of the UI:
+
+| ENV var     | Description | Default |
+| ----------- | ----------- | ------- |
+| REGISTRY_API_URL | Location of the backend API. | http://localhost:8080/apis/registry/v2 |
+| REGISTRY_AUTH_TYPE | Type of authentication to use. [none, oidc] | none |
+| REGISTRY_AUTH_URL | URL of the OIDC server. | "" |
+| REGISTRY_AUTH_CLIENT_ID | Client ID for auth using OIDC. | registry-ui |
+| REGISTRY_AUTH_REDIRECT_URL | Redirect URL when authenticating using OIDC. | http://localhost:8888 |
+| REGISTRY_AUTH_RBAC_ENABLED | Enable role based access control. | false |
+| REGISTRY_AUTH_OBAC_ENABLED | Enable owner based access control. | false |
+| REGISTRY_FEATURE_READ_ONLY | Enable read-only mode for the UI only. | false |
+| REGISTRY_FEATURE_BREADCRUMBS | Show breadcrumbs in the UI. | true |
+| REGISTRY_FEATURE_ROLE_MANAGEMENT | Enable/show the Access tab in the UI. | false |
+| REGISTRY_FEATURE_SETTINGS | Enable/show the Settings tab in the UI. | true |
+
+
 ## Developing the UI
 
 If you would like to contribute code changes to the UI, you will want to run the UI application(s)
@@ -86,3 +128,4 @@ npm run test
 ```
 
 The tests assume that the UI is running on localhost port 8888.
+

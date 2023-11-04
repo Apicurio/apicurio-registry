@@ -42,6 +42,7 @@ This should result in Quarkus and the in-memory registry starting up, with the R
 cd ui
 npm install
 cd ui-app
+./init-dev.sh
 npm run dev
 ```
 

@@ -150,7 +150,8 @@ export const ArtifactVersionPage: FunctionComponent<ArtifactVersionPageProps> = 
 
     const showDocumentationTab = (): boolean => {
         if (artifact) {
-            return (artifact.type === "OPENAPI" || artifact.type === "ASYNCAPI") && artifact.state !== "DISABLED";
+            // return (artifact.type === "OPENAPI" || artifact.type === "ASYNCAPI") && artifact.state !== "DISABLED";
+            return artifact.type === "OPENAPI" && artifact.state !== "DISABLED";
         } else {
             return false;
         }

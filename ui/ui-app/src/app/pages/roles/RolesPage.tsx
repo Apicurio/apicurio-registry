@@ -142,7 +142,6 @@ export const RolesPage: FunctionComponent<RolesPageProps> = () => {
     };
 
     const filterRoles = (): RoleMapping[] => {
-        console.info("========> filter roles: ", criteria);
         // Filter the roles by the criteria.
         const filteredRoles: RoleMapping[] = roles.filter(acceptRole);
 

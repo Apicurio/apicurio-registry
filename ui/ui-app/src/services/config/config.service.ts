@@ -1,4 +1,11 @@
-import { Alerts, ConfigType, FeaturesConfig, GetTokenAuthConfig, OidcJsAuthConfig } from "./config.type";
+import {
+    Alerts,
+    ConfigType,
+    FeaturesConfig,
+    GetTokenAuthConfig,
+    OidcJsAuthConfig,
+    OidcJsAuthOptions
+} from "./config.type";
 import { Service } from "../baseService";
 
 const DEFAULT_CONFIG: ConfigType = {
@@ -9,9 +16,10 @@ const DEFAULT_CONFIG: ConfigType = {
         options: {
             url: "http://localhost:8090/realms/apicurio",
             clientId: "registry-ui",
-            redirectUri: "http://localhost:8888"
+            redirectUri: "http://localhost:8888",
+            scopes: "openid profile email offline_token"
         },
-        type: "oidcjs",
+        type: "oidc",
         rbacEnabled: true,
         obacEnabled: false
     },
@@ -23,7 +31,8 @@ const DEFAULT_CONFIG: ConfigType = {
     },
     ui: {
         contextPath: "/",
-        navPrefixPath: "/"
+        navPrefixPath: "/",
+        oaiDocsUrl: "http://localhost:8889"
     }
 };
 
@@ -62,17 +71,15 @@ export class ConfigService implements Service {
     }
 
     public artifactsUrl(): string|null {
-        if (!this.config.artifacts) {
-            return null;
-        }
-        return this.config.artifacts.url;
+        return this.config.artifacts.url || null;
     }
 
     public uiContextPath(): string|undefined {
-        if (!this.config.ui || !this.config.ui.contextPath) {
-            return "/";
-        }
-        return this.config.ui.contextPath;
+        return this.config.ui.contextPath || "/";
+    }
+
+    public uiOaiDocsUrl(): string {
+        return this.config.ui.oaiDocsUrl || "http://localhost:8889";
     }
 
     public uiNavPrefixPath(): string|undefined {
@@ -140,12 +147,12 @@ export class ConfigService implements Service {
         return this.config.auth.obacEnabled;
     }
 
-    public authOptions(): any {
+    public authOptions(): OidcJsAuthOptions {
         if (this.config.auth) {
             const auth: OidcJsAuthConfig = this.config.auth as OidcJsAuthConfig;
             return auth.options;
         }
-        return {};
+        return {} as any;
     }
 
     public authGetToken(): () => Promise<string> {

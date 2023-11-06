@@ -374,7 +374,7 @@ export const ArtifactVersionPage: FunctionComponent<ArtifactVersionPageProps> = 
                 onChangeOwner={openChangeOwnerModal}
             />
         </Tab>,
-        <Tab eventKey="documentation" title="Documentation" key="documentation">
+        <Tab eventKey="documentation" title="Documentation" key="documentation" className="documentation-tab">
             <DocumentationTabContent artifactContent={artifactContent} artifactType={artifact.type} />
         </Tab>,
         <Tab eventKey="content" title="Content" key="content">

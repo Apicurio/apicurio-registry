@@ -4,7 +4,8 @@ var ApicurioRegistryConfig = {
     },
     ui: {
         contextPath: "/",
-        navPrefixPath: "/"
+        navPrefixPath: "/",
+        oaiDocsUrl: "http://localhost:8889"
     },
     auth: {
         type: "oidc",
@@ -14,6 +15,7 @@ var ApicurioRegistryConfig = {
             url: "https://auth.apicur.io/auth/realms/apicurio-local",
             redirectUri: "http://localhost:8888",
             clientId: "apicurio-registry-ui",
+            scopes: "openid profile email offline_token"
         }
     },
     features: {

@@ -18,7 +18,7 @@ Initialize config.js
 `./init-dev.sh none`
 
 Note: the init-dev.sh script just copies an appropriate file from config/config-*.js to the right place.  You can 
-either specify `none`, `oidcjs`, or `oidcjs-rbac` as the argument to the script.  The choice depends on how you are 
+either specify `none`, `oidc`, or `oidc-rbac` as the argument to the script.  The choice depends on how you are 
 running the back-end component.
 
 Start the development server

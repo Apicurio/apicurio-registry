@@ -30,3 +30,7 @@ div.artifact-page-tabs > ul > li.pf-c-tabs__item.pf-m-current > button.pf-c-tabs
     flex-grow: 1;
     position: relative;
 }
+
+.documentation-tab {
+    flex-grow: 1;
+}

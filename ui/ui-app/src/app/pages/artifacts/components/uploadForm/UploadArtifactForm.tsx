@@ -228,7 +228,7 @@ export const UploadArtifactForm: FunctionComponent<UploadArtifactFormProps> = (p
                     <ObjectSelect value={selectedType}
                         items={artifactTypeOptions}
                         onSelect={setSelectedType}
-                        isDivider={(item) => item.isDivider}
+                        itemIsDivider={(item) => item.isDivider}
                         itemToString={(item) => item.label} />
                 </div>
             </FormGroup>

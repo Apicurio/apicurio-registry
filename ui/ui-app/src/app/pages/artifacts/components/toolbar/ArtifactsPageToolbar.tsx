@@ -43,14 +43,15 @@ export type ArtifactsPageToolbarProps = {
 type FilterType = {
     value: string;
     label: string;
+    testId: string;
 };
 const FILTER_TYPES: FilterType[] = [
-    { value: "name", label: "Name" },
-    { value: "group", label: "Group" },
-    { value: "description", label: "Description" },
-    { value: "labels", label: "Labels" },
-    { value: "globalId", label: "Global Id" },
-    { value: "contentId", label: "Content Id" },
+    { value: "name", label: "Name", testId: "artifact-filter-name" },
+    { value: "group", label: "Group", testId: "artifact-filter-group" },
+    { value: "description", label: "Description", testId: "artifact-filter-description" },
+    { value: "labels", label: "Labels", testId: "artifact-filter-labels" },
+    { value: "globalId", label: "Global Id", testId: "artifact-filter-global-id" },
+    { value: "contentId", label: "Content Id", testId: "artifact-filter-content-id" },
 ];
 const DEFAULT_FILTER_TYPE = FILTER_TYPES[0];
 
@@ -133,8 +134,14 @@ export const ArtifactsPageToolbar: FunctionComponent<ArtifactsPageToolbarProps> 
                 <ToolbarItem className="filter-item">
                     <Form onSubmit={onFilterSubmit}>
                         <InputGroup>
-                            <ObjectSelect value={filterType} items={FILTER_TYPES} toggleClassname="filter-types-toggle"
-                                onSelect={onFilterTypeChange} itemToString={(item) => item.label} />
+                            <ObjectSelect
+                                value={filterType}
+                                items={FILTER_TYPES}
+                                testId="artifact-filter-select"
+                                toggleClassname="filter-types-toggle"
+                                onSelect={onFilterTypeChange}
+                                itemToTestId={(item) => item.testId}
+                                itemToString={(item) => item.label} />
                             <TextInput name="filterValue" id="filterValue" type="search"
                                 value={filterValue}
                                 onChange={(_evt, value) => setFilterValue(value)}

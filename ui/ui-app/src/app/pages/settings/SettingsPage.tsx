@@ -161,6 +161,7 @@ export const SettingsPage: FunctionComponent<SettingsPageProps> = () => {
                         <SearchInput placeholder={"Filter by keyword"}
                             aria-label="Filter by keyword"
                             value={filterValue}
+                            data-testid="settings-search-widget"
                             onChange={(_evt, value) => setFilterValue(value)}
                             onSearch={() => setSearchCriteria(filterValue)}
                             onClear={() => {
@@ -170,12 +171,12 @@ export const SettingsPage: FunctionComponent<SettingsPageProps> = () => {
                         />
                     </TextContent>
                 </PageSection>
-                <PageSection variant={PageSectionVariants.default} isFilled={true}>
+                <PageSection variant={PageSectionVariants.default} isFilled={true} data-testid="config-groups">
                     <IfNotEmpty collection={searchedProperties} emptyStateMessage={"No settings found matching your search criteria."}>
                         {
                             propertyGroups().map(group =>
                                 <If key={group.id} condition={group.properties !== undefined && group.properties.length > 0}>
-                                    <Card key={group.id} className="config-property-group">
+                                    <Card key={group.id} className="config-property-group" role="group">
                                         <CardTitle className="title">{group.label}</CardTitle>
                                         <CardBody className="config-properties">
                                             {

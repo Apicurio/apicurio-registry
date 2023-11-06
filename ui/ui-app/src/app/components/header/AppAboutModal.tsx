@@ -29,6 +29,7 @@ export const AppAboutModal: FunctionComponent<AppAboutModalProps> = (props: AppA
             trademark="&copy; 2024 Red Hat"
             brandImageSrc="/apicurio_registry_logo_reverse.svg"
             brandImageAlt={version.name}
+            aria-label={version.name}
         >
             <TextContent>
                 <Text component={TextVariants.h2}>Web console info</Text>

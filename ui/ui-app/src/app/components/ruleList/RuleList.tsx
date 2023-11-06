@@ -2,7 +2,7 @@ import React, { FunctionComponent } from "react";
 import "./RuleList.css";
 import { Button, Flex, FlexItem, Grid, GridItem, Tooltip } from "@patternfly/react-core";
 import { CheckIcon, CodeBranchIcon, OkIcon, TrashIcon } from "@patternfly/react-icons";
-import { CompatibilityDropdown, IfAuth, IfFeature, IntegrityDropdown, ValidityDropdown } from "@app/components";
+import { CompatibilitySelect, IfAuth, IfFeature, IntegritySelect, ValiditySelect } from "@app/components";
 import { Rule } from "@models/rule.model.ts";
 
 
@@ -72,7 +72,7 @@ export const RuleList: FunctionComponent<RuleListProps> = (props: RuleListProps)
     if (isRuleEnabled("VALIDITY")) {
         validityRuleActions = (
             <React.Fragment>
-                <ValidityDropdown value={getRuleConfig("VALIDITY")}
+                <ValiditySelect value={getRuleConfig("VALIDITY")}
                     onSelect={doConfigureRule("VALIDITY")} />
                 <Button variant="plain"
                     key="delete-action"
@@ -91,7 +91,7 @@ export const RuleList: FunctionComponent<RuleListProps> = (props: RuleListProps)
     if (isRuleEnabled("COMPATIBILITY")) {
         compatibilityRuleActions = (
             <React.Fragment>
-                <CompatibilityDropdown value={getRuleConfig("COMPATIBILITY")}
+                <CompatibilitySelect value={getRuleConfig("COMPATIBILITY")}
                     onSelect={doConfigureRule("COMPATIBILITY")} />
                 <Button variant="plain"
                     key="delete-action"
@@ -110,7 +110,7 @@ export const RuleList: FunctionComponent<RuleListProps> = (props: RuleListProps)
     if (isRuleEnabled("INTEGRITY")) {
         integrityRuleActions = (
             <React.Fragment>
-                <IntegrityDropdown value={getRuleConfig("INTEGRITY")}
+                <IntegritySelect value={getRuleConfig("INTEGRITY")}
                     onSelect={doConfigureRule("INTEGRITY")} />
                 <Button variant="plain"
                     key="delete-action"

@@ -7,7 +7,7 @@ export default defineConfig({
     base: "",
     plugins: [react(), tsconfigPaths()],
     server: {
-        port: 8888
+        port: 8889
     }
     // define: {
     //     "process.platform": {}

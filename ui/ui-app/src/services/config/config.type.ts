@@ -65,6 +65,7 @@ export interface ArtifactsConfig {
 export interface UiConfig {
     contextPath?: string;
     navPrefixPath?: string;
+    oaiDocsUrl?: string;
 }
 
 export interface AuthConfig {
@@ -73,9 +74,16 @@ export interface AuthConfig {
     obacEnabled: boolean;
 }
 
+export interface OidcJsAuthOptions {
+    url: string;
+    redirectUri: string;
+    clientId: string;
+    scopes: string;
+}
+
 // Used when `type=keycloakjs`
 export interface OidcJsAuthConfig extends AuthConfig {
-    options?: any;
+    options: OidcJsAuthOptions;
 }
 
 // Used when `type=none`

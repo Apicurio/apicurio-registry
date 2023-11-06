@@ -76,6 +76,7 @@ variables can be used to control the behavior of the UI:
 | REGISTRY_AUTH_TYPE | Type of authentication to use. [none, oidc] | none |
 | REGISTRY_AUTH_URL | URL of the OIDC server. | "" |
 | REGISTRY_AUTH_CLIENT_ID | Client ID for auth using OIDC. | registry-ui |
+| REGISTRY_AUTH_CLIENT_SCOPES | Scopes to request for the OIDC client. | openid profile email offline_token |
 | REGISTRY_AUTH_REDIRECT_URL | Redirect URL when authenticating using OIDC. | http://localhost:8888 |
 | REGISTRY_AUTH_RBAC_ENABLED | Enable role based access control. | false |
 | REGISTRY_AUTH_OBAC_ENABLED | Enable owner based access control. | false |

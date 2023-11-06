@@ -57,7 +57,7 @@ export class AuthService implements Service {
             client_id: configOptions.clientId,
             redirect_uri: configOptions.redirectUri,
             response_type: "code",
-            scope: "openid profile email",
+            scope: configOptions.scopes,
             filterProtocolClaims: true,
             includeIdTokenInSilentRenew: true,
             includeIdTokenInSilentSignout: true,

@@ -11,6 +11,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 test("Global Rules - List Rules", async ({ page }) => {
+    await expect(page.locator("div.rule")).toHaveCount(3);
     await expect(page.locator("#validity-rule-name")).toContainText("Validity rule");
     await expect(page.locator("#compatibility-rule-name")).toContainText("Compatibility rule");
     await expect(page.locator("#integrity-rule-name")).toContainText("Integrity rule");

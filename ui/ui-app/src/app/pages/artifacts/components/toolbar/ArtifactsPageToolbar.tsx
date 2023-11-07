@@ -46,12 +46,12 @@ type FilterType = {
     testId: string;
 };
 const FILTER_TYPES: FilterType[] = [
-    { value: "name", label: "Name", testId: "artifact-filter-name" },
-    { value: "group", label: "Group", testId: "artifact-filter-group" },
-    { value: "description", label: "Description", testId: "artifact-filter-description" },
-    { value: "labels", label: "Labels", testId: "artifact-filter-labels" },
-    { value: "globalId", label: "Global Id", testId: "artifact-filter-global-id" },
-    { value: "contentId", label: "Content Id", testId: "artifact-filter-content-id" },
+    { value: "name", label: "Name", testId: "artifact-filter-typename" },
+    { value: "group", label: "Group", testId: "artifact-filter-typegroup" },
+    { value: "description", label: "Description", testId: "artifact-filter-typedescription" },
+    { value: "labels", label: "Labels", testId: "artifact-filter-typelabels" },
+    { value: "globalId", label: "Global Id", testId: "artifact-filter-typeglobal-id" },
+    { value: "contentId", label: "Content Id", testId: "artifact-filter-typecontent-id" },
 ];
 const DEFAULT_FILTER_TYPE = FILTER_TYPES[0];
 
@@ -137,7 +137,7 @@ export const ArtifactsPageToolbar: FunctionComponent<ArtifactsPageToolbarProps> 
                             <ObjectSelect
                                 value={filterType}
                                 items={FILTER_TYPES}
-                                testId="artifact-filter-select"
+                                testId="artifact-filter-type-select"
                                 toggleClassname="filter-types-toggle"
                                 onSelect={onFilterTypeChange}
                                 itemToTestId={(item) => item.testId}
@@ -145,11 +145,11 @@ export const ArtifactsPageToolbar: FunctionComponent<ArtifactsPageToolbarProps> 
                             <TextInput name="filterValue" id="filterValue" type="search"
                                 value={filterValue}
                                 onChange={(_evt, value) => setFilterValue(value)}
-                                data-testid="toolbar-filter-value"
+                                data-testid="artifact-filter-value"
                                 aria-label="search input example"/>
                             <Button variant={ButtonVariant.control}
                                 onClick={onFilterSubmit}
-                                data-testid="toolbar-btn-filter-search"
+                                data-testid="artifact-filter-search"
                                 aria-label="search button for search input">
                                 <SearchIcon/>
                             </Button>
@@ -157,7 +157,7 @@ export const ArtifactsPageToolbar: FunctionComponent<ArtifactsPageToolbarProps> 
                     </Form>
                 </ToolbarItem>
                 <ToolbarItem className="sort-icon-item">
-                    <Button variant="plain" aria-label="edit" data-testid="toolbar-btn-sort" onClick={onToggleAscending}>
+                    <Button variant="plain" aria-label="edit" data-testid="artifact-filter-sort" onClick={onToggleAscending}>
                         {
                             filterAscending ? <SortAlphaDownIcon/> : <SortAlphaDownAltIcon/>
                         }
@@ -166,7 +166,7 @@ export const ArtifactsPageToolbar: FunctionComponent<ArtifactsPageToolbarProps> 
                 <ToolbarItem className="upload-artifact-item">
                     <IfAuth isDeveloper={true}>
                         <IfFeature feature="readOnly" isNot={true}>
-                            <Button className="btn-header-upload-artifact" data-testid="btn-header-upload-artifact"
+                            <Button className="btn-header-upload-artifact" data-testid="btn-toolbar-upload-artifact"
                                 variant="primary" onClick={props.onUploadArtifact}>Upload artifact</Button>
                         </IfFeature>
                     </IfAuth>

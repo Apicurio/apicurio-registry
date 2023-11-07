@@ -342,8 +342,8 @@ export const ArtifactsPage: FunctionComponent<ArtifactsPageProps> = () => {
                 onClose={onUploadModalClose}
                 className="upload-artifact-modal pf-m-redhat-font"
                 actions={[
-                    <Button key="upload" variant="primary" data-testid="modal-btn-upload" onClick={doUploadArtifact} isDisabled={!isUploadFormValid}>Upload</Button>,
-                    <Button key="cancel" variant="link" data-testid="modal-btn-cancel" onClick={onUploadModalClose}>Cancel</Button>
+                    <Button key="upload" variant="primary" data-testid="upload-artifact-modal-btn-upload" onClick={doUploadArtifact} isDisabled={!isUploadFormValid}>Upload</Button>,
+                    <Button key="cancel" variant="link" data-testid="upload-artifact-modal-btn-cancel" onClick={onUploadModalClose}>Cancel</Button>
                 ]}
             >
                 <UploadArtifactForm onChange={onUploadFormChange} onValid={onUploadFormValid} />
@@ -358,8 +358,8 @@ export const ArtifactsPage: FunctionComponent<ArtifactsPageProps> = () => {
                 onClose={onImportModalClose}
                 className="import-artifacts-modal pf-m-redhat-font"
                 actions={[
-                    <Button key="upload" variant="primary" data-testid="modal-btn-upload" onClick={doImport} isDisabled={!isImportFormValid}>Upload</Button>,
-                    <Button key="cancel" variant="link" data-testid="modal-btn-cancel" onClick={onImportModalClose}>Cancel</Button>
+                    <Button key="upload" variant="primary" data-testid="upload-artifacts-modal-btn-upload" onClick={doImport} isDisabled={!isImportFormValid}>Upload</Button>,
+                    <Button key="cancel" variant="link" data-testid="upload-artifacts-modal-btn-cancel" onClick={onImportModalClose}>Cancel</Button>
                 ]}
             >
                 <Form>

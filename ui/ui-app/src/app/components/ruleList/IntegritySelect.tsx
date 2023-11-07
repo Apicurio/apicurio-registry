@@ -10,7 +10,7 @@ export type IntegrityDropdownProps = {
     onSelect: (newValue: string) => void;
 };
 
-export const IntegrityDropdown: FunctionComponent<IntegrityDropdownProps> = ({ value, onSelect }: IntegrityDropdownProps) => {
+export const IntegritySelect: FunctionComponent<IntegrityDropdownProps> = ({ value, onSelect }: IntegrityDropdownProps) => {
     const menuRef = React.useRef<HTMLDivElement>(null);
     const [isOpen, setOpen] = useState<boolean>(false);
     const [selectedItems, setSelectedItems] = useState(["FULL"]);
@@ -89,6 +89,7 @@ export const IntegrityDropdown: FunctionComponent<IntegrityDropdownProps> = ({ v
             ref={toggleRef}
             onClick={onToggle}
             isExpanded={isOpen}
+            data-testid="rules-integrity-config-toggle"
             style={{ width: "200px" }}
         >
             <span>{ displayValue() }</span>
@@ -97,8 +98,7 @@ export const IntegrityDropdown: FunctionComponent<IntegrityDropdownProps> = ({ v
 
     return (
         <Select
-            role="menu"
-            id="checkbox-select"
+            id="integrity-select"
             ref={menuRef}
             isOpen={isOpen}
             selected={selectedItems}
@@ -107,27 +107,27 @@ export const IntegrityDropdown: FunctionComponent<IntegrityDropdownProps> = ({ v
             toggle={toggle}
         >
             <SelectList>
-                <SelectOption hasCheckbox itemId="NONE" isSelected={selectedItems.includes("NONE")}>
+                <SelectOption data-testid="integrity-config-none" hasCheckbox itemId="NONE" isSelected={selectedItems.includes("NONE")}>
                     <Tooltip content={<div>The rule will do nothing.</div>}>
                         <span>None</span>
                     </Tooltip>
                 </SelectOption>
-                <SelectOption hasCheckbox itemId="NO_DUPLICATES" isSelected={selectedItems.includes("NO_DUPLICATES")}>
+                <SelectOption data-testid="integrity-config-no-duplicates" hasCheckbox itemId="NO_DUPLICATES" isSelected={selectedItems.includes("NO_DUPLICATES")}>
                     <Tooltip content={<div>Disallows multiple mappings for the same reference (even when the mapping is the same).</div>}>
                         <span>No duplicates</span>
                     </Tooltip>
                 </SelectOption>
-                <SelectOption hasCheckbox itemId="REFS_EXIST" isSelected={selectedItems.includes("REFS_EXIST")}>
+                <SelectOption data-testid="integrity-config-refs-exist" hasCheckbox itemId="REFS_EXIST" isSelected={selectedItems.includes("REFS_EXIST")}>
                     <Tooltip content={<div>Ensures that all provided reference mappings point to existing artifacts.</div>}>
                         <span>Refs must exist</span>
                     </Tooltip>
                 </SelectOption>
-                <SelectOption hasCheckbox itemId="ALL_REFS_MAPPED" isSelected={selectedItems.includes("ALL_REFS_MAPPED")}>
+                <SelectOption data-testid="integrity-config-all-refs-mapped" hasCheckbox itemId="ALL_REFS_MAPPED" isSelected={selectedItems.includes("ALL_REFS_MAPPED")}>
                     <Tooltip content={<div>Requires that all references found in the content being registered have an appropriate mapping.</div>}>
                         <span>No unmapped refs</span>
                     </Tooltip>
                 </SelectOption>
-                <SelectOption hasCheckbox itemId="FULL" isSelected={selectedItems.includes("FULL")}>
+                <SelectOption data-testid="integrity-config-full" hasCheckbox itemId="FULL" isSelected={selectedItems.includes("FULL")}>
                     <Tooltip content={<div>Enable all of the above settings.</div>}>
                         <span>Full (all)</span>
                     </Tooltip>

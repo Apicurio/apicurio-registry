@@ -10,10 +10,12 @@ export type ObjectSelectProps = {
     items: any[];
     onSelect: (value: any) => void;
     itemToString: (value: any) => string;
-    isDivider?: (value: any) => boolean;
+    itemIsDivider?: (value: any) => boolean;
+    itemToTestId?: (value: any) => string;
     noSelectionLabel?: string;
     toggleId?: string;
     toggleClassname?: string;
+    testId?: string;
 };
 
 /**
@@ -32,11 +34,20 @@ export const ObjectSelect: FunctionComponent<ObjectSelectProps> = (props: Object
         setToggled(!isToggled);
     };
 
+    const itemToTestId = (item: any): string | undefined => {
+        let testId: string | undefined = undefined;
+        if (props.itemToTestId !== undefined) {
+            testId = props.itemToTestId(item);
+        }
+        return testId;
+    };
+
     const menuToggle = (toggleRef: React.Ref<MenuToggleElement>) => (
         <MenuToggle
             ref={toggleRef}
             className={props.toggleClassname || "menu-toggle"}
             onClick={toggle}
+            data-testid={props.testId}
             isExpanded={isToggled}
         >
             { props.value ? props.itemToString(props.value) : props.noSelectionLabel }
@@ -52,12 +63,19 @@ export const ObjectSelect: FunctionComponent<ObjectSelectProps> = (props: Object
             isOpen={isToggled}>
             {
                 props.items?.map((item: any, index: any) => {
-                    if (props.isDivider && props.isDivider(item)) {
+                    if (props.itemIsDivider && props.itemIsDivider(item)) {
                         return <Divider key={index} />;
                     } else {
-                        return <SelectOption isSelected={item === props.value} key={index} value={index}>
-                            { props.itemToString(item) }
-                        </SelectOption>;
+                        return (
+                            <SelectOption
+                                isSelected={item === props.value}
+                                component={props => <button {...props} data-testid={itemToTestId(item)} />}
+                                key={index}
+                                value={index}
+                            >
+                                { props.itemToString(item) }
+                            </SelectOption>
+                        );
                     }
                 })
             }

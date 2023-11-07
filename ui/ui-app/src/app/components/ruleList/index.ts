@@ -1,4 +1,4 @@
 export * from "./RuleList.tsx";
-export * from "./CompatibilityDropdown.tsx";
-export * from "./IntegrityDropdown.tsx";
-export * from "./ValidityDropdown.tsx";
+export * from "./CompatibilitySelect.tsx";
+export * from "./IntegritySelect.tsx";
+export * from "./ValiditySelect.tsx";

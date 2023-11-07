@@ -4,6 +4,10 @@ updates:
     directory: "/"
     schedule:
       interval: daily
+    groups:
+      main-dependencies:
+        patterns:
+          - "*"
     open-pull-requests-limit: 10
     ignore:
       - dependency-name: com.ibm.icu:icu4j
@@ -93,6 +97,10 @@ updates:
     directory: "/"
     schedule:
       interval: daily
+    groups:
+      backport-dependencies:
+        patterns:
+          - "*"
     open-pull-requests-limit: 10
     target-branch: "2.5.x"
     ignore:
@@ -229,6 +237,10 @@ updates:
     directory: "/ui"
     schedule:
       interval: daily
+    groups:
+      ui-dependencies:
+        patterns:
+          - "*"
     open-pull-requests-limit: 10
     versioning-strategy: increase
 
@@ -236,6 +248,10 @@ updates:
     directory: "/ui/ui-app"
     schedule:
       interval: daily
+    groups:
+      ui-dependencies:
+        patterns:
+          - "*"
     open-pull-requests-limit: 10
     versioning-strategy: increase
 
@@ -243,6 +259,10 @@ updates:
     directory: "/ui/ui-docs"
     schedule:
       interval: daily
+    groups:
+      ui-dependencies:
+        patterns:
+          - "*"
     open-pull-requests-limit: 10
     versioning-strategy: increase
 
@@ -250,5 +270,9 @@ updates:
     directory: "/ui/tests"
     schedule:
       interval: daily
+    groups:
+      ui-dependencies:
+        patterns:
+          - "*"
     open-pull-requests-limit: 10
     versioning-strategy: increase

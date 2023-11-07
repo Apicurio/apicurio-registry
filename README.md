@@ -42,6 +42,7 @@ This should result in Quarkus and the in-memory registry starting up, with the R
 cd ui
 npm install
 cd ui-app
+./init-dev.sh
 npm run dev
 ```
 
@@ -268,13 +269,3 @@ get stored in various modules' `target` directories.  These are then recognized 
 but are sometimes deleted during the Eclipse "clean" phase.  To prevent Eclipse from
 over-cleaning these files, find the **os-maven-plugin-1.6.2.jar** JAR in your 
 `.m2/repository` directory and copy it into `$ECLIPSE_HOME/dropins`.
-
-## IntelliJ IDE
-
-Some notes about using the IntelliJ IDE with the Apicurio Registry codebase.
-IntelliJ seems to struggle with multiple sub-modules including generated code.
-After importing the registry into your workspace, we recommend to ignore
-the `client` sub-module.
-
-Right click on `client/pom.xml` -> Maven -> Ignore Projects (click)
-

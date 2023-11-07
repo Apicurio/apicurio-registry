@@ -1,7 +1,40 @@
 import { FunctionComponent, useState } from "react";
-import "./DocumentationTabContent.css";
 import { ErrorTabContent } from "@app/pages";
+import { If } from "@app/components";
+import YAML from "yaml";
+import { ArtifactTypes } from "@models/artifactTypes.model.ts";
+import { AsyncApiVisualizer, OpenApiVisualizer } from "@app/pages/artifactVersion/components/tabs/visualizers";
 
+enum VisualizerType {
+    OPENAPI, ASYNCAPI, OTHER
+}
+
+const getVisualizerType = (artifactType: string): VisualizerType => {
+    if (artifactType === ArtifactTypes.OPENAPI) {
+        return VisualizerType.OPENAPI;
+    }
+    if (artifactType === ArtifactTypes.ASYNCAPI) {
+        return VisualizerType.ASYNCAPI;
+    }
+    return VisualizerType.OTHER;
+};
+
+const parseContent = (artifactContent: string): any => {
+    // Try as JSON
+    try {
+        return JSON.parse(artifactContent);
+    } catch (e) {
+        // Do nothing
+    }
+
+    // Try as YAML
+    try {
+        return YAML.parse(artifactContent);
+    } catch (e) {
+        // Do nothing
+    }
+    return {};
+};
 
 /**
  * Properties
@@ -16,52 +49,30 @@ export type DocumentationTabContentProps = {
  * Models the content of the Documentation tab on the artifact details page.
  */
 export const DocumentationTabContent: FunctionComponent<DocumentationTabContentProps> = (props: DocumentationTabContentProps) => {
+    const [parsedContent] = useState(parseContent(props.artifactContent));
+    const [visualizerType] = useState(getVisualizerType(props.artifactType));
     const [error] = useState<any>();
 
     const isError = () : boolean => {
         return !!error;
     };
 
-    // protected initializeState(): DocumentationTabContentState {
-    //     try {
-    //         return {
-    //             parsedContent: JSON.parse(this.props.artifactContent),
-    //             error: undefined
-    //         };
-    //     } catch(ex) {
-    //         Services.getLoggerService().warn("Failed to parse content:");
-    //         Services.getLoggerService().error(ex);
-    //         return {
-    //             parsedContent: undefined,
-    //             error: ex
-    //         };
-    //     }
-    // }
-
     if (isError()){
         return <ErrorTabContent error={{ errorMessage: "Artifact isn't a valid OpenAPI structure", error: error }}/>;
     }
 
-    // let visualizer: React.ReactElement | null = null;
-    // if (this.props.artifactType === "OPENAPI") {
-    //     visualizer = <RedocStandalone spec={this.state.parsedContent} />;
-    // }
-    //
-    // if(this.props.artifactType === "ASYNCAPI") {
-    //     const config: ConfigInterface = {
-    //         show: {
-    //             sidebar: false
-    //         }
-    //     };
-    //     visualizer = <AsyncApiComponent schema={this.state.parsedContent} config={config} />;
-    // }
-    //
-    // if (visualizer !== null) {
-    //     return visualizer;
-    // } else {
-    //     return <h1>Unsupported Type: { this.props.artifactType }</h1>;
-    // }
-
-    return <h1>Not yet implemented for type: { props.artifactType }</h1>;
+    return (
+        <>
+            <If condition={visualizerType === VisualizerType.OPENAPI}>
+                <OpenApiVisualizer spec={parsedContent} />
+            </If>
+            <If condition={visualizerType === VisualizerType.ASYNCAPI}>
+                <AsyncApiVisualizer spec={parsedContent} />
+            </If>
+            <If condition={visualizerType === VisualizerType.OTHER}>
+                <h1>Unsupported Type: { props.artifactType }</h1>
+            </If>
+        </>
+    );
 
 };

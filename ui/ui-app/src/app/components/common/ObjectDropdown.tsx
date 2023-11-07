@@ -3,13 +3,12 @@ import {
     Divider,
     Dropdown,
     DropdownItem,
-    DropdownList, DropdownPopperProps,
+    DropdownList,
+    DropdownPopperProps,
     MenuToggle,
     MenuToggleElement
 } from "@patternfly/react-core";
 import { EllipsisVIcon } from "@patternfly/react-icons";
-
-export const ObjectDropdownItemDivider = {};
 
 /**
  * Properties
@@ -19,9 +18,12 @@ export type ObjectDropdownProps = {
     items: any[];
     onSelect: (value: any | undefined) => void;
     itemToString: (value: any) => string;
+    itemIsDivider?: (value: any) => boolean;
+    itemToTestId?: (value: any) => string;
     noSelectionLabel?: string;
     menuAppendTo?: HTMLElement | (() => HTMLElement) | "inline";
     isKebab?: boolean;
+    testId?: string;
 };
 
 /**
@@ -40,8 +42,16 @@ export const ObjectDropdown: FunctionComponent<ObjectDropdownProps> = (props: Ob
         }
     };
 
-    const onToggleClick = () => {
+    const onToggleClick = (): void => {
         setIsOpen(!isOpen);
+    };
+
+    const itemToTestId = (item: any): string | undefined => {
+        let testId: string | undefined = undefined;
+        if (props.itemToTestId !== undefined) {
+            testId = props.itemToTestId(item);
+        }
+        return testId;
     };
 
     const popperProps: DropdownPopperProps = {
@@ -63,7 +73,13 @@ export const ObjectDropdown: FunctionComponent<ObjectDropdownProps> = (props: Ob
             onSelect={onSelectInternal}
             onOpenChange={(isOpen: boolean) => setIsOpen(isOpen)}
             toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
-                <MenuToggle ref={toggleRef} onClick={onToggleClick} isExpanded={isOpen} variant={props.isKebab ? "plain" : "default"}>
+                <MenuToggle
+                    data-testid={props.testId}
+                    ref={toggleRef}
+                    onClick={onToggleClick}
+                    isExpanded={isOpen}
+                    variant={props.isKebab ? "plain" : "default"}
+                >
                     {
                         toggleValue
                     }
@@ -77,10 +93,14 @@ export const ObjectDropdown: FunctionComponent<ObjectDropdownProps> = (props: Ob
                 {
                     props.items.map((item, index) => {
                         return (
-                            item == ObjectDropdownItemDivider ?
+                            (props.itemIsDivider && props.itemIsDivider(item)) ?
                                 <Divider component="li" key={`divider-${index}`} />
                                 :
-                                <DropdownItem value={index} key={`action-${index}`}>
+                                <DropdownItem
+                                    value={index}
+                                    key={`action-${index}`}
+                                    component={props => <button {...props} data-testid={itemToTestId(item)} />}
+                                >
                                     { props.itemToString(item) }
                                 </DropdownItem>
                         );

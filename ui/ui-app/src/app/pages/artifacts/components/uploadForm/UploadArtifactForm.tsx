@@ -183,7 +183,7 @@ export const UploadArtifactForm: FunctionComponent<UploadArtifactFormProps> = (p
                         isRequired={false}
                         type="text"
                         id="form-group"
-                        data-testid="form-group"
+                        data-testid="upload-artifact-form-group"
                         name="form-group"
                         aria-describedby="form-group-helper"
                         value={group}
@@ -197,7 +197,7 @@ export const UploadArtifactForm: FunctionComponent<UploadArtifactFormProps> = (p
                         isRequired={false}
                         type="text"
                         id="form-id"
-                        data-testid="form-id"
+                        data-testid="upload-artifact-form-id"
                         name="form-id"
                         aria-describedby="form-id-helper"
                         value={id}
@@ -225,10 +225,13 @@ export const UploadArtifactForm: FunctionComponent<UploadArtifactFormProps> = (p
                 isRequired={true}
             >
                 <div>
-                    <ObjectSelect value={selectedType}
+                    <ObjectSelect
+                        value={selectedType}
                         items={artifactTypeOptions}
+                        testId="upload-artifact-form-type-select"
                         onSelect={setSelectedType}
-                        isDivider={(item) => item.isDivider}
+                        itemIsDivider={(item) => item.isDivider}
+                        itemToTestId={(item) => `upload-artifact-form-${item.value}`}
                         itemToString={(item) => item.label} />
                 </div>
             </FormGroup>
@@ -250,10 +253,15 @@ export const UploadArtifactForm: FunctionComponent<UploadArtifactFormProps> = (p
                     isBox={false}
                     role="region"
                 >
-                    <Tab eventKey={0} data-testid="tab-from-file" title={<TabTitleText>From file</TabTitleText>} aria-label="Default content - from file">
+                    <Tab
+                        eventKey={0}
+                        data-testid="upload-artifact-from-file"
+                        title={<TabTitleText>From file</TabTitleText>}
+                        aria-label="Upload from file"
+                    >
                         <FileUpload
                             id="artifact-content"
-                            data-testid="form-upload"
+                            data-testid="upload-artifact-form-file-upload"
                             type="text"
                             value={content!}
                             isRequired={false}
@@ -266,10 +274,16 @@ export const UploadArtifactForm: FunctionComponent<UploadArtifactFormProps> = (p
                             isLoading={contentIsLoading}
                         />
                     </Tab>
-                    <Tab eventKey={1} data-testid="tab-from-url" title={<TabTitleText>From URL</TabTitleText>}>
+                    <Tab
+                        eventKey={1}
+                        data-testid="upload-artifact-from-url"
+                        title={<TabTitleText>From URL</TabTitleText>}
+                        aria-label="Upload from URL"
+                    >
                         <UrlUpload
                             id="artifact-content-url"
                             urlPlaceholder="Enter a valid and accessible URL"
+                            testId="upload-artifact-form-url-upload"
                             onChange={(value) => {
                                 onFileTextChange(null, value);
                             }}

@@ -14,8 +14,9 @@ const AUTH_TYPE=process.env["REGISTRY_AUTH_TYPE"] || "none";
 const AUTH_RBAC_ENABLED=process.env["REGISTRY_AUTH_RBAC_ENABLED"] || "false";
 const AUTH_OBAC_ENABLED=process.env["REGISTRY_AUTH_OBAC_ENABLED"] || "false";
 const AUTH_URL=process.env["REGISTRY_AUTH_URL"] || "";
-const AUTH_CLIENT_ID=process.env["REGISTRY_AUTH_CLIENT_ID"] || "api-designer-ui";
-const AUTH_REDIRECT_URL=process.env["REGISTRY_AUTH_REDIRECT_URL"] || "";
+const AUTH_CLIENT_ID=process.env["REGISTRY_AUTH_CLIENT_ID"] || "registry-ui";
+const AUTH_CLIENT_SCOPES=process.env["REGISTRY_AUTH_CLIENT_SCOPES"] || "openid profile email offline_token";
+const AUTH_REDIRECT_URL=process.env["REGISTRY_AUTH_REDIRECT_URL"] || "http://localhost:8888";
 
 const FEATURE_READ_ONLY=process.env["REGISTRY_FEATURE_READ_ONLY"] || "false";
 const FEATURE_BREADCRUMBS=process.env["REGISTRY_FEATURE_BREADCRUMBS"] || "true";
@@ -30,7 +31,8 @@ const CONFIG = {
     },
     ui: {
         contextPath: CONTEXT_PATH,
-        navPrefixPath: NAV_PREFIX_PATH
+        navPrefixPath: NAV_PREFIX_PATH,
+        oaiDocsUrl: "/docs/"
     },
     auth: {
         type: AUTH_TYPE,
@@ -40,6 +42,7 @@ const CONFIG = {
             url: AUTH_URL,
             redirectUri: AUTH_REDIRECT_URL,
             clientId: AUTH_CLIENT_ID,
+            scopes: AUTH_CLIENT_SCOPES
         }
     },
     features: {

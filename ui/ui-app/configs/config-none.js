@@ -4,7 +4,8 @@ var ApicurioRegistryConfig = {
     },
     ui: {
         contextPath: "/",
-        navPrefixPath: "/"
+        navPrefixPath: "/",
+        oaiDocsUrl: "http://localhost:8889"
     },
     auth: {
         type: "none"

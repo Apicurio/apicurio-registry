@@ -150,7 +150,8 @@ export const ArtifactVersionPage: FunctionComponent<ArtifactVersionPageProps> = 
 
     const showDocumentationTab = (): boolean => {
         if (artifact) {
-            return (artifact.type === "OPENAPI" || artifact.type === "ASYNCAPI") && artifact.state !== "DISABLED";
+            // return (artifact.type === "OPENAPI" || artifact.type === "ASYNCAPI") && artifact.state !== "DISABLED";
+            return artifact.type === "OPENAPI" && artifact.state !== "DISABLED";
         } else {
             return false;
         }
@@ -374,7 +375,7 @@ export const ArtifactVersionPage: FunctionComponent<ArtifactVersionPageProps> = 
                 onChangeOwner={openChangeOwnerModal}
             />
         </Tab>,
-        <Tab eventKey="documentation" title="Documentation" key="documentation">
+        <Tab eventKey="documentation" title="Documentation" key="documentation" className="documentation-tab">
             <DocumentationTabContent artifactContent={artifactContent} artifactType={artifact.type} />
         </Tab>,
         <Tab eventKey="content" title="Content" key="content">

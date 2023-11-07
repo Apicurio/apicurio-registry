@@ -81,30 +81,40 @@ export const InfoTabContent: FunctionComponent<InfoTabContentProps> = (props: In
                         <DescriptionList className="metaData" isCompact={true}>
                             <DescriptionListGroup>
                                 <DescriptionListTerm>Name</DescriptionListTerm>
-                                <DescriptionListDescription className={!props.artifact.name ? "empty-state-text" : ""}>{artifactName()}</DescriptionListDescription>
+                                <DescriptionListDescription
+                                    data-testid="artifact-details-name"
+                                    className={!props.artifact.name ? "empty-state-text" : ""}
+                                >
+                                    { artifactName() }
+                                </DescriptionListDescription>
                             </DescriptionListGroup>
                             <DescriptionListGroup>
                                 <DescriptionListTerm>ID</DescriptionListTerm>
-                                <DescriptionListDescription>{props.artifact.id}</DescriptionListDescription>
+                                <DescriptionListDescription data-testid="artifact-details-id">{props.artifact.id}</DescriptionListDescription>
                             </DescriptionListGroup>
                             <DescriptionListGroup>
                                 <DescriptionListTerm>Description</DescriptionListTerm>
-                                <DescriptionListDescription className={!props.artifact.description ? "empty-state-text" : ""}>{description()}</DescriptionListDescription>
+                                <DescriptionListDescription
+                                    data-testid="artifact-details-description"
+                                    className={!props.artifact.description ? "empty-state-text" : ""}
+                                >
+                                    { description() }
+                                </DescriptionListDescription>
                             </DescriptionListGroup>
                             <DescriptionListGroup>
                                 <DescriptionListTerm>Status</DescriptionListTerm>
-                                <DescriptionListDescription>{props.artifact.state}</DescriptionListDescription>
+                                <DescriptionListDescription data-testid="artifact-details-state">{props.artifact.state}</DescriptionListDescription>
                             </DescriptionListGroup>
                             <DescriptionListGroup>
                                 <DescriptionListTerm>Created</DescriptionListTerm>
-                                <DescriptionListDescription>
+                                <DescriptionListDescription data-testid="artifact-details-created-on">
                                     <FromNow date={props.artifact.createdOn} />
                                 </DescriptionListDescription>
                             </DescriptionListGroup>
                             <If condition={props.artifact.createdBy !== undefined && props.artifact.createdBy !== ""}>
                                 <DescriptionListGroup>
                                     <DescriptionListTerm>Owner</DescriptionListTerm>
-                                    <DescriptionListDescription>
+                                    <DescriptionListDescription data-testid="artifact-details-created-by">
                                         <span>{props.artifact.createdBy}</span>
                                         <span>
                                             <IfAuth isAdminOrOwner={true} owner={props.artifact.createdBy}>
@@ -121,37 +131,37 @@ export const InfoTabContent: FunctionComponent<InfoTabContentProps> = (props: In
                             </If>
                             <DescriptionListGroup>
                                 <DescriptionListTerm>Modified</DescriptionListTerm>
-                                <DescriptionListDescription>
+                                <DescriptionListDescription data-testid="artifact-details-modified-on">
                                     <FromNow date={props.artifact.modifiedOn} />
                                 </DescriptionListDescription>
                             </DescriptionListGroup>
                             <DescriptionListGroup>
                                 <DescriptionListTerm>Global ID</DescriptionListTerm>
-                                <DescriptionListDescription>{props.artifact.globalId}</DescriptionListDescription>
+                                <DescriptionListDescription data-testid="artifact-details-global-id">{props.artifact.globalId}</DescriptionListDescription>
                             </DescriptionListGroup>
                             <DescriptionListGroup>
                                 <DescriptionListTerm>Content ID</DescriptionListTerm>
-                                <DescriptionListDescription>{props.artifact.contentId}</DescriptionListDescription>
+                                <DescriptionListDescription data-testid="artifact-details-content-id">{props.artifact.contentId}</DescriptionListDescription>
                             </DescriptionListGroup>
                             <DescriptionListGroup>
                                 <DescriptionListTerm>Labels</DescriptionListTerm>
                                 {labels().length ?
-                                    <DescriptionListDescription>{
+                                    <DescriptionListDescription data-testid="artifact-details-labels">{
                                         labels().map((label) =>
                                             <Label key={`label-${label}`} color="blue" style={{ marginBottom: "2px", marginLeft: "5px" }}>
                                                 <Truncate className="label-truncate" content={label} />
                                             </Label>
                                         )
                                     }</DescriptionListDescription> :
-                                    <DescriptionListDescription className="empty-state-text">No labels</DescriptionListDescription>
+                                    <DescriptionListDescription className="empty-state-text" data-testid="artifact-details-labels">No labels</DescriptionListDescription>
                                 }
 
                             </DescriptionListGroup>
                             <DescriptionListGroup>
                                 <DescriptionListTerm>Properties</DescriptionListTerm>
                                 {!props.artifact.properties || !Object.keys(props.artifact.properties).length ?
-                                    <DescriptionListDescription className="empty-state-text">No properties</DescriptionListDescription> :
-                                    <DescriptionListDescription>{Object.entries(props.artifact.properties).map(([key, value]) =>
+                                    <DescriptionListDescription data-testid="artifact-details-properties" className="empty-state-text">No properties</DescriptionListDescription> :
+                                    <DescriptionListDescription data-testid="artifact-details-properties">{Object.entries(props.artifact.properties).map(([key, value]) =>
                                         <Label key={`property-${key}`} color="purple" style={{ marginBottom: "2px", marginLeft: "5px" }}>
                                             <Truncate className="property-truncate" content={`${key}=${value}`} />
                                         </Label>

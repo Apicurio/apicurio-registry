@@ -1,5 +1,5 @@
 import React, { FunctionComponent } from "react";
-import { Services } from "@services/services";
+import { Services } from "@services/services.ts";
 import { AuthService } from "@services/auth";
 
 /**

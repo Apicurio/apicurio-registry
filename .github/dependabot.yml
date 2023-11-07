@@ -4,6 +4,10 @@ updates:
     directory: "/"
     schedule:
       interval: daily
+    groups:
+      main-dependencies:
+        patterns:
+          - "*"
     open-pull-requests-limit: 10
     ignore:
       - dependency-name: com.ibm.icu:icu4j
@@ -93,6 +97,10 @@ updates:
     directory: "/"
     schedule:
       interval: daily
+    groups:
+      backport-dependencies:
+        patterns:
+          - "*"
     open-pull-requests-limit: 10
     target-branch: "2.5.x"
     ignore:
@@ -225,30 +233,46 @@ updates:
         versions:
           - 4.9.1
 
-- package-ecosystem: npm
-  directory: "/ui"
-  schedule:
-    interval: daily
-  open-pull-requests-limit: 10
-  versioning-strategy: increase
+  - package-ecosystem: npm
+    directory: "/ui"
+    schedule:
+      interval: daily
+    groups:
+      ui-dependencies:
+        patterns:
+          - "*"
+    open-pull-requests-limit: 10
+    versioning-strategy: increase
 
-- package-ecosystem: npm
-  directory: "/ui/ui-app"
-  schedule:
-    interval: daily
-  open-pull-requests-limit: 10
-  versioning-strategy: increase
+  - package-ecosystem: npm
+    directory: "/ui/ui-app"
+    schedule:
+      interval: daily
+    groups:
+      ui-dependencies:
+        patterns:
+          - "*"
+    open-pull-requests-limit: 10
+    versioning-strategy: increase
 
-- package-ecosystem: npm
-  directory: "/ui/ui-docs"
-  schedule:
-    interval: daily
-  open-pull-requests-limit: 10
-  versioning-strategy: increase
+  - package-ecosystem: npm
+    directory: "/ui/ui-docs"
+    schedule:
+      interval: daily
+    groups:
+      ui-dependencies:
+        patterns:
+          - "*"
+    open-pull-requests-limit: 10
+    versioning-strategy: increase
 
-- package-ecosystem: npm
-  directory: "/ui/tests"
-  schedule:
-    interval: daily
-  open-pull-requests-limit: 10
-  versioning-strategy: increase
+  - package-ecosystem: npm
+    directory: "/ui/tests"
+    schedule:
+      interval: daily
+    groups:
+      ui-dependencies:
+        patterns:
+          - "*"
+    open-pull-requests-limit: 10
+    versioning-strategy: increase

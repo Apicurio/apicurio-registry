@@ -11,7 +11,7 @@ on:
 
 env:
   # The values are extracted from the github.event context,
-  # which is only availble when the workflow gets triggered by a release event.
+  # which is only available when the workflow gets triggered by a release event.
   RELEASE_VERSION: ${{ github.event.release.name }}
   BRANCH: ${{ github.event.release.target_commitish }}
 

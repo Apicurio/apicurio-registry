@@ -1,7 +1,13 @@
 #! /usr/bin/env node
+var shell = require("shelljs");
 const fs = require("fs");
 const packageJson = require('../package.json');
 
+console.info("-------------------------------------------------------");
+console.info("Getting current git SHA");
+const gitSHA = shell.exec("git rev-parse HEAD", { silent: true }).stdout.trim();
+console.info(`   SHA: ${gitSHA}`);
+console.info("-------------------------------------------------------");
 
 console.info("-------------------------------------------------------");
 console.info("Generating version.js");
@@ -14,6 +20,7 @@ const VERSION_OUTPUT_PATH="./ui-app/dist/version.js";
 const info = {
     name: "Apicurio Registry",
     version: packageJson.version,
+    digest: gitSHA,
     builtOn: new Date(),
     url: "https://www.apicur.io/registry/"
 };

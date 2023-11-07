@@ -11,7 +11,7 @@ then
   CONFIG_TYPE="none"
 fi
 
-cp config/version.js version.js
-cp config/config-$CONFIG_TYPE.js config.js
+cp configs/version.js version.js
+cp configs/config-$CONFIG_TYPE.js config.js
 
 echo "Done.  Try:  'npm run dev'"

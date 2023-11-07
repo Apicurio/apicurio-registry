@@ -50,6 +50,7 @@ export const PropertiesFormGroup: FunctionComponent<PropertiesFormGroupProps> = 
                                 type="text"
                                 placeholder="Enter key"
                                 id={`form-properties-key-${idx}`}
+                                data-testid={`edit-metadata-modal-property-name-${idx}`}
                                 name={`form-properties-key-${idx}`}
                                 validated={property.nameValidated}
                                 value={property.name}
@@ -67,6 +68,7 @@ export const PropertiesFormGroup: FunctionComponent<PropertiesFormGroupProps> = 
                                 <TextInput
                                     type="text"
                                     id={`form-properties-value-${idx}`}
+                                    data-testid={`edit-metadata-modal-property-value-${idx}`}
                                     placeholder="Enter value"
                                     name={`form-properties-value-${idx}`}
                                     validated={property.valueValidated}
@@ -87,7 +89,13 @@ export const PropertiesFormGroup: FunctionComponent<PropertiesFormGroupProps> = 
                 ))
             }
             <GridItem span={12}>
-                <Button variant="link" icon={<PlusCircleIcon />} className="add-property-button" onClick={() => addArtifactProperty()}>
+                <Button
+                    variant="link"
+                    icon={<PlusCircleIcon />}
+                    className="add-property-button"
+                    data-testid="edit-metadata-modal-add-property"
+                    onClick={() => addArtifactProperty()}
+                >
                     Add property
                 </Button>{" "}
             </GridItem>

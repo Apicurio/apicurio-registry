@@ -66,6 +66,7 @@ public class AvroSchemaParser<U> implements SchemaParser<Schema, U> {
     @Override
     public ParsedSchema<Schema> getSchemaFromData(Record<U> data) {
         Schema schema = avroDatumProvider.toSchema(data.payload());
+        schema = AvroSchemaUtils.removeJavaPropertiesIfNeeded(schema, removeJavaProperties);
         final List<ParsedSchema<Schema>> resolvedReferences = handleReferences(schema);
         return new ParsedSchemaImpl<Schema>()
                 .setParsedSchema(schema)
@@ -81,7 +82,7 @@ public class AvroSchemaParser<U> implements SchemaParser<Schema, U> {
     public ParsedSchema<Schema> getSchemaFromData(Record<U> data, boolean dereference) {
         if (dereference) {
             Schema schema = avroDatumProvider.toSchema(data.payload());
-
+            schema = AvroSchemaUtils.removeJavaPropertiesIfNeeded(schema, removeJavaProperties);
             return new ParsedSchemaImpl<Schema>()
                     .setParsedSchema(schema)
                     .setReferenceName(schema.getFullName())

@@ -80,37 +80,37 @@ public class AvroSchemaUtils {
             handleReferences(parser, references);
             parsedSchema = parser.parse(schema);
         }
-
-        if (removeJavaProperties) {
-            final Schema.Parser parser = new Schema.Parser();
-            parsedSchema = removeJavaProperties(parser, parsedSchema);
-        }
+            parsedSchema = removeJavaPropertiesIfNeeded(parsedSchema, removeJavaProperties);
         return parsedSchema;
     }
 
-    private static Schema removeJavaProperties(Schema.Parser parser, Schema schema) {
+    public static Schema removeJavaPropertiesIfNeeded(Schema schema, boolean removeJavaProperties) {
+        if (removeJavaProperties) {
         try {
+            final Schema.Parser parser = new Schema.Parser();
             JsonNode node = jsonMapper.readTree(schema.toString());
-            removeProperty(parser, node, "avro.java.string");
+            removeProperty(node, "avro.java.string");
             return parser.parse(node.toString());
         } catch (Exception e) {
             throw new SerializationException("Could not parse schema: " + schema.toString());
         }
+        }
+        return schema;
     }
 
-    private static void removeProperty(Schema.Parser parser, JsonNode node, String propertyName) {
+    private static void removeProperty(JsonNode node, String propertyName) {
         if (node.isObject()) {
             ObjectNode objectNode = (ObjectNode) node;
             objectNode.remove(propertyName);
             Iterator<JsonNode> elements = objectNode.elements();
             while (elements.hasNext()) {
-                removeProperty(parser, elements.next(), propertyName);
+                removeProperty(elements.next(), propertyName);
             }
         } else if (node.isArray()) {
             ArrayNode arrayNode = (ArrayNode) node;
             Iterator<JsonNode> elements = arrayNode.elements();
             while (elements.hasNext()) {
-                removeProperty(parser, elements.next(), propertyName);
+                removeProperty(elements.next(), propertyName);
             }
         }
     }
@@ -130,9 +130,9 @@ public class AvroSchemaUtils {
         return primitiveSchemas.containsValue(schema);
     }
 
-    static Schema getReflectSchema(ReflectData reflectData,Object object) {
+    static Schema getReflectSchema(Object object) {
         Class<?> clazz = (object instanceof Class) ? (Class<?>) object : object.getClass();
-        Schema schema = reflectData.getSchema(clazz);
+        Schema schema = ReflectData.get().getSchema(clazz);
         if (schema == null) {
             throw new SerializationException("No schema for class: " + clazz.getName());
         }

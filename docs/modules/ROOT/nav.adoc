@@ -19,7 +19,7 @@
 ** xref:getting-started/assembly-using-kafka-client-serdes.adoc[]
 ** xref:getting-started/assembly-configuring-kafka-client-serdes.adoc[]
 ifndef::service-registry-downstream[]
-* Guides
+* Troubleshooting
 ** xref:getting-started/guide-exporting-registry-kafka-topic-data.adoc[]
 endif::[]
 * Reference

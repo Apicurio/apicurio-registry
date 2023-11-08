@@ -5,23 +5,23 @@ include::{mod-loc}shared/all-attributes.adoc[]
 = Exporting {registry} Kafka topic data
 
 [role="_abstract"]
-One of the supported {registry} storage options is `kafkasql`, which uses a Kafka topic named `kafkasql-journal` to store data.
-If you encounter a problem when using this storage option and want to report it to {registry} developers, it might be necessary to provide an export of the data present in the `kafkasql-journal` topic for analysis.
-This guide contains information on how to create such a topic export using the *kcat* (formerly known as *kafkacat*) tool.
+One of the supported {registry} storage options is Apache Kafka, which uses a Kafka topic named `kafkasql-journal` to store data.
+If you encounter a problem when using this storage option and want to report it to {registry} developers, you might need to provide an export of the data present in the `kafkasql-journal` topic for analysis.
+This document contains information on how to create such a topic export using the `kcat` tool (formerly known as `kafkacat`).
 
 .Prerequisites
 * Kafka has been installed and is running in your environment.
-* You have deployed {registry} that has stored some data to the `kafkasql-journal` topic.
+* You have deployed {registry} with data stored in the `kafkasql-journal` topic.
 * The `kafkasql-journal` topic is still present.
 
-== Setting up *kcat* on {kubernetes-with-article} work pod
+== Setting up kcat on {kubernetes-with-article} work pod
 
 .Prerequisites
 * Your environment is {kubernetes}.
 * You have logged in to the cluster using the `{kubernetes-client}` command line interface.
 
 .Procedure
-. Select a {kubernetes-namespace} where an ephemeral work pod will be started. It does not have to be the same {kubernetes-namespace} where the Kafka cluster is deployed:
+. Select a {kubernetes-namespace} where an ephemeral work pod will be started. This can be the same or a different {kubernetes-namespace} from where the Kafka cluster is deployed:
 +
 ifndef::service-registry-downstream[]
 [source,bash]
@@ -36,7 +36,7 @@ oc project default
 ----
 endif::[]
 
-. Create an ephemeral work pod using the latest Fedora image, and connect to it using your terminal:
+. Create an ephemeral work pod using the latest Fedora image, and connect to the pod using your terminal:
 +
 [subs="attributes"]
 [source,bash]
@@ -46,15 +46,13 @@ endif::[]
 +
 If you keep the `--rm` flag, the work pod will be deleted when you disconnect from the remote terminal.
 
-. It is possible to install *kcat* using the *dnf* package manager, however that version does not have JSON support enabled.
-Since we want to export the topic data in a JSON format with additional metadata, we need to build the *kcat* executable from source.
+. You can install `kcat` using the `dnf` package manager. However, that version does not have JSON support enabled.
+Because you want to export the topic data in a JSON format with additional metadata, you must build the `kcat` executable from source.
 +
-In addition, while the *kcat* project is widely used for this kind of use cases, it seems to https://github.com/edenhill/kcat/issues/424[have become hibernated], and we need an additional feature for `kafkasql-journal` topic export to work properly.
-That feature is the https://github.com/edenhill/kcat/pull/206[support for base64 encoded keys and values].
-This is important because the topic includes some raw binary data, which might not be correctly encoded in the JSON output.
-Therefore, we will build *kcat* from sources that include base64 support, but which have not been merged into the main project yet.
+In addition, while the `kcat` project is widely used for this use case, https://github.com/edenhill/kcat/issues/424[this project seems to be hibernated], and you require an additional feature for the `kafkasql-journal` topic export to work properly.
+This feature is https://github.com/edenhill/kcat/pull/206[support for base64 encoded keys and values], and is important because the topic includes raw binary data, which might not be correctly encoded in the JSON output.Therefore, you must build `kcat` from source that includes base64 support, which has not been merged into the main project yet.
 +
-Install `git`, and checkout the *kcat* repository:
+Install `git`, and check out the `kcat` repository:
 +
 [source,bash]
 ----
@@ -65,7 +63,7 @@ cd kcat
 git checkout jjlin/base64
 ----
 
-. Install the dependencies and build *kcat*:
+. Install the dependencies and build `kcat`:
 +
 [source,bash]
 ----
@@ -74,7 +72,7 @@ dnf install -y gcc librdkafka-devel yajl-devel
 make
 ----
 
-. Copy the executable to `/usr/bin` so it is available in `$PATH`:
+. Copy the executable to `/usr/bin` so that it is available in `$PATH`:
 +
 [source,bash]
 ----
@@ -90,8 +88,7 @@ export KAFKA_BOOTSTRAP_SERVER="my-kafka-cluster-kafka-bootstrap.default.svc:9092
 
 [NOTE]
 ====
-In case you do not need JSON support, the following commands might be used to install *kcat* using *dnf*:
-
+If you do not require JSON support, you can use the following commands to install `kcat` using `dnf`:
 [source,bash]
 ----
 dnf install -y "dnf-command(copr)"
@@ -101,9 +98,9 @@ dnf install -y kafkacat
 ----
 ====
 
-== Using *kcat*
+== Examples of using kcat
 
-These are several examples on how to use *kcat*, including creation of a topic export:
+The following are several examples of how to use `kcat`, including creation of a topic export:
 
 * List Kafka topics:
 +
@@ -111,7 +108,7 @@ These are several examples on how to use *kcat*, including creation of a topic e
 ----
 kcat -b $KAFKA_BOOTSTRAP_SERVER -L | grep "topic " | sed 's#\([^"]*"\)\([^"]*\)\(".*\)#\2#'
 ----
-The `sed` command is used to filter out extra information.
+The `sed` command filters out extra information in this example.
 
 * Export data from the `kafkasql-journal` topic in JSON format, with envelope, and base64 encoded keys and values:
 +
@@ -121,7 +118,7 @@ kcat -b $KAFKA_BOOTSTRAP_SERVER -C -t kafkasql-journal -S base64 -Z -D \\n -e -J
   > kafkasql-journal.topicdump
 ----
 
-* Create an export file for each listed topic by combining the above commands:
+* Create an export file for each listed topic by combining the preceding commands:
 +
 [source,bash]
 ----
@@ -141,9 +138,9 @@ After the topic export files have been created, you can run the following comman
 {kubernetes-client} cp work-pod:/kcat/dump .
 ----
 
-== Importing the `kafkasql-journal` topic data
+== Importing the kafkasql-journal topic data
 
-To import `kafkasql-journal` topic data that have been created with *kcat*, use a https://github.com/Apicurio/apicurio-registry-examples/tree/main/tools/kafkasql-topic-import[program from the Apicurio Registry Examples repository]:
+To import `kafkasql-journal` topic data that has been created with `kcat`, use an https://github.com/Apicurio/apicurio-registry-examples/tree/main/tools/kafkasql-topic-import[application from the Apicurio Registry examples repository] as follows:
 
 [source,bash]
 ----
@@ -156,5 +153,5 @@ java -jar target/apicurio-registry-tools-kafkasql-topic-import-$VERSION-jar-with
 
 [role="_additional-resources"]
 .Additional resources
-* For more details about *kcat*, see the https://github.com/edenhill/kcat[*kcat* repository].
-* You can provide additional parameters to configure *kcat* for accessing Kafka, in the `-X property=value` format. See the https://github.com/confluentinc/librdkafka/blob/master/CONFIGURATION.md[*librdkafka* configuration reference] for the list of parameters.
+* For more details about `kcat`, see the https://github.com/edenhill/kcat[kcat repository].
+* You can provide additional parameters to configure `kcat` for accessing Kafka, in the `-X property=value` format. For the list of parameters, see the https://github.com/confluentinc/librdkafka/blob/master/CONFIGURATION.md[librdkafka configuration reference]. 

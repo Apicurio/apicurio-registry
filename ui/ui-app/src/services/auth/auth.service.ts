@@ -36,16 +36,11 @@ export class AuthService implements Service {
     public async authenticate(): Promise<any> {
         if (this.config?.authType() === "oidc") {
             this.enabled = true;
-            const url = new URL(window.location.href);
-            if (url.searchParams.get("state") || url.searchParams.get("code")) {
-                return this.userManager?.signinRedirectCallback().then(user => {
-                    return Promise.resolve(user);
-                }).catch(() => {
-                    return this.authenticateUsingOidc();
-                })
-            } else {
-                return this.authenticateUsingOidc()
-            }
+            return this.userManager?.signinRedirectCallback().then(user => {
+                return Promise.resolve(user);
+            }).catch(() => {
+                return this.authenticateUsingOidc();
+            })s
 
         } else {
             this.enabled = false;

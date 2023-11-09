@@ -11,6 +11,12 @@ updates:
       confluent-dependencies:
         patterns:
           - "io.confluent:*"
+      kiota-dependencies:
+        patterns:
+          - "com.microsoft.kiota:*"
+      apicurio-common-dependencies:
+        patterns:
+          - "io.apicurio:apicurio-common*"
       test-dependencies:
         patterns:
           - "*test*"

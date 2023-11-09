@@ -80,15 +80,17 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
         Objects.requireNonNull(data.payload());
 
 
-        ParsedSchema<S> parsedSchema = null;
+        ParsedSchema<S> parsedSchema;
         if (artifactResolverStrategy.loadSchema() && schemaParser.supportsExtractSchemaFromData()) {
             parsedSchema = schemaParser.getSchemaFromData(data, dereference);
+        } else {
+            parsedSchema = null;
         }
 
         final ArtifactReference artifactReference = resolveArtifactReference(data, parsedSchema, false, null);
 
         return getSchemaFromCache(artifactReference)
-                .orElse(getSchemaFromRegistry(parsedSchema, data, artifactReference));
+                .orElseGet(() -> getSchemaFromRegistry(parsedSchema, data, artifactReference));
     }
 
     private Optional<SchemaLookupResult<S>> getSchemaFromCache(ArtifactReference artifactReference) {

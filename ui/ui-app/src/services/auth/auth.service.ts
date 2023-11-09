@@ -3,7 +3,7 @@ import {Service} from "../baseService";
 import {AxiosRequestConfig} from "axios";
 import {LoggerService} from "../logger";
 import {UsersService} from "../users";
-import {User, UserManager, UserManagerSettings} from "oidc-client-ts";
+import {UserManager, UserManagerSettings} from "oidc-client-ts";
 
 // export interface AuthenticatedUser {
 //     username: string;
@@ -39,25 +39,14 @@ export class AuthService implements Service {
             return this.userManager?.signinRedirectCallback().then(user => {
                 return Promise.resolve(user);
             }).catch(() => {
-                return this.authenticateUsingOidc();
-            })s
+                return this.doLogin();
+            })
 
         } else {
             this.enabled = false;
             return Promise.resolve("Authentication not enabled.");
         }
     }
-
-    public authenticateUsingOidc = (): Promise<User> => {
-        return this.userManager?.getUser().then((authenticatedUser) => {
-            if (authenticatedUser) {
-                return Promise.resolve(authenticatedUser);
-            } else {
-                console.warn("Not authenticated, call doLogin!");
-                return this.doLogin();
-            }
-        }) || Promise.reject(new Error("(authenticateUsingOidc) User manager is undefined."));
-    };
 
     public getClientSettings(): UserManagerSettings {
         const configOptions: any = this.config?.authOptions();
@@ -82,7 +71,14 @@ export class AuthService implements Service {
     }
 
     public doLogin = (): Promise<any> => {
-        return this.userManager?.signinRedirect() || Promise.reject("(doLogin) User manager is undefined.");
+        return this.userManager?.getUser().then((authenticatedUser): Promise<any> => {
+            if (authenticatedUser) {
+                return Promise.resolve(authenticatedUser);
+            } else {
+                console.warn("Not authenticated, call doLogin!");
+                return this.userManager?.signinRedirect() || Promise.reject("(doLogin) User manager is undefined.");
+            }
+        }) || Promise.reject(new Error("(authenticateUsingOidc) User manager is undefined."));
     };
 
     public doLogout = () => {

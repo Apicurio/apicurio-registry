@@ -26,7 +26,7 @@
     <modelVersion>4.0.0</modelVersion>
     <artifactId>apicurio-registry-client</artifactId>
     <properties>
-        <kiota.libs.version>0.7.8</kiota.libs.version>
+        <kiota.libs.version>0.8.0</kiota.libs.version>
     </properties>
     <dependencies>
         <dependency>

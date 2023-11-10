@@ -16,14 +16,26 @@
 
 package io.apicurio.registry.rest;
 
-import io.quarkus.security.AuthenticationFailedException;
-
+import io.apicurio.registry.services.http.ErrorHttpResponse;
+import io.apicurio.registry.services.http.RegistryExceptionMapperService;
+import io.quarkus.security.UnauthorizedException;
+import jakarta.annotation.Priority;
+import jakarta.inject.Inject;
+import jakarta.ws.rs.Priorities;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.ext.ExceptionMapper;
+import jakarta.ws.rs.ext.Provider;
 
-public class AuthenticationFailedExceptionMapper implements ExceptionMapper<AuthenticationFailedException> {
+@Provider
+@Priority(Priorities.AUTHENTICATION)
+public class AuthenticationFailedExceptionMapper implements ExceptionMapper<UnauthorizedException> {
+
+    @Inject
+    RegistryExceptionMapperService exceptionMapperService;
+
     @Override
-    public Response toResponse(AuthenticationFailedException exception) {
-        return Response.status(401).build();
+    public Response toResponse(UnauthorizedException exception) {
+        ErrorHttpResponse errorHttpResponse = exceptionMapperService.mapException(exception);
+        return Response.status(401).entity(errorHttpResponse).build();
     }
 }

@@ -57,6 +57,7 @@ import io.apicurio.registry.storage.VersionNotFoundException;
 import io.apicurio.rest.client.auth.exception.ForbiddenException;
 import io.apicurio.rest.client.auth.exception.NotAuthorizedException;
 import io.apicurio.tenantmanager.client.exception.TenantManagerClientException;
+import io.quarkus.security.UnauthorizedException;
 import io.smallrye.mutiny.TimeoutException;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -136,6 +137,8 @@ public class RegistryExceptionMapperService {
         map.put(ParametersConflictException.class, HTTP_CONFLICT);
         map.put(DownloadNotFoundException.class, HTTP_NOT_FOUND);
         map.put(ConfigPropertyNotFoundException.class, HTTP_NOT_FOUND);
+        map.put(UnauthorizedException.class, HTTP_UNAUTHORIZED);
+        map.put(io.quarkus.security.ForbiddenException.class, HTTP_FORBIDDEN);
         // From io.apicurio.common.apps.multitenancy.TenantManagerService:
         map.put(NotAuthorizedException.class, HTTP_FORBIDDEN);
         map.put(ForbiddenException.class, HTTP_FORBIDDEN);

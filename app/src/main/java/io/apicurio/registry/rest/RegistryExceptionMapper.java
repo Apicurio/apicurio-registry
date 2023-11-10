@@ -61,7 +61,6 @@ public class RegistryExceptionMapper implements ExceptionMapper<Throwable> {
 
     @Inject
     RegistryExceptionMapperService exceptionMapper;
-
     @Context
     HttpServletRequest request;
 

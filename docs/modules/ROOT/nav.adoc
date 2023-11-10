@@ -18,6 +18,10 @@
 * Kafka client serializers/deserialisers
 ** xref:getting-started/assembly-using-kafka-client-serdes.adoc[]
 ** xref:getting-started/assembly-configuring-kafka-client-serdes.adoc[]
+ifndef::service-registry-downstream[]
+* Troubleshooting
+** xref:getting-started/guide-exporting-registry-kafka-topic-data.adoc[]
+endif::[]
 * Reference
 ** xref:getting-started/assembly-artifact-reference.adoc[]
 ** xref:getting-started/assembly-rule-reference.adoc[]

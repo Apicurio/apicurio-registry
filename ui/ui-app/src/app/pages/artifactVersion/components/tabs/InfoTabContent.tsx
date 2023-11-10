@@ -120,7 +120,7 @@ export const InfoTabContent: FunctionComponent<InfoTabContentProps> = (props: In
                                             <IfAuth isAdminOrOwner={true} owner={props.artifact.createdBy}>
                                                 <IfFeature feature="readOnly" isNot={true}>
                                                     <Button id="edit-action"
-                                                        data-testid="artifact-btn-edit"
+                                                        data-testid="artifact-btn-change-owner"
                                                         onClick={props.onChangeOwner}
                                                         variant="link"><PencilAltIcon /></Button>
                                                 </IfFeature>

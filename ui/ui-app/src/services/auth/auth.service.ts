@@ -1,9 +1,9 @@
-import {ConfigService} from "../config";
-import {Service} from "../baseService";
-import {AxiosRequestConfig} from "axios";
-import {LoggerService} from "../logger";
-import {UsersService} from "../users";
-import {UserManager, UserManagerSettings} from "oidc-client-ts";
+import { ConfigService } from "../config";
+import { Service } from "../baseService";
+import { AxiosRequestConfig } from "axios";
+import { LoggerService } from "../logger";
+import { UsersService } from "../users";
+import { User, UserManager, UserManagerSettings } from "oidc-client-ts";
 
 // export interface AuthenticatedUser {
 //     username: string;
@@ -26,6 +26,7 @@ export class AuthService implements Service {
 
     private enabled: boolean = false;
     private userManager: UserManager | undefined;
+    private user: User | undefined;
 
     public init = () => {
         if (this.config?.authType() === "oidc") {
@@ -37,10 +38,11 @@ export class AuthService implements Service {
         if (this.config?.authType() === "oidc") {
             this.enabled = true;
             return this.userManager?.signinRedirectCallback().then(user => {
+                this.user = user;
                 return Promise.resolve(user);
             }).catch(() => {
                 return this.doLogin();
-            })
+            });
 
         } else {
             this.enabled = false;
@@ -65,9 +67,8 @@ export class AuthService implements Service {
         };
     }
 
-    public async isAuthenticated(): Promise<boolean> {
-        let loggedUser = await this.userManager?.getUser();
-        return !!loggedUser;
+    public isAuthenticated(): boolean {
+        return this.userManager != null && this.user != null && !this.user.expired;
     }
 
     public doLogin = (): Promise<any> => {
@@ -82,15 +83,12 @@ export class AuthService implements Service {
     };
 
     public doLogout = () => {
-        this.userManager?.signoutRedirect({post_logout_redirect_uri: window.location.href});
+        this.userManager?.signoutRedirect({ post_logout_redirect_uri: window.location.href });
     };
 
-    public async getOidcToken() {
-        return this.userManager?.getUser()
-            .then((user => {
-                return user?.id_token
-            }))
-    };
+    public getOidcToken() {
+        return this.user?.id_token;
+    }
 
     public isAuthenticationEnabled(): boolean {
         return this.enabled;
@@ -140,7 +138,7 @@ export class AuthService implements Service {
     public getAuthInterceptor(): (config: AxiosRequestConfig) => Promise<any> {
         /* eslint-disable @typescript-eslint/no-this-alias */
         const self: AuthService = this;
-        return async (config: AxiosRequestConfig) => {
+        return (config: AxiosRequestConfig) => {
             if (self.config?.authType() === "gettoken") {
                 this.logger?.info("[AuthService] Using 'getToken' auth type.");
                 return self.config.authGetToken()().then(token => {
@@ -155,7 +153,7 @@ export class AuthService implements Service {
                 });
             } else if (self.config?.authType() === "oidc") {
                 if (config.headers) {
-                    config.headers.Authorization = `Bearer ${await this.getOidcToken()}`;
+                    config.headers.Authorization = `Bearer ${this.getOidcToken()}`;
                 }
                 return Promise.resolve(config);
             } else {

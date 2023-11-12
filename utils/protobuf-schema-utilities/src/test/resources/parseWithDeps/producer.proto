@@ -1,0 +1,14 @@
+syntax = "proto3";
+import "mypackage0/producerId.proto";
+import "google/protobuf/timestamp.proto";
+package mypackage1;
+
+message Producer {
+  mypackage0.ProducerId id = 1;
+  string name = 2;
+  google.protobuf.Timestamp timestamp = 3;
+}
+
+service MyService {
+  rpc Foo (Producer) returns (Producer);
+}

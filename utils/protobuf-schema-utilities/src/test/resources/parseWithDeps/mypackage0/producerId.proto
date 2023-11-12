@@ -1,0 +1,8 @@
+syntax = "proto3";
+import "mypackage2/version.proto";
+package mypackage0;
+
+message ProducerId {
+  string name = 1;
+  mypackage2.Version id = 2;
+}

@@ -135,6 +135,12 @@ public class AdminResourceImpl implements AdminResource {
     @Info(category = "download", description = "Download link expiry", availableSince = "2.1.2.Final")
     Supplier<Long> downloadHrefTtl;
 
+    private static void requireParameter(String parameterName, Object parameterValue) {
+        if (parameterValue == null) {
+            throw new MissingRequiredParameterException(parameterName);
+        }
+    }
+
     /**
      * @see io.apicurio.registry.rest.v2.AdminResource#listArtifactTypes()
      */
@@ -173,6 +179,13 @@ public class AdminResourceImpl implements AdminResource {
     @Audited(extractParameters = {"0", KEY_RULE})
     @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
     public void createGlobalRule(Rule data) {
+        RuleType type = data.getType();
+        requireParameter("type", type);
+
+        if (data.getConfig() == null || data.getConfig().isEmpty()) {
+            throw new MissingRequiredParameterException("Config");
+        }
+
         RuleConfigurationDto configDto = new RuleConfigurationDto();
         configDto.setConfiguration(data.getConfig());
         storage.createGlobalRule(data.getType(), configDto);
@@ -391,6 +404,8 @@ public class AdminResourceImpl implements AdminResource {
     @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
     @RoleBasedAccessApiOperation
     public void updateRoleMapping(String principalId, UpdateRole data) {
+        requireParameter("principalId", principalId);
+        requireParameter("role", data.getRole());
         storage.updateRoleMapping(principalId, data.getRole().name());
     }
 

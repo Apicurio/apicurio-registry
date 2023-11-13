@@ -159,7 +159,7 @@
         <!-- Schema types -->
         <avro.version>1.11.3</avro.version>
         <json-schema-validator.version>1.0.87</json-schema-validator.version>
-        <wire-schema.version>4.9.1</wire-schema.version>
+        <wire-schema.version>4.9.2</wire-schema.version>
         <wire-compiler.version>4.8.0</wire-compiler.version>
         <okio-jvm.version>3.6.0</okio-jvm.version>
         <okio.version>3.6.0</okio.version>

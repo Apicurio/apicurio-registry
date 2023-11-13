@@ -18,9 +18,6 @@ package io.apicurio.tests.converters;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.apicurio.tests.ApicurioRegistryBaseIT;
-import io.apicurio.tests.utils.AvroGenericRecordSchemaFactory;
-import io.apicurio.tests.utils.Constants;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.serde.AbstractKafkaSerDe;
 import io.apicurio.registry.serde.SerdeConfig;
@@ -33,10 +30,14 @@ import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.converter.AvroConverter;
 import io.apicurio.registry.utils.converter.ExtJsonConverter;
 import io.apicurio.registry.utils.converter.SerdeBasedConverter;
+import io.apicurio.registry.utils.converter.avro.AvroData;
 import io.apicurio.registry.utils.converter.json.CompactFormatStrategy;
 import io.apicurio.registry.utils.converter.json.FormatStrategy;
 import io.apicurio.registry.utils.converter.json.PrettyFormatStrategy;
 import io.apicurio.registry.utils.tests.TestUtils;
+import io.apicurio.tests.ApicurioRegistryBaseIT;
+import io.apicurio.tests.utils.AvroGenericRecordSchemaFactory;
+import io.apicurio.tests.utils.Constants;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData.Record;
@@ -103,6 +104,98 @@ public class RegistryConverterIT extends ApicurioRegistryBaseIT {
     }
 
     @Test
+    public void testAvroIntDefaultValue() throws Exception {
+        String expectedSchema = "{\n" +
+                "  \"type\" : \"record\",\n" +
+                "  \"name\" : \"ConnectDefault\",\n" +
+                "  \"namespace\" : \"io.confluent.connect.avro\",\n" +
+                "  \"fields\" : [ {\n" +
+                "    \"name\" : \"int16Test\",\n" +
+                "    \"type\" : [ {\n" +
+                "      \"type\" : \"int\",\n" +
+                "      \"connect.doc\" : \"int16test field\",\n" +
+                "      \"connect.default\" : 2,\n" +
+                "      \"connect.type\" : \"int16\"\n" +
+                "    }, \"null\" ],\n" +
+                "    \"default\" : 2\n" +
+                "  } ]\n" +
+                "}";
+
+        try (AvroConverter<Record> converter = new AvroConverter<>()) {
+
+            Map<String, Object> config = new HashMap<>();
+            config.put(SerdeConfig.REGISTRY_URL, getRegistryV2ApiUrl());
+            config.put(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true");
+            converter.configure(config, false);
+
+            org.apache.kafka.connect.data.Schema sc = SchemaBuilder.struct()
+                    .field("int16Test", SchemaBuilder.int16().optional().defaultValue((short) 2).doc("int16test field")
+                            .build());
+            Struct struct = new Struct(sc);
+            struct.put("int16Test", (short) 3);
+
+            String subject = TestUtils.generateArtifactId();
+
+            byte[] bytes = converter.fromConnectData(subject, sc, struct);
+
+            // some impl details ...
+            TestUtils.waitForSchema(globalId -> registryClient.getContentByGlobalId(globalId) != null, bytes);
+
+            Struct ir = (Struct) converter.toConnectData(subject, bytes).value();
+            Assertions.assertEquals((short) 3, ir.get("int16Test"));
+
+            AvroData avroData = new AvroData(10);
+            Assertions.assertEquals(expectedSchema, avroData.fromConnectSchema(ir.schema()).toString(true));
+        }
+    }
+
+    @Test
+    public void testAvroBytesDefaultValue() throws Exception {
+        String expectedSchema = "{\n" +
+                "  \"type\" : \"record\",\n" +
+                "  \"name\" : \"ConnectDefault\",\n" +
+                "  \"namespace\" : \"io.confluent.connect.avro\",\n" +
+                "  \"fields\" : [ {\n" +
+                "    \"name\" : \"bytesTest\",\n" +
+                "    \"type\" : [ {\n" +
+                "      \"type\" : \"bytes\",\n" +
+                "      \"connect.parameters\" : {\n" +
+                "        \"lenght\" : \"10\"\n" +
+                "      },\n" +
+                "      \"connect.default\" : \"test\"\n" +
+                "    }, \"null\" ],\n" +
+                "    \"default\" : \"test\"\n" +
+                "  } ]\n" +
+                "}";
+
+        try (AvroConverter<Record> converter = new AvroConverter<>()) {
+
+            Map<String, Object> config = new HashMap<>();
+            config.put(SerdeConfig.REGISTRY_URL, getRegistryV2ApiUrl());
+            config.put(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true");
+            converter.configure(config, false);
+
+            org.apache.kafka.connect.data.Schema sc = SchemaBuilder.struct()
+                    .field("bytesTest", SchemaBuilder.bytes().optional().parameters(Map.of("lenght", "10")).defaultValue("test".getBytes())
+                            .build());
+            Struct struct = new Struct(sc);
+
+            struct.put("bytesTest", "testingBytes".getBytes());
+
+            String subject = TestUtils.generateArtifactId();
+
+            byte[] bytes = converter.fromConnectData(subject, sc, struct);
+
+            // some impl details ...
+            TestUtils.waitForSchema(globalId -> registryClient.getContentByGlobalId(globalId) != null, bytes);
+            Struct ir = (Struct) converter.toConnectData(subject, bytes).value();
+            AvroData avroData = new AvroData(10);
+            Assertions.assertEquals(expectedSchema, avroData.fromConnectSchema(ir.schema()).toString(true));
+        }
+
+    }
+
+    @Test
     public void testAvro() throws Exception {
         try (AvroConverter<Record> converter = new AvroConverter<>()) {
 
@@ -112,8 +205,8 @@ public class RegistryConverterIT extends ApicurioRegistryBaseIT {
             converter.configure(config, false);
 
             org.apache.kafka.connect.data.Schema sc = SchemaBuilder.struct()
-                                                                   .field("bar", org.apache.kafka.connect.data.Schema.STRING_SCHEMA)
-                                                                   .build();
+                    .field("bar", org.apache.kafka.connect.data.Schema.STRING_SCHEMA)
+                    .build();
             Struct struct = new Struct(sc);
             struct.put("bar", "somebar");
 
@@ -132,29 +225,29 @@ public class RegistryConverterIT extends ApicurioRegistryBaseIT {
     @Test
     public void testPrettyJson() throws Exception {
         testJson(
-            createRegistryClient(),
-            new PrettyFormatStrategy(),
-            input -> {
-                try {
-                    ObjectMapper mapper = new ObjectMapper();
-                    JsonNode root = mapper.readTree(input);
-                    return root.get("schemaId").asLong();
-                } catch (IOException e) {
-                    throw new UncheckedIOException(e);
+                createRegistryClient(),
+                new PrettyFormatStrategy(),
+                input -> {
+                    try {
+                        ObjectMapper mapper = new ObjectMapper();
+                        JsonNode root = mapper.readTree(input);
+                        return root.get("schemaId").asLong();
+                    } catch (IOException e) {
+                        throw new UncheckedIOException(e);
+                    }
                 }
-            }
         );
     }
 
     @Test
     public void testCompactJson() throws Exception {
         testJson(
-            createRegistryClient(),
-            new CompactFormatStrategy(),
-            input -> {
-                ByteBuffer buffer = AbstractKafkaSerDe.getByteBuffer(input);
-                return buffer.getLong();
-            }
+                createRegistryClient(),
+                new CompactFormatStrategy(),
+                input -> {
+                    ByteBuffer buffer = AbstractKafkaSerDe.getByteBuffer(input);
+                    return buffer.getLong();
+                }
         );
     }
 
@@ -166,8 +259,8 @@ public class RegistryConverterIT extends ApicurioRegistryBaseIT {
             converter.configure(config, false);
 
             org.apache.kafka.connect.data.Schema sc = SchemaBuilder.struct()
-                                                                   .field("bar", org.apache.kafka.connect.data.Schema.STRING_SCHEMA)
-                                                                   .build();
+                    .field("bar", org.apache.kafka.connect.data.Schema.STRING_SCHEMA)
+                    .build();
             Struct struct = new Struct(sc);
             struct.put("bar", "somebar");
 

@@ -59,6 +59,8 @@ import com.google.common.hash.Hashing;
 
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.rest.client.exception.RuleViolationException;
+import io.apicurio.registry.rest.v2.beans.ArtifactOwner;
+import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v2.beans.ArtifactReference;
 import io.apicurio.registry.rest.v2.beans.Comment;
@@ -66,6 +68,7 @@ import io.apicurio.registry.rest.v2.beans.EditableMetaData;
 import io.apicurio.registry.rest.v2.beans.IfExists;
 import io.apicurio.registry.rest.v2.beans.NewComment;
 import io.apicurio.registry.rest.v2.beans.Rule;
+import io.apicurio.registry.rest.v2.beans.UpdateState;
 import io.apicurio.registry.rest.v2.beans.VersionMetaData;
 import io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType;
 import io.apicurio.registry.storage.impl.sql.SqlUtil;
@@ -178,6 +181,41 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .body("info.title", equalTo("Empty API"));
     }
 
+    @Test
+    public void testUpdateArtifactOwner() throws Exception {
+        String oaiArtifactContent = resourceToString("openapi-empty.json");
+        createArtifact("testUpdateArtifactOwner", "testUpdateArtifactOwner/EmptyAPI/1",ArtifactType.OPENAPI, oaiArtifactContent);
+
+        ArtifactOwner artifactOwner = new ArtifactOwner("newOwner");
+
+        given()
+                .when()
+                .contentType(CT_JSON)
+                .pathParam("groupId", "testUpdateArtifactOwner")
+                .pathParam("artifactId", "testUpdateArtifactOwner/EmptyAPI/1")
+                .body(artifactOwner)
+                .put("/registry/v2/groups/{groupId}/artifacts/{artifactId}/owner")
+                .then()
+                .statusCode(204);
+    }
+
+    @Test
+    public void testUpdateEmptyArtifactOwner() throws Exception {
+        String oaiArtifactContent = resourceToString("openapi-empty.json");
+        createArtifact("testUpdateEmptyArtifactOwner", "testUpdateEmptyArtifactOwner/EmptyAPI/1",ArtifactType.OPENAPI, oaiArtifactContent);
+
+        ArtifactOwner artifactOwner = new ArtifactOwner("");
+
+        given()
+                .when()
+                .contentType(CT_JSON)
+                .pathParam("groupId", "testUpdateEmptyArtifactOwner")
+                .pathParam("artifactId", "testUpdateEmptyArtifactOwner/EmptyAPI/1")
+                .body(artifactOwner)
+                .put("/registry/v2/groups/{groupId}/artifacts/{artifactId}/owner")
+                .then()
+                .statusCode(400);
+    }
 
     @Test
     public void testMultipleGroups() throws Exception {
@@ -600,6 +638,93 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .body("type", equalTo(ArtifactType.OPENAPI));
 
     }
+
+    @Test
+    public void testUpdateArtifactState() throws Exception {
+        String oaiArtifactContent = resourceToString("openapi-empty.json");
+        createArtifact("testUpdateArtifactState", "testUpdateArtifactState/EmptyAPI/1",ArtifactType.OPENAPI, oaiArtifactContent);
+
+        UpdateState updateState = new UpdateState();
+        updateState.setState(ArtifactState.DEPRECATED);
+
+        // Update the artifact state to DEPRECATED.
+        given()
+                .when()
+                .contentType(CT_JSON)
+                .pathParam("groupId", "testUpdateArtifactState")
+                .pathParam("artifactId", "testUpdateArtifactState/EmptyAPI/1")
+                .body(updateState)
+                .put("/registry/v2/groups/{groupId}/artifacts/{artifactId}/state")
+                .then()
+                .statusCode(204);
+
+        // Update the artifact state to DEPRECATED again.
+        given()
+                .when()
+                .contentType(CT_JSON)
+                .pathParam("groupId", "testUpdateArtifactState")
+                .pathParam("artifactId", "testUpdateArtifactState/EmptyAPI/1")
+                .body(updateState)
+                .put("/registry/v2/groups/{groupId}/artifacts/{artifactId}/state")
+                .then()
+                .statusCode(204);
+
+        // Send a GET request to check if the artifact state is DEPRECATED.
+        given()
+                .when()
+                .contentType(CT_JSON)
+                .pathParam("groupId", "testUpdateArtifactState")
+                .pathParam("artifactId", "testUpdateArtifactState/EmptyAPI/1")
+                .get("/registry/v2/groups/{groupId}/artifacts/{artifactId}")
+                .then()
+                .statusCode(200)
+                .header("X-Registry-Deprecated", "true");
+        }
+
+    @Test
+    public void testUpdateArtifactVersionState() throws Exception {
+        String oaiArtifactContent = resourceToString("openapi-empty.json");
+        createArtifact("testUpdateArtifactVersionState", "testUpdateArtifactVersionState/EmptyAPI",ArtifactType.OPENAPI, oaiArtifactContent);
+
+        UpdateState updateState = new UpdateState();
+        updateState.setState(ArtifactState.DEPRECATED);
+
+         // Update the artifact state to DEPRECATED.
+        given()
+                .when()
+                .contentType(CT_JSON)
+                .pathParam("groupId", "testUpdateArtifactVersionState")
+                .pathParam("artifactId", "testUpdateArtifactVersionState/EmptyAPI")
+                .pathParam("versionId", "1")
+                .body(updateState)
+                .put("/registry/v2/groups/{groupId}/artifacts/{artifactId}/versions/{versionId}/state")
+                .then()
+                .statusCode(204);
+
+        // Update the artifact state to DEPRECATED again.
+        given()
+                .when()
+                .contentType(CT_JSON)
+                .pathParam("groupId", "testUpdateArtifactVersionState")
+                .pathParam("artifactId", "testUpdateArtifactVersionState/EmptyAPI")
+                .pathParam("versionId", "1")
+                .body(updateState)
+                .put("/registry/v2/groups/{groupId}/artifacts/{artifactId}/versions/{versionId}/state")
+                .then()
+                .statusCode(204);
+
+        // Send a GET request to check if the artifact state is DEPRECATED.
+        given()
+                .when()
+                .contentType(CT_JSON)
+                .pathParam("groupId", "testUpdateArtifactVersionState")
+                .pathParam("artifactId", "testUpdateArtifactVersionState/EmptyAPI")
+                .pathParam("versionId", "1")
+                .get("/registry/v2/groups/{groupId}/artifacts/{artifactId}/versions/{versionId}")
+                .then()
+                .statusCode(200)
+                .header("X-Registry-Deprecated", "true");
+        }
 
     @Test
     @DisabledIfEnvironmentVariable(named = CURRENT_ENV, matches = CURRENT_ENV_MAS_REGEX)

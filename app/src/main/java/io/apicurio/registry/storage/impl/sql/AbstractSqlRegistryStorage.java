@@ -532,24 +532,23 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     public void updateArtifactState(String groupId, String artifactId, String version, ArtifactState state)
             throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
         log.debug("Updating the state of artifact {} {}, version {} to {}", groupId, artifactId, version, state.name());
-        ArtifactVersionMetaDataDto dto = this.getArtifactVersionMetaData(groupId, artifactId, version);
+        var metadata = getArtifactVersionMetaData(groupId, artifactId, version);
+        updateArtifactVersionStateRaw(metadata.getGlobalId(), metadata.getState(), state);
+    }
+
+
+    /**
+     * IMPORTANT: Private methods can't be @Transactional. Callers MUST have started a transaction.
+     */
+    private void updateArtifactVersionStateRaw(long globalId, ArtifactState oldState, ArtifactState newState) {
         handles.withHandleNoException(handle -> {
-            long globalId = dto.getGlobalId();
-            ArtifactState oldState = dto.getState();
-            ArtifactState newState = state;
-            if (oldState != newState) {
-                artifactStateEx.applyState(s -> {
-                    String sql = sqlStatements.updateArtifactVersionState();
-                    int rowCount = handle.createUpdate(sql)
-                            .bind(0, s.name())
-                            .bind(1, tenantContext.tenantId())
-                            .bind(2, globalId)
-                            .execute();
-                    if (rowCount == 0) {
-                        throw new VersionNotFoundException(groupId, artifactId, dto.getVersion());
-                    }
-                }, oldState, newState);
-            }
+            artifactStateEx.applyState(s -> {
+                handle.createUpdate(sqlStatements.updateArtifactVersionState())
+                        .bind(0, s.name())
+                        .bind(1, tenantContext.tenantId())
+                        .bind(2, globalId)
+                        .execute();
+            }, oldState, newState);
             return null;
         });
     }
@@ -2262,7 +2261,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                 ArtifactVersionMetaDataDto avmdd = res.orElseThrow(() -> new VersionNotFoundException(groupId, artifactId, version));
 
                 String cid = String.valueOf(commentId.generate(handle));
-                
+
                 sql = sqlStatements.insertComment();
                 handle.createUpdate(sql)
                         .bind(0, tenantContext.tenantId())
@@ -2292,7 +2291,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             throw new RegistryStorageException(e);
         }
     }
-    
+
     /**
      * @see io.apicurio.registry.storage.RegistryStorage#getArtifactVersionComments(java.lang.String, java.lang.String, java.lang.String)
      */
@@ -2319,7 +2318,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             throw new RegistryStorageException(e);
         }
     }
-    
+
     /**
      * @see io.apicurio.registry.storage.RegistryStorage#deleteArtifactVersionComment(java.lang.String, java.lang.String, java.lang.String, java.lang.String)
      */
@@ -2360,7 +2359,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             throw new RegistryStorageException(e);
         }
     }
-    
+
     /**
      * @see io.apicurio.registry.storage.RegistryStorage#updateArtifactVersionComment(java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String)
      */
@@ -3468,7 +3467,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                     .list();
         });
     }
-    
+
     /**
      * @see RegistryStorage#isArtifactExists(String, String)
      */
@@ -3854,7 +3853,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             log.warn("Failed to import group entity (likely it already exists).", e);
         }
     }
-    
+
     protected void importComment(Handle handle, CommentEntity entity) {
         try {
             String sql = sqlStatements.insertComment();

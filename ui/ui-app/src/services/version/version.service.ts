@@ -25,7 +25,7 @@ export function getVersion(): VersionType {
 
 
 /**
- * A simple configuration service.  Reads information from a global "ApicurioRegistryConfig" variable
+ * A simple Version service.  Reads information from a global "ApicurioInfo" variable
  * that is typically included via JSONP.
  */
 export class VersionService implements Service {

@@ -60,6 +60,12 @@ jobs:
           echo "Flags:     ${{ steps.buildx.outputs.flags }}"
           echo "Platforms: ${{ steps.buildx.outputs.platforms }}"
 
+      - name: Install tools
+        run: .github/scripts/install-tools.sh
+
+      - name: Run linter
+        run: ./scripts/validate-files.sh
+
       - name: Build and Test Application
         run: ./mvnw -T 1.5C clean install --no-transfer-progress -Pprod -DskipTests=false -DskipCommitIdPlugin=false -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5 --no-transfer-progress
 

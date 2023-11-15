@@ -151,7 +151,7 @@
         <node.version>16.17.0</node.version>
 
         <!-- Quarkus Version -->
-        <quarkus.version>3.2.6.Final</quarkus.version>
+        <quarkus.version>3.2.8.Final</quarkus.version>
 
         <!-- Jandex -->
         <jandex.version>1.2.3</jandex.version>
@@ -160,10 +160,10 @@
         <avro.version>1.11.3</avro.version>
         <json-schema-validator.version>1.0.87</json-schema-validator.version>
         <wire-schema.version>4.9.1</wire-schema.version>
-        <wire-compiler.version>4.8.0</wire-compiler.version>
+        <wire-compiler.version>4.9.2</wire-compiler.version>
         <okio-jvm.version>3.6.0</okio-jvm.version>
         <okio.version>3.6.0</okio.version>
-        <okio-fake-file-system.version>3.4.0</okio-fake-file-system.version>
+        <okio-fake-file-system.version>3.6.0</okio-fake-file-system.version>
         <icu4j.version>74.1</icu4j.version>
         <protobuf.version>3.25.0</protobuf.version>
         <xmlsec.version>4.0.0</xmlsec.version>
@@ -199,9 +199,10 @@
         <graphql.version>21.3</graphql.version>
 
         <!-- JSON Schema Validator -->
-        <org.everit.json.schema.version>1.14.3</org.everit.json.schema.version><!-- TODO unification -->
+        <org.everit.json.schema.version>1.14.3</org.everit.json.schema.version>
+        <org.json>20230227</org.json><!-- TODO unification -->
         <jackson-datatype-json-org.version>2.15.3</jackson-datatype-json-org.version>
-        <jackson-dataformat-yaml.version>2.14.2</jackson-dataformat-yaml.version>
+        <jackson-dataformat-yaml.version>2.15.2</jackson-dataformat-yaml.version>
 
         <!-- Dependency versions -->
         <lombok.version>1.18.30</lombok.version>
@@ -214,7 +215,6 @@
         <sentry.version>1.7.30</sentry.version>
         <kafka-oauth-client.version>0.14.0</kafka-oauth-client.version>
         <kafka-clients.version>3.5.1</kafka-clients.version>
-        <snakeyaml.version>2.1</snakeyaml.version>
         <guava.version>32.1.3-jre</guava.version>
         <woodstox-core.version>6.5.1</woodstox-core.version>
 
@@ -583,11 +583,6 @@
                 </exclusions>
             </dependency>
             <dependency>
-                <artifactId>kotlinx-serialization-core</artifactId>
-                <groupId>org.jetbrains.kotlinx</groupId>
-                <version>1.5.1</version>
-            </dependency>
-            <dependency>
                 <groupId>com.ibm.icu</groupId>
                 <artifactId>icu4j</artifactId>
                 <version>${icu4j.version}</version>
@@ -659,11 +654,15 @@
                 <artifactId>graphql-java</artifactId>
                 <version>${graphql.version}</version>
             </dependency>
-
             <dependency>
                 <groupId>com.github.everit-org.json-schema</groupId>
                 <artifactId>org.everit.json.schema</artifactId>
                 <version>${org.everit.json.schema.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.json</groupId>
+                <artifactId>json</artifactId>
+                <version>${org.json}</version>
             </dependency>
             <dependency>
                 <groupId>com.fasterxml.jackson.datatype</groupId>

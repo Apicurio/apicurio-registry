@@ -151,7 +151,7 @@
         <node.version>16.17.0</node.version>
 
         <!-- Quarkus Version -->
-        <quarkus.version>3.2.6.Final</quarkus.version>
+        <quarkus.version>3.2.8.Final</quarkus.version>
 
         <!-- Jandex -->
         <jandex.version>1.2.3</jandex.version>
@@ -199,9 +199,10 @@
         <graphql.version>21.3</graphql.version>
 
         <!-- JSON Schema Validator -->
-        <org.everit.json.schema.version>1.14.3</org.everit.json.schema.version><!-- TODO unification -->
+        <org.everit.json.schema.version>1.14.3</org.everit.json.schema.version>
+        <org.json>20230227</org.json><!-- TODO unification -->
         <jackson-datatype-json-org.version>2.15.3</jackson-datatype-json-org.version>
-        <jackson-dataformat-yaml.version>2.14.2</jackson-dataformat-yaml.version>
+        <jackson-dataformat-yaml.version>2.15.2</jackson-dataformat-yaml.version>
 
         <!-- Dependency versions -->
         <lombok.version>1.18.30</lombok.version>
@@ -659,11 +660,15 @@
                 <artifactId>graphql-java</artifactId>
                 <version>${graphql.version}</version>
             </dependency>
-
             <dependency>
                 <groupId>com.github.everit-org.json-schema</groupId>
                 <artifactId>org.everit.json.schema</artifactId>
                 <version>${org.everit.json.schema.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.json</groupId>
+                <artifactId>json</artifactId>
+                <version>${org.json}</version>
             </dependency>
             <dependency>
                 <groupId>com.fasterxml.jackson.datatype</groupId>

@@ -204,10 +204,18 @@ jobs:
           git commit -m "Automated update to next Snapshot Version: ${{ github.event.inputs.snapshot-version}}"
           git push
 
-      - name: Google Chat Notification
-        if: ${{ failure() }}
+      - name: Google Chat Notification (Always)
+        if: always()
         uses: Co-qn/google-chat-notification@b9227d9daa4638c9782a5bd16c4abb86268127a1
         with:
-          name: ${{ github.workflow }}
+          name: ${{ github.job }}
           url: ${{ secrets.GOOGLE_CHAT_WEBHOOK }}
+          status: ${{ job.status }}
+
+      - name: Google Chat Notification (Error)
+        if: failure()
+        uses: Co-qn/google-chat-notification@b9227d9daa4638c9782a5bd16c4abb86268127a1
+        with:
+          name: ${{ github.job }}
+          url: ${{ secrets.GOOGLE_CHAT_WEBHOOK_ERRORS }}
           status: ${{ job.status }}

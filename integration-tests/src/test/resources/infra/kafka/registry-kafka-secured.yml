@@ -21,9 +21,9 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.namespace
-            - name: KAFKA_BOOTSTRAP_SERVERS
+            - name: REGISTRY_KAFKASQL_BOOTSTRAP_SERVERS
               value: kafka-service:9092
-            - name: REGISTRY_STORAGE_DB_KIND
+            - name: REGISTRY_STORAGE_KIND
               value: "kafkasql"
             - name: AUTH_ENABLED
               value: "true"

@@ -21,11 +21,11 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.namespace
-            - name: KAFKA_BOOTSTRAP_SERVERS
+            - name: REGISTRY_KAFKASQL_BOOTSTRAP_SERVERS
               value: kafka-service:9092
             - name: REGISTRY_STORAGE_KIND
               value: "kafkasql"
-          image: registry-image
+          image: ttl.sh/99b1ca2967b24ec8eb8d96ac394c2d123569c306/apicurio/apicurio-registry:1d
           imagePullPolicy: Always
           livenessProbe:
             failureThreshold: 3

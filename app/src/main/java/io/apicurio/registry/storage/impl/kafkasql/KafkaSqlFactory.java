@@ -36,7 +36,6 @@ import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.config.SaslConfigs;
 import org.apache.kafka.common.config.SslConfigs;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
-import org.slf4j.Logger;
 
 import java.util.Optional;
 import java.util.Properties;
@@ -47,9 +46,6 @@ import java.util.UUID;
  */
 @ApplicationScoped
 public class KafkaSqlFactory {
-
-    @Inject
-    Logger log;
 
     @Inject
     @ConfigProperty(name = "registry.kafkasql.bootstrap.servers")

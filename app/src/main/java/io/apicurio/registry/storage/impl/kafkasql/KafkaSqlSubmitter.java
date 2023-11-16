@@ -28,6 +28,8 @@ import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.kafka.ProducerActions;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.event.Observes;
+import jakarta.enterprise.event.Shutdown;
 import jakarta.inject.Inject;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.header.internals.RecordHeader;
@@ -57,6 +59,11 @@ public class KafkaSqlSubmitter {
      * Constructor.
      */
     public KafkaSqlSubmitter() {
+    }
+
+    //Once the application is done, close the producer.
+    public void handleShutdown(@Observes Shutdown shutdownEvent) throws Exception {
+        producer.close();
     }
 
     /**

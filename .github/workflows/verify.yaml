@@ -240,8 +240,7 @@ jobs:
           # maximum allowed
           IMAGE_TAG: 1d
         run: |
-          docker build -f ./distro/docker/target/docker/Dockerfile.native -t ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-native:1d app/
-          docker push ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-native:1d
+          docker build --push -f ./distro/docker/target/docker/Dockerfile.native -t ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-native:1d app/
 
       - name: Setup Minikube
         uses: manusa/actions-setup-minikube@v2.7.2
@@ -270,24 +269,20 @@ jobs:
           name: tests-logs
           path: artifacts
 
-      - name: Build Native Images
-        env:
-          IMAGE_REPO: quay.io
-          IMAGE_TAG: latest-snapshot
-        run: |
-          make build-mem-native-image
-
       - name: Login to Quay.io Registry
         if: github.event_name == 'push'
         run: docker login -u "${{ secrets.QUAY_USERNAME }}" -p "${{ secrets.QUAY_PASSWORD }}" quay.io
 
-      - name: Push Native Images
+      - name: Build and Push Native Images
         env:
           IMAGE_REPO: quay.io
           IMAGE_TAG: latest-snapshot
         if: github.event_name == 'push'
         run: |
-          make push-mem-native-image
+          docker build --push -f ./distro/docker/target/docker/Dockerfile.native \
+            -t quay.io/apicurio/apicurio/apicurio-registry-native:latest-snapshot \
+            -t docker.io/apicurio/apicurio/apicurio-registry-native:latest-snapshot \
+            app/
 
       - name: List All The Images
         run: docker images

@@ -46,8 +46,7 @@ jobs:
 
       - name: Build and Push Application image
         run: |
-          docker build -f ./distro/docker/target/docker/Dockerfile.jvm -t ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:1d ./distro/docker/target/docker
-          docker push ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:1d
+          docker build --push -f ./distro/docker/target/docker/Dockerfile.jvm -t ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:1d ./distro/docker/target/docker
 
   prepare-ui-tests:
     name: Prepare for UI Integration Tests

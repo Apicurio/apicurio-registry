@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.storage;
+package io.apicurio.registry.storage.impl.kafkasql;
 
 import io.apicurio.registry.noprofile.storage.AbstractRegistryStorageTest;
-import io.apicurio.registry.storage.impl.kafkasql.KafkaSqlRegistryStorage;
+import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.util.KafkasqlTestProfile;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;

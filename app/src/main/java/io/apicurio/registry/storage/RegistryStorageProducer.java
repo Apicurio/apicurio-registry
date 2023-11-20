@@ -17,7 +17,10 @@
 package io.apicurio.registry.storage;
 
 import io.apicurio.common.apps.config.DynamicConfigStorage;
+import io.apicurio.common.apps.config.Info;
 import io.apicurio.registry.storage.decorator.RegistryStorageDecorator;
+import io.apicurio.registry.storage.impl.gitops.GitOpsRegistryStorage;
+import io.apicurio.registry.storage.impl.kafkasql.KafkaSqlRegistryStorage;
 import io.apicurio.registry.storage.impl.sql.SqlRegistryStorage;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.types.Raw;
@@ -25,6 +28,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Instance;
 import jakarta.enterprise.inject.Produces;
 import jakarta.inject.Inject;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 
 import java.util.Comparator;
@@ -42,17 +46,22 @@ public class RegistryStorageProducer {
     Logger log;
 
     @Inject
-    Instance<SqlRegistryStorage> defaultStorage;
-
-    @Inject
-    Instance<RegistryStorageProvider> provider;
-
-    @Inject
     Instance<RegistryStorageDecorator> decorators;
+
+    @ConfigProperty(name = "registry.storage.kind")
+    @Info
+    String registryStorageType;
 
     private RegistryStorage cachedCurrent;
 
     private RegistryStorage cachedRaw;
+
+    @Inject
+    KafkaSqlRegistryStorage kafkaSqlRegistryStorage;
+    @Inject
+    SqlRegistryStorage sqlRegistryStorage;
+    @Inject
+    GitOpsRegistryStorage gitOpsRegistryStorage;
 
     @Produces
     @ApplicationScoped
@@ -92,13 +101,16 @@ public class RegistryStorageProducer {
     @Raw
     public RegistryStorage raw() {
         if (cachedRaw == null) {
-            if (provider.isResolvable()) {
-                cachedRaw = provider.get().storage();
-            } else if (defaultStorage.isResolvable()) {
-                cachedRaw = defaultStorage.get();
+            if ("kafkasql".equals(registryStorageType)) {
+                cachedRaw = kafkaSqlRegistryStorage;
+            } else if ("gitops".equals(registryStorageType)) {
+                cachedRaw = gitOpsRegistryStorage;
             } else {
-                throw new IllegalStateException("No (single) RegistryStorage available!");
+                cachedRaw = sqlRegistryStorage;
             }
+
+            cachedRaw.initialize();
+
             log.info("Using the following RegistryStorage implementation: {}", cachedRaw.getClass().getName());
         }
         return cachedRaw;

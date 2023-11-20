@@ -22,7 +22,6 @@ import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.util.GitopsTestProfile;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.types.RuleType;
-import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import jakarta.enterprise.context.control.ActivateRequestContext;
@@ -46,7 +45,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  * @author Jakub Senko <em>m@jsenko.net</em>
  */
 @QuarkusTest
-@QuarkusTestResource(GitTestRepositoryManager.class)
 @TestProfile(GitopsTestProfile.class)
 class GitOpsSmokeTest {
 

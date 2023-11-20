@@ -21,12 +21,8 @@ import io.apicurio.registry.metrics.StorageMetricsApply;
 import io.apicurio.registry.metrics.health.liveness.PersistenceExceptionLivenessApply;
 import io.apicurio.registry.metrics.health.readiness.PersistenceTimeoutReadinessApply;
 import io.apicurio.registry.storage.RegistryStorage;
-import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-
-import java.sql.SQLException;
-
 
 /**
  * An in-memory SQL implementation of the {@link RegistryStorage} interface.
@@ -43,16 +39,16 @@ public class SqlRegistryStorage extends AbstractSqlRegistryStorage {
     @Inject
     HandleFactory handleFactory;
 
-    @PostConstruct
-    void onConstruct() throws SQLException {
-        initialize(handleFactory, true);
-    }
-
     /**
      * @see io.apicurio.registry.storage.RegistryStorage#storageName()
      */
     @Override
     public String storageName() {
         return "sql";
+    }
+
+    @Override
+    public void initialize() {
+        initialize(handleFactory, true);
     }
 }

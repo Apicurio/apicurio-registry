@@ -1,8 +1,8 @@
 package io.apicurio.registry.storage.util;
 
+import io.apicurio.registry.storage.impl.gitops.GitTestRepositoryManager;
 import io.quarkus.test.junit.QuarkusTestProfile;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -16,6 +16,6 @@ public class GitopsTestProfile implements QuarkusTestProfile {
 
     @Override
     public List<TestResourceEntry> testResources() {
-        return Collections.emptyList();
+        return List.of(new TestResourceEntry(GitTestRepositoryManager.class));
     }
 }

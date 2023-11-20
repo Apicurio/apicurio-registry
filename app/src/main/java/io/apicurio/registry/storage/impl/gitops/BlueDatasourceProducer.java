@@ -24,7 +24,7 @@ public class BlueDatasourceProducer {
     @Info(category = "storage", description = "Datasource Db kind", availableSince = "2.0.0.Final")
     String databaseType;
 
-    @ConfigProperty(name = "registry.datasource.url", defaultValue = "jdbc:h2:mem:registry_db")
+    @ConfigProperty(name = "registry.datasource.blue.jdbc.url", defaultValue = "jdbc:h2:mem:registry_db")
     @Info(category = "storage", description = "Datasource Db kind", availableSince = "2.0.0.Final")
     String jdbcUrl;
 

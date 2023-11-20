@@ -17,7 +17,6 @@
 package io.apicurio.registry.storage.impl.kafkasql;
 
 import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
-import io.apicurio.common.apps.config.Info;
 import io.apicurio.common.apps.logging.Logged;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.metrics.StorageMetricsApply;
@@ -54,8 +53,6 @@ import io.apicurio.registry.storage.impl.kafkasql.values.MessageValue;
 import io.apicurio.registry.storage.impl.sql.IdGenerator;
 import io.apicurio.registry.storage.impl.sql.RegistryStorageContentUtils;
 import io.apicurio.registry.storage.impl.sql.SqlRegistryStorage;
-import io.apicurio.registry.storage.impl.sql.SqlStorageEvent;
-import io.apicurio.registry.storage.impl.sql.SqlStorageEventType;
 import io.apicurio.registry.storage.impl.sql.SqlUtil;
 import io.apicurio.registry.storage.importing.DataImporter;
 import io.apicurio.registry.storage.importing.SqlDataImporter;
@@ -70,11 +67,9 @@ import io.apicurio.registry.utils.impexp.GlobalRuleEntity;
 import io.apicurio.registry.utils.impexp.GroupEntity;
 import io.apicurio.registry.utils.kafka.KafkaUtil;
 import io.quarkus.security.identity.SecurityIdentity;
-import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Event;
-import jakarta.enterprise.event.Observes;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import org.apache.kafka.clients.CommonClientConfigs;
@@ -82,7 +77,6 @@ import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.config.TopicConfig;
 import org.apache.kafka.common.errors.TopicExistsException;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 
 import java.time.Duration;
@@ -109,10 +103,6 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
 
     @Inject
     Logger log;
-
-    @ConfigProperty(name = "registry.storage.kind")
-    @Info
-    String registryStorageType;
 
     @Inject
     KafkaSqlConfiguration configuration;
@@ -148,36 +138,29 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
     private volatile boolean stopped = true;
 
 
-    @PostConstruct
-    void onConstruct() {
-        if (registryStorageType.equals("kafkasql")) {
-            log.info("Using Kafka-SQL artifactStore.");
-
-            // Create Kafka topics if needed
-            if (configuration.isTopicAutoCreate()) {
-                autoCreateTopics();
-            }
-
-            setDelegate(sqlStore);
-        }
-    }
-
-    /**
-     * Handles SQL storage CDI events.
-     */
-    public void handleSqlStorageEvent(@Observes SqlStorageEvent event) {
-        if (SqlStorageEventType.READY.equals(event.getType()) && (registryStorageType.equals("kafkasql"))) {
-            // Start the Kafka Consumer thread only once the SQL storage is initialized
-            log.info("SQL store initialized, starting consumer thread.");
-            startConsumerThread(consumer);
-        }
-    }
-
     @Override
     public String storageName() {
         return "kafkasql";
     }
 
+    @Override
+    public void initialize() {
+        log.info("Using Kafka-SQL artifactStore.");
+
+        //First, if needed create the Kafka topics.
+        if (configuration.isTopicAutoCreate()) {
+            autoCreateTopics();
+        }
+
+        //Once the topics are created, initialize the internal SQL Storage.
+        sqlStore.initialize();
+        setDelegate(sqlStore);
+
+        //Once the SQL storage has been initialized, start the Kafka consumer thread.
+        log.info("SQL store initialized, starting consumer thread.");
+        startConsumerThread(consumer);
+
+    }
 
     @Override
     public boolean isReady() {
@@ -944,8 +927,7 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
 
     @Override
     public ArtifactMetaDataDto updateArtifact(String groupId, String artifactId, String version,
-                                              String artifactType, ContentHandle content, List<ArtifactReferenceDto> references)
-            {
+                                              String artifactType, ContentHandle content, List<ArtifactReferenceDto> references) {
         return delegate.updateArtifactWithMetadata(groupId, artifactId, version, artifactType, content, null, references);
     }
 

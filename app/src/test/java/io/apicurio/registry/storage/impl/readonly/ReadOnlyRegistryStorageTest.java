@@ -14,10 +14,11 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.storage;
+package io.apicurio.registry.storage.impl.readonly;
 
 import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
 import io.apicurio.common.apps.config.DynamicConfigStorage;
+import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.error.ReadOnlyStorageException;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.utils.Functional.Runnable1Ex;
@@ -125,6 +126,7 @@ public class ReadOnlyRegistryStorageTest {
                 entry("importData3", new State(true, s -> s.importData(null, false, false))),
                 entry("importGlobalRule1", new State(true, s -> s.importGlobalRule(null))),
                 entry("importGroup1", new State(true, s -> s.importGroup(null))),
+                entry("initialize0", new State(false, RegistryStorage::initialize)),
                 entry("isAlive0", new State(false, RegistryStorage::isAlive)),
                 entry("isArtifactExists2", new State(false, s -> s.isArtifactExists(null, null))),
                 entry("isArtifactRuleExists3", new State(false, s -> s.isArtifactRuleExists(null, null, null))),

@@ -30,7 +30,6 @@ import io.apicurio.registry.storage.impl.gitops.sql.GreenSqlStorage;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.impexp.Entity;
 import io.quarkus.scheduler.Scheduled;
-import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -87,20 +86,21 @@ public class GitOpsRegistryStorage extends AbstractReadOnlyRegistryStorage {
     }
 
 
-    @PostConstruct
-    void onConstruct() {
-        if (registryStorageType.equals("gitops")) {
-            log.info("Using GitOps storage");
-            try {
-                active = green;
-                inactive = blue;
-                gitManager.start();
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
+    @Override
+    public void initialize() {
+        log.info("Using GitOps storage");
+
+        green.initialize();
+        blue.initialize();
+
+        try {
+            active = green;
+            inactive = blue;
+            gitManager.start();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
     }
-
 
     @Scheduled(concurrentExecution = SKIP, every = "{registry.gitops.refresh.every}")
     void refresh() {

@@ -44,6 +44,11 @@ public class RegistryStorageDecoratorBase extends RegistryStorageDecoratorReadOn
 
 
     @Override
+    public void initialize() {
+        delegate.initialize();
+    }
+
+    @Override
     public void updateArtifactState(String groupId, String artifactId, ArtifactState state)
             throws ArtifactNotFoundException, RegistryStorageException {
         delegate.updateArtifactState(groupId, artifactId, state);

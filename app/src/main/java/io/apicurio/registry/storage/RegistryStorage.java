@@ -64,6 +64,11 @@ public interface RegistryStorage extends DynamicConfigStorage {
     String storageName();
 
     /**
+     * Performs the required operations for initializing the Registry storage
+     */
+    void initialize();
+
+    /**
      * Is the storage initialized and ready to be used?
      * This state SHOULD NOT change again during operation,
      * and is used for K8s readiness probes, among other things.

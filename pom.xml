@@ -254,8 +254,6 @@
 
         <!-- Test containers version, should be aligned with version used in Quarkus -->
         <test-containers.version>1.19.2</test-containers.version>
-        <keycloak.testcontainers.version>1.9.0</keycloak.testcontainers.version>
-        <keycloak-admin-client.version>21.1.2</keycloak-admin-client.version>
         <embedded-postgres.version>2.0.4</embedded-postgres.version>
         <strimzi.version>0.105.0</strimzi.version>
         <wiremock-jre8.version>2.35.1</wiremock-jre8.version>
@@ -766,11 +764,6 @@
                 <artifactId>quarkus-test-common</artifactId>
                 <version>${quarkus.version}</version>
                 <scope>test</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.keycloak</groupId>
-                <artifactId>keycloak-admin-client-jakarta</artifactId>
-                <version>${keycloak-admin-client.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.github.tomakehurst</groupId>

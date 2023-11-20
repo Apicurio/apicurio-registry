@@ -681,6 +681,11 @@ The following {registry} configuration options are available for each component 
 |`20`
 |`2.0.0.Final`
 |Datasource Db kind
+|`registry.datasource.blue.jdbc.url`
+|`string`
+|`jdbc:h2:mem:registry_db`
+|`2.0.0.Final`
+|Datasource Db kind
 |`registry.datasource.blue.password`
 |`string`
 |`sa`

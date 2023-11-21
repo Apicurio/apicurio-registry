@@ -17,22 +17,21 @@
 package io.apicurio.registry.storage.impl.sql;
 
 import io.apicurio.registry.storage.RegistryStorage;
+import io.apicurio.registry.types.Current;
 import jakarta.inject.Inject;
 
 import io.apicurio.registry.noprofile.storage.AbstractRegistryStorageTest;
-import io.apicurio.registry.utils.tests.ApicurioTestTags;
 import io.quarkus.test.junit.QuarkusTest;
-import org.junit.jupiter.api.Tag;
 
 /**
  * @author eric.wittmann@gmail.com
  */
 @QuarkusTest
-@Tag(ApicurioTestTags.SLOW)
 public class DefaultRegistryStorageTest extends AbstractRegistryStorageTest {
 
     @Inject
-    SqlRegistryStorage storage;
+    @Current
+    RegistryStorage storage;
 
     /**
      * @see io.apicurio.registry.storage.AbstractRegistryStorageTest#storage()

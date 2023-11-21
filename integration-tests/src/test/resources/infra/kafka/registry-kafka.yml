@@ -25,7 +25,9 @@ spec:
               value: kafka-service:9092
             - name: REGISTRY_STORAGE_KIND
               value: "kafkasql"
-          image: ttl.sh/99b1ca2967b24ec8eb8d96ac394c2d123569c306/apicurio/apicurio-registry:1d
+            - name: REGISTRY_LOG_LEVEL
+              value: "DEBUG"
+          image: registry-image
           imagePullPolicy: Always
           livenessProbe:
             failureThreshold: 3
@@ -33,7 +35,7 @@ spec:
               path: /health/live
               port: 8080
               scheme: HTTP
-            initialDelaySeconds: 5
+            initialDelaySeconds: 10
             periodSeconds: 10
             successThreshold: 1
             timeoutSeconds: 10
@@ -48,7 +50,7 @@ spec:
               path: /health/ready
               port: 8080
               scheme: HTTP
-            initialDelaySeconds: 5
+            initialDelaySeconds: 10
             periodSeconds: 10
             successThreshold: 1
             timeoutSeconds: 10

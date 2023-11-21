@@ -25,7 +25,6 @@ import io.apicurio.registry.metrics.health.readiness.PersistenceTimeoutReadiness
 import io.apicurio.registry.storage.ArtifactStateExt;
 import io.apicurio.registry.storage.StorageEvent;
 import io.apicurio.registry.storage.StorageEventType;
-import io.apicurio.registry.storage.decorator.RegistryStorageDecorator;
 import io.apicurio.registry.storage.decorator.RegistryStorageDecoratorReadOnlyBase;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.ArtifactOwnerDto;

@@ -99,7 +99,7 @@ import static io.apicurio.registry.storage.RegistryStorage.ArtifactRetrievalBeha
 @StorageMetricsApply
 @Logged
 @SuppressWarnings("unchecked")
-public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBase implements RegistryStorageDecorator {
+public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBase {
 
     @Inject
     Logger log;
@@ -929,15 +929,5 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
     public ArtifactMetaDataDto updateArtifact(String groupId, String artifactId, String version,
                                               String artifactType, ContentHandle content, List<ArtifactReferenceDto> references) {
         return delegate.updateArtifactWithMetadata(groupId, artifactId, version, artifactType, content, null, references);
-    }
-
-    @Override
-    public boolean isEnabled() {
-        return false;
-    }
-
-    @Override
-    public int order() {
-        return 0;
     }
 }

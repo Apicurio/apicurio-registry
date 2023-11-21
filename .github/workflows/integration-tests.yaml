@@ -107,7 +107,7 @@ jobs:
           cache: 'maven'
 
       - name: Setup Minikube
-        uses: manusa/actions-setup-minikube@v2.7.2
+        uses: manusa/actions-setup-minikube@v2.9.0
         with:
           minikube version: 'v1.31.1'
           kubernetes version: 'v1.26.3'
@@ -152,7 +152,7 @@ jobs:
           cache: 'maven'
 
       - name: Setup Minikube
-        uses: manusa/actions-setup-minikube@v2.7.2
+        uses: manusa/actions-setup-minikube@v2.9.0
         with:
           minikube version: 'v1.31.1'
           kubernetes version: 'v1.26.3'
@@ -198,7 +198,7 @@ jobs:
           cache: 'maven'
 
       - name: Setup Minikube
-        uses: manusa/actions-setup-minikube@v2.7.2
+        uses: manusa/actions-setup-minikube@v2.9.0
         with:
           minikube version: 'v1.31.1'
           kubernetes version: 'v1.26.3'

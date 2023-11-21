@@ -66,6 +66,14 @@ jobs:
       - name: Run linter
         run: ./scripts/validate-files.sh
 
+      - name: Verify docs generation
+        run: |
+          if [ -n "$(git status --untracked-files=no --porcelain docs)" ]; then
+            echo "Docs needs to be regenerated. Run 'mvn clean install -pl docs -am -DskipTests' and commit the resulting files in the 'docs' folder."
+            git --no-pager diff docs
+            exit 1
+          fi
+
       - name: Build and Test Application
         run: ./mvnw -T 1.5C clean install --no-transfer-progress -Pprod -DskipTests=false -DskipCommitIdPlugin=false -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5
 
@@ -219,14 +227,6 @@ jobs:
 
       - name: Build Application
         run: ./mvnw -T 1.5C clean install -Pprod -DskipTests=true -DskipCommitIdPlugin=false -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5 --no-transfer-progress
-
-      - name: Verify docs generation
-        run: |
-          if [ -n "$(git status --untracked-files=no --porcelain docs)" ]; then
-            echo "Docs needs to be regenerated. Run 'mvn clean install -pl docs -am -DskipTests' and commit the resulting files in the 'docs' folder."
-            git --no-pager diff docs
-            exit 1
-          fi
 
       - name: Build Native executables
         env:

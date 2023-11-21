@@ -12,101 +12,6 @@ The following {registry} configuration options are available for each component 
 |Default
 |Available from
 |Description
-|`registry.kafkasql.bootstrap.servers`
-|`string`
-|
-|
-|
-|`registry.kafkasql.consumer.poll.timeout`
-|`integer`
-|`1000`
-|
-|
-|`registry.kafkasql.coordinator.response-timeout`
-|`integer`
-|`30000`
-|
-|
-|`registry.kafkasql.security.protocol`
-|`optional<string>`
-|
-|
-|
-|`registry.kafkasql.security.sasl.client-id`
-|`string`
-|
-|
-|
-|`registry.kafkasql.security.sasl.client-secret`
-|`string`
-|
-|
-|
-|`registry.kafkasql.security.sasl.enabled`
-|`boolean`
-|`false`
-|
-|
-|`registry.kafkasql.security.sasl.login.callback.handler.class`
-|`string`
-|
-|
-|
-|`registry.kafkasql.security.sasl.mechanism`
-|`string`
-|
-|
-|
-|`registry.kafkasql.security.sasl.token.endpoint`
-|`string`
-|
-|
-|
-|`registry.kafkasql.security.ssl.truststore.location`
-|`optional<string>`
-|
-|
-|
-|`registry.kafkasql.security.ssl.truststore.type`
-|`optional<string>`
-|
-|
-|
-|`registry.kafkasql.ssl.key.password`
-|`optional<string>`
-|
-|
-|
-|`registry.kafkasql.ssl.keystore.location`
-|`optional<string>`
-|
-|
-|
-|`registry.kafkasql.ssl.keystore.password`
-|`optional<string>`
-|
-|
-|
-|`registry.kafkasql.ssl.keystore.type`
-|`optional<string>`
-|
-|
-|
-|`registry.kafkasql.ssl.truststore.password`
-|`optional<string>`
-|
-|
-|
-|`registry.kafkasql.topic`
-|`string`
-|`kafkasql-journal`
-|
-|
-|`registry.kafkasql.topic.auto-create`
-|`boolean`
-|`true`
-|
-|
 |`registry.storage.kind`
 |`string`
 |
@@ -664,103 +569,198 @@ The following {registry} configuration options are available for each component 
 |`registry.datasource.blue.db-kind`
 |`string`
 |`h2`
-|`2.0.0.Final`
-|Datasource Db kind
+|`3.0.0.Final`
+|Gitops blue datasource db kind
 |`registry.datasource.blue.jdbc.initial-size`
 |`string`
 |`20`
-|`2.0.0.Final`
-|Datasource Db kind
+|`3.0.0.Final`
+|Gitops blue datasource pool initial size
 |`registry.datasource.blue.jdbc.max-size`
 |`string`
 |`100`
-|`2.0.0.Final`
-|Datasource Db kind
+|`3.0.0.Final`
+|Gitops blue datasource pool max size
 |`registry.datasource.blue.jdbc.min-size`
 |`string`
 |`20`
-|`2.0.0.Final`
-|Datasource Db kind
+|`3.0.0.Final`
+|Gitops blue datasource pool minimum size
 |`registry.datasource.blue.jdbc.url`
 |`string`
 |`jdbc:h2:mem:registry_db`
-|`2.0.0.Final`
-|Datasource Db kind
+|`3.0.0.Final`
+|Gitops blue datasource jdbc url
 |`registry.datasource.blue.password`
 |`string`
 |`sa`
-|`2.0.0.Final`
-|Datasource Db kind
+|`3.0.0.Final`
+|Gitops blue datasource password
 |`registry.datasource.blue.username`
 |`string`
 |`sa`
-|`2.0.0.Final`
-|Datasource Db kind
+|`3.0.0.Final`
+|Gitops blue datasource username
 |`registry.datasource.green.db-kind`
 |`string`
 |`h2`
-|`2.0.0.Final`
-|Datasource Db kind
+|`3.0.0.Final`
+|Gitops blue datasource db kind
 |`registry.datasource.green.jdbc.initial-size`
 |`string`
 |`20`
-|`2.0.0.Final`
-|Datasource Db kind
+|`3.0.0.Final`
+|Gitops blue datasource pool initial size
 |`registry.datasource.green.jdbc.max-size`
 |`string`
 |`100`
-|`2.0.0.Final`
-|Datasource Db kind
+|`3.0.0.Final`
+|Gitops blue datasource pool max size
 |`registry.datasource.green.jdbc.min-size`
 |`string`
 |`20`
-|`2.0.0.Final`
-|Datasource Db kind
+|`3.0.0.Final`
+|Gitops blue datasource pool minimum size
 |`registry.datasource.green.jdbc.url`
 |`string`
 |`jdbc:h2:mem:registry_db`
-|`2.0.0.Final`
-|Datasource Db kind
+|`3.0.0.Final`
+|Gitops blue datasource jdbc url
 |`registry.datasource.green.password`
 |`string`
 |`sa`
-|`2.0.0.Final`
-|Datasource Db kind
+|`3.0.0.Final`
+|Gitops blue datasource password
 |`registry.datasource.green.username`
 |`string`
 |`sa`
-|`2.0.0.Final`
-|Datasource Db kind
+|`3.0.0.Final`
+|Gitops blue datasource username
 |`registry.datasource.jdbc.initial-size`
 |`string`
 |`20`
-|`2.0.0.Final`
-|Datasource Db kind
+|`3.0.0.Final`
+|Application datasource pool initial size
 |`registry.datasource.jdbc.max-size`
 |`string`
 |`100`
-|`2.0.0.Final`
-|Datasource Db kind
+|`3.0.0.Final`
+|Application datasource pool maximum size
 |`registry.datasource.jdbc.min-size`
 |`string`
 |`20`
-|`2.0.0.Final`
-|Datasource Db kind
+|`3.0.0.Final`
+|Application datasource pool minimum size
 |`registry.datasource.password`
 |`string`
 |`sa`
-|`2.0.0.Final`
-|Datasource Db kind
+|`3.0.0.Final`
+|Application datasource password
 |`registry.datasource.url`
 |`string`
 |`jdbc:h2:mem:registry_db`
-|`2.0.0.Final`
-|Datasource Db kind
+|`3.0.0.Final`
+|Application datasource jdbc url
 |`registry.datasource.username`
 |`string`
 |`sa`
-|`2.0.0.Final`
-|Datasource Db kind
+|`3.0.0.Final`
+|Application datasource username
+|`registry.kafkasql.bootstrap.servers`
+|`string`
+|
+|
+|Kafka sql storage bootstrap servers
+|`registry.kafkasql.consumer.poll.timeout`
+|`integer`
+|`1000`
+|
+|Kafka sql storage consumer poll timeout
+|`registry.kafkasql.coordinator.response-timeout`
+|`integer`
+|`30000`
+|
+|Kafka sql storage coordinator response timeout
+|`registry.kafkasql.security.protocol`
+|`optional<string>`
+|
+|
+|Kafka sql storage security protocol
+|`registry.kafkasql.security.sasl.client-id`
+|`string`
+|
+|
+|Kafka sql storage sasl client identifier
+|`registry.kafkasql.security.sasl.client-secret`
+|`string`
+|
+|
+|Kafka sql storage sasl client secret
+|`registry.kafkasql.security.sasl.enabled`
+|`boolean`
+|`false`
+|
+|Kafka sql storage sasl enabled
+|`registry.kafkasql.security.sasl.login.callback.handler.class`
+|`string`
+|
+|
+|Kafka sql storage sasl login callback handler
+|`registry.kafkasql.security.sasl.mechanism`
+|`string`
+|
+|
+|Kafka sql storage sasl mechanism
+|`registry.kafkasql.security.sasl.token.endpoint`
+|`string`
+|
+|
+|Kafka sql storage sasl token endpoint
+|`registry.kafkasql.security.ssl.truststore.location`
+|`optional<string>`
+|
+|
+|Kafka sql storage ssl truststore location
+|`registry.kafkasql.security.ssl.truststore.type`
+|`optional<string>`
+|
+|
+|Kafka sql storage ssl truststore type
+|`registry.kafkasql.ssl.key.password`
+|`optional<string>`
+|
+|
+|Kafka sql storage ssl key password
+|`registry.kafkasql.ssl.keystore.location`
+|`optional<string>`
+|
+|
+|Kafka sql storage ssl keystore location
+|`registry.kafkasql.ssl.keystore.password`
+|`optional<string>`
+|
+|
+|Kafka sql storage ssl keystore password
+|`registry.kafkasql.ssl.keystore.type`
+|`optional<string>`
+|
+|
+|Kafka sql storage ssl keystore type
+|`registry.kafkasql.ssl.truststore.password`
+|`optional<string>`
+|
+|
+|Kafka sql storage ssl truststore password
+|`registry.kafkasql.topic`
+|`string`
+|`kafkasql-journal`
+|
+|Kafka sql storage topic name
+|`registry.kafkasql.topic.auto-create`
+|`boolean`
+|`true`
+|
+|Kafka sql storage topic auto create
 |`registry.sql.init`
 |`boolean`
 |`true`
@@ -769,8 +769,8 @@ The following {registry} configuration options are available for each component 
 |`registry.storage.db-kind`
 |`string`
 |`h2`
-|`2.0.0.Final`
-|Datasource Db kind
+|`3.0.0.Final`
+|Application datasource database type
 |`registry.storage.read-only`
 |`boolean [dynamic]`
 |`false`

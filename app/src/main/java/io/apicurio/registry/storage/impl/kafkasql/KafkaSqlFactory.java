@@ -49,32 +49,32 @@ public class KafkaSqlFactory {
 
     @Inject
     @ConfigProperty(name = "registry.kafkasql.bootstrap.servers")
-    @Info
+    @Info(category = "storage", description = "Kafka sql storage bootstrap servers")
     String bootstrapServers;
 
     @Inject
     @ConfigProperty(name = "registry.kafkasql.topic", defaultValue = "kafkasql-journal")
-    @Info
+    @Info(category = "storage", description = "Kafka sql storage topic name")
     String topic;
 
     @Inject
     @RegistryProperties(value = "registry.kafkasql.topic")
-    @Info
+    @Info(category = "storage", description = "Kafka sql storage topic properties")
     Properties topicProperties;
 
     @Inject
     @ConfigProperty(name = "registry.kafkasql.topic.auto-create", defaultValue = "true")
-    @Info
+    @Info(category = "storage", description = "Kafka sql storage topic auto create")
     Boolean topicAutoCreate;
 
     @Inject
     @ConfigProperty(name = "registry.kafkasql.consumer.poll.timeout", defaultValue = "1000")
-    @Info
+    @Info(category = "storage", description = "Kafka sql storage consumer poll timeout")
     Integer pollTimeout;
 
     @Inject
     @ConfigProperty(name = "registry.kafkasql.coordinator.response-timeout", defaultValue = "30000")
-    @Info
+    @Info(category = "storage", description = "Kafka sql storage coordinator response timeout")
     Integer responseTimeout;
 
     @Inject
@@ -99,59 +99,59 @@ public class KafkaSqlFactory {
     Properties adminProperties;
 
     @ConfigProperty(name = "registry.kafkasql.security.sasl.enabled", defaultValue = "false")
-    @Info
+    @Info(category = "storage", description = "Kafka sql storage sasl enabled")
     boolean saslEnabled;
 
     @ConfigProperty(name = "registry.kafkasql.security.protocol", defaultValue = "")
-    @Info
+    @Info(category = "storage", description = "Kafka sql storage security protocol")
     Optional<String> protocol;
 
     @ConfigProperty(name = "registry.kafkasql.security.sasl.mechanism", defaultValue = "")
-    @Info
+    @Info(category = "storage", description = "Kafka sql storage sasl mechanism")
     String saslMechanism;
 
     @ConfigProperty(name = "registry.kafkasql.security.sasl.client-id", defaultValue = "")
-    @Info
+    @Info(category = "storage", description = "Kafka sql storage sasl client identifier")
     String clientId;
 
     @ConfigProperty(name = "registry.kafkasql.security.sasl.client-secret", defaultValue = "")
-    @Info
+    @Info(category = "storage", description = "Kafka sql storage sasl client secret")
     String clientSecret;
 
     @ConfigProperty(name = "registry.kafkasql.security.sasl.token.endpoint", defaultValue = "")
-    @Info
+    @Info(category = "storage", description = "Kafka sql storage sasl token endpoint")
     String tokenEndpoint;
 
     @ConfigProperty(name = "registry.kafkasql.security.sasl.login.callback.handler.class", defaultValue = "")
-    @Info
+    @Info(category = "storage", description = "Kafka sql storage sasl login callback handler")
     String loginCallbackHandler;
 
     @ConfigProperty(name = "registry.kafkasql.security.ssl.truststore.location")
-    @Info
+    @Info(category = "storage", description = "Kafka sql storage ssl truststore location")
     Optional<String> trustStoreLocation;
 
     @ConfigProperty(name = "registry.kafkasql.security.ssl.truststore.type")
-    @Info
+    @Info(category = "storage", description = "Kafka sql storage ssl truststore type")
     Optional<String> trustStoreType;
 
     @ConfigProperty(name = "registry.kafkasql.ssl.truststore.password")
-    @Info
+    @Info(category = "storage", description = "Kafka sql storage ssl truststore password")
     Optional<String> trustStorePassword;
 
     @ConfigProperty(name = "registry.kafkasql.ssl.keystore.location")
-    @Info
+    @Info(category = "storage", description = "Kafka sql storage ssl keystore location")
     Optional<String> keyStoreLocation;
 
     @ConfigProperty(name = "registry.kafkasql.ssl.keystore.type")
-    @Info
+    @Info(category = "storage", description = "Kafka sql storage ssl keystore type")
     Optional<String> keyStoreType;
 
     @ConfigProperty(name = "registry.kafkasql.ssl.keystore.password")
-    @Info
+    @Info(category = "storage", description = "Kafka sql storage ssl keystore password")
     Optional<String> keyStorePassword;
 
     @ConfigProperty(name = "registry.kafkasql.ssl.key.password")
-    @Info
+    @Info(category = "storage", description = "Kafka sql storage ssl key password")
     Optional<String> keyPassword;
 
     @ApplicationScoped

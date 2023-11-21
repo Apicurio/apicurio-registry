@@ -105,12 +105,13 @@ public class RegistryStorageProducer {
                 cachedRaw = kafkaSqlRegistryStorage;
             } else if ("gitops".equals(registryStorageType)) {
                 cachedRaw = gitOpsRegistryStorage;
-            } else {
+            } else if ("sql".equals(registryStorageType)) {
                 cachedRaw = sqlRegistryStorage;
+            } else {
+                throw new IllegalStateException(String.format("No Registry storage variant defined for value %s", registryStorageType));
             }
 
             cachedRaw.initialize();
-
             log.info("Using the following RegistryStorage implementation: {}", cachedRaw.getClass().getName());
         }
         return cachedRaw;

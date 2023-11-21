@@ -20,31 +20,31 @@ public class RegistryDatasourceProducer {
     Logger log;
 
     @ConfigProperty(name = "registry.storage.db-kind", defaultValue = "h2")
-    @Info(category = "storage", description = "Datasource Db kind", availableSince = "2.0.0.Final")
+    @Info(category = "storage", description = "Application datasource database type", availableSince = "3.0.0.Final")
     String databaseType;
 
     @ConfigProperty(name = "registry.datasource.url", defaultValue = "jdbc:h2:mem:registry_db")
-    @Info(category = "storage", description = "Datasource Db kind", availableSince = "2.0.0.Final")
+    @Info(category = "storage", description = "Application datasource jdbc url", availableSince = "3.0.0.Final")
     String jdbcUrl;
 
     @ConfigProperty(name = "registry.datasource.username", defaultValue = "sa")
-    @Info(category = "storage", description = "Datasource Db kind", availableSince = "2.0.0.Final")
+    @Info(category = "storage", description = "Application datasource username", availableSince = "3.0.0.Final")
     String username;
 
     @ConfigProperty(name = "registry.datasource.password", defaultValue = "sa")
-    @Info(category = "storage", description = "Datasource Db kind", availableSince = "2.0.0.Final")
+    @Info(category = "storage", description = "Application datasource password", availableSince = "3.0.0.Final")
     String password;
 
     @ConfigProperty(name = "registry.datasource.jdbc.initial-size", defaultValue = "20")
-    @Info(category = "storage", description = "Datasource Db kind", availableSince = "2.0.0.Final")
+    @Info(category = "storage", description = "Application datasource pool initial size", availableSince = "3.0.0.Final")
     String initialSize;
 
     @ConfigProperty(name = "registry.datasource.jdbc.min-size", defaultValue = "20")
-    @Info(category = "storage", description = "Datasource Db kind", availableSince = "2.0.0.Final")
+    @Info(category = "storage", description = "Application datasource pool minimum size", availableSince = "3.0.0.Final")
     String minSize;
 
     @ConfigProperty(name = "registry.datasource.jdbc.max-size", defaultValue = "100")
-    @Info(category = "storage", description = "Datasource Db kind", availableSince = "2.0.0.Final")
+    @Info(category = "storage", description = "Application datasource pool maximum size", availableSince = "3.0.0.Final")
     String maxSize;
 
     @Produces

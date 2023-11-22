@@ -1,13 +1,12 @@
 package io.apicurio.registry.metrics.health.liveness;
 
-import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.enterprise.inject.Default;
-import jakarta.inject.Inject;
-
 import io.apicurio.common.apps.config.Info;
 import io.apicurio.registry.metrics.health.AbstractErrorCounterHealthCheck;
 
 import jakarta.annotation.PostConstruct;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Default;
+import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.health.HealthCheck;
 import org.eclipse.microprofile.health.HealthCheckResponse;
@@ -66,7 +65,7 @@ public class ResponseErrorLivenessCheck extends AbstractErrorCounterHealthCheck 
         return HealthCheckResponse.builder()
                 .name("ResponseErrorLivenessCheck")
                 .withData("errorCount", errorCounter)
-                .up()
+                .status(up)
                 .build();
     }
 

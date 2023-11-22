@@ -3,14 +3,6 @@ package io.apicurio.registry.metrics.health.readiness;
 import io.apicurio.common.apps.config.Info;
 import io.apicurio.registry.metrics.health.AbstractErrorCounterHealthCheck;
 import jakarta.annotation.PostConstruct;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
-import org.eclipse.microprofile.health.HealthCheck;
-import org.eclipse.microprofile.health.HealthCheckResponse;
-import org.eclipse.microprofile.health.Readiness;
-import org.slf4j.Logger;
-import java.time.Duration;
-import java.time.Instant;
-import java.time.format.DateTimeParseException;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Default;
 import jakarta.enterprise.inject.Instance;
@@ -20,6 +12,15 @@ import jakarta.ws.rs.container.ContainerRequestFilter;
 import jakarta.ws.rs.container.ContainerResponseContext;
 import jakarta.ws.rs.container.ContainerResponseFilter;
 import jakarta.ws.rs.ext.Provider;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.eclipse.microprofile.health.HealthCheck;
+import org.eclipse.microprofile.health.HealthCheckResponse;
+import org.eclipse.microprofile.health.Readiness;
+import org.slf4j.Logger;
+
+import java.time.Duration;
+import java.time.Instant;
+import java.time.format.DateTimeParseException;
 
 /**
  * @author Jakub Senko <em>m@jsenko.net</em>
@@ -94,7 +95,7 @@ public class ResponseTimeoutReadinessCheck extends AbstractErrorCounterHealthChe
                 log.error("Value '{}' of header '{}' is the wrong format!", requestStart, HEADER_NAME);
             }
 
-        } else if (responseContext.getStatus() != 404){
+        } else if (responseContext.getStatus() != 404) {
             log.warn("Expected header '{}' not found.", HEADER_NAME);
         }
     }
@@ -105,7 +106,7 @@ public class ResponseTimeoutReadinessCheck extends AbstractErrorCounterHealthChe
         return HealthCheckResponse.builder()
                 .name("ResponseTimeoutReadinessCheck")
                 .withData("errorCount", errorCounter)
-                .up()
+                .status(up)
                 .build();
     }
 }

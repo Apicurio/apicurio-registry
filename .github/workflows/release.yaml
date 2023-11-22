@@ -163,8 +163,6 @@ jobs:
           prerelease: ${{ env.IS_PRE_RELEASE }}
           files: |
             registry/distro/docker/target/docker/app-files/apicurio-registry-app-${{ github.event.inputs.release-version }}-all.tar.gz
-            registry/distro/docker/target/docker/app-files/apicurio-registry-storage-sql-${{ github.event.inputs.release-version }}-all.tar.gz
-            registry/distro/docker/target/docker/app-files/apicurio-registry-storage-kafkasql-${{ github.event.inputs.release-version }}-all.tar.gz
 
       - name: Generate Release Notes
         run: |

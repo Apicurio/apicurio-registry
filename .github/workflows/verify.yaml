@@ -276,8 +276,8 @@ jobs:
         if: github.event_name == 'push'
         run: |
           docker build --push -f ./distro/docker/target/docker/Dockerfile.native \
-            -t quay.io/apicurio/apicurio/apicurio-registry-native:latest-snapshot \
-            -t docker.io/apicurio/apicurio/apicurio-registry-native:latest-snapshot \
+            -t quay.io/apicurio/apicurio-registry-native:latest-snapshot \
+            -t docker.io/apicurio/apicurio-registry-native:latest-snapshot \
             app/
 
       - name: List All The Images

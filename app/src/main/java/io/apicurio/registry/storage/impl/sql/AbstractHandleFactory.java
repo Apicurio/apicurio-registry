@@ -70,7 +70,10 @@ public abstract class AbstractHandleFactory implements HandleFactory {
                 get().level--;
             } else {
                 try {
-                    get().handle.close();
+                    LocalState partialState = get();
+                    if (partialState.handle != null) {
+                        partialState.handle.close();
+                    }
                 } catch (IOException ex) {
                     // Nothing we can do
                     log.error("Could not close a database handle", ex);

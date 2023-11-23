@@ -138,11 +138,33 @@
         <!-- Persistence -->
         <dependency>
             <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-agroal</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-jdbc-postgresql</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.quarkus</groupId>
             <artifactId>quarkus-jdbc-h2</artifactId>
         </dependency>
         <dependency>
             <groupId>io.quarkus</groupId>
-            <artifactId>quarkus-agroal</artifactId>
+            <artifactId>quarkus-jdbc-mssql</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.eclipse.jgit</groupId>
+            <artifactId>org.eclipse.jgit</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>commons-io</groupId>
+            <artifactId>commons-io</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.strimzi</groupId>
+            <artifactId>kafka-oauth-client</artifactId>
         </dependency>
 
         <!-- Third Party Libraries -->
@@ -262,6 +284,22 @@
         <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>redpanda</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.zonky.test</groupId>
+            <artifactId>embedded-postgres</artifactId>
+            <version>${embedded-postgres.version}</version><!--$NO-MVN-MAN-VER$-->
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>mssqlserver</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.awaitility</groupId>
+            <artifactId>awaitility</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>
@@ -506,43 +544,6 @@
     </build>
 
     <profiles>
-        <profile>
-            <id>no-docker</id>
-            <properties>
-                <groups>!docker</groups>
-            </properties>
-        </profile>
-        <profile>
-            <id>no-slow-tests</id>
-            <properties>
-                <groups>!heavy</groups>
-            </properties>
-        </profile>
-        <profile>
-            <id>sub</id>
-            <activation>
-                <property>
-                    <name>sub</name>
-                </property>
-            </activation>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.jboss.jandex</groupId>
-                        <artifactId>jandex-maven-plugin</artifactId>
-                        <executions>
-                            <execution>
-                                <id>make-index</id>
-                                <goals>
-                                    <goal>jandex</goal>
-                                </goals>
-                            </execution>
-                        </executions>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-
         <profile>
             <id>native</id>
             <activation>

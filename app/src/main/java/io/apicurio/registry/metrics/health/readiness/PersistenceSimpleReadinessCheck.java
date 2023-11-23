@@ -35,7 +35,7 @@ public class PersistenceSimpleReadinessCheck implements HealthCheck {
         try {
             return storage.isReady();
         } catch (Exception ex) {
-            ex.printStackTrace();
+            log.warn("Persistence is not ready:", ex);
             return false;
         }
     }

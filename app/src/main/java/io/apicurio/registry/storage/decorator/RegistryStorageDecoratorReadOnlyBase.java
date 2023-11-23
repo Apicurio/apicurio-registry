@@ -49,6 +49,10 @@ public abstract class RegistryStorageDecoratorReadOnlyBase implements RegistrySt
         this.delegate = delegate;
     }
 
+    @Override
+    public void initialize() {
+        delegate.initialize();
+    }
 
     @Override
     public String storageName() {

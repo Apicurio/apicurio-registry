@@ -15,10 +15,6 @@
 
     <properties>
         <docker.app.file>app-files/apicurio-registry-app-${project.version}-all.tar.gz</docker.app.file>
-        <docker.sql.file>app-files/apicurio-registry-storage-sql-${project.version}-all.tar.gz</docker.sql.file>
-        <docker.mssql.file>app-files/apicurio-registry-storage-mssql-${project.version}-all.tar.gz</docker.mssql.file>
-        <docker.kafkasql.file>app-files/apicurio-registry-storage-kafkasql-${project.version}-all.tar.gz</docker.kafkasql.file>
-        <docker.gitops.file>app-files/apicurio-registry-storage-gitops-${project.version}-all.tar.gz</docker.gitops.file>
     </properties>
 
     <dependencies>
@@ -47,38 +43,6 @@
                             <resources>
                                 <resource>
                                     <directory>${basedir}/../../app/target</directory>
-                                    <filtering>false</filtering>
-                                    <includes>
-                                        <include>apicurio-*.tar.gz</include>
-                                        <include>apicurio-*runner</include>
-                                    </includes>
-                                </resource>
-                                <resource>
-                                    <directory>${basedir}/../../storage/sql/target</directory>
-                                    <filtering>false</filtering>
-                                    <includes>
-                                        <include>apicurio-*.tar.gz</include>
-                                        <include>apicurio-*runner</include>
-                                    </includes>
-                                </resource>
-                                <resource>
-                                    <directory>${basedir}/../../storage/mssql/target</directory>
-                                    <filtering>false</filtering>
-                                    <includes>
-                                        <include>apicurio-*.tar.gz</include>
-                                        <include>apicurio-*runner</include>
-                                    </includes>
-                                </resource>
-                                <resource>
-                                    <directory>${basedir}/../../storage/kafkasql/target</directory>
-                                    <filtering>false</filtering>
-                                    <includes>
-                                        <include>apicurio-*.tar.gz</include>
-                                        <include>apicurio-*runner</include>
-                                    </includes>
-                                </resource>
-                                <resource>
-                                    <directory>${basedir}/../../storage/gitops/target</directory>
                                     <filtering>false</filtering>
                                     <includes>
                                         <include>apicurio-*.tar.gz</include>
@@ -117,56 +81,5 @@
 
         </plugins>
     </build>
-
-    <profiles>
-    
-        <profile>
-            <id>sql</id>
-            <dependencies>
-                <dependency>
-                    <groupId>io.apicurio</groupId>
-                    <artifactId>apicurio-registry-storage-sql</artifactId>
-                    <version>${project.version}</version>
-                    <scope>provided</scope>
-                </dependency>
-            </dependencies>
-        </profile>
-
-        <profile>
-            <id>mssql</id>
-            <dependencies>
-                <dependency>
-                    <groupId>io.apicurio</groupId>
-                    <artifactId>apicurio-registry-storage-mssql</artifactId>
-                    <version>${project.version}</version>
-                    <scope>provided</scope>
-                </dependency>
-            </dependencies>
-        </profile>
-
-        <profile>
-            <id>kafkasql</id>
-            <dependencies>
-                <dependency>
-                    <groupId>io.apicurio</groupId>
-                    <artifactId>apicurio-registry-storage-kafkasql</artifactId>
-                    <version>${project.version}</version>
-                    <scope>provided</scope>
-                </dependency>
-            </dependencies>
-        </profile>
-
-        <profile>
-            <id>gitops</id>
-            <dependencies>
-                <dependency>
-                    <groupId>io.apicurio</groupId>
-                    <artifactId>apicurio-registry-storage-gitops</artifactId>
-                    <version>${project.version}</version>
-                    <scope>provided</scope>
-                </dependency>
-            </dependencies>
-        </profile>
-    </profiles>
 
 </project>

@@ -81,15 +81,11 @@ jobs:
         if: github.event_name == 'push'
         run: echo ${{ secrets.DOCKERHUB_PASSWORD }} | docker login -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
 
-      - name: Build and Push In Memory Multi-arch Images to Docker.io
-        if: github.event_name == 'push'
-        run: ./.github/scripts/build-and-push-multiarch-images.sh ${GITHUB_REF#refs/heads/} docker.io mem-multiarch-images snapshot
-
       - name: Login to Quay.io Registry
         if: github.event_name == 'push'
         run: docker login -u "${{ secrets.QUAY_USERNAME }}" -p "${{ secrets.QUAY_PASSWORD }}" quay.io
 
-      - name: Build and Push Application Multi-arch Images to Quay.io
+      - name: Build and Push Application Multi-arch Images
         if: github.event_name == 'push'
         run: |
           docker buildx build --push -f ./distro/docker/target/docker/Dockerfile.jvm -t docker.io/apicurio/apicurio-registry:latest-snapshot -t quay.io/apicurio/apicurio-registry:latest-snapshot --platform linux/amd64,linux/arm64,linux/s390x,linux/ppc64le ./distro/docker/target/docker

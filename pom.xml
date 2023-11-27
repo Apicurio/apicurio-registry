@@ -58,16 +58,6 @@
             <timezone>+1</timezone>
         </developer>
         <developer>
-            <name>Aleš Justin</name>
-            <id>alesj</id>
-            <email>ajustin@redhat.com</email>
-            <organization>Red Hat</organization>
-            <roles>
-                <role>Developer</role>
-            </roles>
-            <timezone>+1</timezone>
-        </developer>
-        <developer>
             <name>Carles Arnal</name>
             <id>carlesarnal</id>
             <email>carnalca@redhat.com</email>
@@ -76,26 +66,6 @@
                 <role>Developer</role>
             </roles>
             <timezone>+1</timezone>
-        </developer>
-        <developer>
-            <name>Fabian Martinez Gonzalez</name>
-            <id>famartinrh</id>
-            <email>famartin@redhat.com</email>
-            <organization>Red Hat</organization>
-            <roles>
-                <role>Developer</role>
-            </roles>
-            <timezone>+1</timezone>
-        </developer>
-        <developer>
-            <name>Rishab Prasad</name>
-            <id>riprasad</id>
-            <email>riprasad@redhat.com</email>
-            <organization>Red Hat</organization>
-            <roles>
-                <role>Developer</role>
-            </roles>
-            <timezone>+4</timezone>
         </developer>
     </developers>
 

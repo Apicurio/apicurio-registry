@@ -45,7 +45,7 @@
                 <role>Project Lead</role>
                 <role>Developer</role>
             </roles>
-            <timezone>-5</timezone>
+            <timezone>America/New_York</timezone>
         </developer>
         <developer>
             <name>Jakub Senko</name>
@@ -55,7 +55,7 @@
             <roles>
                 <role>Developer</role>
             </roles>
-            <timezone>+1</timezone>
+            <timezone>Europe/Prague</timezone>
         </developer>
         <developer>
             <name>Carles Arnal</name>
@@ -65,7 +65,17 @@
             <roles>
                 <role>Developer</role>
             </roles>
-            <timezone>+1</timezone>
+            <timezone>Europe/Madrid</timezone>
+        </developer>
+        <developer>
+            <name>Andrea Peruffo</name>
+            <id>andreaTP</id>
+            <email>aperuffo@redhat.com</email>
+            <organization>Red Hat</organization>
+            <roles>
+                <role>Developer</role>
+            </roles>
+            <timezone>Europe/Lisbon</timezone>
         </developer>
     </developers>
 

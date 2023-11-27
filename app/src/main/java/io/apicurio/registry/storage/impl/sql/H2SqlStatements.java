@@ -74,7 +74,7 @@ public class H2SqlStatements extends CommonSqlStatements {
      */
     @Override
     public String getNextSequenceValue() {
-        return "UPDATE sequences sa SET seq_value = (SELECT sb.seq_value + 1 FROM sequences sb WHERE sb.name = sa.name) WHERE sa.tenantId = ? AND sa.name = ?";
+        return "UPDATE sequences sa SET seq_value = (SELECT sb.seq_value + 1 FROM sequences sb WHERE sb.name = sa.name) WHERE sa.name = ?";
     }
 
     /**

@@ -305,7 +305,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
     @Override
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Write)
-    public GroupMetaData createGroup(CreateGroupMetaData data) {
+    public GroupMetaData createGroup(CreateGroupMetaData data) throws GroupAlreadyExistsException{
         GroupMetaDataDto.GroupMetaDataDtoBuilder group = GroupMetaDataDto.builder()
                 .groupId(data.getId())
                 .description(data.getDescription())

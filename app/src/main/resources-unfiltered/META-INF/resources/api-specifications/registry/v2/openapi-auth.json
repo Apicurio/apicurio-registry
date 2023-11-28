@@ -12,7 +12,7 @@
             "name": "Apache 2.0",
             "url": "https://www.apache.org/licenses/LICENSE-2.0"
         },
-        "version": "2.4.x"
+        "version": "2.5.x"
     },
     "paths": {
         "x-codegen-contextRoot": "/apis/registry/v2",

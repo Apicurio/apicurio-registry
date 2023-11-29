@@ -2,6 +2,9 @@ package io.apicurio.registry.storage.error;
 
 import io.apicurio.registry.types.RegistryException;
 
+/**
+ * This exception (not subclasses) should be used for general, major, and unexpected (e.g. SQL) errors.
+ */
 // TODO Should be abstract and more specific exception should be used
 public class RegistryStorageException extends RegistryException {
 

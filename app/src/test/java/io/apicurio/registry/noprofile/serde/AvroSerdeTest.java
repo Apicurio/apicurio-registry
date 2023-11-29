@@ -34,6 +34,7 @@ import io.apicurio.registry.serde.SerdeHeaders;
 import io.apicurio.registry.serde.avro.AvroKafkaDeserializer;
 import io.apicurio.registry.serde.avro.AvroKafkaSerdeConfig;
 import io.apicurio.registry.serde.avro.AvroKafkaSerializer;
+import io.apicurio.registry.serde.avro.AvroSchemaUtils;
 import io.apicurio.registry.serde.avro.DefaultAvroDatumProvider;
 import io.apicurio.registry.serde.avro.ReflectAllowNullAvroDatumProvider;
 import io.apicurio.registry.serde.avro.ReflectAvroDatumProvider;
@@ -109,6 +110,8 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
         config.put(SerdeConfig.EXPLICIT_ARTIFACT_VERSION, "1");
         config.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, TopicRecordIdStrategy.class.getName());
         config.put(AvroKafkaSerdeConfig.AVRO_DATUM_PROVIDER, DefaultAvroDatumProvider.class.getName());
+        config.put(AvroKafkaSerdeConfig.AVRO_REMOVE_JAVA_PROPERTIES, false);
+
         Serializer<GenericData.Record> serializer = new AvroKafkaSerializer<GenericData.Record>();
         serializer.configure(config, true);
 
@@ -140,6 +143,13 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
 
             config.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, TopicRecordIdStrategy.class.getName());
             config.put(AvroKafkaSerdeConfig.AVRO_DATUM_PROVIDER, DefaultAvroDatumProvider.class.getName());
+            serializer.configure(config, true);
+            bytes = serializer.serialize(topic, record);
+            deserializer.configure(deserializerConfig, true);
+            record = deserializer.deserialize(topic, bytes);
+            Assertions.assertEquals("somebar", record.get("bar").toString());
+
+            config.put(AvroKafkaSerdeConfig.AVRO_REMOVE_JAVA_PROPERTIES, true);
             serializer.configure(config, true);
             bytes = serializer.serialize(topic, record);
             deserializer.configure(deserializerConfig, true);
@@ -588,5 +598,16 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
             GenericData.Record ir = (GenericData.Record) deserializer2.deserialize(subject, bytes);
             Assertions.assertEquals("somebar", ir.get("bar").toString());
         }
+    }
+
+    @Test
+    public void testRemoveAvroJavaString() {
+        String rawSchemaWithAvroJavaString = "{\"type\":\"record\",\"name\":\"myrecord3\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\",\"avro.java.string\": \"String\"}]}";
+        Schema schemaCleanedFromAvroJavaString = AvroSchemaUtils.parse(rawSchemaWithAvroJavaString, true);
+
+        String rawSchemaWithOutAvroJavaString = "{\"type\":\"record\",\"name\":\"myrecord3\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}";
+        Schema schemaWithOutAvroJavaString = AvroSchemaUtils.parse(rawSchemaWithOutAvroJavaString, false);
+
+        Assertions.assertTrue(schemaCleanedFromAvroJavaString.equals(schemaWithOutAvroJavaString));
     }
 }

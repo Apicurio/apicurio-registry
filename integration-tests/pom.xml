@@ -291,7 +291,7 @@
                                 <configuration>
                                     <systemPropertyVariables>
                                         <registry-in-memory-image>
-                                            quay.io/apicurio/apicurio-registry-mem:latest-snapshot
+                                            quay.io/apicurio/apicurio-registry:latest-snapshot
                                         </registry-in-memory-image>
                                         <deployInMemory>true</deployInMemory>
                                         <cluster.tests>true</cluster.tests>
@@ -323,7 +323,7 @@
                                 <configuration>
                                     <systemPropertyVariables>
                                         <registry-kafkasql-image>
-                                            quay.io/apicurio/apicurio-registry-kafkasql:latest-snapshot
+                                            quay.io/apicurio/apicurio-registry:latest-snapshot
                                         </registry-kafkasql-image>
                                         <cluster.tests>true</cluster.tests>
                                         <deployKafka>true</deployKafka>
@@ -354,7 +354,8 @@
                                 </goals>
                                 <configuration>
                                     <systemPropertyVariables>
-                                        <registry-sql-image>quay.io/apicurio/apicurio-registry-sql:latest-snapshot
+                                        <registry-sql-image>
+                                            quay.io/apicurio/apicurio-registry:latest-snapshot
                                         </registry-sql-image>
                                         <cluster.tests>true</cluster.tests>
                                         <deploySql>true</deploySql>

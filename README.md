@@ -17,8 +17,19 @@ Apicurio Registry supports 4 persistence implementations:
  - KafkaSQL
  - PostgreSQL
  - SQL Server (community contributed and maintained)
-  
-If you enable one, a separate set of artifacts is produced with the persistence implementation available.
+
+Starting with Apicurio Registry 3.0, we now produce a single artifact suitable for running any storage variant.
+
+Which storage variant will be used is determined by the following configuration:
+
+|Option|Command argument|Env. variable|
+|---|---|---|
+|Registry Storage Variant|`-Dregistry.storage.kind`|`REGISTRY_STORAGE_KIND`|
+
+For this property, there are three possible values:
+- *sql* - for the SQL storage variant.
+- *kafkasql* - for the KafkaSQL storage variant.
+- *gitops* - for the Gitops storage variant.
 
 Additionally, there are 2 main configuration profiles:
  - *dev* - suitable for development, and
@@ -56,13 +67,6 @@ For more information on the UI, see the UI module's [README.md](ui/README.md).
 
 - `-Pprod` enables Quarkus's *prod* configuration profile, which uses configuration options suitable for a production environment,
   e.g. a higher logging level.
-- `-Psql` enables a build of `storage/sql` module and produces `apicurio-registry-storage-sql-<version>-all.zip`. This artifact uses `H2` driver in *dev* mode,
-  and `PostgreSQL` driver in *prod* mode.
-- `-Pmssql` enables a build of `storage/mssql` module and produces `apicurio-registry-storage-mssql-<version>-all.zip`. This artifact uses `H2` driver in *dev* mode,
-  and `SQL Server` driver in *prod* mode.
-- `-Pmysql` enables a build of `storage/mysql` module and produces `apicurio-registry-storage-mysql-<version>-all.zip`. This artifact uses `H2` driver in *dev* mode,
-  and `MySQL` driver in *prod* mode.
-- `-Pkafkasql` enables a build of the `storage/kafkasql` module and produces the `apicurio-registry-storage-kafkasql-<version>-all.zip` artifact.
 - `-Pnative` *(experimental)* builds native executables. See [Building a native executable](https://quarkus.io/guides/maven-tooling#building-a-native-executable).
 - `-Ddocker` *(experimental)* builds docker images. Make sure that you have the docker service enabled and running.
   If you get an error, try `sudo chmod a+rw /var/run/docker.sock`.
@@ -72,26 +76,28 @@ For more information on the UI, see the UI module's [README.md](ui/README.md).
 The following parameters are available for executable files:
 
 ### SQL
- - In the *dev* mode, the application expects an H2 server running at `jdbc:h2:tcp://localhost:9123/mem:registry`.
- - In the *prod* mode, you have to provide connection configuration for a PostgreSQL (or SQL Server) server as follows:
+ - By default, the application expects an H2 server running at `jdbc:h2:tcp://localhost:9123/mem:registry`.
+ - For configuring the database kind and the datasource values, the following configuration options are available:
   
-|Option|Command argument|Env. variable|
-|---|---|---|
-|Data Source URL|`-Dquarkus.datasource.jdbc.url`|`REGISTRY_DATASOURCE_URL`|
-|DS Username|`-Dquarkus.datasource.username`|`REGISTRY_DATASOURCE_USERNAME`|
-|DS Password|`-Dquarkus.datasource.password`|`REGISTRY_DATASOURCE_PASSWORD`|
+| Option                    |Command argument| Env. variable                  |
+|---------------------------|---|--------------------------------|
+| Registry SQL storage kind |`-Dregistry.storage.db-kind`| `REGISTRY_STORAGE_DB_KIND`     |
+| Data Source URL           |`-Dregistry.datasource.url`| `REGISTRY_DATASOURCE_URL`      |
+| DS Username               |`-Dregistry.datasource.username`| `REGISTRY_DATASOURCE_USERNAME` |
+| DS Password               |`-Dregistry.datasource.password`| `REGISTRY_DATASOURCE_PASSWORD` |
 
 To see additional options, visit:
  - [Data Source config](https://quarkus.io/guides/datasource) 
  - [Data Source options](https://quarkus.io/guides/datasource-guide#configuration-reference) 
- - [Hibernate options](https://quarkus.io/guides/hibernate-orm-guide#properties-to-refine-your-hibernate-orm-configuration)
 
 ### KafkaSQL
-`./mvnw clean install -Pprod -Pkafkasql -DskipTests` builds the KafkaSQL artifact.
-The newly built runner can be found in `/storage/kafkasql/target`
+`./mvnw clean install -Pprod -DskipTests` builds the application artifact.
+The newly built runner can be found in `/app/target`
 ```
-java -jar apicurio-registry-storage-kafkasql-<version>-SNAPSHOT-runner.jar
+java Dregistry.storage.kind=kafkasql -jar apicurio-registry-app-<version>-SNAPSHOT-runner.jar
 ```
+For using Kafka as the persistent storage for the server information the only required configuration is to set the property *registry.storage.kind*.
+
 Should result in Quarkus and the registry starting up, with the ui and APIs available on localhost port 8080.
 By default, this will look for a kafka instance on `localhost:9092`, see [kafka-quickstart](https://kafka.apache.org/quickstart).
 
@@ -100,6 +106,7 @@ with the necessary details to connect to a kafka instance using a PKCS12 certifi
 scram-sha-512 credentials for user authorisation.
 ```
 java \
+-Dregistry.storage.kind=kafkasql \
 -Dregistry.kafka.common.bootstrap.servers=<kafka_bootstrap_server_address> \
 -Dregistry.kafka.common.ssl.truststore.location=<truststore_file_location>\
 -Dregistry.kafka.common.ssl.truststore.password=<truststore_file_password> \
@@ -107,22 +114,19 @@ java \
 -Dregistry.kafka.common.security.protocol=SASL_SSL \
 -Dregistry.kafka.common.sasl.mechanism=SCRAM-SHA-512 \
 -Dregistry.kafka.common.sasl.jaas.config='org.apache.kafka.common.security.scram.ScramLoginModule required username="<username>" password="<password>";' \
--jar storage/kafkasql/target/apicurio-registry-storage-kafkasql-2.1.6-SNAPSHOT-runner.jar
+-jar app/target/apicurio-registry-app-3.0.0-SNAPSHOT-runner.jar
 ```
 This will start up the registry with the persistence managed by the external kafka cluster.
 
 ## Docker containers
-Every time a commit is pushed to `main` an updated set of docker images are built and pushed to Docker 
-Hub.  There are several docker images to choose from, one for each storage option.  The images include:
+Every time a commit is pushed to `main` an updated docker image is built and pushed to Docker 
+Hub.  The image can be found in:
 
-* [apicurio-registry-mem](https://hub.docker.com/r/apicurio/apicurio-registry-mem)
-* [apicurio-registry-sql](https://hub.docker.com/r/apicurio/apicurio-registry-sql)
-* [apicurio-registry-mssql](https://hub.docker.com/r/apicurio/apicurio-registry-mssql)
-* [apicurio-registry-kafkasql](https://hub.docker.com/r/apicurio/apicurio-registry-kafkasql)
+* [apicurio-registry](https://hub.docker.com/r/apicurio/apicurio-registry)
 
-Run one of the above docker images like this:
+Run the above docker image like this:
 
-    docker run -it -p 8080:8080 apicurio/apicurio-registry-mem:latest-snapshot
+    docker run -it -p 8080:8080 apicurio/apicurio-registry:latest-snapshot
 
 The same configuration options are available for the docker containers, but only in the form of environment 
 variables (The command line parameters are for the `java` executable and at the moment it's not possible to 
@@ -155,7 +159,7 @@ Once both container images are running as described above, you can access the fo
 
 Run Apicurio Registry with Postgres:
 
- - Compile using `mvn clean install -DskipTests -Pprod -Psql -Ddocker`
+ - Compile using `mvn clean install -DskipTests -Pprod -Ddocker`
 
  - Then create a docker-compose file `test.yml`: 
 ```yaml
@@ -168,10 +172,12 @@ services:
       POSTGRES_USER: apicurio-registry
       POSTGRES_PASSWORD: password
   app:
-    image: apicurio/apicurio-registry-sql:2.0.0-SNAPSHOT
+    image: apicurio/apicurio-registry:3.0.0-SNAPSHOT
     ports:
       - 8080:8080
     environment:
+      REGISTRY_STORAGE_KIND: 'sql'
+      REGISTRY_STORAGE_DB_KIND: 'postgresql'
       REGISTRY_DATASOURCE_URL: 'jdbc:postgresql://postgres/apicurio-registry'
       REGISTRY_DATASOURCE_USERNAME: apicurio-registry
       REGISTRY_DATASOURCE_PASSWORD: password

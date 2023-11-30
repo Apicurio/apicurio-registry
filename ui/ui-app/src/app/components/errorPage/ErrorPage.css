@@ -8,7 +8,7 @@
 
 .centerizer > div.separator {
     display: block;
-    height: 0px;
+    height: 0;
 }
 
 .centerizer > div.ace-wrapper > div {

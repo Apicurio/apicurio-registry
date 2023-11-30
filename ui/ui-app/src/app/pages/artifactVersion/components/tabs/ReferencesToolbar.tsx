@@ -17,7 +17,7 @@ import { OnPerPageSelect, OnSetPage } from "@patternfly/react-core/dist/js/compo
 import { ArtifactReference } from "@models/artifactReference.model.ts";
 import { ReferenceType } from "@models/referenceType.ts";
 import { Paging } from "@services/groups";
-import { ObjectSelect } from "@app/components/common/ObjectSelect.tsx";
+import { ObjectSelect } from "@apicurio/common-ui-components";
 
 export interface ReferencesToolbarFilterCriteria {
     filterSelection: string;
@@ -76,8 +76,12 @@ export const ReferencesToolbar: FunctionComponent<ReferencesToolbarProps> = (pro
                 <ToolbarItem className="filter-item">
                     <Form onSubmit={onFilterSubmit}>
                         <InputGroup>
-                            <ObjectSelect value={filterType} items={FILTER_TYPES} toggleClassname="filter-types-toggle"
-                                onSelect={setFilterType} itemToString={(item) => item.label} />
+                            <ObjectSelect
+                                value={filterType}
+                                items={FILTER_TYPES}
+                                toggleClassname="filter-types-toggle"
+                                onSelect={setFilterType}
+                                itemToString={(item) => item.label} />
                             <TextInput name="filterValue" id="filterValue" type="search"
                                 value={filterValue}
                                 onChange={(_evt, value) => setFilterValue(value)}

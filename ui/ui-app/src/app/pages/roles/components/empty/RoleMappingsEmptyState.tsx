@@ -9,7 +9,7 @@ import {
     EmptyStateVariant
 } from "@patternfly/react-core";
 import { PlusCircleIcon } from "@patternfly/react-icons";
-import { If } from "@app/components";
+import { If } from "@apicurio/common-ui-components";
 
 /**
  * Properties

@@ -21,8 +21,10 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.namespace
-            - name: KAFKA_BOOTSTRAP_SERVERS
+            - name: REGISTRY_KAFKASQL_BOOTSTRAP_SERVERS
               value: kafka-service:9092
+            - name: REGISTRY_STORAGE_KIND
+              value: "kafkasql"
             - name: AUTH_ENABLED
               value: "true"
             - name: KEYCLOAK_API_CLIENT_ID
@@ -53,7 +55,7 @@ spec:
               path: /health/live
               port: 8080
               scheme: HTTP
-            initialDelaySeconds: 5
+            initialDelaySeconds: 10
             periodSeconds: 10
             successThreshold: 1
             timeoutSeconds: 10
@@ -68,7 +70,7 @@ spec:
               path: /health/ready
               port: 8080
               scheme: HTTP
-            initialDelaySeconds: 5
+            initialDelaySeconds: 10
             periodSeconds: 10
             successThreshold: 1
             timeoutSeconds: 10

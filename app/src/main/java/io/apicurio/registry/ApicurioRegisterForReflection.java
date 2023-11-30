@@ -28,6 +28,7 @@ import io.quarkus.runtime.annotations.RegisterForReflection;
   org.apache.commons.logging.LogFactory.class,
   org.apache.commons.logging.impl.LogFactoryImpl.class,
   org.apache.commons.logging.impl.SimpleLog.class,
+  io.agroal.pool.ConnectionHandler[].class,
   // The following list is generated running `jbang cli/tools/extractRegisterForReflection.java`
   io.apicurio.datamodels.models.Components.class,
   io.apicurio.datamodels.models.Contact.class,

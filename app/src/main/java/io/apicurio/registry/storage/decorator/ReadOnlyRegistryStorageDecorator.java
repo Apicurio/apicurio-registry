@@ -41,7 +41,6 @@ import java.util.function.Supplier;
 @ApplicationScoped
 public class ReadOnlyRegistryStorageDecorator extends RegistryStorageDecoratorReadOnlyBase implements RegistryStorageDecorator {
 
-
     public static final String READ_ONLY_MODE_ENABLED_PROPERTY_NAME = "registry.storage.read-only";
 
 

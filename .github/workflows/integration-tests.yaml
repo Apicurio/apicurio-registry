@@ -22,8 +22,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  prepare-sql-tests:
-    name: Prepare for SQL Integration Tests
+  prepare-integration-tests:
+    name: Prepare for Integration Tests
     runs-on: ubuntu-20.04
     if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
     steps:
@@ -41,44 +41,12 @@ jobs:
       - name: Get maven wrapper
         run: mvn -N io.takari:maven:wrapper -Dmaven=3.8.2
 
-      - name: Build Sql Variant
-        run: make SKIP_TESTS=true BUILD_FLAGS='-Dmaven.javadoc.skip=true --no-transfer-progress -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5' build-sql
+      - name: Build Application
+        run: ./mvnw -T 1.5C clean install --no-transfer-progress -Pprod -DskipTests=true -Dmaven.javadoc.skip=true -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5
 
-      - name: Build and Push Sql image
-        env:
-          IMAGE_REPO: ttl.sh/${{ github.sha }}
-          # maximum allowed
-          IMAGE_TAG: 1d
-        run: make build-sql-image push-sql-image
-
-  prepare-kafkasql-tests:
-    name: Prepare for KafkaSQL Integration Tests
-    runs-on: ubuntu-20.04
-    if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
-    steps:
-      - name: Show Actor
-        run: echo ${{github.actor}}
-      - name: Checkout Code
-        uses: actions/checkout@v3
-      - name: Set up JDK 17
-        uses: actions/setup-java@v3
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-          cache: 'maven'
-
-      - name: Get maven wrapper
-        run: mvn -N io.takari:maven:wrapper -Dmaven=3.8.2
-
-      - name: Build kafkasql Variant
-        run: make SKIP_TESTS=true BUILD_FLAGS='-Dmaven.javadoc.skip=true --no-transfer-progress -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5' build-kafkasql
-
-      - name: Build and Push kafkasql image
-        env:
-          IMAGE_REPO: ttl.sh/${{ github.sha }}
-          # maximum allowed
-          IMAGE_TAG: 1d
-        run: make build-kafkasql-image push-kafkasql-image
+      - name: Build and Push Application image
+        run: |
+          docker build --push -f ./distro/docker/target/docker/Dockerfile.jvm -t ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:1d ./distro/docker/target/docker
 
   prepare-ui-tests:
     name: Prepare for UI Integration Tests
@@ -91,32 +59,12 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v3
 
-      - name: Set up JDK 17
-        uses: actions/setup-java@v3
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-          cache: 'maven'
-
       - name: Set up Node
         uses: actions/setup-node@v3
         with:
           node-version: 16
           cache: 'npm'
           cache-dependency-path: 'ui/**/package-lock.json'
-
-      - name: Get maven wrapper
-        run: mvn -N io.takari:maven:wrapper -Dmaven=3.8.2
-
-      - name: Build In-Memory Variant
-        run: make SKIP_TESTS=true BUILD_FLAGS='-Dmaven.javadoc.skip=true --no-transfer-progress -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5' build-in-memory
-
-      - name: Build and Push In-Memory image
-        env:
-          IMAGE_REPO: ttl.sh/${{ github.sha }}
-          # maximum allowed
-          IMAGE_TAG: 1d
-        run: make build-mem-image push-mem-image
 
       - name: Install UI Dependencies
         run: |
@@ -144,10 +92,10 @@ jobs:
           docker build -t $IMAGE_REPO/apicurio/apicurio-registry-ui:$IMAGE_TAG .
           docker push $IMAGE_REPO/apicurio/apicurio-registry-ui:$IMAGE_TAG
 
-  integration-tests-sql:
-    name: Integration Tests SQL
+  integration-tests-h2:
+    name: Integration Tests H2
     runs-on: ubuntu-20.04
-    needs: prepare-sql-tests
+    needs: prepare-integration-tests
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
@@ -159,7 +107,7 @@ jobs:
           cache: 'maven'
 
       - name: Setup Minikube
-        uses: manusa/actions-setup-minikube@v2.7.2
+        uses: manusa/actions-setup-minikube@v2.9.0
         with:
           minikube version: 'v1.31.1'
           kubernetes version: 'v1.26.3'
@@ -169,14 +117,14 @@ jobs:
       - name: Prepare minikube tunnel
         run: minikube tunnel &> /dev/null &
 
-      - name: Run Integration Tests - sql
-        run: make REGISTRY_IMAGE='-Dregistry-sql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-sql:1d' run-sql-integration-tests
+      - name: Run Integration Tests - H2
+        run: ./mvnw -T 1.5C verify -am --no-transfer-progress -Pintegration-tests -Pci -Dregistry-in-memory-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:1d  -Premote-mem -pl integration-tests -Dmaven.javadoc.skip=true
 
-      - name: Run Integration Tests - sql - auth
-        run: make REGISTRY_IMAGE='-Dregistry-sql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-sql:1d' run-sql-auth-tests
+      - name: Run Integration Tests - auth - H2
+        run: ./mvnw -T 1.5C verify -am --no-transfer-progress -Pintegration-tests -Pauth -Dregistry-in-memory-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:1d  -Premote-mem -pl integration-tests -Dmaven.javadoc.skip=true
 
-      - name: Run Integration Tests - sql - migration
-        run: make REGISTRY_IMAGE='-Dregistry-sql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-sql:1d' run-sql-migration-integration-tests
+      - name: Run Integration Tests - migration - H2
+        run: ./mvnw -T 1.5C verify -am --no-transfer-progress -Pintegration-tests -Pmigration -Dregistry-in-memory-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:1d  -Premote-mem -pl integration-tests -Dmaven.javadoc.skip=true
 
       - name: Collect logs
         if: failure()
@@ -189,10 +137,10 @@ jobs:
           name: tests-logs
           path: artifacts
 
-  integration-tests-kafkasql:
-    name: Integration Tests KafkaSql
+  integration-tests-postgresql:
+    name: Integration Tests Postgresql
     runs-on: ubuntu-20.04
-    needs: prepare-kafkasql-tests
+    needs: prepare-integration-tests
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
@@ -204,7 +152,7 @@ jobs:
           cache: 'maven'
 
       - name: Setup Minikube
-        uses: manusa/actions-setup-minikube@v2.7.2
+        uses: manusa/actions-setup-minikube@v2.9.0
         with:
           minikube version: 'v1.31.1'
           kubernetes version: 'v1.26.3'
@@ -214,18 +162,65 @@ jobs:
       - name: Prepare minikube tunnel
         run: minikube tunnel &> /dev/null &
 
-      - name: Run Integration Tests - KafkaSql
-        run: make REGISTRY_IMAGE='-Dregistry-kafkasql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-kafkasql:1d' run-kafkasql-integration-tests
+      - name: Run Integration Tests - Postgresql
+        run: ./mvnw -T 1.5C verify -am --no-transfer-progress -Pintegration-tests -Pci -Dregistry-sql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:1d  -Premote-sql -pl integration-tests -Dmaven.javadoc.skip=true
 
-      - name: Run Integration Tests - KafkaSql - Migration
-        run: make REGISTRY_IMAGE='-Dregistry-kafkasql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-kafkasql:1d' run-kafkasql-migration-integration-tests
+      - name: Run Integration Tests - auth - Postgresql
+        run: ./mvnw -T 1.5C verify -am --no-transfer-progress -Pintegration-tests -Pauth -Dregistry-sql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:1d  -Premote-sql -pl integration-tests -Dmaven.javadoc.skip=true
 
-      - name: Run Integration Tests - KafkaSql - Auth
-        run: make REGISTRY_IMAGE='-Dregistry-kafkasql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-kafkasql:1d' run-kafkasql-auth-tests
+      - name: Run Integration Tests - migration - Postgresql
+        run: ./mvnw -T 1.5C verify -am --no-transfer-progress -Pintegration-tests -Pmigration -Dregistry-sql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:1d  -Premote-sql -pl integration-tests -Dmaven.javadoc.skip=true
 
       - name: Collect logs
         if: failure()
         run: ./.github/scripts/collect_logs.sh
+
+      - name: Upload tests logs artifacts
+        if: failure()
+        uses: actions/upload-artifact@v1.0.0
+        with:
+          name: tests-logs
+          path: artifacts
+
+
+  integration-tests-kafkasql:
+    name: Integration Tests KafkaSql
+    runs-on: ubuntu-20.04
+    needs: prepare-integration-tests
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Setup Minikube
+        uses: manusa/actions-setup-minikube@v2.9.0
+        with:
+          minikube version: 'v1.31.1'
+          kubernetes version: 'v1.26.3'
+          github token: ${{ secrets.GITHUB_TOKEN }}
+          driver: docker
+
+      - name: Prepare minikube tunnel
+        run: minikube tunnel &> /dev/null &
+
+      - name: Run Integration Tests - Kafkasql
+        run: ./mvnw -T 1.5C verify -am --no-transfer-progress -Pintegration-tests -Pci -Dregistry-kafkasql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:1d  -Premote-kafka -pl integration-tests -Dmaven.javadoc.skip=true
+
+      - name: Run Integration Tests - auth - Kafkasql
+        run: ./mvnw -T 1.5C verify -am --no-transfer-progress -Pintegration-tests -Pauth -Dregistry-kafkasql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:1d  -Premote-kafka -pl integration-tests -Dmaven.javadoc.skip=true
+
+      - name: Run Integration Tests - migration - Kafkasql
+        run: ./mvnw -T 1.5C verify -am --no-transfer-progress -Pintegration-tests -Pmigration -Dregistry-kafkasql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:1d  -Premote-kafka -pl integration-tests -Dmaven.javadoc.skip=true
+
+      - name: Collect logs
+        if: failure()
+        run: ./.github/scripts/collect_logs.sh
+
       - name: Upload tests logs artifacts
         if: failure()
         uses: actions/upload-artifact@v1.0.0
@@ -236,7 +231,7 @@ jobs:
   integration-tests-ui:
     name: Integration Tests UI
     runs-on: ubuntu-20.04
-    needs: prepare-ui-tests
+    needs: [prepare-ui-tests, prepare-integration-tests]
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
@@ -251,7 +246,7 @@ jobs:
       - name: Run UI tests
         run: |
           echo "Starting Registry App (In Memory)"
-          docker run -it -p 8080:8080 -d --env CORS_ALLOWED_ORIGINS=* ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-mem:1d
+          docker run -it -p 8080:8080 -d --env CORS_ALLOWED_ORIGINS=* ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:1d
           echo "Starting Registry UI"
           docker run -it -p 8888:8080 -d ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-ui:1d
 

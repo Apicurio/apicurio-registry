@@ -45,7 +45,7 @@
                 <role>Project Lead</role>
                 <role>Developer</role>
             </roles>
-            <timezone>-5</timezone>
+            <timezone>America/New_York</timezone>
         </developer>
         <developer>
             <name>Jakub Senko</name>
@@ -55,17 +55,7 @@
             <roles>
                 <role>Developer</role>
             </roles>
-            <timezone>+1</timezone>
-        </developer>
-        <developer>
-            <name>Aleš Justin</name>
-            <id>alesj</id>
-            <email>ajustin@redhat.com</email>
-            <organization>Red Hat</organization>
-            <roles>
-                <role>Developer</role>
-            </roles>
-            <timezone>+1</timezone>
+            <timezone>Europe/Prague</timezone>
         </developer>
         <developer>
             <name>Carles Arnal</name>
@@ -75,27 +65,17 @@
             <roles>
                 <role>Developer</role>
             </roles>
-            <timezone>+1</timezone>
+            <timezone>Europe/Madrid</timezone>
         </developer>
         <developer>
-            <name>Fabian Martinez Gonzalez</name>
-            <id>famartinrh</id>
-            <email>famartin@redhat.com</email>
+            <name>Andrea Peruffo</name>
+            <id>andreaTP</id>
+            <email>aperuffo@redhat.com</email>
             <organization>Red Hat</organization>
             <roles>
                 <role>Developer</role>
             </roles>
-            <timezone>+1</timezone>
-        </developer>
-        <developer>
-            <name>Rishab Prasad</name>
-            <id>riprasad</id>
-            <email>riprasad@redhat.com</email>
-            <organization>Red Hat</organization>
-            <roles>
-                <role>Developer</role>
-            </roles>
-            <timezone>+4</timezone>
+            <timezone>Europe/Lisbon</timezone>
         </developer>
     </developers>
 
@@ -115,7 +95,6 @@
         <module>serdes/avro-serde</module>
         <module>serdes/protobuf-serde</module>
         <module>serdes/jsonschema-serde</module>
-        <module>storage</module>
         <module>distro</module>
         <module>docs</module>
         <module>client</module>
@@ -152,7 +131,7 @@
         <node.version>16.17.0</node.version>
 
         <!-- Quarkus Version -->
-        <quarkus.version>3.4.3</quarkus.version>
+        <quarkus.version>3.5.3</quarkus.version>
 
         <!-- Jandex -->
         <jandex.version>1.2.1</jandex.version>
@@ -313,40 +292,7 @@
             </dependency>
             <dependency>
                 <groupId>io.apicurio</groupId>
-                <artifactId>apicurio-registry-storage-sql</artifactId>
-                <version>${project.version}</version>
-                <type>test-jar</type>
-            </dependency>
-            <dependency>
-                <groupId>io.apicurio</groupId>
-                <artifactId>apicurio-registry-storage-kafkasql</artifactId>
-                <version>${project.version}</version>
-                <type>test-jar</type>
-            </dependency>
-            <dependency>
-                <groupId>io.apicurio</groupId>
-                <artifactId>apicurio-registry-storage-mssql</artifactId>
-                <version>${project.version}</version>
-                <type>test-jar</type>
-            </dependency>
-            <dependency>
-                <groupId>io.apicurio</groupId>
                 <artifactId>apicurio-registry-utils-tests</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.apicurio</groupId>
-                <artifactId>apicurio-registry-storage-sql</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.apicurio</groupId>
-                <artifactId>apicurio-registry-storage-mssql</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.apicurio</groupId>
-                <artifactId>apicurio-registry-storage-kafkasql</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -1042,30 +988,6 @@
 
     <profiles>
         <profile>
-            <id>sql</id>
-            <modules>
-                <module>storage/sql</module>
-            </modules>
-        </profile>
-        <profile>
-            <id>mssql</id>
-            <modules>
-                <module>storage/mssql</module>
-            </modules>
-        </profile>
-        <profile>
-            <id>kafkasql</id>
-            <modules>
-                <module>storage/kafkasql</module>
-            </modules>
-        </profile>
-        <profile>
-            <id>gitops</id>
-            <modules>
-                <module>storage/gitops</module>
-            </modules>
-        </profile>
-        <profile>
             <id>prod</id>
             <activation>
                 <activeByDefault>false</activeByDefault>
@@ -1198,6 +1120,10 @@
                     <id>jitpack.io</id>
                     <url>https://jitpack.io</url>
                 </repository>
+                    <repository>
+                        <id>jgit-repository</id>
+                        <url>https://repo.eclipse.org/content/groups/releases/</url>
+                    </repository>
             </repositories>
         </profile>
     </profiles>

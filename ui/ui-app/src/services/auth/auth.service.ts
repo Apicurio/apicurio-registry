@@ -26,7 +26,7 @@ export class AuthService implements Service {
 
     private enabled: boolean = false;
     private userManager: UserManager | undefined;
-    private oidcUser: User | undefined;
+    private user: User | undefined;
 
     public init = () => {
         if (this.config?.authType() === "oidc") {
@@ -34,18 +34,21 @@ export class AuthService implements Service {
         }
     };
 
-    public authenticateUsingOidc = (): Promise<any> => {
-        return this.userManager?.getUser().then((authenticatedUser) => {
-            if (authenticatedUser) {
-                this.oidcUser = authenticatedUser;
-                this.userManager?.startSilentRenew();
-                return Promise.resolve(authenticatedUser);
-            } else {
-                console.warn("Not authenticated, call doLogin!");
+    public async authenticate(): Promise<any> {
+        if (this.config?.authType() === "oidc") {
+            this.enabled = true;
+            return this.userManager?.signinRedirectCallback().then(user => {
+                this.user = user;
+                return Promise.resolve(user);
+            }).catch(() => {
                 return this.doLogin();
-            }
-        }) || Promise.reject(new Error("(authenticateUsingOidc) User manager is undefined."));
-    };
+            });
+
+        } else {
+            this.enabled = false;
+            return Promise.resolve("Authentication not enabled.");
+        }
+    }
 
     public getClientSettings(): UserManagerSettings {
         const configOptions: any = this.config?.authOptions();
@@ -59,28 +62,33 @@ export class AuthService implements Service {
             filterProtocolClaims: true,
             includeIdTokenInSilentRenew: true,
             includeIdTokenInSilentSignout: true,
-            loadUserInfo: true
+            loadUserInfo: true,
+            automaticSilentRenew: true
         };
     }
 
     public isAuthenticated(): boolean {
-        return this.userManager != null && this.oidcUser != null && !this.oidcUser.expired;
+        return this.userManager != null && this.user != null && !this.user.expired;
     }
 
     public doLogin = (): Promise<any> => {
-        return this.userManager?.signinRedirect().then(() => {
-            this.userManager?.startSilentRenew();
-            return this.userManager?.signinRedirectCallback();
-        }) || Promise.reject("(doLogin) User manager is undefined.");
+        return this.userManager?.getUser().then((authenticatedUser): Promise<any> => {
+            if (authenticatedUser) {
+                return Promise.resolve(authenticatedUser);
+            } else {
+                console.warn("Not authenticated, call doLogin!");
+                return this.userManager?.signinRedirect() || Promise.reject("(doLogin) User manager is undefined.");
+            }
+        }) || Promise.reject(new Error("(authenticateUsingOidc) User manager is undefined."));
     };
 
     public doLogout = () => {
         this.userManager?.signoutRedirect({ post_logout_redirect_uri: window.location.href });
     };
 
-    public getOidcToken = () => {
-        return this.oidcUser?.id_token;
-    };
+    public getOidcToken() {
+        return this.user?.id_token;
+    }
 
     public isAuthenticationEnabled(): boolean {
         return this.enabled;
@@ -125,24 +133,6 @@ export class AuthService implements Service {
 
     public isUserId(userId: string): boolean {
         return this.users?.currentUser().username === userId;
-    }
-
-    public authenticate(): Promise<any> {
-        if (this.config?.authType() === "oidc") {
-            this.enabled = true;
-            const url = new URL(window.location.href);
-            if (url.searchParams.get("state") || url.searchParams.get("code")) {
-                return this.userManager?.signinRedirectCallback().then(user => {
-                    this.oidcUser = user;
-                    return Promise.resolve(user);
-                }) || Promise.reject(new Error("User manager undefined."));
-            } else {
-                return this.authenticateUsingOidc();
-            }
-        } else {
-            this.enabled = false;
-            return Promise.resolve("Authentication not enabled.");
-        }
     }
 
     public getAuthInterceptor(): (config: AxiosRequestConfig) => Promise<any> {

@@ -23,9 +23,13 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
 import com.microsoft.kiota.ApiException;
+import io.apicurio.registry.storage.RegistryStorage;
+import io.apicurio.registry.types.Current;
 import io.apicurio.registry.utils.tests.ApicurioTestTags;
+import jakarta.inject.Inject;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
@@ -48,6 +52,15 @@ import io.quarkus.test.junit.TestProfile;
 @DisabledIfEnvironmentVariable(named = AbstractRegistryTestBase.CURRENT_ENV, matches = AbstractRegistryTestBase.CURRENT_ENV_MAS_REGEX)
 @Tag(ApicurioTestTags.SLOW)
 public class LimitsTest extends AbstractResourceTestBase {
+
+    @Inject
+    @Current
+    RegistryStorage storage;
+
+    @BeforeAll
+    public void cleanUpData() {
+        storage.deleteAllUserData();
+    }
 
     @Test
     public void testLimits() throws Exception {

@@ -11,11 +11,12 @@ import {
     RoleToolbarCriteria,
     toPageError
 } from "@app/pages";
-import { If, PleaseWaitModal, RootPageHeader } from "@app/components";
+import { RootPageHeader } from "@app/components";
 import { RoleMapping } from "@models/roleMapping.model.ts";
 import { Services } from "@services/services.ts";
 import { GrantAccessModal } from "@app/pages/roles/components/modals/GrantAccessModal.tsx";
 import { Principal } from "@services/config";
+import { If, PleaseWaitModal } from "@apicurio/common-ui-components";
 
 
 export type RolesPageProps = {

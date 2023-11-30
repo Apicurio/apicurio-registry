@@ -1,5 +1,5 @@
 import { FunctionComponent, useState } from "react";
-import { ObjectDropdown } from "@app/components/common/ObjectDropdown.tsx";
+import { ObjectSelect } from "@apicurio/common-ui-components";
 
 
 /**
@@ -38,7 +38,7 @@ export const ValiditySelect: FunctionComponent<ValidityDropdownProps> = (props: 
     };
 
     return (
-        <ObjectDropdown
+        <ObjectSelect
             value={currentValue}
             items={CONFIG_OPTIONS}
             onSelect={onSelect}

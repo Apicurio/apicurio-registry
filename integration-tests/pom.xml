@@ -179,7 +179,7 @@
     <!-- Profiles for local testing -->
     <profiles>
         <profile>
-            <id>local-mem</id>
+            <id>local-tests</id>
             <properties>
                 <skipTests>false</skipTests>
             </properties>
@@ -273,194 +273,6 @@
             </dependencies>
         </profile>
 
-        <profile>
-            <id>local-sql</id>
-            <properties>
-                <skipTests>false</skipTests>
-            </properties>
-            <build>
-                <plugins>
-                    <plugin>
-                        <artifactId>maven-dependency-plugin</artifactId>
-                        <executions>
-                            <execution>
-                                <id>unpack-static-resources</id>
-                                <phase>generate-resources</phase>
-                                <goals>
-                                    <goal>unpack</goal>
-                                </goals>
-                                <configuration>
-                                    <artifactItems>
-                                        <artifactItem>
-                                            <groupId>${project.groupId}</groupId>
-                                            <artifactId>apicurio-registry-storage-sql</artifactId>
-                                            <version>${project.version}</version>
-                                            <type>jar</type>
-                                            <overWrite>true</overWrite>
-                                            <includes>**/web.xml,**/application.properties</includes>
-                                        </artifactItem>
-                                    </artifactItems>
-                                    <outputDirectory>${project.build.outputDirectory}</outputDirectory>
-                                    <overWriteReleases>false</overWriteReleases>
-                                    <overWriteSnapshots>true</overWriteSnapshots>
-                                </configuration>
-                            </execution>
-                            <execution>
-                                <id>unpack-test-dependencies</id>
-                                <phase>process-test-classes</phase>
-                                <goals>
-                                    <goal>unpack-dependencies</goal>
-                                </goals>
-                                <configuration>
-                                    <includeGroupIds>io.apicurio</includeGroupIds>
-                                    <includeTypes>test-jar</includeTypes>
-                                    <includeScope>test</includeScope>
-                                    <outputDirectory>${project.build.directory}/test-classes</outputDirectory>
-                                    <includes>**/*SqlStorageTestResources.class, **/*.properties</includes>
-                                    <overWriteReleases>false</overWriteReleases>
-                                    <overWriteSnapshots>true</overWriteSnapshots>
-                                </configuration>
-                            </execution>
-                        </executions>
-                    </plugin>
-                    <plugin>
-                        <groupId>org.codehaus.mojo</groupId>
-                        <artifactId>properties-maven-plugin</artifactId>
-                        <executions>
-                            <execution>
-                                <goals>
-                                    <goal>set-system-properties</goal>
-                                </goals>
-                                <configuration>
-                                    <properties>
-                                        <property>
-                                            <name>quarkus.http.test-host</name>
-                                            <value>${quarkus.http.test-host}</value>
-                                        </property>
-                                        <property>
-                                            <name>quarkus.http.test-port</name>
-                                            <value>${quarkus.http.test-port}</value>
-                                        </property>
-                                    </properties>
-                                </configuration>
-                            </execution>
-                        </executions>
-                    </plugin>
-                </plugins>
-            </build>
-            <dependencies>
-                <dependency>
-                    <groupId>io.apicurio</groupId>
-                    <artifactId>apicurio-registry-storage-sql</artifactId>
-                </dependency>
-                <dependency>
-                    <groupId>io.apicurio</groupId>
-                    <artifactId>apicurio-registry-storage-sql</artifactId>
-                    <type>test-jar</type>
-                    <exclusions>
-                        <exclusion>
-                            <groupId>io.apicurio</groupId>
-                            <artifactId>apicurio-registry-schema-util-provider</artifactId>
-                        </exclusion>
-                    </exclusions>
-                </dependency>
-            </dependencies>
-        </profile>
-
-        <profile>
-            <id>local-kafka</id>
-            <properties>
-                <skipTests>false</skipTests>
-            </properties>
-            <build>
-                <plugins>
-                    <plugin>
-                        <artifactId>maven-dependency-plugin</artifactId>
-                        <executions>
-                            <execution>
-                                <id>unpack-static-resources</id>
-                                <phase>generate-resources</phase>
-                                <goals>
-                                    <goal>unpack</goal>
-                                </goals>
-                                <configuration>
-                                    <artifactItems>
-                                        <artifactItem>
-                                            <groupId>${project.groupId}</groupId>
-                                            <artifactId>apicurio-registry-storage-kafkasql</artifactId>
-                                            <version>${project.version}</version>
-                                            <type>jar</type>
-                                            <overWrite>true</overWrite>
-                                            <includes>**/web.xml,**/application.properties</includes>
-                                        </artifactItem>
-                                    </artifactItems>
-                                    <outputDirectory>${project.build.outputDirectory}</outputDirectory>
-                                    <overWriteReleases>false</overWriteReleases>
-                                    <overWriteSnapshots>true</overWriteSnapshots>
-                                </configuration>
-                            </execution>
-                            <execution>
-                                <id>unpack-test-dependencies</id>
-                                <phase>process-test-classes</phase>
-                                <goals>
-                                    <goal>unpack-dependencies</goal>
-                                </goals>
-                                <configuration>
-                                    <includeGroupIds>io.apicurio</includeGroupIds>
-                                    <includeTypes>test-jar</includeTypes>
-                                    <includeScope>test</includeScope>
-                                    <outputDirectory>${project.build.directory}/test-classes</outputDirectory>
-                                    <includes>**/*KafkaSqlServiceInitializer.class, **/*.properties</includes>
-                                    <overWriteReleases>false</overWriteReleases>
-                                    <overWriteSnapshots>true</overWriteSnapshots>
-                                </configuration>
-                            </execution>
-                        </executions>
-                    </plugin>
-                    <plugin>
-                        <groupId>org.codehaus.mojo</groupId>
-                        <artifactId>properties-maven-plugin</artifactId>
-                        <executions>
-                            <execution>
-                                <goals>
-                                    <goal>set-system-properties</goal>
-                                </goals>
-                                <configuration>
-                                    <properties>
-                                        <property>
-                                            <name>quarkus.http.test-host</name>
-                                            <value>${quarkus.http.test-host}</value>
-                                        </property>
-                                        <property>
-                                            <name>quarkus.http.test-port</name>
-                                            <value>${quarkus.http.test-port}</value>
-                                        </property>
-                                    </properties>
-                                </configuration>
-                            </execution>
-                        </executions>
-                    </plugin>
-                </plugins>
-            </build>
-            <dependencies>
-                <dependency>
-                    <groupId>io.apicurio</groupId>
-                    <artifactId>apicurio-registry-storage-kafkasql</artifactId>
-                </dependency>
-                <dependency>
-                    <groupId>io.apicurio</groupId>
-                    <artifactId>apicurio-registry-storage-kafkasql</artifactId>
-                    <type>test-jar</type>
-                    <exclusions>
-                        <exclusion>
-                            <groupId>io.apicurio</groupId>
-                            <artifactId>apicurio-registry-schema-util-provider</artifactId>
-                        </exclusion>
-                    </exclusions>
-                </dependency>
-            </dependencies>
-        </profile>
-
         <!-- Here we define the remote deployment options -->
         <profile>
             <id>remote-mem</id>
@@ -479,7 +291,7 @@
                                 <configuration>
                                     <systemPropertyVariables>
                                         <registry-in-memory-image>
-                                            quay.io/apicurio/apicurio-registry-mem:latest-snapshot
+                                            quay.io/apicurio/apicurio-registry:latest-snapshot
                                         </registry-in-memory-image>
                                         <deployInMemory>true</deployInMemory>
                                         <cluster.tests>true</cluster.tests>
@@ -511,7 +323,7 @@
                                 <configuration>
                                     <systemPropertyVariables>
                                         <registry-kafkasql-image>
-                                            quay.io/apicurio/apicurio-registry-kafkasql:latest-snapshot
+                                            quay.io/apicurio/apicurio-registry:latest-snapshot
                                         </registry-kafkasql-image>
                                         <cluster.tests>true</cluster.tests>
                                         <deployKafka>true</deployKafka>
@@ -542,7 +354,8 @@
                                 </goals>
                                 <configuration>
                                     <systemPropertyVariables>
-                                        <registry-sql-image>quay.io/apicurio/apicurio-registry-sql:latest-snapshot
+                                        <registry-sql-image>
+                                            quay.io/apicurio/apicurio-registry:latest-snapshot
                                         </registry-sql-image>
                                         <cluster.tests>true</cluster.tests>
                                         <deploySql>true</deploySql>

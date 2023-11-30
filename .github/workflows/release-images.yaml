@@ -112,14 +112,19 @@ jobs:
       - name: Login to DockerHub Registry
         run: echo ${{ secrets.DOCKERHUB_PASSWORD }} | docker login -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
 
-      - name: Build and Push Multi-arch Images to Docker.io
-        run: cd registry && ./.github/scripts/build-and-push-multiarch-images.sh ${BRANCH} docker.io multiarch-registry-images ${RELEASE_TYPE} ${RELEASE_VERSION}
-
       - name: Login to Quay.io Registry
         run: docker login -u "${{ secrets.QUAY_USERNAME }}" -p "${{ secrets.QUAY_PASSWORD }}" quay.io
 
-      - name: Build and Push Multi-arch Images to Quay.io
-        run: cd registry && ./.github/scripts/build-and-push-multiarch-images.sh ${BRANCH} quay.io multiarch-registry-images ${RELEASE_TYPE} ${RELEASE_VERSION}
+      - name: Build and Push Multi-arch Application Images
+        run: |
+          docker buildx build --push -f ./distro/docker/target/docker/Dockerfile.jvm \
+              -t docker.io/apicurio/apicurio-registry:latest \
+              -t docker.io/apicurio/apicurio-registry:latest-release \
+              -t docker.io/apicurio/apicurio-registry:$RELEASE_VERSION \
+              -t quay.io/apicurio/apicurio-registry:latest \
+              -t quay.io/apicurio/apicurio-registry:latest-release \
+              -t quay.io/apicurio/apicurio-registry:$RELEASE_VERSION \
+              --platform linux/amd64,linux/arm64,linux/s390x,linux/ppc64le ./distro/docker/target/docker
 
       - name: Build and Push UI Multi-arch Images
         if: github.event_name == 'push'
@@ -133,6 +138,24 @@ jobs:
               -t quay.io/apicurio/apicurio-registry-ui:latest-release \
               -t quay.io/apicurio/apicurio-registry-ui:$RELEASE_VERSION \
               --platform linux/amd64,linux/arm64,linux/s390x,linux/ppc64le .
+          
+
+      - name: Build Native executables
+        env:
+          SKIP_TESTS: "true"
+        run: |
+          ./mvnw -T 1.5C package --no-transfer-progress -Pnative -Dquarkus.native.container-build=true -Pprod -DskipTests=true
+
+      - name: Build and Push Temporary image for testing
+        run: |
+          docker build --push -f ./distro/docker/target/docker/Dockerfile.native \
+              -t docker.io/apicurio/apicurio-registry-native:latest \
+              -t docker.io/apicurio/apicurio-registry-native:latest-release \
+              -t docker.io/apicurio/apicurio-registry-native:$RELEASE_VERSION \
+              -t quay.io/apicurio/apicurio-registry-native:latest \
+              -t quay.io/apicurio/apicurio-registry-native:latest-release \
+              -t quay.io/apicurio/apicurio-registry-native:$RELEASE_VERSION \
+              \ app/
 
       - name: Google Chat Notification
         if: ${{ failure() }}

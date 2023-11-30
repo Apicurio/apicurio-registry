@@ -40,7 +40,7 @@ public class JacksonDateTimeCustomizer implements ObjectMapperCustomizer {
     
     private static Logger log = LoggerFactory.getLogger(JacksonDateTimeCustomizer.class);
     
-    private static final String DEFAULT_DATE_TIME_FORMAT = "yyyy-MM-dd'T'HH:mm:ssZ";
+    private static final String DEFAULT_DATE_TIME_FORMAT = "yyyy-MM-dd'T'HH:mm:ss'Z'";
     private static final String DEFAULT_DATE_TIME_FORMAT_TZ = "UTC";
     
     @ConfigProperty(name = "registry.apis.v2.date-format", defaultValue = DEFAULT_DATE_TIME_FORMAT)
@@ -52,31 +52,9 @@ public class JacksonDateTimeCustomizer implements ObjectMapperCustomizer {
 
     @PostConstruct
     protected void postConstruct() {
-        if (dateFormat.equals("yyyy-MM-dd'T'HH:mm:ssZ")) {
-            log.info("---------------------------------------------------------------------");
-            log.info("Legacy REST API date formats enabled (this is currently the default).");
-            log.info("");
-            log.info("For maximum compatibility and to ease upgrades from older versions");
-            log.info("of Registry, the date format used in the REST API is not compliant");
-            log.info("with OpenAPI standards (due to a bug in older versions).  Please");
-            log.info("make sure you upgrade all of your client applications to use the");
-            log.info("latest client version.  The next release will fix the date format");
-            log.info("bug, which will result in older clients no longer being compatible");
-            log.info("with the REST API.");
-            log.info("");
-            log.info("If you would like to fix the date format bug in THIS version of");
-            log.info("Registry (great!) please set the following ENV variable + value:");
-            log.info("");
-            log.info("REGISTRY_APIS_V2_DATE_FORMAT=yyyy-MM-dd'T'HH:mm:ss'Z'");
-            log.info("");
-            log.info("Doing this will result in a REST API that is OpenAPI compliant, but");
-            log.info("please remember to upgrade all your client applications first!");
-            log.info("---------------------------------------------------------------------");
-        } else {
-            log.info("---------------------------------------------------------------------");
-            log.info("Overriding REST API date format.  Using: " + dateFormat);
-            log.info("---------------------------------------------------------------------");
-        }
+        log.debug("---------------------------------------------------------------------");
+        log.debug("Overriding REST API date format.  Using: " + dateFormat);
+        log.debug("---------------------------------------------------------------------");
     }
 
     /**

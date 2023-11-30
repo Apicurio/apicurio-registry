@@ -1,7 +1,7 @@
 import { FunctionComponent } from "react";
 import "./InfoTabContent.css";
 import "@app/styles/empty.css";
-import { ArtifactTypeIcon, If, IfAuth, IfFeature, RuleList } from "@app/components";
+import { ArtifactTypeIcon, IfAuth, IfFeature, RuleList } from "@app/components";
 import {
     Button,
     Card,
@@ -21,6 +21,7 @@ import { DownloadIcon, PencilAltIcon } from "@patternfly/react-icons";
 import { ArtifactMetaData } from "@models/artifactMetaData.model.ts";
 import { Rule } from "@models/rule.model.ts";
 import { FromNow } from "@app/components/common/FromNow.tsx";
+import { If } from "@apicurio/common-ui-components";
 
 /**
  * Properties

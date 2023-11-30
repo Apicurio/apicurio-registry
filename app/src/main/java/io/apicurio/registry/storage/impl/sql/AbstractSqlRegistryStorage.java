@@ -39,7 +39,6 @@ import io.apicurio.registry.storage.importing.DataImporter;
 import io.apicurio.registry.storage.importing.SqlDataImporter;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.RuleType;
-import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 import io.apicurio.registry.util.DtoUtil;
 import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.impexp.ArtifactRuleEntity;
@@ -104,9 +103,6 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     System system;
 
     @Inject
-    ArtifactTypeUtilProviderFactory factory;
-
-    @Inject
     SqlStatements sqlStatements;
 
     @Inject
@@ -131,10 +127,6 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     @Info(category = "storage", description = "SQL init", availableSince = "2.0.0.Final")
     boolean initDB;
 
-    @ConfigProperty(name = "quarkus.datasource.jdbc.url")
-    @Info(category = "storage", description = "Datasource jdbc URL", availableSince = "2.1.0.Final")
-    String jdbcUrl;
-
     @Inject
     Event<SqlStorageEvent> sqlStorageEvent;
 
@@ -156,7 +148,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     protected void initialize(HandleFactory handleFactory, boolean emitStorageReadyEvent) {
         this.handles = handleFactory;
 
-        log.info("SqlRegistryStorage constructed successfully.  JDBC URL: " + jdbcUrl);
+        log.info("SqlRegistryStorage constructed successfully.");
 
         handles.withHandleNoException((handle) -> {
             if (initDB) {
@@ -3371,7 +3363,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                         .one(); // TODO Handle non-existing sequence (see resetSequence)
             } else {
                 // no way to automatically increment the sequence in h2 with just one query
-                // we are incresing the sequence value in a way that it's not safe for concurrent executions
+                // we are increasing the sequence value in a way that it's not safe for concurrent executions
                 // for kafkasql storage this method is not supposed to be executed concurrently
                 // but for inmemory storage that's not guaranteed
                 // that forces us to use an inmemory lock, should not cause any harm

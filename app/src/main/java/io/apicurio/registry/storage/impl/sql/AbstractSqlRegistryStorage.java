@@ -3363,7 +3363,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                         .one(); // TODO Handle non-existing sequence (see resetSequence)
             } else {
                 // no way to automatically increment the sequence in h2 with just one query
-                // we are incresing the sequence value in a way that it's not safe for concurrent executions
+                // we are increasing the sequence value in a way that it's not safe for concurrent executions
                 // for kafkasql storage this method is not supposed to be executed concurrently
                 // but for inmemory storage that's not guaranteed
                 // that forces us to use an inmemory lock, should not cause any harm

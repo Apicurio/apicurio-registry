@@ -605,37 +605,37 @@ The following {registry} configuration options are available for each component 
 |`string`
 |`h2`
 |`3.0.0.Final`
-|Gitops blue datasource db kind
+|Gitops green datasource db kind
 |`registry.datasource.green.jdbc.initial-size`
 |`string`
 |`20`
 |`3.0.0.Final`
-|Gitops blue datasource pool initial size
+|Gitops green datasource pool initial size
 |`registry.datasource.green.jdbc.max-size`
 |`string`
 |`100`
 |`3.0.0.Final`
-|Gitops blue datasource pool max size
+|Gitops green datasource pool max size
 |`registry.datasource.green.jdbc.min-size`
 |`string`
 |`20`
 |`3.0.0.Final`
-|Gitops blue datasource pool minimum size
+|Gitops green datasource pool minimum size
 |`registry.datasource.green.jdbc.url`
 |`string`
 |`jdbc:h2:mem:registry_db`
 |`3.0.0.Final`
-|Gitops blue datasource jdbc url
+|Gitops green datasource jdbc url
 |`registry.datasource.green.password`
 |`string`
 |`sa`
 |`3.0.0.Final`
-|Gitops blue datasource password
+|Gitops green datasource password
 |`registry.datasource.green.username`
 |`string`
 |`sa`
 |`3.0.0.Final`
-|Gitops blue datasource username
+|Gitops green datasource username
 |`registry.datasource.jdbc.initial-size`
 |`string`
 |`20`

@@ -10,9 +10,10 @@ import {
     TextContent
 } from "@patternfly/react-core";
 import { Services } from "@services/services.ts";
-import { If, IfNotEmpty, RootPageHeader } from "@app/components";
+import { RootPageHeader } from "@app/components";
 import { ConfigurationProperty } from "@models/configurationProperty.model.ts";
 import { ConfigProperty, PageDataLoader, PageError, PageErrorHandler, toPageError } from "@app/pages";
+import { If, IfNotEmpty } from "@apicurio/common-ui-components";
 
 
 interface PropertyGroup {
@@ -73,7 +74,7 @@ export const SettingsPage: FunctionComponent<SettingsPageProps> = () => {
     const [filterValue, setFilterValue] = useState("");
     const [searchCriteria, setSearchCriteria] = useState("");
 
-    const createLoaders = (): Promise<any> => {
+    const createLoaders = async (): Promise<any> => {
         return Services.getAdminService().listConfigurationProperties().then( properties => {
             setProperties(properties);
             filterProperties(properties);

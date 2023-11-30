@@ -11,7 +11,7 @@ import {
 import { Paging } from "@services/groups";
 import { ReferenceType } from "@models/referenceType.ts";
 import { Services } from "@services/services.ts";
-import { ListWithToolbar } from "@app/components";
+import { ListWithToolbar } from "@apicurio/common-ui-components";
 
 /**
  * Properties
@@ -140,7 +140,8 @@ export const ReferencesTabContent: FunctionComponent<ReferencesTabContentProps> 
                     isLoading={ isLoading }
                     isError={ isError }
                     isFiltered={  true }
-                    isEmpty={ references.length === 0 }>
+                    isEmpty={ references.length === 0 }
+                >
                     <ReferenceList references={ references } sort={ sort } onSort={ setSort } />
                 </ListWithToolbar>
             </div>

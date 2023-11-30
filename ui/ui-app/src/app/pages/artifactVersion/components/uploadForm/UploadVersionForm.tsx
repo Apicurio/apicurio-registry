@@ -1,5 +1,4 @@
 import { FunctionComponent, useEffect, useState } from "react";
-import "./UploadVersionForm.css";
 import { FileUpload, Form, FormGroup } from "@patternfly/react-core";
 
 

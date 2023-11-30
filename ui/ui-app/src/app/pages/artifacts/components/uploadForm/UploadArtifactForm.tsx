@@ -1,6 +1,5 @@
 import { FunctionComponent, useEffect, useState } from "react";
 import "./UploadArtifactForm.css";
-import { If, UrlUpload } from "@app/components";
 import {
     FileUpload,
     Form,
@@ -16,7 +15,8 @@ import {
 import { ExclamationCircleIcon } from "@patternfly/react-icons";
 import { CreateArtifactData } from "@services/groups";
 import { ArtifactTypes } from "@models/artifactTypes.model.ts";
-import { ObjectSelect } from "@app/components/common/ObjectSelect.tsx";
+import { If, ObjectSelect, UrlUpload } from "@apicurio/common-ui-components";
+import { UrlService, useUrlService } from "@services/url.ts";
 
 /**
  * Properties
@@ -56,6 +56,8 @@ export const UploadArtifactForm: FunctionComponent<UploadArtifactFormProps> = (p
     const [artifactTypes, setArtifactTypes] = useState<any[]>([]);
     const [artifactTypeOptions, setArtifactTypeOptions] = useState<ArtifactTypeItem[]>([]);
     const [selectedType, setSelectedType] = useState<ArtifactTypeItem>(DEFAULT_ARTIFACT_TYPE);
+
+    const urlService: UrlService = useUrlService();
 
     const onFileTextChange = (_event: any, value: string | undefined): void => {
         setContent(value);
@@ -287,6 +289,7 @@ export const UploadArtifactForm: FunctionComponent<UploadArtifactFormProps> = (p
                             onChange={(value) => {
                                 onFileTextChange(null, value);
                             }}
+                            onUrlFetch={(url) => urlService.fetchUrlContent(url)}
                         />
                     </Tab>
                 </Tabs>

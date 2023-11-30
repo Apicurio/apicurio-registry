@@ -48,15 +48,9 @@ export const ErrorPage: FunctionComponent<ErrorPageProps> = (props: ErrorPagePro
     };
 
     const canShowDetails = (): boolean => {
-        if (props.error && props.error.error && props.error.error.detail) {
-            return true;
-        } else if (props.error && props.error.error) {
-            return true;
-        } else {
-            return false;
-        }
+        return !!(props.error && props.error.error);
     };
-    
+
     const showDetails = (): void => {
         setIsShowDetails(true);
     };

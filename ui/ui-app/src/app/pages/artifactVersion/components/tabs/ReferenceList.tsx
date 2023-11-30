@@ -2,7 +2,7 @@ import React, { FunctionComponent, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArtifactReference } from "@models/artifactReference.model.ts";
 import { ThProps } from "@patternfly/react-table";
-import { ResponsiveTable } from "@app/components/table";
+import { ResponsiveTable } from "@apicurio/common-ui-components";
 
 export type SortDirection = "asc" | "desc";
 export type SortBy = "name" | "group" | "id";

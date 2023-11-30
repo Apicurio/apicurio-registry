@@ -100,10 +100,7 @@ export const GrantAccessModal: FunctionComponent<GrantAccessModalProps> = (props
     };
 
     const checkValid = (accountId: string | undefined, role: string | undefined): boolean => {
-        if (!accountId || !role) {
-            return false;
-        }
-        return true;
+        return !(!accountId || !role);
     };
 
     const modalDescription = (): string => {

@@ -3,7 +3,7 @@ import "./ConfigProperty.css";
 import { Button, Flex, FlexItem, Switch } from "@patternfly/react-core";
 import { ConfigurationProperty } from "@models/configurationProperty.model.ts";
 import { PropertyInput } from "@app/pages";
-import { If } from "@app/components";
+import { If } from "@apicurio/common-ui-components";
 import { CheckIcon, CloseIcon, PencilAltIcon } from "@patternfly/react-icons";
 
 /**

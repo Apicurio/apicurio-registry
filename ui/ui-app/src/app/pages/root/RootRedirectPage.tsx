@@ -3,14 +3,10 @@ import { Navigate } from "react-router-dom";
 import { useAppNavigation } from "@hooks/useAppNavigation.ts";
 
 
-export type RootRedirectPageProps = {
-    // No props
-}
-
 /**
  * The root redirect page.
  */
-export const RootRedirectPage: FunctionComponent<RootRedirectPageProps> = () => {
+export const RootRedirectPage: FunctionComponent<any> = () => {
     const appNav = useAppNavigation();
 
     const redirect: string = appNav.createLink("/artifacts");

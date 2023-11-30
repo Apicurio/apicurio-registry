@@ -1,5 +1,4 @@
 import { FunctionComponent, useEffect, useState } from "react";
-import "./ConfigProperty.css";
 import { InputGroup, TextInput } from "@patternfly/react-core";
 
 /**

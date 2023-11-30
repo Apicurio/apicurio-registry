@@ -89,7 +89,7 @@
             <plugin>
                 <groupId>io.apicurio</groupId>
                 <artifactId>apicurio-codegen-maven-plugin</artifactId>
-                <version>1.1.0.Final</version>
+                <version>1.1.1.Final</version>
                 <executions>
                     <execution>
                         <phase>generate-sources</phase>
@@ -108,7 +108,7 @@
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>build-helper-maven-plugin</artifactId>
-                <version>3.4.0</version>
+                <version>3.5.0</version>
                 <executions>
                         <execution>
                                 <id>addSource</id>

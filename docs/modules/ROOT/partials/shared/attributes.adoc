@@ -22,7 +22,7 @@ ifndef::service-registry-downstream[]
 :registry: Apicurio Registry
 :registry-name-full: Apicurio Registry
 :registry-version: 2.5
-:registry-release: 2.5.0.Final
+:registry-release: 2.5.4.Final
 :registry-docker-version: latest-release 
 :registry-v1: 1.3
 :registry-v1-release: 1.3.2.Final 
@@ -45,7 +45,7 @@ ifdef::service-registry-downstream[]
 :registry-name-full: Service Registry
 :registry: Service Registry
 :registry-version: 2.5
-:registry-release: 2.5.3.Final-redhat-00001
+:registry-release: 2.5.4.Final-redhat-00001
 :registry-v1-release: 1.3.2.Final-redhat-00002
 :operator-version: 1.1.0.redhat.x
 :kafka-streams: AMQ Streams

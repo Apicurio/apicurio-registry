@@ -1,5 +1,5 @@
 import { FunctionComponent, useState } from "react";
-import { ObjectDropdown } from "@app/components/common/ObjectDropdown.tsx";
+import { ObjectSelect } from "@apicurio/common-ui-components";
 
 
 /**
@@ -42,7 +42,7 @@ export const CompatibilitySelect: FunctionComponent<CompatibilityDropdownProps> 
     };
 
     return (
-        <ObjectDropdown
+        <ObjectSelect
             value={currentValue}
             items={CONFIG_OPTIONS}
             onSelect={onSelect}

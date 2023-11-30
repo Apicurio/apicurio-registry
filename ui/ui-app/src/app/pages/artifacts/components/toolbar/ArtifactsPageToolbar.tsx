@@ -16,8 +16,7 @@ import { IfAuth, IfFeature } from "@app/components";
 import { Services } from "@services/services.ts";
 import { ArtifactsSearchResults, Paging } from "@services/groups";
 import { OnPerPageSelect, OnSetPage } from "@patternfly/react-core/dist/js/components/Pagination/Pagination";
-import { ObjectSelect } from "@app/components/common/ObjectSelect.tsx";
-import { ObjectDropdown } from "@app/components/common/ObjectDropdown.tsx";
+import { ObjectDropdown, ObjectSelect } from "@apicurio/common-ui-components";
 
 export type ArtifactsPageToolbarFilterCriteria = {
     filterSelection: string;
@@ -173,7 +172,9 @@ export const ArtifactsPageToolbar: FunctionComponent<ArtifactsPageToolbarProps> 
                 </ToolbarItem>
                 <ToolbarItem className="admin-actions-item">
                     <IfAuth isAdmin={true}>
-                        <ObjectDropdown items={kebabActions}
+                        <ObjectDropdown
+                            label="Admin actions"
+                            items={kebabActions}
                             onSelect={(item) => item.callback()}
                             itemToString={(item) => item.label}
                             isKebab={true} />

@@ -31,6 +31,7 @@
   },
   "dependencies": {
     "@apicurio/data-models": "1.1.26",
+    "@apicurio/common-ui-components": "1.0.6",
     "@patternfly/patternfly": "5.1.0",
     "@patternfly/react-code-editor": "5.1.1",
     "@patternfly/react-core": "5.1.1",

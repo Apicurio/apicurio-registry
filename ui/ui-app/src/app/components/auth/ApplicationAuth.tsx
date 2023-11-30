@@ -2,7 +2,8 @@ import React, { FunctionComponent, useEffect, useState } from "react";
 import { Services } from "@services/services";
 import { EmptyState, EmptyStateBody, EmptyStateHeader, EmptyStateIcon, Spinner } from "@patternfly/react-core";
 import { ErrorCircleOIcon } from "@patternfly/react-icons";
-import { If } from "@app/components";
+import { If } from "@apicurio/common-ui-components";
+
 
 enum AuthState {
     AUTHENTICATING, AUTHENTICATED, AUTHENTICATION_FAILED

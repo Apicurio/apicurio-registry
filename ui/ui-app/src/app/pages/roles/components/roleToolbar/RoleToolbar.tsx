@@ -1,6 +1,6 @@
 import { FunctionComponent, useState } from "react";
 import "./RoleToolbar.css";
-import { If } from "@app/components";
+import { If, ObjectSelect } from "@apicurio/common-ui-components";
 import { RoleMapping, RoleTypes } from "@models/roleMapping.model.ts";
 import { Paging } from "@services/groups";
 import {
@@ -14,7 +14,6 @@ import {
     ToolbarContent,
     ToolbarItem
 } from "@patternfly/react-core";
-import { ObjectSelect } from "@app/components/common/ObjectSelect.tsx";
 import { SearchIcon, SortAlphaDownAltIcon, SortAlphaDownIcon } from "@patternfly/react-icons";
 import { Services } from "@services/services.ts";
 
@@ -158,8 +157,12 @@ export const RoleToolbar: FunctionComponent<RoleToolbarProps> = (props: RoleTool
                 <ToolbarItem className="filter-item">
                     <Form onSubmit={onFilterSubmit}>
                         <InputGroup>
-                            <ObjectSelect value={filterType} items={FILTER_TYPES} toggleClassname="filter-types-toggle"
-                                onSelect={onFilterTypeChange} itemToString={(item) => item.label} />
+                            <ObjectSelect
+                                value={filterType}
+                                items={FILTER_TYPES}
+                                toggleClassname="filter-types-toggle"
+                                onSelect={onFilterTypeChange}
+                                itemToString={(item) => item.label} />
                             <If condition={filterType.type === "account"}>
                                 <TextInput name="filterValue" id="filterValue" type="search"
                                     value={filterValue}

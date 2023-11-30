@@ -28,13 +28,14 @@ import {
 } from "@app/pages";
 import { Services } from "@services/services.ts";
 import { ReferencesTabContent } from "@app/pages/artifactVersion/components/tabs/ReferencesTabContent.tsx";
-import { IfFeature, InvalidContentModal, PleaseWaitModal } from "@app/components";
+import { IfFeature, InvalidContentModal } from "@app/components";
 import { ChangeOwnerModal } from "@app/pages/artifactVersion/components/modals/ChangeOwnerModal.tsx";
 import { ContentTypes } from "@models/contentTypes.model.ts";
 import { ArtifactTypes } from "@models/artifactTypes.model.ts";
 import { CreateVersionData, EditableMetaData } from "@services/groups";
 import { AppNavigation, useAppNavigation } from "@hooks/useAppNavigation.ts";
 import { ApiError } from "@models/apiError.model.ts";
+import { PleaseWaitModal } from "@apicurio/common-ui-components";
 
 
 export type ArtifactVersionPageProps = {

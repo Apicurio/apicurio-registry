@@ -26,12 +26,13 @@ import {
     toPageError,
     UploadArtifactForm
 } from "@app/pages";
-import { If, InvalidContentModal, PleaseWaitModal, ProgressModal, RootPageHeader } from "@app/components";
+import { InvalidContentModal, RootPageHeader } from "@app/components";
 import { ArtifactsSearchResults, CreateArtifactData, GetArtifactsCriteria, Paging, Services } from "../../../services";
 import { ApiError } from "@models/apiError.model.ts";
 import { SearchedArtifact } from "@models/searchedArtifact.model.ts";
 import { AppNavigation, useAppNavigation } from "@hooks/useAppNavigation.ts";
 import { useSearchParams } from "react-router-dom";
+import { If, PleaseWaitModal, ProgressModal } from "@apicurio/common-ui-components";
 
 /**
  * Properties
@@ -210,7 +211,7 @@ export const ArtifactsPage: FunctionComponent<ArtifactsPageProps> = () => {
         return !!criteria.filterValue;
     };
 
-    const search = (criteria: ArtifactsPageToolbarFilterCriteria, paging: Paging): Promise<any> => {
+    const search = async (criteria: ArtifactsPageToolbarFilterCriteria, paging: Paging): Promise<any> => {
         setSearching(true);
         const gac: GetArtifactsCriteria = {
             sortAscending: criteria.ascending,

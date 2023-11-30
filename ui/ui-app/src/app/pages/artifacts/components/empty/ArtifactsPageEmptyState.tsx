@@ -11,7 +11,8 @@ import {
     Title
 } from "@patternfly/react-core";
 import { PlusCircleIcon } from "@patternfly/react-icons";
-import { If, IfAuth, IfFeature } from "@app/components";
+import { IfAuth, IfFeature } from "@app/components";
+import { If } from "@apicurio/common-ui-components";
 
 /**
  * Properties

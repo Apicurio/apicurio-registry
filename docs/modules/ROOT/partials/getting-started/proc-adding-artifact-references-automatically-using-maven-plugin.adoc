@@ -5,9 +5,26 @@
 = Adding artifact references automatically using the {registry} Maven plug-in
 
 [role="_abstract"]
-{registry} artifact types such as Apache Avro, Google Protobuf, and JSON Schema can include _artifact references_ from one artifact file to another. You can create efficiencies by defining reusable schema or API artifacts, and then referencing them from multiple locations in artifact references.
+Some {registry} artifact types can include _artifact references_ from one artifact file to another. You can create efficiencies by defining reusable schema or API artifacts, and then referencing them from multiple locations in artifact references. 
 
-You can specify a single artifact and configure the {registry} Maven plugin to automatically detect all references to artifacts located in the same directory, and to automatically register those references.
+The following artifact types support artifact references: 
+
+* Apache Avro 
+* Google Protobuf 
+* JSON Schema 
+* OpenAPI
+* AsyncAPI
+
+You can specify a single artifact and configure the {registry} Maven plugin to automatically detect all references to artifacts located in the same directory, and to automatically register those references. This is a Technology Preview feature. 
+
+[IMPORTANT]
+====
+Technology Preview features are not supported with Red{nbsp}Hat production service level agreements (SLAs) and might not be functionally complete.
+Red{nbsp}Hat does not recommend using them in production.
+These features provide early access to upcoming product features, enabling customers to test functionality and provide feedback during the development process.
+
+For more information about the support scope of Red{nbsp}Hat Technology Preview features, see link:https://access.redhat.com/support/offerings/techpreview/[Technology Preview Features Support Scope].
+====
 
 This section shows a simple example of using the Maven plug-in to register an Avro schema and automatically detect and register an artifact reference to a simple schema artifact. This example assumes that the parent `TradeKey` artifact and the nested `Exchange` schema artifact are both available in the same directory:
 
@@ -78,7 +95,7 @@ This section shows a simple example of using the Maven plug-in to register an Av
                         </file>
                         <ifExists>RETURN_OR_UPDATE</ifExists>
                         <canonicalize>true</canonicalize>
-                        <analyzeDirectory>true</analyzeDirectory> <6>
+                        <autoRefs>true</autoRefs> <6>
                     </artifact>
                 </artifacts>
             </configuration>
@@ -97,7 +114,7 @@ ifdef::rh-openshift-sr[]
 endif::[]
 <4> Specify the parent artifact group ID that contains the references. You can specify the `default` group if you do not want to use a unique group ID.
 <5> Specify the location of the parent artifact file. All referenced artifacts must also be located in the same directory. 
-<6> Set the `<analyzeDirectory>` option to true to automatically detect and register all references to artifacts in the same directory. You can register multiple artifact references in this way.
+<6> Set the `<autoRefs>` option to true to automatically detect and register all references to artifacts in the same directory. You can register multiple artifact references in this way.
 
 . Build your Maven project, for example, by using the `mvn package` command. 
 

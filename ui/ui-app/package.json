@@ -15,7 +15,7 @@
   "devDependencies": {
     "@apicurio/eslint-config": "0.2.0",
     "@monaco-editor/react": "4.6.0",
-    "@types/luxon": "3.3.5",
+    "@types/luxon": "3.3.6",
     "@types/react": "18.2.39",
     "@types/react-dom": "18.2.17",
     "@typescript-eslint/eslint-plugin": "6.13.1",
@@ -31,7 +31,7 @@
   },
   "dependencies": {
     "@apicurio/data-models": "1.1.26",
-    "@apicurio/common-ui-components": "1.0.6",
+    "@apicurio/common-ui-components": "1.0.8",
     "@patternfly/patternfly": "5.1.0",
     "@patternfly/react-code-editor": "5.1.1",
     "@patternfly/react-core": "5.1.1",

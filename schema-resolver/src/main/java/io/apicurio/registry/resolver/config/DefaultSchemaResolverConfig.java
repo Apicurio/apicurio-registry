@@ -25,10 +25,7 @@ import static io.apicurio.registry.resolver.SchemaResolverConfig.*;
 import static java.util.Map.entry;
 
 
-/**
- * @author Fabian Martinez
- * @author Jakub Senko <em>m@jsenko.net</em>
- */
+
 public class DefaultSchemaResolverConfig {
 
     private static final Map<String, Object> DEFAULTS = Map.ofEntries(

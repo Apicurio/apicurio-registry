@@ -30,7 +30,6 @@ import static io.quarkus.scheduler.Scheduled.ConcurrentExecution.SKIP;
 /**
  * Periodically cleanup data of downloads marked as deleted.
  *
- * @author Jakub Senko <em>m@jsenko.net</em>
  */
 @ApplicationScoped
 public class DownloadReaper {

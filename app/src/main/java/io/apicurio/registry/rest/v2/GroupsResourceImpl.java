@@ -77,7 +77,6 @@ import static io.apicurio.registry.rest.v2.V2ApiUtil.defaultGroupIdToNull;
 /**
  * Implements the {@link GroupsResource} JAX-RS interface.
  *
- * @author eric.wittmann@gmail.com
  */
 @ApplicationScoped
 @Interceptors({ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class})

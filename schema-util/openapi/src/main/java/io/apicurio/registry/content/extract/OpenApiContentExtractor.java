@@ -18,7 +18,6 @@ package io.apicurio.registry.content.extract;
 
 /**
  * Performs meta-data extraction for OpenAPI content.
- * @author eric.wittmann@gmail.com
  */
 public class OpenApiContentExtractor extends ApicurioDataModelsContentExtractor {
 }

@@ -55,9 +55,7 @@ import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.
 import static java.util.Objects.requireNonNull;
 import static org.everit.json.schema.CombinedSchema.ALL_CRITERION;
 
-/**
- * @author Jakub Senko <em>m@jsenko.net</em>
- */
+
 public class SchemaDiffVisitor extends JsonSchemaWrapperVisitor {
 
     private final DiffContext ctx;

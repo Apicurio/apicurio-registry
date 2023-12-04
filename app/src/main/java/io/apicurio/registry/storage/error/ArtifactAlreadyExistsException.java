@@ -18,10 +18,7 @@ package io.apicurio.registry.storage.error;
 
 import lombok.Getter;
 
-/**
- * @author eric.wittmann@gmail.com
- * @author Jakub Senko <em>m@jsenko.net</em>
- */
+
 public class ArtifactAlreadyExistsException extends AlreadyExistsException {
 
     private static final long serialVersionUID = -1015140450163088675L;

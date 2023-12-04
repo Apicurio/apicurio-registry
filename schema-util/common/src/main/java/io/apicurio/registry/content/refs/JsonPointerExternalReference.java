@@ -16,9 +16,7 @@
 
 package io.apicurio.registry.content.refs;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 public class JsonPointerExternalReference extends ExternalReference {
 
     /**

@@ -18,9 +18,7 @@ package io.apicurio.registry.resolver;
 
 import java.util.List;
 
-/**
- * @author Fabian Martinez
- */
+
 public interface ParsedSchema<T> {
 
     /**

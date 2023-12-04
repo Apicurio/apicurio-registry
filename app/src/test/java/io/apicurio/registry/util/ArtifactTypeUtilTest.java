@@ -29,9 +29,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 class ArtifactTypeUtilTest extends AbstractRegistryTestBase {
 
     static List<String> availableTypes = List.of(

@@ -15,9 +15,7 @@
  */
 package io.apicurio.registry.storage.impl.sql;
 
-/**
- * @author Fabian Martinez
- */
+
 @FunctionalInterface
 public interface IdGenerator {
 

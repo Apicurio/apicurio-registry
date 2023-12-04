@@ -1,8 +1,6 @@
 package io.apicurio.registry.utils;
 
-/**
- * @author Jakub Senko <em>m@jsenko.net</em>
- */
+
 public final class Functional {
 
     private Functional() {

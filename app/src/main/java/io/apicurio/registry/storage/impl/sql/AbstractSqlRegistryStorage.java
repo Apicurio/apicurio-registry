@@ -77,7 +77,6 @@ import static io.apicurio.registry.utils.StringUtil.limitStr;
  * A SQL implementation of the {@link RegistryStorage} interface.  This impl does not
  * use any ORM technology - it simply uses native SQL for all operations.
  *
- * @author eric.wittmann@gmail.com
  */
 public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 

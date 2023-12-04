@@ -18,9 +18,7 @@ package io.apicurio.registry.auth;
 
 import jakarta.interceptor.InvocationContext;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 public interface IAccessController {
 
     public boolean isAuthorized(InvocationContext context);

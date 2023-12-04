@@ -43,9 +43,7 @@ import java.util.stream.Collectors;
 
 import static com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES;
 
-/**
- * @author Jakub Senko <em>m@jsenko.net</em>
- */
+
 public class JsonUtil {
 
     public static final ObjectMapper MAPPER;

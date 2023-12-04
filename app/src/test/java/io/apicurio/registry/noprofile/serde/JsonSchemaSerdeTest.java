@@ -69,9 +69,7 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-/**
- * @author Fabian Martinez
- */
+
 @QuarkusTest
 public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
 

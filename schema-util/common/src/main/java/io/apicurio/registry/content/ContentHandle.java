@@ -18,9 +18,7 @@ package io.apicurio.registry.content;
 
 import java.io.InputStream;
 
-/**
- * @author Ales Justin
- */
+
 public interface ContentHandle {
 
     static ContentHandle create(InputStream stream) {

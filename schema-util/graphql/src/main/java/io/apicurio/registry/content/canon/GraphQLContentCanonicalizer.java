@@ -28,7 +28,6 @@ import java.util.Map;
 
 /**
  * A canonicalizer that handles GraphQL (SDL) formatted content.
- * @author eric.wittmann@gmail.com
  */
 public class GraphQLContentCanonicalizer implements ContentCanonicalizer {
     

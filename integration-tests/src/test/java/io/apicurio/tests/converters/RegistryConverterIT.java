@@ -60,9 +60,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
 
-/**
- * @author Carles Arnal
- */
+
 @Tag(Constants.SERDES)
 @Tag(Constants.ACCEPTANCE)
 @QuarkusIntegrationTest

@@ -19,9 +19,7 @@ package io.apicurio.registry.rules.compatibility.jsonschema.wrapper;
 import io.apicurio.registry.rules.compatibility.jsonschema.JsonSchemaWrapperVisitor;
 import org.everit.json.schema.Schema;
 
-/**
- * @author Jakub Senko <em>m@jsenko.net</em>
- */
+
 public interface SchemaWrapper {
 
     default void accept(JsonSchemaWrapperVisitor visitor) {

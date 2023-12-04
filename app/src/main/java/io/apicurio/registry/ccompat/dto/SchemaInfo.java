@@ -28,9 +28,7 @@ import java.util.List;
 
 import static com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility.NONE;
 
-/**
- * @author Carles Arnal 'carles.arnal@redhat.com'
- */
+
 @JsonAutoDetect(isGetterVisibility = NONE)
 @Getter
 @EqualsAndHashCode

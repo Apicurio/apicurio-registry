@@ -38,9 +38,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * @author Fabian Martinez
- */
+
 public class ProtobufSchemaParser<U extends Message> implements SchemaParser<ProtobufSchema, U> {
 
     /**

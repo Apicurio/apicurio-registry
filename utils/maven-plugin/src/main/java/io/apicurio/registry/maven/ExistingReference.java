@@ -16,9 +16,7 @@
 
 package io.apicurio.registry.maven;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 public class ExistingReference {
 
     private String resourceName;

@@ -19,9 +19,7 @@ package io.apicurio.tests.common.serdes;
 import java.util.Objects;
 
 
-/**
- * @author Carles Arnal
- */
+
 public class TestObject {
 
     private String name;

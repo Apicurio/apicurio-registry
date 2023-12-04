@@ -18,9 +18,7 @@ package io.apicurio.registry.storage.error;
 
 import lombok.Getter;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 public class ArtifactNotFoundException extends NotFoundException {
 
     private static final long serialVersionUID = -3614783501078800654L;

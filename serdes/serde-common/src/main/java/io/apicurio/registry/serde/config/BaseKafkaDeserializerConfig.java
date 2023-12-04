@@ -24,9 +24,7 @@ import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigDef.Importance;
 import org.apache.kafka.common.config.ConfigDef.Type;
 
-/**
- * @author Fabian Martinez
- */
+
 public class BaseKafkaDeserializerConfig extends BaseKafkaSerDeConfig {
 
     public static ConfigDef configDef() {

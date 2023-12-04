@@ -24,9 +24,7 @@ import io.apicurio.registry.storage.dto.GroupMetaDataDto;
 import io.apicurio.registry.storage.impl.sql.SqlUtil;
 import io.apicurio.registry.storage.impl.sql.jdb.RowMapper;
 
-/**
- * @author Fabian Martinez
- */
+
 public class GroupMetaDataDtoMapper implements RowMapper<GroupMetaDataDto> {
 
     public static final GroupMetaDataDtoMapper instance = new GroupMetaDataDtoMapper();

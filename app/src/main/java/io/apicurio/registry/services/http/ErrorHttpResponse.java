@@ -20,9 +20,7 @@ import jakarta.ws.rs.core.Response;
 
 import io.apicurio.registry.rest.v2.beans.Error;
 
-/**
- * @author Fabian Martinez
- */
+
 public class ErrorHttpResponse {
 
     private int status;

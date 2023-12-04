@@ -23,9 +23,7 @@ import org.apache.avro.reflect.ReflectData;
 import org.apache.avro.reflect.ReflectDatumReader;
 import org.apache.avro.reflect.ReflectDatumWriter;
 
-/**
- * @author Ales Justin
- */
+
 public class ReflectAvroDatumProvider<T> implements AvroDatumProvider<T> {
 
     private Schema readerSchema;

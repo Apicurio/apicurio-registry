@@ -23,9 +23,7 @@ import io.micrometer.core.instrument.distribution.DistributionStatisticConfig;
 import jakarta.enterprise.inject.Produces;
 import jakarta.inject.Singleton;
 
-/**
- * @author Fabian Martinez
- */
+
 @Singleton
 public class CustomMetricsConfiguration {
 

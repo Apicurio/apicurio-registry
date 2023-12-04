@@ -28,9 +28,7 @@ import org.junit.jupiter.api.Test;
 import java.io.IOException;
 import java.util.concurrent.ExecutionException;
 
-/**
- * @author Ales Justin
- */
+
 @QuarkusTest
 public class RegisterRegistryMojoTest extends RegistryMojoTestBase {
     RegisterRegistryMojo mojo;

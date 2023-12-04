@@ -24,9 +24,7 @@ import io.apicurio.registry.storage.dto.ContentWrapperDto;
 import io.apicurio.registry.storage.impl.sql.SqlUtil;
 import io.apicurio.registry.storage.impl.sql.jdb.RowMapper;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 public class ContentMapper implements RowMapper<ContentWrapperDto> {
 
     public static final ContentMapper instance = new ContentMapper();

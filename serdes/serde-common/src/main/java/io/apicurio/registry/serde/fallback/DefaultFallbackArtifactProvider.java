@@ -25,7 +25,6 @@ import io.apicurio.registry.serde.SerdeConfig;
 
 /**
  * Default implementation of FallbackArtifactProvider that simply uses config properties
- * @author Fabian Martinez
  */
 public class DefaultFallbackArtifactProvider implements FallbackArtifactProvider {
 

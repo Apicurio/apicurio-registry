@@ -41,7 +41,6 @@ import static java.util.Collections.emptyList;
  * for ensuring that the updated content does not violate the configured compatibility
  * level.  Levels include e.g. Backward compatibility.
  *
- * @author eric.wittmann@gmail.com
  */
 @ApplicationScoped
 @Logged

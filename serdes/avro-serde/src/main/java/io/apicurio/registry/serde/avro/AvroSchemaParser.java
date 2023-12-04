@@ -30,10 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-/**
- * @author Fabian Martinez
- * @author Carles Arnal
- */
+
 public class AvroSchemaParser<U> implements SchemaParser<Schema, U> {
 
     private AvroDatumProvider<U> avroDatumProvider;

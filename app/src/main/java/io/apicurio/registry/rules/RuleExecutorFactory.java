@@ -26,7 +26,6 @@ import io.apicurio.registry.types.RuleType;
 
 /**
  * Creates a rule executor from a {@link RuleType}.
- * @author eric.wittmann@gmail.com
  */
 @ApplicationScoped
 public class RuleExecutorFactory {

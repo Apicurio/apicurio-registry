@@ -16,9 +16,7 @@
 
 package io.apicurio.registry.storage.impl.sql;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 public enum SqlStorageEventType {
 
     READY

@@ -76,9 +76,7 @@ import static com.google.protobuf.DescriptorProtos.MethodOptions;
 import static com.google.protobuf.DescriptorProtos.OneofDescriptorProto;
 import static com.google.protobuf.DescriptorProtos.ServiceDescriptorProto;
 
-/**
- * @author Fabian Martinez, Ravindranath Kakarla, Carles Arnal
- */
+
 public class FileDescriptorUtils {
 
     public static final Location DEFAULT_LOCATION = Location.get("");

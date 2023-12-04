@@ -23,7 +23,6 @@ import lombok.ToString;
 /**
  * NOTE: Follow the naming conventions from {@link io.apicurio.registry.rest.v2.beans.Limits}
  *
- * @author Fabian Martinez
  */
 @Getter
 @Setter

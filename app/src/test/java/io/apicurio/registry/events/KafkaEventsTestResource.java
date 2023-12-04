@@ -21,9 +21,7 @@ import java.util.Map;
 
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
 
-/**
- * @author Fabian Martinez
- */
+
 public class KafkaEventsTestResource implements QuarkusTestResourceLifecycleManager {
 
     /**

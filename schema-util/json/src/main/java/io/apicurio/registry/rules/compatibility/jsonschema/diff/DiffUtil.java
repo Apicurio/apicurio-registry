@@ -29,9 +29,7 @@ import java.util.function.Supplier;
 import static io.apicurio.registry.rules.compatibility.jsonschema.wrapper.WrapUtil.wrap;
 import static java.util.Objects.requireNonNull;
 
-/**
- * @author Jakub Senko <em>m@jsenko.net</em>
- */
+
 public class DiffUtil {
 
     /**

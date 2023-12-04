@@ -16,9 +16,7 @@
 
 package io.apicurio.tests.common.serdes.json;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 public class InvalidMessage extends Msg {
     
     private String foo;

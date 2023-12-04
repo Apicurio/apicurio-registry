@@ -22,9 +22,7 @@ import lombok.Getter;
 import lombok.NonNull;
 import lombok.ToString;
 
-/**
- * @author Jakub Senko <em>m@jsenko.net</em>
- */
+
 @Builder
 @Getter
 @EqualsAndHashCode

@@ -37,9 +37,7 @@ import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.Response;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 @ApplicationScoped
 @Interceptors({ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class})
 @Logged

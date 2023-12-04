@@ -20,9 +20,7 @@ import io.apicurio.registry.resolver.data.Record;
 
 import java.util.Map;
 
-/**
- * @author Fabian Martinez
- */
+
 public interface SchemaParser<S, U> {
 
     String artifactType();

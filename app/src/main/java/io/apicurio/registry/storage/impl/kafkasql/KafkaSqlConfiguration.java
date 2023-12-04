@@ -18,9 +18,7 @@ package io.apicurio.registry.storage.impl.kafkasql;
 
 import java.util.Properties;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 public interface KafkaSqlConfiguration {
 
     String bootstrapServers();

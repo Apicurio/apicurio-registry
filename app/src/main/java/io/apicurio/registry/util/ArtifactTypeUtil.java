@@ -36,9 +36,7 @@ import java.io.InputStream;
 import java.util.*;
 import java.util.regex.Pattern;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 public final class ArtifactTypeUtil {
 
     private static final Pattern QUOTED_BRACKETS = Pattern.compile(": *\"\\{}\"");

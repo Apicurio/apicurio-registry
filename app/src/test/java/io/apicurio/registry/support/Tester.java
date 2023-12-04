@@ -18,9 +18,7 @@ package io.apicurio.registry.support;
 
 import java.util.Objects;
 
-/**
- * @author Ales Justin
- */
+
 public class Tester {
 
     private String name;

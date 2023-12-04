@@ -24,7 +24,6 @@ import io.apicurio.registry.resolver.data.Record;
  * the {@link ArtifactReference} under which the message schemas are located or should be registered
  * in the registry.
  *
- * @author Fabian Martinez
  */
 public interface ArtifactReferenceResolverStrategy<SCHEMA, DATA> {
 

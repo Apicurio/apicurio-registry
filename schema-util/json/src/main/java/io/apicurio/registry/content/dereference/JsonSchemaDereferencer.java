@@ -35,9 +35,7 @@ import com.fasterxml.jackson.module.paramnames.ParameterNamesModule;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.rules.compatibility.jsonschema.JsonUtil;
 
-/**
- * @author carnalca@redhat.com
- */
+
 public class JsonSchemaDereferencer implements ContentDereferencer {
 
     private static final ObjectMapper objectMapper;

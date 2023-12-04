@@ -35,9 +35,7 @@ import java.util.Set;
 import static io.apicurio.registry.rules.compatibility.jsonschema.JsonUtil.MAPPER;
 import static io.apicurio.registry.rules.compatibility.jsonschema.wrapper.WrapUtil.wrap;
 
-/**
- * @author Jakub Senko <em>m@jsenko.net</em>
- */
+
 public class JsonSchemaDiffLibrary {
 
     private static final String SCHEMA_KEYWORD = "$schema";

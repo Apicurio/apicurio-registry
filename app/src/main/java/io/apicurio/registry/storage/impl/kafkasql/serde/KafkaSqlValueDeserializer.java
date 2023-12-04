@@ -34,7 +34,6 @@ import java.nio.charset.StandardCharsets;
 
 /**
  * Kafka deserializer responsible for deserializing the value of a KSQL Kafka message.
- * @author eric.wittmann@gmail.com
  */
 public class KafkaSqlValueDeserializer implements Deserializer<MessageValue> {
 

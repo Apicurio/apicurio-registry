@@ -27,7 +27,6 @@ import java.util.Map;
 /**
  * A Protobuf implementation of a content Canonicalizer.
  *
- * @author Fabian Martinez
  */
 public class ProtobufContentCanonicalizer implements ContentCanonicalizer {
 

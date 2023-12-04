@@ -23,9 +23,7 @@ import io.apicurio.registry.resolver.data.Record;
 import io.apicurio.registry.serde.data.KafkaSerdeRecord;
 import io.apicurio.registry.resolver.strategy.ArtifactReference;
 
-/**
- * @author Fabian Martinez
- */
+
 public class TopicRecordIdStrategy extends RecordIdStrategy {
 
     /**

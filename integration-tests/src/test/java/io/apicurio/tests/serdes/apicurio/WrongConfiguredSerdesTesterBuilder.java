@@ -29,9 +29,7 @@ import java.util.concurrent.ExecutionException;
 import static io.apicurio.tests.serdes.apicurio.Tester.*;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-/**
- * @author Carles Arnal
- */
+
 public class WrongConfiguredSerdesTesterBuilder<P> implements TesterBuilder {
 
     private DataGenerator<P> dataGenerator;

@@ -18,9 +18,7 @@ package io.apicurio.registry.storage.error;
 
 import lombok.Getter;
 
-/**
- * @author Fabian Martinez
- */
+
 public class LogConfigurationNotFoundException extends NotFoundException {
 
     private static final long serialVersionUID = -2406230675956374910L;

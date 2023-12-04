@@ -21,9 +21,7 @@ import java.util.Map;
 
 import io.quarkus.test.junit.QuarkusTestProfile;
 
-/**
- * @author Fabian Martinez
- */
+
 public class MultipleRequestFiltersTestProfile implements QuarkusTestProfile {
 
     @Override

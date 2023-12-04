@@ -44,9 +44,7 @@ import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-/**
- * @author Carles Arnal
- */
+
 @Tag(Constants.AUTH)
 @TestProfile(AuthTestProfile.class)
 @QuarkusIntegrationTest

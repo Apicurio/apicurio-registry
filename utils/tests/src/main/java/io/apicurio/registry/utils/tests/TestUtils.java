@@ -45,10 +45,7 @@ import org.slf4j.LoggerFactory;
 
 import io.apicurio.registry.utils.IoUtil;
 
-/**
- * @author Ales Justin
- * @author Jakub Stejskal
- */
+
 public class TestUtils {
     private static final Logger log = LoggerFactory.getLogger(TestUtils.class);
 

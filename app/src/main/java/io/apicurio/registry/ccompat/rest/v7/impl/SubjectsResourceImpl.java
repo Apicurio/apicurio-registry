@@ -49,9 +49,7 @@ import java.util.stream.Collectors;
 import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_ARTIFACT_ID;
 import static io.apicurio.registry.storage.RegistryStorage.ArtifactRetrievalBehavior.DEFAULT;
 
-/**
- * @author Carles Arnal
- */
+
 @Interceptors({ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class})
 @Logged
 public class SubjectsResourceImpl extends AbstractResource implements SubjectsResource {

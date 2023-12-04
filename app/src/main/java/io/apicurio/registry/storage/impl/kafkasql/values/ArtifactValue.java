@@ -24,9 +24,7 @@ import lombok.ToString;
 
 import java.util.Date;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 @RegisterForReflection
 @ToString
 public class ArtifactValue extends ArtifactVersionValue {

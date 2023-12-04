@@ -16,9 +16,7 @@
 
 package io.apicurio.registry.rules;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 public enum RuleApplicationType {
 
     CREATE, UPDATE;

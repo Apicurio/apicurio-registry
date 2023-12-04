@@ -16,9 +16,7 @@
 
 package io.apicurio.registry.utils;
 
-/**
- * @author Ales Justin
- */
+
 public class StringUtil {
 
 

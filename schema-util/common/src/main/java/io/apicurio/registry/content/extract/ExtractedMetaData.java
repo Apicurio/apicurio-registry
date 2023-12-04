@@ -19,9 +19,7 @@ package io.apicurio.registry.content.extract;
 import java.util.List;
 import java.util.Map;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 public class ExtractedMetaData {
 
     private String name;

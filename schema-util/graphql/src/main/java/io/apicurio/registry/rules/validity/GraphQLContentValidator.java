@@ -27,7 +27,6 @@ import java.util.Map;
 
 /**
  * A content validator implementation for the GraphQL content type.
- * @author eric.wittmann@gmail.com
  */
 public class GraphQLContentValidator implements ContentValidator {
 

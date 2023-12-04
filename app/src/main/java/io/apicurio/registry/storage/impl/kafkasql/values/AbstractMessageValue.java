@@ -18,7 +18,6 @@ package io.apicurio.registry.storage.impl.kafkasql.values;
 
 /**
  * Base class for all message value classes.
- * @author eric.wittmann@gmail.com
  */
 public abstract class AbstractMessageValue implements MessageValue {
 

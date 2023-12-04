@@ -57,9 +57,7 @@ import java.util.stream.Collectors;
 import static io.apicurio.registry.cncf.schemaregistry.impl.CNCFApiUtil.dtoToSchemaGroup;
 import static io.apicurio.registry.storage.RegistryStorage.ArtifactRetrievalBehavior.DEFAULT;
 
-/**
- * @author Fabian Martinez
- */
+
 @ApplicationScoped
 @Interceptors({ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class})
 @Logged

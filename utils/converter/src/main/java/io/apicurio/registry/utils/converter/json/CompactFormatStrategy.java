@@ -24,9 +24,7 @@ import io.apicurio.registry.serde.AbstractKafkaSerDe;
 import io.apicurio.registry.serde.DefaultIdHandler;
 import io.apicurio.registry.serde.IdHandler;
 
-/**
- * @author Ales Justin
- */
+
 public class CompactFormatStrategy implements FormatStrategy {
 
     private IdHandler idHandler;

@@ -19,9 +19,7 @@ package io.apicurio.registry.storage.error;
 import io.apicurio.registry.types.RuleType;
 import lombok.Getter;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 public class RuleNotFoundException extends NotFoundException {
 
     private static final long serialVersionUID = -5024749463194169679L;

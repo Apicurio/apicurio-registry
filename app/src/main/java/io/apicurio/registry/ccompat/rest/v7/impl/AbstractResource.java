@@ -54,9 +54,7 @@ import java.util.stream.Collectors;
 
 import static io.apicurio.registry.storage.RegistryStorage.ArtifactRetrievalBehavior.DEFAULT;
 
-/**
- * @author Carles Arnal
- */
+
 public abstract class AbstractResource {
 
     @Inject

@@ -46,7 +46,6 @@ import java.util.concurrent.TimeUnit;
 /**
  * Tests local role mappings (managed in the database via the role-mapping API).
  *
- * @author eric.wittmann@gmail.com
  */
 @QuarkusTest
 @TestProfile(AuthTestProfileWithLocalRoles.class)

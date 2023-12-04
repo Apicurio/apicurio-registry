@@ -42,9 +42,7 @@ import java.util.stream.Collectors;
 
 import static io.apicurio.registry.storage.RegistryStorage.ArtifactRetrievalBehavior.DEFAULT;
 
-/**
- * @author Carles Arnal
- */
+
 @Interceptors({ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class})
 @Logged
 public class SchemasResourceImpl extends AbstractResource implements SchemasResource {

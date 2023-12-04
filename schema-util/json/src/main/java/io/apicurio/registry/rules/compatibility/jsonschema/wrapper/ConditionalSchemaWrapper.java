@@ -25,9 +25,7 @@ import java.util.Optional;
 
 import static io.apicurio.registry.rules.compatibility.jsonschema.wrapper.WrapUtil.wrap;
 
-/**
- * @author Jakub Senko <em>m@jsenko.net</em>
- */
+
 @ToString
 public class ConditionalSchemaWrapper extends EqualitySchemaWrapper implements SchemaWrapper {
 

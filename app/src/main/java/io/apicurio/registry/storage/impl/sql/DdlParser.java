@@ -28,7 +28,6 @@ import java.util.List;
 
 /**
  * Can parse a DDL into a list of individual statements.
- * @author eric.wittmann@gmail.com
  */
 public class DdlParser {
 

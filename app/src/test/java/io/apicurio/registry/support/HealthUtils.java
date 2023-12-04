@@ -22,9 +22,7 @@ import org.junit.jupiter.api.Assertions;
 import java.io.InputStream;
 import java.net.URL;
 
-/**
- * @author Ales Justin
- */
+
 public class HealthUtils {
 
     public enum Type {

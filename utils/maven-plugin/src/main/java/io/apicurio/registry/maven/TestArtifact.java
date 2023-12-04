@@ -18,9 +18,7 @@ package io.apicurio.registry.maven;
 
 import java.io.File;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 public class TestArtifact {
 
     private String groupId;

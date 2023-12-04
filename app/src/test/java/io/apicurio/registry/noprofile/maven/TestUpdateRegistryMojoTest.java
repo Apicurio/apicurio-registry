@@ -38,9 +38,7 @@ import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
 
-/**
- * @author Ales Justin
- */
+
 @QuarkusTest
 public class TestUpdateRegistryMojoTest extends RegistryMojoTestBase {
     TestUpdateRegistryMojo mojo;

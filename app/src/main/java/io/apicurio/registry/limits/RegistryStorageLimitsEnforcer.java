@@ -40,7 +40,6 @@ import java.util.function.Supplier;
  * Decorator of {@link RegistryStorage} that applies limits enforcement, with this is possible to limit how many artifacts can be created in registry...
  * All of that is abstracted with the LimitsService and the LimitsConfigurationService
  *
- * @author Fabian Martinez
  */
 @ApplicationScoped
 // TODO Importing is not covered under limits!

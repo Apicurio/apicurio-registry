@@ -20,9 +20,7 @@ import java.util.Date;
 
 import io.quarkus.runtime.annotations.RegisterForReflection;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 @RegisterForReflection
 public class ManifestEntity extends Entity {
 

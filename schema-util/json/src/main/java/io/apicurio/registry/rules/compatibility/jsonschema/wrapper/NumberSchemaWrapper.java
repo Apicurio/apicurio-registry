@@ -21,9 +21,7 @@ import lombok.Getter;
 import lombok.ToString;
 import org.everit.json.schema.NumberSchema;
 
-/**
- * @author Jakub Senko <em>m@jsenko.net</em>
- */
+
 @ToString
 public class NumberSchemaWrapper extends EqualitySchemaWrapper implements SchemaWrapper {
 

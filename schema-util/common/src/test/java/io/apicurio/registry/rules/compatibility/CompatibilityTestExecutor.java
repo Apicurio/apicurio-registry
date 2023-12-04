@@ -34,9 +34,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-/**
- * @author Jakub Senko <em>m@jsenko.net</em>
- */
+
 public class CompatibilityTestExecutor {
 
     private static final Logger log = LoggerFactory.getLogger(CompatibilityTestExecutor.class);

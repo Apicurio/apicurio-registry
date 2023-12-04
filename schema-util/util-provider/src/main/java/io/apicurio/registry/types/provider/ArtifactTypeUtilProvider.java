@@ -31,7 +31,6 @@ import io.apicurio.registry.rules.validity.ContentValidator;
  * * rules
  * * etc ...
  *
- * @author Ales Justin
  */
 public interface ArtifactTypeUtilProvider {
     String getArtifactType();

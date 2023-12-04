@@ -23,9 +23,7 @@ import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 
-/**
- * @author Ales Justin
- */
+
 class StreamContentHandle extends AbstractContentHandle {
     private InputStream stream;
 

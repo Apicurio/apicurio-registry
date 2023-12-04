@@ -20,9 +20,7 @@ import io.agroal.api.AgroalDataSource;
 import io.apicurio.registry.storage.impl.sql.AbstractHandleFactory;
 import org.slf4j.Logger;
 
-/**
- * @author Jakub Senko <em>m@jsenko.net</em>
- */
+
 public class BlueHandleFactory extends AbstractHandleFactory {
 
     public BlueHandleFactory(AgroalDataSource dataSource, Logger log) {

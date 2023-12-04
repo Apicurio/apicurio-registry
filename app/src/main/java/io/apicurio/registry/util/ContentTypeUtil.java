@@ -21,9 +21,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.apicurio.registry.content.ContentHandle;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 public final class ContentTypeUtil {
     
     public static final String CT_APPLICATION_JSON = "application/json";

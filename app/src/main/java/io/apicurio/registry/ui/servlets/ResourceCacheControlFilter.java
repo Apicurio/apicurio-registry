@@ -31,7 +31,6 @@ import jakarta.servlet.http.HttpServletResponse;
 /**
  * {@link Filter} to add cache control headers for resources such as CSS and images.
  *
- * @author eric.wittmann@gmail.com
  */
 public class ResourceCacheControlFilter implements Filter {
 

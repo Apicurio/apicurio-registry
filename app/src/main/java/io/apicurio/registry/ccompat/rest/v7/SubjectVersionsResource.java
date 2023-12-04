@@ -36,7 +36,6 @@ import static io.apicurio.registry.ccompat.rest.ContentTypes.*;
  *
  *
  *
- * @author Carles Arnal
  */
 @Path("/apis/ccompat/v7/subjects/{subject}/versions")
 @Consumes({JSON, OCTET_STREAM, COMPAT_SCHEMA_REGISTRY_V1, COMPAT_SCHEMA_REGISTRY_STABLE_LATEST})

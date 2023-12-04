@@ -21,9 +21,7 @@ import io.apicurio.registry.content.extract.ContentExtractor;
 import io.apicurio.registry.rules.compatibility.CompatibilityChecker;
 import io.apicurio.registry.rules.validity.ContentValidator;
 
-/**
- * @author Ales Justin
- */
+
 public abstract class AbstractArtifactTypeUtilProvider implements ArtifactTypeUtilProvider {
 
     private volatile CompatibilityChecker checker;

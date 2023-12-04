@@ -26,9 +26,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 public class StoredArtifactMapper implements RowMapper<StoredArtifactDto> {
 
     public static final StoredArtifactMapper instance = new StoredArtifactMapper();

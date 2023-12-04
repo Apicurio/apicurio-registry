@@ -35,9 +35,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.function.Supplier;
 
-/**
- * @author Jakub Senko <em>m@jsenko.net</em>
- */
+
 @ApplicationScoped
 public class ReadOnlyRegistryStorageDecorator extends RegistryStorageDecoratorReadOnlyBase implements RegistryStorageDecorator {
 

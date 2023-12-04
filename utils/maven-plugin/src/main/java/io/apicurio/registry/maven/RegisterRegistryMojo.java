@@ -60,7 +60,6 @@ import io.apicurio.registry.types.provider.DefaultArtifactTypeUtilProviderImpl;
 /**
  * Register artifacts against registry.
  *
- * @author Ales Justin
  */
 @Mojo(name = "register")
 public class RegisterRegistryMojo extends AbstractRegistryMojo {

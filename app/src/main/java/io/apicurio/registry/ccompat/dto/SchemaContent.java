@@ -24,9 +24,7 @@ import lombok.*;
 
 import static com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility.NONE;
 
-/**
- * @author Jakub Senko <em>m@jsenko.net</em>
- */
+
 @JsonAutoDetect(isGetterVisibility = NONE)
 @AllArgsConstructor
 @NoArgsConstructor

@@ -18,9 +18,7 @@ package io.apicurio.registry.storage.error;
 
 import lombok.Getter;
 
-/**
- * @author Fabian Martinez
- */
+
 public class GroupNotFoundException extends NotFoundException {
 
     private static final long serialVersionUID = -5024749463194169679L;

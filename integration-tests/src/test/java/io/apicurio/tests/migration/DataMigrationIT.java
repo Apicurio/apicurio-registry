@@ -31,9 +31,7 @@ import static io.apicurio.tests.migration.MigrationTestsDataInitializer.matchesR
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/**
- * @author Carles Arnal
- */
+
 @QuarkusIntegrationTest
 @QuarkusTestResource(value = DataMigrationIT.MigrateTestInitializer.class, restrictToAnnotatedClass = true)
 @Tag(Constants.MIGRATION)

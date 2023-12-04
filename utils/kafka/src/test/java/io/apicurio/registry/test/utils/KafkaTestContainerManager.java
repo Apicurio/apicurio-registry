@@ -24,11 +24,7 @@ import org.testcontainers.redpanda.RedpandaContainer;
 
 import java.util.Map;
 
-/**
- * @author Fabian Martinez Gonzalez
- * @author Ales Justin
- * @author Carles Arnal
- */
+
 public class KafkaTestContainerManager implements QuarkusTestResourceLifecycleManager {
     private static final Logger log = LoggerFactory.getLogger(KafkaTestContainerManager.class);
 

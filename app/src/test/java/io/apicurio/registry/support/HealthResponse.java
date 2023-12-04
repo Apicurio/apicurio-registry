@@ -21,9 +21,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.List;
 
-/**
- * @author Ales Justin
- */
+
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class HealthResponse {
     public static enum Status {

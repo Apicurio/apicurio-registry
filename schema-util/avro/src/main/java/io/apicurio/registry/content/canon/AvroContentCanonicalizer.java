@@ -38,8 +38,6 @@ import java.util.Map;
 /**
  * An Avro implementation of a content Canonicalizer that handles avro references.
  *
- * @author eric.wittmann@gmail.com
- * @author carnalca@redhat.com
  */
 public class AvroContentCanonicalizer implements ContentCanonicalizer {
 

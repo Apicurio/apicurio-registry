@@ -18,10 +18,7 @@ package io.apicurio.registry.storage.error;
 
 import lombok.Getter;
 
-/**
- * @author eric.wittmann@gmail.com
- * @author Jakub Senko <em>m@jsenko.net</em>
- */
+
 public class VersionNotFoundException extends NotFoundException {
 
     private static final long serialVersionUID = 969959730600115392L;

@@ -18,9 +18,7 @@ package io.apicurio.registry.content;
 
 import java.nio.charset.StandardCharsets;
 
-/**
- * @author Ales Justin
- */
+
 class StringContentHandle extends AbstractContentHandle {
 
     StringContentHandle(String content) {

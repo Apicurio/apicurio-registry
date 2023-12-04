@@ -38,9 +38,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Map;
 
-/**
- * @author Carles Arnal
- */
+
 @Tag(Constants.SERDES)
 @QuarkusIntegrationTest
 public class JsonSchemaSerdeIT extends ApicurioRegistryBaseIT {

@@ -20,9 +20,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 public interface MappedQuery<R> {
 
     public R one();

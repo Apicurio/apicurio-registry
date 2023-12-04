@@ -39,7 +39,6 @@ import io.apicurio.registry.types.RuleType;
 
 /**
  * A content validator implementation for the OpenAPI and AsyncAPI content types.
- * @author eric.wittmann@gmail.com
  */
 public abstract class ApicurioDataModelContentValidator implements ContentValidator {
 

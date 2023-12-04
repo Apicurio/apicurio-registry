@@ -23,9 +23,7 @@ import jakarta.inject.Inject;
 import jakarta.inject.Named;
 import org.slf4j.Logger;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 public class HandleFactoryProducer {
 
     @Inject

@@ -28,10 +28,7 @@ import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- * @author eric.wittmann@gmail.com
- * @author Jakub Senko <em>m@jsenko.net</em>
- */
+
 public abstract class AbstractHandleFactory implements HandleFactory {
 
     private static final ThreadLocal<Map<String, LocalState>> local = ThreadLocal.withInitial(HashMap::new);

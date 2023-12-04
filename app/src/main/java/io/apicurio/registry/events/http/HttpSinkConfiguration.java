@@ -15,9 +15,7 @@
  */
 package io.apicurio.registry.events.http;
 
-/**
- * @author Fabian Martinez
- */
+
 public class HttpSinkConfiguration {
     
     private String name;

@@ -23,9 +23,7 @@ import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.rest.client.models.ArtifactMetaData;
 import io.apicurio.registry.types.ArtifactType;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 public class IndexedResource {
 
     private final Path path;

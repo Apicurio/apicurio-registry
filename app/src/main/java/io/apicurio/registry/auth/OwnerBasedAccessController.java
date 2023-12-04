@@ -19,9 +19,7 @@ package io.apicurio.registry.auth;
 import jakarta.inject.Singleton;
 import jakarta.interceptor.InvocationContext;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 @Singleton
 public class OwnerBasedAccessController extends AbstractAccessController {
 

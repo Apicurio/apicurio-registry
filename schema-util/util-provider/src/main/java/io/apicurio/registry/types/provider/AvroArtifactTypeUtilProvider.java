@@ -30,9 +30,7 @@ import io.apicurio.registry.rules.validity.AvroContentValidator;
 import io.apicurio.registry.rules.validity.ContentValidator;
 import io.apicurio.registry.types.ArtifactType;
 
-/**
- * @author Ales Justin
- */
+
 public class AvroArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvider {
 
     @Override

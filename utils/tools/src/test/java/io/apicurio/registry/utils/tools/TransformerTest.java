@@ -22,9 +22,7 @@ import org.junit.jupiter.api.Test;
 import java.nio.ByteBuffer;
 import java.util.concurrent.ThreadLocalRandom;
 
-/**
- * @author Ales Justin
- */
+
 public class TransformerTest {
 
     @Test

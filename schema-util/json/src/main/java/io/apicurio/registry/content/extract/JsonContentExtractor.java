@@ -28,7 +28,6 @@ import io.apicurio.registry.content.ContentHandle;
 
 /**
  * Performs meta-data extraction for JSON Schema content.
- * @author Ales Justin
  */
 public class JsonContentExtractor implements ContentExtractor {
 

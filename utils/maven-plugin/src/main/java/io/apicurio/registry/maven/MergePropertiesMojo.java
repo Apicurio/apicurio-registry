@@ -29,9 +29,7 @@ import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 @Mojo(name = "merge")
 public class MergePropertiesMojo extends AbstractMojo {
 

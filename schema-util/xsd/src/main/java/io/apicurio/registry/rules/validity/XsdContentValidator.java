@@ -27,9 +27,7 @@ import io.apicurio.registry.rules.RuleViolationException;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.util.SchemaFactoryAccessor;
 
-/**
- * @author cfoskin@redhat.com
- */
+
 public class XsdContentValidator extends XmlContentValidator {
 
     /**

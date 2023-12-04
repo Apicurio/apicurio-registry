@@ -41,9 +41,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.regex.Pattern;
 
-/**
- * @author Jakub Senko <em>m@jsenko.net</em>
- */
+
 public abstract class JsonSchemaWrapperVisitor {
 
     public void visitSchema(SchemaWrapper schema) {

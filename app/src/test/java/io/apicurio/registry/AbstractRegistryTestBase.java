@@ -35,7 +35,6 @@ import java.util.stream.Collectors;
 /**
  * Abstract base class for all registry tests.
  *
- * @author eric.wittmann@gmail.com
  */
 @ParallelizableTest
 public abstract class AbstractRegistryTestBase {

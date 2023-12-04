@@ -31,7 +31,6 @@ import static io.apicurio.registry.ccompat.rest.ContentTypes.*;
  * <p/>
  * This <a href="https://docs.confluent.io/platform/7.2.1/schema-registry/develop/api.html">API specification</a> is owned by Confluent.
  *
- * @author Carles Arnal
  */
 @Path("/apis/ccompat/v7/subjects")
 @Consumes({JSON, OCTET_STREAM, COMPAT_SCHEMA_REGISTRY_V1, COMPAT_SCHEMA_REGISTRY_STABLE_LATEST})

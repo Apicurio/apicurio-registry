@@ -20,9 +20,7 @@ package io.apicurio.registry.storage.dto;
 import io.quarkus.runtime.annotations.RegisterForReflection;
 import lombok.*;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder

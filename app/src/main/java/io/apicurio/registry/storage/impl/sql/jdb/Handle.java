@@ -18,9 +18,7 @@ package io.apicurio.registry.storage.impl.sql.jdb;
 
 import java.io.Closeable;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 public interface Handle extends Closeable {
 
     /**

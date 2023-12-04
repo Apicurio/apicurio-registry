@@ -24,9 +24,7 @@ import io.apicurio.registry.storage.impl.sql.jdb.RowMapper;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.utils.impexp.ArtifactVersionEntity;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 public class ArtifactVersionEntityMapper implements RowMapper<ArtifactVersionEntity> {
 
     public static final ArtifactVersionEntityMapper instance = new ArtifactVersionEntityMapper();

@@ -28,9 +28,7 @@ import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.UNDEFINED_UNUSED;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffUtil.compareSchema;
 
-/**
- * @author Jakub Senko <em>m@jsenko.net</em>
- */
+
 public class NotSchemaDiffVisitor extends JsonSchemaWrapperVisitor {
 
 

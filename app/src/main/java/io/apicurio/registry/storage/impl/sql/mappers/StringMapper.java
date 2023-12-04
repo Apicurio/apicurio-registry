@@ -21,9 +21,7 @@ import java.sql.SQLException;
 
 import io.apicurio.registry.storage.impl.sql.jdb.RowMapper;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 public class StringMapper implements RowMapper<String> {
 
     public static final StringMapper instance = new StringMapper();

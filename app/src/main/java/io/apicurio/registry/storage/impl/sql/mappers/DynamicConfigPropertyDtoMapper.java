@@ -22,9 +22,7 @@ import java.sql.SQLException;
 import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
 import io.apicurio.registry.storage.impl.sql.jdb.RowMapper;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 public class DynamicConfigPropertyDtoMapper implements RowMapper<DynamicConfigPropertyDto> {
 
     public static final DynamicConfigPropertyDtoMapper instance = new DynamicConfigPropertyDtoMapper();

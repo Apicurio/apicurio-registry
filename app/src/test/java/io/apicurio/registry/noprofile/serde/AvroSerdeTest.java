@@ -78,9 +78,7 @@ import java.util.function.Supplier;
 import static io.apicurio.registry.utils.tests.TestUtils.waitForSchema;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-/**
- * @author Fabian Martinez
- */
+
 @QuarkusTest
 public class AvroSerdeTest extends AbstractResourceTestBase {
     private RegistryClient restClient;

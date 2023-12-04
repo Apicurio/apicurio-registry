@@ -24,9 +24,7 @@ import io.apicurio.registry.storage.impl.sql.jdb.RowMapper;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.impexp.ArtifactRuleEntity;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 public class ArtifactRuleEntityMapper implements RowMapper<ArtifactRuleEntity> {
 
     public static final ArtifactRuleEntityMapper instance = new ArtifactRuleEntityMapper();

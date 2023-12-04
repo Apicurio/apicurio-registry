@@ -29,7 +29,6 @@ import io.apicurio.registry.rules.RuleViolationException;
  * 
  * Also provides validation of references.
  *
- * @author eric.wittmann@gmail.com
  */
 public interface ContentValidator {
 

@@ -22,9 +22,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-/**
- * @author Ales Justin
- */
+
 public class ConcurrentUtil {
 
     public static <T> T get(CompletableFuture<T> cf) {

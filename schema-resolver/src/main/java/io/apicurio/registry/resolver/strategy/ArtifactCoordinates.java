@@ -17,7 +17,6 @@
 package io.apicurio.registry.resolver.strategy;
 
 /**
- * @author Carles Arnal
  * @see ArtifactReference
  */
 public class ArtifactCoordinates {

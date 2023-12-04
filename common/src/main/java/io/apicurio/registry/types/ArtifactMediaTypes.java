@@ -18,9 +18,7 @@ package io.apicurio.registry.types;
 
 import jakarta.ws.rs.core.MediaType;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 public final class ArtifactMediaTypes {
 
     public static final MediaType JSON = MediaType.APPLICATION_JSON_TYPE;

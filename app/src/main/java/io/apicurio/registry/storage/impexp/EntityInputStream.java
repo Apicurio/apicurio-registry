@@ -22,9 +22,7 @@ import java.io.Closeable;
 import java.io.IOException;
 
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 public interface EntityInputStream extends Closeable {
 
     /**

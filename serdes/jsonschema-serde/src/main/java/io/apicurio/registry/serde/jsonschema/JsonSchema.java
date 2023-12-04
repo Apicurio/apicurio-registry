@@ -45,9 +45,7 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
 
-/**
- * @author Carles Arnal
- */
+
 
 public class JsonSchema {
     public static final String TYPE = "JSON";

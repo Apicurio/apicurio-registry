@@ -45,7 +45,6 @@ import java.util.concurrent.atomic.AtomicLong;
  * This implementation is far from perfect, ideally redis or some other externalized cache should be used, but for now
  * this implementation could work, it's extremely simple and it does not require the deployment of external infrastructure.
  *
- * @author Fabian Martinez
  */
 @ApplicationScoped
 public class StorageMetricsStore {

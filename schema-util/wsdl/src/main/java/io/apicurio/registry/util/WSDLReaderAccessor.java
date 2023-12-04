@@ -20,9 +20,7 @@ import javax.wsdl.WSDLException;
 import javax.wsdl.factory.WSDLFactory;
 import javax.wsdl.xml.WSDLReader;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 public class WSDLReaderAccessor {
 
     private static ThreadLocal<WSDLReader> threadLocalWsdlReader = new ThreadLocal<WSDLReader>() {

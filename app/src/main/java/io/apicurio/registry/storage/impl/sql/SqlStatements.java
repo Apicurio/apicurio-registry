@@ -22,7 +22,6 @@ import java.util.List;
  * Returns SQL statements used by the JDB artifactStore implementation.  There are different
  * implementations of this interface depending on the database being used.
  *
- * @author eric.wittmann@gmail.com
  */
 public interface SqlStatements {
 

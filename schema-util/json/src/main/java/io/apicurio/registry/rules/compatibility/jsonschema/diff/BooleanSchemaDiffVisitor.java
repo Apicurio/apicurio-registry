@@ -20,9 +20,7 @@ import io.apicurio.registry.rules.compatibility.jsonschema.JsonSchemaWrapperVisi
 import io.apicurio.registry.rules.compatibility.jsonschema.wrapper.BooleanSchemaWrapper;
 import org.everit.json.schema.BooleanSchema;
 
-/**
- * @author Jakub Senko <em>m@jsenko.net</em>
- */
+
 @SuppressWarnings("unused")
 public class BooleanSchemaDiffVisitor extends JsonSchemaWrapperVisitor {
 

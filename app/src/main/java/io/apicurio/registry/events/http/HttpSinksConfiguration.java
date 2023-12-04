@@ -17,9 +17,7 @@ package io.apicurio.registry.events.http;
 
 import java.util.List;
 
-/**
- * @author Fabian Martinez
- */
+
 public class HttpSinksConfiguration {
 
     private List<HttpSinkConfiguration> httpSinks;

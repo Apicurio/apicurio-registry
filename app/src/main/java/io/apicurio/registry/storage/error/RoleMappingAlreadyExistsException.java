@@ -18,9 +18,7 @@ package io.apicurio.registry.storage.error;
 
 import lombok.Getter;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 public class RoleMappingAlreadyExistsException extends AlreadyExistsException {
 
     private static final long serialVersionUID = 2950093578954587049L;

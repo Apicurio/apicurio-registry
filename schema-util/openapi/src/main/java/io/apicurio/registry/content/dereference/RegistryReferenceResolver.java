@@ -25,9 +25,7 @@ import io.apicurio.datamodels.refs.LocalReferenceResolver;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.refs.JsonPointerExternalReference;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 public class RegistryReferenceResolver extends LocalReferenceResolver {
     
     private final Map<String, ContentHandle> resolvedReferences;

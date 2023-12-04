@@ -56,9 +56,7 @@ import java.util.stream.Collectors;
 import static io.apicurio.registry.utils.tests.TestUtils.retry;
 import static org.junit.jupiter.api.Assertions.*;
 
-/**
- * @author Carles Arnal 'carnalca@redhat.com'
- */
+
 @QuarkusTest
 @TestProfile(ApplicationRbacEnabledProfile.class)
 @SuppressWarnings("deprecation")

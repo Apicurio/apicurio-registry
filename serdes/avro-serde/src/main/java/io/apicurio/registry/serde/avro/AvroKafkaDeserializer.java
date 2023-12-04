@@ -36,10 +36,7 @@ import io.apicurio.registry.resolver.utils.Utils;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.serde.AbstractKafkaDeserializer;
 
-/**
- * @author Ales Justin
- * @author Fabian Martinez
- */
+
 public class AvroKafkaDeserializer<U> extends AbstractKafkaDeserializer<Schema, U> {
 
     private final DecoderFactory decoderFactory = DecoderFactory.get();

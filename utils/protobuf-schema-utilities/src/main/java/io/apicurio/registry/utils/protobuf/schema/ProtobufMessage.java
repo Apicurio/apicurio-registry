@@ -23,9 +23,7 @@ import com.google.protobuf.DescriptorProtos.DescriptorProto;
 import com.google.protobuf.DescriptorProtos.FieldDescriptorProto;
 import metadata.ProtobufSchemaMetadata;
 
-/**
- * @author Fabian Martinez
- */
+
 public class ProtobufMessage {
 
     private static Map<String, FieldDescriptorProto.Type> fieldDescriptorTypes;

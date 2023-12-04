@@ -18,9 +18,7 @@ package io.apicurio.registry.utils;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 
-/**
- * @author Fabian Martinez
- */
+
 public class ArtifactIdValidator {
 
     public static final String GROUP_ID_ERROR_MESSAGE = "Character % and non ASCII characters are not allowed in group IDs.";

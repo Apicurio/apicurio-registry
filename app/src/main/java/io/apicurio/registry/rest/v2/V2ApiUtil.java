@@ -46,9 +46,7 @@ import io.apicurio.registry.storage.dto.GroupMetaDataDto;
 import io.apicurio.registry.storage.dto.GroupSearchResultsDto;
 import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 public final class V2ApiUtil {
 
     private V2ApiUtil() {

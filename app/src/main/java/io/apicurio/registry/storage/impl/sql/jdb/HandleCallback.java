@@ -16,9 +16,7 @@
 
 package io.apicurio.registry.storage.impl.sql.jdb;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 @FunctionalInterface
 public interface HandleCallback<T, X extends Exception> {
 

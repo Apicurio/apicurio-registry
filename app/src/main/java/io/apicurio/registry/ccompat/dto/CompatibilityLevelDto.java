@@ -33,8 +33,6 @@ import static com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility.NONE;
 /**
  * Immutable.
  *
- * @author Ales Justin
- * @author Jakub Senko <em>m@jsenko.net</em>
  */
 @JsonAutoDetect(isGetterVisibility = NONE)
 @NoArgsConstructor // required for Jackson

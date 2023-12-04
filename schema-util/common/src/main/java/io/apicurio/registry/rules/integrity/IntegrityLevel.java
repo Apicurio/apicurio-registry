@@ -18,7 +18,6 @@ package io.apicurio.registry.rules.integrity;
 
 /**
  * Indicates what level of integrity should be performed by the referential integrity rule.
- * @author eric.wittmann@gmail.com
  */
 public enum IntegrityLevel {
 

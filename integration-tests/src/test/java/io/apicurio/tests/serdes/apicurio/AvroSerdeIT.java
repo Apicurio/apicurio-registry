@@ -55,9 +55,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-/**
- * @author Carles Arnal
- */
+
 @Tag(Constants.SERDES)
 @QuarkusIntegrationTest
 public class AvroSerdeIT extends ApicurioRegistryBaseIT {

@@ -24,9 +24,7 @@ import io.apicurio.common.apps.config.DynamicConfigStorageAccessor;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.types.Current;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 @ApplicationScoped
 public class RegistryConfigStorageAccessor implements DynamicConfigStorageAccessor {
 

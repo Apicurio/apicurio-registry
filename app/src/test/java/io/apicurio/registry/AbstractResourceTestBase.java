@@ -59,7 +59,6 @@ import io.restassured.response.ValidatableResponse;
 /**
  * Abstract base class for all tests that test via the jax-rs layer.
  *
- * @author eric.wittmann@gmail.com
  */
 @TestInstance(Lifecycle.PER_CLASS)
 public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase {

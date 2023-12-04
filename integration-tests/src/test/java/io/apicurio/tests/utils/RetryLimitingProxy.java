@@ -22,8 +22,6 @@ import org.slf4j.LoggerFactory;
 /**
  * Block `n` first requests, then allow the rest through.
  * 
- * @author Carles Arnal
- * @author Jakub Senko <em>m@jsenko.net</em>
  */
 public class RetryLimitingProxy extends LimitingProxy {
 

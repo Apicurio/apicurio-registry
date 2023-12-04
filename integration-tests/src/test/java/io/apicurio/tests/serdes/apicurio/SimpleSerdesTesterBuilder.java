@@ -33,9 +33,7 @@ import static io.apicurio.tests.serdes.apicurio.Tester.*;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 
-/**
- * @author Carles Arnal
- */
+
 public class SimpleSerdesTesterBuilder<P, C> implements TesterBuilder {
 
     protected int batchCount = 1;

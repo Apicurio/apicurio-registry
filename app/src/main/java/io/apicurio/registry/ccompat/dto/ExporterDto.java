@@ -30,9 +30,7 @@ import java.util.Map;
 
 import static com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility.NONE;
 
-/**
- * @author Carles Arnal 'carnalca@redhat.com'
- */
+
 @JsonAutoDetect(isGetterVisibility = NONE)
 @NoArgsConstructor // required for Jackson
 @AllArgsConstructor

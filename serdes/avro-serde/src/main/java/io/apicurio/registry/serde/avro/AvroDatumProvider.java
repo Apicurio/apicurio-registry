@@ -20,9 +20,7 @@ import org.apache.avro.Schema;
 import org.apache.avro.io.DatumReader;
 import org.apache.avro.io.DatumWriter;
 
-/**
- * @author Ales Justin
- */
+
 public interface AvroDatumProvider<T> {
 
     default void configure(AvroKafkaSerdeConfig config) {}

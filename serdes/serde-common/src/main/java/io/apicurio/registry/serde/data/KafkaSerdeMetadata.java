@@ -23,7 +23,6 @@ import io.apicurio.registry.resolver.strategy.ArtifactReference;
 
 /**
  * Kafka specific implementation for the Record Metadata abstraction used by the SchemaResolver
- * @author Fabian Martinez
  */
 public class KafkaSerdeMetadata implements Metadata {
 

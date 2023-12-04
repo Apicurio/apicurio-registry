@@ -31,9 +31,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.interceptor.Interceptors;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 @ApplicationScoped
 @Interceptors({ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class})
 @Logged

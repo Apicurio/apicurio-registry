@@ -18,9 +18,7 @@ package io.apicurio.registry.utils.converter.json;
 
 import io.apicurio.registry.serde.data.KafkaSerdeRecord;
 
-/**
- * @author Fabian Martinez
- */
+
 public class JsonConverterRecord<T> extends KafkaSerdeRecord<T> {
 
     /**

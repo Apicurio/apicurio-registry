@@ -16,9 +16,7 @@
 
 package io.apicurio.registry.utils;
 
-/**
- * @author Fabian Martinez
- */
+
 public class BooleanUtil {
 
     public static boolean toBoolean(Object parameter) {

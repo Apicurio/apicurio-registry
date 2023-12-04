@@ -34,7 +34,6 @@ import java.util.Map;
 
 /**
  * A content validator implementation for the JsonSchema content type.
- * @author eric.wittmann@gmail.com
  */
 public class JsonSchemaContentValidator implements ContentValidator {
 

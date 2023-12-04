@@ -35,8 +35,6 @@ import java.util.Set;
 /**
  * Provides compatibility validation functions for changes between two versions of a Protobuf schema document.
  *
- * @author Jonathan Halliday
- * @author Ales Justin
  * @see <a href="https://github.com/nilslice/protolock">Protolock</a>
  */
 public class ProtobufCompatibilityCheckerLibrary {

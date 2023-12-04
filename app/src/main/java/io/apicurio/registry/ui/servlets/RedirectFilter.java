@@ -31,9 +31,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 @ApplicationScoped
 public class RedirectFilter implements Filter {
 

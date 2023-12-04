@@ -47,8 +47,6 @@ import java.util.Set;
  * Indexed representation of the data resulting from parsing a single .proto protobuf schema file,
  * used mainly for schema validation.
  *
- * @author Jonathan Halliday
- * @author Ales Justin
  * @see <a href="https://github.com/nilslice/protolock">Protolock</a>
  * @see ProtobufCompatibilityChecker
  */

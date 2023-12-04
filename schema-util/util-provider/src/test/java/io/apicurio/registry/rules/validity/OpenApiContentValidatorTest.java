@@ -29,7 +29,6 @@ import io.apicurio.registry.rules.RuleViolationException;
 
 /**
  * Tests the OpenAPI content validator.
- * @author eric.wittmann@gmail.com
  */
 public class OpenApiContentValidatorTest extends ArtifactUtilProviderTestBase {
 

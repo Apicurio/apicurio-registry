@@ -27,9 +27,7 @@ import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.util.DocumentBuilderAccessor;
 import io.apicurio.registry.util.WSDLReaderAccessor;
 
-/**
- * @author cfoskin@redhat.com
- */
+
 public class WsdlContentValidator extends XmlContentValidator {
 
     /**

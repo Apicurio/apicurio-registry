@@ -17,9 +17,7 @@ import java.util.Optional;
 
 import static lombok.AccessLevel.PRIVATE;
 
-/**
- * @author Jakub Senko <em>m@jsenko.net</em>
- */
+
 @Builder
 @AllArgsConstructor(access = PRIVATE)
 @Getter

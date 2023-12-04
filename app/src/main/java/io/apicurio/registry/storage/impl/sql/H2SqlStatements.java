@@ -19,7 +19,6 @@ package io.apicurio.registry.storage.impl.sql;
 /**
  * H2 implementation of the sql statements interface.  Provides sql statements that
  * are specific to H2, where applicable.
- * @author eric.wittmann@gmail.com
  */
 public class H2SqlStatements extends CommonSqlStatements {
 

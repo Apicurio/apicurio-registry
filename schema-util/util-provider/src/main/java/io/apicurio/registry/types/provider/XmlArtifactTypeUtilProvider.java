@@ -29,9 +29,7 @@ import io.apicurio.registry.rules.validity.ContentValidator;
 import io.apicurio.registry.rules.validity.XmlContentValidator;
 import io.apicurio.registry.types.ArtifactType;
 
-/**
- * @author  cfoskin@redhat.com
- */
+
 public class XmlArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvider {
 
     /**

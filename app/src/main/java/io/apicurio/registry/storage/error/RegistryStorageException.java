@@ -18,9 +18,7 @@ package io.apicurio.registry.storage.error;
 
 import io.apicurio.registry.types.RegistryException;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 // TODO Should be abstract and more specific exception should be used
 public class RegistryStorageException extends RegistryException {
 

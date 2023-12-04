@@ -23,9 +23,7 @@ import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 @ApplicationScoped
 public class SqlStatementsProducer {
 

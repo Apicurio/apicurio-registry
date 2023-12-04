@@ -16,9 +16,7 @@
 
 package io.apicurio.registry.storage.impl.sql.jdb;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 public interface Update extends Sql<Update> {
 
     public int execute();

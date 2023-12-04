@@ -24,9 +24,7 @@ import io.apicurio.datamodels.models.Document;
 import io.apicurio.datamodels.refs.IReferenceResolver;
 import io.apicurio.registry.content.ContentHandle;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 public class ApicurioDataModelsContentDereferencer implements ContentDereferencer {
 
     @Override

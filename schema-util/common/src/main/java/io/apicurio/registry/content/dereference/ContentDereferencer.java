@@ -23,7 +23,6 @@ import java.util.Map;
 /**
  * Dereference some content!  This means replacing any reference inside the content by the full referenced content.
  * The result is an artifact content that can be used on its own.
- * @author carnalca@redhat.com
  */
 public interface ContentDereferencer {
 

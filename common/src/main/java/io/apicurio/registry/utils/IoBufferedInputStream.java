@@ -21,9 +21,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.function.BiConsumer;
 
-/**
- * @author Ales Justin
- */
+
 // TODO This does not work with com.fasterxml.jackson.databind.ObjectMapper.readTree(java.io.InputStream)
 // because count = 0 at the end, even if there is valid data in buf. This causes the content handle to become empty.
 // Needs more investigation, but io.apicurio.registry.content.StreamContentHandle.bytes() can be called as a workaround.

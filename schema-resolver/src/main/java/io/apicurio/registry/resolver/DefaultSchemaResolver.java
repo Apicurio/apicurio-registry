@@ -36,8 +36,6 @@ import java.util.concurrent.ExecutionException;
 /**
  * Default implementation of {@link SchemaResolver}
  *
- * @author Fabian Martinez
- * @author Jakub Senko <em>m@jsenko.net</em>
  */
 public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
 

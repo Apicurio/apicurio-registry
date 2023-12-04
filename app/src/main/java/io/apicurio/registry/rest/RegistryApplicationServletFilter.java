@@ -37,7 +37,6 @@ import java.io.IOException;
  * The list of regular expressions will be applied to all incoming requests, if any of them match the request will get a 404 response.
  * Note: this is implemented in a servlet to be able to disable the web UI (/ui), because the web is served with Servlets
  *
- * @author Fabian Martinez
  */
 @ApplicationScoped
 public class RegistryApplicationServletFilter implements Filter {

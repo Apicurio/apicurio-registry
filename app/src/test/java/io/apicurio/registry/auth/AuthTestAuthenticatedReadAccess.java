@@ -16,9 +16,7 @@
 
 package io.apicurio.registry.auth;
 
-/**
- * @author carnalca@redhat.com
- */
+
 
 import com.microsoft.kiota.authentication.BaseBearerTokenAuthenticationProvider;
 import com.microsoft.kiota.http.OkHttpRequestAdapter;

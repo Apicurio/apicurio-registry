@@ -37,9 +37,7 @@ import io.apicurio.registry.support.Person;
 import io.apicurio.registry.types.ArtifactType;
 import io.quarkus.test.junit.QuarkusTest;
 
-/**
- * @author Ales Justin
- */
+
 @QuarkusTest
 public class JsonSerdeTest extends AbstractResourceTestBase {
 

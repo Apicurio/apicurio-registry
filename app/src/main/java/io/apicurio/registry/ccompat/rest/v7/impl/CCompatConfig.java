@@ -25,9 +25,7 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import io.apicurio.common.apps.config.Dynamic;
 import io.apicurio.common.apps.config.Info;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 @Singleton
 public class CCompatConfig {
 

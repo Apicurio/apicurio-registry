@@ -18,9 +18,7 @@ package io.apicurio.registry.support;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-/**
- * @author Ales Justin
- */
+
 public class Person {
     @JsonProperty("firstName")
     private String firstName;

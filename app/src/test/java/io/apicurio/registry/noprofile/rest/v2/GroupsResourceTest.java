@@ -87,9 +87,7 @@ import io.restassured.config.RestAssuredConfig;
 import io.restassured.http.ContentType;
 import io.restassured.response.ValidatableResponse;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 @QuarkusTest
 public class GroupsResourceTest extends AbstractResourceTestBase {
 

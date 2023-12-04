@@ -18,9 +18,7 @@ package io.apicurio.registry.resolver;
 
 import java.util.List;
 
-/**
- * @author Fabian Martinez
- */
+
 public class ParsedSchemaImpl<T> implements ParsedSchema<T> {
 
     private T parsedSchema;

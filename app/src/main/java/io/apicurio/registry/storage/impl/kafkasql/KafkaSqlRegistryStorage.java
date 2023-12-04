@@ -90,7 +90,6 @@ import static io.apicurio.registry.storage.RegistryStorage.ArtifactRetrievalBeha
  * to other nodes in a cluster using a Kafka topic.  As a result, all reads are performed locally but all
  * writes are published to a topic for consumption by all nodes.
  *
- * @author eric.wittmann@gmail.com
  */
 @ApplicationScoped
 @PersistenceExceptionLivenessApply

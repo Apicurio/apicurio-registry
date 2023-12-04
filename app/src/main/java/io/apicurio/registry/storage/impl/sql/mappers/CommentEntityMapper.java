@@ -22,9 +22,7 @@ import java.sql.SQLException;
 import io.apicurio.registry.storage.impl.sql.jdb.RowMapper;
 import io.apicurio.registry.utils.impexp.CommentEntity;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 public class CommentEntityMapper implements RowMapper<CommentEntity> {
 
     public static final CommentEntityMapper instance = new CommentEntityMapper();

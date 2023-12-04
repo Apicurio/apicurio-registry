@@ -43,9 +43,7 @@ import io.apicurio.registry.utils.impexp.GroupEntity;
 import java.util.Date;
 import java.util.List;
 
-/**
- * @author Jakub Senko <em>m@jsenko.net</em>
- */
+
 public abstract class AbstractReadOnlyRegistryStorage implements RegistryStorage {
 
 

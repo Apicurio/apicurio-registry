@@ -25,9 +25,7 @@ import java.io.UncheckedIOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 
-/**
- * @author Carles Arnal
- */
+
 public class ConfluentConfigUtils {
 
     public static Response testCompatibility(String body, String schemaName, int returnCode) {

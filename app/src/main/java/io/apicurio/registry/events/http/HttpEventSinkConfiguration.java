@@ -28,9 +28,7 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import io.apicurio.common.apps.config.Info;
 import io.apicurio.registry.utils.RegistryProperties;
 
-/**
- * @author Fabian Martinez
- */
+
 @ApplicationScoped
 public class HttpEventSinkConfiguration {
 

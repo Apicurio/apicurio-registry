@@ -18,9 +18,7 @@ package io.apicurio.registry.storage.error;
 
 import lombok.Getter;
 
-/**
- * @author Fabian Martinez
- */
+
 public class GroupAlreadyExistsException extends AlreadyExistsException {
 
     private static final long serialVersionUID = 2412206165461946827L;

@@ -25,7 +25,6 @@ import lombok.ToString;
  * Does not apply to a specific resource, but to the entire node.
  * The only content is the action being performed.
  *
- * @author Jakub Senko <em>m@jsenko.net</em>
  */
 @RegisterForReflection
 @ToString

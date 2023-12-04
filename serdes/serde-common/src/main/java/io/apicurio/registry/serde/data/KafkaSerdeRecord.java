@@ -18,9 +18,7 @@ package io.apicurio.registry.serde.data;
 
 import io.apicurio.registry.resolver.data.Record;
 
-/**
- * @author Fabian Martinez
- */
+
 public class KafkaSerdeRecord<T> implements Record<T> {
 
     private KafkaSerdeMetadata metadata;

@@ -28,7 +28,6 @@ import jakarta.servlet.http.HttpServletResponse;
 /**
  * Add HSTS headers to all HTTP responses.  Browser will ignore the header if the connection
  * is not secure.
- * @author eric.wittmann@gmail.com
  */
 public class HSTSFilter implements Filter {
 

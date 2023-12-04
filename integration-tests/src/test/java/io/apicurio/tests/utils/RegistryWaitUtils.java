@@ -19,9 +19,7 @@ package io.apicurio.tests.utils;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.utils.tests.TestUtils;
 
-/**
- * @author Carles Arnal
- */
+
 public class RegistryWaitUtils {
 
     @FunctionalInterface

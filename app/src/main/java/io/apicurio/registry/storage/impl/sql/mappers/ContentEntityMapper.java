@@ -22,9 +22,7 @@ import java.sql.SQLException;
 import io.apicurio.registry.storage.impl.sql.jdb.RowMapper;
 import io.apicurio.registry.utils.impexp.ContentEntity;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 public class ContentEntityMapper implements RowMapper<ContentEntity> {
 
     public static final ContentEntityMapper instance = new ContentEntityMapper();

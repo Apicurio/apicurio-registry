@@ -19,9 +19,7 @@ package io.apicurio.registry.maven;
 import java.io.File;
 import java.util.List;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 public class DownloadArtifact {
 
     private String groupId;

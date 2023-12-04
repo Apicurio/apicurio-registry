@@ -26,9 +26,7 @@ import org.apache.kafka.common.config.ConfigDef.Type;
 
 import io.apicurio.registry.serde.config.BaseKafkaSerDeConfig;
 
-/**
- * @author Fabian Martinez
- */
+
 public class JsonSchemaKafkaSerializerConfig extends BaseKafkaSerDeConfig {
 
     private static ConfigDef configDef() {

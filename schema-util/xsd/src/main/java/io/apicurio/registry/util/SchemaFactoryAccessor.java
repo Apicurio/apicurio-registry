@@ -22,9 +22,7 @@ import javax.xml.validation.SchemaFactory;
 import org.xml.sax.SAXNotRecognizedException;
 import org.xml.sax.SAXNotSupportedException;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 public class SchemaFactoryAccessor {
     
     private static ThreadLocal<SchemaFactory> threadLocalSchemaFactory = new ThreadLocal<SchemaFactory>() {

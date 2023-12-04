@@ -18,9 +18,7 @@ package io.apicurio.registry.storage.impl.sql;
 
 import io.apicurio.registry.storage.impl.sql.jdb.Handle;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 public interface IDbUpgrader {
 
     /**

@@ -26,9 +26,7 @@ import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.REFERENCE_TYPE_TARGET_SCHEMA_REMOVED;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffUtil.diffSubschemaAddedRemoved;
 
-/**
- * @author Jakub Senko <em>m@jsenko.net</em>
- */
+
 public class ReferenceSchemaDiffVisitor extends JsonSchemaWrapperVisitor {
 
 

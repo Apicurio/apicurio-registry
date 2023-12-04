@@ -23,9 +23,7 @@ import io.apicurio.registry.storage.impl.sql.jdb.RowMapper;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.impexp.GlobalRuleEntity;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 public class GlobalRuleEntityMapper implements RowMapper<GlobalRuleEntity> {
 
     public static final GlobalRuleEntityMapper instance = new GlobalRuleEntityMapper();

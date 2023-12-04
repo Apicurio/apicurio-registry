@@ -16,9 +16,7 @@
 
 package io.apicurio.registry.storage.dto;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 public enum SearchFilterType {
 
     group, name, description, labels, properties, contentHash, canonicalHash,

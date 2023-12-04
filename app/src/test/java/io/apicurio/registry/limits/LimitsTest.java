@@ -44,9 +44,7 @@ import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 
-/**
- * @author Fabian Martinez
- */
+
 @QuarkusTest
 @TestProfile(LimitsTestProfile.class)
 @DisabledIfEnvironmentVariable(named = AbstractRegistryTestBase.CURRENT_ENV, matches = AbstractRegistryTestBase.CURRENT_ENV_MAS_REGEX)

@@ -22,9 +22,7 @@ import java.sql.SQLException;
 import io.apicurio.registry.storage.dto.RuleConfigurationDto;
 import io.apicurio.registry.storage.impl.sql.jdb.RowMapper;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 public class RuleConfigurationDtoMapper implements RowMapper<RuleConfigurationDto> {
 
     public static final RuleConfigurationDtoMapper instance = new RuleConfigurationDtoMapper();

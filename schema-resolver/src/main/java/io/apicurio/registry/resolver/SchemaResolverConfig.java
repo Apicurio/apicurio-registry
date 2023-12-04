@@ -22,8 +22,6 @@ import io.apicurio.registry.resolver.strategy.DynamicArtifactReferenceResolverSt
 
 /**
  * Contains the {@link DefaultSchemaResolver} configuration properties.
- * @author eric.wittmann@gmail.com
- * @author Fabian Martinez
  */
 public class SchemaResolverConfig {
 

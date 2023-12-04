@@ -21,9 +21,7 @@ import io.apicurio.registry.types.ArtifactState;
 import jakarta.ws.rs.core.Response;
 import java.util.function.Supplier;
 
-/**
- * @author Ales Justin
- */
+
 public interface Headers {
     String GROUP_ID = "X-Registry-GroupId";
     String ARTIFACT_ID = "X-Registry-ArtifactId";

@@ -30,9 +30,7 @@ import io.apicurio.registry.rules.validity.ContentValidator;
 import io.apicurio.registry.rules.validity.ProtobufContentValidator;
 import io.apicurio.registry.types.ArtifactType;
 
-/**
- * @author Ales Justin
- */
+
 public class ProtobufArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvider {
     @Override
     public String getArtifactType() {

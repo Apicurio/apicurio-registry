@@ -43,9 +43,7 @@ import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 import io.apicurio.registry.utils.StringUtil;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 public abstract class AbstractResourceImpl {
     
     @Inject

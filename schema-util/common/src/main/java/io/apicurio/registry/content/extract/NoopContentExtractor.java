@@ -18,9 +18,7 @@ package io.apicurio.registry.content.extract;
 
 import io.apicurio.registry.content.ContentHandle;
 
-/**
- * @author Ales Justin
- */
+
 public class NoopContentExtractor implements ContentExtractor {
     public static final ContentExtractor INSTANCE = new NoopContentExtractor();
 

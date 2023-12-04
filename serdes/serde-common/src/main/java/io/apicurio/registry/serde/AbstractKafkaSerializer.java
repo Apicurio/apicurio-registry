@@ -34,9 +34,7 @@ import java.io.OutputStream;
 import java.io.UncheckedIOException;
 import java.util.Map;
 
-/**
- * @author Fabian Martinez
- */
+
 public abstract class AbstractKafkaSerializer<T, U> extends AbstractKafkaSerDe<T, U> implements Serializer<U> {
 
     public AbstractKafkaSerializer() {

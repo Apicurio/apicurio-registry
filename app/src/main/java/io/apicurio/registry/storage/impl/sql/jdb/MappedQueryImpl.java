@@ -29,9 +29,7 @@ import java.util.function.Consumer;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 public class MappedQueryImpl<T> implements MappedQuery<T>, Closeable {
 
     final PreparedStatement statement;

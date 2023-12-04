@@ -27,7 +27,6 @@ import io.apicurio.registry.utils.PropertiesUtil;
 /**
  * Generic configuration.
  *
- * @author Ales Justin
  */
 @ApplicationScoped
 public class AppConfiguration {

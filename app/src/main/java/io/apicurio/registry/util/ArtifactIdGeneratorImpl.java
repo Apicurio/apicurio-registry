@@ -19,9 +19,7 @@ package io.apicurio.registry.util;
 import java.util.UUID;
 import jakarta.enterprise.context.ApplicationScoped;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 @ApplicationScoped
 public class ArtifactIdGeneratorImpl implements ArtifactIdGenerator {
 

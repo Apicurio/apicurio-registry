@@ -28,7 +28,6 @@ import org.apache.maven.plugins.annotations.Parameter;
  * Test artifact against current artifact rules,
  * if an update is possible / valid.
  *
- * @author Ales Justin
  */
 @Mojo(name = "test-update")
 public class TestUpdateRegistryMojo extends AbstractRegistryMojo {

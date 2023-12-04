@@ -26,9 +26,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Default;
 import jakarta.inject.Inject;
 
-/**
- * @author Ales Justin
- */
+
 @ApplicationScoped
 @Liveness
 @Default

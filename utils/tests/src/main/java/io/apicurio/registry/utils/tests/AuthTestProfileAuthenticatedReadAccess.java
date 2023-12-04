@@ -22,9 +22,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-/**
- * @author carnalca@redhat.com
- */
+
 public class AuthTestProfileAuthenticatedReadAccess implements QuarkusTestProfile {
 
     @Override

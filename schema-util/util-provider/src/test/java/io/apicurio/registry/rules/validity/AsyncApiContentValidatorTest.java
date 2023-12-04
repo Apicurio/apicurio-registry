@@ -26,7 +26,6 @@ import java.util.Collections;
 
 /**
  * Tests the AsyncAPI content validator.
- * @author eric.wittmann@gmail.com
  */
 public class AsyncApiContentValidatorTest extends ArtifactUtilProviderTestBase {
 

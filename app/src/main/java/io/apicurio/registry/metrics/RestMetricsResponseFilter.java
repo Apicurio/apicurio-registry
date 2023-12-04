@@ -45,8 +45,6 @@ import static io.apicurio.registry.metrics.MetricsConstants.REST_REQUESTS_TAG_ST
  * Filters REST API requests and responses to report metrics
  * about them.
  *
- * @author Miguel Soriano
- * @author Jakub Senko <em>m@jsenko.net</em>
  */
 @Provider
 @Default

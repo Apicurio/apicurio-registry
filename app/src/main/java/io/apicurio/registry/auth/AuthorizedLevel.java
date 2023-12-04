@@ -16,9 +16,7 @@
 
 package io.apicurio.registry.auth;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 public enum AuthorizedLevel {
 
     None, Read, Write, Admin, AdminOrOwner

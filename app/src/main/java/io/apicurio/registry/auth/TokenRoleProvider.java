@@ -21,9 +21,7 @@ import jakarta.inject.Inject;
 
 import io.quarkus.security.identity.SecurityIdentity;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 @ApplicationScoped
 public class TokenRoleProvider implements RoleProvider {
 

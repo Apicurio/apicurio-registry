@@ -81,7 +81,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * Base class for all base classes for integration tests or for integration tests directly.
  * This class must not contain any functionality nor implement any beforeAll, beforeEach.
  *
- * @author Carles Arnal
  */
 @DisplayNameGeneration(SimpleDisplayName.class)
 @TestInstance(Lifecycle.PER_CLASS)

@@ -27,7 +27,6 @@ import io.apicurio.registry.rest.client.models.RuleType;
 
 /**
  * Used to create the export.zip file used by the import test in {@link AdminResourceTest}.
- * @author eric.wittmann@gmail.com
  */
 public class ExportLoader {
 

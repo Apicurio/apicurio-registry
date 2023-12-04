@@ -35,10 +35,7 @@ import io.apicurio.registry.serde.config.BaseKafkaSerDeConfig;
 import io.apicurio.registry.serde.fallback.DefaultFallbackArtifactProvider;
 import io.apicurio.registry.serde.fallback.FallbackArtifactProvider;
 
-/**
- * @author Ales Justin
- * @author Fabian Martinez
- */
+
 public abstract class AbstractKafkaDeserializer<T, U> extends AbstractKafkaSerDe<T, U> implements Deserializer<U> {
 
     protected FallbackArtifactProvider fallbackArtifactProvider;

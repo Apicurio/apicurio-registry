@@ -23,9 +23,7 @@ import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
 import io.apicurio.registry.serde.data.KafkaSerdeMetadata;
 import io.apicurio.registry.serde.data.KafkaSerdeRecord;
 
-/**
- * @author Ales Justin
- */
+
 public class TopicIdStrategy<T> implements ArtifactReferenceResolverStrategy<T, Object> {
 
     @Override

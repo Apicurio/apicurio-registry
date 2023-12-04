@@ -20,9 +20,7 @@ import java.io.IOException;
 import java.sql.Connection;
 import java.sql.SQLException;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 public class HandleImpl implements Handle {
 
     private final Connection connection;

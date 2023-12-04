@@ -23,7 +23,6 @@ import java.util.List;
 
 /**
  * Shared base class for all sql statements.
- * @author eric.wittmann@gmail.com
  */
 public abstract class CommonSqlStatements implements SqlStatements {
 

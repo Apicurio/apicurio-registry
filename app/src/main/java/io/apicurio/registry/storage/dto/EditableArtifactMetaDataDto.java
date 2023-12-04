@@ -27,9 +27,7 @@ import java.util.Map;
 
 import io.quarkus.runtime.annotations.RegisterForReflection;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 @AllArgsConstructor
 @Builder
 @EqualsAndHashCode

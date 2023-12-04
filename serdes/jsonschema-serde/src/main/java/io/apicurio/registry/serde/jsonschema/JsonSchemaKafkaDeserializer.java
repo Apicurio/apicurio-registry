@@ -37,12 +37,7 @@ import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- * @author eric.wittmann@gmail.com
- * @author Ales Justin
- * @author Fabian Martinez
- * @author Carles Arnal
- */
+
 public class JsonSchemaKafkaDeserializer<T> extends AbstractKafkaDeserializer<JsonSchema, T> implements Deserializer<T> {
 
     private ObjectMapper mapper;

@@ -24,7 +24,6 @@ package io.apicurio.registry.types;
  * <p>
  * This class is intended for extension. Create a more specific exception.
  *
- * @author Jakub Senko <em>m@jsenko.net</em>
  */
 public abstract class CheckedRegistryException extends Exception {
 

@@ -25,9 +25,7 @@ import java.lang.annotation.Target;
 import jakarta.enterprise.util.Nonbinding;
 import jakarta.interceptor.InterceptorBinding;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 @InterceptorBinding
 @Inherited
 @Retention(RetentionPolicy.RUNTIME)

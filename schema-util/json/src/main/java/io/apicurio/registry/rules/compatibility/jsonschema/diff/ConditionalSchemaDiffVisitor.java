@@ -42,9 +42,7 @@ import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.CONDITIONAL_TYPE_THEN_SCHEMA_REMOVED;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffUtil.compareSchema;
 
-/**
- * @author Jakub Senko <em>m@jsenko.net</em>
- */
+
 public class ConditionalSchemaDiffVisitor extends JsonSchemaWrapperVisitor {
 
 

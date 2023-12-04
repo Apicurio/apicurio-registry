@@ -36,7 +36,6 @@ import io.apicurio.registry.content.ContentHandle;
  * contained therein.  Parses the document, finds all $refs, converts them to external references, and 
  * returns them.
  * 
- * @author eric.wittmann@gmail.com
  */
 public abstract class AbstractDataModelsReferenceFinder implements ReferenceFinder {
 
@@ -60,7 +59,6 @@ public abstract class AbstractDataModelsReferenceFinder implements ReferenceFind
     
     /**
      * Visitor that will visit every node looking for "$ref" properties.
-     * @author eric.wittmann@gmail.com
      */
     private static class RefFinderVisitor extends AllNodeVisitor {
         

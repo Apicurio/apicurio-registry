@@ -48,9 +48,7 @@ import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffUtil.
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffUtil.diffNumber;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffUtil.diffNumberOriginalMultipleOfUpdated;
 
-/**
- * @author Jakub Senko <em>m@jsenko.net</em>
- */
+
 public class NumberSchemaDiffVisitor extends JsonSchemaWrapperVisitor {
 
 

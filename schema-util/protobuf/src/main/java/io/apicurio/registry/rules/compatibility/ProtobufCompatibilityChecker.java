@@ -26,9 +26,7 @@ import io.apicurio.registry.rules.compatibility.protobuf.ProtobufCompatibilityCh
 import io.apicurio.registry.utils.protobuf.schema.ProtobufFile;
 import org.jetbrains.annotations.NotNull;
 
-/**
- * @author Ales Justin
- */
+
 public class ProtobufCompatibilityChecker implements CompatibilityChecker {
 
     @Override

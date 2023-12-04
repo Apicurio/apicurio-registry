@@ -31,7 +31,6 @@ import io.apicurio.registry.types.RuleType;
 
 /**
  * A content validator implementation for the Avro content type.
- * @author eric.wittmann@gmail.com
  */
 public class AvroContentValidator implements ContentValidator {
     

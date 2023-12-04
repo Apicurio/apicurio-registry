@@ -24,9 +24,7 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 @AllArgsConstructor
 @Builder
 @Getter

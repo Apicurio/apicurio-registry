@@ -39,9 +39,7 @@ import java.util.Date;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 @ApplicationScoped
 @Logged
 public class KafkaSqlSubmitter {

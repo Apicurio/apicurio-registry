@@ -16,9 +16,7 @@
 
 package io.apicurio.registry.storage.error;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 public class DownloadNotFoundException extends NotFoundException {
 
     private static final long serialVersionUID = -8634862918588649938L;

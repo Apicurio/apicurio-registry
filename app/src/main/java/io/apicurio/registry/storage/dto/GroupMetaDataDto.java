@@ -24,9 +24,7 @@ import lombok.ToString;
 import java.io.Serializable;
 import java.util.Map;
 
-/**
- * @author Fabian Martinez
- */
+
 @AllArgsConstructor
 @Builder
 @EqualsAndHashCode

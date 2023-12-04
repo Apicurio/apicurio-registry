@@ -16,9 +16,7 @@
 
 package io.apicurio.registry.rules.compatibility.jsonschema.diff;
 
-/**
- * @author Jakub Senko <em>m@jsenko.net</em>
- */
+
 public enum DiffType {
 
     SUBSCHEMA_TYPE_CHANGED(false),

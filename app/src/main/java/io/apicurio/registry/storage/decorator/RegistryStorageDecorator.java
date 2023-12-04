@@ -18,10 +18,7 @@ package io.apicurio.registry.storage.decorator;
 
 import io.apicurio.registry.storage.RegistryStorage;
 
-/**
- * @author Fabian Martinez
- * @author Jakub Senko <em>m@jsenko.net</em>
- */
+
 public interface RegistryStorageDecorator extends RegistryStorage {
 
 

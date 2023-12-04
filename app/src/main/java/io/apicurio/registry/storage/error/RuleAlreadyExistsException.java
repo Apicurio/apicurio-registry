@@ -19,9 +19,7 @@ package io.apicurio.registry.storage.error;
 import io.apicurio.registry.types.RuleType;
 import lombok.Getter;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 public class RuleAlreadyExistsException extends AlreadyExistsException {
 
     private static final long serialVersionUID = 2412206165461946827L;

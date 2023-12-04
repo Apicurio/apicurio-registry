@@ -23,7 +23,6 @@ import java.util.Map;
 
 /**
  * Provides a mapping from a message type to the {@link MessageValue} for that message type.
- * @author eric.wittmann@gmail.com
  */
 public class MessageTypeToValueClass {
 

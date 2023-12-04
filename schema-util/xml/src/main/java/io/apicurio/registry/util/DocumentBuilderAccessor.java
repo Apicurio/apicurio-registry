@@ -23,7 +23,6 @@ import javax.xml.parsers.ParserConfigurationException;
 
 /**
  * Base class for any class that needs to use a DocumentBuilder.
- * @author eric.wittmann@gmail.com
  */
 public final class DocumentBuilderAccessor {
 

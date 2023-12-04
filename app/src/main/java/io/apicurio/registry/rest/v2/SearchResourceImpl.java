@@ -55,9 +55,7 @@ import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 import io.apicurio.registry.util.ContentTypeUtil;
 import io.apicurio.registry.utils.StringUtil;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 @ApplicationScoped
 @Interceptors({ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class})
 @Logged

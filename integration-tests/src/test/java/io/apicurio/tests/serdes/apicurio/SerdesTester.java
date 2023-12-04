@@ -48,9 +48,7 @@ import java.util.function.Predicate;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/**
- * @author Carles Arnal
- */
+
 public class SerdesTester<K, P, C> {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SerdesTester.class);

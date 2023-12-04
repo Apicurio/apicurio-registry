@@ -37,9 +37,7 @@ import io.apicurio.registry.utils.kafka.ProducerActions;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.eventbus.Message;
 
-/**
- * @author Fabian Martinez
- */
+
 @ApplicationScoped
 public class KafkaEventSink implements EventSink {
 

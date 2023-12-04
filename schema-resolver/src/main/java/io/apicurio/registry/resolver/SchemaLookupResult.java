@@ -19,9 +19,7 @@ package io.apicurio.registry.resolver;
 import io.apicurio.registry.resolver.strategy.ArtifactCoordinates;
 import io.apicurio.registry.resolver.strategy.ArtifactReference;
 
-/**
- * @author Fabian Martinez
- */
+
 public class SchemaLookupResult<T> {
 
     private ParsedSchema<T> parsedSchema;

@@ -33,9 +33,7 @@ import io.quarkus.test.junit.QuarkusTest;
 
 import java.util.concurrent.TimeUnit;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 @QuarkusTest
 public class IdsResourceTest extends AbstractResourceTestBase {
 

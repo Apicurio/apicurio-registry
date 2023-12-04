@@ -32,7 +32,6 @@ import java.util.function.Supplier;
 /**
  * Expiration + Retry Cache
  *
- * @author Jakub Senko
  * @type V SchemaLookupResult
  */
 public class ERCache<V> {

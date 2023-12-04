@@ -34,9 +34,7 @@ import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessChe
 import io.apicurio.registry.rest.v2.beans.UserInfo;
 import io.quarkus.security.identity.SecurityIdentity;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 @ApplicationScoped
 @Interceptors({ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class})
 @Logged

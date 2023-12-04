@@ -32,8 +32,6 @@ import io.apicurio.registry.serde.strategy.TopicIdStrategy;
  * Contains all of the Serde configuration properties.  These are all the property names used when
  * configuring serde classes in Kafka apps via a {@link Properties} object.  Serde classes can be
  * used by creating them directly as well, in which case these property names are not relevant.
- * @author eric.wittmann@gmail.com
- * @author Fabian Martinez
  */
 public class SerdeConfig {
 

@@ -28,9 +28,7 @@ import java.net.URL;
 import static io.apicurio.tests.utils.BaseHttpUtils.putRequest;
 
 
-/**
- * @author Carles Arnal
- */
+
 public class ConfluentSubjectsUtils {
 
     public static Response getAllSchemas(int returnCode) {

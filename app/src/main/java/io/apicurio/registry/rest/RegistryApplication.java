@@ -18,9 +18,7 @@ package io.apicurio.registry.rest;
 
 import jakarta.ws.rs.core.Application;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 public class RegistryApplication extends Application {
 
 }

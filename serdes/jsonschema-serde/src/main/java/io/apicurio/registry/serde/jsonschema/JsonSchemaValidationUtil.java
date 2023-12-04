@@ -20,9 +20,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.resolver.ParsedSchema;
 
 import java.io.IOException;
-/**
- * @author Carles Arnal
-*/
+
 public class JsonSchemaValidationUtil {
 
     /**

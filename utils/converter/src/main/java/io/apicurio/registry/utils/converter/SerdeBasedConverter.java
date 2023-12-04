@@ -37,8 +37,6 @@ import java.util.Objects;
  * Very simplistic converter that delegates most of the work to the configured serializer and deserializer.
  * Subclasses should override applySchema(Schema, Object) and provideSchema(T) or toSchemaAndValue(T).
  *
- * @author Ales Justin
- * @author Fabian Martinez
  */
 @SuppressWarnings("rawtypes")
 public class SerdeBasedConverter<S, T> implements Converter, Closeable {

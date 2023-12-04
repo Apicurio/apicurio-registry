@@ -20,9 +20,7 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.interceptor.InvocationContext;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 @Singleton
 public class RoleBasedAccessController extends AbstractAccessController {
 

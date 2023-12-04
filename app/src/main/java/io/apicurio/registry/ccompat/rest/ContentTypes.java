@@ -16,10 +16,7 @@
 
 package io.apicurio.registry.ccompat.rest;
 
-/**
- * @author Ales Justin
- * @author Jakub Senko <em>m@jsenko.net</em>
- */
+
 public final class ContentTypes {
 
     public static final String JSON = "application/json";

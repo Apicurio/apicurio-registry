@@ -19,7 +19,6 @@ package io.apicurio.registry.content.canon;
 /**
  * A Kafka Connect schema content canonicalizer.
  * 
- * @author eric.wittmann@gmail.com
  */
 public class KafkaConnectContentCanonicalizer extends JsonContentCanonicalizer {
 

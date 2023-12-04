@@ -24,9 +24,7 @@ import io.apicurio.registry.storage.impl.sql.SqlUtil;
 import io.apicurio.registry.storage.impl.sql.jdb.RowMapper;
 import io.apicurio.registry.types.ArtifactState;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 public class SearchedVersionMapper implements RowMapper<SearchedVersionDto> {
 
     public static final SearchedVersionMapper instance = new SearchedVersionMapper();

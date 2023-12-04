@@ -31,9 +31,7 @@ import org.slf4j.Logger;
 import jakarta.annotation.PostConstruct;
 import java.util.Optional;
 
-/**
- * @author Fabian Martinez
- */
+
 @ApplicationScoped
 public class EventsServiceImpl implements EventsService {
 

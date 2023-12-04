@@ -47,10 +47,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
-/**
- * @author Ales Justin
- * @author Fabian Martinez
- */
+
 public class ExtJsonConverter extends SchemaResolverConfigurer<JsonNode, Object> implements Converter, SchemaParser<JsonNode, Object>, AutoCloseable {
     private final JsonConverter jsonConverter;
     private final ObjectMapper mapper;

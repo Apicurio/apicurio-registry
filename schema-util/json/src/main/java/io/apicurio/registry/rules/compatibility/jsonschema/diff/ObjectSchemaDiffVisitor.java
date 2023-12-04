@@ -88,9 +88,7 @@ import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffUtil.
 import static io.apicurio.registry.rules.compatibility.jsonschema.wrapper.WrapUtil.wrap;
 import static java.util.stream.Collectors.toMap;
 
-/**
- * @author Jakub Senko <em>m@jsenko.net</em>
- */
+
 public class ObjectSchemaDiffVisitor extends JsonSchemaWrapperVisitor {
 
 

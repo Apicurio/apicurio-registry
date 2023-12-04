@@ -26,9 +26,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.apicurio.registry.utils.IoUtil;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 public class EntityReader {
 
     private static final ObjectMapper mapper;

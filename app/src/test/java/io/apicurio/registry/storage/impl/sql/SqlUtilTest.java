@@ -25,9 +25,7 @@ import java.util.Map;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 class SqlUtilTest {
 
     /**

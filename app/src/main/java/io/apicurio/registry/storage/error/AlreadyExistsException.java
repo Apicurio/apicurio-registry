@@ -16,9 +16,7 @@
 
 package io.apicurio.registry.storage.error;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 public abstract class AlreadyExistsException extends RegistryStorageException {
 
     private static final long serialVersionUID = 5055445625652989500L;

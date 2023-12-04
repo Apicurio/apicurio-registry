@@ -30,9 +30,7 @@ import java.util.Optional;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
-/**
- * @author Fabian Martinez
- */
+
 @ApplicationScoped
 public class DisabledApisMatcherService {
 

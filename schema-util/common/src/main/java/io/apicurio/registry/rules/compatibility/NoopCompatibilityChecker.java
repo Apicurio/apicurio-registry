@@ -23,9 +23,7 @@ import java.util.Map;
 
 import static java.util.Objects.requireNonNull;
 
-/**
- * @author Ales Justin
- */
+
 public class NoopCompatibilityChecker implements CompatibilityChecker {
     public static CompatibilityChecker INSTANCE = new NoopCompatibilityChecker();
 

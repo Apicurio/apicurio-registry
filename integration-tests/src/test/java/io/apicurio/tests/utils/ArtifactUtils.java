@@ -24,9 +24,7 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 
-/**
- * @author Carles Arnal
- */
+
 public class ArtifactUtils {
 
 

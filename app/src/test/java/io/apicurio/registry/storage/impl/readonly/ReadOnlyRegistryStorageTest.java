@@ -37,9 +37,7 @@ import java.util.stream.Collectors;
 import static java.util.Map.entry;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-/**
- * @author Jakub Senko <em>m@jsenko.net</em>
- */
+
 @QuarkusTest
 @Tag(ApicurioTestTags.SLOW)
 public class ReadOnlyRegistryStorageTest {

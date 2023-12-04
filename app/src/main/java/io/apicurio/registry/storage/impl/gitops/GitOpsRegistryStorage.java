@@ -48,9 +48,7 @@ import java.util.function.Function;
 
 import static io.quarkus.scheduler.Scheduled.ConcurrentExecution.SKIP;
 
-/**
- * @author Jakub Senko <em>m@jsenko.net</em>
- */
+
 @ApplicationScoped
 @StorageMetricsApply
 @Logged

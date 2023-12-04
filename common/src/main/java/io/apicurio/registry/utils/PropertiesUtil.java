@@ -15,9 +15,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
-/**
- * @author Ales Justin
- */
+
 public class PropertiesUtil {
     private static final Logger log = LoggerFactory.getLogger(PropertiesUtil.class);
     // explicit debug, since properties can have unresolved env vars

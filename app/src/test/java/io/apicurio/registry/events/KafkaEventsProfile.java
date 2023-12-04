@@ -24,9 +24,7 @@ import java.util.Map;
 import io.apicurio.registry.test.utils.KafkaTestContainerManager;
 import io.quarkus.test.junit.QuarkusTestProfile;
 
-/**
- * @author Fabian Martinez
- */
+
 public class KafkaEventsProfile implements QuarkusTestProfile {
 
     public static final String EVENTS_TOPIC = "registry-events";

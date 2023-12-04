@@ -25,9 +25,7 @@ import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 @AllArgsConstructor
 @Builder
 @EqualsAndHashCode

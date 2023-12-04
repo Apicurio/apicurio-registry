@@ -23,7 +23,6 @@ import io.quarkus.runtime.annotations.RegisterForReflection;
 /**
  * When the KSQL artifactStore publishes a message to its Kafka topic, the message key will be a class that
  * implements this interface.
- * @author eric.wittmann@gmail.com
  */
 @RegisterForReflection
 public interface MessageKey {

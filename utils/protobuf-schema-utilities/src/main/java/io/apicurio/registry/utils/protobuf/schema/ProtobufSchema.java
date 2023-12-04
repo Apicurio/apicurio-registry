@@ -21,9 +21,7 @@ import java.util.Objects;
 import com.google.protobuf.Descriptors.FileDescriptor;
 import com.squareup.wire.schema.internal.parser.ProtoFileElement;
 
-/**
- * @author Fabian Martinez
- */
+
 public class ProtobufSchema {
 
     private final FileDescriptor fileDescriptor;

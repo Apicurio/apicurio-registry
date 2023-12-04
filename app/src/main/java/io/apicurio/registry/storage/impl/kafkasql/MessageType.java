@@ -19,9 +19,7 @@ package io.apicurio.registry.storage.impl.kafkasql;
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 public enum MessageType {
 
     Bootstrap(0),

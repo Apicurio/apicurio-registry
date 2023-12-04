@@ -29,9 +29,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.CompletableFuture;
 
-/**
- * @author Carles Arnal
- */
+
 public abstract class LimitingProxy {
 
     private static final Object LOCK = new Object();

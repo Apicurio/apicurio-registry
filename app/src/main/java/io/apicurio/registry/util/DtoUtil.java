@@ -20,9 +20,7 @@ package io.apicurio.registry.util;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 public final class DtoUtil {
 
     /**

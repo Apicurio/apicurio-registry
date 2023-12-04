@@ -32,10 +32,7 @@ import java.util.List;
 
 import static com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility.NONE;
 
-/**
- * @author Jakub Senko <em>m@jsenko.net</em>
- * @author Carles Arnal 'carnalca@redhat.com'
- */
+
 @JsonAutoDetect(isGetterVisibility = NONE)
 @NoArgsConstructor // required for Jackson
 @AllArgsConstructor

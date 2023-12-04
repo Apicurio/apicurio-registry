@@ -22,9 +22,7 @@ import java.util.Map;
 
 import io.quarkus.test.junit.QuarkusTestProfile;
 
-/**
- * @author Carles Arnal
- */
+
 public class AuthTestProfileWithLocalRoles implements QuarkusTestProfile {
 
     @Override

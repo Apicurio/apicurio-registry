@@ -39,7 +39,6 @@ import java.util.function.Function;
  * To start from input topic's beginning, use this config
  * * auto.offset.reset=earliest / ConsumerConfig.AUTO_OFFSET_RESET_CONFIG
  *
- * @author Ales Justin
  */
 public class Transformer {
     private static final Logger log = LoggerFactory.getLogger(Transformer.class);

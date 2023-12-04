@@ -30,7 +30,6 @@ import java.util.Map;
 /**
  * A common XML content canonicalizer.
  *
- * @author cfoskin@redhat.com
  */
 public class XmlContentCanonicalizer implements ContentCanonicalizer {
 

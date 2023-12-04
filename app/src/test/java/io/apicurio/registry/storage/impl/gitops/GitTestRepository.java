@@ -14,9 +14,7 @@ import java.nio.file.Path;
 
 import static java.util.Objects.requireNonNull;
 
-/**
- * @author Jakub Senko <em>m@jsenko.net</em>
- */
+
 public class GitTestRepository implements AutoCloseable {
 
     private Git git;

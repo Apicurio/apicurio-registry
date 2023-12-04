@@ -28,7 +28,6 @@ import java.util.Set;
  * Exception thrown when a configured rule is violated, rejecting an artifact content
  * update.
  *
- * @author Ales Justin
  */
 public class RuleViolationException extends RegistryException {
 

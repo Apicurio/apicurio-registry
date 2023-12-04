@@ -21,9 +21,7 @@ import lombok.Getter;
 import lombok.ToString;
 import org.everit.json.schema.FalseSchema;
 
-/**
- * @author Jakub Senko <em>m@jsenko.net</em>
- */
+
 @ToString
 public class FalseSchemaWrapper extends EqualitySchemaWrapper implements SchemaWrapper {
 

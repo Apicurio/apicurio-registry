@@ -26,9 +26,7 @@ import java.io.InputStream;
 import java.util.Date;
 import java.util.Map;
 
-/**
- * @author Carles Arnal
- */
+
 public class JsonSchemaMsgFactory {
 
     private String jsonSchema = "{" +

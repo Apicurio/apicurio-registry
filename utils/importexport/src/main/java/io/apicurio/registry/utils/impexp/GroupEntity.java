@@ -26,9 +26,7 @@ import java.util.Map;
 
 import static lombok.AccessLevel.PRIVATE;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor(access = PRIVATE)

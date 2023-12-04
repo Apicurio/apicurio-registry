@@ -28,11 +28,7 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 
-/**
- * @author Ales Justin
- * @author Jonathan Halliday
- * @author Jakub Senko <em>m@jsenko.net</em>
- */
+
 public class AvroCompatibilityChecker extends AbstractCompatibilityChecker<Incompatibility> {
 
     @Override

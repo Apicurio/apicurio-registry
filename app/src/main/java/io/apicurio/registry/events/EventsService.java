@@ -19,9 +19,7 @@ import java.util.Optional;
 
 import io.apicurio.registry.events.dto.RegistryEventType;
 
-/**
- * @author Fabian Martinez
- */
+
 public interface EventsService {
 
     boolean isReady();

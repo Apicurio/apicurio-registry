@@ -20,9 +20,7 @@ import static io.apicurio.registry.utils.StringUtil.isEmpty;
 
 import io.apicurio.registry.content.ContentHandle;
 
-/**
- * @author Ales Justin
- */
+
 public interface ContentExtractor {
     /**
      * Extract metadata from content.

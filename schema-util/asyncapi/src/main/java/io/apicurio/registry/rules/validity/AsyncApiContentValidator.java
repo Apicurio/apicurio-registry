@@ -18,7 +18,6 @@ package io.apicurio.registry.rules.validity;
 
 /**
  * A content validator implementation for the AsyncAPI content type.
- * @author eric.wittmann@gmail.com
  */
 public class AsyncApiContentValidator extends ApicurioDataModelContentValidator {
 

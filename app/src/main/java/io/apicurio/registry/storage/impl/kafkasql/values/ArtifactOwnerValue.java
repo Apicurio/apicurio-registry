@@ -20,9 +20,7 @@ import io.apicurio.registry.storage.impl.kafkasql.MessageType;
 import io.quarkus.runtime.annotations.RegisterForReflection;
 import lombok.ToString;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 @RegisterForReflection
 @ToString
 public class ArtifactOwnerValue extends AbstractMessageValue {

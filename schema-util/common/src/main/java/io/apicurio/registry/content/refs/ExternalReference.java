@@ -53,7 +53,6 @@ import java.util.Objects;
  *   <li><em>component</em>: <em>null</em></li>
  * </ul>
  * 
- * @author eric.wittmann@gmail.com
  */
 public class ExternalReference {
 

@@ -24,9 +24,7 @@ import java.io.OutputStream;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 
-/**
- * @author Ales Justin
- */
+
 public class IoUtil {
 
     private static ByteArrayOutputStream toBaos(InputStream stream) throws IOException {

@@ -23,9 +23,7 @@ import io.quarkus.runtime.annotations.RegisterForReflection;
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 @RegisterForReflection
 public enum ActionType {
 

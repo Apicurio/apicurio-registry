@@ -22,7 +22,6 @@ import io.apicurio.registry.resolver.data.Record;
 
 /**
  * {@link ArtifactReferenceResolverStrategy} implementation that simply returns {@link Metadata#artifactReference()} from the given {@link Record}
- * @author Fabian Martinez
  */
 public class DynamicArtifactReferenceResolverStrategy<SCHEMA, DATA> implements ArtifactReferenceResolverStrategy<SCHEMA, DATA> {
 

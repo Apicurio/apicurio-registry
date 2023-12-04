@@ -16,9 +16,7 @@
 
 package io.apicurio.registry.limits;
 
-/**
- * @author Fabian Martinez
- */
+
 public class LimitsCheckResult {
 
     private boolean allowed;

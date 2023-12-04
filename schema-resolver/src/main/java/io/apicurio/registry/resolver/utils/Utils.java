@@ -18,9 +18,7 @@ package io.apicurio.registry.resolver.utils;
 
 import java.util.function.Consumer;
 
-/**
- * @author Ales Justin
- */
+
 public class Utils {
 
     @SuppressWarnings("unchecked")

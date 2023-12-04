@@ -21,7 +21,6 @@ package io.apicurio.registry.serde;
  * via headers instead of via the message payload.  Note that these header names can be overridden
  * via configuration.
  *
- * @author eric.wittmann@gmail.com
  */
 public class SerdeHeaders {
 

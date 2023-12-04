@@ -28,9 +28,7 @@ import jakarta.interceptor.Interceptors;
 import java.util.List;
 import java.util.Map;
 
-/**
- * @author Carles Arnal
- */
+
 @Interceptors({ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class})
 @Logged
 public class ExporterResourceImpl extends AbstractResource implements ExporterResource {

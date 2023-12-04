@@ -52,9 +52,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-/**
- * @author Fabian Martinez
- */
+
 @QuarkusTest
 @TestProfile(AuthTestProfile.class)
 @Tag(ApicurioTestTags.SLOW)

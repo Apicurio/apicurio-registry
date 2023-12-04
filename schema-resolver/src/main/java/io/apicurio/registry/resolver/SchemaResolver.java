@@ -25,9 +25,7 @@ import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
 import io.apicurio.registry.resolver.strategy.ArtifactReference;
 import io.apicurio.registry.rest.client.RegistryClient;
 
-/**
- * @author Fabian Martinez
- */
+
 public interface SchemaResolver<SCHEMA, DATA> extends Closeable {
 
     /**

@@ -41,9 +41,7 @@ import java.util.Optional;
 import java.util.Properties;
 import java.util.UUID;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 @ApplicationScoped
 public class KafkaSqlFactory {
 

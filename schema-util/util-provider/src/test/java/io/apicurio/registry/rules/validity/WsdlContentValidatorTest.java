@@ -24,9 +24,7 @@ import io.apicurio.registry.rules.RuleViolationException;
 
 import java.util.Collections;
 
-/**
- * @author cfoskin@redhat.com
- */
+
 public class WsdlContentValidatorTest extends ArtifactUtilProviderTestBase {
     @Test
     public void testValidSyntax() throws Exception {

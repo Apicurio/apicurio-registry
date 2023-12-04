@@ -29,9 +29,7 @@ import org.slf4j.Logger;
 import io.apicurio.common.apps.config.Info;
 import io.apicurio.registry.services.http.RegistryExceptionMapperService;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 @ApplicationScoped
 public class LivenessUtil {
 

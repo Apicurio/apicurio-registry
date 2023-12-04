@@ -28,9 +28,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.*;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 @QuarkusTest
 public class RegistryStoragePerformanceTest {
 

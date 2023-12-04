@@ -26,7 +26,6 @@ import java.util.Collections;
 
 /**
  * Tests the Kafka Connect content validator.
- * @author eric.wittmann@gmail.com
  */
 public class KafkaConnectContentValidatorTest extends ArtifactUtilProviderTestBase {
 

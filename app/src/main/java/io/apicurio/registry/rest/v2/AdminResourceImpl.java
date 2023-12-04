@@ -71,9 +71,7 @@ import static io.apicurio.common.apps.logging.audit.AuditingConstants.*;
 import static io.apicurio.registry.util.DtoUtil.appAuthPropertyToRegistry;
 import static io.apicurio.registry.util.DtoUtil.registryAuthPropertyToApp;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 @ApplicationScoped
 @Interceptors({ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class})
 @Logged

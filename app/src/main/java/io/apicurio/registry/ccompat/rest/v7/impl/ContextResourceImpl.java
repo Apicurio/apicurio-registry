@@ -24,9 +24,7 @@ import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessChe
 import jakarta.interceptor.Interceptors;
 import java.util.List;
 
-/**
- * @author Carles Arnal
- */
+
 @Interceptors({ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class})
 @Logged
 public class ContextResourceImpl extends AbstractResource implements ContextResource {

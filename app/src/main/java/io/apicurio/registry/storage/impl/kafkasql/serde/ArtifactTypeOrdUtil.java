@@ -23,7 +23,6 @@ import java.util.Map;
 
 /**
  * Used to get an "ord" value from an ArtifactType.
- * @author eric.wittmann@gmail.com
  */
 public class ArtifactTypeOrdUtil {
 

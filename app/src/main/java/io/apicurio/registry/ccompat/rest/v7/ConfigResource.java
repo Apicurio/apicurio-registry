@@ -33,7 +33,6 @@ import static io.apicurio.registry.ccompat.rest.ContentTypes.*;
  *
  * The config resource allows you to inspect the cluster-level configuration values as well as subject overrides.
  *
- * @author Carles Arnal
  */
 @Path("/apis/ccompat/v7/config")
 @Consumes({JSON, OCTET_STREAM, COMPAT_SCHEMA_REGISTRY_V1, COMPAT_SCHEMA_REGISTRY_STABLE_LATEST})

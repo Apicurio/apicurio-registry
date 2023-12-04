@@ -28,9 +28,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 public class SqlUtil {
 
     private static final ObjectMapper mapper = new ObjectMapper();

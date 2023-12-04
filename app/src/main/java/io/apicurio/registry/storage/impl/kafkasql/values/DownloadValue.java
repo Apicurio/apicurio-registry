@@ -20,9 +20,7 @@ import io.apicurio.registry.storage.dto.DownloadContextDto;
 import io.apicurio.registry.storage.impl.kafkasql.MessageType;
 import io.quarkus.runtime.annotations.RegisterForReflection;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 @RegisterForReflection
 public class DownloadValue extends AbstractMessageValue {
 

@@ -42,9 +42,6 @@ import static java.net.HttpURLConnection.HTTP_CONFLICT;
 /**
  * TODO use v1 beans when appropriate (when handling REST API v1 calls)
  *
- * @author eric.wittmann@gmail.com
- * @author Ales Justin
- * @author Jakub Senko <em>m@jsenko.net</em>
  */
 @ApplicationScoped
 @Provider

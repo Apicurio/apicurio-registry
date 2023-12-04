@@ -20,7 +20,6 @@ package io.apicurio.registry.resolver.data;
  * Record defines an object that is known as the data or the payload of the record and it's associated metadata.
  * A record can be message to be sent or simply an object that can be serialized and deserialized.
  *
- * @author Fabian Martinez
  */
 public interface Record<T> {
 

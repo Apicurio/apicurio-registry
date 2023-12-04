@@ -29,7 +29,6 @@ import java.util.List;
 
 /**
  * Tests the Avro content validator.
- * @author eric.wittmann@gmail.com
  */
 public class AvroContentValidatorTest extends ArtifactUtilProviderTestBase {
 

@@ -18,9 +18,7 @@ package io.apicurio.registry.rules;
 
 import java.util.Objects;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 public class RuleViolation {
 
     private String description;

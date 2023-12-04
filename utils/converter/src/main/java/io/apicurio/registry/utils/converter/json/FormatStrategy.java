@@ -16,9 +16,7 @@
 
 package io.apicurio.registry.utils.converter.json;
 
-/**
- * @author Ales Justin
- */
+
 public interface FormatStrategy {
     byte[] fromConnectData(long globalId, byte[] payload);
     IdPayload toConnectData(byte[] bytes);

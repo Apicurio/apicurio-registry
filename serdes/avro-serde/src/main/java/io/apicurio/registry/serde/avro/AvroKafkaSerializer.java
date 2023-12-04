@@ -37,10 +37,7 @@ import io.apicurio.registry.resolver.utils.Utils;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.serde.AbstractKafkaSerializer;
 
-/**
- * @author Ales Justin
- * @author Fabian Martinez
- */
+
 public class AvroKafkaSerializer<U> extends AbstractKafkaSerializer<Schema, U> {
 
     private final EncoderFactory encoderFactory = EncoderFactory.get();

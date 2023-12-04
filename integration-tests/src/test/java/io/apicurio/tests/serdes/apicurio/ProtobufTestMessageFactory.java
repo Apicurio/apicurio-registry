@@ -29,9 +29,7 @@ import io.apicurio.registry.utils.protobuf.schema.FileDescriptorUtils;
 import java.io.InputStream;
 import java.util.Date;
 
-/**
- * @author Carles Arnal
- */
+
 public class ProtobufTestMessageFactory {
 
     public ProtobufTestMessage generateMessage(int count) {

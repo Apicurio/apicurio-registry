@@ -27,7 +27,6 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
 /**
  * Marks undecorated or otherwise unmodified bean.
  *
- * @author Jakub Senko <em>m@jsenko.net</em>
  */
 @Qualifier
 @Retention(RUNTIME)

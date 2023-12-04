@@ -32,7 +32,6 @@ import io.apicurio.registry.content.ContentHandle;
 
 /**
  * An Apache Avro implementation of a reference finder.
- * @author eric.wittmann@gmail.com
  */
 public class AvroReferenceFinder implements ReferenceFinder {
 

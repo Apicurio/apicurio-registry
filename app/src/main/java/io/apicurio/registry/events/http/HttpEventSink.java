@@ -29,9 +29,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.UUID;
 
-/**
- * @author Fabian Martinez
- */
+
 @ApplicationScoped
 public class HttpEventSink implements EventSink {
 

@@ -25,7 +25,6 @@ import io.apicurio.registry.types.ArtifactState;
 /**
  * Remove once Quarkus issue #9887 is fixed!
  *
- * @author Ales Justin
  */
 public class HeadersHack {
     public static void checkIfDeprecated(

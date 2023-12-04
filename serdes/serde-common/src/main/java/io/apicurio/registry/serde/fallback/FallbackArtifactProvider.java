@@ -25,7 +25,6 @@ import io.apicurio.registry.resolver.strategy.ArtifactReference;
 /**
  * Interface for providing a fallback ArtifactReference when the SchemaResolver is not able to find an ArtifactReference in the kafka message
  *
- * @author Fabian Martinez
  */
 public interface FallbackArtifactProvider {
 

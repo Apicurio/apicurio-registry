@@ -20,7 +20,6 @@ package io.apicurio.registry.storage;
  *
  * It's mandatory to implement this interface for non-default storage implementations.
  *
- * @author Fabian Martinez
  */
 public interface RegistryStorageProvider {
 

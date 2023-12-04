@@ -27,9 +27,7 @@ import org.apache.kafka.common.config.ConfigDef.Type;
 
 import io.apicurio.registry.serde.config.BaseKafkaSerDeConfig;
 
-/**
- * @author Fabian Martinez
- */
+
 public class DefaultHeadersHandlerConfig extends BaseKafkaSerDeConfig {
 
     public static ConfigDef configDef() {

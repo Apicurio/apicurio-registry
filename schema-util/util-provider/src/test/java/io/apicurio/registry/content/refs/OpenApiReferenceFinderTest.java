@@ -24,9 +24,7 @@ import org.junit.jupiter.api.Test;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.rules.validity.ArtifactUtilProviderTestBase;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 public class OpenApiReferenceFinderTest extends ArtifactUtilProviderTestBase {
 
     /**

@@ -27,7 +27,6 @@ import io.apicurio.registry.util.DocumentBuilderAccessor;
 
 /**
  * Performs meta-data extraction for WSDL or XSD content.
- * @author eric.wittmann@gmail.com
  */
 public class WsdlOrXsdContentExtractor implements ContentExtractor {
 

@@ -26,9 +26,7 @@ import io.apicurio.registry.utils.IoUtil;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 
-/**
- * @author Ales Justin
- */
+
 public class PrettyFormatStrategy implements FormatStrategy {
     private final ObjectMapper mapper = new ObjectMapper();
 

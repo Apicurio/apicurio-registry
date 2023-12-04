@@ -53,8 +53,6 @@ import java.util.function.Function;
 /**
  * The artifactStore layer for the registry.
  *
- * @author eric.wittmann@gmail.com
- * @author Ales Justin
  */
 public interface RegistryStorage extends DynamicConfigStorage {
 

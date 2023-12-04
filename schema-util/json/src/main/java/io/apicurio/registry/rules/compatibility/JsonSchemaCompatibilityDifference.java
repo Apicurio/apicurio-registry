@@ -25,7 +25,6 @@ import lombok.NonNull;
 
 /**
  * Translation object for Difference into CompatibilityDifference.
- * @author Ravindranath Kakarla <rnath@amazon.com>
  */
 @Builder
 @Getter

@@ -26,9 +26,7 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-/**
- * @author carnalca@redhat.com
- */
+
 public class ProtobufDereferencer implements ContentDereferencer {
 
     @Override

@@ -46,11 +46,7 @@ import io.apicurio.registry.serde.AbstractKafkaDeserializer;
 import io.apicurio.registry.utils.protobuf.schema.ProtobufSchema;
 import io.apicurio.registry.serde.protobuf.ref.RefOuterClass.Ref;
 
-/**
- * @author Ales Justin
- * @author Hiram Chirino
- * @author Fabian Martinez
- */
+
 public class ProtobufKafkaDeserializer<U extends Message> extends AbstractKafkaDeserializer<ProtobufSchema, U> {
 
     private static final String PROTOBUF_PARSE_METHOD = "parseFrom";

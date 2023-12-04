@@ -26,7 +26,6 @@ import java.util.Collections;
 
 /**
  * Tests the GraphQL content validator.
- * @author eric.wittmann@gmail.com
  */
 public class GraphQLContentValidatorTest extends ArtifactUtilProviderTestBase {
 

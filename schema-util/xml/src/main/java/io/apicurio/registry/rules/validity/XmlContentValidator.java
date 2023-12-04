@@ -26,9 +26,7 @@ import io.apicurio.registry.rules.RuleViolationException;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.util.DocumentBuilderAccessor;
 
-/**
- * @author cfoskin@redhat.com This class can be used to validate plain XML and only does syntax validation
- */
+
 public class XmlContentValidator implements ContentValidator {
 
     /**

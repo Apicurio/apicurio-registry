@@ -19,9 +19,7 @@ package io.apicurio.registry.storage.dto;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 public class VersionSearchResultsDto {
     
     private long count;

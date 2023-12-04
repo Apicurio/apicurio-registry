@@ -28,8 +28,6 @@ import io.apicurio.registry.types.RuleType;
  * when artifact content is being created or updated, this service is used to apply
  * any rules configured for the artifact.
  *
- * @author Ales Justin
- * @author Jakub Senko <em>m@jsenko.net</em>
  */
 public interface RulesService {
 

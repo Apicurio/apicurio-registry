@@ -34,9 +34,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.stream.Collectors;
 
-/**
- * @author Ales Justin
- */
+
 public class KafkaUtil {
     private static final Logger log = LoggerFactory.getLogger(KafkaUtil.class);
 

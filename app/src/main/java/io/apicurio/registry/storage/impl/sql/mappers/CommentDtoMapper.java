@@ -22,9 +22,7 @@ import java.sql.SQLException;
 import io.apicurio.registry.storage.dto.CommentDto;
 import io.apicurio.registry.storage.impl.sql.jdb.RowMapper;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 public class CommentDtoMapper implements RowMapper<CommentDto> {
 
     public static final CommentDtoMapper instance = new CommentDtoMapper();

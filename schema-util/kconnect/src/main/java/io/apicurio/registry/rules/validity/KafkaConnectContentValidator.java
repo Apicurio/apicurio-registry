@@ -33,7 +33,6 @@ import io.apicurio.registry.types.RuleType;
 
 /**
  * A content validator implementation for the Kafka Connect schema content type.
- * @author eric.wittmann@gmail.com
  */
 public class KafkaConnectContentValidator implements ContentValidator {
 

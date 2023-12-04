@@ -35,9 +35,7 @@ import jakarta.interceptor.Interceptors;
 import java.util.Collections;
 import java.util.List;
 
-/**
- * @author Carles Arnal
- */
+
 @Interceptors({ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class})
 @Logged
 public class CompatibilityResourceImpl extends AbstractResource implements CompatibilityResource {

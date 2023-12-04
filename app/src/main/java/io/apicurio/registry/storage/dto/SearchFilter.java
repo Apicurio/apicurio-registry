@@ -18,9 +18,7 @@ package io.apicurio.registry.storage.dto;
 
 import org.apache.commons.lang3.tuple.Pair;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 public class SearchFilter {
 
     private SearchFilterType type;

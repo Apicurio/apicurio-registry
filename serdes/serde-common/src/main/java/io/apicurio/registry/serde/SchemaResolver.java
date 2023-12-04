@@ -33,8 +33,6 @@ import io.apicurio.registry.serde.strategy.ArtifactResolverStrategy;
  *
  * This interface is kept for compatibility, It's recommended to migrate custom implementations to adhere the new interface {@link io.apicurio.registry.resolver.SchemaResolver}
  *
- * @author Fabian Martinez
- * @author Jakub Senko <em>m@jsenko.net</em>
  */
 @SuppressWarnings({ "rawtypes", "unchecked" })
 @Deprecated

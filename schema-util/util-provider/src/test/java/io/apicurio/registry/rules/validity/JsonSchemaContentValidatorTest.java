@@ -26,7 +26,6 @@ import java.util.Collections;
 
 /**
  * Tests the JSON Schema content validator.
- * @author eric.wittmann@gmail.com
  */
 public class JsonSchemaContentValidatorTest extends ArtifactUtilProviderTestBase {
 

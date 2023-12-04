@@ -19,9 +19,7 @@ package io.apicurio.registry;
 import io.quarkus.runtime.Quarkus;
 import io.quarkus.runtime.annotations.QuarkusMain;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 @QuarkusMain(name = "RegistryQuarkusMain")
 public class RegistryQuarkusMain {
     public static void main(String... args) {

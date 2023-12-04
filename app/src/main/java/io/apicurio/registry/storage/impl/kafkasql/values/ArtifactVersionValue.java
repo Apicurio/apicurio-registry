@@ -22,9 +22,7 @@ import io.apicurio.registry.types.ArtifactState;
 import io.quarkus.runtime.annotations.RegisterForReflection;
 import lombok.ToString;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 @RegisterForReflection
 @ToString
 public class ArtifactVersionValue extends AbstractMessageValue {

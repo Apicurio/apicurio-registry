@@ -32,9 +32,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import io.apicurio.common.apps.config.Info;
 import io.quarkus.jackson.ObjectMapperCustomizer;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 @Singleton
 public class JacksonDateTimeCustomizer implements ObjectMapperCustomizer {
     

@@ -16,9 +16,7 @@
 
 package io.apicurio.registry.util;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 public class VersionUtil {
 
     public static final String toString(Number version) {

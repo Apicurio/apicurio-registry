@@ -24,9 +24,7 @@ import org.eclipse.microprofile.jwt.JsonWebToken;
 
 import java.util.Optional;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 @ApplicationScoped
 public class AdminOverride {
 

@@ -31,7 +31,6 @@ import java.util.concurrent.TimeUnit;
  * to communicate between the Kafka consumer thread and the waiting HTTP/API thread, where the HTTP thread is
  * waiting for an operation to be completed by the Kafka consumer thread.
  *
- * @author eric.wittmann@gmail.com
  */
 @ApplicationScoped
 public class KafkaSqlCoordinator {

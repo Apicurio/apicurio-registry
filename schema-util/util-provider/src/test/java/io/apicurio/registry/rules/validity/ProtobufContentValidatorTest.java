@@ -29,7 +29,6 @@ import java.util.List;
 
 /**
  * Tests the Protobuf content validator.
- * @author eric.wittmann@gmail.com
  */
 public class ProtobufContentValidatorTest extends ArtifactUtilProviderTestBase {
 

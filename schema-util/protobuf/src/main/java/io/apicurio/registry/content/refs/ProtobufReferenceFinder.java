@@ -31,7 +31,6 @@ import io.apicurio.registry.utils.protobuf.schema.ProtobufFile;
 
 /**
  * A Google Protocol Buffer implementation of a reference finder.
- * @author eric.wittmann@gmail.com
  */
 public class ProtobufReferenceFinder implements ReferenceFinder {
     

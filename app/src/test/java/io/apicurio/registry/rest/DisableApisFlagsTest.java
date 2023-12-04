@@ -37,9 +37,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/**
- * @author Fabian Martinez
- */
+
 @QuarkusTest
 @TestProfile(DisableApisTestProfile.class)
 @Tag(ApicurioTestTags.SLOW)

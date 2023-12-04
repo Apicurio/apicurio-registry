@@ -22,7 +22,6 @@ import io.apicurio.registry.rules.RuleViolation;
  * Represents a single compatibility difference.  These are generated when doing compatibility checking
  * between two versions of an artifact.  A non-zero collection of these indicates a compatibility violation.
  *
- * @author eric.wittmann@gmail.com
  */
 public interface CompatibilityDifference {
 

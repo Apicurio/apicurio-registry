@@ -21,9 +21,7 @@ import java.util.Date;
 import io.apicurio.registry.cncf.schemaregistry.beans.SchemaGroup;
 import io.apicurio.registry.storage.dto.GroupMetaDataDto;
 
-/**
- * @author Fabian Martinez
- */
+
 public final class CNCFApiUtil {
 
     public static SchemaGroup dtoToSchemaGroup(GroupMetaDataDto dto) {

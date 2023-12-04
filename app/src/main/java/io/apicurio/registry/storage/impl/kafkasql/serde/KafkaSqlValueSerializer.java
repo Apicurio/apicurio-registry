@@ -31,7 +31,6 @@ import java.nio.charset.StandardCharsets;
 
 /**
  * Responsible for serializing the message key to bytes.
- * @author eric.wittmann@gmail.com
  */
 public class KafkaSqlValueSerializer implements Serializer<MessageValue> {
 

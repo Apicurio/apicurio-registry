@@ -30,7 +30,6 @@ import io.apicurio.registry.serde.data.KafkaSerdeMetadata;
  * the {@link ArtifactReference} under which the message schemas are located or should be registered
  * in the registry. The default is {@link TopicIdStrategy}.
  *
- * @author Fabian Martinez
  */
 public interface ArtifactResolverStrategy<T> extends ArtifactReferenceResolverStrategy<T, Object> {
 

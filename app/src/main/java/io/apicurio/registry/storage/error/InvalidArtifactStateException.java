@@ -18,9 +18,7 @@ package io.apicurio.registry.storage.error;
 
 import io.apicurio.registry.types.ArtifactState;
 
-/**
- * @author Ales Justin
- */
+
 public class InvalidArtifactStateException extends RegistryStorageException {
 
     private static final long serialVersionUID = 1L;

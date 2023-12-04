@@ -29,9 +29,7 @@ import io.apicurio.registry.rules.validity.ContentValidator;
 import io.apicurio.registry.rules.validity.KafkaConnectContentValidator;
 import io.apicurio.registry.types.ArtifactType;
 
-/**
- * @author Ales Justin
- */
+
 public class KConnectArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvider {
     @Override
     public String getArtifactType() {

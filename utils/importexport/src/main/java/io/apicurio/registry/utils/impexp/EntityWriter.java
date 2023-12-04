@@ -24,9 +24,7 @@ import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 public class EntityWriter {
 
     private static final ObjectMapper mapper;

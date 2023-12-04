@@ -42,7 +42,6 @@ import static io.apicurio.registry.ccompat.rest.ContentTypes.OCTET_STREAM;
  * <p>
  * The exporters resource allows you to query the information or manipulate the lifecycle of schema exporters..
  *
- * @author Carles Arnal
  */
 @Path("/apis/ccompat/v7/exporters")
 @Consumes({JSON, OCTET_STREAM, COMPAT_SCHEMA_REGISTRY_V1, COMPAT_SCHEMA_REGISTRY_STABLE_LATEST})

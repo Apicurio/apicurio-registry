@@ -20,9 +20,7 @@ import java.net.URL;
 
 import io.quarkus.runtime.annotations.RegisterForReflection;
 
-/**
- * @author Fabian Martinez
- */
+
 @RegisterForReflection(targets = URL.class)
 public class URLRegisterForReflection {
 

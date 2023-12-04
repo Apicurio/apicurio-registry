@@ -23,9 +23,7 @@ import lombok.ToString;
 
 import java.util.Map;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 @RegisterForReflection
 @ToString
 public class GroupValue extends AbstractMessageValue {

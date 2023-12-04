@@ -28,9 +28,7 @@ import java.util.regex.Pattern;
 
 import static io.apicurio.registry.rules.compatibility.jsonschema.wrapper.WrapUtil.wrap;
 
-/**
- * @author Jakub Senko <em>m@jsenko.net</em>
- */
+
 @ToString
 public class ObjectSchemaWrapper extends EqualitySchemaWrapper implements SchemaWrapper {
 

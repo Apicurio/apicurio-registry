@@ -16,9 +16,7 @@
 
 package io.apicurio.registry.logging.audit;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 public interface AuditingConstants {
 
     String KEY_PROPERTY_CONFIGURATION = "property_configuration";

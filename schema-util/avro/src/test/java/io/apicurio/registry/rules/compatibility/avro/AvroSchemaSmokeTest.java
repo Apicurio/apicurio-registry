@@ -23,9 +23,7 @@ import org.junit.jupiter.api.Test;
 import static io.apicurio.registry.rules.compatibility.CompatibilityTestExecutor.readResource;
 import static io.apicurio.registry.rules.compatibility.CompatibilityTestExecutor.throwOnFailure;
 
-/**
- * @author Jakub Senko <em>m@jsenko.net</em>
- */
+
 class AvroSchemaSmokeTest {
 
     @Test

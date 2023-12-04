@@ -22,9 +22,7 @@ import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.Date;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 public class SqlParam {
 
     private final int position;

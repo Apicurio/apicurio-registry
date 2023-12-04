@@ -24,9 +24,7 @@ import org.apache.kafka.common.header.Headers;
 import io.apicurio.registry.serde.headers.MessageTypeSerdeHeaders;
 import io.apicurio.registry.utils.IoUtil;
 
-/**
- * @author Fabian Martinez
- */
+
 public class ProtobufSerdeHeaders extends MessageTypeSerdeHeaders {
 
     private String messageTypeNameHeaderName;

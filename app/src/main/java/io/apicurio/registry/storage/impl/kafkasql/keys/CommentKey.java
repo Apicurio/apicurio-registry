@@ -21,9 +21,7 @@ import io.quarkus.runtime.annotations.RegisterForReflection;
 
 import java.util.UUID;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 @RegisterForReflection
 public class CommentKey implements MessageKey {
 

@@ -39,11 +39,7 @@ import io.apicurio.registry.serde.AbstractKafkaSerializer;
 import io.apicurio.registry.serde.protobuf.ref.RefOuterClass.Ref;
 import io.apicurio.registry.utils.protobuf.schema.ProtobufSchema;
 
-/**
- * @author Ales Justin
- * @author Hiram Chirino
- * @author Fabian Martinez
- */
+
 public class ProtobufKafkaSerializer<U extends Message> extends AbstractKafkaSerializer<ProtobufSchema, U> {
 
     private Boolean validationEnabled;

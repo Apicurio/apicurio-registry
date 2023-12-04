@@ -41,9 +41,7 @@ import static org.awaitility.Awaitility.await;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-/**
- * @author Jakub Senko <em>m@jsenko.net</em>
- */
+
 @QuarkusTest
 @TestProfile(GitopsTestProfile.class)
 class GitOpsSmokeTest {

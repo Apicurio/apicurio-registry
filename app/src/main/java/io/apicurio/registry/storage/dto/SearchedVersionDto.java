@@ -24,9 +24,7 @@ import java.util.Map;
 
 import io.apicurio.registry.types.ArtifactState;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 public class SearchedVersionDto {
 
     private String name;

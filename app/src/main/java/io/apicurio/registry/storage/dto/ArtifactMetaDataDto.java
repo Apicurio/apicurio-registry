@@ -28,9 +28,7 @@ import lombok.ToString;
 import java.util.List;
 import java.util.Map;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 @AllArgsConstructor
 @Builder
 @Getter

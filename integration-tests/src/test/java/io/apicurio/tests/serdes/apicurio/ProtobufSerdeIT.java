@@ -42,9 +42,7 @@ import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-/**
- * @author Carles Arnal
- */
+
 @Tag(Constants.SERDES)
 @QuarkusIntegrationTest
 public class ProtobufSerdeIT extends ApicurioRegistryBaseIT {

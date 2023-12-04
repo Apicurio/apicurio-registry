@@ -28,9 +28,7 @@ import java.util.Objects;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/**
- * @author Carles Arnal
- */
+
 public class AvroGenericRecordSchemaFactory {
 
     private String namespace;

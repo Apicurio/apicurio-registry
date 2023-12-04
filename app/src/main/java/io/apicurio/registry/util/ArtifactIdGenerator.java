@@ -16,9 +16,7 @@
 
 package io.apicurio.registry.util;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 public interface ArtifactIdGenerator {
 
     String generate();

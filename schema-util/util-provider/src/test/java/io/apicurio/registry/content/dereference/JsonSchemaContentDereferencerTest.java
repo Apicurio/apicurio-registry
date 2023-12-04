@@ -29,9 +29,7 @@ import io.apicurio.registry.content.refs.JsonSchemaReferenceFinder;
 import io.apicurio.registry.content.refs.ReferenceFinder;
 import io.apicurio.registry.rules.validity.ArtifactUtilProviderTestBase;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 public class JsonSchemaContentDereferencerTest extends ArtifactUtilProviderTestBase {
 
     @Test

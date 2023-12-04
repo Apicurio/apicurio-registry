@@ -28,7 +28,6 @@ import io.apicurio.registry.content.ContentHandle;
 
 /**
  * Performs meta-data extraction for Avro content.
- * @author Ales Justin
  */
 public class AvroContentExtractor implements ContentExtractor {
 

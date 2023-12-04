@@ -23,9 +23,7 @@ import org.apache.kafka.common.header.internals.RecordHeader;
 import io.apicurio.registry.serde.SerdeHeaders;
 import io.apicurio.registry.utils.IoUtil;
 
-/**
- * @author Fabian Martinez
- */
+
 public class AvroSerdeHeaders {
 
     private final String encodingHeaderName;

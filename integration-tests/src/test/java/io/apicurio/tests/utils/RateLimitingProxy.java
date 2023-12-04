@@ -19,9 +19,7 @@ package io.apicurio.tests.utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- * @author Carles Arnal
- */
+
 public class RateLimitingProxy extends LimitingProxy {
 
     protected final Logger logger = LoggerFactory.getLogger(this.getClass().getName());

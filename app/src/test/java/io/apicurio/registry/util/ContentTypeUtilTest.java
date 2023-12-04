@@ -22,9 +22,7 @@ import org.junit.jupiter.api.Test;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.utils.tests.TestUtils;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 class ContentTypeUtilTest {
 
     private static final String YAML_CONTENT = "openapi: 3.0.2\r\n" +

@@ -18,9 +18,7 @@ package io.apicurio.registry.storage.error;
 
 import lombok.Getter;
 
-/**
- * @author Jakub Senko <em>m@jsenko.net</em>
- */
+
 public class ContentAlreadyExistsException extends AlreadyExistsException {
 
     private static final long serialVersionUID = 6415287691931770433L;

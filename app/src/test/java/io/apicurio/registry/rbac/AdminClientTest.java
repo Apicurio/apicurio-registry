@@ -41,9 +41,7 @@ import io.quarkus.test.junit.TestProfile;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-/**
- * @author Jonathan Hughes 'jonathan.hughes@ibm.com'
- */
+
 
 @QuarkusTest
 @TestProfile(ApplicationRbacEnabledProfile.class)

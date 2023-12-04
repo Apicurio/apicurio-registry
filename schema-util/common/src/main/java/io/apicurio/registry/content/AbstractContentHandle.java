@@ -22,9 +22,7 @@ import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.util.Arrays;
 
-/**
- * @author Ales Justin
- */
+
 abstract class AbstractContentHandle implements ContentHandle {
 
     protected byte[] bytes;

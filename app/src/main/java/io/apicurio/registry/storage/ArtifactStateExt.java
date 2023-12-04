@@ -27,9 +27,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
 
-/**
- * @author Ales Justin
- */
+
 @ApplicationScoped
 public class ArtifactStateExt {
 

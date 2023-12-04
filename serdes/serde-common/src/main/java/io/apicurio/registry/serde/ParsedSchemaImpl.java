@@ -18,7 +18,6 @@ package io.apicurio.registry.serde;
 
 /**
  * This class is deprecated and eventually will be replaced by {@link io.apicurio.registry.resolver.ParsedSchemaImpl}
- * @author Fabian Martinez
  */
 @Deprecated
 public class ParsedSchemaImpl<T> implements ParsedSchema<T> {

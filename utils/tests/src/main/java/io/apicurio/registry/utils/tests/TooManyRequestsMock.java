@@ -28,9 +28,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
 
-/**
- * @author Fabian Martinez
- */
+
 public class TooManyRequestsMock {
 
     static final Logger LOGGER = LoggerFactory.getLogger(TooManyRequestsMock.class);

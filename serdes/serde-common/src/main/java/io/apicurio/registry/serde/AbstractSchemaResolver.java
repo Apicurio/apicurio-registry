@@ -46,8 +46,6 @@ import java.util.concurrent.ExecutionException;
  * This class is deprecated, it's recommended to migrate to the new implementation at {@link io.apicurio.registry.resolver.AbstractSchemaResolver}
  * Base implementation of {@link SchemaResolver}
  *
- * @author Fabian Martinez
- * @author Jakub Senko <em>m@jsenko.net</em>
  */
 @Deprecated
 public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, T> {

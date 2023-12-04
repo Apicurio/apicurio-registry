@@ -25,7 +25,6 @@ import java.util.Map;
  * the purpose of comparison.  Should remove things like formatting and should sort 
  * fields when ordering is not important.
  * 
- * @author eric.wittmann@gmail.com
  */
 public interface ContentCanonicalizer {
     

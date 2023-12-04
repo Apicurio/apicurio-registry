@@ -35,7 +35,6 @@ import org.slf4j.Logger;
  * for any method that is annotated with the {@link Authorized} annotation. Please ensure that all
  * JAX-RS operations are propertly annotated.
  *
- * @author eric.wittmann@gmail.com
  */
 @Authorized
 @Interceptor

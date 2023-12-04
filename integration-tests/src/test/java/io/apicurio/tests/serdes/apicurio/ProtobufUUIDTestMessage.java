@@ -26,9 +26,7 @@ import io.apicurio.registry.utils.protobuf.schema.FileDescriptorUtils;
 import java.io.InputStream;
 import java.util.Date;
 
-/**
- * @author Carles Arnal
- */
+
 public class ProtobufUUIDTestMessage {
 
     public TestCmmn.UUID generateMessage(int count) {

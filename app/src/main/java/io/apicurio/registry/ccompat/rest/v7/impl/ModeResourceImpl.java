@@ -25,9 +25,7 @@ import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessChe
 
 import jakarta.interceptor.Interceptors;
 
-/**
- * @author Carles Arnal
- */
+
 @Interceptors({ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class})
 @Logged
 public class ModeResourceImpl extends AbstractResource implements ModeResource {

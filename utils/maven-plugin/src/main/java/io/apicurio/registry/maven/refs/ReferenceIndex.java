@@ -44,7 +44,6 @@ import io.apicurio.registry.utils.protobuf.schema.ProtobufFile;
  * actual piece of content (e.g. file) in the index.  If it cannot be resolved, that would
  * typically mean that there is a broken reference in the schema/design.
  * 
- * @author eric.wittmann@gmail.com
  */
 public class ReferenceIndex {
 

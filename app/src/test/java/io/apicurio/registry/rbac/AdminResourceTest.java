@@ -57,10 +57,7 @@ import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-/**
- * @author eric.wittmann@gmail.com
- * @author Fabian Martinez
- */
+
 @QuarkusTest
 @TestProfile(ApplicationRbacEnabledProfile.class)
 @Tag(ApicurioTestTags.SLOW)

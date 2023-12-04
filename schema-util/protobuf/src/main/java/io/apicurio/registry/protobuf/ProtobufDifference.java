@@ -19,9 +19,7 @@ package io.apicurio.registry.protobuf;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 
-/**
- * @author Fabian Martinez
- */
+
 @EqualsAndHashCode
 @ToString
 public class ProtobufDifference {

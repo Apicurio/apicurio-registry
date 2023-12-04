@@ -24,9 +24,7 @@ import io.apicurio.registry.storage.impl.sql.mappers.IntegerMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.LongMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.StringMapper;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 public class QueryImpl extends SqlImpl<Query> implements Query {
 
     private int fetchSize = -1;

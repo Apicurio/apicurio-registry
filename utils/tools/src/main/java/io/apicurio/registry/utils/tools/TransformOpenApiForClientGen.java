@@ -33,8 +33,6 @@ import static java.lang.System.out;
 
 /**
  * 
- * @author eric.wittmann@gmail.com
- * @author Jakub Senko <em>m@jsenko.net</em>
  */
 public class TransformOpenApiForClientGen {
 

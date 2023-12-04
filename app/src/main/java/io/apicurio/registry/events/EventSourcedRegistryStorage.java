@@ -34,9 +34,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * @author Fabian Martinez
- */
+
 @ApplicationScoped
 public class EventSourcedRegistryStorage extends RegistryStorageDecoratorBase implements RegistryStorageDecorator {
 

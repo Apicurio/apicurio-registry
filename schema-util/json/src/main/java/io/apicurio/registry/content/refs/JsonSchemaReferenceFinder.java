@@ -33,7 +33,6 @@ import io.apicurio.registry.content.ContentHandle;
 
 /**
  * A JSON Schema implementation of a reference finder.
- * @author eric.wittmann@gmail.com
  */
 public class JsonSchemaReferenceFinder implements ReferenceFinder {
 

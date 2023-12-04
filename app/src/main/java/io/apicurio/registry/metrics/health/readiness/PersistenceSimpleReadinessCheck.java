@@ -12,9 +12,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Default;
 import jakarta.inject.Inject;
 
-/**
- * @author Jakub Senko <em>m@jsenko.net</em>
- */
+
 @ApplicationScoped
 @Readiness
 @Default

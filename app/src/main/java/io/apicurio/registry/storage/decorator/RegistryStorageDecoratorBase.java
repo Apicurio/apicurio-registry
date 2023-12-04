@@ -34,7 +34,6 @@ import java.util.List;
  * <p>
  * This class is intended for extension, but is not abstract to catch missing methods.
  *
- * @author Jakub Senko <em>m@jsenko.net</em>
  */
 public class RegistryStorageDecoratorBase extends RegistryStorageDecoratorReadOnlyBase {
 

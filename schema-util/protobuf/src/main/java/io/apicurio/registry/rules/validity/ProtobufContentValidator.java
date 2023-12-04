@@ -40,7 +40,6 @@ import io.apicurio.registry.utils.protobuf.schema.ProtobufSchema;
 /**
  * A content validator implementation for the Protobuf content type.
  *
- * @author eric.wittmann@gmail.com
  */
 public class ProtobufContentValidator implements ContentValidator {
 

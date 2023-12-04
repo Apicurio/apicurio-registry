@@ -26,9 +26,7 @@ import io.apicurio.registry.rules.RuleViolationException;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 @ApplicationScoped
 @Logged
 public class ValidityRuleExecutor implements RuleExecutor {

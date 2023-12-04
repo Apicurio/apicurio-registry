@@ -22,7 +22,6 @@ import io.apicurio.registry.serde.strategy.ArtifactReference;
 
 /**
  * This class is deprecated and eventually will be replaced by {@link io.apicurio.registry.resolver.SchemaLookupResult}
- * @author Fabian Martinez
  */
 @Deprecated
 public class SchemaLookupResult<T> {

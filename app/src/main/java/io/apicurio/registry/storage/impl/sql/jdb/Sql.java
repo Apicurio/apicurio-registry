@@ -18,9 +18,7 @@ package io.apicurio.registry.storage.impl.sql.jdb;
 
 import java.util.Date;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 public interface Sql<Q> {
 
     public Q bind(int position, String value);

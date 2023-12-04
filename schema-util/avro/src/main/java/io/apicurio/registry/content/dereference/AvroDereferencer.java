@@ -22,9 +22,7 @@ import org.apache.avro.Schema;
 
 import java.util.Map;
 
-/**
- * @author carnalca@redhat.com
- */
+
 public class AvroDereferencer implements ContentDereferencer {
 
     @Override

@@ -40,7 +40,6 @@ import jakarta.servlet.http.HttpServletResponseWrapper;
  *
  *   https://stackoverflow.com/a/14741213
  *
- * @author eric.wittmann@gmail.com
  */
 @ApplicationScoped
 public class SpecUrlFilter implements Filter {

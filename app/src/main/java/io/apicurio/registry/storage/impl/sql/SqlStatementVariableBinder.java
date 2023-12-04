@@ -18,9 +18,7 @@ package io.apicurio.registry.storage.impl.sql;
 
 import io.apicurio.registry.storage.impl.sql.jdb.Query;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 @FunctionalInterface
 public interface SqlStatementVariableBinder {
 

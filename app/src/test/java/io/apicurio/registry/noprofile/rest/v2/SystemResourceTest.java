@@ -25,9 +25,7 @@ import org.junit.jupiter.api.Test;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.quarkus.test.junit.QuarkusTest;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 @QuarkusTest
 public class SystemResourceTest extends AbstractResourceTestBase {
 

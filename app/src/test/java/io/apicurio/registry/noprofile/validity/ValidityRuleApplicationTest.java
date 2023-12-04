@@ -33,9 +33,7 @@ import java.util.concurrent.TimeUnit;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 @QuarkusTest
 public class ValidityRuleApplicationTest extends AbstractResourceTestBase {
 

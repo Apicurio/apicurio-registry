@@ -16,9 +16,7 @@
 
 package io.apicurio.registry.storage.impl.sql.jdb;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 public enum SqlParamType {
 
     STRING, INTEGER, LONG, DATE, BYTES, ENUM

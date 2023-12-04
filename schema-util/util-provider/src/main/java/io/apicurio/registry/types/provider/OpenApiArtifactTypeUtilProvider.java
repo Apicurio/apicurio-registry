@@ -30,9 +30,7 @@ import io.apicurio.registry.rules.validity.ContentValidator;
 import io.apicurio.registry.rules.validity.OpenApiContentValidator;
 import io.apicurio.registry.types.ArtifactType;
 
-/**
- * @author Ales Justin
- */
+
 public class OpenApiArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvider {
 
     @Override

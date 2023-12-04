@@ -21,9 +21,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-/**
- * @author Carles Arnal
- */
+
 public class AuthTestProfile implements QuarkusTestProfile {
 
     @Override

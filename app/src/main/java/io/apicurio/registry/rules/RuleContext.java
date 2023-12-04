@@ -27,7 +27,6 @@ import java.util.Objects;
  * Contains all of the information needed by a rule executor, including the rule-specific
  * configuration, current and updated content, and any other meta-data needed.
  *
- * @author Ales Justin
  */
 public class RuleContext {
     private final String groupId;

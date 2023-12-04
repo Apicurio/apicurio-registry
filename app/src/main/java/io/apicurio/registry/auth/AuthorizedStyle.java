@@ -16,9 +16,7 @@
 
 package io.apicurio.registry.auth;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 public enum AuthorizedStyle {
 
     GroupAndArtifact, GroupOnly, ArtifactOnly, GlobalId, None

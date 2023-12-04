@@ -26,7 +26,6 @@ import io.apicurio.registry.resolver.strategy.ArtifactReference;
 /**
  * Common interface for headers handling when serializing/deserializing kafka records that have {@link Headers}
  *
- * @author Fabian Martinez
  */
 public interface HeadersHandler {
 

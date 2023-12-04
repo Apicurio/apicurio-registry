@@ -31,9 +31,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-/**
- * @author Ales Justin
- */
+
 @QuarkusTest
 public class RegistryMojoWithMinifyTest extends RegistryMojoTestBase {
     RegisterRegistryMojo registerMojo;

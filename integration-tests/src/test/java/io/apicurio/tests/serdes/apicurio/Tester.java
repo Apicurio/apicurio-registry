@@ -16,9 +16,7 @@
 
 package io.apicurio.tests.serdes.apicurio;
 
-/**
- * @author Carles Arnal
- */
+
 public interface Tester {
 
     public void test() throws Exception;

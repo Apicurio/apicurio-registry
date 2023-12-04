@@ -21,9 +21,7 @@ import lombok.Getter;
 import lombok.ToString;
 import org.everit.json.schema.NullSchema;
 
-/**
- * @author Jakub Senko <em>m@jsenko.net</em>
- */
+
 @ToString
 public class NullSchemaWrapper extends EqualitySchemaWrapper implements SchemaWrapper {
 

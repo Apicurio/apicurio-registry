@@ -21,9 +21,7 @@ import lombok.Getter;
 
 import java.util.Map;
 
-/**
- * @author Jakub Senko <em>m@jsenko.net</em>
- */
+
 public class GitTestRepositoryManager implements QuarkusTestResourceLifecycleManager {
 
     @Getter

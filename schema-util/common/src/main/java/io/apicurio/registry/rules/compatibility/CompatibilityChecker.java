@@ -27,7 +27,6 @@ import java.util.stream.Collectors;
  * incompatible differences
  * with older version(s) of the same content, based on a given compatibility level.
  *
- * @author Ales Justin
  */
 public interface CompatibilityChecker {
     /**

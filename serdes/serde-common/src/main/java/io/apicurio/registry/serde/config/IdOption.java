@@ -16,9 +16,7 @@
 
 package io.apicurio.registry.serde.config;
 
-/**
- * @author Fabian Martinez
- */
+
 public enum IdOption {
 
     globalId,

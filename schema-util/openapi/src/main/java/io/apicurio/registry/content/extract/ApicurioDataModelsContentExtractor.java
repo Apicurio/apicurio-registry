@@ -28,7 +28,6 @@ import io.apicurio.registry.content.ContentHandle;
 
 /**
  * Performs meta-data extraction for OpenAPI content.
- * @author eric.wittmann@gmail.com
  */
 public class ApicurioDataModelsContentExtractor implements ContentExtractor {
 

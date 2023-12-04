@@ -23,11 +23,7 @@ import io.apicurio.registry.rules.compatibility.jsonschema.diff.Difference;
 import java.util.Map;
 import java.util.Set;
 
-/**
- * @author Ales Justin
- * @author Jonathan Halliday
- * @author Jakub Senko <em>m@jsenko.net</em>
- */
+
 public class JsonSchemaCompatibilityChecker extends AbstractCompatibilityChecker<Difference> {
 
     @Override

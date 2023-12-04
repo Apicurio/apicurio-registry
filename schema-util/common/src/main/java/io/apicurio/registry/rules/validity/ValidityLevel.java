@@ -18,7 +18,6 @@ package io.apicurio.registry.rules.validity;
 
 /**
  * Indicates what level of validation should be performed by the content validity rule.
- * @author eric.wittmann@gmail.com
  */
 public enum ValidityLevel {
 

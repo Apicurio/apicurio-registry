@@ -38,7 +38,6 @@ import static io.apicurio.registry.ccompat.rest.ContentTypes.OCTET_STREAM;
  *
  * We do not support this endpoint, if it's used, the default context will be returned.
  *
- * @author Carles Arnal
  */
 @Path("/apis/ccompat/v7/contexts")
 @Consumes({JSON, OCTET_STREAM, COMPAT_SCHEMA_REGISTRY_V1, COMPAT_SCHEMA_REGISTRY_STABLE_LATEST})

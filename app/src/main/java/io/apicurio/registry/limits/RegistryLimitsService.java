@@ -31,7 +31,6 @@ import java.util.function.Function;
 /**
  * Component that provides the logic to enforce the limits in the usage of the registry
  *
- * @author Fabian Martinez
  */
 @ApplicationScoped
 public class RegistryLimitsService {

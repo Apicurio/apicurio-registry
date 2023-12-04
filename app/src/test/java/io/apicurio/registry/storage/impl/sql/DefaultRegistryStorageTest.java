@@ -23,9 +23,7 @@ import jakarta.inject.Inject;
 import io.apicurio.registry.noprofile.storage.AbstractRegistryStorageTest;
 import io.quarkus.test.junit.QuarkusTest;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 @QuarkusTest
 public class DefaultRegistryStorageTest extends AbstractRegistryStorageTest {
 

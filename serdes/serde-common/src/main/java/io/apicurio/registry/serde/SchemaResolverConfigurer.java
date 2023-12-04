@@ -29,7 +29,6 @@ import io.apicurio.registry.rest.client.RegistryClient;
 /**
  * Base class for any kind of serializer/deserializer that depends on {@link SchemaResolver}
  *
- * @author Fabian Martinez
  */
 public class SchemaResolverConfigurer<T, U> {
 

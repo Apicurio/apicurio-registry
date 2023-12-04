@@ -33,8 +33,6 @@ import java.util.Map;
 /**
  * Avro converter.
  *
- * @author Ales Justin
- * @author Fabian Martinez
  */
 public class AvroConverter<T> extends SerdeBasedConverter<org.apache.avro.Schema, T> {
     private AvroData avroData;

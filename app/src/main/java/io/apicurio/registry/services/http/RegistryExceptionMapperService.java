@@ -57,9 +57,7 @@ import java.util.stream.Collectors;
 
 import static java.net.HttpURLConnection.*;
 
-/**
- * @author Fabian Martinez
- */
+
 @ApplicationScoped
 public class RegistryExceptionMapperService {
 

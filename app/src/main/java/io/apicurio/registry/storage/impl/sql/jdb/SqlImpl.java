@@ -22,9 +22,7 @@ import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 @SuppressWarnings("unchecked")
 public abstract class SqlImpl<Q> implements Sql<Q> {
 

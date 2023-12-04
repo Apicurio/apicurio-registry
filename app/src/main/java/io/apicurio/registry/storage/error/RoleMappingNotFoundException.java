@@ -18,9 +18,7 @@ package io.apicurio.registry.storage.error;
 
 import lombok.Getter;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 public class RoleMappingNotFoundException extends NotFoundException {
 
     private static final long serialVersionUID = -2662972482016902671L;

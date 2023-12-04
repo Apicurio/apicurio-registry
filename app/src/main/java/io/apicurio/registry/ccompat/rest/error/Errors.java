@@ -18,10 +18,7 @@ package io.apicurio.registry.ccompat.rest.error;
 
 import jakarta.ws.rs.NotFoundException;
 
-/**
- * @author Ales Justin
- * @author Jakub Senko <em>m@jsenko.net</em>
- */
+
 public class Errors {
 
     public static void operationNotSupported() {

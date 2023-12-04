@@ -34,9 +34,7 @@ import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 import io.quarkus.test.junit.QuarkusTest;
 
-/**
- * @author Ales Justin
- */
+
 @QuarkusTest
 public class ContentExtractorTest extends AbstractResourceTestBase {
 

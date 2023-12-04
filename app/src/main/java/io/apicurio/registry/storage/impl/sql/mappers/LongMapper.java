@@ -21,9 +21,7 @@ import java.sql.SQLException;
 
 import io.apicurio.registry.storage.impl.sql.jdb.RowMapper;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 public class LongMapper implements RowMapper<Long> {
 
     public static final LongMapper instance = new LongMapper();

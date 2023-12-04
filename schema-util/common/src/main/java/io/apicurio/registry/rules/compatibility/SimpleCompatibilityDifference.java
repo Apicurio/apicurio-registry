@@ -20,9 +20,7 @@ import io.apicurio.registry.rules.RuleViolation;
 
 import java.util.Objects;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 public class SimpleCompatibilityDifference implements CompatibilityDifference {
 
     private final RuleViolation ruleViolation;

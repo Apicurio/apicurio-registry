@@ -20,9 +20,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 public class UpdateImpl extends SqlImpl<Update> implements Update {
 
     /**

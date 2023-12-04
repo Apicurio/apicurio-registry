@@ -30,9 +30,7 @@ import jakarta.ws.rs.core.MultivaluedMap;
 import jakarta.ws.rs.ext.MessageBodyWriter;
 import jakarta.ws.rs.ext.Provider;
 
-/**
- * @author Ales Justin
- */
+
 @Provider
 @Produces(MediaType.WILDCARD)
 public class ContentHandleMessageBodyWriter implements MessageBodyWriter<ContentHandle> {

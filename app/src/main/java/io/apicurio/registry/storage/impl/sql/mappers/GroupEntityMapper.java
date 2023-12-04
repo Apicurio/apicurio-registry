@@ -26,9 +26,7 @@ import java.sql.Timestamp;
 
 import static java.util.Optional.ofNullable;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 public class GroupEntityMapper implements RowMapper<GroupEntity> {
 
     public static final GroupEntityMapper instance = new GroupEntityMapper();

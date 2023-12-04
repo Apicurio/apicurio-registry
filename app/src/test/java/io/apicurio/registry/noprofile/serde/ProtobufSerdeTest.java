@@ -46,9 +46,7 @@ import io.apicurio.registry.support.TestCmmn;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
 
-/**
- * @author Fabian Martinez
- */
+
 @QuarkusTest
 public class ProtobufSerdeTest extends AbstractResourceTestBase {
 

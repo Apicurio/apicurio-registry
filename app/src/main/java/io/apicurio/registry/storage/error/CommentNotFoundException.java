@@ -18,9 +18,7 @@ package io.apicurio.registry.storage.error;
 
 import lombok.Getter;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 public class CommentNotFoundException extends NotFoundException {
 
     private static final long serialVersionUID = -3708928902316703363L;

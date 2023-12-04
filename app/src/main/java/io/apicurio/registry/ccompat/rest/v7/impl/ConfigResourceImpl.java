@@ -38,9 +38,7 @@ import jakarta.interceptor.Interceptors;
 import java.util.Optional;
 import java.util.function.Supplier;
 
-/**
- * @author Carles Arnal
- */
+
 @Interceptors({ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class})
 @Logged
 public class ConfigResourceImpl extends AbstractResource implements ConfigResource {

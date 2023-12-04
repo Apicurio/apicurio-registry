@@ -16,9 +16,7 @@
 
 package io.apicurio.registry.utils.tests;
 
-/**
- * @author Fabian Martinez
- */
+
 public class ApicurioTestTags {
 
     /**Docker is required in the running machine to run this test. */

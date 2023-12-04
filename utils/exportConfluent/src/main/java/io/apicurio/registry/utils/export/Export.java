@@ -61,10 +61,7 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManager;
 
-/**
- * @author Fabian Martinez
- * @author Miroslav Safar
- */
+
 @QuarkusMain(name = "ConfluentExport")
 public class Export implements QuarkusApplication {
 

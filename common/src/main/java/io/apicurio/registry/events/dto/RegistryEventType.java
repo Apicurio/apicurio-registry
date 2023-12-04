@@ -17,9 +17,7 @@ package io.apicurio.registry.events.dto;
 
 import io.quarkus.runtime.annotations.RegisterForReflection;
 
-/**
- * @author Fabian Martinez
- */
+
 @RegisterForReflection
 public enum RegistryEventType {
 

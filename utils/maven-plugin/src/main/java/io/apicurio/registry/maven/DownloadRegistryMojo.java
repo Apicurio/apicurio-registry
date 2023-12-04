@@ -30,7 +30,6 @@ import org.apache.maven.plugins.annotations.Parameter;
 /**
  * Download artifacts.
  *
- * @author Ales Justin
  */
 @Mojo(name = "download")
 public class DownloadRegistryMojo extends AbstractRegistryMojo {

@@ -28,7 +28,6 @@ import jakarta.servlet.http.HttpServletRequest;
 
 /**
  * A simple servlet that forwards the request to the apidocs.html file.
- * @author eric.wittmann@gmail.com
  */
 public class ApiDocsServlet extends GenericServlet {
 

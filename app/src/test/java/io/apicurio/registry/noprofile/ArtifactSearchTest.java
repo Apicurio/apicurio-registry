@@ -32,9 +32,7 @@ import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 @QuarkusTest
 public class ArtifactSearchTest extends AbstractResourceTestBase {
 

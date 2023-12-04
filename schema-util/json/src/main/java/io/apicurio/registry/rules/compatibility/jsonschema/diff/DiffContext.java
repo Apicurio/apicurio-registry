@@ -26,9 +26,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-/**
- * @author Jakub Senko <em>m@jsenko.net</em>
- */
+
 public class DiffContext {
 
     private static final Logger log = LoggerFactory.getLogger(DiffContext.class);

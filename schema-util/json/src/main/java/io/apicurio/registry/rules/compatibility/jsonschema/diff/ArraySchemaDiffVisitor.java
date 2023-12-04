@@ -61,9 +61,7 @@ import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffUtil.
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffUtil.getExceptionally;
 import static io.apicurio.registry.rules.compatibility.jsonschema.wrapper.WrapUtil.wrap;
 
-/**
- * @author Jakub Senko <em>m@jsenko.net</em>
- */
+
 public class ArraySchemaDiffVisitor extends JsonSchemaWrapperVisitor {
 
 

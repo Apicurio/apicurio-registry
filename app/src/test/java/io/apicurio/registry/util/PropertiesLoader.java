@@ -19,9 +19,7 @@ package io.apicurio.registry.util;
 import java.io.InputStream;
 import java.util.Properties;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 public class PropertiesLoader {
 
     private static Properties properties = new Properties();

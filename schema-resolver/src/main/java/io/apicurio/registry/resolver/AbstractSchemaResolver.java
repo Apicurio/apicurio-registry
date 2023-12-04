@@ -45,9 +45,6 @@ import java.util.concurrent.ExecutionException;
 /**
  * Base implementation of {@link SchemaResolver}
  *
- * @author Fabian Martinez
- * @author Jakub Senko <em>m@jsenko.net</em>
- * @author Carles Arnal
  */
 public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, T> {
 

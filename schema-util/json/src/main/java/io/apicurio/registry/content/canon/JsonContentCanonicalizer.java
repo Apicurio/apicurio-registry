@@ -30,7 +30,6 @@ import io.apicurio.registry.content.ContentHandle;
  * and also sort all fields/properties for all objects (because ordering of properties does not
  * matter in JSON).
  * 
- * @author eric.wittmann@gmail.com
  */
 public class JsonContentCanonicalizer implements ContentCanonicalizer {
 

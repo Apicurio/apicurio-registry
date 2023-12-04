@@ -28,7 +28,6 @@ import io.apicurio.registry.utils.IoUtil;
 /**
  * Common utility class for serializers and deserializers that use config properties such as {@link SerdeConfig#HEADER_VALUE_MESSAGE_TYPE_OVERRIDE_NAME}
  *
- * @author Fabian Martinez
  */
 public class MessageTypeSerdeHeaders {
 

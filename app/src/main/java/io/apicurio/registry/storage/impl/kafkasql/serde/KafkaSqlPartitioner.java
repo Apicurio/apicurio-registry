@@ -33,7 +33,6 @@ import java.util.Map;
  * unique string is used instead, which ensures that those messages are all put on the same
  * partition.
  *
- * @author eric.wittmann@gmail.com
  */
 public class KafkaSqlPartitioner implements Partitioner {
 

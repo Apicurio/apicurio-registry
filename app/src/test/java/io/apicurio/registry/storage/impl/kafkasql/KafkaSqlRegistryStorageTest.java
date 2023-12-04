@@ -24,9 +24,7 @@ import io.quarkus.test.junit.TestProfile;
 import jakarta.enterprise.inject.Typed;
 import jakarta.inject.Inject;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 @QuarkusTest
 @TestProfile(KafkasqlTestProfile.class)
 @Typed(KafkaSqlRegistryStorageTest.class)

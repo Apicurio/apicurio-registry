@@ -54,9 +54,7 @@ import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_VERSIO
 import static io.apicurio.registry.storage.RegistryStorage.ArtifactRetrievalBehavior.DEFAULT;
 import static io.apicurio.registry.storage.RegistryStorage.ArtifactRetrievalBehavior.SKIP_DISABLED_LATEST;
 
-/**
- * @author Carles Arnal
- */
+
 @Interceptors({ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class})
 @Logged
 public class SubjectVersionsResourceImpl extends AbstractResource implements SubjectVersionsResource {

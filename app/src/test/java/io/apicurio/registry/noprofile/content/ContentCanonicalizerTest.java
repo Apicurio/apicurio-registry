@@ -28,10 +28,7 @@ import org.junit.jupiter.api.Test;
 import jakarta.inject.Inject;
 import java.util.Collections;
 
-/**
- * @author eric.wittmann@gmail.com
- * @author Ales Justin
- */
+
 @QuarkusTest
 public class ContentCanonicalizerTest extends AbstractRegistryTestBase {
 

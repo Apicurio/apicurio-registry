@@ -31,11 +31,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * @author Confluent Inc.
- * @author Ales Justin
- * @author Carles Arnal
- */
+
 public class AvroSchemaUtils {
 
     private static final Map<String, Schema> primitiveSchemas;

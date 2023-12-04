@@ -37,9 +37,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static io.apicurio.registry.storage.RegistryStorage.ArtifactRetrievalBehavior.DEFAULT;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBase {
 
     private static final String GROUP_ID = AbstractRegistryStorageTest.class.getSimpleName();

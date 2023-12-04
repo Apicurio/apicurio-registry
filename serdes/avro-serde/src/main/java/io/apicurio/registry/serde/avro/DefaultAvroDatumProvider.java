@@ -29,9 +29,7 @@ import org.apache.avro.specific.SpecificDatumReader;
 import org.apache.avro.specific.SpecificDatumWriter;
 import org.apache.avro.specific.SpecificRecord;
 
-/**
- * @author Ales Justin
- */
+
 public class DefaultAvroDatumProvider<T> implements AvroDatumProvider<T> {
     private Boolean useSpecificAvroReader;
     private Map<String, Schema> schemas = new ConcurrentHashMap<>();

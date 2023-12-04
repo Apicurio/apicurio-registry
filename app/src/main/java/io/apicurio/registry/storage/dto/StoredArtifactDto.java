@@ -22,9 +22,7 @@ import lombok.Value;
 
 import java.util.List;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 @Value
 @Builder
 public class StoredArtifactDto {

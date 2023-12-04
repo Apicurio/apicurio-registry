@@ -24,9 +24,7 @@ import io.apicurio.registry.resolver.data.Record;
 import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
 import io.apicurio.registry.resolver.strategy.ArtifactReference;
 
-/**
- * @author Fabian Martinez
- */
+
 public class RecordIdStrategy implements ArtifactReferenceResolverStrategy<Schema, Object> {
 
     /**

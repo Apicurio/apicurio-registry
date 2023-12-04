@@ -35,10 +35,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
-/**
- * @author Ales Justin
- * @author Jakub Senko <em>m@jsenko.net</em>
- */
+
 @ApplicationScoped
 public class RegistryStorageProducer {
 

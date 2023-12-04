@@ -45,9 +45,7 @@ import static io.restassured.RestAssured.given;
 import static org.hamcrest.CoreMatchers.anything;
 import static org.hamcrest.Matchers.equalTo;
 
-/**
- * @author Jakub Senko <em>m@jsenko.net</em>
- */
+
 @QuarkusTest
 public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {
 

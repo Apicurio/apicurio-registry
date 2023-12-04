@@ -22,7 +22,6 @@ import java.util.Map;
 
 /**
  * A canonicalizer that passes through the content unchanged.
- * @author eric.wittmann@gmail.com
  */
 public class NoOpContentCanonicalizer implements ContentCanonicalizer {
     

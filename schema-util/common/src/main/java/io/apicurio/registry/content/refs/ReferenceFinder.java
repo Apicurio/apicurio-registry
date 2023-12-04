@@ -20,9 +20,7 @@ import java.util.Set;
 
 import io.apicurio.registry.content.ContentHandle;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 public interface ReferenceFinder {
 
     /**

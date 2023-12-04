@@ -35,8 +35,6 @@ import java.util.Objects;
 /**
  * Common class for both serializer and deserializer.
  *
- * @author Ales Justin
- * @author Fabian Martinez
  */
 public abstract class AbstractKafkaSerDe<T, U> extends SchemaResolverConfigurer<T, U> {
 

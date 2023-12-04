@@ -26,9 +26,7 @@ import io.apicurio.registry.types.RoleType;
 import io.quarkus.security.identity.SecurityIdentity;
 import org.eclipse.microprofile.jwt.JsonWebToken;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 @ApplicationScoped
 public class StorageRoleProvider implements RoleProvider {
 

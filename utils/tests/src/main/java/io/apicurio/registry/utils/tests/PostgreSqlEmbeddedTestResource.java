@@ -26,9 +26,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- * @author Fabian Martinez
- */
+
 public class PostgreSqlEmbeddedTestResource implements QuarkusTestResourceLifecycleManager {
 
     private EmbeddedPostgres database;

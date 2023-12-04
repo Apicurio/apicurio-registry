@@ -22,9 +22,7 @@ import java.sql.SQLException;
 import io.apicurio.registry.storage.dto.RoleMappingDto;
 import io.apicurio.registry.storage.impl.sql.jdb.RowMapper;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 public class RoleMappingDtoMapper implements RowMapper<RoleMappingDto> {
 
     public static final RoleMappingDtoMapper instance = new RoleMappingDtoMapper();

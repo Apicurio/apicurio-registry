@@ -34,9 +34,7 @@ import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import io.smallrye.jwt.build.Jwt;
 
-/**
- * @author Carles Arnal
- */
+
 public class JWKSMockServer implements QuarkusTestResourceLifecycleManager {
 
     static final Logger LOGGER = LoggerFactory.getLogger(JWKSMockServer.class);

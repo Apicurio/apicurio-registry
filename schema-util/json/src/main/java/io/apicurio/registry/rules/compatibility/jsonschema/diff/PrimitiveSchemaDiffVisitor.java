@@ -45,7 +45,6 @@ import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.
  * <p>
  * "True" and "Empty" schemas are equivalent, each are not equivalent with "False" schema.
  *
- * @author Jakub Senko <em>m@jsenko.net</em>
  */
 public class PrimitiveSchemaDiffVisitor extends JsonSchemaWrapperVisitor {
 

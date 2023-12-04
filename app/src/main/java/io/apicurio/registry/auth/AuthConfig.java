@@ -27,9 +27,7 @@ import org.slf4j.Logger;
 import io.apicurio.common.apps.config.Dynamic;
 import io.apicurio.common.apps.config.Info;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 @Singleton
 public class AuthConfig {
 

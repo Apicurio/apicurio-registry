@@ -38,7 +38,6 @@ import java.util.concurrent.ExecutionException;
  * Base class for all Registry Mojo's.
  * It handles RegistryService's (aka client) lifecycle.
  *
- * @author Ales Justin
  */
 public abstract class AbstractRegistryMojo extends AbstractMojo {
 

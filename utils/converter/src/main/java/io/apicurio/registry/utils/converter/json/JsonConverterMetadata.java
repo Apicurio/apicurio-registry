@@ -21,9 +21,7 @@ import org.apache.kafka.connect.data.Schema;
 
 import io.apicurio.registry.serde.data.KafkaSerdeMetadata;
 
-/**
- * @author Fabian Martinez
- */
+
 public class JsonConverterMetadata extends KafkaSerdeMetadata {
 
     private Schema schema;

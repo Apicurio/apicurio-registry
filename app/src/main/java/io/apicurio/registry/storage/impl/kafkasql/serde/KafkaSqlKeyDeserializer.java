@@ -29,7 +29,6 @@ import java.io.IOException;
 
 /**
  * Kafka deserializer responsible for deserializing the key of a KSQL Kafka message.
- * @author eric.wittmann@gmail.com
  */
 public class KafkaSqlKeyDeserializer implements Deserializer<MessageKey> {
 

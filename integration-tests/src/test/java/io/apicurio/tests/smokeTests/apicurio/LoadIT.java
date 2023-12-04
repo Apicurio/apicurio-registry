@@ -23,7 +23,6 @@ import org.junit.jupiter.api.Disabled;
  * Disabled because this is too flaky and it needs to be redesigned to align better
  * with common usage of the registry, which is frequent reads sporadic writes.
  *
- * @author Carles Arnal
  *
  */
 //@Tag(SMOKE)

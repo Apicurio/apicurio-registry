@@ -18,9 +18,7 @@ package io.apicurio.registry.events;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.eventbus.Message;
 
-/**
- * @author Fabian Martinez
- */
+
 public interface EventSink {
 
     String name();

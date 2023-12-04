@@ -23,9 +23,7 @@ import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.impl.sql.SqlUtil;
 import io.apicurio.registry.storage.impl.sql.jdb.RowMapper;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 public class ArtifactReferenceDtoMapper implements RowMapper<ArtifactReferenceDto> {
 
     public static final ArtifactReferenceDtoMapper instance = new ArtifactReferenceDtoMapper();

@@ -28,7 +28,6 @@ import io.apicurio.datamodels.models.visitors.AllNodeVisitor;
 
 /**
  * Rewrites all references in a data model using a map of replacements provided.
- * @author eric.wittmann@gmail.com
  */
 public class ReferenceRewriter extends AllNodeVisitor {
     

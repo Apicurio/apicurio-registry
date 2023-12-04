@@ -23,9 +23,7 @@ import jakarta.ws.rs.Produces;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 
-/**
- * @author Fabian Martinez
- */
+
 public class RegistryLimitsConfigurationProducer {
 
     @Inject

@@ -18,9 +18,7 @@ package io.apicurio.registry.storage.error;
 
 import lombok.Getter;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 public class ConfigPropertyNotFoundException extends NotFoundException {
 
     private static final long serialVersionUID = -9088094366735526214L;

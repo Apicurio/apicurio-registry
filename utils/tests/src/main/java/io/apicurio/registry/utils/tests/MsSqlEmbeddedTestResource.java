@@ -25,9 +25,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 public class MsSqlEmbeddedTestResource implements QuarkusTestResourceLifecycleManager {
     
     private static final String DB_PASSWORD = "P4ssw0rd!#";

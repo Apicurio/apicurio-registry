@@ -23,7 +23,6 @@ package io.apicurio.registry.types;
  * possibly letting it bubble up and return a generic 500 error to the user,
  * or there is a special mechanism to deal with it.
  *
- * @author Ales Justin
  */
 // TODO Should be abstract and more specific exception should be used
 public class RegistryException extends RuntimeException {

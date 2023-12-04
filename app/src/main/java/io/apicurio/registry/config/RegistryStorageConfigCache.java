@@ -35,9 +35,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import static io.quarkus.scheduler.Scheduled.ConcurrentExecution.SKIP;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 @ApplicationScoped
 public class RegistryStorageConfigCache extends RegistryStorageDecoratorBase implements RegistryStorageDecorator {
 

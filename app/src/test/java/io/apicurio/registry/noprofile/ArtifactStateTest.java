@@ -36,9 +36,7 @@ import static io.apicurio.registry.utils.tests.TestUtils.retry;
 import static io.restassured.RestAssured.given;
 import static org.junit.jupiter.api.Assertions.*;
 
-/**
- * @author Ales Justin
- */
+
 @QuarkusTest
 public class ArtifactStateTest extends AbstractResourceTestBase {
 

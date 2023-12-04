@@ -18,9 +18,7 @@ package io.apicurio.registry.rest;
 
 import io.apicurio.registry.types.RegistryException;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 public class MissingRequiredParameterException extends RegistryException {
 
     private static final long serialVersionUID = 3318387244830092754L;

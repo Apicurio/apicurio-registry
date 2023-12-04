@@ -25,9 +25,7 @@ import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigDef.Importance;
 import org.apache.kafka.common.config.ConfigDef.Type;
 
-/**
- * @author Fabian Martinez
- */
+
 public class BaseKafkaSerDeConfig extends AbstractConfig {
 
     private static ConfigDef buildConfigDef(ConfigDef base) {

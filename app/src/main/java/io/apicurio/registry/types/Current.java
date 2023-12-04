@@ -26,7 +26,6 @@ import jakarta.inject.Qualifier;
 /**
  * Marks currently "used" bean.
  *
- * @author Ales Justin
  */
 @Qualifier
 @Retention(RUNTIME)

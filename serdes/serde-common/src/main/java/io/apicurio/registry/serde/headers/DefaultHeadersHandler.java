@@ -27,9 +27,7 @@ import io.apicurio.registry.resolver.strategy.ArtifactReference;
 import io.apicurio.registry.serde.config.IdOption;
 import io.apicurio.registry.utils.IoUtil;
 
-/**
- * @author Fabian Martinez
- */
+
 public class DefaultHeadersHandler implements HeadersHandler {
 
     private String globalIdHeaderName;

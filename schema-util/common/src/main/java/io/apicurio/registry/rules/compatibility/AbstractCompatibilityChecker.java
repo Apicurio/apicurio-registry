@@ -28,11 +28,7 @@ import java.util.stream.Collectors;
 
 import static java.util.Objects.requireNonNull;
 
-/**
- * @author Ales Justin
- * @author Jonathan Halliday
- * @author Jakub Senko <em>m@jsenko.net</em>
- */
+
 public abstract class AbstractCompatibilityChecker<D> implements CompatibilityChecker {
 
     @Override

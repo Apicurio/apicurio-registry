@@ -27,9 +27,7 @@ import org.junit.jupiter.api.Assertions;
 
 import io.apicurio.registry.content.ContentHandle;
 
-/**
- * @author Fabian Martinez
- */
+
 public class ArtifactUtilProviderTestBase {
 
     protected final String resourceToString(String resourceName) {

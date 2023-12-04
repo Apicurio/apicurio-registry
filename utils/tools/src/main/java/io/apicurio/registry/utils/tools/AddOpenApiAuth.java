@@ -29,9 +29,7 @@ import io.apicurio.datamodels.models.openapi.v30.OpenApi30Document;
 import io.apicurio.datamodels.models.openapi.v30.OpenApi30SecurityRequirement;
 import io.apicurio.datamodels.models.openapi.v30.OpenApi30SecurityScheme;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 public class AddOpenApiAuth {
 
     public static void main(String[] args) throws Exception {

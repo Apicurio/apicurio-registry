@@ -16,8 +16,6 @@
 
 package io.apicurio.registry.content.dereference;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 public class AsyncApiDereferencer extends ApicurioDataModelsContentDereferencer {
 }

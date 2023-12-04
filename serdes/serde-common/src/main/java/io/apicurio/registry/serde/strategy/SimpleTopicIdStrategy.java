@@ -22,9 +22,7 @@ import io.apicurio.registry.resolver.strategy.ArtifactReference;
 import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
 import io.apicurio.registry.serde.data.KafkaSerdeRecord;
 
-/**
- * @author eric.wittmann@gmail.com
- */
+
 public class SimpleTopicIdStrategy<T> implements ArtifactReferenceResolverStrategy<T, Object> {
 
     /**

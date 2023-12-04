@@ -39,6 +39,7 @@ import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 @Tag(Constants.SMOKE)
+@Tag(Constants.REGRESSION)
 @QuarkusIntegrationTest
 class MetadataIT extends ApicurioRegistryBaseIT {
 

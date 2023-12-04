@@ -33,6 +33,10 @@ public interface Constants {
      */
     String SMOKE = "smoke";
     /**
+     * Tag for tests, which are used for v3 regression testing (tests using the v2 API against a v3 server)
+     */
+    String REGRESSION = "regression";
+    /**
      * Tag for tests, which are working with the cluster (integration of kafka with registries) such as serdes and converters
      */
     String SERDES = "serdes";

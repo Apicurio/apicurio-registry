@@ -572,6 +572,14 @@
         </profile>
 
         <profile>
+            <id>regression</id>
+            <properties>
+                <groups>regression</groups>
+                <skipTests>false</skipTests>
+            </properties>
+        </profile>
+
+        <profile>
             <id>serdes</id>
             <properties>
                 <groups>serdes</groups>

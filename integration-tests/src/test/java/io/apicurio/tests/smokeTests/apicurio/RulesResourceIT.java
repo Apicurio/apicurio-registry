@@ -46,6 +46,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @Tag(Constants.SMOKE)
+@Tag(Constants.REGRESSION)
 @QuarkusIntegrationTest
 class RulesResourceIT extends ApicurioRegistryBaseIT {
 

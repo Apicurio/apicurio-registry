@@ -83,8 +83,8 @@ public class DataMigrationIT extends ApicurioRegistryBaseIT {
 
         @Override
         public Map<String, String> start() {
-
-            String registryBaseUrl = startRegistryApplication("quay.io/apicurio/apicurio-registry-mem:2.4.14.Final");
+            // TODO we will need to change this to 3.0.0 whenever that is released!
+            String registryBaseUrl = startRegistryApplication("quay.io/apicurio/apicurio-registry:latest-snapshot");
             var adapter = new OkHttpRequestAdapter(new AnonymousAuthenticationProvider());
             adapter.setBaseUrl(registryBaseUrl);
             RegistryClient source = new RegistryClient(adapter);

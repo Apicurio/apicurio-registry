@@ -95,6 +95,14 @@ public class TestUtils {
         return getRegistryApiUrl(testPort).concat("/registry/v3");
     }
 
+    public static String getRegistryV2ApiUrl() {
+        return getRegistryApiUrl().concat("/registry/v2");
+    }
+
+    public static String getRegistryV2ApiUrl(int testPort) {
+        return getRegistryApiUrl(testPort).concat("/registry/v2");
+    }
+
     public static String getRegistryBaseUrl() {
         if (isExternalRegistry()) {
             return String.format("http://%s:%s", REGISTRY_HOST, REGISTRY_PORT);

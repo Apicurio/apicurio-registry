@@ -29,7 +29,7 @@ import org.junit.jupiter.api.Test;
 class EntityReaderTest {
 
     /**
-     * Test method for {@link io.apicurio.registry.noprofile.rest.v2.impexp.EntityReader#readEntity()}.
+     * Test method for {@link io.apicurio.registry.noprofile.rest.v3.impexp.EntityReader#readEntity()}.
      */
     @Test
     void testReadEntity() throws Exception {

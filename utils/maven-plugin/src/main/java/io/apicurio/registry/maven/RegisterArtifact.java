@@ -19,7 +19,7 @@ package io.apicurio.registry.maven;
 import java.io.File;
 import java.util.List;
 
-import io.apicurio.registry.rest.v2.beans.IfExists;
+import io.apicurio.registry.rest.v3.beans.IfExists;
 
 /**
  * @author eric.wittmann@gmail.com

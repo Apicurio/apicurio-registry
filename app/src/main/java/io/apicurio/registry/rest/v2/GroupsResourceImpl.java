@@ -893,7 +893,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
             //Try to resolve the new artifact references and the nested ones (if any)
             final Map<String, ContentHandle> resolvedReferences = storage.resolveReferences(referencesAsDtos);
 
-            rulesService.applyRules(defaultGroupIdToNull(groupId), artifactId, artifactType, content, RuleApplicationType.CREATE, references, resolvedReferences);
+            rulesService.applyRules(defaultGroupIdToNull(groupId), artifactId, artifactType, content, 
+                    RuleApplicationType.CREATE, toV3Refs(references), resolvedReferences);
 
             final String finalArtifactId = artifactId;
             EditableArtifactMetaDataDto metaData = getEditableMetaData(artifactName, artifactDescription);
@@ -991,7 +992,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         final Map<String, ContentHandle> resolvedReferences = storage.resolveReferences(referencesAsDtos);
 
         String artifactType = lookupArtifactType(groupId, artifactId);
-        rulesService.applyRules(defaultGroupIdToNull(groupId), artifactId, artifactType, content, RuleApplicationType.UPDATE, references, resolvedReferences);
+        rulesService.applyRules(defaultGroupIdToNull(groupId), artifactId, artifactType, content, 
+                RuleApplicationType.UPDATE, toV3Refs(references), resolvedReferences);
         EditableArtifactMetaDataDto metaData = getEditableMetaData(artifactName, artifactDescription);
         ArtifactMetaDataDto amd = storage.updateArtifactWithMetadata(defaultGroupIdToNull(groupId), artifactId, xRegistryVersion, artifactType, content, metaData, referencesAsDtos);
         return V2ApiUtil.dtoToVersionMetaData(defaultGroupIdToNull(groupId), artifactId, artifactType, amd);
@@ -1099,7 +1101,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
         final Map<String, ContentHandle> resolvedReferences = storage.resolveReferences(referencesAsDtos);
 
-        rulesService.applyRules(defaultGroupIdToNull(groupId), artifactId, artifactType, content, RuleApplicationType.UPDATE, references, resolvedReferences);
+        rulesService.applyRules(defaultGroupIdToNull(groupId), artifactId, artifactType, content,
+                RuleApplicationType.UPDATE, toV3Refs(references), resolvedReferences);
         EditableArtifactMetaDataDto metaData = getEditableMetaData(name, description);
         ArtifactMetaDataDto dto = storage.updateArtifactWithMetadata(defaultGroupIdToNull(groupId), artifactId, version, artifactType, content, metaData, referencesAsDtos);
         return V2ApiUtil.dtoToMetaData(defaultGroupIdToNull(groupId), artifactId, artifactType, dto);
@@ -1123,6 +1126,19 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                 }) // .peek(...) may be optimized away
                 .map(V2ApiUtil::referenceToDto)
                 .collect(Collectors.toList());
+    }
+
+    private static List<io.apicurio.registry.rest.v3.beans.ArtifactReference> toV3Refs(List<ArtifactReference> references) {
+        return references.stream().map(ref -> toV3Ref(ref)).collect(Collectors.toList());
+    }
+
+    private static io.apicurio.registry.rest.v3.beans.ArtifactReference toV3Ref(ArtifactReference reference) {
+        return io.apicurio.registry.rest.v3.beans.ArtifactReference.builder()
+                .artifactId(reference.getArtifactId())
+                .groupId(reference.getGroupId())
+                .version(reference.getVersion())
+                .name(reference.getName())
+                .build();
     }
 
 }

@@ -56,7 +56,7 @@ public class GenerateCanonicalHashImportIT extends ApicurioRegistryBaseIT {
     @Test
     public void testGeneratingCanonicalHashOnImport() throws Exception {
         var adapter = new OkHttpRequestAdapter(new AnonymousAuthenticationProvider());
-        adapter.setBaseUrl(ApicurioRegistryBaseIT.getRegistryV2ApiUrl());
+        adapter.setBaseUrl(ApicurioRegistryBaseIT.getRegistryV3ApiUrl());
         RegistryClient dest = new RegistryClient(adapter);
 
         Map<String, String> artifacts = new HashMap<>();

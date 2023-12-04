@@ -84,7 +84,7 @@ public class DisableApisFlagsTest extends AbstractResourceTestBase {
                 .when()
                 .pathParam("groupId", GROUP)
                 .pathParam("artifactId", "testDeleteArtifactVersion/EmptyAPI")
-                .get("/registry/v2/groups/{groupId}/artifacts/{artifactId}")
+                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}")
                 .then()
                 .statusCode(200)
                 .body("openapi", equalTo("3.0.2"))
@@ -96,7 +96,7 @@ public class DisableApisFlagsTest extends AbstractResourceTestBase {
                 .pathParam("groupId", GROUP)
                 .pathParam("artifactId", "testDeleteArtifactVersion/EmptyAPI")
                 .pathParam("version", "1")
-                .get("/registry/v2/groups/{groupId}/artifacts/{artifactId}/versions/{version}")
+                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/{version}")
                 .then()
                 .statusCode(200)
                 .body("openapi", equalTo("3.0.2"))
@@ -108,7 +108,7 @@ public class DisableApisFlagsTest extends AbstractResourceTestBase {
                 .pathParam("groupId", GROUP)
                 .pathParam("artifactId", "testDeleteArtifactVersion/EmptyAPI")
                 .pathParam("version", "1")
-                .delete("/registry/v2/groups/{groupId}/artifacts/{artifactId}/versions/{version}")
+                .delete("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/{version}")
                 .then()
                 .statusCode(405)
                 .body("message", equalTo("Artifact version deletion operation is not enabled."));
@@ -155,7 +155,7 @@ public class DisableApisFlagsTest extends AbstractResourceTestBase {
                 .pathParam("groupId", "default")
                 .header("X-Registry-ArtifactId", schemaId)
                 .body(artifactContent)
-                .post("/registry/v2/groups/{groupId}/artifacts")
+                .post("/registry/v3/groups/{groupId}/artifacts")
             .then();
 
         if (disabledDirectAccess) {

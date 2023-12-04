@@ -57,11 +57,11 @@ public class MojoAuthTest extends RegistryMojoTestBase {
     String testPassword = "sr-test-password";
 
     @Override
-    protected RegistryClient createRestClientV2() {
+    protected RegistryClient createRestClientV3() {
         var adapter = new OkHttpRequestAdapter(
                 new BaseBearerTokenAuthenticationProvider(
                         new OidcAccessTokenProvider(authServerUrlConfigured, JWKSMockServer.ADMIN_CLIENT_ID, "test1")));
-        adapter.setBaseUrl(registryV2ApiUrl);
+        adapter.setBaseUrl(registryV3ApiUrl);
         return new RegistryClient(adapter);
     }
 
@@ -70,7 +70,7 @@ public class MojoAuthTest extends RegistryMojoTestBase {
         System.out.println("Auth is " + authEnabled);
 
         RegisterRegistryMojo registerRegistryMojo = new RegisterRegistryMojo();
-        registerRegistryMojo.setRegistryUrl(TestUtils.getRegistryV2ApiUrl(testPort));
+        registerRegistryMojo.setRegistryUrl(TestUtils.getRegistryV3ApiUrl(testPort));
         registerRegistryMojo.setAuthServerUrl(authServerUrlConfigured);
         registerRegistryMojo.setClientId(JWKSMockServer.ADMIN_CLIENT_ID);
         registerRegistryMojo.setClientSecret(clientSecret);
@@ -86,7 +86,7 @@ public class MojoAuthTest extends RegistryMojoTestBase {
         RegisterRegistryMojo registerRegistryMojo = new RegisterRegistryMojo();
         registerRegistryMojo.setClient(null);
 
-        registerRegistryMojo.setRegistryUrl(TestUtils.getRegistryV2ApiUrl(testPort));
+        registerRegistryMojo.setRegistryUrl(TestUtils.getRegistryV3ApiUrl(testPort));
         registerRegistryMojo.setUsername(testUsername);
         registerRegistryMojo.setPassword(testPassword);
 

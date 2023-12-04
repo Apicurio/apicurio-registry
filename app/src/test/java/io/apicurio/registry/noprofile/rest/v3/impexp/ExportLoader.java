@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.noprofile.rest.v2.impexp;
+package io.apicurio.registry.noprofile.rest.v3.impexp;
 
 import java.util.UUID;
 
@@ -42,7 +42,7 @@ public class ExportLoader {
 
     public static void main(String[] args) throws Exception {
         var adapter = new OkHttpRequestAdapter(new AnonymousAuthenticationProvider());
-        adapter.setBaseUrl("http://localhost:8080/apis/registry/v2");
+        adapter.setBaseUrl("http://localhost:8080/apis/registry/v3");
         RegistryClient client = new RegistryClient(adapter);
         for (int idx = 0; idx < 1000; idx++) {
             System.out.println("Iteration: " + idx);

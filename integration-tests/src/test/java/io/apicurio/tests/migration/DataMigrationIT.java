@@ -54,7 +54,7 @@ public class DataMigrationIT extends ApicurioRegistryBaseIT {
     @Test
     public void migrate() throws Exception {
         var adapter = new OkHttpRequestAdapter(new AnonymousAuthenticationProvider());
-        adapter.setBaseUrl(ApicurioRegistryBaseIT.getRegistryV2ApiUrl());
+        adapter.setBaseUrl(ApicurioRegistryBaseIT.getRegistryV3ApiUrl());
         RegistryClient dest = new RegistryClient(adapter);
 
         var importReq = dest.admin().importEscaped().toPostRequestInformation(migrateDataToImport);

@@ -54,11 +54,11 @@ public class HeaderRoleSourceTest extends AbstractResourceTestBase {
     String authServerUrlConfigured;
 
     @Override
-    protected RegistryClient createRestClientV2() {
+    protected RegistryClient createRestClientV3() {
         var adapter = new OkHttpRequestAdapter(
                 new BaseBearerTokenAuthenticationProvider(
                         new OidcAccessTokenProvider(authServerUrlConfigured, JWKSMockServer.ADMIN_CLIENT_ID, "test1")));
-        adapter.setBaseUrl(registryV2ApiUrl);
+        adapter.setBaseUrl(registryV3ApiUrl);
         return new RegistryClient(adapter);
     }
 
@@ -74,25 +74,25 @@ public class HeaderRoleSourceTest extends AbstractResourceTestBase {
         var noRoleAdapter = new OkHttpRequestAdapter(
                 new BaseBearerTokenAuthenticationProvider(
                         new OidcAccessTokenProvider(authServerUrlConfigured, JWKSMockServer.NO_ROLE_CLIENT_ID, "test1")));
-        noRoleAdapter.setBaseUrl(registryV2ApiUrl);
+        noRoleAdapter.setBaseUrl(registryV3ApiUrl);
         var noRoleClient = new RegistryClient(noRoleAdapter);
 
         var readAdapter = new OkHttpRequestAdapter(
                 new BaseBearerTokenAuthenticationProvider(
                         new OidcAccessTokenProvider(authServerUrlConfigured, JWKSMockServer.READONLY_CLIENT_ID, "test1")));
-        readAdapter.setBaseUrl(registryV2ApiUrl);
+        readAdapter.setBaseUrl(registryV3ApiUrl);
         var readClient = new RegistryClient(readAdapter);
 
         var devAdapter = new OkHttpRequestAdapter(
                 new BaseBearerTokenAuthenticationProvider(
                         new OidcAccessTokenProvider(authServerUrlConfigured, JWKSMockServer.DEVELOPER_CLIENT_ID, "test1")));
-        devAdapter.setBaseUrl(registryV2ApiUrl);
+        devAdapter.setBaseUrl(registryV3ApiUrl);
         var devClient = new RegistryClient(devAdapter);
 
         var adminAdapter = new OkHttpRequestAdapter(
                 new BaseBearerTokenAuthenticationProvider(
                         new OidcAccessTokenProvider(authServerUrlConfigured, JWKSMockServer.ADMIN_CLIENT_ID, "test1")));
-        adminAdapter.setBaseUrl(registryV2ApiUrl);
+        adminAdapter.setBaseUrl(registryV3ApiUrl);
         var adminClient = new RegistryClient(adminAdapter);
 
 

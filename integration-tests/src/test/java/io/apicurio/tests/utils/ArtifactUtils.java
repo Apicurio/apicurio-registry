@@ -40,11 +40,11 @@ public class ArtifactUtils {
 
     public static Response getArtifact(String groupId, String artifactId, String version, int returnCode) {
         return
-            BaseHttpUtils.getRequest(RestConstants.JSON, ApicurioRegistryBaseIT.getRegistryV2ApiUrl() + "/groups/" + encodeURIComponent(groupId) + "/artifacts/" + encodeURIComponent(artifactId) + "/" + version, returnCode);
+            BaseHttpUtils.getRequest(RestConstants.JSON, ApicurioRegistryBaseIT.getRegistryV3ApiUrl() + "/groups/" + encodeURIComponent(groupId) + "/artifacts/" + encodeURIComponent(artifactId) + "/" + version, returnCode);
     }
 
     public static Response createArtifact(String groupId, String artifactId, String artifact, int returnCode) {
-        return  BaseHttpUtils.artifactPostRequest(artifactId, RestConstants.JSON, artifact, ApicurioRegistryBaseIT.getRegistryV2ApiUrl() + "/groups/" + encodeURIComponent(groupId) + "/artifacts", returnCode);
+        return  BaseHttpUtils.artifactPostRequest(artifactId, RestConstants.JSON, artifact, ApicurioRegistryBaseIT.getRegistryV3ApiUrl() + "/groups/" + encodeURIComponent(groupId) + "/artifacts", returnCode);
     }
 
     // ================================================================================

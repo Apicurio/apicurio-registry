@@ -51,7 +51,7 @@ public class ArtifactSearchTest extends AbstractResourceTestBase {
     void testCaseInsensitiveSearch() throws Exception {
         String groupId = "ArtifactSearchTest_testCaseInsensitiveSearch";
         // warm-up
-        clientV2.groups().byGroupId(groupId).artifacts().get().get();
+        clientV3.groups().byGroupId(groupId).artifacts().get().get();
 
         String artifactId = UUID.randomUUID().toString();
         String title = "testCaseInsensitiveSearch";
@@ -60,13 +60,13 @@ public class ArtifactSearchTest extends AbstractResourceTestBase {
 
         ArtifactContent data = new ArtifactContent();
         data.setContent(content);
-        clientV2.groups().byGroupId(groupId).artifacts().post(data, config -> {
+        clientV3.groups().byGroupId(groupId).artifacts().post(data, config -> {
             config.headers.add("X-Registry-ArtifactId", artifactId);
             config.headers.add("X-Registry-ArtifactType", ArtifactType.OPENAPI);
         }).get(3, TimeUnit.SECONDS);
 
         // Search against the name, with the exact name of the artifact
-        ArtifactSearchResults results = clientV2.search().artifacts().get(config -> {
+        ArtifactSearchResults results = clientV3.search().artifacts().get(config -> {
             config.queryParameters.group = groupId;
             config.queryParameters.name = title;
             config.queryParameters.order = "asc";
@@ -85,11 +85,11 @@ public class ArtifactSearchTest extends AbstractResourceTestBase {
         io.apicurio.registry.rest.client.models.Properties props = new Properties();
         props.setAdditionalData(Collections.singletonMap("testCaseInsensitiveSearchKey", "testCaseInsensitiveSearchValue"));
         metaData.setProperties(props);
-        clientV2.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).meta().put(metaData).get(3, TimeUnit.SECONDS);
+        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).meta().put(metaData).get(3, TimeUnit.SECONDS);
 
         TestUtils.retry(() -> {
             // Now try various cases when searching by labels
-            ArtifactSearchResults ires = clientV2.search().artifacts().get(config -> {
+            ArtifactSearchResults ires = clientV3.search().artifacts().get(config -> {
                 config.queryParameters.group = groupId;
                 config.queryParameters.order = "asc";
                 config.queryParameters.orderby = "name";
@@ -99,7 +99,7 @@ public class ArtifactSearchTest extends AbstractResourceTestBase {
             }).get(3, TimeUnit.SECONDS);
             Assertions.assertNotNull(ires);
             Assertions.assertEquals(1, ires.getCount());
-            ires = clientV2.search().artifacts().get(config -> {
+            ires = clientV3.search().artifacts().get(config -> {
                 config.queryParameters.group = groupId;
                 config.queryParameters.order = "asc";
                 config.queryParameters.orderby = "name";
@@ -109,7 +109,7 @@ public class ArtifactSearchTest extends AbstractResourceTestBase {
             }).get(3, TimeUnit.SECONDS);
             Assertions.assertNotNull(ires);
             Assertions.assertEquals(1, ires.getCount());
-            ires = clientV2.search().artifacts().get(config -> {
+            ires = clientV3.search().artifacts().get(config -> {
                 config.queryParameters.group = groupId;
                 config.queryParameters.order = "asc";
                 config.queryParameters.orderby = "name";
@@ -119,7 +119,7 @@ public class ArtifactSearchTest extends AbstractResourceTestBase {
             }).get(3, TimeUnit.SECONDS);
             Assertions.assertNotNull(ires);
             Assertions.assertEquals(1, ires.getCount());
-            ires = clientV2.search().artifacts().get(config -> {
+            ires = clientV3.search().artifacts().get(config -> {
                 config.queryParameters.group = groupId;
                 config.queryParameters.order = "asc";
                 config.queryParameters.orderby = "name";
@@ -131,7 +131,7 @@ public class ArtifactSearchTest extends AbstractResourceTestBase {
             Assertions.assertEquals(1, ires.getCount());
 
             // Now try various cases when searching by properties and values
-            ArtifactSearchResults propertiesSearch = clientV2.search().artifacts().get(config -> {
+            ArtifactSearchResults propertiesSearch = clientV3.search().artifacts().get(config -> {
                 config.queryParameters.group = groupId;
                 config.queryParameters.order = "asc";
                 config.queryParameters.orderby = "name";
@@ -141,7 +141,7 @@ public class ArtifactSearchTest extends AbstractResourceTestBase {
             }).get(3, TimeUnit.SECONDS);
             Assertions.assertNotNull(propertiesSearch);
             Assertions.assertEquals(1, propertiesSearch.getCount());
-            propertiesSearch = clientV2.search().artifacts().get(config -> {
+            propertiesSearch = clientV3.search().artifacts().get(config -> {
                 config.queryParameters.group = groupId;
                 config.queryParameters.order = "asc";
                 config.queryParameters.orderby = "name";
@@ -151,7 +151,7 @@ public class ArtifactSearchTest extends AbstractResourceTestBase {
             }).get(3, TimeUnit.SECONDS);
             Assertions.assertNotNull(propertiesSearch);
             Assertions.assertEquals(1, propertiesSearch.getCount());
-            propertiesSearch = clientV2.search().artifacts().get(config -> {
+            propertiesSearch = clientV3.search().artifacts().get(config -> {
                 config.queryParameters.group = groupId;
                 config.queryParameters.order = "asc";
                 config.queryParameters.orderby = "name";
@@ -161,7 +161,7 @@ public class ArtifactSearchTest extends AbstractResourceTestBase {
             }).get(3, TimeUnit.SECONDS);
             Assertions.assertNotNull(propertiesSearch);
             Assertions.assertEquals(1, propertiesSearch.getCount());
-            propertiesSearch = clientV2.search().artifacts().get(config -> {
+            propertiesSearch = clientV3.search().artifacts().get(config -> {
                 config.queryParameters.group = groupId;
                 config.queryParameters.order = "asc";
                 config.queryParameters.orderby = "name";
@@ -173,7 +173,7 @@ public class ArtifactSearchTest extends AbstractResourceTestBase {
             Assertions.assertEquals(1, propertiesSearch.getCount());
 
             // Now try various cases when searching by properties
-            ArtifactSearchResults propertiesKeySearch = clientV2.search().artifacts().get(config -> {
+            ArtifactSearchResults propertiesKeySearch = clientV3.search().artifacts().get(config -> {
                 config.queryParameters.group = groupId;
                 config.queryParameters.order = "asc";
                 config.queryParameters.orderby = "name";
@@ -183,7 +183,7 @@ public class ArtifactSearchTest extends AbstractResourceTestBase {
             }).get(3, TimeUnit.SECONDS);
             Assertions.assertNotNull(propertiesKeySearch);
             Assertions.assertEquals(1, propertiesKeySearch.getCount());
-            propertiesKeySearch = clientV2.search().artifacts().get(config -> {
+            propertiesKeySearch = clientV3.search().artifacts().get(config -> {
                 config.queryParameters.group = groupId;
                 config.queryParameters.order = "asc";
                 config.queryParameters.orderby = "name";
@@ -193,7 +193,7 @@ public class ArtifactSearchTest extends AbstractResourceTestBase {
             }).get(3, TimeUnit.SECONDS);
             Assertions.assertNotNull(propertiesKeySearch);
             Assertions.assertEquals(1, propertiesKeySearch.getCount());
-            propertiesKeySearch = clientV2.search().artifacts().get(config -> {
+            propertiesKeySearch = clientV3.search().artifacts().get(config -> {
                 config.queryParameters.group = groupId;
                 config.queryParameters.order = "asc";
                 config.queryParameters.orderby = "name";
@@ -203,7 +203,7 @@ public class ArtifactSearchTest extends AbstractResourceTestBase {
             }).get(3, TimeUnit.SECONDS);
             Assertions.assertNotNull(propertiesKeySearch);
             Assertions.assertEquals(1, propertiesKeySearch.getCount());
-            propertiesKeySearch = clientV2.search().artifacts().get(config -> {
+            propertiesKeySearch = clientV3.search().artifacts().get(config -> {
                 config.queryParameters.group = groupId;
                 config.queryParameters.order = "asc";
                 config.queryParameters.orderby = "name";

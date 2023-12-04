@@ -44,7 +44,7 @@ public class DownloadRegistryMojoTest extends RegistryMojoTestBase {
     @BeforeEach
     public void createMojo() {
         this.mojo = new DownloadRegistryMojo();
-        this.mojo.setRegistryUrl(TestUtils.getRegistryV2ApiUrl(testPort));
+        this.mojo.setRegistryUrl(TestUtils.getRegistryV3ApiUrl(testPort));
     }
 
     @Test
@@ -55,7 +55,7 @@ public class DownloadRegistryMojoTest extends RegistryMojoTestBase {
         Schema schema = Schema.createUnion(Arrays.asList(Schema.create(Schema.Type.STRING), Schema.create(Schema.Type.NULL)));
         ArtifactContent data = new ArtifactContent();
         data.setContent(schema.toString());
-        clientV2.groups().byGroupId(groupId).artifacts().post(data, config -> {
+        clientV3.groups().byGroupId(groupId).artifacts().post(data, config -> {
             config.headers.add("X-Registry-ArtifactId", artifactId);
             config.headers.add("X-Registry-ArtifactType", ArtifactType.AVRO);
         }).get(3, TimeUnit.SECONDS);

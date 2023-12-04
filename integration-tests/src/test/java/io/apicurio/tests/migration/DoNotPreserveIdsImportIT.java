@@ -67,7 +67,7 @@ public class DoNotPreserveIdsImportIT extends ApicurioRegistryBaseIT {
     @Test
     public void testDoNotPreserveIdsImport() throws Exception {
         var adapter = new OkHttpRequestAdapter(new AnonymousAuthenticationProvider());
-        adapter.setBaseUrl(ApicurioRegistryBaseIT.getRegistryV2ApiUrl());
+        adapter.setBaseUrl(ApicurioRegistryBaseIT.getRegistryV3ApiUrl());
         RegistryClient dest = new RegistryClient(adapter);
 
         // Fill the destination registry with data (Avro content is inserted first to ensure that the content IDs are different)

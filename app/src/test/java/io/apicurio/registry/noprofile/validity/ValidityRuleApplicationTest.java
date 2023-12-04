@@ -89,12 +89,12 @@ public class ValidityRuleApplicationTest extends AbstractResourceTestBase {
         Rule rule = new Rule();
         rule.setType(RuleType.VALIDITY);
         rule.setConfig(ValidityLevel.FULL.name());
-        clientV2.groups().byGroupId("default").artifacts().byArtifactId(artifactId).rules().post(rule).get(3, TimeUnit.SECONDS);
+        clientV3.groups().byGroupId("default").artifacts().byArtifactId(artifactId).rules().post(rule).get(3, TimeUnit.SECONDS);
 
         var executionException = Assertions.assertThrows(ExecutionException.class, () -> {
             ArtifactContent content = new ArtifactContent();
             content.setContent(INVALID_SCHEMA);
-            clientV2.groups().byGroupId("default").artifacts().byArtifactId(artifactId).put(content).get(3, TimeUnit.SECONDS);
+            clientV3.groups().byGroupId("default").artifacts().byArtifactId(artifactId).put(content).get(3, TimeUnit.SECONDS);
         });
         assertNotNull(executionException.getCause());
         assertEquals("RuleViolationException", ((io.apicurio.registry.rest.client.models.Error)executionException.getCause()).getName());
@@ -108,12 +108,12 @@ public class ValidityRuleApplicationTest extends AbstractResourceTestBase {
         Rule rule = new Rule();
         rule.setType(RuleType.VALIDITY);
         rule.setConfig(ValidityLevel.FULL.name());
-        clientV2.groups().byGroupId("default").artifacts().byArtifactId(artifactId).rules().post(rule).get(3, TimeUnit.SECONDS);
+        clientV3.groups().byGroupId("default").artifacts().byArtifactId(artifactId).rules().post(rule).get(3, TimeUnit.SECONDS);
 
         var executionException = Assertions.assertThrows(ExecutionException.class, () -> {
             ArtifactContent content = new ArtifactContent();
             content.setContent(INVALID_SCHEMA_WITH_MAP);
-            clientV2.groups().byGroupId("default").artifacts().byArtifactId(artifactId).put(content).get(3, TimeUnit.SECONDS);
+            clientV3.groups().byGroupId("default").artifacts().byArtifactId(artifactId).put(content).get(3, TimeUnit.SECONDS);
         });
         assertNotNull(executionException.getCause());
         assertEquals("RuleViolationException", ((io.apicurio.registry.rest.client.models.Error)executionException.getCause()).getName());

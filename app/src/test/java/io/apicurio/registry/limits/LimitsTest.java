@@ -85,7 +85,7 @@ public class LimitsTest extends AbstractResourceTestBase {
                 StringUtils.repeat('b', 4), fourBytesText));
         meta.setProperties(props);
         meta.setLabels(Arrays.asList(fourBytesText, fourBytesText));
-        clientV2
+        clientV3
             .groups()
             // TODO: verify groupId = null cannot be used
             .byGroupId("default")
@@ -109,7 +109,7 @@ public class LimitsTest extends AbstractResourceTestBase {
         invalidmeta.setProperties(props2);
         invalidmeta.setLabels(Arrays.asList(fiveBytesText, fiveBytesText));
         var executionException1 = Assertions.assertThrows(ExecutionException.class, () -> {
-            clientV2
+            clientV3
                 .groups()
                 .byGroupId("default")
                 .artifacts()
@@ -128,7 +128,7 @@ public class LimitsTest extends AbstractResourceTestBase {
         var executionException2 = Assertions.assertThrows(ExecutionException.class, () -> {
             ArtifactContent data = new ArtifactContent();
             data.setContent("{}");
-            clientV2
+            clientV3
                 .groups()
                 .byGroupId("default")
                 .artifacts()

@@ -20,7 +20,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import io.apicurio.registry.content.ContentHandle;
-import io.apicurio.registry.rest.v2.beans.ArtifactReference;
+import io.apicurio.registry.rest.v3.beans.ArtifactReference;
 import io.apicurio.registry.rules.RuleViolationException;
 
 import java.util.ArrayList;

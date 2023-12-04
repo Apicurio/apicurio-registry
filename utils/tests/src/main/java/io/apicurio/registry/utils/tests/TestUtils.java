@@ -87,12 +87,12 @@ public class TestUtils {
         return getRegistryBaseUrl(port).concat("/apis");
     }
 
-    public static String getRegistryV2ApiUrl() {
-        return getRegistryApiUrl().concat("/registry/v2");
+    public static String getRegistryV3ApiUrl() {
+        return getRegistryApiUrl().concat("/registry/v3");
     }
 
-    public static String getRegistryV2ApiUrl(int testPort) {
-        return getRegistryApiUrl(testPort).concat("/registry/v2");
+    public static String getRegistryV3ApiUrl(int testPort) {
+        return getRegistryApiUrl(testPort).concat("/registry/v3");
     }
 
     public static String getRegistryBaseUrl() {

@@ -21,7 +21,7 @@ import lombok.Setter;
 import lombok.ToString;
 
 /**
- * NOTE: Follow the naming conventions from {@link io.apicurio.registry.rest.v2.beans.Limits}
+ * NOTE: Follow the naming conventions from {@link io.apicurio.registry.rest.v3.beans.Limits}
  *
  * @author Fabian Martinez
  */

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.noprofile.rest.v2;
+package io.apicurio.registry.noprofile.rest.v3;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.notNullValue;
@@ -36,7 +36,7 @@ public class SystemResourceTest extends AbstractResourceTestBase {
         given()
             .when()
                 .contentType(CT_JSON)
-                .get("/registry/v2/system/info")
+                .get("/registry/v3/system/info")
             .then()
                 .statusCode(200)
                 .body("name", notNullValue())

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.noprofile.rest.v2;
+package io.apicurio.registry.noprofile.rest.v3;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.equalTo;
@@ -28,7 +28,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
 import io.apicurio.registry.AbstractResourceTestBase;
-import io.apicurio.registry.rest.v2.beans.EditableMetaData;
+import io.apicurio.registry.rest.v3.beans.EditableMetaData;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
@@ -59,7 +59,7 @@ public class SearchResourceTest extends AbstractResourceTestBase {
         given()
             .when()
                 .queryParam("group", group)
-                .get("/registry/v2/search/artifacts")
+                .get("/registry/v3/search/artifacts")
             .then()
                 .statusCode(200)
                 .body("count", equalTo(5))
@@ -87,7 +87,7 @@ public class SearchResourceTest extends AbstractResourceTestBase {
         given()
             .when()
                 .queryParam("name", name)
-                .get("/registry/v2/search/artifacts")
+                .get("/registry/v3/search/artifacts")
             .then()
                 .statusCode(200)
                 .body("count", equalTo(2));
@@ -113,7 +113,7 @@ public class SearchResourceTest extends AbstractResourceTestBase {
         given()
             .when()
                 .queryParam("description", description)
-                .get("/registry/v2/search/artifacts")
+                .get("/registry/v3/search/artifacts")
             .then()
                 .statusCode(200)
                 .body("count", equalTo(2));
@@ -145,7 +145,7 @@ public class SearchResourceTest extends AbstractResourceTestBase {
                     .pathParam("groupId", group)
                     .pathParam("artifactId", artifactId)
                     .body(metaData)
-                    .put("/registry/v2/groups/{groupId}/artifacts/{artifactId}/meta")
+                    .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/meta")
                 .then()
                     .statusCode(204);
         }
@@ -154,7 +154,7 @@ public class SearchResourceTest extends AbstractResourceTestBase {
             given()
                 .when()
                     .queryParam("labels", "testSearchByLabels")
-                    .get("/registry/v2/search/artifacts")
+                    .get("/registry/v3/search/artifacts")
                 .then()
                     .statusCode(200)
                     .body("count", equalTo(5));
@@ -164,7 +164,7 @@ public class SearchResourceTest extends AbstractResourceTestBase {
             given()
                 .when()
                     .queryParam("labels", "testSearchByLabels-2")
-                    .get("/registry/v2/search/artifacts")
+                    .get("/registry/v3/search/artifacts")
                 .then()
                     .statusCode(200)
                     .body("count", equalTo(1));
@@ -198,7 +198,7 @@ public class SearchResourceTest extends AbstractResourceTestBase {
                     .pathParam("groupId", group)
                     .pathParam("artifactId", artifactId)
                     .body(metaData)
-                    .put("/registry/v2/groups/{groupId}/artifacts/{artifactId}/meta")
+                    .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/meta")
                 .then()
                     .statusCode(204);
         }
@@ -207,7 +207,7 @@ public class SearchResourceTest extends AbstractResourceTestBase {
             given()
                 .when()
                     .queryParam("properties", "all-key:all-value")
-                    .get("/registry/v2/search/artifacts")
+                    .get("/registry/v3/search/artifacts")
                 .then()
                     .statusCode(200)
                     .body("count", equalTo(5));
@@ -217,7 +217,7 @@ public class SearchResourceTest extends AbstractResourceTestBase {
             given()
                 .when()
                     .queryParam("properties", "key-1:value-1")
-                    .get("/registry/v2/search/artifacts")
+                    .get("/registry/v3/search/artifacts")
                 .then()
                     .statusCode(200)
                     .body("count", equalTo(1));
@@ -228,7 +228,7 @@ public class SearchResourceTest extends AbstractResourceTestBase {
                 .when()
                     .queryParam("properties", "key-1:value-1")
                     .queryParam("properties", "another-key-1:another-value-1")
-                    .get("/registry/v2/search/artifacts")
+                    .get("/registry/v3/search/artifacts")
                 .then()
                     .statusCode(200)
                     .body("count", equalTo(1));
@@ -240,7 +240,7 @@ public class SearchResourceTest extends AbstractResourceTestBase {
                 .when()
                     .queryParam("properties", "key-1:value-1")
                     .queryParam("properties", "key-2:value-2")
-                    .get("/registry/v2/search/artifacts")
+                    .get("/registry/v3/search/artifacts")
                 .then()
                     .statusCode(200)
                     .body("count", equalTo(0));
@@ -249,7 +249,7 @@ public class SearchResourceTest extends AbstractResourceTestBase {
             given()
                 .when()
                     .queryParam("properties", "key-1:value-1:")
-                    .get("/registry/v2/search/artifacts")
+                    .get("/registry/v3/search/artifacts")
                 .then()
                     .statusCode(200)
                     .body("count", equalTo(0));
@@ -258,7 +258,7 @@ public class SearchResourceTest extends AbstractResourceTestBase {
             given()
                 .when()
                     .queryParam("properties", "key-1:")
-                    .get("/registry/v2/search/artifacts")
+                    .get("/registry/v3/search/artifacts")
                 .then()
                     .statusCode(400);
         });
@@ -266,7 +266,7 @@ public class SearchResourceTest extends AbstractResourceTestBase {
             given()
                 .when()
                     .queryParam("properties", ":value-1")
-                    .get("/registry/v2/search/artifacts")
+                    .get("/registry/v3/search/artifacts")
                 .then()
                     .statusCode(400);
         });
@@ -300,7 +300,7 @@ public class SearchResourceTest extends AbstractResourceTestBase {
                     .pathParam("groupId", group)
                     .pathParam("artifactId", artifactId)
                     .body(metaData)
-                    .put("/registry/v2/groups/{groupId}/artifacts/{artifactId}/meta")
+                    .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/meta")
                     .then()
                     .statusCode(204);
         }
@@ -308,7 +308,7 @@ public class SearchResourceTest extends AbstractResourceTestBase {
             given()
                     .when()
                     .queryParam("properties", "all-key")
-                    .get("/registry/v2/search/artifacts")
+                    .get("/registry/v3/search/artifacts")
                     .then()
                     .statusCode(200)
                     .body("count", equalTo(5));
@@ -317,7 +317,7 @@ public class SearchResourceTest extends AbstractResourceTestBase {
             given()
                     .when()
                     .queryParam("properties", "a-key-1")
-                    .get("/registry/v2/search/artifacts")
+                    .get("/registry/v3/search/artifacts")
                     .then()
                     .statusCode(200)
                     .body("count", equalTo(1));
@@ -326,7 +326,7 @@ public class SearchResourceTest extends AbstractResourceTestBase {
             given()
                     .when()
                     .queryParam("properties", "extra-key-0")
-                    .get("/registry/v2/search/artifacts")
+                    .get("/registry/v3/search/artifacts")
                     .then()
                     .statusCode(200)
                     .body("count", equalTo(3));
@@ -335,7 +335,7 @@ public class SearchResourceTest extends AbstractResourceTestBase {
             given()
                     .when()
                     .queryParam("properties", "extra-key-2")
-                    .get("/registry/v2/search/artifacts")
+                    .get("/registry/v3/search/artifacts")
                     .then()
                     .statusCode(200)
                     .body("count", equalTo(0));
@@ -344,7 +344,7 @@ public class SearchResourceTest extends AbstractResourceTestBase {
             given()
                     .when()
                     .queryParam("properties", ":all-key")
-                    .get("/registry/v2/search/artifacts")
+                    .get("/registry/v3/search/artifacts")
                     .then()
                     .statusCode(400);
         });
@@ -352,7 +352,7 @@ public class SearchResourceTest extends AbstractResourceTestBase {
             given()
                     .when()
                     .queryParam("properties", "all-key:")
-                    .get("/registry/v2/search/artifacts")
+                    .get("/registry/v3/search/artifacts")
                     .then()
                     .statusCode(400);
         });
@@ -374,7 +374,7 @@ public class SearchResourceTest extends AbstractResourceTestBase {
                 .queryParam("orderby", "name")
                 .queryParam("order", "asc")
                 .queryParam("group", group)
-                .get("/registry/v2/search/artifacts")
+                .get("/registry/v3/search/artifacts")
             .then()
                 .statusCode(200)
                 .body("count", equalTo(5))
@@ -385,7 +385,7 @@ public class SearchResourceTest extends AbstractResourceTestBase {
                 .queryParam("orderby", "name")
                 .queryParam("order", "desc")
                 .queryParam("group", group)
-                .get("/registry/v2/search/artifacts")
+                .get("/registry/v3/search/artifacts")
             .then()
                 .statusCode(200)
                 .body("count", equalTo(5))
@@ -396,7 +396,7 @@ public class SearchResourceTest extends AbstractResourceTestBase {
                 .queryParam("orderby", "createdOn")
                 .queryParam("order", "asc")
                 .queryParam("group", group)
-                .get("/registry/v2/search/artifacts")
+                .get("/registry/v3/search/artifacts")
             .then()
                 .statusCode(200)
                 .body("count", equalTo(5))
@@ -407,7 +407,7 @@ public class SearchResourceTest extends AbstractResourceTestBase {
                 .queryParam("orderby", "createdOn")
                 .queryParam("order", "desc")
                 .queryParam("group", group)
-                .get("/registry/v2/search/artifacts")
+                .get("/registry/v3/search/artifacts")
             .then()
                 .statusCode(200)
                 .body("count", equalTo(5))
@@ -431,7 +431,7 @@ public class SearchResourceTest extends AbstractResourceTestBase {
                 .queryParam("order", "asc")
                 .queryParam("limit", 5)
                 .queryParam("group", group)
-                .get("/registry/v2/search/artifacts")
+                .get("/registry/v3/search/artifacts")
             .then()
                 .statusCode(200)
                 .body("count", equalTo(20))
@@ -444,7 +444,7 @@ public class SearchResourceTest extends AbstractResourceTestBase {
                 .queryParam("order", "asc")
                 .queryParam("limit", 15)
                 .queryParam("group", group)
-                .get("/registry/v2/search/artifacts")
+                .get("/registry/v3/search/artifacts")
             .then()
                 .statusCode(200)
                 .body("count", equalTo(20))
@@ -458,7 +458,7 @@ public class SearchResourceTest extends AbstractResourceTestBase {
                 .queryParam("limit", 5)
                 .queryParam("offset", 10)
                 .queryParam("group", group)
-                .get("/registry/v2/search/artifacts")
+                .get("/registry/v3/search/artifacts")
             .then()
                 .statusCode(200)
                 .body("count", equalTo(20))
@@ -487,7 +487,7 @@ public class SearchResourceTest extends AbstractResourceTestBase {
         given()
             .when()
                 .body(searchByContent)
-                .post("/registry/v2/search/artifacts")
+                .post("/registry/v3/search/artifacts")
             .then()
                 .statusCode(200)
                 .body("count", equalTo(2))
@@ -497,7 +497,7 @@ public class SearchResourceTest extends AbstractResourceTestBase {
         given()
             .when()
                 .body(searchByCanonicalContent)
-                .post("/registry/v2/search/artifacts")
+                .post("/registry/v3/search/artifacts")
             .then()
                 .statusCode(200)
                 .body("count", equalTo(0))
@@ -528,7 +528,7 @@ public class SearchResourceTest extends AbstractResourceTestBase {
                 .queryParam("canonical", "true")
                 .queryParam("artifactType", ArtifactType.OPENAPI)
                 .body(searchByContent)
-                .post("/registry/v2/search/artifacts")
+                .post("/registry/v3/search/artifacts")
             .then()
                 .statusCode(200)
                 .body("count", equalTo(2))

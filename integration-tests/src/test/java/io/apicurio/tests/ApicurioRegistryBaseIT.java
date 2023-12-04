@@ -103,7 +103,7 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
 
     protected RegistryClient createRegistryClient() {
         var adapter = new OkHttpRequestAdapter(new AnonymousAuthenticationProvider());
-        adapter.setBaseUrl(getRegistryV2ApiUrl());
+        adapter.setBaseUrl(getRegistryV3ApiUrl());
         return new RegistryClient(adapter);
     }
 
@@ -112,7 +112,7 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
         authServerUrlConfigured = Optional.ofNullable(ConfigProvider.getConfig().getConfigValue("registry.auth.token.endpoint").getValue())
                 .orElse("http://localhost:8090/realms/registry/protocol/openid-connect/token");
         registryClient = createRegistryClient();
-        RestAssured.baseURI = getRegistryV2ApiUrl();
+        RestAssured.baseURI = getRegistryV3ApiUrl();
         logger.info("RestAssured configured with {}", RestAssured.baseURI);
         RestAssured.defaultParser = Parser.JSON;
         RestAssured.urlEncodingEnabled = false;
@@ -288,8 +288,8 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
         return getRegistryBaseUrl().concat("/apis");
     }
 
-    public static String getRegistryV2ApiUrl() {
-        return getRegistryApiUrl().concat("/registry/v2");
+    public static String getRegistryV3ApiUrl() {
+        return getRegistryApiUrl().concat("/registry/v3");
     }
 
     public static String getRegistryBaseUrl() {
@@ -577,7 +577,7 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
         return given()
                 .when()
                 .contentType(contentType)
-                .get(getRegistryV2ApiUrl() + endpoint)
+                .get(getRegistryV3ApiUrl() + endpoint)
                 .then()
                 .statusCode(returnCode)
                 .extract()
@@ -588,7 +588,7 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
         return given()
                 .when()
                 .contentType(contentType)
-                .get(getRegistryV2ApiUrl() + endpoint)
+                .get(getRegistryV3ApiUrl() + endpoint)
                 .then()
                 .statusCode(returnCode)
                 .extract()
@@ -600,7 +600,7 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
                 .when()
                 .contentType(contentType)
                 .body(body)
-                .post(getRegistryV2ApiUrl() + endpoint)
+                .post(getRegistryV3ApiUrl() + endpoint)
                 .then()
                 .statusCode(returnCode)
                 .extract()
@@ -612,7 +612,7 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
                 .when()
                 .contentType(contentType)
                 .body(body)
-                .post(getRegistryV2ApiUrl() + endpoint)
+                .post(getRegistryV3ApiUrl() + endpoint)
                 .then()
                 .statusCode(returnCode)
                 .extract()
@@ -624,7 +624,7 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
                 .when()
                 .contentType(contentType)
                 .body(body)
-                .put(getRegistryV2ApiUrl() + endpoint)
+                .put(getRegistryV3ApiUrl() + endpoint)
                 .then()
                 .statusCode(returnCode)
                 .extract()
@@ -636,7 +636,7 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
                 .when()
                 .contentType(contentType)
                 .body(body)
-                .put(getRegistryV2ApiUrl() + endpoint)
+                .put(getRegistryV3ApiUrl() + endpoint)
                 .then()
                 .statusCode(returnCode)
                 .extract()
@@ -647,7 +647,7 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
         return given()
                 .when()
                 .contentType(contentType)
-                .delete(getRegistryV2ApiUrl() + endpoint)
+                .delete(getRegistryV3ApiUrl() + endpoint)
                 .then()
                 .statusCode(returnCode)
                 .extract()
@@ -659,7 +659,7 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
                 .when()
                 .contentType(contentType)
                 .body(rule)
-                .post(getRegistryV2ApiUrl() + endpoint)
+                .post(getRegistryV3ApiUrl() + endpoint)
                 .then()
                 .statusCode(returnCode)
                 .extract()
@@ -671,7 +671,7 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
                 .when()
                 .contentType(contentType)
                 .body(rule)
-                .post(getRegistryV2ApiUrl() + endpoint)
+                .post(getRegistryV3ApiUrl() + endpoint)
                 .then()
                 .statusCode(returnCode)
                 .extract()
@@ -682,7 +682,7 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
         return given()
                 .when()
                 .contentType(contentType)
-                .get(getRegistryV2ApiUrl() + endpoint)
+                .get(getRegistryV3ApiUrl() + endpoint)
                 .then()
                 .statusCode(returnCode)
                 .extract()
@@ -694,7 +694,7 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
                 .when()
                 .contentType(contentType)
                 .body(rule)
-                .put(getRegistryV2ApiUrl() + endpoint)
+                .put(getRegistryV3ApiUrl() + endpoint)
                 .then()
                 .statusCode(returnCode)
                 .extract()
@@ -705,7 +705,7 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
         return given()
                 .when()
                 .contentType(contentType)
-                .delete(getRegistryV2ApiUrl() + endpoint)
+                .delete(getRegistryV3ApiUrl() + endpoint)
                 .then()
                 .statusCode(returnCode)
                 .extract()
@@ -718,7 +718,7 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
                 .header("X-Registry-Artifactid", artifactId)
                 .contentType(contentType)
                 .body(body)
-                .post(getRegistryV2ApiUrl() + endpoint)
+                .post(getRegistryV3ApiUrl() + endpoint)
                 .then()
                 .statusCode(returnCode)
                 .extract()

@@ -18,7 +18,7 @@ package io.apicurio.registry.services.http;
 
 import jakarta.ws.rs.core.Response;
 
-import io.apicurio.registry.rest.v2.beans.Error;
+import io.apicurio.registry.rest.v3.beans.Error;
 
 /**
  * @author Fabian Martinez

@@ -256,7 +256,7 @@ jobs:
 
           echo "App System Info:"
           echo "--"
-          curl -s http://localhost:8080/apis/registry/v2/system/info
+          curl -s http://localhost:8080/apis/registry/v3/system/info
           echo "--"
           echo ""
           echo "UI Config Info:"

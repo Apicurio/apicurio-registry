@@ -44,7 +44,7 @@ public abstract class AbstractRegistryMojo extends AbstractMojo {
 
     /**
      * The registry's url.
-     * e.g. http://localhost:8080/api/v2
+     * e.g. http://localhost:8080/api/v3
      */
     @Parameter(required = true, property = "registry.url")
     String registryUrl;

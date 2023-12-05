@@ -30,7 +30,7 @@ import java.util.Map;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.apicurio.registry.rest.v2.beans.ArtifactReference;
+import io.apicurio.registry.rest.v3.beans.ArtifactReference;
 import io.apicurio.registry.utils.export.mappers.ArtifactReferenceMapper;
 import io.confluent.kafka.schemaregistry.client.rest.entities.SchemaReference;
 import org.jboss.logging.Logger;

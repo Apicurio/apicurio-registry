@@ -56,7 +56,7 @@ public class AuthTestAnonymousCredentials extends AbstractResourceTestBase {
         var adapter = new OkHttpRequestAdapter(
                 new BaseBearerTokenAuthenticationProvider(
                         new OidcAccessTokenProvider(authServerUrl, JWKSMockServer.WRONG_CREDS_CLIENT_ID, "secret")));
-        adapter.setBaseUrl(registryV2ApiUrl);
+        adapter.setBaseUrl(registryV3ApiUrl);
         RegistryClient client = new RegistryClient(adapter);
         var executionException = Assertions.assertThrows(ExecutionException.class, () -> {
             client.groups().byGroupId(groupId).artifacts().get().get(3, TimeUnit.SECONDS);
@@ -67,7 +67,7 @@ public class AuthTestAnonymousCredentials extends AbstractResourceTestBase {
     @Test
     public void testNoCredentials() throws Exception {
         var adapter = new OkHttpRequestAdapter(new AnonymousAuthenticationProvider());
-        adapter.setBaseUrl(registryV2ApiUrl);
+        adapter.setBaseUrl(registryV3ApiUrl);
         RegistryClient client = new RegistryClient(adapter);
         // Read-only operation should work without any credentials.
         var results = client.search().artifacts().get(config -> config.queryParameters.group = groupId).get(3, TimeUnit.SECONDS);

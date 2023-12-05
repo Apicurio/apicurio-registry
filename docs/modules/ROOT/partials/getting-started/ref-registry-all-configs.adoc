@@ -38,6 +38,11 @@ The following {registry} configuration options are available for each component 
 |`_`
 |`2.5.0.Final`
 |API base href (URI)
+|`registry.apis.v3.base-href`
+|`string`
+|`_`
+|`2.5.0.Final`
+|API base href (URI)
 |`registry.disable.apis`
 |`optional<list<string>>`
 |

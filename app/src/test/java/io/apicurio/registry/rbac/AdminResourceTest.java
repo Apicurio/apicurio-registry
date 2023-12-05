@@ -71,7 +71,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
         given()
                 .when()
                 .contentType(CT_JSON)
-                .get("/registry/v2/admin/rules")
+                .get("/registry/v3/admin/rules")
                 .then()
                 .statusCode(200)
                 .body(anything());
@@ -87,7 +87,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
                 .when()
                 .contentType(CT_JSON)
                 .body(nullType)
-                .post("/registry/v2/admin/rules")
+                .post("/registry/v3/admin/rules")
                 .then()
                 .statusCode(400);
 
@@ -99,7 +99,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
                 .when()
                 .contentType(CT_JSON)
                 .body(nullConfig)
-                .post("/registry/v2/admin/rules")
+                .post("/registry/v3/admin/rules")
                 .then()
                 .statusCode(400);
 
@@ -111,7 +111,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
                 .when()
                 .contentType(CT_JSON)
                 .body(emptyConfig)
-                .post("/registry/v2/admin/rules")
+                .post("/registry/v3/admin/rules")
                 .then()
                 .statusCode(400);
 
@@ -126,7 +126,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
         given()
                 .when()
                 .contentType(CT_JSON).body(rule)
-                .post("/registry/v2/admin/rules")
+                .post("/registry/v3/admin/rules")
                 .then()
                 .statusCode(204)
                 .body(anything());
@@ -135,7 +135,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
         TestUtils.retry(() -> {
             given()
                     .when()
-                    .get("/registry/v2/admin/rules/VALIDITY")
+                    .get("/registry/v3/admin/rules/VALIDITY")
                     .then()
                     .statusCode(200)
                     .contentType(ContentType.JSON)
@@ -148,7 +148,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
             given()
                     .when()
                     .contentType(CT_JSON).body(rule)
-                    .post("/registry/v2/admin/rules")
+                    .post("/registry/v3/admin/rules")
                     .then()
                     .statusCode(409)
                     .body("error_code", equalTo(409))
@@ -162,7 +162,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
                 .when()
                 .contentType(CT_JSON)
                 .body(rule)
-                .post("/registry/v2/admin/rules")
+                .post("/registry/v3/admin/rules")
                 .then()
                 .statusCode(204)
                 .body(anything());
@@ -171,7 +171,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
         TestUtils.retry(() -> {
             given()
                     .when()
-                    .get("/registry/v2/admin/rules")
+                    .get("/registry/v3/admin/rules")
                     .then()
                     .statusCode(200)
                     .contentType(ContentType.JSON)
@@ -183,7 +183,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
         // Get a single rule by name
         given()
                 .when()
-                .get("/registry/v2/admin/rules/COMPATIBILITY")
+                .get("/registry/v3/admin/rules/COMPATIBILITY")
                 .then()
                 .statusCode(200)
                 .contentType(ContentType.JSON)
@@ -197,7 +197,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
                 .when()
                 .contentType(CT_JSON)
                 .body(rule)
-                .put("/registry/v2/admin/rules/COMPATIBILITY")
+                .put("/registry/v3/admin/rules/COMPATIBILITY")
                 .then()
                 .statusCode(200)
                 .contentType(ContentType.JSON)
@@ -208,7 +208,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
         TestUtils.retry(() -> {
             given()
                     .when()
-                    .get("/registry/v2/admin/rules/COMPATIBILITY")
+                    .get("/registry/v3/admin/rules/COMPATIBILITY")
                     .then()
                     .statusCode(200)
                     .contentType(ContentType.JSON)
@@ -220,7 +220,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
 //        rule.setType("RuleDoesNotExist");
 //        rule.setConfig("rdne-config");
 //        given()
-//            .when().contentType(CT_JSON).body(rule).put("/registry/v2/admin/rules/RuleDoesNotExist")
+//            .when().contentType(CT_JSON).body(rule).put("/registry/v3/admin/rules/RuleDoesNotExist")
 //            .then()
 //            .statusCode(404)
 //            .contentType(ContentType.JSON)
@@ -230,7 +230,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
         // Delete a rule
         given()
                 .when()
-                .delete("/registry/v2/admin/rules/COMPATIBILITY")
+                .delete("/registry/v3/admin/rules/COMPATIBILITY")
                 .then()
                 .statusCode(204)
                 .body(anything());
@@ -239,7 +239,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
         TestUtils.retry(() -> {
             given()
                     .when()
-                    .get("/registry/v2/admin/rules/COMPATIBILITY")
+                    .get("/registry/v3/admin/rules/COMPATIBILITY")
                     .then()
                     .statusCode(404)
                     .contentType(ContentType.JSON)
@@ -251,7 +251,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
         TestUtils.retry(() -> {
             given()
                     .when()
-                    .get("/registry/v2/admin/rules")
+                    .get("/registry/v3/admin/rules")
                     .then()
                     .log().all()
                     .statusCode(200)
@@ -263,7 +263,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
         // Delete all rules
         given()
                 .when()
-                .delete("/registry/v2/admin/rules")
+                .delete("/registry/v3/admin/rules")
                 .then()
                 .statusCode(204);
 
@@ -271,7 +271,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
         TestUtils.retry(() -> {
             given()
                     .when()
-                    .get("/registry/v2/admin/rules")
+                    .get("/registry/v3/admin/rules")
                     .then()
                     .statusCode(200)
                     .contentType(ContentType.JSON)
@@ -281,7 +281,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
         // Get the other (deleted) rule by name (should fail with a 404)
         given()
                 .when()
-                .get("/registry/v2/admin/rules/VALIDITY")
+                .get("/registry/v3/admin/rules/VALIDITY")
                 .then()
                 .statusCode(404)
                 .contentType(ContentType.JSON)
@@ -300,7 +300,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
                 .when()
                 .contentType(CT_JSON)
                 .body(rule)
-                .post("/registry/v2/admin/rules")
+                .post("/registry/v3/admin/rules")
                 .then()
                 .statusCode(204)
                 .body(anything());
@@ -309,7 +309,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
         TestUtils.retry(() -> {
             given()
                     .when()
-                    .get("/registry/v2/admin/rules/INTEGRITY")
+                    .get("/registry/v3/admin/rules/INTEGRITY")
                     .then()
                     .statusCode(200)
                     .contentType(ContentType.JSON)
@@ -325,7 +325,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
                 .when()
                 .contentType(CT_JSON)
                 .body(rule)
-                .put("/registry/v2/admin/rules/INTEGRITY")
+                .put("/registry/v3/admin/rules/INTEGRITY")
                 .then()
                 .statusCode(200)
                 .contentType(ContentType.JSON)
@@ -336,7 +336,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
         TestUtils.retry(() -> {
             given()
                     .when()
-                    .get("/registry/v2/admin/rules/INTEGRITY")
+                    .get("/registry/v3/admin/rules/INTEGRITY")
                     .then()
                     .statusCode(200)
                     .contentType(ContentType.JSON)
@@ -356,7 +356,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
                 .when()
                 .contentType(CT_JSON)
                 .body(rule)
-                .post("/registry/v2/admin/rules")
+                .post("/registry/v3/admin/rules")
                 .then()
                 .statusCode(204)
                 .body(anything());
@@ -365,7 +365,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
         TestUtils.retry(() -> {
             given()
                     .when()
-                    .get("/registry/v2/admin/rules/VALIDITY")
+                    .get("/registry/v3/admin/rules/VALIDITY")
                     .then()
                     .statusCode(200)
                     .contentType(ContentType.JSON)
@@ -376,7 +376,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
         // Delete all rules
         given()
                 .when()
-                .delete("/registry/v2/admin/rules")
+                .delete("/registry/v3/admin/rules")
                 .then()
                 .statusCode(204);
 
@@ -384,7 +384,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
         TestUtils.retry(() -> {
             given()
                     .when()
-                    .get("/registry/v2/admin/rules/VALIDITY")
+                    .get("/registry/v3/admin/rules/VALIDITY")
                     .then()
                     .statusCode(404)
                     .contentType(ContentType.JSON)
@@ -403,7 +403,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
                 .when()
                 .contentType(CT_JSON)
                 .body(rule)
-                .post("/registry/v2/admin/rules")
+                .post("/registry/v3/admin/rules")
                 .then()
                 .statusCode(204)
                 .body(anything());
@@ -412,7 +412,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
         TestUtils.retry(() -> {
             given()
                     .when()
-                    .get("/registry/v2/admin/rules/COMPATIBILITY")
+                    .get("/registry/v3/admin/rules/COMPATIBILITY")
                     .then()
                     .statusCode(200)
                     .contentType(ContentType.JSON)
@@ -435,7 +435,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
 
         ValidatableResponse response = given()
                 .when()
-                .get("/registry/v2/admin/export")
+                .get("/registry/v3/admin/export")
                 .then()
                 .statusCode(200);
         InputStream body = response.extract().asInputStream();
@@ -477,7 +477,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
             ArtifactContent content = new ArtifactContent();
             content.setContent(artifactContent.replaceAll("Empty API", title));
             content.setReferences(refs);
-            clientV2.groups().byGroupId(group).artifacts().post(content, config -> {
+            clientV3.groups().byGroupId(group).artifacts().post(content, config -> {
                 config.headers.add("X-Registry-ArtifactId", artifactId);
                 config.headers.add("X-Registry-ArtifactType", ArtifactType.OPENAPI);
             }).get(3, TimeUnit.SECONDS);
@@ -487,7 +487,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
         String downloadHref = given()
                 .when()
                 .queryParam("forBrowser", "true")
-                .get("/registry/v2/admin/export")
+                .get("/registry/v3/admin/export")
                 .then()
                 .statusCode(200)
                 .contentType(ContentType.JSON)
@@ -536,18 +536,18 @@ public class AdminResourceTest extends AbstractResourceTestBase {
 
     @Test
     void testImport() throws Exception {
-        var result = clientV2.search().artifacts().get(config -> {
+        var result = clientV3.search().artifacts().get(config -> {
             config.queryParameters.offset = 0;
             config.queryParameters.limit = 5;
         }).get(3, TimeUnit.SECONDS);
         int artifactsBefore = result.getCount();
 
-        try (InputStream data = resourceToInputStream("../rest/v2/export.zip")) {
+        try (InputStream data = resourceToInputStream("../rest/v3/export.zip")) {
             given()
                     .when()
                     .contentType("application/zip")
                     .body(data)
-                    .post("/registry/v2/admin/import")
+                    .post("/registry/v3/admin/import")
                     .then()
                     .statusCode(204)
                     .body(anything());
@@ -557,7 +557,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
         TestUtils.retry(() -> {
             given()
                     .when()
-                    .get("/registry/v2/admin/rules/COMPATIBILITY")
+                    .get("/registry/v3/admin/rules/COMPATIBILITY")
                     .then()
                     .statusCode(200)
                     .contentType(ContentType.JSON)
@@ -568,7 +568,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
         // Verify artifacts were imported
         // Verify all artifact versions were imported
         //total num of artifacts 3
-        result = clientV2.search().artifacts().get(config -> {
+        result = clientV3.search().artifacts().get(config -> {
             config.queryParameters.offset = 0;
             config.queryParameters.limit = 5;
         }).get(3, TimeUnit.SECONDS);
@@ -576,31 +576,31 @@ public class AdminResourceTest extends AbstractResourceTestBase {
         assertEquals(3, newArtifacts);
 
         // Verify comments were imported
-        List<Comment> comments = clientV2.groups().byGroupId("ImportTest").artifacts().byArtifactId("Artifact-1").versions().byVersion("1.0.2").comments().get().get(3, TimeUnit.SECONDS);
+        List<Comment> comments = clientV3.groups().byGroupId("ImportTest").artifacts().byArtifactId("Artifact-1").versions().byVersion("1.0.2").comments().get().get(3, TimeUnit.SECONDS);
         assertNotNull(comments);
         assertEquals(2, comments.size());
         assertEquals("COMMENT-2", comments.get(0).getValue());
         assertEquals("COMMENT-1", comments.get(1).getValue());
 
-        comments = clientV2.groups().byGroupId("ImportTest").artifacts().byArtifactId("Artifact-2").versions().byVersion("1.0.1").comments().get().get(3, TimeUnit.SECONDS);
+        comments = clientV3.groups().byGroupId("ImportTest").artifacts().byArtifactId("Artifact-2").versions().byVersion("1.0.1").comments().get().get(3, TimeUnit.SECONDS);
         assertNotNull(comments);
         assertEquals(1, comments.size());
         assertEquals("COMMENT-3", comments.get(0).getValue());
 
         // Verify artifact rules were imported
-        var rule = clientV2.groups().byGroupId("ImportTest").artifacts().byArtifactId("Artifact-1").rules().byRule(RuleType.VALIDITY.getValue()).get().get(3, TimeUnit.SECONDS);
+        var rule = clientV3.groups().byGroupId("ImportTest").artifacts().byArtifactId("Artifact-1").rules().byRule(RuleType.VALIDITY.getValue()).get().get(3, TimeUnit.SECONDS);
         assertNotNull(rule);
         assertEquals("SYNTAX_ONLY", rule.getConfig());
 
         //the biggest globalId in the export file is 1005
-        assertNotNull(clientV2.ids().globalIds().byGlobalId(1005L).get().get(3, TimeUnit.SECONDS));
+        assertNotNull(clientV3.ids().globalIds().byGlobalId(1005L).get().get(3, TimeUnit.SECONDS));
 
         //this is the artifactId for the artifact with globalId 1005
-        var lastArtifactMeta = clientV2.groups().byGroupId("ImportTest").artifacts().byArtifactId("Artifact-3").meta().get().get(3, TimeUnit.SECONDS);
+        var lastArtifactMeta = clientV3.groups().byGroupId("ImportTest").artifacts().byArtifactId("Artifact-3").meta().get().get(3, TimeUnit.SECONDS);
         assertEquals("1.0.2", lastArtifactMeta.getVersion());
         assertEquals(1005L, lastArtifactMeta.getGlobalId());
 
-        var executionException = Assertions.assertThrows(ExecutionException.class, () -> clientV2.ids().globalIds().byGlobalId(1006L).get().get(3, TimeUnit.SECONDS));
+        var executionException = Assertions.assertThrows(ExecutionException.class, () -> clientV3.ids().globalIds().byGlobalId(1006L).get().get(3, TimeUnit.SECONDS));
         //ArtifactNotFoundException
         Assertions.assertNotNull(executionException.getCause());
         Assertions.assertEquals(io.apicurio.registry.rest.client.models.Error.class, executionException.getCause().getClass());
@@ -614,7 +614,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
         // Start with no role mappings
         given()
                 .when()
-                .get("/registry/v2/admin/roleMappings")
+                .get("/registry/v3/admin/roleMappings")
                 .then()
                 .statusCode(200)
                 .contentType(ContentType.JSON)
@@ -628,7 +628,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
         given()
                 .when()
                 .contentType(CT_JSON).body(mapping)
-                .post("/registry/v2/admin/roleMappings")
+                .post("/registry/v3/admin/roleMappings")
                 .then()
                 .statusCode(204)
                 .body(anything());
@@ -637,7 +637,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
         TestUtils.retry(() -> {
             given()
                     .when()
-                    .get("/registry/v2/admin/roleMappings/TestUser")
+                    .get("/registry/v3/admin/roleMappings/TestUser")
                     .then()
                     .statusCode(200)
                     .contentType(ContentType.JSON)
@@ -648,7 +648,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
         TestUtils.retry(() -> {
             given()
                     .when()
-                    .get("/registry/v2/admin/roleMappings")
+                    .get("/registry/v3/admin/roleMappings")
                     .then()
                     .statusCode(200)
                     .contentType(ContentType.JSON)
@@ -662,7 +662,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
             given()
                     .when()
                     .contentType(CT_JSON).body(mapping)
-                    .post("/registry/v2/admin/roleMappings")
+                    .post("/registry/v3/admin/roleMappings")
                     .then()
                     .statusCode(409)
                     .body("error_code", equalTo(409))
@@ -676,7 +676,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
                 .when()
                 .contentType(CT_JSON)
                 .body(mapping)
-                .post("/registry/v2/admin/roleMappings")
+                .post("/registry/v3/admin/roleMappings")
                 .then()
                 .statusCode(204)
                 .body(anything());
@@ -685,7 +685,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
         TestUtils.retry(() -> {
             given()
                     .when()
-                    .get("/registry/v2/admin/roleMappings")
+                    .get("/registry/v3/admin/roleMappings")
                     .then()
                     .statusCode(200)
                     .contentType(ContentType.JSON)
@@ -697,7 +697,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
         // Get a single mapping by principal
         given()
                 .when()
-                .get("/registry/v2/admin/roleMappings/TestUser2")
+                .get("/registry/v3/admin/roleMappings/TestUser2")
                 .then()
                 .statusCode(200)
                 .contentType(ContentType.JSON)
@@ -711,7 +711,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
                 .when()
                 .contentType(CT_JSON)
                 .body(update)
-                .put("/registry/v2/admin/roleMappings/TestUser")
+                .put("/registry/v3/admin/roleMappings/TestUser")
                 .then()
                 .statusCode(204);
 
@@ -719,7 +719,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
         TestUtils.retry(() -> {
             given()
                     .when()
-                    .get("/registry/v2/admin/roleMappings/TestUser")
+                    .get("/registry/v3/admin/roleMappings/TestUser")
                     .then()
                     .statusCode(200)
                     .contentType(ContentType.JSON)
@@ -732,7 +732,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
                 .when()
                 .contentType(CT_JSON)
                 .body(update)
-                .put("/registry/v2/admin/roleMappings/UnknownPrincipal")
+                .put("/registry/v3/admin/roleMappings/UnknownPrincipal")
                 .then()
                 .statusCode(404)
                 .contentType(ContentType.JSON)
@@ -745,14 +745,14 @@ public class AdminResourceTest extends AbstractResourceTestBase {
                 .when()
                 .contentType(CT_JSON)
                 .body(update)
-                .put("/registry/v2/admin/roleMappings/TestUser")
+                .put("/registry/v3/admin/roleMappings/TestUser")
                 .then()
                 .statusCode(400);
 
         // Delete a role mapping
         given()
                 .when()
-                .delete("/registry/v2/admin/roleMappings/TestUser2")
+                .delete("/registry/v3/admin/roleMappings/TestUser2")
                 .then()
                 .statusCode(204)
                 .body(anything());
@@ -761,7 +761,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
         TestUtils.retry(() -> {
             given()
                     .when()
-                    .get("/registry/v2/admin/roleMappings/TestUser2")
+                    .get("/registry/v3/admin/roleMappings/TestUser2")
                     .then()
                     .statusCode(404)
                     .contentType(ContentType.JSON)
@@ -773,7 +773,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
         TestUtils.retry(() -> {
             given()
                     .when()
-                    .get("/registry/v2/admin/roleMappings")
+                    .get("/registry/v3/admin/roleMappings")
                     .then()
                     .log().all()
                     .statusCode(200)
@@ -785,7 +785,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
         // Clean up
         given()
                 .when()
-                .delete("/registry/v2/admin/roleMappings/TestUser")
+                .delete("/registry/v3/admin/roleMappings/TestUser")
                 .then()
                 .statusCode(204)
                 .body(anything());
@@ -799,7 +799,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
         // Start with default mappings
         given()
                 .when()
-                .get("/registry/v2/admin/config/properties")
+                .get("/registry/v3/admin/config/properties")
                 .then()
                 .statusCode(200)
                 .contentType(ContentType.JSON);
@@ -808,7 +808,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
         given()
                 .when()
                 .pathParam("propertyName", property1Name)
-                .get("/registry/v2/admin/config/properties/{propertyName}")
+                .get("/registry/v3/admin/config/properties/{propertyName}")
                 .then()
                 .statusCode(200)
                 .contentType(ContentType.JSON)
@@ -819,7 +819,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
         given()
                 .when()
                 .pathParam("propertyName", property2Name)
-                .get("/registry/v2/admin/config/properties/{propertyName}")
+                .get("/registry/v3/admin/config/properties/{propertyName}")
                 .then()
                 .statusCode(200)
                 .contentType(ContentType.JSON)
@@ -834,7 +834,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
                 .contentType(CT_JSON)
                 .body(update)
                 .pathParam("propertyName", property1Name)
-                .put("/registry/v2/admin/config/properties/{propertyName}")
+                .put("/registry/v3/admin/config/properties/{propertyName}")
                 .then()
                 .statusCode(204)
                 .body(anything());
@@ -843,7 +843,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
         given()
                 .when()
                 .pathParam("propertyName", property1Name)
-                .get("/registry/v2/admin/config/properties/{propertyName}")
+                .get("/registry/v3/admin/config/properties/{propertyName}")
                 .then()
                 .statusCode(200)
                 .contentType(ContentType.JSON)
@@ -857,7 +857,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
                 .when()
                 .contentType(CT_JSON).body(update)
                 .pathParam("propertyName", property2Name)
-                .put("/registry/v2/admin/config/properties/{propertyName}")
+                .put("/registry/v3/admin/config/properties/{propertyName}")
                 .then()
                 .statusCode(204)
                 .body(anything());
@@ -866,7 +866,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
         given()
                 .when()
                 .pathParam("propertyName", property2Name)
-                .get("/registry/v2/admin/config/properties/{propertyName}")
+                .get("/registry/v3/admin/config/properties/{propertyName}")
                 .then()
                 .statusCode(200)
                 .contentType(ContentType.JSON)
@@ -877,7 +877,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
         given()
                 .when()
                 .pathParam("propertyName", property2Name)
-                .delete("/registry/v2/admin/config/properties/{propertyName}")
+                .delete("/registry/v3/admin/config/properties/{propertyName}")
                 .then()
                 .statusCode(204)
                 .body(anything());
@@ -886,7 +886,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
         given()
                 .when()
                 .pathParam("propertyName", property2Name)
-                .get("/registry/v2/admin/config/properties/{propertyName}")
+                .get("/registry/v3/admin/config/properties/{propertyName}")
                 .then()
                 .statusCode(200)
                 .contentType(ContentType.JSON)
@@ -898,7 +898,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
                 .when()
                 .contentType(CT_JSON).body(update)
                 .pathParam("propertyName", property1Name)
-                .delete("/registry/v2/admin/config/properties/{propertyName}")
+                .delete("/registry/v3/admin/config/properties/{propertyName}")
                 .then()
                 .statusCode(204)
                 .body(anything());
@@ -907,7 +907,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
         given()
                 .when()
                 .pathParam("propertyName", property1Name)
-                .get("/registry/v2/admin/config/properties/{propertyName}")
+                .get("/registry/v3/admin/config/properties/{propertyName}")
                 .then()
                 .statusCode(200)
                 .contentType(ContentType.JSON)
@@ -921,7 +921,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
                 .when()
                 .contentType(CT_JSON).body(update)
                 .pathParam("propertyName", "property-does-not-exist")
-                .put("/registry/v2/admin/config/properties/{propertyName}")
+                .put("/registry/v3/admin/config/properties/{propertyName}")
                 .then()
                 .statusCode(404);
 
@@ -932,7 +932,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
                 .when()
                 .contentType(CT_JSON).body(update)
                 .pathParam("propertyName", "registry.download.href.ttl")
-                .put("/registry/v2/admin/config/properties/{propertyName}")
+                .put("/registry/v3/admin/config/properties/{propertyName}")
                 .then()
                 .statusCode(400);
 

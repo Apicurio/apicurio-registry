@@ -356,7 +356,7 @@ jobs:
           base: main
           filters: |
             openapi:
-              - 'app/src/main/resources-unfiltered/META-INF/resources/api-specifications/registry/v2/openapi.json'
+              - 'app/src/main/resources-unfiltered/META-INF/resources/api-specifications/registry/v3/openapi.json'
 
       - name: Repository Dispatch
         if: steps.changes.outputs.openapi == 'true'
@@ -365,7 +365,7 @@ jobs:
           token: ${{ secrets.ACCESS_TOKEN }}
           repository: Apicurio/apicurio-registry-client-sdk-${{ matrix.language }}
           event-type: on-oas-updated
-          client-payload: '{"openapi_file_path": "app/src/main/resources-unfiltered/META-INF/resources/api-specifications/registry/v2/openapi.json"}'
+          client-payload: '{"openapi_file_path": "app/src/main/resources-unfiltered/META-INF/resources/api-specifications/registry/v3/openapi.json"}'
 
   # Trigger a deployment workflow in the apicurio-operate-first repository, which will
   # deploy the `latest-snapshot` version of registry into the 3scale OpenShift cluster

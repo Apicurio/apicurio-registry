@@ -73,7 +73,7 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
 
     private RegistryClient createClient(AuthenticationProvider auth) {
         var adapter = new OkHttpRequestAdapter(auth);
-        adapter.setBaseUrl(getRegistryV2ApiUrl());
+        adapter.setBaseUrl(getRegistryV3ApiUrl());
         return new RegistryClient(adapter);
     }
 
@@ -92,7 +92,7 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
         var adapter = new OkHttpRequestAdapter(
                 new BaseBearerTokenAuthenticationProvider(
                         new OidcAccessTokenProvider(authServerUrlConfigured, JWKSMockServer.READONLY_CLIENT_ID, "test1")));
-        adapter.setBaseUrl(getRegistryV2ApiUrl());
+        adapter.setBaseUrl(getRegistryV3ApiUrl());
         RegistryClient client = new RegistryClient(adapter);
         String artifactId = TestUtils.generateArtifactId();
         client.groups().byGroupId(groupId).artifacts().get().get(3, TimeUnit.SECONDS);
@@ -115,7 +115,7 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
         var devAdapter = new OkHttpRequestAdapter(
                 new BaseBearerTokenAuthenticationProvider(
                         new OidcAccessTokenProvider(authServerUrlConfigured, JWKSMockServer.DEVELOPER_CLIENT_ID, "test1")));
-        devAdapter.setBaseUrl(getRegistryV2ApiUrl());
+        devAdapter.setBaseUrl(getRegistryV3ApiUrl());
         RegistryClient devClient = new RegistryClient(devAdapter);
 
         ArtifactMetaData meta = devClient.groups().byGroupId(groupId).artifacts().post(content, config -> {
@@ -140,7 +140,7 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
         var adapter = new OkHttpRequestAdapter(
                 new BaseBearerTokenAuthenticationProvider(
                         new OidcAccessTokenProvider(authServerUrlConfigured, JWKSMockServer.DEVELOPER_CLIENT_ID, "test1")));
-        adapter.setBaseUrl(getRegistryV2ApiUrl());
+        adapter.setBaseUrl(getRegistryV3ApiUrl());
         RegistryClient client = new RegistryClient(adapter);
         String artifactId = TestUtils.generateArtifactId();
         try {
@@ -180,7 +180,7 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
         var adapter = new OkHttpRequestAdapter(
                 new BaseBearerTokenAuthenticationProvider(
                         new OidcAccessTokenProvider(authServerUrlConfigured, JWKSMockServer.ADMIN_CLIENT_ID, "test1")));
-        adapter.setBaseUrl(getRegistryV2ApiUrl());
+        adapter.setBaseUrl(getRegistryV3ApiUrl());
         RegistryClient client = new RegistryClient(adapter);
         String artifactId = TestUtils.generateArtifactId();
         try {

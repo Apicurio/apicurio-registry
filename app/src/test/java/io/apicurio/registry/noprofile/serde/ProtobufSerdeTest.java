@@ -60,7 +60,7 @@ public class ProtobufSerdeTest extends AbstractResourceTestBase {
     @BeforeEach
     public void createIsolatedClient() {
         var adapter = new OkHttpRequestAdapter(new AnonymousAuthenticationProvider());
-        adapter.setBaseUrl(TestUtils.getRegistryV2ApiUrl(testPort));
+        adapter.setBaseUrl(TestUtils.getRegistryV3ApiUrl(testPort));
         restClient = new RegistryClient(adapter);
     }
 

@@ -48,7 +48,7 @@ public class TestUpdateRegistryMojoTest extends RegistryMojoTestBase {
     @BeforeEach
     public void createMojo() {
         this.mojo = new TestUpdateRegistryMojo();
-        this.mojo.setRegistryUrl(TestUtils.getRegistryV2ApiUrl(testPort));
+        this.mojo.setRegistryUrl(TestUtils.getRegistryV3ApiUrl(testPort));
     }
 
     @Test
@@ -66,7 +66,7 @@ public class TestUpdateRegistryMojoTest extends RegistryMojoTestBase {
                                                   "}");
         ArtifactContent content = new ArtifactContent();
         content.setContent(schema.toString());
-        ArtifactMetaData meta = clientV2.groups().byGroupId(groupId).artifacts().post(content, config -> {
+        ArtifactMetaData meta = clientV3.groups().byGroupId(groupId).artifacts().post(content, config -> {
             config.headers.add("X-Registry-ArtifactId", artifactId);
             config.headers.add("X-Registry-ArtifactType", ArtifactType.AVRO);
         }).get(3, TimeUnit.SECONDS);
@@ -74,11 +74,11 @@ public class TestUpdateRegistryMojoTest extends RegistryMojoTestBase {
         Rule rule = new Rule();
         rule.setType(RuleType.COMPATIBILITY);
         rule.setConfig("BACKWARD");
-        clientV2.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).rules().post(rule).get(2, TimeUnit.SECONDS);
+        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).rules().post(rule).get(2, TimeUnit.SECONDS);
 
         // Wait for the rule configuration to be set.
         TestUtils.retry(() -> {
-            Rule rconfig = clientV2.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).rules().byRule(RuleType.COMPATIBILITY.getValue()).get().get(3, TimeUnit.SECONDS);
+            Rule rconfig = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).rules().byRule(RuleType.COMPATIBILITY.getValue()).get().get(3, TimeUnit.SECONDS);
             Assertions.assertEquals("BACKWARD", rconfig.getConfig());
         });
 

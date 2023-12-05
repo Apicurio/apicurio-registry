@@ -80,7 +80,7 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
     @BeforeEach
     public void createIsolatedClient() {
         var adapter = new OkHttpRequestAdapter(new AnonymousAuthenticationProvider());
-        adapter.setBaseUrl(TestUtils.getRegistryV2ApiUrl(testPort));
+        adapter.setBaseUrl(TestUtils.getRegistryV3ApiUrl(testPort));
         restClient = new RegistryClient(adapter);
     }
 
@@ -243,7 +243,7 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
 
         createArtifact(groupId, qualificationsId, ArtifactType.JSON, IoUtil.toString(qualificationSchema));
 
-        final  io.apicurio.registry.rest.v2.beans.ArtifactReference qualificationsReference = new  io.apicurio.registry.rest.v2.beans.ArtifactReference();
+        final  io.apicurio.registry.rest.v3.beans.ArtifactReference qualificationsReference = new  io.apicurio.registry.rest.v3.beans.ArtifactReference();
         qualificationsReference.setVersion("1");
         qualificationsReference.setGroupId(groupId);
         qualificationsReference.setArtifactId(qualificationsId);
@@ -251,13 +251,13 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
 
         createArtifact(groupId, addressId, ArtifactType.JSON, IoUtil.toString(addressSchema));
 
-        final  io.apicurio.registry.rest.v2.beans.ArtifactReference addressReference = new  io.apicurio.registry.rest.v2.beans.ArtifactReference();
+        final  io.apicurio.registry.rest.v3.beans.ArtifactReference addressReference = new  io.apicurio.registry.rest.v3.beans.ArtifactReference();
         addressReference.setVersion("1");
         addressReference.setGroupId(groupId);
         addressReference.setArtifactId(addressId);
         addressReference.setName("sample.address.json");
 
-        final  io.apicurio.registry.rest.v2.beans.ArtifactReference cityReference = new  io.apicurio.registry.rest.v2.beans.ArtifactReference();
+        final  io.apicurio.registry.rest.v3.beans.ArtifactReference cityReference = new  io.apicurio.registry.rest.v3.beans.ArtifactReference();
         cityReference.setVersion("1");
         cityReference.setGroupId(groupId);
         cityReference.setArtifactId(cityArtifactId);
@@ -265,7 +265,7 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
 
         createArtifact(groupId, identifierArtifactId, ArtifactType.JSON, IoUtil.toString(citizenIdentifier));
 
-        final  io.apicurio.registry.rest.v2.beans.ArtifactReference identifierReference = new  io.apicurio.registry.rest.v2.beans.ArtifactReference();
+        final  io.apicurio.registry.rest.v3.beans.ArtifactReference identifierReference = new  io.apicurio.registry.rest.v3.beans.ArtifactReference();
         identifierReference.setVersion("1");
         identifierReference.setGroupId(groupId);
         identifierReference.setArtifactId(identifierArtifactId);
@@ -353,7 +353,7 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
     public void complexObjectValidation() throws Exception {
         String version = "8";
 
-        RegistryClient client = createRestClientV2();
+        RegistryClient client = createRestClientV3();
 
         InputStream account = getClass().getClassLoader()
                 .getResourceAsStream("/io/apicurio/registry/util/sample.account.json");

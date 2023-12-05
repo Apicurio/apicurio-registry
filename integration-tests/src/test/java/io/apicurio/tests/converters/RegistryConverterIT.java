@@ -87,7 +87,7 @@ public class RegistryConverterIT extends ApicurioRegistryBaseIT {
         record.put("bar", "somebar");
 
         Map<String, Object> config = new HashMap<>();
-        config.put(SerdeConfig.REGISTRY_URL, getRegistryV2ApiUrl());
+        config.put(SerdeConfig.REGISTRY_URL, getRegistryV3ApiUrl());
         config.put(SerdeBasedConverter.REGISTRY_CONVERTER_SERIALIZER_PARAM, AvroKafkaSerializer.class.getName());
         config.put(SerdeBasedConverter.REGISTRY_CONVERTER_DESERIALIZER_PARAM, AvroKafkaDeserializer.class.getName());
         config.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, TopicRecordIdStrategy.class.getName());
@@ -127,7 +127,7 @@ public class RegistryConverterIT extends ApicurioRegistryBaseIT {
         try (AvroConverter<Record> converter = new AvroConverter<>()) {
 
             Map<String, Object> config = new HashMap<>();
-            config.put(SerdeConfig.REGISTRY_URL, getRegistryV2ApiUrl());
+            config.put(SerdeConfig.REGISTRY_URL, getRegistryV3ApiUrl());
             config.put(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true");
             converter.configure(config, false);
 
@@ -186,7 +186,7 @@ public class RegistryConverterIT extends ApicurioRegistryBaseIT {
         try (AvroConverter<Record> converter = new AvroConverter<>()) {
 
             Map<String, Object> config = new HashMap<>();
-            config.put(SerdeConfig.REGISTRY_URL, getRegistryV2ApiUrl());
+            config.put(SerdeConfig.REGISTRY_URL, getRegistryV3ApiUrl());
             config.put(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true");
             converter.configure(config, false);
 
@@ -227,7 +227,7 @@ public class RegistryConverterIT extends ApicurioRegistryBaseIT {
         try (AvroConverter<Record> converter = new AvroConverter<>()) {
 
             Map<String, Object> config = new HashMap<>();
-            config.put(SerdeConfig.REGISTRY_URL, getRegistryV2ApiUrl());
+            config.put(SerdeConfig.REGISTRY_URL, getRegistryV3ApiUrl());
             config.put(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true");
             converter.configure(config, false);
 

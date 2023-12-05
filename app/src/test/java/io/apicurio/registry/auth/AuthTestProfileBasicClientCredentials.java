@@ -56,18 +56,18 @@ public class AuthTestProfileBasicClientCredentials extends AbstractResourceTestB
     final String groupId = "authTestGroupId";
 
     @Override
-    protected RegistryClient createRestClientV2() {
+    protected RegistryClient createRestClientV3() {
         var adapter = new OkHttpRequestAdapter(
                 new BaseBearerTokenAuthenticationProvider(
                         new OidcAccessTokenProvider(authServerUrl, JWKSMockServer.ADMIN_CLIENT_ID, "test1")));
-        adapter.setBaseUrl(registryV2ApiUrl);
+        adapter.setBaseUrl(registryV3ApiUrl);
         return new RegistryClient(adapter);
     }
     @Test
     public void testWrongCreds() throws Exception {
         var adapter = new OkHttpRequestAdapter(
                 new BasicAuthenticationProvider(JWKSMockServer.WRONG_CREDS_CLIENT_ID, "test55"));
-        adapter.setBaseUrl(registryV2ApiUrl);
+        adapter.setBaseUrl(registryV3ApiUrl);
         RegistryClient client = new RegistryClient(adapter);
         var executionException = Assertions.assertThrows(ExecutionException.class, () -> {
             client.groups().byGroupId(groupId).artifacts().get().get(3, TimeUnit.SECONDS);
@@ -79,7 +79,7 @@ public class AuthTestProfileBasicClientCredentials extends AbstractResourceTestB
     public void testBasicAuthClientCredentials() throws Exception {
         var adapter = new OkHttpRequestAdapter(
                 new BasicAuthenticationProvider(JWKSMockServer.ADMIN_CLIENT_ID, "test1"));
-        adapter.setBaseUrl(registryV2ApiUrl);
+        adapter.setBaseUrl(registryV3ApiUrl);
         RegistryClient client = new RegistryClient(adapter);
         String artifactId = TestUtils.generateArtifactId();
         try {
@@ -120,7 +120,7 @@ public class AuthTestProfileBasicClientCredentials extends AbstractResourceTestB
     @Test
     public void testNoCredentials() throws Exception {
         var adapter = new OkHttpRequestAdapter(new AnonymousAuthenticationProvider());
-        adapter.setBaseUrl(registryV2ApiUrl);
+        adapter.setBaseUrl(registryV3ApiUrl);
         RegistryClient client = new RegistryClient(adapter);
         var executionException = Assertions.assertThrows(ExecutionException.class, () -> {
             client.groups().byGroupId(groupId).artifacts().get().get(3, TimeUnit.SECONDS);

@@ -26,7 +26,7 @@ import jakarta.inject.Inject;
 
 import io.apicurio.common.apps.logging.Logged;
 import io.apicurio.registry.content.ContentHandle;
-import io.apicurio.registry.rest.v2.beans.ArtifactReference;
+import io.apicurio.registry.rest.v3.beans.ArtifactReference;
 import io.apicurio.registry.rules.RuleContext;
 import io.apicurio.registry.rules.RuleExecutor;
 import io.apicurio.registry.rules.RuleViolation;

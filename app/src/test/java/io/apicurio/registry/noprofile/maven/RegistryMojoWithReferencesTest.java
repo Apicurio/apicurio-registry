@@ -42,10 +42,10 @@ public class RegistryMojoWithReferencesTest extends RegistryMojoTestBase {
     @BeforeEach
     public void createMojos() {
         this.registerMojo = new RegisterRegistryMojo();
-        this.registerMojo.setRegistryUrl(TestUtils.getRegistryV2ApiUrl(testPort));
+        this.registerMojo.setRegistryUrl(TestUtils.getRegistryV3ApiUrl(testPort));
 
         this.downloadMojo = new DownloadRegistryMojo();
-        this.downloadMojo.setRegistryUrl(TestUtils.getRegistryV2ApiUrl(testPort));
+        this.downloadMojo.setRegistryUrl(TestUtils.getRegistryV3ApiUrl(testPort));
     }
 
     @Test

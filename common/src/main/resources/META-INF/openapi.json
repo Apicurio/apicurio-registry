@@ -1,9 +1,9 @@
 {
-    "openapi": "3.0.2",
+    "openapi": "3.0.3",
     "info": {
-        "title": "Apicurio Registry API [v2]",
-        "version": "2.4.x",
-        "description": "Apicurio Registry is a datastore for standard event schemas and API designs. Apicurio Registry enables developers to manage and share the structure of their data using a REST interface. For example, client applications can dynamically push or pull the latest updates to or from the registry without needing to redeploy. Apicurio Registry also enables developers to create rules that govern how registry content can evolve over time. For example, this includes rules for content validation and version compatibility.\n\nThe Apicurio Registry REST API enables client applications to manage the artifacts in the registry. This API provides create, read, update, and delete operations for schema and API artifacts, rules, versions, and metadata. \n\nThe supported artifact types include:\n- Apache Avro schema\n- AsyncAPI specification\n- Google protocol buffers\n- GraphQL schema\n- JSON Schema\n- Kafka Connect schema\n- OpenAPI specification\n- Web Services Description Language\n- XML Schema Definition\n\n\n**Important**: The Apicurio Registry REST API is available from `https://MY-REGISTRY-URL/apis/registry/v2` by default. Therefore you must prefix all API operation paths with `../apis/registry/v2` in this case. For example: `../apis/registry/v2/ids/globalIds/{globalId}`.\n",
+        "title": "Apicurio Registry API [v3]",
+        "version": "3.0.x",
+        "description": "Apicurio Registry is a datastore for standard event schemas and API designs. Apicurio Registry enables developers to manage and share the structure of their data using a REST interface. For example, client applications can dynamically push or pull the latest updates to or from the registry without needing to redeploy. Apicurio Registry also enables developers to create rules that govern how registry content can evolve over time. For example, this includes rules for content validation and version compatibility.\n\nThe Apicurio Registry REST API enables client applications to manage the artifacts in the registry. This API provides create, read, update, and delete operations for schema and API artifacts, rules, versions, and metadata. \n\nThe supported artifact types include:\n- Apache Avro schema\n- AsyncAPI specification\n- Google protocol buffers\n- GraphQL schema\n- JSON Schema\n- Kafka Connect schema\n- OpenAPI specification\n- Web Services Description Language\n- XML Schema Definition\n\n\n**Important**: The Apicurio Registry REST API is available from `https://MY-REGISTRY-URL/apis/registry/v3` by default. Therefore you must prefix all API operation paths with `../apis/registry/v3` in this case. For example: `../apis/registry/v3/ids/globalIds/{globalId}`.\n",
         "contact": {
             "name": "Apicurio",
             "url": "https://github.com/apicurio/apicurio-registry",
@@ -3104,7 +3104,7 @@
                 }
             ]
         },
-        "x-codegen-contextRoot": "/apis/registry/v2"
+        "x-codegen-contextRoot": "/apis/registry/v3"
     },
     "components": {
         "schemas": {
@@ -3510,7 +3510,7 @@
                 },
                 "example": {
                     "downloadId": "247-4987490-297845",
-                    "href": "https://54321.registry.examples.org/apis/registry/v2/downloads/247-4987490-297845"
+                    "href": "https://54321.registry.examples.org/apis/registry/v3/downloads/247-4987490-297845"
                 }
             },
             "ArtifactMetaData": {
@@ -3933,7 +3933,7 @@
                         }
                     ]
                 },
-                "x-codegen-extendsClass": "io.apicurio.registry.rest.v2.beans.Error"
+                "x-codegen-extendsClass": "io.apicurio.registry.rest.v3.beans.Error"
             },
             "ArtifactReference": {
                 "title": "Root Type for ArtifactReference",

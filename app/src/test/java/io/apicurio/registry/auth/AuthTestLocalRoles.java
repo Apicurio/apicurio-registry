@@ -65,11 +65,11 @@ public class AuthTestLocalRoles extends AbstractResourceTestBase {
     String authServerUrlConfigured;
 
     @Override
-    protected RegistryClient createRestClientV2() {
+    protected RegistryClient createRestClientV3() {
         var adapter = new OkHttpRequestAdapter(
                 new BaseBearerTokenAuthenticationProvider(
                         new OidcAccessTokenProvider(authServerUrlConfigured, JWKSMockServer.ADMIN_CLIENT_ID, "test1")));
-        adapter.setBaseUrl(registryV2ApiUrl);
+        adapter.setBaseUrl(registryV3ApiUrl);
         return new RegistryClient(adapter);
     }
 
@@ -88,13 +88,13 @@ public class AuthTestLocalRoles extends AbstractResourceTestBase {
         var adapterAdmin = new OkHttpRequestAdapter(
                 new BaseBearerTokenAuthenticationProvider(
                         new OidcAccessTokenProvider(authServerUrlConfigured, JWKSMockServer.ADMIN_CLIENT_ID, "test1")));
-        adapterAdmin.setBaseUrl(registryV2ApiUrl);
+        adapterAdmin.setBaseUrl(registryV3ApiUrl);
         RegistryClient clientAdmin = new RegistryClient(adapterAdmin);
 
         var adapterAuth = new OkHttpRequestAdapter(
                 new BaseBearerTokenAuthenticationProvider(
                         new OidcAccessTokenProvider(authServerUrlConfigured, JWKSMockServer.NO_ROLE_CLIENT_ID, "test1")));
-        adapterAuth.setBaseUrl(registryV2ApiUrl);
+        adapterAuth.setBaseUrl(registryV3ApiUrl);
         RegistryClient client = new RegistryClient(adapterAuth);
 
         // User is authenticated but no roles assigned yet - operations should fail.

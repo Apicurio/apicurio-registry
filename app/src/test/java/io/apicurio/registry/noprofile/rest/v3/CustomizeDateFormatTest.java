@@ -1,4 +1,4 @@
-package io.apicurio.registry.noprofile.rest.v2;
+package io.apicurio.registry.noprofile.rest.v3;
 
 
 import io.apicurio.registry.AbstractResourceTestBase;
@@ -41,7 +41,7 @@ public class CustomizeDateFormatTest extends AbstractResourceTestBase {
                 .when()
                 .pathParam("groupId", GROUP)
                 .pathParam("artifactId", "testGetArtifactMetaData/EmptyAPI")
-                .get("/registry/v2/groups/{groupId}/artifacts/{artifactId}/meta")
+                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/meta")
                 .then()
                 .statusCode(200)
                 .body("createdOn", new BaseMatcher<Object>() {

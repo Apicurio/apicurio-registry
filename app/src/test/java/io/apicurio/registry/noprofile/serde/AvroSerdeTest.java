@@ -88,7 +88,7 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
     @BeforeEach
     public void createIsolatedClient() {
         var adapter = new OkHttpRequestAdapter(new AnonymousAuthenticationProvider());
-        adapter.setBaseUrl(TestUtils.getRegistryV2ApiUrl(testPort));
+        adapter.setBaseUrl(TestUtils.getRegistryV3ApiUrl(testPort));
         restClient = new RegistryClient(adapter);
     }
 
@@ -104,7 +104,7 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
         createArtifact(groupId, topic + "-" + recordName, ArtifactType.AVRO, schema.toString());
 
         Map<String, Object> config = new HashMap<>();
-        config.put(SerdeConfig.REGISTRY_URL, TestUtils.getRegistryV2ApiUrl(testPort));
+        config.put(SerdeConfig.REGISTRY_URL, TestUtils.getRegistryV3ApiUrl(testPort));
         config.put(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, groupId);
         config.put(SerdeConfig.EXPLICIT_ARTIFACT_VERSION, "1");
         config.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, TopicRecordIdStrategy.class.getName());
@@ -121,7 +121,7 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
             byte[] bytes = serializer.serialize(topic, record);
 
             Map<String, Object> deserializerConfig = new HashMap<>();
-            deserializerConfig.put(SerdeConfig.REGISTRY_URL, TestUtils.getRegistryV2ApiUrl(testPort));
+            deserializerConfig.put(SerdeConfig.REGISTRY_URL, TestUtils.getRegistryV3ApiUrl(testPort));
             deserializer.configure(deserializerConfig, true);
 
             GenericData.Record deserializedRecord = deserializer.deserialize(topic, bytes);

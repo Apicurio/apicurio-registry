@@ -92,7 +92,7 @@ public class SerdesTester<K, P, C> {
             props.putIfAbsent(AbstractKafkaSchemaSerDeConfig.AUTO_REGISTER_SCHEMAS, "false");
             props.putIfAbsent(KafkaAvroSerializerConfig.VALUE_SUBJECT_NAME_STRATEGY, artifactIdStrategy.getName());
         } else {
-            props.putIfAbsent(SerdeConfig.REGISTRY_URL, ApicurioRegistryBaseIT.getRegistryV2ApiUrl());
+            props.putIfAbsent(SerdeConfig.REGISTRY_URL, ApicurioRegistryBaseIT.getRegistryV3ApiUrl());
             props.putIfAbsent(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, artifactIdStrategy.getName());
         }
 
@@ -118,7 +118,7 @@ public class SerdesTester<K, P, C> {
         if (valueDeserializer.getName().contains("confluent")) {
             props.putIfAbsent(KafkaAvroSerializerConfig.SCHEMA_REGISTRY_URL_CONFIG, ApicurioRegistryBaseIT.getRegistryApiUrl() + "/ccompat/v7");
         } else {
-            props.putIfAbsent(SerdeConfig.REGISTRY_URL, ApicurioRegistryBaseIT.getRegistryV2ApiUrl());
+            props.putIfAbsent(SerdeConfig.REGISTRY_URL, ApicurioRegistryBaseIT.getRegistryV3ApiUrl());
         }
 
         return new KafkaConsumer<>(props);

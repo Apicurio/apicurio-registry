@@ -21,7 +21,7 @@ import io.apicurio.registry.ccompat.dto.SchemaReference;
 import io.apicurio.registry.ccompat.rest.error.ConflictException;
 import io.apicurio.registry.ccompat.rest.error.UnprocessableEntityException;
 import io.apicurio.registry.content.ContentHandle;
-import io.apicurio.registry.rest.v2.beans.ArtifactReference;
+import io.apicurio.registry.rest.v3.beans.ArtifactReference;
 import io.apicurio.registry.rules.RuleApplicationType;
 import io.apicurio.registry.rules.RuleViolationException;
 import io.apicurio.registry.rules.RulesService;

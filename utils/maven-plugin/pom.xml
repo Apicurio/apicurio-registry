@@ -54,7 +54,10 @@
             <groupId>io.apicurio</groupId>
             <artifactId>apicurio-registry-schema-util-provider</artifactId>
         </dependency>
-
+        <dependency>
+            <groupId>com.squareup.wire</groupId>
+            <artifactId>wire-compiler</artifactId>
+        </dependency>
     </dependencies>
 
     <build>

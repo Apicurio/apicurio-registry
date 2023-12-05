@@ -17,11 +17,12 @@
 package io.apicurio.registry;
 
 import com.microsoft.kiota.ApiException;
+
+import io.apicurio.registry.auth.NotAuthorizedException;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.utils.tests.ParallelizableTest;
 import io.apicurio.registry.utils.tests.TestUtils;
 
-import io.apicurio.rest.client.auth.exception.NotAuthorizedException;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.junit.jupiter.api.Assertions;
 import java.io.BufferedReader;

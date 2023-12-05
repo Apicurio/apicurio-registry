@@ -41,14 +41,6 @@
                 </exclusion>
             </exclusions>
         </dependency>
-        <dependency>
-            <artifactId>kotlinx-serialization-core</artifactId>
-            <groupId>org.jetbrains.kotlinx</groupId>
-        </dependency>
-        <dependency>
-            <groupId>com.ibm.icu</groupId>
-            <artifactId>icu4j</artifactId>
-        </dependency>
 
         <dependency>
             <groupId>com.squareup.okio</groupId>
@@ -59,6 +51,7 @@
             <groupId>com.squareup.okio</groupId>
             <artifactId>okio-fakefilesystem</artifactId>
         </dependency>
+
 
         <dependency>
             <groupId>org.junit.jupiter</groupId>

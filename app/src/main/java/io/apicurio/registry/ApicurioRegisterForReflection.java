@@ -16,14 +16,12 @@
 
 package io.apicurio.registry;
 
-import io.apicurio.rest.client.auth.AccessTokenResponse;
 import io.quarkus.runtime.annotations.RegisterForReflection;
 
 /**
  * @author Fabian Martinez
  */
 @RegisterForReflection(targets = {
-  AccessTokenResponse.class,
   // Needed for the JAXRSClient
   org.apache.commons.logging.LogFactory.class,
   org.apache.commons.logging.impl.LogFactoryImpl.class,

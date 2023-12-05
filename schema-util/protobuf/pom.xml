@@ -15,12 +15,10 @@
     <name>apicurio-registry-schema-util-protobuf</name>
 
     <dependencies>
-
         <dependency>
             <groupId>io.apicurio</groupId>
             <artifactId>apicurio-registry-schema-util-common</artifactId>
         </dependency>
-
         <dependency>
             <groupId>io.apicurio</groupId>
             <artifactId>apicurio-registry-protobuf-schema-utilities</artifactId>
@@ -28,6 +26,10 @@
         <dependency>
             <groupId>com.google.protobuf</groupId>
             <artifactId>protobuf-java-util</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.squareup.wire</groupId>
+            <artifactId>wire-compiler</artifactId>
         </dependency>
     </dependencies>
 

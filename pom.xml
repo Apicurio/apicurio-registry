@@ -138,8 +138,8 @@
 
         <!-- Schema types -->
         <avro.version>1.11.3</avro.version>
-        <wire-schema.version>4.9.1</wire-schema.version>
-        <wire-compiler.version>4.8.0</wire-compiler.version>
+        <wire-schema.version>4.9.3</wire-schema.version>
+        <wire-compiler.version>4.9.3</wire-compiler.version>
         <okio-jvm.version>3.6.0</okio-jvm.version>
         <okio.version>3.6.0</okio.version>
         <okio-fake-file-system.version>3.4.0</okio-fake-file-system.version>
@@ -176,20 +176,16 @@
 
         <!-- JSON Schema Validator -->
         <org.everit.json.schema.version>1.14.3</org.everit.json.schema.version><!-- TODO unification -->
-        <jackson-datatype-json-org.version>2.15.2</jackson-datatype-json-org.version>
-        <jackson-dataformat-yaml.version>2.14.2</jackson-dataformat-yaml.version>
 
         <!-- Dependency versions -->
         <lombok.version>1.18.30</lombok.version>
         <h2.version>1.4.199</h2.version>
-        <commons-codec.version>1.16.0</commons-codec.version>
         <jboss-slf4j.version>1.2.1.Final</jboss-slf4j.version>
         <httpclient.version>4.5.14</httpclient.version>
         <apicurio-common-rest-client.version>0.1.18.Final</apicurio-common-rest-client.version>
         <apicurio-common-app-components.version>0.2.2.Final</apicurio-common-app-components.version>
         <kafka-oauth-client.version>0.14.0</kafka-oauth-client.version>
         <kafka-clients.version>3.6.0</kafka-clients.version>
-        <snakeyaml.version>2.2</snakeyaml.version>
         <guava.version>32.1.3-jre</guava.version>
         <woodstox-core.version>6.5.1</woodstox-core.version>
         <jgit.version>6.7.0.202309050840-r</jgit.version>
@@ -332,52 +328,6 @@
             </dependency>
             <dependency>
                 <groupId>io.apicurio</groupId>
-                <artifactId>apicurio-common-rest-client-vertx</artifactId>
-                <version>${apicurio-common-rest-client.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.apicurio</groupId>
-                <artifactId>apicurio-common-rest-client-jdk</artifactId>
-                <version>${apicurio-common-rest-client.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.apicurio</groupId>
-                <artifactId>apicurio-common-rest-client-common</artifactId>
-                <version>${apicurio-common-rest-client.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>io.apicurio</groupId>
-                <artifactId>apicurio-common-app-components-core</artifactId>
-                <version>${apicurio-common-app-components.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.apicurio</groupId>
-                <artifactId>apicurio-common-app-components-logging</artifactId>
-                <version>${apicurio-common-app-components.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.apicurio</groupId>
-                <artifactId>apicurio-common-app-components-config</artifactId>
-                <version>${apicurio-common-app-components.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.apicurio</groupId>
-                <artifactId>apicurio-common-app-components-config-definitions</artifactId>
-                <version>${apicurio-common-app-components.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.apicurio</groupId>
-                <artifactId>apicurio-common-app-components-config-index</artifactId>
-                <version>${apicurio-common-app-components.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.apicurio</groupId>
-                <artifactId>apicurio-common-app-components-auth</artifactId>
-                <version>${apicurio-common-app-components.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.apicurio</groupId>
                 <artifactId>apicurio-registry-schema-util-provider</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -442,6 +392,38 @@
                 <version>${project.version}</version>
             </dependency>
 
+            <!-- Common App Components -->
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-common-app-components-core</artifactId>
+                <version>${apicurio-common-app-components.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-common-app-components-logging</artifactId>
+                <version>${apicurio-common-app-components.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-common-app-components-config</artifactId>
+                <version>${apicurio-common-app-components.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-common-app-components-config-definitions</artifactId>
+                <version>${apicurio-common-app-components.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-common-app-components-config-index</artifactId>
+                <version>${apicurio-common-app-components.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-common-app-components-auth</artifactId>
+                <version>${apicurio-common-app-components.version}</version>
+            </dependency>
+
             <!-- Quarkus Dependencies -->
             <dependency>
                 <groupId>io.quarkus</groupId>
@@ -450,6 +432,8 @@
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
+            
+            <!-- Kafka -->
             <dependency>
                 <groupId>org.apache.kafka</groupId>
                 <artifactId>connect-api</artifactId>
@@ -472,11 +456,7 @@
                 <artifactId>apicurio-data-models</artifactId>
                 <version>${apicurio-data-models.version}</version>
             </dependency>
-            <dependency>
-                <groupId>org.apache.avro</groupId>
-                <artifactId>avro</artifactId>
-                <version>${avro.version}</version>
-            </dependency>
+            
             <dependency>
                 <groupId>com.squareup.wire</groupId>
                 <artifactId>wire-schema</artifactId>
@@ -495,21 +475,6 @@
                 </exclusions>
             </dependency>
             <dependency>
-                <artifactId>kotlinx-serialization-core</artifactId>
-                <groupId>org.jetbrains.kotlinx</groupId>
-                <version>1.6.0</version>
-            </dependency>
-            <dependency>
-                <groupId>com.ibm.icu</groupId>
-                <artifactId>icu4j</artifactId>
-                <version>${icu4j.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.squareup.okio</groupId>
-                <artifactId>okio</artifactId>
-                <version>${okio.version}</version>
-            </dependency>
-            <dependency>
                 <groupId>com.squareup.okio</groupId>
                 <artifactId>okio-jvm</artifactId>
                 <version>${okio-jvm.version}</version>
@@ -519,21 +484,7 @@
                 <artifactId>okio-fakefilesystem</artifactId>
                 <version>${okio-fake-file-system.version}</version>
             </dependency>
-            <dependency>
-                <groupId>com.google.protobuf</groupId>
-                <artifactId>protobuf-java</artifactId>
-                <version>${protobuf.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.google.protobuf</groupId>
-                <artifactId>protobuf-java-util</artifactId>
-                <version>${protobuf.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.google.api.grpc</groupId>
-                <artifactId>proto-google-common-protos</artifactId>
-                <version>${protobuf.googleapi.types.version}</version>
-            </dependency>
+
             <dependency>
                 <groupId>org.projectlombok</groupId>
                 <artifactId>lombok</artifactId>
@@ -550,11 +501,6 @@
                 <version>${wsdl4j.version}</version>
             </dependency>
             <dependency>
-                <groupId>commons-codec</groupId>
-                <artifactId>commons-codec</artifactId>
-                <version>${commons-codec.version}</version>
-            </dependency>
-            <dependency>
                 <groupId>org.apache.httpcomponents</groupId>
                 <artifactId>httpclient</artifactId>
                 <version>${httpclient.version}</version>
@@ -565,47 +511,32 @@
                 <version>${jgit.version}</version>
             </dependency>
 
-            <!-- GraphQL -->
+            <!-- Data Types -->
+            <dependency>
+                <groupId>org.apache.avro</groupId>
+                <artifactId>avro</artifactId>
+                <version>${avro.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.google.protobuf</groupId>
+                <artifactId>protobuf-java</artifactId>
+                <version>${protobuf.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.google.protobuf</groupId>
+                <artifactId>protobuf-java-util</artifactId>
+                <version>${protobuf.version}</version>
+            </dependency>
             <dependency>
                 <groupId>com.graphql-java</groupId>
                 <artifactId>graphql-java</artifactId>
                 <version>${graphql.version}</version>
             </dependency>
-
             <dependency>
                 <groupId>com.github.everit-org.json-schema</groupId>
                 <artifactId>org.everit.json.schema</artifactId>
                 <version>${org.everit.json.schema.version}</version>
             </dependency>
-            <dependency>
-                <groupId>com.fasterxml.jackson.datatype</groupId>
-                <artifactId>jackson-datatype-json-org</artifactId>
-                <version>${jackson-datatype-json-org.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.fasterxml.jackson.dataformat</groupId>
-                <artifactId>jackson-dataformat-yaml</artifactId>
-                <version>${jackson-dataformat-yaml.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>io.strimzi</groupId>
-                <artifactId>kafka-oauth-client</artifactId>
-                <version>${kafka-oauth-client.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>com.google.guava</groupId>
-                <artifactId>guava</artifactId>
-                <version>${guava.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>com.fasterxml.woodstox</groupId>
-                <artifactId>woodstox-core</artifactId>
-                <version>${woodstox-core.version}</version>
-            </dependency>
-
 
             <!-- Tests -->
             <dependency>

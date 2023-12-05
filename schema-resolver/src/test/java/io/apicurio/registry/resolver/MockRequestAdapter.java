@@ -1,13 +1,6 @@
 package io.apicurio.registry.resolver;
 
-import com.microsoft.kiota.RequestAdapter;
-import com.microsoft.kiota.RequestInformation;
-import com.microsoft.kiota.serialization.Parsable;
-import com.microsoft.kiota.serialization.ParsableFactory;
-import com.microsoft.kiota.serialization.SerializationWriterFactory;
-import com.microsoft.kiota.store.BackingStoreFactory;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
@@ -15,7 +8,15 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import com.microsoft.kiota.RequestAdapter;
+import com.microsoft.kiota.RequestInformation;
+import com.microsoft.kiota.serialization.Parsable;
+import com.microsoft.kiota.serialization.ParsableFactory;
+import com.microsoft.kiota.serialization.SerializationWriterFactory;
+import com.microsoft.kiota.store.BackingStoreFactory;
+
+import jakarta.annotation.Nullable;
+import jakarta.validation.constraints.NotNull;
 
 public class MockRequestAdapter implements RequestAdapter {
 

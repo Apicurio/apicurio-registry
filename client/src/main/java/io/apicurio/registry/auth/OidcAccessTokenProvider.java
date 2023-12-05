@@ -4,20 +4,6 @@
 // TODO: complete the implementation with password and clean it up
 package io.apicurio.registry.auth;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.microsoft.kiota.authentication.AccessTokenProvider;
-import com.microsoft.kiota.authentication.AllowedHostsValidator;
-import io.apicurio.rest.client.auth.exception.NotAuthorizedException;
-import okhttp3.Call;
-import okhttp3.Callback;
-import okhttp3.FormBody;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.Response;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
 import java.io.IOException;
 import java.net.URI;
 import java.time.Duration;
@@ -25,6 +11,20 @@ import java.time.Instant;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.microsoft.kiota.authentication.AccessTokenProvider;
+import com.microsoft.kiota.authentication.AllowedHostsValidator;
+
+import jakarta.annotation.Nullable;
+import jakarta.validation.constraints.NotNull;
+import okhttp3.Call;
+import okhttp3.Callback;
+import okhttp3.FormBody;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
 
 public class OidcAccessTokenProvider implements AccessTokenProvider {
     protected static final String CLIENT_CREDENTIALS_GRANT = "client_credentials";

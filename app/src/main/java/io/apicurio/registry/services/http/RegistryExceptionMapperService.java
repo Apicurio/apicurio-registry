@@ -38,8 +38,6 @@ import io.apicurio.registry.rules.RuleViolation;
 import io.apicurio.registry.rules.RuleViolationException;
 import io.apicurio.registry.rules.UnprocessableSchemaException;
 import io.apicurio.registry.storage.error.*;
-import io.apicurio.rest.client.auth.exception.ForbiddenException;
-import io.apicurio.rest.client.auth.exception.NotAuthorizedException;
 import io.smallrye.mutiny.TimeoutException;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -94,7 +92,6 @@ public class RegistryExceptionMapperService {
         map.put(ContentNotFoundException.class, HTTP_NOT_FOUND);
         map.put(DefaultRuleDeletionException.class, HTTP_CONFLICT);
         map.put(DownloadNotFoundException.class, HTTP_NOT_FOUND);
-        map.put(ForbiddenException.class, HTTP_FORBIDDEN);
         map.put(GroupNotFoundException.class, HTTP_NOT_FOUND);
         map.put(InvalidArtifactIdException.class, HTTP_BAD_REQUEST);
         map.put(InvalidArtifactStateException.class, HTTP_BAD_REQUEST);
@@ -105,7 +102,6 @@ public class RegistryExceptionMapperService {
         map.put(LimitExceededException.class, HTTP_CONFLICT);
         map.put(LogConfigurationNotFoundException.class, HTTP_NOT_FOUND);
         map.put(MissingRequiredParameterException.class, HTTP_BAD_REQUEST);
-        map.put(NotAuthorizedException.class, HTTP_FORBIDDEN);
         map.put(NotFoundException.class, HTTP_NOT_FOUND);
         map.put(ParametersConflictException.class, HTTP_CONFLICT);
         map.put(ReadOnlyStorageException.class, HTTP_CONFLICT);

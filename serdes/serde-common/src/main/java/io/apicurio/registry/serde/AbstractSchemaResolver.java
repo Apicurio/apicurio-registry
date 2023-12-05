@@ -34,7 +34,6 @@ import io.apicurio.registry.serde.data.KafkaSerdeMetadata;
 import io.apicurio.registry.serde.data.KafkaSerdeRecord;
 import io.apicurio.registry.serde.strategy.ArtifactReference;
 import io.apicurio.registry.utils.IoUtil;
-import io.apicurio.rest.client.spi.ApicurioHttpClient;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collections;
@@ -56,7 +55,6 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
 
     protected io.apicurio.registry.resolver.SchemaParser<S, T> schemaParser;
     protected RegistryClient client;
-    protected ApicurioHttpClient authClient;
     protected boolean isKey;
     protected ArtifactReferenceResolverStrategy<S, T> artifactResolverStrategy;
 

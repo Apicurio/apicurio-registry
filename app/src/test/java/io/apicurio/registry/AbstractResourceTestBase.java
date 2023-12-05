@@ -36,7 +36,6 @@ import com.microsoft.kiota.authentication.AnonymousAuthenticationProvider;
 import com.microsoft.kiota.http.OkHttpRequestAdapter;
 import io.apicurio.registry.rest.client.models.ArtifactMetaData;
 import io.apicurio.registry.rest.v3.beans.ArtifactReference;
-import io.apicurio.rest.client.auth.exception.NotAuthorizedException;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -44,6 +43,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 
+import io.apicurio.registry.auth.NotAuthorizedException;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.v3.V3ApiUtil;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
@@ -338,7 +338,7 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
     protected void assertNotAuthorized(ExecutionException executionException) {
         Assertions.assertNotNull(executionException.getCause());
 
-        if (executionException.getCause() instanceof  NotAuthorizedException) {
+        if (executionException.getCause() instanceof NotAuthorizedException) {
             // thrown by the token provider adapter
         } else {
             // mapped by Kiota

@@ -13,10 +13,10 @@
   },
   "devDependencies": {
     "@apicurio/eslint-config": "0.2.0",
-    "@types/react": "18.2.41",
+    "@types/react": "18.2.42",
     "@types/react-dom": "18.2.17",
-    "@typescript-eslint/eslint-plugin": "6.13.1",
-    "@typescript-eslint/parser": "6.13.1",
+    "@typescript-eslint/eslint-plugin": "6.13.2",
+    "@typescript-eslint/parser": "6.13.2",
     "@vitejs/plugin-react-swc": "3.5.0",
     "eslint": "8.55.0",
     "eslint-plugin-react-hooks": "4.6.0",

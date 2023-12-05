@@ -134,7 +134,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v1.0.0
         with:
-          name: tests-logs
+          name: tests-logs-h2
           path: artifacts
 
   integration-tests-postgresql:
@@ -179,7 +179,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v1.0.0
         with:
-          name: tests-logs
+          name: tests-logs-postgresql
           path: artifacts
 
 
@@ -225,7 +225,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v1.0.0
         with:
-          name: tests-logs
+          name: tests-logs-kafkasql
           path: artifacts
 
   integration-tests-ui:
@@ -246,7 +246,7 @@ jobs:
       - name: Run UI tests
         run: |
           echo "Starting Registry App (In Memory)"
-          docker run -it -p 8080:8080 -d --env CORS_ALLOWED_ORIGINS=* ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:1d
+          docker run -it -p 8080:8080 -d ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:1d
           echo "Starting Registry UI"
           docker run -it -p 8888:8080 -d ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-ui:1d
 
@@ -293,7 +293,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v3
         with:
-          name: tests-logs
+          name: tests-logs-ui
           path: artifacts
 
   integration-tests-legacy-v2:
@@ -301,18 +301,11 @@ jobs:
     runs-on: ubuntu-20.04
     needs: prepare-integration-tests
     steps:
-      - name: Apicurio Registry (Version 2.5.x) Checkout
-        run: |
-          mkdir registry-v2
-          cd registry-v2
-          git init
-          git config --global user.name "apicurio-ci"
-          git config --global user.email "apicurio.ci@gmail.com"
-          git remote add origin "https://apicurio-ci:${{ secrets.ACCESS_TOKEN }}@github.com/Apicurio/apicurio-registry.git"
-          git fetch --all
-          git checkout 2.5.x
-          git branch --set-upstream-to=origin/2.5.x
-          git pull
+      - name: Checkout Registry 2.5
+        uses: actions/checkout@v4
+        with:
+          ref: '2.5.x'
+          path: registry-v2
 
       - name: Set up JDK 17
         uses: actions/setup-java@v3
@@ -324,7 +317,7 @@ jobs:
       - name: Run Legacy Integration Tests (Core API v2)
         run: |
           echo "Starting Registry App (In Memory)"
-          docker run -it -p 8181:8080 -d --env CORS_ALLOWED_ORIGINS=* ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:1d
+          docker run -it -p 8181:8080 -d ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:1d
           cd registry-v2
           ./mvnw -T 1.5C -Pintegration-tests clean install -DskipTests=true -Dmaven.javadoc.skip=true
           cd integration-tests
@@ -338,6 +331,5 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v1.0.0
         with:
-          name: tests-logs
+          name: tests-logs-legacy-v2
           path: artifacts
-          

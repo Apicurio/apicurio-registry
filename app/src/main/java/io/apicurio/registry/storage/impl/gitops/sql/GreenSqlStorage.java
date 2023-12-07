@@ -8,9 +8,6 @@ import jakarta.inject.Inject;
 import jakarta.inject.Named;
 import org.slf4j.Logger;
 
-/**
- * @author Jakub Senko <em>m@jsenko.net</em>
- */
 @ApplicationScoped
 @Logged
 public class GreenSqlStorage extends AbstractSqlRegistryStorage {

@@ -11,9 +11,6 @@ import io.apicurio.registry.resolver.strategy.ArtifactReference;
 import io.apicurio.registry.serde.config.BaseKafkaSerDeConfig;
 import io.apicurio.registry.serde.config.IdOption;
 
-/**
- * @author Ales Justin
- */
 public class DefaultIdHandler implements IdHandler {
     static final int idSize = 8; // we use 8 / long
 

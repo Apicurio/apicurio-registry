@@ -2,6 +2,9 @@ package io.apicurio.registry.storage.impl.kafkasql;
 
 import io.apicurio.common.apps.logging.Logged;
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.model.BranchId;
+import io.apicurio.registry.model.GA;
+import io.apicurio.registry.model.GAV;
 import io.apicurio.registry.storage.dto.DownloadContextDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.GroupMetaDataDto;
@@ -54,7 +57,7 @@ public class KafkaSqlSubmitter {
      */
     public CompletableFuture<UUID> send(MessageKey key, MessageValue value) {
         UUID requestId = coordinator.createUUID();
-        RecordHeader header = new RecordHeader("req", requestId.toString().getBytes());
+        RecordHeader header = new RecordHeader("req", requestId.toString().getBytes()); // TODO: Charset is not specified
         ProducerRecord<MessageKey, MessageValue> record = new ProducerRecord<>(configuration.topic(), 0, key, value, Collections.singletonList(header));
         return producer.apply(record).thenApply(rm -> requestId);
     }
@@ -249,6 +252,21 @@ public class KafkaSqlSubmitter {
     }
     public CompletableFuture<UUID> submitConfigProperty(String propertyName, ActionType action) {
         return submitConfigProperty( propertyName, action, null);
+    }
+
+
+    /* ******************************************************************************************
+     * Artifact Branches
+     * ****************************************************************************************** */
+    public CompletableFuture<UUID> submitBranch(ActionType action, GAV gav, BranchId branchId) {
+        var key = ArtifactBranchKey.create(gav.getRawGroupId(), gav.getRawArtifactId(), branchId.getRawBranchId());
+        var value = ArtifactBranchValue.create(action, gav.getRawVersionId());
+        return send(key, value);
+    }
+    public CompletableFuture<UUID> submitBranch(ActionType action, GA ga, BranchId branchId) {
+        var key = ArtifactBranchKey.create(ga.getRawGroupId(), ga.getRawArtifactId(), branchId.getRawBranchId());
+        var value = ArtifactBranchValue.create(action, null);
+        return send(key, value);
     }
 
 

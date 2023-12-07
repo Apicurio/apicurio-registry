@@ -2,6 +2,11 @@ package io.apicurio.registry.storage.impl.kafkasql.sql;
 
 import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
 import io.apicurio.common.apps.logging.Logged;
+import io.apicurio.registry.exception.RuntimeAssertionFailedException;
+import io.apicurio.registry.exception.UnreachableCodeException;
+import io.apicurio.registry.model.BranchId;
+import io.apicurio.registry.model.GA;
+import io.apicurio.registry.model.GAV;
 import io.apicurio.registry.storage.dto.ArtifactOwnerDto;
 import io.apicurio.registry.storage.dto.GroupMetaDataDto;
 import io.apicurio.registry.storage.error.ArtifactAlreadyExistsException;
@@ -16,12 +21,7 @@ import io.apicurio.registry.storage.impl.kafkasql.values.*;
 import io.apicurio.registry.storage.impl.sql.IdGenerator;
 import io.apicurio.registry.storage.impl.sql.SqlRegistryStorage;
 import io.apicurio.registry.types.RegistryException;
-import io.apicurio.registry.utils.impexp.ArtifactRuleEntity;
-import io.apicurio.registry.utils.impexp.ArtifactVersionEntity;
-import io.apicurio.registry.utils.impexp.CommentEntity;
-import io.apicurio.registry.utils.impexp.ContentEntity;
-import io.apicurio.registry.utils.impexp.GlobalRuleEntity;
-import io.apicurio.registry.utils.impexp.GroupEntity;
+import io.apicurio.registry.utils.impexp.*;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.context.control.ActivateRequestContext;
 import jakarta.inject.Inject;
@@ -75,7 +75,7 @@ public class KafkaSqlSink {
             coordinator.notifyResponse(requestId, e);
         } catch (Throwable e) {
             log.debug("Unexpected exception detected: {}", e.getMessage());
-            coordinator.notifyResponse(requestId, new RegistryException(e));
+            coordinator.notifyResponse(requestId, new RegistryException(e)); // TODO: Any exception (no wrapping)
         }
     }
 
@@ -138,11 +138,14 @@ public class KafkaSqlSink {
                 return processCommentId((CommentIdKey) key, (CommentIdValue) value);
             case Comment:
                 return processComment((CommentKey) key, (CommentValue) value);
-            default:
-                log.warn("Unrecognized message type: {}", record.key());
-                throw new RegistryStorageException("Unexpected message type: " + messageType.name());
+            case ArtifactBranch:
+                return processBranch((ArtifactBranchKey) key, (ArtifactBranchValue) value);
+            case Bootstrap:
+                throw new UnreachableCodeException();
         }
+        throw new UnreachableCodeException("Switch statement not exhaustive.");
     }
+
 
     /**
      * Process a Kafka message of type "globalaction".
@@ -532,7 +535,7 @@ public class KafkaSqlSink {
     private Object unsupported(MessageKey key, AbstractMessageValue value) {
         final String m = String.format("Unsupported action '%s' for message type '%s'", value.getAction(), key.getType().name());
         log.warn(m);
-        throw new RegistryStorageException(m);
+        throw new RuntimeAssertionFailedException(m);
     }
 
     /**
@@ -568,4 +571,19 @@ public class KafkaSqlSink {
         }
     }
 
+
+    private Object processBranch(ArtifactBranchKey key, ArtifactBranchValue value) {
+        switch (value.getAction()) {
+            case CREATE_OR_UPDATE:
+                sqlStore.createOrUpdateArtifactBranch(new GAV(key.getGroupId(), key.getArtifactId(), value.getVersion()), new BranchId(key.getBranchId()));
+                return null;
+            case DELETE:
+                sqlStore.deleteArtifactBranch(new GA(key.getGroupId(), key.getArtifactId()), new BranchId(key.getBranchId()));
+                return null;
+            case IMPORT:
+                // TODO
+            default:
+                return unsupported(key, value);
+        }
+    }
 }

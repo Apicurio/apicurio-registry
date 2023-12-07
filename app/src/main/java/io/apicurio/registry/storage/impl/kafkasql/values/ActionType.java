@@ -10,17 +10,18 @@ import java.util.Map;
 @RegisterForReflection
 public enum ActionType {
 
+    // TODO: Use printable ASCII characters, e.g. var ord = (byte) 'C';, so data in the topic is readable?
     CREATE(1),
     UPDATE(2),
     DELETE(3),
     CLEAR(4),
     IMPORT(5),
     RESET(6),
-
     /**
      * Deletes ALL user data. Does not delete global data, such as log configuration.
      */
-    DELETE_ALL_USER_DATA(7);
+    DELETE_ALL_USER_DATA(7),
+    CREATE_OR_UPDATE(8);
 
     private final byte ord;
 

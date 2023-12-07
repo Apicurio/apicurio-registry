@@ -38,7 +38,6 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Event;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
-import org.apache.commons.lang3.NotImplementedException;
 import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -895,11 +894,14 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
 
     @Override
     public void createOrUpdateArtifactBranch(GAV gav, BranchId branchId) {
-        throw new NotImplementedException();
+        var uuid = ConcurrentUtil.get(submitter.submitBranch(ActionType.CREATE_OR_UPDATE, gav, branchId));
+        coordinator.waitForResponse(uuid);
     }
+
 
     @Override
     public void deleteArtifactBranch(GA ga, BranchId branchId) {
-        throw new NotImplementedException();
+        var uuid = ConcurrentUtil.get(submitter.submitBranch(ActionType.DELETE, ga, branchId));
+        coordinator.waitForResponse(uuid);
     }
 }

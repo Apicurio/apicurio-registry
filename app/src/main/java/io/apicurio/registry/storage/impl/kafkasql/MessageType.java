@@ -22,6 +22,7 @@ public enum MessageType {
     ArtifactOwner(14),
     CommentId(15),
     Comment(16),
+    ArtifactBranch(17),
     ;
 
     private final byte ord;

@@ -1,5 +1,6 @@
 package io.apicurio.registry.storage.impl.kafkasql.values;
 
+import io.apicurio.registry.exception.RuntimeAssertionFailedException;
 import io.apicurio.registry.storage.impl.kafkasql.MessageType;
 
 import java.util.HashMap;
@@ -62,8 +63,11 @@ public class MessageTypeToValueClass {
                 case Comment:
                     index.put(type, CommentValue.class);
                     break;
+                case ArtifactBranch:
+                    index.put(type, ArtifactBranchValue.class);
+                    break;
                 default:
-                    throw new RuntimeException("[MessageTypeToValueClass] Type not mapped: " + type);
+                    throw new RuntimeAssertionFailedException("[MessageTypeToValueClass] Type not mapped: " + type);
             }
         }
     }

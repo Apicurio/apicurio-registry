@@ -9,6 +9,7 @@ import java.util.Map;
  * Used to get an "ord" value from an ArtifactType.
  */
 public class ArtifactTypeOrdUtil {
+// TODO: Make this a responsibility of ArtifactType
 
     private static final Map<String, Byte> atToOrd = new HashMap<>();
     private static final Map<Byte, String> ordToAt = new HashMap<>();

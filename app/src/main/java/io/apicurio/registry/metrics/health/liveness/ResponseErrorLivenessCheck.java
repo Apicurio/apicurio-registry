@@ -12,9 +12,6 @@ import org.eclipse.microprofile.health.HealthCheckResponse;
 import org.eclipse.microprofile.health.Liveness;
 import org.slf4j.Logger;
 
-/**
- * @author Jakub Senko <em>m@jsenko.net</em>
- */
 @ApplicationScoped
 @Liveness
 @Default

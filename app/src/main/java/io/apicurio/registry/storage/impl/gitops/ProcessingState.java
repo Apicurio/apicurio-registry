@@ -18,9 +18,6 @@ import java.util.Set;
 import static java.util.Collections.unmodifiableList;
 import static java.util.Collections.unmodifiableSet;
 
-/**
- * @author Jakub Senko <em>m@jsenko.net</em>
- */
 public class ProcessingState {
 
     @Getter

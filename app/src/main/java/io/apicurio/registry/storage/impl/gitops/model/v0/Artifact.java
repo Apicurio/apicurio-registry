@@ -9,9 +9,6 @@ import lombok.experimental.SuperBuilder;
 
 import java.util.List;
 
-/**
- * @author Jakub Senko <em>m@jsenko.net</em>
- */
 @SuperBuilder
 @NoArgsConstructor
 @Setter

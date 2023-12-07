@@ -14,7 +14,6 @@ import io.apicurio.registry.serde.config.IdOption;
 /**
  * IdHandler that assumes 4 bytes for the magic number (the ID).
  *
- * @author Ales Justin
  */
 public class Legacy4ByteIdHandler implements IdHandler {
     static final int idSize = 4; // e.g. Confluent uses 4 / int

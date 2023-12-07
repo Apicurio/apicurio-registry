@@ -11,15 +11,13 @@ import io.quarkus.runtime.annotations.RegisterForReflection;
 @RegisterForReflection
 public interface MessageKey {
 
-    /**
-     * Returns the message type.
-     */
+
     @JsonIgnore
-    public MessageType getType();
+    MessageType getType();
 
     /**
      * Returns the key that should be used when partitioning the messages.
      */
     @JsonIgnore
-    public String getPartitionKey();
+    String getPartitionKey();
 }

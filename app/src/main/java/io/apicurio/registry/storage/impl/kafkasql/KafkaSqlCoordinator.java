@@ -51,7 +51,7 @@ public class KafkaSqlCoordinator {
             if (rval == NULL) {
                 return null;
             } else if (rval instanceof RegistryException) {
-                throw (RegistryException) rval;
+                throw (RegistryException) rval; // TODO: Any exception
             }
             return rval;
         } catch (InterruptedException e) {

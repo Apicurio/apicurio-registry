@@ -141,4 +141,20 @@ public class SQLServerSqlStatements extends CommonSqlStatements {
                 + "ORDER BY groupId ASC";
     }
 
+
+    @Override
+    public String selectArtifactBranchLeaf() {
+        return "SELECT avb.groupId, avb.artifactId, avb.version FROM artifact_version_branches avb " +
+                "WHERE avb.groupId = ? AND avb.artifactId = ? AND avb.branch = ? " +
+                "ORDER BY avb.branchOrder DESC OFFSET 0 ROWS FETCH NEXT 1 ROWS ONLY";
+    }
+
+
+    @Override
+    public String selectArtifactBranchLeafNotDisabled() {
+        return "SELECT avb.groupId, avb.artifactId, avb.version FROM artifact_version_branches avb " +
+                "JOIN versions v ON avb.groupId = v.groupId AND avb.artifactId = v.artifactId AND avb.version = v.version " +
+                "WHERE avb.groupId = ? AND avb.artifactId = ? AND avb.branch = ? AND v.state != 'DISABLED' " +
+                "ORDER BY avb.branchOrder DESC OFFSET 0 ROWS FETCH NEXT 1 ROWS ONLY";
+    }
 }

@@ -80,5 +80,3 @@ CREATE INDEX IDX_config_1 ON config(modifiedOn);
 CREATE TABLE artifactreferences (contentId BIGINT NOT NULL, groupId VARCHAR(512), artifactId VARCHAR(512) NOT NULL, version VARCHAR(256), name VARCHAR(512) NOT NULL);
 ALTER TABLE artifactreferences ADD PRIMARY KEY (contentId, name);
 ALTER TABLE artifactreferences ADD CONSTRAINT FK_artifactreferences_1 FOREIGN KEY (contentId) REFERENCES content(contentId) ON DELETE CASCADE;
-
-

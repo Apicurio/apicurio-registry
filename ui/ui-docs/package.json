@@ -23,8 +23,8 @@
     "eslint-plugin-react-refresh": "0.4.5",
     "rimraf": "5.0.5",
     "typescript": "5.3.3",
-    "vite": "5.0.6",
-    "vite-tsconfig-paths": "4.2.1"
+    "vite": "5.0.7",
+    "vite-tsconfig-paths": "4.2.2"
   },
   "dependencies": {
     "react": "18.2.0",

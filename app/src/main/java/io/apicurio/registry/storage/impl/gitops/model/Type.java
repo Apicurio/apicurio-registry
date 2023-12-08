@@ -10,9 +10,6 @@ import lombok.ToString;
 import java.util.Arrays;
 import java.util.Optional;
 
-/**
- * @author Jakub Senko <em>m@jsenko.net</em>
- */
 @Getter
 @ToString(onlyExplicitlyIncluded = true)
 public enum Type {

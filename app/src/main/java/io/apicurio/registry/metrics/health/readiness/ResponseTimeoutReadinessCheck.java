@@ -22,9 +22,6 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.format.DateTimeParseException;
 
-/**
- * @author Jakub Senko <em>m@jsenko.net</em>
- */
 @ApplicationScoped
 @Readiness
 @Default

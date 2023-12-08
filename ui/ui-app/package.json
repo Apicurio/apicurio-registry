@@ -15,19 +15,19 @@
   "devDependencies": {
     "@apicurio/eslint-config": "0.2.0",
     "@monaco-editor/react": "4.6.0",
-    "@types/luxon": "3.3.6",
-    "@types/react": "18.2.41",
+    "@types/luxon": "3.3.7",
+    "@types/react": "18.2.42",
     "@types/react-dom": "18.2.17",
-    "@typescript-eslint/eslint-plugin": "6.13.1",
-    "@typescript-eslint/parser": "6.13.1",
+    "@typescript-eslint/eslint-plugin": "6.13.2",
+    "@typescript-eslint/parser": "6.13.2",
     "@vitejs/plugin-react-swc": "3.5.0",
     "eslint": "8.55.0",
     "eslint-plugin-react-hooks": "4.6.0",
     "eslint-plugin-react-refresh": "0.4.5",
     "rimraf": "5.0.5",
     "typescript": "5.3.3",
-    "vite": "5.0.5",
-    "vite-tsconfig-paths": "4.2.1"
+    "vite": "5.0.7",
+    "vite-tsconfig-paths": "4.2.2"
   },
   "dependencies": {
     "@apicurio/data-models": "1.1.26",

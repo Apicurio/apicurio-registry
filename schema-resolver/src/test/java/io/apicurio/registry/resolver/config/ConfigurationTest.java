@@ -8,9 +8,6 @@ import java.util.HashMap;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-/**
- * @author Jakub Senko <em>m@jsenko.net</em>
- */
 class ConfigurationTest {
 
     /**

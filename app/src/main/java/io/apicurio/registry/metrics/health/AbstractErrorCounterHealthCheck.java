@@ -7,7 +7,6 @@ import java.util.Optional;
 /**
  * Abstract class containing common logic for health checks based on an error counter.
  *
- * @author Jakub Senko <em>m@jsenko.net</em>
  */
 public abstract class AbstractErrorCounterHealthCheck {
 

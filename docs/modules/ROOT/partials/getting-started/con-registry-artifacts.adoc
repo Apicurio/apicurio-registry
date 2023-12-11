@@ -114,6 +114,8 @@ You can manage artifact references using the {registry} core REST API, Maven plu
 * Avro
 * Protobuf
 * JSON Schema
+* OpenAPI
+* AsyncAPI
 
 [role="_additional-resources"]
 .Additional resources

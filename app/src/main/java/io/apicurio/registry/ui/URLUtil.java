@@ -14,7 +14,6 @@ import java.util.Optional;
 /**
  * Utility to generate absolute URLs.
  *
- * @author Jakub Senko <em>m@jsenko.net</em>
  */
 @ApplicationScoped
 public class URLUtil {

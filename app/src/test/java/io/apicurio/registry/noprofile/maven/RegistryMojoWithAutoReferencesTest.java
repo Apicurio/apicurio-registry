@@ -1,19 +1,3 @@
-/*
- * Copyright 2023 Red Hat
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package io.apicurio.registry.noprofile.maven;
 
 import io.apicurio.registry.maven.DownloadRegistryMojo;
@@ -21,7 +5,7 @@ import io.apicurio.registry.maven.RegisterArtifact;
 import io.apicurio.registry.maven.RegisterRegistryMojo;
 import io.apicurio.registry.rest.client.models.ArtifactMetaData;
 import io.apicurio.registry.rest.client.models.ArtifactReference;
-import io.apicurio.registry.rest.v2.beans.IfExists;
+import io.apicurio.registry.rest.v3.beans.IfExists;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.tests.TestUtils;
@@ -56,10 +40,10 @@ public class RegistryMojoWithAutoReferencesTest extends RegistryMojoTestBase {
     @BeforeEach
     public void createMojos() {
         this.registerMojo = new RegisterRegistryMojo();
-        this.registerMojo.setRegistryUrl(TestUtils.getRegistryV2ApiUrl(testPort));
+        this.registerMojo.setRegistryUrl(TestUtils.getRegistryV3ApiUrl(testPort));
 
         this.downloadMojo = new DownloadRegistryMojo();
-        this.downloadMojo.setRegistryUrl(TestUtils.getRegistryV2ApiUrl(testPort));
+        this.downloadMojo.setRegistryUrl(TestUtils.getRegistryV3ApiUrl(testPort));
     }
 
     @Test
@@ -168,10 +152,10 @@ public class RegistryMojoWithAutoReferencesTest extends RegistryMojoTestBase {
     }
 
     private void validateStructure(String groupId, String artifactId, int expectedMainReferences, int expectedTotalArtifacts, Set<String> originalContents) throws Exception {
-        final ArtifactMetaData artifactWithReferences = clientV2.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).meta().get().get(3, TimeUnit.SECONDS);
+        final ArtifactMetaData artifactWithReferences = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).meta().get().get(3, TimeUnit.SECONDS);
         final String mainContent =
                 new String(
-                        clientV2
+                        clientV3
                                 .groups()
                                 .byGroupId(groupId)
                                 .artifacts()
@@ -183,7 +167,7 @@ public class RegistryMojoWithAutoReferencesTest extends RegistryMojoTestBase {
 
         Assertions.assertTrue(originalContents.contains(mainContent)); //The main content has been registered as-is.
 
-        final List<ArtifactReference> mainArtifactReferences = clientV2.ids().globalIds().byGlobalId(artifactWithReferences.getGlobalId()).references().get().get(3, TimeUnit.SECONDS);
+        final List<ArtifactReference> mainArtifactReferences = clientV3.ids().globalIds().byGlobalId(artifactWithReferences.getGlobalId()).references().get().get(3, TimeUnit.SECONDS);
 
         //The main artifact has the expected number of references
         Assertions.assertEquals(expectedMainReferences, mainArtifactReferences.size());
@@ -192,13 +176,13 @@ public class RegistryMojoWithAutoReferencesTest extends RegistryMojoTestBase {
         validateReferences(mainArtifactReferences, originalContents);
 
         //The total number of artifacts for the directory structure is the expected.
-        Assertions.assertEquals(expectedTotalArtifacts, clientV2.groups().byGroupId(groupId).artifacts().get().get(3, TimeUnit.SECONDS).getCount().intValue());
+        Assertions.assertEquals(expectedTotalArtifacts, clientV3.groups().byGroupId(groupId).artifacts().get().get(3, TimeUnit.SECONDS).getCount().intValue());
     }
 
     private void validateReferences(List<ArtifactReference> artifactReferences, Set<String> loadedContents) throws Exception {
         for (ArtifactReference artifactReference : artifactReferences) {
             String referenceContent = new String(
-                    clientV2
+                    clientV3
                             .groups()
                             .byGroupId(artifactReference.getGroupId())
                             .artifacts()
@@ -207,7 +191,7 @@ public class RegistryMojoWithAutoReferencesTest extends RegistryMojoTestBase {
                             .byVersion(artifactReference.getVersion())
                             .get()
                             .get(3, TimeUnit.SECONDS).readAllBytes(), StandardCharsets.UTF_8);
-            ArtifactMetaData referenceMetadata = clientV2
+            ArtifactMetaData referenceMetadata = clientV3
                     .groups()
                     .byGroupId(artifactReference.getGroupId())
                     .artifacts()
@@ -217,7 +201,7 @@ public class RegistryMojoWithAutoReferencesTest extends RegistryMojoTestBase {
                     .get(3, TimeUnit.SECONDS);
             Assertions.assertTrue(loadedContents.contains(referenceContent.trim()));
 
-            List<ArtifactReference> nestedReferences = clientV2.ids().globalIds().byGlobalId(referenceMetadata.getGlobalId()).references().get().get(3, TimeUnit.SECONDS);
+            List<ArtifactReference> nestedReferences = clientV3.ids().globalIds().byGlobalId(referenceMetadata.getGlobalId()).references().get().get(3, TimeUnit.SECONDS);
 
             if (!nestedReferences.isEmpty()) {
                 validateReferences(nestedReferences, loadedContents);

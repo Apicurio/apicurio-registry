@@ -1,19 +1,3 @@
-/*
- * Copyright 2022 Red Hat
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package io.apicurio.registry.noprofile.validity;
 
 import org.junit.jupiter.api.Assertions;
@@ -33,9 +17,6 @@ import java.util.concurrent.TimeUnit;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-/**
- * @author eric.wittmann@gmail.com
- */
 @QuarkusTest
 public class ValidityRuleApplicationTest extends AbstractResourceTestBase {
 
@@ -89,12 +70,12 @@ public class ValidityRuleApplicationTest extends AbstractResourceTestBase {
         Rule rule = new Rule();
         rule.setType(RuleType.VALIDITY);
         rule.setConfig(ValidityLevel.FULL.name());
-        clientV2.groups().byGroupId("default").artifacts().byArtifactId(artifactId).rules().post(rule).get(3, TimeUnit.SECONDS);
+        clientV3.groups().byGroupId("default").artifacts().byArtifactId(artifactId).rules().post(rule).get(3, TimeUnit.SECONDS);
 
         var executionException = Assertions.assertThrows(ExecutionException.class, () -> {
             ArtifactContent content = new ArtifactContent();
             content.setContent(INVALID_SCHEMA);
-            clientV2.groups().byGroupId("default").artifacts().byArtifactId(artifactId).put(content).get(3, TimeUnit.SECONDS);
+            clientV3.groups().byGroupId("default").artifacts().byArtifactId(artifactId).put(content).get(3, TimeUnit.SECONDS);
         });
         assertNotNull(executionException.getCause());
         assertEquals("RuleViolationException", ((io.apicurio.registry.rest.client.models.Error)executionException.getCause()).getName());
@@ -108,12 +89,12 @@ public class ValidityRuleApplicationTest extends AbstractResourceTestBase {
         Rule rule = new Rule();
         rule.setType(RuleType.VALIDITY);
         rule.setConfig(ValidityLevel.FULL.name());
-        clientV2.groups().byGroupId("default").artifacts().byArtifactId(artifactId).rules().post(rule).get(3, TimeUnit.SECONDS);
+        clientV3.groups().byGroupId("default").artifacts().byArtifactId(artifactId).rules().post(rule).get(3, TimeUnit.SECONDS);
 
         var executionException = Assertions.assertThrows(ExecutionException.class, () -> {
             ArtifactContent content = new ArtifactContent();
             content.setContent(INVALID_SCHEMA_WITH_MAP);
-            clientV2.groups().byGroupId("default").artifacts().byArtifactId(artifactId).put(content).get(3, TimeUnit.SECONDS);
+            clientV3.groups().byGroupId("default").artifacts().byArtifactId(artifactId).put(content).get(3, TimeUnit.SECONDS);
         });
         assertNotNull(executionException.getCause());
         assertEquals("RuleViolationException", ((io.apicurio.registry.rest.client.models.Error)executionException.getCause()).getName());

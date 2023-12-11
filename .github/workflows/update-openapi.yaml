@@ -40,22 +40,15 @@ jobs:
       - name: Copy openapi.json
         run: |
           cd registry
-          cp ./common/src/main/resources/META-INF/openapi.json ./app/src/main/resources-unfiltered/META-INF/resources/api-specifications/registry/v2/openapi.json
-
-      - name: Make copy with Auth info
-        run: |
-          cd registry/utils/tools
-          mvn clean package
-          mvn exec:java -Dexec.mainClass="io.apicurio.registry.utils.tools.AddOpenApiAuth" -Dexec.args="../../app/src/main/resources-unfiltered/META-INF/resources/api-specifications/registry/v2/openapi.json ../../app/src/main/resources-unfiltered/META-INF/resources/api-specifications/registry/v2/openapi-auth.json"
-          mvn exec:java -Dexec.mainClass="io.apicurio.registry.utils.tools.TransformOpenApiForClientGen" -Dexec.args="../../app/src/main/resources-unfiltered/META-INF/resources/api-specifications/registry/v2/openapi.json ../../app/src/main/resources-unfiltered/META-INF/resources/api-specifications/registry/v2/openapi-gen.json"
+          cp ./common/src/main/resources/META-INF/openapi.json ./app/src/main/resources-unfiltered/META-INF/resources/api-specifications/registry/v3/openapi.json
+          cp ./common/src/main/resources/META-INF/openapi-v2.json ./app/src/main/resources-unfiltered/META-INF/resources/api-specifications/registry/v2/openapi.json
 
       - name: Commit Release Version Change
         run: |
           cd registry
+          git add ./app/src/main/resources-unfiltered/META-INF/resources/api-specifications/registry/v3/openapi.json
           git add ./app/src/main/resources-unfiltered/META-INF/resources/api-specifications/registry/v2/openapi.json
-          git add ./app/src/main/resources-unfiltered/META-INF/resources/api-specifications/registry/v2/openapi-auth.json
-          git add ./app/src/main/resources-unfiltered/META-INF/resources/api-specifications/registry/v2/openapi-gen.json
-          git commit -m "Automatically updated the core v2 API OpenAPI definition."
+          git commit -m "Automatically updated the core API OpenAPI definition."
           git push
 
   validate:

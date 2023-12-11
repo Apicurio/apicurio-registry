@@ -76,7 +76,7 @@ jobs:
           DOCS_VERSION=$(echo "${{ github.event.inputs.release-version}}" | awk -F '.' '{print $1"."$2".x"}')
           
           sed -i  "s/version\:\s.*/version: \'${DOCS_VERSION}\'/g" docs/antora.yml
-          sed -i  "5s/\"version\"\:\s\".*\"/\"version\": \"${DOCS_VERSION}\"/g" app/src/main/resources-unfiltered/META-INF/resources/api-specifications/registry/v2/openapi.json
+          sed -i  "5s/\"version\"\:\s\".*\"/\"version\": \"${DOCS_VERSION}\"/g" app/src/main/resources-unfiltered/META-INF/resources/api-specifications/registry/v3/openapi.json
 
           # take only the major, minor and patch
           PYTHON_SDK_VERSION=$(echo "${{ github.event.inputs.release-version}}" | awk -F '.' '{print $1"."$2"."$3}')
@@ -178,7 +178,7 @@ jobs:
           DOCS_VERSION=$(echo "${{ github.event.inputs.snapshot-version}}" | awk -F '.' '{print $1"."$2".x"}')
           
           sed -i  "s/version\:\s.*/version: \'${DOCS_VERSION}\'/g" docs/antora.yml
-          sed -i  "5s/\"version\"\:\s\".*\"/\"version\": \"${DOCS_VERSION}\"/g" app/src/main/resources-unfiltered/META-INF/resources/api-specifications/registry/v2/openapi.json
+          sed -i  "5s/\"version\"\:\s\".*\"/\"version\": \"${DOCS_VERSION}\"/g" app/src/main/resources-unfiltered/META-INF/resources/api-specifications/registry/v3/openapi.json
 
           # take only the major, minor and patch
           PYTHON_SDK_VERSION=$(echo "${{ github.event.inputs.snapshot-version}}" | awk -F '.' '{print $1"."$2"."$3}')

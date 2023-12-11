@@ -1,19 +1,3 @@
-/*
- * Copyright 2022 Red Hat
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package io.apicurio.registry.noprofile.maven;
 
 import io.apicurio.registry.maven.RegisterArtifact;
@@ -31,9 +15,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-/**
- * @author Ales Justin
- */
 @QuarkusTest
 public class RegistryMojoWithMinifyTest extends RegistryMojoTestBase {
     RegisterRegistryMojo registerMojo;
@@ -41,7 +22,7 @@ public class RegistryMojoWithMinifyTest extends RegistryMojoTestBase {
     @BeforeEach
     public void createMojo() {
         this.registerMojo = new RegisterRegistryMojo();
-        this.registerMojo.setRegistryUrl(TestUtils.getRegistryV2ApiUrl(testPort));
+        this.registerMojo.setRegistryUrl(TestUtils.getRegistryV3ApiUrl(testPort));
     }
 
     @Test
@@ -68,14 +49,14 @@ public class RegistryMojoWithMinifyTest extends RegistryMojoTestBase {
 
         // Wait for the artifact to be created.
         TestUtils.retry(() -> {
-            InputStream artifactInputStream = clientV2.groups().byGroupId(groupId).artifacts().byArtifactId("userInfoMinified").get().get(3, TimeUnit.SECONDS);
+            InputStream artifactInputStream = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId("userInfoMinified").get().get(3, TimeUnit.SECONDS);
             String artifactContent = new String(artifactInputStream.readAllBytes(), StandardCharsets.UTF_8);
             Assertions.assertEquals("{\"type\":\"record\",\"name\":\"userInfo\",\"namespace\":\"my.example\",\"fields\":[{\"name\":\"age\",\"type\":\"int\"}]}", artifactContent);
         });
 
         // Wait for the artifact to be created.
         TestUtils.retry(() -> {
-            InputStream artifactInputStream = clientV2.groups().byGroupId(groupId).artifacts().byArtifactId("userInfoNotMinified").get().get(3, TimeUnit.SECONDS);
+            InputStream artifactInputStream = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId("userInfoNotMinified").get().get(3, TimeUnit.SECONDS);
             String artifactContent = new String(artifactInputStream.readAllBytes(), StandardCharsets.UTF_8);
             Assertions.assertEquals("{\n" +
                     "  \"type\" : \"record\",\n" +

@@ -30,7 +30,7 @@ To allow insecure https certificates, you can use `--insecure` parameter.
 
 You can import your data into Apicurio Registry using curl:
 ```
-curl -X POST "http://<registry-url>/apis/registry/v2/admin/import" \
+curl -X POST "http://<registry-url>/apis/registry/v3/admin/import" \
   -H "Accept: application/json" -H "Content-Type: application/zip" \
   --data-binary @confluent-schema-registry-export.zip
 ```
@@ -39,7 +39,7 @@ If you already have some data in your Apicurio Registry, you can use `X-Registry
 
 **Warning: Your data will be imported with different content ids.**
 ```
-curl -X POST "http://<registry-url>/apis/registry/v2/admin/import" \
+curl -X POST "http://<registry-url>/apis/registry/v3/admin/import" \
   -H "Accept: application/json" -H "Content-Type: application/zip" \
   -H "X-Registry-Preserve-ContentId: false" \
   --data-binary @confluent-schema-registry-export.zip

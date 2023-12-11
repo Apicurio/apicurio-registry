@@ -18,9 +18,6 @@ import java.util.Optional;
 import static io.apicurio.registry.storage.impl.gitops.YAMLObjectMapper.MAPPER;
 import static lombok.AccessLevel.PRIVATE;
 
-/**
- * @author Jakub Senko <em>m@jsenko.net</em>
- */
 @Builder
 @AllArgsConstructor(access = PRIVATE)
 @Getter

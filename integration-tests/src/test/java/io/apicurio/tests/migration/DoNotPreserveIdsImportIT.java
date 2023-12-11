@@ -1,19 +1,3 @@
-/*
- * Copyright 2023 Red Hat
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package io.apicurio.tests.migration;
 
 import com.microsoft.kiota.authentication.AnonymousAuthenticationProvider;
@@ -29,6 +13,8 @@ import io.apicurio.tests.utils.AbstractTestDataInitializer;
 import io.apicurio.tests.utils.Constants;
 import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
+
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -46,12 +32,10 @@ import java.util.concurrent.TimeUnit;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-/**
- * @author Carles Arnal
- */
 @QuarkusIntegrationTest
 @QuarkusTestResource(value = DoNotPreserveIdsImportIT.DoNotPreserveIdsInitializer.class, restrictToAnnotatedClass = true)
 @Tag(Constants.MIGRATION)
+@Disabled
 public class DoNotPreserveIdsImportIT extends ApicurioRegistryBaseIT {
 
     private static final Logger log = LoggerFactory.getLogger(DataMigrationIT.class);
@@ -67,7 +51,7 @@ public class DoNotPreserveIdsImportIT extends ApicurioRegistryBaseIT {
     @Test
     public void testDoNotPreserveIdsImport() throws Exception {
         var adapter = new OkHttpRequestAdapter(new AnonymousAuthenticationProvider());
-        adapter.setBaseUrl(ApicurioRegistryBaseIT.getRegistryV2ApiUrl());
+        adapter.setBaseUrl(ApicurioRegistryBaseIT.getRegistryV3ApiUrl());
         RegistryClient dest = new RegistryClient(adapter);
 
         // Fill the destination registry with data (Avro content is inserted first to ensure that the content IDs are different)

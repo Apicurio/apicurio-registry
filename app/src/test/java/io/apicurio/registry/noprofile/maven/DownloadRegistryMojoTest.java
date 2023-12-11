@@ -1,19 +1,3 @@
-/*
- * Copyright 2022 Red Hat
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package io.apicurio.registry.noprofile.maven;
 
 import java.io.File;
@@ -34,9 +18,6 @@ import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
 
-/**
- * @author Ales Justin
- */
 @QuarkusTest
 public class DownloadRegistryMojoTest extends RegistryMojoTestBase {
     DownloadRegistryMojo mojo;
@@ -44,7 +25,7 @@ public class DownloadRegistryMojoTest extends RegistryMojoTestBase {
     @BeforeEach
     public void createMojo() {
         this.mojo = new DownloadRegistryMojo();
-        this.mojo.setRegistryUrl(TestUtils.getRegistryV2ApiUrl(testPort));
+        this.mojo.setRegistryUrl(TestUtils.getRegistryV3ApiUrl(testPort));
     }
 
     @Test
@@ -55,7 +36,7 @@ public class DownloadRegistryMojoTest extends RegistryMojoTestBase {
         Schema schema = Schema.createUnion(Arrays.asList(Schema.create(Schema.Type.STRING), Schema.create(Schema.Type.NULL)));
         ArtifactContent data = new ArtifactContent();
         data.setContent(schema.toString());
-        clientV2.groups().byGroupId(groupId).artifacts().post(data, config -> {
+        clientV3.groups().byGroupId(groupId).artifacts().post(data, config -> {
             config.headers.add("X-Registry-ArtifactId", artifactId);
             config.headers.add("X-Registry-ArtifactType", ArtifactType.AVRO);
         }).get(3, TimeUnit.SECONDS);

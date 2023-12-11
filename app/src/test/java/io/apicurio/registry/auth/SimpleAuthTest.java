@@ -1,19 +1,3 @@
-/*
- * Copyright 2021 Red Hat
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package io.apicurio.registry.auth;
 
 import com.microsoft.kiota.authentication.BaseBearerTokenAuthenticationProvider;
@@ -52,9 +36,6 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-/**
- * @author Fabian Martinez
- */
 @QuarkusTest
 @TestProfile(AuthTestProfile.class)
 @Tag(ApicurioTestTags.SLOW)
@@ -69,11 +50,11 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
     final String groupId = "authTestGroupId";
 
     @Override
-    protected RegistryClient createRestClientV2() {
+    protected RegistryClient createRestClientV3() {
         var adapter = new OkHttpRequestAdapter(
                 new BaseBearerTokenAuthenticationProvider(
                         new OidcAccessTokenProvider(authServerUrlConfigured, JWKSMockServer.ADMIN_CLIENT_ID, "test1")));
-        adapter.setBaseUrl(registryV2ApiUrl);
+        adapter.setBaseUrl(registryV3ApiUrl);
         return new RegistryClient(adapter);
     }
 
@@ -94,7 +75,7 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
         var adapter = new OkHttpRequestAdapter(
                 new BaseBearerTokenAuthenticationProvider(
                         new OidcAccessTokenProvider(authServerUrlConfigured, JWKSMockServer.WRONG_CREDS_CLIENT_ID, "test55")));
-        adapter.setBaseUrl(registryV2ApiUrl);
+        adapter.setBaseUrl(registryV3ApiUrl);
         RegistryClient client = new RegistryClient(adapter);
         var executionException = Assertions.assertThrows(ExecutionException.class, () -> {
             client.groups().byGroupId(groupId).artifacts().get().get(3, TimeUnit.SECONDS);
@@ -107,7 +88,7 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
         var adapter = new OkHttpRequestAdapter(
                 new BaseBearerTokenAuthenticationProvider(
                         new OidcAccessTokenProvider(authServerUrlConfigured, JWKSMockServer.READONLY_CLIENT_ID, "test1")));
-        adapter.setBaseUrl(registryV2ApiUrl);
+        adapter.setBaseUrl(registryV3ApiUrl);
         RegistryClient client = new RegistryClient(adapter);
         String artifactId = TestUtils.generateArtifactId();
         client.groups().byGroupId(groupId).artifacts().get().get(3, TimeUnit.SECONDS);
@@ -130,7 +111,7 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
         var devAdapter = new OkHttpRequestAdapter(
                 new BaseBearerTokenAuthenticationProvider(
                         new OidcAccessTokenProvider(authServerUrlConfigured, JWKSMockServer.DEVELOPER_CLIENT_ID, "test1")));
-        devAdapter.setBaseUrl(registryV2ApiUrl);
+        devAdapter.setBaseUrl(registryV3ApiUrl);
         RegistryClient devClient = new RegistryClient(devAdapter);
 
         ArtifactMetaData meta = devClient.groups().byGroupId(groupId).artifacts().post(content, config -> {
@@ -155,7 +136,7 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
         var adapter = new OkHttpRequestAdapter(
                 new BaseBearerTokenAuthenticationProvider(
                         new OidcAccessTokenProvider(authServerUrlConfigured, JWKSMockServer.DEVELOPER_CLIENT_ID, "test1")));
-        adapter.setBaseUrl(registryV2ApiUrl);
+        adapter.setBaseUrl(registryV3ApiUrl);
         RegistryClient client = new RegistryClient(adapter);
         String artifactId = TestUtils.generateArtifactId();
         try {
@@ -195,7 +176,7 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
         var adapter = new OkHttpRequestAdapter(
                 new BaseBearerTokenAuthenticationProvider(
                         new OidcAccessTokenProvider(authServerUrlConfigured, JWKSMockServer.ADMIN_CLIENT_ID, "test1")));
-        adapter.setBaseUrl(registryV2ApiUrl);
+        adapter.setBaseUrl(registryV3ApiUrl);
         RegistryClient client = new RegistryClient(adapter);
         String artifactId = TestUtils.generateArtifactId();
         try {
@@ -231,7 +212,7 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
     public void testAdminRoleBasicAuth() throws Exception {
         var adapter = new OkHttpRequestAdapter(
                 new BasicAuthenticationProvider(JWKSMockServer.BASIC_USER, JWKSMockServer.BASIC_PASSWORD));
-        adapter.setBaseUrl(registryV2ApiUrl);
+        adapter.setBaseUrl(registryV3ApiUrl);
         RegistryClient client = new RegistryClient(adapter);
         String artifactId = TestUtils.generateArtifactId();
         try {
@@ -260,7 +241,7 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
     public void testAdminRoleBasicAuthWrongCreds() throws Exception {
         var adapter = new OkHttpRequestAdapter(
                 new BasicAuthenticationProvider(JWKSMockServer.WRONG_CREDS_CLIENT_ID, UUID.randomUUID().toString()));
-        adapter.setBaseUrl(registryV2ApiUrl);
+        adapter.setBaseUrl(registryV3ApiUrl);
         RegistryClient client = new RegistryClient(adapter);
         String artifactId = TestUtils.generateArtifactId();
 
@@ -282,13 +263,13 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
         var devAdapter = new OkHttpRequestAdapter(
                 new BaseBearerTokenAuthenticationProvider(
                         new OidcAccessTokenProvider(authServerUrlConfigured, JWKSMockServer.DEVELOPER_CLIENT_ID, "test1")));
-        devAdapter.setBaseUrl(registryV2ApiUrl);
+        devAdapter.setBaseUrl(registryV3ApiUrl);
         RegistryClient clientDev = new RegistryClient(devAdapter);
 
         var adminAdapter = new OkHttpRequestAdapter(
                 new BaseBearerTokenAuthenticationProvider(
                         new OidcAccessTokenProvider(authServerUrlConfigured, JWKSMockServer.ADMIN_CLIENT_ID, "test1")));
-        adminAdapter.setBaseUrl(registryV2ApiUrl);
+        adminAdapter.setBaseUrl(registryV3ApiUrl);
         RegistryClient clientAdmin = new RegistryClient(adminAdapter);
 
         // Admin user will create an artifact
@@ -329,7 +310,7 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
         var adapter = new OkHttpRequestAdapter(
                 new BaseBearerTokenAuthenticationProvider(
                         new OidcAccessTokenProvider(authServerUrlConfigured, JWKSMockServer.DEVELOPER_CLIENT_ID, "test1")));
-        adapter.setBaseUrl(registryV2ApiUrl);
+        adapter.setBaseUrl(registryV3ApiUrl);
         RegistryClient client = new RegistryClient(adapter);
 
         //Preparation
@@ -366,7 +347,7 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
         var adapter = new OkHttpRequestAdapter(
                 new BaseBearerTokenAuthenticationProvider(
                         new OidcAccessTokenProvider(authServerUrlConfigured, JWKSMockServer.DEVELOPER_CLIENT_ID, "test1")));
-        adapter.setBaseUrl(registryV2ApiUrl);
+        adapter.setBaseUrl(registryV3ApiUrl);
         RegistryClient client = new RegistryClient(adapter);
 
         //Preparation
@@ -415,12 +396,12 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
         var adapter_dev1 = new OkHttpRequestAdapter(
                 new BaseBearerTokenAuthenticationProvider(
                         new OidcAccessTokenProvider(authServerUrlConfigured, JWKSMockServer.DEVELOPER_CLIENT_ID, "test1")));
-        adapter_dev1.setBaseUrl(registryV2ApiUrl);
+        adapter_dev1.setBaseUrl(registryV3ApiUrl);
         RegistryClient client_dev1 = new RegistryClient(adapter_dev1);
         var adapter_dev2 = new OkHttpRequestAdapter(
                 new BaseBearerTokenAuthenticationProvider(
                         new OidcAccessTokenProvider(authServerUrlConfigured, JWKSMockServer.DEVELOPER_2_CLIENT_ID, "test1")));
-        adapter_dev2.setBaseUrl(registryV2ApiUrl);
+        adapter_dev2.setBaseUrl(registryV3ApiUrl);
         RegistryClient client_dev2 = new RegistryClient(adapter_dev2);
 
         //Preparation

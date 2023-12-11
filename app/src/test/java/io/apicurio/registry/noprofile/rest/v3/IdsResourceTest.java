@@ -1,20 +1,4 @@
-/*
- * Copyright 2022 Red Hat
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
-package io.apicurio.registry.noprofile.rest.v2;
+package io.apicurio.registry.noprofile.rest.v3;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.equalTo;
@@ -26,16 +10,13 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import io.apicurio.registry.AbstractResourceTestBase;
-import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
+import io.apicurio.registry.rest.v3.beans.ArtifactMetaData;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
 
 import java.util.concurrent.TimeUnit;
 
-/**
- * @author eric.wittmann@gmail.com
- */
 @QuarkusTest
 public class IdsResourceTest extends AbstractResourceTestBase {
 
@@ -60,7 +41,7 @@ public class IdsResourceTest extends AbstractResourceTestBase {
                     .header("X-Registry-ArtifactId", artifactId1)
                     .header("X-Registry-ArtifactType", ArtifactType.OPENAPI)
                     .body(artifactContent)
-                .post("/registry/v2/groups/{groupId}/artifacts")
+                .post("/registry/v3/groups/{groupId}/artifacts")
                 .then()
                     .statusCode(200)
                 .extract()
@@ -73,7 +54,7 @@ public class IdsResourceTest extends AbstractResourceTestBase {
                     .header("X-Registry-ArtifactId", artifactId2)
                     .header("X-Registry-ArtifactType", ArtifactType.OPENAPI)
                     .body(artifactContent)
-                .post("/registry/v2/groups/{groupId}/artifacts")
+                .post("/registry/v3/groups/{groupId}/artifacts")
                 .then()
                     .statusCode(200)
                 .extract()
@@ -92,7 +73,7 @@ public class IdsResourceTest extends AbstractResourceTestBase {
                 .contentType(CT_JSON)
                 .pathParam("groupId", GROUP)
                 .pathParam("artifactId", artifactId1)
-                .get("/registry/v2/groups/{groupId}/artifacts/{artifactId}/meta")
+                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/meta")
             .then()
                 .statusCode(200)
                 .body("type", equalTo(ArtifactType.OPENAPI))
@@ -106,7 +87,7 @@ public class IdsResourceTest extends AbstractResourceTestBase {
                 .contentType(CT_JSON)
                 .pathParam("groupId", GROUP)
                 .pathParam("artifactId", artifactId2)
-                .get("/registry/v2/groups/{groupId}/artifacts/{artifactId}/meta")
+                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/meta")
             .then()
                 .statusCode(200)
                 .body("type", equalTo(ArtifactType.OPENAPI))
@@ -119,7 +100,7 @@ public class IdsResourceTest extends AbstractResourceTestBase {
                 .contentType(CT_JSON)
                 .pathParam("groupId", GROUP)
                 .pathParam("artifactId", amd1.getId())
-                .get("/registry/v2/groups/{groupId}/artifacts/{artifactId}/versions")
+                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions")
             .then()
                 .statusCode(200)
                 .body("count", equalTo(1))
@@ -134,7 +115,7 @@ public class IdsResourceTest extends AbstractResourceTestBase {
                 .pathParam("groupId", GROUP)
                 .pathParam("artifactId", amd1.getId())
                 .pathParam("version", amd1.getVersion())
-                .get("/registry/v2/groups/{groupId}/artifacts/{artifactId}/versions/{version}/meta")
+                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/{version}/meta")
             .then()
                 .statusCode(200)
                 .body("globalId", equalTo(amd1.getGlobalId().intValue()))
@@ -158,7 +139,7 @@ public class IdsResourceTest extends AbstractResourceTestBase {
                 .header("X-Registry-ArtifactId", artifactId)
                 .header("X-Registry-ArtifactType", ArtifactType.OPENAPI)
                 .body(artifactContent)
-                .post("/registry/v2/groups/{groupId}/artifacts")
+                .post("/registry/v3/groups/{groupId}/artifacts")
                 .then()
                 .statusCode(200)
                 .extract()
@@ -171,7 +152,7 @@ public class IdsResourceTest extends AbstractResourceTestBase {
                 .when()
                 .contentType(CT_JSON)
                 .pathParam("globalId", globalId)
-                .get("/registry/v2/ids/globalIds/{globalId}")
+                .get("/registry/v3/ids/globalIds/{globalId}")
                 .then()
                 .statusCode(200)
                 .body("openapi", equalTo("3.0.2"))
@@ -195,8 +176,8 @@ public class IdsResourceTest extends AbstractResourceTestBase {
         long globalId2 = createArtifact(group2, artifactId, ArtifactType.OPENAPI, artifactContent);
 
         // Get by globalId should not fail
-        clientV2.ids().globalIds().byGlobalId(globalId1).get().get(3, TimeUnit.SECONDS);
-        clientV2.ids().globalIds().byGlobalId(globalId2).get().get(3, TimeUnit.SECONDS);
+        clientV3.ids().globalIds().byGlobalId(globalId1).get().get(3, TimeUnit.SECONDS);
+        clientV3.ids().globalIds().byGlobalId(globalId2).get().get(3, TimeUnit.SECONDS);
 
     }
 
@@ -216,7 +197,7 @@ public class IdsResourceTest extends AbstractResourceTestBase {
                     .header("X-Registry-ArtifactId", artifactId)
                     .header("X-Registry-ArtifactType", ArtifactType.OPENAPI)
                     .body(artifactContent)
-                .post("/registry/v2/groups/{groupId}/artifacts")
+                .post("/registry/v3/groups/{groupId}/artifacts")
                 .then()
                     .statusCode(200)
                 .extract()
@@ -229,7 +210,7 @@ public class IdsResourceTest extends AbstractResourceTestBase {
             .when()
                 .contentType(CT_JSON)
                 .pathParam("contentId", contentId)
-                .get("/registry/v2/ids/contentIds/{contentId}")
+                .get("/registry/v3/ids/contentIds/{contentId}")
             .then()
                 .statusCode(200)
                 .body("openapi", equalTo("3.0.2"))
@@ -240,7 +221,7 @@ public class IdsResourceTest extends AbstractResourceTestBase {
             .when()
                 .contentType(CT_JSON)
                 .pathParam("contentId", Integer.MAX_VALUE)
-                .get("/registry/v2/ids/contentIds/{contentId}")
+                .get("/registry/v3/ids/contentIds/{contentId}")
             .then()
                 .statusCode(404);
     }
@@ -262,7 +243,7 @@ public class IdsResourceTest extends AbstractResourceTestBase {
                 .header("X-Registry-ArtifactId", artifactId)
                 .header("X-Registry-ArtifactType", ArtifactType.OPENAPI)
                 .body(artifactContent)
-            .post("/registry/v2/groups/{groupId}/artifacts")
+            .post("/registry/v3/groups/{groupId}/artifacts")
             .then()
                 .statusCode(200);
 
@@ -271,7 +252,7 @@ public class IdsResourceTest extends AbstractResourceTestBase {
             .when()
                 .contentType(CT_JSON)
                 .pathParam("contentHash", contentHash)
-                .get("/registry/v2/ids/contentHashes/{contentHash}")
+                .get("/registry/v3/ids/contentHashes/{contentHash}")
             .then()
                 .statusCode(200)
                 .body("openapi", equalTo("3.0.2"))
@@ -283,7 +264,7 @@ public class IdsResourceTest extends AbstractResourceTestBase {
             .when()
                 .contentType(CT_JSON)
                 .pathParam("contentHash", "CONTENT-HASH-NOT-VALID")
-                .get("/registry/v2/ids/contentHashes/{contentHash}")
+                .get("/registry/v3/ids/contentHashes/{contentHash}")
             .then()
                 .statusCode(404);
     }

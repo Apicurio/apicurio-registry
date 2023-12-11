@@ -28,32 +28,59 @@ This set of tests are mainly designed to work in two different modes:
 
 ### ITs with local infrastructure
 
-This is the normal mode used when you execute the testsuite. Because Apicurio Registry supports various storage backends and various deployment time configurations(such as authentication,...) this tests deploy different components depending on the test executed. This is achieved using Quarkus profiles.
-
-When running from the terminal, the configuration is provided via maven profiles. You can find all the available maven profiles [here](integration-tests/pom.xml)
+This is the normal mode used when you execute the testsuite. Because Apicurio Registry employs a unified approach to the application as of version 3.0, the only storage that can currently be used in this mode is in-memory.
 
 When executing the testsuite you normally provide two profiles:
 + test profile (which determines the tests that will be executed), with the following options: all, ci, smoke, serdes, ui, acceptance, auth, migration, sqlit, kafkasqlit.
-+ storage variant to test (which determines the storage backend that will be deployed, and therefore tested), the available options for running the test locally are: local-mem , local-sql, local-mssql , local-kafka.
++ `local-tests` - this profile enables local testing mode, rather than remote testing (i.e. registry deployed to an external environment like minikube)
 
-As you might expect, this testsuite mode depends on the rest of the project to be built first, in order to have the application jars/images available or the serdes module to be available as well.
+As you might expect, this testsuite mode depends on the rest of the project to be built first, in order to have the application jars/images available or the serdes module to be available.
 
-For running the smoke tests group using the sql variant, first run `mvn clean install -Psql` (this command will execute the unit tests for the sql variant, you can skip them using `-DskipTests`) and then run `mvn verify -Plocal-sql -Psmoke`.
+For example, to run the smoke tests group using this approach, first run `mvn clean install` (this command will execute all unit tests as well, you can skip them using `-DskipTests`) and then run `mvn verify -am -Pintegration-tests -pl integration-tests -Plocal-tests -Psmoke`.
 
+Here is a breakdown of the options:
+
+* `verify` - the maven command you want to run.  Verify will run the tests.
+* `-am` - automatically build any maven modules needed by the module/project being built.
+* `-Pintegration-tests` - enable the `integration-tests` profile, which adds the **integration-tests** maven module to the reactor.
+* `-pl integration-tests` - tell maven to only build the **integration-tests* module.
+* `-Plocal-tests` - enable local testing mode, which will tell the test framework to start the Quarkus application automatically for the tests.
+* `-Psmoke` - run only the integration tests in the `smoke` group.
 
 ## ITs with infrastructure in Kubernetes/Openshift
 
-The Integration Tests testsuite can be configured to expect Apicurio Registry, and it's required infrastructure, to be deployed externally in a K8s cluster. 
+The Integration Tests testsuite can be configured to expect Apicurio Registry, and its required infrastructure, to be deployed externally in a K8s cluster.
 
 In this mode, the testsuite expects your kubeconfig file to be already configured pointing to the cluster that will be used for testing. The tests that will be executed are determined using the maven profile just as when running locally.
-As for the storage variant, it will be determined using a similar approach as the one used for the local execution but with different names: remote-mem, remote-sql, remote-mssql, remote-kafka.
+As for the storage variant, it will be determined by activating one of the `remote-*` maven proviles: remote-mem, remote-sql, remote-kafka.
 
-We have make goals for all the deployment variants and you have examples for all the execution possibilities in our [Github Actions Workflows](.github/workflows/integration-tests.yaml)
+For more help/examples of running the integration tests in this mode, see our CI jobs here: [Integration Tests GH Workflow](.github/workflows/integration-tests.yaml)
+
+## ITs against custom infrastructure
+
+Another way to run the tests is against custom infrastructure. You can deploy and run the registry in whatever way you want, and then run the integration tests against that deployment.
+
+To do this, you must once again specify the collection of integration tests you wish to run, but instead of activating the `local-tests` maven profile or one of the `remote-*` profiles, you can add `-Dquarkus.http.test-host` and `-Dquarkus.http.test-port` to the maven command line.
+
+For example, you can run the tests against the docker version of Registry by doing the following:
+
+### Run Registry using docker
+
+```
+docker pull quay.io/apicurio/apicurio-registry:latest-snapshot
+docker run -it -p 8080:8080 quay.io/apicurio/apicurio-registry:latest-snapshot
+```
+
+### Run the integration tests against the running docker container
+
+```
+mvn verify -Psmoke -Dquarkus.http.test-host=127.0.0.1 -Dquarkus.http.test-port=8080
+```
 
 
 ## Integration Tests testsuite internal details
 
-The Integration Tests testsuite is written in Java and we use JUnit 5 .
+The Integration Tests testsuite is written in Java and we use JUnit 5.
 
 The main entry point for the testsuite is this class [`integration-tests/src/test/java/io/apicurio/deployment/RegistryDeploymentManager.java`](integration-tests/src/test/java/io/apicurio/deployment/RegistryDeploymentManager.java).
 

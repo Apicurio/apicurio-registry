@@ -70,10 +70,9 @@ import java.util.function.Function;
 import static io.apicurio.registry.storage.RegistryStorage.ArtifactRetrievalBehavior.DEFAULT;
 
 /**
- * An implementation of a registry artifactStore that extends the basic SQL artifactStore but federates 'write' operations
- * to other nodes in a cluster using a Kafka topic.  As a result, all reads are performed locally but all
- * writes are published to a topic for consumption by all nodes.
- *
+ * An implementation of a registry artifactStore that extends the basic SQL artifactStore but federates
+ * 'write' operations to other nodes in a cluster using a Kafka topic. As a result, all reads are performed
+ * locally but all writes are published to a topic for consumption by all nodes.
  */
 @ApplicationScoped
 @PersistenceExceptionLivenessApply
@@ -119,7 +118,6 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
     private volatile boolean bootstrapped = false;
     private volatile boolean stopped = true;
 
-
     @Override
     public String storageName() {
         return "kafkasql";
@@ -129,16 +127,16 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
     public void initialize() {
         log.info("Using Kafka-SQL artifactStore.");
 
-        //First, if needed create the Kafka topics.
+        // First, if needed create the Kafka topics.
         if (configuration.isTopicAutoCreate()) {
             autoCreateTopics();
         }
 
-        //Once the topics are created, initialize the internal SQL Storage.
+        // Once the topics are created, initialize the internal SQL Storage.
         sqlStore.initialize();
         setDelegate(sqlStore);
 
-        //Once the SQL storage has been initialized, start the Kafka consumer thread.
+        // Once the SQL storage has been initialized, start the Kafka consumer thread.
         log.info("SQL store initialized, starting consumer thread.");
         startConsumerThread(consumer);
 
@@ -149,19 +147,16 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
         return bootstrapped;
     }
 
-
     @Override
     public boolean isAlive() {
         // TODO: Include readiness of Kafka consumers and producers? What happens if Kafka stops responding?
         return bootstrapped && !stopped;
     }
 
-
     @PreDestroy
     void onDestroy() {
         stopped = true;
     }
-
 
     /**
      * Automatically create the Kafka topics.
@@ -170,11 +165,13 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
         Set<String> topicNames = new LinkedHashSet<>();
         topicNames.add(configuration.topic());
         Map<String, String> topicProperties = new HashMap<>();
-        configuration.topicProperties().forEach((key, value) -> topicProperties.put(key.toString(), value.toString()));
+        configuration.topicProperties()
+                .forEach((key, value) -> topicProperties.put(key.toString(), value.toString()));
         // Use log compaction by default.
         topicProperties.putIfAbsent(TopicConfig.CLEANUP_POLICY_CONFIG, TopicConfig.CLEANUP_POLICY_COMPACT);
         Properties adminProperties = configuration.adminProperties();
-        adminProperties.putIfAbsent(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, configuration.bootstrapServers());
+        adminProperties.putIfAbsent(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG,
+                configuration.bootstrapServers());
         try {
             KafkaUtil.createTopics(adminProperties, topicNames, topicProperties);
         } catch (TopicExistsException e) {
@@ -182,11 +179,10 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
         }
     }
 
-
     /**
-     * Start the KSQL Kafka consumer thread which is responsible for subscribing to the kafka topic,
-     * consuming JournalRecord entries found on that topic, and applying those journal entries to
-     * the internal data model.
+     * Start the KSQL Kafka consumer thread which is responsible for subscribing to the kafka topic, consuming
+     * JournalRecord entries found on that topic, and applying those journal entries to the internal data
+     * model.
      */
     private void startConsumerThread(final KafkaConsumer<MessageKey, MessageValue> consumer) {
         log.info("Starting KSQL consumer thread on topic: {}", configuration.topic());
@@ -206,7 +202,8 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
 
                 // Main consumer loop
                 while (!stopped) {
-                    final ConsumerRecords<MessageKey, MessageValue> records = consumer.poll(Duration.ofMillis(configuration.pollTimeout()));
+                    final ConsumerRecords<MessageKey, MessageValue> records = consumer
+                            .poll(Duration.ofMillis(configuration.pollTimeout()));
                     if (records != null && !records.isEmpty()) {
                         log.debug("Consuming {} journal records.", records.count());
                         records.forEach(record -> {
@@ -217,27 +214,31 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
                                 return;
                             }
 
-                            // If the key is a Bootstrap key, then we have processed all messages and can set bootstrapped to 'true'
+                            // If the key is a Bootstrap key, then we have processed all messages and can set
+                            // bootstrapped to 'true'
                             if (record.key().getType() == MessageType.Bootstrap) {
                                 BootstrapKey bkey = (BootstrapKey) record.key();
                                 if (bkey.getBootstrapId().equals(bootstrapId)) {
                                     this.bootstrapped = true;
-                                    storageEvent.fireAsync(StorageEvent.builder()
-                                            .type(StorageEventType.READY)
-                                            .build());
-                                    log.info("KafkaSQL storage bootstrapped in {} ms.", System.currentTimeMillis() - bootstrapStart);
+                                    storageEvent.fireAsync(
+                                            StorageEvent.builder().type(StorageEventType.READY).build());
+                                    log.info("KafkaSQL storage bootstrapped in {} ms.",
+                                            System.currentTimeMillis() - bootstrapStart);
                                 }
                                 return;
                             }
 
-                            // If the value is null, then this is a tombstone (or unrecognized) message and should not
+                            // If the value is null, then this is a tombstone (or unrecognized) message and
+                            // should not
                             // be processed.
                             if (record.value() == null) {
-                                log.info("Discarded a (presumed) tombstone message with key: {}", record.key());
+                                log.info("Discarded a (presumed) tombstone message with key: {}",
+                                        record.key());
                                 return;
                             }
 
-                            // TODO instead of processing the journal record directly on the consumer thread, instead queue them and have *another* thread process the queue
+                            // TODO instead of processing the journal record directly on the consumer thread,
+                            // instead queue them and have *another* thread process the queue
                             kafkaSqlSink.processMessage(record);
                         });
                     }
@@ -251,22 +252,25 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
         thread.start();
     }
 
-
     /**
-     * Ensures that the given content exists in the database.  If it's already in the DB, then this just
-     * returns the content hash.  If the content does not yet exist in the DB, then it is added (by sending
-     * the appropriate message to the Kafka topic and awaiting the response).
+     * Ensures that the given content exists in the database. If it's already in the DB, then this just
+     * returns the content hash. If the content does not yet exist in the DB, then it is added (by sending the
+     * appropriate message to the Kafka topic and awaiting the response).
      */
-    private String ensureContent(ContentHandle content, String artifactType, List<ArtifactReferenceDto> references) {
+    private String ensureContent(ContentHandle content, String artifactType,
+            List<ArtifactReferenceDto> references) {
 
         String contentHash = utils.getContentHash(content, references);
 
         if (!delegate.isContentExists(contentHash)) {
 
             long contentId = nextContentId();
-            String canonicalContentHash = utils.getCanonicalContentHash(content, artifactType, references, this::resolveReferences);
+            String canonicalContentHash = utils.getCanonicalContentHash(content, artifactType, references,
+                    this::resolveReferences);
 
-            CompletableFuture<UUID> future = submitter.submitContent(contentId, contentHash, ActionType.CREATE, canonicalContentHash, content, SqlUtil.serializeReferences(references));
+            CompletableFuture<UUID> future = submitter.submitContent(contentId, contentHash,
+                    ActionType.CREATE, canonicalContentHash, content,
+                    SqlUtil.serializeReferences(references));
             UUID uuid = ConcurrentUtil.get(future);
             coordinator.waitForResponse(uuid);
         }
@@ -274,38 +278,34 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
         return contentHash;
     }
 
-
     @Override
-    public ArtifactMetaDataDto createArtifact(String groupId, String artifactId, String version, String artifactType,
-                                              ContentHandle content, List<ArtifactReferenceDto> references) {
-        return createArtifactWithMetadata(groupId, artifactId, version, artifactType, content, null, references);
+    public ArtifactMetaDataDto createArtifact(String groupId, String artifactId, String version,
+            String artifactType, ContentHandle content, List<ArtifactReferenceDto> references) {
+        return createArtifactWithMetadata(groupId, artifactId, version, artifactType, content, null,
+                references);
     }
-
 
     @Override
     public ArtifactMetaDataDto createArtifactWithMetadata(String groupId, String artifactId, String version,
-                                                          String artifactType, String contentHash,
-                                                          String createdBy, Date createdOn,
-                                                          EditableArtifactMetaDataDto metaData, IdGenerator globalIdGenerator) {
+            String artifactType, String contentHash, String createdBy, Date createdOn,
+            EditableArtifactMetaDataDto metaData, IdGenerator globalIdGenerator) {
         var contentDto = getArtifactByContentHash(contentHash);
-        return createArtifactWithMetadataRaw(groupId, artifactId, version, artifactType, contentDto.getContent(),
-                metaData, contentDto.getReferences(), globalIdGenerator);
+        return createArtifactWithMetadataRaw(groupId, artifactId, version, artifactType,
+                contentDto.getContent(), metaData, contentDto.getReferences(), globalIdGenerator);
     }
-
 
     @Override
     public ArtifactMetaDataDto createArtifactWithMetadata(String groupId, String artifactId, String version,
-                                                          String artifactType, ContentHandle content,
-                                                          EditableArtifactMetaDataDto metaData, List<ArtifactReferenceDto> references) {
+            String artifactType, ContentHandle content, EditableArtifactMetaDataDto metaData,
+            List<ArtifactReferenceDto> references) {
         IdGenerator globalIdGenerator = this::nextGlobalId;
-        return createArtifactWithMetadataRaw(groupId, artifactId, version, artifactType, content, metaData, references, globalIdGenerator);
+        return createArtifactWithMetadataRaw(groupId, artifactId, version, artifactType, content, metaData,
+                references, globalIdGenerator);
     }
 
-
-    private ArtifactMetaDataDto createArtifactWithMetadataRaw(String groupId, String artifactId, String version,
-                                                              String artifactType, ContentHandle content,
-                                                              EditableArtifactMetaDataDto metaData, List<ArtifactReferenceDto> references,
-                                                              IdGenerator globalIdGenerator) {
+    private ArtifactMetaDataDto createArtifactWithMetadataRaw(String groupId, String artifactId,
+            String version, String artifactType, ContentHandle content, EditableArtifactMetaDataDto metaData,
+            List<ArtifactReferenceDto> references, IdGenerator globalIdGenerator) {
 
         if (delegate.isArtifactExists(groupId, artifactId)) {
             throw new ArtifactAlreadyExistsException(groupId, artifactId);
@@ -320,24 +320,17 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
         }
 
         if (groupId != null && !isGroupExists(groupId)) {
-            //Only create group metadata for non-default groups.
-            createGroup(GroupMetaDataDto.builder()
-                    .groupId(groupId)
-                    .createdOn(0)
-                    .modifiedOn(0)
-                    .createdBy(createdBy)
-                    .modifiedBy(createdBy)
-                    .build());
+            // Only create group metadata for non-default groups.
+            createGroup(GroupMetaDataDto.builder().groupId(groupId).createdOn(0).modifiedOn(0)
+                    .createdBy(createdBy).modifiedBy(createdBy).build());
         }
 
         long globalId = globalIdGenerator.generate();
 
-        UUID uuid = ConcurrentUtil.get(
-                submitter.submitArtifact(groupId, artifactId, version, ActionType.CREATE,
-                        globalId, artifactType, contentHash, createdBy, createdOn, metaData));
+        UUID uuid = ConcurrentUtil.get(submitter.submitArtifact(groupId, artifactId, version,
+                ActionType.CREATE, globalId, artifactType, contentHash, createdBy, createdOn, metaData));
         return (ArtifactMetaDataDto) coordinator.waitForResponse(uuid);
     }
-
 
     @Override
     public List<String> deleteArtifact(String groupId, String artifactId) {
@@ -362,40 +355,35 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
         return versionIds;
     }
 
-
     @Override
     public void deleteArtifacts(String groupId) {
         UUID reqId = ConcurrentUtil.get(submitter.submitGroup(groupId, ActionType.DELETE, true));
         coordinator.waitForResponse(reqId);
 
-        // TODO could possibly add tombstone messages for *all* artifacts that were deleted (version meta-data and artifact rules)
+        // TODO could possibly add tombstone messages for *all* artifacts that were deleted (version meta-data
+        // and artifact rules)
     }
-
 
     @Override
     public ArtifactMetaDataDto updateArtifactWithMetadata(String groupId, String artifactId, String version,
-                                                          String artifactType, String contentHash,
-                                                          String createdBy, Date createdOn,
-                                                          EditableArtifactMetaDataDto metaData, IdGenerator globalIdGenerator) {
+            String artifactType, String contentHash, String createdBy, Date createdOn,
+            EditableArtifactMetaDataDto metaData, IdGenerator globalIdGenerator) {
         var contentDto = getArtifactByContentHash(contentHash);
-        return updateArtifactWithMetadataRaw(groupId, artifactId, version,
-                artifactType, contentDto.getContent(), metaData, contentDto.getReferences(), globalIdGenerator);
+        return updateArtifactWithMetadataRaw(groupId, artifactId, version, artifactType,
+                contentDto.getContent(), metaData, contentDto.getReferences(), globalIdGenerator);
     }
-
 
     @Override
     public ArtifactMetaDataDto updateArtifactWithMetadata(String groupId, String artifactId, String version,
-                                                          String artifactType, ContentHandle content,
-                                                          EditableArtifactMetaDataDto metaData, List<ArtifactReferenceDto> references) {
-        return updateArtifactWithMetadataRaw(groupId, artifactId, version,
-                artifactType, content, metaData, references, this::nextGlobalId);
+            String artifactType, ContentHandle content, EditableArtifactMetaDataDto metaData,
+            List<ArtifactReferenceDto> references) {
+        return updateArtifactWithMetadataRaw(groupId, artifactId, version, artifactType, content, metaData,
+                references, this::nextGlobalId);
     }
 
-
-    private ArtifactMetaDataDto updateArtifactWithMetadataRaw(String groupId, String artifactId, String version,
-                                                              String artifactType, ContentHandle content,
-                                                              EditableArtifactMetaDataDto metaData, List<ArtifactReferenceDto> references,
-                                                              IdGenerator globalIdGenerator) {
+    private ArtifactMetaDataDto updateArtifactWithMetadataRaw(String groupId, String artifactId,
+            String version, String artifactType, ContentHandle content, EditableArtifactMetaDataDto metaData,
+            List<ArtifactReferenceDto> references, IdGenerator globalIdGenerator) {
         if (!delegate.isArtifactExists(groupId, artifactId)) {
             throw new ArtifactNotFoundException(groupId, artifactId);
         }
@@ -414,46 +402,46 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
 
         long globalId = globalIdGenerator.generate();
 
-        UUID reqId = ConcurrentUtil.get(
-                submitter.submitArtifact(groupId, artifactId, version, ActionType.UPDATE,
-                        globalId, artifactType, contentHash, createdBy, createdOn, metaData));
+        UUID reqId = ConcurrentUtil.get(submitter.submitArtifact(groupId, artifactId, version,
+                ActionType.UPDATE, globalId, artifactType, contentHash, createdBy, createdOn, metaData));
         return (ArtifactMetaDataDto) coordinator.waitForResponse(reqId);
     }
 
-
     @Override
-    public void updateArtifactMetaData(String groupId, String artifactId, EditableArtifactMetaDataDto metaData) {
-        // Note: the next line will throw ArtifactNotFoundException if the artifact does not exist, so there is no need for an extra check.
+    public void updateArtifactMetaData(String groupId, String artifactId,
+            EditableArtifactMetaDataDto metaData) {
+        // Note: the next line will throw ArtifactNotFoundException if the artifact does not exist, so there
+        // is no need for an extra check.
         ArtifactMetaDataDto metaDataDto = delegate.getArtifactMetaData(groupId, artifactId);
 
-        UUID reqId = ConcurrentUtil.get(submitter.submitArtifactVersion(groupId, artifactId, metaDataDto.getVersion(),
-                ActionType.UPDATE, metaDataDto.getState(), metaData));
+        UUID reqId = ConcurrentUtil.get(submitter.submitArtifactVersion(groupId, artifactId,
+                metaDataDto.getVersion(), ActionType.UPDATE, metaDataDto.getState(), metaData));
         coordinator.waitForResponse(reqId);
     }
-
 
     @Override
     public void updateArtifactOwner(String groupId, String artifactId, ArtifactOwnerDto owner) {
-        // Note: the next line will throw ArtifactNotFoundException if the artifact does not exist, so there is no need for an extra check.
-        /*ArtifactMetaDataDto metaDataDto = */
+        // Note: the next line will throw ArtifactNotFoundException if the artifact does not exist, so there
+        // is no need for an extra check.
+        /* ArtifactMetaDataDto metaDataDto = */
         delegate.getArtifactMetaData(groupId, artifactId, DEFAULT);
 
-        UUID reqId = ConcurrentUtil.get(submitter.submitArtifactOwner(groupId, artifactId, ActionType.UPDATE, owner.getOwner()));
+        UUID reqId = ConcurrentUtil
+                .get(submitter.submitArtifactOwner(groupId, artifactId, ActionType.UPDATE, owner.getOwner()));
         coordinator.waitForResponse(reqId);
     }
 
-
     @Override
-    public void createArtifactRule(String groupId, String artifactId, RuleType rule, RuleConfigurationDto config) {
+    public void createArtifactRule(String groupId, String artifactId, RuleType rule,
+            RuleConfigurationDto config) {
         if (delegate.isArtifactRuleExists(groupId, artifactId, rule)) {
             throw new RuleAlreadyExistsException(rule);
         }
 
-        UUID reqId = ConcurrentUtil.get(
-                submitter.submitArtifactRule(groupId, artifactId, rule, ActionType.CREATE, config));
+        UUID reqId = ConcurrentUtil
+                .get(submitter.submitArtifactRule(groupId, artifactId, rule, ActionType.CREATE, config));
         coordinator.waitForResponse(reqId);
     }
-
 
     @Override
     public void deleteArtifactRules(String groupId, String artifactId) {
@@ -463,7 +451,8 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
 
         submitter.submitArtifactRule(groupId, artifactId, RuleType.COMPATIBILITY, ActionType.DELETE);
 
-        UUID reqId = ConcurrentUtil.get(submitter.submitArtifactRule(groupId, artifactId, RuleType.VALIDITY, ActionType.DELETE));
+        UUID reqId = ConcurrentUtil
+                .get(submitter.submitArtifactRule(groupId, artifactId, RuleType.VALIDITY, ActionType.DELETE));
         try {
             coordinator.waitForResponse(reqId);
         } catch (RuleNotFoundException e) {
@@ -471,17 +460,17 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
         }
     }
 
-
     @Override
-    public void updateArtifactRule(String groupId, String artifactId, RuleType rule, RuleConfigurationDto config) {
+    public void updateArtifactRule(String groupId, String artifactId, RuleType rule,
+            RuleConfigurationDto config) {
         if (!delegate.isArtifactRuleExists(groupId, artifactId, rule)) {
             throw new RuleNotFoundException(rule);
         }
 
-        UUID reqId = ConcurrentUtil.get(submitter.submitArtifactRule(groupId, artifactId, rule, ActionType.UPDATE, config));
+        UUID reqId = ConcurrentUtil
+                .get(submitter.submitArtifactRule(groupId, artifactId, rule, ActionType.UPDATE, config));
         coordinator.waitForResponse(reqId);
     }
-
 
     @Override
     public void deleteArtifactRule(String groupId, String artifactId, RuleType rule) {
@@ -489,15 +478,16 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
             throw new RuleNotFoundException(rule);
         }
 
-        UUID reqId = ConcurrentUtil.get(submitter.submitArtifactRule(groupId, artifactId, rule, ActionType.DELETE));
+        UUID reqId = ConcurrentUtil
+                .get(submitter.submitArtifactRule(groupId, artifactId, rule, ActionType.DELETE));
         coordinator.waitForResponse(reqId);
     }
-
 
     @Override
     public void deleteArtifactVersion(String groupId, String artifactId, String version) {
         withArtifactVersionMetadataValidateState(groupId, artifactId, version, null, value -> {
-            UUID reqId = ConcurrentUtil.get(submitter.submitVersion(groupId, artifactId, version, ActionType.DELETE));
+            UUID reqId = ConcurrentUtil
+                    .get(submitter.submitVersion(groupId, artifactId, version, ActionType.DELETE));
             coordinator.waitForResponse(reqId);
 
             // Add a tombstone message for this version's metadata
@@ -507,46 +497,46 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
         });
     }
 
-
     @Override
-    public void updateArtifactVersionMetaData(String groupId, String artifactId, String version, EditableArtifactMetaDataDto metaData) {
-        withArtifactVersionMetadataValidateState(groupId, artifactId, version, ArtifactStateExt.ACTIVE_STATES, value -> {
-            UUID reqId = ConcurrentUtil.get(submitter.submitArtifactVersion(groupId, artifactId,
-                    version, ActionType.UPDATE, value.getState(), metaData));
-            return coordinator.waitForResponse(reqId);
-        });
+    public void updateArtifactVersionMetaData(String groupId, String artifactId, String version,
+            EditableArtifactMetaDataDto metaData) {
+        withArtifactVersionMetadataValidateState(groupId, artifactId, version, ArtifactStateExt.ACTIVE_STATES,
+                value -> {
+                    UUID reqId = ConcurrentUtil.get(submitter.submitArtifactVersion(groupId, artifactId,
+                            version, ActionType.UPDATE, value.getState(), metaData));
+                    return coordinator.waitForResponse(reqId);
+                });
     }
-
 
     @Override
     public void deleteArtifactVersionMetaData(String groupId, String artifactId, String version) {
         withArtifactVersionMetadataValidateState(groupId, artifactId, version, null, value -> {
-            UUID reqId = ConcurrentUtil.get(submitter.submitVersion(groupId, artifactId, version, ActionType.CLEAR));
+            UUID reqId = ConcurrentUtil
+                    .get(submitter.submitVersion(groupId, artifactId, version, ActionType.CLEAR));
             return coordinator.waitForResponse(reqId);
         });
     }
 
-
     /**
-     * Fetches the metadata for the given artifact version, validates the state (optionally), and then calls back the handler
-     * with the metadata.  If the artifact is not found, this will throw an exception.
+     * Fetches the metadata for the given artifact version, validates the state (optionally), and then calls
+     * back the handler with the metadata. If the artifact is not found, this will throw an exception.
      */
-    private <T> T withArtifactVersionMetadataValidateState(String groupId, String artifactId, String version, EnumSet<ArtifactState> states, Function<ArtifactVersionMetaDataDto, T> handler) {
+    private <T> T withArtifactVersionMetadataValidateState(String groupId, String artifactId, String version,
+            EnumSet<ArtifactState> states, Function<ArtifactVersionMetaDataDto, T> handler) {
 
-        ArtifactVersionMetaDataDto metadata = delegate.getArtifactVersionMetaData(groupId, artifactId, version);
+        ArtifactVersionMetaDataDto metadata = delegate.getArtifactVersionMetaData(groupId, artifactId,
+                version);
 
         ArtifactState state = metadata.getState();
         artifactStateEx.validateState(states, state, groupId, artifactId, version);
         return handler.apply(metadata);
     }
 
-
     @Override
     public void createGlobalRule(RuleType rule, RuleConfigurationDto config) {
         UUID reqId = ConcurrentUtil.get(submitter.submitGlobalRule(rule, ActionType.CREATE, config));
         coordinator.waitForResponse(reqId);
     }
-
 
     @Override
     public void deleteGlobalRules() {
@@ -563,7 +553,6 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
                 });
     }
 
-
     @Override
     public void updateGlobalRule(RuleType rule, RuleConfigurationDto config) {
         if (!delegate.isGlobalRuleExists(rule)) {
@@ -573,7 +562,6 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
         UUID reqId = ConcurrentUtil.get(submitter.submitGlobalRule(rule, ActionType.UPDATE, config));
         coordinator.waitForResponse(reqId);
     }
-
 
     @Override
     public void deleteGlobalRule(RuleType rule) {
@@ -585,19 +573,14 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
         coordinator.waitForResponse(reqId);
     }
 
-
-    private void updateArtifactState(ArtifactState currentState, String groupId, String artifactId, String version, ArtifactState newState, EditableArtifactMetaDataDto metaData) {
-        artifactStateEx.applyState(
-                s -> {
-                    UUID reqId = ConcurrentUtil.get(submitter.submitArtifactVersion(groupId, artifactId,
-                            version, ActionType.UPDATE, newState, metaData));
-                    coordinator.waitForResponse(reqId);
-                },
-                currentState,
-                newState
-        );
+    private void updateArtifactState(ArtifactState currentState, String groupId, String artifactId,
+            String version, ArtifactState newState, EditableArtifactMetaDataDto metaData) {
+        artifactStateEx.applyState(s -> {
+            UUID reqId = ConcurrentUtil.get(submitter.submitArtifactVersion(groupId, artifactId, version,
+                    ActionType.UPDATE, newState, metaData));
+            coordinator.waitForResponse(reqId);
+        }, currentState, newState);
     }
-
 
     @Override
     public void updateArtifactState(String groupId, String artifactId, ArtifactState state) {
@@ -607,13 +590,14 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
         metaDataDto.setDescription(metadata.getDescription());
         metaDataDto.setLabels(metadata.getLabels());
         metaDataDto.setProperties(metadata.getProperties());
-        updateArtifactState(metadata.getState(), groupId, artifactId, metadata.getVersion(), state, metaDataDto);
+        updateArtifactState(metadata.getState(), groupId, artifactId, metadata.getVersion(), state,
+                metaDataDto);
     }
-
 
     @Override
     public void updateArtifactState(String groupId, String artifactId, String version, ArtifactState state) {
-        ArtifactVersionMetaDataDto metadata = delegate.getArtifactVersionMetaData(groupId, artifactId, version);
+        ArtifactVersionMetaDataDto metadata = delegate.getArtifactVersionMetaData(groupId, artifactId,
+                version);
         EditableArtifactMetaDataDto metaDataDto = new EditableArtifactMetaDataDto();
         metaDataDto.setName(metadata.getName());
         metaDataDto.setDescription(metadata.getDescription());
@@ -622,13 +606,11 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
         updateArtifactState(metadata.getState(), groupId, artifactId, version, state, metaDataDto);
     }
 
-
     @Override
     public void createGroup(GroupMetaDataDto group) {
         UUID reqId = ConcurrentUtil.get(submitter.submitGroup(ActionType.CREATE, group));
         coordinator.waitForResponse(reqId);
     }
-
 
     @Override
     public void updateGroupMetaData(GroupMetaDataDto group) {
@@ -636,21 +618,20 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
         coordinator.waitForResponse(reqId);
     }
 
-
     @Override
     public void deleteGroup(String groupId) {
         UUID reqId = ConcurrentUtil.get(submitter.submitGroup(groupId, ActionType.DELETE, false));
         coordinator.waitForResponse(reqId);
     }
 
-
     @Override
     @Transactional
     public void importData(EntityInputStream entities, boolean preserveGlobalId, boolean preserveContentId) {
-        DataImporter dataImporter = new SqlDataImporter(log, utils, this, preserveGlobalId, preserveContentId);
+        DataImporter dataImporter = new SqlDataImporter(log, utils, this, preserveGlobalId,
+                preserveContentId);
         dataImporter.importData(entities, () -> {
             // Because importing just pushes a bunch of Kafka messages, we may need to
-            // wait for a few seconds before we send the reset messages.  Due to partitioning,
+            // wait for a few seconds before we send the reset messages. Due to partitioning,
             // we can't guarantee ordering of these next two messages, and we NEED them to
             // be consumed after all the import messages.
             // TODO We can wait until the last message is read (a specific one),
@@ -670,10 +651,10 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
 
     @Override
     public void createRoleMapping(String principalId, String role, String principalName) {
-        UUID reqId = ConcurrentUtil.get(submitter.submitRoleMapping(principalId, ActionType.CREATE, role, principalName));
+        UUID reqId = ConcurrentUtil
+                .get(submitter.submitRoleMapping(principalId, ActionType.CREATE, role, principalName));
         coordinator.waitForResponse(reqId);
     }
-
 
     @Override
     public void deleteRoleMapping(String principalId) {
@@ -685,24 +666,22 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
         coordinator.waitForResponse(reqId);
     }
 
-
     @Override
     public void updateRoleMapping(String principalId, String role) {
         if (!delegate.isRoleMappingExists(principalId)) {
             throw new RoleMappingNotFoundException(principalId, role);
         }
 
-        UUID reqId = ConcurrentUtil.get(submitter.submitRoleMapping(principalId, ActionType.UPDATE, role, null));
+        UUID reqId = ConcurrentUtil
+                .get(submitter.submitRoleMapping(principalId, ActionType.UPDATE, role, null));
         coordinator.waitForResponse(reqId);
     }
-
 
     @Override
     public void deleteAllUserData() {
         UUID reqId = ConcurrentUtil.get(submitter.submitGlobalAction(ActionType.DELETE_ALL_USER_DATA));
         coordinator.waitForResponse(reqId);
     }
-
 
     @Override
     public String createDownload(DownloadContextDto context) {
@@ -711,13 +690,11 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
         return (String) coordinator.waitForResponse(reqId);
     }
 
-
     @Override
     public DownloadContextDto consumeDownload(String downloadId) {
         UUID reqId = ConcurrentUtil.get(submitter.submitDownload(downloadId, ActionType.DELETE));
         return (DownloadContextDto) coordinator.waitForResponse(reqId);
     }
-
 
     @Override
     public void deleteAllExpiredDownloads() throws RegistryStorageException {
@@ -726,13 +703,12 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
         delegate.deleteAllExpiredDownloads();
     }
 
-
     @Override
     public void setConfigProperty(DynamicConfigPropertyDto propertyDto) {
-        UUID reqId = ConcurrentUtil.get(submitter.submitConfigProperty(propertyDto.getName(), ActionType.UPDATE, propertyDto.getValue()));
+        UUID reqId = ConcurrentUtil.get(submitter.submitConfigProperty(propertyDto.getName(),
+                ActionType.UPDATE, propertyDto.getValue()));
         coordinator.waitForResponse(reqId);
     }
-
 
     @Override
     public void deleteConfigProperty(String propertyName) {
@@ -740,84 +716,78 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
         coordinator.waitForResponse(reqId);
     }
 
-
     @Override
-    public CommentDto createArtifactVersionComment(String groupId, String artifactId, String version, String value) {
+    public CommentDto createArtifactVersionComment(String groupId, String artifactId, String version,
+            String value) {
         String theVersion = delegate.normalizeVersion(groupId, artifactId, version);
         String createdBy = securityIdentity.getPrincipal().getName();
         Date createdOn = new Date();
 
-        return createArtifactVersionCommentRaw(groupId, artifactId, theVersion, this::nextCommentId, createdBy, createdOn, value);
+        return createArtifactVersionCommentRaw(groupId, artifactId, theVersion, this::nextCommentId,
+                createdBy, createdOn, value);
     }
 
-
     @Override
-    public void deleteArtifactVersionComment(String groupId, String artifactId, String version, String commentId) {
+    public void deleteArtifactVersionComment(String groupId, String artifactId, String version,
+            String commentId) {
         String theVersion = delegate.normalizeVersion(groupId, artifactId, version);
 
         if (!delegate.isArtifactVersionExists(groupId, artifactId, theVersion)) {
             throw new VersionNotFoundException(groupId, artifactId, theVersion);
         }
 
-        UUID reqId = ConcurrentUtil.get(submitter.submitComment(groupId, artifactId, theVersion, commentId, ActionType.DELETE));
+        UUID reqId = ConcurrentUtil
+                .get(submitter.submitComment(groupId, artifactId, theVersion, commentId, ActionType.DELETE));
         coordinator.waitForResponse(reqId);
     }
 
-
     @Override
-    public void updateArtifactVersionComment(String groupId, String artifactId, String version, String commentId, String value) {
+    public void updateArtifactVersionComment(String groupId, String artifactId, String version,
+            String commentId, String value) {
         String theVersion = delegate.normalizeVersion(groupId, artifactId, version);
 
         if (!delegate.isArtifactVersionExists(groupId, artifactId, theVersion)) {
             throw new VersionNotFoundException(groupId, artifactId, theVersion);
         }
 
-        UUID reqId = ConcurrentUtil.get(submitter.submitComment(groupId, artifactId, theVersion,
-                commentId, ActionType.UPDATE, null, null, value));
+        UUID reqId = ConcurrentUtil.get(submitter.submitComment(groupId, artifactId, theVersion, commentId,
+                ActionType.UPDATE, null, null, value));
         coordinator.waitForResponse(reqId);
     }
-
 
     @Override
     public void importArtifactRule(ArtifactRuleEntity entity) {
         RuleConfigurationDto config = new RuleConfigurationDto(entity.configuration);
-        submitter.submitArtifactRule(entity.groupId, entity.artifactId, entity.type, ActionType.IMPORT, config);
+        submitter.submitArtifactRule(entity.groupId, entity.artifactId, entity.type, ActionType.IMPORT,
+                config);
     }
-
 
     @Override
     public void importComment(CommentEntity entity) {
-        submitter.submitComment(entity.commentId, ActionType.IMPORT, entity.globalId,
-                entity.createdBy, new Date(entity.createdOn), entity.value);
+        submitter.submitComment(entity.commentId, ActionType.IMPORT, entity.globalId, entity.createdBy,
+                new Date(entity.createdOn), entity.value);
     }
-
 
     @Override
     public void importArtifactVersion(ArtifactVersionEntity entity) {
-        EditableArtifactMetaDataDto metaData = EditableArtifactMetaDataDto.builder()
-                .name(entity.name)
-                .description(entity.description)
-                .labels(entity.labels)
-                .properties(entity.properties)
-                .build();
+        EditableArtifactMetaDataDto metaData = EditableArtifactMetaDataDto.builder().name(entity.name)
+                .description(entity.description).labels(entity.labels).properties(entity.properties).build();
         submitter.submitArtifact(entity.groupId, entity.artifactId, entity.version, ActionType.IMPORT,
-                entity.globalId, entity.artifactType, null, entity.createdBy, new Date(entity.createdOn), metaData, entity.versionId,
-                entity.state, entity.contentId, entity.isLatest);
+                entity.globalId, entity.artifactType, null, entity.createdBy, new Date(entity.createdOn),
+                metaData, entity.versionId, entity.state, entity.contentId, entity.isLatest);
     }
-
 
     @Override
     public void importContent(ContentEntity entity) {
-        submitter.submitContent(entity.contentId, entity.contentHash, ActionType.IMPORT, entity.canonicalHash, ContentHandle.create(entity.contentBytes), entity.serializedReferences);
+        submitter.submitContent(entity.contentId, entity.contentHash, ActionType.IMPORT, entity.canonicalHash,
+                ContentHandle.create(entity.contentBytes), entity.serializedReferences);
     }
-
 
     @Override
     public void importGlobalRule(GlobalRuleEntity entity) {
         RuleConfigurationDto config = new RuleConfigurationDto(entity.configuration);
         submitter.submitGlobalRule(entity.ruleType, ActionType.IMPORT, config);
     }
-
 
     @Override
     public void importGroup(GroupEntity entity) {
@@ -833,13 +803,11 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
         submitter.submitGroup(ActionType.IMPORT, group);
     }
 
-
     @Override
     public void resetContentId() {
         UUID reqId = ConcurrentUtil.get(submitter.submitGlobalId(ActionType.RESET));
         coordinator.waitForResponse(reqId);
     }
-
 
     @Override
     public void resetGlobalId() {
@@ -847,25 +815,18 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
         coordinator.waitForResponse(reqId);
     }
 
-
     @Override
-    public CommentDto createArtifactVersionCommentRaw(String groupId, String artifactId, String version, IdGenerator commentIdGen,
-                                                      String createdBy, Date createdOn, String value) {
+    public CommentDto createArtifactVersionCommentRaw(String groupId, String artifactId, String version,
+            IdGenerator commentIdGen, String createdBy, Date createdOn, String value) {
         String commentId = String.valueOf(commentIdGen.generate());
 
-        UUID reqId = ConcurrentUtil.get(
-                submitter.submitComment(groupId, artifactId, version, commentId,
-                        ActionType.CREATE, createdBy, createdOn, value));
+        UUID reqId = ConcurrentUtil.get(submitter.submitComment(groupId, artifactId, version, commentId,
+                ActionType.CREATE, createdBy, createdOn, value));
         coordinator.waitForResponse(reqId);
 
-        return CommentDto.builder()
-                .commentId(commentId)
-                .createdBy(createdBy)
-                .createdOn(createdOn.getTime())
-                .value(value)
-                .build();
+        return CommentDto.builder().commentId(commentId).createdBy(createdBy).createdOn(createdOn.getTime())
+                .value(value).build();
     }
-
 
     @Override
     public void resetCommentId() {
@@ -873,13 +834,11 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
         coordinator.waitForResponse(reqId);
     }
 
-
     @Override
     public long nextContentId() {
         UUID uuid = ConcurrentUtil.get(submitter.submitContentId(ActionType.CREATE));
         return (long) coordinator.waitForResponse(uuid);
     }
-
 
     @Override
     public long nextGlobalId() {
@@ -887,29 +846,26 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
         return (long) coordinator.waitForResponse(uuid);
     }
 
-
     @Override
     public long nextCommentId() {
         UUID uuid = ConcurrentUtil.get(submitter.submitCommentId(ActionType.CREATE));
         return (long) coordinator.waitForResponse(uuid);
     }
 
-
     @Override
     public void updateContentCanonicalHash(String newCanonicalHash, long contentId, String contentHash) {
         var contentDto = delegate.getArtifactByContentId(contentId);
 
-        var uuid = ConcurrentUtil.get(submitter.submitContent(
-                contentId, contentHash, ActionType.UPDATE,
-                newCanonicalHash, contentDto.getContent(), SqlUtil.serializeReferences(contentDto.getReferences())
-        ));
+        var uuid = ConcurrentUtil
+                .get(submitter.submitContent(contentId, contentHash, ActionType.UPDATE, newCanonicalHash,
+                        contentDto.getContent(), SqlUtil.serializeReferences(contentDto.getReferences())));
         coordinator.waitForResponse(uuid);
     }
 
-
     @Override
     public ArtifactMetaDataDto updateArtifact(String groupId, String artifactId, String version,
-                                              String artifactType, ContentHandle content, List<ArtifactReferenceDto> references) {
-        return delegate.updateArtifactWithMetadata(groupId, artifactId, version, artifactType, content, null, references);
+            String artifactType, ContentHandle content, List<ArtifactReferenceDto> references) {
+        return delegate.updateArtifactWithMetadata(groupId, artifactId, version, artifactType, content, null,
+                references);
     }
 }

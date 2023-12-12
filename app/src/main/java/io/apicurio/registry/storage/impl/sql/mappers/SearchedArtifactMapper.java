@@ -1,12 +1,12 @@
 package io.apicurio.registry.storage.impl.sql.mappers;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
-
 import io.apicurio.registry.storage.dto.SearchedArtifactDto;
 import io.apicurio.registry.storage.impl.sql.SqlUtil;
 import io.apicurio.registry.storage.impl.sql.jdb.RowMapper;
 import io.apicurio.registry.types.ArtifactState;
+
+import java.sql.ResultSet;
+import java.sql.SQLException;
 
 public class SearchedArtifactMapper implements RowMapper<SearchedArtifactDto> {
 
@@ -32,7 +32,7 @@ public class SearchedArtifactMapper implements RowMapper<SearchedArtifactDto> {
         dto.setName(rs.getString("name"));
         dto.setDescription(rs.getString("description"));
         dto.setLabels(SqlUtil.deserializeLabels(rs.getString("labels")));
-//        dto.setProperties(SqlUtil.deserializeProperties(rs.getString("properties")));
+        // dto.setProperties(SqlUtil.deserializeProperties(rs.getString("properties")));
         dto.setModifiedBy(rs.getString("modifiedBy"));
         dto.setModifiedOn(rs.getTimestamp("modifiedOn"));
         dto.setType(rs.getString("type"));

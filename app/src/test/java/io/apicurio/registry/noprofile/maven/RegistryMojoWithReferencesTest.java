@@ -64,10 +64,8 @@ public class RegistryMojoWithReferencesTest extends RegistryMojoTestBase {
         tradeKeyArtifact.setReferences(Collections.singletonList(exchangeArtifact));
         tradeRawArtifact.setReferences(Collections.singletonList(tradeKeyArtifact));
 
-
         registerMojo.setArtifacts(Collections.singletonList(tradeRawArtifact));
         registerMojo.execute();
-
 
         DownloadArtifact tradeRawDownload = new DownloadArtifact();
         tradeRawDownload.setArtifactId("tradeRaw");

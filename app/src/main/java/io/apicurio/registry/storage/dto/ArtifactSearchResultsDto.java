@@ -4,10 +4,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class ArtifactSearchResultsDto {
-    
+
     private List<SearchedArtifactDto> artifacts = new ArrayList<SearchedArtifactDto>();
     private long count;
-    
+
     /**
      * Constructor.
      */

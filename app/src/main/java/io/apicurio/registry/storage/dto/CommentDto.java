@@ -14,12 +14,12 @@ import lombok.ToString;
 @EqualsAndHashCode
 @ToString
 public class CommentDto {
-    
+
     private String commentId;
     private String value;
     private String createdBy;
     private long createdOn;
-    
+
     public CommentDto() {
     }
 

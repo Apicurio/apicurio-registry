@@ -10,6 +10,7 @@ public class BootstrapKey implements MessageKey {
 
     /**
      * Creator method.
+     * 
      * @param bootstrapId
      */
     public static final BootstrapKey create(String bootstrapId) {

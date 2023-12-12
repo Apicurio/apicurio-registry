@@ -14,6 +14,7 @@ public class Tester {
         this.name = name;
         this.state = state;
     }
+
     public String getName() {
         return name;
     }
@@ -32,8 +33,10 @@ public class Tester {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o)
+            return true;
+        if (o == null || getClass() != o.getClass())
+            return false;
         Tester tester = (Tester) o;
         return Objects.equals(name, tester.name) && state == tester.state;
     }

@@ -1,14 +1,13 @@
 package io.apicurio.registry.serde.fallback;
 
-import java.util.Map;
-
+import io.apicurio.registry.resolver.strategy.ArtifactReference;
 import org.apache.kafka.common.header.Headers;
 
-import io.apicurio.registry.resolver.strategy.ArtifactReference;
+import java.util.Map;
 
 /**
- * Interface for providing a fallback ArtifactReference when the SchemaResolver is not able to find an ArtifactReference in the kafka message
- *
+ * Interface for providing a fallback ArtifactReference when the SchemaResolver is not able to find an
+ * ArtifactReference in the kafka message
  */
 public interface FallbackArtifactProvider {
 
@@ -16,8 +15,9 @@ public interface FallbackArtifactProvider {
     }
 
     /**
-     * Returns an ArtifactReference that will be used as the fallback
-     * to search in the registry for the artifact that will be used to deserialize the kafka message
+     * Returns an ArtifactReference that will be used as the fallback to search in the registry for the
+     * artifact that will be used to deserialize the kafka message
+     * 
      * @param topic
      * @param headers , can be null
      * @param data

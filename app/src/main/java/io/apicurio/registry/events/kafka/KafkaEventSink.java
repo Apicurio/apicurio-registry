@@ -1,19 +1,5 @@
 package io.apicurio.registry.events.kafka;
 
-import java.time.Instant;
-import java.util.Optional;
-import java.util.Properties;
-import java.util.UUID;
-
-import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
-import jakarta.annotation.PostConstruct;
-import org.apache.kafka.clients.producer.ProducerRecord;
-import org.apache.kafka.common.header.Headers;
-import org.apache.kafka.common.header.internals.RecordHeaders;
-import org.apache.kafka.common.serialization.Serdes;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
-import org.slf4j.Logger;
 import io.apicurio.common.apps.config.Info;
 import io.apicurio.registry.events.EventSink;
 import io.apicurio.registry.utils.RegistryProperties;
@@ -21,6 +7,20 @@ import io.apicurio.registry.utils.kafka.AsyncProducer;
 import io.apicurio.registry.utils.kafka.ProducerActions;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.eventbus.Message;
+import jakarta.annotation.PostConstruct;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
+import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.header.Headers;
+import org.apache.kafka.common.header.internals.RecordHeaders;
+import org.apache.kafka.common.serialization.Serdes;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.slf4j.Logger;
+
+import java.time.Instant;
+import java.util.Optional;
+import java.util.Properties;
+import java.util.UUID;
 
 @ApplicationScoped
 public class KafkaEventSink implements EventSink {
@@ -29,10 +29,8 @@ public class KafkaEventSink implements EventSink {
     Logger log;
 
     @Inject
-    @RegistryProperties(
-            value = {"registry.events.kafka.config"},
-            empties = {"ssl.endpoint.identification.algorithm="}
-    )
+    @RegistryProperties(value = { "registry.events.kafka.config" }, empties = {
+            "ssl.endpoint.identification.algorithm=" })
     Properties producerProperties;
 
     private ProducerActions<String, byte[]> producer;
@@ -78,29 +76,24 @@ public class KafkaEventSink implements EventSink {
         headers.add("ce_time", Instant.now().toString().getBytes());
         headers.add("content-type", "application/json".getBytes());
 
-        //for artifact related operations message key will be the artifactId which will place all messages for an artifact in the same topic
+        // for artifact related operations message key will be the artifactId which will place all messages
+        // for an artifact in the same topic
         String key = artifactId;
         if (key == null) {
             key = uuid.toString();
         }
 
-        getProducer()
-            .apply(new ProducerRecord<String, byte[]>(
-                    eventsTopic.get(),
-                    partition, //partition is optional and can be null
-                    key,
-                    message.body().getBytes(),
-                    headers));
+        getProducer().apply(new ProducerRecord<String, byte[]>(eventsTopic.get(), partition, // partition is
+                                                                                             // optional and
+                                                                                             // can be null
+                key, message.body().getBytes(), headers));
 
     }
 
     public synchronized ProducerActions<String, byte[]> getProducer() {
         if (producer == null) {
-            producer = new AsyncProducer<String, byte[]>(
-                    producerProperties,
-                    Serdes.String().serializer(),
-                    Serdes.ByteArray().serializer()
-                );
+            producer = new AsyncProducer<String, byte[]>(producerProperties, Serdes.String().serializer(),
+                    Serdes.ByteArray().serializer());
         }
         return producer;
     }

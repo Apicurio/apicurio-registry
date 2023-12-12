@@ -9,12 +9,13 @@ import java.util.concurrent.TimeUnit;
 @QuarkusTest
 public class MigrationTest extends AbstractResourceTestBase {
 
-
     @Test
     public void migrateData() throws Exception {
 
-        InputStream originalData = getClass().getResource("rest/v3/destination_original_data.zip").openStream();
-        InputStream migratedData = getClass().getResource("rest/v3/migration_test_data_dump.zip").openStream();
+        InputStream originalData = getClass().getResource("rest/v3/destination_original_data.zip")
+                .openStream();
+        InputStream migratedData = getClass().getResource("rest/v3/migration_test_data_dump.zip")
+                .openStream();
 
         clientV3.admin().importEscaped().post(originalData, config -> {
             // TODO: this header should be injected by Kiota

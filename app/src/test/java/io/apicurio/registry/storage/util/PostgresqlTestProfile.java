@@ -17,8 +17,7 @@ public class PostgresqlTestProfile implements QuarkusTestProfile {
     @Override
     public List<TestResourceEntry> testResources() {
         if (!Boolean.parseBoolean(System.getProperty("cluster.tests"))) {
-            return List.of(
-                    new TestResourceEntry(PostgreSqlEmbeddedTestResource.class));
+            return List.of(new TestResourceEntry(PostgreSqlEmbeddedTestResource.class));
         } else {
             return Collections.emptyList();
         }

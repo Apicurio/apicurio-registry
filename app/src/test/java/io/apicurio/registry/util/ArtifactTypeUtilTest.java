@@ -15,19 +15,13 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class ArtifactTypeUtilTest extends AbstractRegistryTestBase {
 
-    static List<String> availableTypes = List.of(
-            ArtifactType.JSON,
-            ArtifactType.OPENAPI,
-            ArtifactType.ASYNCAPI,
-            ArtifactType.AVRO,
-            ArtifactType.PROTOBUF,
-            ArtifactType.WSDL,
-            ArtifactType.XML,
-            ArtifactType.XSD,
-            ArtifactType.GRAPHQL
-    );
+    static List<String> availableTypes = List.of(ArtifactType.JSON, ArtifactType.OPENAPI,
+            ArtifactType.ASYNCAPI, ArtifactType.AVRO, ArtifactType.PROTOBUF, ArtifactType.WSDL,
+            ArtifactType.XML, ArtifactType.XSD, ArtifactType.GRAPHQL);
+
     /**
-     * Test method for {@link io.apicurio.registry.util.ArtifactTypeUtil#discoverType(ContentHandle, java.lang.String)}.
+     * Test method for
+     * {@link io.apicurio.registry.util.ArtifactTypeUtil#discoverType(ContentHandle, java.lang.String)}.
      */
     @Test
     void testDiscoverType_JSON() {
@@ -37,7 +31,8 @@ class ArtifactTypeUtilTest extends AbstractRegistryTestBase {
     }
 
     /**
-     * Test method for {@link io.apicurio.registry.util.ArtifactTypeUtil#discoverType(ContentHandle, java.lang.String)}.
+     * Test method for
+     * {@link io.apicurio.registry.util.ArtifactTypeUtil#discoverType(ContentHandle, java.lang.String)}.
      */
     @Test
     void testDiscoverType_Avro() {
@@ -47,7 +42,8 @@ class ArtifactTypeUtilTest extends AbstractRegistryTestBase {
     }
 
     /**
-     * Test method for {@link io.apicurio.registry.util.ArtifactTypeUtil#discoverType(ContentHandle, java.lang.String)}.
+     * Test method for
+     * {@link io.apicurio.registry.util.ArtifactTypeUtil#discoverType(ContentHandle, java.lang.String)}.
      */
     @Test
     void testDiscoverType_Avro_Simple() {
@@ -60,7 +56,8 @@ class ArtifactTypeUtilTest extends AbstractRegistryTestBase {
     }
 
     /**
-     * Test method for {@link io.apicurio.registry.util.ArtifactTypeUtil#discoverType(ContentHandle, java.lang.String)}.
+     * Test method for
+     * {@link io.apicurio.registry.util.ArtifactTypeUtil#discoverType(ContentHandle, java.lang.String)}.
      */
     @Test
     void testDiscoverType_Proto() {
@@ -69,12 +66,14 @@ class ArtifactTypeUtilTest extends AbstractRegistryTestBase {
         Assertions.assertEquals(ArtifactType.PROTOBUF, type);
 
         content = resourceToContentHandle("protobuf.proto");
-        type = ArtifactTypeUtil.determineArtifactType(content, null, "application/x-protobuf", availableTypes);
+        type = ArtifactTypeUtil.determineArtifactType(content, null, "application/x-protobuf",
+                availableTypes);
         Assertions.assertEquals(ArtifactType.PROTOBUF, type);
     }
 
     /**
-     * Test method for {@link io.apicurio.registry.util.ArtifactTypeUtil#discoverType(ContentHandle, java.lang.String)}.
+     * Test method for
+     * {@link io.apicurio.registry.util.ArtifactTypeUtil#discoverType(ContentHandle, java.lang.String)}.
      */
     @Test
     void testDiscoverType_OpenApi() {
@@ -92,7 +91,8 @@ class ArtifactTypeUtilTest extends AbstractRegistryTestBase {
     }
 
     /**
-     * Test method for {@link io.apicurio.registry.util.ArtifactTypeUtil#discoverType(ContentHandle, java.lang.String)}.
+     * Test method for
+     * {@link io.apicurio.registry.util.ArtifactTypeUtil#discoverType(ContentHandle, java.lang.String)}.
      */
     @Test
     void testDiscoverType_AsyncApi() {
@@ -102,7 +102,8 @@ class ArtifactTypeUtilTest extends AbstractRegistryTestBase {
     }
 
     /**
-     * Test method for {@link io.apicurio.registry.util.ArtifactTypeUtil#discoverType(ContentHandle, java.lang.String)}.
+     * Test method for
+     * {@link io.apicurio.registry.util.ArtifactTypeUtil#discoverType(ContentHandle, java.lang.String)}.
      */
     @Test
     void testDiscoverType_GraphQL() {
@@ -112,7 +113,8 @@ class ArtifactTypeUtilTest extends AbstractRegistryTestBase {
     }
 
     /**
-     * Test method for {@link io.apicurio.registry.util.ArtifactTypeUtil#discoverType(ContentHandle, java.lang.String)}.
+     * Test method for
+     * {@link io.apicurio.registry.util.ArtifactTypeUtil#discoverType(ContentHandle, java.lang.String)}.
      */
     @Test
     void testDiscoverType_DefaultNotFound() {
@@ -123,7 +125,8 @@ class ArtifactTypeUtilTest extends AbstractRegistryTestBase {
     }
 
     /**
-     * Test method for {@link io.apicurio.registry.util.ArtifactTypeUtil#discoverType(ContentHandle, java.lang.String)}.
+     * Test method for
+     * {@link io.apicurio.registry.util.ArtifactTypeUtil#discoverType(ContentHandle, java.lang.String)}.
      */
     @Test
     void testDiscoverType_Xml() {
@@ -133,7 +136,8 @@ class ArtifactTypeUtilTest extends AbstractRegistryTestBase {
     }
 
     /**
-     * Test method for {@link io.apicurio.registry.util.ArtifactTypeUtil#discoverType(ContentHandle, java.lang.String)}.
+     * Test method for
+     * {@link io.apicurio.registry.util.ArtifactTypeUtil#discoverType(ContentHandle, java.lang.String)}.
      */
     @Test
     void testDiscoverType_Xsd() {
@@ -143,7 +147,8 @@ class ArtifactTypeUtilTest extends AbstractRegistryTestBase {
     }
 
     /**
-     * Test method for {@link io.apicurio.registry.util.ArtifactTypeUtil#discoverType(ContentHandle, java.lang.String)}.
+     * Test method for
+     * {@link io.apicurio.registry.util.ArtifactTypeUtil#discoverType(ContentHandle, java.lang.String)}.
      */
     @Test
     void testDiscoverType_Wsdl() {

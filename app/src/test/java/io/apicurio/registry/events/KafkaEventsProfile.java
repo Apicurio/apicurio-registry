@@ -1,12 +1,12 @@
 package io.apicurio.registry.events;
 
+import io.apicurio.registry.test.utils.KafkaTestContainerManager;
+import io.quarkus.test.junit.QuarkusTestProfile;
+
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-
-import io.apicurio.registry.test.utils.KafkaTestContainerManager;
-import io.quarkus.test.junit.QuarkusTestProfile;
 
 public class KafkaEventsProfile implements QuarkusTestProfile {
 
@@ -19,8 +19,7 @@ public class KafkaEventsProfile implements QuarkusTestProfile {
 
     @Override
     public List<TestResourceEntry> testResources() {
-        return Arrays.asList(
-                new TestResourceEntry(KafkaEventsTestResource.class),
+        return Arrays.asList(new TestResourceEntry(KafkaEventsTestResource.class),
                 new TestResourceEntry(KafkaTestContainerManager.class));
     }
 

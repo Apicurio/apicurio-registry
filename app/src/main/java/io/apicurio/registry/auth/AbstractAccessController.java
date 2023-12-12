@@ -31,7 +31,8 @@ public abstract class AbstractAccessController implements IAccessController {
             String groupId = getStringParam(context, 0);
             String artifactId = getStringParam(context, 1);
             return verifyArtifactCreatedBy(groupId, artifactId);
-        } else if (style == AuthorizedStyle.GroupOnly && authConfig.ownerOnlyAuthorizationLimitGroupAccess.get()) {
+        } else if (style == AuthorizedStyle.GroupOnly
+                && authConfig.ownerOnlyAuthorizationLimitGroupAccess.get()) {
             String groupId = getStringParam(context, 0);
             return verifyGroupCreatedBy(groupId);
         } else if (style == AuthorizedStyle.ArtifactOnly) {

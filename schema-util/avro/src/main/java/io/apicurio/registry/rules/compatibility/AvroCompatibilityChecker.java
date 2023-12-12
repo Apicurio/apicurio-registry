@@ -15,7 +15,8 @@ import java.util.Set;
 public class AvroCompatibilityChecker extends AbstractCompatibilityChecker<Incompatibility> {
 
     @Override
-    protected Set<Incompatibility> isBackwardsCompatibleWith(String existing, String proposed, Map<String, ContentHandle> resolvedReferences) {
+    protected Set<Incompatibility> isBackwardsCompatibleWith(String existing, String proposed,
+            Map<String, ContentHandle> resolvedReferences) {
         try {
             Schema.Parser existingParser = new Schema.Parser();
             for (ContentHandle schema : resolvedReferences.values()) {
@@ -29,18 +30,22 @@ public class AvroCompatibilityChecker extends AbstractCompatibilityChecker<Incom
             }
             final Schema proposedSchema = proposingParser.parse(proposed);
 
-            var result = SchemaCompatibility.checkReaderWriterCompatibility(proposedSchema, existingSchema).getResult();
+            var result = SchemaCompatibility.checkReaderWriterCompatibility(proposedSchema, existingSchema)
+                    .getResult();
             switch (result.getCompatibility()) {
                 case COMPATIBLE:
                     return Collections.emptySet();
                 case INCOMPATIBLE: {
-                    return ImmutableSet.<Incompatibility>builder().addAll(result.getIncompatibilities()).build();
+                    return ImmutableSet.<Incompatibility> builder().addAll(result.getIncompatibilities())
+                            .build();
                 }
                 default:
-                    throw new IllegalStateException("Got illegal compatibility result: " + result.getCompatibility());
+                    throw new IllegalStateException(
+                            "Got illegal compatibility result: " + result.getCompatibility());
             }
         } catch (AvroRuntimeException ex) {
-            throw new UnprocessableSchemaException("Could not execute compatibility rule on invalid Avro schema", ex);
+            throw new UnprocessableSchemaException(
+                    "Could not execute compatibility rule on invalid Avro schema", ex);
         }
     }
 

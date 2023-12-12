@@ -18,12 +18,10 @@ public class VersionNotFoundException extends NotFoundException {
     @Getter
     private Long globalId;
 
-
     public VersionNotFoundException(long globalId) {
         super(message(null, null, null, globalId));
         this.globalId = globalId;
     }
-
 
     public VersionNotFoundException(String groupId, String artifactId, String version) {
         super(message(groupId, artifactId, version, null));
@@ -32,7 +30,6 @@ public class VersionNotFoundException extends NotFoundException {
         this.version = version;
     }
 
-
     public VersionNotFoundException(String groupId, String artifactId, String version, Throwable cause) {
         super(message(groupId, artifactId, version, null), cause);
         this.groupId = groupId;
@@ -40,13 +37,12 @@ public class VersionNotFoundException extends NotFoundException {
         this.version = version;
     }
 
-
     private static String message(String groupId, String artifactId, String version, Long globalId) {
         if (globalId != null) {
             return "No version with global ID '" + globalId + "' found.";
         } else {
-            return "No version '" + version + "' found for artifact with ID '" + artifactId + "' " +
-                    "in group '" + groupId + "'.";
+            return "No version '" + version + "' found for artifact with ID '" + artifactId + "' "
+                    + "in group '" + groupId + "'.";
         }
     }
 }

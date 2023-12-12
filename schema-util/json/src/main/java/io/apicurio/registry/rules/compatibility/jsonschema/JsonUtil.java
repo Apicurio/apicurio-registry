@@ -48,11 +48,13 @@ public class JsonUtil {
         return readSchema(content, Collections.emptyMap(), true);
     }
 
-    public static Schema readSchema(String content, Map<String, ContentHandle> resolvedReferences) throws JsonProcessingException {
+    public static Schema readSchema(String content, Map<String, ContentHandle> resolvedReferences)
+            throws JsonProcessingException {
         return readSchema(content, resolvedReferences, true);
     }
 
-    public static Schema readSchema(String content, Map<String, ContentHandle> resolvedReferences, boolean validateDangling) throws JsonProcessingException {
+    public static Schema readSchema(String content, Map<String, ContentHandle> resolvedReferences,
+            boolean validateDangling) throws JsonProcessingException {
         JsonNode jsonNode = MAPPER.readTree(content);
         Schema schemaObj;
         // Extract the $schema to use for determining the id keyword
@@ -74,14 +76,10 @@ public class JsonUtil {
         }
         // First extract all references
         var refNodes = jsonNode.findValues("$ref");
-        var refStrings = refNodes.stream()
-                .filter(JsonNode::isTextual)
-                .map(TextNode.class::cast)
-                .map(TextNode::textValue)
-                .collect(Collectors.toList());
+        var refStrings = refNodes.stream().filter(JsonNode::isTextual).map(TextNode.class::cast)
+                .map(TextNode::textValue).collect(Collectors.toList());
 
-        SchemaLoader.SchemaLoaderBuilder builder = SchemaLoader.builder()
-                .useDefaults(true).draftV7Support();
+        SchemaLoader.SchemaLoaderBuilder builder = SchemaLoader.builder().useDefaults(true).draftV7Support();
 
         var resolvedReferencesCopy = new HashMap<>(resolvedReferences);
         var referenceURIs = new ArrayList<>();
@@ -92,25 +90,23 @@ public class JsonUtil {
             if (resolvedReference != null) {
                 builder.registerSchemaByURI(referenceURI, new JSONObject(resolvedReference.content()));
             } else {
-                /* Since we do not have the referenced content,
-                 * we insert a placeholder schema, that will accept any JSON,
-                 * to the reference lookup table of the library.
-                 * This prevents the library from attempting to download the schema if `http://`,
-                 * or trying to open a file if `file://`.
-                 * This avoids potential security issues
-                 * by us having to explicitly provide referenced content.
-                 * For validation, we do not care about the reference format,
-                 * while still requiring a valid URI.
+                /*
+                 * Since we do not have the referenced content, we insert a placeholder schema, that will
+                 * accept any JSON, to the reference lookup table of the library. This prevents the library
+                 * from attempting to download the schema if `http://`, or trying to open a file if `file://`.
+                 * This avoids potential security issues by us having to explicitly provide referenced
+                 * content. For validation, we do not care about the reference format, while still requiring a
+                 * valid URI.
                  */
                 builder.registerSchemaByURI(referenceURI, new JSONObject());
             }
         }
         // Check for dangling references. Do we want to do this as a separate rule?
         if (validateDangling && !resolvedReferencesCopy.isEmpty()) {
-            var msg = "There are unused references recorded for this content. " +
-                    "Make sure you have not made a typo, otherwise remove the unused reference record(s). " +
-                    "References in the content: " + referenceURIs + ", " +
-                    "Unused reference records: " + new ArrayList<>(resolvedReferencesCopy.keySet());
+            var msg = "There are unused references recorded for this content. "
+                    + "Make sure you have not made a typo, otherwise remove the unused reference record(s). "
+                    + "References in the content: " + referenceURIs + ", " + "Unused reference records: "
+                    + new ArrayList<>(resolvedReferencesCopy.keySet());
             throw new RegistryException(msg);
         }
 

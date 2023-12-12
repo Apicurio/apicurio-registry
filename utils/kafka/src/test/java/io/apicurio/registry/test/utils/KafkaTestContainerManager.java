@@ -27,10 +27,8 @@ public class KafkaTestContainerManager implements QuarkusTestResourceLifecycleMa
 
         System.setProperty("bootstrap.servers", bootstrapServers);
 
-        return Map.of(
-                "bootstrap.servers", bootstrapServers,
-                "registry.events.kafka.config.bootstrap.servers", bootstrapServers,
-                "registry.kafkasql.bootstrap.servers", bootstrapServers);
+        return Map.of("bootstrap.servers", bootstrapServers, "registry.events.kafka.config.bootstrap.servers",
+                bootstrapServers, "registry.kafkasql.bootstrap.servers", bootstrapServers);
     }
 
     @Override

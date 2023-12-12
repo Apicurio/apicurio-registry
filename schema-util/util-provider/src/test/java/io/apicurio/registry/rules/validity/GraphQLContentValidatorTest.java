@@ -1,10 +1,9 @@
 package io.apicurio.registry.rules.validity;
 
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Test;
-
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.rules.RuleViolationException;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
 

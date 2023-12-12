@@ -43,7 +43,7 @@ public class GraphQLArtifactTypeUtilProvider extends AbstractArtifactTypeUtilPro
     public ContentDereferencer getContentDereferencer() {
         return null;
     }
-    
+
     /**
      * @see io.apicurio.registry.types.provider.ArtifactTypeUtilProvider#getReferenceFinder()
      */

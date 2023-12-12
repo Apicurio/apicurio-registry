@@ -23,6 +23,7 @@ public class GroupValue extends AbstractMessageValue {
 
     /**
      * Creator method.
+     * 
      * @param action
      */
     public static final GroupValue create(ActionType action, boolean onlyArtifacts) {
@@ -34,6 +35,7 @@ public class GroupValue extends AbstractMessageValue {
 
     /**
      * Creator method.
+     * 
      * @param action
      * @param group metadata
      */

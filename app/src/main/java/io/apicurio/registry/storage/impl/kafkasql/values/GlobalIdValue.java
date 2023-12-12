@@ -10,6 +10,7 @@ public class GlobalIdValue extends AbstractMessageValue {
 
     /**
      * Creator method.
+     * 
      * @param action
      */
     public static final GlobalIdValue create(ActionType action) {

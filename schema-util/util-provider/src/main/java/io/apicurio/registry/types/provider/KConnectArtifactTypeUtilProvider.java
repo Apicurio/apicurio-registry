@@ -43,7 +43,7 @@ public class KConnectArtifactTypeUtilProvider extends AbstractArtifactTypeUtilPr
     public ContentDereferencer getContentDereferencer() {
         return null;
     }
-    
+
     /**
      * @see io.apicurio.registry.types.provider.ArtifactTypeUtilProvider#getReferenceFinder()
      */

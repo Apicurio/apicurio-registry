@@ -1,11 +1,11 @@
 package io.apicurio.registry.utils.impexp;
 
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.zip.ZipInputStream;
-
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Test;
 
 class EntityReaderTest {
 
@@ -24,7 +24,7 @@ class EntityReaderTest {
             int globalRuleCounter = 0;
             int artyRuleCounter = 0;
 
-            while ( (entity = reader.readEntity()) != null ) {
+            while ((entity = reader.readEntity()) != null) {
                 if (entity instanceof ContentEntity) {
                     contentCounter++;
                 }
@@ -48,6 +48,7 @@ class EntityReaderTest {
 
     /**
      * Loads a resource as an input stream.
+     * 
      * @param resourceName the resource name
      */
     protected final InputStream resourceToInputStream(String resourceName) {

@@ -22,29 +22,29 @@ public class JsonSchemaParser<T> implements SchemaParser<JsonSchema, T> {
      * @see io.apicurio.registry.serde.SchemaParser#parseSchema(byte[])
      */
     @Override
-    public JsonSchema parseSchema(byte[] rawSchema, Map<String, ParsedSchema<JsonSchema>> resolvedReferences) {
-        return new JsonSchema(IoUtil.toString(rawSchema), resolvedReferences.entrySet()
-                .stream()
+    public JsonSchema parseSchema(byte[] rawSchema,
+            Map<String, ParsedSchema<JsonSchema>> resolvedReferences) {
+        return new JsonSchema(IoUtil.toString(rawSchema), resolvedReferences.entrySet().stream()
                 .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().getParsedSchema())), 0);
     }
 
-    //TODO we could implement some way of providing the jsonschema beforehand:
+    // TODO we could implement some way of providing the jsonschema beforehand:
     // - via annotation in the object being serialized
     // - via config property
-    //if we do this users will be able to automatically registering the schema when using this serde
+    // if we do this users will be able to automatically registering the schema when using this serde
 
     /**
      * @see io.apicurio.registry.resolver.SchemaParser#getSchemaFromData(java.lang.Object)
      */
     @Override
     public ParsedSchema<JsonSchema> getSchemaFromData(Record<T> data) {
-        //not supported for jsonschema type
+        // not supported for jsonschema type
         return null;
     }
 
     @Override
     public ParsedSchema<JsonSchema> getSchemaFromData(Record<T> data, boolean dereference) {
-        //not supported for jsonschema type
+        // not supported for jsonschema type
         return null;
     }
 

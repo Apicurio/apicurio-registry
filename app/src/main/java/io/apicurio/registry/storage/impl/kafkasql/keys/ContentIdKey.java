@@ -14,7 +14,6 @@ public class ContentIdKey implements MessageKey {
 
     /**
      * Creator method.
-     *
      */
     public static final ContentIdKey create() {
         ContentIdKey key = new ContentIdKey();

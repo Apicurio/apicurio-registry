@@ -10,5 +10,5 @@ public interface MessageValue {
      */
     @JsonIgnore
     public MessageType getType();
-    
+
 }

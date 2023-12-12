@@ -13,6 +13,7 @@ public class ArtifactRuleValue extends AbstractMessageValue {
 
     /**
      * Creator method.
+     * 
      * @param action
      * @param config
      */
@@ -22,7 +23,7 @@ public class ArtifactRuleValue extends AbstractMessageValue {
         value.setConfig(config);
         return value;
     }
-    
+
     /**
      * @see MessageValue#getType()
      */
@@ -44,5 +45,5 @@ public class ArtifactRuleValue extends AbstractMessageValue {
     public void setConfig(RuleConfigurationDto config) {
         this.config = config;
     }
-    
+
 }

@@ -101,13 +101,13 @@ public class CompatibilityTestExecutor {
 
     public static void throwOnFailure(Set<String> failed) {
         if (!failed.isEmpty()) {
-            throw new RuntimeException(failed.size() + " test cases failed: " + failed.stream()
-                    .reduce("", (a, s) -> a + "\n" + s));
+            throw new RuntimeException(failed.size() + " test cases failed: "
+                    + failed.stream().reduce("", (a, s) -> a + "\n" + s));
         }
     }
 
     private static void logFail(String caseId, CompatibilityExecutionResult resultBackward,
-                                CompatibilityExecutionResult resultForward) {
+            CompatibilityExecutionResult resultForward) {
         log.error("\nFailed caseId: {}\nBackward {}: {}\nForward {}: {}\n", caseId,
                 resultBackward.isCompatible(), resultBackward.getIncompatibleDifferences(),
                 resultForward.isCompatible(), resultForward.getIncompatibleDifferences());

@@ -26,7 +26,7 @@ public final class DocumentBuilderAccessor {
             return builder;
         }
     };
-    
+
     public static DocumentBuilder getDocumentBuilder() {
         return threadLocaldocBuilder.get();
     }

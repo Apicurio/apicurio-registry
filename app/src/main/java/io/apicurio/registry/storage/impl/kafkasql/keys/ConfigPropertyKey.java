@@ -10,6 +10,7 @@ public class ConfigPropertyKey implements MessageKey {
 
     /**
      * Creator method.
+     * 
      * @param propertyName
      */
     public static final ConfigPropertyKey create(String propertyName) {

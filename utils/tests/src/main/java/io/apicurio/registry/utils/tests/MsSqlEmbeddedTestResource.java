@@ -10,14 +10,14 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class MsSqlEmbeddedTestResource implements QuarkusTestResourceLifecycleManager {
-    
+
     private static final String DB_PASSWORD = "P4ssw0rd!#";
 
-    private static final DockerImageName IMAGE = DockerImageName.parse("mcr.microsoft.com/mssql/server").withTag("2022-latest");
-    private MSSQLServerContainer<?> database = new MSSQLServerContainer<>(IMAGE)
-            .withPassword(DB_PASSWORD)
+    private static final DockerImageName IMAGE = DockerImageName.parse("mcr.microsoft.com/mssql/server")
+            .withTag("2022-latest");
+    private MSSQLServerContainer<?> database = new MSSQLServerContainer<>(IMAGE).withPassword(DB_PASSWORD)
             .acceptLicense();
-    
+
     /**
      * Constructor.
      */

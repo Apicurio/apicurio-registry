@@ -7,7 +7,6 @@ public class RegistryStorageException extends RegistryException {
 
     private static final long serialVersionUID = 708084955101638005L;
 
-
     public RegistryStorageException(Throwable cause) {
         super(cause);
     }

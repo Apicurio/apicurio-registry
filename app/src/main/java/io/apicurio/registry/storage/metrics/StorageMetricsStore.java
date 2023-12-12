@@ -20,15 +20,14 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * This class provides a set of counters. Counters such as "number of artifacts"
- * This counters have to be "distributed" or at least work in a clustered deployment.
- * Currently, this implementation uses {@link Cache} for storing the counters,
- * it's "auto-eviction" nature allows to re-initialize the counters with information from the database periodically,
- * making it "useful" for clustered deployments.
+ * This class provides a set of counters. Counters such as "number of artifacts" This counters have to be
+ * "distributed" or at least work in a clustered deployment. Currently, this implementation uses {@link Cache}
+ * for storing the counters, it's "auto-eviction" nature allows to re-initialize the counters with information
+ * from the database periodically, making it "useful" for clustered deployments.
  * <p>
- * This implementation is far from perfect, ideally redis or some other externalized cache should be used, but for now
- * this implementation could work, it's extremely simple and it does not require the deployment of external infrastructure.
- *
+ * This implementation is far from perfect, ideally redis or some other externalized cache should be used, but
+ * for now this implementation could work, it's extremely simple and it does not require the deployment of
+ * external infrastructure.
  */
 @ApplicationScoped
 public class StorageMetricsStore {
@@ -53,7 +52,8 @@ public class StorageMetricsStore {
     @Current
     RegistryStorage storage;
 
-    //NOTE all of this could be changed in the future with a global cache shared between all registry replicas
+    // NOTE all of this could be changed in the future with a global cache shared between all registry
+    // replicas
     private LoadingCache<String, AtomicLong> countersCache;
     private LoadingCache<ArtifactVersionKey, AtomicLong> artifactVersionsCounters;
 
@@ -87,28 +87,24 @@ public class StorageMetricsStore {
             }
         };
 
-        countersCache = CacheBuilder
-                .newBuilder()
-                .expireAfterWrite(limitsCheckPeriod, TimeUnit.MILLISECONDS)
-                .maximumSize(cacheMaxSize)
-                .build(totalSchemaCountersLoader);
+        countersCache = CacheBuilder.newBuilder().expireAfterWrite(limitsCheckPeriod, TimeUnit.MILLISECONDS)
+                .maximumSize(cacheMaxSize).build(totalSchemaCountersLoader);
     }
-
 
     private void createTotalArtifactVersionsCache() {
         artifactVersionsCountersLoader = new CacheLoader<>() {
             @Override
             public AtomicLong load(@NotNull ArtifactVersionKey artifactVersionKey) {
-                log.info("Initializing total artifact versions counter for artifact gid {} ai {}", artifactVersionKey.groupId, artifactVersionKey.artifactId);
-                long count = storage.countArtifactVersions(artifactVersionKey.groupId, artifactVersionKey.artifactId);
+                log.info("Initializing total artifact versions counter for artifact gid {} ai {}",
+                        artifactVersionKey.groupId, artifactVersionKey.artifactId);
+                long count = storage.countArtifactVersions(artifactVersionKey.groupId,
+                        artifactVersionKey.artifactId);
                 return new AtomicLong(count);
             }
         };
 
-        artifactVersionsCounters = CacheBuilder
-                .newBuilder()
-                .expireAfterWrite(limitsCheckPeriod, TimeUnit.MILLISECONDS)
-                .maximumSize(cacheMaxSize)
+        artifactVersionsCounters = CacheBuilder.newBuilder()
+                .expireAfterWrite(limitsCheckPeriod, TimeUnit.MILLISECONDS).maximumSize(cacheMaxSize)
                 .build(artifactVersionsCountersLoader);
     }
 
@@ -132,7 +128,7 @@ public class StorageMetricsStore {
         log.info("Incrementing total schemas counter");
         AtomicLong counter = countersCache.getUnchecked(TOTAL_SCHEMAS_KEY);
         if (counter == null) {
-            //cached counter expired, do nothing, it will be reloaded from DB on the next read
+            // cached counter expired, do nothing, it will be reloaded from DB on the next read
             return;
         } else {
             counter.incrementAndGet();
@@ -142,7 +138,7 @@ public class StorageMetricsStore {
     public void incrementArtifactsCounter() {
         AtomicLong counter = countersCache.getUnchecked(ARTIFACT_COUNTER);
         if (counter == null) {
-            //cached counter expired, do nothing, it will be reloaded from DB on the next read
+            // cached counter expired, do nothing, it will be reloaded from DB on the next read
             return;
         } else {
             counter.incrementAndGet();
@@ -155,7 +151,7 @@ public class StorageMetricsStore {
         avk.artifactId = artifactId;
         AtomicLong counter = artifactVersionsCounters.getUnchecked(avk);
         if (counter == null) {
-            //cached counter expired, do nothing, it will be reloaded from DB on the next read
+            // cached counter expired, do nothing, it will be reloaded from DB on the next read
             return;
         } else {
             counter.incrementAndGet();

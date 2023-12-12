@@ -12,6 +12,7 @@ public class ArtifactOwnerValue extends AbstractMessageValue {
 
     /**
      * Creator method.
+     * 
      * @param action
      * @param owner
      */
@@ -21,7 +22,7 @@ public class ArtifactOwnerValue extends AbstractMessageValue {
         value.setOwner(owner);
         return value;
     }
-    
+
     /**
      * @see MessageValue#getType()
      */
@@ -43,5 +44,5 @@ public class ArtifactOwnerValue extends AbstractMessageValue {
     public void setOwner(String owner) {
         this.owner = owner;
     }
-    
+
 }

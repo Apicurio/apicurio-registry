@@ -1,19 +1,17 @@
 package io.apicurio.registry.content.refs;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.apicurio.registry.content.ContentHandle;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.stream.Collectors;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import io.apicurio.registry.content.ContentHandle;
 
 /**
  * A JSON Schema implementation of a reference finder.
@@ -33,10 +31,8 @@ public class JsonSchemaReferenceFinder implements ReferenceFinder {
             Set<String> externalTypes = new HashSet<>();
             findExternalTypesIn(tree, externalTypes);
 
-            return externalTypes.stream()
-                    .map(type -> new JsonPointerExternalReference(type))
-                    .filter(ref -> ref.getResource() != null)
-                    .collect(Collectors.toSet());
+            return externalTypes.stream().map(type -> new JsonPointerExternalReference(type))
+                    .filter(ref -> ref.getResource() != null).collect(Collectors.toSet());
         } catch (Exception e) {
             log.error("Error finding external references in an Avro file.", e);
             return Collections.emptySet();
@@ -48,7 +44,8 @@ public class JsonSchemaReferenceFinder implements ReferenceFinder {
             if (schema.has("$ref")) {
                 String ref = schema.get("$ref").asText(null);
                 if (ref != null) {
-                    // TODO: the value of the ref should be resolved against the $id in this schema if it has one
+                    // TODO: the value of the ref should be resolved against the $id in this schema if it has
+                    // one
                     externalTypes.add(ref);
                 }
             }

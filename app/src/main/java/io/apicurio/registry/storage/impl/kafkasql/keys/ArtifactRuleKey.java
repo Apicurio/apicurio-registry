@@ -13,6 +13,7 @@ public class ArtifactRuleKey implements MessageKey {
 
     /**
      * Creator method.
+     * 
      * @param groupId
      * @param artifactId
      * @param ruleType

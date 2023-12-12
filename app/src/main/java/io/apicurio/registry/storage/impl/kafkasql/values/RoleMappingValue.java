@@ -13,6 +13,7 @@ public class RoleMappingValue extends AbstractMessageValue {
 
     /**
      * Creator method.
+     * 
      * @param action
      * @param role
      * @param principalName

@@ -71,9 +71,12 @@ public class RegistryStorageSmokeTest extends AbstractResourceTestBase {
         int size = getStorage().getArtifactIds(null).size();
 
         // Create 2 version of an artifact and one other artifact
-        ArtifactMetaDataDto meta1 = getStorage().createArtifact(GROUP_ID, ARTIFACT_ID_1, null, ArtifactType.JSON, ContentHandle.create("content1"), null);
-        ArtifactMetaDataDto meta2 = getStorage().updateArtifact(GROUP_ID, ARTIFACT_ID_1, null, ArtifactType.JSON, ContentHandle.create("content2"), null);
-        getStorage().createArtifact(GROUP_ID, ARTIFACT_ID_2, null, ArtifactType.AVRO, ContentHandle.create("content3"), null);
+        ArtifactMetaDataDto meta1 = getStorage().createArtifact(GROUP_ID, ARTIFACT_ID_1, null,
+                ArtifactType.JSON, ContentHandle.create("content1"), null);
+        ArtifactMetaDataDto meta2 = getStorage().updateArtifact(GROUP_ID, ARTIFACT_ID_1, null,
+                ArtifactType.JSON, ContentHandle.create("content2"), null);
+        getStorage().createArtifact(GROUP_ID, ARTIFACT_ID_2, null, ArtifactType.AVRO,
+                ContentHandle.create("content3"), null);
 
         assertEquals(size + 2, getStorage().getArtifactIds(null).size());
         assertTrue(getStorage().getArtifactIds(null).contains(ARTIFACT_ID_1));
@@ -99,8 +102,10 @@ public class RegistryStorageSmokeTest extends AbstractResourceTestBase {
 
         // update can be async
         retry(() -> {
-            ArtifactVersionMetaDataDto vmeta1 = getStorage().getArtifactVersionMetaData(GROUP_ID, ARTIFACT_ID_1, meta1.getVersion());
-            ArtifactVersionMetaDataDto vmeta2 = getStorage().getArtifactVersionMetaData(GROUP_ID, ARTIFACT_ID_1, meta2.getVersion());
+            ArtifactVersionMetaDataDto vmeta1 = getStorage().getArtifactVersionMetaData(GROUP_ID,
+                    ARTIFACT_ID_1, meta1.getVersion());
+            ArtifactVersionMetaDataDto vmeta2 = getStorage().getArtifactVersionMetaData(GROUP_ID,
+                    ARTIFACT_ID_1, meta2.getVersion());
             assertNotEquals(vmeta1, vmeta2);
             assertEquals("foo", vmeta1.getName());
             assertNull(vmeta2.getName());
@@ -127,7 +132,8 @@ public class RegistryStorageSmokeTest extends AbstractResourceTestBase {
 
     @Test
     public void testRules() throws Exception {
-        getStorage().createArtifact(GROUP_ID, ARTIFACT_ID_3, null, ArtifactType.JSON, ContentHandle.create("content1"), null);
+        getStorage().createArtifact(GROUP_ID, ARTIFACT_ID_3, null, ArtifactType.JSON,
+                ContentHandle.create("content1"), null);
 
         assertEquals(0, getStorage().getArtifactRules(GROUP_ID, ARTIFACT_ID_3).size());
         assertEquals(0, getStorage().getGlobalRules().size());
@@ -142,7 +148,8 @@ public class RegistryStorageSmokeTest extends AbstractResourceTestBase {
             assertEquals(1, getStorage().getArtifactRules(GROUP_ID, ARTIFACT_ID_3).size());
             assertTrue(getStorage().getArtifactRules(GROUP_ID, ARTIFACT_ID_3).contains(RuleType.VALIDITY));
 
-            assertEquals("config", getStorage().getArtifactRule(GROUP_ID, ARTIFACT_ID_3, RuleType.VALIDITY).getConfiguration());
+            assertEquals("config", getStorage().getArtifactRule(GROUP_ID, ARTIFACT_ID_3, RuleType.VALIDITY)
+                    .getConfiguration());
 
             assertEquals(1, getStorage().getGlobalRules().size());
             assertTrue(getStorage().getGlobalRules().contains(RuleType.VALIDITY));
@@ -160,16 +167,16 @@ public class RegistryStorageSmokeTest extends AbstractResourceTestBase {
         final String testId2 = TestUtils.generateArtifactId();
 
         try {
-            getStorage()
-                    .createArtifact(GROUP_ID, testId0, null, ArtifactType.JSON, ContentHandle.create("{}"), null);
+            getStorage().createArtifact(GROUP_ID, testId0, null, ArtifactType.JSON,
+                    ContentHandle.create("{}"), null);
 
             int size = getStorage().getArtifactIds(null).size();
 
             // Create 2 artifacts
-            getStorage()
-                    .createArtifact(GROUP_ID, testId1, null, ArtifactType.JSON, ContentHandle.create("{}"), null);
-            getStorage()
-                    .createArtifact(GROUP_ID, testId2, null, ArtifactType.JSON, ContentHandle.create("{}"), null);
+            getStorage().createArtifact(GROUP_ID, testId1, null, ArtifactType.JSON,
+                    ContentHandle.create("{}"), null);
+            getStorage().createArtifact(GROUP_ID, testId2, null, ArtifactType.JSON,
+                    ContentHandle.create("{}"), null);
 
             int newSize = getStorage().getArtifactIds(null).size();
             int limitedSize = getStorage().getArtifactIds(1).size();

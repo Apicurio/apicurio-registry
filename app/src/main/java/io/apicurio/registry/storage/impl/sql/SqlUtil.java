@@ -137,8 +137,8 @@ public class SqlUtil {
         return groupId;
     }
 
-
-    public static ArtifactMetaDataDto convert(String groupId, String artifactId, ArtifactVersionMetaDataDto versionMeta) {
+    public static ArtifactMetaDataDto convert(String groupId, String artifactId,
+            ArtifactVersionMetaDataDto versionMeta) {
         ArtifactMetaDataDto artifactMeta = new ArtifactMetaDataDto();
         artifactMeta.setGlobalId(versionMeta.getGlobalId());
         artifactMeta.setContentId(versionMeta.getContentId());

@@ -35,20 +35,22 @@ public final class ArtifactTypeUtil {
     /**
      * Figures out the artifact type in the following order of precedent:
      * <p>
-     * 1) The provided X-Registry-String header
-     * 2) A hint provided in the Content-Type header
-     * 3) Determined from the content itself
+     * 1) The provided X-Registry-String header 2) A hint provided in the Content-Type header 3) Determined
+     * from the content itself
      *
-     * @param content       the content
+     * @param content the content
      * @param xString the artifact type
-     * @param contentType   content type from request API
+     * @param contentType content type from request API
      */
-    //FIXME:references artifact must be dereferenced here otherwise this will fail to discover the type
-    public static String determineArtifactType(ContentHandle content, String xArtifactType, String contentType, List<String> availableTypes) {
-       return determineArtifactType(content, xArtifactType, contentType, Collections.emptyMap(), availableTypes);
+    // FIXME:references artifact must be dereferenced here otherwise this will fail to discover the type
+    public static String determineArtifactType(ContentHandle content, String xArtifactType,
+            String contentType, List<String> availableTypes) {
+        return determineArtifactType(content, xArtifactType, contentType, Collections.emptyMap(),
+                availableTypes);
     }
 
-    public static String determineArtifactType(ContentHandle content, String xArtifactType, String contentType, Map<String, ContentHandle> resolvedReferences, List<String> availableTypes) {
+    public static String determineArtifactType(ContentHandle content, String xArtifactType,
+            String contentType, Map<String, ContentHandle> resolvedReferences, List<String> availableTypes) {
         String artifactType = xArtifactType;
         if (artifactType == null) {
             artifactType = getArtifactTypeFromContentType(contentType, availableTypes);
@@ -65,13 +67,14 @@ public final class ArtifactTypeUtil {
      * @param contentType the content type header
      */
     private static String getArtifactTypeFromContentType(String contentType, List<String> availableTypes) {
-        if (contentType != null && contentType.contains(MediaType.APPLICATION_JSON) && contentType.indexOf(';') != -1) {
+        if (contentType != null && contentType.contains(MediaType.APPLICATION_JSON)
+                && contentType.indexOf(';') != -1) {
             String[] split = contentType.split(";");
             if (split.length > 1) {
                 for (String s : split) {
                     if (s.contains("artifactType=")) {
                         String at = s.split("=")[1];
-                        for (String t: availableTypes) {
+                        for (String t : availableTypes) {
                             if (t.equals(at)) {
                                 return at;
                             }
@@ -91,7 +94,8 @@ public final class ArtifactTypeUtil {
     }
 
     // TODO: should we move this to ArtifactTypeUtilProvider and make this logic injectable? yes!
-    // as a first implementation forcing users to specify the type if it's custom sounds like a reasonable tradeoff
+    // as a first implementation forcing users to specify the type if it's custom sounds like a reasonable
+    // tradeoff
     /**
      * Method that discovers the artifact type from the raw content of an artifact. This will attempt to parse
      * the content (with the optional provided Content Type as a hint) and figure out what type of artifact it
@@ -99,12 +103,14 @@ public final class ArtifactTypeUtil {
      * formatted. So in these cases we will need to look for some sort of type-specific marker in the content
      * of the artifact. The method does its best to figure out the type, but will default to Avro if all else
      * fails. TODO This default behavior does not sound right
-     *  @param content
+     * 
+     * @param content
      * @param contentType
      * @param resolvedReferences
      */
     @SuppressWarnings("deprecation")
-    private static String discoverType(ContentHandle content, String contentType, Map<String, ContentHandle> resolvedReferences) throws InvalidArtifactTypeException {
+    private static String discoverType(ContentHandle content, String contentType,
+            Map<String, ContentHandle> resolvedReferences) throws InvalidArtifactTypeException {
         boolean triedProto = false;
 
         // If the content-type suggests it's protobuf, try that first.
@@ -129,7 +135,8 @@ public final class ArtifactTypeUtil {
                 return ArtifactType.ASYNCAPI;
             }
             // JSON Schema
-            if (tree.has("$schema") && tree.get("$schema").asText().contains("json-schema.org") || tree.has("properties")) {
+            if (tree.has("$schema") && tree.get("$schema").asText().contains("json-schema.org")
+                    || tree.has("properties")) {
                 return ArtifactType.JSON;
             }
             // Kafka Connect??
@@ -154,7 +161,7 @@ public final class ArtifactTypeUtil {
             schema.toString(schemaRefs, false);
             return ArtifactType.AVRO;
         } catch (Exception e) {
-            //ignored
+            // ignored
         }
 
         try {
@@ -171,7 +178,7 @@ public final class ArtifactTypeUtil {
             schema.toString(schemaRefs, false);
             return ArtifactType.AVRO;
         } catch (Exception e) {
-            //ignored
+            // ignored
         }
 
         // Try protobuf (only if we haven't already)
@@ -219,7 +226,8 @@ public final class ArtifactTypeUtil {
             try {
                 // Attempt to parse binary FileDescriptorProto
                 byte[] bytes = Base64.getDecoder().decode(content.content());
-                FileDescriptorUtils.fileDescriptorToProtoFile(DescriptorProtos.FileDescriptorProto.parseFrom(bytes));
+                FileDescriptorUtils
+                        .fileDescriptorToProtoFile(DescriptorProtos.FileDescriptorProto.parseFrom(bytes));
                 return ArtifactType.PROTOBUF;
             } catch (Exception pe) {
                 // Doesn't seem to be protobuf
@@ -229,7 +237,8 @@ public final class ArtifactTypeUtil {
     }
 
     /**
-     * Given a content removes any quoted brackets. This is useful for some validation corner cases in avro where some libraries detects quoted brackets as valid and others as invalid
+     * Given a content removes any quoted brackets. This is useful for some validation corner cases in avro
+     * where some libraries detects quoted brackets as valid and others as invalid
      */
     private static String removeQuotedBrackets(String content) {
         return QUOTED_BRACKETS.matcher(content).replaceAll(":{}");

@@ -1,17 +1,15 @@
 package io.apicurio.registry.events.http;
 
+import io.apicurio.common.apps.config.Info;
+import io.apicurio.registry.utils.RegistryProperties;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Produces;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
+
 import java.util.List;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.stream.Collectors;
-
-import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.enterprise.inject.Produces;
-
-import org.eclipse.microprofile.config.inject.ConfigProperty;
-
-import io.apicurio.common.apps.config.Info;
-import io.apicurio.registry.utils.RegistryProperties;
 
 @ApplicationScoped
 public class HttpEventSinkConfiguration {
@@ -21,15 +19,15 @@ public class HttpEventSinkConfiguration {
     Optional<String> ksink;
 
     @Produces
-    public HttpSinksConfiguration sinkConfig(@RegistryProperties(value = {"registry.events.sink"}) Properties properties) {
+    public HttpSinksConfiguration sinkConfig(
+            @RegistryProperties(value = { "registry.events.sink" }) Properties properties) {
         List<HttpSinkConfiguration> httpSinks = properties.stringPropertyNames().stream()
-            .map(key -> new HttpSinkConfiguration(key, properties.getProperty(key)))
-            .collect(Collectors.toList());
+                .map(key -> new HttpSinkConfiguration(key, properties.getProperty(key)))
+                .collect(Collectors.toList());
         if (ksink.isPresent()) {
             httpSinks.add(new HttpSinkConfiguration("k_sink", ksink.get()));
         }
         return new HttpSinksConfiguration(httpSinks);
     }
-
 
 }

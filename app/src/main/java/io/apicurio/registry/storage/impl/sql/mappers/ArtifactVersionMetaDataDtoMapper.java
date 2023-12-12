@@ -1,12 +1,12 @@
 package io.apicurio.registry.storage.impl.sql.mappers;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
-
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.impl.sql.SqlUtil;
 import io.apicurio.registry.storage.impl.sql.jdb.RowMapper;
 import io.apicurio.registry.types.ArtifactState;
+
+import java.sql.ResultSet;
+import java.sql.SQLException;
 
 /**
  * Used to map a single row in the versions table to a {@link ArtifactVersionMetaDataDto} instance.

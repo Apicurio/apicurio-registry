@@ -33,7 +33,6 @@ import static java.util.Comparator.comparingInt;
 
 public class CombinedSchemaDiffVisitor extends JsonSchemaWrapperVisitor {
 
-
     private final DiffContext ctx;
     private final CombinedSchema original;
 
@@ -46,8 +45,9 @@ public class CombinedSchemaDiffVisitor extends JsonSchemaWrapperVisitor {
     public void visitCombinedSchema(CombinedSchemaWrapper schema) {
         // Check if the criterion has changed
         if (diffObjectIdentity(ctx.sub("[criterion]"), original.getCriterion(), schema.getCriterion(),
-            CombinedSchema.ANY_CRITERION, UNDEFINED_UNUSED, UNDEFINED_UNUSED, COMBINED_TYPE_CRITERION_EXTENDED,
-            COMBINED_TYPE_CRITERION_NARROWED, COMBINED_TYPE_CRITERION_CHANGED)) {
+                CombinedSchema.ANY_CRITERION, UNDEFINED_UNUSED, UNDEFINED_UNUSED,
+                COMBINED_TYPE_CRITERION_EXTENDED, COMBINED_TYPE_CRITERION_NARROWED,
+                COMBINED_TYPE_CRITERION_CHANGED)) {
             // prevent further analysis if it did
             super.visitCombinedSchema(schema);
         }
@@ -71,17 +71,16 @@ public class CombinedSchemaDiffVisitor extends JsonSchemaWrapperVisitor {
         super.visitAllOfCombinedSchema(schema);
     }
 
-    private void processSubschemas(CombinedSchemaWrapper schema, DiffType sizeIncreased, DiffType sizeDecreased) {
+    private void processSubschemas(CombinedSchemaWrapper schema, DiffType sizeIncreased,
+            DiffType sizeDecreased) {
         List<Schema> originalSubschemas = new ArrayList<>(original.getSubschemas());
-        List<SchemaWrapper> updatedSubschemas = new LinkedList<>(schema.getSubschemas()); // better for insert/remove
+        List<SchemaWrapper> updatedSubschemas = new LinkedList<>(schema.getSubschemas()); // better for
+                                                                                          // insert/remove
 
         Map<SchemaWrapper, Set<SchemaWrapper>> compatibilityMap = new HashMap<>();
 
-        diffInteger(ctx.sub("[size]"), originalSubschemas.size(), updatedSubschemas.size(),
-            UNDEFINED_UNUSED,
-            UNDEFINED_UNUSED,
-            sizeIncreased,
-            sizeDecreased);
+        diffInteger(ctx.sub("[size]"), originalSubschemas.size(), updatedSubschemas.size(), UNDEFINED_UNUSED,
+                UNDEFINED_UNUSED, sizeIncreased, sizeDecreased);
         if (originalSubschemas.size() <= updatedSubschemas.size()) {
             // try to match them
             for (Schema o : originalSubschemas) {
@@ -100,8 +99,8 @@ public class CombinedSchemaDiffVisitor extends JsonSchemaWrapperVisitor {
                 }
             }
 
-            Optional<Map.Entry<SchemaWrapper, Set<SchemaWrapper>>> first = compatibilityMap.entrySet().stream()
-                .min(comparingInt(a -> a.getValue().size()));
+            Optional<Map.Entry<SchemaWrapper, Set<SchemaWrapper>>> first = compatibilityMap.entrySet()
+                    .stream().min(comparingInt(a -> a.getValue().size()));
             while (first.isPresent()) {
                 // remove a value from the first set
                 Optional<SchemaWrapper> val = first.get().getValue().stream().findAny();
@@ -116,8 +115,7 @@ public class CombinedSchemaDiffVisitor extends JsonSchemaWrapperVisitor {
                 if (first.get().getValue().isEmpty())
                     compatibilityMap.remove(first.get().getKey());
 
-                first = compatibilityMap.entrySet().stream()
-                    .min(comparingInt(a -> a.getValue().size()));
+                first = compatibilityMap.entrySet().stream().min(comparingInt(a -> a.getValue().size()));
             }
         }
     }

@@ -1,10 +1,9 @@
 package io.apicurio.registry.resolver;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-
+import io.apicurio.registry.resolver.strategy.ArtifactReference;
 import org.junit.jupiter.api.Test;
 
-import io.apicurio.registry.resolver.strategy.ArtifactReference;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class SchemaLookupResultTest {
     @Test

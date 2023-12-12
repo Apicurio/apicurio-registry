@@ -35,7 +35,9 @@ public abstract class AbstractDirectoryParser<Schema> {
 
     public abstract ParsedDirectoryWrapper<Schema> parse(File rootSchema);
 
-    public abstract List<ArtifactReference> handleSchemaReferences(RegisterArtifact rootArtifact, Schema schema, Map<String, ContentHandle> fileContents) throws FileNotFoundException, ExecutionException, InterruptedException;
+    public abstract List<ArtifactReference> handleSchemaReferences(RegisterArtifact rootArtifact,
+            Schema schema, Map<String, ContentHandle> fileContents)
+            throws FileNotFoundException, ExecutionException, InterruptedException;
 
     protected ContentHandle readSchemaContent(File schemaFile) {
         try {
@@ -58,8 +60,11 @@ public abstract class AbstractDirectoryParser<Schema> {
         return nestedSchema;
     }
 
-    protected ArtifactReference registerNestedSchema(String referenceName, List<ArtifactReference> nestedArtifactReferences, RegisterArtifact nestedSchema, String artifactContent) throws FileNotFoundException, ExecutionException, InterruptedException {
-        ArtifactMetaData referencedArtifactMetadata = registerArtifact(nestedSchema, IoUtil.toStream(artifactContent), nestedArtifactReferences);
+    protected ArtifactReference registerNestedSchema(String referenceName,
+            List<ArtifactReference> nestedArtifactReferences, RegisterArtifact nestedSchema,
+            String artifactContent) throws FileNotFoundException, ExecutionException, InterruptedException {
+        ArtifactMetaData referencedArtifactMetadata = registerArtifact(nestedSchema,
+                IoUtil.toStream(artifactContent), nestedArtifactReferences);
         ArtifactReference referencedArtifact = new ArtifactReference();
         referencedArtifact.setName(referenceName);
         referencedArtifact.setArtifactId(referencedArtifactMetadata.getId());
@@ -68,7 +73,8 @@ public abstract class AbstractDirectoryParser<Schema> {
         return referencedArtifact;
     }
 
-    private ArtifactMetaData registerArtifact(RegisterArtifact artifact, InputStream artifactContent, List<ArtifactReference> references) throws ExecutionException, InterruptedException {
+    private ArtifactMetaData registerArtifact(RegisterArtifact artifact, InputStream artifactContent,
+            List<ArtifactReference> references) throws ExecutionException, InterruptedException {
         String groupId = artifact.getGroupId();
         String artifactId = artifact.getArtifactId();
         String version = artifact.getVersion();
@@ -96,28 +102,25 @@ public abstract class AbstractDirectoryParser<Schema> {
             ref.setName(r.getName());
             return ref;
         }).collect(Collectors.toList()));
-        ArtifactMetaData amd = client
-                .groups()
-                .byGroupId(groupId)
-                .artifacts()
-                .post(content, config -> {
-                    config.queryParameters.ifExists = artifact.getIfExists().value();
-                    config.queryParameters.canonical = canonicalize;
-                    config.headers.add("Content-Type", ContentTypes.APPLICATION_CREATE_EXTENDED);
-                    if (artifactId != null) {
-                        config.headers.add("X-Registry-ArtifactId", artifactId);
-                    }
-                    if (type != null) {
-                        config.headers.add("X-Registry-ArtifactType", type);
-                    }
-                    if (version != null) {
-                        config.headers.add("X-Registry-Version", version);
-                    }
-                })
-                .get();
+        ArtifactMetaData amd = client.groups().byGroupId(groupId).artifacts().post(content, config -> {
+            config.queryParameters.ifExists = artifact.getIfExists().value();
+            config.queryParameters.canonical = canonicalize;
+            config.headers.add("Content-Type", ContentTypes.APPLICATION_CREATE_EXTENDED);
+            if (artifactId != null) {
+                config.headers.add("X-Registry-ArtifactId", artifactId);
+            }
+            if (type != null) {
+                config.headers.add("X-Registry-ArtifactType", type);
+            }
+            if (version != null) {
+                config.headers.add("X-Registry-Version", version);
+            }
+        }).get();
 
-                // client.createArtifact(groupId, artifactId, version, type, ifExists, canonicalize, null, null, ContentTypes.APPLICATION_CREATE_EXTENDED, null, null, artifactContent, references);
-        log.info(String.format("Successfully registered artifact [%s] / [%s].  GlobalId is [%d]", groupId, artifactId, amd.getGlobalId()));
+        // client.createArtifact(groupId, artifactId, version, type, ifExists, canonicalize, null, null,
+        // ContentTypes.APPLICATION_CREATE_EXTENDED, null, null, artifactContent, references);
+        log.info(String.format("Successfully registered artifact [%s] / [%s].  GlobalId is [%d]", groupId,
+                artifactId, amd.getGlobalId()));
 
         return amd;
     }

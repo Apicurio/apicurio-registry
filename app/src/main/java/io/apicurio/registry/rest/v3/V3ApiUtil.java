@@ -1,12 +1,5 @@
 package io.apicurio.registry.rest.v3;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Comparator;
-import java.util.Date;
-import java.util.Optional;
-import java.util.stream.Collectors;
-
 import io.apicurio.registry.rest.v3.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v3.beans.ArtifactReference;
 import io.apicurio.registry.rest.v3.beans.ArtifactSearchResults;
@@ -29,6 +22,13 @@ import io.apicurio.registry.storage.dto.GroupMetaDataDto;
 import io.apicurio.registry.storage.dto.GroupSearchResultsDto;
 import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
 public final class V3ApiUtil {
 
     private V3ApiUtil() {
@@ -42,8 +42,8 @@ public final class V3ApiUtil {
      * @param artifactType
      * @param dto
      */
-    public static ArtifactMetaData dtoToMetaData(String groupId, String artifactId,
-                                                 String artifactType, ArtifactMetaDataDto dto) {
+    public static ArtifactMetaData dtoToMetaData(String groupId, String artifactId, String artifactType,
+            ArtifactMetaDataDto dto) {
         ArtifactMetaData metaData = new ArtifactMetaData();
         metaData.setCreatedBy(dto.getCreatedBy());
         metaData.setCreatedOn(new Date(dto.getCreatedOn()));
@@ -85,7 +85,7 @@ public final class V3ApiUtil {
      * @param dto
      */
     public static final ArtifactMetaData dtoToMetaData(String groupId, String artifactId, String artifactType,
-                                                       ArtifactVersionMetaDataDto dto) {
+            ArtifactVersionMetaDataDto dto) {
         ArtifactMetaData metaData = new ArtifactMetaData();
         metaData.setCreatedBy(dto.getCreatedBy());
         metaData.setCreatedOn(new Date(dto.getCreatedOn()));
@@ -109,7 +109,6 @@ public final class V3ApiUtil {
         return metaData;
     }
 
-
     /**
      * Creates a jax-rs version meta-data entity from the id, type, and artifactStore meta-data.
      *
@@ -119,7 +118,7 @@ public final class V3ApiUtil {
      * @param dto
      */
     public static final VersionMetaData dtoToVersionMetaData(String groupId, String artifactId,
-                                                             String artifactType, ArtifactMetaDataDto dto) {
+            String artifactType, ArtifactMetaDataDto dto) {
         VersionMetaData metaData = new VersionMetaData();
         metaData.setGroupId(groupId);
         metaData.setId(artifactId);
@@ -146,7 +145,7 @@ public final class V3ApiUtil {
      * @param amd
      */
     public static final VersionMetaData dtoToVersionMetaData(String groupId, String artifactId,
-                                                             String artifactType, ArtifactMetaData amd) {
+            String artifactType, ArtifactMetaData amd) {
         VersionMetaData metaData = new VersionMetaData();
         metaData.setGroupId(groupId);
         metaData.setId(artifactId);
@@ -170,8 +169,8 @@ public final class V3ApiUtil {
      * @param artifactType
      * @param dto
      */
-    public static final VersionMetaData dtoToVersionMetaData(String groupId, String artifactId, String artifactType,
-                                                             ArtifactVersionMetaDataDto dto) {
+    public static final VersionMetaData dtoToVersionMetaData(String groupId, String artifactId,
+            String artifactType, ArtifactVersionMetaDataDto dto) {
         VersionMetaData metaData = new VersionMetaData();
         metaData.setGroupId(groupId);
         metaData.setId(artifactId);
@@ -196,7 +195,8 @@ public final class V3ApiUtil {
      * @param editableArtifactMetaData
      * @return the updated ArtifactMetaDataDto object
      */
-    public static final ArtifactMetaDataDto setEditableMetaDataInArtifact(ArtifactMetaDataDto amdd, EditableArtifactMetaDataDto editableArtifactMetaData) {
+    public static final ArtifactMetaDataDto setEditableMetaDataInArtifact(ArtifactMetaDataDto amdd,
+            EditableArtifactMetaDataDto editableArtifactMetaData) {
         if (editableArtifactMetaData.getName() != null) {
             amdd.setName(editableArtifactMetaData.getName());
         }
@@ -216,7 +216,8 @@ public final class V3ApiUtil {
         return (id1, id2) -> compare(sortOrder, id1, id2);
     }
 
-    public static int compare(SortOrder sortOrder, ArtifactMetaDataDto metaDataDto1, ArtifactMetaDataDto metaDataDto2) {
+    public static int compare(SortOrder sortOrder, ArtifactMetaDataDto metaDataDto1,
+            ArtifactMetaDataDto metaDataDto2) {
         String name1 = metaDataDto1.getName();
         if (name1 == null) {
             name1 = metaDataDto1.getId();
@@ -225,7 +226,8 @@ public final class V3ApiUtil {
         if (name2 == null) {
             name2 = metaDataDto2.getId();
         }
-        return sortOrder == SortOrder.desc ? name2.compareToIgnoreCase(name1) : name1.compareToIgnoreCase(name2);
+        return sortOrder == SortOrder.desc ? name2.compareToIgnoreCase(name1)
+                : name1.compareToIgnoreCase(name2);
     }
 
     public static ArtifactSearchResults dtoToSearchResults(ArtifactSearchResultsDto dto) {
@@ -320,19 +322,15 @@ public final class V3ApiUtil {
     }
 
     public static Comment commentDtoToComment(CommentDto dto) {
-        return Comment.builder()
-                .commentId(dto.getCommentId())
-                .createdBy(dto.getCreatedBy())
-                .createdOn(new Date(dto.getCreatedOn()))
-                .value(dto.getValue())
-                .build();
+        return Comment.builder().commentId(dto.getCommentId()).createdBy(dto.getCreatedBy())
+                .createdOn(new Date(dto.getCreatedOn())).value(dto.getValue()).build();
     }
 
     public static String prettyPrintReferences(Collection<ArtifactReference> references) {
         return references.stream()
-                .map(ar -> nullGroupIdToDefault(ar.getGroupId()) + ":" + ar.getArtifactId() + ":" + ar.getVersion() + "->" + ar.getName())
-                .reduce((left, right) -> left + ", " + right)
-                .orElse("");
+                .map(ar -> nullGroupIdToDefault(ar.getGroupId()) + ":" + ar.getArtifactId() + ":"
+                        + ar.getVersion() + "->" + ar.getName())
+                .reduce((left, right) -> left + ", " + right).orElse("");
     }
 
     public static String defaultGroupIdToNull(String groupId) {

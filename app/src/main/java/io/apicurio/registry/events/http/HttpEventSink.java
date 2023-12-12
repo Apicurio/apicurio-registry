@@ -3,11 +3,11 @@ package io.apicurio.registry.events.http;
 import io.apicurio.registry.events.EventSink;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.eventbus.Message;
-import org.slf4j.Logger;
-
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.core.MediaType;
+import org.slf4j.Logger;
+
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -52,24 +52,18 @@ public class HttpEventSink implements EventSink {
         try {
             log.debug("Sending event to sink " + httpSink.getName());
 
-            final HttpRequest eventRequest = HttpRequest.newBuilder()
-                    .uri(URI.create(httpSink.getEndpoint()))
-                    .version(HttpClient.Version.HTTP_1_1)
-                    .header("ce-id", UUID.randomUUID().toString())
-                    .header("ce-specversion", "1.0")
-                    .header("ce-source", "apicurio-registry")
-                    .header("ce-type", type)
-                    .header("content-type", MediaType.APPLICATION_JSON)
-                    .POST(HttpRequest.BodyPublishers.ofByteArray(data.getBytes()))
-                    .build();
+            final HttpRequest eventRequest = HttpRequest.newBuilder().uri(URI.create(httpSink.getEndpoint()))
+                    .version(HttpClient.Version.HTTP_1_1).header("ce-id", UUID.randomUUID().toString())
+                    .header("ce-specversion", "1.0").header("ce-source", "apicurio-registry")
+                    .header("ce-type", type).header("content-type", MediaType.APPLICATION_JSON)
+                    .POST(HttpRequest.BodyPublishers.ofByteArray(data.getBytes())).build();
 
-            final HttpResponse<String> eventResponse = getHttpClient()
-                    .send(eventRequest, HttpResponse.BodyHandlers.ofString());
+            final HttpResponse<String> eventResponse = getHttpClient().send(eventRequest,
+                    HttpResponse.BodyHandlers.ofString());
 
             if (eventResponse.statusCode() != 200) {
                 log.warn("Error sending http event: {}", eventResponse.body());
             }
-
 
         } catch (Exception e) {
             log.error("Error sending http event", e);
@@ -78,8 +72,7 @@ public class HttpEventSink implements EventSink {
 
     private synchronized HttpClient getHttpClient() {
         if (httpClient == null) {
-            httpClient = HttpClient.newBuilder()
-                    .build();
+            httpClient = HttpClient.newBuilder().build();
         }
         return httpClient;
     }

@@ -8,13 +8,8 @@ import io.apicurio.registry.rules.compatibility.CompatibilityChecker;
 import io.apicurio.registry.rules.validity.ContentValidator;
 
 /**
- * Interface providing different utils per artifact type
- * * compatibility checker
- * * content canonicalizer
- * * content validator
- * * rules
- * * etc ...
- *
+ * Interface providing different utils per artifact type * compatibility checker * content canonicalizer *
+ * content validator * rules * etc ...
  */
 public interface ArtifactTypeUtilProvider {
     String getArtifactType();
@@ -28,6 +23,6 @@ public interface ArtifactTypeUtilProvider {
     ContentExtractor getContentExtractor();
 
     ContentDereferencer getContentDereferencer();
-    
+
     ReferenceFinder getReferenceFinder();
 }

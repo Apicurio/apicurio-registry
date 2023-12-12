@@ -1,12 +1,12 @@
 package io.apicurio.registry.content.dereference;
 
-import java.util.Map;
-
 import io.apicurio.datamodels.Library;
 import io.apicurio.datamodels.TraverserDirection;
 import io.apicurio.datamodels.models.Document;
 import io.apicurio.datamodels.refs.IReferenceResolver;
 import io.apicurio.registry.content.ContentHandle;
+
+import java.util.Map;
 
 public class ApicurioDataModelsContentDereferencer implements ContentDereferencer {
 
@@ -18,9 +18,10 @@ public class ApicurioDataModelsContentDereferencer implements ContentDereference
         String dereferencedContentStr = Library.writeDocumentToJSONString(dereferencedDoc);
         return ContentHandle.create(dereferencedContentStr);
     }
-    
+
     /**
-     * @see io.apicurio.registry.content.dereference.ContentDereferencer#rewriteReferences(io.apicurio.registry.content.ContentHandle, java.util.Map)
+     * @see io.apicurio.registry.content.dereference.ContentDereferencer#rewriteReferences(io.apicurio.registry.content.ContentHandle,
+     *      java.util.Map)
      */
     @Override
     public ContentHandle rewriteReferences(ContentHandle content, Map<String, String> resolvedReferenceUrls) {

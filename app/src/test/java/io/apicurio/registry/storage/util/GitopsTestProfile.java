@@ -10,8 +10,7 @@ public class GitopsTestProfile implements QuarkusTestProfile {
 
     @Override
     public Map<String, String> getConfigOverrides() {
-        return Map.of("registry.storage.db-kind", "h2",
-                "registry.storage.kind", "gitops");
+        return Map.of("registry.storage.db-kind", "h2", "registry.storage.kind", "gitops");
     }
 
     @Override

@@ -1,23 +1,21 @@
 package io.apicurio.registry.content.refs;
 
+import com.squareup.wire.schema.internal.parser.ProtoFileElement;
+import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.utils.protobuf.schema.ProtobufFile;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.squareup.wire.schema.internal.parser.ProtoFileElement;
-
-import io.apicurio.registry.content.ContentHandle;
-import io.apicurio.registry.utils.protobuf.schema.ProtobufFile;
-
 /**
  * A Google Protocol Buffer implementation of a reference finder.
  */
 public class ProtobufReferenceFinder implements ReferenceFinder {
-    
+
     private static final Logger log = LoggerFactory.getLogger(ProtobufReferenceFinder.class);
 
     /**

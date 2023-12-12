@@ -1,8 +1,8 @@
 package io.apicurio.registry.utils.tests;
 
-import java.lang.reflect.Method;
-
 import org.junit.jupiter.api.DisplayNameGenerator;
+
+import java.lang.reflect.Method;
 
 public class SimpleDisplayName extends DisplayNameGenerator.ReplaceUnderscores {
 

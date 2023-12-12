@@ -10,6 +10,7 @@ public class ContentIdValue extends AbstractMessageValue {
 
     /**
      * Creator method.
+     * 
      * @param action
      */
     public static final ContentIdValue create(ActionType action) {

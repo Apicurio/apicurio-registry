@@ -23,7 +23,8 @@ public class ArtifactStateExt {
         transitions.put(ArtifactState.DEPRECATED, EnumSet.of(ArtifactState.ENABLED, ArtifactState.DISABLED));
     }
 
-    public static final EnumSet<ArtifactState> ACTIVE_STATES = EnumSet.of(ArtifactState.ENABLED, ArtifactState.DEPRECATED, ArtifactState.DISABLED);
+    public static final EnumSet<ArtifactState> ACTIVE_STATES = EnumSet.of(ArtifactState.ENABLED,
+            ArtifactState.DEPRECATED, ArtifactState.DISABLED);
 
     @Inject
     Logger log;
@@ -33,7 +34,8 @@ public class ArtifactStateExt {
         return states.contains(after);
     }
 
-    public void validateState(EnumSet<ArtifactState> states, ArtifactState state, String groupId, String artifactId, String version) {
+    public void validateState(EnumSet<ArtifactState> states, ArtifactState state, String groupId,
+            String artifactId, String version) {
         if (states != null && !states.contains(state)) {
             throw new InvalidArtifactStateException(groupId, artifactId, version, state);
         }
@@ -46,8 +48,9 @@ public class ArtifactStateExt {
         }
     }
 
-    public void applyState(Consumer<ArtifactState> consumer, ArtifactState previousState, ArtifactState newState) {
-        if ( previousState != newState) {
+    public void applyState(Consumer<ArtifactState> consumer, ArtifactState previousState,
+            ArtifactState newState) {
+        if (previousState != newState) {
             if (previousState != null) {
                 if (canTransition(previousState, newState)) {
                     consumer.accept(newState);

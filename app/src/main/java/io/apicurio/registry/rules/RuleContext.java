@@ -8,9 +8,8 @@ import java.util.Map;
 import java.util.Objects;
 
 /**
- * Contains all of the information needed by a rule executor, including the rule-specific
- * configuration, current and updated content, and any other meta-data needed.
- *
+ * Contains all of the information needed by a rule executor, including the rule-specific configuration,
+ * current and updated content, and any other meta-data needed.
  */
 public class RuleContext {
     private final String groupId;
@@ -33,8 +32,8 @@ public class RuleContext {
      * @param updatedContent
      */
     public RuleContext(String groupId, String artifactId, String artifactType, String configuration,
-                       List<ContentHandle> currentContent, ContentHandle updatedContent, 
-                       List<ArtifactReference> references, Map<String, ContentHandle> resolvedReferences) {
+            List<ContentHandle> currentContent, ContentHandle updatedContent,
+            List<ArtifactReference> references, Map<String, ContentHandle> resolvedReferences) {
         this.groupId = groupId;
         this.artifactId = Objects.requireNonNull(artifactId);
         this.artifactType = Objects.requireNonNull(artifactType);

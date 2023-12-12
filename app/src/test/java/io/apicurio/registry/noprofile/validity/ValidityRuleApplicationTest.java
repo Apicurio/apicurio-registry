@@ -1,8 +1,5 @@
 package io.apicurio.registry.noprofile.validity;
 
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Test;
-
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.rest.client.models.ArtifactContent;
 import io.apicurio.registry.rest.client.models.Rule;
@@ -10,6 +7,8 @@ import io.apicurio.registry.rest.client.models.RuleType;
 import io.apicurio.registry.rules.validity.ValidityLevel;
 import io.apicurio.registry.types.ArtifactType;
 import io.quarkus.test.junit.QuarkusTest;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -23,45 +22,22 @@ public class ValidityRuleApplicationTest extends AbstractResourceTestBase {
     private static final String SCHEMA_SIMPLE = "{\"type\": \"string\"}";
     private static final String INVALID_SCHEMA = "{\"type\": \"string";
 
-    private static final String SCHEMA_WITH_MAP = "{\r\n" +
-            "    \"type\": \"record\",\r\n" +
-            "    \"name\": \"userInfo\",\r\n" +
-            "    \"namespace\": \"my.example\",\r\n" +
-            "    \"fields\": [\r\n" +
-            "        {\r\n" +
-            "            \"name\": \"name\",\r\n" +
-            "            \"type\": \"string\",\r\n" +
-            "            \"default\": \"NONE\"\r\n" +
-            "        },\r\n" +
-            "        {\r\n" +
-            "            \"name\": \"props\",\r\n" +
-            "            \"type\": {\r\n" +
-            "                \"type\": \"map\",\r\n" +
-            "                \"values\": \"string\"\r\n" +
-            "            }\r\n" +
-            "        }\r\n" +
-            "    ]\r\n" +
-            "}";
-    private static final String INVALID_SCHEMA_WITH_MAP = "{\r\n" +
-            "    \"type\": \"record\",\r\n" +
-            "    \"name\": \"userInfo\",\r\n" +
-            "    \"namespace\": \"my.example\",\r\n" +
-            "    \"fields\": [\r\n" +
-            "        {\r\n" +
-            "            \"name\": \"name\",\r\n" +
-            "            \"type\": \"string\",\r\n" +
-            "            \"default\": \"NONE\"\r\n" +
-            "        },\r\n" +
-            "        {\r\n" +
-            "            \"name\": \"props\",\r\n" +
-            "            \"type\": {\r\n" +
-            "                \"type\": \"map\",\r\n" +
-            "                \"values\": \"string\"\r\n" +
-            "            },\r\n" +
-            "            \"default\": \"{}\"\r\n" +
-            "        }\r\n" +
-            "    ]\r\n" +
-            "}";
+    private static final String SCHEMA_WITH_MAP = "{\r\n" + "    \"type\": \"record\",\r\n"
+            + "    \"name\": \"userInfo\",\r\n" + "    \"namespace\": \"my.example\",\r\n"
+            + "    \"fields\": [\r\n" + "        {\r\n" + "            \"name\": \"name\",\r\n"
+            + "            \"type\": \"string\",\r\n" + "            \"default\": \"NONE\"\r\n"
+            + "        },\r\n" + "        {\r\n" + "            \"name\": \"props\",\r\n"
+            + "            \"type\": {\r\n" + "                \"type\": \"map\",\r\n"
+            + "                \"values\": \"string\"\r\n" + "            }\r\n" + "        }\r\n"
+            + "    ]\r\n" + "}";
+    private static final String INVALID_SCHEMA_WITH_MAP = "{\r\n" + "    \"type\": \"record\",\r\n"
+            + "    \"name\": \"userInfo\",\r\n" + "    \"namespace\": \"my.example\",\r\n"
+            + "    \"fields\": [\r\n" + "        {\r\n" + "            \"name\": \"name\",\r\n"
+            + "            \"type\": \"string\",\r\n" + "            \"default\": \"NONE\"\r\n"
+            + "        },\r\n" + "        {\r\n" + "            \"name\": \"props\",\r\n"
+            + "            \"type\": {\r\n" + "                \"type\": \"map\",\r\n"
+            + "                \"values\": \"string\"\r\n" + "            },\r\n"
+            + "            \"default\": \"{}\"\r\n" + "        }\r\n" + "    ]\r\n" + "}";
 
     @Test
     public void testValidityRuleApplication() throws Exception {
@@ -70,16 +46,20 @@ public class ValidityRuleApplicationTest extends AbstractResourceTestBase {
         Rule rule = new Rule();
         rule.setType(RuleType.VALIDITY);
         rule.setConfig(ValidityLevel.FULL.name());
-        clientV3.groups().byGroupId("default").artifacts().byArtifactId(artifactId).rules().post(rule).get(3, TimeUnit.SECONDS);
+        clientV3.groups().byGroupId("default").artifacts().byArtifactId(artifactId).rules().post(rule).get(3,
+                TimeUnit.SECONDS);
 
         var executionException = Assertions.assertThrows(ExecutionException.class, () -> {
             ArtifactContent content = new ArtifactContent();
             content.setContent(INVALID_SCHEMA);
-            clientV3.groups().byGroupId("default").artifacts().byArtifactId(artifactId).put(content).get(3, TimeUnit.SECONDS);
+            clientV3.groups().byGroupId("default").artifacts().byArtifactId(artifactId).put(content).get(3,
+                    TimeUnit.SECONDS);
         });
         assertNotNull(executionException.getCause());
-        assertEquals("RuleViolationException", ((io.apicurio.registry.rest.client.models.Error)executionException.getCause()).getName());
-        assertEquals(409, ((io.apicurio.registry.rest.client.models.Error)executionException.getCause()).getErrorCode());
+        assertEquals("RuleViolationException",
+                ((io.apicurio.registry.rest.client.models.Error) executionException.getCause()).getName());
+        assertEquals(409, ((io.apicurio.registry.rest.client.models.Error) executionException.getCause())
+                .getErrorCode());
     }
 
     @Test
@@ -89,16 +69,20 @@ public class ValidityRuleApplicationTest extends AbstractResourceTestBase {
         Rule rule = new Rule();
         rule.setType(RuleType.VALIDITY);
         rule.setConfig(ValidityLevel.FULL.name());
-        clientV3.groups().byGroupId("default").artifacts().byArtifactId(artifactId).rules().post(rule).get(3, TimeUnit.SECONDS);
+        clientV3.groups().byGroupId("default").artifacts().byArtifactId(artifactId).rules().post(rule).get(3,
+                TimeUnit.SECONDS);
 
         var executionException = Assertions.assertThrows(ExecutionException.class, () -> {
             ArtifactContent content = new ArtifactContent();
             content.setContent(INVALID_SCHEMA_WITH_MAP);
-            clientV3.groups().byGroupId("default").artifacts().byArtifactId(artifactId).put(content).get(3, TimeUnit.SECONDS);
+            clientV3.groups().byGroupId("default").artifacts().byArtifactId(artifactId).put(content).get(3,
+                    TimeUnit.SECONDS);
         });
         assertNotNull(executionException.getCause());
-        assertEquals("RuleViolationException", ((io.apicurio.registry.rest.client.models.Error)executionException.getCause()).getName());
-        assertEquals(409, ((io.apicurio.registry.rest.client.models.Error)executionException.getCause()).getErrorCode());
+        assertEquals("RuleViolationException",
+                ((io.apicurio.registry.rest.client.models.Error) executionException.getCause()).getName());
+        assertEquals(409, ((io.apicurio.registry.rest.client.models.Error) executionException.getCause())
+                .getErrorCode());
     }
 
 }

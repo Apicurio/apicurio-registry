@@ -59,8 +59,6 @@ public class BlueDatasourceProducer {
         props.put(AgroalPropertiesReader.CREDENTIAL, password);
         props.put(AgroalPropertiesReader.PROVIDER_CLASS_NAME, databaseKind.getDriverClassName());
 
-        return AgroalDataSource.from(new AgroalPropertiesReader()
-                .readProperties(props)
-                .get());
+        return AgroalDataSource.from(new AgroalPropertiesReader().readProperties(props).get());
     }
 }

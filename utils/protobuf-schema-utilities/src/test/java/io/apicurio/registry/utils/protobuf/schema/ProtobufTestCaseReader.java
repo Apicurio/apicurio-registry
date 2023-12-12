@@ -10,7 +10,8 @@ public class ProtobufTestCaseReader {
 
     public static String getRawSchema(String fileName) {
         try {
-            return new String(Files.readAllBytes(Paths.get(TEST_PROTO_PATH, fileName)), StandardCharsets.UTF_8);
+            return new String(Files.readAllBytes(Paths.get(TEST_PROTO_PATH, fileName)),
+                    StandardCharsets.UTF_8);
         } catch (IOException e) {
             throw new RuntimeException("Error reading file", e);
         }

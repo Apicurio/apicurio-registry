@@ -1,14 +1,14 @@
 package io.apicurio.registry.ui.servlets;
 
-import java.io.IOException;
-import java.util.HashSet;
-import java.util.Set;
-
 import jakarta.servlet.GenericServlet;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.ServletRequest;
 import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.HttpServletRequest;
+
+import java.io.IOException;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * A simple servlet that forwards the request to the apidocs.html file.
@@ -28,7 +28,8 @@ public class ApiDocsServlet extends GenericServlet {
     }
 
     /**
-     * @see jakarta.servlet.GenericServlet#service(jakarta.servlet.ServletRequest, jakarta.servlet.ServletResponse)
+     * @see jakarta.servlet.GenericServlet#service(jakarta.servlet.ServletRequest,
+     *      jakarta.servlet.ServletResponse)
      */
     @Override
     public void service(ServletRequest req, ServletResponse res) throws ServletException, IOException {

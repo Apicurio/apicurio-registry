@@ -2,7 +2,6 @@ package io.apicurio.registry.rules.validity;
 
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.rules.RuleViolationException;
-
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 

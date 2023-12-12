@@ -1,11 +1,6 @@
 package io.apicurio.registry.content.refs;
 
-import java.util.HashSet;
-import java.util.Set;
-import java.util.stream.Collectors;
-
 import com.fasterxml.jackson.databind.JsonNode;
-
 import io.apicurio.datamodels.Library;
 import io.apicurio.datamodels.TraverserDirection;
 import io.apicurio.datamodels.models.Document;
@@ -15,11 +10,14 @@ import io.apicurio.datamodels.models.asyncapi.AsyncApiMessage;
 import io.apicurio.datamodels.models.visitors.AllNodeVisitor;
 import io.apicurio.registry.content.ContentHandle;
 
+import java.util.HashSet;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 /**
- * Implementation of a reference finder that uses Apicurio Data Models and so supports any specification 
- * contained therein.  Parses the document, finds all $refs, converts them to external references, and 
- * returns them.
- * 
+ * Implementation of a reference finder that uses Apicurio Data Models and so supports any specification
+ * contained therein. Parses the document, finds all $refs, converts them to external references, and returns
+ * them.
  */
 public abstract class AbstractDataModelsReferenceFinder implements ReferenceFinder {
 
@@ -29,23 +27,21 @@ public abstract class AbstractDataModelsReferenceFinder implements ReferenceFind
     @Override
     public Set<ExternalReference> findExternalReferences(ContentHandle content) {
         Document doc = Library.readDocumentFromJSONString(content.content());
-        
+
         // Find all the $refs
         RefFinderVisitor visitor = new RefFinderVisitor();
         Library.visitTree(doc, visitor, TraverserDirection.down);
-        
+
         // Convert to ExternalReference and filter.
-        return visitor.allReferences.stream()
-                .map(ref -> new JsonPointerExternalReference(ref))
-                .filter(ref -> ref.getResource() != null)
-                .collect(Collectors.toSet());
+        return visitor.allReferences.stream().map(ref -> new JsonPointerExternalReference(ref))
+                .filter(ref -> ref.getResource() != null).collect(Collectors.toSet());
     }
-    
+
     /**
      * Visitor that will visit every node looking for "$ref" properties.
      */
     private static class RefFinderVisitor extends AllNodeVisitor {
-        
+
         public Set<String> allReferences = new HashSet<>();
 
         /**
@@ -60,13 +56,14 @@ public abstract class AbstractDataModelsReferenceFinder implements ReferenceFind
                 }
             }
         }
-        
+
         /**
          * @see io.apicurio.datamodels.models.visitors.AllNodeVisitor#visitMessage(io.apicurio.datamodels.models.asyncapi.AsyncApiMessage)
          */
         @Override
         public void visitMessage(AsyncApiMessage node) {
-            // Note: special handling of message payloads because data-models doesn't fully model the payload yet.
+            // Note: special handling of message payloads because data-models doesn't fully model the payload
+            // yet.
             JsonNode payload = node.getPayload();
             if (payload != null && payload.has("$ref") && !payload.get("$ref").isNull()) {
                 String ref = payload.get("$ref").asText();
@@ -74,7 +71,7 @@ public abstract class AbstractDataModelsReferenceFinder implements ReferenceFind
             }
             super.visitMessage(node);
         }
-        
+
     }
 
 }

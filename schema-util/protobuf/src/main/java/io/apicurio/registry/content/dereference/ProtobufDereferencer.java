@@ -14,24 +14,27 @@ public class ProtobufDereferencer implements ContentDereferencer {
 
     @Override
     public ContentHandle dereference(ContentHandle content, Map<String, ContentHandle> resolvedReferences) {
-        //FIXME this code is not dereferencing references, only validating that all that references are resolvable
-        //FIXME CAN this even be done in Proto? Can multiple types in different namespaces be defined in the same .proto file?  Does it matter?  Needs investigation.
+        // FIXME this code is not dereferencing references, only validating that all that references are
+        // resolvable
+        // FIXME CAN this even be done in Proto? Can multiple types in different namespaces be defined in the
+        // same .proto file? Does it matter? Needs investigation.
         final ProtoFileElement protoFileElement = ProtobufFile.toProtoFileElement(content.content());
-        final Map<String, ProtoFileElement> dependencies = Collections.unmodifiableMap(resolvedReferences.entrySet()
-                .stream()
-                .collect(Collectors.toMap(
-                        Map.Entry::getKey,
-                        e -> ProtobufFile.toProtoFileElement(e.getValue().content())
-                )));
+        final Map<String, ProtoFileElement> dependencies = Collections.unmodifiableMap(
+                resolvedReferences.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey,
+                        e -> ProtobufFile.toProtoFileElement(e.getValue().content()))));
         try {
-            return ContentHandle.create(FileDescriptorUtils.fileDescriptorWithDepsToProtoFile(FileDescriptorUtils.protoFileToFileDescriptor(protoFileElement), dependencies).toString());
+            return ContentHandle.create(FileDescriptorUtils
+                    .fileDescriptorWithDepsToProtoFile(
+                            FileDescriptorUtils.protoFileToFileDescriptor(protoFileElement), dependencies)
+                    .toString());
         } catch (Descriptors.DescriptorValidationException e) {
             throw new IllegalArgumentException(e);
         }
     }
-    
+
     /**
-     * @see io.apicurio.registry.content.dereference.ContentDereferencer#rewriteReferences(io.apicurio.registry.content.ContentHandle, java.util.Map)
+     * @see io.apicurio.registry.content.dereference.ContentDereferencer#rewriteReferences(io.apicurio.registry.content.ContentHandle,
+     *      java.util.Map)
      */
     @Override
     public ContentHandle rewriteReferences(ContentHandle content, Map<String, String> resolvedReferenceUrls) {

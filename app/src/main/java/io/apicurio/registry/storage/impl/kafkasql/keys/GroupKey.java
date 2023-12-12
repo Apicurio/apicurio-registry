@@ -10,6 +10,7 @@ public class GroupKey implements MessageKey {
 
     /**
      * Creator method.
+     * 
      * @param groupId
      */
     public static final GroupKey create(String groupId) {

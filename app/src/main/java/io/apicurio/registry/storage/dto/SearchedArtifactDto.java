@@ -1,10 +1,10 @@
 package io.apicurio.registry.storage.dto;
 
+import io.apicurio.registry.types.ArtifactState;
+
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-
-import io.apicurio.registry.types.ArtifactState;
 
 public class SearchedArtifactDto {
 
@@ -19,7 +19,7 @@ public class SearchedArtifactDto {
     private ArtifactState state;
     private Date modifiedOn;
     private String modifiedBy;
-    
+
     /**
      * Constructor.
      */

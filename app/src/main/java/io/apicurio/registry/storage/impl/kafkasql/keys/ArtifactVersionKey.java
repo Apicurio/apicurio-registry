@@ -12,6 +12,7 @@ public class ArtifactVersionKey implements MessageKey {
 
     /**
      * Creator method.
+     * 
      * @param groupId
      * @param artifactId
      * @param version

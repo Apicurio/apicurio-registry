@@ -15,6 +15,7 @@ public class SearchFilter {
 
     /**
      * Constructor.
+     * 
      * @param type
      * @param value object
      */
@@ -24,7 +25,8 @@ public class SearchFilter {
     }
 
     public static SearchFilter ofProperty(String propertyKey, String propertyValue) {
-        return new SearchFilter(SearchFilterType.properties, Pair.<String, String>of(propertyKey, propertyValue));
+        return new SearchFilter(SearchFilterType.properties,
+                Pair.<String, String> of(propertyKey, propertyValue));
     }
 
     public static SearchFilter ofGlobalId(Long value) {
@@ -99,7 +101,6 @@ public class SearchFilter {
         }
         throw new IllegalStateException("value is not of type number");
     }
-
 
     /**
      * @param value the value to set

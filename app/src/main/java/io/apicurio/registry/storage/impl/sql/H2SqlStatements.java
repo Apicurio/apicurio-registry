@@ -1,8 +1,8 @@
 package io.apicurio.registry.storage.impl.sql;
 
 /**
- * H2 implementation of the sql statements interface.  Provides sql statements that
- * are specific to H2, where applicable.
+ * H2 implementation of the sql statements interface. Provides sql statements that are specific to H2, where
+ * applicable.
  */
 public class H2SqlStatements extends CommonSqlStatements {
 
@@ -33,7 +33,8 @@ public class H2SqlStatements extends CommonSqlStatements {
      */
     @Override
     public boolean isForeignKeyViolation(Exception error) {
-        return error.getMessage() != null && error.getMessage().contains("Referential integrity constraint violation");
+        return error.getMessage() != null
+                && error.getMessage().contains("Referential integrity constraint violation");
     }
 
     /**

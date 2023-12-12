@@ -10,7 +10,6 @@ import jakarta.inject.Inject;
 
 /**
  * An in-memory SQL implementation of the {@link RegistryStorage} interface.
- *
  */
 @ApplicationScoped
 @PersistenceExceptionLivenessApply

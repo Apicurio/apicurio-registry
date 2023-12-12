@@ -50,13 +50,13 @@ public class KafkaSqlSink {
     KafkaSqlSubmitter submitter;
 
     /**
-     * Called by the {@link KafkaSqlRegistryStorage} main Kafka consumer loop to process a single
-     * message in the topic.  Each message represents some attempt to modify the registry data.  So
-     * each message much be consumed and applied to the in-memory SQL data store.
+     * Called by the {@link KafkaSqlRegistryStorage} main Kafka consumer loop to process a single message in
+     * the topic. Each message represents some attempt to modify the registry data. So each message much be
+     * consumed and applied to the in-memory SQL data store.
      * <p>
-     * This method extracts the UUID from the message headers, delegates the message processing
-     * to <code>doProcessMessage()</code>, and handles any exceptions that might occur. Finally
-     * it will report the result to any local threads that may be waiting (via the coordinator).
+     * This method extracts the UUID from the message headers, delegates the message processing to
+     * <code>doProcessMessage()</code>, and handles any exceptions that might occur. Finally it will report
+     * the result to any local threads that may be waiting (via the coordinator).
      *
      * @param record
      */
@@ -67,7 +67,9 @@ public class KafkaSqlSink {
 
         try {
             Object result = doProcessMessage(record);
-            log.trace("Processed message key: {} value: {} result: {}", record.key().getType().name(), record.value() != null ? record.value().toString() : "", result != null ? result.toString() : "");
+            log.trace("Processed message key: {} value: {} result: {}", record.key().getType().name(),
+                    record.value() != null ? record.value().toString() : "",
+                    result != null ? result.toString() : "");
             log.debug("Kafka message successfully processed. Notifying listeners of response.");
             coordinator.notifyResponse(requestId, result);
         } catch (RegistryException e) {
@@ -80,25 +82,19 @@ public class KafkaSqlSink {
     }
 
     /**
-     * Extracts the UUID from the message.  The UUID should be found in a message header.
+     * Extracts the UUID from the message. The UUID should be found in a message header.
      *
      * @param record
      */
     private UUID extractUuid(ConsumerRecord<MessageKey, MessageValue> record) {
-        return Optional.ofNullable(record.headers().headers("req"))
-                .map(Iterable::iterator)
-                .map(it -> {
-                    return it.hasNext() ? it.next() : null;
-                })
-                .map(Header::value)
-                .map(String::new)
-                .map(UUID::fromString)
-                .orElse(null);
+        return Optional.ofNullable(record.headers().headers("req")).map(Iterable::iterator).map(it -> {
+            return it.hasNext() ? it.next() : null;
+        }).map(Header::value).map(String::new).map(UUID::fromString).orElse(null);
     }
 
     /**
-     * Process the message and return a result.  This method may also throw an exception if something
-     * goes wrong.
+     * Process the message and return a result. This method may also throw an exception if something goes
+     * wrong.
      *
      * @param record
      */
@@ -186,7 +182,8 @@ public class KafkaSqlSink {
     private Object processConfigProperty(ConfigPropertyKey key, ConfigPropertyValue value) {
         switch (value.getAction()) {
             case UPDATE:
-                DynamicConfigPropertyDto dto = new DynamicConfigPropertyDto(key.getPropertyName(), value.getValue());
+                DynamicConfigPropertyDto dto = new DynamicConfigPropertyDto(key.getPropertyName(),
+                        value.getValue());
                 sqlStore.setConfigProperty(dto);
                 return null;
             case DELETE:
@@ -198,23 +195,17 @@ public class KafkaSqlSink {
     }
 
     /**
-     * Process a Kafka message of type "group".  This includes creating, updating, and deleting groups.
+     * Process a Kafka message of type "group". This includes creating, updating, and deleting groups.
      *
      * @param key
      * @param value
      */
     private Object processGroupMessage(GroupKey key, GroupValue value) {
         Supplier<GroupMetaDataDto> buildGroup = () -> {
-            return GroupMetaDataDto.builder()
-                    .groupId(key.getGroupId())
-                    .description(value.getDescription())
-                    .artifactsType(value.getArtifactsType())
-                    .createdBy(value.getCreatedBy())
-                    .createdOn(value.getCreatedOn())
-                    .modifiedBy(value.getModifiedBy())
-                    .modifiedOn(value.getModifiedOn())
-                    .properties(value.getProperties())
-                    .build();
+            return GroupMetaDataDto.builder().groupId(key.getGroupId()).description(value.getDescription())
+                    .artifactsType(value.getArtifactsType()).createdBy(value.getCreatedBy())
+                    .createdOn(value.getCreatedOn()).modifiedBy(value.getModifiedBy())
+                    .modifiedOn(value.getModifiedOn()).properties(value.getProperties()).build();
         };
         switch (value.getAction()) {
             case CREATE:
@@ -248,22 +239,25 @@ public class KafkaSqlSink {
     }
 
     /**
-     * Process a Kafka message of type "artifact".  This includes creating, updating, and deleting artifacts.
+     * Process a Kafka message of type "artifact". This includes creating, updating, and deleting artifacts.
      *
      * @param key
      * @param value
      */
-    private Object processArtifactMessage(ArtifactKey key, ArtifactValue value) throws RegistryStorageException {
+    private Object processArtifactMessage(ArtifactKey key, ArtifactValue value)
+            throws RegistryStorageException {
         try {
             switch (value.getAction()) {
                 case CREATE:
-                    return sqlStore.createArtifactWithMetadata(key.getGroupId(), key.getArtifactId(), value.getVersion(), value.getArtifactType(),
-                            value.getContentHash(), value.getCreatedBy(), value.getCreatedOn(),
-                            value.getMetaData(), IdGenerator.single(value.getGlobalId()));
+                    return sqlStore.createArtifactWithMetadata(key.getGroupId(), key.getArtifactId(),
+                            value.getVersion(), value.getArtifactType(), value.getContentHash(),
+                            value.getCreatedBy(), value.getCreatedOn(), value.getMetaData(),
+                            IdGenerator.single(value.getGlobalId()));
                 case UPDATE:
-                    return sqlStore.updateArtifactWithMetadata(key.getGroupId(), key.getArtifactId(), value.getVersion(), value.getArtifactType(),
-                            value.getContentHash(), value.getCreatedBy(), value.getCreatedOn(),
-                            value.getMetaData(), IdGenerator.single(value.getGlobalId()));
+                    return sqlStore.updateArtifactWithMetadata(key.getGroupId(), key.getArtifactId(),
+                            value.getVersion(), value.getArtifactType(), value.getContentHash(),
+                            value.getCreatedBy(), value.getCreatedOn(), value.getMetaData(),
+                            IdGenerator.single(value.getGlobalId()));
                 case DELETE:
                     return sqlStore.deleteArtifact(key.getGroupId(), key.getArtifactId());
                 case IMPORT:
@@ -289,7 +283,8 @@ public class KafkaSqlSink {
                     return unsupported(key, value);
             }
         } catch (ArtifactNotFoundException | ArtifactAlreadyExistsException e) {
-            // Send a tombstone message to clean up the unique Kafka message that caused this failure.  We may be
+            // Send a tombstone message to clean up the unique Kafka message that caused this failure. We may
+            // be
             // able to do this for other errors, but these two are definitely safe.
             submitter.send(key, null);
             throw e;
@@ -297,8 +292,8 @@ public class KafkaSqlSink {
     }
 
     /**
-     * Process a Kafka message of type "artifact rule".  This includes creating, updating, and deleting
-     * rules for a specific artifact.
+     * Process a Kafka message of type "artifact rule". This includes creating, updating, and deleting rules
+     * for a specific artifact.
      *
      * @param key
      * @param value
@@ -306,12 +301,15 @@ public class KafkaSqlSink {
     private Object processArtifactRuleMessage(ArtifactRuleKey key, ArtifactRuleValue value) {
         switch (value.getAction()) {
             case CREATE:
-                // Note: createArtifactRuleAsync() must be called instead of createArtifactRule() because that's what
+                // Note: createArtifactRuleAsync() must be called instead of createArtifactRule() because
+                // that's what
                 // KafkaSqlRegistryStorage::createArtifactRuleAsync() expects (a return value)
-                sqlStore.createArtifactRule(key.getGroupId(), key.getArtifactId(), key.getRuleType(), value.getConfig());
+                sqlStore.createArtifactRule(key.getGroupId(), key.getArtifactId(), key.getRuleType(),
+                        value.getConfig());
                 return null;
             case UPDATE:
-                sqlStore.updateArtifactRule(key.getGroupId(), key.getArtifactId(), key.getRuleType(), value.getConfig());
+                sqlStore.updateArtifactRule(key.getGroupId(), key.getArtifactId(), key.getRuleType(),
+                        value.getConfig());
                 return null;
             case DELETE:
                 sqlStore.deleteArtifactRule(key.getGroupId(), key.getArtifactId(), key.getRuleType());
@@ -330,8 +328,8 @@ public class KafkaSqlSink {
     }
 
     /**
-     * Process a Kafka message of type "artifact owner".  This includes updating the owner for
-     * a specific artifact.
+     * Process a Kafka message of type "artifact owner". This includes updating the owner for a specific
+     * artifact.
      *
      * @param key
      * @param value
@@ -339,7 +337,8 @@ public class KafkaSqlSink {
     private Object processArtifactOwnerMessage(ArtifactOwnerKey key, ArtifactOwnerValue value) {
         switch (value.getAction()) {
             case UPDATE:
-                sqlStore.updateArtifactOwner(key.getGroupId(), key.getArtifactId(), new ArtifactOwnerDto(value.getOwner()));
+                sqlStore.updateArtifactOwner(key.getGroupId(), key.getArtifactId(),
+                        new ArtifactOwnerDto(value.getOwner()));
                 return null;
             default:
                 return unsupported(key, value);
@@ -347,11 +346,10 @@ public class KafkaSqlSink {
     }
 
     /**
-     * Process a Kafka message of type "artifact version".  This includes:
+     * Process a Kafka message of type "artifact version". This includes:
      * <p>
-     * - Updating version meta-data and state
-     * - Deleting version meta-data and state
-     * - Deleting an artifact version
+     * - Updating version meta-data and state - Deleting version meta-data and state - Deleting an artifact
+     * version
      *
      * @param key
      * @param value
@@ -359,14 +357,17 @@ public class KafkaSqlSink {
     private Object processArtifactVersion(ArtifactVersionKey key, ArtifactVersionValue value) {
         switch (value.getAction()) {
             case UPDATE:
-                sqlStore.updateArtifactVersionMetaData(key.getGroupId(), key.getArtifactId(), key.getVersion(), value.getMetaData());
-                sqlStore.updateArtifactState(key.getGroupId(), key.getArtifactId(), key.getVersion(), value.getState());
+                sqlStore.updateArtifactVersionMetaData(key.getGroupId(), key.getArtifactId(),
+                        key.getVersion(), value.getMetaData());
+                sqlStore.updateArtifactState(key.getGroupId(), key.getArtifactId(), key.getVersion(),
+                        value.getState());
                 return null;
             case DELETE:
                 sqlStore.deleteArtifactVersion(key.getGroupId(), key.getArtifactId(), key.getVersion());
                 return null;
             case CLEAR:
-                sqlStore.deleteArtifactVersionMetaData(key.getGroupId(), key.getArtifactId(), key.getVersion());
+                sqlStore.deleteArtifactVersionMetaData(key.getGroupId(), key.getArtifactId(),
+                        key.getVersion());
                 return null;
             default:
                 return unsupported(key, value);
@@ -374,8 +375,8 @@ public class KafkaSqlSink {
     }
 
     /**
-     * Process a Kafka message of type "content".  This primarily means creating or updating a row in
-     * the content table.
+     * Process a Kafka message of type "content". This primarily means creating or updating a row in the
+     * content table.
      *
      * @param key
      * @param value
@@ -385,13 +386,10 @@ public class KafkaSqlSink {
             case CREATE:
                 if (!sqlStore.isContentExists(key.getContentHash())) {
 
-                    var entity = ContentEntity.builder()
-                            .contentId(key.getContentId())
-                            .contentHash(key.getContentHash())
-                            .canonicalHash(value.getCanonicalHash())
+                    var entity = ContentEntity.builder().contentId(key.getContentId())
+                            .contentHash(key.getContentHash()).canonicalHash(value.getCanonicalHash())
                             .contentBytes(value.getContent().bytes())
-                            .serializedReferences(value.getSerializedReferences())
-                            .build();
+                            .serializedReferences(value.getSerializedReferences()).build();
 
                     sqlStore.importContent(entity);
                 }
@@ -406,7 +404,8 @@ public class KafkaSqlSink {
                 sqlStore.importContent(entity);
                 return null;
             case UPDATE:
-                sqlStore.updateContentCanonicalHash(value.getCanonicalHash(), key.getContentId(), key.getContentHash());
+                sqlStore.updateContentCanonicalHash(value.getCanonicalHash(), key.getContentId(),
+                        key.getContentHash());
                 return null;
             default:
                 return unsupported(key, value);
@@ -414,8 +413,8 @@ public class KafkaSqlSink {
     }
 
     /**
-     * Process a Kafka message of type "global rule".  This includes creating, updating, and deleting
-     * global rules.
+     * Process a Kafka message of type "global rule". This includes creating, updating, and deleting global
+     * rules.
      *
      * @param key
      * @param value
@@ -443,8 +442,8 @@ public class KafkaSqlSink {
     }
 
     /**
-     * Process a Kafka message of type "role mapping".  This includes creating, updating, and deleting
-     * role mappings.
+     * Process a Kafka message of type "role mapping". This includes creating, updating, and deleting role
+     * mappings.
      *
      * @param key
      * @param value
@@ -460,21 +459,21 @@ public class KafkaSqlSink {
             case DELETE:
                 sqlStore.deleteRoleMapping(key.getPrincipalId());
                 return null;
-//            case IMPORT:
-// Should we be importing role mappings?
-//                GlobalRuleEntity entity = new GlobalRuleEntity();
-//                entity.ruleType = key.getRuleType();
-//                entity.configuration = value.getConfig().getConfiguration();
-//                sqlStore.importGlobalRule(entity);
-//                return null;
+            // case IMPORT:
+            // Should we be importing role mappings?
+            // GlobalRuleEntity entity = new GlobalRuleEntity();
+            // entity.ruleType = key.getRuleType();
+            // entity.configuration = value.getConfig().getConfiguration();
+            // sqlStore.importGlobalRule(entity);
+            // return null;
             default:
                 return unsupported(key, value);
         }
     }
 
     /**
-     * Process a Kafka message of type "global id".  This is typically used to generate a new globalId that
-     * is unique and consistent across the cluster.
+     * Process a Kafka message of type "global id". This is typically used to generate a new globalId that is
+     * unique and consistent across the cluster.
      *
      * @param key
      * @param value
@@ -492,7 +491,7 @@ public class KafkaSqlSink {
     }
 
     /**
-     * Process a Kafka message of type "content id".  This is typically used to generate a new contentId that
+     * Process a Kafka message of type "content id". This is typically used to generate a new contentId that
      * is unique and consistent across the cluster.
      *
      * @param key
@@ -511,7 +510,7 @@ public class KafkaSqlSink {
     }
 
     /**
-     * Process a Kafka message of type "comment id".  This is typically used to generate a new commentId that
+     * Process a Kafka message of type "comment id". This is typically used to generate a new commentId that
      * is unique and consistent across the cluster.
      *
      * @param key
@@ -529,16 +528,16 @@ public class KafkaSqlSink {
         }
     }
 
-
     private Object unsupported(MessageKey key, AbstractMessageValue value) {
-        final String m = String.format("Unsupported action '%s' for message type '%s'", value.getAction(), key.getType().name());
+        final String m = String.format("Unsupported action '%s' for message type '%s'", value.getAction(),
+                key.getType().name());
         log.warn(m);
         throw new RegistryStorageException(m);
     }
 
     /**
-     * Process a Kafka message of type "comment".  This includes creating, updating, and deleting
-     * comments for a specific artifact version.
+     * Process a Kafka message of type "comment". This includes creating, updating, and deleting comments for
+     * a specific artifact version.
      *
      * @param key
      * @param value
@@ -546,14 +545,16 @@ public class KafkaSqlSink {
     private Object processComment(CommentKey key, CommentValue value) {
         switch (value.getAction()) {
             case CREATE:
-                return sqlStore.createArtifactVersionCommentRaw(key.getGroupId(), key.getArtifactId(), key.getVersion(),
-                        IdGenerator.single(Long.parseLong(key.getCommentId())),
+                return sqlStore.createArtifactVersionCommentRaw(key.getGroupId(), key.getArtifactId(),
+                        key.getVersion(), IdGenerator.single(Long.parseLong(key.getCommentId())),
                         value.getCreatedBy(), value.getCreatedOn(), value.getValue());
             case UPDATE:
-                sqlStore.updateArtifactVersionComment(key.getGroupId(), key.getArtifactId(), key.getVersion(), key.getCommentId(), value.getValue());
+                sqlStore.updateArtifactVersionComment(key.getGroupId(), key.getArtifactId(), key.getVersion(),
+                        key.getCommentId(), value.getValue());
                 return null;
             case DELETE:
-                sqlStore.deleteArtifactVersionComment(key.getGroupId(), key.getArtifactId(), key.getVersion(), key.getCommentId());
+                sqlStore.deleteArtifactVersionComment(key.getGroupId(), key.getArtifactId(), key.getVersion(),
+                        key.getCommentId());
                 return null;
             case IMPORT:
                 CommentEntity entity = new CommentEntity();

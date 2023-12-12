@@ -10,12 +10,12 @@ public class AuthTestProfileAuthenticatedReadAccess implements QuarkusTestProfil
 
     @Override
     public Map<String, String> getConfigOverrides() {
-        return Map.of("registry.auth.authenticated-read-access.enabled", "true", "smallrye.jwt.sign.key.location", "privateKey.jwk");
+        return Map.of("registry.auth.authenticated-read-access.enabled", "true",
+                "smallrye.jwt.sign.key.location", "privateKey.jwk");
     }
 
     @Override
     public List<TestResourceEntry> testResources() {
-        return Collections.singletonList(
-                new TestResourceEntry(JWKSMockServer.class));
+        return Collections.singletonList(new TestResourceEntry(JWKSMockServer.class));
     }
 }

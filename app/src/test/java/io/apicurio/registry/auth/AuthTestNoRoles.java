@@ -40,8 +40,8 @@ public class AuthTestNoRoles extends AbstractResourceTestBase {
     @Override
     protected RegistryClient createRestClientV3() {
         var adapter = new OkHttpRequestAdapter(
-                new BaseBearerTokenAuthenticationProvider(
-                        new OidcAccessTokenProvider(authServerUrlConfigured, JWKSMockServer.ADMIN_CLIENT_ID, "test1")));
+                new BaseBearerTokenAuthenticationProvider(new OidcAccessTokenProvider(authServerUrlConfigured,
+                        JWKSMockServer.ADMIN_CLIENT_ID, "test1")));
         adapter.setBaseUrl(registryV3ApiUrl);
         return new RegistryClient(adapter);
     }
@@ -49,8 +49,8 @@ public class AuthTestNoRoles extends AbstractResourceTestBase {
     @Test
     public void testWrongCreds() throws Exception {
         var adapter = new OkHttpRequestAdapter(
-                new BaseBearerTokenAuthenticationProvider(
-                        new OidcAccessTokenProvider(authServerUrlConfigured, JWKSMockServer.WRONG_CREDS_CLIENT_ID, "test55")));
+                new BaseBearerTokenAuthenticationProvider(new OidcAccessTokenProvider(authServerUrlConfigured,
+                        JWKSMockServer.WRONG_CREDS_CLIENT_ID, "test55")));
         adapter.setBaseUrl(registryV3ApiUrl);
         RegistryClient client = new RegistryClient(adapter);
         var executionException = Assertions.assertThrows(ExecutionException.class, () -> {
@@ -62,8 +62,8 @@ public class AuthTestNoRoles extends AbstractResourceTestBase {
     @Test
     public void testAdminRole() throws Exception {
         var adapter = new OkHttpRequestAdapter(
-                new BaseBearerTokenAuthenticationProvider(
-                        new OidcAccessTokenProvider(authServerUrlConfigured, JWKSMockServer.ADMIN_CLIENT_ID, "test1")));
+                new BaseBearerTokenAuthenticationProvider(new OidcAccessTokenProvider(authServerUrlConfigured,
+                        JWKSMockServer.ADMIN_CLIENT_ID, "test1")));
         adapter.setBaseUrl(registryV3ApiUrl);
         RegistryClient client = new RegistryClient(adapter);
         String artifactId = TestUtils.generateArtifactId();
@@ -71,24 +71,14 @@ public class AuthTestNoRoles extends AbstractResourceTestBase {
             client.groups().byGroupId("default").artifacts().get().get(3, TimeUnit.SECONDS);
             ArtifactContent content = new ArtifactContent();
             content.setContent("{}");
-            client
-                    .groups()
-                    .byGroupId(groupId)
-                    .artifacts()
-                    .post(content, config -> {
-                        config.headers.add("X-Registry-ArtifactType", ArtifactType.JSON);
-                        config.headers.add("X-Registry-ArtifactId", artifactId);
-                    }).get(3, TimeUnit.SECONDS);
-            TestUtils.retry(() ->
-                    client
-                        .groups()
-                        .byGroupId(groupId)
-                        .artifacts()
-                        .byArtifactId(artifactId)
-                        .meta()
-                        .get()
-                        .get(3, TimeUnit.SECONDS));
-            assertNotNull(client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get().get(3, TimeUnit.SECONDS));
+            client.groups().byGroupId(groupId).artifacts().post(content, config -> {
+                config.headers.add("X-Registry-ArtifactType", ArtifactType.JSON);
+                config.headers.add("X-Registry-ArtifactId", artifactId);
+            }).get(3, TimeUnit.SECONDS);
+            TestUtils.retry(() -> client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId)
+                    .meta().get().get(3, TimeUnit.SECONDS));
+            assertNotNull(client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get().get(3,
+                    TimeUnit.SECONDS));
 
             Rule ruleConfig = new Rule();
             ruleConfig.setType(RuleType.VALIDITY);
@@ -97,7 +87,8 @@ public class AuthTestNoRoles extends AbstractResourceTestBase {
             client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).rules().post(ruleConfig);
             client.admin().rules().post(ruleConfig).get(3, TimeUnit.SECONDS);
         } finally {
-            client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).delete().get(3, TimeUnit.SECONDS);
+            client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).delete().get(3,
+                    TimeUnit.SECONDS);
         }
     }
 }

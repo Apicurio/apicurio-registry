@@ -10,6 +10,7 @@ public class CommentIdValue extends AbstractMessageValue {
 
     /**
      * Creator method.
+     * 
      * @param action
      */
     public static final CommentIdValue create(ActionType action) {

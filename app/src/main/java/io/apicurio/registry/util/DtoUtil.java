@@ -12,7 +12,8 @@ public final class DtoUtil {
      * @param editableArtifactMetaData
      * @return the updated ArtifactMetaDataDto object
      */
-    public static final ArtifactMetaDataDto setEditableMetaDataInArtifact(ArtifactMetaDataDto amdd, EditableArtifactMetaDataDto editableArtifactMetaData) {
+    public static final ArtifactMetaDataDto setEditableMetaDataInArtifact(ArtifactMetaDataDto amdd,
+            EditableArtifactMetaDataDto editableArtifactMetaData) {
         if (editableArtifactMetaData.getName() != null) {
             amdd.setName(editableArtifactMetaData.getName());
         }

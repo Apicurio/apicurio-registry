@@ -76,12 +76,13 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
     @Test
     public void testConfiguration() throws Exception {
         String recordName = "myrecord3";
-        Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"" + recordName + "\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");
+        Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"" + recordName
+                + "\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");
 
         String groupId = TestUtils.generateGroupId();
         String topic = generateArtifactId();
 
-        /*final Integer globalId = */
+        /* final Integer globalId = */
         createArtifact(groupId, topic + "-" + recordName, ArtifactType.AVRO, schema.toString());
 
         Map<String, Object> config = new HashMap<>();
@@ -109,7 +110,6 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
             Assertions.assertEquals(record, deserializedRecord);
             Assertions.assertEquals("somebar", record.get("bar").toString());
 
-
             config.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, TopicRecordIdStrategy.class);
             config.put(AvroKafkaSerdeConfig.AVRO_DATUM_PROVIDER, DefaultAvroDatumProvider.class);
             serializer.configure(config, true);
@@ -136,7 +136,8 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
     public void testAvro() throws Exception {
         testAvroAutoRegisterIdInBody(RecordIdStrategy.class, () -> {
             try {
-                return restClient.groups().byGroupId("test-group-avro").artifacts().byArtifactId("myrecord3").meta().get().get();
+                return restClient.groups().byGroupId("test-group-avro").artifacts().byArtifactId("myrecord3")
+                        .meta().get().get();
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             } catch (ExecutionException e) {
@@ -149,7 +150,8 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
     public void testAvroQualifiedRecordIdStrategy() throws Exception {
         testAvroAutoRegisterIdInBody(QualifiedRecordIdStrategy.class, () -> {
             try {
-                return restClient.groups().byGroupId("default").artifacts().byArtifactId("test-group-avro.myrecord3").meta().get().get();
+                return restClient.groups().byGroupId("default").artifacts()
+                        .byArtifactId("test-group-avro.myrecord3").meta().get().get();
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             } catch (ExecutionException e) {
@@ -158,10 +160,14 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
         });
     }
 
-    private void testAvroAutoRegisterIdInBody(Class<? extends ArtifactReferenceResolverStrategy<?, ?>> strategy, Supplier<ArtifactMetaData> artifactFinder) throws Exception {
-        Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord3\",\"namespace\":\"test-group-avro\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");
-        try (AvroKafkaSerializer<GenericData.Record> serializer = new AvroKafkaSerializer<GenericData.Record>(restClient);
-             Deserializer<GenericData.Record> deserializer = new AvroKafkaDeserializer<>(restClient)) {
+    private void testAvroAutoRegisterIdInBody(
+            Class<? extends ArtifactReferenceResolverStrategy<?, ?>> strategy,
+            Supplier<ArtifactMetaData> artifactFinder) throws Exception {
+        Schema schema = new Schema.Parser().parse(
+                "{\"type\":\"record\",\"name\":\"myrecord3\",\"namespace\":\"test-group-avro\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");
+        try (AvroKafkaSerializer<GenericData.Record> serializer = new AvroKafkaSerializer<GenericData.Record>(
+                restClient);
+                Deserializer<GenericData.Record> deserializer = new AvroKafkaDeserializer<>(restClient)) {
 
             Map<String, Object> config = new HashMap<>();
             config.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, strategy);
@@ -182,7 +188,8 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
             // some impl details ...
             waitForSchema(globalId -> {
                 try {
-                    if (restClient.ids().globalIds().byGlobalId(globalId).get().get(3, TimeUnit.SECONDS).readAllBytes().length > 0) {
+                    if (restClient.ids().globalIds().byGlobalId(globalId).get().get(3, TimeUnit.SECONDS)
+                            .readAllBytes().length > 0) {
                         ArtifactMetaData artifactMetadata = artifactFinder.get();
                         assertEquals(globalId, artifactMetadata.getGlobalId());
                         return true;
@@ -208,9 +215,11 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
 
     @Test
     public void testAvroJSON() throws Exception {
-        Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord3\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");
-        try (AvroKafkaSerializer<GenericData.Record> serializer = new AvroKafkaSerializer<GenericData.Record>(restClient);
-             Deserializer<GenericData.Record> deserializer = new AvroKafkaDeserializer<>(restClient)) {
+        Schema schema = new Schema.Parser().parse(
+                "{\"type\":\"record\",\"name\":\"myrecord3\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");
+        try (AvroKafkaSerializer<GenericData.Record> serializer = new AvroKafkaSerializer<GenericData.Record>(
+                restClient);
+                Deserializer<GenericData.Record> deserializer = new AvroKafkaDeserializer<>(restClient)) {
 
             Map<String, String> config = new HashMap<>();
             config.put(AvroKafkaSerdeConfig.AVRO_ENCODING, AvroKafkaSerdeConfig.AVRO_ENCODING_JSON);
@@ -236,7 +245,8 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
             // some impl details ...
             waitForSchema(globalId -> {
                 try {
-                    return restClient.ids().globalIds().byGlobalId(globalId).get().get().readAllBytes().length > 0;
+                    return restClient.ids().globalIds().byGlobalId(globalId).get().get()
+                            .readAllBytes().length > 0;
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 } catch (InterruptedException e) {
@@ -256,7 +266,7 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
     @Test
     public void avroJsonWithReferences() throws Exception {
         try (AvroKafkaSerializer<AvroSchemaB> serializer = new AvroKafkaSerializer<AvroSchemaB>(restClient);
-             Deserializer<AvroSchemaB> deserializer = new AvroKafkaDeserializer<>(restClient)) {
+                Deserializer<AvroSchemaB> deserializer = new AvroKafkaDeserializer<>(restClient)) {
 
             Map<String, String> config = new HashMap<>();
             config.put(AvroKafkaSerdeConfig.AVRO_ENCODING, AvroKafkaSerdeConfig.AVRO_ENCODING_JSON);
@@ -266,7 +276,8 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
 
             config = new HashMap<>();
             config.put(AvroKafkaSerdeConfig.AVRO_ENCODING, AvroKafkaSerdeConfig.AVRO_ENCODING_JSON);
-            config.putIfAbsent(AvroKafkaSerdeConfig.AVRO_DATUM_PROVIDER, ReflectAvroDatumProvider.class.getName());
+            config.putIfAbsent(AvroKafkaSerdeConfig.AVRO_DATUM_PROVIDER,
+                    ReflectAvroDatumProvider.class.getName());
             deserializer.configure(config, false);
 
             AvroSchemaB avroSchemaB = new AvroSchemaB();
@@ -309,7 +320,8 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
             // some impl details ...
             waitForSchema(globalId -> {
                 try {
-                    return restClient.ids().globalIds().byGlobalId(globalId).get().get().readAllBytes().length > 0;
+                    return restClient.ids().globalIds().byGlobalId(globalId).get().get()
+                            .readAllBytes().length > 0;
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 } catch (InterruptedException e) {
@@ -334,7 +346,7 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
     @Test
     public void avroJsonWithReferencesDereferenced() throws Exception {
         try (AvroKafkaSerializer<AvroSchemaB> serializer = new AvroKafkaSerializer<AvroSchemaB>(restClient);
-             Deserializer<AvroSchemaB> deserializer = new AvroKafkaDeserializer<>(restClient)) {
+                Deserializer<AvroSchemaB> deserializer = new AvroKafkaDeserializer<>(restClient)) {
 
             Map<String, String> config = new HashMap<>();
             config.put(AvroKafkaSerdeConfig.AVRO_ENCODING, AvroKafkaSerdeConfig.AVRO_ENCODING_JSON);
@@ -345,7 +357,8 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
 
             config = new HashMap<>();
             config.put(AvroKafkaSerdeConfig.AVRO_ENCODING, AvroKafkaSerdeConfig.AVRO_ENCODING_JSON);
-            config.putIfAbsent(AvroKafkaSerdeConfig.AVRO_DATUM_PROVIDER, ReflectAvroDatumProvider.class.getName());
+            config.putIfAbsent(AvroKafkaSerdeConfig.AVRO_DATUM_PROVIDER,
+                    ReflectAvroDatumProvider.class.getName());
             deserializer.configure(config, false);
 
             AvroSchemaB avroSchemaB = new AvroSchemaB();
@@ -389,7 +402,8 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
             // some impl details ...
             waitForSchema(globalId -> {
                 try {
-                    return restClient.ids().globalIds().byGlobalId(globalId).get().get().readAllBytes().length > 0;
+                    return restClient.ids().globalIds().byGlobalId(globalId).get().get()
+                            .readAllBytes().length > 0;
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 } catch (InterruptedException e) {
@@ -408,9 +422,11 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
 
     @Test
     public void testAvroUsingHeaders() throws Exception {
-        Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord3\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");
-        try (AvroKafkaSerializer<GenericData.Record> serializer = new AvroKafkaSerializer<GenericData.Record>(restClient);
-             Deserializer<GenericData.Record> deserializer = new AvroKafkaDeserializer<>(restClient)) {
+        Schema schema = new Schema.Parser().parse(
+                "{\"type\":\"record\",\"name\":\"myrecord3\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");
+        try (AvroKafkaSerializer<GenericData.Record> serializer = new AvroKafkaSerializer<GenericData.Record>(
+                restClient);
+                Deserializer<GenericData.Record> deserializer = new AvroKafkaDeserializer<>(restClient)) {
 
             Map<String, String> config = new HashMap<>();
             config.put(SerdeConfig.ENABLE_HEADERS, "true");
@@ -439,52 +455,36 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
     }
 
     @ParameterizedTest
-    @ValueSource(
-            classes = {
-                    io.apicurio.registry.serde.strategy.TopicIdStrategy.class,
-                    io.apicurio.registry.serde.avro.strategy.QualifiedRecordIdStrategy.class,
-                    io.apicurio.registry.serde.avro.strategy.RecordIdStrategy.class,
-                    io.apicurio.registry.serde.avro.strategy.TopicRecordIdStrategy.class
-            }
-    )
+    @ValueSource(classes = { io.apicurio.registry.serde.strategy.TopicIdStrategy.class,
+            io.apicurio.registry.serde.avro.strategy.QualifiedRecordIdStrategy.class,
+            io.apicurio.registry.serde.avro.strategy.RecordIdStrategy.class,
+            io.apicurio.registry.serde.avro.strategy.TopicRecordIdStrategy.class })
     public void testAvroReflect(Class<?> artifactResolverStrategyClass) throws Exception {
-        testAvroReflect(
-            artifactResolverStrategyClass,
-            ReflectAvroDatumProvider.class,
-            () -> new Tester("Apicurio", Tester.TesterState.ONLINE)
-        );
+        testAvroReflect(artifactResolverStrategyClass, ReflectAvroDatumProvider.class,
+                () -> new Tester("Apicurio", Tester.TesterState.ONLINE));
     }
 
     @ParameterizedTest
-    @ValueSource(
-        classes = {
-            io.apicurio.registry.serde.strategy.TopicIdStrategy.class,
+    @ValueSource(classes = { io.apicurio.registry.serde.strategy.TopicIdStrategy.class,
             io.apicurio.registry.serde.avro.strategy.QualifiedRecordIdStrategy.class,
             io.apicurio.registry.serde.avro.strategy.RecordIdStrategy.class,
-            io.apicurio.registry.serde.avro.strategy.TopicRecordIdStrategy.class
-        }
-    )
+            io.apicurio.registry.serde.avro.strategy.TopicRecordIdStrategy.class })
     public void testAvroReflectAllowNull(Class<?> artifactResolverStrategyClass) throws Exception {
-        testAvroReflect(
-            artifactResolverStrategyClass,
-            ReflectAllowNullAvroDatumProvider.class,
-            () -> new Tester("Apicurio", null)
-        );
+        testAvroReflect(artifactResolverStrategyClass, ReflectAllowNullAvroDatumProvider.class,
+                () -> new Tester("Apicurio", null));
     }
 
-    private void testAvroReflect(
-        Class<?> artifactResolverStrategyClass,
-        Class<?> datumProvider,
-        Supplier<Tester> testerFactory
-    ) throws Exception {
+    private void testAvroReflect(Class<?> artifactResolverStrategyClass, Class<?> datumProvider,
+            Supplier<Tester> testerFactory) throws Exception {
         try (AvroKafkaSerializer<Tester> serializer = new AvroKafkaSerializer<Tester>(restClient);
-             AvroKafkaDeserializer<Tester> deserializer = new AvroKafkaDeserializer<Tester>(restClient)) {
+                AvroKafkaDeserializer<Tester> deserializer = new AvroKafkaDeserializer<Tester>(restClient)) {
 
             Map<String, String> config = new HashMap<>();
             config.put(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true");
             config.put(SerdeConfig.ENABLE_HEADERS, "false");
             config.put(AvroKafkaSerdeConfig.AVRO_DATUM_PROVIDER, datumProvider.getName());
-            config.put(SchemaResolverConfig.ARTIFACT_RESOLVER_STRATEGY, artifactResolverStrategyClass.getName());
+            config.put(SchemaResolverConfig.ARTIFACT_RESOLVER_STRATEGY,
+                    artifactResolverStrategyClass.getName());
             serializer.configure(config, false);
 
             config = new HashMap<>();
@@ -498,7 +498,8 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
 
             waitForSchema(globalId -> {
                 try {
-                    return restClient.ids().globalIds().byGlobalId(globalId).get().get().readAllBytes().length > 0;
+                    return restClient.ids().globalIds().byGlobalId(globalId).get().get()
+                            .readAllBytes().length > 0;
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 } catch (InterruptedException e) {
@@ -533,12 +534,14 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
         record.put("bar", "somebar");
 
         try (KafkaAvroSerializer serializer1 = new KafkaAvroSerializer(schemaClient);
-             AvroKafkaDeserializer<GenericData.Record> deserializer1 = new AvroKafkaDeserializer<GenericData.Record>(restClient)) {
+                AvroKafkaDeserializer<GenericData.Record> deserializer1 = new AvroKafkaDeserializer<GenericData.Record>(
+                        restClient)) {
             byte[] bytes = serializer1.serialize(subject, record);
 
             TestUtils.retry(() -> TestUtils.waitForSchema(contentId -> {
                 try {
-                    return restClient.ids().contentIds().byContentId(contentId).get().get().readAllBytes().length > 0;
+                    return restClient.ids().contentIds().byContentId(contentId).get().get()
+                            .readAllBytes().length > 0;
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 } catch (InterruptedException e) {
@@ -557,7 +560,8 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
         }
 
         try (KafkaAvroDeserializer deserializer2 = new KafkaAvroDeserializer(schemaClient);
-             AvroKafkaSerializer<GenericData.Record> serializer2 = new AvroKafkaSerializer<GenericData.Record>(restClient)) {
+                AvroKafkaSerializer<GenericData.Record> serializer2 = new AvroKafkaSerializer<GenericData.Record>(
+                        restClient)) {
 
             Map<String, String> config = new HashMap<>();
             config.put(SerdeConfig.USE_ID, IdOption.contentId.name());

@@ -41,12 +41,12 @@ public class AuthTestProfileBasicClientCredentials extends AbstractResourceTestB
 
     @Override
     protected RegistryClient createRestClientV3() {
-        var adapter = new OkHttpRequestAdapter(
-                new BaseBearerTokenAuthenticationProvider(
-                        new OidcAccessTokenProvider(authServerUrl, JWKSMockServer.ADMIN_CLIENT_ID, "test1")));
+        var adapter = new OkHttpRequestAdapter(new BaseBearerTokenAuthenticationProvider(
+                new OidcAccessTokenProvider(authServerUrl, JWKSMockServer.ADMIN_CLIENT_ID, "test1")));
         adapter.setBaseUrl(registryV3ApiUrl);
         return new RegistryClient(adapter);
     }
+
     @Test
     public void testWrongCreds() throws Exception {
         var adapter = new OkHttpRequestAdapter(
@@ -70,25 +70,15 @@ public class AuthTestProfileBasicClientCredentials extends AbstractResourceTestB
             client.groups().byGroupId("default").artifacts().get().get(3, TimeUnit.SECONDS);
             ArtifactContent content = new ArtifactContent();
             content.setContent("{}");
-            var res = client
-                    .groups()
-                    .byGroupId(groupId)
-                    .artifacts()
-                    .post(content, config -> {
-                        config.headers.add("X-Registry-ArtifactType", ArtifactType.JSON);
-                        config.headers.add("X-Registry-ArtifactId", artifactId);
-                    }).get(3, TimeUnit.SECONDS);
+            var res = client.groups().byGroupId(groupId).artifacts().post(content, config -> {
+                config.headers.add("X-Registry-ArtifactType", ArtifactType.JSON);
+                config.headers.add("X-Registry-ArtifactId", artifactId);
+            }).get(3, TimeUnit.SECONDS);
 
-            TestUtils.retry(() ->
-                    client
-                            .groups()
-                            .byGroupId(groupId)
-                            .artifacts()
-                            .byArtifactId(artifactId)
-                            .meta()
-                            .get()
-                            .get(3, TimeUnit.SECONDS));
-            assertNotNull(client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get().get(3, TimeUnit.SECONDS));
+            TestUtils.retry(() -> client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId)
+                    .meta().get().get(3, TimeUnit.SECONDS));
+            assertNotNull(client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get().get(3,
+                    TimeUnit.SECONDS));
 
             Rule ruleConfig = new Rule();
             ruleConfig.setType(RuleType.VALIDITY);
@@ -97,7 +87,8 @@ public class AuthTestProfileBasicClientCredentials extends AbstractResourceTestB
             client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).rules().post(ruleConfig);
             client.admin().rules().post(ruleConfig).get(3, TimeUnit.SECONDS);
         } finally {
-            client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).delete().get(3, TimeUnit.SECONDS);
+            client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).delete().get(3,
+                    TimeUnit.SECONDS);
         }
     }
 

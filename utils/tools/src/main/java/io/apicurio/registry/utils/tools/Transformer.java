@@ -18,11 +18,8 @@ import java.util.Properties;
 import java.util.function.Function;
 
 /**
- * Transform messages between Confluent and Apicurio format.
- *
- * To start from input topic's beginning, use this config
- * * auto.offset.reset=earliest / ConsumerConfig.AUTO_OFFSET_RESET_CONFIG
- *
+ * Transform messages between Confluent and Apicurio format. To start from input topic's beginning, use this
+ * config * auto.offset.reset=earliest / ConsumerConfig.AUTO_OFFSET_RESET_CONFIG
  */
 public class Transformer {
     private static final Logger log = LoggerFactory.getLogger(Transformer.class);
@@ -35,8 +32,7 @@ public class Transformer {
             output.putLong(input.getInt());
             output.put(input);
             return output.array();
-        }),
-        APICURIO_TO_CONFLUENT(bytes -> {
+        }), APICURIO_TO_CONFLUENT(bytes -> {
             ByteBuffer input = ByteBuffer.wrap(bytes);
             ByteBuffer output = ByteBuffer.allocate(bytes.length - 4); // 4more less to int
             output.put(input.get()); // magic
@@ -88,10 +84,8 @@ public class Transformer {
         log.info(String.format("Transforming: %s --> %s [%s]", inputTopic, outputTopic, type));
 
         StreamsBuilder builder = new StreamsBuilder();
-        KStream<String, byte[]> input = builder.stream(
-            inputTopic,
-            Consumed.with(Serdes.String(), Serdes.ByteArray())
-        );
+        KStream<String, byte[]> input = builder.stream(inputTopic,
+                Consumed.with(Serdes.String(), Serdes.ByteArray()));
 
         input.transformValues(() -> new ValueTransformer<byte[], byte[]>() {
             @Override

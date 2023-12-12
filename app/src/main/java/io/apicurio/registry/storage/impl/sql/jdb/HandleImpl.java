@@ -10,6 +10,7 @@ public class HandleImpl implements Handle {
 
     /**
      * Constructor.
+     * 
      * @param connection
      */
     public HandleImpl(Connection connection) {

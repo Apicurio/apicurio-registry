@@ -1,15 +1,14 @@
 package io.apicurio.registry.rules.validity;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Test;
-
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.rest.v3.beans.ArtifactReference;
 import io.apicurio.registry.rules.RuleViolationException;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * Tests the OpenAPI content validator.
@@ -22,7 +21,6 @@ public class OpenApiContentValidatorTest extends ArtifactUtilProviderTestBase {
         OpenApiContentValidator validator = new OpenApiContentValidator();
         validator.validate(ValidityLevel.SYNTAX_ONLY, content, Collections.emptyMap());
     }
-
 
     @Test
     public void testValidSyntax_OpenApi31() throws Exception {
@@ -65,16 +63,10 @@ public class OpenApiContentValidatorTest extends ArtifactUtilProviderTestBase {
         // Properly map both required references - success.
         {
             List<ArtifactReference> references = new ArrayList<>();
-            references.add(ArtifactReference.builder()
-                    .groupId("default")
-                    .artifactId("ExternalWidget")
-                    .version("1.0")
-                    .name("example.com#/components/schemas/ExternalWidget").build());
-            references.add(ArtifactReference.builder()
-                    .groupId("default")
-                    .artifactId("AnotherWidget")
-                    .version("1.1")
-                    .name("example.com#/components/schemas/AnotherWidget").build());
+            references.add(ArtifactReference.builder().groupId("default").artifactId("ExternalWidget")
+                    .version("1.0").name("example.com#/components/schemas/ExternalWidget").build());
+            references.add(ArtifactReference.builder().groupId("default").artifactId("AnotherWidget")
+                    .version("1.1").name("example.com#/components/schemas/AnotherWidget").build());
             validator.validateReferences(content, references);
         }
 
@@ -87,27 +79,18 @@ public class OpenApiContentValidatorTest extends ArtifactUtilProviderTestBase {
         // Only map one of the two required refs - failure.
         Assertions.assertThrows(RuleViolationException.class, () -> {
             List<ArtifactReference> references = new ArrayList<>();
-            references.add(ArtifactReference.builder()
-                    .groupId("default")
-                    .artifactId("AnotherWidget")
-                    .version("1.1")
-                    .name("example.com#/components/schemas/AnotherWidget").build());
+            references.add(ArtifactReference.builder().groupId("default").artifactId("AnotherWidget")
+                    .version("1.1").name("example.com#/components/schemas/AnotherWidget").build());
             validator.validateReferences(content, references);
         });
 
         // Only map one of the two required refs - failure.
         Assertions.assertThrows(RuleViolationException.class, () -> {
             List<ArtifactReference> references = new ArrayList<>();
-            references.add(ArtifactReference.builder()
-                    .groupId("default")
-                    .artifactId("AnotherWidget")
-                    .version("1.1")
-                    .name("example.com#/components/schemas/AnotherWidget").build());
-            references.add(ArtifactReference.builder()
-                    .groupId("default")
-                    .artifactId("WrongWidget")
-                    .version("2.3")
-                    .name("example.com#/components/schemas/WrongWidget").build());
+            references.add(ArtifactReference.builder().groupId("default").artifactId("AnotherWidget")
+                    .version("1.1").name("example.com#/components/schemas/AnotherWidget").build());
+            references.add(ArtifactReference.builder().groupId("default").artifactId("WrongWidget")
+                    .version("2.3").name("example.com#/components/schemas/WrongWidget").build());
             validator.validateReferences(content, references);
         });
     }

@@ -38,7 +38,8 @@ public class PostgreSqlEmbeddedTestResource implements QuarkusTestResourceLifecy
     }
 
     private static boolean isPostgresqlStorage() {
-        return ConfigProvider.getConfig().getValue("registry.storage.db-kind", String.class).equals("postgresql");
+        return ConfigProvider.getConfig().getValue("registry.storage.db-kind", String.class)
+                .equals("postgresql");
     }
 
     private Map<String, String> startPostgresql() {

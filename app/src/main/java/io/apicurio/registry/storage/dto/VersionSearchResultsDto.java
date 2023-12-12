@@ -4,10 +4,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class VersionSearchResultsDto {
-    
+
     private long count;
     private List<SearchedVersionDto> versions = new ArrayList<SearchedVersionDto>();
-    
+
     /**
      * Constructor.
      */

@@ -2,8 +2,8 @@ package io.apicurio.registry.types.provider;
 
 import io.apicurio.registry.content.canon.ContentCanonicalizer;
 import io.apicurio.registry.content.canon.JsonContentCanonicalizer;
-import io.apicurio.registry.content.dereference.ContentDereferencer;
 import io.apicurio.registry.content.dereference.AsyncApiDereferencer;
+import io.apicurio.registry.content.dereference.ContentDereferencer;
 import io.apicurio.registry.content.extract.ContentExtractor;
 import io.apicurio.registry.content.extract.OpenApiContentExtractor;
 import io.apicurio.registry.content.refs.OpenApiReferenceFinder;
@@ -45,7 +45,7 @@ public class OpenApiArtifactTypeUtilProvider extends AbstractArtifactTypeUtilPro
     public ContentDereferencer getContentDereferencer() {
         return new AsyncApiDereferencer();
     }
-    
+
     @Override
     public ReferenceFinder getReferenceFinder() {
         return new OpenApiReferenceFinder();

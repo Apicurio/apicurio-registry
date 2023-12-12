@@ -13,6 +13,7 @@ public class GlobalRuleValue extends AbstractMessageValue {
 
     /**
      * Creator method.
+     * 
      * @param action
      * @param config
      */
@@ -22,7 +23,7 @@ public class GlobalRuleValue extends AbstractMessageValue {
         value.setConfig(config);
         return value;
     }
-    
+
     /**
      * @see MessageValue#getType()
      */

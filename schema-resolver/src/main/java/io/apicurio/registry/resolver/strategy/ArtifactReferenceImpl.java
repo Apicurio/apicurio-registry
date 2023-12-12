@@ -4,7 +4,6 @@ import io.apicurio.registry.resolver.SchemaResolverConfig;
 
 /**
  * @see ArtifactReference
- *
  */
 public class ArtifactReferenceImpl implements ArtifactReference {
 
@@ -27,7 +26,8 @@ public class ArtifactReferenceImpl implements ArtifactReference {
     private Long globalId;
 
     /**
-     * Optional, unless the rest of the fields are empty or {@link SchemaResolverConfig#USE_ID} is configured with IdOption.contentId
+     * Optional, unless the rest of the fields are empty or {@link SchemaResolverConfig#USE_ID} is configured
+     * with IdOption.contentId
      */
     private Long contentId;
 
@@ -37,7 +37,7 @@ public class ArtifactReferenceImpl implements ArtifactReference {
     private String contentHash;
 
     protected ArtifactReferenceImpl() {
-        //empty initialize using setters
+        // empty initialize using setters
     }
 
     /**
@@ -160,7 +160,7 @@ public class ArtifactReferenceImpl implements ArtifactReference {
         ArtifactReferenceImpl other = (ArtifactReferenceImpl) obj;
 
         boolean match1 = false;
-        if(globalId != null  && other.globalId != null) {
+        if (globalId != null && other.globalId != null) {
             if (!globalId.equals(other.globalId)) {
                 return false;
             } else {
@@ -169,7 +169,7 @@ public class ArtifactReferenceImpl implements ArtifactReference {
         }
 
         boolean match2 = false;
-        if(contentId != null  && other.contentId != null) {
+        if (contentId != null && other.contentId != null) {
             if (!contentId.equals(other.contentId)) {
                 return false;
             } else {
@@ -178,7 +178,7 @@ public class ArtifactReferenceImpl implements ArtifactReference {
         }
 
         boolean match3 = false;
-        if(contentHash != null  && other.contentHash != null) {
+        if (contentHash != null && other.contentHash != null) {
             if (!contentHash.equals(other.contentHash)) {
                 return false;
             } else {
@@ -187,7 +187,7 @@ public class ArtifactReferenceImpl implements ArtifactReference {
         }
 
         boolean match4 = false;
-        if(groupId != null  && other.groupId != null) {
+        if (groupId != null && other.groupId != null) {
             if (!groupId.equals(other.groupId)) {
                 return false;
             } else {
@@ -196,7 +196,7 @@ public class ArtifactReferenceImpl implements ArtifactReference {
         }
 
         boolean match5 = false;
-        if(artifactId != null  && other.artifactId != null) {
+        if (artifactId != null && other.artifactId != null) {
             if (!artifactId.equals(other.artifactId)) {
                 return false;
             } else {
@@ -205,7 +205,7 @@ public class ArtifactReferenceImpl implements ArtifactReference {
         }
 
         boolean match6 = false;
-        if(version != null  && other.version != null) {
+        if (version != null && other.version != null) {
             if (!version.equals(other.version)) {
                 return false;
             } else {
@@ -222,7 +222,8 @@ public class ArtifactReferenceImpl implements ArtifactReference {
     @Override
     public String toString() {
         return "ArtifactReference [groupId=" + groupId + ", artifactId=" + artifactId + ", version=" + version
-                + ", globalId=" + globalId + ", contentId=" + contentId + ", contentHash=" + contentHash + "]";
+                + ", globalId=" + globalId + ", contentId=" + contentId + ", contentHash=" + contentHash
+                + "]";
     }
 
     public static class ArtifactReferenceBuilder {

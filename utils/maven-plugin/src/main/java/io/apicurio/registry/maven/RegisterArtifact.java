@@ -1,9 +1,9 @@
 package io.apicurio.registry.maven;
 
+import io.apicurio.registry.rest.v3.beans.IfExists;
+
 import java.io.File;
 import java.util.List;
-
-import io.apicurio.registry.rest.v3.beans.IfExists;
 
 public class RegisterArtifact {
 
@@ -149,7 +149,7 @@ public class RegisterArtifact {
     /**
      * @param contentType the contentType to set
      */
-    public void setContentType(String contentType){
+    public void setContentType(String contentType) {
         this.contentType = contentType;
     }
 
@@ -178,7 +178,7 @@ public class RegisterArtifact {
     public Boolean getAutoRefs() {
         return autoRefs;
     }
-    
+
     public void setAutoRefs(Boolean autoRefs) {
         this.autoRefs = autoRefs;
     }

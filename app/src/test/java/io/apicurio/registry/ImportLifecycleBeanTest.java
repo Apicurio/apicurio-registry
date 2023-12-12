@@ -30,34 +30,17 @@ public class ImportLifecycleBeanTest extends AbstractResourceTestBase {
     @Test
     public void testCheckImportedData() throws Exception {
         TestUtils.retry(() -> {
-            given()
-                .when()
-                .accept(CT_JSON)
-                .get("/registry/v3/admin/rules")
-                .then()
-                .statusCode(200)
-                .body("[0]", equalTo("COMPATIBILITY"))
-                .body("[1]", nullValue());
+            given().when().accept(CT_JSON).get("/registry/v3/admin/rules").then().statusCode(200)
+                    .body("[0]", equalTo("COMPATIBILITY")).body("[1]", nullValue());
         });
 
-        given()
-            .when()
-            .accept(CT_JSON)
-            .get("/registry/v3/search/artifacts")
-            .then()
-            .statusCode(200)
-            .body("count", is(3))
-            .body("artifacts.id", containsInAnyOrder("Artifact-3", "Artifact-2", "Artifact-1"));
+        given().when().accept(CT_JSON).get("/registry/v3/search/artifacts").then().statusCode(200)
+                .body("count", is(3))
+                .body("artifacts.id", containsInAnyOrder("Artifact-3", "Artifact-2", "Artifact-1"));
 
-        given()
-            .when()
-            .accept(CT_JSON)
-            .get("/registry/v3/groups/ImportTest/artifacts/Artifact-1/versions")
-            .then()
-            .statusCode(200)
-            .body("versions.size()", is(3))
-            .body("versions[0].version", equalTo("1.0.1"))
-            .body("versions[1].version", equalTo("1.0.2"))
-            .body("versions[2].version", equalTo("1.0.3"));
+        given().when().accept(CT_JSON).get("/registry/v3/groups/ImportTest/artifacts/Artifact-1/versions")
+                .then().statusCode(200).body("versions.size()", is(3))
+                .body("versions[0].version", equalTo("1.0.1")).body("versions[1].version", equalTo("1.0.2"))
+                .body("versions[2].version", equalTo("1.0.3"));
     }
 }

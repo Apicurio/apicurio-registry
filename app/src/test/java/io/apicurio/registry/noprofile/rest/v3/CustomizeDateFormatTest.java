@@ -1,6 +1,5 @@
 package io.apicurio.registry.noprofile.rest.v3;
 
-
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.types.ArtifactType;
 import io.quarkus.test.junit.QuarkusTest;
@@ -37,13 +36,8 @@ public class CustomizeDateFormatTest extends AbstractResourceTestBase {
         createArtifact(GROUP, "testGetArtifactMetaData/EmptyAPI", ArtifactType.OPENAPI, artifactContent);
 
         // Get the artifact meta-data
-        given()
-                .when()
-                .pathParam("groupId", GROUP)
-                .pathParam("artifactId", "testGetArtifactMetaData/EmptyAPI")
-                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/meta")
-                .then()
-                .statusCode(200)
+        given().when().pathParam("groupId", GROUP).pathParam("artifactId", "testGetArtifactMetaData/EmptyAPI")
+                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/meta").then().statusCode(200)
                 .body("createdOn", new BaseMatcher<Object>() {
 
                     @Override

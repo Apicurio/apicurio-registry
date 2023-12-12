@@ -10,20 +10,15 @@ public class GitTestRepositoryManager implements QuarkusTestResourceLifecycleMan
     @Getter
     private static GitTestRepository testRepository;
 
-
     @Override
     public Map<String, String> start() {
         testRepository = new GitTestRepository();
         testRepository.initialize();
 
-        return Map.of(
-                "registry.gitops.id", "test",
-                "registry.gitops.repo.origin.uri", testRepository.getGitRepoUrl(),
-                "registry.gitops.repo.origin.branch", testRepository.getGitRepoBranch(),
-                "registry.gitops.refresh.every", "5s"
-        );
+        return Map.of("registry.gitops.id", "test", "registry.gitops.repo.origin.uri",
+                testRepository.getGitRepoUrl(), "registry.gitops.repo.origin.branch",
+                testRepository.getGitRepoBranch(), "registry.gitops.refresh.every", "5s");
     }
-
 
     @Override
     public void stop() {

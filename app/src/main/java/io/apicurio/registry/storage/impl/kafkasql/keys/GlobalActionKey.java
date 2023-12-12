@@ -4,9 +4,7 @@ import io.apicurio.registry.storage.impl.kafkasql.MessageType;
 import io.quarkus.runtime.annotations.RegisterForReflection;
 
 /**
- * Key that carries no additional information.
- * Does not apply to a specific resource, but to the entire node.
- *
+ * Key that carries no additional information. Does not apply to a specific resource, but to the entire node.
  */
 @RegisterForReflection
 public class GlobalActionKey implements MessageKey {

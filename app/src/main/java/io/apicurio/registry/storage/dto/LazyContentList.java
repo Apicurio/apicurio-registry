@@ -39,7 +39,7 @@ public class LazyContentList implements List<ContentHandle> {
 
     @Override
     public ContentHandle get(int index) {
-        //Not the best solution, works for now...
+        // Not the best solution, works for now...
         return storage.getArtifactByContentId(contentIds.get(index)).getContent();
     }
 
@@ -146,7 +146,7 @@ public class LazyContentList implements List<ContentHandle> {
 
     @Override
     public Spliterator<ContentHandle> spliterator() {
-        //prevent streaming on this list
+        // prevent streaming on this list
         throw new UnsupportedOperationException();
     }
 

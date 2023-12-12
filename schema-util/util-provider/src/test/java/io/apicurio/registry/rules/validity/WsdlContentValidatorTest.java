@@ -1,10 +1,9 @@
 package io.apicurio.registry.rules.validity;
 
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Test;
-
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.rules.RuleViolationException;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
 
@@ -39,7 +38,9 @@ public class WsdlContentValidatorTest extends ArtifactUtilProviderTestBase {
         ContentHandle content = resourceToContentHandle("wsdl-invalid-semantics.wsdl");
         WsdlContentValidator validator = new WsdlContentValidator();
         Assertions.assertThrows(RuleViolationException.class, () -> {
-            //WSDLException faultCode=INVALID_WSDL: Encountered illegal extension element '{http://schemas.xmlsoap.org/wsdl/}element' in the context of a 'javax.wsdl.Types'. Extension elements must be in a namespace other than WSDL's
+            // WSDLException faultCode=INVALID_WSDL: Encountered illegal extension element
+            // '{http://schemas.xmlsoap.org/wsdl/}element' in the context of a 'javax.wsdl.Types'. Extension
+            // elements must be in a namespace other than WSDL's
             validator.validate(ValidityLevel.FULL, content, Collections.emptyMap());
         });
     }

@@ -25,7 +25,6 @@ import static java.net.HttpURLConnection.HTTP_CONFLICT;
 
 /**
  * TODO use v1 beans when appropriate (when handling REST API v1 calls)
- *
  */
 @ApplicationScoped
 @Provider
@@ -82,15 +81,12 @@ public class RegistryExceptionMapper implements ExceptionMapper<Throwable> {
             error.setName(null);
             error.setErrorCode(CONFLUENT_CODE_MAP.getOrDefault(t.getClass(), 0));
         }
-        return builder.type(MediaType.APPLICATION_JSON)
-                .entity(error)
-                .build();
+        return builder.type(MediaType.APPLICATION_JSON).entity(error).build();
     }
 
     /**
-     * Returns true if the endpoint that caused the error is a "ccompat" endpoint.  If so
-     * we need to simplify the error we return.  The apicurio error structure has at least
-     * one additional property.
+     * Returns true if the endpoint that caused the error is a "ccompat" endpoint. If so we need to simplify
+     * the error we return. The apicurio error structure has at least one additional property.
      */
     private boolean isCompatEndpoint() {
         if (this.request != null) {

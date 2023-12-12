@@ -13,8 +13,7 @@ public class TopicIdStrategy<T> implements ArtifactReferenceResolverStrategy<T, 
     public ArtifactReference artifactReference(Record<Object> data, ParsedSchema<T> parsedSchema) {
         KafkaSerdeRecord<Object> kdata = (KafkaSerdeRecord<Object>) data;
         KafkaSerdeMetadata metadata = kdata.metadata();
-        return ArtifactReference.builder()
-                .groupId(null)
+        return ArtifactReference.builder().groupId(null)
                 .artifactId(String.format("%s-%s", metadata.getTopic(), metadata.isKey() ? "key" : "value"))
                 .build();
     }

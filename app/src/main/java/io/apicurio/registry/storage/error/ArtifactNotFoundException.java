@@ -12,13 +12,11 @@ public class ArtifactNotFoundException extends NotFoundException {
     @Getter
     private String artifactId;
 
-
     public ArtifactNotFoundException(String groupId, String artifactId) {
         super(message(groupId, artifactId));
         this.groupId = groupId;
         this.artifactId = artifactId;
     }
-
 
     public ArtifactNotFoundException(String groupId, String artifactId, Throwable cause) {
         super(message(groupId, artifactId), cause);
@@ -26,12 +24,10 @@ public class ArtifactNotFoundException extends NotFoundException {
         this.artifactId = artifactId;
     }
 
-
     public ArtifactNotFoundException(String artifactId) {
         super(message("default", artifactId));
         this.artifactId = artifactId;
     }
-
 
     private static String message(String groupId, String artifactId) {
         return "No artifact with ID '" + artifactId + "' in group '" + groupId + "' was found.";

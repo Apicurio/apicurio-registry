@@ -26,7 +26,7 @@ import java.util.stream.Collectors;
 
 import static io.apicurio.registry.storage.RegistryStorage.ArtifactRetrievalBehavior.DEFAULT;
 
-@Interceptors({ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class})
+@Interceptors({ ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class })
 @Logged
 public class SchemasResourceImpl extends AbstractResource implements SchemasResource {
 
@@ -45,11 +45,12 @@ public class SchemasResourceImpl extends AbstractResource implements SchemasReso
             references = contentWrapper.getReferences();
             List<ArtifactMetaDataDto> artifacts = storage.getArtifactVersionsByContentId(id);
             if (artifacts == null || artifacts.isEmpty()) {
-                //the contentId points to an orphaned content
+                // the contentId points to an orphaned content
                 throw new ArtifactNotFoundException("ContentId: " + id);
             }
         }
-        return converter.convert(contentHandle, ArtifactTypeUtil.determineArtifactType(contentHandle, null, null, storage.resolveReferences(references), factory.getAllArtifactTypes()), references);
+        return converter.convert(contentHandle, ArtifactTypeUtil.determineArtifactType(contentHandle, null,
+                null, storage.resolveReferences(references), factory.getAllArtifactTypes()), references);
     }
 
     @Override
@@ -64,13 +65,15 @@ public class SchemasResourceImpl extends AbstractResource implements SchemasReso
         boolean deleted = fdeleted != null && fdeleted;
         if (cconfig.legacyIdModeEnabled.get()) {
             ArtifactMetaDataDto artifactMetaData = storage.getArtifactMetaData(id);
-            return Collections.singletonList(converter.convert(artifactMetaData.getId(), artifactMetaData.getVersionId()));
+            return Collections.singletonList(
+                    converter.convert(artifactMetaData.getId(), artifactMetaData.getVersionId()));
         }
 
-        return storage.getArtifactVersionsByContentId(id)
-                .stream()
-                .filter(artifactMetaData -> deleted || isArtifactActive(artifactMetaData.getId(), artifactMetaData.getGroupId(), DEFAULT))
-                .map(artifactMetaData -> converter.convert(artifactMetaData.getId(), artifactMetaData.getVersionId()))
+        return storage.getArtifactVersionsByContentId(id).stream()
+                .filter(artifactMetaData -> deleted
+                        || isArtifactActive(artifactMetaData.getId(), artifactMetaData.getGroupId(), DEFAULT))
+                .map(artifactMetaData -> converter.convert(artifactMetaData.getId(),
+                        artifactMetaData.getVersionId()))
                 .collect(Collectors.toList());
     }
 }

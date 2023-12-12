@@ -1,15 +1,14 @@
 package io.apicurio.registry.serde;
 
-import org.apache.kafka.common.errors.SerializationException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import io.apicurio.registry.resolver.SchemaParser;
 import io.apicurio.registry.resolver.SchemaResolver;
 import io.apicurio.registry.resolver.utils.Utils;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.serde.config.BaseKafkaSerDeConfig;
 import io.apicurio.registry.serde.headers.HeadersHandler;
+import org.apache.kafka.common.errors.SerializationException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.nio.ByteBuffer;
 import java.util.Map;
@@ -17,7 +16,6 @@ import java.util.Objects;
 
 /**
  * Common class for both serializer and deserializer.
- *
  */
 public abstract class AbstractKafkaSerDe<T, U> extends SchemaResolverConfigurer<T, U> {
 
@@ -56,7 +54,8 @@ public abstract class AbstractKafkaSerDe<T, U> extends SchemaResolverConfigurer<
 
             if (config.enableConfluentIdHandler()) {
                 if (idHandler != null && !(idHandler instanceof Legacy4ByteIdHandler)) {
-                    log.warn(String.format("Duplicate id-handler configuration: %s vs. %s", idh, "as-confluent"));
+                    log.warn(String.format("Duplicate id-handler configuration: %s vs. %s", idh,
+                            "as-confluent"));
                 }
                 setIdHandler(new Legacy4ByteIdHandler());
             }

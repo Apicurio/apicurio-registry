@@ -3,7 +3,8 @@ package io.apicurio.registry.types;
 
 public class ArtifactType {
 
-    private ArtifactType() {}
+    private ArtifactType() {
+    }
 
     public static final String AVRO = "AVRO";
     public static final String PROTOBUF = "PROTOBUF";

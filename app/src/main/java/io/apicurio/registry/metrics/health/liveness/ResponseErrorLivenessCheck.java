@@ -15,32 +15,31 @@ import org.slf4j.Logger;
 @ApplicationScoped
 @Liveness
 @Default
-public class ResponseErrorLivenessCheck extends AbstractErrorCounterHealthCheck implements HealthCheck, LivenessCheck {
+public class ResponseErrorLivenessCheck extends AbstractErrorCounterHealthCheck
+        implements HealthCheck, LivenessCheck {
 
     @Inject
     Logger log;
 
     /**
-     * Maximum number of HTTP 5xx errors returned to the user
-     * as captured by {@link io.apicurio.registry.rest.RegistryExceptionMapper}
-     * before the liveness check fails.
+     * Maximum number of HTTP 5xx errors returned to the user as captured by
+     * {@link io.apicurio.registry.rest.RegistryExceptionMapper} before the liveness check fails.
      */
     @ConfigProperty(name = "registry.metrics.ResponseErrorLivenessCheck.errorThreshold", defaultValue = "1")
     @Info(category = "health", description = "Error threshold of response liveness check", availableSince = "1.0.2.Final")
     Integer configErrorThreshold;
 
     /**
-     * The counter is reset after some time without errors.
-     * i.e. to fail the check after 2 errors in a minute, set the threshold to 1 and this configuration option
-     * to 60.
-     * TODO report the absolute count as a metric?
+     * The counter is reset after some time without errors. i.e. to fail the check after 2 errors in a minute,
+     * set the threshold to 1 and this configuration option to 60. TODO report the absolute count as a metric?
      */
     @ConfigProperty(name = "registry.metrics.ResponseErrorLivenessCheck.counterResetWindowDurationSec", defaultValue = "60")
     @Info(category = "health", description = "Counter reset window duration of response liveness check", availableSince = "1.0.2.Final")
     Integer configCounterResetWindowDurationSec;
 
     /**
-     * If set to a positive value, reset the liveness status after this time window passes without any further errors.
+     * If set to a positive value, reset the liveness status after this time window passes without any further
+     * errors.
      */
     @ConfigProperty(name = "registry.metrics.ResponseErrorLivenessCheck.statusResetWindowDurationSec", defaultValue = "300")
     @Info(category = "health", description = "Status reset window duration of response liveness check", availableSince = "1.0.2.Final")
@@ -58,11 +57,8 @@ public class ResponseErrorLivenessCheck extends AbstractErrorCounterHealthCheck 
     @Override
     public synchronized HealthCheckResponse call() {
         callSuper();
-        return HealthCheckResponse.builder()
-                .name("ResponseErrorLivenessCheck")
-                .withData("errorCount", errorCounter)
-                .status(up)
-                .build();
+        return HealthCheckResponse.builder().name("ResponseErrorLivenessCheck")
+                .withData("errorCount", errorCounter).status(up).build();
     }
 
     @Override
@@ -72,18 +68,21 @@ public class ResponseErrorLivenessCheck extends AbstractErrorCounterHealthCheck 
         }
         super.suspectSuper();
         if (disableLogging != Boolean.TRUE) {
-            log.info("After this event, the error counter is {} (out of the maximum {} allowed).", errorCounter, configErrorThreshold);
+            log.info("After this event, the error counter is {} (out of the maximum {} allowed).",
+                    errorCounter, configErrorThreshold);
         }
     }
 
     @Override
     public void suspectWithException(Throwable reason) {
         if (disableLogging != Boolean.TRUE) {
-            log.warn("Liveness problem suspected in ResponseErrorLivenessCheck because of an exception: ", reason);
+            log.warn("Liveness problem suspected in ResponseErrorLivenessCheck because of an exception: ",
+                    reason);
         }
         super.suspectSuper();
         if (disableLogging != Boolean.TRUE) {
-            log.info("After this event, the error counter is {} (out of the maximum {} allowed).", errorCounter, configErrorThreshold);
+            log.info("After this event, the error counter is {} (out of the maximum {} allowed).",
+                    errorCounter, configErrorThreshold);
         }
     }
 }

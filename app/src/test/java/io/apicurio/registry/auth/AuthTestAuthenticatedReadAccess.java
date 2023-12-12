@@ -32,9 +32,8 @@ public class AuthTestAuthenticatedReadAccess extends AbstractResourceTestBase {
 
     @Override
     protected RegistryClient createRestClientV3() {
-        var adapter = new OkHttpRequestAdapter(
-                new BaseBearerTokenAuthenticationProvider(
-                        new OidcAccessTokenProvider(authServerUrl, JWKSMockServer.ADMIN_CLIENT_ID, "test1")));
+        var adapter = new OkHttpRequestAdapter(new BaseBearerTokenAuthenticationProvider(
+                new OidcAccessTokenProvider(authServerUrl, JWKSMockServer.ADMIN_CLIENT_ID, "test1")));
         adapter.setBaseUrl(registryV3ApiUrl);
         return new RegistryClient(adapter);
     }
@@ -42,32 +41,25 @@ public class AuthTestAuthenticatedReadAccess extends AbstractResourceTestBase {
     @Test
     public void testReadOperationWithNoRole() throws Exception {
         // Read-only operation should work with credentials but no role.
-        var adapter = new OkHttpRequestAdapter(
-                new BaseBearerTokenAuthenticationProvider(
-                        new OidcAccessTokenProvider(authServerUrl, JWKSMockServer.NO_ROLE_CLIENT_ID, "test1")));
+        var adapter = new OkHttpRequestAdapter(new BaseBearerTokenAuthenticationProvider(
+                new OidcAccessTokenProvider(authServerUrl, JWKSMockServer.NO_ROLE_CLIENT_ID, "test1")));
         adapter.setBaseUrl(registryV3ApiUrl);
         RegistryClient client = new RegistryClient(adapter);
-        var results = client.search().artifacts().get(config -> config.queryParameters.group = groupId).get(3, TimeUnit.SECONDS);
+        var results = client.search().artifacts().get(config -> config.queryParameters.group = groupId).get(3,
+                TimeUnit.SECONDS);
         Assertions.assertTrue(results.getCount() >= 0);
 
         // Write operation should fail with credentials but not role.
-        String data = "{\r\n" +
-                "    \"type\" : \"record\",\r\n" +
-                "    \"name\" : \"userInfo\",\r\n" +
-                "    \"namespace\" : \"my.example\",\r\n" +
-                "    \"fields\" : [{\"name\" : \"age\", \"type\" : \"int\"}]\r\n" +
-                "}";
+        String data = "{\r\n" + "    \"type\" : \"record\",\r\n" + "    \"name\" : \"userInfo\",\r\n"
+                + "    \"namespace\" : \"my.example\",\r\n"
+                + "    \"fields\" : [{\"name\" : \"age\", \"type\" : \"int\"}]\r\n" + "}";
         var executionException = Assertions.assertThrows(ExecutionException.class, () -> {
             var content = new io.apicurio.registry.rest.client.models.ArtifactContent();
             content.setContent(data);
-            client
-                    .groups()
-                    .byGroupId(groupId)
-                    .artifacts()
-                    .post(content, config -> {
-                        config.headers.add("X-Registry-ArtifactType", ArtifactType.AVRO);
-                        config.headers.add("X-Registry-ArtifactId", "testReadOperationWithNoRole");
-                    }).get(3, TimeUnit.SECONDS);
+            client.groups().byGroupId(groupId).artifacts().post(content, config -> {
+                config.headers.add("X-Registry-ArtifactType", ArtifactType.AVRO);
+                config.headers.add("X-Registry-ArtifactId", "testReadOperationWithNoRole");
+            }).get(3, TimeUnit.SECONDS);
         });
         assertForbidden(executionException);
     }

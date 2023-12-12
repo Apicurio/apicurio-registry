@@ -15,18 +15,20 @@ public class ArtifactVersionValue extends AbstractMessageValue {
 
     /**
      * Creator method.
+     * 
      * @param action
      * @param state
      * @param metaData
      */
-    public static final ArtifactVersionValue create(ActionType action, ArtifactState state, EditableArtifactMetaDataDto metaData) {
+    public static final ArtifactVersionValue create(ActionType action, ArtifactState state,
+            EditableArtifactMetaDataDto metaData) {
         ArtifactVersionValue value = new ArtifactVersionValue();
         value.setAction(action);
         value.setState(state);
         value.setMetaData(metaData);
         return value;
     }
-    
+
     /**
      * @see MessageValue#getType()
      */
@@ -34,7 +36,7 @@ public class ArtifactVersionValue extends AbstractMessageValue {
     public MessageType getType() {
         return MessageType.ArtifactVersion;
     }
-    
+
     /**
      * @return the metaData
      */

@@ -29,14 +29,15 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 @ApplicationScoped
-@Interceptors({ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class})
+@Interceptors({ ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class })
 @Logged
 public class IdsResourceImpl extends AbstractResourceImpl implements IdsResource {
 
     @Inject
     CommonResourceOperations common;
 
-    private void checkIfDeprecated(Supplier<ArtifactState> stateSupplier, String artifactId, String version, Response.ResponseBuilder builder) {
+    private void checkIfDeprecated(Supplier<ArtifactState> stateSupplier, String artifactId, String version,
+            Response.ResponseBuilder builder) {
         HeadersHack.checkIfDeprecated(stateSupplier, null, artifactId, version, builder);
     }
 
@@ -52,7 +53,8 @@ public class IdsResourceImpl extends AbstractResourceImpl implements IdsResource
     }
 
     /**
-     * @see io.apicurio.registry.rest.v2.IdsResource#getContentByGlobalId(long, io.apicurio.registry.rest.v2.beans.HandleReferencesType)
+     * @see io.apicurio.registry.rest.v2.IdsResource#getContentByGlobalId(long,
+     *      io.apicurio.registry.rest.v2.beans.HandleReferencesType)
      */
     @Override
     @Authorized(style = AuthorizedStyle.GlobalId, level = AuthorizedLevel.Read)
@@ -103,26 +105,24 @@ public class IdsResourceImpl extends AbstractResourceImpl implements IdsResource
     @Override
     public List<ArtifactReference> referencesByContentId(long contentId) {
         ContentWrapperDto artifact = storage.getArtifactByContentId(contentId);
-        return artifact.getReferences().stream()
-                .map(V2ApiUtil::referenceDtoToReference)
+        return artifact.getReferences().stream().map(V2ApiUtil::referenceDtoToReference)
                 .collect(Collectors.toList());
     }
 
     /**
-     * @see io.apicurio.registry.rest.v2.IdsResource#referencesByGlobalId(long, io.apicurio.registry.types.ReferenceType)
+     * @see io.apicurio.registry.rest.v2.IdsResource#referencesByGlobalId(long,
+     *      io.apicurio.registry.types.ReferenceType)
      */
     @Override
     public List<ArtifactReference> referencesByGlobalId(long globalId, ReferenceType refType) {
         if (refType == ReferenceType.OUTBOUND || refType == null) {
             StoredArtifactDto artifact = storage.getArtifactVersion(globalId);
-            return artifact.getReferences().stream()
-                    .map(V2ApiUtil::referenceDtoToReference)
+            return artifact.getReferences().stream().map(V2ApiUtil::referenceDtoToReference)
                     .collect(Collectors.toList());
         } else {
             ArtifactMetaDataDto amd = storage.getArtifactMetaData(globalId);
-            return storage.getInboundArtifactReferences(amd.getGroupId(), amd.getId(), amd.getVersion()).stream()
-                    .map(V2ApiUtil::referenceDtoToReference)
-                    .collect(Collectors.toList());
+            return storage.getInboundArtifactReferences(amd.getGroupId(), amd.getId(), amd.getVersion())
+                    .stream().map(V2ApiUtil::referenceDtoToReference).collect(Collectors.toList());
         }
     }
 }

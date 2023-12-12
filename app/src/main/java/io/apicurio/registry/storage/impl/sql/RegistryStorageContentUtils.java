@@ -19,9 +19,7 @@ import java.util.Map;
 import java.util.function.Function;
 
 /**
- * TODO Refactor
- * TODO Cache calls to referenceResolver
- *
+ * TODO Refactor TODO Cache calls to referenceResolver
  */
 @ApplicationScoped
 public class RegistryStorageContentUtils {
@@ -37,10 +35,10 @@ public class RegistryStorageContentUtils {
      *
      * @throws RegistryException in the case of an error.
      */
-    public ContentHandle canonicalizeContent(String artifactType, ContentHandle content, Map<String, ContentHandle> resolvedReferences) {
+    public ContentHandle canonicalizeContent(String artifactType, ContentHandle content,
+            Map<String, ContentHandle> resolvedReferences) {
         try {
-            return factory.getArtifactTypeProvider(artifactType)
-                    .getContentCanonicalizer()
+            return factory.getArtifactTypeProvider(artifactType).getContentCanonicalizer()
                     .canonicalize(content, resolvedReferences);
         } catch (Exception ex) {
             // TODO: We should consider explicitly failing when a content could not be canonicalized.
@@ -50,14 +48,14 @@ public class RegistryStorageContentUtils {
         }
     }
 
-
     /**
      * Canonicalize the given content.
      *
      * @throws RegistryException in the case of an error.
      */
-    public ContentHandle canonicalizeContent(String artifactType, ContentHandle content, List<ArtifactReferenceDto> references,
-                                             Function<List<ArtifactReferenceDto>, Map<String, ContentHandle>> referenceResolver) {
+    public ContentHandle canonicalizeContent(String artifactType, ContentHandle content,
+            List<ArtifactReferenceDto> references,
+            Function<List<ArtifactReferenceDto>, Map<String, ContentHandle>> referenceResolver) {
         try {
             return canonicalizeContent(artifactType, content, referenceResolver.apply(references));
         } catch (Exception ex) {
@@ -65,18 +63,20 @@ public class RegistryStorageContentUtils {
         }
     }
 
-
     /**
-     * @param references        may be null
+     * @param references may be null
      * @param referenceResolver may be null if references is null
      */
-    public String getCanonicalContentHash(ContentHandle content, String artifactType, List<ArtifactReferenceDto> references,
-                                          Function<List<ArtifactReferenceDto>, Map<String, ContentHandle>> referenceResolver) {
+    public String getCanonicalContentHash(ContentHandle content, String artifactType,
+            List<ArtifactReferenceDto> references,
+            Function<List<ArtifactReferenceDto>, Map<String, ContentHandle>> referenceResolver) {
         try {
             if (notEmpty(references)) {
                 String referencesSerialized = SqlUtil.serializeReferences(references);
-                ContentHandle canonicalContent = canonicalizeContent(artifactType, content, referenceResolver.apply(references));
-                return DigestUtils.sha256Hex(concatContentAndReferences(canonicalContent.bytes(), referencesSerialized));
+                ContentHandle canonicalContent = canonicalizeContent(artifactType, content,
+                        referenceResolver.apply(references));
+                return DigestUtils.sha256Hex(
+                        concatContentAndReferences(canonicalContent.bytes(), referencesSerialized));
             } else {
                 ContentHandle canonicalContent = canonicalizeContent(artifactType, content, Map.of());
                 return DigestUtils.sha256Hex(canonicalContent.bytes());
@@ -86,7 +86,6 @@ public class RegistryStorageContentUtils {
         }
     }
 
-
     /**
      * @param references may be null
      */
@@ -94,7 +93,8 @@ public class RegistryStorageContentUtils {
         try {
             if (notEmpty(references)) {
                 String referencesSerialized = SqlUtil.serializeReferences(references);
-                return DigestUtils.sha256Hex(concatContentAndReferences(content.bytes(), referencesSerialized));
+                return DigestUtils
+                        .sha256Hex(concatContentAndReferences(content.bytes(), referencesSerialized));
             } else {
                 return DigestUtils.sha256Hex(content.bytes());
             }
@@ -103,11 +103,11 @@ public class RegistryStorageContentUtils {
         }
     }
 
-
     private byte[] concatContentAndReferences(byte[] contentBytes, String references) throws IOException {
         if (references != null && !references.isEmpty()) {
             var referencesBytes = ContentHandle.create(references).bytes();
-            ByteArrayOutputStream outputStream = new ByteArrayOutputStream(contentBytes.length + referencesBytes.length);
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream(
+                    contentBytes.length + referencesBytes.length);
             outputStream.write(contentBytes);
             outputStream.write(referencesBytes);
             return outputStream.toByteArray();
@@ -116,27 +116,24 @@ public class RegistryStorageContentUtils {
         }
     }
 
-
     public String determineArtifactType(ContentHandle content, String artifactTypeHint) {
-        return ArtifactTypeUtil.determineArtifactType(content, artifactTypeHint, null, factory.getAllArtifactTypes());
+        return ArtifactTypeUtil.determineArtifactType(content, artifactTypeHint, null,
+                factory.getAllArtifactTypes());
     }
 
-
-    public EditableArtifactMetaDataDto extractEditableArtifactMetadata(String artifactType, ContentHandle content) {
+    public EditableArtifactMetaDataDto extractEditableArtifactMetadata(String artifactType,
+            ContentHandle content) {
         var provider = factory.getArtifactTypeProvider(artifactType);
         var extractor = provider.getContentExtractor();
         var extractedMetadata = extractor.extract(content);
         if (extractedMetadata != null) {
-            return new EditableArtifactMetaDataDto(
-                    extractedMetadata.getName(),
-                    extractedMetadata.getDescription(),
-                    extractedMetadata.getLabels(),
+            return new EditableArtifactMetaDataDto(extractedMetadata.getName(),
+                    extractedMetadata.getDescription(), extractedMetadata.getLabels(),
                     extractedMetadata.getProperties());
         } else {
             return new EditableArtifactMetaDataDto();
         }
     }
-
 
     public static boolean notEmpty(Collection<?> collection) {
         return collection != null && !collection.isEmpty();

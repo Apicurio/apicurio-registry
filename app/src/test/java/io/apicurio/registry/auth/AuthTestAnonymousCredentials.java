@@ -34,9 +34,8 @@ public class AuthTestAnonymousCredentials extends AbstractResourceTestBase {
 
     @Test
     public void testWrongCreds() throws Exception {
-        var adapter = new OkHttpRequestAdapter(
-                new BaseBearerTokenAuthenticationProvider(
-                        new OidcAccessTokenProvider(authServerUrl, JWKSMockServer.WRONG_CREDS_CLIENT_ID, "secret")));
+        var adapter = new OkHttpRequestAdapter(new BaseBearerTokenAuthenticationProvider(
+                new OidcAccessTokenProvider(authServerUrl, JWKSMockServer.WRONG_CREDS_CLIENT_ID, "secret")));
         adapter.setBaseUrl(registryV3ApiUrl);
         RegistryClient client = new RegistryClient(adapter);
         var executionException = Assertions.assertThrows(ExecutionException.class, () -> {
@@ -51,30 +50,24 @@ public class AuthTestAnonymousCredentials extends AbstractResourceTestBase {
         adapter.setBaseUrl(registryV3ApiUrl);
         RegistryClient client = new RegistryClient(adapter);
         // Read-only operation should work without any credentials.
-        var results = client.search().artifacts().get(config -> config.queryParameters.group = groupId).get(3, TimeUnit.SECONDS);
+        var results = client.search().artifacts().get(config -> config.queryParameters.group = groupId).get(3,
+                TimeUnit.SECONDS);
         Assertions.assertTrue(results.getCount() >= 0);
 
         // Write operation should fail without any credentials
-        String data = "{\r\n" +
-                "    \"type\" : \"record\",\r\n" +
-                "    \"name\" : \"userInfo\",\r\n" +
-                "    \"namespace\" : \"my.example\",\r\n" +
-                "    \"fields\" : [{\"name\" : \"age\", \"type\" : \"int\"}]\r\n" +
-                "}";
+        String data = "{\r\n" + "    \"type\" : \"record\",\r\n" + "    \"name\" : \"userInfo\",\r\n"
+                + "    \"namespace\" : \"my.example\",\r\n"
+                + "    \"fields\" : [{\"name\" : \"age\", \"type\" : \"int\"}]\r\n" + "}";
         var executionException = Assertions.assertThrows(ExecutionException.class, () -> {
             var content = new io.apicurio.registry.rest.client.models.ArtifactContent();
             content.setContent(data);
-            client
-                .groups()
-                .byGroupId(groupId)
-                .artifacts()
-                .post(content, config -> {
-                    config.headers.add("X-Registry-ArtifactType", ArtifactType.AVRO);
-                    config.headers.add("X-Registry-ArtifactId", "testNoCredentials");
-                }).get(3, TimeUnit.SECONDS);
+            client.groups().byGroupId(groupId).artifacts().post(content, config -> {
+                config.headers.add("X-Registry-ArtifactType", ArtifactType.AVRO);
+                config.headers.add("X-Registry-ArtifactId", "testNoCredentials");
+            }).get(3, TimeUnit.SECONDS);
         });
         Assertions.assertNotNull(executionException.getCause());
         Assertions.assertEquals(ApiException.class, executionException.getCause().getClass());
-        Assertions.assertEquals(401, ((ApiException)executionException.getCause()).getResponseStatusCode());
+        Assertions.assertEquals(401, ((ApiException) executionException.getCause()).getResponseStatusCode());
     }
 }

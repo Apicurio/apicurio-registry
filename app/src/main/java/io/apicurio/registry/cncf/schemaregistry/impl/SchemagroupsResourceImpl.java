@@ -42,7 +42,7 @@ import static io.apicurio.registry.cncf.schemaregistry.impl.CNCFApiUtil.dtoToSch
 import static io.apicurio.registry.storage.RegistryStorage.ArtifactRetrievalBehavior.DEFAULT;
 
 @ApplicationScoped
-@Interceptors({ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class})
+@Interceptors({ ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class })
 @Logged
 public class SchemagroupsResourceImpl implements SchemagroupsResource {
 
@@ -66,77 +66,70 @@ public class SchemagroupsResourceImpl implements SchemagroupsResource {
     ArtifactTypeUtilProviderFactory factory;
 
     @Override
-    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Read)
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
     public List<String> getGroups() {
         return storage.getGroupIds(GET_GROUPS_LIMIT);
     }
 
     @Override
-    @Authorized(style=AuthorizedStyle.GroupAndArtifact, level=AuthorizedLevel.Read)
+    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
     public SchemaGroup getGroup(String groupId) {
         GroupMetaDataDto group = storage.getGroupMetaData(groupId);
         return dtoToSchemaGroup(group);
     }
 
     @Override
-    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Write)
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Write)
     public void createGroup(String groupId, SchemaGroup data) {
-        //createdOn and modifiedOn are set by the storage
-        GroupMetaDataDto.GroupMetaDataDtoBuilder group = GroupMetaDataDto.builder()
-                .groupId(groupId)
-                .description(data.getDescription())
-                .artifactsType(data.getFormat())
+        // createdOn and modifiedOn are set by the storage
+        GroupMetaDataDto.GroupMetaDataDtoBuilder group = GroupMetaDataDto.builder().groupId(groupId)
+                .description(data.getDescription()).artifactsType(data.getFormat())
                 .properties(data.getGroupProperties());
 
         String user = securityIdentity.getPrincipal().getName();
 
         try {
-            group.createdBy(user)
-                .createdOn(new Date().getTime());
+            group.createdBy(user).createdOn(new Date().getTime());
 
             storage.createGroup(group.build());
         } catch (GroupAlreadyExistsException e) {
             GroupMetaDataDto existing = storage.getGroupMetaData(groupId);
 
-            group.createdBy(existing.getCreatedBy())
-                .createdOn(existing.getCreatedOn())
-                .modifiedBy(user)
-                .modifiedOn(new Date().getTime());
+            group.createdBy(existing.getCreatedBy()).createdOn(existing.getCreatedOn()).modifiedBy(user)
+                    .modifiedOn(new Date().getTime());
 
             storage.updateGroupMetaData(group.build());
         }
     }
 
     @Override
-    @Authorized(style=AuthorizedStyle.GroupOnly, level=AuthorizedLevel.Write)
+    @Authorized(style = AuthorizedStyle.GroupOnly, level = AuthorizedLevel.Write)
     public void deleteGroup(String groupId) {
         storage.deleteGroup(groupId);
     }
 
     @Override
-    @Authorized(style=AuthorizedStyle.GroupOnly, level=AuthorizedLevel.Read)
+    @Authorized(style = AuthorizedStyle.GroupOnly, level = AuthorizedLevel.Read)
     public List<String> getSchemasByGroup(String groupId) {
         verifyGroupExists(groupId);
         Set<SearchFilter> filters = new HashSet<>();
         filters.add(SearchFilter.ofGroup(groupId));
 
-        ArtifactSearchResultsDto resultsDto = storage.searchArtifacts(filters, OrderBy.name, OrderDirection.asc, 0, 1000);
+        ArtifactSearchResultsDto resultsDto = storage.searchArtifacts(filters, OrderBy.name,
+                OrderDirection.asc, 0, 1000);
 
-        return resultsDto.getArtifacts()
-                .stream()
-                .map(dto -> dto.getId())
-                .collect(Collectors.toList());
+        return resultsDto.getArtifacts().stream().map(dto -> dto.getId()).collect(Collectors.toList());
     }
 
     @Override
-    @Authorized(style=AuthorizedStyle.GroupOnly, level=AuthorizedLevel.Write)
+    @Authorized(style = AuthorizedStyle.GroupOnly, level = AuthorizedLevel.Write)
     public void deleteSchemasByGroup(String groupId) {
         verifyGroupExists(groupId);
         storage.deleteArtifacts(groupId);
     }
 
     @Override
-    @Authorized(style=AuthorizedStyle.GroupAndArtifact, level=AuthorizedLevel.Read)
+    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
     public Response getLatestSchema(String groupId, String schemaId) {
         verifyGroupExists(groupId);
         StoredArtifactDto artifact = storage.getArtifact(groupId, schemaId);
@@ -147,9 +140,10 @@ public class SchemagroupsResourceImpl implements SchemagroupsResource {
         return Response.ok(artifact.getContent(), contentType).build();
     }
 
-    //TODO spec says: If schema with identical content already exists, existing schema's ID is returned. Our storage API does not allow to know if some content belongs to any other artifactId
+    // TODO spec says: If schema with identical content already exists, existing schema's ID is returned. Our
+    // storage API does not allow to know if some content belongs to any other artifactId
     @Override
-    @Authorized(style=AuthorizedStyle.GroupAndArtifact, level=AuthorizedLevel.Write)
+    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
     public SchemaId createSchema(String groupId, String schemaId, InputStream data) {
 
         ContentHandle content = ContentHandle.create(data);
@@ -161,16 +155,14 @@ public class SchemagroupsResourceImpl implements SchemagroupsResource {
             verifyGroupExists(groupId);
         } catch (GroupNotFoundException e) {
             try {
-                storage.createGroup(GroupMetaDataDto.builder()
-                                        .groupId(groupId)
-                                        .build());
+                storage.createGroup(GroupMetaDataDto.builder().groupId(groupId).build());
             } catch (GroupAlreadyExistsException a) {
-                //ignored
+                // ignored
             }
         }
 
         // Check to see if this content is already registered - return the ID of that content
-        // if it exists.  If not, then register the new content.
+        // if it exists. If not, then register the new content.
         try {
             storage.getArtifactVersionMetaData(groupId, schemaId, false, content, Collections.emptyList());
             SchemaId id = new SchemaId();
@@ -180,20 +172,28 @@ public class SchemagroupsResourceImpl implements SchemagroupsResource {
             // This is OK - when it happens just move on and create
         }
 
-        String artifactType = ArtifactTypeUtil.determineArtifactType(content, null, request.getContentType(), factory.getAllArtifactTypes());
+        String artifactType = ArtifactTypeUtil.determineArtifactType(content, null, request.getContentType(),
+                factory.getAllArtifactTypes());
 
-        //spec says: The ´Content-Type´ for the payload MUST be preserved by the registry and returned when the schema is requested, independent of the format identifier.
+        // spec says: The ´Content-Type´ for the payload MUST be preserved by the registry and returned when
+        // the schema is requested, independent of the format identifier.
         EditableArtifactMetaDataDto metadata = new EditableArtifactMetaDataDto();
         metadata.setProperties(Map.of(PROP_CONTENT_TYPE, request.getContentType()));
 
         ArtifactMetaDataDto res;
         try {
             if (!artifactExists(groupId, schemaId)) {
-                rulesService.applyRules(groupId, schemaId, artifactType, content, RuleApplicationType.CREATE, Collections.emptyList(), Collections.emptyMap()); //FIXME:references handle artifact references
-                res = storage.createArtifactWithMetadata(groupId, schemaId, null, artifactType, content, metadata, null);
+                rulesService.applyRules(groupId, schemaId, artifactType, content, RuleApplicationType.CREATE,
+                        Collections.emptyList(), Collections.emptyMap()); // FIXME:references handle artifact
+                                                                          // references
+                res = storage.createArtifactWithMetadata(groupId, schemaId, null, artifactType, content,
+                        metadata, null);
             } else {
-                rulesService.applyRules(groupId, schemaId, artifactType, content, RuleApplicationType.UPDATE, Collections.emptyList(), Collections.emptyMap()); //FIXME:references handle artifact references
-                res = storage.updateArtifactWithMetadata(groupId, schemaId, null, artifactType, content, metadata, null);
+                rulesService.applyRules(groupId, schemaId, artifactType, content, RuleApplicationType.UPDATE,
+                        Collections.emptyList(), Collections.emptyMap()); // FIXME:references handle artifact
+                                                                          // references
+                res = storage.updateArtifactWithMetadata(groupId, schemaId, null, artifactType, content,
+                        metadata, null);
             }
         } catch (RuleViolationException ex) {
             if (ex.getRuleType() == RuleType.VALIDITY) {
@@ -210,35 +210,36 @@ public class SchemagroupsResourceImpl implements SchemagroupsResource {
     }
 
     @Override
-    @Authorized(style=AuthorizedStyle.GroupAndArtifact, level=AuthorizedLevel.Write)
+    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
     public void deleteSchema(String groupId, String schemaId) {
         verifyGroupExists(groupId);
         storage.deleteArtifact(groupId, schemaId);
     }
 
     @Override
-    @Authorized(style=AuthorizedStyle.GroupAndArtifact, level=AuthorizedLevel.Read)
+    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
     public List<Integer> getSchemaVersions(String groupId, String schemaId) {
         verifyGroupExists(groupId);
-        return storage.getArtifactVersions(groupId, schemaId).stream()
-                .map(v -> Long.valueOf(v).intValue())
+        return storage.getArtifactVersions(groupId, schemaId).stream().map(v -> Long.valueOf(v).intValue())
                 .collect(Collectors.toList());
     }
 
     @Override
-    @Authorized(style=AuthorizedStyle.GroupAndArtifact, level=AuthorizedLevel.Read)
+    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
     public Response getSchemaVersion(String groupId, String schemaId, Integer versionNumber) {
         verifyGroupExists(groupId);
-        StoredArtifactDto artifact = storage.getArtifactVersion(groupId, schemaId, VersionUtil.toString(versionNumber));
+        StoredArtifactDto artifact = storage.getArtifactVersion(groupId, schemaId,
+                VersionUtil.toString(versionNumber));
 
-        ArtifactVersionMetaDataDto metadata = storage.getArtifactVersionMetaData(groupId, schemaId, VersionUtil.toString(versionNumber));
+        ArtifactVersionMetaDataDto metadata = storage.getArtifactVersionMetaData(groupId, schemaId,
+                VersionUtil.toString(versionNumber));
         String contentType = metadata.getProperties().get(PROP_CONTENT_TYPE);
 
         return Response.ok(artifact.getContent(), contentType).build();
     }
 
     @Override
-    @Authorized(style=AuthorizedStyle.GroupAndArtifact, level=AuthorizedLevel.Write)
+    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
     public void deleteSchemaVersion(String groupId, String schemaId, Integer versionNumber) {
         verifyGroupExists(groupId);
         storage.deleteArtifactVersion(groupId, schemaId, VersionUtil.toString(versionNumber));

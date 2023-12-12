@@ -14,12 +14,11 @@ import java.util.function.Function;
 
 /**
  * Component that provides the logic to enforce the limits in the usage of the registry
- *
  */
 @ApplicationScoped
 public class RegistryLimitsService {
 
-    //FIXME improve error messages
+    // FIXME improve error messages
     private static final String MAX_TOTAL_SCHEMAS_EXCEEDED_MSG = "Maximum number of artifact versions exceeded";
     private static final String MAX_SCHEMA_SIZE_EXCEEDED_MSG = "Maximum size of artifact version exceeded";
     private static final String MAX_ARTIFACTS_EXCEEDED_MSG = "Maximum number of artifacts exceeded";
@@ -44,7 +43,7 @@ public class RegistryLimitsService {
     private LimitsCheckResult checkTotalSchemas() {
 
         if (isLimitDisabled(RegistryLimitsConfiguration::getMaxTotalSchemasCount)) {
-            //limits check disabled
+            // limits check disabled
             return LimitsCheckResult.ok();
         }
 
@@ -53,7 +52,8 @@ public class RegistryLimitsService {
         if (currentTotalSchemas < registryLimitsConfiguration.getMaxTotalSchemasCount()) {
             return LimitsCheckResult.ok();
         } else {
-            log.debug("Limit reached, current total schemas {} , max total schemas {}", currentTotalSchemas, registryLimitsConfiguration.getMaxTotalSchemasCount());
+            log.debug("Limit reached, current total schemas {} , max total schemas {}", currentTotalSchemas,
+                    registryLimitsConfiguration.getMaxTotalSchemasCount());
             return LimitsCheckResult.disallowed(MAX_TOTAL_SCHEMAS_EXCEEDED_MSG);
         }
     }
@@ -76,7 +76,7 @@ public class RegistryLimitsService {
         }
 
         if (isLimitDisabled(RegistryLimitsConfiguration::getMaxArtifactsCount)) {
-            //limits check disabled
+            // limits check disabled
             return LimitsCheckResult.ok();
         }
 
@@ -85,7 +85,8 @@ public class RegistryLimitsService {
         if (currentArtifacts < registryLimitsConfiguration.getMaxArtifactsCount()) {
             return LimitsCheckResult.ok();
         } else {
-            log.debug("Limit reached, current artifacts {} , max artifacts allowed {}", currentArtifacts, registryLimitsConfiguration.getMaxArtifactsCount());
+            log.debug("Limit reached, current artifacts {} , max artifacts allowed {}", currentArtifacts,
+                    registryLimitsConfiguration.getMaxArtifactsCount());
             return LimitsCheckResult.disallowed(MAX_ARTIFACTS_EXCEEDED_MSG);
         }
     }
@@ -99,12 +100,14 @@ public class RegistryLimitsService {
         if (size <= registryLimitsConfiguration.getMaxSchemaSizeBytes()) {
             return LimitsCheckResult.ok();
         } else {
-            log.debug("Limit reached, schema size is {} , max schema size is {}", size, registryLimitsConfiguration.getMaxSchemaSizeBytes());
+            log.debug("Limit reached, schema size is {} , max schema size is {}", size,
+                    registryLimitsConfiguration.getMaxSchemaSizeBytes());
             return LimitsCheckResult.disallowed(MAX_SCHEMA_SIZE_EXCEEDED_MSG);
         }
     }
 
-    public LimitsCheckResult canCreateArtifactVersion(String groupId, String artifactId, EditableArtifactMetaDataDto meta, ContentHandle content) {
+    public LimitsCheckResult canCreateArtifactVersion(String groupId, String artifactId,
+            EditableArtifactMetaDataDto meta, ContentHandle content) {
 
         LimitsCheckResult mr = checkMetaData(meta);
         if (!mr.isAllowed()) {
@@ -122,16 +125,20 @@ public class RegistryLimitsService {
         }
 
         if (isLimitDisabled(RegistryLimitsConfiguration::getMaxVersionsPerArtifactCount)) {
-            //limits check disabled
+            // limits check disabled
             return LimitsCheckResult.ok();
         }
 
-        long currentArtifactVersions = storageMetricsStore.getOrInitializeArtifactVersionsCounter(groupId, artifactId);
+        long currentArtifactVersions = storageMetricsStore.getOrInitializeArtifactVersionsCounter(groupId,
+                artifactId);
 
         if (currentArtifactVersions < registryLimitsConfiguration.getMaxVersionsPerArtifactCount()) {
             return LimitsCheckResult.ok();
         } else {
-            log.debug("Limit reached, current versions per artifact for artifact {}/{} {} , max versions per artifacts allowed {}", groupId, artifactId, currentArtifactVersions, registryLimitsConfiguration.getMaxVersionsPerArtifactCount());
+            log.debug(
+                    "Limit reached, current versions per artifact for artifact {}/{} {} , max versions per artifacts allowed {}",
+                    groupId, artifactId, currentArtifactVersions,
+                    registryLimitsConfiguration.getMaxVersionsPerArtifactCount());
             return LimitsCheckResult.disallowed(MAX_VERSIONS_PER_ARTIFACT_EXCEEDED_MSG);
         }
     }
@@ -162,24 +169,27 @@ public class RegistryLimitsService {
         }
         List<String> errorMessages = new ArrayList<>();
 
-        //name is limited at db level to 512 chars
-        if (meta.getName() != null && isLimitEnabled(RegistryLimitsConfiguration::getMaxArtifactNameLengthChars)) {
+        // name is limited at db level to 512 chars
+        if (meta.getName() != null
+                && isLimitEnabled(RegistryLimitsConfiguration::getMaxArtifactNameLengthChars)) {
             if (meta.getName().length() > registryLimitsConfiguration.getMaxArtifactNameLengthChars()) {
                 errorMessages.add(MAX_NAME_LENGTH_EXCEEDED_MSG);
             }
         }
 
-        //description is limited at db level to 1024 chars
-        if (meta.getDescription() != null && isLimitEnabled(RegistryLimitsConfiguration::getMaxArtifactDescriptionLengthChars)) {
+        // description is limited at db level to 1024 chars
+        if (meta.getDescription() != null
+                && isLimitEnabled(RegistryLimitsConfiguration::getMaxArtifactDescriptionLengthChars)) {
 
-            if (meta.getDescription().length() > registryLimitsConfiguration.getMaxArtifactDescriptionLengthChars()) {
+            if (meta.getDescription().length() > registryLimitsConfiguration
+                    .getMaxArtifactDescriptionLengthChars()) {
                 errorMessages.add(MAX_DESC_LENGTH_EXCEEDED_MSG);
             }
         }
 
         if (meta.getLabels() != null) {
-            if (isLimitEnabled(RegistryLimitsConfiguration::getMaxArtifactLabelsCount) &&
-                    meta.getLabels().size() > registryLimitsConfiguration.getMaxArtifactLabelsCount()) {
+            if (isLimitEnabled(RegistryLimitsConfiguration::getMaxArtifactLabelsCount)
+                    && meta.getLabels().size() > registryLimitsConfiguration.getMaxArtifactLabelsCount()) {
 
                 errorMessages.add(MAX_LABELS_EXCEEDED_MSG);
 
@@ -187,8 +197,8 @@ public class RegistryLimitsService {
 
                 meta.getLabels().forEach(l -> {
 
-                    if (l.getBytes(StandardCharsets.UTF_8).length >
-                            registryLimitsConfiguration.getMaxLabelSizeBytes()) {
+                    if (l.getBytes(StandardCharsets.UTF_8).length > registryLimitsConfiguration
+                            .getMaxLabelSizeBytes()) {
                         errorMessages.add(MAX_LABEL_SIZE_EXCEEDED_MSG);
                     }
                 });
@@ -196,23 +206,24 @@ public class RegistryLimitsService {
         }
 
         if (meta.getProperties() != null) {
-            if (isLimitEnabled(RegistryLimitsConfiguration::getMaxArtifactPropertiesCount) &&
-                    meta.getProperties().size() > registryLimitsConfiguration.getMaxArtifactPropertiesCount()) {
+            if (isLimitEnabled(RegistryLimitsConfiguration::getMaxArtifactPropertiesCount) && meta
+                    .getProperties().size() > registryLimitsConfiguration.getMaxArtifactPropertiesCount()) {
 
                 errorMessages.add(MAX_PROPERTIES_EXCEEDED_MSG);
 
-            } else if (isLimitEnabled(RegistryLimitsConfiguration::getMaxPropertyKeySizeBytes) ||
-                    isLimitEnabled(RegistryLimitsConfiguration::getMaxPropertyValueSizeBytes)){
+            } else if (isLimitEnabled(RegistryLimitsConfiguration::getMaxPropertyKeySizeBytes)
+                    || isLimitEnabled(RegistryLimitsConfiguration::getMaxPropertyValueSizeBytes)) {
 
                 meta.getProperties().entrySet().forEach(e -> {
 
-                    if (isLimitEnabled(RegistryLimitsConfiguration::getMaxPropertyKeySizeBytes) &&
-                            e.getKey().length() > registryLimitsConfiguration.getMaxPropertyKeySizeBytes()) {
+                    if (isLimitEnabled(RegistryLimitsConfiguration::getMaxPropertyKeySizeBytes) && e.getKey()
+                            .length() > registryLimitsConfiguration.getMaxPropertyKeySizeBytes()) {
                         errorMessages.add(MAX_PROP_KEY_SIZE_EXCEEDED_MSG);
                     }
 
-                    if (isLimitEnabled(RegistryLimitsConfiguration::getMaxPropertyValueSizeBytes) &&
-                            e.getValue().length() > registryLimitsConfiguration.getMaxPropertyValueSizeBytes()) {
+                    if (isLimitEnabled(RegistryLimitsConfiguration::getMaxPropertyValueSizeBytes)
+                            && e.getValue().length() > registryLimitsConfiguration
+                                    .getMaxPropertyValueSizeBytes()) {
                         errorMessages.add(MAX_PROP_VALUE_SIZE_EXCEEDED_MSG);
                     }
                 });

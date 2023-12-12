@@ -21,7 +21,8 @@ import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
 
-public class JsonSchemaKafkaDeserializer<T> extends AbstractKafkaDeserializer<JsonSchema, T> implements Deserializer<T> {
+public class JsonSchemaKafkaDeserializer<T> extends AbstractKafkaDeserializer<JsonSchema, T>
+        implements Deserializer<T> {
 
     private ObjectMapper mapper;
     private Boolean validationEnabled;
@@ -37,8 +38,7 @@ public class JsonSchemaKafkaDeserializer<T> extends AbstractKafkaDeserializer<Js
         super();
     }
 
-    public JsonSchemaKafkaDeserializer(RegistryClient client,
-                                       SchemaResolver<JsonSchema, T> schemaResolver) {
+    public JsonSchemaKafkaDeserializer(RegistryClient client, SchemaResolver<JsonSchema, T> schemaResolver) {
         super(client, schemaResolver);
     }
 
@@ -74,7 +74,8 @@ public class JsonSchemaKafkaDeserializer<T> extends AbstractKafkaDeserializer<Js
 
         if (null == mapper) {
             mapper = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
-                    .setSerializationInclusion(JsonInclude.Include.NON_NULL);;
+                    .setSerializationInclusion(JsonInclude.Include.NON_NULL);
+            ;
         }
     }
 
@@ -95,7 +96,8 @@ public class JsonSchemaKafkaDeserializer<T> extends AbstractKafkaDeserializer<Js
     }
 
     /**
-     * @see io.apicurio.registry.serde.AbstractKafkaDeserializer#readData(io.apicurio.registry.serde.ParsedSchema, java.nio.ByteBuffer, int, int)
+     * @see io.apicurio.registry.serde.AbstractKafkaDeserializer#readData(io.apicurio.registry.serde.ParsedSchema,
+     *      java.nio.ByteBuffer, int, int)
      */
     @Override
     protected T readData(ParsedSchema<JsonSchema> schema, ByteBuffer buffer, int start, int length) {
@@ -103,14 +105,17 @@ public class JsonSchemaKafkaDeserializer<T> extends AbstractKafkaDeserializer<Js
     }
 
     /**
-     * @see io.apicurio.registry.serde.AbstractKafkaDeserializer#readData(org.apache.kafka.common.header.Headers, io.apicurio.registry.serde.ParsedSchema, java.nio.ByteBuffer, int, int)
+     * @see io.apicurio.registry.serde.AbstractKafkaDeserializer#readData(org.apache.kafka.common.header.Headers,
+     *      io.apicurio.registry.serde.ParsedSchema, java.nio.ByteBuffer, int, int)
      */
     @Override
-    protected T readData(Headers headers, ParsedSchema<JsonSchema> schema, ByteBuffer buffer, int start, int length) {
+    protected T readData(Headers headers, ParsedSchema<JsonSchema> schema, ByteBuffer buffer, int start,
+            int length) {
         return internalReadData(headers, schema, buffer, start, length);
     }
 
-    private T internalReadData(Headers headers, ParsedSchema<JsonSchema> schema, ByteBuffer buffer, int start, int length) {
+    private T internalReadData(Headers headers, ParsedSchema<JsonSchema> schema, ByteBuffer buffer, int start,
+            int length) {
         byte[] data = new byte[length];
         System.arraycopy(buffer.array(), start, data, 0, length);
 
@@ -133,8 +138,9 @@ public class JsonSchemaKafkaDeserializer<T> extends AbstractKafkaDeserializer<Js
                 if (javaTypeNode != null && !javaTypeNode.isNull()) {
                     javaType = javaTypeNode.textValue();
                 }
-                //TODO if javaType is null, maybe warn something like this?
-                //You can try configure the property \"apicurio.registry.serde.json-schema.java-type\" with the full class name to use for deserialization
+                // TODO if javaType is null, maybe warn something like this?
+                // You can try configure the property \"apicurio.registry.serde.json-schema.java-type\" with
+                // the full class name to use for deserialization
                 messageType = javaType == null ? null : Utils.loadClass(javaType);
             } else {
                 String javaType = serdeHeaders.getMessageType(headers);
@@ -142,7 +148,7 @@ public class JsonSchemaKafkaDeserializer<T> extends AbstractKafkaDeserializer<Js
             }
 
             if (messageType == null) {
-                //TODO maybe warn there is no message type and the deserializer will return a JsonNode
+                // TODO maybe warn there is no message type and the deserializer will return a JsonNode
                 return mapper.readTree(parser);
             } else {
                 return mapper.readValue(parser, messageType);

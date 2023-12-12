@@ -1,17 +1,5 @@
 package io.apicurio.registry.serde.avro;
 
-import java.io.IOException;
-import java.io.OutputStream;
-import java.util.Map;
-import java.util.Objects;
-import java.util.function.Consumer;
-
-import org.apache.avro.Schema;
-import org.apache.avro.io.DatumWriter;
-import org.apache.avro.io.Encoder;
-import org.apache.avro.io.EncoderFactory;
-import org.apache.kafka.common.header.Headers;
-
 import io.apicurio.registry.resolver.ParsedSchema;
 import io.apicurio.registry.resolver.SchemaParser;
 import io.apicurio.registry.resolver.SchemaResolver;
@@ -19,6 +7,17 @@ import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
 import io.apicurio.registry.resolver.utils.Utils;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.serde.AbstractKafkaSerializer;
+import org.apache.avro.Schema;
+import org.apache.avro.io.DatumWriter;
+import org.apache.avro.io.Encoder;
+import org.apache.avro.io.EncoderFactory;
+import org.apache.kafka.common.header.Headers;
+
+import java.io.IOException;
+import java.io.OutputStream;
+import java.util.Map;
+import java.util.Objects;
+import java.util.function.Consumer;
 
 public class AvroKafkaSerializer<U> extends AbstractKafkaSerializer<Schema, U> {
 
@@ -64,7 +63,7 @@ public class AvroKafkaSerializer<U> extends AbstractKafkaSerializer<Schema, U> {
 
         avroHeaders = new AvroSerdeHeaders(isKey);
 
-        //important to instantiate the SchemaParser before calling super.configure
+        // important to instantiate the SchemaParser before calling super.configure
         parser = new AvroSchemaParser<>(avroDatumProvider);
 
         super.configure(config, isKey);
@@ -79,7 +78,8 @@ public class AvroKafkaSerializer<U> extends AbstractKafkaSerializer<Schema, U> {
     }
 
     /**
-     * @see io.apicurio.registry.serde.AbstractKafkaSerializer#serializeData(io.apicurio.registry.serde.ParsedSchema, java.lang.Object, java.io.OutputStream)
+     * @see io.apicurio.registry.serde.AbstractKafkaSerializer#serializeData(io.apicurio.registry.serde.ParsedSchema,
+     *      java.lang.Object, java.io.OutputStream)
      */
     @SuppressWarnings("unchecked")
     @Override
@@ -88,7 +88,7 @@ public class AvroKafkaSerializer<U> extends AbstractKafkaSerializer<Schema, U> {
 
         // I guess this can happen if generics are lost with reflection ...
         if (data instanceof NonRecordContainer) {
-            //noinspection unchecked
+            // noinspection unchecked
             data = (U) NonRecordContainer.class.cast(data).getValue();
         }
 
@@ -98,10 +98,12 @@ public class AvroKafkaSerializer<U> extends AbstractKafkaSerializer<Schema, U> {
     }
 
     /**
-     * @see io.apicurio.registry.serde.AbstractKafkaSerializer#serializeData(org.apache.kafka.common.header.Headers, io.apicurio.registry.serde.ParsedSchema, java.lang.Object, java.io.OutputStream)
+     * @see io.apicurio.registry.serde.AbstractKafkaSerializer#serializeData(org.apache.kafka.common.header.Headers,
+     *      io.apicurio.registry.serde.ParsedSchema, java.lang.Object, java.io.OutputStream)
      */
     @Override
-    protected void serializeData(Headers headers, ParsedSchema<Schema> schema, U data, OutputStream out) throws IOException {
+    protected void serializeData(Headers headers, ParsedSchema<Schema> schema, U data, OutputStream out)
+            throws IOException {
         if (headers != null) {
             avroHeaders.addEncodingHeader(headers, encoding.name());
         }
@@ -109,7 +111,7 @@ public class AvroKafkaSerializer<U> extends AbstractKafkaSerializer<Schema, U> {
     }
 
     private Encoder createEncoder(Schema schema, OutputStream os) throws IOException {
-        if(encoding == AvroEncoding.JSON) {
+        if (encoding == AvroEncoding.JSON) {
             return encoderFactory.jsonEncoder(schema, os);
         } else {
             return encoderFactory.directBinaryEncoder(os, null);

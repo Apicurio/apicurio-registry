@@ -12,20 +12,25 @@ public class CommentKey implements MessageKey {
     private String artifactId;
     private String version;
     private String commentId;
-    // Note: we never want to compact comments, so add a unique UUID to avoid log compaction.  However, we COULD implement
-    //       log compaction for comments if we include the createdBy and createdOn fields for Update messages.  It would 
-    //       require a change in the SQL layer to treat Updates as CreateOrUpdate.  My theory is that comments will not
-    //       often be edited or deleted, which makes this a largely useless optimization.
+    // Note: we never want to compact comments, so add a unique UUID to avoid log compaction. However, we
+    // COULD implement
+    // log compaction for comments if we include the createdBy and createdOn fields for Update messages. It
+    // would
+    // require a change in the SQL layer to treat Updates as CreateOrUpdate. My theory is that comments will
+    // not
+    // often be edited or deleted, which makes this a largely useless optimization.
     private final String uuid = UUID.randomUUID().toString();
 
     /**
      * Creator method.
+     * 
      * @param groupId
      * @param artifactId
      * @param version
      * @param commentId
      */
-    public static final CommentKey create(String groupId, String artifactId, String version, String commentId) {
+    public static final CommentKey create(String groupId, String artifactId, String version,
+            String commentId) {
         CommentKey key = new CommentKey();
         key.setGroupId(groupId);
         key.setArtifactId(artifactId);

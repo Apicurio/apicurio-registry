@@ -35,7 +35,6 @@ class GitOpsSmokeTest {
     @Current
     RegistryStorage storage;
 
-
     @Test
     void smokeTest() throws Exception {
         assertEquals(Set.of(), storage.getArtifactIds(10));
@@ -44,8 +43,8 @@ class GitOpsSmokeTest {
 
         // Waiting to load smoke01
         testRepository.load("git/smoke01");
-        await().atMost(Duration.ofSeconds(30))
-                .until(() -> withContext(() -> storage.getArtifactIds(10)), equalTo(Set.of("petstore")));
+        await().atMost(Duration.ofSeconds(30)).until(() -> withContext(() -> storage.getArtifactIds(10)),
+                equalTo(Set.of("petstore")));
 
         // Global rules
         assertEquals(Set.of(RuleType.VALIDITY), Set.copyOf(storage.getGlobalRules()));
@@ -56,19 +55,21 @@ class GitOpsSmokeTest {
 
         // Artifact rules
         assertEquals(Set.of(RuleType.COMPATIBILITY), Set.copyOf(storage.getArtifactRules("foo", "petstore")));
-        assertEquals("BACKWARD", storage.getArtifactRule("foo", "petstore", RuleType.COMPATIBILITY).getConfiguration());
+        assertEquals("BACKWARD",
+                storage.getArtifactRule("foo", "petstore", RuleType.COMPATIBILITY).getConfiguration());
 
         // Artifact versions
         var version = storage.getArtifactVersion("foo", "petstore", "1");
         assertEquals(1, version.getGlobalId());
         assertEquals(1, version.getContentId());
         var content = loadFile("git/smoke01/content/petstore-1.0.0.yaml");
-        assertEquals(YAMLObjectMapper.MAPPER.readTree(content.bytes()), MAPPER.readTree(version.getContent().bytes()));
+        assertEquals(YAMLObjectMapper.MAPPER.readTree(content.bytes()),
+                MAPPER.readTree(version.getContent().bytes()));
 
         // Waiting to load smoke02
         testRepository.load("git/smoke02");
-        await().atMost(Duration.ofSeconds(30))
-                .until(() -> withContext(() -> storage.getArtifactIds(10)), equalTo(Set.of("person")));
+        await().atMost(Duration.ofSeconds(30)).until(() -> withContext(() -> storage.getArtifactIds(10)),
+                equalTo(Set.of("person")));
 
         // Global rules
         assertEquals(Set.of(), Set.copyOf(storage.getGlobalRules()));
@@ -88,20 +89,19 @@ class GitOpsSmokeTest {
 
         // Waiting to load empty
         testRepository.load("git/empty");
-        await().atMost(Duration.ofSeconds(30))
-                .until(() -> withContext(() -> storage.getArtifactIds(10)), equalTo(Set.of()));
+        await().atMost(Duration.ofSeconds(30)).until(() -> withContext(() -> storage.getArtifactIds(10)),
+                equalTo(Set.of()));
     }
-
 
     @ActivateRequestContext
     public <T> T withContext(Supplier<T> supplier) {
         return supplier.get();
     }
 
-
     private ContentHandle loadFile(String path) {
         try {
-            var fullPath = Path.of(requireNonNull(Thread.currentThread().getContextClassLoader().getResource(path)).toURI());
+            var fullPath = Path.of(
+                    requireNonNull(Thread.currentThread().getContextClassLoader().getResource(path)).toURI());
             return ContentHandle.create(FileUtils.readFileToByteArray(fullPath.toFile()));
         } catch (IOException | URISyntaxException ex) {
             throw new RuntimeException(ex);

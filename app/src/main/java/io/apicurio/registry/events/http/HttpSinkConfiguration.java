@@ -1,7 +1,7 @@
 package io.apicurio.registry.events.http;
 
 public class HttpSinkConfiguration {
-    
+
     private String name;
     private String endpoint;
 

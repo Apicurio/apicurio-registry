@@ -1,11 +1,11 @@
 package io.apicurio.registry.utils;
 
+import jakarta.enterprise.inject.spi.InjectionPoint;
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.config.spi.ConfigProviderResolver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import jakarta.enterprise.inject.spi.InjectionPoint;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -29,28 +29,21 @@ public class PropertiesUtil {
     public static Properties properties(InjectionPoint ip) {
         RegistryProperties cp = ip.getAnnotated().getAnnotation(RegistryProperties.class);
         if (cp == null) {
-            throw new IllegalArgumentException(
-                    ip.getMember() + " is not annotated with @RegistryProperties"
-            );
+            throw new IllegalArgumentException(ip.getMember() + " is not annotated with @RegistryProperties");
         }
         String[] prefixes = Stream.of(cp.value())
-                .map(pfx -> pfx.isEmpty() || pfx.endsWith(".") ? pfx : pfx + ".")
-                .distinct()
+                .map(pfx -> pfx.isEmpty() || pfx.endsWith(".") ? pfx : pfx + ".").distinct()
                 .toArray(String[]::new);
         if (prefixes.length == 0) {
-            throw new IllegalArgumentException(
-                    "Annotation @RegistryProperties on " + ip.getMember() +
-                            " is missing non-empty 'value' attribute"
-            );
+            throw new IllegalArgumentException("Annotation @RegistryProperties on " + ip.getMember()
+                    + " is missing non-empty 'value' attribute");
         }
 
         Properties properties = new Properties();
         Config config = ConfigProviderResolver.instance().getConfig();
 
         if (debug && log.isDebugEnabled()) {
-            String dump = StreamSupport
-                    .stream(config.getPropertyNames().spliterator(), false)
-                    .sorted()
+            String dump = StreamSupport.stream(config.getPropertyNames().spliterator(), false).sorted()
                     .map(key -> key + "=" + config.getOptionalValue(key, String.class).orElse(""))
                     .collect(Collectors.joining("\n  ", "  ", "\n"));
             log.debug("Injecting config properties with prefixes {} into {} from the following...\n{}",
@@ -87,10 +80,7 @@ public class PropertiesUtil {
         }
 
         if (debug && log.isDebugEnabled()) {
-            String dump = properties
-                    .stringPropertyNames()
-                    .stream()
-                    .sorted()
+            String dump = properties.stringPropertyNames().stream().sorted()
                     .map(key -> key + "=" + properties.getProperty(key))
                     .collect(Collectors.joining("\n  ", "  ", "\n"));
             log.debug("... selected/prefix-stripped properties are:\n{}", dump);

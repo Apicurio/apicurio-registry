@@ -56,6 +56,7 @@ public class KafkaSqlValueDeserializer implements Deserializer<MessageValue> {
 
     /**
      * Special case deserialize of a {@link ContentValue} value.
+     * 
      * @param topic
      * @param data
      */
@@ -83,7 +84,8 @@ public class KafkaSqlValueDeserializer implements Deserializer<MessageValue> {
         }
 
         String serializedReferences = null;
-        //When deserializing from other storage versions, the references byte count might not be there, so we first check if there are anything remaining in the buffer
+        // When deserializing from other storage versions, the references byte count might not be there, so we
+        // first check if there are anything remaining in the buffer
         if (byteBuffer.hasRemaining()) {
             // References (length of references + references bytes)
             int referencesLen = byteBuffer.getInt();

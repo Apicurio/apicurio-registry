@@ -29,19 +29,15 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * Tests local role mappings (managed in the database via the role-mapping API).
- *
  */
 @QuarkusTest
 @TestProfile(AuthTestProfileWithLocalRoles.class)
 @Tag(ApicurioTestTags.SLOW)
 public class AuthTestLocalRoles extends AbstractResourceTestBase {
 
-    private static final String TEST_CONTENT = "{\r\n" +
-            "    \"type\" : \"record\",\r\n" +
-            "    \"name\" : \"userInfo\",\r\n" +
-            "    \"namespace\" : \"my.example\",\r\n" +
-            "    \"fields\" : [{\"name\" : \"age\", \"type\" : \"int\"}]\r\n" +
-            "} ";
+    private static final String TEST_CONTENT = "{\r\n" + "    \"type\" : \"record\",\r\n"
+            + "    \"name\" : \"userInfo\",\r\n" + "    \"namespace\" : \"my.example\",\r\n"
+            + "    \"fields\" : [{\"name\" : \"age\", \"type\" : \"int\"}]\r\n" + "} ";
 
     @ConfigProperty(name = "registry.auth.token.endpoint")
     @Info(category = "auth", description = "Auth token endpoint", availableSince = "2.1.0.Final")
@@ -50,8 +46,8 @@ public class AuthTestLocalRoles extends AbstractResourceTestBase {
     @Override
     protected RegistryClient createRestClientV3() {
         var adapter = new OkHttpRequestAdapter(
-                new BaseBearerTokenAuthenticationProvider(
-                        new OidcAccessTokenProvider(authServerUrlConfigured, JWKSMockServer.ADMIN_CLIENT_ID, "test1")));
+                new BaseBearerTokenAuthenticationProvider(new OidcAccessTokenProvider(authServerUrlConfigured,
+                        JWKSMockServer.ADMIN_CLIENT_ID, "test1")));
         adapter.setBaseUrl(registryV3ApiUrl);
         return new RegistryClient(adapter);
     }
@@ -69,14 +65,14 @@ public class AuthTestLocalRoles extends AbstractResourceTestBase {
     @Test
     public void testLocalRoles() throws Exception {
         var adapterAdmin = new OkHttpRequestAdapter(
-                new BaseBearerTokenAuthenticationProvider(
-                        new OidcAccessTokenProvider(authServerUrlConfigured, JWKSMockServer.ADMIN_CLIENT_ID, "test1")));
+                new BaseBearerTokenAuthenticationProvider(new OidcAccessTokenProvider(authServerUrlConfigured,
+                        JWKSMockServer.ADMIN_CLIENT_ID, "test1")));
         adapterAdmin.setBaseUrl(registryV3ApiUrl);
         RegistryClient clientAdmin = new RegistryClient(adapterAdmin);
 
         var adapterAuth = new OkHttpRequestAdapter(
-                new BaseBearerTokenAuthenticationProvider(
-                        new OidcAccessTokenProvider(authServerUrlConfigured, JWKSMockServer.NO_ROLE_CLIENT_ID, "test1")));
+                new BaseBearerTokenAuthenticationProvider(new OidcAccessTokenProvider(authServerUrlConfigured,
+                        JWKSMockServer.NO_ROLE_CLIENT_ID, "test1")));
         adapterAuth.setBaseUrl(registryV3ApiUrl);
         RegistryClient client = new RegistryClient(adapterAuth);
 
@@ -87,12 +83,10 @@ public class AuthTestLocalRoles extends AbstractResourceTestBase {
         assertForbidden(executionException1);
 
         var executionException2 = Assertions.assertThrows(ExecutionException.class, () -> {
-            client
-                .groups()
-                .byGroupId(UUID.randomUUID().toString())
-                .artifacts()
-                .post(content, config -> config.headers.add("X-Registry-ArtifactId", getClass().getSimpleName()))
-                .get(3, TimeUnit.SECONDS);
+            client.groups().byGroupId(UUID.randomUUID().toString()).artifacts()
+                    .post(content,
+                            config -> config.headers.add("X-Registry-ArtifactId", getClass().getSimpleName()))
+                    .get(3, TimeUnit.SECONDS);
         });
         assertForbidden(executionException2);
 
@@ -112,14 +106,10 @@ public class AuthTestLocalRoles extends AbstractResourceTestBase {
         client.groups().byGroupId("default").artifacts().get().get(3, TimeUnit.SECONDS);
 
         var executionException4 = Assertions.assertThrows(ExecutionException.class, () -> {
-            client
-                    .groups()
-                    .byGroupId(UUID.randomUUID().toString())
-                    .artifacts()
-                    .post(content, config -> {
-                        config.headers.add("X-Registry-ArtifactType", ArtifactType.AVRO);
-                        config.headers.add("X-Registry-ArtifactId", getClass().getSimpleName());
-                    }).get(3, TimeUnit.SECONDS);
+            client.groups().byGroupId(UUID.randomUUID().toString()).artifacts().post(content, config -> {
+                config.headers.add("X-Registry-ArtifactType", ArtifactType.AVRO);
+                config.headers.add("X-Registry-ArtifactId", getClass().getSimpleName());
+            }).get(3, TimeUnit.SECONDS);
         });
         assertForbidden(executionException4);
         var executionException5 = Assertions.assertThrows(ExecutionException.class, () -> {
@@ -131,22 +121,14 @@ public class AuthTestLocalRoles extends AbstractResourceTestBase {
         var devMapping = new UpdateRole();
         devMapping.setRole(RoleType.DEVELOPER);
 
-        clientAdmin
-                .admin()
-                .roleMappings()
-                .byPrincipalId(JWKSMockServer.NO_ROLE_CLIENT_ID)
-                .put(devMapping)
+        clientAdmin.admin().roleMappings().byPrincipalId(JWKSMockServer.NO_ROLE_CLIENT_ID).put(devMapping)
                 .get(3, TimeUnit.SECONDS);
 
         // Now the user can read and write but not admin
         client.groups().byGroupId("default").artifacts().get().get(3, TimeUnit.SECONDS);
-        client
-                .groups()
-                .byGroupId(UUID.randomUUID().toString())
-                .artifacts()
-                .post(content, config -> {
-                    config.headers.add("X-Registry-ArtifactId", getClass().getSimpleName());
-                }).get(3, TimeUnit.SECONDS);
+        client.groups().byGroupId(UUID.randomUUID().toString()).artifacts().post(content, config -> {
+            config.headers.add("X-Registry-ArtifactId", getClass().getSimpleName());
+        }).get(3, TimeUnit.SECONDS);
         var executionException6 = Assertions.assertThrows(ExecutionException.class, () -> {
             client.admin().rules().post(rule).get(3, TimeUnit.SECONDS);
         });
@@ -156,22 +138,14 @@ public class AuthTestLocalRoles extends AbstractResourceTestBase {
         var adminMapping = new UpdateRole();
         adminMapping.setRole(RoleType.ADMIN);
 
-        clientAdmin
-                .admin()
-                .roleMappings()
-                .byPrincipalId(JWKSMockServer.NO_ROLE_CLIENT_ID)
-                .put(adminMapping)
+        clientAdmin.admin().roleMappings().byPrincipalId(JWKSMockServer.NO_ROLE_CLIENT_ID).put(adminMapping)
                 .get(3, TimeUnit.SECONDS);
 
         // Now the user can do everything
         client.groups().byGroupId("default").artifacts().get().get(3, TimeUnit.SECONDS);
-        client
-                .groups()
-                .byGroupId(UUID.randomUUID().toString())
-                .artifacts()
-                .post(content, config -> {
-                    config.headers.add("X-Registry-ArtifactId", getClass().getSimpleName());
-                }).get(3, TimeUnit.SECONDS);
+        client.groups().byGroupId(UUID.randomUUID().toString()).artifacts().post(content, config -> {
+            config.headers.add("X-Registry-ArtifactId", getClass().getSimpleName());
+        }).get(3, TimeUnit.SECONDS);
         client.admin().rules().post(rule).get(3, TimeUnit.SECONDS);
     }
 }

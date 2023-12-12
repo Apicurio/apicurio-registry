@@ -59,7 +59,7 @@ public class XsdArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvide
     public ContentDereferencer getContentDereferencer() {
         return null;
     }
-    
+
     /**
      * @see io.apicurio.registry.types.provider.ArtifactTypeUtilProvider#getReferenceFinder()
      */

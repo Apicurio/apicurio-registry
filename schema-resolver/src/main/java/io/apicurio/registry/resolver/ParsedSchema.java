@@ -25,11 +25,9 @@ public interface ParsedSchema<T> {
     public boolean hasReferences();
 
     /**
-     *
      * @return the name to be used when referencing this schema
      */
     public String referenceName();
-
 
     /**
      * set the name to be used when referencing this schema

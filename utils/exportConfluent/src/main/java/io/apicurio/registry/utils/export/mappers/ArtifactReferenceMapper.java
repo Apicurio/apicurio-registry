@@ -2,7 +2,6 @@ package io.apicurio.registry.utils.export.mappers;
 
 import io.apicurio.registry.rest.v3.beans.ArtifactReference;
 import io.confluent.kafka.schemaregistry.client.rest.entities.SchemaReference;
-
 import jakarta.inject.Singleton;
 
 @Singleton

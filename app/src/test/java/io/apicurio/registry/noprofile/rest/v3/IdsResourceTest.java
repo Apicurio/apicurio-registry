@@ -1,21 +1,20 @@
 package io.apicurio.registry.noprofile.rest.v3;
 
-import static io.restassured.RestAssured.given;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.not;
-import static org.hamcrest.Matchers.notNullValue;
-
-import org.apache.commons.codec.digest.DigestUtils;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Test;
-
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.rest.v3.beans.ArtifactMetaData;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
+import org.apache.commons.codec.digest.DigestUtils;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 import java.util.concurrent.TimeUnit;
+
+import static io.restassured.RestAssured.given;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.notNullValue;
 
 @QuarkusTest
 public class IdsResourceTest extends AbstractResourceTestBase {
@@ -34,31 +33,17 @@ public class IdsResourceTest extends AbstractResourceTestBase {
         String artifactId2 = "testIdsAfterCreate/Empty-2";
 
         // Create artifact 1
-        ArtifactMetaData amd1 = given()
-                .when()
-                    .contentType(CT_JSON)
-                    .pathParam("groupId", GROUP)
-                    .header("X-Registry-ArtifactId", artifactId1)
-                    .header("X-Registry-ArtifactType", ArtifactType.OPENAPI)
-                    .body(artifactContent)
-                .post("/registry/v3/groups/{groupId}/artifacts")
-                .then()
-                    .statusCode(200)
-                .extract()
-                    .as(ArtifactMetaData.class);
+        ArtifactMetaData amd1 = given().when().contentType(CT_JSON).pathParam("groupId", GROUP)
+                .header("X-Registry-ArtifactId", artifactId1)
+                .header("X-Registry-ArtifactType", ArtifactType.OPENAPI).body(artifactContent)
+                .post("/registry/v3/groups/{groupId}/artifacts").then().statusCode(200).extract()
+                .as(ArtifactMetaData.class);
         // Create artifact 2
-        ArtifactMetaData amd2 = given()
-                .when()
-                    .contentType(CT_JSON)
-                    .pathParam("groupId", GROUP)
-                    .header("X-Registry-ArtifactId", artifactId2)
-                    .header("X-Registry-ArtifactType", ArtifactType.OPENAPI)
-                    .body(artifactContent)
-                .post("/registry/v3/groups/{groupId}/artifacts")
-                .then()
-                    .statusCode(200)
-                .extract()
-                    .as(ArtifactMetaData.class);
+        ArtifactMetaData amd2 = given().when().contentType(CT_JSON).pathParam("groupId", GROUP)
+                .header("X-Registry-ArtifactId", artifactId2)
+                .header("X-Registry-ArtifactType", ArtifactType.OPENAPI).body(artifactContent)
+                .post("/registry/v3/groups/{groupId}/artifacts").then().statusCode(200).extract()
+                .as(ArtifactMetaData.class);
 
         Assertions.assertNotNull(amd1.getGlobalId());
         Assertions.assertNotNull(amd1.getContentId());
@@ -68,59 +53,30 @@ public class IdsResourceTest extends AbstractResourceTestBase {
         Assertions.assertEquals(amd1.getContentId(), amd2.getContentId());
 
         // Get artifact1 meta data and check the contentId
-        given()
-            .when()
-                .contentType(CT_JSON)
-                .pathParam("groupId", GROUP)
-                .pathParam("artifactId", artifactId1)
-                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/meta")
-            .then()
-                .statusCode(200)
-                .body("type", equalTo(ArtifactType.OPENAPI))
-                .body("groupId", equalTo(GROUP))
+        given().when().contentType(CT_JSON).pathParam("groupId", GROUP).pathParam("artifactId", artifactId1)
+                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/meta").then().statusCode(200)
+                .body("type", equalTo(ArtifactType.OPENAPI)).body("groupId", equalTo(GROUP))
                 .body("contentId", equalTo(amd1.getContentId().intValue()));
 
-
         // Get artifact2 meta data and check the contentId
-        given()
-            .when()
-                .contentType(CT_JSON)
-                .pathParam("groupId", GROUP)
-                .pathParam("artifactId", artifactId2)
-                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/meta")
-            .then()
-                .statusCode(200)
-                .body("type", equalTo(ArtifactType.OPENAPI))
-                .body("groupId", equalTo(GROUP))
+        given().when().contentType(CT_JSON).pathParam("groupId", GROUP).pathParam("artifactId", artifactId2)
+                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/meta").then().statusCode(200)
+                .body("type", equalTo(ArtifactType.OPENAPI)).body("groupId", equalTo(GROUP))
                 .body("contentId", equalTo(amd2.getContentId().intValue()));
 
         // List versions in artifact, make sure contentId is returned.
-        given()
-            .when()
-                .contentType(CT_JSON)
-                .pathParam("groupId", GROUP)
-                .pathParam("artifactId", amd1.getId())
-                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions")
-            .then()
-                .statusCode(200)
-                .body("count", equalTo(1))
-                .body("versions[0].contentId", notNullValue())
+        given().when().contentType(CT_JSON).pathParam("groupId", GROUP).pathParam("artifactId", amd1.getId())
+                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions").then().statusCode(200)
+                .body("count", equalTo(1)).body("versions[0].contentId", notNullValue())
                 .body("versions[0].contentId", not(equalTo(0)))
                 .body("versions[0].contentId", equalTo(amd1.getContentId().intValue()));
 
         // Get artifact version meta-data, make sure contentId is returned
-        given()
-            .when()
-                .contentType(CT_JSON)
-                .pathParam("groupId", GROUP)
-                .pathParam("artifactId", amd1.getId())
+        given().when().contentType(CT_JSON).pathParam("groupId", GROUP).pathParam("artifactId", amd1.getId())
                 .pathParam("version", amd1.getVersion())
-                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/{version}/meta")
-            .then()
-                .statusCode(200)
-                .body("globalId", equalTo(amd1.getGlobalId().intValue()))
+                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/{version}/meta").then()
+                .statusCode(200).body("globalId", equalTo(amd1.getGlobalId().intValue()))
                 .body("contentId", equalTo(amd1.getContentId().intValue()));
-
 
     }
 
@@ -132,31 +88,18 @@ public class IdsResourceTest extends AbstractResourceTestBase {
         String artifactId = "testGetByGlobalId/Empty";
 
         // Create the artifact.
-        ArtifactMetaData amd = given()
-                .when()
-                .contentType(CT_JSON)
-                .pathParam("groupId", GROUP)
+        ArtifactMetaData amd = given().when().contentType(CT_JSON).pathParam("groupId", GROUP)
                 .header("X-Registry-ArtifactId", artifactId)
-                .header("X-Registry-ArtifactType", ArtifactType.OPENAPI)
-                .body(artifactContent)
-                .post("/registry/v3/groups/{groupId}/artifacts")
-                .then()
-                .statusCode(200)
-                .extract()
+                .header("X-Registry-ArtifactType", ArtifactType.OPENAPI).body(artifactContent)
+                .post("/registry/v3/groups/{groupId}/artifacts").then().statusCode(200).extract()
                 .as(ArtifactMetaData.class);
 
         long globalId = amd.getGlobalId();
 
         // Get by globalId
-        given()
-                .when()
-                .contentType(CT_JSON)
-                .pathParam("globalId", globalId)
-                .get("/registry/v3/ids/globalIds/{globalId}")
-                .then()
-                .statusCode(200)
-                .body("openapi", equalTo("3.0.2"))
-                .body("info.title", equalTo(title));
+        given().when().contentType(CT_JSON).pathParam("globalId", globalId)
+                .get("/registry/v3/ids/globalIds/{globalId}").then().statusCode(200)
+                .body("openapi", equalTo("3.0.2")).body("info.title", equalTo(title));
 
     }
 
@@ -181,7 +124,6 @@ public class IdsResourceTest extends AbstractResourceTestBase {
 
     }
 
-
     @Test
     public void testGetByContentId() throws Exception {
         String title = "Test By Content ID API";
@@ -190,40 +132,22 @@ public class IdsResourceTest extends AbstractResourceTestBase {
         String artifactId = "testGetByContentId/Empty";
 
         // Create the artifact.
-        ArtifactMetaData amd = given()
-                .when()
-                    .contentType(CT_JSON)
-                    .pathParam("groupId", GROUP)
-                    .header("X-Registry-ArtifactId", artifactId)
-                    .header("X-Registry-ArtifactType", ArtifactType.OPENAPI)
-                    .body(artifactContent)
-                .post("/registry/v3/groups/{groupId}/artifacts")
-                .then()
-                    .statusCode(200)
-                .extract()
-                    .as(ArtifactMetaData.class);
+        ArtifactMetaData amd = given().when().contentType(CT_JSON).pathParam("groupId", GROUP)
+                .header("X-Registry-ArtifactId", artifactId)
+                .header("X-Registry-ArtifactType", ArtifactType.OPENAPI).body(artifactContent)
+                .post("/registry/v3/groups/{groupId}/artifacts").then().statusCode(200).extract()
+                .as(ArtifactMetaData.class);
 
         long contentId = amd.getContentId();
 
         // Get by contentId
-        given()
-            .when()
-                .contentType(CT_JSON)
-                .pathParam("contentId", contentId)
-                .get("/registry/v3/ids/contentIds/{contentId}")
-            .then()
-                .statusCode(200)
-                .body("openapi", equalTo("3.0.2"))
-                .body("info.title", equalTo(title));
+        given().when().contentType(CT_JSON).pathParam("contentId", contentId)
+                .get("/registry/v3/ids/contentIds/{contentId}").then().statusCode(200)
+                .body("openapi", equalTo("3.0.2")).body("info.title", equalTo(title));
 
         // Get by contentId (not found)
-        given()
-            .when()
-                .contentType(CT_JSON)
-                .pathParam("contentId", Integer.MAX_VALUE)
-                .get("/registry/v3/ids/contentIds/{contentId}")
-            .then()
-                .statusCode(404);
+        given().when().contentType(CT_JSON).pathParam("contentId", Integer.MAX_VALUE)
+                .get("/registry/v3/ids/contentIds/{contentId}").then().statusCode(404);
     }
 
     @Test
@@ -236,37 +160,19 @@ public class IdsResourceTest extends AbstractResourceTestBase {
         String artifactId = "testGetByContentHash/Empty";
 
         // Create the artifact.
-        given()
-            .when()
-                .contentType(CT_JSON)
-                .pathParam("groupId", GROUP)
+        given().when().contentType(CT_JSON).pathParam("groupId", GROUP)
                 .header("X-Registry-ArtifactId", artifactId)
-                .header("X-Registry-ArtifactType", ArtifactType.OPENAPI)
-                .body(artifactContent)
-            .post("/registry/v3/groups/{groupId}/artifacts")
-            .then()
-                .statusCode(200);
+                .header("X-Registry-ArtifactType", ArtifactType.OPENAPI).body(artifactContent)
+                .post("/registry/v3/groups/{groupId}/artifacts").then().statusCode(200);
 
         // Get by contentHash
-        given()
-            .when()
-                .contentType(CT_JSON)
-                .pathParam("contentHash", contentHash)
-                .get("/registry/v3/ids/contentHashes/{contentHash}")
-            .then()
-                .statusCode(200)
-                .body("openapi", equalTo("3.0.2"))
-                .body("info.title", equalTo(title));
-
+        given().when().contentType(CT_JSON).pathParam("contentHash", contentHash)
+                .get("/registry/v3/ids/contentHashes/{contentHash}").then().statusCode(200)
+                .body("openapi", equalTo("3.0.2")).body("info.title", equalTo(title));
 
         // Get by contentHash (not found)
-        given()
-            .when()
-                .contentType(CT_JSON)
-                .pathParam("contentHash", "CONTENT-HASH-NOT-VALID")
-                .get("/registry/v3/ids/contentHashes/{contentHash}")
-            .then()
-                .statusCode(404);
+        given().when().contentType(CT_JSON).pathParam("contentHash", "CONTENT-HASH-NOT-VALID")
+                .get("/registry/v3/ids/contentHashes/{contentHash}").then().statusCode(404);
     }
 
 }

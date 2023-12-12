@@ -20,7 +20,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import static io.quarkus.scheduler.Scheduled.ConcurrentExecution.SKIP;
 
 @ApplicationScoped
-public class RegistryStorageConfigCache extends RegistryStorageDecoratorBase implements RegistryStorageDecorator {
+public class RegistryStorageConfigCache extends RegistryStorageDecoratorBase
+        implements RegistryStorageDecorator {
 
     private static final DynamicConfigPropertyDto NULL_DTO = new DynamicConfigPropertyDto();
 
@@ -49,7 +50,6 @@ public class RegistryStorageConfigCache extends RegistryStorageDecoratorBase imp
     public int order() {
         return RegistryStorageDecoratorOrderConstants.CONFIG_CACHE_DECORATOR;
     }
-
 
     /**
      * @see io.apicurio.registry.storage.decorator.RegistryStorageDecorator#setConfigProperty(io.apicurio.common.apps.config.DynamicConfigPropertyDto)

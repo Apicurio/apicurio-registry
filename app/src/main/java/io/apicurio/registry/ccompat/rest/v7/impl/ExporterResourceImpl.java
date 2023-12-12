@@ -7,12 +7,12 @@ import io.apicurio.registry.ccompat.rest.error.Errors;
 import io.apicurio.registry.ccompat.rest.v7.ExporterResource;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
-
 import jakarta.interceptor.Interceptors;
+
 import java.util.List;
 import java.util.Map;
 
-@Interceptors({ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class})
+@Interceptors({ ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class })
 @Logged
 public class ExporterResourceImpl extends AbstractResource implements ExporterResource {
 

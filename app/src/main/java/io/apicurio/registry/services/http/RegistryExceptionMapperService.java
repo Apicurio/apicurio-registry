@@ -9,9 +9,9 @@ import io.apicurio.registry.ccompat.rest.error.SchemaSoftDeletedException;
 import io.apicurio.registry.ccompat.rest.error.SubjectNotSoftDeletedException;
 import io.apicurio.registry.ccompat.rest.error.SubjectSoftDeletedException;
 import io.apicurio.registry.ccompat.rest.error.UnprocessableEntityException;
+import io.apicurio.registry.limits.LimitExceededException;
 import io.apicurio.registry.metrics.health.liveness.LivenessUtil;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
-import io.apicurio.registry.limits.LimitExceededException;
 import io.apicurio.registry.rest.MissingRequiredParameterException;
 import io.apicurio.registry.rest.ParametersConflictException;
 import io.apicurio.registry.rest.v3.beans.Error;
@@ -127,7 +127,7 @@ public class RegistryExceptionMapperService {
 
         if (code == HTTP_INTERNAL_ERROR) {
             // If the error is not something we should ignore, then we report it to the liveness object
-            // and log it.  Otherwise we only log it if debug logging is enabled.
+            // and log it. Otherwise we only log it if debug logging is enabled.
             if (!livenessUtil.isIgnoreError(t)) {
                 liveness.suspectWithException(t);
             }
@@ -180,8 +180,7 @@ public class RegistryExceptionMapperService {
     }
 
     /**
-     * Gets the full stack trace for the given exception and returns it as a
-     * string.
+     * Gets the full stack trace for the given exception and returns it as a string.
      *
      * @param t
      */

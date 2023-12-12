@@ -29,7 +29,7 @@ public class GroupMetaDataDto implements Serializable {
      * Constructor.
      */
     public GroupMetaDataDto() {
-        //empty
+        // empty
     }
 
     /**

@@ -10,7 +10,8 @@ import java.util.Set;
 public class JsonSchemaCompatibilityChecker extends AbstractCompatibilityChecker<Difference> {
 
     @Override
-    protected Set<Difference> isBackwardsCompatibleWith(String existing, String proposed, Map<String, ContentHandle> resolvedReferences) {
+    protected Set<Difference> isBackwardsCompatibleWith(String existing, String proposed,
+            Map<String, ContentHandle> resolvedReferences) {
         return JsonSchemaDiffLibrary.getIncompatibleDifferences(existing, proposed, resolvedReferences);
     }
 

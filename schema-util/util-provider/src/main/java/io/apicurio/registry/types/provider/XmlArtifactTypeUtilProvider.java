@@ -44,7 +44,7 @@ public class XmlArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvide
      */
     @Override
     protected ContentValidator createContentValidator() {
-       return new XmlContentValidator();
+        return new XmlContentValidator();
     }
 
     /**
@@ -59,7 +59,7 @@ public class XmlArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvide
     public ContentDereferencer getContentDereferencer() {
         return null;
     }
-    
+
     /**
      * @see io.apicurio.registry.types.provider.ArtifactTypeUtilProvider#getReferenceFinder()
      */

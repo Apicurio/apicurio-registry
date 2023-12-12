@@ -10,12 +10,7 @@ import java.util.Map;
 @RegisterForReflection
 public enum ActionType {
 
-    CREATE(1),
-    UPDATE(2),
-    DELETE(3),
-    CLEAR(4),
-    IMPORT(5),
-    RESET(6),
+    CREATE(1), UPDATE(2), DELETE(3), CLEAR(4), IMPORT(5), RESET(6),
 
     /**
      * Deletes ALL user data. Does not delete global data, such as log configuration.
@@ -41,14 +36,17 @@ public enum ActionType {
     static {
         for (ActionType at : ActionType.values()) {
             if (ordIndex.containsKey(at.getOrd())) {
-                throw new IllegalArgumentException(String.format("Duplicate ord value %d for ActionType %s", at.getOrd(), at.name()));
+                throw new IllegalArgumentException(
+                        String.format("Duplicate ord value %d for ActionType %s", at.getOrd(), at.name()));
             }
             ordIndex.put(at.getOrd(), at);
 
             // For backwards compatibility
             String normalizedString = at.name().toLowerCase();
             if (normalizedStringMapping.containsKey(normalizedString)) {
-                throw new IllegalArgumentException(String.format("Duplicate normalized string value %s for ActionType %s", normalizedString, at.name()));
+                throw new IllegalArgumentException(
+                        String.format("Duplicate normalized string value %s for ActionType %s",
+                                normalizedString, at.name()));
             }
             normalizedStringMapping.put(normalizedString, at);
         }
@@ -56,8 +54,9 @@ public enum ActionType {
 
     public static ActionType fromOrd(byte ord) {
         ActionType res = ordIndex.get(ord);
-        if(res == null) {
-            throw new IllegalArgumentException(String.format("Could not find ActionType with ord value %s", ord));
+        if (res == null) {
+            throw new IllegalArgumentException(
+                    String.format("Could not find ActionType with ord value %s", ord));
         }
         return res;
     }
@@ -69,22 +68,24 @@ public enum ActionType {
 
     @JsonCreator
     public static ActionType deserialize(Object value) {
-        if(value instanceof Number) {
+        if (value instanceof Number) {
             Number num = (Number) value;
             // Sanity check
-            if(num.longValue() > Byte.MAX_VALUE) {
-                throw new IllegalArgumentException(String.format("Unexpectedly high numeric value %s for ActionType ord", num));
+            if (num.longValue() > Byte.MAX_VALUE) {
+                throw new IllegalArgumentException(
+                        String.format("Unexpectedly high numeric value %s for ActionType ord", num));
             }
             return fromOrd(num.byteValue());
         }
         // For backwards compatibility
-        if(value instanceof String) {
+        if (value instanceof String) {
             String normalizedString = ((String) value).toLowerCase();
             ActionType res = normalizedStringMapping.get(normalizedString);
-            if(res != null) {
+            if (res != null) {
                 return res;
             }
         }
-        throw new IllegalArgumentException(String.format("Could not deserialize value %s to ActionType", value));
+        throw new IllegalArgumentException(
+                String.format("Could not deserialize value %s to ActionType", value));
     }
 }

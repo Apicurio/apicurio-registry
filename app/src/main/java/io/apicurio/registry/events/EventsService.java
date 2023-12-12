@@ -1,8 +1,8 @@
 package io.apicurio.registry.events;
 
-import java.util.Optional;
-
 import io.apicurio.registry.events.dto.RegistryEventType;
+
+import java.util.Optional;
 
 public interface EventsService {
 

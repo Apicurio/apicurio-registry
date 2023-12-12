@@ -8,12 +8,12 @@ import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.eventbus.DeliveryOptions;
 import io.vertx.core.eventbus.EventBus;
+import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
 import org.slf4j.Logger;
 
-import jakarta.annotation.PostConstruct;
 import java.util.Optional;
 
 @ApplicationScoped
@@ -69,8 +69,7 @@ public class EventsServiceImpl implements EventsService {
                 log.error("Error serializing event data", e);
                 return;
             }
-            DeliveryOptions opts = new DeliveryOptions()
-                    .addHeader("type", type.cloudEventType());
+            DeliveryOptions opts = new DeliveryOptions().addHeader("type", type.cloudEventType());
             if (artifactId.isPresent()) {
                 opts.addHeader("artifactId", artifactId.get());
             }

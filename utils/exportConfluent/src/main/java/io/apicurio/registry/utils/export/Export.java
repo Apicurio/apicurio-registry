@@ -1,5 +1,31 @@
 package io.apicurio.registry.utils.export;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.apicurio.registry.rest.v3.beans.ArtifactReference;
+import io.apicurio.registry.types.ArtifactState;
+import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.utils.IoUtil;
+import io.apicurio.registry.utils.export.mappers.ArtifactReferenceMapper;
+import io.apicurio.registry.utils.impexp.ArtifactRuleEntity;
+import io.apicurio.registry.utils.impexp.ArtifactVersionEntity;
+import io.apicurio.registry.utils.impexp.ContentEntity;
+import io.apicurio.registry.utils.impexp.EntityWriter;
+import io.apicurio.registry.utils.impexp.GlobalRuleEntity;
+import io.apicurio.registry.utils.impexp.ManifestEntity;
+import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.kafka.schemaregistry.client.rest.RestService;
+import io.confluent.kafka.schemaregistry.client.rest.entities.Schema;
+import io.confluent.kafka.schemaregistry.client.rest.entities.SchemaReference;
+import io.confluent.kafka.schemaregistry.client.rest.entities.SchemaString;
+import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
+import io.quarkus.runtime.QuarkusApplication;
+import io.quarkus.runtime.annotations.QuarkusMain;
+import jakarta.inject.Inject;
+import org.apache.commons.codec.digest.DigestUtils;
+import org.jboss.logging.Logger;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -11,36 +37,8 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import io.apicurio.registry.rest.v3.beans.ArtifactReference;
-import io.apicurio.registry.utils.export.mappers.ArtifactReferenceMapper;
-import io.confluent.kafka.schemaregistry.client.rest.entities.SchemaReference;
-import org.jboss.logging.Logger;
 import java.util.zip.ZipOutputStream;
 
-import io.apicurio.registry.types.ArtifactState;
-import io.apicurio.registry.utils.impexp.GlobalRuleEntity;
-import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
-import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
-import io.confluent.kafka.schemaregistry.client.rest.RestService;
-import io.confluent.kafka.schemaregistry.client.rest.entities.Schema;
-import io.confluent.kafka.schemaregistry.client.rest.entities.SchemaString;
-import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
-import org.apache.commons.codec.digest.DigestUtils;
-
-import io.apicurio.registry.types.RuleType;
-import io.apicurio.registry.utils.IoUtil;
-import io.apicurio.registry.utils.impexp.ArtifactRuleEntity;
-import io.apicurio.registry.utils.impexp.ArtifactVersionEntity;
-import io.apicurio.registry.utils.impexp.ContentEntity;
-import io.apicurio.registry.utils.impexp.EntityWriter;
-import io.apicurio.registry.utils.impexp.ManifestEntity;
-import io.quarkus.runtime.QuarkusApplication;
-import io.quarkus.runtime.annotations.QuarkusMain;
-
-import jakarta.inject.Inject;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManager;
@@ -125,7 +123,6 @@ public class Export implements QuarkusApplication {
                 }
             }
 
-
             String globalCompatibility = client.getCompatibility(null);
 
             GlobalRuleEntity ruleEntity = new GlobalRuleEntity();
@@ -157,7 +154,7 @@ public class Export implements QuarkusApplication {
     public SSLSocketFactory getInsecureSSLSocketFactory() {
         try {
             SSLContext sslContext = SSLContext.getInstance("SSL");
-            sslContext.init(null, new TrustManager[]{new FakeTrustManager()}, new SecureRandom());
+            sslContext.init(null, new TrustManager[] { new FakeTrustManager() }, new SecureRandom());
             return sslContext.getSocketFactory();
         } catch (Exception ex) {
             log.error("Could not create Insecure SSL Socket Factory", ex);
@@ -165,8 +162,10 @@ public class Export implements QuarkusApplication {
         return null;
     }
 
-    public void exportSubjectVersionWithRefs(ExportContext context, String subject, Integer version) throws RestClientException, IOException {
-        if (context.getExportedSubjectVersions().stream().anyMatch(subjectVersionPair -> subjectVersionPair.is(subject, version))) {
+    public void exportSubjectVersionWithRefs(ExportContext context, String subject, Integer version)
+            throws RestClientException, IOException {
+        if (context.getExportedSubjectVersions().stream()
+                .anyMatch(subjectVersionPair -> subjectVersionPair.is(subject, version))) {
             return;
         }
         context.getExportedSubjectVersions().add(new SubjectVersionPair(subject, version));
@@ -232,6 +231,7 @@ public class Export implements QuarkusApplication {
 
     /**
      * Serializes the given collection of references to a string
+     * 
      * @param references
      */
     private String serializeReferences(List<ArtifactReference> references) {

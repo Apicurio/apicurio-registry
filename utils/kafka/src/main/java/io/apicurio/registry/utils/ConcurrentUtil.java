@@ -24,7 +24,8 @@ public class ConcurrentUtil {
                     Throwable t = e.getCause();
                     if (t instanceof RuntimeException)
                         throw (RuntimeException) t;
-                    if (t instanceof Error) throw (Error) t;
+                    if (t instanceof Error)
+                        throw (Error) t;
                     throw new RuntimeException(e);
                 }
             }

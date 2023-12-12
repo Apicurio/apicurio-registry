@@ -17,13 +17,15 @@ public class CommentValue extends AbstractMessageValue {
 
     /**
      * Creator method.
+     * 
      * @param action
      * @param globalId
      * @param createdBy
      * @param createdOn
      * @param value
      */
-    public static final CommentValue create(ActionType action, long globalId, String createdBy, Date createdOn, String value) {
+    public static final CommentValue create(ActionType action, long globalId, String createdBy,
+            Date createdOn, String value) {
         CommentValue cv = new CommentValue();
         cv.setAction(action);
         cv.setGlobalId(globalId);
@@ -32,7 +34,7 @@ public class CommentValue extends AbstractMessageValue {
         cv.setValue(value);
         return cv;
     }
-    
+
     /**
      * @see MessageValue#getType()
      */

@@ -19,13 +19,16 @@ public class BasicAuthenticationProvider implements AuthenticationProvider {
     public BasicAuthenticationProvider(String username, String password) {
         this.username = username;
         this.password = password;
-        encoded = Base64.getEncoder().encodeToString((username + ":" + password).getBytes(StandardCharsets.UTF_8));
+        encoded = Base64.getEncoder()
+                .encodeToString((username + ":" + password).getBytes(StandardCharsets.UTF_8));
     }
 
     private final static String authorizationHeaderKey = "Authorization";
     public static final String BASIC = "Basic ";
+
     @Override
-    public CompletableFuture<Void> authenticateRequest(@Nonnull final RequestInformation request, @Nullable final Map<String, Object> additionalAuthenticationContext) {
+    public CompletableFuture<Void> authenticateRequest(@Nonnull final RequestInformation request,
+            @Nullable final Map<String, Object> additionalAuthenticationContext) {
         request.headers.add(authorizationHeaderKey, BASIC + encoded);
         return CompletableFuture.completedFuture(null);
     }

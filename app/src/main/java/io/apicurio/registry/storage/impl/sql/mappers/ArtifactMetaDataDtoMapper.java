@@ -1,12 +1,12 @@
 package io.apicurio.registry.storage.impl.sql.mappers;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
-
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.impl.sql.SqlUtil;
 import io.apicurio.registry.storage.impl.sql.jdb.RowMapper;
 import io.apicurio.registry.types.ArtifactState;
+
+import java.sql.ResultSet;
+import java.sql.SQLException;
 
 public class ArtifactMetaDataDtoMapper implements RowMapper<ArtifactMetaDataDto> {
 

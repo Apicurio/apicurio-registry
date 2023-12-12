@@ -14,11 +14,13 @@ public class ContentValue extends AbstractMessageValue {
 
     /**
      * Creator method.
+     * 
      * @param action
      * @param canonicalHash
      * @param content
      */
-    public static final ContentValue create(ActionType action, String canonicalHash, ContentHandle content, String serializedReferences) {
+    public static final ContentValue create(ActionType action, String canonicalHash, ContentHandle content,
+            String serializedReferences) {
         ContentValue value = new ContentValue();
         value.setAction(action);
         value.setCanonicalHash(canonicalHash);
@@ -34,7 +36,6 @@ public class ContentValue extends AbstractMessageValue {
     public MessageType getType() {
         return MessageType.Content;
     }
-
 
     /**
      * @return the content

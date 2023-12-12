@@ -14,6 +14,7 @@ public class ArtifactKey implements MessageKey {
 
     /**
      * Creator method.
+     * 
      * @param groupId
      * @param artifactId
      */

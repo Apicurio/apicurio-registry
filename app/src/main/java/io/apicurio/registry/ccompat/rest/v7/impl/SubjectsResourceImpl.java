@@ -33,45 +33,56 @@ import java.util.stream.Collectors;
 import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_ARTIFACT_ID;
 import static io.apicurio.registry.storage.RegistryStorage.ArtifactRetrievalBehavior.DEFAULT;
 
-@Interceptors({ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class})
+@Interceptors({ ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class })
 @Logged
 public class SubjectsResourceImpl extends AbstractResource implements SubjectsResource {
 
     @Override
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
     public List<String> listSubjects(String subjectPrefix, Boolean deleted, String groupId) {
-        //Since contexts are not supported, subjectPrefix is not used
+        // Since contexts are not supported, subjectPrefix is not used
         final boolean fdeleted = deleted == null ? Boolean.FALSE : deleted;
-        return storage.searchArtifacts(Set.of(SearchFilter.ofGroup(groupId)), OrderBy.createdOn, OrderDirection.asc, 0, cconfig.maxSubjects.get()).getArtifacts().stream().filter(searchedArtifactDto -> isCcompatManagedType(searchedArtifactDto.getType()) && shouldFilterState(fdeleted, searchedArtifactDto.getState())).map(SearchedArtifactDto::getId).collect(Collectors.toList());
+        return storage
+                .searchArtifacts(Set.of(SearchFilter.ofGroup(groupId)), OrderBy.createdOn, OrderDirection.asc,
+                        0, cconfig.maxSubjects.get())
+                .getArtifacts().stream()
+                .filter(searchedArtifactDto -> isCcompatManagedType(searchedArtifactDto.getType())
+                        && shouldFilterState(fdeleted, searchedArtifactDto.getState()))
+                .map(SearchedArtifactDto::getId).collect(Collectors.toList());
     }
 
     @Override
     @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Read)
-    public Schema findSchemaByContent(String subject, SchemaInfo request, Boolean normalize, String groupId, Boolean deleted) throws Exception {
+    public Schema findSchemaByContent(String subject, SchemaInfo request, Boolean normalize, String groupId,
+            Boolean deleted) throws Exception {
         if (doesArtifactExist(subject, groupId)) {
             final boolean fnormalize = normalize == null ? Boolean.FALSE : normalize;
             final boolean fdeleted = deleted == null ? Boolean.FALSE : deleted;
 
             try {
                 ArtifactVersionMetaDataDto amd;
-                amd = lookupSchema(groupId, subject, request.getSchema(), request.getReferences(), request.getSchemaType(), fnormalize);
+                amd = lookupSchema(groupId, subject, request.getSchema(), request.getReferences(),
+                        request.getSchemaType(), fnormalize);
                 if (amd.getState() != ArtifactState.DISABLED || fdeleted) {
-                    StoredArtifactDto storedArtifact = storage.getArtifactVersion(groupId, subject, amd.getVersion());
+                    StoredArtifactDto storedArtifact = storage.getArtifactVersion(groupId, subject,
+                            amd.getVersion());
                     return converter.convert(subject, storedArtifact);
                 } else {
-                    throw new SchemaNotFoundException(String.format("The given schema does not match any schema under the subject %s", subject));
+                    throw new SchemaNotFoundException(String.format(
+                            "The given schema does not match any schema under the subject %s", subject));
                 }
             } catch (ArtifactNotFoundException anf) {
-                throw new SchemaNotFoundException(String.format("The given schema does not match any schema under the subject %s", subject));
+                throw new SchemaNotFoundException(String
+                        .format("The given schema does not match any schema under the subject %s", subject));
             }
         } else {
-            //If the artifact does not exist there is no need for looking up the schema, just fail.
+            // If the artifact does not exist there is no need for looking up the schema, just fail.
             throw new ArtifactNotFoundException(groupId, subject);
         }
     }
 
     @Override
-    @Audited(extractParameters = {"0", KEY_ARTIFACT_ID})
+    @Audited(extractParameters = { "0", KEY_ARTIFACT_ID })
     @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Write)
     public List<Integer> deleteSubject(String subject, Boolean permanent, String groupId) throws Exception {
         final boolean fpermanent = permanent == null ? Boolean.FALSE : permanent;
@@ -81,8 +92,10 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
             return deleteSubjectVersions(groupId, subject);
         } else {
             if (storage.isArtifactExists(groupId, subject)) {
-                //The artifact exist, it's in DISABLED state but the delete request is set to not permanent, throw ex.
-                throw new SubjectSoftDeletedException(String.format("Subject %s is in soft deleted state.", subject));
+                // The artifact exist, it's in DISABLED state but the delete request is set to not permanent,
+                // throw ex.
+                throw new SubjectSoftDeletedException(
+                        String.format("Subject %s is in soft deleted state.", subject));
             } else {
                 return Collections.emptyList();
             }
@@ -91,20 +104,24 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
 
     private List<Integer> deleteSubjectPermanent(String groupId, String subject) {
         if (isArtifactActive(subject, groupId, DEFAULT)) {
-            throw new SubjectNotSoftDeletedException(String.format("Subject %s must be soft deleted first", subject));
+            throw new SubjectNotSoftDeletedException(
+                    String.format("Subject %s must be soft deleted first", subject));
         } else {
-            return storage.deleteArtifact(groupId, subject).stream().map(VersionUtil::toInteger).map(converter::convertUnsigned).collect(Collectors.toList());
+            return storage.deleteArtifact(groupId, subject).stream().map(VersionUtil::toInteger)
+                    .map(converter::convertUnsigned).collect(Collectors.toList());
         }
     }
 
-    //Deleting artifact versions means updating all the versions status to DISABLED.
+    // Deleting artifact versions means updating all the versions status to DISABLED.
     private List<Integer> deleteSubjectVersions(String groupId, String subject) {
         List<String> deletedVersions = storage.getArtifactVersions(groupId, subject);
         try {
-            deletedVersions.forEach(version -> storage.updateArtifactState(groupId, subject, version, ArtifactState.DISABLED));
+            deletedVersions.forEach(version -> storage.updateArtifactState(groupId, subject, version,
+                    ArtifactState.DISABLED));
         } catch (InvalidArtifactStateException ignored) {
             log.warn("Invalid artifact state transition", ignored);
         }
-        return deletedVersions.stream().map(VersionUtil::toLong).map(converter::convertUnsigned).sorted().collect(Collectors.toList());
+        return deletedVersions.stream().map(VersionUtil::toLong).map(converter::convertUnsigned).sorted()
+                .collect(Collectors.toList());
     }
 }

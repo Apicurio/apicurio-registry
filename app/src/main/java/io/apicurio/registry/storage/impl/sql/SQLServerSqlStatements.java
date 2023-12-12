@@ -1,13 +1,14 @@
 package io.apicurio.registry.storage.impl.sql;
 
 /**
- * MS SQL Server implementation of the SQL statements interface.  Provides sql statements that
- * are specific to MS SQL Server, where applicable.
+ * MS SQL Server implementation of the SQL statements interface. Provides sql statements that are specific to
+ * MS SQL Server, where applicable.
  */
 public class SQLServerSqlStatements extends CommonSqlStatements {
 
     /**
      * Constructor.
+     * 
      * @param config
      */
     public SQLServerSqlStatements() {
@@ -50,13 +51,11 @@ public class SQLServerSqlStatements extends CommonSqlStatements {
      */
     @Override
     public String upsertContent() {
-        return String.join(" ",
-                "MERGE INTO content AS target",
+        return String.join(" ", "MERGE INTO content AS target",
                 "USING (VALUES (?, ?, ?, ?, ?)) AS source (contentId, canonicalHash, contentHash, content, artifactreferences)",
-                "ON (target.contentHash = source.contentHash)",
-                "WHEN NOT MATCHED THEN",
-                    "INSERT (contentId, canonicalHash, contentHash, content, artifactreferences)",
-                    "VALUES (source.contentId, source.canonicalHash, source.contentHash, source.content, source.artifactreferences);");
+                "ON (target.contentHash = source.contentHash)", "WHEN NOT MATCHED THEN",
+                "INSERT (contentId, canonicalHash, contentHash, content, artifactreferences)",
+                "VALUES (source.contentId, source.canonicalHash, source.contentHash, source.content, source.artifactreferences);");
     }
 
     /**
@@ -64,15 +63,9 @@ public class SQLServerSqlStatements extends CommonSqlStatements {
      */
     @Override
     public String getNextSequenceValue() {
-        return String.join(" ",
-                "MERGE INTO sequences AS target",
-                "USING (VALUES  (?)) AS source (name)",
-                "ON (target.name = source.name)",
-                "WHEN MATCHED THEN",
-                    "UPDATE SET value = target.value + 1",
-                "WHEN NOT MATCHED THEN",
-                    "INSERT (name, value)",
-                    "VALUES (source.name, 1)",
+        return String.join(" ", "MERGE INTO sequences AS target", "USING (VALUES  (?)) AS source (name)",
+                "ON (target.name = source.name)", "WHEN MATCHED THEN", "UPDATE SET value = target.value + 1",
+                "WHEN NOT MATCHED THEN", "INSERT (name, value)", "VALUES (source.name, 1)",
                 "OUTPUT INSERTED.value;");
     }
 
@@ -81,16 +74,10 @@ public class SQLServerSqlStatements extends CommonSqlStatements {
      */
     @Override
     public String resetSequenceValue() {
-        return String.join(" ",
-                "MERGE INTO sequences AS target",
-                "USING (VALUES (?, ?)) AS source (name, value)",
-                "ON (target.name = source.name)",
-                "WHEN MATCHED THEN",
-                    "UPDATE SET value = ?",
-                "WHEN NOT MATCHED THEN",
-                    "INSERT (name, value)",
-                    "VALUES (source.name, source.value)",
-                "OUTPUT INSERTED.value;");
+        return String.join(" ", "MERGE INTO sequences AS target",
+                "USING (VALUES (?, ?)) AS source (name, value)", "ON (target.name = source.name)",
+                "WHEN MATCHED THEN", "UPDATE SET value = ?", "WHEN NOT MATCHED THEN", "INSERT (name, value)",
+                "VALUES (source.name, source.value)", "OUTPUT INSERTED.value;");
     }
 
     /**
@@ -98,12 +85,10 @@ public class SQLServerSqlStatements extends CommonSqlStatements {
      */
     @Override
     public String upsertReference() {
-        return String.join(" ",
-                "MERGE INTO artifactreferences AS target",
+        return String.join(" ", "MERGE INTO artifactreferences AS target",
                 "USING (VALUES (?, ?, ?, ?, ?)) AS source (contentId, groupId, artifactId, version, name)",
                 "ON (target.contentId = source.contentId AND target.name = source.name)",
-                "WHEN NOT MATCHED THEN",
-                "INSERT (contentId, groupId, artifactId, version, name)",
+                "WHEN NOT MATCHED THEN", "INSERT (contentId, groupId, artifactId, version, name)",
                 "VALUES (source.contentId, source.groupId, source.artifactId, source.version, source.name);");
     }
 
@@ -136,9 +121,8 @@ public class SQLServerSqlStatements extends CommonSqlStatements {
      */
     @Override
     public String selectGroups() {
-        //TODO pagination?
-        return "SELECT TOP (?) * FROM groups "
-                + "ORDER BY groupId ASC";
+        // TODO pagination?
+        return "SELECT TOP (?) * FROM groups " + "ORDER BY groupId ASC";
     }
 
 }

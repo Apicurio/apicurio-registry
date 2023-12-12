@@ -6,7 +6,7 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.apicurio.registry.content.ContentHandle;
 
 public final class ContentTypeUtil {
-    
+
     public static final String CT_APPLICATION_JSON = "application/json";
     public static final String CT_APPLICATION_CREATE_EXTENDED = "application/create.extended+json";
     public static final String CT_APPLICATION_GET_EXTENDED = "application/get.extended+json";
@@ -66,7 +66,6 @@ public final class ContentTypeUtil {
 
     /**
      * Returns true if the content can be parsed as yaml.
-     *
      */
     public static boolean isParsableYaml(ContentHandle yaml) {
         try {

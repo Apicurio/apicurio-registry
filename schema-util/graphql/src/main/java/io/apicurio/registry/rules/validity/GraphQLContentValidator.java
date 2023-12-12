@@ -21,25 +21,30 @@ public class GraphQLContentValidator implements ContentValidator {
     }
 
     /**
-     * @see io.apicurio.registry.rules.validity.ContentValidator#validate(ValidityLevel, ContentHandle, java.util.Map)
+     * @see io.apicurio.registry.rules.validity.ContentValidator#validate(ValidityLevel, ContentHandle,
+     *      java.util.Map)
      */
     @Override
-    public void validate(ValidityLevel level, ContentHandle content, Map<String, ContentHandle> resolvedReferences) throws RuleViolationException {
+    public void validate(ValidityLevel level, ContentHandle content,
+            Map<String, ContentHandle> resolvedReferences) throws RuleViolationException {
         if (level == ValidityLevel.SYNTAX_ONLY || level == ValidityLevel.FULL) {
             try {
                 new SchemaParser().parse(content.content());
             } catch (Exception e) {
                 e.printStackTrace();
-                throw new RuleViolationException("Syntax violation for GraphQL artifact.", RuleType.VALIDITY, level.name(), e);
+                throw new RuleViolationException("Syntax violation for GraphQL artifact.", RuleType.VALIDITY,
+                        level.name(), e);
             }
         }
     }
 
     /**
-     * @see io.apicurio.registry.rules.validity.ContentValidator#validateReferences(io.apicurio.registry.content.ContentHandle, java.util.List)
+     * @see io.apicurio.registry.rules.validity.ContentValidator#validateReferences(io.apicurio.registry.content.ContentHandle,
+     *      java.util.List)
      */
     @Override
-    public void validateReferences(ContentHandle artifactContent, List<ArtifactReference> references) throws RuleViolationException {
+    public void validateReferences(ContentHandle artifactContent, List<ArtifactReference> references)
+            throws RuleViolationException {
         // Note: not yet implemented!
     }
 

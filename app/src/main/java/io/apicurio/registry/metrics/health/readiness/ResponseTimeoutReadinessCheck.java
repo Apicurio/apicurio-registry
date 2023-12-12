@@ -35,33 +35,32 @@ public class ResponseTimeoutReadinessCheck extends AbstractErrorCounterHealthChe
     Logger log;
 
     /**
-     * Maximum number of requests taking more than {@link ResponseTimeoutReadinessCheck#configTimeoutSec} seconds,
-     * before the readiness check fails.
+     * Maximum number of requests taking more than {@link ResponseTimeoutReadinessCheck#configTimeoutSec}
+     * seconds, before the readiness check fails.
      */
     @ConfigProperty(name = "registry.metrics.ResponseTimeoutReadinessCheck.errorThreshold", defaultValue = "1")
     @Info(category = "health", description = "Error threshold of response readiness check", availableSince = "1.0.2.Final")
     Instance<Integer> configErrorThreshold;
 
     /**
-     * The counter is reset after some time without errors.
-     * i.e. to fail the check after 2 errors in a minute, set the threshold to 1 and this configuration option
-     * to 60.
-     * TODO report the absolute count as a metric?
+     * The counter is reset after some time without errors. i.e. to fail the check after 2 errors in a minute,
+     * set the threshold to 1 and this configuration option to 60. TODO report the absolute count as a metric?
      */
     @ConfigProperty(name = "registry.metrics.ResponseTimeoutReadinessCheck.counterResetWindowDurationSec", defaultValue = "60")
     @Info(category = "health", description = "Counter reset window duration of response readiness check", availableSince = "1.0.2.Final")
     Instance<Integer> configCounterResetWindowDurationSec;
 
     /**
-     * If set to a positive value, reset the readiness status after this time window passes without any further errors.
+     * If set to a positive value, reset the readiness status after this time window passes without any
+     * further errors.
      */
     @ConfigProperty(name = "registry.metrics.ResponseTimeoutReadinessCheck.statusResetWindowDurationSec", defaultValue = "300")
     @Info(category = "health", description = "Status reset window duration of response readiness check", availableSince = "1.0.2.Final")
     Instance<Integer> configStatusResetWindowDurationSec;
 
     /**
-     * Set the request duration in seconds, after which it's considered an error.
-     * TODO This may be expected on some endpoints. Add a way to ignore those.
+     * Set the request duration in seconds, after which it's considered an error. TODO This may be expected on
+     * some endpoints. Add a way to ignore those.
      */
     @ConfigProperty(name = "registry.metrics.ResponseTimeoutReadinessCheck.timeoutSec", defaultValue = "10")
     @Info(category = "health", description = "Timeout of response readiness check", availableSince = "1.0.2.Final")
@@ -71,7 +70,8 @@ public class ResponseTimeoutReadinessCheck extends AbstractErrorCounterHealthChe
 
     @PostConstruct
     void init() {
-        init(configErrorThreshold.get(), configCounterResetWindowDurationSec.get(), configStatusResetWindowDurationSec.get());
+        init(configErrorThreshold.get(), configCounterResetWindowDurationSec.get(),
+                configStatusResetWindowDurationSec.get());
         timeoutSec = Duration.ofSeconds(configTimeoutSec.get());
     }
 
@@ -100,10 +100,7 @@ public class ResponseTimeoutReadinessCheck extends AbstractErrorCounterHealthChe
     @Override
     public synchronized HealthCheckResponse call() {
         callSuper();
-        return HealthCheckResponse.builder()
-                .name("ResponseTimeoutReadinessCheck")
-                .withData("errorCount", errorCounter)
-                .status(up)
-                .build();
+        return HealthCheckResponse.builder().name("ResponseTimeoutReadinessCheck")
+                .withData("errorCount", errorCounter).status(up).build();
     }
 }

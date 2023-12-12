@@ -1,10 +1,9 @@
 package io.apicurio.registry.rules.validity;
 
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Test;
-
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.rules.RuleViolationException;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
 
@@ -44,8 +43,10 @@ public class JsonSchemaContentValidatorTest extends ArtifactUtilProviderTestBase
             validator.validate(ValidityLevel.FULL, content, Collections.emptyMap());
         });
         Assertions.assertFalse(error.getCauses().isEmpty());
-        Assertions.assertEquals("expected type: Number, found: Boolean", error.getCauses().iterator().next().getDescription());
-        Assertions.assertEquals("#/items/properties/price/exclusiveMinimum", error.getCauses().iterator().next().getContext());
+        Assertions.assertEquals("expected type: Number, found: Boolean",
+                error.getCauses().iterator().next().getDescription());
+        Assertions.assertEquals("#/items/properties/price/exclusiveMinimum",
+                error.getCauses().iterator().next().getContext());
     }
 
     @Test
@@ -53,6 +54,7 @@ public class JsonSchemaContentValidatorTest extends ArtifactUtilProviderTestBase
         ContentHandle city = resourceToContentHandle("city.json");
         ContentHandle citizen = resourceToContentHandle("citizen.json");
         JsonSchemaContentValidator validator = new JsonSchemaContentValidator();
-        validator.validate(ValidityLevel.FULL, citizen, Collections.singletonMap("https://example.com/city.json", city));
+        validator.validate(ValidityLevel.FULL, citizen,
+                Collections.singletonMap("https://example.com/city.json", city));
     }
 }

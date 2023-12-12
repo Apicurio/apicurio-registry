@@ -28,7 +28,7 @@ public class WsdlArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvid
      */
     @Override
     protected CompatibilityChecker createCompatibilityChecker() {
-       return NoopCompatibilityChecker.INSTANCE;
+        return NoopCompatibilityChecker.INSTANCE;
     }
 
     /**
@@ -59,7 +59,7 @@ public class WsdlArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvid
     public ContentDereferencer getContentDereferencer() {
         return null;
     }
-    
+
     /**
      * @see io.apicurio.registry.types.provider.ArtifactTypeUtilProvider#getReferenceFinder()
      */

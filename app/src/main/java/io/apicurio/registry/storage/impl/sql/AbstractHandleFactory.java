@@ -32,9 +32,9 @@ public abstract class AbstractHandleFactory implements HandleFactory {
     @Override
     public <R, X extends Exception> R withHandle(HandleCallback<R, X> callback) throws X {
         /*
-         * Handles are cached and reused if calls to this method are nested.
-         * Make sure that all nested uses of a handle are either within a transaction context,
-         * or without one. Starting a transaction with a nested handle will cause an exception.
+         * Handles are cached and reused if calls to this method are nested. Make sure that all nested uses of
+         * a handle are either within a transaction context, or without one. Starting a transaction with a
+         * nested handle will cause an exception.
          */
         try {
             if (get().handle == null) {
@@ -64,9 +64,9 @@ public abstract class AbstractHandleFactory implements HandleFactory {
         }
     }
 
-
     @Override
-    public <R, X extends Exception> R withHandleNoException(HandleCallback<R, X> callback) throws RegistryStorageException {
+    public <R, X extends Exception> R withHandleNoException(HandleCallback<R, X> callback)
+            throws RegistryStorageException {
         try {
             return withHandle(callback);
         } catch (RuntimeException e) {
@@ -76,11 +76,9 @@ public abstract class AbstractHandleFactory implements HandleFactory {
         }
     }
 
-
     private LocalState get() {
         return local.get().computeIfAbsent(dataSourceId, k -> new LocalState());
     }
-
 
     private static class LocalState {
 

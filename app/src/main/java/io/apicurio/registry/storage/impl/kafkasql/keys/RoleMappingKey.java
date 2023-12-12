@@ -12,6 +12,7 @@ public class RoleMappingKey implements MessageKey {
 
     /**
      * Creator method.
+     * 
      * @param principalId
      */
     public static final RoleMappingKey create(String principalId) {

@@ -3,9 +3,8 @@ package io.apicurio.registry.storage.impl.sql;
 import java.util.List;
 
 /**
- * Returns SQL statements used by the JDB artifactStore implementation.  There are different
- * implementations of this interface depending on the database being used.
- *
+ * Returns SQL statements used by the JDB artifactStore implementation. There are different implementations of
+ * this interface depending on the database being used.
  */
 public interface SqlStatements {
 
@@ -92,13 +91,14 @@ public interface SqlStatements {
     public String updateArtifactLatest();
 
     /**
-     * A statement used to update the 'latest' column of the 'artifacts' table to the globalId of the highest remaining version.
+     * A statement used to update the 'latest' column of the 'artifacts' table to the globalId of the highest
+     * remaining version.
      */
     public String updateArtifactLatestGlobalId();
 
     /**
-     * A statement used to update the 'version' column of the 'versions' table by globalId.  The value of the "versionId"
-     * column is copied into the "version" column.
+     * A statement used to update the 'version' column of the 'versions' table by globalId. The value of the
+     * "versionId" column is copied into the "version" column.
      */
     public String autoUpdateVersionForGlobalId();
 
@@ -168,7 +168,8 @@ public interface SqlStatements {
     public String selectArtifactVersionMetaData();
 
     /**
-     * A statement to select the content of an artifact version from the versions table by artifactId + version.
+     * A statement to select the content of an artifact version from the versions table by artifactId +
+     * version.
      */
     public String selectArtifactVersionContent();
 
@@ -193,15 +194,14 @@ public interface SqlStatements {
     String selectLatestArtifactContent();
 
     /**
-     * A statement to get a single artifact (latest version) content by artifactId.
-     * Skips DISABLED versions.
+     * A statement to get a single artifact (latest version) content by artifactId. Skips DISABLED versions.
      */
     String selectLatestArtifactContentSkipDisabledState();
 
     /**
-     * A statement to get a single artifact (latest version) content by artifactId.
-     * Tries to find a non-DISABLED version with the highest global ID.
-     * This is used in case the latest version referenced by the artifact is DISABLED.
+     * A statement to get a single artifact (latest version) content by artifactId. Tries to find a
+     * non-DISABLED version with the highest global ID. This is used in case the latest version referenced by
+     * the artifact is DISABLED.
      */
     String selectLatestArtifactContentWithMaxGlobalIDSkipDisabledState();
 
@@ -211,15 +211,14 @@ public interface SqlStatements {
     String selectLatestArtifactMetaData();
 
     /**
-     * A statement to get a single artifact (latest version) meta-data by artifactId.
-     * Skips DISABLED versions.
+     * A statement to get a single artifact (latest version) meta-data by artifactId. Skips DISABLED versions.
      */
     String selectLatestArtifactMetaDataSkipDisabledState();
 
     /**
-     * A statement to get a single artifact (latest version) meta-data by artifactId.
-     * Tries to find a non-DISABLED version with the highest global ID.
-     * This is used in case the latest version referenced by the artifact is DISABLED.
+     * A statement to get a single artifact (latest version) meta-data by artifactId. Tries to find a
+     * non-DISABLED version with the highest global ID. This is used in case the latest version referenced by
+     * the artifact is DISABLED.
      */
     String selectLatestArtifactMetaDataWithMaxGlobalIDSkipDisabledState();
 
@@ -547,7 +546,6 @@ public interface SqlStatements {
 
     public String selectGlobalIdExists();
 
-
     /*
      * The next few statements support role mappings
      */
@@ -568,7 +566,6 @@ public interface SqlStatements {
 
     public String selectRoleMappingCountByPrincipal();
 
-
     /*
      * The next few statements support downloads.
      */
@@ -580,7 +577,6 @@ public interface SqlStatements {
     public String deleteDownload();
 
     public String deleteExpiredDownloads();
-
 
     /*
      * The next few statements support config properties.
@@ -607,7 +603,7 @@ public interface SqlStatements {
      */
 
     public String insertComment();
-    
+
     public String selectComments();
 
     public String deleteComment();

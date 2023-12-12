@@ -1,5 +1,6 @@
 package io.apicurio.registry.storage.dto;
 
+import io.quarkus.runtime.annotations.RegisterForReflection;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
@@ -7,8 +8,6 @@ import lombok.ToString;
 
 import java.util.List;
 import java.util.Map;
-
-import io.quarkus.runtime.annotations.RegisterForReflection;
 
 @AllArgsConstructor
 @Builder

@@ -1,9 +1,9 @@
 package io.apicurio.registry.storage.impl.sql;
 
 public class SqlStorageEvent {
-    
+
     private SqlStorageEventType type;
-    
+
     /**
      * Constructor.
      */

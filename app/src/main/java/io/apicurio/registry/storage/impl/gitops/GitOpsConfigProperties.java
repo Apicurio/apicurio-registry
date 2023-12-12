@@ -9,8 +9,8 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 public class GitOpsConfigProperties {
 
     @ConfigProperty(name = "registry.gitops.id")
-    @Info(category = "gitops", description = "Identifier of this Registry instance. Only data that references this identifier " +
-            "will be loaded.", availableSince = "3.0.0")
+    @Info(category = "gitops", description = "Identifier of this Registry instance. Only data that references this identifier "
+            + "will be loaded.", availableSince = "3.0.0")
     @Getter
     String registryId;
 

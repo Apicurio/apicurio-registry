@@ -1,7 +1,5 @@
 package io.apicurio.registry.noprofile.rest.v3.impexp;
 
-import java.util.UUID;
-
 import com.microsoft.kiota.authentication.AnonymousAuthenticationProvider;
 import com.microsoft.kiota.http.OkHttpRequestAdapter;
 import io.apicurio.registry.rest.client.RegistryClient;
@@ -9,19 +7,16 @@ import io.apicurio.registry.rest.client.models.ArtifactContent;
 import io.apicurio.registry.rest.client.models.Rule;
 import io.apicurio.registry.rest.client.models.RuleType;
 
+import java.util.UUID;
+
 /**
  * Used to create the export.zip file used by the import test in {@link AdminResourceTest}.
  */
 public class ExportLoader {
 
-    private static final String CONTENT = "{\r\n" +
-            "    \"openapi\": \"3.0.2\",\r\n" +
-            "    \"info\": {\r\n" +
-            "        \"title\": \"Empty API\",\r\n" +
-            "        \"version\": \"1.0.0\",\r\n" +
-            "        \"description\": \"An example API design using OpenAPI.\"\r\n" +
-            "    }\r\n" +
-            "}";
+    private static final String CONTENT = "{\r\n" + "    \"openapi\": \"3.0.2\",\r\n" + "    \"info\": {\r\n"
+            + "        \"title\": \"Empty API\",\r\n" + "        \"version\": \"1.0.0\",\r\n"
+            + "        \"description\": \"An example API design using OpenAPI.\"\r\n" + "    }\r\n" + "}";
 
     public static void main(String[] args) throws Exception {
         var adapter = new OkHttpRequestAdapter(new AnonymousAuthenticationProvider());
@@ -44,41 +39,47 @@ public class ExportLoader {
         ArtifactContent content = new ArtifactContent();
         String data = testContent.replace("1.0.0", "1.0.1");
         content.setContent(data);
-        client.groups().byGroupId("ImportTest").artifacts().byArtifactId("Artifact-1").versions().post(content, config -> {
-            config.headers.add("X-Registry-ArtifactId", "Artifact-1");
-            config.headers.add("X-Registry-Version", "1.0.1");
-        }).get();
+        client.groups().byGroupId("ImportTest").artifacts().byArtifactId("Artifact-1").versions()
+                .post(content, config -> {
+                    config.headers.add("X-Registry-ArtifactId", "Artifact-1");
+                    config.headers.add("X-Registry-Version", "1.0.1");
+                }).get();
         data = testContent.replace("1.0.0", "1.0.2");
         content.setContent(data);
-        client.groups().byGroupId("ImportTest").artifacts().byArtifactId("Artifact-1").versions().post(content, config -> {
-            config.headers.add("X-Registry-ArtifactId", "Artifact-1");
-            config.headers.add("X-Registry-Version", "1.0.2");
-        }).get();
+        client.groups().byGroupId("ImportTest").artifacts().byArtifactId("Artifact-1").versions()
+                .post(content, config -> {
+                    config.headers.add("X-Registry-ArtifactId", "Artifact-1");
+                    config.headers.add("X-Registry-Version", "1.0.2");
+                }).get();
         data = testContent.replace("1.0.0", "1.0.3");
         content.setContent(data);
-        client.groups().byGroupId("ImportTest").artifacts().byArtifactId("Artifact-1").versions().post(content, config -> {
-            config.headers.add("X-Registry-ArtifactId", "Artifact-1");
-            config.headers.add("X-Registry-Version", "1.0.3");
-        }).get();
+        client.groups().byGroupId("ImportTest").artifacts().byArtifactId("Artifact-1").versions()
+                .post(content, config -> {
+                    config.headers.add("X-Registry-ArtifactId", "Artifact-1");
+                    config.headers.add("X-Registry-Version", "1.0.3");
+                }).get();
 
         data = testContent.replace("1.0.0", "1.0.1");
         content.setContent(data);
-        client.groups().byGroupId("ImportTest").artifacts().byArtifactId("Artifact-1").versions().post(content, config -> {
-            config.headers.add("X-Registry-ArtifactId", "Artifact-2");
-            config.headers.add("X-Registry-Version", "1.0.1");
-        }).get();
+        client.groups().byGroupId("ImportTest").artifacts().byArtifactId("Artifact-1").versions()
+                .post(content, config -> {
+                    config.headers.add("X-Registry-ArtifactId", "Artifact-2");
+                    config.headers.add("X-Registry-Version", "1.0.1");
+                }).get();
 
         data = testContent.replace("1.0.0", "1.0.2");
         content.setContent(data);
-        client.groups().byGroupId("ImportTest").artifacts().byArtifactId("Artifact-1").versions().post(content, config -> {
-            config.headers.add("X-Registry-ArtifactId", "Artifact-3");
-            config.headers.add("X-Registry-Version", "1.0.2");
-        }).get();
+        client.groups().byGroupId("ImportTest").artifacts().byArtifactId("Artifact-1").versions()
+                .post(content, config -> {
+                    config.headers.add("X-Registry-ArtifactId", "Artifact-3");
+                    config.headers.add("X-Registry-Version", "1.0.2");
+                }).get();
 
         Rule rule = new Rule();
         rule.setType(RuleType.VALIDITY);
         rule.setConfig("SYNTAX_ONLY");
-        client.groups().byGroupId("ImportTest").artifacts().byArtifactId("Artifact-1").rules().post(rule).get();
+        client.groups().byGroupId("ImportTest").artifacts().byArtifactId("Artifact-1").rules().post(rule)
+                .get();
 
         rule = new Rule();
         rule.setType(RuleType.COMPATIBILITY);

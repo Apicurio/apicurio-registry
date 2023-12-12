@@ -11,6 +11,7 @@ public class ArtifactOwnerKey implements MessageKey {
 
     /**
      * Creator method.
+     * 
      * @param groupId
      * @param artifactId
      */

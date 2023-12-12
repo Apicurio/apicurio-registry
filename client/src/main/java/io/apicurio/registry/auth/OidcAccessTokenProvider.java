@@ -44,14 +44,18 @@ public class OidcAccessTokenProvider implements AccessTokenProvider {
         this(authServerUrl, clientId, clientSecret, DEFAULT_TOKEN_EXPIRATION_REDUCTION, null);
     }
 
-    public OidcAccessTokenProvider(String authServerUrl, String clientId, String clientSecret, Duration tokenExpirationReduction) {
+    public OidcAccessTokenProvider(String authServerUrl, String clientId, String clientSecret,
+            Duration tokenExpirationReduction) {
         this(authServerUrl, clientId, clientSecret, tokenExpirationReduction, null);
     }
-    public OidcAccessTokenProvider(String authServerUrl, String clientId, String clientSecret, Duration tokenExpirationReduction, String scope) {
+
+    public OidcAccessTokenProvider(String authServerUrl, String clientId, String clientSecret,
+            Duration tokenExpirationReduction, String scope) {
         this(authServerUrl, tokenExpirationReduction, scope);
         this.clientId = clientId;
         this.clientSecret = clientSecret;
     }
+
     public OidcAccessTokenProvider(String authServerUrl, Duration tokenExpirationReduction, String scope) {
         this.authServerUrl = authServerUrl.endsWith("/") ? authServerUrl : authServerUrl + "/";
         this.client = new OkHttpClient();
@@ -70,11 +74,8 @@ public class OidcAccessTokenProvider implements AccessTokenProvider {
         }
         var data = dataBuilder.build();
 
-        Request request = new Request.Builder()
-                .url(authServerUrl)
-                .addHeader("Content-Type", "application/x-www-form-urlencoded")
-                .post(data)
-                .build();
+        Request request = new Request.Builder().url(authServerUrl)
+                .addHeader("Content-Type", "application/x-www-form-urlencoded").post(data).build();
 
         var result = new CompletableFuture<Response>();
         client.newCall(request).enqueue(new Callback() {
@@ -82,6 +83,7 @@ public class OidcAccessTokenProvider implements AccessTokenProvider {
             public void onFailure(Call call, IOException e) {
                 result.completeExceptionally(e);
             }
+
             @Override
             public void onResponse(Call call, Response response) throws IOException {
                 result.complete(response);
@@ -106,7 +108,8 @@ public class OidcAccessTokenProvider implements AccessTokenProvider {
                     json = mapper.readTree(body);
                     cachedAccessToken = mapper.readTree(body).get("access_token").asText();
                 } catch (Exception e) {
-                    throw new RuntimeException("Error issuing a new token, received answer with body " + body, e);
+                    throw new RuntimeException("Error issuing a new token, received answer with body " + body,
+                            e);
                 }
             } else if (code == 401) {
                 throw new NotAuthorizedException(Integer.toString(code));
@@ -115,11 +118,12 @@ public class OidcAccessTokenProvider implements AccessTokenProvider {
             }
 
             /*
-            expiresIn is in seconds
-            */
-            Duration expiresIn = Duration.ofSeconds(Optional.ofNullable(json.get("expires_in")).map(j -> j.longValue()).orElse(DEFAULT_EXPIRES_IN));
+             * expiresIn is in seconds
+             */
+            Duration expiresIn = Duration.ofSeconds(Optional.ofNullable(json.get("expires_in"))
+                    .map(j -> j.longValue()).orElse(DEFAULT_EXPIRES_IN));
             if (expiresIn.compareTo(this.tokenExpirationReduction) >= 0) {
-                //expiresIn is greater than tokenExpirationReduction
+                // expiresIn is greater than tokenExpirationReduction
                 expiresIn = expiresIn.minus(this.tokenExpirationReduction);
             }
             this.cachedAccessTokenExp = Instant.now().plus(expiresIn);
@@ -136,7 +140,8 @@ public class OidcAccessTokenProvider implements AccessTokenProvider {
 
     @NotNull
     @Override
-    public CompletableFuture<String> getAuthorizationToken(@NotNull URI uri, @Nullable Map<String, Object> additionalAuthenticationContext) {
+    public CompletableFuture<String> getAuthorizationToken(@NotNull URI uri,
+            @Nullable Map<String, Object> additionalAuthenticationContext) {
         var result = isAccessTokenRequired() ? requestAccessToken() : CompletableFuture.completedFuture(null);
         return result.thenApply(r -> cachedAccessToken);
     }
@@ -144,13 +149,11 @@ public class OidcAccessTokenProvider implements AccessTokenProvider {
     @NotNull
     @Override
     public AllowedHostsValidator getAllowedHostsValidator() {
-        return new AllowedHostsValidator(new String[]{});
+        return new AllowedHostsValidator(new String[] {});
     }
 
     protected FormBody.Builder getParams() {
-        return new FormBody.Builder()
-                .add("grant_type", CLIENT_CREDENTIALS_GRANT)
-                .add("client_id", clientId)
+        return new FormBody.Builder().add("grant_type", CLIENT_CREDENTIALS_GRANT).add("client_id", clientId)
                 .add("client_secret", clientSecret);
     }
 }

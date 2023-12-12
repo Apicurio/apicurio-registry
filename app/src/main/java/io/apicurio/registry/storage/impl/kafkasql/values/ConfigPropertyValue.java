@@ -10,6 +10,7 @@ public class ConfigPropertyValue extends AbstractMessageValue {
 
     /**
      * Creator method.
+     * 
      * @param action
      * @param downloadContext
      */

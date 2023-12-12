@@ -40,7 +40,9 @@ public class JsonSchema {
     private transient String canonicalString;
     private transient int hashCode;
     private static final int NO_HASHCODE = -2147483648;
-    private static final ObjectMapper objectMapper = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false).setSerializationInclusion(JsonInclude.Include.NON_NULL);
+    private static final ObjectMapper objectMapper = new ObjectMapper()
+            .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+            .setSerializationInclusion(JsonInclude.Include.NON_NULL);
 
     public JsonSchema(JsonNode jsonNode) {
         this(jsonNode, Collections.emptyMap(), null);
@@ -86,7 +88,8 @@ public class JsonSchema {
         }
     }
 
-    private JsonSchema(JsonNode jsonNode, Schema schemaObj, Integer version, Map<String, JsonSchema> resolvedReferences, String canonicalString) {
+    private JsonSchema(JsonNode jsonNode, Schema schemaObj, Integer version,
+            Map<String, JsonSchema> resolvedReferences, String canonicalString) {
         this.hashCode = -2147483648;
         this.jsonNode = jsonNode;
         this.schemaObj = schemaObj;
@@ -96,11 +99,13 @@ public class JsonSchema {
     }
 
     public JsonSchema copy() {
-        return new JsonSchema(this.jsonNode, this.schemaObj, this.version, this.resolvedReferences, this.canonicalString);
+        return new JsonSchema(this.jsonNode, this.schemaObj, this.version, this.resolvedReferences,
+                this.canonicalString);
     }
 
     public JsonSchema copy(Integer version) {
-        return new JsonSchema(this.jsonNode, this.schemaObj, version, this.resolvedReferences, this.canonicalString);
+        return new JsonSchema(this.jsonNode, this.schemaObj, version, this.resolvedReferences,
+                this.canonicalString);
     }
 
     public JsonNode toJsonNode() {
@@ -116,7 +121,8 @@ public class JsonSchema {
                 if (this.jsonNode.has(SCHEMA_KEYWORD)) {
                     String schema = this.jsonNode.get(SCHEMA_KEYWORD).asText();
                     if (schema != null) {
-                        spec = SpecificationVersion.lookupByMetaSchemaUrl(schema).orElse(SpecificationVersion.DRAFT_7);
+                        spec = SpecificationVersion.lookupByMetaSchemaUrl(schema)
+                                .orElse(SpecificationVersion.DRAFT_7);
                     }
                 }
 
@@ -128,7 +134,8 @@ public class JsonSchema {
                     }
                 }
 
-                SchemaLoader.SchemaLoaderBuilder builder = SchemaLoader.builder().useDefaults(true).draftV7Support();
+                SchemaLoader.SchemaLoaderBuilder builder = SchemaLoader.builder().useDefaults(true)
+                        .draftV7Support();
 
                 for (Map.Entry<String, JsonSchema> stringStringEntry : this.resolvedReferences.entrySet()) {
                     URI child = ReferenceResolver.resolve(idUri, stringStringEntry.getKey());
@@ -219,31 +226,39 @@ public class JsonSchema {
             this.rawSchema().validate(jsonObject);
 
             if (this.schemaObj instanceof ObjectSchema && jsonObject instanceof JSONObject) {
-                for (Map.Entry<String, Schema> schema : ((ObjectSchema) schemaObj).getPropertySchemas().entrySet()) {
+                for (Map.Entry<String, Schema> schema : ((ObjectSchema) schemaObj).getPropertySchemas()
+                        .entrySet()) {
                     if (schema.getValue() instanceof ReferenceSchema) {
                         validateComplexObject((JSONObject) jsonObject, schema);
-                    } else if (isArrayWithComplexType(schema) && ((JSONObject) jsonObject).has(schema.getKey())) {
-                        validateArrayProperty(((JSONObject) jsonObject).getJSONArray(schema.getKey()), ((ArraySchema) schema.getValue()).getAllItemSchema());
+                    } else if (isArrayWithComplexType(schema)
+                            && ((JSONObject) jsonObject).has(schema.getKey())) {
+                        validateArrayProperty(((JSONObject) jsonObject).getJSONArray(schema.getKey()),
+                                ((ArraySchema) schema.getValue()).getAllItemSchema());
                     }
                 }
             }
         }
     }
 
-    private void validateComplexObject(JSONObject jsonObject, Map.Entry<String, Schema> schema) throws JsonProcessingException {
+    private void validateComplexObject(JSONObject jsonObject, Map.Entry<String, Schema> schema)
+            throws JsonProcessingException {
         if (isRequiredProperty(schema) || objectContainsSchemaKey(jsonObject, schema)) {
-            resolvedReferences.get(((ReferenceSchema) schema.getValue()).getReferenceValue()).validate(jsonObject.get(schema.getKey()));
+            resolvedReferences.get(((ReferenceSchema) schema.getValue()).getReferenceValue())
+                    .validate(jsonObject.get(schema.getKey()));
         }
     }
 
-    private void validateArrayProperty(JSONArray arrayProperty, Schema schema) throws JsonProcessingException {
+    private void validateArrayProperty(JSONArray arrayProperty, Schema schema)
+            throws JsonProcessingException {
         for (int i = 0; i < arrayProperty.length(); i++) {
-            resolvedReferences.get(((ReferenceSchema) schema).getReferenceValue()).validate(arrayProperty.getJSONObject(i));
+            resolvedReferences.get(((ReferenceSchema) schema).getReferenceValue())
+                    .validate(arrayProperty.getJSONObject(i));
         }
     }
 
     private boolean isArrayWithComplexType(Map.Entry<String, Schema> schema) {
-        return schema.getValue() instanceof ArraySchema && ((ArraySchema) schema.getValue()).getAllItemSchema() instanceof ReferenceSchema;
+        return schema.getValue() instanceof ArraySchema
+                && ((ArraySchema) schema.getValue()).getAllItemSchema() instanceof ReferenceSchema;
     }
 
     private boolean objectContainsSchemaKey(JSONObject jsonObject, Map.Entry<String, Schema> schema) {
@@ -255,7 +270,8 @@ public class JsonSchema {
     }
 
     private static boolean isPrimitive(Object value) {
-        return value == null || value instanceof Boolean || value instanceof Number || value instanceof String;
+        return value == null || value instanceof Boolean || value instanceof Number
+                || value instanceof String;
     }
 
     public boolean equals(Object o) {
@@ -263,7 +279,9 @@ public class JsonSchema {
             return true;
         } else if (o != null && this.getClass() == o.getClass()) {
             JsonSchema that = (JsonSchema) o;
-            return Objects.equals(this.jsonNode, that.jsonNode) && Objects.equals(this.resolvedReferences, that.resolvedReferences) && Objects.equals(this.version, that.version);
+            return Objects.equals(this.jsonNode, that.jsonNode)
+                    && Objects.equals(this.resolvedReferences, that.resolvedReferences)
+                    && Objects.equals(this.version, that.version);
         } else {
             return false;
         }

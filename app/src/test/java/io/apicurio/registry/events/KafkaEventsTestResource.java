@@ -1,9 +1,9 @@
 package io.apicurio.registry.events;
 
+import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
+
 import java.util.Collections;
 import java.util.Map;
-
-import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
 
 public class KafkaEventsTestResource implements QuarkusTestResourceLifecycleManager {
 

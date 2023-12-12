@@ -1,13 +1,13 @@
 package io.apicurio.registry.resolver;
 
-import java.io.Closeable;
-import java.util.Map;
-
 import io.apicurio.registry.resolver.data.Record;
+import io.apicurio.registry.resolver.strategy.ArtifactReference;
 import io.apicurio.registry.resolver.strategy.ArtifactReferenceImpl;
 import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
-import io.apicurio.registry.resolver.strategy.ArtifactReference;
 import io.apicurio.registry.rest.client.RegistryClient;
+
+import java.io.Closeable;
+import java.util.Map;
 
 public interface SchemaResolver<SCHEMA, DATA> extends Closeable {
 
@@ -22,19 +22,24 @@ public interface SchemaResolver<SCHEMA, DATA> extends Closeable {
 
     public void setClient(RegistryClient client);
 
-    public void setArtifactResolverStrategy(ArtifactReferenceResolverStrategy<SCHEMA, DATA> artifactResolverStrategy);
+    public void setArtifactResolverStrategy(
+            ArtifactReferenceResolverStrategy<SCHEMA, DATA> artifactResolverStrategy);
 
     public SchemaParser<SCHEMA, DATA> getSchemaParser();
 
     /**
      * Used to register or to lookup a schema in the registry
-     * @param data, record containing metadata about it that can be used by the resolver to lookup a schema in the registry
+     * 
+     * @param data, record containing metadata about it that can be used by the resolver to lookup a schema in
+     *            the registry
      * @return SchemaLookupResult
      */
     public SchemaLookupResult<SCHEMA> resolveSchema(Record<DATA> data);
 
     /**
-     * The schema resolver may use different pieces of information from the {@link ArtifactReferenceImpl} depending on the configuration of the schema resolver.
+     * The schema resolver may use different pieces of information from the {@link ArtifactReferenceImpl}
+     * depending on the configuration of the schema resolver.
+     * 
      * @param reference
      * @return SchemaLookupResult
      */

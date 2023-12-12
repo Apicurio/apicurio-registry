@@ -14,7 +14,6 @@ import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffUtil.
 
 public class NotSchemaDiffVisitor extends JsonSchemaWrapperVisitor {
 
-
     private DiffContext ctx;
     private final NotSchema original;
 
@@ -28,13 +27,10 @@ public class NotSchemaDiffVisitor extends JsonSchemaWrapperVisitor {
     }
 
     public void visitSchemaMustNotMatch(SchemaWrapper mustNotMatch) {
-        compareSchema(ctx.sub("not"), original.getMustNotMatch(), mustNotMatch.getWrapped(),
-            UNDEFINED_UNUSED,
-            UNDEFINED_UNUSED,
-            NOT_TYPE_SCHEMA_COMPATIBLE_BOTH,
-            NOT_TYPE_SCHEMA_COMPATIBLE_BACKWARD_NOT_FORWARD,
-            NOT_TYPE_SCHEMA_COMPATIBLE_FORWARD_NOT_BACKWARD,
-            NOT_TYPE_SCHEMA_COMPATIBLE_NONE);
+        compareSchema(ctx.sub("not"), original.getMustNotMatch(), mustNotMatch.getWrapped(), UNDEFINED_UNUSED,
+                UNDEFINED_UNUSED, NOT_TYPE_SCHEMA_COMPATIBLE_BOTH,
+                NOT_TYPE_SCHEMA_COMPATIBLE_BACKWARD_NOT_FORWARD,
+                NOT_TYPE_SCHEMA_COMPATIBLE_FORWARD_NOT_BACKWARD, NOT_TYPE_SCHEMA_COMPATIBLE_NONE);
         super.visitSchemaMustNotMatch(mustNotMatch);
     }
 }

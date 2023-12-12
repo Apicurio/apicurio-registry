@@ -44,7 +44,7 @@ public class ProtobufArtifactTypeUtilProvider extends AbstractArtifactTypeUtilPr
     public ContentDereferencer getContentDereferencer() {
         return new ProtobufDereferencer();
     }
-    
+
     @Override
     public ReferenceFinder getReferenceFinder() {
         return new ProtobufReferenceFinder();

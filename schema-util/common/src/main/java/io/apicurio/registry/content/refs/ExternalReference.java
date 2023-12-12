@@ -3,8 +3,8 @@ package io.apicurio.registry.content.refs;
 import java.util.Objects;
 
 /**
- * Models a reference from one artifact to another.  This represents the information found in the content
- * of an artifact, and is very type-specific.  For example, a JSON schema reference might look like this:
+ * Models a reference from one artifact to another. This represents the information found in the content of an
+ * artifact, and is very type-specific. For example, a JSON schema reference might look like this:
  * 
  * <pre>
  * {
@@ -13,13 +13,11 @@ import java.util.Objects;
  * </pre>
  * 
  * In this case, the fields of this type will be:
- * 
  * <ul>
- *   <li><em>fullReference</em>: <code>types/data-types.json#/$defs/FooType</code></li>
- *   <li><em>resource</em>: <code>types/data-types.json</code></li>
- *   <li><em>component</em>: <code>#/$defs/FooType</code></li>
+ * <li><em>fullReference</em>: <code>types/data-types.json#/$defs/FooType</code></li>
+ * <li><em>resource</em>: <code>types/data-types.json</code></li>
+ * <li><em>component</em>: <code>#/$defs/FooType</code></li>
  * </ul>
- *
  * For an Avro artifact a reference might look like this:
  * 
  * <pre>
@@ -30,22 +28,21 @@ import java.util.Objects;
  * </pre>
  * 
  * In this case, the fields of this type will be:
- * 
  * <ul>
- *   <li><em>fullReference</em>: <code>com.kubetrade.schema.common.Exchange</code></li>
- *   <li><em>resource</em>: <code>com.kubetrade.schema.common.Exchange</code></li>
- *   <li><em>component</em>: <em>null</em></li>
+ * <li><em>fullReference</em>: <code>com.kubetrade.schema.common.Exchange</code></li>
+ * <li><em>resource</em>: <code>com.kubetrade.schema.common.Exchange</code></li>
+ * <li><em>component</em>: <em>null</em></li>
  * </ul>
- * 
  */
 public class ExternalReference {
 
     private String fullReference;
     private String resource;
     private String component;
-    
+
     /**
      * Constructor.
+     * 
      * @param fullReference
      * @param resource
      * @param component
@@ -55,10 +52,11 @@ public class ExternalReference {
         this.resource = resource;
         this.component = component;
     }
-    
+
     /**
-     * Constructor.  This variant is useful if there is no component part of an external reference.  In this
+     * Constructor. This variant is useful if there is no component part of an external reference. In this
      * case the full reference is also the resource (and the component is null).
+     * 
      * @param reference
      */
     public ExternalReference(String reference) {
@@ -129,7 +127,7 @@ public class ExternalReference {
         ExternalReference other = (ExternalReference) obj;
         return Objects.equals(fullReference, other.fullReference);
     }
-    
+
     /**
      * @see java.lang.Object#toString()
      */

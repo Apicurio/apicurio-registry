@@ -1,14 +1,13 @@
 package io.apicurio.registry.utils.impexp;
 
-import java.io.IOException;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipInputStream;
-
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import io.apicurio.registry.utils.IoUtil;
+
+import java.io.IOException;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
 public class EntityReader {
 
@@ -23,6 +22,7 @@ public class EntityReader {
 
     /**
      * Constructor.
+     * 
      * @param zip
      */
     public EntityReader(ZipInputStream zip) {
@@ -109,7 +109,7 @@ public class EntityReader {
     }
 
     private <T> T readEntry(ZipEntry entry, Class<T> theClass) throws IOException {
-        byte [] bytes = IoUtil.toBytes(zip, false);
+        byte[] bytes = IoUtil.toBytes(zip, false);
         T entity = mapper.readerFor(theClass).readValue(bytes);
         return entity;
     }

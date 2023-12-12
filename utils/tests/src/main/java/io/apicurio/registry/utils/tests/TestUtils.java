@@ -1,5 +1,14 @@
 package io.apicurio.registry.utils.tests;
 
+import com.microsoft.kiota.ApiException;
+import io.apicurio.registry.utils.IoUtil;
+import org.apache.http.HttpStatus;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.impl.client.HttpClients;
+import org.junit.jupiter.api.Assertions;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -18,26 +27,18 @@ import java.util.function.BooleanSupplier;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-import com.microsoft.kiota.ApiException;
-import org.apache.http.HttpStatus;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.client.HttpClients;
-import org.junit.jupiter.api.Assertions;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import io.apicurio.registry.utils.IoUtil;
-
 public class TestUtils {
     private static final Logger log = LoggerFactory.getLogger(TestUtils.class);
 
     private static final String DEFAULT_REGISTRY_HOST = "localhost";
     private static final int DEFAULT_REGISTRY_PORT = 8081;
 
-    private static final String REGISTRY_HOST = System.getenv().getOrDefault("REGISTRY_HOST", DEFAULT_REGISTRY_HOST);
-    private static final int REGISTRY_PORT = Integer.parseInt(System.getenv().getOrDefault("REGISTRY_PORT", String.valueOf(DEFAULT_REGISTRY_PORT)));
-    private static final String EXTERNAL_REGISTRY = System.getenv().getOrDefault("EXTERNAL_REGISTRY", "false");
+    private static final String REGISTRY_HOST = System.getenv().getOrDefault("REGISTRY_HOST",
+            DEFAULT_REGISTRY_HOST);
+    private static final int REGISTRY_PORT = Integer
+            .parseInt(System.getenv().getOrDefault("REGISTRY_PORT", String.valueOf(DEFAULT_REGISTRY_PORT)));
+    private static final String EXTERNAL_REGISTRY = System.getenv().getOrDefault("EXTERNAL_REGISTRY",
+            "false");
 
     private TestUtils() {
         // All static methods
@@ -111,7 +112,7 @@ public class TestUtils {
             log.info("Trying to connect to {}:{}", host, port);
             socket.connect(new InetSocketAddress(host, port), 5_000);
             log.info("Client is able to connect to Registry instance");
-            return  true;
+            return true;
         } catch (IOException ex) {
             log.warn("Cannot connect to Registry instance: {}", ex.getMessage());
             return false; // Either timeout or unreachable or failed DNS lookup.
@@ -120,6 +121,7 @@ public class TestUtils {
 
     /**
      * Generic check if an endpoint is network reachable
+     * 
      * @param host
      * @param port
      * @param component
@@ -130,13 +132,12 @@ public class TestUtils {
             log.info("Trying to connect to {}:{}", host, port);
             socket.connect(new InetSocketAddress(host, port), 5_000);
             log.info("Client is able to connect to " + component);
-            return  true;
+            return true;
         } catch (IOException ex) {
             log.warn("Cannot connect to {}: {}", component, ex.getMessage());
             return false; // Either timeout or unreachable or failed DNS lookup.
         }
     }
-
 
     /**
      * Checks the readniess endpoint of the registry
@@ -157,7 +158,8 @@ public class TestUtils {
      */
     public static boolean isReady(String baseUrl, String healthUrl, boolean logResponse, String component) {
         try {
-            CloseableHttpResponse res = HttpClients.createMinimal().execute(new HttpGet(baseUrl.concat(healthUrl)));
+            CloseableHttpResponse res = HttpClients.createMinimal()
+                    .execute(new HttpGet(baseUrl.concat(healthUrl)));
             boolean ok = res.getStatusLine().getStatusCode() == HttpStatus.SC_OK;
             if (ok) {
                 log.info(component + " is ready");
@@ -176,16 +178,19 @@ public class TestUtils {
 
     /**
      * Poll the given {@code ready} function every {@code pollIntervalMs} milliseconds until it returns true,
-     * or throw a TimeoutException if it doesn't returns true within {@code timeoutMs} milliseconds.
-     * (helpful if you have several calls which need to share a common timeout)
+     * or throw a TimeoutException if it doesn't returns true within {@code timeoutMs} milliseconds. (helpful
+     * if you have several calls which need to share a common timeout)
      *
      * @return The remaining time left until timeout occurs
      */
-    public static long waitFor(String description, long pollIntervalMs, long timeoutMs, BooleanSupplier ready) throws TimeoutException {
-        return waitFor(description, pollIntervalMs, timeoutMs, ready, () -> {});
+    public static long waitFor(String description, long pollIntervalMs, long timeoutMs, BooleanSupplier ready)
+            throws TimeoutException {
+        return waitFor(description, pollIntervalMs, timeoutMs, ready, () -> {
+        });
     }
 
-    public static long waitFor(String description, long pollIntervalMs, long timeoutMs, BooleanSupplier ready, Runnable onTimeout) throws TimeoutException {
+    public static long waitFor(String description, long pollIntervalMs, long timeoutMs, BooleanSupplier ready,
+            Runnable onTimeout) throws TimeoutException {
         log.debug("Waiting for {}", description);
         long deadline = System.currentTimeMillis() + timeoutMs;
         while (true) {
@@ -201,13 +206,15 @@ public class TestUtils {
             }
             if (timeLeft <= 0) {
                 onTimeout.run();
-                TimeoutException exception = new TimeoutException("Timeout after " + timeoutMs + " ms waiting for " + description);
+                TimeoutException exception = new TimeoutException(
+                        "Timeout after " + timeoutMs + " ms waiting for " + description);
                 exception.printStackTrace();
                 throw exception;
             }
             long sleepTime = Math.min(pollIntervalMs, timeLeft);
             if (log.isTraceEnabled()) {
-                log.trace("{} not ready, will try again in {} ms ({}ms till timeout)", description, sleepTime, timeLeft);
+                log.trace("{} not ready, will try again in {} ms ({}ms till timeout)", description, sleepTime,
+                        timeLeft);
             }
             try {
                 Thread.sleep(sleepTime);
@@ -221,7 +228,7 @@ public class TestUtils {
      * Method to create and write String content file.
      *
      * @param filePath path to file
-     * @param text     content
+     * @param text content
      */
     public static void writeFile(String filePath, String text) {
         try {
@@ -308,7 +315,8 @@ public class TestUtils {
         throw new IllegalStateException("Should not be here!");
     }
 
-    public static void assertClientError(String expectedErrorName, int expectedCode, RunnableExc runnable, Function<Exception, Integer> errorCodeExtractor) throws Exception {
+    public static void assertClientError(String expectedErrorName, int expectedCode, RunnableExc runnable,
+            Function<Exception, Integer> errorCodeExtractor) throws Exception {
         try {
             internalAssertClientError(expectedErrorName, expectedCode, runnable, errorCodeExtractor);
         } catch (Exception e) {
@@ -316,23 +324,28 @@ public class TestUtils {
         }
     }
 
-    public static void assertClientError(String expectedErrorName, int expectedCode, RunnableExc runnable, boolean retry, Function<Exception, Integer> errorCodeExtractor) throws Exception {
+    public static void assertClientError(String expectedErrorName, int expectedCode, RunnableExc runnable,
+            boolean retry, Function<Exception, Integer> errorCodeExtractor) throws Exception {
         if (retry) {
-            retry(() -> internalAssertClientError(expectedErrorName, expectedCode, runnable, errorCodeExtractor));
+            retry(() -> internalAssertClientError(expectedErrorName, expectedCode, runnable,
+                    errorCodeExtractor));
         } else {
             internalAssertClientError(expectedErrorName, expectedCode, runnable, errorCodeExtractor);
         }
     }
 
-    private static void internalAssertClientError(String expectedErrorName, int expectedCode, RunnableExc runnable, Function<Exception, Integer> errorCodeExtractor) {
+    private static void internalAssertClientError(String expectedErrorName, int expectedCode,
+            RunnableExc runnable, Function<Exception, Integer> errorCodeExtractor) {
         try {
             runnable.run();
-            Assertions.fail("Expected (but didn't get) a registry client application exception with code: " + expectedCode);
+            Assertions.fail("Expected (but didn't get) a registry client application exception with code: "
+                    + expectedCode);
         } catch (Exception ex) {
             // Unwrapping the ExecutionException
             var e = ex.getCause();
             if (e instanceof io.apicurio.registry.rest.client.models.Error) {
-                Assertions.assertEquals(expectedErrorName, ((io.apicurio.registry.rest.client.models.Error) e).getName(), () -> "e: " + e);
+                Assertions.assertEquals(expectedErrorName,
+                        ((io.apicurio.registry.rest.client.models.Error) e).getName(), () -> "e: " + e);
                 Assertions.assertEquals(expectedCode, errorCodeExtractor.apply(ex));
             } else {
                 Assertions.assertEquals(expectedCode, ((ApiException) e).getResponseStatusCode());
@@ -346,7 +359,8 @@ public class TestUtils {
         waitForSchema(schemaFinder, bytes, ByteBuffer::getLong);
     }
 
-    public static void waitForSchema(Predicate<Long> schemaFinder, byte[] bytes, Function<ByteBuffer, Long> globalIdExtractor) throws Exception {
+    public static void waitForSchema(Predicate<Long> schemaFinder, byte[] bytes,
+            Function<ByteBuffer, Long> globalIdExtractor) throws Exception {
         waitForSchemaCustom(schemaFinder, bytes, input -> {
             ByteBuffer buffer = ByteBuffer.wrap(input);
             buffer.get(); // magic byte
@@ -355,7 +369,8 @@ public class TestUtils {
     }
 
     // we can have non-default Apicurio serialization; e.g. ExtJsonConverter
-    public static void waitForSchemaCustom(Predicate<Long> schemaFinder, byte[] bytes, Function<byte[], Long> globalIdExtractor) throws Exception {
+    public static void waitForSchemaCustom(Predicate<Long> schemaFinder, byte[] bytes,
+            Function<byte[], Long> globalIdExtractor) throws Exception {
         long id = globalIdExtractor.apply(bytes);
         boolean schemaExists = retry(() -> schemaFinder.test(id));
         Assertions.assertTrue(schemaExists); // wait for global id to populate

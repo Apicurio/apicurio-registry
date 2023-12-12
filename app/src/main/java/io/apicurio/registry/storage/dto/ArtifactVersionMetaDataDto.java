@@ -1,13 +1,13 @@
 package io.apicurio.registry.storage.dto;
 
-import java.util.List;
-import java.util.Map;
-
 import io.apicurio.registry.types.ArtifactState;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
+
+import java.util.List;
+import java.util.Map;
 
 @AllArgsConstructor
 @Builder

@@ -1,12 +1,12 @@
 package io.apicurio.registry.content.refs;
 
+import io.apicurio.registry.content.ContentHandle;
+
 import java.util.Collections;
 import java.util.Set;
 
-import io.apicurio.registry.content.ContentHandle;
-
 public class NoOpReferenceFinder implements ReferenceFinder {
-    
+
     public static final ReferenceFinder INSTANCE = new NoOpReferenceFinder();
 
     /**

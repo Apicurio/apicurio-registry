@@ -43,15 +43,11 @@ public class Any {
                 if (type.isPresent()) {
                     try {
                         var entity = MAPPER.treeToValue(raw, type.get().getKlass());
-                        var any = Any.builder()
-                                .raw(raw)
-                                .type(type.get())
-                                .entity(entity)
-                                .build();
+                        var any = Any.builder().raw(raw).type(type.get()).entity(entity).build();
                         return Optional.of(any);
                     } catch (JsonProcessingException ex) {
-                        state.recordError("Could not parse file %s as %s: %s",
-                                path, type.get(), ex.getOriginalMessage());
+                        state.recordError("Could not parse file %s as %s: %s", path, type.get(),
+                                ex.getOriginalMessage());
                         return Optional.empty();
                     }
                 }

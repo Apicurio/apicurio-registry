@@ -1,10 +1,5 @@
 package io.apicurio.registry.serde;
 
-import java.io.Closeable;
-import java.io.IOException;
-import java.util.Collections;
-import java.util.Map;
-import org.apache.kafka.common.header.Headers;
 import io.apicurio.registry.resolver.data.Record;
 import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
 import io.apicurio.registry.rest.client.RegistryClient;
@@ -12,15 +7,21 @@ import io.apicurio.registry.serde.data.KafkaSerdeMetadata;
 import io.apicurio.registry.serde.data.KafkaSerdeRecord;
 import io.apicurio.registry.serde.strategy.ArtifactReference;
 import io.apicurio.registry.serde.strategy.ArtifactResolverStrategy;
+import org.apache.kafka.common.header.Headers;
+
+import java.io.Closeable;
+import java.io.IOException;
+import java.util.Collections;
+import java.util.Map;
 
 /**
- *
- * This interface is kept for compatibility, It's recommended to migrate custom implementations to adhere the new interface {@link io.apicurio.registry.resolver.SchemaResolver}
- *
+ * This interface is kept for compatibility, It's recommended to migrate custom implementations to adhere the
+ * new interface {@link io.apicurio.registry.resolver.SchemaResolver}
  */
 @SuppressWarnings({ "rawtypes", "unchecked" })
 @Deprecated
-public interface SchemaResolver<SCHEMA, DATA> extends io.apicurio.registry.resolver.SchemaResolver<SCHEMA, DATA>, Closeable {
+public interface SchemaResolver<SCHEMA, DATA>
+        extends io.apicurio.registry.resolver.SchemaResolver<SCHEMA, DATA>, Closeable {
 
     /**
      * Configure, if supported.
@@ -38,11 +39,12 @@ public interface SchemaResolver<SCHEMA, DATA> extends io.apicurio.registry.resol
 
     @Deprecated
     default void setArtifactResolverStrategy(ArtifactResolverStrategy<SCHEMA> artifactResolverStrategy) {
-        setArtifactResolverStrategy((ArtifactReferenceResolverStrategy)artifactResolverStrategy);
+        setArtifactResolverStrategy((ArtifactReferenceResolverStrategy) artifactResolverStrategy);
     }
 
     /**
      * Used by Serializers to lookup the schema for a given kafka record.
+     * 
      * @param topic
      * @param headers, can be null
      * @param data
@@ -50,11 +52,14 @@ public interface SchemaResolver<SCHEMA, DATA> extends io.apicurio.registry.resol
      * @return SchemaLookupResult
      */
     @Deprecated
-    public SchemaLookupResult<SCHEMA> resolveSchema(String topic, Headers headers, DATA data, ParsedSchema<SCHEMA> parsedSchema);
+    public SchemaLookupResult<SCHEMA> resolveSchema(String topic, Headers headers, DATA data,
+            ParsedSchema<SCHEMA> parsedSchema);
 
     /**
-     * Used by Deserializers to lookup the schema for a given kafka record.
-     * The schema resolver may use different pieces of information from the {@link ArtifactReference} depending on the configuration of the schema resolver.
+     * Used by Deserializers to lookup the schema for a given kafka record. The schema resolver may use
+     * different pieces of information from the {@link ArtifactReference} depending on the configuration of
+     * the schema resolver.
+     * 
      * @param reference
      * @return SchemaLookupResult
      */
@@ -69,10 +74,12 @@ public interface SchemaResolver<SCHEMA, DATA> extends io.apicurio.registry.resol
     public void reset();
 
     /**
-     * @see io.apicurio.registry.resolver.SchemaResolver#configure(java.util.Map, io.apicurio.registry.resolver.SchemaParser)
+     * @see io.apicurio.registry.resolver.SchemaResolver#configure(java.util.Map,
+     *      io.apicurio.registry.resolver.SchemaParser)
      */
     @Override
-    default void configure(Map<String, ?> configs, io.apicurio.registry.resolver.SchemaParser<SCHEMA, DATA> schemaMapper) {
+    default void configure(Map<String, ?> configs,
+            io.apicurio.registry.resolver.SchemaParser<SCHEMA, DATA> schemaMapper) {
         configure(configs, true, new SchemaParser() {
 
             /**
@@ -94,8 +101,6 @@ public interface SchemaResolver<SCHEMA, DATA> extends io.apicurio.registry.resol
         });
     }
 
-
-
     /**
      * @see io.apicurio.registry.resolver.SchemaResolver#resolveSchema(io.apicurio.registry.resolver.data.Record)
      */
@@ -104,11 +109,12 @@ public interface SchemaResolver<SCHEMA, DATA> extends io.apicurio.registry.resol
         KafkaSerdeRecord<DATA> kdata = (KafkaSerdeRecord<DATA>) data;
         KafkaSerdeMetadata metadata = kdata.metadata();
         io.apicurio.registry.resolver.ParsedSchema<SCHEMA> ps = getSchemaParser().getSchemaFromData(data);
-        ParsedSchema<SCHEMA> compatps = ps == null ? null : new ParsedSchemaImpl<SCHEMA>().setParsedSchema(ps.getParsedSchema()).setRawSchema(ps.getRawSchema());
-        return resolveSchema(metadata.getTopic(), metadata.getHeaders(), kdata.payload(), compatps).toCompat();
+        ParsedSchema<SCHEMA> compatps = ps == null ? null
+                : new ParsedSchemaImpl<SCHEMA>().setParsedSchema(ps.getParsedSchema())
+                        .setRawSchema(ps.getRawSchema());
+        return resolveSchema(metadata.getTopic(), metadata.getHeaders(), kdata.payload(), compatps)
+                .toCompat();
     }
-
-
 
     /**
      * @see io.apicurio.registry.resolver.SchemaResolver#resolveSchemaByArtifactReference(io.apicurio.registry.resolver.strategy.ArtifactReference)
@@ -116,13 +122,10 @@ public interface SchemaResolver<SCHEMA, DATA> extends io.apicurio.registry.resol
     @Override
     default io.apicurio.registry.resolver.SchemaLookupResult<SCHEMA> resolveSchemaByArtifactReference(
             io.apicurio.registry.resolver.strategy.ArtifactReference reference) {
-        return resolveSchemaByArtifactReference(ArtifactReference.builder()
-                    .contentId(reference.getContentId())
-                    .globalId(reference.getGlobalId())
-                    .groupId(reference.getGroupId())
-                    .artifactId(reference.getArtifactId())
-                    .version(reference.getVersion())
-                    .build())
+        return resolveSchemaByArtifactReference(
+                ArtifactReference.builder().contentId(reference.getContentId())
+                        .globalId(reference.getGlobalId()).groupId(reference.getGroupId())
+                        .artifactId(reference.getArtifactId()).version(reference.getVersion()).build())
                 .toCompat();
     }
 

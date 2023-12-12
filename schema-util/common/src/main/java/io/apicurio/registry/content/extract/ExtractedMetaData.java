@@ -9,7 +9,7 @@ public class ExtractedMetaData {
     private String description;
     private List<String> labels;
     private Map<String, String> properties;
-    
+
     /**
      * Constructor.
      */

@@ -11,6 +11,7 @@ public class ContentKey implements MessageKey {
 
     /**
      * Creator method.
+     * 
      * @param contentId
      * @param contentHash
      */

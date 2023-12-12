@@ -20,7 +20,8 @@ import java.util.List;
 import java.util.Optional;
 
 @ApplicationScoped
-public class EventSourcedRegistryStorage extends RegistryStorageDecoratorBase implements RegistryStorageDecorator {
+public class EventSourcedRegistryStorage extends RegistryStorageDecoratorBase
+        implements RegistryStorageDecorator {
 
     final Logger log;
 
@@ -59,7 +60,8 @@ public class EventSourcedRegistryStorage extends RegistryStorageDecoratorBase im
     }
 
     @Override
-    public void updateArtifactState(String groupId, String artifactId, ArtifactState state) throws ArtifactNotFoundException, RegistryStorageException {
+    public void updateArtifactState(String groupId, String artifactId, ArtifactState state)
+            throws ArtifactNotFoundException, RegistryStorageException {
         delegate.updateArtifactState(groupId, artifactId, state);
         ArtifactStateChange data = new ArtifactStateChange();
         data.setGroupId(groupId);
@@ -81,10 +83,11 @@ public class EventSourcedRegistryStorage extends RegistryStorageDecoratorBase im
     }
 
     @Override
-    public ArtifactMetaDataDto createArtifact(String groupId, String artifactId,
-                                              String version, String artifactType, ContentHandle content, List<ArtifactReferenceDto> references)
+    public ArtifactMetaDataDto createArtifact(String groupId, String artifactId, String version,
+            String artifactType, ContentHandle content, List<ArtifactReferenceDto> references)
             throws ArtifactAlreadyExistsException, RegistryStorageException {
-        ArtifactMetaDataDto meta = delegate.createArtifact(groupId, artifactId, version, artifactType, content, references);
+        ArtifactMetaDataDto meta = delegate.createArtifact(groupId, artifactId, version, artifactType,
+                content, references);
         ArtifactId data = new ArtifactId();
         data.setGroupId(groupId);
         data.setArtifactId(artifactId);
@@ -95,12 +98,17 @@ public class EventSourcedRegistryStorage extends RegistryStorageDecoratorBase im
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#createArtifactWithMetadata (java.lang.String, java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.content.ContentHandle, io.apicurio.registry.delegate.dto.EditableArtifactMetaDataDto)
+     * @see io.apicurio.registry.storage.RegistryStorage#createArtifactWithMetadata (java.lang.String,
+     *      java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.content.ContentHandle,
+     *      io.apicurio.registry.delegate.dto.EditableArtifactMetaDataDto)
      */
     @Override
     public ArtifactMetaDataDto createArtifactWithMetadata(String groupId, String artifactId, String version,
-                                                          String artifactType, ContentHandle content, EditableArtifactMetaDataDto metaData, List<ArtifactReferenceDto> references) throws ArtifactAlreadyExistsException, RegistryStorageException {
-        ArtifactMetaDataDto meta = delegate.createArtifactWithMetadata(groupId, artifactId, version, artifactType, content, metaData, references);
+            String artifactType, ContentHandle content, EditableArtifactMetaDataDto metaData,
+            List<ArtifactReferenceDto> references)
+            throws ArtifactAlreadyExistsException, RegistryStorageException {
+        ArtifactMetaDataDto meta = delegate.createArtifactWithMetadata(groupId, artifactId, version,
+                artifactType, content, metaData, references);
         ArtifactId data = new ArtifactId();
         data.setGroupId(groupId);
         data.setArtifactId(artifactId);
@@ -111,7 +119,8 @@ public class EventSourcedRegistryStorage extends RegistryStorageDecoratorBase im
     }
 
     @Override
-    public List<String> deleteArtifact(String groupId, String artifactId) throws ArtifactNotFoundException, RegistryStorageException {
+    public List<String> deleteArtifact(String groupId, String artifactId)
+            throws ArtifactNotFoundException, RegistryStorageException {
         List<String> set = delegate.deleteArtifact(groupId, artifactId);
         ArtifactId data = new ArtifactId();
         data.setGroupId(groupId);
@@ -129,9 +138,11 @@ public class EventSourcedRegistryStorage extends RegistryStorageDecoratorBase im
     }
 
     @Override
-    public ArtifactMetaDataDto updateArtifact(String groupId, String artifactId, String version, String artifactType, ContentHandle content, List<ArtifactReferenceDto> references)
+    public ArtifactMetaDataDto updateArtifact(String groupId, String artifactId, String version,
+            String artifactType, ContentHandle content, List<ArtifactReferenceDto> references)
             throws ArtifactNotFoundException, RegistryStorageException {
-        ArtifactMetaDataDto meta = delegate.updateArtifact(groupId, artifactId, version, artifactType, content, references);
+        ArtifactMetaDataDto meta = delegate.updateArtifact(groupId, artifactId, version, artifactType,
+                content, references);
         ArtifactId data = new ArtifactId();
         data.setGroupId(groupId);
         data.setArtifactId(artifactId);
@@ -142,9 +153,12 @@ public class EventSourcedRegistryStorage extends RegistryStorageDecoratorBase im
     }
 
     @Override
-    public ArtifactMetaDataDto updateArtifactWithMetadata(String groupId, String artifactId, String version, String artifactType, ContentHandle content,
-                                                          EditableArtifactMetaDataDto metaData, List<ArtifactReferenceDto> references) throws ArtifactNotFoundException, RegistryStorageException {
-        ArtifactMetaDataDto meta = delegate.updateArtifactWithMetadata(groupId, artifactId, version, artifactType, content, metaData, references);
+    public ArtifactMetaDataDto updateArtifactWithMetadata(String groupId, String artifactId, String version,
+            String artifactType, ContentHandle content, EditableArtifactMetaDataDto metaData,
+            List<ArtifactReferenceDto> references)
+            throws ArtifactNotFoundException, RegistryStorageException {
+        ArtifactMetaDataDto meta = delegate.updateArtifactWithMetadata(groupId, artifactId, version,
+                artifactType, content, metaData, references);
         ArtifactId data = new ArtifactId();
         data.setGroupId(groupId);
         data.setArtifactId(artifactId);
@@ -153,13 +167,15 @@ public class EventSourcedRegistryStorage extends RegistryStorageDecoratorBase im
         fireEvent(RegistryEventType.ARTIFACT_UPDATED, artifactId, data, null);
         return meta;
     }
-
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#createArtifactRule(java.lang.String, java.lang.String, io.apicurio.registry.types.RuleType, io.apicurio.registry.storage.dto.RuleConfigurationDto)
+     * @see io.apicurio.registry.storage.RegistryStorage#createArtifactRule(java.lang.String,
+     *      java.lang.String, io.apicurio.registry.types.RuleType,
+     *      io.apicurio.registry.storage.dto.RuleConfigurationDto)
      */
     @Override
-    public void createArtifactRule(String groupId, String artifactId, RuleType rule, RuleConfigurationDto config)
+    public void createArtifactRule(String groupId, String artifactId, RuleType rule,
+            RuleConfigurationDto config)
             throws ArtifactNotFoundException, RuleAlreadyExistsException, RegistryStorageException {
         delegate.createArtifactRule(groupId, artifactId, rule, config);
         ArtifactRuleChange data = new ArtifactRuleChange();
@@ -170,7 +186,8 @@ public class EventSourcedRegistryStorage extends RegistryStorageDecoratorBase im
     }
 
     @Override
-    public void deleteArtifactRules(String groupId, String artifactId) throws ArtifactNotFoundException, RegistryStorageException {
+    public void deleteArtifactRules(String groupId, String artifactId)
+            throws ArtifactNotFoundException, RegistryStorageException {
         delegate.deleteArtifactRules(groupId, artifactId);
         ArtifactRuleChange data = new ArtifactRuleChange();
         data.setGroupId(groupId);
@@ -179,7 +196,8 @@ public class EventSourcedRegistryStorage extends RegistryStorageDecoratorBase im
     }
 
     @Override
-    public void updateArtifactRule(String groupId, String artifactId, RuleType rule, RuleConfigurationDto config)
+    public void updateArtifactRule(String groupId, String artifactId, RuleType rule,
+            RuleConfigurationDto config)
             throws ArtifactNotFoundException, RuleNotFoundException, RegistryStorageException {
         delegate.updateArtifactRule(groupId, artifactId, rule, config);
         ArtifactRuleChange data = new ArtifactRuleChange();
@@ -190,7 +208,8 @@ public class EventSourcedRegistryStorage extends RegistryStorageDecoratorBase im
     }
 
     @Override
-    public void deleteArtifactRule(String groupId, String artifactId, RuleType rule) throws ArtifactNotFoundException, RuleNotFoundException, RegistryStorageException {
+    public void deleteArtifactRule(String groupId, String artifactId, RuleType rule)
+            throws ArtifactNotFoundException, RuleNotFoundException, RegistryStorageException {
         delegate.deleteArtifactRule(groupId, artifactId, rule);
         ArtifactRuleChange data = new ArtifactRuleChange();
         data.setGroupId(groupId);
@@ -200,7 +219,8 @@ public class EventSourcedRegistryStorage extends RegistryStorageDecoratorBase im
     }
 
     @Override
-    public void deleteArtifactVersion(String groupId, String artifactId, String version) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
+    public void deleteArtifactVersion(String groupId, String artifactId, String version)
+            throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
         delegate.deleteArtifactVersion(groupId, artifactId, version);
         ArtifactId data = new ArtifactId();
         data.setGroupId(groupId);
@@ -210,7 +230,8 @@ public class EventSourcedRegistryStorage extends RegistryStorageDecoratorBase im
     }
 
     @Override
-    public void createGlobalRule(RuleType rule, RuleConfigurationDto config) throws RuleAlreadyExistsException, RegistryStorageException {
+    public void createGlobalRule(RuleType rule, RuleConfigurationDto config)
+            throws RuleAlreadyExistsException, RegistryStorageException {
         delegate.createGlobalRule(rule, config);
         ArtifactRuleChange data = new ArtifactRuleChange();
         data.setRule(rule.value());
@@ -224,7 +245,8 @@ public class EventSourcedRegistryStorage extends RegistryStorageDecoratorBase im
     }
 
     @Override
-    public void updateGlobalRule(RuleType rule, RuleConfigurationDto config) throws RuleNotFoundException, RegistryStorageException {
+    public void updateGlobalRule(RuleType rule, RuleConfigurationDto config)
+            throws RuleNotFoundException, RegistryStorageException {
         delegate.updateGlobalRule(rule, config);
         ArtifactRuleChange data = new ArtifactRuleChange();
         data.setRule(rule.value());
@@ -243,7 +265,8 @@ public class EventSourcedRegistryStorage extends RegistryStorageDecoratorBase im
      * @see io.apicurio.registry.storage.RegistryStorage#createGroup(io.apicurio.registry.storage.dto.GroupMetaDataDto)
      */
     @Override
-    public void createGroup(GroupMetaDataDto group) throws GroupAlreadyExistsException, RegistryStorageException {
+    public void createGroup(GroupMetaDataDto group)
+            throws GroupAlreadyExistsException, RegistryStorageException {
         delegate.createGroup(group);
         ArtifactId data = new ArtifactId();
         data.setGroupId(group.getGroupId());
@@ -254,7 +277,8 @@ public class EventSourcedRegistryStorage extends RegistryStorageDecoratorBase im
      * @see io.apicurio.registry.storage.RegistryStorage#updateGroupMetaData(io.apicurio.registry.storage.dto.GroupMetaDataDto)
      */
     @Override
-    public void updateGroupMetaData(GroupMetaDataDto group) throws GroupNotFoundException, RegistryStorageException {
+    public void updateGroupMetaData(GroupMetaDataDto group)
+            throws GroupNotFoundException, RegistryStorageException {
         delegate.updateGroupMetaData(group);
         ArtifactId data = new ArtifactId();
         data.setGroupId(group.getGroupId());

@@ -13,6 +13,7 @@ public class GlobalRuleKey implements MessageKey {
 
     /**
      * Creator method.
+     * 
      * @param ruleType
      */
     public static final GlobalRuleKey create(RuleType ruleType) {
@@ -20,7 +21,7 @@ public class GlobalRuleKey implements MessageKey {
         key.setRuleType(ruleType);
         return key;
     }
-    
+
     /**
      * @see MessageKey#getType()
      */

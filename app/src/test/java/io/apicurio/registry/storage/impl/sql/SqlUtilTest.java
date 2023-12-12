@@ -1,13 +1,13 @@
 package io.apicurio.registry.storage.impl.sql;
 
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Test;
 
 class SqlUtilTest {
 
@@ -19,7 +19,7 @@ class SqlUtilTest {
         List<String> labels = Collections.singletonList("foo");
         String actual = SqlUtil.serializeLabels(labels);
         Assertions.assertEquals("[\"foo\"]", actual);
-        
+
         labels = new ArrayList<String>();
         labels.add("one");
         labels.add("two");
@@ -29,7 +29,8 @@ class SqlUtilTest {
     }
 
     /**
-     * Test method for {@link io.apicurio.registry.storage.impl.sql.SqlUtil#deserializeLabels(java.lang.String)}.
+     * Test method for
+     * {@link io.apicurio.registry.storage.impl.sql.SqlUtil#deserializeLabels(java.lang.String)}.
      */
     @Test
     void testDeserializeLabels() {
@@ -44,7 +45,8 @@ class SqlUtilTest {
     }
 
     /**
-     * Test method for {@link io.apicurio.registry.storage.impl.sql.SqlUtil#serializeProperties(java.util.Map)}.
+     * Test method for
+     * {@link io.apicurio.registry.storage.impl.sql.SqlUtil#serializeProperties(java.util.Map)}.
      */
     @Test
     void testSerializeProperties() {
@@ -58,7 +60,8 @@ class SqlUtilTest {
     }
 
     /**
-     * Test method for {@link io.apicurio.registry.storage.impl.sql.SqlUtil#deserializeProperties(java.lang.String)}.
+     * Test method for
+     * {@link io.apicurio.registry.storage.impl.sql.SqlUtil#deserializeProperties(java.lang.String)}.
      */
     @Test
     void testDeserializeProperties() {

@@ -1,32 +1,27 @@
 package io.apicurio.registry.noprofile;
 
-import java.util.Collections;
-import java.util.UUID;
-import java.util.concurrent.TimeUnit;
-
-import io.apicurio.registry.rest.client.models.Properties;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Test;
-
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.rest.client.models.ArtifactContent;
 import io.apicurio.registry.rest.client.models.ArtifactSearchResults;
 import io.apicurio.registry.rest.client.models.EditableMetaData;
+import io.apicurio.registry.rest.client.models.Properties;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+
+import java.util.Collections;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 @QuarkusTest
 public class ArtifactSearchTest extends AbstractResourceTestBase {
 
-    private static final String OPENAPI_CONTENT_TEMPLATE = "{\r\n" +
-            "    \"openapi\": \"3.0.2\",\r\n" +
-            "    \"info\": {\r\n" +
-            "        \"title\": \"TITLE\",\r\n" +
-            "        \"version\": \"1.0.0\",\r\n" +
-            "        \"description\": \"DESCRIPTION\"\r\n" +
-            "    }\r\n" +
-            "}";
+    private static final String OPENAPI_CONTENT_TEMPLATE = "{\r\n" + "    \"openapi\": \"3.0.2\",\r\n"
+            + "    \"info\": {\r\n" + "        \"title\": \"TITLE\",\r\n"
+            + "        \"version\": \"1.0.0\",\r\n" + "        \"description\": \"DESCRIPTION\"\r\n"
+            + "    }\r\n" + "}";
 
     @Test
     void testCaseInsensitiveSearch() throws Exception {
@@ -64,9 +59,11 @@ public class ArtifactSearchTest extends AbstractResourceTestBase {
         metaData.setDescription(description);
         metaData.setLabels(Collections.singletonList("testCaseInsensitiveSearchLabel"));
         io.apicurio.registry.rest.client.models.Properties props = new Properties();
-        props.setAdditionalData(Collections.singletonMap("testCaseInsensitiveSearchKey", "testCaseInsensitiveSearchValue"));
+        props.setAdditionalData(
+                Collections.singletonMap("testCaseInsensitiveSearchKey", "testCaseInsensitiveSearchValue"));
         metaData.setProperties(props);
-        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).meta().put(metaData).get(3, TimeUnit.SECONDS);
+        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).meta().put(metaData).get(3,
+                TimeUnit.SECONDS);
 
         TestUtils.retry(() -> {
             // Now try various cases when searching by labels
@@ -76,7 +73,7 @@ public class ArtifactSearchTest extends AbstractResourceTestBase {
                 config.queryParameters.orderby = "name";
                 config.queryParameters.offset = 0;
                 config.queryParameters.limit = 10;
-                config.queryParameters.labels = new String[]{"testCaseInsensitiveSearchLabel"};
+                config.queryParameters.labels = new String[] { "testCaseInsensitiveSearchLabel" };
             }).get(3, TimeUnit.SECONDS);
             Assertions.assertNotNull(ires);
             Assertions.assertEquals(1, ires.getCount());
@@ -86,7 +83,8 @@ public class ArtifactSearchTest extends AbstractResourceTestBase {
                 config.queryParameters.orderby = "name";
                 config.queryParameters.offset = 0;
                 config.queryParameters.limit = 10;
-                config.queryParameters.labels = new String[]{"testCaseInsensitiveSearchLabel".toLowerCase()};
+                config.queryParameters.labels = new String[] {
+                        "testCaseInsensitiveSearchLabel".toLowerCase() };
             }).get(3, TimeUnit.SECONDS);
             Assertions.assertNotNull(ires);
             Assertions.assertEquals(1, ires.getCount());
@@ -96,7 +94,8 @@ public class ArtifactSearchTest extends AbstractResourceTestBase {
                 config.queryParameters.orderby = "name";
                 config.queryParameters.offset = 0;
                 config.queryParameters.limit = 10;
-                config.queryParameters.labels = new String[]{"testCaseInsensitiveSearchLabel".toUpperCase()};
+                config.queryParameters.labels = new String[] {
+                        "testCaseInsensitiveSearchLabel".toUpperCase() };
             }).get(3, TimeUnit.SECONDS);
             Assertions.assertNotNull(ires);
             Assertions.assertEquals(1, ires.getCount());
@@ -106,7 +105,7 @@ public class ArtifactSearchTest extends AbstractResourceTestBase {
                 config.queryParameters.orderby = "name";
                 config.queryParameters.offset = 0;
                 config.queryParameters.limit = 10;
-                config.queryParameters.labels = new String[]{"TESTCaseInsensitiveSEARCHLabel"};
+                config.queryParameters.labels = new String[] { "TESTCaseInsensitiveSEARCHLabel" };
             }).get(3, TimeUnit.SECONDS);
             Assertions.assertNotNull(ires);
             Assertions.assertEquals(1, ires.getCount());
@@ -118,7 +117,8 @@ public class ArtifactSearchTest extends AbstractResourceTestBase {
                 config.queryParameters.orderby = "name";
                 config.queryParameters.offset = 0;
                 config.queryParameters.limit = 10;
-                config.queryParameters.properties = new String[]{"testCaseInsensitiveSearchKey:testCaseInsensitiveSearchValue"};
+                config.queryParameters.properties = new String[] {
+                        "testCaseInsensitiveSearchKey:testCaseInsensitiveSearchValue" };
             }).get(3, TimeUnit.SECONDS);
             Assertions.assertNotNull(propertiesSearch);
             Assertions.assertEquals(1, propertiesSearch.getCount());
@@ -128,7 +128,8 @@ public class ArtifactSearchTest extends AbstractResourceTestBase {
                 config.queryParameters.orderby = "name";
                 config.queryParameters.offset = 0;
                 config.queryParameters.limit = 10;
-                config.queryParameters.properties = new String[]{"testCaseInsensitiveSearchKey:testCaseInsensitiveSearchValue".toLowerCase()};
+                config.queryParameters.properties = new String[] {
+                        "testCaseInsensitiveSearchKey:testCaseInsensitiveSearchValue".toLowerCase() };
             }).get(3, TimeUnit.SECONDS);
             Assertions.assertNotNull(propertiesSearch);
             Assertions.assertEquals(1, propertiesSearch.getCount());
@@ -138,7 +139,8 @@ public class ArtifactSearchTest extends AbstractResourceTestBase {
                 config.queryParameters.orderby = "name";
                 config.queryParameters.offset = 0;
                 config.queryParameters.limit = 10;
-                config.queryParameters.properties = new String[]{"testCaseInsensitiveSearchKey:testCaseInsensitiveSearchValue".toUpperCase()};
+                config.queryParameters.properties = new String[] {
+                        "testCaseInsensitiveSearchKey:testCaseInsensitiveSearchValue".toUpperCase() };
             }).get(3, TimeUnit.SECONDS);
             Assertions.assertNotNull(propertiesSearch);
             Assertions.assertEquals(1, propertiesSearch.getCount());
@@ -148,7 +150,8 @@ public class ArtifactSearchTest extends AbstractResourceTestBase {
                 config.queryParameters.orderby = "name";
                 config.queryParameters.offset = 0;
                 config.queryParameters.limit = 10;
-                config.queryParameters.properties = new String[]{"TESTCaseInsensitiveSEARCHKey:TESTCaseInsensitiveSearchVALUE".toUpperCase()};
+                config.queryParameters.properties = new String[] {
+                        "TESTCaseInsensitiveSEARCHKey:TESTCaseInsensitiveSearchVALUE".toUpperCase() };
             }).get(3, TimeUnit.SECONDS);
             Assertions.assertNotNull(propertiesSearch);
             Assertions.assertEquals(1, propertiesSearch.getCount());
@@ -160,7 +163,7 @@ public class ArtifactSearchTest extends AbstractResourceTestBase {
                 config.queryParameters.orderby = "name";
                 config.queryParameters.offset = 0;
                 config.queryParameters.limit = 10;
-                config.queryParameters.properties = new String[]{"testCaseInsensitiveSearchKey"};
+                config.queryParameters.properties = new String[] { "testCaseInsensitiveSearchKey" };
             }).get(3, TimeUnit.SECONDS);
             Assertions.assertNotNull(propertiesKeySearch);
             Assertions.assertEquals(1, propertiesKeySearch.getCount());
@@ -170,7 +173,8 @@ public class ArtifactSearchTest extends AbstractResourceTestBase {
                 config.queryParameters.orderby = "name";
                 config.queryParameters.offset = 0;
                 config.queryParameters.limit = 10;
-                config.queryParameters.properties = new String[]{"testCaseInsensitiveSearchKey".toLowerCase()};
+                config.queryParameters.properties = new String[] {
+                        "testCaseInsensitiveSearchKey".toLowerCase() };
             }).get(3, TimeUnit.SECONDS);
             Assertions.assertNotNull(propertiesKeySearch);
             Assertions.assertEquals(1, propertiesKeySearch.getCount());
@@ -180,7 +184,8 @@ public class ArtifactSearchTest extends AbstractResourceTestBase {
                 config.queryParameters.orderby = "name";
                 config.queryParameters.offset = 0;
                 config.queryParameters.limit = 10;
-                config.queryParameters.properties = new String[]{"testCaseInsensitiveSearchKey".toUpperCase()};
+                config.queryParameters.properties = new String[] {
+                        "testCaseInsensitiveSearchKey".toUpperCase() };
             }).get(3, TimeUnit.SECONDS);
             Assertions.assertNotNull(propertiesKeySearch);
             Assertions.assertEquals(1, propertiesKeySearch.getCount());
@@ -190,7 +195,7 @@ public class ArtifactSearchTest extends AbstractResourceTestBase {
                 config.queryParameters.orderby = "name";
                 config.queryParameters.offset = 0;
                 config.queryParameters.limit = 10;
-                config.queryParameters.properties = new String[]{"TESTCaseInsensitiveSEARCHKey"};
+                config.queryParameters.properties = new String[] { "TESTCaseInsensitiveSEARCHKey" };
             }).get(3, TimeUnit.SECONDS);
             Assertions.assertNotNull(propertiesKeySearch);
             Assertions.assertEquals(1, propertiesSearch.getCount());

@@ -1,7 +1,7 @@
 package io.apicurio.registry.types.provider;
 
-import io.apicurio.registry.content.canon.EnhancedAvroContentCanonicalizer;
 import io.apicurio.registry.content.canon.ContentCanonicalizer;
+import io.apicurio.registry.content.canon.EnhancedAvroContentCanonicalizer;
 import io.apicurio.registry.content.dereference.AvroDereferencer;
 import io.apicurio.registry.content.dereference.ContentDereferencer;
 import io.apicurio.registry.content.extract.AvroContentExtractor;
@@ -45,7 +45,7 @@ public class AvroArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvid
     public ContentDereferencer getContentDereferencer() {
         return new AvroDereferencer();
     }
-    
+
     @Override
     public ReferenceFinder getReferenceFinder() {
         return new JsonSchemaReferenceFinder();

@@ -25,8 +25,9 @@ public class ArtifactValue extends ArtifactVersionValue {
     /**
      * Creator method.
      */
-    public static final ArtifactValue create(ActionType action, Long globalId, String version, String artifactType, String contentHash,
-            String createdBy, Date createdOn, EditableArtifactMetaDataDto metaData, Integer versionId, ArtifactState state, Long contentId,
+    public static final ArtifactValue create(ActionType action, Long globalId, String version,
+            String artifactType, String contentHash, String createdBy, Date createdOn,
+            EditableArtifactMetaDataDto metaData, Integer versionId, ArtifactState state, Long contentId,
             Boolean latest) {
         ArtifactValue value = new ArtifactValue();
         value.setAction(action);

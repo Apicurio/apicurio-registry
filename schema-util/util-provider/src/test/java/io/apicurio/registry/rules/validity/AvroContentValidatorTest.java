@@ -3,7 +3,6 @@ package io.apicurio.registry.rules.validity;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.rest.v3.beans.ArtifactReference;
 import io.apicurio.registry.rules.RuleViolationException;
-
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -40,16 +39,11 @@ public class AvroContentValidatorTest extends ArtifactUtilProviderTestBase {
         // Properly map both required references - success.
         {
             List<ArtifactReference> references = new ArrayList<>();
-            references.add(ArtifactReference.builder()
-                    .groupId("com.example.search")
-                    .artifactId("SearchResultType")
-                    .version("1.0")
-                    .name("com.example.search.SearchResultType").build());
-            references.add(ArtifactReference.builder()
-                    .groupId("com.example.actions")
-                    .artifactId("UserAction")
-                    .version("1.1")
-                    .name("com.example.actions.UserAction").build());
+            references.add(
+                    ArtifactReference.builder().groupId("com.example.search").artifactId("SearchResultType")
+                            .version("1.0").name("com.example.search.SearchResultType").build());
+            references.add(ArtifactReference.builder().groupId("com.example.actions").artifactId("UserAction")
+                    .version("1.1").name("com.example.actions.UserAction").build());
             validator.validateReferences(content, references);
         }
 
@@ -62,27 +56,20 @@ public class AvroContentValidatorTest extends ArtifactUtilProviderTestBase {
         // Only map one of the two required refs - failure.
         Assertions.assertThrows(RuleViolationException.class, () -> {
             List<ArtifactReference> references = new ArrayList<>();
-            references.add(ArtifactReference.builder()
-                    .groupId("com.example.search")
-                    .artifactId("SearchResultType")
-                    .version("1.0")
-                    .name("com.example.search.SearchResultType").build());
+            references.add(
+                    ArtifactReference.builder().groupId("com.example.search").artifactId("SearchResultType")
+                            .version("1.0").name("com.example.search.SearchResultType").build());
             validator.validateReferences(content, references);
         });
 
         // Only map one of the two required refs - failure.
         Assertions.assertThrows(RuleViolationException.class, () -> {
             List<ArtifactReference> references = new ArrayList<>();
-            references.add(ArtifactReference.builder()
-                    .groupId("com.example.search")
-                    .artifactId("SearchResultType")
-                    .version("1.0")
-                    .name("com.example.search.SearchResultType").build());
-            references.add(ArtifactReference.builder()
-                    .groupId("default")
-                    .artifactId("WrongType")
-                    .version("2.3")
-                    .name("com.example.invalid.WrongType").build());
+            references.add(
+                    ArtifactReference.builder().groupId("com.example.search").artifactId("SearchResultType")
+                            .version("1.0").name("com.example.search.SearchResultType").build());
+            references.add(ArtifactReference.builder().groupId("default").artifactId("WrongType")
+                    .version("2.3").name("com.example.invalid.WrongType").build());
             validator.validateReferences(content, references);
         });
     }

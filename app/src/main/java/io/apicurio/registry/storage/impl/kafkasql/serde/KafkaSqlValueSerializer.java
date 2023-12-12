@@ -46,6 +46,7 @@ public class KafkaSqlValueSerializer implements Serializer<MessageValue> {
 
     /**
      * Special case for serializing a {@link ContentValue}.
+     * 
      * @param topic
      * @param contentValue
      */
@@ -69,7 +70,7 @@ public class KafkaSqlValueSerializer implements Serializer<MessageValue> {
                 out.write(ByteBuffer.allocate(4).putInt(0).array());
             }
 
-            //set references bytes and count
+            // set references bytes and count
             if (null != contentValue.getSerializedReferences()) {
                 byte[] bytes = contentValue.getSerializedReferences().getBytes(StandardCharsets.UTF_8);
                 out.write(ByteBuffer.allocate(4).putInt(bytes.length).array());

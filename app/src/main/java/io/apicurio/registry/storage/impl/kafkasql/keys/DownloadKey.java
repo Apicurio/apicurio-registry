@@ -12,6 +12,7 @@ public class DownloadKey implements MessageKey {
 
     /**
      * Creator method.
+     * 
      * @param downloadId
      */
     public static final DownloadKey create(String downloadId) {

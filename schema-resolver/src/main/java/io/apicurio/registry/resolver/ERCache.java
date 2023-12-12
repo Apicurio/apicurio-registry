@@ -58,20 +58,20 @@ public class ERCache<V> {
     }
 
     /**
-     * If {@code true}, will cache schema lookups that either have `latest` or no version specified.  Setting this to false
-     * will effectively disable caching for schema lookups that do not specify a version.
+     * If {@code true}, will cache schema lookups that either have `latest` or no version specified. Setting
+     * this to false will effectively disable caching for schema lookups that do not specify a version.
      *
-     * @param cacheLatest  Whether to enable cache of artifacts without a version specified.
+     * @param cacheLatest Whether to enable cache of artifacts without a version specified.
      */
     public void configureCacheLatest(boolean cacheLatest) {
         this.cacheLatest = cacheLatest;
     }
 
     /**
-     * If set to {@code true}, will log the load error instead of throwing it when an exception occurs trying to refresh
-     * a cache entry.  This will still honor retries before enacting this behavior.
+     * If set to {@code true}, will log the load error instead of throwing it when an exception occurs trying
+     * to refresh a cache entry. This will still honor retries before enacting this behavior.
      *
-     * @param faultTolerantRefresh  Whether to enable fault tolerant refresh behavior.
+     * @param faultTolerantRefresh Whether to enable fault tolerant refresh behavior.
      */
     public void configureFaultTolerantRefresh(boolean faultTolerantRefresh) {
         this.faultTolerantRefresh = faultTolerantRefresh;
@@ -100,7 +100,7 @@ public class ERCache<V> {
     /**
      * Return whether caching of artifact lookups with {@code null} versions is enabled.
      *
-     * @return  {@code true} if it's enabled.
+     * @return {@code true} if it's enabled.
      * @see #configureCacheLatest(boolean)
      */
     public boolean isCacheLatest() {
@@ -110,7 +110,7 @@ public class ERCache<V> {
     /**
      * Return whether fault tolerant refresh is enabled.
      *
-     * @return  {@code true} if it's enabled.
+     * @return {@code true} if it's enabled.
      * @see #configureFaultTolerantRefresh(boolean)
      */
     public boolean isFaultTolerantRefresh() {
@@ -118,13 +118,12 @@ public class ERCache<V> {
     }
 
     public void checkInitialized() {
-        boolean initialized = keyExtractor1 != null && keyExtractor2 != null &&
-            keyExtractor3 != null && keyExtractor4 != null && keyExtractor5 != null;
+        boolean initialized = keyExtractor1 != null && keyExtractor2 != null && keyExtractor3 != null
+                && keyExtractor4 != null && keyExtractor5 != null;
         initialized = initialized && lifetime != null && backoff != null && retries >= 0;
         if (!initialized)
             throw new IllegalStateException("Not properly initialized!");
     }
-
 
     public boolean containsByGlobalId(Long key) {
         WrappedValue<V> value = this.index1.get(key);
@@ -161,7 +160,8 @@ public class ERCache<V> {
         return getValue(value, key, loaderFunction);
     }
 
-    public V getByArtifactCoordinates(ArtifactCoordinates key, Function<ArtifactCoordinates, V> loaderFunction) {
+    public V getByArtifactCoordinates(ArtifactCoordinates key,
+            Function<ArtifactCoordinates, V> loaderFunction) {
         WrappedValue<V> value = this.index4.get(key);
         return getValue(value, key, loaderFunction);
     }
@@ -203,7 +203,8 @@ public class ERCache<V> {
         Optional.ofNullable(keyExtractor3.apply(newValue.value)).ifPresent(k -> index3.put(k, newValue));
         Optional.ofNullable(keyExtractor4.apply(newValue.value)).ifPresent(k -> {
             index4.put(k, newValue);
-            // By storing the lookup key, we ensure that a null/latest lookup gets cached, as the key extractor will
+            // By storing the lookup key, we ensure that a null/latest lookup gets cached, as the key
+            // extractor will
             // automatically add the version to the new key
             if (this.cacheLatest && k.getClass().equals(lookupKey.getClass())) {
                 index4.put((ArtifactCoordinates) lookupKey, newValue);
@@ -222,7 +223,8 @@ public class ERCache<V> {
 
     // === Util & Other
 
-    private static <T> Result<T, RuntimeException> retry(Duration backoff, long retries, Supplier<T> supplier) {
+    private static <T> Result<T, RuntimeException> retry(Duration backoff, long retries,
+            Supplier<T> supplier) {
         if (retries < 0)
             throw new IllegalArgumentException();
         Objects.requireNonNull(supplier);
@@ -234,8 +236,8 @@ public class ERCache<V> {
                 if (value != null)
                     return Result.ok(value);
                 else {
-                    return Result.error(new NullPointerException("Could not retrieve schema for the cache. " +
-                            "Loading function returned null."));
+                    return Result.error(new NullPointerException(
+                            "Could not retrieve schema for the cache. " + "Loading function returned null."));
                 }
             } catch (RuntimeException e) {
                 // TODO: verify if this is really needed, retries are already baked into the adapter ...

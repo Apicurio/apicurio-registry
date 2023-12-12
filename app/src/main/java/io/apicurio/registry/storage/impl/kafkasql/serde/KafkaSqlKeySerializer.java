@@ -14,7 +14,7 @@ import java.nio.ByteBuffer;
  * Responsible for serializing the message key to bytes.
  */
 public class KafkaSqlKeySerializer implements Serializer<MessageKey> {
-    
+
     private static final ObjectMapper mapper = new ObjectMapper();
     static {
         mapper.setSerializationInclusion(Include.NON_NULL);

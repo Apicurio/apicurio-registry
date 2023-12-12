@@ -42,22 +42,16 @@ public class MessageDefinition {
             return addField(label, type, name, num, defaultVal, null, null);
         }
 
-        public Builder addField(
-                String label,
-                String type,
-                String name,
-                int num,
-                String defaultVal,
-                String jsonName,
-                Boolean isPacked
-        ) {
+        public Builder addField(String label, String type, String name, int num, String defaultVal,
+                String jsonName, Boolean isPacked) {
             DescriptorProtos.FieldDescriptorProto.Label protoLabel = sLabelMap.get(label);
             doAddField(protoLabel, type, name, num, defaultVal, jsonName, isPacked, null);
             return this;
         }
 
         public OneofBuilder addOneof(String oneofName) {
-            mMsgTypeBuilder.addOneofDecl(DescriptorProtos.OneofDescriptorProto.newBuilder().setName(oneofName).build());
+            mMsgTypeBuilder.addOneofDecl(
+                    DescriptorProtos.OneofDescriptorProto.newBuilder().setName(oneofName).build());
             return new OneofBuilder(this, mOneofIndex++);
         }
 
@@ -79,8 +73,8 @@ public class MessageDefinition {
 
         // Note: added
         public Builder addReservedRange(int start, int end) {
-            DescriptorProtos.DescriptorProto.ReservedRange.Builder rangeBuilder =
-                    DescriptorProtos.DescriptorProto.ReservedRange.newBuilder();
+            DescriptorProtos.DescriptorProto.ReservedRange.Builder rangeBuilder = DescriptorProtos.DescriptorProto.ReservedRange
+                    .newBuilder();
             rangeBuilder.setStart(start).setEnd(end);
             mMsgTypeBuilder.addReservedRange(rangeBuilder.build());
             return this;
@@ -88,8 +82,8 @@ public class MessageDefinition {
 
         // Note: added
         public Builder setMapEntry(boolean mapEntry) {
-            DescriptorProtos.MessageOptions.Builder optionsBuilder =
-                    DescriptorProtos.MessageOptions.newBuilder();
+            DescriptorProtos.MessageOptions.Builder optionsBuilder = DescriptorProtos.MessageOptions
+                    .newBuilder();
             optionsBuilder.setMapEntry(mapEntry);
             mMsgTypeBuilder.mergeOptions(optionsBuilder.build());
             return this;
@@ -106,17 +100,10 @@ public class MessageDefinition {
             mMsgTypeBuilder.setName(msgTypeName);
         }
 
-        private void doAddField(
-                DescriptorProtos.FieldDescriptorProto.Label label,
-                String type,
-                String name,
-                int num,
-                String defaultVal,
-                String jsonName,
-                Boolean isPacked,
-                OneofBuilder oneofBuilder
-        ) {
-            DescriptorProtos.FieldDescriptorProto.Builder fieldBuilder = DescriptorProtos.FieldDescriptorProto.newBuilder();
+        private void doAddField(DescriptorProtos.FieldDescriptorProto.Label label, String type, String name,
+                int num, String defaultVal, String jsonName, Boolean isPacked, OneofBuilder oneofBuilder) {
+            DescriptorProtos.FieldDescriptorProto.Builder fieldBuilder = DescriptorProtos.FieldDescriptorProto
+                    .newBuilder();
             // Note: changed
             if (label != null) {
                 fieldBuilder.setLabel(label);
@@ -138,8 +125,8 @@ public class MessageDefinition {
                 fieldBuilder.setJsonName(jsonName);
             }
             if (isPacked != null) {
-                DescriptorProtos.FieldOptions.Builder optionsBuilder =
-                        DescriptorProtos.FieldOptions.newBuilder();
+                DescriptorProtos.FieldOptions.Builder optionsBuilder = DescriptorProtos.FieldOptions
+                        .newBuilder();
                 optionsBuilder.setPacked(isPacked);
                 fieldBuilder.mergeOptions(optionsBuilder.build());
             }
@@ -160,23 +147,9 @@ public class MessageDefinition {
             return addField(type, name, num, defaultVal, null);
         }
 
-        public OneofBuilder addField(
-                String type,
-                String name,
-                int num,
-                String defaultVal,
-                String jsonName
-        ) {
-            mMsgBuilder.doAddField(
-                    DescriptorProtos.FieldDescriptorProto.Label.LABEL_OPTIONAL,
-                    type,
-                    name,
-                    num,
-                    defaultVal,
-                    jsonName,
-                    null,
-                    this
-            );
+        public OneofBuilder addField(String type, String name, int num, String defaultVal, String jsonName) {
+            mMsgBuilder.doAddField(DescriptorProtos.FieldDescriptorProto.Label.LABEL_OPTIONAL, type, name,
+                    num, defaultVal, jsonName, null, this);
             return this;
         }
 
@@ -221,9 +194,9 @@ public class MessageDefinition {
         sTypeMap.put("bool", DescriptorProtos.FieldDescriptorProto.Type.TYPE_BOOL);
         sTypeMap.put("string", DescriptorProtos.FieldDescriptorProto.Type.TYPE_STRING);
         sTypeMap.put("bytes", DescriptorProtos.FieldDescriptorProto.Type.TYPE_BYTES);
-        //sTypeMap.put("enum", FieldDescriptorProto.Type.TYPE_ENUM);
-        //sTypeMap.put("message", FieldDescriptorProto.Type.TYPE_MESSAGE);
-        //sTypeMap.put("group", FieldDescriptorProto.Type.TYPE_GROUP);
+        // sTypeMap.put("enum", FieldDescriptorProto.Type.TYPE_ENUM);
+        // sTypeMap.put("message", FieldDescriptorProto.Type.TYPE_MESSAGE);
+        // sTypeMap.put("group", FieldDescriptorProto.Type.TYPE_GROUP);
 
         sLabelMap = new HashMap<String, DescriptorProtos.FieldDescriptorProto.Label>();
         sLabelMap.put("optional", DescriptorProtos.FieldDescriptorProto.Label.LABEL_OPTIONAL);

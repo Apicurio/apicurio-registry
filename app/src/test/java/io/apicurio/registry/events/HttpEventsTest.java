@@ -44,30 +44,30 @@ public class HttpEventsTest extends AbstractResourceTestBase {
     public void setup() throws TimeoutException {
         CompletableFuture<HttpServer> serverFuture = new CompletableFuture<>();
         events = new CopyOnWriteArrayList<>();
-        server = Vertx.vertx().createHttpServer(new HttpServerOptions()
-                        .setPort(8976))
-                .requestHandler(req -> {
-                    if (RegistryEventType.ARTIFACT_CREATED.cloudEventType().equals(req.headers().get("ce-type"))
-                            || RegistryEventType.ARTIFACT_UPDATED.cloudEventType().equals(req.headers().get("ce-type"))) {
-                        events.add(req.headers().get("ce-type"));
-                    }
-                    req.response().setStatusCode(200).end();
-                })
-                .listen(createdServer -> {
-                    if (createdServer.succeeded()) {
-                        serverFuture.complete(createdServer.result());
-                    } else {
-                        serverFuture.completeExceptionally(createdServer.cause());
-                    }
-                });
+        server = Vertx.vertx().createHttpServer(new HttpServerOptions().setPort(8976)).requestHandler(req -> {
+            if (RegistryEventType.ARTIFACT_CREATED.cloudEventType().equals(req.headers().get("ce-type"))
+                    || RegistryEventType.ARTIFACT_UPDATED.cloudEventType()
+                            .equals(req.headers().get("ce-type"))) {
+                events.add(req.headers().get("ce-type"));
+            }
+            req.response().setStatusCode(200).end();
+        }).listen(createdServer -> {
+            if (createdServer.succeeded()) {
+                serverFuture.complete(createdServer.result());
+            } else {
+                serverFuture.completeExceptionally(createdServer.cause());
+            }
+        });
 
-        TestUtils.waitFor("proxy is ready", Duration.ofSeconds(1).toMillis(), Duration.ofSeconds(30).toMillis(), serverFuture::isDone);
+        TestUtils.waitFor("proxy is ready", Duration.ofSeconds(1).toMillis(),
+                Duration.ofSeconds(30).toMillis(), serverFuture::isDone);
     }
 
     @Test
     @Timeout(value = 65, unit = TimeUnit.SECONDS)
     public void testHttpEvents() throws TimeoutException {
-        InputStream jsonSchema = getClass().getResourceAsStream("/io/apicurio/registry/util/json-schema.json");
+        InputStream jsonSchema = getClass()
+                .getResourceAsStream("/io/apicurio/registry/util/json-schema.json");
         Assertions.assertNotNull(jsonSchema);
         String content = IoUtil.toString(jsonSchema);
 
@@ -83,12 +83,10 @@ public class HttpEventsTest extends AbstractResourceTestBase {
 
         TestUtils.waitFor("Events to be produced", 200, 60 * 100, () -> events.size() == 2);
 
-        assertLinesMatch(
-                Arrays.asList(RegistryEventType.ARTIFACT_CREATED.cloudEventType(), RegistryEventType.ARTIFACT_UPDATED.cloudEventType()),
-                events);
+        assertLinesMatch(Arrays.asList(RegistryEventType.ARTIFACT_CREATED.cloudEventType(),
+                RegistryEventType.ARTIFACT_UPDATED.cloudEventType()), events);
 
     }
-
 
     @AfterAll
     public void close() {

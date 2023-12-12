@@ -1,9 +1,9 @@
 package io.apicurio.registry.cncf.schemaregistry.impl;
 
-import java.util.Date;
-
 import io.apicurio.registry.cncf.schemaregistry.beans.SchemaGroup;
 import io.apicurio.registry.storage.dto.GroupMetaDataDto;
+
+import java.util.Date;
 
 public final class CNCFApiUtil {
 

@@ -14,7 +14,6 @@ public class CommentIdKey implements MessageKey {
 
     /**
      * Creator method.
-     *
      */
     public static final CommentIdKey create() {
         return new CommentIdKey();

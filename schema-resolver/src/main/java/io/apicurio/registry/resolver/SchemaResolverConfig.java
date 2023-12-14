@@ -75,7 +75,7 @@ public class SchemaResolverConfig {
 
     /**
      * Only applicable for serializers
-     * Optional, set explicitly the schema location for the schema to be used for serializing the data.
+     * Optional, set explicitly the schema location in the classpath for the schema to be used for serializing the data.
      */
     public static final String SCHEMA_LOCATION = "apicurio.registry.artifact.schema.location";
 

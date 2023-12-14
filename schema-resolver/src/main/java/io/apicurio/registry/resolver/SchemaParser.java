@@ -51,9 +51,26 @@ public interface SchemaParser<S, U> {
     ParsedSchema<S> getSchemaFromData(Record<U> data, boolean dereference);
 
     /**
+     * In some artifact types, such as Json, we allow defining a local place for the schema.
+     *
+     * @param location the schema location
+     * @return the ParsedSchema, containing both the raw schema (bytes) and the parsed schema. Can be null.
+     */
+    default ParsedSchema<S> getSchemaFromLocation(String location) {
+        return null;
+    }
+
+    /**
      * Flag that indicates if {@link SchemaParser#getSchemaFromData(Record)} is implemented or not.
      */
     default boolean supportsExtractSchemaFromData() {
         return true;
+    }
+
+    /**
+     * Flag that indicates if {@link SchemaParser#getSchemaFromLocation(String)} is implemented or not.
+     */
+    default boolean supportsGetSchemaFromLocation() {
+        return false;
     }
 }

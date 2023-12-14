@@ -17,6 +17,7 @@
 package io.apicurio.registry.serde.jsonschema;
 
 import io.apicurio.registry.resolver.ParsedSchema;
+import io.apicurio.registry.resolver.ParsedSchemaImpl;
 import io.apicurio.registry.resolver.SchemaParser;
 import io.apicurio.registry.resolver.data.Record;
 import io.apicurio.registry.types.ArtifactType;
@@ -44,11 +45,6 @@ public class JsonSchemaParser<T> implements SchemaParser<JsonSchema, T> {
                 .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().getParsedSchema())), 0);
     }
 
-    //TODO we could implement some way of providing the jsonschema beforehand:
-    // - via annotation in the object being serialized
-    // - via config property
-    //if we do this users will be able to automatically registering the schema when using this serde
-
     /**
      * @see io.apicurio.registry.resolver.SchemaParser#getSchemaFromData(java.lang.Object)
      */
@@ -65,7 +61,21 @@ public class JsonSchemaParser<T> implements SchemaParser<JsonSchema, T> {
     }
 
     @Override
+    public ParsedSchema<JsonSchema> getSchemaFromLocation(String location) {
+        String rawSchema = IoUtil.toString(Thread.currentThread().getContextClassLoader().getResourceAsStream(location));
+
+        return new ParsedSchemaImpl<JsonSchema>()
+                .setParsedSchema(new JsonSchema(rawSchema))
+                .setRawSchema(rawSchema.getBytes());
+    }
+
+    @Override
     public boolean supportsExtractSchemaFromData() {
         return false;
+    }
+
+    @Override
+    public boolean supportsGetSchemaFromLocation() {
+        return true;
     }
 }

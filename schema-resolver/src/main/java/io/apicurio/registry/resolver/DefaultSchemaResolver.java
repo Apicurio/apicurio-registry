@@ -91,16 +91,23 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
 
     private SchemaLookupResult<S> getSchemaFromRegistry(ParsedSchema<S> parsedSchema, Record<T> data, ArtifactReference artifactReference) {
 
-        if (autoCreateArtifact && schemaParser.supportsExtractSchemaFromData()) {
-            if (parsedSchema == null) {
-                parsedSchema = schemaParser.getSchemaFromData(data, dereference);
-            }
+        if (autoCreateArtifact) {
 
-            if (parsedSchema.hasReferences()) {
-                //List of references lookup, to be used to create the references for the artifact
-                final List<SchemaLookupResult<S>> schemaLookupResults = handleArtifactReferences(data, parsedSchema);
-                return handleAutoCreateArtifact(parsedSchema, artifactReference, schemaLookupResults);
-            } else {
+            if (schemaParser.supportsExtractSchemaFromData()) {
+
+                if (parsedSchema == null) {
+                    parsedSchema = schemaParser.getSchemaFromData(data, dereference);
+                }
+
+                if (parsedSchema.hasReferences()) {
+                    //List of references lookup, to be used to create the references for the artifact
+                    final List<SchemaLookupResult<S>> schemaLookupResults = handleArtifactReferences(data, parsedSchema);
+                    return handleAutoCreateArtifact(parsedSchema, artifactReference, schemaLookupResults);
+                } else {
+                    return handleAutoCreateArtifact(parsedSchema, artifactReference);
+                }
+            } else if (config.getExplicitSchemaLocation() != null && schemaParser.supportsGetSchemaFromLocation()) {
+                parsedSchema = schemaParser.getSchemaFromLocation(config.getExplicitSchemaLocation());
                 return handleAutoCreateArtifact(parsedSchema, artifactReference);
             }
         }

@@ -12,9 +12,12 @@ import io.apicurio.registry.serde.config.BaseKafkaSerDeConfig;
 
 public class JsonSchemaKafkaSerializerConfig extends BaseKafkaSerDeConfig {
 
+    public static final String JSON_SCHEMA_LOCATION = "apicurio.registry.json.schema.location";
+
     private static ConfigDef configDef() {
         ConfigDef configDef = new ConfigDef()
-                .define(VALIDATION_ENABLED, Type.BOOLEAN, VALIDATION_ENABLED_DEFAULT, Importance.MEDIUM, "Whether to validate the data against the json schema");
+                .define(VALIDATION_ENABLED, Type.BOOLEAN, VALIDATION_ENABLED_DEFAULT, Importance.MEDIUM, "Whether to validate the data against the json schema")
+                .define(JSON_SCHEMA_LOCATION, Type.STRING, null, Importance.MEDIUM, "TODO docs");
         return configDef;
     }
 
@@ -31,4 +34,7 @@ public class JsonSchemaKafkaSerializerConfig extends BaseKafkaSerDeConfig {
         return this.getBoolean(VALIDATION_ENABLED);
     }
 
+    public String getJsonSchemaLocation() {
+        return this.getString(JSON_SCHEMA_LOCATION);
+    }
 }

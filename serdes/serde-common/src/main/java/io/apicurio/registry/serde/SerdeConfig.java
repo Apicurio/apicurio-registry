@@ -77,6 +77,12 @@ public class SerdeConfig {
 
     /**
      * Only applicable for serializers
+     * Optional, set explicitly the schema used for serialization.
+     */
+    public static final String SCHEMA_LOCATION = SchemaResolverConfig.SCHEMA_LOCATION;
+
+    /**
+     * Only applicable for serializers
      * Optional, set explicitly the version used for querying/creating an artifact.
      * Overrides the version returned by the {@link ArtifactResolverStrategy}
      */

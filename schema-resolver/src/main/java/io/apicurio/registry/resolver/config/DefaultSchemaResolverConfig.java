@@ -112,6 +112,10 @@ public class DefaultSchemaResolverConfig {
         return getString(EXPLICIT_ARTIFACT_ID);
     }
 
+    public String getExplicitSchemaLocation() {
+        return getString(SCHEMA_LOCATION);
+    }
+
     public String getExplicitArtifactVersion() {
         return getString(EXPLICIT_ARTIFACT_VERSION);
     }

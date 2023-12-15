@@ -32,9 +32,8 @@ import io.apicurio.registry.serde.config.BaseKafkaSerDeConfig;
 public class JsonSchemaKafkaSerializerConfig extends BaseKafkaSerDeConfig {
 
     private static ConfigDef configDef() {
-        ConfigDef configDef = new ConfigDef()
+        return new ConfigDef()
                 .define(VALIDATION_ENABLED, Type.BOOLEAN, VALIDATION_ENABLED_DEFAULT, Importance.MEDIUM, "Whether to validate the data against the json schema");
-        return configDef;
     }
 
     /**
@@ -49,5 +48,4 @@ public class JsonSchemaKafkaSerializerConfig extends BaseKafkaSerDeConfig {
     public boolean validationEnabled() {
         return this.getBoolean(VALIDATION_ENABLED);
     }
-
 }

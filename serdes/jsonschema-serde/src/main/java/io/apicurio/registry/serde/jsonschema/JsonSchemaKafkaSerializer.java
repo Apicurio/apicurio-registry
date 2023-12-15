@@ -124,7 +124,6 @@ public class JsonSchemaKafkaSerializer<T> extends AbstractKafkaSerializer<JsonSc
      */
     @Override
     protected void serializeData(ParsedSchema<JsonSchema> schema, T data, OutputStream out) throws IOException {
-        //TODO add property to specify a jsonschema to allow for auto-register json schemas
         serializeData(null, schema, data, out);
     }
 

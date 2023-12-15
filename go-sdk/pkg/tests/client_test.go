@@ -22,7 +22,7 @@ import (
 )
 
 const RegistryHost = "localhost"
-const RegistryPort = "1080"
+const RegistryPort = "8080"
 
 var RegistryUrl = fmt.Sprintf("http://%s:%s/apis/registry/v2", RegistryHost, RegistryPort)
 
@@ -78,30 +78,43 @@ func setupSuite(t *testing.T) func(t *testing.T) {
 	}
 }
 
-// func TestAccessSystemInfo(t *testing.T) {
-// 	teardownSuite := setupSuite(t)
-// 	defer teardownSuite(t)
-
-// 	authProvider := auth.AnonymousAuthenticationProvider{}
-
-// 	adapter, err := kiotaHttp.NewNetHttpRequestAdapter(&authProvider)
-// 	adapter.SetBaseUrl(RegistryUrl)
-// 	assert.Nil(t, err)
-// 	client := registryclientv2.NewApiClient(adapter)
-
-// 	info, err := client.System().Info().Get(context.Background(), nil)
-// 	assert.Nil(t, err)
-
-// 	assert.Equal(t, "apicurio-registry", *info.GetName())
-// }
-
-func TestCreateAnArtifact(t *testing.T) {
-	// teardownSuite := setupSuite(t)
-	// defer teardownSuite(t)
+func TestAccessSystemInfo(t *testing.T) {
+	teardownSuite := setupSuite(t)
+	defer teardownSuite(t)
 
 	authProvider := auth.AnonymousAuthenticationProvider{}
 
 	adapter, err := kiotaHttp.NewNetHttpRequestAdapter(&authProvider)
+	adapter.SetBaseUrl(RegistryUrl)
+	assert.Nil(t, err)
+	client := registryclientv2.NewApiClient(adapter)
+
+	info, err := client.System().Info().Get(context.Background(), nil)
+	assert.Nil(t, err)
+
+	assert.Equal(t, "apicurio-registry", *info.GetName())
+}
+
+func TestCreateAnArtifact(t *testing.T) {
+	teardownSuite := setupSuite(t)
+	defer teardownSuite(t)
+
+	authProvider := auth.AnonymousAuthenticationProvider{}
+
+	adapter, err := kiotaHttp.NewNetHttpRequestAdapterWithParseNodeFactoryAndSerializationWriterFactoryAndHttpClient(
+		&authProvider,
+		nil,
+		nil,
+		kiotaHttp.GetDefaultClient(
+			kiotaHttp.NewRetryHandler(),
+			kiotaHttp.NewRedirectHandler(),
+			kiotaHttp.NewParametersNameDecodingHandler(),
+			// NewCompressionHandler(),
+			kiotaHttp.NewUserAgentHandler(),
+			kiotaHttp.NewHeadersInspectionHandler(),
+		),
+	)
+	// adapter, err := kiotaHttp.NewNetHttpRequestAdapter(&authProvider)
 	adapter.SetBaseUrl(RegistryUrl)
 	assert.Nil(t, err)
 	client := registryclientv2.NewApiClient(adapter)
@@ -112,12 +125,16 @@ func TestCreateAnArtifact(t *testing.T) {
 	config := &groups.ItemArtifactsRequestBuilderPostRequestConfiguration{
 		Headers: &abstractions.RequestHeaders{},
 	}
-	config.Headers.Add("Content-Type", "application/create.extended+json")
-	_, err = client.Groups().ByGroupId("default").Artifacts().Post(context.Background(), &models.ArtifactContent{}, config)
+	config.Headers.Add("Content-Type", "application/json")
+	reqInfo, err := client.Groups().ByGroupId("default").Artifacts().ToPostRequestInformation(context.Background(), &models.ArtifactContent{}, config)
+	assert.Nil(t, err)
+	reqInfo.Content = []byte(contentStr)
+	artifact, err := adapter.Send(context.Background(), reqInfo, models.CreateArtifactMetaDataFromDiscriminatorValue, nil)
+	// _, err = client.Groups().ByGroupId("default").Artifacts().Post(context.Background(), &models.ArtifactContent{}, config)
 	assert.Nil(t, err)
 
-	// resultArtifact, err := client.Groups().ByGroupId("default").Artifacts().ByArtifactId(*artifact.GetId()).Get(context.Background(), nil)
-	// assert.Nil(t, err)
+	resultArtifact, err := client.Groups().ByGroupId("default").Artifacts().ByArtifactId(*artifact.(models.ArtifactMetaDataable).GetId()).Get(context.Background(), nil)
+	assert.Nil(t, err)
 
-	// assert.Equal(t, contentStr, string(resultArtifact[:]))
+	assert.Equal(t, contentStr, string(resultArtifact[:]))
 }

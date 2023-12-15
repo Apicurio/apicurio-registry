@@ -10,3 +10,7 @@ generate:
 .PHONY: test
 test:
 	go test ./... -count=1
+
+.PHONY: test
+format:
+	go fmt ./...

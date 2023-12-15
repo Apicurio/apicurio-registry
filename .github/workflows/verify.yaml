@@ -357,7 +357,6 @@ jobs:
 
       - name: Go - Setup Go
         uses: actions/setup-go@v5
-        if: matrix.language == 'go'
         with:
           go-version: '1.20'
 

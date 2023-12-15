@@ -14,9 +14,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	registryclientv2 "github.com/apicurio/apicurio-registry/go-sdk/pkg/registryclient-v2"
-	"github.com/apicurio/apicurio-registry/go-sdk/pkg/registryclient-v2/groups"
 	"github.com/apicurio/apicurio-registry/go-sdk/pkg/registryclient-v2/models"
-	abstractions "github.com/microsoft/kiota-abstractions-go"
 	auth "github.com/microsoft/kiota-abstractions-go/authentication"
 	kiotaHttp "github.com/microsoft/kiota-http-go"
 )
@@ -101,39 +99,29 @@ func TestCreateAnArtifact(t *testing.T) {
 
 	authProvider := auth.AnonymousAuthenticationProvider{}
 
-	adapter, err := kiotaHttp.NewNetHttpRequestAdapterWithParseNodeFactoryAndSerializationWriterFactoryAndHttpClient(
-		&authProvider,
-		nil,
-		nil,
-		kiotaHttp.GetDefaultClient(
-			kiotaHttp.NewRetryHandler(),
-			kiotaHttp.NewRedirectHandler(),
-			kiotaHttp.NewParametersNameDecodingHandler(),
-			// NewCompressionHandler(),
-			kiotaHttp.NewUserAgentHandler(),
-			kiotaHttp.NewHeadersInspectionHandler(),
-		),
+	// Workaround for: https://github.com/microsoft/kiota-http-go/issues/130
+	httpClient := kiotaHttp.GetDefaultClient(
+		kiotaHttp.NewRetryHandler(),
+		kiotaHttp.NewRedirectHandler(),
+		kiotaHttp.NewParametersNameDecodingHandler(),
+		// NewCompressionHandler(),
+		kiotaHttp.NewUserAgentHandler(),
+		kiotaHttp.NewHeadersInspectionHandler(),
 	)
+
+	adapter, err := kiotaHttp.NewNetHttpRequestAdapterWithParseNodeFactoryAndSerializationWriterFactoryAndHttpClient(&authProvider, nil, nil, httpClient)
 	// adapter, err := kiotaHttp.NewNetHttpRequestAdapter(&authProvider)
 	adapter.SetBaseUrl(RegistryUrl)
 	assert.Nil(t, err)
 	client := registryclientv2.NewApiClient(adapter)
-	contentStr := "{ \"openapi\": \"3.0.0\", \"info\": { \"title\": \"My API\", \"version\": \"1.0.0\" }, \"paths\": {} }"
+	contentStr := `{ "openapi": "3.0.0", "info": { "title": "My API", "version": "1.0.0" }, "paths": {} }`
 	content := models.NewArtifactContent()
 	content.SetContent(&contentStr)
 
-	config := &groups.ItemArtifactsRequestBuilderPostRequestConfiguration{
-		Headers: &abstractions.RequestHeaders{},
-	}
-	config.Headers.Add("Content-Type", "application/json")
-	reqInfo, err := client.Groups().ByGroupId("default").Artifacts().ToPostRequestInformation(context.Background(), &models.ArtifactContent{}, config)
-	assert.Nil(t, err)
-	reqInfo.Content = []byte(contentStr)
-	artifact, err := adapter.Send(context.Background(), reqInfo, models.CreateArtifactMetaDataFromDiscriminatorValue, nil)
-	// _, err = client.Groups().ByGroupId("default").Artifacts().Post(context.Background(), &models.ArtifactContent{}, config)
+	artifact, err := client.Groups().ByGroupId("default").Artifacts().Post(context.Background(), content, nil)
 	assert.Nil(t, err)
 
-	resultArtifact, err := client.Groups().ByGroupId("default").Artifacts().ByArtifactId(*artifact.(models.ArtifactMetaDataable).GetId()).Get(context.Background(), nil)
+	resultArtifact, err := client.Groups().ByGroupId("default").Artifacts().ByArtifactId(*artifact.GetId()).Get(context.Background(), nil)
 	assert.Nil(t, err)
 
 	assert.Equal(t, contentStr, string(resultArtifact[:]))

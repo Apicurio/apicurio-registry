@@ -17,16 +17,16 @@
     "@monaco-editor/react": "4.6.0",
     "@types/luxon": "3.3.7",
     "@types/react": "18.2.45",
-    "@types/react-dom": "18.2.17",
+    "@types/react-dom": "18.2.18",
     "@typescript-eslint/eslint-plugin": "6.14.0",
     "@typescript-eslint/parser": "6.14.0",
     "@vitejs/plugin-react-swc": "3.5.0",
-    "eslint": "8.55.0",
+    "eslint": "8.56.0",
     "eslint-plugin-react-hooks": "4.6.0",
     "eslint-plugin-react-refresh": "0.4.5",
     "rimraf": "5.0.5",
     "typescript": "5.3.3",
-    "vite": "5.0.8",
+    "vite": "5.0.10",
     "vite-tsconfig-paths": "4.2.2"
   },
   "dependencies": {
@@ -42,7 +42,7 @@
     "oidc-client-ts": "2.4.0",
     "react": "18.2.0",
     "react-dom": "18.2.0",
-    "react-router-dom": "6.20.1",
+    "react-router-dom": "6.21.0",
     "use-resize-observer": "9.1.0",
     "yaml": "2.3.4"
   }

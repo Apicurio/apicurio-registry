@@ -117,6 +117,54 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
     }
 
     @Test
+    public void testJsonSchemaSerdeAutoRegister() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        String artifactId = generateArtifactId();
+
+        Person person = new Person("Carles", "Arnal", 30);
+
+        try (JsonSchemaKafkaSerializer<Person> serializer = new JsonSchemaKafkaSerializer<>(restClient, true);
+             Deserializer<Person> deserializer = new JsonSchemaKafkaDeserializer<>(restClient, true)) {
+
+            Map<String, Object> config = new HashMap<>();
+            config.put(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, groupId);
+            config.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, SimpleTopicIdStrategy.class.getName());
+            config.put(SerdeConfig.SCHEMA_LOCATION, "/io/apicurio/registry/util/json-schema.json");
+            config.put(SerdeConfig.AUTO_REGISTER_ARTIFACT, true);
+            serializer.configure(config, false);
+
+            deserializer.configure(Collections.emptyMap(), false);
+
+            Headers headers = new RecordHeaders();
+            byte[] bytes = serializer.serialize(artifactId, headers, person);
+
+            person = deserializer.deserialize(artifactId, headers, bytes);
+
+            Assertions.assertEquals("Carles", person.getFirstName());
+            Assertions.assertEquals("Arnal", person.getLastName());
+            Assertions.assertEquals(30, person.getAge());
+
+            person.setAge(-1);
+
+            try {
+                serializer.serialize(artifactId, new RecordHeaders(), person);
+                Assertions.fail();
+            } catch (Exception ignored) {
+            }
+
+            serializer.setValidationEnabled(false); // disable validation
+            // create invalid person bytes
+            bytes = serializer.serialize(artifactId, headers, person);
+
+            try {
+                deserializer.deserialize(artifactId, headers, bytes);
+                Assertions.fail();
+            } catch (Exception ignored) {
+            }
+        }
+    }
+
+    @Test
     public void testJsonSchemaSerdeHeaders() throws Exception {
         InputStream jsonSchema = getClass().getResourceAsStream("/io/apicurio/registry/util/json-schema.json");
         Assertions.assertNotNull(jsonSchema);

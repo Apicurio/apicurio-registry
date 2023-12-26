@@ -103,7 +103,7 @@
 					<plugin>
 						<groupId>dev.jbang</groupId>
 						<artifactId>jbang-maven-plugin</artifactId>
-						<version>0.0.7</version>
+						<version>0.0.8</version>
 						<inherited>false</inherited>
 						<executions>
 							<execution>

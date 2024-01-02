@@ -1,19 +1,3 @@
-/*
- * Copyright 2021 Red Hat
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package io.apicurio.registry.auth;
 
 import com.microsoft.kiota.authentication.BaseBearerTokenAuthenticationProvider;
@@ -46,7 +30,6 @@ import java.util.concurrent.TimeUnit;
 /**
  * Tests local role mappings (managed in the database via the role-mapping API).
  *
- * @author eric.wittmann@gmail.com
  */
 @QuarkusTest
 @TestProfile(AuthTestProfileWithLocalRoles.class)
@@ -65,11 +48,11 @@ public class AuthTestLocalRoles extends AbstractResourceTestBase {
     String authServerUrlConfigured;
 
     @Override
-    protected RegistryClient createRestClientV2() {
+    protected RegistryClient createRestClientV3() {
         var adapter = new OkHttpRequestAdapter(
                 new BaseBearerTokenAuthenticationProvider(
                         new OidcAccessTokenProvider(authServerUrlConfigured, JWKSMockServer.ADMIN_CLIENT_ID, "test1")));
-        adapter.setBaseUrl(registryV2ApiUrl);
+        adapter.setBaseUrl(registryV3ApiUrl);
         return new RegistryClient(adapter);
     }
 
@@ -88,13 +71,13 @@ public class AuthTestLocalRoles extends AbstractResourceTestBase {
         var adapterAdmin = new OkHttpRequestAdapter(
                 new BaseBearerTokenAuthenticationProvider(
                         new OidcAccessTokenProvider(authServerUrlConfigured, JWKSMockServer.ADMIN_CLIENT_ID, "test1")));
-        adapterAdmin.setBaseUrl(registryV2ApiUrl);
+        adapterAdmin.setBaseUrl(registryV3ApiUrl);
         RegistryClient clientAdmin = new RegistryClient(adapterAdmin);
 
         var adapterAuth = new OkHttpRequestAdapter(
                 new BaseBearerTokenAuthenticationProvider(
                         new OidcAccessTokenProvider(authServerUrlConfigured, JWKSMockServer.NO_ROLE_CLIENT_ID, "test1")));
-        adapterAuth.setBaseUrl(registryV2ApiUrl);
+        adapterAuth.setBaseUrl(registryV3ApiUrl);
         RegistryClient client = new RegistryClient(adapterAuth);
 
         // User is authenticated but no roles assigned yet - operations should fail.

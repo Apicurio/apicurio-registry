@@ -1,24 +1,10 @@
-/*
- * Copyright 2020 Red Hat
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package io.apicurio.registry.utils.converter;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.apicurio.registry.resolver.ParsedSchema;
 import io.apicurio.registry.resolver.ParsedSchemaImpl;
 import io.apicurio.registry.resolver.SchemaLookupResult;
@@ -33,12 +19,12 @@ import io.apicurio.registry.utils.converter.json.FormatStrategy;
 import io.apicurio.registry.utils.converter.json.JsonConverterMetadata;
 import io.apicurio.registry.utils.converter.json.JsonConverterRecord;
 import io.apicurio.registry.utils.converter.json.PrettyFormatStrategy;
-
 import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaAndValue;
 import org.apache.kafka.connect.json.JsonConverter;
 import org.apache.kafka.connect.json.JsonConverterConfig;
+import org.apache.kafka.connect.json.JsonDeserializer;
 import org.apache.kafka.connect.storage.Converter;
 
 import java.io.IOException;
@@ -47,15 +33,14 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
-/**
- * @author Ales Justin
- * @author Fabian Martinez
- */
 public class ExtJsonConverter extends SchemaResolverConfigurer<JsonNode, Object> implements Converter, SchemaParser<JsonNode, Object>, AutoCloseable {
     private final JsonConverter jsonConverter;
+    private final JsonConverter deserializingConverter;
     private final ObjectMapper mapper;
     private FormatStrategy formatStrategy;
     private boolean isKey;
+
+    private JsonDeserializer jsonDeserializer;
 
     public ExtJsonConverter() {
         this(null);
@@ -64,8 +49,10 @@ public class ExtJsonConverter extends SchemaResolverConfigurer<JsonNode, Object>
     public ExtJsonConverter(RegistryClient client) {
         super(client);
         this.jsonConverter = new JsonConverter();
+        this.deserializingConverter = new JsonConverter();
         this.mapper = new ObjectMapper();
         this.formatStrategy = new PrettyFormatStrategy();
+        this.jsonDeserializer = new JsonDeserializer();
     }
 
     public ExtJsonConverter setFormatStrategy(FormatStrategy formatStrategy) {
@@ -75,11 +62,16 @@ public class ExtJsonConverter extends SchemaResolverConfigurer<JsonNode, Object>
 
     @Override
     public void configure(Map<String, ?> configs, boolean isKey) {
-        super.configure((Map<String, Object>)configs, isKey, this);
+        super.configure((Map<String, Object>) configs, isKey, this);
         this.isKey = isKey;
         Map<String, Object> wrapper = new HashMap<>(configs);
         wrapper.put(JsonConverterConfig.SCHEMAS_ENABLE_CONFIG, false);
         jsonConverter.configure(wrapper, isKey);
+
+        Map<String, Object> deserializingConfig = new HashMap<>(configs);
+        wrapper.put(JsonConverterConfig.SCHEMAS_ENABLE_CONFIG, true);
+        deserializingConverter.configure(deserializingConfig, false);
+        jsonDeserializer.configure(wrapper, false);
     }
 
     @Override
@@ -110,10 +102,24 @@ public class ExtJsonConverter extends SchemaResolverConfigurer<JsonNode, Object>
 
         SchemaLookupResult<JsonNode> schemaLookupResult = getSchemaResolver().resolveSchemaByArtifactReference(ArtifactReference.builder().globalId(globalId).build());
 
-        Schema schema = jsonConverter.asConnectSchema(schemaLookupResult.getParsedSchema().getParsedSchema());
+        JsonNode parsedSchema = schemaLookupResult.getParsedSchema().getParsedSchema();
+        JsonNode dataDeserialized = jsonDeserializer.deserialize(topic, ip.getPayload());
 
-        byte[] payload = ip.getPayload();
-        SchemaAndValue sav = jsonConverter.toConnectData(topic, payload);
+        //Since the json converter is expecting the data to have the schema to fully validate it, we build an envelope object containing the schema from registry and the data deserialized
+        ObjectNode envelope = JsonNodeFactory.withExactBigDecimals(true).objectNode();
+        envelope.set("schema", parsedSchema);
+        envelope.set("payload", dataDeserialized);
+        dataDeserialized = envelope;
+
+        SchemaAndValue sav;
+        try {
+            sav = deserializingConverter.toConnectData(topic, mapper.writeValueAsBytes(dataDeserialized));
+
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+
+        Schema schema = deserializingConverter.asConnectSchema(schemaLookupResult.getParsedSchema().getParsedSchema());
 
         return new SchemaAndValue(schema, sav.value());
     }
@@ -163,5 +169,4 @@ public class ExtJsonConverter extends SchemaResolverConfigurer<JsonNode, Object>
     public void close() throws Exception {
         jsonConverter.close();
     }
-
 }

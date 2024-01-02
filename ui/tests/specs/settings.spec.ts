@@ -12,7 +12,7 @@ test.beforeEach(async ({ page }) => {
 test("Settings - Filter", async ({ page }) => {
     await expect(page.getByTestId("settings-search-widget").locator("input")).toBeEmpty();
     expect(page.getByTestId("config-groups")).toBeDefined();
-    await expect(page.getByTestId("config-groups").locator(".configuration-property")).toHaveCount(4);
+    await expect(page.getByTestId("config-groups").locator(".configuration-property")).toHaveCount(6);
 
     await page.getByTestId("settings-search-widget").locator("input").fill("legacy");
     await expect(page.getByTestId("settings-search-widget").locator("input")).toHaveValue("legacy");

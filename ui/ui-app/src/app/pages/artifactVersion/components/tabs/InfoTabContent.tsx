@@ -20,8 +20,7 @@ import {
 import { DownloadIcon, PencilAltIcon } from "@patternfly/react-icons";
 import { ArtifactMetaData } from "@models/artifactMetaData.model.ts";
 import { Rule } from "@models/rule.model.ts";
-import { FromNow } from "@app/components/common/FromNow.tsx";
-import { If } from "@apicurio/common-ui-components";
+import { FromNow, If } from "@apicurio/common-ui-components";
 
 /**
  * Properties

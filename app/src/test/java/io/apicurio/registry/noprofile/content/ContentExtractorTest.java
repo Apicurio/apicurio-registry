@@ -1,19 +1,3 @@
-/*
- * Copyright 2022 Red Hat
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package io.apicurio.registry.noprofile.content;
 
 import java.util.concurrent.TimeUnit;
@@ -34,9 +18,6 @@ import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 import io.quarkus.test.junit.QuarkusTest;
 
-/**
- * @author Ales Justin
- */
 @QuarkusTest
 public class ContentExtractorTest extends AbstractResourceTestBase {
 
@@ -181,7 +162,7 @@ public class ContentExtractorTest extends AbstractResourceTestBase {
 
         ArtifactContent data = new ArtifactContent();
         data.setContent(content);
-        ArtifactMetaData amd = clientV2.groups().byGroupId(groupId).artifacts().post(data, config -> {
+        ArtifactMetaData amd = clientV3.groups().byGroupId(groupId).artifacts().post(data, config -> {
             config.headers.add("X-Registry-ArtifactId", artifactId);
             config.headers.add("X-Registry-ArtifactType", ArtifactType.AVRO);
         }).get(3, TimeUnit.SECONDS);
@@ -194,7 +175,7 @@ public class ContentExtractorTest extends AbstractResourceTestBase {
         name = "schema_" + System.currentTimeMillis();
         content = String.format(avroFormat, name);
         data.setContent(content);
-        amd = clientV2.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).put(data).get(3, TimeUnit.SECONDS);
+        amd = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).put(data).get(3, TimeUnit.SECONDS);
         Assertions.assertEquals(name, amd.getName());
     }
 
@@ -223,7 +204,7 @@ public class ContentExtractorTest extends AbstractResourceTestBase {
 
         ArtifactContent data = new ArtifactContent();
         data.setContent(content);
-        ArtifactMetaData amd = clientV2.groups().byGroupId(groupId).artifacts().post(data, config -> {
+        ArtifactMetaData amd = clientV3.groups().byGroupId(groupId).artifacts().post(data, config -> {
             config.headers.add("X-Registry-ArtifactId", artifactId);
             config.headers.add("X-Registry-ArtifactType", ArtifactType.JSON);
         }).get(3, TimeUnit.SECONDS);
@@ -235,7 +216,7 @@ public class ContentExtractorTest extends AbstractResourceTestBase {
         name = "schema-" + generateArtifactId();
         content = String.format(jsonFormat, name, description);
         data.setContent(content);
-        amd = clientV2.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).put(data).get(3, TimeUnit.SECONDS);
+        amd = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).put(data).get(3, TimeUnit.SECONDS);
 
         Assertions.assertEquals(name, amd.getName());
     }
@@ -265,7 +246,7 @@ public class ContentExtractorTest extends AbstractResourceTestBase {
 
         ArtifactContent data = new ArtifactContent();
         data.setContent(content);
-        ArtifactMetaData amd = clientV2.groups().byGroupId(groupId).artifacts().post(data, config -> {
+        ArtifactMetaData amd = clientV3.groups().byGroupId(groupId).artifacts().post(data, config -> {
             config.headers.add("X-Registry-ArtifactId", artifactId);
             config.headers.add("X-Registry-ArtifactType", ArtifactType.OPENAPI);
         }).get(3, TimeUnit.SECONDS);
@@ -277,7 +258,7 @@ public class ContentExtractorTest extends AbstractResourceTestBase {
         name = "api-" + generateArtifactId();
         content = String.format(openapiFormat, name, description);
         data.setContent(content);
-        amd = clientV2.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).put(data).get(3, TimeUnit.SECONDS);
+        amd = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).put(data).get(3, TimeUnit.SECONDS);
 
         Assertions.assertEquals(name, amd.getName());
     }
@@ -307,7 +288,7 @@ public class ContentExtractorTest extends AbstractResourceTestBase {
 
         ArtifactContent data = new ArtifactContent();
         data.setContent(content);
-        ArtifactMetaData amd = clientV2.groups().byGroupId(groupId).artifacts().post(data, config -> {
+        ArtifactMetaData amd = clientV3.groups().byGroupId(groupId).artifacts().post(data, config -> {
             config.headers.add("X-Registry-ArtifactId", artifactId);
             config.headers.add("X-Registry-ArtifactType", ArtifactType.ASYNCAPI);
         }).get(3, TimeUnit.SECONDS);
@@ -319,7 +300,7 @@ public class ContentExtractorTest extends AbstractResourceTestBase {
         name = "api-" + generateArtifactId();
         content = String.format(asyncapiFormat, name, description);
         data.setContent(content);
-        amd = clientV2.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).put(data).get(3, TimeUnit.SECONDS);
+        amd = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).put(data).get(3, TimeUnit.SECONDS);
 
         Assertions.assertEquals(name, amd.getName());
     }
@@ -345,7 +326,7 @@ public class ContentExtractorTest extends AbstractResourceTestBase {
 
         ArtifactContent data = new ArtifactContent();
         data.setContent(content);
-        ArtifactMetaData amd = clientV2.groups().byGroupId(groupId).artifacts().post(data, config -> {
+        ArtifactMetaData amd = clientV3.groups().byGroupId(groupId).artifacts().post(data, config -> {
             config.headers.add("X-Registry-ArtifactId", artifactId);
             config.headers.add("X-Registry-ArtifactType", ArtifactType.WSDL);
         }).get(3, TimeUnit.SECONDS);
@@ -375,7 +356,7 @@ public class ContentExtractorTest extends AbstractResourceTestBase {
 
         ArtifactContent data = new ArtifactContent();
         data.setContent(content);
-        ArtifactMetaData amd = clientV2.groups().byGroupId(groupId).artifacts().post(data, config -> {
+        ArtifactMetaData amd = clientV3.groups().byGroupId(groupId).artifacts().post(data, config -> {
             config.headers.add("X-Registry-ArtifactId", artifactId);
             config.headers.add("X-Registry-ArtifactType", ArtifactType.XSD);
         }).get(3, TimeUnit.SECONDS);

@@ -1,19 +1,3 @@
-/*
- * Copyright 2021 Red Hat
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package io.apicurio.tests.serdes.apicurio;
 
 import io.apicurio.tests.ApicurioRegistryBaseIT;
@@ -48,9 +32,6 @@ import java.util.function.Predicate;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/**
- * @author Carles Arnal
- */
 public class SerdesTester<K, P, C> {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SerdesTester.class);
@@ -92,7 +73,7 @@ public class SerdesTester<K, P, C> {
             props.putIfAbsent(AbstractKafkaSchemaSerDeConfig.AUTO_REGISTER_SCHEMAS, "false");
             props.putIfAbsent(KafkaAvroSerializerConfig.VALUE_SUBJECT_NAME_STRATEGY, artifactIdStrategy.getName());
         } else {
-            props.putIfAbsent(SerdeConfig.REGISTRY_URL, ApicurioRegistryBaseIT.getRegistryV2ApiUrl());
+            props.putIfAbsent(SerdeConfig.REGISTRY_URL, ApicurioRegistryBaseIT.getRegistryV3ApiUrl());
             props.putIfAbsent(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, artifactIdStrategy.getName());
         }
 
@@ -118,7 +99,7 @@ public class SerdesTester<K, P, C> {
         if (valueDeserializer.getName().contains("confluent")) {
             props.putIfAbsent(KafkaAvroSerializerConfig.SCHEMA_REGISTRY_URL_CONFIG, ApicurioRegistryBaseIT.getRegistryApiUrl() + "/ccompat/v7");
         } else {
-            props.putIfAbsent(SerdeConfig.REGISTRY_URL, ApicurioRegistryBaseIT.getRegistryV2ApiUrl());
+            props.putIfAbsent(SerdeConfig.REGISTRY_URL, ApicurioRegistryBaseIT.getRegistryV3ApiUrl());
         }
 
         return new KafkaConsumer<>(props);

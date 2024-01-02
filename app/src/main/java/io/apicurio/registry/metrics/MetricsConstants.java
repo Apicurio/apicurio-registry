@@ -7,7 +7,6 @@ package io.apicurio.registry.metrics;
  * - https://micrometer.io/docs/concepts#_naming_meters
  * - https://prometheus.io/docs/practices/naming/ (Micrometer abstracts some naming aspects.)
  *
- * @author Jakub Senko <em>m@jsenko.net</em>
  */
 public interface MetricsConstants {
 

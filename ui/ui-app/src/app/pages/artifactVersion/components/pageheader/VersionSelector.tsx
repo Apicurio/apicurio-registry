@@ -14,7 +14,7 @@ import { Link } from "react-router-dom";
 import { SearchedVersion } from "@models/searchedVersion.model.ts";
 import { Services } from "@services/services.ts";
 import { useAppNavigation } from "@hooks/useAppNavigation.ts";
-import { FromNow } from "@app/components/common/FromNow.tsx";
+import { FromNow } from "@apicurio/common-ui-components";
 
 
 /**

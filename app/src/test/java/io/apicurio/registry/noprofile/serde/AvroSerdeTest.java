@@ -1,19 +1,3 @@
-/*
- * Copyright 2022 Red Hat
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package io.apicurio.registry.noprofile.serde;
 
 import com.kubetrade.schema.trade.AvroSchemaA;
@@ -78,9 +62,6 @@ import java.util.function.Supplier;
 import static io.apicurio.registry.utils.tests.TestUtils.waitForSchema;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-/**
- * @author Fabian Martinez
- */
 @QuarkusTest
 public class AvroSerdeTest extends AbstractResourceTestBase {
     private RegistryClient restClient;
@@ -88,7 +69,7 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
     @BeforeEach
     public void createIsolatedClient() {
         var adapter = new OkHttpRequestAdapter(new AnonymousAuthenticationProvider());
-        adapter.setBaseUrl(TestUtils.getRegistryV2ApiUrl(testPort));
+        adapter.setBaseUrl(TestUtils.getRegistryV3ApiUrl(testPort));
         restClient = new RegistryClient(adapter);
     }
 
@@ -104,7 +85,7 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
         createArtifact(groupId, topic + "-" + recordName, ArtifactType.AVRO, schema.toString());
 
         Map<String, Object> config = new HashMap<>();
-        config.put(SerdeConfig.REGISTRY_URL, TestUtils.getRegistryV2ApiUrl(testPort));
+        config.put(SerdeConfig.REGISTRY_URL, TestUtils.getRegistryV3ApiUrl(testPort));
         config.put(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, groupId);
         config.put(SerdeConfig.EXPLICIT_ARTIFACT_VERSION, "1");
         config.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, TopicRecordIdStrategy.class.getName());
@@ -121,7 +102,7 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
             byte[] bytes = serializer.serialize(topic, record);
 
             Map<String, Object> deserializerConfig = new HashMap<>();
-            deserializerConfig.put(SerdeConfig.REGISTRY_URL, TestUtils.getRegistryV2ApiUrl(testPort));
+            deserializerConfig.put(SerdeConfig.REGISTRY_URL, TestUtils.getRegistryV3ApiUrl(testPort));
             deserializer.configure(deserializerConfig, true);
 
             GenericData.Record deserializedRecord = deserializer.deserialize(topic, bytes);

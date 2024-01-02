@@ -46,6 +46,8 @@ const PROPERTY_GROUPS: PropertyGroup[] = [
         label: "Compatibility settings",
         propertyNames: [
             "registry.ccompat.legacy-id-mode.enabled",
+            "registry.ccompat.use-canonical-hash",
+            "registry.ccompat.max-subjects",
         ]
     },
     {

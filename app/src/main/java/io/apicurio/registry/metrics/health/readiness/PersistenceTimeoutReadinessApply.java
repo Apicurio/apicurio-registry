@@ -7,9 +7,6 @@ import java.lang.annotation.Target;
 
 import jakarta.interceptor.InterceptorBinding;
 
-/**
- * @author Jakub Senko <em>m@jsenko.net</em>
- */
 @InterceptorBinding
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.TYPE, ElementType.METHOD})

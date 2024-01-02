@@ -1,19 +1,3 @@
-/*
- * Copyright 2021 Red Hat
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package io.apicurio.registry.rest;
 
 import io.apicurio.registry.AbstractResourceTestBase;
@@ -37,9 +21,6 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/**
- * @author Fabian Martinez
- */
 @QuarkusTest
 @TestProfile(DisableApisTestProfile.class)
 @Tag(ApicurioTestTags.SLOW)
@@ -84,7 +65,7 @@ public class DisableApisFlagsTest extends AbstractResourceTestBase {
                 .when()
                 .pathParam("groupId", GROUP)
                 .pathParam("artifactId", "testDeleteArtifactVersion/EmptyAPI")
-                .get("/registry/v2/groups/{groupId}/artifacts/{artifactId}")
+                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}")
                 .then()
                 .statusCode(200)
                 .body("openapi", equalTo("3.0.2"))
@@ -96,7 +77,7 @@ public class DisableApisFlagsTest extends AbstractResourceTestBase {
                 .pathParam("groupId", GROUP)
                 .pathParam("artifactId", "testDeleteArtifactVersion/EmptyAPI")
                 .pathParam("version", "1")
-                .get("/registry/v2/groups/{groupId}/artifacts/{artifactId}/versions/{version}")
+                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/{version}")
                 .then()
                 .statusCode(200)
                 .body("openapi", equalTo("3.0.2"))
@@ -108,7 +89,7 @@ public class DisableApisFlagsTest extends AbstractResourceTestBase {
                 .pathParam("groupId", GROUP)
                 .pathParam("artifactId", "testDeleteArtifactVersion/EmptyAPI")
                 .pathParam("version", "1")
-                .delete("/registry/v2/groups/{groupId}/artifacts/{artifactId}/versions/{version}")
+                .delete("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/{version}")
                 .then()
                 .statusCode(405)
                 .body("message", equalTo("Artifact version deletion operation is not enabled."));
@@ -155,7 +136,7 @@ public class DisableApisFlagsTest extends AbstractResourceTestBase {
                 .pathParam("groupId", "default")
                 .header("X-Registry-ArtifactId", schemaId)
                 .body(artifactContent)
-                .post("/registry/v2/groups/{groupId}/artifacts")
+                .post("/registry/v3/groups/{groupId}/artifacts")
             .then();
 
         if (disabledDirectAccess) {

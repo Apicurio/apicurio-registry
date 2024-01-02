@@ -8,9 +8,6 @@ import lombok.Setter;
 import lombok.ToString;
 import lombok.experimental.SuperBuilder;
 
-/**
- * @author Jakub Senko <em>m@jsenko.net</em>
- */
 @SuperBuilder
 @NoArgsConstructor
 @Setter

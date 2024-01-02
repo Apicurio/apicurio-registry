@@ -92,6 +92,20 @@
                 <version>1.1.1.Final</version>
                 <executions>
                     <execution>
+                        <id>generate-api-v3</id>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>generate</goal>
+                        </goals>
+                        <configuration>
+                            <projectSettings>
+                                <javaPackage>io.apicurio.registry.rest.v3</javaPackage>
+                            </projectSettings>
+                            <inputSpec>${project.basedir}/src/main/resources/META-INF/openapi.json</inputSpec>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>generate-api-v2</id>
                         <phase>generate-sources</phase>
                         <goals>
                             <goal>generate</goal>
@@ -100,7 +114,7 @@
                             <projectSettings>
                                 <javaPackage>io.apicurio.registry.rest.v2</javaPackage>
                             </projectSettings>
-                            <inputSpec>${project.basedir}/src/main/resources/META-INF/openapi.json</inputSpec>
+                            <inputSpec>${project.basedir}/src/main/resources/META-INF/openapi-v2.json</inputSpec>
                         </configuration>
                     </execution>
                 </executions>

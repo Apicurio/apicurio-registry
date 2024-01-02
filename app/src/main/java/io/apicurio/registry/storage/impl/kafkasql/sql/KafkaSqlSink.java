@@ -33,9 +33,6 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Supplier;
 
-/**
- * @author Fabian Martinez
- */
 @ApplicationScoped
 @Logged
 public class KafkaSqlSink {

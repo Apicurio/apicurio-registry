@@ -42,9 +42,6 @@ import java.util.stream.Collectors;
 
 import static org.apache.commons.io.FilenameUtils.concat;
 
-/**
- * @author Jakub Senko <em>m@jsenko.net</em>
- */
 @ApplicationScoped
 public class GitManager {
 

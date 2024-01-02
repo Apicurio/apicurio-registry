@@ -1,19 +1,3 @@
-/*
- * Copyright 2021 Red Hat
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package io.apicurio.tests;
 
 import com.microsoft.kiota.ApiException;
@@ -81,7 +65,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * Base class for all base classes for integration tests or for integration tests directly.
  * This class must not contain any functionality nor implement any beforeAll, beforeEach.
  *
- * @author Carles Arnal
  */
 @DisplayNameGeneration(SimpleDisplayName.class)
 @TestInstance(Lifecycle.PER_CLASS)
@@ -103,7 +86,7 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
 
     protected RegistryClient createRegistryClient() {
         var adapter = new OkHttpRequestAdapter(new AnonymousAuthenticationProvider());
-        adapter.setBaseUrl(getRegistryV2ApiUrl());
+        adapter.setBaseUrl(getRegistryV3ApiUrl());
         return new RegistryClient(adapter);
     }
 
@@ -112,7 +95,7 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
         authServerUrlConfigured = Optional.ofNullable(ConfigProvider.getConfig().getConfigValue("registry.auth.token.endpoint").getValue())
                 .orElse("http://localhost:8090/realms/registry/protocol/openid-connect/token");
         registryClient = createRegistryClient();
-        RestAssured.baseURI = getRegistryV2ApiUrl();
+        RestAssured.baseURI = getRegistryV3ApiUrl();
         logger.info("RestAssured configured with {}", RestAssured.baseURI);
         RestAssured.defaultParser = Parser.JSON;
         RestAssured.urlEncodingEnabled = false;
@@ -288,8 +271,8 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
         return getRegistryBaseUrl().concat("/apis");
     }
 
-    public static String getRegistryV2ApiUrl() {
-        return getRegistryApiUrl().concat("/registry/v2");
+    public static String getRegistryV3ApiUrl() {
+        return getRegistryApiUrl().concat("/registry/v3");
     }
 
     public static String getRegistryBaseUrl() {
@@ -577,7 +560,7 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
         return given()
                 .when()
                 .contentType(contentType)
-                .get(getRegistryV2ApiUrl() + endpoint)
+                .get(getRegistryV3ApiUrl() + endpoint)
                 .then()
                 .statusCode(returnCode)
                 .extract()
@@ -588,7 +571,7 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
         return given()
                 .when()
                 .contentType(contentType)
-                .get(getRegistryV2ApiUrl() + endpoint)
+                .get(getRegistryV3ApiUrl() + endpoint)
                 .then()
                 .statusCode(returnCode)
                 .extract()
@@ -600,7 +583,7 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
                 .when()
                 .contentType(contentType)
                 .body(body)
-                .post(getRegistryV2ApiUrl() + endpoint)
+                .post(getRegistryV3ApiUrl() + endpoint)
                 .then()
                 .statusCode(returnCode)
                 .extract()
@@ -612,7 +595,7 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
                 .when()
                 .contentType(contentType)
                 .body(body)
-                .post(getRegistryV2ApiUrl() + endpoint)
+                .post(getRegistryV3ApiUrl() + endpoint)
                 .then()
                 .statusCode(returnCode)
                 .extract()
@@ -624,7 +607,7 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
                 .when()
                 .contentType(contentType)
                 .body(body)
-                .put(getRegistryV2ApiUrl() + endpoint)
+                .put(getRegistryV3ApiUrl() + endpoint)
                 .then()
                 .statusCode(returnCode)
                 .extract()
@@ -636,7 +619,7 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
                 .when()
                 .contentType(contentType)
                 .body(body)
-                .put(getRegistryV2ApiUrl() + endpoint)
+                .put(getRegistryV3ApiUrl() + endpoint)
                 .then()
                 .statusCode(returnCode)
                 .extract()
@@ -647,7 +630,7 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
         return given()
                 .when()
                 .contentType(contentType)
-                .delete(getRegistryV2ApiUrl() + endpoint)
+                .delete(getRegistryV3ApiUrl() + endpoint)
                 .then()
                 .statusCode(returnCode)
                 .extract()
@@ -659,7 +642,7 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
                 .when()
                 .contentType(contentType)
                 .body(rule)
-                .post(getRegistryV2ApiUrl() + endpoint)
+                .post(getRegistryV3ApiUrl() + endpoint)
                 .then()
                 .statusCode(returnCode)
                 .extract()
@@ -671,7 +654,7 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
                 .when()
                 .contentType(contentType)
                 .body(rule)
-                .post(getRegistryV2ApiUrl() + endpoint)
+                .post(getRegistryV3ApiUrl() + endpoint)
                 .then()
                 .statusCode(returnCode)
                 .extract()
@@ -682,7 +665,7 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
         return given()
                 .when()
                 .contentType(contentType)
-                .get(getRegistryV2ApiUrl() + endpoint)
+                .get(getRegistryV3ApiUrl() + endpoint)
                 .then()
                 .statusCode(returnCode)
                 .extract()
@@ -694,7 +677,7 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
                 .when()
                 .contentType(contentType)
                 .body(rule)
-                .put(getRegistryV2ApiUrl() + endpoint)
+                .put(getRegistryV3ApiUrl() + endpoint)
                 .then()
                 .statusCode(returnCode)
                 .extract()
@@ -705,7 +688,7 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
         return given()
                 .when()
                 .contentType(contentType)
-                .delete(getRegistryV2ApiUrl() + endpoint)
+                .delete(getRegistryV3ApiUrl() + endpoint)
                 .then()
                 .statusCode(returnCode)
                 .extract()
@@ -718,7 +701,7 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
                 .header("X-Registry-Artifactid", artifactId)
                 .contentType(contentType)
                 .body(body)
-                .post(getRegistryV2ApiUrl() + endpoint)
+                .post(getRegistryV3ApiUrl() + endpoint)
                 .then()
                 .statusCode(returnCode)
                 .extract()

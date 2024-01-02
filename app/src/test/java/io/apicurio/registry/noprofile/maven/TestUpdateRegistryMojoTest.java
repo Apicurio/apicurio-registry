@@ -1,19 +1,3 @@
-/*
- * Copyright 2022 Red Hat
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package io.apicurio.registry.noprofile.maven;
 
 import java.io.File;
@@ -38,9 +22,6 @@ import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
 
-/**
- * @author Ales Justin
- */
 @QuarkusTest
 public class TestUpdateRegistryMojoTest extends RegistryMojoTestBase {
     TestUpdateRegistryMojo mojo;
@@ -48,7 +29,7 @@ public class TestUpdateRegistryMojoTest extends RegistryMojoTestBase {
     @BeforeEach
     public void createMojo() {
         this.mojo = new TestUpdateRegistryMojo();
-        this.mojo.setRegistryUrl(TestUtils.getRegistryV2ApiUrl(testPort));
+        this.mojo.setRegistryUrl(TestUtils.getRegistryV3ApiUrl(testPort));
     }
 
     @Test
@@ -66,7 +47,7 @@ public class TestUpdateRegistryMojoTest extends RegistryMojoTestBase {
                                                   "}");
         ArtifactContent content = new ArtifactContent();
         content.setContent(schema.toString());
-        ArtifactMetaData meta = clientV2.groups().byGroupId(groupId).artifacts().post(content, config -> {
+        ArtifactMetaData meta = clientV3.groups().byGroupId(groupId).artifacts().post(content, config -> {
             config.headers.add("X-Registry-ArtifactId", artifactId);
             config.headers.add("X-Registry-ArtifactType", ArtifactType.AVRO);
         }).get(3, TimeUnit.SECONDS);
@@ -74,11 +55,11 @@ public class TestUpdateRegistryMojoTest extends RegistryMojoTestBase {
         Rule rule = new Rule();
         rule.setType(RuleType.COMPATIBILITY);
         rule.setConfig("BACKWARD");
-        clientV2.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).rules().post(rule).get(2, TimeUnit.SECONDS);
+        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).rules().post(rule).get(2, TimeUnit.SECONDS);
 
         // Wait for the rule configuration to be set.
         TestUtils.retry(() -> {
-            Rule rconfig = clientV2.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).rules().byRule(RuleType.COMPATIBILITY.getValue()).get().get(3, TimeUnit.SECONDS);
+            Rule rconfig = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).rules().byRule(RuleType.COMPATIBILITY.getValue()).get().get(3, TimeUnit.SECONDS);
             Assertions.assertEquals("BACKWARD", rconfig.getConfig());
         });
 

@@ -1,19 +1,3 @@
-/*
- * Copyright 2021 Red Hat
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package io.apicurio.registry.auth;
 
 import com.microsoft.kiota.authentication.AnonymousAuthenticationProvider;
@@ -56,18 +40,18 @@ public class AuthTestProfileBasicClientCredentials extends AbstractResourceTestB
     final String groupId = "authTestGroupId";
 
     @Override
-    protected RegistryClient createRestClientV2() {
+    protected RegistryClient createRestClientV3() {
         var adapter = new OkHttpRequestAdapter(
                 new BaseBearerTokenAuthenticationProvider(
                         new OidcAccessTokenProvider(authServerUrl, JWKSMockServer.ADMIN_CLIENT_ID, "test1")));
-        adapter.setBaseUrl(registryV2ApiUrl);
+        adapter.setBaseUrl(registryV3ApiUrl);
         return new RegistryClient(adapter);
     }
     @Test
     public void testWrongCreds() throws Exception {
         var adapter = new OkHttpRequestAdapter(
                 new BasicAuthenticationProvider(JWKSMockServer.WRONG_CREDS_CLIENT_ID, "test55"));
-        adapter.setBaseUrl(registryV2ApiUrl);
+        adapter.setBaseUrl(registryV3ApiUrl);
         RegistryClient client = new RegistryClient(adapter);
         var executionException = Assertions.assertThrows(ExecutionException.class, () -> {
             client.groups().byGroupId(groupId).artifacts().get().get(3, TimeUnit.SECONDS);
@@ -79,7 +63,7 @@ public class AuthTestProfileBasicClientCredentials extends AbstractResourceTestB
     public void testBasicAuthClientCredentials() throws Exception {
         var adapter = new OkHttpRequestAdapter(
                 new BasicAuthenticationProvider(JWKSMockServer.ADMIN_CLIENT_ID, "test1"));
-        adapter.setBaseUrl(registryV2ApiUrl);
+        adapter.setBaseUrl(registryV3ApiUrl);
         RegistryClient client = new RegistryClient(adapter);
         String artifactId = TestUtils.generateArtifactId();
         try {
@@ -120,7 +104,7 @@ public class AuthTestProfileBasicClientCredentials extends AbstractResourceTestB
     @Test
     public void testNoCredentials() throws Exception {
         var adapter = new OkHttpRequestAdapter(new AnonymousAuthenticationProvider());
-        adapter.setBaseUrl(registryV2ApiUrl);
+        adapter.setBaseUrl(registryV3ApiUrl);
         RegistryClient client = new RegistryClient(adapter);
         var executionException = Assertions.assertThrows(ExecutionException.class, () -> {
             client.groups().byGroupId(groupId).artifacts().get().get(3, TimeUnit.SECONDS);

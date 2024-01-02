@@ -1,22 +1,6 @@
-/*
- * Copyright 2020 Red Hat
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package io.apicurio.registry;
 
-import static io.apicurio.registry.rest.v2.V2ApiUtil.defaultGroupIdToNull;
+import static io.apicurio.registry.rest.v3.V3ApiUtil.defaultGroupIdToNull;
 import static org.hamcrest.Matchers.equalTo;
 
 import java.io.ByteArrayOutputStream;
@@ -35,7 +19,7 @@ import com.microsoft.kiota.RequestAdapter;
 import com.microsoft.kiota.authentication.AnonymousAuthenticationProvider;
 import com.microsoft.kiota.http.OkHttpRequestAdapter;
 import io.apicurio.registry.rest.client.models.ArtifactMetaData;
-import io.apicurio.registry.rest.v2.beans.ArtifactReference;
+import io.apicurio.registry.rest.v3.beans.ArtifactReference;
 import io.apicurio.rest.client.auth.exception.NotAuthorizedException;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
@@ -45,7 +29,7 @@ import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 
 import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.rest.v2.V2ApiUtil;
+import io.apicurio.registry.rest.v3.V3ApiUtil;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.types.ArtifactMediaTypes;
 import io.apicurio.registry.types.ArtifactState;
@@ -59,7 +43,6 @@ import io.restassured.response.ValidatableResponse;
 /**
  * Abstract base class for all tests that test via the jax-rs layer.
  *
- * @author eric.wittmann@gmail.com
  */
 @TestInstance(Lifecycle.PER_CLASS)
 public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase {
@@ -71,8 +54,8 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
     public static final String CT_JSON_EXTENDED = "application/create.extended+json";
 
     public String registryApiBaseUrl;
-    protected String registryV2ApiUrl;
-    protected RegistryClient clientV2;
+    protected String registryV3ApiUrl;
+    protected RegistryClient clientV3;
     protected RestService confluentClient;
 
 
@@ -80,8 +63,8 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
     protected void beforeAll() throws Exception {
         String serverUrl = "http://localhost:%s/apis";
         registryApiBaseUrl = String.format(serverUrl, testPort);
-        registryV2ApiUrl = registryApiBaseUrl + "/registry/v2";
-        clientV2 = createRestClientV2();
+        registryV3ApiUrl = registryApiBaseUrl + "/registry/v3";
+        clientV3 = createRestClientV3();
         confluentClient = buildConfluentClient();
     }
 
@@ -97,8 +80,8 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
 
     protected final RequestAdapter anonymousAdapter = new OkHttpRequestAdapter(new AnonymousAuthenticationProvider());
     
-    protected RegistryClient createRestClientV2() {
-        anonymousAdapter.setBaseUrl(registryV2ApiUrl);
+    protected RegistryClient createRestClientV3() {
+        anonymousAdapter.setBaseUrl(registryV3ApiUrl);
         var client = new RegistryClient(anonymousAdapter);
         return client;
     }
@@ -118,11 +101,11 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
         // Delete all global rules
         TestUtils.retry(() -> {
             try {
-                clientV2.admin().rules().delete().get(3, TimeUnit.SECONDS);
+                clientV3.admin().rules().delete().get(3, TimeUnit.SECONDS);
             } catch (Exception err) {
                 // ignore
             }
-            Assertions.assertEquals(expectedDefaultRulesCount, clientV2.admin().rules().get().get(3, TimeUnit.SECONDS).size());
+            Assertions.assertEquals(expectedDefaultRulesCount, clientV3.admin().rules().get().get(3, TimeUnit.SECONDS).size());
         });
     }
 
@@ -134,7 +117,7 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
     protected Long createArtifact(String groupId, String artifactId, String artifactType, String artifactContent) throws Exception {
         var content = new io.apicurio.registry.rest.client.models.ArtifactContent();
         content.setContent(artifactContent);
-        var result = clientV2
+        var result = clientV3
                 .groups()
                 .byGroupId(groupId)
                 .artifacts()
@@ -186,7 +169,7 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
             content.setReferences(references);
         }
 
-        return clientV2
+        return clientV3
                 .groups()
                 .byGroupId(groupId)
                 .artifacts()
@@ -215,7 +198,7 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
         }).collect(Collectors.toList());
         contentCreateRequest.setReferences(references);
 
-        return clientV2
+        return clientV3
                 .groups()
                 .byGroupId(groupId)
                 .artifacts()
@@ -235,7 +218,7 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
         var content = new io.apicurio.registry.rest.client.models.ArtifactContent();
         content.setContent(artifactContent);
 
-        var version = clientV2
+        var version = clientV3
                 .groups()
                 .byGroupId(groupId)
                 .artifacts()
@@ -255,7 +238,7 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
         rule.setConfig(ruleConfig);
         rule.setType(io.apicurio.registry.rest.client.models.RuleType.forValue(ruleType.value()));
 
-        clientV2
+        clientV3
                 .groups()
                 .byGroupId(groupId)
                 .artifacts()
@@ -271,13 +254,13 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
         rule.setConfig(ruleConfig);
         rule.setType(io.apicurio.registry.rest.client.models.RuleType.forValue(ruleType.value()));
 
-        clientV2
+        clientV3
             .admin()
             .rules()
             .post(rule)
             .get(3, TimeUnit.SECONDS);
         // TODO: verify this get
-        return clientV2
+        return clientV3
                 .admin()
                 .rules()
                 .byRule(ruleType.value())
@@ -325,7 +308,7 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
         }
         return references.stream()
                 .peek(r -> r.setGroupId(defaultGroupIdToNull(r.getGroupId())))
-                .map(V2ApiUtil::referenceToDto)
+                .map(V3ApiUtil::referenceToDto)
                 .collect(Collectors.toList());
     }
 

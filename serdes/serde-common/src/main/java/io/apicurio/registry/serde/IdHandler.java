@@ -11,8 +11,6 @@ import io.apicurio.registry.resolver.strategy.ArtifactReference;
 /**
  * Handle artifact id in the msg bytes.
  *
- * @author Ales Justin
- * @author Fabian Martinez
  */
 public interface IdHandler {
 

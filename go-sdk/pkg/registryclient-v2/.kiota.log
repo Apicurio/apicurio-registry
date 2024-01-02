@@ -1,0 +1,10 @@
+Warning: KiotaBuilder OpenAPI warning: #/ - A servers entry (v3) or host + basePath + schemes properties (v2) was not present in the OpenAPI description. The root URL will need to be set manually with the request adapter.
+Warning: KiotaBuilder OpenAPI warning: #/paths/~1groups~1{groupId}~1artifacts~1{artifactId}/put/requestBody/content/*~1*/examples/OpenAPI Example/value - Data and type mismatch found.
+Warning: KiotaBuilder OpenAPI warning: #/paths/~1groups~1{groupId}~1artifacts/post/requestBody/content/*~1*/examples/OpenAPI Example/value - Data and type mismatch found.
+Warning: KiotaBuilder OpenAPI warning: #/paths/~1groups~1{groupId}~1artifacts~1{artifactId}~1versions/get/responses/200/content/application~1json/examples/All Versions/value - Data and type mismatch found.
+Warning: KiotaBuilder OpenAPI warning: #/paths/~1groups~1{groupId}~1artifacts~1{artifactId}~1versions/post/requestBody/content/*~1*/examples/OpenAPI Example/value - Data and type mismatch found.
+Warning: KiotaBuilder OpenAPI warning: #/paths/~1groups~1{groupId}~1artifacts~1{artifactId}~1meta/post/requestBody/content/*~1*/examples/OpenAPI/value - Data and type mismatch found.
+Warning: KiotaBuilder OpenAPI warning: #/components/schemas/ArtifactMetaData/example/references/0/version - Data and type mismatch found.
+Warning: KiotaBuilder OpenAPI warning: #/components/schemas/SearchedVersion/example/references - Data and type mismatch found.
+Warning: KiotaBuilder OpenAPI warning: #/components/responses/ArtifactContent/content/*~1*/examples/OpenAPI/value - Data and type mismatch found.
+Warning: KiotaBuilder No server url found in the OpenAPI document. The base url will need to be set when using the client.

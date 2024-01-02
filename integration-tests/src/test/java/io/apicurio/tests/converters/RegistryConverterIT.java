@@ -1,19 +1,3 @@
-/*
- * Copyright 2020 Red Hat
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package io.apicurio.tests.converters;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -60,9 +44,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
 
-/**
- * @author Carles Arnal
- */
 @Tag(Constants.SERDES)
 @Tag(Constants.ACCEPTANCE)
 @QuarkusIntegrationTest
@@ -87,7 +68,7 @@ public class RegistryConverterIT extends ApicurioRegistryBaseIT {
         record.put("bar", "somebar");
 
         Map<String, Object> config = new HashMap<>();
-        config.put(SerdeConfig.REGISTRY_URL, getRegistryV2ApiUrl());
+        config.put(SerdeConfig.REGISTRY_URL, getRegistryV3ApiUrl());
         config.put(SerdeBasedConverter.REGISTRY_CONVERTER_SERIALIZER_PARAM, AvroKafkaSerializer.class.getName());
         config.put(SerdeBasedConverter.REGISTRY_CONVERTER_DESERIALIZER_PARAM, AvroKafkaDeserializer.class.getName());
         config.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, TopicRecordIdStrategy.class.getName());
@@ -127,7 +108,7 @@ public class RegistryConverterIT extends ApicurioRegistryBaseIT {
         try (AvroConverter<Record> converter = new AvroConverter<>()) {
 
             Map<String, Object> config = new HashMap<>();
-            config.put(SerdeConfig.REGISTRY_URL, getRegistryV2ApiUrl());
+            config.put(SerdeConfig.REGISTRY_URL, getRegistryV3ApiUrl());
             config.put(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true");
             converter.configure(config, false);
 
@@ -186,7 +167,7 @@ public class RegistryConverterIT extends ApicurioRegistryBaseIT {
         try (AvroConverter<Record> converter = new AvroConverter<>()) {
 
             Map<String, Object> config = new HashMap<>();
-            config.put(SerdeConfig.REGISTRY_URL, getRegistryV2ApiUrl());
+            config.put(SerdeConfig.REGISTRY_URL, getRegistryV3ApiUrl());
             config.put(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true");
             converter.configure(config, false);
 
@@ -227,7 +208,7 @@ public class RegistryConverterIT extends ApicurioRegistryBaseIT {
         try (AvroConverter<Record> converter = new AvroConverter<>()) {
 
             Map<String, Object> config = new HashMap<>();
-            config.put(SerdeConfig.REGISTRY_URL, getRegistryV2ApiUrl());
+            config.put(SerdeConfig.REGISTRY_URL, getRegistryV3ApiUrl());
             config.put(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true");
             converter.configure(config, false);
 
@@ -279,6 +260,128 @@ public class RegistryConverterIT extends ApicurioRegistryBaseIT {
     }
 
     @Test
+    public void testConnectStruct() throws Exception {
+        try (ExtJsonConverter converter = new ExtJsonConverter()) {
+
+            converter.setFormatStrategy(new CompactFormatStrategy());
+            Map<String, Object> config = new HashMap<>();
+            config.put(SerdeConfig.REGISTRY_URL, getRegistryV3ApiUrl());
+            config.put(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true");
+            converter.configure(config, false);
+
+            org.apache.kafka.connect.data.Schema envelopeSchema = buildEnvelopeSchema();
+
+            // Create a Struct object for the Envelope
+            Struct envelopeStruct = new Struct(envelopeSchema);
+
+            // Set values for the fields in the Envelope
+            envelopeStruct.put("before", buildValueStruct());
+            envelopeStruct.put("after", buildValueStruct());
+            envelopeStruct.put("source", buildSourceStruct());
+            envelopeStruct.put("op", "insert");
+            envelopeStruct.put("ts_ms", 1638362438000L); // Replace with the actual timestamp
+            envelopeStruct.put("transaction", buildTransactionStruct());
+
+
+            String subject = TestUtils.generateArtifactId();
+
+            byte[] bytes = converter.fromConnectData(subject, envelopeSchema, envelopeStruct);
+
+            // some impl details ...
+            TestUtils.waitForSchema(globalId -> {
+                try {
+                    return registryClient.ids().globalIds().byGlobalId(globalId).get().get(3, TimeUnit.SECONDS).readAllBytes().length > 0;
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                } catch (ExecutionException e) {
+                    throw new RuntimeException(e);
+                } catch (TimeoutException e) {
+                    throw new RuntimeException(e);
+                }
+            }, bytes);
+
+
+            Struct ir = (Struct) converter.toConnectData(subject, bytes).value();
+            Assertions.assertEquals(envelopeStruct, ir);
+        }
+    }
+
+    private static org.apache.kafka.connect.data.Schema buildEnvelopeSchema() {
+        // Define the Envelope schema
+        return SchemaBuilder.struct()
+                .name("dbserver1.public.aviation.Envelope")
+                .version(1)
+                .field("before", buildValueSchema())
+                .field("after", buildValueSchema())
+                .field("source", buildSourceSchema())
+                .field("op", SchemaBuilder.STRING_SCHEMA)
+                .field("ts_ms", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
+                .field("transaction", buildTransactionSchema())
+                .build();
+    }
+
+    private static org.apache.kafka.connect.data.Schema buildValueSchema() {
+        // Define the Value schema
+        return SchemaBuilder.struct()
+                .name("dbserver1.public.aviation.Value")
+                .version(1)
+                .field("id", SchemaBuilder.INT32_SCHEMA)
+                .build();
+    }
+
+    private static Struct buildValueStruct() {
+        // Create a Struct object for the Value
+        Struct valueStruct = new Struct(buildValueSchema());
+
+        // Set value for the "id" field
+        valueStruct.put("id", 123); // Replace with the actual ID value
+
+        return valueStruct;
+    }
+
+    private static org.apache.kafka.connect.data.Schema buildSourceSchema() {
+        // Define the Source schema
+        return SchemaBuilder.struct()
+                .name("io.debezium.connector.postgresql.Source")
+                .version(1)
+                .field("id", SchemaBuilder.STRING_SCHEMA)
+                .field("version", SchemaBuilder.STRING_SCHEMA)
+                .build();
+    }
+
+    private static Struct buildSourceStruct() {
+        // Create a Struct object for the Source
+        Struct sourceStruct = new Struct(buildSourceSchema());
+
+        // Set values for the fields in the Source
+        sourceStruct.put("id", "source_id");
+        sourceStruct.put("version", "1.0");
+
+        return sourceStruct;
+    }
+
+    private static org.apache.kafka.connect.data.Schema buildTransactionSchema() {
+        // Define the Transaction schema
+        return SchemaBuilder.struct()
+                .name("event.block")
+                .version(1)
+                .field("id", SchemaBuilder.STRING_SCHEMA)
+                .build();
+    }
+
+    private static Struct buildTransactionStruct() {
+        // Create a Struct object for the Transaction
+        Struct transactionStruct = new Struct(buildTransactionSchema());
+
+        // Set value for the "id" field in Transaction
+        transactionStruct.put("id", "transaction_id");
+
+        return transactionStruct;
+    }
+
+    @Test
     public void testCompactJson() throws Exception {
         testJson(
                 createRegistryClient(),
@@ -321,7 +424,7 @@ public class RegistryConverterIT extends ApicurioRegistryBaseIT {
             }, bytes, fn);
 
             //noinspection rawtypes
-            Map ir = (Map) converter.toConnectData("extjson", bytes).value();
+            Struct ir = (Struct) converter.toConnectData("extjson", bytes).value();
             Assertions.assertEquals("somebar", ir.get("bar").toString());
         }
     }

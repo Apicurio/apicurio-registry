@@ -1,19 +1,3 @@
-/*
- * Copyright 2023 Red Hat
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package io.apicurio.registry.auth;
 
 import com.microsoft.kiota.authentication.BaseBearerTokenAuthenticationProvider;
@@ -54,11 +38,11 @@ public class HeaderRoleSourceTest extends AbstractResourceTestBase {
     String authServerUrlConfigured;
 
     @Override
-    protected RegistryClient createRestClientV2() {
+    protected RegistryClient createRestClientV3() {
         var adapter = new OkHttpRequestAdapter(
                 new BaseBearerTokenAuthenticationProvider(
                         new OidcAccessTokenProvider(authServerUrlConfigured, JWKSMockServer.ADMIN_CLIENT_ID, "test1")));
-        adapter.setBaseUrl(registryV2ApiUrl);
+        adapter.setBaseUrl(registryV3ApiUrl);
         return new RegistryClient(adapter);
     }
 
@@ -74,25 +58,25 @@ public class HeaderRoleSourceTest extends AbstractResourceTestBase {
         var noRoleAdapter = new OkHttpRequestAdapter(
                 new BaseBearerTokenAuthenticationProvider(
                         new OidcAccessTokenProvider(authServerUrlConfigured, JWKSMockServer.NO_ROLE_CLIENT_ID, "test1")));
-        noRoleAdapter.setBaseUrl(registryV2ApiUrl);
+        noRoleAdapter.setBaseUrl(registryV3ApiUrl);
         var noRoleClient = new RegistryClient(noRoleAdapter);
 
         var readAdapter = new OkHttpRequestAdapter(
                 new BaseBearerTokenAuthenticationProvider(
                         new OidcAccessTokenProvider(authServerUrlConfigured, JWKSMockServer.READONLY_CLIENT_ID, "test1")));
-        readAdapter.setBaseUrl(registryV2ApiUrl);
+        readAdapter.setBaseUrl(registryV3ApiUrl);
         var readClient = new RegistryClient(readAdapter);
 
         var devAdapter = new OkHttpRequestAdapter(
                 new BaseBearerTokenAuthenticationProvider(
                         new OidcAccessTokenProvider(authServerUrlConfigured, JWKSMockServer.DEVELOPER_CLIENT_ID, "test1")));
-        devAdapter.setBaseUrl(registryV2ApiUrl);
+        devAdapter.setBaseUrl(registryV3ApiUrl);
         var devClient = new RegistryClient(devAdapter);
 
         var adminAdapter = new OkHttpRequestAdapter(
                 new BaseBearerTokenAuthenticationProvider(
                         new OidcAccessTokenProvider(authServerUrlConfigured, JWKSMockServer.ADMIN_CLIENT_ID, "test1")));
-        adminAdapter.setBaseUrl(registryV2ApiUrl);
+        adminAdapter.setBaseUrl(registryV3ApiUrl);
         var adminClient = new RegistryClient(adminAdapter);
 
 

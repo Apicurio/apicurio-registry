@@ -1,22 +1,7 @@
-/*
- * Copyright 2022 Red Hat
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package io.apicurio.registry.serde.jsonschema;
 
 import io.apicurio.registry.resolver.ParsedSchema;
+import io.apicurio.registry.resolver.ParsedSchemaImpl;
 import io.apicurio.registry.resolver.SchemaParser;
 import io.apicurio.registry.resolver.data.Record;
 import io.apicurio.registry.types.ArtifactType;
@@ -44,11 +29,6 @@ public class JsonSchemaParser<T> implements SchemaParser<JsonSchema, T> {
                 .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().getParsedSchema())), 0);
     }
 
-    //TODO we could implement some way of providing the jsonschema beforehand:
-    // - via annotation in the object being serialized
-    // - via config property
-    //if we do this users will be able to automatically registering the schema when using this serde
-
     /**
      * @see io.apicurio.registry.resolver.SchemaParser#getSchemaFromData(java.lang.Object)
      */
@@ -65,7 +45,21 @@ public class JsonSchemaParser<T> implements SchemaParser<JsonSchema, T> {
     }
 
     @Override
+    public ParsedSchema<JsonSchema> getSchemaFromLocation(String location) {
+        String rawSchema = IoUtil.toString(Thread.currentThread().getContextClassLoader().getResourceAsStream(location));
+
+        return new ParsedSchemaImpl<JsonSchema>()
+                .setParsedSchema(new JsonSchema(rawSchema))
+                .setRawSchema(rawSchema.getBytes());
+    }
+
+    @Override
     public boolean supportsExtractSchemaFromData() {
         return false;
+    }
+
+    @Override
+    public boolean supportsGetSchemaFromLocation() {
+        return true;
     }
 }

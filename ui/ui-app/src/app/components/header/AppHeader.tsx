@@ -3,6 +3,7 @@ import { Brand, Masthead, MastheadBrand, MastheadContent, MastheadMain } from "@
 import { AppNavigation, useAppNavigation } from "@hooks/useAppNavigation.ts";
 import { Link } from "react-router-dom";
 import { AppHeaderToolbar } from "@app/components";
+import { Services } from "@services/services.ts";
 
 
 export type AppHeaderProps = {
@@ -12,6 +13,10 @@ export type AppHeaderProps = {
 
 export const AppHeader: FunctionComponent<AppHeaderProps> = () => {
     const appNavigation: AppNavigation = useAppNavigation();
+
+    if (Services.getConfigService().features().showMasthead !== undefined && !Services.getConfigService().features().showMasthead) {
+        return <></>;
+    }
 
     return (
         <Masthead id="icon-router-link">

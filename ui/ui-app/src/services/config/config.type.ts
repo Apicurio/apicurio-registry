@@ -51,6 +51,7 @@ export declare type Alerts = {
 
 
 export interface FeaturesConfig {
+    showMasthead?: boolean;
     readOnly?: boolean;
     breadcrumbs?: boolean;
     roleManagement?: boolean;

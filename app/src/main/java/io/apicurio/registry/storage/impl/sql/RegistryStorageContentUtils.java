@@ -22,7 +22,6 @@ import java.util.function.Function;
  * TODO Refactor
  * TODO Cache calls to referenceResolver
  *
- * @author Jakub Senko <em>m@jsenko.net</em>
  */
 @ApplicationScoped
 public class RegistryStorageContentUtils {

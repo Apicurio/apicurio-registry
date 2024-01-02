@@ -56,4 +56,4 @@ image::images/getting-started/registry-web-console-client-sdk.png[Generate a Jav
 [role="_additional-resources"]
 .Additional resources
 * {registry} uses Kiota from Microsoft to generate the client SDKs. For more information, see the https://github.com/microsoft/kiota[Kiota project in GitHub^]. 
-* For examples of how to get started with using the generated SDKs to build client applications, see the https://learn.microsoft.com/en-us/openapi/kiota/quickstarts[Kiota API client quick starts^].
+* For more details and examples of using the generated SDKs to build client applications, see the https://learn.microsoft.com/en-us/openapi/kiota[Kiota documentation^].

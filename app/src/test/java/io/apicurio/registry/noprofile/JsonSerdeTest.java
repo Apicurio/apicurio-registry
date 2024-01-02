@@ -1,19 +1,3 @@
-/*
- * Copyright 2022 Red Hat
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package io.apicurio.registry.noprofile;
 
 import static io.apicurio.registry.utils.tests.TestUtils.retry;
@@ -37,9 +21,6 @@ import io.apicurio.registry.support.Person;
 import io.apicurio.registry.types.ArtifactType;
 import io.quarkus.test.junit.QuarkusTest;
 
-/**
- * @author Ales Justin
- */
 @QuarkusTest
 public class JsonSerdeTest extends AbstractResourceTestBase {
 
@@ -53,18 +34,18 @@ public class JsonSerdeTest extends AbstractResourceTestBase {
 
         ArtifactContent content = new ArtifactContent();
         content.setContent(jsonSchema);
-        ArtifactMetaData amd = clientV2.groups().byGroupId(groupId).artifacts().post(content, config -> {
+        ArtifactMetaData amd = clientV3.groups().byGroupId(groupId).artifacts().post(content, config -> {
             config.headers.add("X-Registry-ArtifactId", artifactId + "-value");
             config.headers.add("X-Registry-ArtifactType", ArtifactType.JSON);
         }).get(3, TimeUnit.SECONDS);
 
         // make sure we have schema registered
-        retry(() -> clientV2.ids().globalIds().byGlobalId(amd.getGlobalId()).get().get(3, TimeUnit.SECONDS));
+        retry(() -> clientV3.ids().globalIds().byGlobalId(amd.getGlobalId()).get().get(3, TimeUnit.SECONDS));
 
         Person person = new Person("Ales", "Justin", 23);
 
-        try (JsonSchemaKafkaSerializer<Person> serializer = new JsonSchemaKafkaSerializer<>(clientV2, true);
-             JsonSchemaKafkaDeserializer<Person> deserializer = new JsonSchemaKafkaDeserializer<>(clientV2, true)) {
+        try (JsonSchemaKafkaSerializer<Person> serializer = new JsonSchemaKafkaSerializer<>(clientV3, true);
+             JsonSchemaKafkaDeserializer<Person> deserializer = new JsonSchemaKafkaDeserializer<>(clientV3, true)) {
 
             Map<String, String> configs = Map.of(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, groupId);
             serializer.configure(configs, false);

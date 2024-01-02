@@ -1,19 +1,3 @@
-/*
- * Copyright 2020 Red Hat
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package io.apicurio.registry.noprofile.compatibility;
 
 import com.microsoft.kiota.ApiException;
@@ -45,9 +29,6 @@ import static io.restassured.RestAssured.given;
 import static org.hamcrest.CoreMatchers.anything;
 import static org.hamcrest.Matchers.equalTo;
 
-/**
- * @author Jakub Senko <em>m@jsenko.net</em>
- */
 @QuarkusTest
 public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {
 
@@ -152,7 +133,7 @@ public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {
         given()
                 .when()
                 .contentType(CT_JSON).body(rule)
-                .post("/registry/v2/admin/rules")
+                .post("/registry/v3/admin/rules")
                 .then()
                 .statusCode(204)
                 .body(anything());
@@ -161,7 +142,7 @@ public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {
         TestUtils.retry(() -> {
             given()
                     .when()
-                    .get("/registry/v2/admin/rules/COMPATIBILITY")
+                    .get("/registry/v3/admin/rules/COMPATIBILITY")
                     .then()
                     .statusCode(200)
                     .contentType(ContentType.JSON)
@@ -250,7 +231,7 @@ public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {
 
         /*final Integer cityDependencyGlobalId = */createArtifact(groupId, cityArtifactId, ArtifactType.JSON, citySchema);
 
-        final io.apicurio.registry.rest.v2.beans.ArtifactReference cityReference = new io.apicurio.registry.rest.v2.beans.ArtifactReference();
+        final io.apicurio.registry.rest.v3.beans.ArtifactReference cityReference = new io.apicurio.registry.rest.v3.beans.ArtifactReference();
         cityReference.setVersion("1");
         cityReference.setGroupId(groupId);
         cityReference.setArtifactId(cityArtifactId);
@@ -282,7 +263,7 @@ public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {
         Rule rule = new Rule();
         rule.setType(RuleType.COMPATIBILITY);
         rule.setConfig(CompatibilityLevel.FULL.name());
-        clientV2.groups().byGroupId("default").artifacts().byArtifactId(artifactId).rules().post(rule).get(3, TimeUnit.SECONDS);
+        clientV3.groups().byGroupId("default").artifacts().byArtifactId(artifactId).rules().post(rule).get(3, TimeUnit.SECONDS);
 
         // This will result in org.apache.avro.AvroTypeException in the compatibility checker,
         // which is rethrown as UnprocessableSchemaException.
@@ -290,7 +271,7 @@ public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {
         var executionException = Assertions.assertThrows(ExecutionException.class, () -> {
             ArtifactContent content = new ArtifactContent();
             content.setContent(INVALID_SCHEMA_WITH_MAP);
-            clientV2.groups().byGroupId("default").artifacts().byArtifactId(artifactId).put(content).get(3, TimeUnit.SECONDS);
+            clientV3.groups().byGroupId("default").artifacts().byArtifactId(artifactId).put(content).get(3, TimeUnit.SECONDS);
         });
         Assertions.assertNotNull(executionException.getCause());
         Assertions.assertEquals(com.microsoft.kiota.ApiException.class, executionException.getCause().getClass());
@@ -304,7 +285,7 @@ public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {
         Rule rule = new Rule();
         rule.setType(RuleType.COMPATIBILITY);
         rule.setConfig(CompatibilityLevel.FULL.name());
-        clientV2.groups().byGroupId("default").artifacts().byArtifactId(artifactId).rules().post(rule).get(3, TimeUnit.SECONDS);
+        clientV3.groups().byGroupId("default").artifacts().byArtifactId(artifactId).rules().post(rule).get(3, TimeUnit.SECONDS);
 
         // This will result in org.apache.avro.AvroTypeException in the compatibility checker,
         // which is rethrown as UnprocessableSchemaException.
@@ -312,7 +293,7 @@ public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {
         var executionException = Assertions.assertThrows(ExecutionException.class, () -> {
             ArtifactContent content = new ArtifactContent();
             content.setContent(INVALID_SCHEMA_WITH_MAP);
-            clientV2.groups().byGroupId("default").artifacts().byArtifactId(artifactId).put(content).get(3, TimeUnit.SECONDS);
+            clientV3.groups().byGroupId("default").artifacts().byArtifactId(artifactId).put(content).get(3, TimeUnit.SECONDS);
         });
         Assertions.assertNotNull(executionException.getCause());
         Assertions.assertEquals(com.microsoft.kiota.ApiException.class, executionException.getCause().getClass());
@@ -335,22 +316,22 @@ public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {
         Rule rule = new Rule();
         rule.setType(RuleType.COMPATIBILITY);
         rule.setConfig(CompatibilityLevel.BACKWARD_TRANSITIVE.name());
-        clientV2.groups().byGroupId("default").artifacts().byArtifactId(artifactId).rules().post(rule).get(3, TimeUnit.SECONDS);
+        clientV3.groups().byGroupId("default").artifacts().byArtifactId(artifactId).rules().post(rule).get(3, TimeUnit.SECONDS);
 
         //Should fail, the new version is not compatible with the first one
         var executionException = Assertions.assertThrows(ExecutionException.class, () -> {
             ArtifactContent content = new ArtifactContent();
             content.setContent(SCHEMA_WITH_MAP);
-            clientV2.groups().byGroupId("default").artifacts().byArtifactId(artifactId).put(content).get(3, TimeUnit.SECONDS);
+            clientV3.groups().byGroupId("default").artifacts().byArtifactId(artifactId).put(content).get(3, TimeUnit.SECONDS);
         });
 
         //Change rule to backward, should pass since the new version is compatible with the latest one
         rule = new Rule();
         rule.setType(RuleType.COMPATIBILITY);
         rule.setConfig(CompatibilityLevel.BACKWARD.name());
-        clientV2.groups().byGroupId("default").artifacts().byArtifactId(artifactId).rules().byRule(RuleType.COMPATIBILITY.getValue()).put(rule).get(3, TimeUnit.SECONDS);
+        clientV3.groups().byGroupId("default").artifacts().byArtifactId(artifactId).rules().byRule(RuleType.COMPATIBILITY.getValue()).put(rule).get(3, TimeUnit.SECONDS);
         ArtifactContent content = new ArtifactContent();
         content.setContent(SCHEMA_WITH_MAP);
-        clientV2.groups().byGroupId("default").artifacts().byArtifactId(artifactId).put(content).get(3, TimeUnit.SECONDS);
+        clientV3.groups().byGroupId("default").artifacts().byArtifactId(artifactId).put(content).get(3, TimeUnit.SECONDS);
     }
 }

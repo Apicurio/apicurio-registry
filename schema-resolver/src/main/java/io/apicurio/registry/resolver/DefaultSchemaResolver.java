@@ -1,19 +1,3 @@
-/*
- * Copyright 2021 Red Hat
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package io.apicurio.registry.resolver;
 
 import io.apicurio.registry.resolver.data.Record;
@@ -36,8 +20,6 @@ import java.util.concurrent.ExecutionException;
 /**
  * Default implementation of {@link SchemaResolver}
  *
- * @author Fabian Martinez
- * @author Jakub Senko <em>m@jsenko.net</em>
  */
 public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
 
@@ -109,16 +91,23 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
 
     private SchemaLookupResult<S> getSchemaFromRegistry(ParsedSchema<S> parsedSchema, Record<T> data, ArtifactReference artifactReference) {
 
-        if (autoCreateArtifact && schemaParser.supportsExtractSchemaFromData()) {
-            if (parsedSchema == null) {
-                parsedSchema = schemaParser.getSchemaFromData(data, dereference);
-            }
+        if (autoCreateArtifact) {
 
-            if (parsedSchema.hasReferences()) {
-                //List of references lookup, to be used to create the references for the artifact
-                final List<SchemaLookupResult<S>> schemaLookupResults = handleArtifactReferences(data, parsedSchema);
-                return handleAutoCreateArtifact(parsedSchema, artifactReference, schemaLookupResults);
-            } else {
+            if (schemaParser.supportsExtractSchemaFromData()) {
+
+                if (parsedSchema == null) {
+                    parsedSchema = schemaParser.getSchemaFromData(data, dereference);
+                }
+
+                if (parsedSchema.hasReferences()) {
+                    //List of references lookup, to be used to create the references for the artifact
+                    final List<SchemaLookupResult<S>> schemaLookupResults = handleArtifactReferences(data, parsedSchema);
+                    return handleAutoCreateArtifact(parsedSchema, artifactReference, schemaLookupResults);
+                } else {
+                    return handleAutoCreateArtifact(parsedSchema, artifactReference);
+                }
+            } else if (config.getExplicitSchemaLocation() != null && schemaParser.supportsGetSchemaFromLocation()) {
+                parsedSchema = schemaParser.getSchemaFromLocation(config.getExplicitSchemaLocation());
                 return handleAutoCreateArtifact(parsedSchema, artifactReference);
             }
         }

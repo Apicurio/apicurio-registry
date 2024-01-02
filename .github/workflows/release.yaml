@@ -76,7 +76,7 @@ jobs:
           DOCS_VERSION=$(echo "${{ github.event.inputs.release-version}}" | awk -F '.' '{print $1"."$2".x"}')
           
           sed -i  "s/version\:\s.*/version: \'${DOCS_VERSION}\'/g" docs/antora.yml
-          sed -i  "5s/\"version\"\:\s\".*\"/\"version\": \"${DOCS_VERSION}\"/g" app/src/main/resources-unfiltered/META-INF/resources/api-specifications/registry/v2/openapi.json
+          sed -i  "5s/\"version\"\:\s\".*\"/\"version\": \"${DOCS_VERSION}\"/g" app/src/main/resources-unfiltered/META-INF/resources/api-specifications/registry/v3/openapi.json
 
           # take only the major, minor and patch
           PYTHON_SDK_VERSION=$(echo "${{ github.event.inputs.release-version}}" | awk -F '.' '{print $1"."$2"."$3}')
@@ -140,6 +140,23 @@ jobs:
           PYPI_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
         if: github.event.inputs.skip-python-sdk == 'false'
 
+      - name: Go - Setup Go
+        uses: actions/setup-go@v5
+        if: github.event.inputs.skip-go-sdk == 'false'
+        with:
+          go-version: '1.20'
+
+      # Needs special tagging to use submodules: https://stackoverflow.com/a/64705638/7898052
+      - name: Release Go SDK
+        run: |
+          cd registry
+          git tag "v${{ github.event.inputs.release-version }}"
+          git tag "go-sdk/v${{ github.event.inputs.release-version }}"
+          git push origin "v${{ github.event.inputs.release-version }}"
+          git push origin "go-sdk/v${{ github.event.inputs.release-version }}"
+          GOPROXY=proxy.golang.org go list -m "github.com/apicurio/apicurio-registry@v${{ github.event.inputs.release-version }}"
+        if: github.event.inputs.skip-go-sdk == 'false'
+
       - name: Commit Release Version Change
         run: |
           cd registry
@@ -178,7 +195,7 @@ jobs:
           DOCS_VERSION=$(echo "${{ github.event.inputs.snapshot-version}}" | awk -F '.' '{print $1"."$2".x"}')
           
           sed -i  "s/version\:\s.*/version: \'${DOCS_VERSION}\'/g" docs/antora.yml
-          sed -i  "5s/\"version\"\:\s\".*\"/\"version\": \"${DOCS_VERSION}\"/g" app/src/main/resources-unfiltered/META-INF/resources/api-specifications/registry/v2/openapi.json
+          sed -i  "5s/\"version\"\:\s\".*\"/\"version\": \"${DOCS_VERSION}\"/g" app/src/main/resources-unfiltered/META-INF/resources/api-specifications/registry/v3/openapi.json
 
           # take only the major, minor and patch
           PYTHON_SDK_VERSION=$(echo "${{ github.event.inputs.snapshot-version}}" | awk -F '.' '{print $1"."$2"."$3}')

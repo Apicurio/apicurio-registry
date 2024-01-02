@@ -1,19 +1,3 @@
-/*
- * Copyright 2022 Red Hat
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package io.apicurio.registry.noprofile.serde;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
@@ -69,9 +53,6 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-/**
- * @author Fabian Martinez
- */
 @QuarkusTest
 public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
 
@@ -80,7 +61,7 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
     @BeforeEach
     public void createIsolatedClient() {
         var adapter = new OkHttpRequestAdapter(new AnonymousAuthenticationProvider());
-        adapter.setBaseUrl(TestUtils.getRegistryV2ApiUrl(testPort));
+        adapter.setBaseUrl(TestUtils.getRegistryV3ApiUrl(testPort));
         restClient = new RegistryClient(adapter);
     }
 
@@ -114,6 +95,54 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
             Assertions.assertEquals("Ales", person.getFirstName());
             Assertions.assertEquals("Justin", person.getLastName());
             Assertions.assertEquals(23, person.getAge());
+
+            person.setAge(-1);
+
+            try {
+                serializer.serialize(artifactId, new RecordHeaders(), person);
+                Assertions.fail();
+            } catch (Exception ignored) {
+            }
+
+            serializer.setValidationEnabled(false); // disable validation
+            // create invalid person bytes
+            bytes = serializer.serialize(artifactId, headers, person);
+
+            try {
+                deserializer.deserialize(artifactId, headers, bytes);
+                Assertions.fail();
+            } catch (Exception ignored) {
+            }
+        }
+    }
+
+    @Test
+    public void testJsonSchemaSerdeAutoRegister() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        String artifactId = generateArtifactId();
+
+        Person person = new Person("Carles", "Arnal", 30);
+
+        try (JsonSchemaKafkaSerializer<Person> serializer = new JsonSchemaKafkaSerializer<>(restClient, true);
+             Deserializer<Person> deserializer = new JsonSchemaKafkaDeserializer<>(restClient, true)) {
+
+            Map<String, Object> config = new HashMap<>();
+            config.put(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, groupId);
+            config.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, SimpleTopicIdStrategy.class.getName());
+            config.put(SerdeConfig.SCHEMA_LOCATION, "/io/apicurio/registry/util/json-schema.json");
+            config.put(SerdeConfig.AUTO_REGISTER_ARTIFACT, true);
+            serializer.configure(config, false);
+
+            deserializer.configure(Collections.emptyMap(), false);
+
+            Headers headers = new RecordHeaders();
+            byte[] bytes = serializer.serialize(artifactId, headers, person);
+
+            person = deserializer.deserialize(artifactId, headers, bytes);
+
+            Assertions.assertEquals("Carles", person.getFirstName());
+            Assertions.assertEquals("Arnal", person.getLastName());
+            Assertions.assertEquals(30, person.getAge());
 
             person.setAge(-1);
 
@@ -243,7 +272,7 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
 
         createArtifact(groupId, qualificationsId, ArtifactType.JSON, IoUtil.toString(qualificationSchema));
 
-        final  io.apicurio.registry.rest.v2.beans.ArtifactReference qualificationsReference = new  io.apicurio.registry.rest.v2.beans.ArtifactReference();
+        final  io.apicurio.registry.rest.v3.beans.ArtifactReference qualificationsReference = new  io.apicurio.registry.rest.v3.beans.ArtifactReference();
         qualificationsReference.setVersion("1");
         qualificationsReference.setGroupId(groupId);
         qualificationsReference.setArtifactId(qualificationsId);
@@ -251,13 +280,13 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
 
         createArtifact(groupId, addressId, ArtifactType.JSON, IoUtil.toString(addressSchema));
 
-        final  io.apicurio.registry.rest.v2.beans.ArtifactReference addressReference = new  io.apicurio.registry.rest.v2.beans.ArtifactReference();
+        final  io.apicurio.registry.rest.v3.beans.ArtifactReference addressReference = new  io.apicurio.registry.rest.v3.beans.ArtifactReference();
         addressReference.setVersion("1");
         addressReference.setGroupId(groupId);
         addressReference.setArtifactId(addressId);
         addressReference.setName("sample.address.json");
 
-        final  io.apicurio.registry.rest.v2.beans.ArtifactReference cityReference = new  io.apicurio.registry.rest.v2.beans.ArtifactReference();
+        final  io.apicurio.registry.rest.v3.beans.ArtifactReference cityReference = new  io.apicurio.registry.rest.v3.beans.ArtifactReference();
         cityReference.setVersion("1");
         cityReference.setGroupId(groupId);
         cityReference.setArtifactId(cityArtifactId);
@@ -265,7 +294,7 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
 
         createArtifact(groupId, identifierArtifactId, ArtifactType.JSON, IoUtil.toString(citizenIdentifier));
 
-        final  io.apicurio.registry.rest.v2.beans.ArtifactReference identifierReference = new  io.apicurio.registry.rest.v2.beans.ArtifactReference();
+        final  io.apicurio.registry.rest.v3.beans.ArtifactReference identifierReference = new  io.apicurio.registry.rest.v3.beans.ArtifactReference();
         identifierReference.setVersion("1");
         identifierReference.setGroupId(groupId);
         identifierReference.setArtifactId(identifierArtifactId);
@@ -353,7 +382,7 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
     public void complexObjectValidation() throws Exception {
         String version = "8";
 
-        RegistryClient client = createRestClientV2();
+        RegistryClient client = createRestClientV3();
 
         InputStream account = getClass().getClassLoader()
                 .getResourceAsStream("/io/apicurio/registry/util/sample.account.json");

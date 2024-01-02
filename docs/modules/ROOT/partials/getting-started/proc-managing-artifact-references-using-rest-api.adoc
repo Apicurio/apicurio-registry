@@ -5,7 +5,15 @@
 = Managing schema and API artifact references using {registry} REST API commands
 
 [role="_abstract"]
-{registry} artifact types such as Apache Avro, Protobuf, and JSON Schema can include _artifact references_ from one artifact file to another. You can create efficiencies by defining reusable schema and API artifacts, and then referencing them from multiple locations.
+Some {registry} artifact types can include _artifact references_ from one artifact file to another. You can create efficiencies by defining reusable schema or API artifacts, and then referencing them from multiple locations in artifact references. 
+
+The following artifact types support artifact references: 
+
+* Apache Avro 
+* Google Protobuf 
+* JSON Schema 
+* OpenAPI
+* AsyncAPI
 
 This section shows a simple curl-based example of using the Core Registry API v2 to add and retrieve an artifact reference to a simple Avro schema artifact in {registry}. 
 

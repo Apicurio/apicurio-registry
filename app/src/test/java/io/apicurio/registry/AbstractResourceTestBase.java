@@ -6,6 +6,7 @@ import static org.hamcrest.Matchers.equalTo;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
@@ -21,6 +22,14 @@ import com.microsoft.kiota.http.OkHttpRequestAdapter;
 import io.apicurio.registry.rest.client.models.ArtifactMetaData;
 import io.apicurio.registry.rest.v3.beans.ArtifactReference;
 import io.apicurio.rest.client.auth.exception.NotAuthorizedException;
+import io.vertx.core.Vertx;
+import io.vertx.ext.auth.oauth2.OAuth2Auth;
+import io.vertx.ext.auth.oauth2.OAuth2FlowType;
+import io.vertx.ext.auth.oauth2.OAuth2Options;
+import io.vertx.ext.auth.oauth2.Oauth2Credentials;
+import io.vertx.ext.web.client.OAuth2WebClient;
+import io.vertx.ext.web.client.WebClient;
+import io.vertx.ext.web.client.WebClientSession;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -328,5 +337,35 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
             Assertions.assertEquals(ApiException.class, executionException.getCause().getClass());
             Assertions.assertEquals(401, ((ApiException) executionException.getCause()).getResponseStatusCode());
         }
+    }
+
+    public static WebClient buildOIDCWebClient(String tokenUrl, String clientId, String clientSecret) {
+        // Using the default Vertx for testing
+        Vertx vertx = Vertx.vertx();
+        OAuth2Options options =
+                new OAuth2Options()
+                        .setFlow(OAuth2FlowType.CLIENT)
+                        .setClientId(clientId)
+                        .setTokenPath(tokenUrl)
+                        .setClientSecret(clientSecret);
+        OAuth2Auth oAuth2Auth = OAuth2Auth.create(Vertx.vertx(), options);
+        Oauth2Credentials oauth2Credentials = new Oauth2Credentials();
+
+        OAuth2WebClient oAuth2WebClient =
+                OAuth2WebClient.create(WebClient.create(vertx), oAuth2Auth)
+                        .withCredentials(oauth2Credentials);
+
+        return oAuth2WebClient;
+    }
+
+    public static WebClient buildSimpleAuthWebClient(String username, String password) {
+        // Using the default Vertx for testing
+        Vertx vertx = Vertx.vertx();
+        String usernameAndPassword = Base64.getEncoder().encodeToString("user:pw".getBytes());
+
+        // TODO: ask Carles if there is a more "idiomatic way" to do this
+        return WebClientSession
+                .create(WebClient.create(vertx))
+                .addHeader("Authorization", "Basic " + usernameAndPassword);
     }
 }

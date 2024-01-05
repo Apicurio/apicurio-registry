@@ -26,7 +26,8 @@ jobs:
   prepare-integration-tests:
     name: Prepare for Integration Tests
     runs-on: ubuntu-20.04
-    if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
+    # TODO: RESTORE ME!
+    # if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
     steps:
       - name: Show Actor
         run: echo ${{github.actor}}
@@ -52,7 +53,8 @@ jobs:
   prepare-ui-tests:
     name: Prepare for UI Integration Tests
     runs-on: ubuntu-20.04
-    if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
+    # TODO: RESTORE ME!
+    # if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
     steps:
       - name: Show Actor
         run: echo ${{github.actor}}

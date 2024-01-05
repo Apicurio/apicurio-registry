@@ -1,6 +1,6 @@
 package io.apicurio.registry.client.auth;
 
-import io.apicurio.registry.client.auth.VertXAuthFactory;
+import io.vertx.core.Vertx;
 import io.vertx.ext.auth.oauth2.OAuth2Auth;
 import io.vertx.ext.auth.oauth2.OAuth2FlowType;
 import io.vertx.ext.auth.oauth2.OAuth2Options;

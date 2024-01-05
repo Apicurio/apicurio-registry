@@ -365,13 +365,13 @@ files = [
 
 [[package]]
 name = "microsoft-kiota-abstractions"
-version = "0.8.7"
+version = "1.0.0"
 description = "Core abstractions for kiota generated libraries in Python"
 optional = false
 python-versions = "*"
 files = [
-    {file = "microsoft_kiota_abstractions-0.8.7-py2.py3-none-any.whl", hash = "sha256:e15f463e0233b0510a59c5de6d16d846f29d886447e71ed455ba92c00446d57b"},
-    {file = "microsoft_kiota_abstractions-0.8.7.tar.gz", hash = "sha256:37f45788d595dbfe1324a466b5760bf009ced839cdbb9870f09f63fa32ebd80e"},
+    {file = "microsoft_kiota_abstractions-1.0.0-py2.py3-none-any.whl", hash = "sha256:261126e795930698c710435928bfbacb90793dfc5235fbd2f4866ca03860035f"},
+    {file = "microsoft_kiota_abstractions-1.0.0.tar.gz", hash = "sha256:fa20c9f7c499fbab95422c1e5b1cc01680686ba67b9d6887bc5178e701e0de0d"},
 ]
 
 [package.dependencies]
@@ -381,49 +381,49 @@ std-uritemplate = ">=0.0.38"
 
 [[package]]
 name = "microsoft-kiota-http"
-version = "0.6.3"
+version = "1.2.0"
 description = "Kiota http request adapter implementation for httpx library"
 optional = false
 python-versions = "*"
 files = [
-    {file = "microsoft_kiota_http-0.6.3-py2.py3-none-any.whl", hash = "sha256:3a7e8dbf78253846f2e81f227851b09a703894d3b00a9e748f28be3a5f8565dd"},
-    {file = "microsoft_kiota_http-0.6.3.tar.gz", hash = "sha256:da8e581a4b03e9345732cdf2122a03f4db7f036824207bf0082986e87a766305"},
+    {file = "microsoft_kiota_http-1.2.0-py2.py3-none-any.whl", hash = "sha256:d97d0c4bb50cb8b36cd749f647cd87f5e79f3b1f061d79d0b27a2585b76289e3"},
+    {file = "microsoft_kiota_http-1.2.0.tar.gz", hash = "sha256:4c0c3687b10e5294bdaeb4fd018619851f03d5a3db54dee958f49d4718167383"},
 ]
 
 [package.dependencies]
 httpx = {version = ">=0.23.0", extras = ["http2"]}
-microsoft-kiota_abstractions = ">=0.4.0"
+microsoft-kiota_abstractions = ">=1.0.0,<2.0.0"
 opentelemetry-api = ">=1.20.0"
 opentelemetry-sdk = ">=1.20.0"
 
 [[package]]
 name = "microsoft-kiota-serialization-json"
-version = "0.4.2"
+version = "1.0.0"
 description = "Implementation of Kiota Serialization interfaces for JSON"
 optional = false
 python-versions = "*"
 files = [
-    {file = "microsoft_kiota_serialization_json-0.4.2-py2.py3-none-any.whl", hash = "sha256:7449c9c7eb821bdc78c93e39d20a2c6912237999ac869e056c1d94f0d1c33688"},
-    {file = "microsoft_kiota_serialization_json-0.4.2.tar.gz", hash = "sha256:1cd0b1d8eeb99f0c4fc0663b694acd2a5ff4d9d5868810ae11f4f824fa0c5926"},
+    {file = "microsoft_kiota_serialization_json-1.0.0-py2.py3-none-any.whl", hash = "sha256:92066a81d2452d686bd805540b238ce02a4b22e3df7d884bacb3f16639af1191"},
+    {file = "microsoft_kiota_serialization_json-1.0.0.tar.gz", hash = "sha256:9f6ac6591ac219c31884b13e7619e424ae2a4772e30c886ea3a853f998efde5f"},
 ]
 
 [package.dependencies]
-microsoft-kiota_abstractions = ">=0.1.0"
+microsoft-kiota_abstractions = ">=1.0.0,<2.0.0"
 pendulum = ">=2.1.2"
 
 [[package]]
 name = "microsoft-kiota-serialization-text"
-version = "0.2.1"
+version = "1.0.0"
 description = "Implementation of Kiota Serialization interfaces for text/plain"
 optional = false
 python-versions = "*"
 files = [
-    {file = "microsoft_kiota_serialization_text-0.2.1-py2.py3-none-any.whl", hash = "sha256:e69339482c9d9055c323a48de5c4c8df20ebda767ebeed5ca6f7598a570a4885"},
-    {file = "microsoft_kiota_serialization_text-0.2.1.tar.gz", hash = "sha256:8be05b391fd3148ba79d020c92d6c79e485474a68b282dca03d844728381665a"},
+    {file = "microsoft_kiota_serialization_text-1.0.0-py2.py3-none-any.whl", hash = "sha256:1d3789e012b603e059a36cc675d1fd08cb81e0dde423d970c0af2eabce9c0d43"},
+    {file = "microsoft_kiota_serialization_text-1.0.0.tar.gz", hash = "sha256:c3dd3f409b1c4f4963bd1e41d51b65f7e53e852130bb441d79b77dad88ee76ed"},
 ]
 
 [package.dependencies]
-microsoft-kiota_abstractions = ">=0.1.0"
+microsoft-kiota_abstractions = ">=1.0.0,<2.0.0"
 python-dateutil = ">=2.8.2"
 
 [[package]]
@@ -825,4 +825,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9"
-content-hash = "de07a5ccb6c829259187dc0669eb3fe03b2c7a156edeb03162ffed390a54b7e7"
+content-hash = "76744030ceac2f59758ea4c6f6520e43fb67a2ae323bf9ce9be9233825459acf"

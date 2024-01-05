@@ -9,6 +9,7 @@ import os
 import sys
 import requests
 import json
+from kiota_abstractions.headers_collection import HeadersCollection
 from kiota_abstractions.authentication.anonymous_authentication_provider import (
     AnonymousAuthenticationProvider,
 )
@@ -119,9 +120,11 @@ async def test_issue_3465():
         canonical=True, if_exists="RETURN_OR_UPDATE"
     )
 
+    artifact_id_headers = HeadersCollection()
+    artifact_id_headers.add("X-Registry-ArtifactId", "foo")
     request_configuration = (
         ArtifactsRequestBuilder.ArtifactsRequestBuilderPostRequestConfiguration(
-            headers={"X-Registry-ArtifactId": "foo"}, query_parameters=query_params
+            headers=artifact_id_headers, query_parameters=query_params
         )
     )
 

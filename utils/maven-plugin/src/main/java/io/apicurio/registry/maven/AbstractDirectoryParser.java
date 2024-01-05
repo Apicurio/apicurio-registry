@@ -7,6 +7,7 @@ import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.ArtifactContent;
 import io.apicurio.registry.rest.client.models.ArtifactMetaData;
 import io.apicurio.registry.rest.client.models.ArtifactReference;
+import io.apicurio.registry.rest.client.models.IfExists;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.utils.IoUtil;
 import org.slf4j.Logger;
@@ -101,7 +102,7 @@ public abstract class AbstractDirectoryParser<Schema> {
                 .byGroupId(groupId)
                 .artifacts()
                 .post(content, config -> {
-                    config.queryParameters.ifExists = artifact.getIfExists().value();
+                    config.queryParameters.ifExists = IfExists.forValue(artifact.getIfExists().value());
                     config.queryParameters.canonical = canonicalize;
                     config.headers.add("Content-Type", ContentTypes.APPLICATION_CREATE_EXTENDED);
                     if (artifactId != null) {
@@ -113,8 +114,7 @@ public abstract class AbstractDirectoryParser<Schema> {
                     if (version != null) {
                         config.headers.add("X-Registry-Version", version);
                     }
-                })
-                .get();
+                });
 
                 // client.createArtifact(groupId, artifactId, version, type, ifExists, canonicalize, null, null, ContentTypes.APPLICATION_CREATE_EXTENDED, null, null, artifactContent, references);
         log.info(String.format("Successfully registered artifact [%s] / [%s].  GlobalId is [%d]", groupId, artifactId, amd.getGlobalId()));

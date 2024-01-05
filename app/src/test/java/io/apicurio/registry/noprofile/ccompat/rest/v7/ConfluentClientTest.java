@@ -54,9 +54,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ThreadLocalRandom;
-import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
@@ -78,10 +76,7 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
 
     @AfterEach
     protected void afterEach() throws Exception {
-        try {
-            clientV3.groups().byGroupId("default").artifacts().delete().get(3, TimeUnit.SECONDS);
-        } catch (ExecutionException ignored) {
-        }
+        clientV3.groups().byGroupId("default").artifacts().delete();
     }
 
     @Test
@@ -269,7 +264,7 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
         Rule rule = new Rule();
         rule.setType(RuleType.COMPATIBILITY);
         rule.setConfig("BACKWARD");
-        clientV3.admin().rules().post(rule).get(3, TimeUnit.SECONDS);
+        clientV3.admin().rules().post(rule);
 
         String subject = generateArtifactId();
         ParsedSchema schema = new AvroSchema("{\"type\":\"record\",\"name\":\"myrecord3\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");

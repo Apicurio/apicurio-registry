@@ -1,20 +1,21 @@
 name: Integration Tests Workflow
 on:
   push:
-    paths-ignore:
-      - '.gitignore'
-      - 'LICENSE'
-      - 'README*'
-      - 'docs/**'
-      - '.github/workflows/**'
-    branches: [main, '[1-9].[1-9].x']
-  pull_request:
-    paths-ignore:
-      - '.gitignore'
-      - 'LICENSE'
-      - 'README*'
-      - 'docs/**'
-    branches: [main]
+  # TODO: RESTORE ME!
+  #   paths-ignore:
+  #     - '.gitignore'
+  #     - 'LICENSE'
+  #     - 'README*'
+  #     - 'docs/**'
+  #     - '.github/workflows/**'
+  #   branches: [main, '[1-9].[1-9].x']
+  # pull_request:
+  #   paths-ignore:
+  #     - '.gitignore'
+  #     - 'LICENSE'
+  #     - 'README*'
+  #     - 'docs/**'
+  #   branches: [main]
 
 concurrency:
   # Only run once for latest commit per ref and cancel other (previous) runs.

@@ -5,15 +5,15 @@ import com.microsoft.kiota.RequestInformation;
 import com.microsoft.kiota.serialization.Parsable;
 import com.microsoft.kiota.serialization.ParsableFactory;
 import com.microsoft.kiota.serialization.SerializationWriterFactory;
+import com.microsoft.kiota.serialization.ValuedEnumParser;
 import com.microsoft.kiota.store.BackingStoreFactory;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import jakarta.annotation.Nonnull;
+import jakarta.annotation.Nullable;
 
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -30,65 +30,65 @@ public class MockRequestAdapter implements RequestAdapter {
     public void enableBackingStore(@Nullable BackingStoreFactory backingStoreFactory) {
     }
 
-    @NotNull
+    @Nonnull
     @Override
     public SerializationWriterFactory getSerializationWriterFactory() {
-        return null;
-    }
-
-    @Nullable
-    @Override
-    public <ModelType extends Parsable> CompletableFuture<ModelType> sendAsync(@NotNull RequestInformation requestInfo, @NotNull ParsableFactory<ModelType> factory, @Nullable HashMap<String, ParsableFactory<? extends Parsable>> errorMappings) {
         throw new UnsupportedOperationException("Unimplemented");
     }
 
     @Nullable
     @Override
-    public <ModelType extends Parsable> CompletableFuture<List<ModelType>> sendCollectionAsync(@NotNull RequestInformation requestInfo, @NotNull ParsableFactory<ModelType> factory, @Nullable HashMap<String, ParsableFactory<? extends Parsable>> errorMappings) {
-        assertEquals("{+baseurl}/ids/contentHashes/{contentHash}/references", requestInfo.urlTemplate);
-        return CompletableFuture.completedFuture(List.of());
+    public <ModelType extends Parsable> ModelType send(@Nonnull RequestInformation requestInfo, @Nullable HashMap<String, ParsableFactory<? extends Parsable>> errorMappings, @Nonnull ParsableFactory<ModelType> factory) {
+        throw new UnsupportedOperationException("Unimplemented");
     }
 
     @Nullable
     @Override
-    public <ModelType> CompletableFuture<ModelType> sendPrimitiveAsync(@NotNull RequestInformation requestInfo, @NotNull Class<ModelType> targetClass, @Nullable HashMap<String, ParsableFactory<? extends Parsable>> errorMappings) {
+    public <ModelType extends Parsable> List<ModelType> sendCollection(@Nonnull RequestInformation requestInfo, @Nullable HashMap<String, ParsableFactory<? extends Parsable>> errorMappings, @Nonnull ParsableFactory<ModelType> factory) {
+        assertEquals("{+baseurl}/ids/contentHashes/{contentHash}/references", requestInfo.urlTemplate);
+        return List.of();
+    }
+
+    @Nullable
+    @Override
+    public <ModelType> ModelType sendPrimitive(@Nonnull RequestInformation requestInfo, @Nullable HashMap<String, ParsableFactory<? extends Parsable>> errorMappings, @Nonnull Class<ModelType> targetClass) {
         assertEquals("{+baseurl}/ids/contentHashes/{contentHash}", requestInfo.urlTemplate);
         this.timesGetContentByHashCalled++;
-        return CompletableFuture.completedFuture((ModelType)new ByteArrayInputStream(this.schemaContent.getBytes(StandardCharsets.UTF_8)));
+        return (ModelType)new ByteArrayInputStream(this.schemaContent.getBytes(StandardCharsets.UTF_8));
     }
 
     @Nullable
     @Override
-    public <ModelType> CompletableFuture<List<ModelType>> sendPrimitiveCollectionAsync(@NotNull RequestInformation requestInfo, @NotNull Class<ModelType> targetClass, @Nullable HashMap<String, ParsableFactory<? extends Parsable>> errorMappings) {
+    public <ModelType> List<ModelType> sendPrimitiveCollection(@Nonnull RequestInformation requestInfo, @Nullable HashMap<String, ParsableFactory<? extends Parsable>> errorMappings, @Nonnull Class<ModelType> targetClass) {
         throw new UnsupportedOperationException("Unimplemented");
     }
 
     @Nullable
     @Override
-    public <ModelType extends Enum<ModelType>> CompletableFuture<ModelType> sendEnumAsync(@NotNull RequestInformation requestInfo, @NotNull Class<ModelType> targetClass, @Nullable HashMap<String, ParsableFactory<? extends Parsable>> errorMappings) {
+    public <ModelType extends Enum<ModelType>> ModelType sendEnum(@Nonnull RequestInformation requestInfo, @Nullable HashMap<String, ParsableFactory<? extends Parsable>> errorMappings, @Nonnull ValuedEnumParser<ModelType> enumParser) {
         throw new UnsupportedOperationException("Unimplemented");
     }
 
     @Nullable
     @Override
-    public <ModelType extends Enum<ModelType>> CompletableFuture<List<ModelType>> sendEnumCollectionAsync(@NotNull RequestInformation requestInfo, @NotNull Class<ModelType> targetClass, @Nullable HashMap<String, ParsableFactory<? extends Parsable>> errorMappings) {
+    public <ModelType extends Enum<ModelType>> List<ModelType> sendEnumCollection(@Nonnull RequestInformation requestInfo, @Nullable HashMap<String, ParsableFactory<? extends Parsable>> errorMappings, @Nonnull ValuedEnumParser<ModelType> enumParser) {
         throw new UnsupportedOperationException("Unimplemented");
     }
 
     @Override
-    public void setBaseUrl(@NotNull String baseUrl) {
+    public void setBaseUrl(@Nonnull String baseUrl) {
+
     }
 
-    @NotNull
+    @Nonnull
     @Override
     public String getBaseUrl() {
         return null;
     }
 
-    @NotNull
+    @Nonnull
     @Override
-    public <T> CompletableFuture<T> convertToNativeRequestAsync(@NotNull RequestInformation requestInfo) {
+    public <T> T convertToNativeRequest(@Nonnull RequestInformation requestInfo) {
         throw new UnsupportedOperationException("Unimplemented");
     }
-
 }

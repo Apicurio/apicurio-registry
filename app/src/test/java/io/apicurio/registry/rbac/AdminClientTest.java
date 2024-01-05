@@ -2,7 +2,6 @@ package io.apicurio.registry.rbac;
 
 import java.util.List;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import com.microsoft.kiota.ApiException;
@@ -36,14 +35,14 @@ public class AdminClientTest extends AbstractResourceTestBase {
         createGlobalRule(RuleType.VALIDITY, "FORWARD");
 
         TestUtils.retry(() -> {
-            final List<RuleType> globalRules = clientV3.admin().rules().get().get(3, TimeUnit.SECONDS);
+            final List<RuleType> globalRules = clientV3.admin().rules().get();
             assertEquals(2, globalRules.size());
             assertTrue(globalRules.contains(RuleType.COMPATIBILITY));
             assertTrue(globalRules.contains(RuleType.VALIDITY));
         });
-        clientV3.admin().rules().delete().get(3, TimeUnit.SECONDS);
+        clientV3.admin().rules().delete();
         TestUtils.retry(() -> {
-            final List<RuleType> updatedRules = clientV3.admin().rules().get().get(3, TimeUnit.SECONDS);
+            final List<RuleType> updatedRules = clientV3.admin().rules().get();
             assertEquals(0, updatedRules.size());
         });
     }
@@ -55,7 +54,7 @@ public class AdminClientTest extends AbstractResourceTestBase {
 
         TestUtils.retry(() -> {
             //Execution
-            final Rule globalRuleConfig = clientV3.admin().rules().byRule(RuleType.COMPATIBILITY.getValue()).get().get(3, TimeUnit.SECONDS);
+            final Rule globalRuleConfig = clientV3.admin().rules().byRule(RuleType.COMPATIBILITY.getValue()).get();
             //Assertions
             assertEquals(globalRuleConfig.getConfig(), "BACKWARD");
         });
@@ -67,7 +66,7 @@ public class AdminClientTest extends AbstractResourceTestBase {
         createGlobalRule(RuleType.COMPATIBILITY, "BACKWARD");
 
         TestUtils.retry(() -> {
-            final Rule globalRuleConfig = clientV3.admin().rules().byRule(RuleType.COMPATIBILITY.getValue()).get().get(3, TimeUnit.SECONDS);
+            final Rule globalRuleConfig = clientV3.admin().rules().byRule(RuleType.COMPATIBILITY.getValue()).get();
             assertEquals(globalRuleConfig.getConfig(), "BACKWARD");
         });
 
@@ -76,7 +75,7 @@ public class AdminClientTest extends AbstractResourceTestBase {
         toUpdate.setConfig("FORWARD");
 
         //Execution
-        final Rule updated = clientV3.admin().rules().byRule(RuleType.COMPATIBILITY.getValue()).put(toUpdate).get(3, TimeUnit.SECONDS);
+        final Rule updated = clientV3.admin().rules().byRule(RuleType.COMPATIBILITY.getValue()).put(toUpdate);
 
         //Assertions
         assertEquals(updated.getConfig(), "FORWARD");
@@ -88,7 +87,7 @@ public class AdminClientTest extends AbstractResourceTestBase {
         createGlobalRule(RuleType.COMPATIBILITY, "BACKWARD");
 
         TestUtils.retry(() -> {
-            final Rule globalRuleConfig = clientV3.admin().rules().byRule(RuleType.COMPATIBILITY.getValue()).get().get(3, TimeUnit.SECONDS);
+            final Rule globalRuleConfig = clientV3.admin().rules().byRule(RuleType.COMPATIBILITY.getValue()).get();
             assertEquals(globalRuleConfig.getConfig(), "BACKWARD");
         });
 
@@ -96,7 +95,7 @@ public class AdminClientTest extends AbstractResourceTestBase {
         clientV3.admin().rules().byRule(RuleType.COMPATIBILITY.getValue()).delete();
 
         TestUtils.retry(() -> {
-            final List<RuleType> ruleTypes = clientV3.admin().rules().get().get(3, TimeUnit.SECONDS);
+            final List<RuleType> ruleTypes = clientV3.admin().rules().get();
 
             //Assertions
             assertEquals(0, ruleTypes.size());
@@ -105,7 +104,7 @@ public class AdminClientTest extends AbstractResourceTestBase {
 
     @Test
     public void listArtifactTypes() throws Exception {
-        final List<ArtifactTypeInfo> artifactTypes = clientV3.admin().artifactTypes().get().get(3, TimeUnit.SECONDS);
+        final List<ArtifactTypeInfo> artifactTypes = clientV3.admin().artifactTypes().get();
 
         assertTrue(artifactTypes.size() > 0);
         assertTrue(artifactTypes.stream().anyMatch(t -> t.getName().equals("OPENAPI")));
@@ -115,7 +114,7 @@ public class AdminClientTest extends AbstractResourceTestBase {
     @Test
     public void testRoleMappings() throws Exception {
         // Start with no role mappings
-        List<RoleMapping> roleMappings = clientV3.admin().roleMappings().get().get(3, TimeUnit.SECONDS);
+        List<RoleMapping> roleMappings = clientV3.admin().roleMappings().get();
         Assertions.assertTrue(roleMappings.isEmpty());
 
         // Add
@@ -126,12 +125,12 @@ public class AdminClientTest extends AbstractResourceTestBase {
 
         // Verify the mapping was added.
         TestUtils.retry(() -> {
-            RoleMapping roleMapping = clientV3.admin().roleMappings().byPrincipalId("TestUser").get().get(3, TimeUnit.SECONDS);
+            RoleMapping roleMapping = clientV3.admin().roleMappings().byPrincipalId("TestUser").get();
             Assertions.assertEquals("TestUser", roleMapping.getPrincipalId());
             Assertions.assertEquals(RoleType.DEVELOPER, roleMapping.getRole());
         });
         TestUtils.retry(() -> {
-            List<RoleMapping> mappings = clientV3.admin().roleMappings().get().get(3, TimeUnit.SECONDS);
+            List<RoleMapping> mappings = clientV3.admin().roleMappings().get();
             Assertions.assertEquals(1, mappings.size());
             Assertions.assertEquals("TestUser", mappings.get(0).getPrincipalId());
             Assertions.assertEquals(RoleType.DEVELOPER, mappings.get(0).getRole());
@@ -139,26 +138,25 @@ public class AdminClientTest extends AbstractResourceTestBase {
 
         // Try to add the rule again - should get a 409
         TestUtils.retry(() -> {
-            var executionException = Assertions.assertThrows(ExecutionException.class, () -> {
-                clientV3.admin().roleMappings().post(mapping).get(3, TimeUnit.SECONDS);
+            var exception = Assertions.assertThrows(ApiException.class, () -> {
+                clientV3.admin().roleMappings().post(mapping);
             });
-            assertNotNull(executionException.getCause());
-            assertEquals(409, ((ApiException)executionException.getCause()).getResponseStatusCode());
+            assertEquals(409, exception.getResponseStatusCode());
         });
 
         // Add another mapping
         mapping.setPrincipalId("TestUser2");
         mapping.setRole(RoleType.ADMIN);
-        clientV3.admin().roleMappings().post(mapping).get(3, TimeUnit.SECONDS);
+        clientV3.admin().roleMappings().post(mapping);
 
         // Get the list of mappings (should be 2 of them)
         TestUtils.retry(() -> {
-            List<RoleMapping> mappings = clientV3.admin().roleMappings().get().get(3, TimeUnit.SECONDS);
+            List<RoleMapping> mappings = clientV3.admin().roleMappings().get();
             Assertions.assertEquals(2, mappings.size());
         });
 
         // Get a single mapping by principal
-        RoleMapping tu2Mapping = clientV3.admin().roleMappings().byPrincipalId("TestUser2").get().get(3, TimeUnit.SECONDS);
+        RoleMapping tu2Mapping = clientV3.admin().roleMappings().byPrincipalId("TestUser2").get();
         Assertions.assertEquals("TestUser2", tu2Mapping.getPrincipalId());
         Assertions.assertEquals(RoleType.ADMIN, tu2Mapping.getRole());
 
@@ -169,48 +167,46 @@ public class AdminClientTest extends AbstractResourceTestBase {
 
         // Get a single (updated) mapping
         TestUtils.retry(() -> {
-            RoleMapping tum = clientV3.admin().roleMappings().byPrincipalId("TestUser").get().get(3, TimeUnit.SECONDS);
+            RoleMapping tum = clientV3.admin().roleMappings().byPrincipalId("TestUser").get();
             Assertions.assertEquals("TestUser", tum.getPrincipalId());
             Assertions.assertEquals(RoleType.READ_ONLY, tum.getRole());
         });
 
         // Try to update a role mapping that doesn't exist
-        var executionException1 = Assertions.assertThrows(ExecutionException.class, () -> {
+        var exception1 = Assertions.assertThrows(io.apicurio.registry.rest.client.models.Error.class, () -> {
             UpdateRole ur2 = new UpdateRole();
             ur2.setRole(mapping.getRole());
-            clientV3.admin().roleMappings().byPrincipalId("UnknownPrincipal").put(ur2).get(3, TimeUnit.SECONDS);
+            clientV3.admin().roleMappings().byPrincipalId("UnknownPrincipal").put(ur2);
         });
-        assertNotNull(executionException1.getCause());
-        assertEquals("RoleMappingNotFoundException", ((io.apicurio.registry.rest.client.models.Error)executionException1.getCause()).getName());
+        assertEquals("RoleMappingNotFoundException", exception1.getName());
 
         // Delete a role mapping
-        clientV3.admin().roleMappings().byPrincipalId("TestUser2").delete().get(3, TimeUnit.SECONDS);
+        clientV3.admin().roleMappings().byPrincipalId("TestUser2").delete();
 
         // Get the (deleted) mapping by name (should fail with a 404)
         TestUtils.retry(() -> {
-            var executionException2 = Assertions.assertThrows(ExecutionException.class, () -> {
-                clientV3.admin().roleMappings().byPrincipalId("TestUser2").get().get(3, TimeUnit.SECONDS);
+            var exception2 = Assertions.assertThrows(ApiException.class, () -> {
+                clientV3.admin().roleMappings().byPrincipalId("TestUser2").get();
             });
-            assertNotNull(executionException2.getCause());
-            assertEquals(404, ((ApiException)executionException2.getCause()).getResponseStatusCode());
+            assertEquals(404, exception2.getResponseStatusCode());
         });
 
         // Get the list of mappings (should be 1 of them)
         TestUtils.retry(() -> {
-            List<RoleMapping> mappings = clientV3.admin().roleMappings().get().get(3, TimeUnit.SECONDS);
+            List<RoleMapping> mappings = clientV3.admin().roleMappings().get();
             Assertions.assertEquals(1, mappings.size());
             Assertions.assertEquals("TestUser", mappings.get(0).getPrincipalId());
         });
 
         // Clean up
-        clientV3.admin().roleMappings().byPrincipalId("TestUser").delete().get(3, TimeUnit.SECONDS);
+        clientV3.admin().roleMappings().byPrincipalId("TestUser").delete();
     }
 
     protected Rule createGlobalRule(RuleType ruleType, String ruleConfig) throws ExecutionException, InterruptedException, TimeoutException {
         final Rule rule = new Rule();
         rule.setConfig(ruleConfig);
         rule.setType(ruleType);
-        clientV3.admin().rules().post(rule).get(3, TimeUnit.SECONDS);
+        clientV3.admin().rules().post(rule);
 
         return rule;
     }

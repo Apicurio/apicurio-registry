@@ -1,7 +1,7 @@
 package io.apicurio.tests.migration;
 
-import com.microsoft.kiota.authentication.AnonymousAuthenticationProvider;
-import com.microsoft.kiota.http.OkHttpRequestAdapter;
+
+
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.ArtifactContent;
 import io.apicurio.registry.utils.IoUtil;
@@ -11,9 +11,11 @@ import io.apicurio.tests.serdes.apicurio.AvroGenericRecordSchemaFactory;
 import io.apicurio.tests.serdes.apicurio.JsonSchemaMsgFactory;
 import io.apicurio.tests.utils.AbstractTestDataInitializer;
 import io.apicurio.tests.utils.Constants;
+import io.kiota.http.vertx.VertXRequestAdapter;
 import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
 
+import io.vertx.core.Vertx;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -27,7 +29,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -50,7 +51,7 @@ public class DoNotPreserveIdsImportIT extends ApicurioRegistryBaseIT {
 
     @Test
     public void testDoNotPreserveIdsImport() throws Exception {
-        var adapter = new OkHttpRequestAdapter(new AnonymousAuthenticationProvider());
+        var adapter = new VertXRequestAdapter(Vertx.vertx());
         adapter.setBaseUrl(ApicurioRegistryBaseIT.getRegistryV3ApiUrl());
         RegistryClient dest = new RegistryClient(adapter);
 
@@ -63,7 +64,7 @@ public class DoNotPreserveIdsImportIT extends ApicurioRegistryBaseIT {
             artifactContent.setContent(content);
             var amd = dest.groups().byGroupId("testDoNotPreserveIdsImport").artifacts().post(artifactContent, config -> {
                         config.headers.add("X-Registry-ArtifactId", artifactId);
-                    }).get(3, TimeUnit.SECONDS);
+                    });
             retry(() -> dest.ids().globalIds().byGlobalId(amd.getGlobalId()));
             doNotPreserveIdsImportArtifacts.put("testDoNotPreserveIdsImport:" + artifactId, content);
         }
@@ -75,7 +76,7 @@ public class DoNotPreserveIdsImportIT extends ApicurioRegistryBaseIT {
             artifactContent.setContent(content);
             var amd = dest.groups().byGroupId("testDoNotPreserveIdsImport").artifacts().post(artifactContent, config -> {
                 config.headers.add("X-Registry-ArtifactId", artifactId);
-            }).get(3, TimeUnit.SECONDS);
+            });
             retry(() -> dest.ids().globalIds().byGlobalId(amd.getGlobalId()));
             doNotPreserveIdsImportArtifacts.put("testDoNotPreserveIdsImport:" + artifactId, content);
         }
@@ -86,7 +87,7 @@ public class DoNotPreserveIdsImportIT extends ApicurioRegistryBaseIT {
             config.headers.add("X-Registry-Preserve-ContentId", "false");
         });
         importReq.headers.replace("Content-Type", Set.of("application/zip"));
-        adapter.sendPrimitiveAsync(importReq, Void.class, new HashMap<>());
+        adapter.sendPrimitive(importReq, new HashMap<>(), Void.class);
 
 
 
@@ -96,7 +97,7 @@ public class DoNotPreserveIdsImportIT extends ApicurioRegistryBaseIT {
                 String groupId = entry.getKey().split(":")[0];
                 String artifactId = entry.getKey().split(":")[1];
                 String content = entry.getValue();
-                var registryContent = dest.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get().get(3, TimeUnit.SECONDS);
+                var registryContent = dest.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get();
                 assertNotNull(registryContent);
                 assertEquals(content, IoUtil.toString(registryContent));
             }
@@ -109,14 +110,14 @@ public class DoNotPreserveIdsImportIT extends ApicurioRegistryBaseIT {
         public Map<String, String> start() {
 
             String registryBaseUrl = startRegistryApplication("quay.io/apicurio/apicurio-registry-mem:2.4.14.Final");
-            var adapter = new OkHttpRequestAdapter(new AnonymousAuthenticationProvider());
+            var adapter = new VertXRequestAdapter(Vertx.vertx());
             adapter.setBaseUrl(registryBaseUrl);
             RegistryClient source = new RegistryClient(adapter);
 
             try {
                 //Warm up until the source registry is ready.
                 TestUtils.retry(() -> {
-                    source.groups().byGroupId("default").artifacts().get().get(3, TimeUnit.SECONDS);
+                    source.groups().byGroupId("default").artifacts().get();
                 });
 
                 MigrationTestsDataInitializer.initializeDoNotPreserveIdsImport(source, getRegistryUrl(8081));

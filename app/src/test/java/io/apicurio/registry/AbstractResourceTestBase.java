@@ -6,30 +6,19 @@ import static org.hamcrest.Matchers.equalTo;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
 import com.microsoft.kiota.ApiException;
 import com.microsoft.kiota.RequestAdapter;
-import com.microsoft.kiota.authentication.AnonymousAuthenticationProvider;
-import com.microsoft.kiota.http.OkHttpRequestAdapter;
+
 import io.apicurio.registry.rest.client.models.ArtifactMetaData;
 import io.apicurio.registry.rest.v3.beans.ArtifactReference;
 import io.apicurio.rest.client.auth.exception.NotAuthorizedException;
+import io.kiota.http.vertx.VertXRequestAdapter;
 import io.vertx.core.Vertx;
-import io.vertx.ext.auth.oauth2.OAuth2Auth;
-import io.vertx.ext.auth.oauth2.OAuth2FlowType;
-import io.vertx.ext.auth.oauth2.OAuth2Options;
-import io.vertx.ext.auth.oauth2.Oauth2Credentials;
-import io.vertx.ext.web.client.OAuth2WebClient;
-import io.vertx.ext.web.client.WebClient;
-import io.vertx.ext.web.client.WebClientSession;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -87,7 +76,7 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
         return new RestService("http://localhost:" + testPort + "/apis/ccompat/v7");
     }
 
-    protected final RequestAdapter anonymousAdapter = new OkHttpRequestAdapter(new AnonymousAuthenticationProvider());
+    protected final RequestAdapter anonymousAdapter = new VertXRequestAdapter(Vertx.vertx());
     
     protected RegistryClient createRestClientV3() {
         anonymousAdapter.setBaseUrl(registryV3ApiUrl);
@@ -110,11 +99,11 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
         // Delete all global rules
         TestUtils.retry(() -> {
             try {
-                clientV3.admin().rules().delete().get(3, TimeUnit.SECONDS);
+                clientV3.admin().rules().delete();
             } catch (Exception err) {
                 // ignore
             }
-            Assertions.assertEquals(expectedDefaultRulesCount, clientV3.admin().rules().get().get(3, TimeUnit.SECONDS).size());
+            Assertions.assertEquals(expectedDefaultRulesCount, clientV3.admin().rules().get().size());
         });
     }
 
@@ -134,7 +123,7 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
                     config.headers.add("X-Registry-ArtifactId", artifactId);
                     config.headers.add("X-Registry-ArtifactType", artifactType);
                 })
-                .get(3, TimeUnit.SECONDS);
+                ;
 
         assert( result.getId().equals(artifactId) );
         assert( result.getType().equals(artifactType) );
@@ -190,7 +179,7 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
                         config.headers.add("X-Registry-ArtifactType", artifactType);
                     }
                 })
-                .get(3, TimeUnit.SECONDS);
+                ;
     }
 
     protected ArtifactMetaData updateArtifactExtendedRaw(String groupId, String artifactId, String artifactType, String artifactContent, List<ArtifactReference> artifactReferences) throws Exception {
@@ -216,7 +205,7 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
                     config.headers.add("X-Registry-ArtifactId", artifactId);
                     config.headers.add("X-Registry-ArtifactType", artifactType);
                 })
-                .get(3, TimeUnit.SECONDS);
+                ;
     }
 
     protected Long createArtifactVersion(String artifactId, String artifactType, String artifactContent) throws Exception {
@@ -234,7 +223,7 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
                 .byArtifactId(artifactId)
                 .versions()
                 .post(content, config -> {config.headers.add("X-Registry-ArtifactType", artifactType); })
-                .get(3, TimeUnit.SECONDS);
+                ;
 
         assert( version.getId().equals(artifactId) );
         assert( version.getType().equals(artifactType) );
@@ -242,7 +231,7 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
         return version.getGlobalId();
     }
 
-    protected void createArtifactRule(String groupId, String artifactId, RuleType ruleType, String ruleConfig) throws ExecutionException, InterruptedException, TimeoutException {
+    protected void createArtifactRule(String groupId, String artifactId, RuleType ruleType, String ruleConfig) {
         var rule = new io.apicurio.registry.rest.client.models.Rule();
         rule.setConfig(ruleConfig);
         rule.setType(io.apicurio.registry.rest.client.models.RuleType.forValue(ruleType.value()));
@@ -253,12 +242,11 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
                 .artifacts()
                 .byArtifactId(artifactId)
                 .rules()
-                .post(rule)
-                .get(3, TimeUnit.SECONDS);
+                .post(rule);
     }
 
     @SuppressWarnings("deprecation")
-    protected io.apicurio.registry.rest.client.models.Rule createGlobalRule(RuleType ruleType, String ruleConfig) throws ExecutionException, InterruptedException, TimeoutException {
+    protected io.apicurio.registry.rest.client.models.Rule createGlobalRule(RuleType ruleType, String ruleConfig) {
         var rule = new io.apicurio.registry.rest.client.models.Rule();
         rule.setConfig(ruleConfig);
         rule.setType(io.apicurio.registry.rest.client.models.RuleType.forValue(ruleType.value()));
@@ -266,15 +254,13 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
         clientV3
             .admin()
             .rules()
-            .post(rule)
-            .get(3, TimeUnit.SECONDS);
+            .post(rule);
         // TODO: verify this get
         return clientV3
                 .admin()
                 .rules()
                 .byRule(ruleType.value())
-                .get()
-                .get(3, TimeUnit.SECONDS);
+                .get();
     }
 
     /**
@@ -321,51 +307,19 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
                 .collect(Collectors.toList());
     }
 
-    protected void assertForbidden(ExecutionException executionException) {
-        Assertions.assertNotNull(executionException.getCause());
-        Assertions.assertEquals(ApiException.class, executionException.getCause().getClass());
-        Assertions.assertEquals(403, ((ApiException)executionException.getCause()).getResponseStatusCode());
+    protected void assertForbidden(Exception exception) {
+        Assertions.assertEquals(ApiException.class, exception.getClass());
+        Assertions.assertEquals(403, ((ApiException)exception).getResponseStatusCode());
     }
 
-    protected void assertNotAuthorized(ExecutionException executionException) {
-        Assertions.assertNotNull(executionException.getCause());
-
-        if (executionException.getCause() instanceof  NotAuthorizedException) {
+    protected void assertNotAuthorized(Exception exception) {
+        if (exception instanceof  NotAuthorizedException) {
             // thrown by the token provider adapter
         } else {
             // mapped by Kiota
-            Assertions.assertEquals(ApiException.class, executionException.getCause().getClass());
-            Assertions.assertEquals(401, ((ApiException) executionException.getCause()).getResponseStatusCode());
+            Assertions.assertEquals(ApiException.class, exception.getClass());
+            Assertions.assertEquals(401, ((ApiException) exception).getResponseStatusCode());
         }
     }
 
-    public static WebClient buildOIDCWebClient(String tokenUrl, String clientId, String clientSecret) {
-        // Using the default Vertx for testing
-        Vertx vertx = Vertx.vertx();
-        OAuth2Options options =
-                new OAuth2Options()
-                        .setFlow(OAuth2FlowType.CLIENT)
-                        .setClientId(clientId)
-                        .setTokenPath(tokenUrl)
-                        .setClientSecret(clientSecret);
-        OAuth2Auth oAuth2Auth = OAuth2Auth.create(Vertx.vertx(), options);
-        Oauth2Credentials oauth2Credentials = new Oauth2Credentials();
-
-        OAuth2WebClient oAuth2WebClient =
-                OAuth2WebClient.create(WebClient.create(vertx), oAuth2Auth)
-                        .withCredentials(oauth2Credentials);
-
-        return oAuth2WebClient;
-    }
-
-    public static WebClient buildSimpleAuthWebClient(String username, String password) {
-        // Using the default Vertx for testing
-        Vertx vertx = Vertx.vertx();
-        String usernameAndPassword = Base64.getEncoder().encodeToString("user:pw".getBytes());
-
-        // TODO: ask Carles if there is a more "idiomatic way" to do this
-        return WebClientSession
-                .create(WebClient.create(vertx))
-                .addHeader("Authorization", "Basic " + usernameAndPassword);
-    }
 }

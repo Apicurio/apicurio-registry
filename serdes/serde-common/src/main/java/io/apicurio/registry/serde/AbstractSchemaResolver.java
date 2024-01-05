@@ -1,11 +1,6 @@
 package io.apicurio.registry.serde;
 
 import com.microsoft.kiota.RequestAdapter;
-import com.microsoft.kiota.authentication.AnonymousAuthenticationProvider;
-import com.microsoft.kiota.authentication.BaseBearerTokenAuthenticationProvider;
-import com.microsoft.kiota.http.OkHttpRequestAdapter;
-import io.apicurio.registry.auth.BasicAuthenticationProvider;
-import io.apicurio.registry.auth.OidcAccessTokenProvider;
 import io.apicurio.registry.resolver.ERCache;
 import io.apicurio.registry.resolver.ParsedSchemaImpl;
 import io.apicurio.registry.resolver.config.DefaultSchemaResolverConfig;
@@ -18,13 +13,17 @@ import io.apicurio.registry.serde.data.KafkaSerdeMetadata;
 import io.apicurio.registry.serde.data.KafkaSerdeRecord;
 import io.apicurio.registry.serde.strategy.ArtifactReference;
 import io.apicurio.registry.utils.IoUtil;
-import io.apicurio.rest.client.spi.ApicurioHttpClient;
+import io.kiota.http.vertx.VertXRequestAdapter;
+import io.vertx.core.Vertx;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.ExecutionException;
+
+import static io.apicurio.registry.client.auth.VertXAuthFactory.buildOIDCWebClient;
+import static io.apicurio.registry.client.auth.VertXAuthFactory.buildSimpleAuthWebClient;
 
 /**
  * This class is deprecated, it's recommended to migrate to the new implementation at {@link io.apicurio.registry.resolver.AbstractSchemaResolver}
@@ -38,7 +37,6 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
 
     protected io.apicurio.registry.resolver.SchemaParser<S, T> schemaParser;
     protected RegistryClient client;
-    protected ApicurioHttpClient authClient;
     protected boolean isKey;
     protected ArtifactReferenceResolverStrategy<S, T> artifactResolverStrategy;
 
@@ -100,7 +98,7 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
                     if (username != null) {
                         client = configureClientWithBasicAuth(config, baseUrl, username);
                     } else {
-                        RequestAdapter adapter = new OkHttpRequestAdapter(new AnonymousAuthenticationProvider());
+                        RequestAdapter adapter = new VertXRequestAdapter(Vertx.vertx());
                         adapter.setBaseUrl(baseUrl);
                         client = new RegistryClient(adapter);
                     }
@@ -203,14 +201,7 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
             //TODO getContentByGlobalId have to return some minumum metadata (groupId, artifactId and version)
             //TODO or at least add some method to the api to return the version metadata by globalId
 //            ArtifactMetaData artifactMetadata = client.getArtifactMetaData("TODO", artifactId);
-            InputStream rawSchema = null;
-            try {
-                rawSchema = client.ids().globalIds().byGlobalId(globalIdKey).get().get();
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            } catch (ExecutionException e) {
-                throw new RuntimeException(e);
-            }
+            InputStream rawSchema = client.ids().globalIds().byGlobalId(globalIdKey).get();
 
             byte[] schema = IoUtil.toBytes(rawSchema);
             S parsed = schemaParser.parseSchema(schema, Collections.emptyMap());
@@ -276,7 +267,7 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
             throw new IllegalArgumentException("Missing registry auth secret, set " + SerdeConfig.AUTH_CLIENT_SECRET);
         }
 
-        RequestAdapter adapter = new OkHttpRequestAdapter(new BaseBearerTokenAuthenticationProvider(new OidcAccessTokenProvider(tokenEndpoint, clientId, clientSecret)));
+        RequestAdapter adapter = new VertXRequestAdapter(buildOIDCWebClient(tokenEndpoint, clientId, clientSecret));
         return adapter;
     }
 
@@ -288,7 +279,7 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
             throw new IllegalArgumentException("Missing registry auth password, set " + SerdeConfig.AUTH_PASSWORD);
         }
 
-        var adapter = new OkHttpRequestAdapter(new BasicAuthenticationProvider(username, password));
+        var adapter = new VertXRequestAdapter(buildSimpleAuthWebClient(username, password));
 
         adapter.setBaseUrl(registryUrl);
         return new RegistryClient(adapter);

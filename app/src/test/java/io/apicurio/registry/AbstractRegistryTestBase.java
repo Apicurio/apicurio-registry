@@ -65,13 +65,13 @@ public abstract class AbstractRegistryTestBase {
     }
 
     protected void assertForbidden(ExecutionException executionException) {
-        Assertions.assertNotNull(executionException.getCause());
+        
         Assertions.assertEquals(ApiException.class, executionException.getCause().getClass());
         Assertions.assertEquals(403, ((ApiException)executionException.getCause()).getResponseStatusCode());
     }
 
     protected void assertNotAuthorized(ExecutionException executionException) {
-        Assertions.assertNotNull(executionException.getCause());
+        
 
         if (executionException.getCause() instanceof NotAuthorizedException) {
             // thrown by the token provider adapter

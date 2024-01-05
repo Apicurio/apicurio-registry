@@ -3,8 +3,8 @@ package io.apicurio.registry.noprofile.serde;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.microsoft.kiota.authentication.AnonymousAuthenticationProvider;
-import com.microsoft.kiota.http.OkHttpRequestAdapter;
+
+
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.resolver.DefaultSchemaResolver;
 import io.apicurio.registry.resolver.ParsedSchema;
@@ -14,6 +14,7 @@ import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.ArtifactContent;
 import io.apicurio.registry.rest.client.models.ArtifactMetaData;
 import io.apicurio.registry.rest.client.models.ArtifactReference;
+import io.apicurio.registry.rest.client.models.IfExists;
 import io.apicurio.registry.serde.SchemaResolverConfigurer;
 import io.apicurio.registry.serde.SerdeConfig;
 import io.apicurio.registry.serde.SerdeHeaders;
@@ -30,7 +31,9 @@ import io.apicurio.registry.support.Qualification;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.tests.TestUtils;
+import io.kiota.http.vertx.VertXRequestAdapter;
 import io.quarkus.test.junit.QuarkusTest;
+import io.vertx.core.Vertx;
 import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.header.internals.RecordHeaders;
@@ -60,7 +63,7 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
 
     @BeforeEach
     public void createIsolatedClient() {
-        var adapter = new OkHttpRequestAdapter(new AnonymousAuthenticationProvider());
+        var adapter = new VertXRequestAdapter(Vertx.vertx());
         adapter.setBaseUrl(TestUtils.getRegistryV3ApiUrl(testPort));
         restClient = new RegistryClient(adapter);
     }
@@ -406,14 +409,13 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
                         .byGroupId("GLOBAL")
                         .artifacts()
                         .post(content, config -> {
-                            config.queryParameters.ifExists = "UPDATE";
+                            config.queryParameters.ifExists = IfExists.UPDATE;
                             config.queryParameters.canonical = false;
                             config.headers.add("X-Registry-ArtifactId", "sample.address.json");
                             config.headers.add("X-Registry-ArtifactType", ArtifactType.JSON);
                             config.headers.add("X-Registry-Version", version);
                             config.headers.add("Content-Type", "application/create.extended+json");
-                        })
-                        .get();
+                        });
 
         content.setContent(new String(email.readAllBytes(), StandardCharsets.UTF_8));
         final ArtifactMetaData amdEmail =
@@ -422,14 +424,13 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
                         .byGroupId("GLOBAL")
                         .artifacts()
                         .post(content, config -> {
-                            config.queryParameters.ifExists = "UPDATE";
+                            config.queryParameters.ifExists = IfExists.UPDATE;
                             config.queryParameters.canonical = false;
                             config.headers.add("X-Registry-ArtifactId", "sample.email.json");
                             config.headers.add("X-Registry-ArtifactType", ArtifactType.JSON);
                             config.headers.add("X-Registry-Version", version);
                             config.headers.add("Content-Type", "application/create.extended+json");
-                        })
-                        .get();
+                        });
 
         content.setContent(new String(phone.readAllBytes(), StandardCharsets.UTF_8));
         final ArtifactMetaData amdPhone =
@@ -438,14 +439,13 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
                         .byGroupId("GLOBAL")
                         .artifacts()
                         .post(content, config -> {
-                            config.queryParameters.ifExists = "UPDATE";
+                            config.queryParameters.ifExists = IfExists.UPDATE;
                             config.queryParameters.canonical = false;
                             config.headers.add("X-Registry-ArtifactId", "sample.phone.json");
                             config.headers.add("X-Registry-ArtifactType", ArtifactType.JSON);
                             config.headers.add("X-Registry-Version", version);
                             config.headers.add("Content-Type", "application/create.extended+json");
-                        })
-                        .get();
+                        });
 
 
         final ArtifactReference addressReference = new ArtifactReference();
@@ -479,14 +479,13 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
                 .byGroupId("GLOBAL")
                 .artifacts()
                 .post(content, config -> {
-                    config.queryParameters.ifExists = "UPDATE";
+                    config.queryParameters.ifExists = IfExists.UPDATE;
                     config.queryParameters.canonical = false;
                     config.headers.add("X-Registry-ArtifactId", "sample.account.json");
                     config.headers.add("X-Registry-ArtifactType", ArtifactType.JSON);
                     config.headers.add("X-Registry-Version", version);
                     config.headers.add("Content-Type", "application/create.extended+json");
-                })
-                .get();
+                });
 
         String data = "{\n" + "  \"id\": \"abc\",\n" + "  \n" + "  \"accountPhones\": [{\n"
                 + "  \"phoneRelationTypeCd\": \"ABCDEFGHIJ\",\n"
@@ -497,7 +496,7 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
         JsonNode validationFor = objectMapper.readTree(data);
 
         ArtifactMetaData global =
-            client.groups().byGroupId("GLOBAL").artifacts().byArtifactId("sample.account.json").meta().get().get();
+            client.groups().byGroupId("GLOBAL").artifacts().byArtifactId("sample.account.json").meta().get();
                 // client.getArtifactMetaData("GLOBAL", "sample.account.json");
         io.apicurio.registry.resolver.strategy.ArtifactReference artifactReference = io.apicurio.registry.resolver.strategy.ArtifactReference.builder().globalId(global.getGlobalId())
                 .groupId("GLOBAL")//.version("4")

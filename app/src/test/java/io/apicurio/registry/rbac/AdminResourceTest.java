@@ -28,8 +28,6 @@ import java.io.InputStream;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -460,7 +458,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
             clientV3.groups().byGroupId(group).artifacts().post(content, config -> {
                 config.headers.add("X-Registry-ArtifactId", artifactId);
                 config.headers.add("X-Registry-ArtifactType", ArtifactType.OPENAPI);
-            }).get(3, TimeUnit.SECONDS);
+            });
         }
 
         // Export data (browser flow).
@@ -519,7 +517,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
         var result = clientV3.search().artifacts().get(config -> {
             config.queryParameters.offset = 0;
             config.queryParameters.limit = 5;
-        }).get(3, TimeUnit.SECONDS);
+        });
         int artifactsBefore = result.getCount();
 
         try (InputStream data = resourceToInputStream("../rest/v3/export.zip")) {
@@ -551,41 +549,39 @@ public class AdminResourceTest extends AbstractResourceTestBase {
         result = clientV3.search().artifacts().get(config -> {
             config.queryParameters.offset = 0;
             config.queryParameters.limit = 5;
-        }).get(3, TimeUnit.SECONDS);
+        });
         int newArtifacts = result.getCount().intValue() - artifactsBefore;
         assertEquals(3, newArtifacts);
 
         // Verify comments were imported
-        List<Comment> comments = clientV3.groups().byGroupId("ImportTest").artifacts().byArtifactId("Artifact-1").versions().byVersion("1.0.2").comments().get().get(3, TimeUnit.SECONDS);
+        List<Comment> comments = clientV3.groups().byGroupId("ImportTest").artifacts().byArtifactId("Artifact-1").versions().byVersion("1.0.2").comments().get();
         assertNotNull(comments);
         assertEquals(2, comments.size());
         assertEquals("COMMENT-2", comments.get(0).getValue());
         assertEquals("COMMENT-1", comments.get(1).getValue());
 
-        comments = clientV3.groups().byGroupId("ImportTest").artifacts().byArtifactId("Artifact-2").versions().byVersion("1.0.1").comments().get().get(3, TimeUnit.SECONDS);
+        comments = clientV3.groups().byGroupId("ImportTest").artifacts().byArtifactId("Artifact-2").versions().byVersion("1.0.1").comments().get();
         assertNotNull(comments);
         assertEquals(1, comments.size());
         assertEquals("COMMENT-3", comments.get(0).getValue());
 
         // Verify artifact rules were imported
-        var rule = clientV3.groups().byGroupId("ImportTest").artifacts().byArtifactId("Artifact-1").rules().byRule(RuleType.VALIDITY.getValue()).get().get(3, TimeUnit.SECONDS);
+        var rule = clientV3.groups().byGroupId("ImportTest").artifacts().byArtifactId("Artifact-1").rules().byRule(RuleType.VALIDITY.getValue()).get();
         assertNotNull(rule);
         assertEquals("SYNTAX_ONLY", rule.getConfig());
 
         //the biggest globalId in the export file is 1005
-        assertNotNull(clientV3.ids().globalIds().byGlobalId(1005L).get().get(3, TimeUnit.SECONDS));
+        assertNotNull(clientV3.ids().globalIds().byGlobalId(1005L).get());
 
         //this is the artifactId for the artifact with globalId 1005
-        var lastArtifactMeta = clientV3.groups().byGroupId("ImportTest").artifacts().byArtifactId("Artifact-3").meta().get().get(3, TimeUnit.SECONDS);
+        var lastArtifactMeta = clientV3.groups().byGroupId("ImportTest").artifacts().byArtifactId("Artifact-3").meta().get();
         assertEquals("1.0.2", lastArtifactMeta.getVersion());
         assertEquals(1005L, lastArtifactMeta.getGlobalId());
 
-        var executionException = Assertions.assertThrows(ExecutionException.class, () -> clientV3.ids().globalIds().byGlobalId(1006L).get().get(3, TimeUnit.SECONDS));
+        var exception = Assertions.assertThrows(io.apicurio.registry.rest.client.models.Error.class, () -> clientV3.ids().globalIds().byGlobalId(1006L).get());
         //ArtifactNotFoundException
-        Assertions.assertNotNull(executionException.getCause());
-        Assertions.assertEquals(io.apicurio.registry.rest.client.models.Error.class, executionException.getCause().getClass());
-        Assertions.assertEquals("ArtifactNotFoundException", ((io.apicurio.registry.rest.client.models.Error) executionException.getCause()).getName());
-        Assertions.assertEquals(404, ((io.apicurio.registry.rest.client.models.Error) executionException.getCause()).getErrorCode());
+        Assertions.assertEquals("ArtifactNotFoundException", exception.getName());
+        Assertions.assertEquals(404, exception.getErrorCode());
     }
 
 

@@ -31,8 +31,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
 
 import io.apicurio.registry.rest.client.models.Error;
 import org.apache.commons.codec.digest.DigestUtils;
@@ -2771,7 +2769,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                     config.headers.add("X-Registry-Version", "2");
                     config.headers.add("X-Registry-ArtifactId", artifactId);
                 })
-                .get(3, TimeUnit.SECONDS);
+                ;
 
         // Now try registering an artifact with an INVALID reference
         data = new ByteArrayInputStream(artifactContent.getBytes(StandardCharsets.UTF_8));
@@ -2787,7 +2785,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         var contentf_1 = new io.apicurio.registry.rest.client.models.ArtifactContent();
         contentf_1.setContent(new String(dataf_1.readAllBytes(), StandardCharsets.UTF_8));
         contentf_1.setReferences(referencesf_1);
-        var executionException_1 = Assertions.assertThrows(ExecutionException.class, () -> {
+        var exception_1 = Assertions.assertThrows(Error.class, () -> {
             clientV3
                     .groups()
                     .byGroupId(GROUP)
@@ -2797,13 +2795,10 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                         config.headers.add("X-Registry-Version", "2");
                         config.headers.add("X-Registry-ArtifactId", artifactId);
                     })
-                    .get(3, TimeUnit.SECONDS);
+                    ;
         });
-        Assertions.assertNotNull(executionException_1.getCause());
-        var error = executionException_1.getCause();
-        Assertions.assertEquals(Error.class, error.getClass());
-        Assertions.assertEquals(409, ((Error) error).getErrorCode());
-        Assertions.assertEquals("RuleViolationException", ((Error) error).getName());
+        Assertions.assertEquals(409, exception_1.getErrorCode());
+        Assertions.assertEquals("RuleViolationException", exception_1.getName());
 
 
         // Now try registering an artifact with both a valid and invalid ref
@@ -2827,7 +2822,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         var contentf_2 = new io.apicurio.registry.rest.client.models.ArtifactContent();
         contentf_2.setContent(new String(dataf_2.readAllBytes(), StandardCharsets.UTF_8));
         contentf_2.setReferences(referencesf_2);
-        var executionException_2 = Assertions.assertThrows(ExecutionException.class, () -> {
+        var exception_2 = Assertions.assertThrows(Error.class, () -> {
             clientV3
                     .groups()
                     .byGroupId(GROUP)
@@ -2837,14 +2832,10 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                         config.headers.add("X-Registry-Version", "2");
                         config.headers.add("X-Registry-ArtifactId", artifactId);
                     })
-                    .get(3, TimeUnit.SECONDS);
+                    ;
         });
-
-        Assertions.assertNotNull(executionException_2.getCause());
-        var error_2 = executionException_2.getCause();
-        Assertions.assertEquals(Error.class, error_2.getClass());
-        Assertions.assertEquals(409, ((Error) error_2).getErrorCode());
-        Assertions.assertEquals("RuleViolationException", ((Error) error_2).getName());
+        Assertions.assertEquals(409, exception_2.getErrorCode());
+        Assertions.assertEquals("RuleViolationException", exception_2.getName());
 
         // Now try registering an artifact with a duplicate ref
         data = new ByteArrayInputStream(artifactContent.getBytes(StandardCharsets.UTF_8));
@@ -2854,7 +2845,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         var contentf_3 = new io.apicurio.registry.rest.client.models.ArtifactContent();
         contentf_3.setContent(new String(dataf_3.readAllBytes(), StandardCharsets.UTF_8));
         contentf_3.setReferences(referencesf_3);
-        var executionException_3 = Assertions.assertThrows(ExecutionException.class, () -> {
+        var exception_3 = Assertions.assertThrows(Error.class, () -> {
             clientV3
                     .groups()
                     .byGroupId(GROUP)
@@ -2864,14 +2855,10 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                         config.headers.add("X-Registry-Version", "2");
                         config.headers.add("X-Registry-ArtifactId", artifactId);
                     })
-                    .get(3, TimeUnit.SECONDS);
+                    ;
         });
-
-        Assertions.assertNotNull(executionException_3.getCause());
-        var error_3 = executionException_3.getCause();
-        Assertions.assertEquals(Error.class, error_3.getClass());
-        Assertions.assertEquals(409, ((Error) error_3).getErrorCode());
-        Assertions.assertEquals("RuleViolationException", ((Error) error_3).getName());
+        Assertions.assertEquals(409, exception_3.getErrorCode());
+        Assertions.assertEquals("RuleViolationException", exception_3.getName());
     }
 
 

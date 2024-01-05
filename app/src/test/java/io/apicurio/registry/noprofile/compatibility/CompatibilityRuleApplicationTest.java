@@ -22,8 +22,6 @@ import org.junit.jupiter.api.Test;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.CoreMatchers.anything;
@@ -263,19 +261,17 @@ public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {
         Rule rule = new Rule();
         rule.setType(RuleType.COMPATIBILITY);
         rule.setConfig(CompatibilityLevel.FULL.name());
-        clientV3.groups().byGroupId("default").artifacts().byArtifactId(artifactId).rules().post(rule).get(3, TimeUnit.SECONDS);
+        clientV3.groups().byGroupId("default").artifacts().byArtifactId(artifactId).rules().post(rule);
 
         // This will result in org.apache.avro.AvroTypeException in the compatibility checker,
         // which is rethrown as UnprocessableSchemaException.
         // TODO: Do we want such cases to result in RuleViolationException instead?
-        var executionException = Assertions.assertThrows(ExecutionException.class, () -> {
+        var exception = Assertions.assertThrows(ApiException.class, () -> {
             ArtifactContent content = new ArtifactContent();
             content.setContent(INVALID_SCHEMA_WITH_MAP);
-            clientV3.groups().byGroupId("default").artifacts().byArtifactId(artifactId).put(content).get(3, TimeUnit.SECONDS);
+            clientV3.groups().byGroupId("default").artifacts().byArtifactId(artifactId).put(content);
         });
-        Assertions.assertNotNull(executionException.getCause());
-        Assertions.assertEquals(com.microsoft.kiota.ApiException.class, executionException.getCause().getClass());
-        Assertions.assertEquals(422, ((ApiException)executionException.getCause()).getResponseStatusCode());
+        Assertions.assertEquals(422, exception.getResponseStatusCode());
     }
 
     @Test
@@ -285,19 +281,17 @@ public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {
         Rule rule = new Rule();
         rule.setType(RuleType.COMPATIBILITY);
         rule.setConfig(CompatibilityLevel.FULL.name());
-        clientV3.groups().byGroupId("default").artifacts().byArtifactId(artifactId).rules().post(rule).get(3, TimeUnit.SECONDS);
+        clientV3.groups().byGroupId("default").artifacts().byArtifactId(artifactId).rules().post(rule);
 
         // This will result in org.apache.avro.AvroTypeException in the compatibility checker,
         // which is rethrown as UnprocessableSchemaException.
         // TODO: Do we want such cases to result in RuleViolationException instead?
-        var executionException = Assertions.assertThrows(ExecutionException.class, () -> {
+        var exception = Assertions.assertThrows(ApiException.class, () -> {
             ArtifactContent content = new ArtifactContent();
             content.setContent(INVALID_SCHEMA_WITH_MAP);
-            clientV3.groups().byGroupId("default").artifacts().byArtifactId(artifactId).put(content).get(3, TimeUnit.SECONDS);
+            clientV3.groups().byGroupId("default").artifacts().byArtifactId(artifactId).put(content);
         });
-        Assertions.assertNotNull(executionException.getCause());
-        Assertions.assertEquals(com.microsoft.kiota.ApiException.class, executionException.getCause().getClass());
-        Assertions.assertEquals(422, ((ApiException)executionException.getCause()).getResponseStatusCode());
+        Assertions.assertEquals(422, exception.getResponseStatusCode());
     }
 
 
@@ -316,22 +310,22 @@ public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {
         Rule rule = new Rule();
         rule.setType(RuleType.COMPATIBILITY);
         rule.setConfig(CompatibilityLevel.BACKWARD_TRANSITIVE.name());
-        clientV3.groups().byGroupId("default").artifacts().byArtifactId(artifactId).rules().post(rule).get(3, TimeUnit.SECONDS);
+        clientV3.groups().byGroupId("default").artifacts().byArtifactId(artifactId).rules().post(rule);
 
         //Should fail, the new version is not compatible with the first one
-        var executionException = Assertions.assertThrows(ExecutionException.class, () -> {
+        var exception = Assertions.assertThrows(Exception.class, () -> {
             ArtifactContent content = new ArtifactContent();
             content.setContent(SCHEMA_WITH_MAP);
-            clientV3.groups().byGroupId("default").artifacts().byArtifactId(artifactId).put(content).get(3, TimeUnit.SECONDS);
+            clientV3.groups().byGroupId("default").artifacts().byArtifactId(artifactId).put(content);
         });
 
         //Change rule to backward, should pass since the new version is compatible with the latest one
         rule = new Rule();
         rule.setType(RuleType.COMPATIBILITY);
         rule.setConfig(CompatibilityLevel.BACKWARD.name());
-        clientV3.groups().byGroupId("default").artifacts().byArtifactId(artifactId).rules().byRule(RuleType.COMPATIBILITY.getValue()).put(rule).get(3, TimeUnit.SECONDS);
+        clientV3.groups().byGroupId("default").artifacts().byArtifactId(artifactId).rules().byRule(RuleType.COMPATIBILITY.getValue()).put(rule);
         ArtifactContent content = new ArtifactContent();
         content.setContent(SCHEMA_WITH_MAP);
-        clientV3.groups().byGroupId("default").artifacts().byArtifactId(artifactId).put(content).get(3, TimeUnit.SECONDS);
+        clientV3.groups().byGroupId("default").artifacts().byArtifactId(artifactId).put(content);
     }
 }

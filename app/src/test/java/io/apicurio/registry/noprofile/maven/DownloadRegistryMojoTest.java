@@ -4,7 +4,6 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 import io.apicurio.registry.maven.DownloadArtifact;
 import io.apicurio.registry.maven.DownloadRegistryMojo;
@@ -39,7 +38,7 @@ public class DownloadRegistryMojoTest extends RegistryMojoTestBase {
         clientV3.groups().byGroupId(groupId).artifacts().post(data, config -> {
             config.headers.add("X-Registry-ArtifactId", artifactId);
             config.headers.add("X-Registry-ArtifactType", ArtifactType.AVRO);
-        }).get(3, TimeUnit.SECONDS);
+        });
 
         List<DownloadArtifact> artifacts = new ArrayList<>();
         DownloadArtifact artifact = new DownloadArtifact();

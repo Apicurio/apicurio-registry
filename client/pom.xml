@@ -68,11 +68,6 @@
             <groupId>io.vertx</groupId>
             <artifactId>vertx-auth-oauth2</artifactId>
         </dependency>
-        <dependency>
-            <groupId>io.apicurio</groupId>
-            <!-- used only for NotAuthorized ATM -->
-            <artifactId>apicurio-common-rest-client-common</artifactId>
-        </dependency>
     </dependencies>
     <build>
         <plugins>

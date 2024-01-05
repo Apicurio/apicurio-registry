@@ -3,8 +3,6 @@ package io.apicurio.registry.limits;
 import java.io.InputStream;
 import java.util.Arrays;
 import java.util.Map;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
 
 import com.microsoft.kiota.ApiException;
 import io.apicurio.registry.storage.RegistryStorage;
@@ -76,7 +74,7 @@ public class LimitsTest extends AbstractResourceTestBase {
             .byVersion("1")
             .meta()
             .put(meta)
-            .get(3, TimeUnit.SECONDS);
+            ;
 
         //invalid metadata
         EditableMetaData invalidmeta = new EditableMetaData();
@@ -89,7 +87,7 @@ public class LimitsTest extends AbstractResourceTestBase {
                 StringUtils.repeat('b', 5), fiveBytesText));
         invalidmeta.setProperties(props2);
         invalidmeta.setLabels(Arrays.asList(fiveBytesText, fiveBytesText));
-        var executionException1 = Assertions.assertThrows(ExecutionException.class, () -> {
+        var exception1 = Assertions.assertThrows(ApiException.class, () -> {
             clientV3
                 .groups()
                 .byGroupId("default")
@@ -99,14 +97,12 @@ public class LimitsTest extends AbstractResourceTestBase {
                 .byVersion("1")
                 .meta()
                 .put(invalidmeta)
-                .get(3, TimeUnit.SECONDS);
+                ;
         });
-        Assertions.assertNotNull(executionException1.getCause());
-        Assertions.assertEquals(ApiException.class, executionException1.getCause().getClass());
-        Assertions.assertEquals(409, ((ApiException)executionException1.getCause()).getResponseStatusCode());
+        Assertions.assertEquals(409, exception1.getResponseStatusCode());
 
         //schema number 3 , exceeds the max number of schemas
-        var executionException2 = Assertions.assertThrows(ExecutionException.class, () -> {
+        var exception2 = Assertions.assertThrows(io.apicurio.registry.rest.client.models.Error.class, () -> {
             ArtifactContent data = new ArtifactContent();
             data.setContent("{}");
             clientV3
@@ -116,11 +112,9 @@ public class LimitsTest extends AbstractResourceTestBase {
                 .post(data, config -> {
                     config.headers.add("X-Registry-ArtifactType", ArtifactType.JSON);
                     config.headers.add("X-Registry-ArtifactId", artifactId);
-                }).get(3, TimeUnit.SECONDS);
+                });
         });
-        Assertions.assertNotNull(executionException2.getCause());
-        Assertions.assertEquals(io.apicurio.registry.rest.client.models.Error.class, executionException2.getCause().getClass());
-        Assertions.assertEquals(409, ((io.apicurio.registry.rest.client.models.Error)executionException2.getCause()).getErrorCode());
+        Assertions.assertEquals(409, exception2.getErrorCode());
     }
 
 }

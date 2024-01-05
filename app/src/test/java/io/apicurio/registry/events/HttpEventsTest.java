@@ -8,7 +8,7 @@ import io.apicurio.registry.utils.tests.ApicurioTestTags;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
-import io.vertx.core.Vertx;
+import io.apicurio.registry.client.auth.VertXAuthFactory;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerOptions;
 import org.junit.jupiter.api.AfterAll;
@@ -44,7 +44,7 @@ public class HttpEventsTest extends AbstractResourceTestBase {
     public void setup() throws TimeoutException {
         CompletableFuture<HttpServer> serverFuture = new CompletableFuture<>();
         events = new CopyOnWriteArrayList<>();
-        server = Vertx.vertx().createHttpServer(new HttpServerOptions()
+        server = VertXAuthFactory.defaultVertx.createHttpServer(new HttpServerOptions()
                         .setPort(8976))
                 .requestHandler(req -> {
                     if (RegistryEventType.ARTIFACT_CREATED.cloudEventType().equals(req.headers().get("ce-type"))

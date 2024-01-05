@@ -10,8 +10,8 @@ import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.ArtifactMetaData;
 import io.apicurio.registry.rest.client.models.VersionMetaData;
 import io.apicurio.registry.utils.IoUtil;
+import io.apicurio.registry.client.auth.VertXAuthFactory;
 import io.kiota.http.vertx.VertXRequestAdapter;
-import io.vertx.core.Vertx;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -64,7 +64,7 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
                     if (username != null) {
                         client = configureClientWithBasicAuth(config, baseUrl, username);
                     } else {
-                        var adapter = new VertXRequestAdapter(Vertx.vertx());
+                        var adapter = new VertXRequestAdapter(VertXAuthFactory.defaultVertx);
                         adapter.setBaseUrl(baseUrl);
                         client = new RegistryClient(adapter);
                     }

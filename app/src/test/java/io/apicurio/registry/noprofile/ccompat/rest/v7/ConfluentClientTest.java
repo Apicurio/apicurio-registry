@@ -76,7 +76,11 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
 
     @AfterEach
     protected void afterEach() throws Exception {
-        clientV3.groups().byGroupId("default").artifacts().delete();
+        try {
+            clientV3.groups().byGroupId("default").artifacts().delete();
+        } catch (Exception ex) {
+            // ignore
+        }
     }
 
     @Test

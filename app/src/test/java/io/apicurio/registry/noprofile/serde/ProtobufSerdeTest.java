@@ -10,7 +10,7 @@ import java.util.Map;
 import io.apicurio.registry.serde.SerdeConfig;
 import io.api.sample.TableNotification;
 import io.kiota.http.vertx.VertXRequestAdapter;
-import io.vertx.core.Vertx;
+import io.apicurio.registry.client.auth.VertXAuthFactory;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serializer;
 import org.junit.jupiter.api.Assertions;
@@ -39,7 +39,7 @@ public class ProtobufSerdeTest extends AbstractResourceTestBase {
 
     @BeforeEach
     public void createIsolatedClient() {
-        var adapter = new VertXRequestAdapter(Vertx.vertx());
+        var adapter = new VertXRequestAdapter(VertXAuthFactory.defaultVertx);
         adapter.setBaseUrl(TestUtils.getRegistryV3ApiUrl(testPort));
         restClient = new RegistryClient(adapter);
     }

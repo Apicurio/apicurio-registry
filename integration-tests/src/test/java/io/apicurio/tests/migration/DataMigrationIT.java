@@ -12,7 +12,7 @@ import io.apicurio.tests.utils.Constants;
 import io.kiota.http.vertx.VertXRequestAdapter;
 import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
-import io.vertx.core.Vertx;
+import io.apicurio.registry.client.auth.VertXAuthFactory;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
@@ -53,7 +53,7 @@ public class DataMigrationIT extends ApicurioRegistryBaseIT {
      */
     @Test
     public void migrate() throws Exception {
-        var adapter = new VertXRequestAdapter(Vertx.vertx());
+        var adapter = new VertXRequestAdapter(VertXAuthFactory.defaultVertx);
         adapter.setBaseUrl(ApicurioRegistryBaseIT.getRegistryV3ApiUrl());
         RegistryClient dest = new RegistryClient(adapter);
 
@@ -85,7 +85,7 @@ public class DataMigrationIT extends ApicurioRegistryBaseIT {
         public Map<String, String> start() {
             // TODO we will need to change this to 3.0.0 whenever that is released!
             String registryBaseUrl = startRegistryApplication("quay.io/apicurio/apicurio-registry:latest-snapshot");
-            var adapter = new VertXRequestAdapter(Vertx.vertx());
+            var adapter = new VertXRequestAdapter(VertXAuthFactory.defaultVertx);
             adapter.setBaseUrl(registryBaseUrl);
             RegistryClient source = new RegistryClient(adapter);
 

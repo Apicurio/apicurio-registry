@@ -18,7 +18,7 @@ import io.apicurio.registry.rest.client.models.ArtifactMetaData;
 import io.apicurio.registry.rest.v3.beans.ArtifactReference;
 import io.apicurio.rest.client.auth.exception.NotAuthorizedException;
 import io.kiota.http.vertx.VertXRequestAdapter;
-import io.vertx.core.Vertx;
+import io.apicurio.registry.client.auth.VertXAuthFactory;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -76,7 +76,7 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
         return new RestService("http://localhost:" + testPort + "/apis/ccompat/v7");
     }
 
-    protected final RequestAdapter anonymousAdapter = new VertXRequestAdapter(Vertx.vertx());
+    protected final RequestAdapter anonymousAdapter = new VertXRequestAdapter(VertXAuthFactory.defaultVertx);
     
     protected RegistryClient createRestClientV3() {
         anonymousAdapter.setBaseUrl(registryV3ApiUrl);

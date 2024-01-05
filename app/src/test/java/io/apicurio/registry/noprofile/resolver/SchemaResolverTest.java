@@ -14,7 +14,7 @@ import io.apicurio.registry.resolver.SchemaParser;
 import io.apicurio.registry.resolver.SchemaResolver;
 import io.apicurio.registry.resolver.SchemaResolverConfig;
 import io.kiota.http.vertx.VertXRequestAdapter;
-import io.vertx.core.Vertx;
+import io.apicurio.registry.client.auth.VertXAuthFactory;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
@@ -38,7 +38,7 @@ public class SchemaResolverTest extends AbstractResourceTestBase {
 
     @BeforeEach
     public void createIsolatedClient() {
-        var adapter = new VertXRequestAdapter(Vertx.vertx());
+        var adapter = new VertXRequestAdapter(VertXAuthFactory.defaultVertx);
         adapter.setBaseUrl(TestUtils.getRegistryV3ApiUrl(testPort));
         restClient = new RegistryClient(adapter);
     }
@@ -99,7 +99,6 @@ public class SchemaResolverTest extends AbstractResourceTestBase {
         // TODO: this seems excessive to me ...
         io.apicurio.registry.rest.client.models.Error error = (io.apicurio.registry.rest.client.models.Error) runtimeException // wrapped because it was thrown in a lambda
                 .getCause() // RuntimeException thrown by ERCache
-                .getCause() // ExecutionException thrown by the Async layer of Kiota
                 .getCause(); // finally the "real" error
         assertEquals("ArtifactNotFoundException", error.getName());
         assertEquals(404, error.getErrorCode());

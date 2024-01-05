@@ -9,7 +9,7 @@ import io.apicurio.registry.rest.client.models.ArtifactContent;
 import io.apicurio.registry.rest.client.models.Rule;
 import io.apicurio.registry.rest.client.models.RuleType;
 import io.kiota.http.vertx.VertXRequestAdapter;
-import io.vertx.core.Vertx;
+import io.apicurio.registry.client.auth.VertXAuthFactory;
 
 /**
  * Used to create the export.zip file used by the import test in {@link AdminResourceTest}.
@@ -26,7 +26,7 @@ public class ExportLoader {
             "}";
 
     public static void main(String[] args) throws Exception {
-        var adapter = new VertXRequestAdapter(Vertx.vertx());
+        var adapter = new VertXRequestAdapter(VertXAuthFactory.defaultVertx);
         adapter.setBaseUrl("http://localhost:8080/apis/registry/v3");
         RegistryClient client = new RegistryClient(adapter);
         for (int idx = 0; idx < 1000; idx++) {

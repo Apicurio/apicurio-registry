@@ -2,7 +2,7 @@ package io.apicurio.registry.maven;
 
 import io.apicurio.registry.types.ContentTypes;
 import io.kiota.http.vertx.VertXRequestAdapter;
-import io.vertx.core.Vertx;
+import io.apicurio.registry.client.auth.VertXAuthFactory;
 import io.vertx.ext.web.client.WebClient;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
@@ -59,7 +59,7 @@ public abstract class AbstractRegistryMojo extends AbstractMojo {
             } else if (username != null && password != null) {
                 provider = buildSimpleAuthWebClient(username, password);
             } else {
-                provider = WebClient.create(Vertx.vertx());
+                provider = WebClient.create(VertXAuthFactory.defaultVertx);
             }
 
             var adapter = new VertXRequestAdapter(provider);

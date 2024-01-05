@@ -18,7 +18,7 @@ import io.quarkus.test.common.http.TestHTTPResource;
 import io.restassured.RestAssured;
 import io.restassured.parsing.Parser;
 import io.restassured.response.Response;
-import io.vertx.core.Vertx;
+import io.apicurio.registry.client.auth.VertXAuthFactory;
 import org.eclipse.microprofile.config.ConfigProvider;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
@@ -85,7 +85,7 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
     protected String authServerUrlConfigured;
 
     protected RegistryClient createRegistryClient() {
-        var adapter = new VertXRequestAdapter(Vertx.vertx());
+        var adapter = new VertXRequestAdapter(VertXAuthFactory.defaultVertx);
         adapter.setBaseUrl(getRegistryV3ApiUrl());
         return new RegistryClient(adapter);
     }

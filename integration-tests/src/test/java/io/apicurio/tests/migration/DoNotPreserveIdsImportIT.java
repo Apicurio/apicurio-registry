@@ -15,7 +15,7 @@ import io.kiota.http.vertx.VertXRequestAdapter;
 import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
 
-import io.vertx.core.Vertx;
+import io.apicurio.registry.client.auth.VertXAuthFactory;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -51,7 +51,7 @@ public class DoNotPreserveIdsImportIT extends ApicurioRegistryBaseIT {
 
     @Test
     public void testDoNotPreserveIdsImport() throws Exception {
-        var adapter = new VertXRequestAdapter(Vertx.vertx());
+        var adapter = new VertXRequestAdapter(VertXAuthFactory.defaultVertx);
         adapter.setBaseUrl(ApicurioRegistryBaseIT.getRegistryV3ApiUrl());
         RegistryClient dest = new RegistryClient(adapter);
 
@@ -110,7 +110,7 @@ public class DoNotPreserveIdsImportIT extends ApicurioRegistryBaseIT {
         public Map<String, String> start() {
 
             String registryBaseUrl = startRegistryApplication("quay.io/apicurio/apicurio-registry-mem:2.4.14.Final");
-            var adapter = new VertXRequestAdapter(Vertx.vertx());
+            var adapter = new VertXRequestAdapter(VertXAuthFactory.defaultVertx);
             adapter.setBaseUrl(registryBaseUrl);
             RegistryClient source = new RegistryClient(adapter);
 

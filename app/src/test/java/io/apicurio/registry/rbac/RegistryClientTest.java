@@ -17,7 +17,7 @@ import io.apicurio.registry.utils.tests.TooManyRequestsMock;
 import io.kiota.http.vertx.VertXRequestAdapter;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
-import io.vertx.core.Vertx;
+import io.apicurio.registry.client.auth.VertXAuthFactory;
 import jakarta.inject.Inject;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.IOUtils;
@@ -1703,7 +1703,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         TooManyRequestsMock mock = new TooManyRequestsMock();
         mock.start();
         try {
-            var adapter = new VertXRequestAdapter(Vertx.vertx());
+            var adapter = new VertXRequestAdapter(VertXAuthFactory.defaultVertx);
             adapter.setBaseUrl(mock.getMockUrl());
             io.apicurio.registry.rest.client.RegistryClient client = new io.apicurio.registry.rest.client.RegistryClient(adapter);
 

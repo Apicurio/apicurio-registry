@@ -96,10 +96,7 @@ public class SchemaResolverTest extends AbstractResourceTestBase {
         assertNull(lookup.getParsedSchema().getParsedSchema());
 
         var runtimeException = Assertions.assertThrows(RuntimeException.class, () -> resolver.resolveSchema(new CustomResolverRecord(avroRecord, ArtifactReference.builder().groupId("default").artifactId("foo").build())));
-        // TODO: this seems excessive to me ...
-        io.apicurio.registry.rest.client.models.Error error = (io.apicurio.registry.rest.client.models.Error) runtimeException // wrapped because it was thrown in a lambda
-                .getCause() // RuntimeException thrown by ERCache
-                .getCause(); // finally the "real" error
+        io.apicurio.registry.rest.client.models.Error error = (io.apicurio.registry.rest.client.models.Error) runtimeException.getCause();
         assertEquals("ArtifactNotFoundException", error.getName());
         assertEquals(404, error.getErrorCode());
 

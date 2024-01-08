@@ -72,7 +72,6 @@
         <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>mssqlserver</artifactId>
-            <scope>provided</scope>
         </dependency>
 
         <dependency>

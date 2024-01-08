@@ -1,9 +1,9 @@
 package io.apicurio.tests;
 
 import com.microsoft.kiota.ApiException;
-
-
 import io.apicurio.deployment.PortForwardManager;
+import io.apicurio.registry.client.auth.VertXAuthFactory;
+import io.apicurio.registry.model.GroupId;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.*;
 import io.apicurio.registry.utils.tests.SimpleDisplayName;
@@ -17,26 +17,14 @@ import io.quarkus.test.common.http.TestHTTPResource;
 import io.restassured.RestAssured;
 import io.restassured.parsing.Parser;
 import io.restassured.response.Response;
-import io.apicurio.registry.client.auth.VertXAuthFactory;
 import org.eclipse.microprofile.config.ConfigProvider;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.DisplayNameGeneration;
-import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.StringReader;
-import java.io.UncheckedIOException;
-import java.io.UnsupportedEncodingException;
+import java.io.*;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.URL;
@@ -110,7 +98,7 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
             for (SearchedArtifact artifact : artifacts.getArtifacts()) {
                 try {
                     registryClient.groups().byGroupId(normalizeGroupId(artifact.getGroupId())).artifacts().byArtifactId(artifact.getId()).delete();
-                    registryClient.groups().byGroupId("default").artifacts().delete();
+                    registryClient.groups().byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString()).artifacts().delete();
                 } catch (ApiException e) {
                     //because of async storage artifact may be already deleted but listed anyway
                     logger.info(e.getMessage());
@@ -125,7 +113,7 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
     }
 
     private static String normalizeGroupId(String groupId) {
-        return groupId != null ? groupId : "default";
+        return groupId != null ? groupId : "default"; // TODO
     }
 
     protected ArtifactMetaData createArtifact(String groupId, String artifactId, String artifactType, InputStream artifact) throws Exception {

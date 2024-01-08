@@ -1,20 +1,17 @@
 package io.apicurio.registry.noprofile.resolver;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
-
-import java.util.HashMap;
-import java.util.Map;
-
-
-
-import io.apicurio.registry.resolver.DefaultSchemaResolver;
-import io.apicurio.registry.resolver.ParsedSchema;
-import io.apicurio.registry.resolver.SchemaParser;
-import io.apicurio.registry.resolver.SchemaResolver;
-import io.apicurio.registry.resolver.SchemaResolverConfig;
-import io.kiota.http.vertx.VertXRequestAdapter;
+import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.client.auth.VertXAuthFactory;
+import io.apicurio.registry.model.GroupId;
+import io.apicurio.registry.resolver.*;
+import io.apicurio.registry.resolver.data.Metadata;
+import io.apicurio.registry.resolver.data.Record;
+import io.apicurio.registry.resolver.strategy.ArtifactReference;
+import io.apicurio.registry.rest.client.RegistryClient;
+import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.utils.tests.TestUtils;
+import io.kiota.http.vertx.VertXRequestAdapter;
+import io.quarkus.test.junit.QuarkusTest;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
@@ -22,14 +19,11 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import io.apicurio.registry.AbstractResourceTestBase;
-import io.apicurio.registry.resolver.data.Metadata;
-import io.apicurio.registry.resolver.data.Record;
-import io.apicurio.registry.resolver.strategy.ArtifactReference;
-import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.utils.tests.TestUtils;
-import io.quarkus.test.junit.QuarkusTest;
+import java.util.HashMap;
+import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 @QuarkusTest
 public class SchemaResolverTest extends AbstractResourceTestBase {
@@ -87,7 +81,7 @@ public class SchemaResolverTest extends AbstractResourceTestBase {
 
         GenericRecord avroRecord = new GenericData.Record(schema);
         avroRecord.put("bar", "somebar");
-        Record<GenericRecord> record = new CustomResolverRecord(avroRecord, ArtifactReference.builder().groupId("default").artifactId(artifactId).build());
+        Record<GenericRecord> record = new CustomResolverRecord(avroRecord, ArtifactReference.builder().groupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString()).artifactId(artifactId).build());
         var lookup = resolver.resolveSchema(record);
 
         assertNull(lookup.getGroupId());
@@ -95,7 +89,7 @@ public class SchemaResolverTest extends AbstractResourceTestBase {
         assertEquals(schema.toString(), new String(lookup.getParsedSchema().getRawSchema()));
         assertNull(lookup.getParsedSchema().getParsedSchema());
 
-        var runtimeException = Assertions.assertThrows(RuntimeException.class, () -> resolver.resolveSchema(new CustomResolverRecord(avroRecord, ArtifactReference.builder().groupId("default").artifactId("foo").build())));
+        var runtimeException = Assertions.assertThrows(RuntimeException.class, () -> resolver.resolveSchema(new CustomResolverRecord(avroRecord, ArtifactReference.builder().groupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString()).artifactId("foo").build())));
         io.apicurio.registry.rest.client.models.Error error = (io.apicurio.registry.rest.client.models.Error) runtimeException.getCause();
         assertEquals("ArtifactNotFoundException", error.getName());
         assertEquals(404, error.getErrorCode());

@@ -1,5 +1,6 @@
 package io.apicurio.registry.storage.error;
 
+import io.apicurio.registry.model.GAV;
 import lombok.Getter;
 
 public class VersionNotFoundException extends NotFoundException {
@@ -38,6 +39,14 @@ public class VersionNotFoundException extends NotFoundException {
         this.groupId = groupId;
         this.artifactId = artifactId;
         this.version = version;
+    }
+
+
+    public VersionNotFoundException(GAV gav, Throwable cause) {
+        super(message(gav.getRawGroupIdWithDefaultString(), gav.getRawArtifactId(), gav.getRawVersionId(), null), cause);
+        this.groupId = gav.getRawGroupIdWithDefaultString();
+        this.artifactId = gav.getRawArtifactId();
+        this.version = gav.getRawVersionId();
     }
 
 

@@ -1,5 +1,6 @@
 package io.apicurio.registry.storage.error;
 
+import io.apicurio.registry.model.GroupId;
 import lombok.Getter;
 
 public class ArtifactNotFoundException extends NotFoundException {
@@ -28,7 +29,7 @@ public class ArtifactNotFoundException extends NotFoundException {
 
 
     public ArtifactNotFoundException(String artifactId) {
-        super(message("default", artifactId));
+        super(message(GroupId.DEFAULT.getRawGroupIdWithDefaultString(), artifactId));
         this.artifactId = artifactId;
     }
 

@@ -3,27 +3,13 @@ package io.apicurio.registry.storage;
 import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
 import io.apicurio.common.apps.config.DynamicConfigStorage;
 import io.apicurio.registry.content.ContentHandle;
-import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
-import io.apicurio.registry.storage.dto.ArtifactOwnerDto;
-import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
-import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
-import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
-import io.apicurio.registry.storage.dto.CommentDto;
-import io.apicurio.registry.storage.dto.ContentWrapperDto;
-import io.apicurio.registry.storage.dto.DownloadContextDto;
-import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
-import io.apicurio.registry.storage.dto.GroupMetaDataDto;
-import io.apicurio.registry.storage.dto.GroupSearchResultsDto;
-import io.apicurio.registry.storage.dto.OrderBy;
-import io.apicurio.registry.storage.dto.OrderDirection;
-import io.apicurio.registry.storage.dto.RoleMappingDto;
-import io.apicurio.registry.storage.dto.RuleConfigurationDto;
-import io.apicurio.registry.storage.dto.SearchFilter;
-import io.apicurio.registry.storage.dto.StoredArtifactDto;
-import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
+import io.apicurio.registry.storage.dto.*;
 import io.apicurio.registry.storage.error.*;
 import io.apicurio.registry.storage.impexp.EntityInputStream;
 import io.apicurio.registry.storage.impl.sql.IdGenerator;
+import io.apicurio.registry.model.BranchId;
+import io.apicurio.registry.model.GA;
+import io.apicurio.registry.model.GAV;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.impexp.*;
@@ -884,9 +870,6 @@ public interface RegistryStorage extends DynamicConfigStorage {
     void importArtifactRule(ArtifactRuleEntity entity);
 
 
-    String normalizeVersion(String groupId, String artifactId, String version);
-
-
     boolean isContentExists(String contentHash) throws RegistryStorageException;
 
 
@@ -915,6 +898,36 @@ public interface RegistryStorage extends DynamicConfigStorage {
                                                    String artifactType, String contentHash, String createdBy,
                                                    Date createdOn, EditableArtifactMetaDataDto metaData, IdGenerator globalIdGenerator)
             throws ArtifactNotFoundException, RegistryStorageException;
+
+
+    /**
+     * @return map from a branch to a sorted list of GAVs, leaf (latest) version first.
+     */
+    Map<BranchId, List<GAV>> getArtifactBranches(GA ga);
+
+
+    /**
+     * @return sorted list of GAVs, leaf (latest) version first.
+     */
+    List<GAV> getArtifactBranch(GA ga, BranchId branchId, ArtifactRetrievalBehavior behavior);
+
+
+    /**
+     * Add a version to the artifact branch. The branch is created if it does not exist. The version becomes a new leaf (latest).
+     */
+    void createOrUpdateArtifactBranch(GAV gav, BranchId branchId);
+
+
+    /**
+     * @return GAV identifier of the leaf (latest) version in the artifact branch.
+     */
+    GAV getArtifactBranchLeaf(GA ga, BranchId branchId, ArtifactRetrievalBehavior behavior);
+
+
+    /**
+     * Delete artifact branch.
+     */
+    void deleteArtifactBranch(GA ga, BranchId branchId);
 
 
     enum ArtifactRetrievalBehavior {

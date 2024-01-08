@@ -3,6 +3,7 @@ package io.apicurio.registry.storage.impl.sql;
 import io.agroal.api.AgroalDataSource;
 import io.apicurio.registry.storage.error.RegistryStorageException;
 import io.apicurio.registry.storage.impl.sql.jdb.Handle;
+import io.apicurio.registry.storage.impl.sql.jdb.HandleAction;
 import io.apicurio.registry.storage.impl.sql.jdb.HandleCallback;
 import io.apicurio.registry.storage.impl.sql.jdb.HandleImpl;
 import org.slf4j.Logger;
@@ -66,7 +67,7 @@ public abstract class AbstractHandleFactory implements HandleFactory {
 
 
     @Override
-    public <R, X extends Exception> R withHandleNoException(HandleCallback<R, X> callback) throws RegistryStorageException {
+    public <R, X extends Exception> R withHandleNoException(HandleCallback<R, X> callback) {
         try {
             return withHandle(callback);
         } catch (RuntimeException e) {
@@ -74,6 +75,15 @@ public abstract class AbstractHandleFactory implements HandleFactory {
         } catch (Exception e) {
             throw new RegistryStorageException(e);
         }
+    }
+
+
+    @Override
+    public <X extends Exception> void withHandleNoException(HandleAction<X> action) {
+        withHandleNoException(handle -> {
+            action.withHandle(handle);
+            return null;
+        });
     }
 
 

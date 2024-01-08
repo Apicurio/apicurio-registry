@@ -1,5 +1,7 @@
 package io.apicurio.registry.utils.impexp;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import io.apicurio.registry.types.ArtifactState;
 import io.quarkus.runtime.annotations.RegisterForReflection;
 import lombok.AllArgsConstructor;
@@ -17,13 +19,17 @@ import static lombok.AccessLevel.PRIVATE;
 @AllArgsConstructor(access = PRIVATE)
 @ToString
 @RegisterForReflection
+@JsonIgnoreProperties({"isLatest"})
 public class ArtifactVersionEntity extends Entity {
 
     public long globalId;
     public String groupId;
     public String artifactId;
     public String version;
-    public int versionId;
+
+    @JsonAlias({"versionId"})
+    public int versionOrder;
+
     public String artifactType;
     public ArtifactState state;
     public String name;
@@ -32,7 +38,6 @@ public class ArtifactVersionEntity extends Entity {
     public long createdOn;
     public List<String> labels;
     public Map<String, String> properties;
-    public boolean isLatest;
     public long contentId;
 
     /**

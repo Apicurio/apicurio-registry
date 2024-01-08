@@ -64,13 +64,13 @@ public class SchemasResourceImpl extends AbstractResource implements SchemasReso
         boolean deleted = fdeleted != null && fdeleted;
         if (cconfig.legacyIdModeEnabled.get()) {
             ArtifactMetaDataDto artifactMetaData = storage.getArtifactMetaData(id);
-            return Collections.singletonList(converter.convert(artifactMetaData.getId(), artifactMetaData.getVersionId()));
+            return Collections.singletonList(converter.convert(artifactMetaData.getId(), artifactMetaData.getVersionOrder()));
         }
 
         return storage.getArtifactVersionsByContentId(id)
                 .stream()
                 .filter(artifactMetaData -> deleted || isArtifactActive(artifactMetaData.getId(), artifactMetaData.getGroupId(), DEFAULT))
-                .map(artifactMetaData -> converter.convert(artifactMetaData.getId(), artifactMetaData.getVersionId()))
+                .map(artifactMetaData -> converter.convert(artifactMetaData.getId(), artifactMetaData.getVersionOrder()))
                 .collect(Collectors.toList());
     }
 }

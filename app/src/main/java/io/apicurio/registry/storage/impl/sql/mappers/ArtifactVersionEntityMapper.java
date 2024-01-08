@@ -1,12 +1,12 @@
 package io.apicurio.registry.storage.impl.sql.mappers;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
-
 import io.apicurio.registry.storage.impl.sql.SqlUtil;
 import io.apicurio.registry.storage.impl.sql.jdb.RowMapper;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.utils.impexp.ArtifactVersionEntity;
+
+import java.sql.ResultSet;
+import java.sql.SQLException;
 
 public class ArtifactVersionEntityMapper implements RowMapper<ArtifactVersionEntity> {
 
@@ -28,7 +28,7 @@ public class ArtifactVersionEntityMapper implements RowMapper<ArtifactVersionEnt
         entity.groupId = SqlUtil.denormalizeGroupId(rs.getString("groupId"));
         entity.artifactId = rs.getString("artifactId");
         entity.version = rs.getString("version");
-        entity.versionId = rs.getInt("versionId");
+        entity.versionOrder = rs.getInt("versionOrder");
         entity.name = rs.getString("name");
         entity.description = rs.getString("description");
         entity.createdBy = rs.getString("createdBy");
@@ -37,7 +37,6 @@ public class ArtifactVersionEntityMapper implements RowMapper<ArtifactVersionEnt
         entity.labels = SqlUtil.deserializeLabels(rs.getString("labels"));
         entity.properties = SqlUtil.deserializeProperties(rs.getString("properties"));
         entity.contentId = rs.getLong("contentId");
-        entity.isLatest = entity.globalId == rs.getLong("latest");
         entity.artifactType = rs.getString("type");
         return entity;
     }

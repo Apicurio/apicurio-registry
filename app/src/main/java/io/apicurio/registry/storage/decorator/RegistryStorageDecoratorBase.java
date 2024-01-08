@@ -6,6 +6,9 @@ import io.apicurio.registry.storage.dto.*;
 import io.apicurio.registry.storage.error.*;
 import io.apicurio.registry.storage.impexp.EntityInputStream;
 import io.apicurio.registry.storage.impl.sql.IdGenerator;
+import io.apicurio.registry.model.BranchId;
+import io.apicurio.registry.model.GA;
+import io.apicurio.registry.model.GAV;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.impexp.*;
@@ -377,5 +380,17 @@ public class RegistryStorageDecoratorBase extends RegistryStorageDecoratorReadOn
     @Override
     public long nextCommentId() {
         return delegate.nextCommentId();
+    }
+
+
+    @Override
+    public void createOrUpdateArtifactBranch(GAV gav, BranchId branchId) {
+        delegate.createOrUpdateArtifactBranch(gav, branchId);
+    }
+
+
+    @Override
+    public void deleteArtifactBranch(GA ga, BranchId branchId) {
+        delegate.deleteArtifactBranch(ga, branchId);
     }
 }

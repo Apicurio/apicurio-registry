@@ -4,6 +4,7 @@ package io.apicurio.registry.auth;
 
 import io.apicurio.common.apps.config.Info;
 import io.apicurio.registry.AbstractResourceTestBase;
+import io.apicurio.registry.model.GroupId;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.ArtifactContent;
 import io.apicurio.registry.rest.client.models.Rule;
@@ -62,7 +63,7 @@ public class AuthTestNoRoles extends AbstractResourceTestBase {
         RegistryClient client = new RegistryClient(adapter);
         String artifactId = TestUtils.generateArtifactId();
         try {
-            client.groups().byGroupId("default").artifacts().get();
+            client.groups().byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString()).artifacts().get();
             ArtifactContent content = new ArtifactContent();
             content.setContent("{}");
             client

@@ -1,13 +1,19 @@
 package io.apicurio.registry.limits;
 
-import java.io.InputStream;
-import java.util.Arrays;
-import java.util.Map;
-
 import com.microsoft.kiota.ApiException;
+import io.apicurio.registry.AbstractRegistryTestBase;
+import io.apicurio.registry.AbstractResourceTestBase;
+import io.apicurio.registry.model.GroupId;
+import io.apicurio.registry.rest.client.models.ArtifactContent;
+import io.apicurio.registry.rest.client.models.EditableMetaData;
 import io.apicurio.registry.storage.RegistryStorage;
+import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.Current;
+import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.tests.ApicurioTestTags;
+import io.apicurio.registry.utils.tests.TestUtils;
+import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.TestProfile;
 import jakarta.inject.Inject;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.Assertions;
@@ -16,15 +22,9 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
 
-import io.apicurio.registry.AbstractRegistryTestBase;
-import io.apicurio.registry.AbstractResourceTestBase;
-import io.apicurio.registry.rest.client.models.ArtifactContent;
-import io.apicurio.registry.rest.client.models.EditableMetaData;
-import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.utils.IoUtil;
-import io.apicurio.registry.utils.tests.TestUtils;
-import io.quarkus.test.junit.QuarkusTest;
-import io.quarkus.test.junit.TestProfile;
+import java.io.InputStream;
+import java.util.Arrays;
+import java.util.Map;
 
 @QuarkusTest
 @TestProfile(LimitsTestProfile.class)
@@ -67,7 +67,7 @@ public class LimitsTest extends AbstractResourceTestBase {
         clientV3
             .groups()
             // TODO: verify groupId = null cannot be used
-            .byGroupId("default")
+            .byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString())
             .artifacts()
             .byArtifactId(artifactId)
             .versions()
@@ -90,7 +90,7 @@ public class LimitsTest extends AbstractResourceTestBase {
         var exception1 = Assertions.assertThrows(ApiException.class, () -> {
             clientV3
                 .groups()
-                .byGroupId("default")
+                .byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString())
                 .artifacts()
                 .byArtifactId(artifactId)
                 .versions()
@@ -107,7 +107,7 @@ public class LimitsTest extends AbstractResourceTestBase {
             data.setContent("{}");
             clientV3
                 .groups()
-                .byGroupId("default")
+                .byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString())
                 .artifacts()
                 .post(data, config -> {
                     config.headers.add("X-Registry-ArtifactType", ArtifactType.JSON);

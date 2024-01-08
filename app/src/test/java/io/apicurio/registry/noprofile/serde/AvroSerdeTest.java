@@ -1,26 +1,16 @@
 package io.apicurio.registry.noprofile.serde;
 
-import com.kubetrade.schema.trade.AvroSchemaA;
-import com.kubetrade.schema.trade.AvroSchemaB;
-import com.kubetrade.schema.trade.AvroSchemaC;
-import com.kubetrade.schema.trade.AvroSchemaD;
-import com.kubetrade.schema.trade.AvroSchemaE;
-import com.kubetrade.schema.trade.AvroSchemaF;
-
-
+import com.kubetrade.schema.trade.*;
 import io.apicurio.registry.AbstractResourceTestBase;
+import io.apicurio.registry.client.auth.VertXAuthFactory;
+import io.apicurio.registry.model.GroupId;
 import io.apicurio.registry.resolver.SchemaResolverConfig;
 import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.ArtifactMetaData;
 import io.apicurio.registry.serde.SerdeConfig;
 import io.apicurio.registry.serde.SerdeHeaders;
-import io.apicurio.registry.serde.avro.AvroKafkaDeserializer;
-import io.apicurio.registry.serde.avro.AvroKafkaSerdeConfig;
-import io.apicurio.registry.serde.avro.AvroKafkaSerializer;
-import io.apicurio.registry.serde.avro.DefaultAvroDatumProvider;
-import io.apicurio.registry.serde.avro.ReflectAllowNullAvroDatumProvider;
-import io.apicurio.registry.serde.avro.ReflectAvroDatumProvider;
+import io.apicurio.registry.serde.avro.*;
 import io.apicurio.registry.serde.avro.strategy.QualifiedRecordIdStrategy;
 import io.apicurio.registry.serde.avro.strategy.RecordIdStrategy;
 import io.apicurio.registry.serde.avro.strategy.TopicRecordIdStrategy;
@@ -36,7 +26,6 @@ import io.confluent.kafka.serializers.KafkaAvroDeserializer;
 import io.confluent.kafka.serializers.KafkaAvroSerializer;
 import io.kiota.http.vertx.VertXRequestAdapter;
 import io.quarkus.test.junit.QuarkusTest;
-import io.apicurio.registry.client.auth.VertXAuthFactory;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
 import org.apache.kafka.common.header.Headers;
@@ -51,11 +40,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.function.Supplier;
 
 import static io.apicurio.registry.utils.tests.TestUtils.waitForSchema;
@@ -141,7 +126,7 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
     @Test
     public void testAvroQualifiedRecordIdStrategy() throws Exception {
         testAvroAutoRegisterIdInBody(QualifiedRecordIdStrategy.class, () -> {
-            return restClient.groups().byGroupId("default").artifacts().byArtifactId("test-group-avro.myrecord3").meta().get();
+            return restClient.groups().byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString()).artifacts().byArtifactId("test-group-avro.myrecord3").meta().get();
         });
     }
 

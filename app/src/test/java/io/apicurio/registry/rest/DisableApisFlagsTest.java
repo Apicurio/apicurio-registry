@@ -2,6 +2,7 @@ package io.apicurio.registry.rest;
 
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.ccompat.rest.ContentTypes;
+import io.apicurio.registry.model.GroupId;
 import io.apicurio.registry.noprofile.ccompat.rest.CCompatTestConstants;
 import io.apicurio.registry.services.DisabledApisMatcherService;
 import io.apicurio.registry.types.ArtifactType;
@@ -133,7 +134,7 @@ public class DisableApisFlagsTest extends AbstractResourceTestBase {
         var req = given()
             .when()
                 .contentType(CT_JSON + "; artifactType=AVRO")
-                .pathParam("groupId", "default")
+                .pathParam("groupId", GroupId.DEFAULT.getRawGroupIdWithDefaultString())
                 .header("X-Registry-ArtifactId", schemaId)
                 .body(artifactContent)
                 .post("/registry/v3/groups/{groupId}/artifacts")

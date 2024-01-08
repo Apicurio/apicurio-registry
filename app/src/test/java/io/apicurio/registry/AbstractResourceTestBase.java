@@ -1,7 +1,26 @@
 package io.apicurio.registry;
 
-import static io.apicurio.registry.rest.v3.V3ApiUtil.defaultGroupIdToNull;
-import static org.hamcrest.Matchers.equalTo;
+import com.microsoft.kiota.ApiException;
+import com.microsoft.kiota.RequestAdapter;
+import io.apicurio.registry.client.auth.VertXAuthFactory;
+import io.apicurio.registry.model.GroupId;
+import io.apicurio.registry.rest.client.RegistryClient;
+import io.apicurio.registry.rest.client.models.ArtifactMetaData;
+import io.apicurio.registry.rest.v3.V3ApiUtil;
+import io.apicurio.registry.rest.v3.beans.ArtifactReference;
+import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
+import io.apicurio.registry.types.ArtifactMediaTypes;
+import io.apicurio.registry.types.ArtifactState;
+import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.utils.tests.TestUtils;
+import io.apicurio.rest.client.auth.exception.NotAuthorizedException;
+import io.confluent.kafka.schemaregistry.client.rest.RestService;
+import io.kiota.http.vertx.VertXRequestAdapter;
+import io.restassured.RestAssured;
+import io.restassured.parsing.Parser;
+import io.restassured.response.ValidatableResponse;
+import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.TestInstance.Lifecycle;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -11,32 +30,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import com.microsoft.kiota.ApiException;
-import com.microsoft.kiota.RequestAdapter;
-
-import io.apicurio.registry.rest.client.models.ArtifactMetaData;
-import io.apicurio.registry.rest.v3.beans.ArtifactReference;
-import io.apicurio.rest.client.auth.exception.NotAuthorizedException;
-import io.kiota.http.vertx.VertXRequestAdapter;
-import io.apicurio.registry.client.auth.VertXAuthFactory;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.TestInstance;
-import org.junit.jupiter.api.TestInstance.Lifecycle;
-
-import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.rest.v3.V3ApiUtil;
-import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
-import io.apicurio.registry.types.ArtifactMediaTypes;
-import io.apicurio.registry.types.ArtifactState;
-import io.apicurio.registry.types.RuleType;
-import io.apicurio.registry.utils.tests.TestUtils;
-import io.confluent.kafka.schemaregistry.client.rest.RestService;
-import io.restassured.RestAssured;
-import io.restassured.parsing.Parser;
-import io.restassured.response.ValidatableResponse;
+import static org.hamcrest.Matchers.equalTo;
 
 /**
  * Abstract base class for all tests that test via the jax-rs layer.
@@ -108,7 +102,7 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
     }
 
     protected Long createArtifact(String artifactId, String artifactType, String artifactContent) throws Exception {
-        return createArtifact("default", artifactId, artifactType, artifactContent);
+        return createArtifact(GroupId.DEFAULT.getRawGroupIdWithDefaultString(), artifactId, artifactType, artifactContent);
     }
 
 
@@ -209,7 +203,7 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
     }
 
     protected Long createArtifactVersion(String artifactId, String artifactType, String artifactContent) throws Exception {
-        return createArtifactVersion("default", artifactId, artifactType, artifactContent);
+        return createArtifactVersion(GroupId.DEFAULT.getRawGroupIdWithDefaultString(), artifactId, artifactType, artifactContent);
     }
 
     protected Long createArtifactVersion(String groupId, String artifactId, String artifactType, String artifactContent) throws Exception {
@@ -302,7 +296,7 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
             references = Collections.emptyList();
         }
         return references.stream()
-                .peek(r -> r.setGroupId(defaultGroupIdToNull(r.getGroupId())))
+                .peek(r -> r.setGroupId(new GroupId(r.getGroupId()).getRawGroupIdWithNull()))
                 .map(V3ApiUtil::referenceToDto)
                 .collect(Collectors.toList());
     }

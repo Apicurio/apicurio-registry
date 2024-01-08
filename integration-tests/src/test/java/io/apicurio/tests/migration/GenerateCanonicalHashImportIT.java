@@ -120,13 +120,12 @@ public class GenerateCanonicalHashImportIT extends ApicurioRegistryBaseIT {
                 versionEntity.description = null;
                 versionEntity.globalId = globalIdSeq.getAndIncrement();
                 versionEntity.groupId = null;
-                versionEntity.isLatest = true;
                 versionEntity.labels = null;
                 versionEntity.name = null;
                 versionEntity.properties = null;
                 versionEntity.state = ArtifactState.ENABLED;
                 versionEntity.version = "1";
-                versionEntity.versionId = 1;
+                versionEntity.versionOrder = 1;
 
                 writer.writeEntity(versionEntity);
             }

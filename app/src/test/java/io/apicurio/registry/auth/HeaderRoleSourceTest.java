@@ -4,6 +4,7 @@ package io.apicurio.registry.auth;
 
 import io.apicurio.common.apps.config.Info;
 import io.apicurio.registry.AbstractResourceTestBase;
+import io.apicurio.registry.model.GroupId;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rules.validity.ValidityLevel;
 import io.apicurio.registry.utils.tests.ApicurioTestTags;
@@ -73,7 +74,7 @@ public class HeaderRoleSourceTest extends AbstractResourceTestBase {
 
         // User is authenticated but no roles assigned - operations should fail.
         var exception1 = Assertions.assertThrows(Exception.class, () -> {
-            noRoleClient.groups().byGroupId("default").artifacts().get();
+            noRoleClient.groups().byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString()).artifacts().get();
         });
         assertForbidden(exception1);
 
@@ -95,7 +96,7 @@ public class HeaderRoleSourceTest extends AbstractResourceTestBase {
 
 
         // Now using the read client user should be able to read but nothing else
-        readClient.groups().byGroupId("default").artifacts().get(config -> {
+        readClient.groups().byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString()).artifacts().get(config -> {
             config.headers.add("X-Registry-Role", "sr-readonly");
         });
         var exception4 = Assertions.assertThrows(Exception.class, () -> {
@@ -118,7 +119,7 @@ public class HeaderRoleSourceTest extends AbstractResourceTestBase {
         assertForbidden(exception5);
 
         // the user can read and write with the developer client but not admin
-        devClient.groups().byGroupId("default").artifacts().get(config -> {
+        devClient.groups().byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString()).artifacts().get(config -> {
             config.headers.add("X-Registry-Role", "sr-developer");
         });
         devClient
@@ -137,7 +138,7 @@ public class HeaderRoleSourceTest extends AbstractResourceTestBase {
         assertForbidden(exception6);
 
         // the user can do everything with the admin client
-        adminClient.groups().byGroupId("default").artifacts().get(config -> {
+        adminClient.groups().byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString()).artifacts().get(config -> {
             config.headers.add("X-Registry-Role", "sr-admin");
         });
         adminClient

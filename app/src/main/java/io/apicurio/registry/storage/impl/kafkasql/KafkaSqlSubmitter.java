@@ -90,17 +90,17 @@ public class KafkaSqlSubmitter {
      * ****************************************************************************************** */
     public CompletableFuture<UUID> submitArtifact(String groupId, String artifactId, String version, ActionType action,
             Long globalId, String artifactType, String contentHash, String createdBy, Date createdOn,
-            EditableArtifactMetaDataDto metaData, Integer versionId, ArtifactState state, Long contentId, Boolean latest) {
+            EditableArtifactMetaDataDto metaData, Integer versionOrder, ArtifactState state, Long contentId) {
         ArtifactKey key = ArtifactKey.create( groupId, artifactId);
         ArtifactValue value = ArtifactValue.create(action, globalId, version, artifactType, contentHash, createdBy, createdOn, metaData,
-                versionId, state, contentId, latest);
+                versionOrder, state, contentId);
         return send(key, value);
     }
     public CompletableFuture<UUID> submitArtifact(String groupId, String artifactId, String version, ActionType action,
             Long globalId, String artifactType, String contentHash, String createdBy, Date createdOn,
             EditableArtifactMetaDataDto metaData) {
         return submitArtifact( groupId, artifactId, version, action, globalId, artifactType, contentHash, createdBy, createdOn,
-                metaData, null, null, null, null);
+                metaData, null, null, null);
     }
     public CompletableFuture<UUID> submitArtifact(String groupId, String artifactId, ActionType action) {
         return this.submitArtifact( groupId, artifactId, null, action, null, null, null, null, null, null);

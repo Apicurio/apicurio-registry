@@ -1,18 +1,14 @@
 package io.apicurio.registry.storage.dto;
 
 import io.quarkus.runtime.annotations.RegisterForReflection;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.ToString;
+import lombok.*;
 
+@NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@EqualsAndHashCode
 @Getter
 @Setter
+@EqualsAndHashCode
 @ToString
 @RegisterForReflection
 public class DownloadContextDto {
@@ -23,11 +19,4 @@ public class DownloadContextDto {
     private Long globalId;
     private Long contentId;
     private String contentHash;
-
-    /**
-     * Constructor.
-     */
-    public DownloadContextDto() {
-    }
-
 }

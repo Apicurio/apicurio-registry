@@ -1,17 +1,10 @@
 package io.apicurio.registry.services.http;
 
 import io.apicurio.common.apps.config.Info;
-import io.apicurio.registry.ccompat.rest.error.ConflictException;
-import io.apicurio.registry.ccompat.rest.error.ReferenceExistsException;
-import io.apicurio.registry.ccompat.rest.error.SchemaNotFoundException;
-import io.apicurio.registry.ccompat.rest.error.SchemaNotSoftDeletedException;
-import io.apicurio.registry.ccompat.rest.error.SchemaSoftDeletedException;
-import io.apicurio.registry.ccompat.rest.error.SubjectNotSoftDeletedException;
-import io.apicurio.registry.ccompat.rest.error.SubjectSoftDeletedException;
-import io.apicurio.registry.ccompat.rest.error.UnprocessableEntityException;
+import io.apicurio.registry.ccompat.rest.error.*;
+import io.apicurio.registry.limits.LimitExceededException;
 import io.apicurio.registry.metrics.health.liveness.LivenessUtil;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
-import io.apicurio.registry.limits.LimitExceededException;
 import io.apicurio.registry.rest.MissingRequiredParameterException;
 import io.apicurio.registry.rest.ParametersConflictException;
 import io.apicurio.registry.rest.v3.beans.Error;
@@ -27,6 +20,7 @@ import io.apicurio.rest.client.auth.exception.NotAuthorizedException;
 import io.smallrye.mutiny.TimeoutException;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import jakarta.validation.ValidationException;
 import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.Response;
@@ -70,6 +64,8 @@ public class RegistryExceptionMapperService {
         map.put(ArtifactAlreadyExistsException.class, HTTP_CONFLICT);
         map.put(ArtifactNotFoundException.class, HTTP_NOT_FOUND);
         map.put(BadRequestException.class, HTTP_BAD_REQUEST);
+        map.put(BranchNotFoundException.class, HTTP_NOT_FOUND);
+        map.put(BranchVersionAlreadyExistsException.class, HTTP_CONFLICT);
         map.put(ConfigPropertyNotFoundException.class, HTTP_NOT_FOUND);
         map.put(ConflictException.class, HTTP_CONFLICT);
         map.put(ContentNotFoundException.class, HTTP_NOT_FOUND);
@@ -86,6 +82,7 @@ public class RegistryExceptionMapperService {
         map.put(LimitExceededException.class, HTTP_CONFLICT);
         map.put(LogConfigurationNotFoundException.class, HTTP_NOT_FOUND);
         map.put(MissingRequiredParameterException.class, HTTP_BAD_REQUEST);
+        map.put(NotAllowedException.class, HTTP_CONFLICT); // We're using 409 instead of 403 to reserve the latter for authx only.
         map.put(NotAuthorizedException.class, HTTP_FORBIDDEN);
         map.put(NotFoundException.class, HTTP_NOT_FOUND);
         map.put(ParametersConflictException.class, HTTP_CONFLICT);
@@ -104,6 +101,7 @@ public class RegistryExceptionMapperService {
         map.put(TimeoutException.class, HTTP_UNAVAILABLE);
         map.put(UnprocessableEntityException.class, HTTP_UNPROCESSABLE_ENTITY);
         map.put(UnprocessableSchemaException.class, HTTP_UNPROCESSABLE_ENTITY);
+        map.put(ValidationException.class, HTTP_BAD_REQUEST);
         map.put(VersionAlreadyExistsException.class, HTTP_CONFLICT);
         map.put(VersionNotFoundException.class, HTTP_NOT_FOUND);
 

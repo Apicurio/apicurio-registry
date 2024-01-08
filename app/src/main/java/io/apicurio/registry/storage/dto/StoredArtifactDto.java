@@ -1,13 +1,17 @@
 package io.apicurio.registry.storage.dto;
 
 import io.apicurio.registry.content.ContentHandle;
-import lombok.Builder;
-import lombok.Value;
+import lombok.*;
 
 import java.util.List;
 
-@Value
+@NoArgsConstructor
+@AllArgsConstructor
 @Builder
+@Getter
+@Setter
+@EqualsAndHashCode
+@ToString
 public class StoredArtifactDto {
 
     private Long globalId;
@@ -16,7 +20,7 @@ public class StoredArtifactDto {
 
     private String version;
 
-    private int versionId;
+    private int versionOrder;
 
     private Long contentId;
 
@@ -24,5 +28,4 @@ public class StoredArtifactDto {
     private ContentHandle content;
 
     private List<ArtifactReferenceDto> references; //TODO create a new class StoredArtifactReference?
-
 }

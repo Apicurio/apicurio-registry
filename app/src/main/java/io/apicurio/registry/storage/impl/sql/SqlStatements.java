@@ -86,18 +86,9 @@ public interface SqlStatements {
      */
     public String insertArtifact();
 
-    /**
-     * A statement used to update the 'latest' column of the 'artifacts' table.
-     */
-    public String updateArtifactLatest();
 
     /**
-     * A statement used to update the 'latest' column of the 'artifacts' table to the globalId of the highest remaining version.
-     */
-    public String updateArtifactLatestGlobalId();
-
-    /**
-     * A statement used to update the 'version' column of the 'versions' table by globalId.  The value of the "versionId"
+     * A statement used to update the 'version' column of the 'versions' table by globalId.  The value of the "versionOrder"
      * column is copied into the "version" column.
      */
     public String autoUpdateVersionForGlobalId();
@@ -187,41 +178,12 @@ public interface SqlStatements {
      */
     public String updateContentCanonicalHash();
 
-    /**
-     * A statement to get a single artifact (latest version) content by artifactId.
-     */
-    String selectLatestArtifactContent();
-
-    /**
-     * A statement to get a single artifact (latest version) content by artifactId.
-     * Skips DISABLED versions.
-     */
-    String selectLatestArtifactContentSkipDisabledState();
-
-    /**
-     * A statement to get a single artifact (latest version) content by artifactId.
-     * Tries to find a non-DISABLED version with the highest global ID.
-     * This is used in case the latest version referenced by the artifact is DISABLED.
-     */
-    String selectLatestArtifactContentWithMaxGlobalIDSkipDisabledState();
 
     /**
      * A statement to get a single artifact (latest version) meta-data by artifactId.
      */
-    String selectLatestArtifactMetaData();
+    String selectArtifactMetaData();
 
-    /**
-     * A statement to get a single artifact (latest version) meta-data by artifactId.
-     * Skips DISABLED versions.
-     */
-    String selectLatestArtifactMetaDataSkipDisabledState();
-
-    /**
-     * A statement to get a single artifact (latest version) meta-data by artifactId.
-     * Tries to find a non-DISABLED version with the highest global ID.
-     * This is used in case the latest version referenced by the artifact is DISABLED.
-     */
-    String selectLatestArtifactMetaDataWithMaxGlobalIDSkipDisabledState();
 
     /**
      * A statement to select the contentId of a row in the content table by hash value.
@@ -606,12 +568,43 @@ public interface SqlStatements {
      * The next statements relate to comments.
      */
 
-    public String insertComment();
-    
-    public String selectComments();
+    String insertComment();
 
-    public String deleteComment();
+    String selectComments();
 
-    public String updateComment();
+    String deleteComment();
 
+    String updateComment();
+
+
+    // ========== Branches ==========
+
+
+    String selectGAVByGlobalId();
+
+    String selectArtifactBranches();
+
+    String selectArtifactBranchOrdered();
+
+    String selectArtifactBranchOrderedNotDisabled();
+
+    String selectDoesArtifactBranchContainVersion();
+
+    String insertArtifactBranch();
+
+    String selectArtifactBranchLeaf();
+
+    String selectArtifactBranchLeafNotDisabled();
+
+    String deleteArtifactBranch();
+
+    String deleteVersionInBranches();
+
+    String deleteAllBranchesInArtifact();
+
+    String deleteAllBranchesInGroup();
+
+    String deleteAllBranches();
+
+    String selectVersionsWithoutBranch();
 }

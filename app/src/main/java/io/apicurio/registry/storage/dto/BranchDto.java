@@ -1,6 +1,6 @@
 package io.apicurio.registry.storage.dto;
 
-import io.quarkus.runtime.annotations.RegisterForReflection;
+import io.apicurio.registry.model.GAV;
 import lombok.*;
 
 @NoArgsConstructor
@@ -10,11 +10,20 @@ import lombok.*;
 @Setter
 @EqualsAndHashCode
 @ToString
-@RegisterForReflection
-public class ArtifactReferenceDto {
+public class BranchDto {
 
     private String groupId;
+
     private String artifactId;
+
+    private String branch;
+
+    private int branchOrder;
+
     private String version;
-    private String name;
+
+
+    public GAV toGAV() {
+        return new GAV(groupId, artifactId, version);
+    }
 }

@@ -35,7 +35,7 @@ public class ApiConverter {
         return new Schema(
                 convertUnsigned(cconfig.legacyIdModeEnabled.get() ? storedArtifact.getGlobalId() : storedArtifact.getContentId()),
                 subject,
-                convertUnsigned(storedArtifact.getVersionId()),
+                convertUnsigned(storedArtifact.getVersionOrder()),
                 storedArtifact.getContent().content(),
                 artifactType,
                 storedArtifact.getReferences().stream().map(this::convert).collect(Collectors.toList())

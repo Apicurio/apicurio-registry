@@ -272,7 +272,7 @@ public class KafkaSqlSink {
                     entity.groupId = key.getGroupId();
                     entity.artifactId = key.getArtifactId();
                     entity.version = value.getVersion();
-                    entity.versionId = value.getVersionId();
+                    entity.versionOrder = value.getVersionOrder();
                     entity.artifactType = value.getArtifactType();
                     entity.state = value.getState();
                     entity.name = value.getMetaData().getName();
@@ -281,7 +281,6 @@ public class KafkaSqlSink {
                     entity.createdOn = value.getCreatedOn().getTime();
                     entity.labels = value.getMetaData().getLabels();
                     entity.properties = value.getMetaData().getProperties();
-                    entity.isLatest = value.getLatest();
                     entity.contentId = value.getContentId();
                     sqlStore.importArtifactVersion(entity);
                     return null;

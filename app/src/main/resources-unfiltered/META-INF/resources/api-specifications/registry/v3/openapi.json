@@ -3104,6 +3104,180 @@
                 }
             ]
         },
+        "/groups/{groupId}/artifacts/{artifactId}/branches": {
+            "summary": "Manage branches of an artifact.",
+            "get": {
+                "tags": [
+                    "Branches"
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Branches"
+                                }
+                            }
+                        },
+                        "description": "List of all artifact versions."
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "listArtifactBranches",
+                "summary": "List artifact branches",
+                "description": "Returns a list of all branches in the artifact. Each branch is a list of version identifiers,\nordered from the latest (tip of the branch) to the oldest.\n\nThis operation can fail for the following reasons:\n\n* No artifact with this `artifactId` exists (HTTP error `404`)\n* A server error occurred (HTTP error `500`)\n"
+            },
+            "parameters": [
+                {
+                    "name": "groupId",
+                    "description": "The artifact group ID.  Must be a string provided by the client, representing the name of the grouping of artifacts.",
+                    "schema": {
+                        "$ref": "#/components/schemas/GroupId"
+                    },
+                    "in": "path",
+                    "required": true
+                },
+                {
+                    "name": "artifactId",
+                    "description": "The artifact ID.  Can be a string (client-provided) or UUID (server-generated), representing the unique artifact identifier.",
+                    "schema": {
+                        "$ref": "#/components/schemas/ArtifactId"
+                    },
+                    "in": "path",
+                    "required": true
+                }
+            ]
+        },
+        "/groups/{groupId}/artifacts/{artifactId}/branches/{branchId}": {
+            "summary": "Manage a single artifact branch.",
+            "get": {
+                "tags": [
+                    "Branches"
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/Gav"
+                                    }
+                                }
+                            }
+                        },
+                        "description": "List of versions in an artifact branch."
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "getArtifactBranch",
+                "summary": "List versions in an artifact branch",
+                "description": "Returns a list of version identifiers in the artifact branch, ordered from the latest (tip of the branch) to the oldest.\n\nThis operation can fail for the following reasons:\n\n* No group with this `groupId` exists (HTTP error `404`)\n* No artifact with this `artifactId` exists (HTTP error `404`)\n* No branch with this `branchId` exists (HTTP error `404`)\n* A server error occurred (HTTP error `500`)\n"
+            },
+            "post": {
+                "requestBody": {
+                    "content": {
+                        "text/plain": {
+                            "schema": {
+                                "$ref": "#/components/schemas/Version"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "tags": [
+                    "Branches"
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/Gav"
+                                    }
+                                }
+                            }
+                        },
+                        "description": "List of versions in an artifact branch."
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/Conflict"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "createOrUpdateArtifactBranch",
+                "summary": "Add a new version to an artifact branch. Branch is created if it does not exist.",
+                "description": "Add a new version to an artifact branch. Branch is created if it does not exist. Returns a list of version identifiers in the artifact branch, ordered from the latest (tip of the branch) to the oldest.\n\nThis operation can fail for the following reasons:\n\n* No group with this `groupId` exists (HTTP error `404`)\n* No artifact with this `artifactId` exists (HTTP error `404`)\n* No branch with this `branchId` exists (HTTP error `404`)\n* Version does not exist (HTTP error `409`)\n* Branch already contains given version. Branches are append-only, cycles and history rewrites are not supported. (HTTP error `409`)\n* A server error occurred (HTTP error `500`)\n"
+            },
+            "delete": {
+                "tags": [
+                    "Branches"
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Branch was successfully deleted."
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/Conflict"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "deleteArtifactBranch",
+                "summary": "Delete artifact branch",
+                "description": "Deletes a single branch in the artifact. Any artifact versions that are not referenced by a branch are deleted as well, however, this does not happen until deletion of the \"latest\" branch is supported.\nThis operation can fail for the following reasons:\n* No group with this `groupId` exists (HTTP error `404`)\n* No artifact with this `artifactId` exists (HTTP error `404`)\n* No branch with this `branchId` exists (HTTP error `404`)\n* Deletion of the \"latest\" branch is not supported (HTTP error `409`)\n* A server error occurred (HTTP error `500`)\n"
+            },
+            "parameters": [
+                {
+                    "name": "groupId",
+                    "description": "The artifact group ID.  Must be a string provided by the client, representing the name of the grouping of artifacts.",
+                    "schema": {
+                        "$ref": "#/components/schemas/GroupId"
+                    },
+                    "in": "path",
+                    "required": true
+                },
+                {
+                    "name": "artifactId",
+                    "description": "The artifact ID.  Can be a string (client-provided) or UUID (server-generated), representing the unique artifact identifier.",
+                    "schema": {
+                        "$ref": "#/components/schemas/ArtifactId"
+                    },
+                    "in": "path",
+                    "required": true
+                },
+                {
+                    "name": "branchId",
+                    "description": "Branch ID",
+                    "schema": {
+                        "$ref": "#/components/schemas/BranchId"
+                    },
+                    "in": "path",
+                    "required": true
+                }
+            ]
+        },
         "x-codegen-contextRoot": "/apis/registry/v3"
     },
     "components": {
@@ -4346,6 +4520,88 @@
                     "REWRITE"
                 ],
                 "type": "string"
+            },
+            "BranchId": {
+                "description": "The ID of a single artifact branch.",
+                "type": "string",
+                "example": "\"latest\""
+            },
+            "Gav": {
+                "title": "Root Type for GAV",
+                "description": "Artifact version identifier, consisting of groupId, artifactId, and version triple.",
+                "type": "object",
+                "properties": {
+                    "groupId": {
+                        "type": "string"
+                    },
+                    "artifactId": {
+                        "type": "string"
+                    },
+                    "version": {
+                        "type": "string"
+                    }
+                },
+                "example": {
+                    "groupId": "default",
+                    "artifactId": "user",
+                    "version": "1"
+                }
+            },
+            "Branches": {
+                "title": "Root Type for Branches",
+                "description": "",
+                "type": "object",
+                "additionalProperties": {
+                    "$ref": "#/components/schemas/Gav"
+                },
+                "example": {
+                    "latest": [
+                        {
+                            "groupId": "default",
+                            "artifactId": "user",
+                            "version": "4"
+                        },
+                        {
+                            "groupId": "default",
+                            "artifactId": "user",
+                            "version": "3"
+                        },
+                        {
+                            "groupId": "default",
+                            "artifactId": "user",
+                            "version": "2"
+                        },
+                        {
+                            "groupId": "default",
+                            "artifactId": "user",
+                            "version": "1"
+                        }
+                    ],
+                    "1.1.x": [
+                        {
+                            "groupId": "default",
+                            "artifactId": "user",
+                            "version": "3"
+                        },
+                        {
+                            "groupId": "default",
+                            "artifactId": "user",
+                            "version": "1"
+                        }
+                    ],
+                    "1.2.x": [
+                        {
+                            "groupId": "default",
+                            "artifactId": "user",
+                            "version": "4"
+                        },
+                        {
+                            "groupId": "default",
+                            "artifactId": "user",
+                            "version": "2"
+                        }
+                    ]
+                }
             }
         },
         "responses": {

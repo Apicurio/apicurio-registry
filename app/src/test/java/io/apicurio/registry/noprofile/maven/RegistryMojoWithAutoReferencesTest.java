@@ -160,7 +160,7 @@ public class RegistryMojoWithAutoReferencesTest extends RegistryMojoTestBase {
                                 .artifacts()
                                 .byArtifactId(artifactId)
                                 .versions()
-                                .byVersion(artifactWithReferences.getVersion())
+                                .byVersionExpression(artifactWithReferences.getVersion())
                                 .get()
                                 .readAllBytes(), StandardCharsets.UTF_8);
 
@@ -187,7 +187,7 @@ public class RegistryMojoWithAutoReferencesTest extends RegistryMojoTestBase {
                             .artifacts()
                             .byArtifactId(artifactReference.getArtifactId())
                             .versions()
-                            .byVersion(artifactReference.getVersion())
+                            .byVersionExpression(artifactReference.getVersion())
                             .get()
                             .readAllBytes(), StandardCharsets.UTF_8);
             ArtifactMetaData referenceMetadata = clientV3

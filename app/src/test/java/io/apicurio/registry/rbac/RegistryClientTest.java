@@ -689,8 +689,8 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         // Put 2 of the 3 versions in DISABLED state
         UpdateState us = new UpdateState();
         us.setState(ArtifactState.DISABLED);
-        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersion("1").state().put(us);
-        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersion("3").state().put(us);
+        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("1").state().put(us);
+        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("3").state().put(us);
 
         //Execution
         // Check that the search results still include the DISABLED versions
@@ -1417,7 +1417,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         ArtifactMetaData meta = clientV3.groups().byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString()).artifacts().byArtifactId(artifactId).meta().get();
         assertTrue(new GroupId(meta.getGroupId()).isDefaultGroup());
 
-        VersionMetaData vmeta = clientV3.groups().byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString()).artifacts().byArtifactId(artifactId).versions().byVersion(meta.getVersion()).meta().get();
+        VersionMetaData vmeta = clientV3.groups().byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString()).artifacts().byArtifactId(artifactId).versions().byVersionExpression(meta.getVersion()).meta().get();
         assertTrue(new GroupId(vmeta.getGroupId()).isDefaultGroup());
 
         ArtifactContent artifactContent = new ArtifactContent();

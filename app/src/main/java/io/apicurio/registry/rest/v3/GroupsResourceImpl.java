@@ -148,9 +148,9 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
      */
     @Override
     public List<ArtifactReference> getArtifactVersionReferences(String groupId, String artifactId,
-            String version, ReferenceType refType) {
+            String versionExpression, ReferenceType refType) {
 
-        var gav = VersionExpressionParser.parse(new GA(groupId, artifactId), version,
+        var gav = VersionExpressionParser.parse(new GA(groupId, artifactId), versionExpression,
                 (ga, branchId) -> storage.getArtifactBranchLeaf(ga, branchId, ArtifactRetrievalBehavior.DEFAULT));
 
         if (refType == null || refType == ReferenceType.OUTBOUND) {
@@ -491,12 +491,12 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
      */
     @Override
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
-    public Response getArtifactVersion(String groupId, String artifactId, String version, HandleReferencesType references) {
+    public Response getArtifactVersion(String groupId, String artifactId, String versionExpression, HandleReferencesType references) {
         requireParameter("groupId", groupId);
         requireParameter("artifactId", artifactId);
-        requireParameter("version", version);
+        requireParameter("versionExpression", versionExpression);
 
-        var gav = VersionExpressionParser.parse(new GA(groupId, artifactId), version,
+        var gav = VersionExpressionParser.parse(new GA(groupId, artifactId), versionExpression,
                 (ga, branchId) -> storage.getArtifactBranchLeaf(ga, branchId, ArtifactRetrievalBehavior.DEFAULT));
 
         if (references == null) {
@@ -505,7 +505,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
         ArtifactVersionMetaDataDto metaData = storage.getArtifactVersionMetaData(gav.getRawGroupIdWithNull(), gav.getRawArtifactId(), gav.getRawVersionId());
         if (ArtifactState.DISABLED.equals(metaData.getState())) {
-            throw new VersionNotFoundException(groupId, artifactId, version);
+            throw new VersionNotFoundException(groupId, artifactId, versionExpression);
         }
         StoredArtifactDto artifact = storage.getArtifactVersion(gav.getRawGroupIdWithNull(), gav.getRawArtifactId(), gav.getRawVersionId());
 
@@ -515,7 +515,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         contentToReturn = handleContentReferences(references, metaData.getType(), contentToReturn, artifact.getReferences());
 
         Response.ResponseBuilder builder = Response.ok(contentToReturn, contentType);
-        checkIfDeprecated(metaData::getState, groupId, artifactId, version, builder);
+        checkIfDeprecated(metaData::getState, groupId, artifactId, versionExpression, builder);
         return builder.build();
     }
 
@@ -562,12 +562,12 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Override
     @Audited(extractParameters = {"0", KEY_GROUP_ID, "1", KEY_ARTIFACT_ID, "2", KEY_VERSION, "3", KEY_EDITABLE_METADATA})
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
-    public void updateArtifactVersionMetaData(String groupId, String artifactId, String version, EditableMetaData data) {
+    public void updateArtifactVersionMetaData(String groupId, String artifactId, String versionExpression, EditableMetaData data) {
         requireParameter("groupId", groupId);
         requireParameter("artifactId", artifactId);
-        requireParameter("version", version);
+        requireParameter("versionExpression", versionExpression);
 
-        var gav = VersionExpressionParser.parse(new GA(groupId, artifactId), version,
+        var gav = VersionExpressionParser.parse(new GA(groupId, artifactId), versionExpression,
                 (ga, branchId) -> storage.getArtifactBranchLeaf(ga, branchId, ArtifactRetrievalBehavior.DEFAULT));
 
         if (data.getProperties() != null) {
@@ -604,12 +604,12 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Override
     @Audited(extractParameters = {"0", KEY_GROUP_ID, "1", KEY_ARTIFACT_ID, "2", KEY_VERSION})
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
-    public Comment addArtifactVersionComment(String groupId, String artifactId, String version, NewComment data) {
+    public Comment addArtifactVersionComment(String groupId, String artifactId, String versionExpression, NewComment data) {
         requireParameter("groupId", groupId);
         requireParameter("artifactId", artifactId);
-        requireParameter("version", version);
+        requireParameter("versionExpression", versionExpression);
 
-        var gav = VersionExpressionParser.parse(new GA(groupId, artifactId), version,
+        var gav = VersionExpressionParser.parse(new GA(groupId, artifactId), versionExpression,
                 (ga, branchId) -> storage.getArtifactBranchLeaf(ga, branchId, ArtifactRetrievalBehavior.DEFAULT));
 
         CommentDto newComment = storage.createArtifactVersionComment(gav.getRawGroupIdWithNull(), gav.getRawArtifactId(),
@@ -623,13 +623,13 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Override
     @Audited(extractParameters = {"0", KEY_GROUP_ID, "1", KEY_ARTIFACT_ID, "2", KEY_VERSION, "3", "comment_id"})
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
-    public void deleteArtifactVersionComment(String groupId, String artifactId, String version, String commentId) {
+    public void deleteArtifactVersionComment(String groupId, String artifactId, String versionExpression, String commentId) {
         requireParameter("groupId", groupId);
         requireParameter("artifactId", artifactId);
-        requireParameter("version", version);
+        requireParameter("versionExpression", versionExpression);
         requireParameter("commentId", commentId);
 
-        var gav = VersionExpressionParser.parse(new GA(groupId, artifactId), version,
+        var gav = VersionExpressionParser.parse(new GA(groupId, artifactId), versionExpression,
                 (ga, branchId) -> storage.getArtifactBranchLeaf(ga, branchId, ArtifactRetrievalBehavior.DEFAULT));
 
         storage.deleteArtifactVersionComment(gav.getRawGroupIdWithNull(), gav.getRawArtifactId(), gav.getRawVersionId(), commentId);
@@ -660,14 +660,14 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Override
     @Audited(extractParameters = {"0", KEY_GROUP_ID, "1", KEY_ARTIFACT_ID, "2", KEY_VERSION, "3", "comment_id"})
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
-    public void updateArtifactVersionComment(String groupId, String artifactId, String version, String commentId, NewComment data) {
+    public void updateArtifactVersionComment(String groupId, String artifactId, String versionExpression, String commentId, NewComment data) {
         requireParameter("groupId", groupId);
         requireParameter("artifactId", artifactId);
-        requireParameter("version", version);
+        requireParameter("versionExpression", versionExpression);
         requireParameter("commentId", commentId);
         requireParameter("value", data.getValue());
 
-        var gav = VersionExpressionParser.parse(new GA(groupId, artifactId), version,
+        var gav = VersionExpressionParser.parse(new GA(groupId, artifactId), versionExpression,
                 (ga, branchId) -> storage.getArtifactBranchLeaf(ga, branchId, ArtifactRetrievalBehavior.DEFAULT));
 
         storage.updateArtifactVersionComment(gav.getRawGroupIdWithNull(), gav.getRawArtifactId(),
@@ -680,12 +680,12 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Override
     @Audited(extractParameters = {"0", KEY_GROUP_ID, "1", KEY_ARTIFACT_ID, "2", KEY_VERSION, "3", KEY_UPDATE_STATE})
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
-    public void updateArtifactVersionState(String groupId, String artifactId, String version, UpdateState data) {
+    public void updateArtifactVersionState(String groupId, String artifactId, String versionExpression, UpdateState data) {
         requireParameter("groupId", groupId);
         requireParameter("artifactId", artifactId);
-        requireParameter("version", version);
+        requireParameter("versionExpression", versionExpression);
 
-        var gav = VersionExpressionParser.parse(new GA(groupId, artifactId), version,
+        var gav = VersionExpressionParser.parse(new GA(groupId, artifactId), versionExpression,
                 (ga, branchId) -> storage.getArtifactBranchLeaf(ga, branchId, ArtifactRetrievalBehavior.DEFAULT));
 
         storage.updateArtifactState(gav.getRawGroupIdWithNull(), gav.getRawArtifactId(), gav.getRawVersionId(), data.getState());

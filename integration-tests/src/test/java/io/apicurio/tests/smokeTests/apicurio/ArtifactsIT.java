@@ -97,7 +97,7 @@ class ArtifactsIT extends ApicurioRegistryBaseIT {
         LOGGER.info("Available versions of artifact with ID {} are: {}", artifactId, apicurioVersions.toString());
         assertThat(apicurioVersions, hasItems("1", "2"));
 
-        InputStream version1 = registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersion("1").get();
+        InputStream version1 = registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("1").get();
         response = mapper.readTree(version1);
 
         LOGGER.info("Artifact with ID {} and version {}: {}", artifactId, 1, response);
@@ -214,7 +214,7 @@ class ArtifactsIT extends ApicurioRegistryBaseIT {
 
         // Verify (expect 404)
         retryOp((rc) -> {
-            VersionMetaData actualMD = rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersion(metaData.getVersion()).meta().get();
+            VersionMetaData actualMD = rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression(metaData.getVersion()).meta().get();
             assertEquals(ArtifactState.DISABLED, actualMD.getState());
             assertClientError("ArtifactNotFoundException", 404, () -> rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get(), errorCodeExtractor);
         });
@@ -253,7 +253,7 @@ class ArtifactsIT extends ApicurioRegistryBaseIT {
         // Disable v3
         UpdateState data = new UpdateState();
         data.setState(ArtifactState.DISABLED);
-        registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersion(String.valueOf(v3MD.getVersion())).state().put(data);
+        registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression(String.valueOf(v3MD.getVersion())).state().put(data);
 
         // Verify artifact
         retryOp((rc) -> {
@@ -261,19 +261,19 @@ class ArtifactsIT extends ApicurioRegistryBaseIT {
             assertEquals("2", actualMD.getVersion());
 
             // Verify v1
-            VersionMetaData actualVMD = rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersion(String.valueOf(v1MD.getVersion())).meta().get();
+            VersionMetaData actualVMD = rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression(String.valueOf(v1MD.getVersion())).meta().get();
             assertEquals(ArtifactState.ENABLED, actualVMD.getState());
             // Verify v2
-            actualVMD = rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersion(String.valueOf(v2MD.getVersion())).meta().get();
+            actualVMD = rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression(String.valueOf(v2MD.getVersion())).meta().get();
             assertEquals(ArtifactState.ENABLED, actualVMD.getState());
             // Verify v3
-            actualVMD = rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersion(String.valueOf(v3MD.getVersion())).meta().get();
+            actualVMD = rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression(String.valueOf(v3MD.getVersion())).meta().get();
             assertEquals(ArtifactState.DISABLED, actualVMD.getState());
         });
 
         // Re-enable v3
         data.setState(ArtifactState.ENABLED);
-        registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersion(String.valueOf(v3MD.getVersion())).state().put(data);
+        registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression(String.valueOf(v3MD.getVersion())).state().put(data);
 
         retryOp((rc) -> {
             // Verify artifact (now v3)
@@ -282,13 +282,13 @@ class ArtifactsIT extends ApicurioRegistryBaseIT {
             assertEquals("3", actualMD.getVersion()); // version 2 is active (3 is disabled)
 
             // Verify v1
-            VersionMetaData actualVMD = rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersion(String.valueOf(v1MD.getVersion())).meta().get();
+            VersionMetaData actualVMD = rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression(String.valueOf(v1MD.getVersion())).meta().get();
             assertEquals(ArtifactState.ENABLED, actualVMD.getState());
             // Verify v2
-            actualVMD = rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersion(String.valueOf(v2MD.getVersion())).meta().get();
+            actualVMD = rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression(String.valueOf(v2MD.getVersion())).meta().get();
             assertEquals(ArtifactState.ENABLED, actualVMD.getState());
             // Verify v3
-            actualVMD = rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersion(String.valueOf(v3MD.getVersion())).meta().get();
+            actualVMD = rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression(String.valueOf(v3MD.getVersion())).meta().get();
             assertEquals(ArtifactState.ENABLED, actualVMD.getState());
         });
     }
@@ -344,7 +344,7 @@ class ArtifactsIT extends ApicurioRegistryBaseIT {
         // Deprecate v2
         UpdateState data = new UpdateState();
         data.setState(ArtifactState.DEPRECATED);
-        registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersion(String.valueOf(v2MD.getVersion())).state().put(data);
+        registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression(String.valueOf(v2MD.getVersion())).state().put(data);
 
         retryOp((rc) -> {
             // Verify artifact
@@ -352,13 +352,13 @@ class ArtifactsIT extends ApicurioRegistryBaseIT {
             assertEquals(ArtifactState.ENABLED, actualMD.getState());
 
             // Verify v1
-            VersionMetaData actualVMD = rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersion(String.valueOf(v1MD.getVersion())).meta().get();
+            VersionMetaData actualVMD = rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression(String.valueOf(v1MD.getVersion())).meta().get();
             assertEquals(ArtifactState.ENABLED, actualVMD.getState());
             // Verify v2
-            actualVMD = rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersion(String.valueOf(v2MD.getVersion())).meta().get();
+            actualVMD = rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression(String.valueOf(v2MD.getVersion())).meta().get();
             assertEquals(ArtifactState.DEPRECATED, actualVMD.getState());
             // Verify v3
-            actualVMD = rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersion(String.valueOf(v3MD.getVersion())).meta().get();
+            actualVMD = rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression(String.valueOf(v3MD.getVersion())).meta().get();
             assertEquals(ArtifactState.ENABLED, actualVMD.getState());
         });
     }

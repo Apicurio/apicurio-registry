@@ -387,7 +387,7 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
             loadFromArtifactMetaData(metadata, result);
             gid = metadata.getGlobalId();
         } else {
-            VersionMetaData metadata = client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersion(version).meta().get();
+            VersionMetaData metadata = client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression(version).meta().get();
             loadFromArtifactMetaData(metadata, result);
             gid = metadata.getGlobalId();
         }

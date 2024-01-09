@@ -1,6 +1,7 @@
 package io.apicurio.registry.storage.importing;
 
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.model.GAV;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.error.VersionAlreadyExistsException;
@@ -13,10 +14,7 @@ import org.apache.commons.codec.digest.DigestUtils;
 import org.slf4j.Logger;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 
@@ -40,6 +38,9 @@ public class SqlDataImporter extends AbstractDataImporter {
     protected final Map<Long, Long> globalIdMapping = new HashMap<>();
     protected final Map<Long, Long> contentIdMapping = new HashMap<>();
 
+    // To keep track of which versions have been imported
+    private final Set<GAV> gavDone = new HashSet<>();
+    private final Map<GAV, List<ArtifactVersionBranchEntity>> branchesWaitingForVersion = new HashMap<>();
 
     public SqlDataImporter(Logger logger, RegistryStorageContentUtils utils, RegistryStorage storage,
                            boolean preserveGlobalId, boolean preserveContentId) {
@@ -83,6 +84,8 @@ public class SqlDataImporter extends AbstractDataImporter {
             storage.importArtifactVersion(entity);
             log.debug("Artifact version imported successfully: {}", entity);
             globalIdMapping.put(oldGlobalId, entity.globalId);
+            var gav = new GAV(entity.groupId, entity.artifactId, entity.version);
+            gavDone.add(gav);
 
             // Import comments that were waiting for this version
             var commentsToImport = waitingForVersion.stream()
@@ -92,6 +95,11 @@ public class SqlDataImporter extends AbstractDataImporter {
                 importComment(commentEntity);
             }
             waitingForVersion.removeAll(commentsToImport);
+
+            // Import branches waiting for version
+            branchesWaitingForVersion.computeIfAbsent(gav, _ignored -> List.of())
+                    .forEach(this::importEntity);
+            branchesWaitingForVersion.remove(gav);
 
         } catch (VersionAlreadyExistsException ex) {
             if (ex.getGlobalId() != null) {
@@ -185,6 +193,23 @@ public class SqlDataImporter extends AbstractDataImporter {
         }
     }
 
+
+    @Override
+    protected void importArtifactBranch(ArtifactVersionBranchEntity entity) {
+        try {
+            var gav = entity.toGAV();
+            if (!gavDone.contains(gav)) {
+                // The version hasn't been imported yet.  Need to wait for it.
+                branchesWaitingForVersion.computeIfAbsent(gav, _ignored -> new ArrayList<>())
+                        .add(entity);
+            } else {
+                storage.importArtifactBranch(entity);
+                log.debug("Artifact branch imported successfully: {}", entity);
+            }
+        } catch (Exception ex) {
+            log.warn("Failed to import artifact branch {}: {}", entity, ex.getMessage());
+        }
+    }
 
     /**
      * WARNING: Must be executed within a transaction!

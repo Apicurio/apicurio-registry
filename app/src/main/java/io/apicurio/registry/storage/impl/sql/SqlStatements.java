@@ -485,6 +485,8 @@ public interface SqlStatements {
 
     public String exportArtifactVersions();
 
+    String exportArtifactBranches();
+
     /*
      * The next few statements support importing data into the DB.
      */
@@ -498,6 +500,8 @@ public interface SqlStatements {
     public String importArtifactRule();
 
     public String importArtifactVersion();
+
+    String importArtifactBranch();
 
     public String selectMaxContentId();
 

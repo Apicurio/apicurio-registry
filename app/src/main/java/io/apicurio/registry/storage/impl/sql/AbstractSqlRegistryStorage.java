@@ -2242,6 +2242,20 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             return null;
         });
 
+        // Export all artifact branches
+        /////////////////////////////////
+        handles.withHandle(handle -> {
+            Stream<ArtifactVersionBranchEntity> stream = handle.createQuery(sqlStatements.exportArtifactBranches())
+                    .setFetchSize(50)
+                    .map(ArtifactVersionBranchEntityMapper.instance)
+                    .stream();
+            // Process and then close the stream.
+            try (stream) {
+                stream.forEach(handler::apply);
+            }
+            return null;
+        });
+
         // Export all artifact rules
         /////////////////////////////////
         handles.withHandle(handle -> {
@@ -3436,6 +3450,33 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
             for (GAV gav : gavs) {
                 deleteArtifactVersion(gav.getRawGroupIdWithNull(), gav.getRawArtifactId(), gav.getRawVersionId());
+            }
+        });
+    }
+
+
+    @Override
+    @Transactional
+    public void importArtifactBranch(ArtifactVersionBranchEntity entity) {
+        var gav = entity.toGAV();
+        var branchId = entity.toBranchId();
+        if (doesArtifactBranchContainVersion(gav, entity.toBranchId())) {
+            throw new BranchVersionAlreadyExistsException(gav, branchId);
+        }
+        handles.withHandleNoException(handle -> {
+            try {
+                handle.createUpdate(sqlStatements.importArtifactBranch())
+                        .bind(0, gav.getRawGroupId())
+                        .bind(1, gav.getRawArtifactId())
+                        .bind(2, branchId.getRawBranchId())
+                        .bind(3, entity.branchOrder)
+                        .bind(4, gav.getRawVersionId())
+                        .execute();
+            } catch (Exception ex) {
+                if (sqlStatements.isForeignKeyViolation(ex)) {
+                    throw new VersionNotFoundException(gav, ex);
+                }
+                throw ex;
             }
         });
     }

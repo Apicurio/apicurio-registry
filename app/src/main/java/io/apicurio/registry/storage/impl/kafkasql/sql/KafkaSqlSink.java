@@ -581,7 +581,14 @@ public class KafkaSqlSink {
                 sqlStore.deleteArtifactBranch(new GA(key.getGroupId(), key.getArtifactId()), new BranchId(key.getBranchId()));
                 return null;
             case IMPORT:
-                // TODO
+                sqlStore.importArtifactBranch(ArtifactVersionBranchEntity.builder()
+                        .groupId(key.getGroupId())
+                        .artifactId(key.getArtifactId())
+                        .branch(key.getBranchId())
+                        .version(value.getVersion())
+                        .branchOrder(value.getBranchOrder())
+                        .build());
+                return null;
             default:
                 return unsupported(key, value);
         }

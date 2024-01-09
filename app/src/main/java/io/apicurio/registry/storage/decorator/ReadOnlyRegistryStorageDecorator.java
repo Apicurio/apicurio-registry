@@ -423,6 +423,13 @@ public class ReadOnlyRegistryStorageDecorator extends RegistryStorageDecoratorRe
 
 
     @Override
+    public void importArtifactBranch(ArtifactVersionBranchEntity entity) {
+        checkReadOnly();
+        delegate.importArtifactBranch(entity);
+    }
+
+
+    @Override
     public void updateContentCanonicalHash(String newCanonicalHash, long contentId, String contentHash) {
         checkReadOnly();
         delegate.updateContentCanonicalHash(newCanonicalHash, contentId, contentHash);

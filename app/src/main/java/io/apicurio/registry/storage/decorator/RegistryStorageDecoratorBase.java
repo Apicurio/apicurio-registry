@@ -339,6 +339,12 @@ public class RegistryStorageDecoratorBase extends RegistryStorageDecoratorReadOn
 
 
     @Override
+    public void importArtifactBranch(ArtifactVersionBranchEntity entity) {
+        delegate.importArtifactBranch(entity);
+    }
+
+
+    @Override
     public void updateContentCanonicalHash(String newCanonicalHash, long contentId, String contentHash) {
         delegate.updateContentCanonicalHash(newCanonicalHash, contentId, contentHash);
     }

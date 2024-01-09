@@ -813,6 +813,12 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
 
 
     @Override
+    public void importArtifactBranch(ArtifactVersionBranchEntity entity) {
+        submitter.submitBranchImport(entity);
+    }
+
+
+    @Override
     public void resetContentId() {
         UUID reqId = ConcurrentUtil.get(submitter.submitGlobalId(ActionType.RESET));
         coordinator.waitForResponse(reqId);

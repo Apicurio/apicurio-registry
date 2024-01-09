@@ -36,6 +36,9 @@ public abstract class AbstractDataImporter implements DataImporter {
             case Comment:
                 importComment((CommentEntity) entity);
                 break;
+            case ArtifactVersionBranch:
+                importArtifactBranch((ArtifactVersionBranchEntity) entity);
+                break;
             case Manifest:
                 ManifestEntity manifest = (ManifestEntity) entity;
                 log.info("---------- Import Info ----------");
@@ -63,4 +66,6 @@ public abstract class AbstractDataImporter implements DataImporter {
     protected abstract void importGlobalRule(GlobalRuleEntity entity);
 
     protected abstract void importGroup(GroupEntity entity);
+
+    protected abstract void importArtifactBranch(ArtifactVersionBranchEntity entity);
 }

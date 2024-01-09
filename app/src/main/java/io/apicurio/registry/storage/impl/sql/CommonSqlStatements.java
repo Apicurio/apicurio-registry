@@ -717,6 +717,13 @@ public abstract class CommonSqlStatements implements SqlStatements {
         return "SELECT * FROM groups g ";
     }
 
+
+    @Override
+    public String exportArtifactBranches() {
+        return "SELECT * FROM artifact_version_branches avb";
+    }
+
+
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#importArtifactRule()
      */
@@ -1104,5 +1111,12 @@ public abstract class CommonSqlStatements implements SqlStatements {
         return "SELECT DISTINCT v.groupId, v.artifactId, v.version FROM versions v " +
                 "LEFT JOIN artifact_version_branches avb ON v.groupId = avb.groupId AND v.artifactId = avb.artifactId AND v.version = avb.version " +
                 "WHERE v.groupId = ? AND v.artifactId = ? AND avb.branch IS NULL";
+    }
+
+
+    @Override
+    public String importArtifactBranch() {
+        return "INSERT INTO artifact_version_branches (groupId, artifactId, branch, branchOrder, version) " +
+                "VALUES(?, ?, ?, ?, ?)";
     }
 }

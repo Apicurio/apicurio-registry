@@ -15,13 +15,14 @@ import lombok.experimental.SuperBuilder;
 public class ArtifactBranchValue extends AbstractMessageValue {
 
 
-    private String version;
+    private String version; // nullable - Not used when deleting
+    private Integer branchOrder; // nullable - Used for imports
 
-
-    public static ArtifactBranchValue create(ActionType action, String version) {
+    public static ArtifactBranchValue create(ActionType action, String version, Integer branchOrder) {
         return ArtifactBranchValue.builder()
                 .action(action)
                 .version(version)
+                .branchOrder(branchOrder)
                 .build();
     }
 

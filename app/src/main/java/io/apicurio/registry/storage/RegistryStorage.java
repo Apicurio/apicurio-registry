@@ -870,6 +870,9 @@ public interface RegistryStorage extends DynamicConfigStorage {
     void importArtifactRule(ArtifactRuleEntity entity);
 
 
+    void importArtifactBranch(ArtifactVersionBranchEntity entity);
+
+
     boolean isContentExists(String contentHash) throws RegistryStorageException;
 
 

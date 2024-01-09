@@ -341,6 +341,12 @@ public abstract class AbstractReadOnlyRegistryStorage implements RegistryStorage
 
 
     @Override
+    public void importArtifactBranch(ArtifactVersionBranchEntity entity) {
+        readOnlyViolation();
+    }
+
+
+    @Override
     public void updateContentCanonicalHash(String newCanonicalHash, long contentId, String contentHash) {
         readOnlyViolation();
     }

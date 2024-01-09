@@ -151,31 +151,31 @@
         <node.version>16.17.0</node.version>
 
         <!-- Quarkus Version -->
-        <quarkus.version>3.2.8.Final</quarkus.version>
+        <quarkus.version>3.6.4</quarkus.version>
 
         <!-- Jandex -->
         <jandex.version>1.2.3</jandex.version>
 
         <!-- Schema types -->
         <avro.version>1.11.3</avro.version>
-        <json-schema-validator.version>1.0.88</json-schema-validator.version>
+        <json-schema-validator.version>1.1.0</json-schema-validator.version>
         <wire-schema.version>4.9.3</wire-schema.version>
         <wire-compiler.version>4.9.3</wire-compiler.version>
-        <okio-jvm.version>3.6.0</okio-jvm.version>
-        <okio.version>3.6.0</okio.version>
-        <okio-fake-file-system.version>3.6.0</okio-fake-file-system.version>
+        <okio-jvm.version>3.7.0</okio-jvm.version>
+        <okio.version>3.7.0</okio.version>
+        <okio-fake-file-system.version>3.7.0</okio-fake-file-system.version>
         <icu4j.version>74.2</icu4j.version>
         <protobuf.version>3.25.1</protobuf.version>
         <xmlsec.version>4.0.1</xmlsec.version>
-        <protobuf.googleapi.types.version>2.29.0</protobuf.googleapi.types.version>
+        <protobuf.googleapi.types.version>2.30.0</protobuf.googleapi.types.version>
         <wsdl4j.version>1.6.3</wsdl4j.version>
-        <google.truth.extension.version>1.1.5</google.truth.extension.version>
+        <google.truth.extension.version>1.2.0</google.truth.extension.version>
 
         <!-- Picocli -->
         <picocli.version>4.6.3</picocli.version>
 
         <!-- Confluent API / client -->
-        <confluent.version>7.5.2</confluent.version>
+        <confluent.version>7.5.3</confluent.version>
 
         <!-- Default Quarkus configuration profile -->
         <quarkus.profile>dev</quarkus.profile>
@@ -201,8 +201,8 @@
         <!-- JSON Schema Validator -->
         <org.everit.json.schema.version>1.14.3</org.everit.json.schema.version>
         <org.json>20231013</org.json><!-- TODO unification -->
-        <jackson-datatype-json-org.version>2.16.0</jackson-datatype-json-org.version>
-        <jackson-dataformat-yaml.version>2.15.2</jackson-dataformat-yaml.version>
+        <jackson-datatype-json-org.version>2.16.1</jackson-datatype-json-org.version>
+        <jackson-dataformat-yaml.version>2.16.1</jackson-dataformat-yaml.version>
 
         <!-- Dependency versions -->
         <lombok.version>1.18.30</lombok.version>
@@ -215,11 +215,11 @@
         <sentry.version>1.7.30</sentry.version>
         <kafka-oauth-client.version>0.14.0</kafka-oauth-client.version>
         <kafka-clients.version>3.5.1</kafka-clients.version>
-        <guava.version>32.1.3-jre</guava.version>
+        <guava.version>33.0.0-jre</guava.version>
         <woodstox-core.version>6.5.1</woodstox-core.version>
 
         <!-- Kafka Connect -->
-        <connect.version>7.5.2-ce</connect.version>
+        <connect.version>7.5.3-ce</connect.version>
 
         <!-- Specifications -->
         <annotation-api.version>1.3.5</annotation-api.version>
@@ -229,7 +229,7 @@
         <scala.version>2.13.12</scala.version>
 
         <!-- Plugin Versions -->
-        <version.compiler.plugin>3.11.0</version.compiler.plugin>
+        <version.compiler.plugin>3.12.1</version.compiler.plugin>
         <version.deploy.plugin>3.1.1</version.deploy.plugin>
         <version.failsafe.plugin>3.2.3</version.failsafe.plugin>
         <version.javadoc.plugin>3.6.3</version.javadoc.plugin>
@@ -246,7 +246,7 @@
         <version.maven-antrun.plugin>3.1.0</version.maven-antrun.plugin>
 
         <!-- Plugin Deps -->
-        <version.puppycrawl>10.12.6</version.puppycrawl>
+        <version.puppycrawl>10.12.7</version.puppycrawl>
 
         <!-- Protocol Buffers -->
         <proto-plugin.version>0.6.1</proto-plugin.version>

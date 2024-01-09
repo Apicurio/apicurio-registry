@@ -194,7 +194,7 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
     }
 
     private void ensureClusterSync(String groupId, String artifactId, String version) throws Exception {
-        retry(() -> registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersion(version).meta().get());
+        retry(() -> registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression(version).meta().get());
     }
 
     private void ensureClusterSync(Consumer<RegistryClient> function) throws Exception {

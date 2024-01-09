@@ -548,13 +548,13 @@ public class AdminResourceTest extends AbstractResourceTestBase {
         assertEquals(3, newArtifacts);
 
         // Verify comments were imported
-        List<Comment> comments = clientV3.groups().byGroupId("ImportTest").artifacts().byArtifactId("Artifact-1").versions().byVersion("1.0.2").comments().get();
+        List<Comment> comments = clientV3.groups().byGroupId("ImportTest").artifacts().byArtifactId("Artifact-1").versions().byVersionExpression("1.0.2").comments().get();
         assertNotNull(comments);
         assertEquals(2, comments.size());
         assertEquals("COMMENT-2", comments.get(0).getValue());
         assertEquals("COMMENT-1", comments.get(1).getValue());
 
-        comments = clientV3.groups().byGroupId("ImportTest").artifacts().byArtifactId("Artifact-2").versions().byVersion("1.0.1").comments().get();
+        comments = clientV3.groups().byGroupId("ImportTest").artifacts().byArtifactId("Artifact-2").versions().byVersionExpression("1.0.1").comments().get();
         assertNotNull(comments);
         assertEquals(1, comments.size());
         assertEquals("COMMENT-3", comments.get(0).getValue());

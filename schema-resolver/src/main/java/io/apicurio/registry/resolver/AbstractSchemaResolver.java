@@ -197,14 +197,14 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
     protected Map<String, ParsedSchema<S>> resolveReferences(List<io.apicurio.registry.rest.client.models.ArtifactReference> artifactReferences) {
         Map<String, ParsedSchema<S>> resolvedReferences = new HashMap<>();
         artifactReferences.forEach(reference -> {
-            final InputStream referenceContent = client.groups().byGroupId(reference.getGroupId() == null ? "default" : reference.getGroupId()).artifacts().byArtifactId(reference.getArtifactId()).versions().byVersion(reference.getVersion()).get();
+            final InputStream referenceContent = client.groups().byGroupId(reference.getGroupId() == null ? "default" : reference.getGroupId()).artifacts().byArtifactId(reference.getArtifactId()).versions().byVersionExpression(reference.getVersion()).get();
             final List<io.apicurio.registry.rest.client.models.ArtifactReference> referenceReferences = client
                 .groups()
                 .byGroupId(reference.getGroupId() == null ? "default" : reference.getGroupId()) // TODO verify the old logic: .pathParams(List.of(groupId == null ? "null" : groupId, artifactId, version)) GroupRequestsProvider.java
                 .artifacts()
                 .byArtifactId(reference.getArtifactId())
                 .versions()
-                .byVersion(reference.getVersion())
+                .byVersionExpression(reference.getVersion())
                 .references()
                 .get();
 

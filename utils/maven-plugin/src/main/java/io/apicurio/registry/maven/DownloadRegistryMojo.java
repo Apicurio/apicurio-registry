@@ -89,7 +89,7 @@ public class DownloadRegistryMojo extends AbstractRegistryMojo {
 
         try (InputStream content = version == null ?
                 getClient().groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get() :
-                getClient().groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersion(version).get()) {
+                getClient().groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression(version).get()) {
 
             if (!artifact.getFile().getParentFile().exists()) {
                 artifact.getFile().getParentFile().mkdirs();

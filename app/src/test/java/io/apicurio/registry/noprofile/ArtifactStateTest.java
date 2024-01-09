@@ -1,21 +1,18 @@
 package io.apicurio.registry.noprofile;
 
 import io.apicurio.registry.AbstractResourceTestBase;
-import io.apicurio.registry.rest.client.models.ArtifactContent;
-import io.apicurio.registry.rest.client.models.ArtifactMetaData;
-import io.apicurio.registry.rest.client.models.ArtifactState;
-import io.apicurio.registry.rest.client.models.EditableMetaData;
-import io.apicurio.registry.rest.client.models.UpdateState;
-import io.apicurio.registry.rest.client.models.VersionMetaData;
+import io.apicurio.registry.rest.client.models.*;
 import io.apicurio.registry.types.ArtifactType;
 import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+
 import java.io.InputStream;
 
 import static io.apicurio.registry.utils.tests.TestUtils.retry;
 import static io.restassured.RestAssured.given;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @QuarkusTest
 public class ArtifactStateTest extends AbstractResourceTestBase {
@@ -50,7 +47,7 @@ public class ArtifactStateTest extends AbstractResourceTestBase {
         // disable latest
         clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).state().put(toUpdateState(ArtifactState.DISABLED));
 
-        VersionMetaData tvmd = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersion("3").meta().get();
+        VersionMetaData tvmd = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("3").meta().get();
         Assertions.assertEquals("3", tvmd.getVersion());
         Assertions.assertEquals(ArtifactState.DISABLED, tvmd.getState());
 
@@ -67,22 +64,22 @@ public class ArtifactStateTest extends AbstractResourceTestBase {
         // cannot get a disabled artifact version
 
         var exception = assertThrows(io.apicurio.registry.rest.client.models.Error.class, () -> {
-            clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersion("3").get();
+            clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("3").get();
         });
         Assertions.assertEquals(404, exception.getErrorCode());
         Assertions.assertEquals("VersionNotFoundException", exception.getName());
 
         // can update and get metadata for a disabled artifact, but must specify version
-        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersion("3").meta().put(emd);
+        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("3").meta().put(emd);
 
         retry(() -> {
-            VersionMetaData innerAvmd = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersion("3").meta().get();
+            VersionMetaData innerAvmd = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("3").meta().get();
             Assertions.assertEquals("3", innerAvmd.getVersion());
             Assertions.assertEquals(description, innerAvmd.getDescription());
             return null;
         });
 
-        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersion("3").state().put(toUpdateState(ArtifactState.DEPRECATED));
+        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("3").state().put(toUpdateState(ArtifactState.DEPRECATED));
 
         tamd = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).meta().get();
         Assertions.assertEquals("3", tamd.getVersion()); // should be back to v3
@@ -92,7 +89,7 @@ public class ArtifactStateTest extends AbstractResourceTestBase {
         InputStream latestArtifact = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get();
         Assertions.assertNotNull(latestArtifact);
         latestArtifact.close();
-        InputStream version = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersion("2").get();
+        InputStream version = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("2").get();
         Assertions.assertNotNull(version);
         version.close();
 
@@ -107,14 +104,14 @@ public class ArtifactStateTest extends AbstractResourceTestBase {
         });
 
         // can revert back to enabled from deprecated
-        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersion("3").state().put(toUpdateState(ArtifactState.ENABLED));
+        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("3").state().put(toUpdateState(ArtifactState.ENABLED));
 
         retry(() -> {
             ArtifactMetaData innerAmd = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).meta().get();
             Assertions.assertEquals("3", innerAmd.getVersion()); // should still be latest (aka 3)
             Assertions.assertEquals(description, innerAmd.getDescription());
 
-            VersionMetaData innerVmd = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersion("1").meta().get();
+            VersionMetaData innerVmd = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("1").meta().get();
             Assertions.assertNull(innerVmd.getDescription());
 
             return null;
@@ -167,19 +164,19 @@ public class ArtifactStateTest extends AbstractResourceTestBase {
             }
 
             // Get the specific version meta-data - should be accessible even though it's DISABLED.
-            VersionMetaData vmd = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersion(String.valueOf(md.getVersion())).meta().get();
+            VersionMetaData vmd = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression(String.valueOf(md.getVersion())).meta().get();
             Assertions.assertEquals(ArtifactState.DISABLED, vmd.getState());
         });
 
         // Now re-enable the artifact
         state.setState(ArtifactState.ENABLED);
-        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersion(String.valueOf(md.getVersion())).state().put(state);
+        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression(String.valueOf(md.getVersion())).state().put(state);
 
         // Get the meta-data
         // Should be accessible now
         ArtifactMetaData amd = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).meta().get();
         Assertions.assertEquals(ArtifactState.ENABLED, amd.getState());
-        VersionMetaData vmd = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersion(String.valueOf(md.getVersion())).meta().get();
+        VersionMetaData vmd = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression(String.valueOf(md.getVersion())).meta().get();
         Assertions.assertEquals(ArtifactState.ENABLED, vmd.getState());
     }
 
@@ -240,7 +237,7 @@ public class ArtifactStateTest extends AbstractResourceTestBase {
             }
 
             // Get the specific version meta-data - should be accessible even though it's DISABLED.
-            VersionMetaData vmd = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersion(String.valueOf(md.getVersion())).meta().get();
+            VersionMetaData vmd = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression(String.valueOf(md.getVersion())).meta().get();
             Assertions.assertEquals(ArtifactState.DISABLED, vmd.getState());
         });
     }

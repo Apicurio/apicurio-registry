@@ -647,7 +647,7 @@
             "parameters": [
                 {
                     "name": "groupId",
-                    "description": "The artifact group ID.  Must be a string provided by the client, representing the name of the grouping of artifacts.",
+                    "description": "The artifact group ID.  Must be a string provided by the client, representing the name of the grouping of artifacts. Must follow the \"[a-zA-Z0-9._-]{1,512}\" pattern.",
                     "schema": {
                         "$ref": "#/components/schemas/GroupId"
                     },
@@ -656,7 +656,7 @@
                 },
                 {
                     "name": "artifactId",
-                    "description": "The artifact ID.  Can be a string (client-provided) or UUID (server-generated), representing the unique artifact identifier.",
+                    "description": "The artifact ID.  Can be a string (client-provided) or UUID (server-generated), representing the unique artifact identifier. Must follow the \".{1,512}\" pattern.",
                     "schema": {
                         "$ref": "#/components/schemas/ArtifactId"
                     },
@@ -665,7 +665,7 @@
                 }
             ]
         },
-        "/groups/{groupId}/artifacts/{artifactId}/versions/{version}/meta": {
+        "/groups/{groupId}/artifacts/{artifactId}/versions/{versionExpression}/meta": {
             "summary": "Manage the metadata for a single version of an artifact in the registry.",
             "get": {
                 "tags": [
@@ -744,7 +744,7 @@
             "parameters": [
                 {
                     "name": "groupId",
-                    "description": "The artifact group ID.  Must be a string provided by the client, representing the name of the grouping of artifacts.",
+                    "description": "The artifact group ID.  Must be a string provided by the client, representing the name of the grouping of artifacts. Must follow the \"[a-zA-Z0-9._-]{1,512}\" pattern.",
                     "schema": {
                         "$ref": "#/components/schemas/GroupId"
                     },
@@ -753,7 +753,7 @@
                 },
                 {
                     "name": "artifactId",
-                    "description": "The artifact ID.  Can be a string (client-provided) or UUID (server-generated), representing the unique artifact identifier.",
+                    "description": "The artifact ID.  Can be a string (client-provided) or UUID (server-generated), representing the unique artifact identifier. Must follow the \".{1,512}\" pattern.",
                     "schema": {
                         "$ref": "#/components/schemas/ArtifactId"
                     },
@@ -761,8 +761,8 @@
                     "required": true
                 },
                 {
-                    "name": "version",
-                    "description": "The unique identifier of a specific version of the artifact content.",
+                    "name": "versionExpression",
+                    "description": "An expression resolvable to a specific version ID within the given group and artifact. The following rules apply:\n\n - If the expression is in the form \"branch={branchId}\", and branch {branchId} exists: The expression is resolved to a version that the branch points to.\n - Otherwise: The expression is resolved to a version with the same ID, which must follow the \"[a-zA-Z0-9._\\\\-+]{1,256}\" pattern.",
                     "schema": {
                         "$ref": "#/components/schemas/Version"
                     },
@@ -771,7 +771,7 @@
                 }
             ]
         },
-        "/groups/{groupId}/artifacts/{artifactId}/versions/{version}": {
+        "/groups/{groupId}/artifacts/{artifactId}/versions/{versionExpression}": {
             "summary": "Manage a single version of a single artifact in the registry.",
             "get": {
                 "tags": [
@@ -827,7 +827,7 @@
             "parameters": [
                 {
                     "name": "groupId",
-                    "description": "The artifact group ID.  Must be a string provided by the client, representing the name of the grouping of artifacts.",
+                    "description": "The artifact group ID.  Must be a string provided by the client, representing the name of the grouping of artifacts. Must follow the \"[a-zA-Z0-9._-]{1,512}\" pattern.",
                     "schema": {
                         "$ref": "#/components/schemas/GroupId"
                     },
@@ -836,7 +836,7 @@
                 },
                 {
                     "name": "artifactId",
-                    "description": "The artifact ID.  Can be a string (client-provided) or UUID (server-generated), representing the unique artifact identifier.",
+                    "description": "The artifact ID.  Can be a string (client-provided) or UUID (server-generated), representing the unique artifact identifier. Must follow the \".{1,512}\" pattern.",
                     "schema": {
                         "$ref": "#/components/schemas/ArtifactId"
                     },
@@ -844,8 +844,8 @@
                     "required": true
                 },
                 {
-                    "name": "version",
-                    "description": "The unique identifier of a specific version of the artifact content.",
+                    "name": "versionExpression",
+                    "description": "An expression resolvable to a specific version ID within the given group and artifact. The following rules apply:\n\n - If the expression is in the form \"branch={branchId}\", and branch {branchId} exists: The expression is resolved to a version that the branch points to.\n - Otherwise: The expression is resolved to a version with the same ID, which must follow the \"[a-zA-Z0-9._\\\\-+]{1,256}\" pattern.",
                     "schema": {
                         "$ref": "#/components/schemas/Version"
                     },
@@ -854,7 +854,7 @@
                 }
             ]
         },
-        "/groups/{groupId}/artifacts/{artifactId}/versions/{version}/state": {
+        "/groups/{groupId}/artifacts/{artifactId}/versions/{versionExpression}/state": {
             "summary": "Manage the state of a specific artifact version.",
             "put": {
                 "requestBody": {
@@ -891,7 +891,7 @@
             "parameters": [
                 {
                     "name": "groupId",
-                    "description": "The artifact group ID.  Must be a string provided by the client, representing the name of the grouping of artifacts.",
+                    "description": "The artifact group ID.  Must be a string provided by the client, representing the name of the grouping of artifacts. Must follow the \"[a-zA-Z0-9._-]{1,512}\" pattern.",
                     "schema": {
                         "$ref": "#/components/schemas/GroupId"
                     },
@@ -900,7 +900,7 @@
                 },
                 {
                     "name": "artifactId",
-                    "description": "The artifact ID.  Can be a string (client-provided) or UUID (server-generated), representing the unique artifact identifier.",
+                    "description": "The artifact ID.  Can be a string (client-provided) or UUID (server-generated), representing the unique artifact identifier. Must follow the \".{1,512}\" pattern.",
                     "schema": {
                         "$ref": "#/components/schemas/ArtifactId"
                     },
@@ -908,8 +908,8 @@
                     "required": true
                 },
                 {
-                    "name": "version",
-                    "description": "The unique identifier of a specific version of the artifact content.",
+                    "name": "versionExpression",
+                    "description": "An expression resolvable to a specific version ID within the given group and artifact. The following rules apply:\n\n - If the expression is in the form \"branch={branchId}\", and branch {branchId} exists: The expression is resolved to a version that the branch points to.\n - Otherwise: The expression is resolved to a version with the same ID, which must follow the \"[a-zA-Z0-9._\\\\-+]{1,256}\" pattern.",
                     "schema": {
                         "$ref": "#/components/schemas/Version"
                     },
@@ -1003,7 +1003,7 @@
             "parameters": [
                 {
                     "name": "groupId",
-                    "description": "The artifact group ID.  Must be a string provided by the client, representing the name of the grouping of artifacts.",
+                    "description": "The artifact group ID.  Must be a string provided by the client, representing the name of the grouping of artifacts. Must follow the \"[a-zA-Z0-9._-]{1,512}\" pattern.",
                     "schema": {
                         "$ref": "#/components/schemas/GroupId"
                     },
@@ -1012,7 +1012,7 @@
                 },
                 {
                     "name": "artifactId",
-                    "description": "The artifact ID.  Can be a string (client-provided) or UUID (server-generated), representing the unique artifact identifier.",
+                    "description": "The artifact ID.  Can be a string (client-provided) or UUID (server-generated), representing the unique artifact identifier. Must follow the \".{1,512}\" pattern.",
                     "schema": {
                         "$ref": "#/components/schemas/ArtifactId"
                     },
@@ -1107,7 +1107,7 @@
             "parameters": [
                 {
                     "name": "groupId",
-                    "description": "The artifact group ID.  Must be a string provided by the client, representing the name of the grouping of artifacts.",
+                    "description": "The artifact group ID.  Must be a string provided by the client, representing the name of the grouping of artifacts. Must follow the \"[a-zA-Z0-9._-]{1,512}\" pattern.",
                     "schema": {
                         "$ref": "#/components/schemas/GroupId"
                     },
@@ -1116,7 +1116,7 @@
                 },
                 {
                     "name": "artifactId",
-                    "description": "The artifact ID.  Can be a string (client-provided) or UUID (server-generated), representing the unique artifact identifier.",
+                    "description": "The artifact ID.  Can be a string (client-provided) or UUID (server-generated), representing the unique artifact identifier. Must follow the \".{1,512}\" pattern.",
                     "schema": {
                         "$ref": "#/components/schemas/ArtifactId"
                     },
@@ -1426,7 +1426,7 @@
                 }
             ]
         },
-        "/groups/{groupId}/artifacts/{artifactId}/versions/{version}/references": {
+        "/groups/{groupId}/artifacts/{artifactId}/versions/{versionExpression}/references": {
             "summary": "Manage the references for a single version of an artifact in the registry.",
             "get": {
                 "tags": [
@@ -1460,7 +1460,7 @@
             "parameters": [
                 {
                     "name": "groupId",
-                    "description": "The artifact group ID.  Must be a string provided by the client, representing the name of the grouping of artifacts.",
+                    "description": "The artifact group ID.  Must be a string provided by the client, representing the name of the grouping of artifacts. Must follow the \"[a-zA-Z0-9._-]{1,512}\" pattern.",
                     "schema": {
                         "$ref": "#/components/schemas/GroupId"
                     },
@@ -1469,7 +1469,7 @@
                 },
                 {
                     "name": "artifactId",
-                    "description": "The artifact ID.  Can be a string (client-provided) or UUID (server-generated), representing the unique artifact identifier.",
+                    "description": "The artifact ID.  Can be a string (client-provided) or UUID (server-generated), representing the unique artifact identifier. Must follow the \".{1,512}\" pattern.",
                     "schema": {
                         "$ref": "#/components/schemas/ArtifactId"
                     },
@@ -1477,8 +1477,8 @@
                     "required": true
                 },
                 {
-                    "name": "version",
-                    "description": "The unique identifier of a specific version of the artifact content.",
+                    "name": "versionExpression",
+                    "description": "An expression resolvable to a specific version ID within the given group and artifact. The following rules apply:\n\n - If the expression is in the form \"branch={branchId}\", and branch {branchId} exists: The expression is resolved to a version that the branch points to.\n - Otherwise: The expression is resolved to a version with the same ID, which must follow the \"[a-zA-Z0-9._\\\\-+]{1,256}\" pattern.",
                     "schema": {
                         "$ref": "#/components/schemas/Version"
                     },
@@ -1840,7 +1840,7 @@
             "parameters": [
                 {
                     "name": "groupId",
-                    "description": "The artifact group ID.  Must be a string provided by the client, representing the name of the grouping of artifacts.",
+                    "description": "The artifact group ID.  Must be a string provided by the client, representing the name of the grouping of artifacts. Must follow the \"[a-zA-Z0-9._-]{1,512}\" pattern.",
                     "schema": {
                         "$ref": "#/components/schemas/GroupId"
                     },
@@ -1849,7 +1849,7 @@
                 },
                 {
                     "name": "artifactId",
-                    "description": "The artifact ID.  Can be a string (client-provided) or UUID (server-generated), representing the unique artifact identifier.",
+                    "description": "The artifact ID.  Can be a string (client-provided) or UUID (server-generated), representing the unique artifact identifier. Must follow the \".{1,512}\" pattern.",
                     "schema": {
                         "$ref": "#/components/schemas/ArtifactId"
                     },
@@ -2136,7 +2136,7 @@
             "parameters": [
                 {
                     "name": "groupId",
-                    "description": "The artifact group ID.  Must be a string provided by the client, representing the name of the grouping of artifacts.",
+                    "description": "The artifact group ID.  Must be a string provided by the client, representing the name of the grouping of artifacts. Must follow the \"[a-zA-Z0-9._-]{1,512}\" pattern.",
                     "schema": {
                         "$ref": "#/components/schemas/GroupId"
                     },
@@ -2183,7 +2183,7 @@
             "parameters": [
                 {
                     "name": "groupId",
-                    "description": "The artifact group ID.  Must be a string provided by the client, representing the name of the grouping of artifacts.",
+                    "description": "The artifact group ID.  Must be a string provided by the client, representing the name of the grouping of artifacts. Must follow the \"[a-zA-Z0-9._-]{1,512}\" pattern.",
                     "schema": {
                         "$ref": "#/components/schemas/GroupId"
                     },
@@ -2192,7 +2192,7 @@
                 },
                 {
                     "name": "artifactId",
-                    "description": "The artifact ID.  Can be a string (client-provided) or UUID (server-generated), representing the unique artifact identifier.",
+                    "description": "The artifact ID.  Can be a string (client-provided) or UUID (server-generated), representing the unique artifact identifier. Must follow the \".{1,512}\" pattern.",
                     "schema": {
                         "$ref": "#/components/schemas/ArtifactId"
                     },
@@ -2409,7 +2409,7 @@
             "parameters": [
                 {
                     "name": "groupId",
-                    "description": "The artifact group ID.  Must be a string provided by the client, representing the name of the grouping of artifacts.",
+                    "description": "The artifact group ID.  Must be a string provided by the client, representing the name of the grouping of artifacts. Must follow the \"[a-zA-Z0-9._-]{1,512}\" pattern.",
                     "schema": {
                         "$ref": "#/components/schemas/GroupId"
                     },
@@ -2418,7 +2418,7 @@
                 },
                 {
                     "name": "artifactId",
-                    "description": "The artifact ID.  Can be a string (client-provided) or UUID (server-generated), representing the unique artifact identifier.",
+                    "description": "The artifact ID.  Can be a string (client-provided) or UUID (server-generated), representing the unique artifact identifier. Must follow the \".{1,512}\" pattern.",
                     "schema": {
                         "$ref": "#/components/schemas/ArtifactId"
                     },
@@ -2487,7 +2487,7 @@
             "parameters": [
                 {
                     "name": "groupId",
-                    "description": "The artifact group ID.  Must be a string provided by the client, representing the name of the grouping of artifacts.",
+                    "description": "The artifact group ID.  Must be a string provided by the client, representing the name of the grouping of artifacts. Must follow the \"[a-zA-Z0-9._-]{1,512}\" pattern.",
                     "schema": {
                         "$ref": "#/components/schemas/GroupId"
                     },
@@ -2496,7 +2496,7 @@
                 },
                 {
                     "name": "artifactId",
-                    "description": "The artifact ID.  Can be a string (client-provided) or UUID (server-generated), representing the unique artifact identifier.",
+                    "description": "The artifact ID.  Can be a string (client-provided) or UUID (server-generated), representing the unique artifact identifier. Must follow the \".{1,512}\" pattern.",
                     "schema": {
                         "$ref": "#/components/schemas/ArtifactId"
                     },
@@ -2555,7 +2555,7 @@
             "parameters": [
                 {
                     "name": "groupId",
-                    "description": "The artifact group ID.  Must be a string provided by the client, representing the name of the grouping of artifacts.",
+                    "description": "The artifact group ID.  Must be a string provided by the client, representing the name of the grouping of artifacts. Must follow the \"[a-zA-Z0-9._-]{1,512}\" pattern.",
                     "schema": {
                         "$ref": "#/components/schemas/GroupId"
                     },
@@ -2833,7 +2833,7 @@
             "parameters": [
                 {
                     "name": "groupId",
-                    "description": "The artifact group ID.  Must be a string provided by the client, representing the name of the grouping of artifacts.",
+                    "description": "The artifact group ID.  Must be a string provided by the client, representing the name of the grouping of artifacts. Must follow the \"[a-zA-Z0-9._-]{1,512}\" pattern.",
                     "schema": {
                         "$ref": "#/components/schemas/GroupId"
                     },
@@ -2842,7 +2842,7 @@
                 },
                 {
                     "name": "artifactId",
-                    "description": "The artifact ID.  Can be a string (client-provided) or UUID (server-generated), representing the unique artifact identifier.",
+                    "description": "The artifact ID.  Can be a string (client-provided) or UUID (server-generated), representing the unique artifact identifier. Must follow the \".{1,512}\" pattern.",
                     "schema": {
                         "$ref": "#/components/schemas/ArtifactId"
                     },
@@ -2851,7 +2851,7 @@
                 }
             ]
         },
-        "/groups/{groupId}/artifacts/{artifactId}/versions/{version}/comments": {
+        "/groups/{groupId}/artifacts/{artifactId}/versions/{versionExpression}/comments": {
             "summary": "Manage a collection of comments for an artifact version",
             "get": {
                 "tags": [
@@ -2921,7 +2921,7 @@
             "parameters": [
                 {
                     "name": "groupId",
-                    "description": "The artifact group ID.  Must be a string provided by the client, representing the name of the grouping of artifacts.",
+                    "description": "The artifact group ID.  Must be a string provided by the client, representing the name of the grouping of artifacts. Must follow the \"[a-zA-Z0-9._-]{1,512}\" pattern.",
                     "schema": {
                         "$ref": "#/components/schemas/GroupId"
                     },
@@ -2930,7 +2930,7 @@
                 },
                 {
                     "name": "artifactId",
-                    "description": "The artifact ID.  Can be a string (client-provided) or UUID (server-generated), representing the unique artifact identifier.",
+                    "description": "The artifact ID.  Can be a string (client-provided) or UUID (server-generated), representing the unique artifact identifier. Must follow the \".{1,512}\" pattern.",
                     "schema": {
                         "$ref": "#/components/schemas/ArtifactId"
                     },
@@ -2938,8 +2938,8 @@
                     "required": true
                 },
                 {
-                    "name": "version",
-                    "description": "The unique identifier of a specific version of the artifact content.",
+                    "name": "versionExpression",
+                    "description": "An expression resolvable to a specific version ID within the given group and artifact. The following rules apply:\n\n - If the expression is in the form \"branch={branchId}\", and branch {branchId} exists: The expression is resolved to a version that the branch points to.\n - Otherwise: The expression is resolved to a version with the same ID, which must follow the \"[a-zA-Z0-9._\\\\-+]{1,256}\" pattern.",
                     "schema": {
                         "$ref": "#/components/schemas/Version"
                     },
@@ -2948,7 +2948,7 @@
                 }
             ]
         },
-        "/groups/{groupId}/artifacts/{artifactId}/versions/{version}/comments/{commentId}": {
+        "/groups/{groupId}/artifacts/{artifactId}/versions/{versionExpression}/comments/{commentId}": {
             "summary": "Manage a single comment",
             "put": {
                 "requestBody": {
@@ -3001,7 +3001,7 @@
             "parameters": [
                 {
                     "name": "groupId",
-                    "description": "The artifact group ID.  Must be a string provided by the client, representing the name of the grouping of artifacts.",
+                    "description": "The artifact group ID.  Must be a string provided by the client, representing the name of the grouping of artifacts. Must follow the \"[a-zA-Z0-9._-]{1,512}\" pattern.",
                     "schema": {
                         "$ref": "#/components/schemas/GroupId"
                     },
@@ -3010,7 +3010,7 @@
                 },
                 {
                     "name": "artifactId",
-                    "description": "The artifact ID.  Can be a string (client-provided) or UUID (server-generated), representing the unique artifact identifier.",
+                    "description": "The artifact ID.  Can be a string (client-provided) or UUID (server-generated), representing the unique artifact identifier. Must follow the \".{1,512}\" pattern.",
                     "schema": {
                         "$ref": "#/components/schemas/ArtifactId"
                     },
@@ -3018,8 +3018,8 @@
                     "required": true
                 },
                 {
-                    "name": "version",
-                    "description": "The unique identifier of a specific version of the artifact content.",
+                    "name": "versionExpression",
+                    "description": "An expression resolvable to a specific version ID within the given group and artifact. The following rules apply:\n\n - If the expression is in the form \"branch={branchId}\", and branch {branchId} exists: The expression is resolved to a version that the branch points to.\n - Otherwise: The expression is resolved to a version with the same ID, which must follow the \"[a-zA-Z0-9._\\\\-+]{1,256}\" pattern.",
                     "schema": {
                         "$ref": "#/components/schemas/Version"
                     },
@@ -3135,7 +3135,7 @@
             "parameters": [
                 {
                     "name": "groupId",
-                    "description": "The artifact group ID.  Must be a string provided by the client, representing the name of the grouping of artifacts.",
+                    "description": "The artifact group ID.  Must be a string provided by the client, representing the name of the grouping of artifacts. Must follow the \"[a-zA-Z0-9._-]{1,512}\" pattern.",
                     "schema": {
                         "$ref": "#/components/schemas/GroupId"
                     },
@@ -3144,7 +3144,7 @@
                 },
                 {
                     "name": "artifactId",
-                    "description": "The artifact ID.  Can be a string (client-provided) or UUID (server-generated), representing the unique artifact identifier.",
+                    "description": "The artifact ID.  Can be a string (client-provided) or UUID (server-generated), representing the unique artifact identifier. Must follow the \".{1,512}\" pattern.",
                     "schema": {
                         "$ref": "#/components/schemas/ArtifactId"
                     },
@@ -3251,7 +3251,7 @@
             "parameters": [
                 {
                     "name": "groupId",
-                    "description": "The artifact group ID.  Must be a string provided by the client, representing the name of the grouping of artifacts.",
+                    "description": "The artifact group ID.  Must be a string provided by the client, representing the name of the grouping of artifacts. Must follow the \"[a-zA-Z0-9._-]{1,512}\" pattern.",
                     "schema": {
                         "$ref": "#/components/schemas/GroupId"
                     },
@@ -3260,7 +3260,7 @@
                 },
                 {
                     "name": "artifactId",
-                    "description": "The artifact ID.  Can be a string (client-provided) or UUID (server-generated), representing the unique artifact identifier.",
+                    "description": "The artifact ID.  Can be a string (client-provided) or UUID (server-generated), representing the unique artifact identifier. Must follow the \".{1,512}\" pattern.",
                     "schema": {
                         "$ref": "#/components/schemas/ArtifactId"
                     },
@@ -3269,7 +3269,7 @@
                 },
                 {
                     "name": "branchId",
-                    "description": "Branch ID",
+                    "description": "Branch ID.  Must follow the \"[a-zA-Z0-9._\\\\-+]{1,256}\" pattern.",
                     "schema": {
                         "$ref": "#/components/schemas/BranchId"
                     },

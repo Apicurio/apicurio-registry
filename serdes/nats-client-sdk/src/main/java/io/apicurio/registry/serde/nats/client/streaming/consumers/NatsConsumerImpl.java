@@ -1,7 +1,7 @@
-package io.apicurio.registry.nats.streaming.consumers;
+package io.apicurio.registry.serde.nats.client.streaming.consumers;
 
-import io.apicurio.registry.nats.ConfigurationProvider;
-import io.apicurio.registry.nats.exceptions.NatsClientException;
+import io.apicurio.registry.serde.nats.client.ConfigurationProvider;
+import io.apicurio.registry.serde.nats.client.exceptions.NatsClientException;
 import io.apicurio.registry.serde.SerdeConfig;
 import io.apicurio.registry.serde.avro.AvroKafkaDeserializer;
 import io.apicurio.registry.serde.avro.AvroKafkaSerdeConfig;

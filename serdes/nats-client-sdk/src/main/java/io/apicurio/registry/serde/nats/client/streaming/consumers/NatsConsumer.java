@@ -1,6 +1,6 @@
-package io.apicurio.registry.nats.streaming.consumers;
+package io.apicurio.registry.serde.nats.client.streaming.consumers;
 
-import io.apicurio.registry.nats.exceptions.NatsClientException;
+import io.apicurio.registry.serde.nats.client.exceptions.NatsClientException;
 import java.util.Collection;
 
 public interface NatsConsumer {

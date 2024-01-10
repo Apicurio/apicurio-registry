@@ -95,6 +95,8 @@
         <module>serdes/avro-serde</module>
         <module>serdes/protobuf-serde</module>
         <module>serdes/jsonschema-serde</module>
+        <module>serdes/nats-client-sdk</module>
+        <module>serdes/nats-client-sdk-examples</module>
         <module>distro</module>
         <module>docs</module>
         <module>client</module>

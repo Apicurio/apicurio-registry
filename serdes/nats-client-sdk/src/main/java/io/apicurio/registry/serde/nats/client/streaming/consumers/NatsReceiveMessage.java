@@ -1,4 +1,4 @@
-package io.apicurio.registry.nats.streaming.consumers;
+package io.apicurio.registry.serde.nats.client.streaming.consumers;
 
 import io.nats.client.Message;
 

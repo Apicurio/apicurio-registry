@@ -1,7 +1,7 @@
-package io.apicurio.registry.nats.streaming.producers;
+package io.apicurio.registry.serde.nats.client.streaming.producers;
 
 
-import io.apicurio.registry.nats.exceptions.NatsClientException;
+import io.apicurio.registry.serde.nats.client.exceptions.NatsClientException;
 import java.io.IOException;
 import java.util.Collection;
 

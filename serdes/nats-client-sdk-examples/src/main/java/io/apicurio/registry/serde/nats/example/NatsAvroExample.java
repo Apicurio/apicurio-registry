@@ -1,11 +1,11 @@
-package io.apicurio.registry.nats;
+package io.apicurio.registry.serde.nats.example;
 
-import io.apicurio.registry.nats.streaming.consumers.ConnectionFactory;
-import io.apicurio.registry.nats.streaming.consumers.NatsConsumer;
-import io.apicurio.registry.nats.exceptions.NatsClientException;
-import io.apicurio.registry.nats.streaming.consumers.NatsConsumerImpl;
-import io.apicurio.registry.nats.streaming.consumers.NatsReceiveMessage;
-import io.apicurio.registry.nats.streaming.producers.NatsProducer;
+import io.apicurio.registry.serde.nats.client.exceptions.NatsClientException;
+import io.apicurio.registry.serde.nats.client.streaming.consumers.ConnectionFactory;
+import io.apicurio.registry.serde.nats.client.streaming.consumers.NatsConsumer;
+import io.apicurio.registry.serde.nats.client.streaming.consumers.NatsConsumerImpl;
+import io.apicurio.registry.serde.nats.client.streaming.consumers.NatsReceiveMessage;
+import io.apicurio.registry.serde.nats.client.streaming.producers.NatsProducer;
 import io.nats.client.Connection;
 import io.nats.client.JetStreamApiException;
 import io.nats.client.JetStreamManagement;

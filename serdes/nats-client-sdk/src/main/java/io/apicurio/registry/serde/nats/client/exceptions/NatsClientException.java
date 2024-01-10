@@ -1,4 +1,4 @@
-package io.apicurio.registry.nats.exceptions;
+package io.apicurio.registry.serde.nats.client.exceptions;
 
 public class NatsClientException extends Exception {
 

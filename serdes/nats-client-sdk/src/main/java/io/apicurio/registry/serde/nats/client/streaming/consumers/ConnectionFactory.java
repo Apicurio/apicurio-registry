@@ -1,11 +1,10 @@
-package io.apicurio.registry.nats.streaming.consumers;
+package io.apicurio.registry.serde.nats.client.streaming.consumers;
 
-import io.apicurio.registry.nats.ConfigurationProvider;
+import io.apicurio.registry.serde.nats.client.ConfigurationProvider;
 import io.nats.client.Connection;
 import io.nats.client.Nats;
 import io.nats.client.Options;
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.Properties;
 
 public class ConnectionFactory {

@@ -1,9 +1,9 @@
-package io.apicurio.registry.nats.streaming.producers;
+package io.apicurio.registry.serde.nats.client.streaming.producers;
 
 
-import io.apicurio.registry.nats.ConfigurationProvider;
-import io.apicurio.registry.nats.streaming.consumers.ConnectionFactory;
-import io.apicurio.registry.nats.exceptions.NatsClientException;
+import io.apicurio.registry.serde.nats.client.streaming.consumers.ConnectionFactory;
+import io.apicurio.registry.serde.nats.client.ConfigurationProvider;
+import io.apicurio.registry.serde.nats.client.exceptions.NatsClientException;
 import io.apicurio.registry.serde.SerdeConfig;
 import io.apicurio.registry.serde.avro.AvroKafkaSerializer;
 import io.nats.client.Connection;

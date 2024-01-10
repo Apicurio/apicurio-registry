@@ -1,4 +1,4 @@
-package io.apicurio.registry.nats;
+package io.apicurio.registry.serde.nats.client;
 
 import java.io.IOException;
 import java.io.InputStream;

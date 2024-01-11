@@ -92,6 +92,7 @@
         <module>utils/tests</module>
         <module>schema-resolver</module>
         <module>serdes/serde-common</module>
+        <module>serdes/generic-serde</module>
         <module>serdes/avro-serde</module>
         <module>serdes/protobuf-serde</module>
         <module>serdes/jsonschema-serde</module>

@@ -2,7 +2,7 @@ package io.apicurio.registry.serde.nats.client.streaming.consumers;
 
 import io.apicurio.registry.serde.NatsDeserializer;
 import io.apicurio.registry.serde.config.nats.NatsConsumerConfig;
-import io.apicurio.registry.serde.nats.client.config.Utils;
+import io.apicurio.registry.serde.generic.Utils;
 import io.nats.client.Connection;
 import io.nats.client.JetStreamSubscription;
 import io.nats.client.Message;
@@ -35,7 +35,7 @@ public class NatsConsumerImpl<DATA> implements NatsConsumer<DATA> {
         this.subject = subject;
         this.subscribeOptions = subscribeOptions;
 
-        deserializer = Utils.newConfiguredInstance(config.get(NatsConsumerConfig.DESERIALIZER_CLASS_CONFIG), NatsDeserializer.class, org.apache.kafka.common.utils.Utils.propsToMap(config));
+        deserializer = Utils.newConfiguredInstance(config.get(NatsConsumerConfig.DESERIALIZER_CLASS_CONFIG), NatsDeserializer.class, org.apache.kafka.common.utils.Utils.propsToMap(config), null);
     }
 
 

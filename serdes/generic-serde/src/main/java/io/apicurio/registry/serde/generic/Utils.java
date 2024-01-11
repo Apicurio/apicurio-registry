@@ -1,10 +1,10 @@
-package io.apicurio.registry.serde.nats.client.config;
+package io.apicurio.registry.serde.generic;
 
-
-import io.apicurio.registry.serde.Configurable;
+import org.apache.kafka.common.Configurable;
 
 import java.io.Closeable;
 import java.util.Map;
+import java.util.function.Supplier;
 
 public class Utils {
 
@@ -38,7 +38,7 @@ public class Utils {
     }
 
 
-    public static <T> T newConfiguredInstance(Object klass, Class<T> superType, Map<String, Object> config) {
+    public static <T> T newConfiguredInstance(Object klass, Class<T> superType, Map<String, Object> config, GenericConfig config2) {
         if (klass == null) {
             return null;
         }
@@ -54,8 +54,14 @@ public class Utils {
             if (!superType.isInstance(instance)) {
                 throw new RuntimeException(klass.getClass().getCanonicalName() + " is not an instance of " + superType.getCanonicalName());
             }
-            if (instance instanceof Configurable) {
-                ((Configurable) instance).configure(config);
+            if (config != null && instance instanceof org.apache.kafka.common.Configurable) {
+                ((org.apache.kafka.common.Configurable) instance).configure(config);
+            }
+            if (config != null && instance instanceof io.apicurio.registry.serde.Configurable) {
+                ((io.apicurio.registry.serde.Configurable) instance).configure(config);
+            }
+            if (config2 != null && instance instanceof io.apicurio.registry.serde.generic.Configurable) {
+                ((io.apicurio.registry.serde.generic.Configurable) instance).configure(config2);
             }
         } catch (Exception ex) {
             if (instance instanceof Closeable) {
@@ -68,5 +74,14 @@ public class Utils {
             throw ex;
         }
         return superType.cast(instance);
+    }
+
+
+    public static <T> T castOr(Object value, Class<T> targetType, Supplier<T> otherwise) {
+        if (targetType.isInstance(value)) {
+            return targetType.cast(value);
+        } else {
+            return otherwise.get();
+        }
     }
 }

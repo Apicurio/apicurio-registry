@@ -3,7 +3,7 @@ package io.apicurio.registry.serde.nats.client.streaming.producers;
 
 import io.apicurio.registry.serde.NatsSerializer;
 import io.apicurio.registry.serde.config.nats.NatsProducerConfig;
-import io.apicurio.registry.serde.nats.client.config.Utils;
+import io.apicurio.registry.serde.generic.Utils;
 import io.apicurio.registry.serde.nats.client.exceptions.ApicurioNatsException;
 import io.nats.client.Connection;
 import io.nats.client.JetStream;
@@ -25,7 +25,7 @@ public class NatsProducerImpl<DATA> implements NatsProducer<DATA> {
         this.connection = connection;
         this.subject = subject;
 
-        serializer = Utils.newConfiguredInstance(config.get(NatsProducerConfig.SERIALIZER_CLASS_CONFIG), NatsSerializer.class, org.apache.kafka.common.utils.Utils.propsToMap(config));
+        serializer = Utils.newConfiguredInstance(config.get(NatsProducerConfig.SERIALIZER_CLASS_CONFIG), NatsSerializer.class, org.apache.kafka.common.utils.Utils.propsToMap(config), null);
 
         jetStream = connection.jetStream();
     }

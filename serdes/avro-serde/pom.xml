@@ -25,6 +25,13 @@
             <groupId>org.apache.avro</groupId>
             <artifactId>avro</artifactId>
         </dependency>
+
+        <dependency>
+            <groupId>io.apicurio</groupId>
+            <artifactId>apicurio-registry-serdes-generic</artifactId>
+            <version>${project.version}</version><!-- TODO -->
+        </dependency>
+
     </dependencies>
     
 </project>

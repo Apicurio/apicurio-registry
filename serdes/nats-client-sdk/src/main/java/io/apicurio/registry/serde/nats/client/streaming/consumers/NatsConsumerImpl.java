@@ -1,94 +1,94 @@
 package io.apicurio.registry.serde.nats.client.streaming.consumers;
 
-import io.apicurio.registry.serde.nats.client.ConfigurationProvider;
-import io.apicurio.registry.serde.nats.client.exceptions.NatsClientException;
-import io.apicurio.registry.serde.SerdeConfig;
-import io.apicurio.registry.serde.avro.AvroKafkaDeserializer;
-import io.apicurio.registry.serde.avro.AvroKafkaSerdeConfig;
+import io.apicurio.registry.serde.NatsDeserializer;
+import io.apicurio.registry.serde.config.nats.NatsConsumerConfig;
+import io.apicurio.registry.serde.nats.client.config.Utils;
 import io.nats.client.Connection;
-import io.nats.client.JetStream;
-import io.nats.client.JetStreamApiException;
 import io.nats.client.JetStreamSubscription;
 import io.nats.client.Message;
 import io.nats.client.PullSubscribeOptions;
-import java.io.IOException;
-import java.time.Duration;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import org.apache.commons.compress.utils.Lists;
-import org.apache.kafka.clients.producer.ProducerConfig;
-import org.apache.kafka.common.serialization.Deserializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class NatsConsumerImpl implements NatsConsumer {
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Properties;
 
-    private Deserializer deserializer;
+public class NatsConsumerImpl<DATA> implements NatsConsumer<DATA> {
+
+    private NatsDeserializer<DATA> deserializer;
 
     private Connection connection;
 
     private String subject;
 
+    private PullSubscribeOptions subscribeOptions;
+
     private JetStreamSubscription subscription;
 
     private Logger logger = LoggerFactory.getLogger(getClass().getSimpleName());
 
-    public NatsConsumerImpl(String subject, PullSubscribeOptions pullSubscribeOptions) throws IOException, InterruptedException, JetStreamApiException {
+
+    public NatsConsumerImpl(Connection connection, String subject, PullSubscribeOptions subscribeOptions, Properties config) {
+        this.connection = connection;
         this.subject = subject;
-        deserializer = new AvroKafkaDeserializer();
-        deserializer.configure(getConfig(), false);
-        connection = ConnectionFactory.getConnection();
-        JetStream jetStream = connection.jetStream();
-        subscription = jetStream.subscribe(subject, pullSubscribeOptions);
+        this.subscribeOptions = subscribeOptions;
+
+        deserializer = Utils.newConfiguredInstance(config.get(NatsConsumerConfig.DESERIALIZER_CLASS_CONFIG), NatsDeserializer.class, org.apache.kafka.common.utils.Utils.propsToMap(config));
     }
+
+
+    private JetStreamSubscription getLazySubscription() throws Exception {
+        if (subscription == null) {
+            subscription = connection.jetStream().subscribe(subject, subscribeOptions);
+        }
+        return subscription;
+    }
+
+
     @Override
     public String getSubject() {
         return subject;
     }
 
-    @Override
-    public void unsubscribe() throws InterruptedException {
-        if(connection != null ) {
-            connection.close();
-        }
-    }
 
     @Override
-    public NatsReceiveMessage receive() throws NatsClientException, InterruptedException {
-        return receive(3000);
+    public NatsConsumerRecord<DATA> receive() throws Exception {
+        return receive(Duration.ofSeconds(3));
     }
 
-    @Override
-    public NatsReceiveMessage receive(long timeoutInMillis) throws NatsClientException, InterruptedException {
-        Collection<NatsReceiveMessage> messages = receive(1, timeoutInMillis);
-        return messages == null ? null : messages.stream().findFirst().get();
-    }
 
     @Override
-    public Collection<NatsReceiveMessage> receive(int batchsize, long timeoutInMillis)
-            throws NatsClientException, InterruptedException {
-        List<Message> messages = subscription.fetch(batchsize, Duration.ofMillis(timeoutInMillis));
-        Collection<NatsReceiveMessage> natsReceiveMessages = Lists.newArrayList();
+    public NatsConsumerRecord<DATA> receive(Duration timeout) throws Exception {
+        List<NatsConsumerRecord<DATA>> messages = receive(1, timeout);
+        return messages == null ? null : messages.get(0); // TODO
+    }
+
+
+    @Override
+    public List<NatsConsumerRecord<DATA>> receive(int batchSize, Duration timeout) throws Exception {
+
+        List<Message> messages = getLazySubscription().fetch(batchSize, timeout);
+
         if (messages == null || messages.isEmpty()) {
-            logger.info("Pull request timeout ({}} millis), no message found", timeoutInMillis);
-            return null;
+            logger.info("Receive timeout ({} ms)", timeout.toMillis());
+            return null; // TODO
         }
+
+        List<NatsConsumerRecord<DATA>> records = new ArrayList<>();
         for (Message message : messages) {
-            Object object = deserializer.deserialize(subject, message.getData());
-            natsReceiveMessages.add(new NatsReceiveMessageImpl(message , object));
+            DATA payload = deserializer.deserialize(subject, message.getData());
+            records.add(new NatsConsumerRecordImpl<>(message, payload));
         }
-        return natsReceiveMessages;
+        return records;
     }
 
-    private Map<String, String> getConfig() {
-        Map<String, String> config = new HashMap<>();
-        config.put(ProducerConfig.CLIENT_ID_CONFIG, "Producer-" + subject);
-        config.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, ConfigurationProvider.getString(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY));
-        config.put(SerdeConfig.REGISTRY_URL, ConfigurationProvider.getString(SerdeConfig.REGISTRY_URL));
-        config.put(SerdeConfig.USE_ID, ConfigurationProvider.getString(SerdeConfig.USE_ID));
-        config.put(AvroKafkaSerdeConfig.USE_SPECIFIC_AVRO_READER, ConfigurationProvider.getString(AvroKafkaSerdeConfig.USE_SPECIFIC_AVRO_READER));
-        return config;
+
+    @Override
+    public void close() throws Exception {
+        if (subscription != null) {
+            subscription.unsubscribe();
+        }
     }
 }

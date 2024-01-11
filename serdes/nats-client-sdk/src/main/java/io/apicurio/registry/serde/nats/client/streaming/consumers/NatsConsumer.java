@@ -1,18 +1,19 @@
 package io.apicurio.registry.serde.nats.client.streaming.consumers;
 
-import io.apicurio.registry.serde.nats.client.exceptions.NatsClientException;
+import java.time.Duration;
 import java.util.Collection;
 
-public interface NatsConsumer {
+public interface NatsConsumer<T> extends AutoCloseable {
+
 
     String getSubject();
 
-    void unsubscribe() throws InterruptedException;
 
-    NatsReceiveMessage receive() throws NatsClientException, InterruptedException;
+    NatsConsumerRecord<T> receive() throws Exception;
 
-    NatsReceiveMessage receive(long timeoutInMillis) throws NatsClientException, InterruptedException;
 
-    Collection<NatsReceiveMessage> receive(int batchsize, long timeoutInMillis) throws NatsClientException, InterruptedException;
+    NatsConsumerRecord<T> receive(Duration timeout) throws Exception;
 
+
+    Collection<NatsConsumerRecord<T>> receive(int batchSize, Duration timeout) throws Exception;
 }

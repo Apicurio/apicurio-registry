@@ -1,82 +1,49 @@
 package io.apicurio.registry.serde.nats.client.streaming.producers;
 
 
-import io.apicurio.registry.serde.nats.client.streaming.consumers.ConnectionFactory;
-import io.apicurio.registry.serde.nats.client.ConfigurationProvider;
-import io.apicurio.registry.serde.nats.client.exceptions.NatsClientException;
-import io.apicurio.registry.serde.SerdeConfig;
-import io.apicurio.registry.serde.avro.AvroKafkaSerializer;
+import io.apicurio.registry.serde.NatsSerializer;
+import io.apicurio.registry.serde.config.nats.NatsProducerConfig;
+import io.apicurio.registry.serde.nats.client.config.Utils;
+import io.apicurio.registry.serde.nats.client.exceptions.ApicurioNatsException;
 import io.nats.client.Connection;
 import io.nats.client.JetStream;
-import io.nats.client.JetStreamApiException;
-import java.io.IOException;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import org.apache.kafka.clients.producer.ProducerConfig;
-import org.apache.kafka.common.serialization.Serializer;
 
-public class NatsProducerImpl implements NatsProducer{
+import java.util.Properties;
+
+public class NatsProducerImpl<DATA> implements NatsProducer<DATA> {
 
     private Connection connection;
 
     private JetStream jetStream;
 
-    private Serializer serializer;
+    private NatsSerializer<DATA> serializer;
 
     private String subject;
 
-    private static Map<String, NatsProducer> cachedClient = new ConcurrentHashMap<String, NatsProducer>();
 
-    private NatsProducerImpl (String subject) throws IOException, InterruptedException {
+    public NatsProducerImpl(Connection connection, String subject, Properties config) throws Exception {
+        this.connection = connection;
         this.subject = subject;
-        this.serializer = new AvroKafkaSerializer();
-        this.serializer.configure(getConfig(), false);
-        connection = ConnectionFactory.getConnection();
+
+        serializer = Utils.newConfiguredInstance(config.get(NatsProducerConfig.SERIALIZER_CLASS_CONFIG), NatsSerializer.class, org.apache.kafka.common.utils.Utils.propsToMap(config));
+
         jetStream = connection.jetStream();
     }
 
-    public static NatsProducer getInstance(String subject) throws NatsClientException {
-        if(cachedClient.containsKey(subject)){
-            return cachedClient.get(subject);
-        }
-        try {
-            NatsProducerImpl impl = new NatsProducerImpl(subject);
-            cachedClient.putIfAbsent(subject, impl);
-        }catch (IOException | InterruptedException e){
-            throw new NatsClientException(e);
-        }
-        return getInstance(subject);
-    }
 
     @Override
-    public <T> void sendMessage(T message) throws NatsClientException {
+    public void send(DATA message) throws ApicurioNatsException {
         byte[] data = serializer.serialize(subject, message);
         try {
             jetStream.publish(subject, data);
-        } catch (IOException |JetStreamApiException e) {
-            throw new NatsClientException(e);
+        } catch (Exception ex) {
+            throw new ApicurioNatsException(ex);
         }
     }
 
-    @Override
-    public <T> void sendMessages(Collection<T> messages) throws NatsClientException {
-
-    }
 
     @Override
-    public void closeProducer() throws IOException, InterruptedException {
-        connection.close();
-    }
-
-    public Map<String, String> getConfig() { //Making it public, for clients to add values
-        Map<String, String> config = new HashMap<>();
-        config.put(ProducerConfig.CLIENT_ID_CONFIG, "Producer-" + subject);
-        config.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, ConfigurationProvider.getString(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY));
-        config.put(SerdeConfig.REGISTRY_URL, ConfigurationProvider.getString(SerdeConfig.REGISTRY_URL));
-        config.putIfAbsent(SerdeConfig.AUTO_REGISTER_ARTIFACT, ConfigurationProvider.getString(SerdeConfig.AUTO_REGISTER_ARTIFACT));
-        config.put(SerdeConfig.USE_ID, ConfigurationProvider.getString(SerdeConfig.USE_ID));
-        return config;
+    public void close() throws Exception {
+        //connection.close();
     }
 }

@@ -1,30 +1,18 @@
 package io.apicurio.registry.serde.nats.example;
 
-import io.apicurio.registry.serde.nats.client.exceptions.NatsClientException;
-import io.apicurio.registry.serde.nats.client.streaming.consumers.ConnectionFactory;
-import io.apicurio.registry.serde.nats.client.streaming.consumers.NatsConsumer;
-import io.apicurio.registry.serde.nats.client.streaming.consumers.NatsConsumerImpl;
-import io.apicurio.registry.serde.nats.client.streaming.consumers.NatsReceiveMessage;
-import io.apicurio.registry.serde.nats.client.streaming.producers.NatsProducer;
-import io.nats.client.Connection;
+import io.apicurio.registry.serde.nats.client.exceptions.ApicurioNatsException;
 import io.nats.client.JetStreamApiException;
-import io.nats.client.JetStreamManagement;
-import io.nats.client.PullSubscribeOptions;
-import io.nats.client.api.ConsumerConfiguration;
-import io.nats.client.api.StreamConfiguration;
+
 import java.io.IOException;
-import java.util.Date;
-import org.apache.avro.Schema;
-import org.apache.avro.generic.GenericData;
-import org.apache.avro.generic.GenericRecord;
 
 public class NatsAvroExample {
     private static final String SCHEMAV1 = "{\"type\":\"record\",\"name\":\"test\",\"namespace\":\"com.github"
             + ".sourabhagrawal\",\"fields\":[{\"name\":\"Message\",\"type\":\"string\"},{\"name\":\"Time\",\"type\":\"long\"}]}";
 
     public static void main(String[] args)
-            throws NatsClientException, InterruptedException, IOException,
+            throws ApicurioNatsException, InterruptedException, IOException,
             JetStreamApiException {
+        /*
         Schema schema = new Schema.Parser().parse(SCHEMAV1);
         GenericRecord record = new GenericData.Record(schema);
         Date now = new Date();
@@ -48,7 +36,7 @@ public class NatsAvroExample {
         NatsConsumer consumer = new NatsConsumerImpl("test", options);
         producer.sendMessage(record);
         while(true) {
-            NatsReceiveMessage message = consumer.receive();
+            NatsConsumerRecord message = consumer.receive();
             if(message==null){
                 continue;
             }
@@ -59,5 +47,7 @@ public class NatsAvroExample {
             }
             message.ack();
         }
+
+         */
     }
 }

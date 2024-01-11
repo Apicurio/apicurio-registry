@@ -1,4 +1,4 @@
-package io.apicurio.registry.serde.nats.client;
+package io.apicurio.registry.serde.nats.client.config;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -6,9 +6,9 @@ import java.util.Properties;
 
 public class ConfigurationProvider {
 
-    private static InputStream inputStream ;
+    private static InputStream inputStream;
 
-    private static Properties properties ;
+    private static Properties properties;
 
     static {
         try {
@@ -22,23 +22,23 @@ public class ConfigurationProvider {
         }
     }
 
-    public static Properties getProperties(){
+    public static Properties getProperties() {
         return properties;
     }
 
-    public static String getString(String key){
+    public static String getString(String key) {
         return properties.getProperty(key);
     }
 
-    public static boolean getBoolean(String key){
+    public static boolean getBoolean(String key) {
         return Boolean.parseBoolean(getString(key));
     }
 
-    public static int getInt(String key){
+    public static int getInt(String key) {
         return Integer.parseInt(getString(key));
     }
 
-    public static long getLong(String key){
+    public static long getLong(String key) {
         return Long.parseLong(getString(key));
     }
 }

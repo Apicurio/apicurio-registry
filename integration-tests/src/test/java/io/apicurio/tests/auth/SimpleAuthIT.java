@@ -23,6 +23,7 @@ import org.junit.jupiter.api.Test;
 
 import static io.apicurio.registry.client.auth.VertXAuthFactory.buildOIDCWebClient;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Tag(Constants.AUTH)
 @TestProfile(AuthTestProfile.class)
@@ -61,7 +62,7 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
         var exception = Assertions.assertThrows(Exception.class, () -> {
             client.groups().byGroupId("foo").artifacts().get();
         });
-        assertNotAuthorized(exception);
+        assertTrue(exception.getMessage().contains("Unauthorized"));
     }
 
     @Test

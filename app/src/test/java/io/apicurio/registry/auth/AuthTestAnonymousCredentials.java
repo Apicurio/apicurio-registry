@@ -18,6 +18,7 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import static io.apicurio.registry.client.auth.VertXAuthFactory.buildOIDCWebClient;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @QuarkusTest
 @TestProfile(AuthTestProfileAnonymousCredentials.class)
@@ -32,12 +33,15 @@ public class AuthTestAnonymousCredentials extends AbstractResourceTestBase {
 
     @Test
     public void testWrongCreds() throws Exception {
-        var adapter = new VertXRequestAdapter(buildOIDCWebClient(authServerUrl, JWKSMockServer.WRONG_CREDS_CLIENT_ID, "secret"));
+        var adapter = new VertXRequestAdapter(buildOIDCWebClient(authServerUrl, JWKSMockServer.WRONG_CREDS_CLIENT_ID, "test55"));
         adapter.setBaseUrl(registryV3ApiUrl);
         RegistryClient client = new RegistryClient(adapter);
-        assertNotAuthorized(Assertions.assertThrows(Exception.class, () -> {
+
+        var exception = Assertions.assertThrows(Exception.class, () -> {
             client.groups().byGroupId(groupId).artifacts().get();
-        }));
+        });
+
+        assertTrue(exception.getMessage().contains("Unauthorized"));
     }
 
     @Test

@@ -28,42 +28,20 @@ public class VertXAuthFactory {
     }
 
     public static WebClient buildOIDCWebClient(Vertx vertx, String tokenUrl, String clientId, String clientSecret, String scope) {
-        OAuth2Options options =
-                new OAuth2Options()
-                        .setFlow(OAuth2FlowType.CLIENT)
-                        .setClientId(clientId)
-                        .setTokenPath(tokenUrl)
-                        .setClientSecret(clientSecret);
-        OAuth2Auth oAuth2Auth = OAuth2Auth.create(VertXAuthFactory.defaultVertx, options);
+        WebClient webClient = WebClient.create(vertx);
+
+        OAuth2Auth oAuth2Options = OAuth2Auth.create(vertx, new OAuth2Options()
+                .setFlow(OAuth2FlowType.CLIENT)
+                .setClientId(clientId)
+                .setClientSecret(clientSecret)
+                .setTokenPath(tokenUrl));
+
         Oauth2Credentials oauth2Credentials = new Oauth2Credentials();
-        if (scope != null) {
-            oauth2Credentials.addScope(scope);
-        }
 
-        OAuth2WebClient oAuth2WebClient =
-                OAuth2WebClient.create(WebClient.create(vertx), oAuth2Auth)
-                        .withCredentials(oauth2Credentials);
+        OAuth2WebClient oauth2WebClient = OAuth2WebClient.create(webClient, oAuth2Options);
+        oauth2WebClient.withCredentials(oauth2Credentials);
 
-        // Carles: This doesn't look correct the performed request look like:
-//        {
-//            "method" : "POST",
-//                "path" : "/",
-//                "headers" : {
-//            "host" : [ "localhost:1080" ],
-//            "content-length" : [ "29" ],
-//            "Content-Type" : [ "application/x-www-form-urlencoded" ],
-//            "Authorization" : [ "Basic YWRtaW4tY2xpZW50OnRlc3Qx" ],
-//            "Accept" : [ "application/json,application/x-www-form-urlencoded;q=0.9" ]
-//        },
-//            "keepAlive" : true,
-//                "secure" : false,
-//                "protocol" : "HTTP_1_1",
-//                "localAddress" : "dc83711c2da5/172.17.0.2:1080",
-//                "remoteAddress" : "172.17.0.1:44646",
-//                "body" : "grant_type=client_credentials"
-//        }
-
-        return oAuth2WebClient;
+        return oauth2WebClient;
     }
 
     public static WebClient buildSimpleAuthWebClient(String username, String password) {
@@ -71,9 +49,7 @@ public class VertXAuthFactory {
     }
 
     public static WebClient buildSimpleAuthWebClient(Vertx vertx, String username, String password) {
-        String usernameAndPassword = Base64.getEncoder().encodeToString("user:pw".getBytes());
-
-        // TODO: ask Carles if there is a more "idiomatic way" to do this
+        String usernameAndPassword = Base64.getEncoder().encodeToString((username + ":" + password).getBytes());
         return WebClientSession
                 .create(WebClient.create(vertx))
                 .addHeader("Authorization", "Basic " + usernameAndPassword);

@@ -75,7 +75,7 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
         var exception = Assertions.assertThrows(Exception.class, () -> {
             client.groups().byGroupId(groupId).artifacts().get();
         });
-        assertNotAuthorized(exception);
+        assertTrue(exception.getMessage().contains("Unauthorized"));
     }
 
     @Test

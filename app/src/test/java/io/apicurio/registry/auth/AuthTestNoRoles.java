@@ -24,6 +24,7 @@ import org.junit.jupiter.api.Test;
 
 import static io.apicurio.registry.client.auth.VertXAuthFactory.buildOIDCWebClient;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @QuarkusTest
 @TestProfile(AuthTestProfile.class)
@@ -51,7 +52,7 @@ public class AuthTestNoRoles extends AbstractResourceTestBase {
         var exception = Assertions.assertThrows(Exception.class, () -> {
             client.groups().byGroupId(groupId).artifacts().get();
         });
-        assertNotAuthorized(exception);
+        assertTrue(exception.getMessage().contains("Unauthorized"));
     }
 
     @Test

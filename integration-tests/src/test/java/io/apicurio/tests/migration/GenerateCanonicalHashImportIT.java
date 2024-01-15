@@ -1,11 +1,12 @@
 package io.apicurio.tests.migration;
 
-
-
+import io.apicurio.registry.client.auth.VertXAuthFactory;
+import io.apicurio.registry.model.BranchId;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.IoUtil;
+import io.apicurio.registry.utils.impexp.ArtifactVersionBranchEntity;
 import io.apicurio.registry.utils.impexp.ArtifactVersionEntity;
 import io.apicurio.registry.utils.impexp.ContentEntity;
 import io.apicurio.registry.utils.impexp.EntityWriter;
@@ -14,7 +15,6 @@ import io.apicurio.tests.serdes.apicurio.JsonSchemaMsgFactory;
 import io.apicurio.tests.utils.Constants;
 import io.kiota.http.vertx.VertXRequestAdapter;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
-import io.apicurio.registry.client.auth.VertXAuthFactory;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -128,6 +128,15 @@ public class GenerateCanonicalHashImportIT extends ApicurioRegistryBaseIT {
                 versionEntity.versionOrder = 1;
 
                 writer.writeEntity(versionEntity);
+
+                writer.writeEntity(
+                        ArtifactVersionBranchEntity.builder()
+                                .artifactId(artifactId)
+                                .branch(BranchId.LATEST.getRawBranchId())
+                                .branchOrder(1)
+                                .version("1")
+                                .build()
+                );
             }
 
             zip.flush();

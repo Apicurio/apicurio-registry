@@ -15,8 +15,8 @@
   "devDependencies": {
     "@apicurio/eslint-config": "0.2.0",
     "@monaco-editor/react": "4.6.0",
-    "@types/luxon": "3.4.0",
-    "@types/react": "18.2.47",
+    "@types/luxon": "3.4.1",
+    "@types/react": "18.2.48",
     "@types/react-dom": "18.2.18",
     "@typescript-eslint/eslint-plugin": "6.18.1",
     "@typescript-eslint/parser": "6.18.1",

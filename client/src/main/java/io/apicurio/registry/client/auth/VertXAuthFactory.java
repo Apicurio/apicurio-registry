@@ -9,6 +9,7 @@ import io.vertx.ext.web.client.OAuth2WebClient;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.WebClientSession;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 
 public class VertXAuthFactory {
@@ -49,7 +50,7 @@ public class VertXAuthFactory {
     }
 
     public static WebClient buildSimpleAuthWebClient(Vertx vertx, String username, String password) {
-        String usernameAndPassword = Base64.getEncoder().encodeToString((username + ":" + password).getBytes());
+        String usernameAndPassword = Base64.getEncoder().encodeToString((username + ":" + password).getBytes(StandardCharsets.UTF_8));
         return WebClientSession
                 .create(WebClient.create(vertx))
                 .addHeader("Authorization", "Basic " + usernameAndPassword);

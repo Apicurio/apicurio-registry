@@ -9,7 +9,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -239,9 +238,11 @@ public class ERCache<V> {
                 }
             } catch (RuntimeException e) {
                 // TODO: verify if this is really needed, retries are already baked into the adapter ...
-                if (i == retries || !(e.getCause() != null && e.getCause() instanceof ExecutionException
-                        && e.getCause().getCause() != null && e.getCause().getCause() instanceof ApiException
-                        && (((ApiException) e.getCause().getCause()).getResponseStatusCode() == 429)))
+//                if (i == retries || !(e.getCause() != null && e.getCause() instanceof ExecutionException
+//                        && e.getCause().getCause() != null && e.getCause().getCause() instanceof ApiException
+//                        && (((ApiException) e.getCause().getCause()).getResponseStatusCode() == 429)))
+                if (i == retries || !(e.getCause() != null && e.getCause() instanceof ApiException
+                        && (((ApiException) e.getCause()).getResponseStatusCode() == 429)))
                     return Result.error(new RuntimeException(e));
             }
             try {

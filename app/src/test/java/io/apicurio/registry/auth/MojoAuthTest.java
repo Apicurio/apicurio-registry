@@ -69,7 +69,7 @@ public class MojoAuthTest extends RegistryMojoTestBase {
         System.out.println("Auth is " + authEnabled);
 
         RegisterRegistryMojo registerRegistryMojo = new RegisterRegistryMojo();
-//        registerRegistryMojo.setClient(null);
+        registerRegistryMojo.setClient(null);
 
         registerRegistryMojo.setRegistryUrl(TestUtils.getRegistryV3ApiUrl(testPort));
         registerRegistryMojo.setUsername(testUsername);

@@ -94,8 +94,11 @@ public class JWKSMockServer implements QuarkusTestResourceLifecycleManager {
         stubForClient(NO_ROLE_CLIENT_ID, "test1");
 
 
+        //Stub for clients with credentials as header
+        stubForClient(BASIC_USER, BASIC_PASSWORD);
+
         //Stub for basic user
-        server.stubFor(WireMock.post("/auth/realms/" + realm + "/protocol/openid-connect/token")
+        server.stubFor(WireMock.post("/auth/realms/" + realm + "/protocol/openid-connect/token/")
                 .withRequestBody(WireMock.containing("grant_type=client_credentials"))
                 .withRequestBody(WireMock.containing("client_id=" + BASIC_USER))
                 .withRequestBody(WireMock.containing("client_secret=" + BASIC_PASSWORD))
@@ -109,7 +112,7 @@ public class JWKSMockServer implements QuarkusTestResourceLifecycleManager {
                                 "}")));
 
         //Stub for basic user a
-        server.stubFor(WireMock.post("/auth/realms/" + realm + "/protocol/openid-connect/token")
+        server.stubFor(WireMock.post("/auth/realms/" + realm + "/protocol/openid-connect/token/")
                 .withRequestBody(WireMock.containing("grant_type=client_credentials"))
                 .withRequestBody(WireMock.containing("client_id=" + BASIC_USER_A))
                 .withRequestBody(WireMock.containing("client_secret=" + BASIC_PASSWORD))
@@ -123,7 +126,7 @@ public class JWKSMockServer implements QuarkusTestResourceLifecycleManager {
                                 "}")));
 
         //Stub for basic user b
-        server.stubFor(WireMock.post("/auth/realms/" + realm + "/protocol/openid-connect/token")
+        server.stubFor(WireMock.post("/auth/realms/" + realm + "/protocol/openid-connect/token/")
                 .withRequestBody(WireMock.containing("grant_type=client_credentials"))
                 .withRequestBody(WireMock.containing("client_id=" + BASIC_USER_B))
                 .withRequestBody(WireMock.containing("client_secret=" + BASIC_PASSWORD))
@@ -138,7 +141,7 @@ public class JWKSMockServer implements QuarkusTestResourceLifecycleManager {
 
 
         //Wrong credentials stub
-        server.stubFor(WireMock.post("/auth/realms/" + realm + "/protocol/openid-connect/token")
+        server.stubFor(WireMock.post("/auth/realms/" + realm + "/protocol/openid-connect/token/")
                 .withRequestBody(WireMock.containing("grant_type=client_credentials"))
                 .withRequestBody(WireMock.containing("client_id=" + WRONG_CREDS_CLIENT_ID))
                 .willReturn(WireMock.aResponse()
@@ -149,7 +152,7 @@ public class JWKSMockServer implements QuarkusTestResourceLifecycleManager {
 
         this.authServerUrl = server.baseUrl() + "/auth";
         LOGGER.info("Keycloak started in mock mode: {}", authServerUrl);
-        this.tokenEndpoint = authServerUrl + "/realms/" + realm + "/protocol/openid-connect/token";
+        this.tokenEndpoint = authServerUrl + "/realms/" + realm + "/protocol/openid-connect/token/";
 
         Map<String, String> props = new HashMap<>();
 
@@ -171,7 +174,7 @@ public class JWKSMockServer implements QuarkusTestResourceLifecycleManager {
                 .withBody("{\n" +
                         "    \"jwks_uri\": \"" + server.baseUrl()
                         + "/auth/realms/" + realm + "/protocol/openid-connect/certs\",\n"
-                        + " \"token_endpoint\": \"" + server.baseUrl() + "/auth/realms/" + realm + "/protocol/openid-connect/token\" "
+                        + " \"token_endpoint\": \"" + server.baseUrl() + "/auth/realms/" + realm + "/protocol/openid-connect/token/\" "
                         + "}");
     }
 
@@ -198,7 +201,7 @@ public class JWKSMockServer implements QuarkusTestResourceLifecycleManager {
     }
 
     private void stubForClient(String client) {
-        server.stubFor(WireMock.post("/auth/realms/" + realm + "/protocol/openid-connect/token")
+        server.stubFor(WireMock.post("/auth/realms/" + realm + "/protocol/openid-connect/token/")
                 .withRequestBody(WireMock.containing("grant_type=client_credentials"))
                 .withRequestBody(WireMock.containing("client_id=" + client))
                 .willReturn(WireMock.aResponse()
@@ -212,7 +215,7 @@ public class JWKSMockServer implements QuarkusTestResourceLifecycleManager {
     }
 
     private void stubForClient(String client, String clientSecret) {
-        server.stubFor(WireMock.post("/auth/realms/" + realm + "/protocol/openid-connect/token")
+        server.stubFor(WireMock.post("/auth/realms/" + realm + "/protocol/openid-connect/token/")
                 .withHeader("Authorization", WireMock.containing(buildBasicAuthHeader(client, clientSecret)))
                 .withRequestBody(WireMock.containing("grant_type=client_credentials"))
                 .willReturn(WireMock.aResponse()
@@ -226,7 +229,7 @@ public class JWKSMockServer implements QuarkusTestResourceLifecycleManager {
     }
 
     private void stubForClientWithWrongCreds(String client, String clientSecret) {
-        server.stubFor(WireMock.post("/auth/realms/" + realm + "/protocol/openid-connect/token")
+        server.stubFor(WireMock.post("/auth/realms/" + realm + "/protocol/openid-connect/token/")
                 .withRequestBody(WireMock.containing("grant_type=client_credentials"))
                 .withHeader("Authorization", WireMock.containing(buildBasicAuthHeader(client, clientSecret)))
                 .willReturn(WireMock.aResponse()

@@ -40,7 +40,7 @@ public class SqlDataImporter extends AbstractDataImporter {
 
     // To keep track of which versions have been imported
     private final Set<GAV> gavDone = new HashSet<>();
-    private final Map<GAV, List<ArtifactVersionBranchEntity>> branchesWaitingForVersion = new HashMap<>();
+    private final Map<GAV, List<ArtifactBranchEntity>> artifactBranchesWaitingForVersion = new HashMap<>();
 
     public SqlDataImporter(Logger logger, RegistryStorageContentUtils utils, RegistryStorage storage,
                            boolean preserveGlobalId, boolean preserveContentId) {
@@ -97,9 +97,9 @@ public class SqlDataImporter extends AbstractDataImporter {
             waitingForVersion.removeAll(commentsToImport);
 
             // Import branches waiting for version
-            branchesWaitingForVersion.computeIfAbsent(gav, _ignored -> List.of())
+            artifactBranchesWaitingForVersion.computeIfAbsent(gav, _ignored -> List.of())
                     .forEach(this::importEntity);
-            branchesWaitingForVersion.remove(gav);
+            artifactBranchesWaitingForVersion.remove(gav);
 
         } catch (VersionAlreadyExistsException ex) {
             if (ex.getGlobalId() != null) {
@@ -195,12 +195,12 @@ public class SqlDataImporter extends AbstractDataImporter {
 
 
     @Override
-    protected void importArtifactBranch(ArtifactVersionBranchEntity entity) {
+    protected void importArtifactBranch(ArtifactBranchEntity entity) {
         try {
             var gav = entity.toGAV();
             if (!gavDone.contains(gav)) {
                 // The version hasn't been imported yet.  Need to wait for it.
-                branchesWaitingForVersion.computeIfAbsent(gav, _ignored -> new ArrayList<>())
+                artifactBranchesWaitingForVersion.computeIfAbsent(gav, _ignored -> new ArrayList<>())
                         .add(entity);
             } else {
                 storage.importArtifactBranch(entity);

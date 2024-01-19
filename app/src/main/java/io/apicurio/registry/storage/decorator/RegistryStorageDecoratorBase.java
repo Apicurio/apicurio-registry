@@ -2,6 +2,7 @@ package io.apicurio.registry.storage.decorator;
 
 import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.model.VersionId;
 import io.apicurio.registry.storage.dto.*;
 import io.apicurio.registry.storage.error.*;
 import io.apicurio.registry.storage.impexp.EntityInputStream;
@@ -339,7 +340,7 @@ public class RegistryStorageDecoratorBase extends RegistryStorageDecoratorReadOn
 
 
     @Override
-    public void importArtifactBranch(ArtifactVersionBranchEntity entity) {
+    public void importArtifactBranch(ArtifactBranchEntity entity) {
         delegate.importArtifactBranch(entity);
     }
 
@@ -392,6 +393,12 @@ public class RegistryStorageDecoratorBase extends RegistryStorageDecoratorReadOn
     @Override
     public void createOrUpdateArtifactBranch(GAV gav, BranchId branchId) {
         delegate.createOrUpdateArtifactBranch(gav, branchId);
+    }
+
+
+    @Override
+    public void createOrReplaceArtifactBranch(GA ga, BranchId branchId, List<VersionId> versions) {
+        delegate.createOrReplaceArtifactBranch(ga, branchId, versions);
     }
 
 

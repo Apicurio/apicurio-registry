@@ -15,12 +15,16 @@ import static lombok.AccessLevel.PRIVATE;
 @AllArgsConstructor(access = PRIVATE)
 @ToString
 @RegisterForReflection
-public class ArtifactVersionBranchEntity extends Entity {
+public class ArtifactBranchEntity extends Entity {
 
     public String groupId;
+
     public String artifactId;
+
     public String version;
-    public String branch;
+
+    public String branchId;
+
     public int branchOrder;
 
 
@@ -30,12 +34,12 @@ public class ArtifactVersionBranchEntity extends Entity {
 
 
     public BranchId toBranchId() {
-        return new BranchId(branch);
+        return new BranchId(branchId);
     }
 
 
     @Override
     public EntityType getEntityType() {
-        return EntityType.ArtifactVersionBranch;
+        return EntityType.ArtifactBranch;
     }
 }

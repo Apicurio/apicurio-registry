@@ -7,6 +7,7 @@ import io.apicurio.registry.exception.UnreachableCodeException;
 import io.apicurio.registry.model.BranchId;
 import io.apicurio.registry.model.GA;
 import io.apicurio.registry.model.GAV;
+import io.apicurio.registry.model.VersionId;
 import io.apicurio.registry.storage.dto.ArtifactOwnerDto;
 import io.apicurio.registry.storage.dto.GroupMetaDataDto;
 import io.apicurio.registry.storage.error.ArtifactAlreadyExistsException;
@@ -32,6 +33,8 @@ import org.slf4j.Logger;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Supplier;
+
+import static java.util.stream.Collectors.toList;
 
 @ApplicationScoped
 @Logged
@@ -139,7 +142,7 @@ public class KafkaSqlSink {
             case Comment:
                 return processComment((CommentKey) key, (CommentValue) value);
             case ArtifactBranch:
-                return processBranch((ArtifactBranchKey) key, (ArtifactBranchValue) value);
+                return processArtifactBranch((ArtifactBranchKey) key, (ArtifactBranchValue) value);
             case Bootstrap:
                 throw new UnreachableCodeException();
         }
@@ -572,19 +575,23 @@ public class KafkaSqlSink {
     }
 
 
-    private Object processBranch(ArtifactBranchKey key, ArtifactBranchValue value) {
+    private Object processArtifactBranch(ArtifactBranchKey key, ArtifactBranchValue value) {
         switch (value.getAction()) {
             case CREATE_OR_UPDATE:
                 sqlStore.createOrUpdateArtifactBranch(new GAV(key.getGroupId(), key.getArtifactId(), value.getVersion()), new BranchId(key.getBranchId()));
+                return null;
+            case CREATE_OR_REPLACE:
+                sqlStore.createOrReplaceArtifactBranch(new GA(key.getGroupId(), key.getArtifactId()), new BranchId(key.getBranchId()),
+                        value.getVersions().stream().map(VersionId::new).collect(toList()));
                 return null;
             case DELETE:
                 sqlStore.deleteArtifactBranch(new GA(key.getGroupId(), key.getArtifactId()), new BranchId(key.getBranchId()));
                 return null;
             case IMPORT:
-                sqlStore.importArtifactBranch(ArtifactVersionBranchEntity.builder()
+                sqlStore.importArtifactBranch(ArtifactBranchEntity.builder()
                         .groupId(key.getGroupId())
                         .artifactId(key.getArtifactId())
-                        .branch(key.getBranchId())
+                        .branchId(key.getBranchId())
                         .version(value.getVersion())
                         .branchOrder(value.getBranchOrder())
                         .build());

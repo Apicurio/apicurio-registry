@@ -5,8 +5,7 @@ import lombok.Getter;
 
 @Getter
 @EqualsAndHashCode(callSuper = true)
-public class GAV extends GA {
-
+public final class GAV extends GA {
 
     private final VersionId versionId;
 

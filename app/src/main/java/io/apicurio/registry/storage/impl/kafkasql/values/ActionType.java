@@ -21,7 +21,8 @@ public enum ActionType {
      * Deletes ALL user data. Does not delete global data, such as log configuration.
      */
     DELETE_ALL_USER_DATA(7),
-    CREATE_OR_UPDATE(8);
+    CREATE_OR_UPDATE(8),
+    CREATE_OR_REPLACE(9);
 
     private final byte ord;
 

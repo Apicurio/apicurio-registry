@@ -45,10 +45,10 @@ CREATE INDEX IDX_versions_5 ON versions USING HASH (createdBy);
 CREATE INDEX IDX_versions_6 ON versions(createdOn);
 CREATE INDEX IDX_versions_7 ON versions USING HASH (contentId);
 
-CREATE TABLE artifact_version_branches (groupId VARCHAR(512) NOT NULL, artifactId VARCHAR(512) NOT NULL, branch VARCHAR(256) NOT NULL, branchOrder INT NOT NULL, version VARCHAR(256) NOT NULL);
-ALTER TABLE artifact_version_branches ADD PRIMARY KEY (groupId, artifactId, branch, branchOrder);
-ALTER TABLE artifact_version_branches ADD CONSTRAINT FK_artifact_version_branches_1 FOREIGN KEY (groupId, artifactId, version) REFERENCES versions(groupId, artifactId, version);
-CREATE INDEX IDX_artifact_version_branches_1 ON artifact_version_branches(groupId, artifactId, branch, branchOrder);
+CREATE TABLE artifact_branches (groupId VARCHAR(512) NOT NULL, artifactId VARCHAR(512) NOT NULL, branchId VARCHAR(256) NOT NULL, branchOrder INT NOT NULL, version VARCHAR(256) NOT NULL);
+ALTER TABLE artifact_branches ADD PRIMARY KEY (groupId, artifactId, branchId, branchOrder);
+ALTER TABLE artifact_branches ADD CONSTRAINT FK_artifact_branches_1 FOREIGN KEY (groupId, artifactId, version) REFERENCES versions(groupId, artifactId, version);
+CREATE INDEX IDX_artifact_branches_1 ON artifact_branches(groupId, artifactId, branchId, branchOrder);
 
 CREATE TABLE properties (globalId BIGINT NOT NULL, pkey VARCHAR(256) NOT NULL, pvalue VARCHAR(1024));
 ALTER TABLE properties ADD CONSTRAINT FK_props_1 FOREIGN KEY (globalId) REFERENCES versions(globalId);

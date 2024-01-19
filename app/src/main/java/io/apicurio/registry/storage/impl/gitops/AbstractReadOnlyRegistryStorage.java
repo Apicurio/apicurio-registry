@@ -3,6 +3,7 @@ package io.apicurio.registry.storage.impl.gitops;
 import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.exception.UnreachableCodeException;
+import io.apicurio.registry.model.VersionId;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.*;
 import io.apicurio.registry.storage.error.RegistryStorageException;
@@ -341,7 +342,7 @@ public abstract class AbstractReadOnlyRegistryStorage implements RegistryStorage
 
 
     @Override
-    public void importArtifactBranch(ArtifactVersionBranchEntity entity) {
+    public void importArtifactBranch(ArtifactBranchEntity entity) {
         readOnlyViolation();
     }
 
@@ -389,6 +390,12 @@ public abstract class AbstractReadOnlyRegistryStorage implements RegistryStorage
 
     @Override
     public void createOrUpdateArtifactBranch(GAV gav, BranchId branchId) {
+        readOnlyViolation();
+    }
+
+
+    @Override
+    public void createOrReplaceArtifactBranch(GA ga, BranchId branchId, List<VersionId> versions) {
         readOnlyViolation();
     }
 

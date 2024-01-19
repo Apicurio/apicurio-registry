@@ -48,8 +48,8 @@ public class EntityReader {
                         return readGroup(entry);
                     case Comment:
                         return readComment(entry);
-                    case ArtifactVersionBranch:
-                        return readArtifactVersionBranch(entry);
+                    case ArtifactBranch:
+                        return readArtifactBranch(entry);
                     case Manifest:
                         return readManifest(entry);
                 }
@@ -96,8 +96,8 @@ public class EntityReader {
         return this.readEntry(entry, CommentEntity.class);
     }
 
-    private ArtifactVersionBranchEntity readArtifactVersionBranch(ZipEntry entry) throws IOException {
-        return this.readEntry(entry, ArtifactVersionBranchEntity.class);
+    private ArtifactBranchEntity readArtifactBranch(ZipEntry entry) throws IOException {
+        return this.readEntry(entry, ArtifactBranchEntity.class);
     }
 
     private GlobalRuleEntity readGlobalRule(ZipEntry entry) throws IOException {

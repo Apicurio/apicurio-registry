@@ -1,26 +1,26 @@
 package io.apicurio.registry.storage.impl.sql.mappers;
 
-import io.apicurio.registry.storage.dto.BranchDto;
+import io.apicurio.registry.storage.dto.ArtifactBranchDto;
 import io.apicurio.registry.storage.impl.sql.jdb.RowMapper;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-public class ArtifactVersionBranchDtoMapper implements RowMapper<BranchDto> {
+public class ArtifactBranchDtoMapper implements RowMapper<ArtifactBranchDto> {
 
-    public static final ArtifactVersionBranchDtoMapper instance = new ArtifactVersionBranchDtoMapper();
+    public static final ArtifactBranchDtoMapper instance = new ArtifactBranchDtoMapper();
 
 
-    private ArtifactVersionBranchDtoMapper() {
+    private ArtifactBranchDtoMapper() {
     }
 
 
     @Override
-    public BranchDto map(ResultSet rs) throws SQLException {
-        return BranchDto.builder()
+    public ArtifactBranchDto map(ResultSet rs) throws SQLException {
+        return ArtifactBranchDto.builder()
                 .groupId(rs.getString("groupId"))
                 .artifactId(rs.getString("artifactId"))
-                .branch(rs.getString("branch"))
+                .branchId(rs.getString("branchId"))
                 .branchOrder(rs.getInt("branchOrder"))
                 .version(rs.getString("version"))
                 .build();

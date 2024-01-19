@@ -24,7 +24,7 @@ public class VersionId {
     public VersionId(String rawVersionId) {
         if (!isValid(rawVersionId)) {
             throw new ValidationException("Version ID '" + rawVersionId + "' is invalid. " +
-                    "It must consist of alphanumeric characters or '._-', and have length 1..256 (inclusive).");
+                    "It must consist of alphanumeric characters or '._-+', and have length 1..256 (inclusive).");
         }
         this.rawVersionId = rawVersionId;
     }

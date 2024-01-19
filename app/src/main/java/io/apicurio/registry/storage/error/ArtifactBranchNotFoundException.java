@@ -5,7 +5,7 @@ import io.apicurio.registry.model.GA;
 import lombok.Getter;
 
 
-public class BranchNotFoundException extends NotFoundException {
+public class ArtifactBranchNotFoundException extends NotFoundException {
 
     private static final long serialVersionUID = -5382272137668348037L;
 
@@ -16,7 +16,7 @@ public class BranchNotFoundException extends NotFoundException {
     private final BranchId branchId;
 
 
-    public BranchNotFoundException(GA ga, BranchId branchId) {
+    public ArtifactBranchNotFoundException(GA ga, BranchId branchId) {
         super(message(ga, branchId));
         this.ga = ga;
         this.branchId = branchId;

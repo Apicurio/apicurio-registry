@@ -54,7 +54,6 @@ import java.nio.charset.StandardCharsets;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.util.*;
-import java.util.Map.Entry;
 import java.util.function.Supplier;
 
 import static io.apicurio.common.apps.logging.audit.AuditingConstants.*;
@@ -63,7 +62,6 @@ import static java.util.stream.Collectors.toList;
 
 /**
  * Implements the {@link GroupsResource} JAX-RS interface.
- *
  */
 @ApplicationScoped
 @Interceptors({ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class})
@@ -118,29 +116,27 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         return builder.build();
     }
 
-    /**
-     * @see io.apicurio.registry.rest.v3.GroupsResource#updateArtifact(String, String, String, String, String, String, String, InputStream)
-     */
+
     @Override
-    @Audited(extractParameters = {"0", KEY_GROUP_ID, "1", KEY_ARTIFACT_ID, "2", KEY_VERSION, "3", KEY_NAME, "4", KEY_NAME_ENCODED, "5", KEY_DESCRIPTION, "6", KEY_DESCRIPTION_ENCODED})
+    @Audited(extractParameters = {"0", KEY_GROUP_ID, "1", KEY_ARTIFACT_ID, "2", KEY_VERSION, "3", KEY_NAME,
+            "4", KEY_NAME_ENCODED, "5", KEY_DESCRIPTION, "6", KEY_DESCRIPTION_ENCODED, "7", "branch"}) // TODO
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
-    public ArtifactMetaData updateArtifact(String groupId, String artifactId, String xRegistryVersion,
-                                           String xRegistryName, String xRegistryNameEncoded, String xRegistryDescription,
-                                           String xRegistryDescriptionEncoded, InputStream data) {
-        return this.updateArtifactWithRefs(groupId, artifactId, xRegistryVersion, xRegistryName, xRegistryNameEncoded, xRegistryDescription, xRegistryDescriptionEncoded, data, Collections.emptyList());
+    public ArtifactMetaData updateArtifact(String groupId, String artifactId, String xRegistryVersion, String xRegistryName,
+                                           String xRegistryNameEncoded, String xRegistryDescription, String xRegistryDescriptionEncoded, List<String> xRegistryArtifactBranches,
+                                           InputStream data) {
+        return this.updateArtifactWithRefs(groupId, artifactId, xRegistryVersion, xRegistryName, xRegistryNameEncoded, xRegistryDescription, xRegistryDescriptionEncoded, xRegistryArtifactBranches, data, Collections.emptyList());
     }
 
-    /**
-     * @see io.apicurio.registry.rest.v3.GroupsResource#updateArtifact(java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.rest.v3.beans.ArtifactContent)
-     */
+
     @Override
-    @Audited(extractParameters = {"0", KEY_GROUP_ID, "1", KEY_ARTIFACT_ID, "2", KEY_VERSION, "3", KEY_NAME, "4", KEY_NAME_ENCODED, "5", KEY_DESCRIPTION, "6", KEY_DESCRIPTION_ENCODED})
+    @Audited(extractParameters = {"0", KEY_GROUP_ID, "1", KEY_ARTIFACT_ID, "2", KEY_VERSION, "3", KEY_NAME,
+            "4", KEY_NAME_ENCODED, "5", KEY_DESCRIPTION, "6", KEY_DESCRIPTION_ENCODED, "7", "branch"}) // TODO
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
-    public ArtifactMetaData updateArtifact(String groupId, String artifactId, String xRegistryVersion,
-                                           String xRegistryName, String xRegistryNameEncoded, String xRegistryDescription,
-                                           String xRegistryDescriptionEncoded, ArtifactContent data) {
+    public ArtifactMetaData updateArtifact(String groupId, String artifactId, String xRegistryVersion, String xRegistryName,
+                                           String xRegistryNameEncoded, String xRegistryDescription, String xRegistryDescriptionEncoded, List<String> xRegistryArtifactBranches,
+                                           ArtifactContent data) {
         requireParameter("content", data.getContent());
-        return this.updateArtifactWithRefs(groupId, artifactId, xRegistryVersion, xRegistryName, xRegistryNameEncoded, xRegistryDescription, xRegistryDescriptionEncoded, IoUtil.toStream(data.getContent()), data.getReferences());
+        return this.updateArtifactWithRefs(groupId, artifactId, xRegistryVersion, xRegistryName, xRegistryNameEncoded, xRegistryDescription, xRegistryDescriptionEncoded, xRegistryArtifactBranches, IoUtil.toStream(data.getContent()), data.getReferences());
     }
 
     /**
@@ -148,10 +144,10 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
      */
     @Override
     public List<ArtifactReference> getArtifactVersionReferences(String groupId, String artifactId,
-            String versionExpression, ReferenceType refType) {
+                                                                String versionExpression, ReferenceType refType) {
 
         var gav = VersionExpressionParser.parse(new GA(groupId, artifactId), versionExpression,
-                (ga, branchId) -> storage.getArtifactBranchLeaf(ga, branchId, ArtifactRetrievalBehavior.DEFAULT));
+                (ga, branchId) -> storage.getArtifactBranchTip(ga, branchId, ArtifactRetrievalBehavior.DEFAULT));
 
         if (refType == null || refType == ReferenceType.OUTBOUND) {
             return storage.getArtifactVersion(gav.getRawGroupIdWithNull(), gav.getRawArtifactId(), gav.getRawVersionId())
@@ -167,7 +163,10 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         }
     }
 
-    private ArtifactMetaData updateArtifactWithRefs(String groupId, String artifactId, String xRegistryVersion, String xRegistryName, String xRegistryNameEncoded, String xRegistryDescription, String xRegistryDescriptionEncoded, InputStream data, List<ArtifactReference> references) {
+    private ArtifactMetaData updateArtifactWithRefs(String groupId, String artifactId, String xRegistryVersion, String xRegistryName,
+                                                    String xRegistryNameEncoded, String xRegistryDescription, String xRegistryDescriptionEncoded,
+                                                    List<String> artifactBranches,
+                                                    InputStream data, List<ArtifactReference> references) {
 
         requireParameter("groupId", groupId);
         requireParameter("artifactId", artifactId);
@@ -182,7 +181,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         if (content.bytes().length == 0) {
             throw new BadRequestException(EMPTY_CONTENT_ERROR_MESSAGE);
         }
-        return updateArtifactInternal(groupId, artifactId, xRegistryVersion, artifactName, artifactDescription, content, getContentType(), references);
+        return updateArtifactInternal(groupId, artifactId, xRegistryVersion, artifactName, artifactDescription, artifactBranches, content, getContentType(), references);
     }
 
     /**
@@ -482,8 +481,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         }
 
         String artifactType = lookupArtifactType(groupId, artifactId);
-        rulesService.applyRules(new GroupId(groupId).getRawGroupIdWithNull(), artifactId, artifactType, content, 
-            RuleApplicationType.UPDATE, Collections.emptyList(), Collections.emptyMap()); //TODO:references not supported for testing update
+        rulesService.applyRules(new GroupId(groupId).getRawGroupIdWithNull(), artifactId, artifactType, content,
+                RuleApplicationType.UPDATE, Collections.emptyList(), Collections.emptyMap()); //TODO:references not supported for testing update
     }
 
     /**
@@ -497,7 +496,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         requireParameter("versionExpression", versionExpression);
 
         var gav = VersionExpressionParser.parse(new GA(groupId, artifactId), versionExpression,
-                (ga, branchId) -> storage.getArtifactBranchLeaf(ga, branchId, ArtifactRetrievalBehavior.DEFAULT));
+                (ga, branchId) -> storage.getArtifactBranchTip(ga, branchId, ArtifactRetrievalBehavior.DEFAULT));
 
         if (references == null) {
             references = HandleReferencesType.PRESERVE;
@@ -534,7 +533,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         requireParameter("version", version);
 
         var gav = VersionExpressionParser.parse(new GA(groupId, artifactId), version,
-                (ga, branchId) -> storage.getArtifactBranchLeaf(ga, branchId, ArtifactRetrievalBehavior.DEFAULT));
+                (ga, branchId) -> storage.getArtifactBranchTip(ga, branchId, ArtifactRetrievalBehavior.DEFAULT));
 
         storage.deleteArtifactVersion(gav.getRawGroupIdWithNull(), gav.getRawArtifactId(), gav.getRawVersionId());
     }
@@ -550,7 +549,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         requireParameter("version", version);
 
         var gav = VersionExpressionParser.parse(new GA(groupId, artifactId), version,
-                (ga, branchId) -> storage.getArtifactBranchLeaf(ga, branchId, ArtifactRetrievalBehavior.DEFAULT));
+                (ga, branchId) -> storage.getArtifactBranchTip(ga, branchId, ArtifactRetrievalBehavior.DEFAULT));
 
         ArtifactVersionMetaDataDto dto = storage.getArtifactVersionMetaData(gav.getRawGroupIdWithNull(), gav.getRawArtifactId(), gav.getRawVersionId());
         return V3ApiUtil.dtoToVersionMetaData(gav.getRawGroupIdWithDefaultString(), gav.getRawArtifactId(), dto.getType(), dto);
@@ -568,7 +567,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         requireParameter("versionExpression", versionExpression);
 
         var gav = VersionExpressionParser.parse(new GA(groupId, artifactId), versionExpression,
-                (ga, branchId) -> storage.getArtifactBranchLeaf(ga, branchId, ArtifactRetrievalBehavior.DEFAULT));
+                (ga, branchId) -> storage.getArtifactBranchTip(ga, branchId, ArtifactRetrievalBehavior.DEFAULT));
 
         if (data.getProperties() != null) {
             data.getProperties().forEach((k, v) -> requireParameter("property value", v));
@@ -593,7 +592,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         requireParameter("version", version);
 
         var gav = VersionExpressionParser.parse(new GA(groupId, artifactId), version,
-                (ga, branchId) -> storage.getArtifactBranchLeaf(ga, branchId, ArtifactRetrievalBehavior.DEFAULT));
+                (ga, branchId) -> storage.getArtifactBranchTip(ga, branchId, ArtifactRetrievalBehavior.DEFAULT));
 
         storage.deleteArtifactVersionMetaData(gav.getRawGroupIdWithNull(), gav.getRawArtifactId(), gav.getRawVersionId());
     }
@@ -610,7 +609,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         requireParameter("versionExpression", versionExpression);
 
         var gav = VersionExpressionParser.parse(new GA(groupId, artifactId), versionExpression,
-                (ga, branchId) -> storage.getArtifactBranchLeaf(ga, branchId, ArtifactRetrievalBehavior.DEFAULT));
+                (ga, branchId) -> storage.getArtifactBranchTip(ga, branchId, ArtifactRetrievalBehavior.DEFAULT));
 
         CommentDto newComment = storage.createArtifactVersionComment(gav.getRawGroupIdWithNull(), gav.getRawArtifactId(),
                 gav.getRawVersionId(), data.getValue());
@@ -621,7 +620,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
      * @see io.apicurio.registry.rest.v3.GroupsResource#deleteArtifactVersionComment(java.lang.String, java.lang.String, java.lang.String, java.lang.String)
      */
     @Override
-    @Audited(extractParameters = {"0", KEY_GROUP_ID, "1", KEY_ARTIFACT_ID, "2", KEY_VERSION, "3", "comment_id"})
+    @Audited(extractParameters = {"0", KEY_GROUP_ID, "1", KEY_ARTIFACT_ID, "2", KEY_VERSION, "3", "comment_id"}) // TODO
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
     public void deleteArtifactVersionComment(String groupId, String artifactId, String versionExpression, String commentId) {
         requireParameter("groupId", groupId);
@@ -630,7 +629,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         requireParameter("commentId", commentId);
 
         var gav = VersionExpressionParser.parse(new GA(groupId, artifactId), versionExpression,
-                (ga, branchId) -> storage.getArtifactBranchLeaf(ga, branchId, ArtifactRetrievalBehavior.DEFAULT));
+                (ga, branchId) -> storage.getArtifactBranchTip(ga, branchId, ArtifactRetrievalBehavior.DEFAULT));
 
         storage.deleteArtifactVersionComment(gav.getRawGroupIdWithNull(), gav.getRawArtifactId(), gav.getRawVersionId(), commentId);
     }
@@ -646,7 +645,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         requireParameter("version", version);
 
         var gav = VersionExpressionParser.parse(new GA(groupId, artifactId), version,
-                (ga, branchId) -> storage.getArtifactBranchLeaf(ga, branchId, ArtifactRetrievalBehavior.DEFAULT));
+                (ga, branchId) -> storage.getArtifactBranchTip(ga, branchId, ArtifactRetrievalBehavior.DEFAULT));
 
         return storage.getArtifactVersionComments(gav.getRawGroupIdWithNull(), gav.getRawArtifactId(), gav.getRawVersionId())
                 .stream()
@@ -658,7 +657,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
      * @see io.apicurio.registry.rest.v3.GroupsResource#updateArtifactVersionComment(java.lang.String, java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.rest.v3.beans.NewComment)
      */
     @Override
-    @Audited(extractParameters = {"0", KEY_GROUP_ID, "1", KEY_ARTIFACT_ID, "2", KEY_VERSION, "3", "comment_id"})
+    @Audited(extractParameters = {"0", KEY_GROUP_ID, "1", KEY_ARTIFACT_ID, "2", KEY_VERSION, "3", "comment_id"}) // TODO
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
     public void updateArtifactVersionComment(String groupId, String artifactId, String versionExpression, String commentId, NewComment data) {
         requireParameter("groupId", groupId);
@@ -668,7 +667,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         requireParameter("value", data.getValue());
 
         var gav = VersionExpressionParser.parse(new GA(groupId, artifactId), versionExpression,
-                (ga, branchId) -> storage.getArtifactBranchLeaf(ga, branchId, ArtifactRetrievalBehavior.DEFAULT));
+                (ga, branchId) -> storage.getArtifactBranchTip(ga, branchId, ArtifactRetrievalBehavior.DEFAULT));
 
         storage.updateArtifactVersionComment(gav.getRawGroupIdWithNull(), gav.getRawArtifactId(),
                 gav.getRawVersionId(), commentId, data.getValue());
@@ -686,7 +685,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         requireParameter("versionExpression", versionExpression);
 
         var gav = VersionExpressionParser.parse(new GA(groupId, artifactId), versionExpression,
-                (ga, branchId) -> storage.getArtifactBranchLeaf(ga, branchId, ArtifactRetrievalBehavior.DEFAULT));
+                (ga, branchId) -> storage.getArtifactBranchTip(ga, branchId, ArtifactRetrievalBehavior.DEFAULT));
 
         storage.updateArtifactState(gav.getRawGroupIdWithNull(), gav.getRawArtifactId(), gav.getRawVersionId(), data.getState());
     }
@@ -730,31 +729,32 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         storage.deleteArtifacts(new GroupId(groupId).getRawGroupIdWithNull());
     }
 
-    /**
-     * @see io.apicurio.registry.rest.v3.GroupsResource#createArtifact(String, String, String, String, IfExists, Boolean, String, String, String, String, String, String, InputStream)
-     */
+
     @Override
-    @Audited(extractParameters = {"0", KEY_GROUP_ID, "1", KEY_ARTIFACT_TYPE, "2", KEY_ARTIFACT_ID, "3", KEY_VERSION, "4", KEY_IF_EXISTS, "5", KEY_CANONICAL, "6", KEY_DESCRIPTION, "7", KEY_DESCRIPTION_ENCODED, "8", KEY_NAME, "9", KEY_NAME_ENCODED, "10", KEY_FROM_URL, "11", KEY_SHA})
+    @Audited(extractParameters = {"0", KEY_GROUP_ID, "1", KEY_ARTIFACT_TYPE, "2", KEY_ARTIFACT_ID, "3", KEY_VERSION,
+            "4", KEY_IF_EXISTS, "5", KEY_CANONICAL, "6", KEY_DESCRIPTION, "7", KEY_DESCRIPTION_ENCODED,
+            "8", KEY_NAME, "9", KEY_NAME_ENCODED, "10", KEY_FROM_URL, "11", KEY_SHA,
+            "12", "branch"}) // TODO
     @Authorized(style = AuthorizedStyle.GroupOnly, level = AuthorizedLevel.Write)
-    public ArtifactMetaData createArtifact(String groupId, String xRegistryArtifactType, String xRegistryArtifactId,
-                                           String xRegistryVersion, IfExists ifExists, Boolean canonical,
-                                           String xRegistryDescription, String xRegistryDescriptionEncoded,
-                                           String xRegistryName, String xRegistryNameEncoded,
-                                           String xRegistryContentHash, String xRegistryHashAlgorithm, InputStream data) {
-        return this.createArtifactWithRefs(groupId, xRegistryArtifactType, xRegistryArtifactId, xRegistryVersion, ifExists, canonical, xRegistryDescription, xRegistryDescriptionEncoded, xRegistryName, xRegistryNameEncoded, xRegistryContentHash, xRegistryHashAlgorithm, data, Collections.emptyList());
+    public ArtifactMetaData createArtifact(String groupId, String xRegistryArtifactType, String xRegistryArtifactId, String xRegistryVersion,
+                                           IfExists ifExists, Boolean canonical, String xRegistryDescription, String xRegistryDescriptionEncoded,
+                                           String xRegistryName, String xRegistryNameEncoded, String xRegistryContentHash, String xRegistryHashAlgorithm,
+                                           List<String> xRegistryArtifactBranches, InputStream data) {
+        return this.createArtifactWithRefs(groupId, xRegistryArtifactType, xRegistryArtifactId, xRegistryVersion, ifExists, canonical, xRegistryDescription, xRegistryDescriptionEncoded, xRegistryName,
+                xRegistryNameEncoded, xRegistryContentHash, xRegistryHashAlgorithm, xRegistryArtifactBranches, data, Collections.emptyList());
     }
 
-    /**
-     * @see io.apicurio.registry.rest.v3.GroupsResource#createArtifact(String, String, String, String, IfExists, Boolean, String, String, String, String, String, String, ArtifactContent)
-     */
+
     @Override
-    @Audited(extractParameters = {"0", KEY_GROUP_ID, "1", KEY_ARTIFACT_TYPE, "2", KEY_ARTIFACT_ID, "3", KEY_VERSION, "4", KEY_IF_EXISTS, "5", KEY_CANONICAL, "6", KEY_DESCRIPTION, "7", KEY_DESCRIPTION_ENCODED, "8", KEY_NAME, "9", KEY_NAME_ENCODED, "10", "from_url" /*KEY_FROM_URL*/, "11", "artifact_sha" /*KEY_SHA*/})
+    @Audited(extractParameters = {"0", KEY_GROUP_ID, "1", KEY_ARTIFACT_TYPE, "2", KEY_ARTIFACT_ID, "3", KEY_VERSION,
+            "4", KEY_IF_EXISTS, "5", KEY_CANONICAL, "6", KEY_DESCRIPTION, "7", KEY_DESCRIPTION_ENCODED,
+            "8", KEY_NAME, "9", KEY_NAME_ENCODED, "10", KEY_FROM_URL, "11", KEY_SHA,
+            "12", "branch"}) // TODO
     @Authorized(style = AuthorizedStyle.GroupOnly, level = AuthorizedLevel.Write)
-    public ArtifactMetaData createArtifact(String groupId, String xRegistryArtifactType, String xRegistryArtifactId,
-                                           String xRegistryVersion, IfExists ifExists, Boolean canonical,
-                                           String xRegistryDescription, String xRegistryDescriptionEncoded,
-                                           String xRegistryName, String xRegistryNameEncoded,
-                                           String xRegistryContentHash, String xRegistryHashAlgorithm, ArtifactContent data) {
+    public ArtifactMetaData createArtifact(String groupId, String xRegistryArtifactType, String xRegistryArtifactId, String xRegistryVersion,
+                                           IfExists ifExists, Boolean canonical, String xRegistryDescription, String xRegistryDescriptionEncoded,
+                                           String xRegistryName, String xRegistryNameEncoded, String xRegistryContentHash, String xRegistryHashAlgorithm,
+                                           List<String> xRegistryArtifactBranches, ArtifactContent data) {
         requireParameter("content", data.getContent());
 
         Client client = null;
@@ -768,7 +768,9 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                 content = IoUtil.toStream(data.getContent());
             }
 
-            return this.createArtifactWithRefs(groupId, xRegistryArtifactType, xRegistryArtifactId, xRegistryVersion, ifExists, canonical, xRegistryDescription, xRegistryDescriptionEncoded, xRegistryName, xRegistryNameEncoded, xRegistryContentHash, xRegistryHashAlgorithm, content, data.getReferences());
+            return this.createArtifactWithRefs(groupId, xRegistryArtifactType, xRegistryArtifactId, xRegistryVersion, ifExists,
+                    canonical, xRegistryDescription, xRegistryDescriptionEncoded, xRegistryName,
+                    xRegistryNameEncoded, xRegistryContentHash, xRegistryHashAlgorithm, xRegistryArtifactBranches, content, data.getReferences());
         } catch (KeyManagementException kme) {
             throw new RuntimeException(kme);
         } catch (NoSuchAlgorithmException nsae) {
@@ -853,6 +855,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                                                     String xRegistryDescription, String xRegistryDescriptionEncoded,
                                                     String xRegistryName, String xRegistryNameEncoded,
                                                     String xRegistryContentHash, String xRegistryHashAlgorithm,
+                                                    List<String> artifactBranches,
                                                     InputStream data, List<ArtifactReference> references) {
 
         requireParameter("groupId", groupId);
@@ -925,6 +928,11 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
             EditableArtifactMetaDataDto metaData = getEditableMetaData(artifactName, artifactDescription);
 
             ArtifactMetaDataDto amd = storage.createArtifactWithMetadata(new GroupId(groupId).getRawGroupIdWithNull(), artifactId, xRegistryVersion, artifactType, content, metaData, referencesAsDtos);
+
+            for (String rawBranchId : normalizeMultiValuedHeader(artifactBranches)) {
+                storage.createOrUpdateArtifactBranch(new GAV(groupId, artifactId, amd.getVersion()), new BranchId(rawBranchId));
+            }
+
             return V3ApiUtil.dtoToMetaData(new GroupId(groupId).getRawGroupIdWithNull(), finalArtifactId, artifactType, amd);
         } catch (ArtifactAlreadyExistsException ex) {
             return handleIfExists(groupId, xRegistryArtifactId, xRegistryVersion, ifExists, artifactName, artifactDescription, content, ct, fcanonical, references);
@@ -949,91 +957,149 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         return V3ApiUtil.dtoToSearchResults(resultsDto);
     }
 
-    /**
-     * @see io.apicurio.registry.rest.v3.GroupsResource#createArtifactVersion(String, String, String, String, String, String, String, InputStream)
-     */
+
     @Override
-    @Audited(extractParameters = {"0", KEY_GROUP_ID, "1", KEY_ARTIFACT_ID, "2", KEY_VERSION, "3", KEY_NAME, "4", KEY_DESCRIPTION, "5", KEY_DESCRIPTION_ENCODED, "6", KEY_NAME_ENCODED})
+    @Audited(extractParameters = {"0", KEY_GROUP_ID, "1", KEY_ARTIFACT_ID, "2", KEY_VERSION, "3", KEY_NAME,
+            "4", KEY_DESCRIPTION, "5", KEY_DESCRIPTION_ENCODED, "6", KEY_NAME_ENCODED, "7", "branch"}) // TODO
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
-    public VersionMetaData createArtifactVersion(String groupId, String artifactId,
-                                                 String xRegistryVersion, String xRegistryName,
-                                                 String xRegistryDescription, String xRegistryDescriptionEncoded,
-                                                 String xRegistryNameEncoded, InputStream data) {
-        return this.createArtifactVersionWithRefs(groupId, artifactId, xRegistryVersion, xRegistryName, xRegistryDescription, xRegistryDescriptionEncoded, xRegistryNameEncoded, data, Collections.emptyList());
+    public VersionMetaData createArtifactVersion(String groupId, String artifactId, String xRegistryVersion, String xRegistryName,
+                                                 String xRegistryDescription, String xRegistryDescriptionEncoded, String xRegistryNameEncoded, List<String> xRegistryArtifactBranches,
+                                                 InputStream data) {
+        return this.createArtifactVersionWithRefs(groupId, artifactId, xRegistryVersion, xRegistryName, xRegistryDescription, xRegistryDescriptionEncoded, xRegistryNameEncoded, xRegistryArtifactBranches, data, Collections.emptyList());
     }
 
-    /**
-     * @see io.apicurio.registry.rest.v3.GroupsResource#createArtifactVersion(java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.rest.v3.beans.ArtifactContent)
-     */
+
     @Override
-    @Audited(extractParameters = {"0", KEY_GROUP_ID, "1", KEY_ARTIFACT_ID, "2", KEY_VERSION, "3", KEY_NAME, "4", KEY_DESCRIPTION, "5", KEY_DESCRIPTION_ENCODED, "6", KEY_NAME_ENCODED})
+    @Audited(extractParameters = {"0", KEY_GROUP_ID, "1", KEY_ARTIFACT_ID, "2", KEY_VERSION, "3", KEY_NAME,
+            "4", KEY_DESCRIPTION, "5", KEY_DESCRIPTION_ENCODED, "6", KEY_NAME_ENCODED, "7", "branch"}) // TODO
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
-    public VersionMetaData createArtifactVersion(String groupId, String artifactId, String xRegistryVersion,
-                                                 String xRegistryName, String xRegistryDescription, String xRegistryDescriptionEncoded,
-                                                 String xRegistryNameEncoded, ArtifactContent data) {
+    public VersionMetaData createArtifactVersion(String groupId, String artifactId, String xRegistryVersion, String xRegistryName,
+                                                 String xRegistryDescription, String xRegistryDescriptionEncoded, String xRegistryNameEncoded, List<String> xRegistryArtifactBranches,
+                                                 ArtifactContent data) {
         requireParameter("content", data.getContent());
-        return this.createArtifactVersionWithRefs(groupId, artifactId, xRegistryVersion, xRegistryName, xRegistryDescription, xRegistryDescriptionEncoded, xRegistryNameEncoded, IoUtil.toStream(data.getContent()), data.getReferences());
+        return this.createArtifactVersionWithRefs(groupId, artifactId, xRegistryVersion, xRegistryName, xRegistryDescription, xRegistryDescriptionEncoded, xRegistryNameEncoded, xRegistryArtifactBranches, IoUtil.toStream(data.getContent()), data.getReferences());
     }
 
 
     @Override
     @Audited(extractParameters = {"0", KEY_GROUP_ID, "1", KEY_ARTIFACT_ID})
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
-    public Branches listArtifactBranches(String groupId, String artifactId) {
+    public List<ArtifactBranch> listArtifactBranches(String groupId, String artifactId) {
         requireParameter("groupId", groupId);
         requireParameter("artifactId", artifactId);
-        var res = new Branches();
-        for (Entry<BranchId, List<GAV>> branch : storage.getArtifactBranches(new GA(groupId, artifactId)).entrySet()) {
-            res.setAdditionalProperty(branch.getKey().getRawBranchId(), branch.getValue()
-                    .stream()
-                    .map(gav -> new Gav(gav.getRawGroupIdWithDefaultString(), gav.getRawArtifactId(), gav.getRawVersionId()))
-                    .collect(toList())
-            );
-        }
-        return res;
+
+        return storage.getArtifactBranches(new GA(groupId, artifactId))
+                .entrySet()
+                .stream()
+                .map(e -> {
+                    return ArtifactBranch.builder()
+                            .groupId(groupId)
+                            .artifactId(artifactId)
+                            .branchId(e.getKey().getRawBranchId())
+                            .versions(
+                                    e.getValue()
+                                            .stream()
+                                            .map(GAV::getRawVersionId)
+                                            .collect(toList())
+                            )
+                            .build();
+                })
+                .collect(toList());
     }
 
 
     @Override
-    @Audited(extractParameters = {"0", KEY_GROUP_ID, "1", KEY_ARTIFACT_ID, "2", "branch_id"}) // TODO: Requires new version of apicurio-common-app-components.
+    @Audited(extractParameters = {"0", KEY_GROUP_ID, "1", KEY_ARTIFACT_ID, "2", "branch_id"}) // TODO
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
-    public List<Gav> getArtifactBranch(String groupId, String artifactId, String branchId) {
+    public ArtifactBranch getArtifactBranch(String groupId, String artifactId, String rawBranchId) {
         requireParameter("groupId", groupId);
         requireParameter("artifactId", artifactId);
-        requireParameter("branchId", branchId);
-        return storage.getArtifactBranch(new GA(groupId, artifactId), new BranchId(branchId), ArtifactRetrievalBehavior.DEFAULT)
-                .stream()
-                .map(gav -> new Gav(gav.getRawGroupIdWithDefaultString(), gav.getRawArtifactId(), gav.getRawVersionId()))
-                .collect(toList());
+        requireParameter("branchId", rawBranchId);
+
+        return ArtifactBranch.builder()
+                .groupId(groupId)
+                .artifactId(artifactId)
+                .branchId(rawBranchId)
+                .versions(
+                        storage.getArtifactBranch(new GA(groupId, artifactId), new BranchId(rawBranchId), ArtifactRetrievalBehavior.DEFAULT)
+                                .stream()
+                                .map(GAV::getRawVersionId)
+                                .collect(toList())
+                )
+                .build();
+
     }
 
 
     @Override
-    @Audited(extractParameters = {"0", KEY_GROUP_ID, "1", KEY_ARTIFACT_ID, "2", "branch_id", "3", KEY_VERSION}) // TODO: Requires new version of apicurio-common-app-components.
+    @Audited(extractParameters = {"0", KEY_GROUP_ID, "1", KEY_ARTIFACT_ID, "2", "branch_id", "3", KEY_VERSION}) // TODO
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
-    public List<Gav> createOrUpdateArtifactBranch(String groupId, String artifactId, String branchId, @NotNull String data) {
+    public ArtifactBranch createOrUpdateArtifactBranch(String groupId, String artifactId, String rawBranchId, @NotNull String version) {
         requireParameter("groupId", groupId);
         requireParameter("artifactId", artifactId);
-        requireParameter("branchId", branchId);
-        requireParameter("version", data);
-        var gav = new GAV(groupId, artifactId, data);
-        var branch = new BranchId(branchId);
-        storage.createOrUpdateArtifactBranch(gav, branch);
-        return storage.getArtifactBranch(gav, branch, ArtifactRetrievalBehavior.DEFAULT)
-                .stream()
-                .map(gav2 -> new Gav(gav2.getRawGroupIdWithDefaultString(), gav2.getRawArtifactId(), gav2.getRawVersionId()))
-                .collect(toList());
+        requireParameter("branchId", rawBranchId);
+        requireParameter("version", version);
+
+        var gav = new GAV(groupId, artifactId, version);
+        var branchId = new BranchId(rawBranchId);
+
+        storage.createOrUpdateArtifactBranch(gav, branchId);
+
+        return ArtifactBranch.builder()
+                .groupId(gav.getRawGroupIdWithDefaultString())
+                .artifactId(gav.getRawArtifactId())
+                .branchId(branchId.getRawBranchId())
+                .versions(
+                        storage.getArtifactBranch(gav, branchId, ArtifactRetrievalBehavior.DEFAULT)
+                                .stream()
+                                .map(GAV::getRawVersionId)
+                                .collect(toList())
+                )
+                .build();
     }
 
 
     @Override
-    @Audited(extractParameters = {"0", KEY_GROUP_ID, "1", KEY_ARTIFACT_ID, "2", "branch_id"}) // TODO: Requires new version of apicurio-common-app-components.
+    @Audited(extractParameters = {"0", KEY_GROUP_ID, "1", KEY_ARTIFACT_ID, "2", "branch_id", "3", "branch"}) // TODO
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
-    public void deleteArtifactBranch(String groupId, String artifactId, String branchId) {
+    public ArtifactBranch createOrReplaceArtifactBranch(String groupId, String artifactId, String rawBranchId, @NotNull ArtifactBranch branch) {
         requireParameter("groupId", groupId);
         requireParameter("artifactId", artifactId);
-        requireParameter("branchId", branchId);
-        storage.deleteArtifactBranch(new GA(groupId, artifactId), new BranchId(branchId));
+        requireParameter("branchId", rawBranchId);
+        requireParameter("branch", branch);
+
+        var ga = new GA(groupId, artifactId);
+        var branchId = new BranchId(rawBranchId);
+        var versions = branch.getVersions()
+                .stream()
+                .map(VersionId::new)
+                .collect(toList());
+
+        storage.createOrReplaceArtifactBranch(ga, branchId, versions);
+
+        return ArtifactBranch.builder()
+                .groupId(ga.getRawGroupIdWithDefaultString())
+                .artifactId(ga.getRawArtifactId())
+                .branchId(branchId.getRawBranchId())
+                .versions(
+                        storage.getArtifactBranch(ga, branchId, ArtifactRetrievalBehavior.DEFAULT)
+                                .stream()
+                                .map(GAV::getRawVersionId)
+                                .collect(toList())
+                )
+                .build();
+    }
+
+
+    @Override
+    @Audited(extractParameters = {"0", KEY_GROUP_ID, "1", KEY_ARTIFACT_ID, "2", "branch_id"}) // TODO
+    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
+    public void deleteArtifactBranch(String groupId, String artifactId, String rawBranchId) {
+        requireParameter("groupId", groupId);
+        requireParameter("artifactId", artifactId);
+        requireParameter("branchId", rawBranchId);
+
+        storage.deleteArtifactBranch(new GA(groupId, artifactId), new BranchId(rawBranchId));
     }
 
 
@@ -1052,7 +1118,9 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
      * @param data
      * @param references
      */
-    private VersionMetaData createArtifactVersionWithRefs(String groupId, String artifactId, String xRegistryVersion, String xRegistryName, String xRegistryDescription, String xRegistryDescriptionEncoded, String xRegistryNameEncoded, InputStream data, List<ArtifactReference> references) {
+    private VersionMetaData createArtifactVersionWithRefs(String groupId, String artifactId, String xRegistryVersion, String xRegistryName,
+                                                          String xRegistryDescription, String xRegistryDescriptionEncoded, String xRegistryNameEncoded, List<String> artifactBranches,
+                                                          InputStream data, List<ArtifactReference> references) {
         // TODO do something with the user-provided version info
         requireParameter("groupId", groupId);
         requireParameter("artifactId", artifactId);
@@ -1082,6 +1150,11 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         rulesService.applyRules(new GroupId(groupId).getRawGroupIdWithNull(), artifactId, artifactType, content, RuleApplicationType.UPDATE, references, resolvedReferences);
         EditableArtifactMetaDataDto metaData = getEditableMetaData(artifactName, artifactDescription);
         ArtifactMetaDataDto amd = storage.updateArtifactWithMetadata(new GroupId(groupId).getRawGroupIdWithNull(), artifactId, xRegistryVersion, artifactType, content, metaData, referencesAsDtos);
+
+        for (String rawBranchId : normalizeMultiValuedHeader(artifactBranches)) {
+            storage.createOrUpdateArtifactBranch(new GAV(groupId, artifactId, amd.getVersion()), new BranchId(rawBranchId));
+        }
+
         return V3ApiUtil.dtoToVersionMetaData(new GroupId(groupId).getRawGroupIdWithNull(), artifactId, artifactType, amd);
     }
 
@@ -1149,7 +1222,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
         switch (ifExists) {
             case UPDATE:
-                return updateArtifactInternal(groupId, artifactId, version, artifactName, artifactDescription, content, contentType, references);
+                return updateArtifactInternal(groupId, artifactId, version, artifactName, artifactDescription, List.of(), content, contentType, references);
             case RETURN:
                 return artifactMetaData;
             case RETURN_OR_UPDATE:
@@ -1169,12 +1242,14 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         } catch (ArtifactNotFoundException nfe) {
             // This is OK - we'll update the artifact if there is no matching content already there.
         }
-        return updateArtifactInternal(groupId, artifactId, version, artifactName, artifactDescription, content, contentType, references);
+        return updateArtifactInternal(groupId, artifactId, version, artifactName, artifactDescription, List.of(), content, contentType, references);
     }
 
+
     private ArtifactMetaData updateArtifactInternal(String groupId, String artifactId, String version,
-                                                    String name, String description,
-                                                    ContentHandle content, String contentType, List<ArtifactReference> references) {
+                                            String name, String description,
+                                            List<String> artifactBranches,
+                                            ContentHandle content, String contentType, List<ArtifactReference> references) {
 
         if (ContentTypeUtil.isApplicationYaml(contentType)) {
             content = ContentTypeUtil.yamlToJson(content);
@@ -1191,8 +1266,14 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                 RuleApplicationType.UPDATE, references, resolvedReferences);
         EditableArtifactMetaDataDto metaData = getEditableMetaData(name, description);
         ArtifactMetaDataDto dto = storage.updateArtifactWithMetadata(new GroupId(groupId).getRawGroupIdWithNull(), artifactId, version, artifactType, content, metaData, referencesAsDtos);
+
+        for (String rawBranchId : normalizeMultiValuedHeader(artifactBranches)) {
+            storage.createOrUpdateArtifactBranch(new GAV(groupId, artifactId, dto.getVersion()), new BranchId(rawBranchId));
+        }
+
         return V3ApiUtil.dtoToMetaData(new GroupId(groupId).getRawGroupIdWithNull(), artifactId, artifactType, dto);
     }
+
 
     private EditableArtifactMetaDataDto getEditableMetaData(String name, String description) {
         if (name != null || description != null) {
@@ -1209,5 +1290,10 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                 .peek(r -> r.setGroupId(new GroupId(r.getGroupId()).getRawGroupIdWithNull()))
                 .map(V3ApiUtil::referenceToDto)
                 .collect(toList());
+    }
+
+
+    private List<String> normalizeMultiValuedHeader(List<String> value) {
+        return value.stream().flatMap(v -> Arrays.stream(v.split(",")).map(String::strip)).collect(toList());
     }
 }

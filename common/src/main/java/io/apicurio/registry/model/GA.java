@@ -8,7 +8,6 @@ import lombok.Getter;
 @EqualsAndHashCode(callSuper = true)
 public class GA extends GroupId {
 
-
     private final ArtifactId artifactId;
 
 

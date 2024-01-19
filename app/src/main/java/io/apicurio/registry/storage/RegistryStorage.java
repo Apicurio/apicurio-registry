@@ -3,6 +3,7 @@ package io.apicurio.registry.storage;
 import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
 import io.apicurio.common.apps.config.DynamicConfigStorage;
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.model.VersionId;
 import io.apicurio.registry.storage.dto.*;
 import io.apicurio.registry.storage.error.*;
 import io.apicurio.registry.storage.impexp.EntityInputStream;
@@ -870,7 +871,7 @@ public interface RegistryStorage extends DynamicConfigStorage {
     void importArtifactRule(ArtifactRuleEntity entity);
 
 
-    void importArtifactBranch(ArtifactVersionBranchEntity entity);
+    void importArtifactBranch(ArtifactBranchEntity entity);
 
 
     boolean isContentExists(String contentHash) throws RegistryStorageException;
@@ -904,31 +905,40 @@ public interface RegistryStorage extends DynamicConfigStorage {
 
 
     /**
-     * @return map from a branch to a sorted list of GAVs, leaf (latest) version first.
+     * @return map from an artifact branch to a sorted list of GAVs, branch tip (latest) version first.
      */
     Map<BranchId, List<GAV>> getArtifactBranches(GA ga);
 
 
     /**
-     * @return sorted list of GAVs, leaf (latest) version first.
+     * @return sorted list of GAVs, branch tip (latest) version first.
      */
     List<GAV> getArtifactBranch(GA ga, BranchId branchId, ArtifactRetrievalBehavior behavior);
 
 
     /**
-     * Add a version to the artifact branch. The branch is created if it does not exist. The version becomes a new leaf (latest).
+     * Add a version to the artifact branch. The branch is created if it does not exist. The version becomes a new branch tip (latest).
+     * Not supported for the "latest" branch.
      */
     void createOrUpdateArtifactBranch(GAV gav, BranchId branchId);
 
 
     /**
-     * @return GAV identifier of the leaf (latest) version in the artifact branch.
+     * Replace the content of the artifact branch with a new sequence of versions.
+     * Not supported for the "latest" branch.
      */
-    GAV getArtifactBranchLeaf(GA ga, BranchId branchId, ArtifactRetrievalBehavior behavior);
+    void createOrReplaceArtifactBranch(GA ga, BranchId branchId, List<VersionId> versions);
+
+
+    /**
+     * @return GAV identifier of the branch tip (latest) version in the artifact branch.
+     */
+    GAV getArtifactBranchTip(GA ga, BranchId branchId, ArtifactRetrievalBehavior behavior);
 
 
     /**
      * Delete artifact branch.
+     * Not supported for the "latest" branch.
      */
     void deleteArtifactBranch(GA ga, BranchId branchId);
 

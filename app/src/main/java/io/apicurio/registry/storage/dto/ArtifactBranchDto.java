@@ -10,13 +10,13 @@ import lombok.*;
 @Setter
 @EqualsAndHashCode
 @ToString
-public class BranchDto {
+public class ArtifactBranchDto {
 
     private String groupId;
 
     private String artifactId;
 
-    private String branch;
+    private String branchId;
 
     private int branchOrder;
 

@@ -8,16 +8,7 @@ import java.util.regex.Pattern;
 
 @Getter
 @EqualsAndHashCode
-public class ArtifactId {
-
-    // TODO: Restrict artifact ID format?
-    // /**
-    //  * Pattern requirements:
-    //  * - Must not contain reserved characters ":=,<>" (see VersionExpressionParser)
-    //  * - Must accept valid Kafka topic name
-    //  * - Must fit in the database column
-    //  */
-    // private static final Pattern VALID_PATTERN = Pattern.compile("[A-Za-z0-9._-]{1,512}"); // TODO: UPGRADE INCOMPATIBILITY
+public final class ArtifactId {
 
     private static final Pattern VALID_PATTERN = Pattern.compile(".{1,512}");
 
@@ -27,7 +18,7 @@ public class ArtifactId {
     public ArtifactId(String rawArtifactId) {
         if (!isValid(rawArtifactId)) {
             throw new ValidationException("Artifact ID '" + rawArtifactId + "' is invalid. " +
-                    "It must consist of alphanumeric characters or '._-', and have length 1..512 (inclusive).");
+                    "It must have length 1..512 (inclusive).");
         }
         this.rawArtifactId = rawArtifactId;
     }

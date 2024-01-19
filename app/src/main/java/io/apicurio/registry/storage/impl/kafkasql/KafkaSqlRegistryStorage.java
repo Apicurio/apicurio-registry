@@ -6,6 +6,10 @@ import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.metrics.StorageMetricsApply;
 import io.apicurio.registry.metrics.health.liveness.PersistenceExceptionLivenessApply;
 import io.apicurio.registry.metrics.health.readiness.PersistenceTimeoutReadinessApply;
+import io.apicurio.registry.model.BranchId;
+import io.apicurio.registry.model.GA;
+import io.apicurio.registry.model.GAV;
+import io.apicurio.registry.model.VersionId;
 import io.apicurio.registry.storage.ArtifactStateExt;
 import io.apicurio.registry.storage.StorageEvent;
 import io.apicurio.registry.storage.StorageEventType;
@@ -24,9 +28,6 @@ import io.apicurio.registry.storage.impl.sql.SqlRegistryStorage;
 import io.apicurio.registry.storage.impl.sql.SqlUtil;
 import io.apicurio.registry.storage.importing.DataImporter;
 import io.apicurio.registry.storage.importing.SqlDataImporter;
-import io.apicurio.registry.model.BranchId;
-import io.apicurio.registry.model.GA;
-import io.apicurio.registry.model.GAV;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.ConcurrentUtil;
@@ -56,7 +57,6 @@ import static io.apicurio.registry.storage.RegistryStorage.ArtifactRetrievalBeha
  * An implementation of a registry artifactStore that extends the basic SQL artifactStore but federates 'write' operations
  * to other nodes in a cluster using a Kafka topic.  As a result, all reads are performed locally but all
  * writes are published to a topic for consumption by all nodes.
- *
  */
 @ApplicationScoped
 @PersistenceExceptionLivenessApply
@@ -813,8 +813,8 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
 
 
     @Override
-    public void importArtifactBranch(ArtifactVersionBranchEntity entity) {
-        submitter.submitBranchImport(entity);
+    public void importArtifactBranch(ArtifactBranchEntity entity) {
+        submitter.submitArtifactBranchImport(entity);
     }
 
 
@@ -900,14 +900,21 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
 
     @Override
     public void createOrUpdateArtifactBranch(GAV gav, BranchId branchId) {
-        var uuid = ConcurrentUtil.get(submitter.submitBranch(ActionType.CREATE_OR_UPDATE, gav, branchId));
+        var uuid = ConcurrentUtil.get(submitter.submitArtifactBranch(ActionType.CREATE_OR_UPDATE, gav, branchId));
+        coordinator.waitForResponse(uuid);
+    }
+
+
+    @Override
+    public void createOrReplaceArtifactBranch(GA ga, BranchId branchId, List<VersionId> versions) {
+        var uuid = ConcurrentUtil.get(submitter.submitArtifactBranchCreateOrReplace(ga, branchId, versions));
         coordinator.waitForResponse(uuid);
     }
 
 
     @Override
     public void deleteArtifactBranch(GA ga, BranchId branchId) {
-        var uuid = ConcurrentUtil.get(submitter.submitBranch(ActionType.DELETE, ga, branchId));
+        var uuid = ConcurrentUtil.get(submitter.submitArtifactBranch(ActionType.DELETE, ga, branchId));
         coordinator.waitForResponse(uuid);
     }
 }

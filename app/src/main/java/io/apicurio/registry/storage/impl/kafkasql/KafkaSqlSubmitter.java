@@ -5,6 +5,7 @@ import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.model.BranchId;
 import io.apicurio.registry.model.GA;
 import io.apicurio.registry.model.GAV;
+import io.apicurio.registry.model.VersionId;
 import io.apicurio.registry.storage.dto.DownloadContextDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.GroupMetaDataDto;
@@ -13,7 +14,7 @@ import io.apicurio.registry.storage.impl.kafkasql.keys.*;
 import io.apicurio.registry.storage.impl.kafkasql.values.*;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.RuleType;
-import io.apicurio.registry.utils.impexp.ArtifactVersionBranchEntity;
+import io.apicurio.registry.utils.impexp.ArtifactBranchEntity;
 import io.apicurio.registry.utils.kafka.ProducerActions;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Observes;
@@ -24,8 +25,11 @@ import org.apache.kafka.common.header.internals.RecordHeader;
 
 import java.util.Collections;
 import java.util.Date;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+
+import static java.util.stream.Collectors.toList;
 
 @ApplicationScoped
 @Logged
@@ -259,19 +263,25 @@ public class KafkaSqlSubmitter {
     /* ******************************************************************************************
      * Artifact Branches
      * ****************************************************************************************** */
-    public CompletableFuture<UUID> submitBranch(ActionType action, GAV gav, BranchId branchId) {
+    public CompletableFuture<UUID> submitArtifactBranch(ActionType action, GAV gav, BranchId branchId) {
         var key = ArtifactBranchKey.create(gav.getRawGroupId(), gav.getRawArtifactId(), branchId.getRawBranchId());
-        var value = ArtifactBranchValue.create(action, gav.getRawVersionId(), null);
+        var value = ArtifactBranchValue.create(action, gav.getRawVersionId(), null, null);
         return send(key, value);
     }
-    public CompletableFuture<UUID> submitBranch(ActionType action, GA ga, BranchId branchId) {
+    public CompletableFuture<UUID> submitArtifactBranch(ActionType action, GA ga, BranchId branchId) {
         var key = ArtifactBranchKey.create(ga.getRawGroupId(), ga.getRawArtifactId(), branchId.getRawBranchId());
-        var value = ArtifactBranchValue.create(action, null, null);
+        var value = ArtifactBranchValue.create(action, null, null, null);
         return send(key, value);
     }
-    public CompletableFuture<UUID> submitBranchImport(ArtifactVersionBranchEntity entity) {
-        var key = ArtifactBranchKey.create(entity.groupId, entity.artifactId, entity.branch);
-        var value = ArtifactBranchValue.create(ActionType.IMPORT, entity.version, entity.branchOrder);
+    public CompletableFuture<UUID> submitArtifactBranchCreateOrReplace(GA ga, BranchId branchId, List<VersionId> versions) {
+        var key = ArtifactBranchKey.create(ga.getRawGroupId(), ga.getRawArtifactId(), branchId.getRawBranchId());
+        var value = ArtifactBranchValue.create(ActionType.CREATE_OR_REPLACE, null, null,
+                versions.stream().map(VersionId::getRawVersionId).collect(toList()));
+        return send(key, value);
+    }
+    public CompletableFuture<UUID> submitArtifactBranchImport(ArtifactBranchEntity entity) {
+        var key = ArtifactBranchKey.create(entity.groupId, entity.artifactId, entity.branchId);
+        var value = ArtifactBranchValue.create(ActionType.IMPORT, entity.version, entity.branchOrder, null);
         return send(key, value);
     }
 

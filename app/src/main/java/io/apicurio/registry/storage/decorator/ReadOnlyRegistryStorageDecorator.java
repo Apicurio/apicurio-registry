@@ -4,6 +4,7 @@ import io.apicurio.common.apps.config.Dynamic;
 import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
 import io.apicurio.common.apps.config.Info;
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.model.VersionId;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.*;
 import io.apicurio.registry.storage.error.*;
@@ -423,7 +424,7 @@ public class ReadOnlyRegistryStorageDecorator extends RegistryStorageDecoratorRe
 
 
     @Override
-    public void importArtifactBranch(ArtifactVersionBranchEntity entity) {
+    public void importArtifactBranch(ArtifactBranchEntity entity) {
         checkReadOnly();
         delegate.importArtifactBranch(entity);
     }
@@ -484,6 +485,13 @@ public class ReadOnlyRegistryStorageDecorator extends RegistryStorageDecoratorRe
     public void createOrUpdateArtifactBranch(GAV gav, BranchId branchId) {
         checkReadOnly();
         delegate.createOrUpdateArtifactBranch(gav, branchId);
+    }
+
+
+    @Override
+    public void createOrReplaceArtifactBranch(GA ga, BranchId branchId, List<VersionId> versions) {
+        checkReadOnly();
+        delegate.createOrReplaceArtifactBranch(ga, branchId, versions);
     }
 
 

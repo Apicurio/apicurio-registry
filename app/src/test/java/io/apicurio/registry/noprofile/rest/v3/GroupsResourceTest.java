@@ -1,49 +1,8 @@
 package io.apicurio.registry.noprofile.rest.v3;
 
-import static io.restassured.RestAssured.given;
-import static java.net.HttpURLConnection.HTTP_NO_CONTENT;
-import static java.net.HttpURLConnection.HTTP_OK;
-import static org.hamcrest.CoreMatchers.anyOf;
-import static org.hamcrest.CoreMatchers.anything;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.endsWith;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.equalToObject;
-import static org.hamcrest.Matchers.greaterThanOrEqualTo;
-import static org.hamcrest.Matchers.not;
-import static org.hamcrest.Matchers.notNullValue;
-import static org.hamcrest.Matchers.nullValue;
-import static org.hamcrest.Matchers.startsWith;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-
-import io.apicurio.registry.rest.client.models.Error;
-import org.apache.commons.codec.digest.DigestUtils;
-import org.hamcrest.Matchers;
-import org.jose4j.base64url.Base64;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
-import org.junit.jupiter.api.condition.DisabledOnOs;
-import org.junit.jupiter.api.condition.OS;
-
 import com.google.common.hash.Hashing;
 import io.apicurio.registry.AbstractResourceTestBase;
+import io.apicurio.registry.model.BranchId;
 import io.apicurio.registry.model.GroupId;
 import io.apicurio.registry.rest.client.models.Error;
 import io.apicurio.registry.rest.v3.beans.*;
@@ -76,16 +35,17 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
 
 import static io.restassured.RestAssured.given;
 import static java.net.HttpURLConnection.HTTP_NO_CONTENT;
 import static java.net.HttpURLConnection.HTTP_OK;
+import static java.util.concurrent.TimeUnit.SECONDS;
+import static java.util.stream.Collectors.toSet;
 import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.CoreMatchers.anything;
 import static org.hamcrest.Matchers.*;
 import static org.junit.jupiter.api.Assertions.*;
+import static org.testcontainers.shaded.org.awaitility.Awaitility.await;
 
 @QuarkusTest
 public class GroupsResourceTest extends AbstractResourceTestBase {
@@ -149,59 +109,58 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
     }
 
     @Test
-    public void testCreateArtifactRule() throws Exception
-    {
-    	String oaiArtifactContent = resourceToString("openapi-empty.json");
-    	createArtifact("testCreateArtifactRule", "testCreateArtifactRule/EmptyAPI/1", ArtifactType.OPENAPI, oaiArtifactContent);
+    public void testCreateArtifactRule() throws Exception {
+        String oaiArtifactContent = resourceToString("openapi-empty.json");
+        createArtifact("testCreateArtifactRule", "testCreateArtifactRule/EmptyAPI/1", ArtifactType.OPENAPI, oaiArtifactContent);
 
-    	//Test Rule type null
-    	Rule nullType = new Rule();
-    	nullType.setType(null);
-    	nullType.setConfig("TestConfig");
-    	given()
-	        	.when()
-	        	.contentType(CT_JSON)
-	    		.pathParam("groupId", "testCreateArtifactRule")
-	    		.pathParam("artifactId", "testCreateArtifactRule/EmptyAPI/1")
-	    		.body(nullType)
-	    		.post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/rules")
-	        	.then()
-	    		.statusCode(400);
+        //Test Rule type null
+        Rule nullType = new Rule();
+        nullType.setType(null);
+        nullType.setConfig("TestConfig");
+        given()
+                .when()
+                .contentType(CT_JSON)
+                .pathParam("groupId", "testCreateArtifactRule")
+                .pathParam("artifactId", "testCreateArtifactRule/EmptyAPI/1")
+                .body(nullType)
+                .post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/rules")
+                .then()
+                .statusCode(400);
 
-    	//Test Rule config null
-    	Rule nullConfig = new Rule();
-    	nullConfig.setType(RuleType.VALIDITY);
-    	nullConfig.setConfig(null);
-    	given()
-	        	.when()
-	        	.contentType(CT_JSON)
-	    		.pathParam("groupId", "testCreateArtifactRule")
-	    		.pathParam("artifactId", "testCreateArtifactRule/EmptyAPI/1")
-	    		.body(nullConfig)
-	    		.post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/rules")
-	        	.then()
-	    		.statusCode(400);
+        //Test Rule config null
+        Rule nullConfig = new Rule();
+        nullConfig.setType(RuleType.VALIDITY);
+        nullConfig.setConfig(null);
+        given()
+                .when()
+                .contentType(CT_JSON)
+                .pathParam("groupId", "testCreateArtifactRule")
+                .pathParam("artifactId", "testCreateArtifactRule/EmptyAPI/1")
+                .body(nullConfig)
+                .post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/rules")
+                .then()
+                .statusCode(400);
 
-    	//Test Rule config empty
-    	Rule emptyConfig = new Rule();
-    	emptyConfig.setType(RuleType.VALIDITY);
-    	emptyConfig.setConfig("");
-    	given()
-	        	.when()
-	        	.contentType(CT_JSON)
-	    		.pathParam("groupId", "testCreateArtifactRule")
-	    		.pathParam("artifactId", "testCreateArtifactRule/EmptyAPI/1")
-	    		.body(emptyConfig)
-	    		.post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/rules")
-	        	.then()
-	    		.statusCode(400);
+        //Test Rule config empty
+        Rule emptyConfig = new Rule();
+        emptyConfig.setType(RuleType.VALIDITY);
+        emptyConfig.setConfig("");
+        given()
+                .when()
+                .contentType(CT_JSON)
+                .pathParam("groupId", "testCreateArtifactRule")
+                .pathParam("artifactId", "testCreateArtifactRule/EmptyAPI/1")
+                .body(emptyConfig)
+                .post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/rules")
+                .then()
+                .statusCode(400);
 
     }
 
     @Test
     public void testUpdateArtifactOwner() throws Exception {
         String oaiArtifactContent = resourceToString("openapi-empty.json");
-        createArtifact("testUpdateArtifactOwner", "testUpdateArtifactOwner/EmptyAPI/1",ArtifactType.OPENAPI, oaiArtifactContent);
+        createArtifact("testUpdateArtifactOwner", "testUpdateArtifactOwner/EmptyAPI/1", ArtifactType.OPENAPI, oaiArtifactContent);
 
         ArtifactOwner artifactOwner = new ArtifactOwner("newOwner");
 
@@ -219,7 +178,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
     @Test
     public void testUpdateEmptyArtifactOwner() throws Exception {
         String oaiArtifactContent = resourceToString("openapi-empty.json");
-        createArtifact("testUpdateEmptyArtifactOwner", "testUpdateEmptyArtifactOwner/EmptyAPI/1",ArtifactType.OPENAPI, oaiArtifactContent);
+        createArtifact("testUpdateEmptyArtifactOwner", "testUpdateEmptyArtifactOwner/EmptyAPI/1", ArtifactType.OPENAPI, oaiArtifactContent);
 
         ArtifactOwner artifactOwner = new ArtifactOwner("");
 
@@ -659,7 +618,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
     @Test
     public void testUpdateArtifactState() throws Exception {
         String oaiArtifactContent = resourceToString("openapi-empty.json");
-        createArtifact("testUpdateArtifactState", "testUpdateArtifactState/EmptyAPI/1",ArtifactType.OPENAPI, oaiArtifactContent);
+        createArtifact("testUpdateArtifactState", "testUpdateArtifactState/EmptyAPI/1", ArtifactType.OPENAPI, oaiArtifactContent);
 
         UpdateState updateState = new UpdateState();
         updateState.setState(ArtifactState.DEPRECATED);
@@ -696,17 +655,17 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .then()
                 .statusCode(200)
                 .header("X-Registry-Deprecated", "true");
-        }
+    }
 
     @Test
     public void testUpdateArtifactVersionState() throws Exception {
         String oaiArtifactContent = resourceToString("openapi-empty.json");
-        createArtifact("testUpdateArtifactVersionState", "testUpdateArtifactVersionState/EmptyAPI",ArtifactType.OPENAPI, oaiArtifactContent);
+        createArtifact("testUpdateArtifactVersionState", "testUpdateArtifactVersionState/EmptyAPI", ArtifactType.OPENAPI, oaiArtifactContent);
 
         UpdateState updateState = new UpdateState();
         updateState.setState(ArtifactState.DEPRECATED);
 
-         // Update the artifact state to DEPRECATED.
+        // Update the artifact state to DEPRECATED.
         given()
                 .when()
                 .contentType(CT_JSON)
@@ -741,7 +700,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .then()
                 .statusCode(200)
                 .header("X-Registry-Deprecated", "true");
-        }
+    }
 
     @Test
     @DisabledIfEnvironmentVariable(named = CURRENT_ENV, matches = CURRENT_ENV_MAS_REGEX)
@@ -2194,7 +2153,8 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .body("createdOn", anything())
                 .body("version", equalTo("2"))
                 .body("description", equalTo("An example API design using OpenAPI."));
-        /*Integer globalId2 = */resp.extract().body().path("globalId");
+        /*Integer globalId2 = */
+        resp.extract().body().path("globalId");
 
         // Try to create the same artifact ID with ReturnOrUpdate - should return v1 (matching content)
         resp = given()
@@ -2890,8 +2850,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .put(content, config -> {
                     config.headers.add("X-Registry-Version", "2");
                     config.headers.add("X-Registry-ArtifactId", artifactId);
-                })
-                ;
+                });
 
         // Now try registering an artifact with an INVALID reference
         data = new ByteArrayInputStream(artifactContent.getBytes(StandardCharsets.UTF_8));
@@ -2907,7 +2866,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         var contentf_1 = new io.apicurio.registry.rest.client.models.ArtifactContent();
         contentf_1.setContent(new String(dataf_1.readAllBytes(), StandardCharsets.UTF_8));
         contentf_1.setReferences(referencesf_1);
-        var exception_1 = Assertions.assertThrows(Error.class, () -> {
+        var exception_1 = assertThrows(Error.class, () -> {
             clientV3
                     .groups()
                     .byGroupId(GROUP)
@@ -2916,12 +2875,10 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                     .put(contentf_1, config -> {
                         config.headers.add("X-Registry-Version", "2");
                         config.headers.add("X-Registry-ArtifactId", artifactId);
-                    })
-                    ;
+                    });
         });
         Assertions.assertEquals(409, exception_1.getErrorCode());
         Assertions.assertEquals("RuleViolationException", exception_1.getName());
-
 
         // Now try registering an artifact with both a valid and invalid ref
         data = new ByteArrayInputStream(artifactContent.getBytes(StandardCharsets.UTF_8));
@@ -2943,7 +2900,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         var contentf_2 = new io.apicurio.registry.rest.client.models.ArtifactContent();
         contentf_2.setContent(new String(dataf_2.readAllBytes(), StandardCharsets.UTF_8));
         contentf_2.setReferences(referencesf_2);
-        var exception_2 = Assertions.assertThrows(Error.class, () -> {
+        var exception_2 = assertThrows(Error.class, () -> {
             clientV3
                     .groups()
                     .byGroupId(GROUP)
@@ -2952,8 +2909,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                     .put(contentf_2, config -> {
                         config.headers.add("X-Registry-Version", "2");
                         config.headers.add("X-Registry-ArtifactId", artifactId);
-                    })
-                    ;
+                    });
         });
         Assertions.assertEquals(409, exception_2.getErrorCode());
         Assertions.assertEquals("RuleViolationException", exception_2.getName());
@@ -2966,7 +2922,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         var contentf_3 = new io.apicurio.registry.rest.client.models.ArtifactContent();
         contentf_3.setContent(new String(dataf_3.readAllBytes(), StandardCharsets.UTF_8));
         contentf_3.setReferences(referencesf_3);
-        var exception_3 = Assertions.assertThrows(Error.class, () -> {
+        var exception_3 = assertThrows(Error.class, () -> {
             clientV3
                     .groups()
                     .byGroupId(GROUP)
@@ -2975,8 +2931,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                     .put(contentf_2, config -> {
                         config.headers.add("X-Registry-Version", "2");
                         config.headers.add("X-Registry-ArtifactId", artifactId);
-                    })
-                    ;
+                    });
         });
         Assertions.assertEquals(409, exception_3.getErrorCode());
         Assertions.assertEquals("RuleViolationException", exception_3.getName());
@@ -2994,47 +2949,528 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         // Create the artifact that references the type
         List<ArtifactReference> refs = Collections.singletonList(
                 ArtifactReference.builder()
-                .name("./referenced-types.json#/components/schemas/Widget")
-                .groupId(GROUP)
-                .artifactId("testGetArtifactVersionWithReferences/ReferencedTypes")
-                .version("1")
-                .build());
+                        .name("./referenced-types.json#/components/schemas/Widget")
+                        .groupId(GROUP)
+                        .artifactId("testGetArtifactVersionWithReferences/ReferencedTypes")
+                        .version("1")
+                        .build());
         createArtifactWithReferences(GROUP, "testGetArtifactVersionWithReferences/WithExternalRef", ArtifactType.OPENAPI, withExternalRefContent, refs);
 
         // Get the content of the artifact preserving external references
         given()
-        .when()
-            .pathParam("groupId", GROUP)
-            .pathParam("artifactId", "testGetArtifactVersionWithReferences/WithExternalRef")
-        .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}")
-        .then()
-            .statusCode(200)
-            .body("openapi", equalTo("3.0.2"))
-            .body("paths.widgets.get.responses.200.content.json.schema.items.$ref", equalTo("./referenced-types.json#/components/schemas/Widget"));
+                .when()
+                .pathParam("groupId", GROUP)
+                .pathParam("artifactId", "testGetArtifactVersionWithReferences/WithExternalRef")
+                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}")
+                .then()
+                .statusCode(200)
+                .body("openapi", equalTo("3.0.2"))
+                .body("paths.widgets.get.responses.200.content.json.schema.items.$ref", equalTo("./referenced-types.json#/components/schemas/Widget"));
 
         // Get the content of the artifact rewriting external references
         given()
-        .when()
-            .pathParam("groupId", GROUP)
-            .pathParam("artifactId", "testGetArtifactVersionWithReferences/WithExternalRef")
-            .queryParam("references", "REWRITE")
-        .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}")
-        .then()
-            .statusCode(200)
-            .body("openapi", equalTo("3.0.2"))
-            .body("paths.widgets.get.responses.200.content.json.schema.items.$ref", endsWith("/apis/registry/v3/groups/GroupsResourceTest/artifacts/testGetArtifactVersionWithReferences%2FReferencedTypes/versions/1?references=REWRITE#/components/schemas/Widget"));
+                .when()
+                .pathParam("groupId", GROUP)
+                .pathParam("artifactId", "testGetArtifactVersionWithReferences/WithExternalRef")
+                .queryParam("references", "REWRITE")
+                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}")
+                .then()
+                .statusCode(200)
+                .body("openapi", equalTo("3.0.2"))
+                .body("paths.widgets.get.responses.200.content.json.schema.items.$ref", endsWith("/apis/registry/v3/groups/GroupsResourceTest/artifacts/testGetArtifactVersionWithReferences%2FReferencedTypes/versions/1?references=REWRITE#/components/schemas/Widget"));
 
         // Get the content of the artifact inlining/dereferencing external references
         given()
-        .when()
-            .pathParam("groupId", GROUP)
-            .pathParam("artifactId", "testGetArtifactVersionWithReferences/WithExternalRef")
-            .queryParam("references", "DEREFERENCE")
-        .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}")
-        .then()
-            .statusCode(200)
-            .body("openapi", equalTo("3.0.2"))
-            .body("paths.widgets.get.responses.200.content.json.schema.items.$ref", equalTo("#/components/schemas/Widget"));
+                .when()
+                .pathParam("groupId", GROUP)
+                .pathParam("artifactId", "testGetArtifactVersionWithReferences/WithExternalRef")
+                .queryParam("references", "DEREFERENCE")
+                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}")
+                .then()
+                .statusCode(200)
+                .body("openapi", equalTo("3.0.2"))
+                .body("paths.widgets.get.responses.200.content.json.schema.items.$ref", equalTo("#/components/schemas/Widget"));
     }
 
+
+    @Test
+    public void testBranches() throws Exception {
+        var artifactContent1 = resourceToString("openapi-empty.json");
+        var artifactContent2 = artifactContent1.replace("1.0.0", "1.1.0");
+        var artifactContent3 = artifactContent1.replace("1.0.0", "1.2.0");
+        var artifactContent4 = artifactContent1.replace("1.0.0", "1.3.0");
+        var artifactId = UUID.randomUUID().toString();
+
+        // Create an artifact version, there should just be the latest branch
+
+        var content = new io.apicurio.registry.rest.client.models.ArtifactContent();
+        content.setContent(artifactContent1);
+        clientV3
+                .groups()
+                .byGroupId(GROUP)
+                .artifacts()
+                .post(content, config -> {
+                    config.headers.add("X-Registry-ArtifactId", artifactId);
+                    config.headers.add("X-Registry-ArtifactType", ArtifactType.OPENAPI);
+                });
+
+        var branches = clientV3
+                .groups()
+                .byGroupId(GROUP)
+                .artifacts()
+                .byArtifactId(artifactId)
+                .branches()
+                .get();
+
+        assertEquals(Set.of(
+                ArtifactBranch.builder().groupId(GROUP).artifactId(artifactId).branchId(BranchId.LATEST.getRawBranchId()).versions(List.of("1")).build()
+        ), convert(branches));
+
+        // Create an artifact version, using the branch header feature
+
+        content.setContent(artifactContent2);
+        clientV3
+                .groups()
+                .byGroupId(GROUP)
+                .artifacts()
+                .byArtifactId(artifactId)
+                .versions()
+                .post(content, config -> {
+                    config.headers.add("X-Registry-ArtifactType", ArtifactType.OPENAPI);
+                    config.headers.add("X-Registry-Artifact-Branches", "branch1");
+                    config.headers.add("X-Registry-Artifact-Branches", "branch2, branch3");
+                });
+
+        branches = clientV3
+                .groups()
+                .byGroupId(GROUP)
+                .artifacts()
+                .byArtifactId(artifactId)
+                .branches()
+                .get();
+
+        assertEquals(Set.of(
+                ArtifactBranch.builder().groupId(GROUP).artifactId(artifactId).branchId(BranchId.LATEST.getRawBranchId()).versions(List.of("2", "1")).build(),
+                ArtifactBranch.builder().groupId(GROUP).artifactId(artifactId).branchId("branch1").versions(List.of("2")).build(),
+                ArtifactBranch.builder().groupId(GROUP).artifactId(artifactId).branchId("branch2").versions(List.of("2")).build(),
+                ArtifactBranch.builder().groupId(GROUP).artifactId(artifactId).branchId("branch3").versions(List.of("2")).build()
+        ), convert(branches));
+
+        // Create another artifact version, using the branch header feature
+
+        content.setContent(artifactContent3);
+        clientV3
+                .groups()
+                .byGroupId(GROUP)
+                .artifacts()
+                .byArtifactId(artifactId)
+                .versions()
+                .post(content, config -> {
+                    config.headers.add("X-Registry-ArtifactType", ArtifactType.OPENAPI);
+                    config.headers.add("X-Registry-Artifact-Branches", "branch1");
+                    config.headers.add("X-Registry-Artifact-Branches", "branch3");
+                });
+
+        branches = clientV3
+                .groups()
+                .byGroupId(GROUP)
+                .artifacts()
+                .byArtifactId(artifactId)
+                .branches()
+                .get();
+
+        assertEquals(Set.of(
+                ArtifactBranch.builder().groupId(GROUP).artifactId(artifactId).branchId(BranchId.LATEST.getRawBranchId()).versions(List.of("3", "2", "1")).build(),
+                ArtifactBranch.builder().groupId(GROUP).artifactId(artifactId).branchId("branch1").versions(List.of("3", "2")).build(),
+                ArtifactBranch.builder().groupId(GROUP).artifactId(artifactId).branchId("branch2").versions(List.of("2")).build(),
+                ArtifactBranch.builder().groupId(GROUP).artifactId(artifactId).branchId("branch3").versions(List.of("3", "2")).build()
+        ), convert(branches));
+
+        // Test an endpoint to get a specific branch
+
+        var branch = clientV3
+                .groups()
+                .byGroupId(GROUP)
+                .artifacts()
+                .byArtifactId(artifactId)
+                .branches()
+                .byBranchId("branch1")
+                .get();
+
+        assertEquals(
+                ArtifactBranch.builder().groupId(GROUP).artifactId(artifactId).branchId("branch1").versions(List.of("3", "2")).build(),
+                convert(branch)
+        );
+
+        // Create an additional version, and add it manually to a branch
+
+        content.setContent(artifactContent4);
+        clientV3
+                .groups()
+                .byGroupId(GROUP)
+                .artifacts()
+                .byArtifactId(artifactId)
+                .versions()
+                .post(content, config -> {
+                    config.headers.add("X-Registry-ArtifactId", artifactId);
+                    config.headers.add("X-Registry-ArtifactType", ArtifactType.OPENAPI);
+                });
+
+        assertEquals(Set.of(
+                ArtifactBranch.builder().groupId(GROUP).artifactId(artifactId).branchId(BranchId.LATEST.getRawBranchId()).versions(List.of("3", "2", "1")).build(),
+                ArtifactBranch.builder().groupId(GROUP).artifactId(artifactId).branchId("branch1").versions(List.of("3", "2")).build(),
+                ArtifactBranch.builder().groupId(GROUP).artifactId(artifactId).branchId("branch2").versions(List.of("2")).build(),
+                ArtifactBranch.builder().groupId(GROUP).artifactId(artifactId).branchId("branch3").versions(List.of("3", "2")).build()
+        ), convert(branches));
+
+        branch = clientV3
+                .groups()
+                .byGroupId(GROUP)
+                .artifacts()
+                .byArtifactId(artifactId)
+                .branches()
+                .byBranchId("branch2")
+                .post("4");
+
+        assertEquals(
+                ArtifactBranch.builder().groupId(GROUP).artifactId(artifactId).branchId("branch2").versions(List.of("4", "2")).build(),
+                convert(branch)
+        );
+
+        branches = clientV3
+                .groups()
+                .byGroupId(GROUP)
+                .artifacts()
+                .byArtifactId(artifactId)
+                .branches()
+                .get();
+
+        assertEquals(Set.of(
+                ArtifactBranch.builder().groupId(GROUP).artifactId(artifactId).branchId(BranchId.LATEST.getRawBranchId()).versions(List.of("4", "3", "2", "1")).build(),
+                ArtifactBranch.builder().groupId(GROUP).artifactId(artifactId).branchId("branch1").versions(List.of("3", "2")).build(),
+                ArtifactBranch.builder().groupId(GROUP).artifactId(artifactId).branchId("branch2").versions(List.of("4", "2")).build(),
+                ArtifactBranch.builder().groupId(GROUP).artifactId(artifactId).branchId("branch3").versions(List.of("3", "2")).build()
+        ), convert(branches));
+
+        // Try to replace a branch
+
+        branch = clientV3
+                .groups()
+                .byGroupId(GROUP)
+                .artifacts()
+                .byArtifactId(artifactId)
+                .branches()
+                .byBranchId("branch1")
+                .put(convert(ArtifactBranch.builder().versions(List.of("4", "1")).build())); // We support omitting the repeated data
+
+        assertEquals(
+                ArtifactBranch.builder().groupId(GROUP).artifactId(artifactId).branchId("branch1").versions(List.of("4", "1")).build(),
+                convert(branch)
+        );
+
+        branches = clientV3
+                .groups()
+                .byGroupId(GROUP)
+                .artifacts()
+                .byArtifactId(artifactId)
+                .branches()
+                .get();
+
+        assertEquals(Set.of(
+                ArtifactBranch.builder().groupId(GROUP).artifactId(artifactId).branchId(BranchId.LATEST.getRawBranchId()).versions(List.of("4", "3", "2", "1")).build(),
+                ArtifactBranch.builder().groupId(GROUP).artifactId(artifactId).branchId("branch1").versions(List.of("4", "1")).build(),
+                ArtifactBranch.builder().groupId(GROUP).artifactId(artifactId).branchId("branch2").versions(List.of("4", "2")).build(),
+                ArtifactBranch.builder().groupId(GROUP).artifactId(artifactId).branchId("branch3").versions(List.of("3", "2")).build()
+        ), convert(branches));
+
+        // Adding existing version is allowed, but not recommended
+
+        branch = clientV3
+                .groups()
+                .byGroupId(GROUP)
+                .artifacts()
+                .byArtifactId(artifactId)
+                .branches()
+                .byBranchId("branch2")
+                .post("2");
+
+        assertEquals(
+                ArtifactBranch.builder().groupId(GROUP).artifactId(artifactId).branchId("branch2").versions(List.of("2", "4", "2")).build(),
+                convert(branch)
+        );
+
+        // Failure mode: Adding a version to the latest branch is not allowed at the moment
+        // It could be used to "hide" a bad latest version, but it's probably better to use the artifact state feature.
+        // The latest branch is used in a lot of internal features, that currently do not expect duplicates or any updates.
+
+        var error = assertThrows(Error.class, () -> {
+            clientV3
+                    .groups()
+                    .byGroupId(GROUP)
+                    .artifacts()
+                    .byArtifactId(artifactId)
+                    .branches()
+                    .byBranchId(BranchId.LATEST.getRawBranchId())
+                    .post("3");
+        });
+
+        assertNotNull(error);
+        assertEquals(409, error.getErrorCode());
+        assertEquals("NotAllowedException", error.getName());
+
+        // Failure mode: Latest branch cannot be replaced
+
+        error = assertThrows(Error.class, () -> {
+            clientV3
+                    .groups()
+                    .byGroupId(GROUP)
+                    .artifacts()
+                    .byArtifactId(artifactId)
+                    .branches()
+                    .byBranchId(BranchId.LATEST.getRawBranchId())
+                    .put(convert(ArtifactBranch.builder().versions(List.of("4")).build()));
+        });
+
+        assertNotNull(error);
+        assertEquals(409, error.getErrorCode());
+        assertEquals("NotAllowedException", error.getName());
+
+        // Smoke test version expressions, include them here since we've done some setup
+
+        var version = clientV3
+                .groups()
+                .byGroupId(GROUP)
+                .artifacts()
+                .byArtifactId(artifactId)
+                .versions()
+                .byVersionExpression("branch=latest")
+                .meta()
+                .get();
+
+        assertNotNull(version);
+        assertEquals("4", version.getVersion());
+
+        version = clientV3
+                .groups()
+                .byGroupId(GROUP)
+                .artifacts()
+                .byArtifactId(artifactId)
+                .versions()
+                .byVersionExpression("branch=branch2")
+                .meta()
+                .get();
+
+        assertNotNull(version);
+        assertEquals("2", version.getVersion());
+
+        error = assertThrows(Error.class, () -> {
+            clientV3
+                    .groups()
+                    .byGroupId(GROUP)
+                    .artifacts()
+                    .byArtifactId(artifactId)
+                    .versions()
+                    .byVersionExpression("branch=")
+                    .meta()
+                    .get();
+        });
+
+        assertNotNull(error);
+        assertEquals(400, error.getErrorCode());
+        assertEquals("ValidationException", error.getName());
+
+        // Delete a branch
+
+        clientV3
+                .groups()
+                .byGroupId(GROUP)
+                .artifacts()
+                .byArtifactId(artifactId)
+                .branches()
+                .byBranchId("branch2")
+                .delete();
+
+        error = assertThrows(Error.class, () -> {
+            clientV3
+                    .groups()
+                    .byGroupId(GROUP)
+                    .artifacts()
+                    .byArtifactId(artifactId)
+                    .branches()
+                    .byBranchId("branch2")
+                    .get();
+        });
+
+        assertNotNull(error);
+        assertEquals(404, error.getErrorCode());
+        assertEquals("ArtifactBranchNotFoundException", error.getName());
+
+        // Failure mode: Version expression for a deleted branch
+
+        error = assertThrows(Error.class, () -> {
+            clientV3
+                    .groups()
+                    .byGroupId(GROUP)
+                    .artifacts()
+                    .byArtifactId(artifactId)
+                    .versions()
+                    .byVersionExpression("branch=branch2")
+                    .meta()
+                    .get();
+        });
+
+        assertNotNull(error);
+        assertEquals(404, error.getErrorCode());
+        assertEquals("VersionNotFoundException", error.getName());
+
+        // Failure mode: Latest branch cannot be deleted
+
+        error = assertThrows(Error.class, () -> {
+            clientV3
+                    .groups()
+                    .byGroupId(GROUP)
+                    .artifacts()
+                    .byArtifactId(artifactId)
+                    .branches()
+                    .byBranchId(BranchId.LATEST.getRawBranchId())
+                    .delete();
+        });
+
+        assertNotNull(error);
+        assertEquals(409, error.getErrorCode());
+        assertEquals("NotAllowedException", error.getName());
+
+        // Delete a version, make sure it is removed from branches
+
+        branches = clientV3
+                .groups()
+                .byGroupId(GROUP)
+                .artifacts()
+                .byArtifactId(artifactId)
+                .branches()
+                .get();
+
+        assertEquals(Set.of(
+                ArtifactBranch.builder().groupId(GROUP).artifactId(artifactId).branchId(BranchId.LATEST.getRawBranchId()).versions(List.of("4", "3", "2", "1")).build(),
+                ArtifactBranch.builder().groupId(GROUP).artifactId(artifactId).branchId("branch1").versions(List.of("4", "1")).build(),
+                ArtifactBranch.builder().groupId(GROUP).artifactId(artifactId).branchId("branch3").versions(List.of("3", "2")).build()
+        ), convert(branches));
+
+        clientV3
+                .groups()
+                .byGroupId(GROUP)
+                .artifacts()
+                .byArtifactId(artifactId)
+                .versions()
+                .byVersionExpression("2")
+                .delete();
+
+        await().atMost(3, SECONDS).until(() -> {
+            try {
+                clientV3
+                        .groups()
+                        .byGroupId(GROUP)
+                        .artifacts()
+                        .byArtifactId(artifactId)
+                        .versions()
+                        .byVersionExpression("2")
+                        .meta()
+                        .get();
+                return false;
+            } catch (Exception ignored) {
+                return true;
+            }
+        });
+
+        branches = clientV3
+                .groups()
+                .byGroupId(GROUP)
+                .artifacts()
+                .byArtifactId(artifactId)
+                .branches()
+                .get();
+
+        assertEquals(Set.of(
+                ArtifactBranch.builder().groupId(GROUP).artifactId(artifactId).branchId(BranchId.LATEST.getRawBranchId()).versions(List.of("4", "3", "1")).build(),
+                ArtifactBranch.builder().groupId(GROUP).artifactId(artifactId).branchId("branch1").versions(List.of("4", "1")).build(),
+                ArtifactBranch.builder().groupId(GROUP).artifactId(artifactId).branchId("branch3").versions(List.of("3")).build()
+        ), convert(branches));
+
+        // Delete the entire artifact and recreate it. Make sure branches have been cleaned up.
+
+        clientV3
+                .groups()
+                .byGroupId(GROUP)
+                .artifacts()
+                .byArtifactId(artifactId)
+                .delete();
+
+        await().atMost(3, SECONDS).until(() -> {
+            try {
+                clientV3
+                        .groups()
+                        .byGroupId(GROUP)
+                        .artifacts()
+                        .byArtifactId(artifactId)
+                        .meta()
+                        .get();
+                return false;
+            } catch (Exception ignored) {
+                return true;
+            }
+        });
+
+        content = new io.apicurio.registry.rest.client.models.ArtifactContent();
+        content.setContent(artifactContent1);
+        clientV3
+                .groups()
+                .byGroupId(GROUP)
+                .artifacts()
+                .post(content, config -> {
+                    config.headers.add("X-Registry-ArtifactId", artifactId);
+                    config.headers.add("X-Registry-ArtifactType", ArtifactType.OPENAPI);
+                });
+
+        branches = clientV3
+                .groups()
+                .byGroupId(GROUP)
+                .artifacts()
+                .byArtifactId(artifactId)
+                .branches()
+                .get();
+
+        assertEquals(Set.of(
+                ArtifactBranch.builder().groupId(GROUP).artifactId(artifactId).branchId(BranchId.LATEST.getRawBranchId()).versions(List.of("1")).build()
+        ), convert(branches));
+    }
+
+
+    private static ArtifactBranch convert(io.apicurio.registry.rest.client.models.ArtifactBranch origin) {
+        assertNotNull(origin);
+        return ArtifactBranch.builder()
+                .groupId(origin.getGroupId())
+                .artifactId(origin.getArtifactId())
+                .branchId(origin.getBranchId())
+                .versions(origin.getVersions())
+                .build();
+    }
+
+
+    private static Set<ArtifactBranch> convert(List<io.apicurio.registry.rest.client.models.ArtifactBranch> origin) {
+        return origin
+                .stream()
+                .map(GroupsResourceTest::convert)
+                .collect(toSet());
+    }
+
+
+    private static io.apicurio.registry.rest.client.models.ArtifactBranch convert(ArtifactBranch origin) {
+        assertNotNull(origin);
+        var res = new io.apicurio.registry.rest.client.models.ArtifactBranch();
+        res.setGroupId(origin.getGroupId());
+        res.setArtifactId(origin.getArtifactId());
+        res.setBranchId(origin.getBranchId());
+        res.setVersions(origin.getVersions());
+        return res;
+    }
 }

@@ -592,23 +592,21 @@ public interface SqlStatements {
 
     String selectArtifactBranchOrderedNotDisabled();
 
-    String selectDoesArtifactBranchContainVersion();
-
     String insertArtifactBranch();
 
-    String selectArtifactBranchLeaf();
+    String selectArtifactBranchTip();
 
-    String selectArtifactBranchLeafNotDisabled();
+    String selectArtifactBranchTipNotDisabled();
 
     String deleteArtifactBranch();
 
-    String deleteVersionInBranches();
+    String deleteVersionInArtifactBranches();
 
-    String deleteAllBranchesInArtifact();
+    String deleteAllArtifactBranchesInArtifact();
 
-    String deleteAllBranchesInGroup();
+    String deleteAllArtifactBranchesInGroup();
 
-    String deleteAllBranches();
+    String deleteAllArtifactBranches();
 
-    String selectVersionsWithoutBranch();
+    String selectVersionsWithoutArtifactBranch();
 }

@@ -6,7 +6,7 @@ import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.IoUtil;
-import io.apicurio.registry.utils.impexp.ArtifactVersionBranchEntity;
+import io.apicurio.registry.utils.impexp.ArtifactBranchEntity;
 import io.apicurio.registry.utils.impexp.ArtifactVersionEntity;
 import io.apicurio.registry.utils.impexp.ContentEntity;
 import io.apicurio.registry.utils.impexp.EntityWriter;
@@ -130,9 +130,9 @@ public class GenerateCanonicalHashImportIT extends ApicurioRegistryBaseIT {
                 writer.writeEntity(versionEntity);
 
                 writer.writeEntity(
-                        ArtifactVersionBranchEntity.builder()
+                        ArtifactBranchEntity.builder()
                                 .artifactId(artifactId)
-                                .branch(BranchId.LATEST.getRawBranchId())
+                                .branchId(BranchId.LATEST.getRawBranchId())
                                 .branchOrder(1)
                                 .version("1")
                                 .build()

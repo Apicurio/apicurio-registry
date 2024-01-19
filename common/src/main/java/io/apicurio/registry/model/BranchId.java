@@ -9,7 +9,7 @@ import java.util.regex.Pattern;
 
 @Getter
 @EqualsAndHashCode
-public class BranchId {
+public final class BranchId {
 
     /**
      * Pattern requirements:
@@ -17,7 +17,7 @@ public class BranchId {
      * - Must accept semver string
      * - Must fit in the database column
      */
-    private static final Pattern VALID_PATTERN = Pattern.compile("[a-zA-Z0-9._\\-+]{1,256}"); // TODO: UPGRADE INCOMPATIBILITY
+    private static final Pattern VALID_PATTERN = Pattern.compile("[a-zA-Z0-9._\\-+]{1,256}");
 
     public static final BranchId LATEST = new BranchId("latest");
 

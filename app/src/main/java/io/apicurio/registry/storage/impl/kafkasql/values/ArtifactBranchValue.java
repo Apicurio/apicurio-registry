@@ -7,6 +7,8 @@ import lombok.NoArgsConstructor;
 import lombok.ToString;
 import lombok.experimental.SuperBuilder;
 
+import java.util.List;
+
 @RegisterForReflection
 @SuperBuilder
 @NoArgsConstructor
@@ -14,15 +16,18 @@ import lombok.experimental.SuperBuilder;
 @ToString
 public class ArtifactBranchValue extends AbstractMessageValue {
 
-
     private String version; // nullable - Not used when deleting
+
     private Integer branchOrder; // nullable - Used for imports
 
-    public static ArtifactBranchValue create(ActionType action, String version, Integer branchOrder) {
+    private List<String> versions; // nullable - Used for ActionType.CREATE_OR_REPLACE
+
+    public static ArtifactBranchValue create(ActionType action, String version, Integer branchOrder, List<String> versions) {
         return ArtifactBranchValue.builder()
                 .action(action)
                 .version(version)
                 .branchOrder(branchOrder)
+                .versions(versions)
                 .build();
     }
 

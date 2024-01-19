@@ -64,8 +64,8 @@ public class RegistryExceptionMapperService {
         map.put(ArtifactAlreadyExistsException.class, HTTP_CONFLICT);
         map.put(ArtifactNotFoundException.class, HTTP_NOT_FOUND);
         map.put(BadRequestException.class, HTTP_BAD_REQUEST);
-        map.put(BranchNotFoundException.class, HTTP_NOT_FOUND);
-        map.put(BranchVersionAlreadyExistsException.class, HTTP_CONFLICT);
+        map.put(ArtifactBranchNotFoundException.class, HTTP_NOT_FOUND);
+        map.put(ArtifactBranchAlreadyContainsVersionException.class, HTTP_CONFLICT);
         map.put(ConfigPropertyNotFoundException.class, HTTP_NOT_FOUND);
         map.put(ConflictException.class, HTTP_CONFLICT);
         map.put(ContentNotFoundException.class, HTTP_NOT_FOUND);

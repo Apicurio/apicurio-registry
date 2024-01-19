@@ -2,26 +2,26 @@ package io.apicurio.registry.storage.impl.sql.mappers;
 
 import io.apicurio.registry.storage.impl.sql.SqlUtil;
 import io.apicurio.registry.storage.impl.sql.jdb.RowMapper;
-import io.apicurio.registry.utils.impexp.ArtifactVersionBranchEntity;
+import io.apicurio.registry.utils.impexp.ArtifactBranchEntity;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-public class ArtifactVersionBranchEntityMapper implements RowMapper<ArtifactVersionBranchEntity> {
+public class ArtifactBranchEntityMapper implements RowMapper<ArtifactBranchEntity> {
 
-    public static final ArtifactVersionBranchEntityMapper instance = new ArtifactVersionBranchEntityMapper();
+    public static final ArtifactBranchEntityMapper instance = new ArtifactBranchEntityMapper();
 
 
-    private ArtifactVersionBranchEntityMapper() {
+    private ArtifactBranchEntityMapper() {
     }
 
 
     @Override
-    public ArtifactVersionBranchEntity map(ResultSet rs) throws SQLException {
-        return ArtifactVersionBranchEntity.builder()
+    public ArtifactBranchEntity map(ResultSet rs) throws SQLException {
+        return ArtifactBranchEntity.builder()
                 .groupId(SqlUtil.denormalizeGroupId(rs.getString("groupId")))
                 .artifactId(rs.getString("artifactId"))
-                .branch(rs.getString("branch"))
+                .branchId(rs.getString("branchId"))
                 .branchOrder(rs.getInt("branchOrder"))
                 .version(rs.getString("version"))
                 .build();

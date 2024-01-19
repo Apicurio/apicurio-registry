@@ -1073,7 +1073,7 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
 
 
     @Test
-    public void testBranches() {
+    public void testArtifactBranches() {
 
         var ga = new GA(GROUP_ID, "foo");
 
@@ -1091,7 +1091,7 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         var latestBranch = storage().getArtifactBranch(ga, BranchId.LATEST, DEFAULT);
         Assertions.assertEquals(List.of(new GAV(ga, dtoV1.getVersion())), latestBranch);
 
-        var gavV1 = storage().getArtifactBranchLeaf(ga, BranchId.LATEST, DEFAULT);
+        var gavV1 = storage().getArtifactBranchTip(ga, BranchId.LATEST, DEFAULT);
         Assertions.assertNotNull(gavV1);
         Assertions.assertEquals(gavV1.getRawGroupIdWithDefaultString(), dtoV1.getGroupId());
         Assertions.assertEquals(gavV1.getRawArtifactId(), dtoV1.getId());
@@ -1118,13 +1118,13 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         var otherBranch = storage().getArtifactBranch(ga, otherBranchId, DEFAULT);
         Assertions.assertEquals(List.of(new GAV(ga, dtoV1.getVersion())), otherBranch);
 
-        var gavV2 = storage().getArtifactBranchLeaf(ga, BranchId.LATEST, DEFAULT);
+        var gavV2 = storage().getArtifactBranchTip(ga, BranchId.LATEST, DEFAULT);
         Assertions.assertNotNull(gavV2);
         Assertions.assertEquals(gavV2.getRawGroupIdWithDefaultString(), dtoV2.getGroupId());
         Assertions.assertEquals(gavV2.getRawArtifactId(), dtoV2.getId());
         Assertions.assertEquals(gavV2.getRawVersionId(), dtoV2.getVersion());
 
-        gavV1 = storage().getArtifactBranchLeaf(ga, otherBranchId, DEFAULT);
+        gavV1 = storage().getArtifactBranchTip(ga, otherBranchId, DEFAULT);
         Assertions.assertNotNull(gavV1);
         Assertions.assertEquals(gavV1.getRawGroupIdWithDefaultString(), dtoV1.getGroupId());
         Assertions.assertEquals(gavV1.getRawArtifactId(), dtoV1.getId());
@@ -1139,15 +1139,15 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         ), branches);
 
         Assertions.assertEquals(storage().getArtifactBranch(ga, BranchId.LATEST, DEFAULT), storage().getArtifactBranch(ga, otherBranchId, DEFAULT));
-        Assertions.assertEquals(storage().getArtifactBranchLeaf(ga, BranchId.LATEST, DEFAULT), storage().getArtifactBranchLeaf(ga, otherBranchId, DEFAULT));
+        Assertions.assertEquals(storage().getArtifactBranchTip(ga, BranchId.LATEST, DEFAULT), storage().getArtifactBranchTip(ga, otherBranchId, DEFAULT));
 
         storage().updateArtifactState(gavV2.getRawGroupIdWithDefaultString(), gavV2.getRawArtifactId(), gavV2.getRawVersionId(), ArtifactState.DISABLED);
         Assertions.assertEquals(List.of(gavV1), storage().getArtifactBranch(ga, BranchId.LATEST, SKIP_DISABLED_LATEST));
-        Assertions.assertEquals(gavV1, storage().getArtifactBranchLeaf(ga, BranchId.LATEST, ArtifactRetrievalBehavior.SKIP_DISABLED_LATEST));
+        Assertions.assertEquals(gavV1, storage().getArtifactBranchTip(ga, BranchId.LATEST, ArtifactRetrievalBehavior.SKIP_DISABLED_LATEST));
 
         storage().updateArtifactState(gavV2.getRawGroupIdWithDefaultString(), gavV2.getRawArtifactId(), gavV2.getRawVersionId(), ArtifactState.ENABLED);
         Assertions.assertEquals(List.of(gavV2, gavV1), storage().getArtifactBranch(ga, BranchId.LATEST, SKIP_DISABLED_LATEST));
-        Assertions.assertEquals(gavV2, storage().getArtifactBranchLeaf(ga, BranchId.LATEST, ArtifactRetrievalBehavior.SKIP_DISABLED_LATEST));
+        Assertions.assertEquals(gavV2, storage().getArtifactBranchTip(ga, BranchId.LATEST, ArtifactRetrievalBehavior.SKIP_DISABLED_LATEST));
 
         storage().deleteArtifactVersion(gavV1.getRawGroupIdWithDefaultString(), gavV1.getRawArtifactId(), gavV1.getRawVersionId());
 
@@ -1156,8 +1156,8 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
 
         storage().deleteArtifactBranch(ga, otherBranchId);
 
-        Assertions.assertThrows(BranchNotFoundException.class, () -> storage().getArtifactBranch(ga, otherBranchId, DEFAULT));
-        Assertions.assertThrows(VersionNotFoundException.class, () -> storage().getArtifactBranchLeaf(ga, otherBranchId, DEFAULT));
+        Assertions.assertThrows(ArtifactBranchNotFoundException.class, () -> storage().getArtifactBranch(ga, otherBranchId, DEFAULT));
+        Assertions.assertThrows(VersionNotFoundException.class, () -> storage().getArtifactBranchTip(ga, otherBranchId, DEFAULT));
 
         Assertions.assertThrows(NotAllowedException.class, () -> storage().deleteArtifactBranch(ga, BranchId.LATEST));
     }

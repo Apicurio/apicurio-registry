@@ -720,7 +720,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
 
     @Override
     public String exportArtifactBranches() {
-        return "SELECT * FROM artifact_version_branches avb";
+        return "SELECT * FROM artifact_branches ab";
     }
 
 
@@ -1017,106 +1017,99 @@ public abstract class CommonSqlStatements implements SqlStatements {
 
     @Override
     public String selectArtifactBranches() {
-        return "SELECT avb.groupId, avb.artifactId, avb.branch, avb.branchOrder, avb.version FROM artifact_version_branches avb " +
-                "WHERE avb.groupId = ? AND avb.artifactId = ?";
+        return "SELECT ab.groupId, ab.artifactId, ab.branchId, ab.branchOrder, ab.version FROM artifact_branches ab " +
+                "WHERE ab.groupId = ? AND ab.artifactId = ?";
     }
 
 
     @Override
     public String selectArtifactBranchOrdered() {
-        return "SELECT avb.groupId, avb.artifactId, avb.branch, avb.branchOrder, avb.version FROM artifact_version_branches avb " +
-                "WHERE avb.groupId = ? AND avb.artifactId = ? AND avb.branch = ? " +
-                "ORDER BY avb.branchOrder DESC";
+        return "SELECT ab.groupId, ab.artifactId, ab.branchId, ab.branchOrder, ab.version FROM artifact_branches ab " +
+                "WHERE ab.groupId = ? AND ab.artifactId = ? AND ab.branchId = ? " +
+                "ORDER BY ab.branchOrder DESC";
     }
 
 
     @Override
     public String selectArtifactBranchOrderedNotDisabled() {
-        return "SELECT avb.groupId, avb.artifactId, avb.branch, avb.branchOrder, avb.version FROM artifact_version_branches avb " +
-                "JOIN versions v ON avb.groupId = v.groupId AND avb.artifactId = v.artifactId AND avb.version = v.version " +
-                "WHERE avb.groupId = ? AND avb.artifactId = ? AND avb.branch = ? AND v.state != 'DISABLED' " +
-                "ORDER BY avb.branchOrder DESC";
-    }
-
-
-    @Override
-    public String selectDoesArtifactBranchContainVersion() {
-        return "SELECT 1 FROM artifact_version_branches avb " +
-                "WHERE avb.groupId = ? AND avb.artifactId = ? AND avb.branch = ? AND avb.version = ? ";
+        return "SELECT ab.groupId, ab.artifactId, ab.branchId, ab.branchOrder, ab.version FROM artifact_branches ab " +
+                "JOIN versions v ON ab.groupId = v.groupId AND ab.artifactId = v.artifactId AND ab.version = v.version " +
+                "WHERE ab.groupId = ? AND ab.artifactId = ? AND ab.branchId = ? AND v.state != 'DISABLED' " +
+                "ORDER BY ab.branchOrder DESC";
     }
 
 
     @Override
     public String insertArtifactBranch() {
         // Note: Duplicated value of branchOrder is prevented by primary key
-        return "INSERT INTO artifact_version_branches (groupId, artifactId, branch, branchOrder, version) " +
-                "SELECT ?, ?, ?, COALESCE(MAX(avb.branchOrder), 0) + 1, ? FROM artifact_version_branches avb " +
-                "WHERE avb.groupId = ? AND avb.artifactId = ? AND avb.branch = ?";
+        return "INSERT INTO artifact_branches (groupId, artifactId, branchId, branchOrder, version) " +
+                "SELECT ?, ?, ?, COALESCE(MAX(ab.branchOrder), 0) + 1, ? FROM artifact_branches ab " +
+                "WHERE ab.groupId = ? AND ab.artifactId = ? AND ab.branchId = ?";
     }
 
 
     @Override
-    public String selectArtifactBranchLeaf() {
-        return "SELECT avb.groupId, avb.artifactId, avb.version FROM artifact_version_branches avb " +
-                "WHERE avb.groupId = ? AND avb.artifactId = ? AND avb.branch = ? " +
-                "ORDER BY avb.branchOrder DESC LIMIT 1";
+    public String selectArtifactBranchTip() {
+        return "SELECT ab.groupId, ab.artifactId, ab.version FROM artifact_branches ab " +
+                "WHERE ab.groupId = ? AND ab.artifactId = ? AND ab.branchId = ? " +
+                "ORDER BY ab.branchOrder DESC LIMIT 1";
     }
 
 
     @Override
-    public String selectArtifactBranchLeafNotDisabled() {
-        return "SELECT avb.groupId, avb.artifactId, avb.version FROM artifact_version_branches avb " +
-                "JOIN versions v ON avb.groupId = v.groupId AND avb.artifactId = v.artifactId AND avb.version = v.version " +
-                "WHERE avb.groupId = ? AND avb.artifactId = ? AND avb.branch = ? AND v.state != 'DISABLED' " +
-                "ORDER BY avb.branchOrder DESC LIMIT 1";
+    public String selectArtifactBranchTipNotDisabled() {
+        return "SELECT ab.groupId, ab.artifactId, ab.version FROM artifact_branches ab " +
+                "JOIN versions v ON ab.groupId = v.groupId AND ab.artifactId = v.artifactId AND ab.version = v.version " +
+                "WHERE ab.groupId = ? AND ab.artifactId = ? AND ab.branchId = ? AND v.state != 'DISABLED' " +
+                "ORDER BY ab.branchOrder DESC LIMIT 1";
     }
 
 
     @Override
     public String deleteArtifactBranch() {
-        return "DELETE FROM artifact_version_branches " +
-                "WHERE groupId = ? AND artifactId = ? AND branch = ?";
+        return "DELETE FROM artifact_branches " +
+                "WHERE groupId = ? AND artifactId = ? AND branchId = ?";
     }
 
 
     @Override
-    public String deleteAllBranchesInArtifact() {
-        return "DELETE FROM artifact_version_branches " +
+    public String deleteAllArtifactBranchesInArtifact() {
+        return "DELETE FROM artifact_branches " +
                 "WHERE groupId = ? AND artifactId = ?";
     }
 
 
     @Override
-    public String deleteAllBranchesInGroup() {
-        return "DELETE FROM artifact_version_branches " +
+    public String deleteAllArtifactBranchesInGroup() {
+        return "DELETE FROM artifact_branches " +
                 "WHERE groupId = ?";
     }
 
 
     @Override
-    public String deleteAllBranches() {
-        return "DELETE FROM artifact_version_branches";
+    public String deleteAllArtifactBranches() {
+        return "DELETE FROM artifact_branches";
     }
 
 
     @Override
-    public String deleteVersionInBranches() {
-        return "DELETE FROM artifact_version_branches " +
+    public String deleteVersionInArtifactBranches() {
+        return "DELETE FROM artifact_branches " +
                 "WHERE groupId = ? AND artifactId = ? AND version = ?";
     }
 
 
     @Override
-    public String selectVersionsWithoutBranch() {
+    public String selectVersionsWithoutArtifactBranch() {
         return "SELECT DISTINCT v.groupId, v.artifactId, v.version FROM versions v " +
-                "LEFT JOIN artifact_version_branches avb ON v.groupId = avb.groupId AND v.artifactId = avb.artifactId AND v.version = avb.version " +
-                "WHERE v.groupId = ? AND v.artifactId = ? AND avb.branch IS NULL";
+                "LEFT JOIN artifact_branches ab ON v.groupId = ab.groupId AND v.artifactId = ab.artifactId AND v.version = ab.version " +
+                "WHERE v.groupId = ? AND v.artifactId = ? AND ab.branchId IS NULL";
     }
 
 
     @Override
     public String importArtifactBranch() {
-        return "INSERT INTO artifact_version_branches (groupId, artifactId, branch, branchOrder, version) " +
+        return "INSERT INTO artifact_branches (groupId, artifactId, branchId, branchOrder, version) " +
                 "VALUES(?, ?, ?, ?, ?)";
     }
 }

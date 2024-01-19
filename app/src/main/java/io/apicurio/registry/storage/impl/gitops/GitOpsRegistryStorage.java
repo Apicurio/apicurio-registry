@@ -502,8 +502,8 @@ public class GitOpsRegistryStorage extends AbstractReadOnlyRegistryStorage {
 
 
     @Override
-    public GAV getArtifactBranchLeaf(GA ga, BranchId branchId, ArtifactRetrievalBehavior behavior) {
-        return proxy(storage -> storage.getArtifactBranchLeaf(ga, branchId, behavior));
+    public GAV getArtifactBranchTip(GA ga, BranchId branchId, ArtifactRetrievalBehavior behavior) {
+        return proxy(storage -> storage.getArtifactBranchTip(ga, branchId, behavior));
     }
 
 

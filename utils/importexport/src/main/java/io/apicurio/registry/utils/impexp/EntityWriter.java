@@ -52,8 +52,8 @@ public class EntityWriter {
             case Comment:
                 writeEntity((CommentEntity) entity);
                 break;
-            case ArtifactVersionBranch:
-                writeEntity((ArtifactVersionBranchEntity) entity);
+            case ArtifactBranch:
+                writeEntity((ArtifactBranchEntity) entity);
                 break;
             case Manifest:
                 writeEntity((ManifestEntity) entity);
@@ -106,9 +106,9 @@ public class EntityWriter {
         write(mdEntry, entity, CommentEntity.class);
     }
 
-    private void writeEntity(ArtifactVersionBranchEntity entity) throws IOException {
-        ZipEntry mdEntry = createZipEntry(EntityType.ArtifactVersionBranch, entity.groupId, entity.artifactId, entity.branch + '-' + entity.branchOrder, "json");
-        write(mdEntry, entity, ArtifactVersionBranchEntity.class);
+    private void writeEntity(ArtifactBranchEntity entity) throws IOException {
+        ZipEntry mdEntry = createZipEntry(EntityType.ArtifactBranch, entity.groupId, entity.artifactId, entity.branchId + '-' + entity.branchOrder, "json");
+        write(mdEntry, entity, ArtifactBranchEntity.class);
     }
 
     private ZipEntry createZipEntry(EntityType type, String fileName, String fileExt) {
@@ -122,7 +122,7 @@ public class EntityWriter {
                 path = String.format("groups/%s/artifacts/%s/rules/%s.%s.%s", groupOrDefault(groupId), artifactId, fileName, type.name(), fileExt);
                 break;
             case ArtifactVersion:
-            case ArtifactVersionBranch:
+            case ArtifactBranch:
                 path = String.format("groups/%s/artifacts/%s/versions/%s.%s.%s", groupOrDefault(groupId), artifactId, fileName, type.name(), fileExt);
                 break;
             case Content:

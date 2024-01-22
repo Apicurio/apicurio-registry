@@ -1,21 +1,20 @@
 name: Verify Build Workflow
 on:
   push:
-  # TODO: restore me
-  #   paths-ignore:
-  #     - '.gitignore'
-  #     - 'LICENSE'
-  #     - 'README*'
-  #     - 'docs/**'
-  #     - '.github/workflows/**'
-  #   branches: [ main, '[1-9].[0-9].x' ]
-  # pull_request:
-  #   paths-ignore:
-  #     - '.gitignore'
-  #     - 'LICENSE'
-  #     - 'README*'
-  #     - 'docs/**'
-  #   branches: [ main, '[1-9].[0-9].x' ]
+    paths-ignore:
+      - '.gitignore'
+      - 'LICENSE'
+      - 'README*'
+      - 'docs/**'
+      - '.github/workflows/**'
+    branches: [ main, '[1-9].[0-9].x' ]
+  pull_request:
+    paths-ignore:
+      - '.gitignore'
+      - 'LICENSE'
+      - 'README*'
+      - 'docs/**'
+    branches: [ main, '[1-9].[0-9].x' ]
 
 concurrency:
   # Only run once for latest commit per ref and cancel other (previous) runs.
@@ -29,8 +28,7 @@ jobs:
   build-verify:
     name: Verify Application Build
     runs-on: ubuntu-20.04
-    # TODO: restore me
-    # if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
+    if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
     steps:
       - name: Checkout Code with Ref '${{ github.ref }}'
         uses: actions/checkout@v3
@@ -112,8 +110,7 @@ jobs:
   build-verify-ui:
     name: Verify UI Build
     runs-on: ubuntu-20.04
-    # TODO: restore me
-    # if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
+    if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
     steps:
       - name: Checkout Code with Ref '${{ github.ref }}'
         uses: actions/checkout@v3
@@ -205,8 +202,7 @@ jobs:
   build-native-images:
     name: Build and Test Native images
     runs-on: ubuntu-20.04
-    # TODO: restore me
-    # if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
+    if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
     steps:
       - name: Checkout Code with Ref '${{ github.ref }}'
         uses: actions/checkout@v3
@@ -310,7 +306,6 @@ jobs:
   build-verify-python-sdk:
     name: Verify Python SDK
     runs-on: ubuntu-20.04
-    # TODO: restore me
     # if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
     steps:
       - name: Checkout Code with Ref '${{ github.ref }}'
@@ -348,7 +343,6 @@ jobs:
   build-verify-go-sdk:
     name: Verify Go SDK
     runs-on: ubuntu-20.04
-    # TODO: restore me
     # if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
     steps:
       - name: Checkout Code with Ref '${{ github.ref }}'

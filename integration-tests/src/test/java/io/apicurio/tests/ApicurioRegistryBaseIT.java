@@ -8,7 +8,6 @@ import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.*;
 import io.apicurio.registry.utils.tests.SimpleDisplayName;
 import io.apicurio.registry.utils.tests.TestUtils;
-import io.apicurio.rest.client.auth.exception.NotAuthorizedException;
 import io.apicurio.tests.utils.Constants;
 import io.apicurio.tests.utils.RegistryWaitUtils;
 import io.apicurio.tests.utils.RestConstants;
@@ -694,14 +693,8 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
 
     protected void assertNotAuthorized(Exception exception) {
         assertNotNull(exception);
-
-        if (exception instanceof NotAuthorizedException) {
-            // thrown by the token provider adapter
-        } else {
-            // mapped by Kiota
-            Assertions.assertEquals(ApiException.class, exception.getClass());
-            Assertions.assertEquals(401, ((ApiException) exception).getResponseStatusCode());
-        }
+        Assertions.assertEquals(ApiException.class, exception.getClass());
+        Assertions.assertEquals(401, ((ApiException)exception).getResponseStatusCode());
     }
 
     protected void assertForbidden(Exception exception) {

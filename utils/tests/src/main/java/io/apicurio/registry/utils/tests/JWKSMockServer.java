@@ -93,61 +93,10 @@ public class JWKSMockServer implements QuarkusTestResourceLifecycleManager {
         stubForClient(NO_ROLE_CLIENT_ID, "test1");
         stubForClient(NO_ROLE_CLIENT_ID, "test1");
 
-
-        //Stub for clients with credentials as header
         stubForClient(BASIC_USER, BASIC_PASSWORD);
-
-        //Stub for basic user
-        server.stubFor(WireMock.post("/auth/realms/" + realm + "/protocol/openid-connect/token/")
-                .withRequestBody(WireMock.containing("grant_type=client_credentials"))
-                .withRequestBody(WireMock.containing("client_id=" + BASIC_USER))
-                .withRequestBody(WireMock.containing("client_secret=" + BASIC_PASSWORD))
-                .willReturn(WireMock.aResponse()
-                        .withHeader("Content-Type", "application/json")
-                        .withBody("{\n" +
-                                "  \"access_token\": \""
-                                + generateJwtToken(ADMIN_CLIENT_ID, null) + "\",\n" +
-                                "  \"refresh_token\": \"07e08903-1263-4dd1-9fd1-4a59b0db5283\",\n" +
-                                "  \"token_type\": \"bearer\"\n" +
-                                "}")));
-
-        //Stub for basic user a
-        server.stubFor(WireMock.post("/auth/realms/" + realm + "/protocol/openid-connect/token/")
-                .withRequestBody(WireMock.containing("grant_type=client_credentials"))
-                .withRequestBody(WireMock.containing("client_id=" + BASIC_USER_A))
-                .withRequestBody(WireMock.containing("client_secret=" + BASIC_PASSWORD))
-                .willReturn(WireMock.aResponse()
-                        .withHeader("Content-Type", "application/json")
-                        .withBody("{\n" +
-                                "  \"access_token\": \""
-                                + generateJwtToken(ADMIN_CLIENT_ID, "aaa") + "\",\n" +
-                                "  \"refresh_token\": \"07e08903-1263-4dd1-9fd1-4a59b0db5283\",\n" +
-                                "  \"token_type\": \"bearer\"\n" +
-                                "}")));
-
-        //Stub for basic user b
-        server.stubFor(WireMock.post("/auth/realms/" + realm + "/protocol/openid-connect/token/")
-                .withRequestBody(WireMock.containing("grant_type=client_credentials"))
-                .withRequestBody(WireMock.containing("client_id=" + BASIC_USER_B))
-                .withRequestBody(WireMock.containing("client_secret=" + BASIC_PASSWORD))
-                .willReturn(WireMock.aResponse()
-                        .withHeader("Content-Type", "application/json")
-                        .withBody("{\n" +
-                                "  \"access_token\": \""
-                                + generateJwtToken(ADMIN_CLIENT_ID, "bbb") + "\",\n" +
-                                "  \"refresh_token\": \"07e08903-1263-4dd1-9fd1-4a59b0db5283\",\n" +
-                                "  \"token_type\": \"bearer\"\n" +
-                                "}")));
-
-
-        //Wrong credentials stub
-        server.stubFor(WireMock.post("/auth/realms/" + realm + "/protocol/openid-connect/token/")
-                .withRequestBody(WireMock.containing("grant_type=client_credentials"))
-                .withRequestBody(WireMock.containing("client_id=" + WRONG_CREDS_CLIENT_ID))
-                .willReturn(WireMock.aResponse()
-                        .withHeader("Content-Type", "application/json")
-                        .withStatus(401)));
-
+        stubForBasicUser(BASIC_USER, BASIC_PASSWORD);
+        stubForBasicUser(BASIC_USER_A, BASIC_PASSWORD);
+        stubForBasicUser(BASIC_USER_B, BASIC_PASSWORD);
         stubForClientWithWrongCreds(WRONG_CREDS_CLIENT_ID, "test55");
 
         this.authServerUrl = server.baseUrl() + "/auth";
@@ -200,7 +149,49 @@ public class JWKSMockServer implements QuarkusTestResourceLifecycleManager {
                 .sign();
     }
 
+    private void stubForBasicUser(String username, String password) {
+        //TODO:carnalca this will be revisited with the auth refactor
+        server.stubFor(WireMock.post("/auth/realms/" + realm + "/protocol/openid-connect/token")
+                .withRequestBody(WireMock.containing("grant_type=client_credentials"))
+                .withRequestBody(WireMock.containing("client_id=" + username))
+                .withRequestBody(WireMock.containing("client_secret=" + password))
+                .willReturn(WireMock.aResponse()
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\n" +
+                                "  \"access_token\": \""
+                                + generateJwtToken(ADMIN_CLIENT_ID, null) + "\",\n" +
+                                "  \"refresh_token\": \"07e08903-1263-4dd1-9fd1-4a59b0db5283\",\n" +
+                                "  \"token_type\": \"bearer\"\n" +
+                                "}")));
+
+        server.stubFor(WireMock.post("/auth/realms/" + realm + "/protocol/openid-connect/token/")
+                .withRequestBody(WireMock.containing("grant_type=client_credentials"))
+                .withRequestBody(WireMock.containing("client_id=" + BASIC_USER))
+                .withRequestBody(WireMock.containing("client_secret=" + BASIC_PASSWORD))
+                .willReturn(WireMock.aResponse()
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\n" +
+                                "  \"access_token\": \""
+                                + generateJwtToken(ADMIN_CLIENT_ID, null) + "\",\n" +
+                                "  \"refresh_token\": \"07e08903-1263-4dd1-9fd1-4a59b0db5283\",\n" +
+                                "  \"token_type\": \"bearer\"\n" +
+                                "}")));
+    }
+
     private void stubForClient(String client) {
+        //TODO:carnalca this will be revisited with the auth refactor
+        server.stubFor(WireMock.post("/auth/realms/" + realm + "/protocol/openid-connect/token")
+                .withRequestBody(WireMock.containing("grant_type=client_credentials"))
+                .withRequestBody(WireMock.containing("client_id=" + client))
+                .willReturn(WireMock.aResponse()
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\n" +
+                                "  \"access_token\": \""
+                                + generateJwtToken(client, null) + "\",\n" +
+                                "  \"refresh_token\": \"07e08903-1263-4dd1-9fd1-4a59b0db5283\",\n" +
+                                "  \"token_type\": \"bearer\"\n" +
+                                "}")));
+
         server.stubFor(WireMock.post("/auth/realms/" + realm + "/protocol/openid-connect/token/")
                 .withRequestBody(WireMock.containing("grant_type=client_credentials"))
                 .withRequestBody(WireMock.containing("client_id=" + client))
@@ -215,6 +206,19 @@ public class JWKSMockServer implements QuarkusTestResourceLifecycleManager {
     }
 
     private void stubForClient(String client, String clientSecret) {
+        //TODO:carnalca this will be revisited with the auth refactor
+        server.stubFor(WireMock.post("/auth/realms/" + realm + "/protocol/openid-connect/token")
+                .withHeader("Authorization", WireMock.containing(buildBasicAuthHeader(client, clientSecret)))
+                .withRequestBody(WireMock.containing("grant_type=client_credentials"))
+                .willReturn(WireMock.aResponse()
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\n" +
+                                "  \"access_token\": \""
+                                + generateJwtToken(client, null) + "\",\n" +
+                                "  \"refresh_token\": \"07e08903-1263-4dd1-9fd1-4a59b0db5283\",\n" +
+                                "  \"token_type\": \"bearer\"\n" +
+                                "}")));
+
         server.stubFor(WireMock.post("/auth/realms/" + realm + "/protocol/openid-connect/token/")
                 .withHeader("Authorization", WireMock.containing(buildBasicAuthHeader(client, clientSecret)))
                 .withRequestBody(WireMock.containing("grant_type=client_credentials"))
@@ -229,9 +233,33 @@ public class JWKSMockServer implements QuarkusTestResourceLifecycleManager {
     }
 
     private void stubForClientWithWrongCreds(String client, String clientSecret) {
+        //TODO:carnalca this will be revisited with the auth refactor
+        server.stubFor(WireMock.post("/auth/realms/" + realm + "/protocol/openid-connect/token")
+                .withRequestBody(WireMock.containing("grant_type=client_credentials"))
+                .withHeader("Authorization", WireMock.containing(buildBasicAuthHeader(client, clientSecret)))
+                .willReturn(WireMock.aResponse()
+                        .withHeader("Content-Type", "application/json")
+                        .withStatus(401)));
+
         server.stubFor(WireMock.post("/auth/realms/" + realm + "/protocol/openid-connect/token/")
                 .withRequestBody(WireMock.containing("grant_type=client_credentials"))
                 .withHeader("Authorization", WireMock.containing(buildBasicAuthHeader(client, clientSecret)))
+                .willReturn(WireMock.aResponse()
+                        .withHeader("Content-Type", "application/json")
+                        .withStatus(401)));
+
+        //Wrong credentials stub
+        server.stubFor(WireMock.post("/auth/realms/" + realm + "/protocol/openid-connect/token")
+                .withRequestBody(WireMock.containing("grant_type=client_credentials"))
+                .withRequestBody(WireMock.containing("client_id=" + WRONG_CREDS_CLIENT_ID))
+                .willReturn(WireMock.aResponse()
+                        .withHeader("Content-Type", "application/json")
+                        .withStatus(401)));
+
+        //Wrong credentials stub
+        server.stubFor(WireMock.post("/auth/realms/" + realm + "/protocol/openid-connect/token/")
+                .withRequestBody(WireMock.containing("grant_type=client_credentials"))
+                .withRequestBody(WireMock.containing("client_id=" + WRONG_CREDS_CLIENT_ID))
                 .willReturn(WireMock.aResponse()
                         .withHeader("Content-Type", "application/json")
                         .withStatus(401)));

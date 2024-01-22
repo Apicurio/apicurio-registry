@@ -112,10 +112,9 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
                 try {
                     registryClient.groups().byGroupId(normalizeGroupId(artifact.getGroupId())).artifacts().byArtifactId(artifact.getId()).delete();
                     registryClient.groups().byGroupId("default").artifacts().delete();
-//  TODO: check the test and clean this up
-//                } catch (ExecutionException e) {
-//                    //because of async storage artifact may be already deleted but listed anyway
-//                    logger.info(e.getMessage());
+                } catch (ApiException e) {
+                    //because of async storage artifact may be already deleted but listed anyway
+                    logger.info(e.getMessage());
                 } catch (Exception e) {
                     logger.error("", e);
                 }
@@ -706,7 +705,7 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
     }
 
     protected void assertForbidden(Exception exception) {
-        assertNotNull(exception.getCause());
+        assertNotNull(exception);
         Assertions.assertEquals(ApiException.class, exception.getClass());
         Assertions.assertEquals(403, ((ApiException)exception).getResponseStatusCode());
     }

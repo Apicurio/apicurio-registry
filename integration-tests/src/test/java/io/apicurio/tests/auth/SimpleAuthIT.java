@@ -103,7 +103,7 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
 
         UserInfo userInfo = client.users().me().get();
         assertNotNull(userInfo);
-        Assertions.assertEquals("service-account-readonly-client", userInfo.getUsername());
+        Assertions.assertEquals("readonly-client", userInfo.getUsername());
         Assertions.assertFalse(userInfo.getAdmin());
         Assertions.assertFalse(userInfo.getDeveloper());
         Assertions.assertTrue(userInfo.getViewer());
@@ -138,7 +138,7 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
 
             UserInfo userInfo = client.users().me().get();
             assertNotNull(userInfo);
-            Assertions.assertEquals("service-account-developer-client", userInfo.getUsername());
+            Assertions.assertEquals("developer-client", userInfo.getUsername());
             Assertions.assertFalse(userInfo.getAdmin());
             Assertions.assertTrue(userInfo.getDeveloper());
             Assertions.assertFalse(userInfo.getViewer());
@@ -173,7 +173,7 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
 
             UserInfo userInfo = client.users().me().get();
             assertNotNull(userInfo);
-            Assertions.assertEquals("service-account-admin-client", userInfo.getUsername());
+            Assertions.assertEquals("admin-client", userInfo.getUsername());
             Assertions.assertTrue(userInfo.getAdmin());
             Assertions.assertFalse(userInfo.getDeveloper());
             Assertions.assertFalse(userInfo.getViewer());

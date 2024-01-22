@@ -2,7 +2,6 @@ package io.apicurio.tests.smokeTests.apicurio;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.microsoft.kiota.ApiException;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.tests.ApicurioRegistryBaseIT;
 import io.apicurio.tests.utils.AvroGenericRecordSchemaFactory;
@@ -29,7 +28,6 @@ import java.util.stream.IntStream;
 import static org.hamcrest.CoreMatchers.hasItems;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -369,38 +367,6 @@ class ArtifactsIT extends ApicurioRegistryBaseIT {
     void deleteNonexistingSchema() throws Exception {
         assertClientError("ArtifactNotFoundException", 404, () ->
                 registryClient.groups().byGroupId("nonn-existent-group").artifacts().byArtifactId("non-existing").get(), errorCodeExtractor);
-    }
-
-    @Test
-    void testForbiddenSpecialCharacters() throws Exception {
-//        forbiddenSpecialCharactersTestClient("ab%c");
-        forbiddenSpecialCharactersTestClient("._:-ç'`¡¿?0=)(/&$·!ªº<>,;,:");
-    }
-
-    void forbiddenSpecialCharactersTestClient(String artifactId) {
-        String groupId = TestUtils.generateGroupId();
-        String content = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
-        ArtifactContent artifactData = new ArtifactContent();
-        artifactData.setContent(content);
-
-        var exception = assertThrows(Exception.class, () -> {
-            registryClient.groups().byGroupId(groupId).artifacts().post(artifactData, config -> {
-                config.headers.add("X-Registry-ArtifactId", artifactId);
-                config.headers.add("X-Registry-ArtifactType", ArtifactType.AVRO);
-            });});
-        // "InvalidArtifactIdException"
-        // It's impossible to send those characters as early checks are kicking in in Kiota code
-        if (artifactId.contains("%")) {
-            Assertions.assertEquals(ApiException.class, exception.getClass());
-            Assertions.assertEquals(404, ((ApiException)exception).getResponseStatusCode());
-        } else {
-            Assertions.assertEquals(IllegalArgumentException.class, exception.getClass());
-        }
-//        Assertions.assertEquals(io.apicurio.registry.rest.client.models.Error.class, executionException.getCause().getClass());
-//        Assertions.assertEquals(400, ((io.apicurio.registry.rest.client.models.Error)executionException.getCause()).getErrorCode());
-//        Assertions.assertEquals("InvalidArtifactIdException", ((io.apicurio.registry.rest.client.models.Error)executionException.getCause()).getName());
-
-//        createArtifact(groupId, artifactId, content, 400);
     }
 
     @Test

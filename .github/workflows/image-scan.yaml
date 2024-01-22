@@ -14,4 +14,4 @@ jobs:
   call-image-scan-registry:
     uses: Apicurio/apicurio-gh-workflows/.github/workflows/image-scan.yaml@main
     with:
-      image: ${{ github.event.inputs.release-version }}
+      image: ${{ github.event.inputs.image }}

@@ -200,9 +200,8 @@
 
         <!-- JSON Schema Validator -->
         <org.everit.json.schema.version>1.14.4</org.everit.json.schema.version>
-        <org.json>20231013</org.json><!-- TODO unification -->
-        <jackson-datatype-json-org.version>2.16.1</jackson-datatype-json-org.version>
-        <jackson-dataformat-yaml.version>2.16.1</jackson-dataformat-yaml.version>
+        <org.json>20231013</org.json>
+        <jackson.version>2.15.2</jackson.version>
 
         <!-- Dependency versions -->
         <lombok.version>1.18.30</lombok.version>
@@ -665,12 +664,12 @@
             <dependency>
                 <groupId>com.fasterxml.jackson.datatype</groupId>
                 <artifactId>jackson-datatype-json-org</artifactId>
-                <version>${jackson-datatype-json-org.version}</version>
+                <version>${jackson.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.fasterxml.jackson.dataformat</groupId>
                 <artifactId>jackson-dataformat-yaml</artifactId>
-                <version>${jackson-dataformat-yaml.version}</version>
+                <version>${jackson.version}</version>
             </dependency>
 
             <dependency>

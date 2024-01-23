@@ -12,7 +12,7 @@
   },
   "devDependencies": {
     "@apicurio/eslint-config": "0.2.0",
-    "@playwright/test": "1.41.0",
+    "@playwright/test": "1.41.1",
     "@types/node": "20.11.5",
     "@typescript-eslint/eslint-plugin": "6.19.0",
     "@typescript-eslint/parser": "6.19.0",

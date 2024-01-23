@@ -1,6 +1,5 @@
 import React, { FunctionComponent } from "react";
 import { Tab, Tabs, TabTitleText } from "@patternfly/react-core";
-import { IfAuth } from "@app/components";
 import { Services } from "@services/services.ts";
 import { AppNavigation, useAppNavigation } from "@hooks/useAppNavigation.ts";
 

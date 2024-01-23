@@ -41,13 +41,8 @@ public class SchemasResourceImpl extends AbstractResource implements SchemasReso
             references = artifactVersion.getReferences();
         } else {
             ContentWrapperDto contentWrapper = storage.getArtifactByContentId(id);
-            contentHandle = storage.getArtifactByContentId(id).getContent();
+            contentHandle = contentWrapper.getContent();
             references = contentWrapper.getReferences();
-            List<ArtifactMetaDataDto> artifacts = storage.getArtifactVersionsByContentId(id);
-            if (artifacts == null || artifacts.isEmpty()) {
-                //the contentId points to an orphaned content
-                throw new ArtifactNotFoundException("ContentId: " + id);
-            }
         }
         return converter.convert(contentHandle, ArtifactTypeUtil.determineArtifactType(contentHandle, null, null, storage.resolveReferences(references), factory.getAllArtifactTypes()), references);
     }

@@ -1,6 +1,6 @@
 var ApicurioRegistryConfig = {
     artifacts: {
-        url: "https://apicurio-registry-api-rhaf-apicurio-registry.apps.dev-eng-ocp4-mas.dev.3sca.net/apis/registry/v2"
+        url: "https://apicurio-registry-api-rhaf-apicurio-registry.apps.dev-eng-ocp4-mas.dev.3sca.net/apis/registry/v3"
     },
     ui: {
         contextPath: "/",

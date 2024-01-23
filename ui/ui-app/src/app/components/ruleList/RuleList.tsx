@@ -1,8 +1,16 @@
 import React, { FunctionComponent } from "react";
 import "./RuleList.css";
-import { Button, Flex, FlexItem, Grid, GridItem, Tooltip } from "@patternfly/react-core";
+import { Button, Flex, FlexItem, Grid, GridItem, TextContent, Tooltip } from "@patternfly/react-core";
 import { CheckIcon, CodeBranchIcon, OkIcon, TrashIcon } from "@patternfly/react-icons";
-import { CompatibilitySelect, IfAuth, IfFeature, IntegritySelect, ValiditySelect } from "@app/components";
+import {
+    CompatibilityLabel,
+    CompatibilitySelect,
+    IntegrityLabel,
+    IntegritySelect,
+    RuleValue,
+    ValidityLabel,
+    ValiditySelect
+} from "@app/components";
 import { Rule } from "@models/rule.model.ts";
 
 
@@ -11,6 +19,7 @@ export type RuleListProps = {
     onDisableRule: (ruleType: string) => void;
     onConfigureRule: (ruleType: string, config: string) => void;
     rules: Rule[];
+    isGlobalRules: boolean;
 };
 
 const NAME_COLUMN_WIDTH: string = "250px";
@@ -63,6 +72,12 @@ export const RuleList: FunctionComponent<RuleListProps> = (props: RuleListProps)
         };
     };
 
+    const validityRuleLabel: React.ReactElement = (
+        <TextContent>
+            <ValidityLabel value={getRuleConfig("VALIDITY")} />
+        </TextContent>
+    );
+
     let validityRuleActions: React.ReactElement = (
         <Button variant="secondary"
             key="enable-action"
@@ -82,6 +97,13 @@ export const RuleList: FunctionComponent<RuleListProps> = (props: RuleListProps)
             </React.Fragment>
         );
     }
+
+    const compatibilityRuleLabel: React.ReactElement = (
+        <TextContent>
+            <CompatibilityLabel value={getRuleConfig("COMPATIBILITY")} />
+        </TextContent>
+    );
+
     let compatibilityRuleActions: React.ReactElement = (
         <Button variant="secondary"
             key="enable-action"
@@ -101,6 +123,13 @@ export const RuleList: FunctionComponent<RuleListProps> = (props: RuleListProps)
             </React.Fragment>
         );
     }
+
+    const integrityRuleLabel: React.ReactElement = (
+        <TextContent>
+            <IntegrityLabel value={getRuleConfig("INTEGRITY")} />
+        </TextContent>
+    );
+
     let integrityRuleActions: React.ReactElement = (
         <Button variant="secondary"
             key="enable-action"
@@ -147,11 +176,7 @@ export const RuleList: FunctionComponent<RuleListProps> = (props: RuleListProps)
                         </Tooltip>
                     </FlexItem>
                     <FlexItem className="rule-actions">
-                        <IfAuth isDeveloper={true}>
-                            <IfFeature feature="readOnly" isNot={true}>
-                                { validityRuleActions}
-                            </IfFeature>
-                        </IfAuth>
+                        <RuleValue isGlobalRule={props.isGlobalRules} actions={validityRuleActions} label={validityRuleLabel} />
                     </FlexItem>
                 </Flex>
             </GridItem>
@@ -169,11 +194,7 @@ export const RuleList: FunctionComponent<RuleListProps> = (props: RuleListProps)
                         </Tooltip>
                     </FlexItem>
                     <FlexItem className="rule-actions">
-                        <IfAuth isDeveloper={true}>
-                            <IfFeature feature="readOnly" isNot={true}>
-                                { compatibilityRuleActions }
-                            </IfFeature>
-                        </IfAuth>
+                        <RuleValue isGlobalRule={props.isGlobalRules} actions={compatibilityRuleActions} label={compatibilityRuleLabel} />
                     </FlexItem>
                 </Flex>
             </GridItem>
@@ -191,11 +212,7 @@ export const RuleList: FunctionComponent<RuleListProps> = (props: RuleListProps)
                         </Tooltip>
                     </FlexItem>
                     <FlexItem className="rule-actions">
-                        <IfAuth isDeveloper={true}>
-                            <IfFeature feature="readOnly" isNot={true}>
-                                { integrityRuleActions }
-                            </IfFeature>
-                        </IfAuth>
+                        <RuleValue isGlobalRule={props.isGlobalRules} actions={integrityRuleActions} label={integrityRuleLabel} />
                     </FlexItem>
                 </Flex>
             </GridItem>

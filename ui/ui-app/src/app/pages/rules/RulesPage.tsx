@@ -76,7 +76,9 @@ export const RulesPage: FunctionComponent<RulesPageProps> = () => {
                 </PageSection>
                 <PageSection variant={PageSectionVariants.default} isFilled={true}>
                     <React.Fragment>
-                        <RuleList rules={rules}
+                        <RuleList
+                            isGlobalRules={true}
+                            rules={rules}
                             onEnableRule={doEnableRule}
                             onDisableRule={doDisableRule}
                             onConfigureRule={doConfigureRule} />

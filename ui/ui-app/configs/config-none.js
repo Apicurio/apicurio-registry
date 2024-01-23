@@ -1,6 +1,6 @@
 var ApicurioRegistryConfig = {
     artifacts: {
-        url: "http://localhost:8080/apis/registry/v2"
+        url: "http://localhost:8080/apis/registry/v3"
     },
     ui: {
         contextPath: "/",

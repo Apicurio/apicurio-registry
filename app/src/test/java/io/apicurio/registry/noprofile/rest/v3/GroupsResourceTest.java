@@ -59,6 +59,7 @@ import io.apicurio.registry.rest.v3.beans.Rule;
 import io.apicurio.registry.rest.v3.beans.UpdateState;
 import io.apicurio.registry.rest.v3.beans.VersionMetaData;
 import io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType;
+import io.apicurio.registry.rules.integrity.IntegrityLevel;
 import io.apicurio.registry.storage.impl.sql.SqlUtil;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ReferenceType;
@@ -1516,34 +1517,30 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .body(anything());
 
         // Verify the rule was added
-        TestUtils.retry(() -> {
-            given()
-                    .when()
-                    .pathParam("groupId", GROUP)
-                    .pathParam("artifactId", artifactId)
-                    .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/rules/VALIDITY")
-                    .then()
-                    .statusCode(200)
-                    .contentType(ContentType.JSON)
-                    .body("type", equalTo("VALIDITY"))
-                    .body("config", equalTo("FULL"));
-        });
+        given()
+                .when()
+                .pathParam("groupId", GROUP)
+                .pathParam("artifactId", artifactId)
+                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/rules/VALIDITY")
+                .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .body("type", equalTo("VALIDITY"))
+                .body("config", equalTo("FULL"));
 
         // Try to add the rule again - should get a 409
         final Rule finalRule = rule;
-        TestUtils.retry(() -> {
-            given()
-                    .when()
-                    .contentType(CT_JSON)
-                    .pathParam("groupId", GROUP)
-                    .pathParam("artifactId", artifactId)
-                    .body(finalRule)
-                    .post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/rules")
-                    .then()
-                    .statusCode(409)
-                    .body("error_code", equalTo(409))
-                    .body("message", equalTo("A rule named 'VALIDITY' already exists."));
-        });
+        given()
+                .when()
+                .contentType(CT_JSON)
+                .pathParam("groupId", GROUP)
+                .pathParam("artifactId", artifactId)
+                .body(finalRule)
+                .post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/rules")
+                .then()
+                .statusCode(409)
+                .body("error_code", equalTo(409))
+                .body("message", equalTo("A rule named 'VALIDITY' already exists."));
 
         // Add another rule
         rule.setType(RuleType.COMPATIBILITY);
@@ -1560,18 +1557,16 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .body(anything());
 
         // Verify the rule was added
-        TestUtils.retry(() -> {
-            given()
-                    .when()
-                    .pathParam("groupId", GROUP)
-                    .pathParam("artifactId", artifactId)
-                    .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/rules/COMPATIBILITY")
-                    .then()
-                    .statusCode(200)
-                    .contentType(ContentType.JSON)
-                    .body("type", equalTo("COMPATIBILITY"))
-                    .body("config", equalTo("BACKWARD"));
-        });
+        given()
+                .when()
+                .pathParam("groupId", GROUP)
+                .pathParam("artifactId", artifactId)
+                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/rules/COMPATIBILITY")
+                .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .body("type", equalTo("COMPATIBILITY"))
+                .body("config", equalTo("BACKWARD"));
 
         // Get the list of rules (should be 2 of them)
         given()
@@ -1603,18 +1598,16 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .body("config", equalTo("FULL"));
 
         // Get a single (updated) rule by name
-        TestUtils.retry(() -> {
-            given()
-                    .when()
-                    .pathParam("groupId", GROUP)
-                    .pathParam("artifactId", artifactId)
-                    .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/rules/COMPATIBILITY")
-                    .then()
-                    .statusCode(200)
-                    .contentType(ContentType.JSON)
-                    .body("type", equalTo("COMPATIBILITY"))
-                    .body("config", equalTo("FULL"));
-        });
+        given()
+                .when()
+                .pathParam("groupId", GROUP)
+                .pathParam("artifactId", artifactId)
+                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/rules/COMPATIBILITY")
+                .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .body("type", equalTo("COMPATIBILITY"))
+                .body("config", equalTo("FULL"));
 
         // Delete a rule
         given()
@@ -1627,18 +1620,16 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .body(anything());
 
         // Get a single (deleted) rule by name (should fail with a 404)
-        TestUtils.retry(() -> {
-            given()
-                    .when()
-                    .pathParam("groupId", GROUP)
-                    .pathParam("artifactId", artifactId)
-                    .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/rules/COMPATIBILITY")
-                    .then()
-                    .statusCode(404)
-                    .contentType(ContentType.JSON)
-                    .body("error_code", equalTo(404))
-                    .body("message", equalTo("No rule named 'COMPATIBILITY' was found."));
-        });
+        given()
+                .when()
+                .pathParam("groupId", GROUP)
+                .pathParam("artifactId", artifactId)
+                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/rules/COMPATIBILITY")
+                .then()
+                .statusCode(404)
+                .contentType(ContentType.JSON)
+                .body("error_code", equalTo(404))
+                .body("message", equalTo("No rule named 'COMPATIBILITY' was found."));
 
         // Get the list of rules (should be 1 of them)
         given()
@@ -1663,17 +1654,15 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .statusCode(204);
 
         // Get the list of rules (no rules now)
-        TestUtils.retry(() -> {
-            given()
-                    .when()
-                    .pathParam("groupId", GROUP)
-                    .pathParam("artifactId", artifactId)
-                    .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/rules")
-                    .then()
-                    .statusCode(200)
-                    .contentType(ContentType.JSON)
-                    .body("[0]", nullValue());
-        });
+        given()
+                .when()
+                .pathParam("groupId", GROUP)
+                .pathParam("artifactId", artifactId)
+                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/rules")
+                .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .body("[0]", nullValue());
 
         // Add a rule to an artifact that doesn't exist.
         rule = new Rule();
@@ -1689,6 +1678,122 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .then()
                 .statusCode(404)
                 .body(anything());
+    }
+
+    @Test
+    public void testDeleteAllArtifactRules() throws Exception {
+        String artifactContent = resourceToString("openapi-empty.json");
+        String artifactId = "testDeleteAllArtifactRules/EmptyAPI";
+
+        // Create an artifact
+        createArtifact(GROUP, artifactId, ArtifactType.OPENAPI, artifactContent);
+
+        // Add the Validity rule
+        Rule rule = new Rule();
+        rule.setType(RuleType.VALIDITY);
+        rule.setConfig("FULL");
+        given()
+                .when()
+                .contentType(CT_JSON)
+                .pathParam("groupId", GROUP)
+                .body(rule)
+                .pathParam("artifactId", artifactId)
+                .post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/rules")
+                .then()
+                .statusCode(204)
+                .body(anything());
+
+        // Add the Integrity rule
+        rule = new Rule();
+        rule.setType(RuleType.INTEGRITY);
+        rule.setConfig(IntegrityLevel.NO_DUPLICATES.name());
+        given()
+                .when()
+                .contentType(CT_JSON)
+                .pathParam("groupId", GROUP)
+                .body(rule)
+                .pathParam("artifactId", artifactId)
+                .post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/rules")
+                .then()
+                .statusCode(204)
+                .body(anything());
+
+        // Verify the rules were added
+        given()
+                .when()
+                .pathParam("groupId", GROUP)
+                .pathParam("artifactId", artifactId)
+                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/rules/VALIDITY")
+                .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .body("type", equalTo("VALIDITY"))
+                .body("config", equalTo("FULL"));
+        given()
+                .when()
+                .pathParam("groupId", GROUP)
+                .pathParam("artifactId", artifactId)
+                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/rules/INTEGRITY")
+                .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .body("type", equalTo("INTEGRITY"))
+                .body("config", equalTo("NO_DUPLICATES"));
+
+        // Get the list of rules (should be 2 of them)
+        given()
+                .when()
+                .pathParam("groupId", GROUP)
+                .pathParam("artifactId", artifactId)
+                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/rules")
+                .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .body("[0]", anyOf(equalTo("VALIDITY"), equalTo("INTEGRITY")))
+                .body("[1]", anyOf(equalTo("VALIDITY"), equalTo("INTEGRITY")))
+                .body("[2]", nullValue());
+
+        // Delete all rules
+        given()
+                .when()
+                .pathParam("groupId", GROUP)
+                .pathParam("artifactId", artifactId)
+                .delete("/registry/v3/groups/{groupId}/artifacts/{artifactId}/rules")
+                .then()
+                .statusCode(204);
+
+        // Make sure the rules were deleted
+        given()
+                .when()
+                .pathParam("groupId", GROUP)
+                .pathParam("artifactId", artifactId)
+                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/rules/VALIDITY")
+                .then()
+                .statusCode(404)
+                .contentType(ContentType.JSON)
+                .body("error_code", equalTo(404))
+                .body("message", equalTo("No rule named 'VALIDITY' was found."));
+        given()
+                .when()
+                .pathParam("groupId", GROUP)
+                .pathParam("artifactId", artifactId)
+                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/rules/INTEGRITY")
+                .then()
+                .statusCode(404)
+                .contentType(ContentType.JSON)
+                .body("error_code", equalTo(404))
+                .body("message", equalTo("No rule named 'INTEGRITY' was found."));
+
+        // Get the list of rules (no rules now)
+        given()
+                .when()
+                .pathParam("groupId", GROUP)
+                .pathParam("artifactId", artifactId)
+                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/rules")
+                .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .body("[0]", nullValue());
     }
 
     @Test
@@ -2808,7 +2913,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
 
         // Now try registering an artifact with both a valid and invalid ref
         data = new ByteArrayInputStream(artifactContent.getBytes(StandardCharsets.UTF_8));
-        var references = new ArrayList<io.apicurio.registry.rest.client.models.ArtifactReference>();
+//        var references = new ArrayList<io.apicurio.registry.rest.client.models.ArtifactReference>();
         // valid ref
         var validRef = new io.apicurio.registry.rest.client.models.ArtifactReference();
         validRef.setGroupId(GROUP);

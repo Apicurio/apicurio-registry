@@ -97,7 +97,7 @@
         <module>serdes/jsonschema-serde</module>
         <module>distro</module>
         <module>docs</module>
-        <module>client</module>
+        <module>java-sdk</module>
 
         <!-- modules for implementing ArtifactTypeUtilProvider -->
         <module>schema-util/common</module>
@@ -252,12 +252,12 @@
             </dependency>
             <dependency>
                 <groupId>io.apicurio</groupId>
-                <artifactId>apicurio-registry-client</artifactId>
+                <artifactId>apicurio-registry-java-sdk</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>io.apicurio</groupId>
-                <artifactId>apicurio-registry-client-common</artifactId>
+                <artifactId>apicurio-registry-java-sdk-common</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

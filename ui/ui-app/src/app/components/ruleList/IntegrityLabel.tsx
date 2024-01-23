@@ -41,11 +41,16 @@ export const IntegrityLabel: FunctionComponent<IntegrityLabelProps> = ({ value }
     };
 
     return (
-        <If condition={value !== "UNKNOWN"}>
-            {
-                selectedItems.map((value, idx) =>
-                    <Label key={idx} style={{ marginLeft: "3px" }}>{ valueToLabel(value) }</Label>)
-            }
-        </If>
+        <>
+            <If condition={value === "UNKNOWN"}>
+                <span className="rule-value">(Not enabled)</span>
+            </If>
+            <If condition={value !== "UNKNOWN"}>
+                {
+                    selectedItems.map((value, idx) =>
+                        <Label key={idx} style={{ marginLeft: "3px" }}>{ valueToLabel(value) }</Label>)
+                }
+            </If>
+        </>
     );
 };

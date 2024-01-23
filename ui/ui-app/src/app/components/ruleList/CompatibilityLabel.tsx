@@ -33,9 +33,14 @@ const valueToLabel = (value: string): string => {
 export const CompatibilityLabel: FunctionComponent<CompatibilityLabelProps> = (props: CompatibilityLabelProps) => {
 
     return (
-        <If condition={props.value !== "UNKNOWN"}>
-            <Label>{ valueToLabel(props.value) }</Label>
-        </If>
+        <>
+            <If condition={props.value === "UNKNOWN"}>
+                <span className="rule-value">(Not enabled)</span>
+            </If>
+            <If condition={props.value !== "UNKNOWN"}>
+                <Label>{ valueToLabel(props.value) }</Label>
+            </If>
+        </>
     );
 
 };

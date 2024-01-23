@@ -14,7 +14,7 @@
     margin-right: 5px;
 }
 
-.rule.disabled-state-text .rule-name, .rule.disabled-state-text .rule-description, .rule.disabled-state-text .rule-icon {
+.rule.disabled-state-text .rule-name, .rule.disabled-state-text .rule-description, .rule.disabled-state-text .rule-icon, .rule.disabled-state-text .rule-value {
     color: rgb(106, 110, 115);
 }
 

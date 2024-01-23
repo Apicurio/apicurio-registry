@@ -191,7 +191,9 @@ export const InfoTabContent: FunctionComponent<InfoTabContentProps> = (props: In
                             individually enabled, configured, and disabled. Artifact-specific rules override
                             the equivalent global rules.
                         </p>
-                        <RuleList rules={props.rules}
+                        <RuleList
+                            isGlobalRules={false}
+                            rules={props.rules}
                             onEnableRule={props.onEnableRule}
                             onDisableRule={props.onDisableRule}
                             onConfigureRule={props.onConfigureRule}

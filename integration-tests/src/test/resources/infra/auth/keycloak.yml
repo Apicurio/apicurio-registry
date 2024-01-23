@@ -486,7 +486,7 @@ data:
         {
           "id": "5d3833aa-2aba-4fc4-a546-00dfe1d56bb5",
           "createdTimestamp": 1687335757025,
-          "username": "service-account-admin-client",
+          "username": "admin-client",
           "enabled": true,
           "totp": false,
           "emailVerified": false,
@@ -503,7 +503,7 @@ data:
         {
           "id": "0f1c31e8-a357-4f05-90cc-3374973b6088",
           "createdTimestamp": 1608543288931,
-          "username": "service-account-developer-client",
+          "username": "developer-client",
           "enabled": true,
           "totp": false,
           "emailVerified": false,
@@ -555,7 +555,7 @@ data:
         {
           "id": "06fec980-2e11-4c7f-a8fb-3d285f30b0b0",
           "createdTimestamp": 1608543552621,
-          "username": "service-account-readonly-client",
+          "username": "readonly-client",
           "enabled": true,
           "totp": false,
           "emailVerified": false,

@@ -2,7 +2,6 @@ package io.apicurio.tests.smokeTests.apicurio;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.microsoft.kiota.ApiException;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.tests.ApicurioRegistryBaseIT;
 import io.apicurio.tests.utils.AvroGenericRecordSchemaFactory;
@@ -23,18 +22,14 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import static org.hamcrest.CoreMatchers.hasItems;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @Tag(Constants.SMOKE)
 @QuarkusIntegrationTest
@@ -52,10 +47,10 @@ class ArtifactsIT extends ApicurioRegistryBaseIT {
         rule.setConfig("FULL");
 
         LOGGER.info("Creating global rule:{}", rule.toString());
-        registryClient.admin().rules().post(rule).get(3, TimeUnit.SECONDS);
+        registryClient.admin().rules().post(rule);
 
         // Make sure we have rule
-        retryOp((rc) -> rc.admin().rules().byRule(rule.getType().name()).get().get(3, TimeUnit.SECONDS));
+        retryOp((rc) -> rc.admin().rules().byRule(rule.getType().name()).get());
 
         String groupId = TestUtils.generateGroupId();
 
@@ -66,7 +61,7 @@ class ArtifactsIT extends ApicurioRegistryBaseIT {
         ArtifactMetaData amd1 = createArtifact(groupId, artifactId, ArtifactType.AVRO, IoUtil.toStream(artifactData));
         LOGGER.info("Created artifact {} with metadata {}", artifactId, amd1.toString());
 
-        InputStream latest = registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get().get(3, TimeUnit.SECONDS);
+        InputStream latest = registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get();
         JsonNode response = mapper.readTree(latest);
 
         LOGGER.info("Artifact with name:{} and content:{} was created", response.get("name").asText(), response);
@@ -82,17 +77,17 @@ class ArtifactsIT extends ApicurioRegistryBaseIT {
                 registryClient.groups().byGroupId("ccc").artifacts().post(content, config -> {
                     config.headers.add("X-Registry-ArtifactId", invalidArtifactId);
                     config.headers.add("X-Registry-ArtifactType", ArtifactType.AVRO);
-                }).get(3, TimeUnit.SECONDS), errorCodeExtractor);
+                }), errorCodeExtractor);
 
         artifactData = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"bar\",\"type\":\"long\"}]}";
         content.setContent(artifactData);
-        ArtifactMetaData metaData = registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).put(content).get(3, TimeUnit.SECONDS);
+        ArtifactMetaData metaData = registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).put(content);
         LOGGER.info("Artifact with ID {} was updated: {}", artifactId, metaData.toString());
         // Make sure artifact is fully registered
         ArtifactMetaData amd2 = metaData;
-        retryOp((rc) -> rc.ids().globalIds().byGlobalId(amd2.getGlobalId()).get().get(3, TimeUnit.SECONDS));
+        retryOp((rc) -> rc.ids().globalIds().byGlobalId(amd2.getGlobalId()).get());
 
-        latest = registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get().get(3, TimeUnit.SECONDS);
+        latest = registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get();
         response = mapper.readTree(latest);
 
         LOGGER.info("Artifact with ID {} was updated: {}", artifactId, response);
@@ -102,7 +97,7 @@ class ArtifactsIT extends ApicurioRegistryBaseIT {
         LOGGER.info("Available versions of artifact with ID {} are: {}", artifactId, apicurioVersions.toString());
         assertThat(apicurioVersions, hasItems("1", "2"));
 
-        InputStream version1 = registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersion("1").get().get(3, TimeUnit.SECONDS);
+        InputStream version1 = registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersion("1").get();
         response = mapper.readTree(version1);
 
         LOGGER.info("Artifact with ID {} and version {}: {}", artifactId, 1, response);
@@ -129,11 +124,11 @@ class ArtifactsIT extends ApicurioRegistryBaseIT {
         LOGGER.info("Created  {} artifacts", artifacts.size());
 
         LOGGER.info("Removing all artifacts in group {}", groupId);
-        registryClient.groups().byGroupId(groupId).delete().get(3, TimeUnit.SECONDS);
+        registryClient.groups().byGroupId(groupId).delete();
 
         for (ArtifactMetaData artifact : artifacts) {
             retryAssertClientError("ArtifactNotFoundException", 404, (rc) ->
-                    rc.groups().byGroupId(artifact.getGroupId()).artifacts().byArtifactId(artifact.getId()).meta().get().get(3, TimeUnit.SECONDS), errorCodeExtractor);
+                    rc.groups().byGroupId(artifact.getGroupId()).artifacts().byArtifactId(artifact.getId()).meta().get(), errorCodeExtractor);
         }
     }
 
@@ -148,7 +143,7 @@ class ArtifactsIT extends ApicurioRegistryBaseIT {
 
         LOGGER.info("Created artifact {} with metadata {}", artifactId, amd);
 
-        InputStream latest = registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get().get(3, TimeUnit.SECONDS);
+        InputStream latest = registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get();
         JsonNode response = mapper.readTree(latest);
 
         LOGGER.info("Got info about artifact with ID {}: {}", artifactId, response);
@@ -215,25 +210,25 @@ class ArtifactsIT extends ApicurioRegistryBaseIT {
         // Disable the artifact
         UpdateState data = new UpdateState();
         data.setState(ArtifactState.DISABLED);
-        registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).state().put(data).get(3, TimeUnit.SECONDS);
+        registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).state().put(data);
 
         // Verify (expect 404)
         retryOp((rc) -> {
-            VersionMetaData actualMD = rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersion(metaData.getVersion()).meta().get().get(3, TimeUnit.SECONDS);
+            VersionMetaData actualMD = rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersion(metaData.getVersion()).meta().get();
             assertEquals(ArtifactState.DISABLED, actualMD.getState());
-            assertClientError("ArtifactNotFoundException", 404, () -> rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get().get(3, TimeUnit.SECONDS), errorCodeExtractor);
+            assertClientError("ArtifactNotFoundException", 404, () -> rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get(), errorCodeExtractor);
         });
 
         // Re-enable the artifact
         data.setState(ArtifactState.ENABLED);
-        registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).state().put(data).get(3, TimeUnit.SECONDS);
+        registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).state().put(data);
 
         // Verify
         retryOp((rc) -> {
-            ArtifactMetaData actualMD = rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).meta().get().get(3, TimeUnit.SECONDS);
+            ArtifactMetaData actualMD = rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).meta().get();
             assertEquals(metaData.getGlobalId(), actualMD.getGlobalId());
             assertEquals(ArtifactState.ENABLED, actualMD.getState());
-            assertTrue(rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get().get(3, TimeUnit.SECONDS).readAllBytes().length > 0);
+            assertTrue(rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get().readAllBytes().length > 0);
         });
     }
 
@@ -258,42 +253,42 @@ class ArtifactsIT extends ApicurioRegistryBaseIT {
         // Disable v3
         UpdateState data = new UpdateState();
         data.setState(ArtifactState.DISABLED);
-        registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersion(String.valueOf(v3MD.getVersion())).state().put(data).get(3, TimeUnit.SECONDS);
+        registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersion(String.valueOf(v3MD.getVersion())).state().put(data);
 
         // Verify artifact
         retryOp((rc) -> {
-            ArtifactMetaData actualMD = rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).meta().get().get(3, TimeUnit.SECONDS);
+            ArtifactMetaData actualMD = rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).meta().get();
             assertEquals("2", actualMD.getVersion());
 
             // Verify v1
-            VersionMetaData actualVMD = rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersion(String.valueOf(v1MD.getVersion())).meta().get().get(3, TimeUnit.SECONDS);
+            VersionMetaData actualVMD = rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersion(String.valueOf(v1MD.getVersion())).meta().get();
             assertEquals(ArtifactState.ENABLED, actualVMD.getState());
             // Verify v2
-            actualVMD = rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersion(String.valueOf(v2MD.getVersion())).meta().get().get(3, TimeUnit.SECONDS);
+            actualVMD = rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersion(String.valueOf(v2MD.getVersion())).meta().get();
             assertEquals(ArtifactState.ENABLED, actualVMD.getState());
             // Verify v3
-            actualVMD = rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersion(String.valueOf(v3MD.getVersion())).meta().get().get(3, TimeUnit.SECONDS);
+            actualVMD = rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersion(String.valueOf(v3MD.getVersion())).meta().get();
             assertEquals(ArtifactState.DISABLED, actualVMD.getState());
         });
 
         // Re-enable v3
         data.setState(ArtifactState.ENABLED);
-        registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersion(String.valueOf(v3MD.getVersion())).state().put(data).get(3, TimeUnit.SECONDS);
+        registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersion(String.valueOf(v3MD.getVersion())).state().put(data);
 
         retryOp((rc) -> {
             // Verify artifact (now v3)
-            ArtifactMetaData actualMD = rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).meta().get().get(3, TimeUnit.SECONDS);
+            ArtifactMetaData actualMD = rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).meta().get();
             assertEquals(ArtifactState.ENABLED, actualMD.getState());
             assertEquals("3", actualMD.getVersion()); // version 2 is active (3 is disabled)
 
             // Verify v1
-            VersionMetaData actualVMD = rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersion(String.valueOf(v1MD.getVersion())).meta().get().get(3, TimeUnit.SECONDS);
+            VersionMetaData actualVMD = rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersion(String.valueOf(v1MD.getVersion())).meta().get();
             assertEquals(ArtifactState.ENABLED, actualVMD.getState());
             // Verify v2
-            actualVMD = rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersion(String.valueOf(v2MD.getVersion())).meta().get().get(3, TimeUnit.SECONDS);
+            actualVMD = rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersion(String.valueOf(v2MD.getVersion())).meta().get();
             assertEquals(ArtifactState.ENABLED, actualVMD.getState());
             // Verify v3
-            actualVMD = rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersion(String.valueOf(v3MD.getVersion())).meta().get().get(3, TimeUnit.SECONDS);
+            actualVMD = rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersion(String.valueOf(v3MD.getVersion())).meta().get();
             assertEquals(ArtifactState.ENABLED, actualVMD.getState());
         });
     }
@@ -310,7 +305,7 @@ class ArtifactsIT extends ApicurioRegistryBaseIT {
 
         retryOp((rc) -> {
             // Verify
-            ArtifactMetaData actualMD = rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).meta().get().get(3, TimeUnit.SECONDS);
+            ArtifactMetaData actualMD = rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).meta().get();
             assertEquals(metaData.getGlobalId(), actualMD.getGlobalId());
             assertEquals(ArtifactState.ENABLED, actualMD.getState());
         });
@@ -318,11 +313,11 @@ class ArtifactsIT extends ApicurioRegistryBaseIT {
         // Deprecate the artifact
         UpdateState data = new UpdateState();
         data.setState(ArtifactState.DEPRECATED);
-        registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).state().put(data).get(3, TimeUnit.SECONDS);
+        registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).state().put(data);
 
         retryOp((rc) -> {
             // Verify (expect 404)
-            ArtifactMetaData actualMD = rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).meta().get().get(3, TimeUnit.SECONDS);
+            ArtifactMetaData actualMD = rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).meta().get();
             assertEquals(metaData.getGlobalId(), actualMD.getGlobalId());
             assertEquals(ArtifactState.DEPRECATED, actualMD.getState());
         });
@@ -349,21 +344,21 @@ class ArtifactsIT extends ApicurioRegistryBaseIT {
         // Deprecate v2
         UpdateState data = new UpdateState();
         data.setState(ArtifactState.DEPRECATED);
-        registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersion(String.valueOf(v2MD.getVersion())).state().put(data).get(3, TimeUnit.SECONDS);
+        registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersion(String.valueOf(v2MD.getVersion())).state().put(data);
 
         retryOp((rc) -> {
             // Verify artifact
-            ArtifactMetaData actualMD = rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).meta().get().get(3, TimeUnit.SECONDS);
+            ArtifactMetaData actualMD = rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).meta().get();
             assertEquals(ArtifactState.ENABLED, actualMD.getState());
 
             // Verify v1
-            VersionMetaData actualVMD = rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersion(String.valueOf(v1MD.getVersion())).meta().get().get(3, TimeUnit.SECONDS);
+            VersionMetaData actualVMD = rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersion(String.valueOf(v1MD.getVersion())).meta().get();
             assertEquals(ArtifactState.ENABLED, actualVMD.getState());
             // Verify v2
-            actualVMD = rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersion(String.valueOf(v2MD.getVersion())).meta().get().get(3, TimeUnit.SECONDS);
+            actualVMD = rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersion(String.valueOf(v2MD.getVersion())).meta().get();
             assertEquals(ArtifactState.DEPRECATED, actualVMD.getState());
             // Verify v3
-            actualVMD = rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersion(String.valueOf(v3MD.getVersion())).meta().get().get(3, TimeUnit.SECONDS);
+            actualVMD = rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersion(String.valueOf(v3MD.getVersion())).meta().get();
             assertEquals(ArtifactState.ENABLED, actualVMD.getState());
         });
     }
@@ -371,40 +366,7 @@ class ArtifactsIT extends ApicurioRegistryBaseIT {
     @Test
     void deleteNonexistingSchema() throws Exception {
         assertClientError("ArtifactNotFoundException", 404, () ->
-                registryClient.groups().byGroupId("nonn-existent-group").artifacts().byArtifactId("non-existing").get().get(3, TimeUnit.SECONDS), errorCodeExtractor);
-    }
-
-    @Test
-    void testForbiddenSpecialCharacters() throws Exception {
-//        forbiddenSpecialCharactersTestClient("ab%c");
-        forbiddenSpecialCharactersTestClient("._:-ç'`¡¿?0=)(/&$·!ªº<>,;,:");
-    }
-
-    void forbiddenSpecialCharactersTestClient(String artifactId) {
-        String groupId = TestUtils.generateGroupId();
-        String content = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
-        ArtifactContent artifactData = new ArtifactContent();
-        artifactData.setContent(content);
-
-        var executionException = assertThrows(ExecutionException.class, () -> {
-            registryClient.groups().byGroupId(groupId).artifacts().post(artifactData, config -> {
-                config.headers.add("X-Registry-ArtifactId", artifactId);
-                config.headers.add("X-Registry-ArtifactType", ArtifactType.AVRO);
-            }).get(3, TimeUnit.SECONDS);});
-        // "InvalidArtifactIdException"
-        assertNotNull(executionException.getCause());
-        // It's impossible to send those characters as early checks are kicking in in Kiota code
-        if (artifactId.contains("%")) {
-            Assertions.assertEquals(ApiException.class, executionException.getCause().getClass());
-            Assertions.assertEquals(404, ((ApiException)executionException.getCause()).getResponseStatusCode());
-        } else {
-            Assertions.assertEquals(IllegalArgumentException.class, executionException.getCause().getClass());
-        }
-//        Assertions.assertEquals(io.apicurio.registry.rest.client.models.Error.class, executionException.getCause().getClass());
-//        Assertions.assertEquals(400, ((io.apicurio.registry.rest.client.models.Error)executionException.getCause()).getErrorCode());
-//        Assertions.assertEquals("InvalidArtifactIdException", ((io.apicurio.registry.rest.client.models.Error)executionException.getCause()).getName());
-
-//        createArtifact(groupId, artifactId, content, 400);
+                registryClient.groups().byGroupId("nonn-existent-group").artifacts().byArtifactId("non-existing").get(), errorCodeExtractor);
     }
 
     @Test
@@ -417,22 +379,22 @@ class ArtifactsIT extends ApicurioRegistryBaseIT {
         artifactContent.setContent(content);
         createArtifact(groupId, artifactId, ArtifactType.AVRO, IoUtil.toStream(content));
 
-        registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).meta().get().get(3, TimeUnit.SECONDS);
+        registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).meta().get();
 
-        retryOp((rc) -> rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).meta().post(artifactContent).get(3, TimeUnit.SECONDS));
+        retryOp((rc) -> rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).meta().post(artifactContent));
 
         registryClient.search().artifacts().get(config -> {
             config.queryParameters.group = groupId;
             config.queryParameters.name = artifactId;
             config.queryParameters.offset = 0;
             config.queryParameters.limit = 10;
-        }).get(3, TimeUnit.SECONDS);
+        });
 
-        registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).test().put(new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8))).get(3, TimeUnit.SECONDS);
+        registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).test().put(new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8)), "application/create.extended+json");
 
-        registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).put(artifactContent).get(3, TimeUnit.SECONDS);
+        registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).put(artifactContent);
 
-        registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get().get(3, TimeUnit.SECONDS);
+        registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get();
 
         getArtifact(groupId, artifactId);
     }
@@ -448,22 +410,22 @@ class ArtifactsIT extends ApicurioRegistryBaseIT {
 
         createArtifact(groupId, artifactId, content, 200);
 
-        retryOp((rc) -> rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).meta().get().get(3, TimeUnit.SECONDS));
+        retryOp((rc) -> rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).meta().get());
 
-        registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).meta().get().get(3, TimeUnit.SECONDS);
+        registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).meta().get();
 
-        retryOp((rc) -> rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).meta().post(artifactContent).get(3, TimeUnit.SECONDS));
+        retryOp((rc) -> rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).meta().post(artifactContent));
 
         registryClient.search().artifacts().get(config -> {
             config.queryParameters.group = groupId;
             config.queryParameters.name = artifactId;
             config.queryParameters.offset = 0;
             config.queryParameters.limit = 100;
-        }).get(3, TimeUnit.SECONDS);
+        });
 
-        registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).test().put(new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8))).get(3, TimeUnit.SECONDS);
+        registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).test().put(new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8)), "application/create.extended+json");
 
-        registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).put(artifactContent).get(3, TimeUnit.SECONDS);
+        registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).put(artifactContent);
 
         registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get();
 
@@ -484,11 +446,11 @@ class ArtifactsIT extends ApicurioRegistryBaseIT {
 
         ArtifactSearchResults results = registryClient.search().artifacts().get(config -> {
             config.queryParameters.group = group;
-            config.queryParameters.order = "asc";
-            config.queryParameters.orderby = "createdOn";
+            config.queryParameters.order = SortOrder.Asc;
+            config.queryParameters.orderby = SortBy.CreatedOn;
             config.queryParameters.offset = 0;
             config.queryParameters.limit = 10;
-        }).get(3, TimeUnit.SECONDS);
+        });
 
         Assertions.assertNotNull(results);
         Assertions.assertEquals(5, results.getCount());
@@ -500,9 +462,9 @@ class ArtifactsIT extends ApicurioRegistryBaseIT {
     @AfterEach
     void deleteRules() throws Exception {
         try {
-            registryClient.admin().rules().delete().get(3, TimeUnit.SECONDS);
+            registryClient.admin().rules().delete();
             retryOp((rc) -> {
-                List<RuleType> rules = rc.admin().rules().get().get(3, TimeUnit.SECONDS);
+                List<RuleType> rules = rc.admin().rules().get();
                 assertEquals(0, rules.size(), "All global rules not deleted");
             });
         } catch (Exception e) {

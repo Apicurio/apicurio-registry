@@ -1,7 +1,7 @@
 package io.apicurio.registry.auth;
 
-import com.microsoft.kiota.authentication.BaseBearerTokenAuthenticationProvider;
-import com.microsoft.kiota.http.OkHttpRequestAdapter;
+
+
 import io.apicurio.common.apps.config.Info;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.rest.client.RegistryClient;
@@ -9,6 +9,7 @@ import io.apicurio.registry.rules.validity.ValidityLevel;
 import io.apicurio.registry.utils.tests.ApicurioTestTags;
 import io.apicurio.registry.utils.tests.AuthTestProfileWithHeaderRoles;
 import io.apicurio.registry.utils.tests.JWKSMockServer;
+import io.kiota.http.vertx.VertXRequestAdapter;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -17,8 +18,8 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.util.UUID;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
+
+import static io.apicurio.registry.client.auth.VertXAuthFactory.buildOIDCWebClient;
 
 
 @QuarkusTest
@@ -39,9 +40,7 @@ public class HeaderRoleSourceTest extends AbstractResourceTestBase {
 
     @Override
     protected RegistryClient createRestClientV3() {
-        var adapter = new OkHttpRequestAdapter(
-                new BaseBearerTokenAuthenticationProvider(
-                        new OidcAccessTokenProvider(authServerUrlConfigured, JWKSMockServer.ADMIN_CLIENT_ID, "test1")));
+        var adapter = new VertXRequestAdapter(buildOIDCWebClient(authServerUrlConfigured, JWKSMockServer.ADMIN_CLIENT_ID, "test1"));
         adapter.setBaseUrl(registryV3ApiUrl);
         return new RegistryClient(adapter);
     }
@@ -55,59 +54,51 @@ public class HeaderRoleSourceTest extends AbstractResourceTestBase {
         rule.setConfig(ValidityLevel.FULL.name());
         rule.setType(io.apicurio.registry.rest.client.models.RuleType.VALIDITY);
 
-        var noRoleAdapter = new OkHttpRequestAdapter(
-                new BaseBearerTokenAuthenticationProvider(
-                        new OidcAccessTokenProvider(authServerUrlConfigured, JWKSMockServer.NO_ROLE_CLIENT_ID, "test1")));
+        var noRoleAdapter = new VertXRequestAdapter(buildOIDCWebClient(authServerUrlConfigured, JWKSMockServer.NO_ROLE_CLIENT_ID, "test1"));
         noRoleAdapter.setBaseUrl(registryV3ApiUrl);
         var noRoleClient = new RegistryClient(noRoleAdapter);
 
-        var readAdapter = new OkHttpRequestAdapter(
-                new BaseBearerTokenAuthenticationProvider(
-                        new OidcAccessTokenProvider(authServerUrlConfigured, JWKSMockServer.READONLY_CLIENT_ID, "test1")));
+        var readAdapter = new VertXRequestAdapter(buildOIDCWebClient(authServerUrlConfigured, JWKSMockServer.READONLY_CLIENT_ID, "test1"));
         readAdapter.setBaseUrl(registryV3ApiUrl);
         var readClient = new RegistryClient(readAdapter);
 
-        var devAdapter = new OkHttpRequestAdapter(
-                new BaseBearerTokenAuthenticationProvider(
-                        new OidcAccessTokenProvider(authServerUrlConfigured, JWKSMockServer.DEVELOPER_CLIENT_ID, "test1")));
+        var devAdapter = new VertXRequestAdapter(buildOIDCWebClient(authServerUrlConfigured, JWKSMockServer.DEVELOPER_CLIENT_ID, "test1"));
         devAdapter.setBaseUrl(registryV3ApiUrl);
         var devClient = new RegistryClient(devAdapter);
 
-        var adminAdapter = new OkHttpRequestAdapter(
-                new BaseBearerTokenAuthenticationProvider(
-                        new OidcAccessTokenProvider(authServerUrlConfigured, JWKSMockServer.ADMIN_CLIENT_ID, "test1")));
+        var adminAdapter = new VertXRequestAdapter(buildOIDCWebClient(authServerUrlConfigured, JWKSMockServer.ADMIN_CLIENT_ID, "test1"));
         adminAdapter.setBaseUrl(registryV3ApiUrl);
         var adminClient = new RegistryClient(adminAdapter);
 
 
         // User is authenticated but no roles assigned - operations should fail.
-        var executionException1 = Assertions.assertThrows(ExecutionException.class, () -> {
-            noRoleClient.groups().byGroupId("default").artifacts().get().get(3, TimeUnit.SECONDS);
+        var exception1 = Assertions.assertThrows(Exception.class, () -> {
+            noRoleClient.groups().byGroupId("default").artifacts().get();
         });
-        assertForbidden(executionException1);
+        assertForbidden(exception1);
 
-        var executionException2 = Assertions.assertThrows(ExecutionException.class, () -> {
+        var exception2 = Assertions.assertThrows(Exception.class, () -> {
             noRoleClient
                 .groups()
                 .byGroupId(UUID.randomUUID().toString())
                 .artifacts()
                 .post(content, config -> {
                     config.headers.add("X-Registry-ArtifactId", getClass().getSimpleName());
-                }).get(3, TimeUnit.SECONDS);
+                });
         });
-        assertForbidden(executionException2);
+        assertForbidden(exception2);
 
-        var executionException3 = Assertions.assertThrows(ExecutionException.class, () -> {
-            noRoleClient.admin().rules().post(rule).get(3, TimeUnit.SECONDS);
+        var exception3 = Assertions.assertThrows(Exception.class, () -> {
+            noRoleClient.admin().rules().post(rule);
         });
-        assertForbidden(executionException3);
+        assertForbidden(exception3);
 
 
         // Now using the read client user should be able to read but nothing else
         readClient.groups().byGroupId("default").artifacts().get(config -> {
             config.headers.add("X-Registry-Role", "sr-readonly");
-        }).get(3, TimeUnit.SECONDS);
-        var executionException4 = Assertions.assertThrows(ExecutionException.class, () -> {
+        });
+        var exception4 = Assertions.assertThrows(Exception.class, () -> {
             readClient
                     .groups()
                     .byGroupId(UUID.randomUUID().toString())
@@ -115,21 +106,21 @@ public class HeaderRoleSourceTest extends AbstractResourceTestBase {
                     .post(content, config -> {
                         config.headers.add("X-Registry-ArtifactId", getClass().getSimpleName());
                         config.headers.add("X-Registry-Role", "sr-readonly");
-                    }).get(3, TimeUnit.SECONDS);
+                    });
         });
-        assertForbidden(executionException4);
+        assertForbidden(exception4);
 
-        var executionException5 = Assertions.assertThrows(ExecutionException.class, () -> {
+        var exception5 = Assertions.assertThrows(Exception.class, () -> {
             readClient.admin().rules().post(rule, config -> {
                 config.headers.add("X-Registry-Role", "sr-readonly");
-            }).get(3, TimeUnit.SECONDS);
+            });
         });
-        assertForbidden(executionException5);
+        assertForbidden(exception5);
 
         // the user can read and write with the developer client but not admin
         devClient.groups().byGroupId("default").artifacts().get(config -> {
             config.headers.add("X-Registry-Role", "sr-developer");
-        }).get(3, TimeUnit.SECONDS);
+        });
         devClient
             .groups()
             .byGroupId(UUID.randomUUID().toString())
@@ -137,18 +128,18 @@ public class HeaderRoleSourceTest extends AbstractResourceTestBase {
             .post(content, config -> {
                 config.headers.add("X-Registry-ArtifactId", getClass().getSimpleName());
                 config.headers.add("X-Registry-Role", "sr-developer");
-            }).get(3, TimeUnit.SECONDS);
-        var executionException6 = Assertions.assertThrows(ExecutionException.class, () -> {
+            });
+        var exception6 = Assertions.assertThrows(Exception.class, () -> {
             devClient.admin().rules().post(rule, config -> {
                 config.headers.add("X-Registry-Role", "sr-developer");
-            }).get(3, TimeUnit.SECONDS);
+            });
         });
-        assertForbidden(executionException6);
+        assertForbidden(exception6);
 
         // the user can do everything with the admin client
         adminClient.groups().byGroupId("default").artifacts().get(config -> {
             config.headers.add("X-Registry-Role", "sr-admin");
-        }).get(3, TimeUnit.SECONDS);
+        });
         adminClient
                 .groups()
                 .byGroupId(UUID.randomUUID().toString())
@@ -156,9 +147,9 @@ public class HeaderRoleSourceTest extends AbstractResourceTestBase {
                 .post(content, config -> {
                     config.headers.add("X-Registry-ArtifactId", getClass().getSimpleName());
                     config.headers.add("X-Registry-Role", "sr-admin");
-                }).get(3, TimeUnit.SECONDS);
+                });
         adminClient.admin().rules().post(rule, config -> {
             config.headers.add("X-Registry-Role", "sr-admin");
-        }).get(3, TimeUnit.SECONDS);
+        });
     }
 }

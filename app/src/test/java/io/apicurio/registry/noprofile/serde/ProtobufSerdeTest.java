@@ -6,12 +6,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.ExecutionException;
 
-import com.microsoft.kiota.authentication.AnonymousAuthenticationProvider;
-import com.microsoft.kiota.http.OkHttpRequestAdapter;
 import io.apicurio.registry.serde.SerdeConfig;
 import io.api.sample.TableNotification;
+import io.kiota.http.vertx.VertXRequestAdapter;
+import io.apicurio.registry.client.auth.VertXAuthFactory;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serializer;
 import org.junit.jupiter.api.Assertions;
@@ -40,7 +39,7 @@ public class ProtobufSerdeTest extends AbstractResourceTestBase {
 
     @BeforeEach
     public void createIsolatedClient() {
-        var adapter = new OkHttpRequestAdapter(new AnonymousAuthenticationProvider());
+        var adapter = new VertXRequestAdapter(VertXAuthFactory.defaultVertx);
         adapter.setBaseUrl(TestUtils.getRegistryV3ApiUrl(testPort));
         restClient = new RegistryClient(adapter);
     }
@@ -128,16 +127,12 @@ public class ProtobufSerdeTest extends AbstractResourceTestBase {
 
             waitForSchema(globalId -> {
                 try {
-                    if (restClient.ids().globalIds().byGlobalId(globalId).get().get().readAllBytes().length > 0) {
-                        ArtifactMetaData artifactMetadata = restClient.groups().byGroupId(groupId).artifacts().byArtifactId(topic).meta().get().get();
+                    if (restClient.ids().globalIds().byGlobalId(globalId).get().readAllBytes().length > 0) {
+                        ArtifactMetaData artifactMetadata = restClient.groups().byGroupId(groupId).artifacts().byArtifactId(topic).meta().get();
                         assertEquals(globalId, artifactMetadata.getGlobalId());
                         return true;
                     }
                 } catch (IOException e) {
-                    throw new RuntimeException(e);
-                } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
-                } catch (ExecutionException e) {
                     throw new RuntimeException(e);
                 }
                 return false;

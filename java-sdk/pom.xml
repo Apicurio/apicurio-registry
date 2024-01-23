@@ -24,9 +24,10 @@
         <relativePath>../pom.xml</relativePath>
     </parent>
     <modelVersion>4.0.0</modelVersion>
-    <artifactId>apicurio-registry-client</artifactId>
+    <artifactId>apicurio-registry-java-sdk</artifactId>
     <properties>
-        <kiota.libs.version>0.7.8</kiota.libs.version>
+        <kiota.libs.version>0.12.1</kiota.libs.version>
+        <kiota.community.version>0.0.13</kiota.community.version>
     </properties>
     <dependencies>
         <dependency>
@@ -35,14 +36,14 @@
             <version>${kiota.libs.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.microsoft.kiota</groupId>
-            <artifactId>microsoft-kiota-http-okHttp</artifactId>
-            <version>${kiota.libs.version}</version>
+            <groupId>io.kiota</groupId>
+            <artifactId>kiota-http-vertx</artifactId>
+            <version>${kiota.community.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.microsoft.kiota</groupId>
-            <artifactId>microsoft-kiota-serialization-json</artifactId>
-            <version>${kiota.libs.version}</version>
+            <groupId>io.kiota</groupId>
+            <artifactId>kiota-serialization-jackson</artifactId>
+            <version>${kiota.community.version}</version>
         </dependency>
         <dependency>
             <groupId>com.microsoft.kiota</groupId>
@@ -63,23 +64,17 @@
             <groupId>jakarta.annotation</groupId>
             <artifactId>jakarta.annotation-api</artifactId>
         </dependency>
-        <!-- TODO: this is for OIDC auth, let's move it to a separate package maybe -->
         <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-databind</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.apicurio</groupId>
-            <!-- used only for NotAuthorized ATM -->
-            <artifactId>apicurio-common-rest-client-common</artifactId>
+            <groupId>io.vertx</groupId>
+            <artifactId>vertx-auth-oauth2</artifactId>
         </dependency>
     </dependencies>
     <build>
         <plugins>
             <plugin>
                 <artifactId>kiota-maven-plugin</artifactId>
-                <groupId>com.redhat.cloud</groupId>
-                <version>0.0.7</version>
+                <groupId>io.kiota</groupId>
+                <version>${kiota.community.version}</version>
                 <executions>
                     <execution>
                         <goals>
@@ -88,6 +83,7 @@
                     </execution>
                 </executions>
                 <configuration>
+                    <kiotaVersion>1.10.1</kiotaVersion>
                     <file>../common/src/main/resources/META-INF/openapi.json</file>
                     <namespace>io.apicurio.registry.rest.client</namespace>
                     <clientClass>RegistryClient</clientClass>

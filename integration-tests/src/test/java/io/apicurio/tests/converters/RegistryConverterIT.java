@@ -39,9 +39,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
 
 @Tag(Constants.SERDES)
@@ -125,14 +122,8 @@ public class RegistryConverterIT extends ApicurioRegistryBaseIT {
             // some impl details ...
             TestUtils.waitForSchema(globalId -> {
                 try {
-                    return registryClient.ids().globalIds().byGlobalId(globalId).get().get(3, TimeUnit.SECONDS).readAllBytes().length > 0;
+                    return registryClient.ids().globalIds().byGlobalId(globalId).get().readAllBytes().length > 0;
                 } catch (IOException e) {
-                    throw new RuntimeException(e);
-                } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
-                } catch (ExecutionException e) {
-                    throw new RuntimeException(e);
-                } catch (TimeoutException e) {
                     throw new RuntimeException(e);
                 }
             }, bytes);
@@ -185,14 +176,8 @@ public class RegistryConverterIT extends ApicurioRegistryBaseIT {
             // some impl details ...
             TestUtils.waitForSchema(globalId -> {
                 try {
-                    return registryClient.ids().globalIds().byGlobalId(globalId).get().get(3, TimeUnit.SECONDS).readAllBytes().length > 0;
+                    return registryClient.ids().globalIds().byGlobalId(globalId).get().readAllBytes().length > 0;
                 } catch (IOException e) {
-                    throw new RuntimeException(e);
-                } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
-                } catch (ExecutionException e) {
-                    throw new RuntimeException(e);
-                } catch (TimeoutException e) {
                     throw new RuntimeException(e);
                 }
             }, bytes);
@@ -225,14 +210,8 @@ public class RegistryConverterIT extends ApicurioRegistryBaseIT {
             // some impl details ...
             TestUtils.waitForSchema(globalId -> {
                 try {
-                    return registryClient.ids().globalIds().byGlobalId(globalId).get().get(3, TimeUnit.SECONDS).readAllBytes().length > 0;
+                    return registryClient.ids().globalIds().byGlobalId(globalId).get().readAllBytes().length > 0;
                 } catch (IOException e) {
-                    throw new RuntimeException(e);
-                } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
-                } catch (ExecutionException e) {
-                    throw new RuntimeException(e);
-                } catch (TimeoutException e) {
                     throw new RuntimeException(e);
                 }
             }, bytes);
@@ -290,14 +269,8 @@ public class RegistryConverterIT extends ApicurioRegistryBaseIT {
             // some impl details ...
             TestUtils.waitForSchema(globalId -> {
                 try {
-                    return registryClient.ids().globalIds().byGlobalId(globalId).get().get(3, TimeUnit.SECONDS).readAllBytes().length > 0;
+                    return registryClient.ids().globalIds().byGlobalId(globalId).get().readAllBytes().length > 0;
                 } catch (IOException e) {
-                    throw new RuntimeException(e);
-                } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
-                } catch (ExecutionException e) {
-                    throw new RuntimeException(e);
-                } catch (TimeoutException e) {
                     throw new RuntimeException(e);
                 }
             }, bytes);
@@ -411,14 +384,8 @@ public class RegistryConverterIT extends ApicurioRegistryBaseIT {
             // some impl details ...
             TestUtils.waitForSchemaCustom(globalId -> {
                 try {
-                    return restClient.ids().globalIds().byGlobalId(globalId).get().get(3, TimeUnit.SECONDS).readAllBytes().length > 0;
+                    return restClient.ids().globalIds().byGlobalId(globalId).get().readAllBytes().length > 0;
                 } catch (IOException e) {
-                    throw new RuntimeException(e);
-                } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
-                } catch (ExecutionException e) {
-                    throw new RuntimeException(e);
-                } catch (TimeoutException e) {
                     throw new RuntimeException(e);
                 }
             }, bytes, fn);

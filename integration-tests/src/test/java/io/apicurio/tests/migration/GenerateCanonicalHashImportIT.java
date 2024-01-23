@@ -1,7 +1,7 @@
 package io.apicurio.tests.migration;
 
-import com.microsoft.kiota.authentication.AnonymousAuthenticationProvider;
-import com.microsoft.kiota.http.OkHttpRequestAdapter;
+
+
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
@@ -12,7 +12,9 @@ import io.apicurio.registry.utils.impexp.EntityWriter;
 import io.apicurio.tests.ApicurioRegistryBaseIT;
 import io.apicurio.tests.serdes.apicurio.JsonSchemaMsgFactory;
 import io.apicurio.tests.utils.Constants;
+import io.kiota.http.vertx.VertXRequestAdapter;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
+import io.apicurio.registry.client.auth.VertXAuthFactory;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -26,7 +28,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.zip.ZipOutputStream;
 
@@ -39,7 +40,7 @@ public class GenerateCanonicalHashImportIT extends ApicurioRegistryBaseIT {
 
     @Test
     public void testGeneratingCanonicalHashOnImport() throws Exception {
-        var adapter = new OkHttpRequestAdapter(new AnonymousAuthenticationProvider());
+        var adapter = new VertXRequestAdapter(VertXAuthFactory.defaultVertx);
         adapter.setBaseUrl(ApicurioRegistryBaseIT.getRegistryV3ApiUrl());
         RegistryClient dest = new RegistryClient(adapter);
 
@@ -53,7 +54,7 @@ public class GenerateCanonicalHashImportIT extends ApicurioRegistryBaseIT {
         }
         var importReq = dest.admin().importEscaped().toPostRequestInformation(generateExportedZip(artifacts));
         importReq.headers.replace("Content-Type", Set.of("application/zip"));
-        adapter.sendPrimitiveAsync(importReq, Void.class, new HashMap<>());
+        adapter.sendPrimitive(importReq, new HashMap<>(), Void.class);
         // dest.importData(generateExportedZip(artifacts), false, false);
 
         retry(() -> {
@@ -67,7 +68,7 @@ public class GenerateCanonicalHashImportIT extends ApicurioRegistryBaseIT {
                       The only way is to generate canonical hash and then search artifact by it. But that needs apicurio-registry-app module as dependency.
                  */
 
-                var registryContent = dest.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get().get(3, TimeUnit.SECONDS);
+                var registryContent = dest.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get();
                 assertNotNull(registryContent);
                 assertEquals(content, IoUtil.toString(registryContent));
             }

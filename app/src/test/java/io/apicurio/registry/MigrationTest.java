@@ -4,7 +4,6 @@ import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.Test;
 
 import java.io.InputStream;
-import java.util.concurrent.TimeUnit;
 
 @QuarkusTest
 public class MigrationTest extends AbstractResourceTestBase {
@@ -19,12 +18,12 @@ public class MigrationTest extends AbstractResourceTestBase {
         clientV3.admin().importEscaped().post(originalData, config -> {
             // TODO: this header should be injected by Kiota
             config.headers.add("Content-Type", "application/zip");
-        }).get(10, TimeUnit.SECONDS);
+        });
         clientV3.admin().importEscaped().post(migratedData, config -> {
             // TODO: this header should be injected by Kiota
             config.headers.add("Content-Type", "application/zip");
             config.headers.add("X-Registry-Preserve-GlobalId", "false");
             config.headers.add("X-Registry-Preserve-ContentId", "false");
-        }).get(40, TimeUnit.SECONDS);
+        });
     }
 }

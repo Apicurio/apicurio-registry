@@ -30,7 +30,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.zip.ZipOutputStream;
 
@@ -52,7 +51,7 @@ public class MigrationTestsDataInitializer {
             content.setContent(new String(jsonSchema.getSchemaStream().readAllBytes(), StandardCharsets.UTF_8));
             var amd = source.groups().byGroupId("default").artifacts().post(content, config -> {
                 config.headers.add("X-Registry-ArtifactId", artifactId);
-                }).get(3, TimeUnit.SECONDS);
+                });
             TestUtils.retry(() -> source.ids().globalIds().byGlobalId(amd.getGlobalId()));
             migrateGlobalIds.add(amd.getGlobalId());
         }
@@ -67,10 +66,10 @@ public class MigrationTestsDataInitializer {
             content.setReferences(references);
             var amd = source.groups().byGroupId("migrateTest").artifacts().post(content, config -> {
                 config.headers.add("X-Registry-ArtifactId", artifactId);
-            }).get(3, TimeUnit.SECONDS);
+            });
 
-            TestUtils.retry(() -> source.ids().globalIds().byGlobalId(amd.getGlobalId()).get().get(3, TimeUnit.SECONDS));
-            assertTrue(matchesReferences(references, source.ids().globalIds().byGlobalId(amd.getGlobalId()).references().get().get(3, TimeUnit.SECONDS)));
+            TestUtils.retry(() -> source.ids().globalIds().byGlobalId(amd.getGlobalId()).get());
+            assertTrue(matchesReferences(references, source.ids().globalIds().byGlobalId(amd.getGlobalId()).references().get()));
             migrateReferencesMap.put(amd.getGlobalId(), references);
             migrateGlobalIds.add(amd.getGlobalId());
 
@@ -78,9 +77,9 @@ public class MigrationTestsDataInitializer {
             List<ArtifactReference> updatedReferences = idx > 0 ? getSingletonRefList("migrateTest", "avro-" + (idx - 1), "2", "myRef" + idx) : Collections.emptyList();
             content.setContent(new String(avroSchema.generateSchemaStream().readAllBytes(), StandardCharsets.UTF_8));
             content.setReferences(updatedReferences);
-            var vmd = source.groups().byGroupId("migrateTest").artifacts().byArtifactId(artifactId).put(content).get(3, TimeUnit.SECONDS);
+            var vmd = source.groups().byGroupId("migrateTest").artifacts().byArtifactId(artifactId).put(content);
             TestUtils.retry(() -> source.ids().globalIds().byGlobalId(vmd.getGlobalId()));
-            assertTrue(matchesReferences(updatedReferences, source.ids().globalIds().byGlobalId(vmd.getGlobalId()).references().get().get(3, TimeUnit.SECONDS)));
+            assertTrue(matchesReferences(updatedReferences, source.ids().globalIds().byGlobalId(vmd.getGlobalId()).references().get()));
             migrateReferencesMap.put(vmd.getGlobalId(), updatedReferences);
             migrateGlobalIds.add(vmd.getGlobalId());
         }
@@ -93,9 +92,9 @@ public class MigrationTestsDataInitializer {
         rule = new Rule();
         rule.setType(RuleType.COMPATIBILITY);
         rule.setConfig("BACKWARD");
-        source.admin().rules().post(rule).get(3, TimeUnit.SECONDS);
+        source.admin().rules().post(rule);
 
-        var downloadHref = source.admin().export().get().get(3, TimeUnit.SECONDS).getHref();
+        var downloadHref = source.admin().export().get().getHref();
         OkHttpClient client = new OkHttpClient();
         DataMigrationIT.migrateDataToImport = client.newCall(new Request.Builder().url(registryBaseUrl + downloadHref).build()).execute().body().byteStream();
     }
@@ -110,8 +109,8 @@ public class MigrationTestsDataInitializer {
             artifactContent.setContent(content);
             var amd = source.groups().byGroupId("testDoNotPreserveIdsImport").artifacts().post(artifactContent, config -> {
                 config.headers.add("X-Registry-ArtifactId", artifactId);
-            }).get(3, TimeUnit.SECONDS);
-            TestUtils.retry(() -> source.ids().globalIds().byGlobalId(amd.getGlobalId()).get().get(3, TimeUnit.SECONDS));
+            });
+            TestUtils.retry(() -> source.ids().globalIds().byGlobalId(amd.getGlobalId()).get());
             doNotPreserveIdsImportArtifacts.put("testDoNotPreserveIdsImport:" + artifactId, content);
         }
 
@@ -123,19 +122,19 @@ public class MigrationTestsDataInitializer {
             artifactContent.setContent(content);
             var amd = source.groups().byGroupId("testDoNotPreserveIdsImport").artifacts().post(artifactContent, config -> {
                 config.headers.add("X-Registry-ArtifactId", artifactId);
-            }).get(3, TimeUnit.SECONDS);
-            TestUtils.retry(() -> source.ids().globalIds().byGlobalId(amd.getGlobalId()).get().get(3, TimeUnit.SECONDS));
+            });
+            TestUtils.retry(() -> source.ids().globalIds().byGlobalId(amd.getGlobalId()).get());
             doNotPreserveIdsImportArtifacts.put("testDoNotPreserveIdsImport:" + artifactId, content);
 
             avroSchema = new AvroGenericRecordSchemaFactory(List.of("u" + idx));
             String content2 = IoUtil.toString(avroSchema.generateSchemaStream());
             artifactContent.setContent(content2);
-            var vmd = source.groups().byGroupId("testDoNotPreserveIdsImport").artifacts().byArtifactId(artifactId).put(artifactContent).get(3, TimeUnit.SECONDS);
-            TestUtils.retry(() -> source.ids().globalIds().byGlobalId(amd.getGlobalId()).get().get(3, TimeUnit.SECONDS));
+            var vmd = source.groups().byGroupId("testDoNotPreserveIdsImport").artifacts().byArtifactId(artifactId).put(artifactContent);
+            TestUtils.retry(() -> source.ids().globalIds().byGlobalId(amd.getGlobalId()).get());
             doNotPreserveIdsImportArtifacts.put("testDoNotPreserveIdsImport:" + artifactId, content2);
         }
 
-        var downloadHref = source.admin().export().get().get(3, TimeUnit.SECONDS).getHref();
+        var downloadHref = source.admin().export().get().getHref();
         OkHttpClient client = new OkHttpClient();
         DoNotPreserveIdsImportIT.doNotPreserveIdsImportDataToImport = client.newCall(new Request.Builder().url(registryBaseUrl + downloadHref).build()).execute().body().byteStream();
         DoNotPreserveIdsImportIT.jsonSchema = jsonSchema;

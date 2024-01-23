@@ -4,7 +4,6 @@ import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 import io.apicurio.registry.maven.TestArtifact;
 import io.apicurio.registry.maven.TestUpdateRegistryMojo;
@@ -50,16 +49,16 @@ public class TestUpdateRegistryMojoTest extends RegistryMojoTestBase {
         ArtifactMetaData meta = clientV3.groups().byGroupId(groupId).artifacts().post(content, config -> {
             config.headers.add("X-Registry-ArtifactId", artifactId);
             config.headers.add("X-Registry-ArtifactType", ArtifactType.AVRO);
-        }).get(3, TimeUnit.SECONDS);
+        });
 
         Rule rule = new Rule();
         rule.setType(RuleType.COMPATIBILITY);
         rule.setConfig("BACKWARD");
-        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).rules().post(rule).get(2, TimeUnit.SECONDS);
+        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).rules().post(rule);
 
         // Wait for the rule configuration to be set.
         TestUtils.retry(() -> {
-            Rule rconfig = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).rules().byRule(RuleType.COMPATIBILITY.getValue()).get().get(3, TimeUnit.SECONDS);
+            Rule rconfig = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).rules().byRule(RuleType.COMPATIBILITY.getValue()).get();
             Assertions.assertEquals("BACKWARD", rconfig.getConfig());
         });
 

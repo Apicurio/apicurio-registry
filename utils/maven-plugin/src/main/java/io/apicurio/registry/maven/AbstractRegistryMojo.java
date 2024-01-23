@@ -1,12 +1,9 @@
 package io.apicurio.registry.maven;
 
-import com.microsoft.kiota.authentication.AnonymousAuthenticationProvider;
-import com.microsoft.kiota.authentication.AuthenticationProvider;
-import com.microsoft.kiota.authentication.BaseBearerTokenAuthenticationProvider;
-import com.microsoft.kiota.http.OkHttpRequestAdapter;
-import io.apicurio.registry.auth.BasicAuthenticationProvider;
-import io.apicurio.registry.auth.OidcAccessTokenProvider;
 import io.apicurio.registry.types.ContentTypes;
+import io.kiota.http.vertx.VertXRequestAdapter;
+import io.apicurio.registry.client.auth.VertXAuthFactory;
+import io.vertx.ext.web.client.WebClient;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
@@ -16,6 +13,9 @@ import io.apicurio.registry.rest.client.RegistryClient;
 
 import java.util.Locale;
 import java.util.concurrent.ExecutionException;
+
+import static io.apicurio.registry.client.auth.VertXAuthFactory.buildOIDCWebClient;
+import static io.apicurio.registry.client.auth.VertXAuthFactory.buildSimpleAuthWebClient;
 
 /**
  * Base class for all Registry Mojo's.
@@ -53,16 +53,16 @@ public abstract class AbstractRegistryMojo extends AbstractMojo {
 
     protected RegistryClient getClient() {
         if (client == null) {
-            AuthenticationProvider provider = null;
+            WebClient provider = null;
             if (authServerUrl != null && clientId != null && clientSecret != null) {
-                provider = new BaseBearerTokenAuthenticationProvider(new OidcAccessTokenProvider(authServerUrl, clientId, clientSecret, null, clientScope));
+                provider = buildOIDCWebClient(authServerUrl, clientId, clientSecret, clientScope);
             } else if (username != null && password != null) {
-                provider = new BasicAuthenticationProvider(username, password);
+                provider = buildSimpleAuthWebClient(username, password);
             } else {
-                provider = new AnonymousAuthenticationProvider();
+                provider = WebClient.create(VertXAuthFactory.defaultVertx);
             }
 
-            var adapter = new OkHttpRequestAdapter(provider);
+            var adapter = new VertXRequestAdapter(provider);
             adapter.setBaseUrl(registryUrl);
             client = new RegistryClient(adapter);
         }

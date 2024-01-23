@@ -4,7 +4,6 @@ import static io.apicurio.registry.utils.tests.TestUtils.retry;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 import io.apicurio.registry.AbstractResourceTestBase;
 import org.apache.kafka.common.header.Headers;
@@ -37,10 +36,10 @@ public class JsonSerdeTest extends AbstractResourceTestBase {
         ArtifactMetaData amd = clientV3.groups().byGroupId(groupId).artifacts().post(content, config -> {
             config.headers.add("X-Registry-ArtifactId", artifactId + "-value");
             config.headers.add("X-Registry-ArtifactType", ArtifactType.JSON);
-        }).get(3, TimeUnit.SECONDS);
+        });
 
         // make sure we have schema registered
-        retry(() -> clientV3.ids().globalIds().byGlobalId(amd.getGlobalId()).get().get(3, TimeUnit.SECONDS));
+        retry(() -> clientV3.ids().globalIds().byGlobalId(amd.getGlobalId()).get());
 
         Person person = new Person("Ales", "Justin", 23);
 

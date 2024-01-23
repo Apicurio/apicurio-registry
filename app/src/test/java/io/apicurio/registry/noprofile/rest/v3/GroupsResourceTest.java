@@ -2913,7 +2913,6 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
 
         // Now try registering an artifact with both a valid and invalid ref
         data = new ByteArrayInputStream(artifactContent.getBytes(StandardCharsets.UTF_8));
-//        var references = new ArrayList<io.apicurio.registry.rest.client.models.ArtifactReference>();
         // valid ref
         var validRef = new io.apicurio.registry.rest.client.models.ArtifactReference();
         validRef.setGroupId(GROUP);

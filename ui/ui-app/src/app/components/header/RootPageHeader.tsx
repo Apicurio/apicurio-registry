@@ -46,16 +46,14 @@ export const RootPageHeader: FunctionComponent<RootPageHeaderProps> = (props: Ro
             <Tab data-testid="access-tab" key={2} eventKey={2} title={<TabTitleText>Access</TabTitleText>} />
         );
     }
-    if (Services.getConfigService().featureSettings()) {
+    if (Services.getConfigService().featureSettings() && Services.getAuthService().isUserAdmin()) {
         tabs.push(
             <Tab data-testid="settings-tab" key={3} eventKey={3} title={<TabTitleText>Settings</TabTitleText>} />
         );
     }
     return (
         <div>
-            <IfAuth isAdmin={true}>
-                <Tabs className="root-tabs" activeKey={props.tabKey} onSelect={handleTabClick} children={tabs} />
-            </IfAuth>
+            <Tabs className="root-tabs" activeKey={props.tabKey} onSelect={handleTabClick} children={tabs} />
         </div>
     );
 

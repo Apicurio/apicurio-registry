@@ -83,6 +83,7 @@
                     </execution>
                 </executions>
                 <configuration>
+                    <kiotaVersion>1.10.1</kiotaVersion>
                     <file>../common/src/main/resources/META-INF/openapi.json</file>
                     <namespace>io.apicurio.registry.rest.client</namespace>
                     <clientClass>RegistryClient</clientClass>

@@ -5,12 +5,12 @@ import { MenuToggle, MenuToggleElement, Select, SelectList, SelectOption, Toolti
 /**
  * Properties
  */
-export type IntegrityDropdownProps = {
+export type IntegritySelectProps = {
     value: string;
     onSelect: (newValue: string) => void;
 };
 
-export const IntegritySelect: FunctionComponent<IntegrityDropdownProps> = ({ value, onSelect }: IntegrityDropdownProps) => {
+export const IntegritySelect: FunctionComponent<IntegritySelectProps> = ({ value, onSelect }: IntegritySelectProps) => {
     const menuRef = React.useRef<HTMLDivElement>(null);
     const [isOpen, setOpen] = useState<boolean>(false);
     const [selectedItems, setSelectedItems] = useState(["FULL"]);

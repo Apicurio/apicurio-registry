@@ -732,6 +732,14 @@ public class KafkaSqlRegistryStorage implements RegistryStorage {
     }
 
     /**
+     * @see io.apicurio.registry.storage.RegistryStorage#getArtifactVersions(java.lang.String, java.lang.String)
+     */
+    @Override
+    public List<String> getArtifactVersions(String groupId, String artifactId, ArtifactRetrievalBehavior behavior) throws ArtifactNotFoundException, RegistryStorageException {
+        return sqlStore.getArtifactVersions(groupId, artifactId, behavior);
+    }
+
+    /**
      * @see io.apicurio.registry.storage.RegistryStorage#searchVersions(java.lang.String, java.lang.String, int, int)
      */
     @Override

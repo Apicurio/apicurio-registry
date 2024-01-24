@@ -22,23 +22,12 @@ import io.apicurio.registry.ccompat.dto.Schema;
 import io.apicurio.registry.ccompat.dto.SchemaId;
 import io.apicurio.registry.ccompat.dto.SchemaInfo;
 import io.apicurio.registry.rest.Headers;
-
 import jakarta.validation.constraints.NotNull;
-import jakarta.ws.rs.Consumes;
-import jakarta.ws.rs.DELETE;
-import jakarta.ws.rs.GET;
-import jakarta.ws.rs.HeaderParam;
-import jakarta.ws.rs.POST;
-import jakarta.ws.rs.Path;
-import jakarta.ws.rs.PathParam;
-import jakarta.ws.rs.Produces;
-import jakarta.ws.rs.QueryParam;
+import jakarta.ws.rs.*;
+
 import java.util.List;
 
-import static io.apicurio.registry.ccompat.rest.ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST;
-import static io.apicurio.registry.ccompat.rest.ContentTypes.COMPAT_SCHEMA_REGISTRY_V1;
-import static io.apicurio.registry.ccompat.rest.ContentTypes.JSON;
-import static io.apicurio.registry.ccompat.rest.ContentTypes.OCTET_STREAM;
+import static io.apicurio.registry.ccompat.rest.ContentTypes.*;
 
 /**
  * Note:
@@ -85,7 +74,7 @@ public interface SubjectVersionsResource {
      * </ul>
      */
     @GET
-    List<Integer> listVersions(@PathParam("subject") String subject, @HeaderParam(Headers.GROUP_ID) String groupId) throws Exception;
+    List<Integer> listVersions(@PathParam("subject") String subject, @HeaderParam(Headers.GROUP_ID) String groupId, @QueryParam("deleted") Boolean deleted) throws Exception;
 
     /**
      * Register a new schema under the specified subject. If successfully registered,
@@ -157,7 +146,7 @@ public interface SubjectVersionsResource {
     @Path("/{version}")
     Schema getSchemaByVersion(
             @PathParam("subject") String subject,
-            @PathParam("version") String version, @HeaderParam(Headers.GROUP_ID) String groupId) throws Exception;
+            @PathParam("version") String version, @HeaderParam(Headers.GROUP_ID) String groupId, @QueryParam("deleted") Boolean deleted) throws Exception;
 
     /**
      * Deletes a specific version of the schema registered under this subject.
@@ -225,7 +214,7 @@ public interface SubjectVersionsResource {
     @Path("/{version}/schema")
     String getSchemaOnly(
             @PathParam("subject") String subject,
-            @PathParam("version") String version, @HeaderParam(Headers.GROUP_ID) String groupId) throws Exception;
+            @PathParam("version") String version, @HeaderParam(Headers.GROUP_ID) String groupId, @QueryParam("deleted") Boolean deleted) throws Exception;
 
     // ----- Path: /subjects/{subject}/versions/{version}/referencedby -----
 

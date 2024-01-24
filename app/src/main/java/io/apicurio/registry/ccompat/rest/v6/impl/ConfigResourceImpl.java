@@ -25,6 +25,7 @@ import io.apicurio.registry.ccompat.rest.v6.ConfigResource;
 import io.apicurio.common.apps.logging.Logged;
 import io.apicurio.common.apps.logging.audit.Audited;
 import io.apicurio.common.apps.logging.audit.AuditingConstants;
+import io.apicurio.registry.ccompat.rest.v7.impl.AbstractResource;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
@@ -84,8 +85,7 @@ public class ConfigResourceImpl extends AbstractResource implements ConfigResour
     @Override
     @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
     public CompatibilityLevelParamDto getGlobalCompatibilityLevel() {
-        return getCompatibilityLevel(() ->
-                facade.getGlobalRule(RuleType.COMPATIBILITY).getConfiguration());
+        return getCompatibilityLevel(() -> getStorage().getGlobalRule(RuleType.COMPATIBILITY).getConfiguration());
     }
 
 
@@ -94,10 +94,15 @@ public class ConfigResourceImpl extends AbstractResource implements ConfigResour
     @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
     public CompatibilityLevelDto updateGlobalCompatibilityLevel(
             CompatibilityLevelDto request) {
-
         updateCompatibilityLevel(request.getCompatibility(),
-                dto -> facade.createOrUpdateGlobalRule(RuleType.COMPATIBILITY, dto),
-                () -> facade.deleteGlobalRule(RuleType.COMPATIBILITY));
+                dto -> {
+                    if (!doesGlobalRuleExist(RuleType.COMPATIBILITY)) {
+                        getStorage().createGlobalRule(RuleType.COMPATIBILITY, dto);
+                    } else {
+                        getStorage().updateGlobalRule(RuleType.COMPATIBILITY, dto);
+                    }
+                },
+                () -> getStorage().deleteGlobalRule(RuleType.COMPATIBILITY));
         return request;
     }
 
@@ -109,15 +114,26 @@ public class ConfigResourceImpl extends AbstractResource implements ConfigResour
             String subject,
             CompatibilityLevelDto request) {
         updateCompatibilityLevel(request.getCompatibility(),
-                dto -> facade.createOrUpdateArtifactRule(subject, RuleType.COMPATIBILITY, dto),
-                () -> facade.deleteArtifactRule(subject, RuleType.COMPATIBILITY));
+                dto -> {
+                    if (!doesArtifactRuleExist(subject, RuleType.COMPATIBILITY, null)) {
+                        getStorage().createArtifactRule(null, subject, RuleType.COMPATIBILITY, dto);
+                    } else {
+                        getStorage().updateArtifactRule(null, subject, RuleType.COMPATIBILITY, dto);
+                    }
+                },
+                () -> {
+                    try {
+                        getStorage().deleteArtifactRule(null, subject, RuleType.COMPATIBILITY);
+                    } catch (RuleNotFoundException e) {
+                        //Ignore, fail only when the artifact is not found
+                    }
+                });
         return request;
     }
 
     @Override
     @Authorized(style=AuthorizedStyle.ArtifactOnly, level=AuthorizedLevel.Read)
     public CompatibilityLevelParamDto getSubjectCompatibilityLevel(String subject) {
-        return getCompatibilityLevel(() ->
-                facade.getArtifactRule(subject, RuleType.COMPATIBILITY).getConfiguration());
+        return getCompatibilityLevel(() -> getStorage().getArtifactRule(null, subject, RuleType.COMPATIBILITY).getConfiguration());
     }
 }

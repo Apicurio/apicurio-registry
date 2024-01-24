@@ -521,29 +521,11 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     public void updateArtifactState(String groupId, String artifactId, ArtifactState state) throws ArtifactNotFoundException, RegistryStorageException {
         log.debug("Updating the state of artifact {} {} to {}", groupId, artifactId, state.name());
         // We're not skipping the latest artifact version even if it's disabled, so it can be enabled again
-        ArtifactMetaDataDto dto = this.getLatestArtifactMetaDataInternal(groupId, artifactId, DEFAULT);
-        handles.withHandleNoException(handle -> {
-            long globalId = dto.getGlobalId();
-            ArtifactState oldState = dto.getState();
-            ArtifactState newState = state;
-            artifactStateEx.applyState(s -> {
-                String sql = sqlStatements.updateArtifactVersionState();
-                int rowCount = handle.createUpdate(sql)
-                        .bind(0, s.name())
-                        .bind(1, tenantContext.tenantId())
-                        .bind(2, globalId)
-                        .execute();
-                if (rowCount == 0) {
-                    throw new ArtifactNotFoundException(groupId, artifactId);
-                }
-            }, oldState, newState);
-            return null;
-        });
+        var metadata = getArtifactMetaData(groupId, artifactId, DEFAULT);
+        updateArtifactVersionStateRaw(metadata.getGlobalId(), metadata.getState(), state);
     }
 
-    /**
-     * @see RegistryStorage#updateArtifactState(java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.types.ArtifactState)
-     */
+
     @Override
     @Transactional
     public void updateArtifactState(String groupId, String artifactId, String version, ArtifactState state)
@@ -557,15 +539,21 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     /**
      * IMPORTANT: Private methods can't be @Transactional. Callers MUST have started a transaction.
      */
-    private void updateArtifactVersionStateRaw(long globalId, ArtifactState oldState, ArtifactState newState) {
+    private void updateArtifactVersionStateRaw(long globalId, ArtifactState oldState, ArtifactState newState)
+            throws VersionNotFoundException {
         handles.withHandleNoException(handle -> {
-            artifactStateEx.applyState(s -> {
-                handle.createUpdate(sqlStatements.updateArtifactVersionState())
-                        .bind(0, s.name())
-                        .bind(1, tenantContext.tenantId())
-                        .bind(2, globalId)
-                        .execute();
-            }, oldState, newState);
+            if (oldState != newState) {
+                artifactStateEx.applyState(s -> {
+                    int rowCount = handle.createUpdate(sqlStatements.updateArtifactVersionState())
+                            .bind(0, s.name())
+                            .bind(1, tenantContext.tenantId())
+                            .bind(2, globalId)
+                            .execute();
+                    if (rowCount == 0) {
+                        throw new VersionNotFoundException(globalId);
+                    }
+                }, oldState, newState);
+            }
             return null;
         });
     }
@@ -1888,6 +1876,61 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     }
 
 
+
+    /**
+     * @see RegistryStorage#getArtifactVersions(java.lang.String, java.lang.String)
+     */
+    @Override
+    public List<String> getArtifactVersions(String groupId, String artifactId, ArtifactRetrievalBehavior behavior)
+            throws ArtifactNotFoundException, RegistryStorageException {
+        log.debug("Getting a list of versions for artifact: {} {}", groupId, artifactId);
+
+        switch (behavior) {
+            case DEFAULT:
+                try {
+                    return this.handles.withHandle(handle -> {
+                        String sql = sqlStatements.selectArtifactVersions();
+                        List<String> versions = handle.createQuery(sql)
+                                .bind(0, tenantContext.tenantId())
+                                .bind(1, normalizeGroupId(groupId))
+                                .bind(2, artifactId)
+                                .mapTo(String.class)
+                                .list();
+                        if (versions.isEmpty()) {
+                            throw new ArtifactNotFoundException(groupId, artifactId);
+                        }
+                        return versions;
+                    });
+                } catch (ArtifactNotFoundException anfe) {
+                    throw anfe;
+                } catch (Exception e) {
+                    throw new RegistryStorageException(e);
+                }
+            case SKIP_DISABLED_LATEST:
+                try {
+                    return this.handles.withHandle(handle -> {
+                        String sql = sqlStatements.selectArtifactVersionsSkipDisabled();
+                        List<String> versions = handle.createQuery(sql)
+                                .bind(0, tenantContext.tenantId())
+                                .bind(1, normalizeGroupId(groupId))
+                                .bind(2, artifactId)
+                                .mapTo(String.class)
+                                .list();
+                        if (versions.isEmpty()) {
+                            throw new ArtifactNotFoundException(groupId, artifactId);
+                        }
+                        return versions;
+                    });
+                } catch (ArtifactNotFoundException anfe) {
+                    throw anfe;
+                } catch (Exception e) {
+                    throw new RegistryStorageException(e);
+                }
+            default:
+                throw new UnreachableCodeException();
+        }
+
+    }
 
     /**
      * @see RegistryStorage#searchVersions(java.lang.String, java.lang.String, int, int)

@@ -26,11 +26,8 @@ public class ConflictException extends RegistryException {
 
     private static final long serialVersionUID = 5511072429790259605L;
 
-    public ConflictException(String message) {
-        super(message);
-    }
 
-    public ConflictException(String message, Throwable cause) {
-        super(message, cause);
+    public ConflictException(Throwable cause) {
+        super(cause);
     }
 }

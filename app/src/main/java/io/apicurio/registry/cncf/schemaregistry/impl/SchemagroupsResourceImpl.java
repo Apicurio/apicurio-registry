@@ -229,9 +229,9 @@ public class SchemagroupsResourceImpl implements SchemagroupsResource {
             }
         } catch (RuleViolationException ex) {
             if (ex.getRuleType() == RuleType.VALIDITY) {
-                throw new UnprocessableEntityException(ex.getMessage(), ex);
+                throw new UnprocessableEntityException(ex);
             } else {
-                throw new ConflictException(ex.getMessage(), ex);
+                throw new ConflictException(ex);
             }
         }
 

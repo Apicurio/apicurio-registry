@@ -16,18 +16,26 @@
 
 package io.apicurio.registry.ccompat.rest.v6.impl;
 
+import io.apicurio.common.apps.logging.Logged;
 import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
 import io.apicurio.registry.ccompat.dto.CompatibilityCheckResponse;
 import io.apicurio.registry.ccompat.dto.SchemaContent;
+import io.apicurio.registry.ccompat.rest.error.UnprocessableEntityException;
 import io.apicurio.registry.ccompat.rest.v6.CompatibilityResource;
-import io.apicurio.common.apps.logging.Logged;
+import io.apicurio.registry.ccompat.rest.v7.impl.AbstractResource;
+import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
-
+import io.apicurio.registry.rules.RuleViolationException;
+import io.apicurio.registry.rules.UnprocessableSchemaException;
+import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.interceptor.Interceptors;
+
+import java.util.Collections;
+import java.util.List;
 
 /**
  * @author Ales Justin
@@ -40,12 +48,23 @@ import jakarta.interceptor.Interceptors;
 public class CompatibilityResourceImpl extends AbstractResource implements CompatibilityResource {
 
     @Override
-    @Authorized(style=AuthorizedStyle.ArtifactOnly, level=AuthorizedLevel.Write)
+    @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Write)
     public CompatibilityCheckResponse testCompatibilityBySubjectName(
             String subject,
             String versionString,
             SchemaContent request) throws Exception {
 
-        return facade.testCompatibilityByVersion(subject, versionString, request, false);
+        try {
+            final List<String> versions = getStorage().getArtifactVersions(null, subject);
+            for (String version : versions) {
+                final ArtifactVersionMetaDataDto artifactVersionMetaData = getStorage().getArtifactVersionMetaData(null, subject, version);
+                getRulesService().applyRules(null, subject, version, artifactVersionMetaData.getType(), ContentHandle.create(request.getSchema()), Collections.emptyList(), Collections.emptyMap());
+            }
+            return CompatibilityCheckResponse.IS_COMPATIBLE;
+        } catch (RuleViolationException ex) {
+            return CompatibilityCheckResponse.IS_NOT_COMPATIBLE;
+        } catch (UnprocessableSchemaException ex) {
+            throw new UnprocessableEntityException(ex.getMessage());
+        }
     }
 }

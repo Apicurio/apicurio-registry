@@ -190,6 +190,14 @@ public abstract class CommonSqlStatements implements SqlStatements {
     }
 
     /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectArtifactVersions()
+     */
+    @Override
+    public String selectArtifactVersionsSkipDisabled() {
+        return "SELECT version FROM versions WHERE tenantId = ? AND groupId = ? AND artifactId = ? AND state != 'DISABLED'";
+    }
+
+    /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectArtifactVersionMetaData()
      */
     @Override

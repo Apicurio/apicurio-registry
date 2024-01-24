@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.ccompat.store;
+package io.apicurio.registry.ccompat.rest.v7.impl;
 
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -31,7 +31,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Singleton
-public class FacadeConverter {
+public class ApiConverter {
 
     @Inject
     CCompatConfig cconfig;

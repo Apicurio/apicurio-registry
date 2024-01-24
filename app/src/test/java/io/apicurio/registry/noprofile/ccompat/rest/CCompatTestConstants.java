@@ -18,8 +18,6 @@ package io.apicurio.registry.noprofile.ccompat.rest;
 
 public class CCompatTestConstants {
 
-
-
     public static final String SCHEMA_SIMPLE = "{\"type\": \"string\"}";
 
     public static final String SCHEMA_SIMPLE_DEFAULT_QUOTED = "{\"name\": \"EloquaContactRecordData\", \"type\": \"record\", \"fields\": [{\"name\": \"eloqua_contact_record\", \"type\": {\"name\": \"EloquaContactRecord\", \"type\": \"record\", \"fields\": [{\"name\": \"contact_id\", \"type\": \"string\", \"default\": \"\"}, {\"name\": \"field_map\", \"type\": {\"type\": \"map\", \"values\": \"string\"}, \"default\": \"{}\"}]}}]}";
@@ -54,8 +52,6 @@ public class CCompatTestConstants {
     public static final String VALID_AVRO_SCHEMA = "{\"schema\": \"{\\\"type\\\": \\\"record\\\",\\\"name\\\": \\\"myrecord1\\\",\\\"fields\\\": [{\\\"name\\\": \\\"foo1\\\",\\\"type\\\": \\\"string\\\"}]}\"}\"";
 
     public static final String SCHEMA_INVALID_WRAPPED = "{\"schema\":\"{\\\"type\\\": \\\"bloop\\\"}\"}";
-
-    public static final String V6_BASE_PATH = "/ccompat/v6";
 
     public static final String V7_BASE_PATH = "/ccompat/v7";
 

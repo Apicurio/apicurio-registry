@@ -19,23 +19,12 @@ package io.apicurio.registry.ccompat.rest.v7;
 import io.apicurio.registry.ccompat.dto.Schema;
 import io.apicurio.registry.ccompat.dto.SchemaInfo;
 import io.apicurio.registry.rest.Headers;
-
 import jakarta.validation.constraints.NotNull;
-import jakarta.ws.rs.Consumes;
-import jakarta.ws.rs.DELETE;
-import jakarta.ws.rs.GET;
-import jakarta.ws.rs.HeaderParam;
-import jakarta.ws.rs.POST;
-import jakarta.ws.rs.Path;
-import jakarta.ws.rs.PathParam;
-import jakarta.ws.rs.Produces;
-import jakarta.ws.rs.QueryParam;
+import jakarta.ws.rs.*;
+
 import java.util.List;
 
-import static io.apicurio.registry.ccompat.rest.ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST;
-import static io.apicurio.registry.ccompat.rest.ContentTypes.COMPAT_SCHEMA_REGISTRY_V1;
-import static io.apicurio.registry.ccompat.rest.ContentTypes.JSON;
-import static io.apicurio.registry.ccompat.rest.ContentTypes.OCTET_STREAM;
+import static io.apicurio.registry.ccompat.rest.ContentTypes.*;
 
 /**
  * Note:
@@ -99,7 +88,7 @@ public interface SubjectsResource {
     @Path("/{subject}")
     Schema findSchemaByContent(
             @PathParam("subject") String subject,
-            @NotNull SchemaInfo request, @QueryParam("normalize") Boolean normalize, @HeaderParam(Headers.GROUP_ID) String groupId) throws Exception;
+            @NotNull SchemaInfo request, @QueryParam("normalize") Boolean normalize, @HeaderParam(Headers.GROUP_ID) String groupId, @QueryParam("deleted") Boolean deleted) throws Exception;
 
     /**
      * Deletes the specified subject and its associated compatibility level if registered.

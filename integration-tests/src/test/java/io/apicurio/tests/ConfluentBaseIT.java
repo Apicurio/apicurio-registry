@@ -38,7 +38,7 @@ public abstract class ConfluentBaseIT extends ApicurioRegistryBaseIT {
 
     @BeforeAll
     void confluentBeforeAll(TestInfo info) throws Exception {
-        confluentService = new CachedSchemaRegistryClient(ApicurioRegistryBaseIT.getRegistryApiUrl() + "/ccompat/v6", 3);
+        confluentService = new CachedSchemaRegistryClient(ApicurioRegistryBaseIT.getRegistryApiUrl() + "/ccompat/v7", 3);
         clearAllConfluentSubjects();
     }
 

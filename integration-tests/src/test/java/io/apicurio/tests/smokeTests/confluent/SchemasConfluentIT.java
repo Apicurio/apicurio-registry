@@ -68,6 +68,7 @@ public class SchemasConfluentIT extends ConfluentBaseIT {
         assertThat(confluentService.getAllVersions(artifactId), hasItems(1, 2));
 
         confluentService.deleteSubject(artifactId);
+        confluentService.deleteSubject(artifactId, true);
         waitForSubjectDeleted(artifactId);
     }
 
@@ -121,6 +122,7 @@ public class SchemasConfluentIT extends ConfluentBaseIT {
         createArtifactViaConfluentClient(schema, artifactId);
 
         confluentService.deleteSchemaVersion(artifactId, "2");
+        confluentService.deleteSchemaVersion(artifactId, "2", true);
 
         TestUtils.waitFor("all specific schema version deletion", Constants.POLL_INTERVAL, Constants.TIMEOUT_GLOBAL, () -> {
             try {
@@ -136,6 +138,7 @@ public class SchemasConfluentIT extends ConfluentBaseIT {
         assertThat(schemeVersions, hasItems(1, 3));
 
         confluentService.deleteSubject(artifactId);
+        confluentService.deleteSubject(artifactId, true);
         waitForSubjectDeleted(artifactId);
     }
 
@@ -155,6 +158,7 @@ public class SchemasConfluentIT extends ConfluentBaseIT {
         assertThat(schemaVersions, hasItems(1, 2));
 
         confluentService.deleteSubject(artifactId);
+        confluentService.deleteSubject(artifactId, true);
         waitForSubjectDeleted(artifactId);
     }
 
@@ -262,6 +266,8 @@ public class SchemasConfluentIT extends ConfluentBaseIT {
                 return false;
             }
         });
+
+        confluentService.deleteSubject(subjectName, true);
 
         retryOp((rc) -> {
             TestUtils.assertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, () -> rc.getLatestArtifact(null, subjectName), errorCodeExtractor);

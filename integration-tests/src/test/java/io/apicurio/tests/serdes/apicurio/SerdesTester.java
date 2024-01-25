@@ -87,7 +87,7 @@ public class SerdesTester<K, P, C> {
         props.putIfAbsent(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, valueSerializerClass.getName());
         // Schema Registry location.
         if (valueSerializerClass.getName().contains("confluent")) {
-            props.putIfAbsent(KafkaAvroSerializerConfig.SCHEMA_REGISTRY_URL_CONFIG, ApicurioRegistryBaseIT.getRegistryApiUrl() + "/ccompat/v6");
+            props.putIfAbsent(KafkaAvroSerializerConfig.SCHEMA_REGISTRY_URL_CONFIG, ApicurioRegistryBaseIT.getRegistryApiUrl() + "/ccompat/v7");
             props.putIfAbsent(AbstractKafkaSchemaSerDeConfig.AUTO_REGISTER_SCHEMAS, "false");
             props.putIfAbsent(KafkaAvroSerializerConfig.VALUE_SUBJECT_NAME_STRATEGY, artifactIdStrategy.getName());
         } else {
@@ -115,7 +115,7 @@ public class SerdesTester<K, P, C> {
         props.putIfAbsent(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, valueDeserializer.getName());
         //Schema registry location.
         if (valueDeserializer.getName().contains("confluent")) {
-            props.putIfAbsent(KafkaAvroSerializerConfig.SCHEMA_REGISTRY_URL_CONFIG, ApicurioRegistryBaseIT.getRegistryApiUrl() + "/ccompat/v6");
+            props.putIfAbsent(KafkaAvroSerializerConfig.SCHEMA_REGISTRY_URL_CONFIG, ApicurioRegistryBaseIT.getRegistryApiUrl() + "/ccompat/v7");
         } else {
             props.putIfAbsent(SerdeConfig.REGISTRY_URL, ApicurioRegistryBaseIT.getRegistryV2ApiUrl());
         }

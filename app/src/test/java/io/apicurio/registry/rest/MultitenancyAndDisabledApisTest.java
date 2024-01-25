@@ -68,14 +68,14 @@ public class MultitenancyAndDisabledApisTest {
             .when()
                 .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
                 .body(CCompatTestConstants.SCHEMA_SIMPLE_WRAPPED)
-                .post("/t/abc/apis/ccompat/v6/subjects/{subject}/versions", UUID.randomUUID().toString())
+                .post("/t/abc/apis/ccompat/v7/subjects/{subject}/versions", UUID.randomUUID().toString())
             .then()
                 .statusCode(404);
 
         //this should return http 200, it's not disabled
         given()
             .baseUri("http://localhost:" + testPort)
-            .when().contentType(CT_JSON).get("/t/abc/apis/ccompat/v6/subjects")
+            .when().contentType(CT_JSON).get("/t/abc/apis/ccompat/v7/subjects")
             .then()
             .statusCode(200)
             .body(anything());
@@ -106,12 +106,12 @@ public class MultitenancyAndDisabledApisTest {
                 .when()
                 .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
                 .body(CCompatTestConstants.SCHEMA_SIMPLE_WRAPPED)
-                .post("/ccompat/v6/subjects/{subject}/versions", UUID.randomUUID().toString())
+                .post("/ccompat/v7/subjects/{subject}/versions", UUID.randomUUID().toString())
                 .then()
                 .statusCode(404);
 
         var req = given()
-                .when().contentType(CT_JSON).get("/ccompat/v6/subjects")
+                .when().contentType(CT_JSON).get("/ccompat/v7/subjects")
                 .then();
         if (disabledDirectAccess) {
             req.statusCode(404);

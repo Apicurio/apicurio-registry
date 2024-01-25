@@ -55,7 +55,7 @@ public class CCompatCanonicalModeTest extends AbstractResourceTestBase {
                 .when()
                 .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
                 .body(MAPPER.writeValueAsString(schemaContent))
-                .post("/ccompat/v6/subjects/{subject}/versions", SUBJECT)
+                .post("/ccompat/v7/subjects/{subject}/versions", SUBJECT)
                 .then()
                 .statusCode(200)
                 .body("id", Matchers.allOf(Matchers.isA(Integer.class), Matchers.greaterThanOrEqualTo(0)))
@@ -72,7 +72,7 @@ public class CCompatCanonicalModeTest extends AbstractResourceTestBase {
                 .when()
                 .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
                 .body(MAPPER.writeValueAsString(minifiedSchemaContent))
-                .post("/ccompat/v6/subjects/{subject}", SUBJECT)
+                .post("/ccompat/v7/subjects/{subject}", SUBJECT)
                 .then()
                 .statusCode(200);
 
@@ -82,7 +82,7 @@ public class CCompatCanonicalModeTest extends AbstractResourceTestBase {
                 .when()
                 .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
                 .body(MAPPER.writeValueAsString(minifiedSchemaContent))
-                .post("/ccompat/v6/subjects/{subject}/versions", SUBJECT)
+                .post("/ccompat/v7/subjects/{subject}/versions", SUBJECT)
                 .then()
                 .statusCode(200)
                 .body("id", Matchers.allOf(Matchers.isA(Integer.class), Matchers.equalTo(contentId1)))
@@ -100,7 +100,7 @@ public class CCompatCanonicalModeTest extends AbstractResourceTestBase {
                 .when()
                 .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
                 .body(MAPPER.writeValueAsString(schemaContent))
-                .post("/ccompat/v6/subjects/{subject}/versions", subject1)
+                .post("/ccompat/v7/subjects/{subject}/versions", subject1)
                 .then()
                 .statusCode(200)
                 .extract().as(SchemaId.class);
@@ -116,7 +116,7 @@ public class CCompatCanonicalModeTest extends AbstractResourceTestBase {
         Schema schema1R = given()
                 .when()
                 .contentType(ContentTypes.JSON)
-                .get("/ccompat/v6/subjects/{subject}/versions/latest", subject1)
+                .get("/ccompat/v7/subjects/{subject}/versions/latest", subject1)
                 .then()
                 .statusCode(200)
                 .extract().as(Schema.class);

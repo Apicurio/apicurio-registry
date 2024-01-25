@@ -491,7 +491,7 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
     }
 
     private SchemaRegistryClient buildClient() {
-        return new CachedSchemaRegistryClient("http://localhost:" + testPort + "/apis/ccompat/v6", 3);
+        return new CachedSchemaRegistryClient("http://localhost:" + testPort + "/apis/ccompat/v7", 3);
     }
 
     @Test

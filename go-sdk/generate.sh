@@ -16,7 +16,7 @@ URL="https://github.com/microsoft/kiota/releases/download/v${VERSION}/${PACKAGE_
 # COMMAND="kiota"
 # if ! command -v $COMMAND &> /dev/null
 # then
-  echo "System wide kiota could not be found, using local version"
+#  echo "System wide kiota could not be found, using local version"
   if [[ ! -f $SCRIPT_DIR/kiota_tmp/kiota ]]
   then
     echo "Local kiota could not be found, downloading"

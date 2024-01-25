@@ -27,6 +27,7 @@ import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.enterprise.event.Event;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
+import jakarta.validation.ValidationException;
 import org.apache.commons.lang3.tuple.Pair;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
@@ -3346,6 +3347,10 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         if (BranchId.LATEST.equals(branchId)) {
             throw new NotAllowedException("Artifact branch 'latest' cannot be replaced.");
         }
+        if (versions.isEmpty()) {
+            throw new ValidationException("Artifact branch replace operation requires at least one version. " +
+                    "Use the delete operation instead if this is intentional.");
+        }
 
         handles.withHandleNoException(handle -> {
 
@@ -3357,7 +3362,11 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                 }
             }
 
-            deleteArtifactBranchRaw(ga, branchId);
+            try {
+                deleteArtifactBranchRaw(ga, branchId);
+            } catch (ArtifactBranchNotFoundException ignored) {
+                // Branch does not exist, it will be created
+            }
 
             var reversed = new ArrayDeque<>(versions).descendingIterator();
             while (reversed.hasNext()) {

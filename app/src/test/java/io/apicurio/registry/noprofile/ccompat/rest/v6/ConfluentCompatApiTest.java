@@ -343,7 +343,7 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
                     .get(getBasePath() + "/subjects/{subject}/versions/{version}", SUBJECT, "latest")
                     .then()
                     .statusCode(404)
-                    .body("error_code", Matchers.allOf(Matchers.isA(Integer.class), Matchers.equalTo(40402)));
+                    .body("error_code", Matchers.allOf(Matchers.isA(Integer.class), Matchers.equalTo(40401)));
         });
 
         // GET schema only - shouldn't return as the state has been changed to DISABLED
@@ -354,7 +354,7 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
                     .get(getBasePath() + "/subjects/{subject}/versions/{version}/schema", SUBJECT, "latest")
                     .then()
                     .statusCode(404)
-                    .body("error_code", Matchers.allOf(Matchers.isA(Integer.class), Matchers.equalTo(40402)));
+                    .body("error_code", Matchers.allOf(Matchers.isA(Integer.class), Matchers.equalTo(40401)));
         });
     }
 
@@ -801,7 +801,7 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
                 .post(getBasePath() + "/subjects/{subject}", SUBJECT)
                 .then()
                 .statusCode(404)
-                .body("error_code", Matchers.allOf(Matchers.isA(Integer.class), Matchers.equalTo(40401)));
+                .body("error_code", Matchers.allOf(Matchers.isA(Integer.class), Matchers.equalTo(40403)));
 
 
         // POST

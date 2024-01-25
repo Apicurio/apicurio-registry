@@ -55,4 +55,6 @@ public class CCompatTestConstants {
 
     public static final String V7_BASE_PATH = "/ccompat/v7";
 
+    public static final String V6_BASE_PATH = "/ccompat/v6";
+
 }

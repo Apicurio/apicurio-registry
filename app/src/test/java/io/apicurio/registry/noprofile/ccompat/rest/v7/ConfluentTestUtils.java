@@ -26,7 +26,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 
 public class ConfluentTestUtils {
 
@@ -38,7 +39,7 @@ public class ConfluentTestUtils {
      */
     public static void checkNumberOfVersions(RestService restService, int expected, String subject) throws IOException, RestClientException {
         List<Integer> versions = restService.getAllVersions(subject);
-        assertEquals("Expected " + expected + " registered versions under subject " + subject + ", but found " + versions.size(), expected, versions.size());
+        assertEquals(expected, versions.size(), "Expected " + expected + " registered versions under subject " + subject + ", but found " + versions.size());
     }
 
     /**
@@ -48,16 +49,16 @@ public class ConfluentTestUtils {
         int registeredId = restService.registerSchema(schemaString, subject);
 
         // the newly registered schema should be immediately readable on the leader
-        assertEquals("Registered schema should be found", schemaString, restService.getId(registeredId).getSchemaString());
+        assertEquals(schemaString, restService.getId(registeredId).getSchemaString(), "Registered schema should be found");
 
         return registeredId;
     }
 
     public static void registerAndVerifySchema(RestService restService, String schemaString, List<SchemaReference> references, String subject) throws IOException, RestClientException {
-        int registeredId = restService.registerSchema(schemaString, AvroSchema.TYPE, references, subject);
+        int registeredId = restService.registerSchema(schemaString, AvroSchema.TYPE, references, subject).getId();
 
         // the newly registered schema should be immediately readable on the leader
-        assertEquals("Registered schema should be found", schemaString, restService.getId(registeredId).getSchemaString());
+        assertEquals(schemaString, restService.getId(registeredId).getSchemaString(), "Registered schema should be found");
     }
 
     public static List<String> getRandomCanonicalAvroString(int num) {

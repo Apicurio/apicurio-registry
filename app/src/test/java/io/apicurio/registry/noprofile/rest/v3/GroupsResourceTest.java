@@ -3183,6 +3183,55 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 ArtifactBranch.builder().groupId(GROUP).artifactId(artifactId).branchId("branch3").versions(List.of("3", "2")).build()
         ), convert(branches));
 
+        // Try to replace a non-existent branch
+
+        branch = clientV3
+                .groups()
+                .byGroupId(GROUP)
+                .artifacts()
+                .byArtifactId(artifactId)
+                .branches()
+                .byBranchId("branch4")
+                .put(convert(ArtifactBranch.builder().versions(List.of("1", "2", "3", "4")).build())); // We support omitting the repeated data
+
+        assertEquals(
+                ArtifactBranch.builder().groupId(GROUP).artifactId(artifactId).branchId("branch4").versions(List.of("1", "2", "3", "4")).build(),
+                convert(branch)
+        );
+
+        branches = clientV3
+                .groups()
+                .byGroupId(GROUP)
+                .artifacts()
+                .byArtifactId(artifactId)
+                .branches()
+                .get();
+
+        assertEquals(Set.of(
+                ArtifactBranch.builder().groupId(GROUP).artifactId(artifactId).branchId(BranchId.LATEST.getRawBranchId()).versions(List.of("4", "3", "2", "1")).build(),
+                ArtifactBranch.builder().groupId(GROUP).artifactId(artifactId).branchId("branch1").versions(List.of("4", "1")).build(),
+                ArtifactBranch.builder().groupId(GROUP).artifactId(artifactId).branchId("branch2").versions(List.of("4", "2")).build(),
+                ArtifactBranch.builder().groupId(GROUP).artifactId(artifactId).branchId("branch3").versions(List.of("3", "2")).build(),
+                ArtifactBranch.builder().groupId(GROUP).artifactId(artifactId).branchId("branch4").versions(List.of("1", "2", "3", "4")).build()
+        ), convert(branches));
+
+        // Failure mode: Try to replace a branch with empty version sequence
+
+        var error = assertThrows(Error.class, () -> {
+            clientV3
+                    .groups()
+                    .byGroupId(GROUP)
+                    .artifacts()
+                    .byArtifactId(artifactId)
+                    .branches()
+                    .byBranchId("branch4")
+                    .put(convert(ArtifactBranch.builder().versions(List.of()).build()));
+        });
+
+        assertNotNull(error);
+        assertEquals(400, error.getErrorCode());
+        assertEquals("ValidationException", error.getName());
+
         // Adding existing version is allowed, but not recommended
 
         branch = clientV3
@@ -3203,7 +3252,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         // It could be used to "hide" a bad latest version, but it's probably better to use the artifact state feature.
         // The latest branch is used in a lot of internal features, that currently do not expect duplicates or any updates.
 
-        var error = assertThrows(Error.class, () -> {
+        error = assertThrows(Error.class, () -> {
             clientV3
                     .groups()
                     .byGroupId(GROUP)
@@ -3353,7 +3402,8 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         assertEquals(Set.of(
                 ArtifactBranch.builder().groupId(GROUP).artifactId(artifactId).branchId(BranchId.LATEST.getRawBranchId()).versions(List.of("4", "3", "2", "1")).build(),
                 ArtifactBranch.builder().groupId(GROUP).artifactId(artifactId).branchId("branch1").versions(List.of("4", "1")).build(),
-                ArtifactBranch.builder().groupId(GROUP).artifactId(artifactId).branchId("branch3").versions(List.of("3", "2")).build()
+                ArtifactBranch.builder().groupId(GROUP).artifactId(artifactId).branchId("branch3").versions(List.of("3", "2")).build(),
+                ArtifactBranch.builder().groupId(GROUP).artifactId(artifactId).branchId("branch4").versions(List.of("1", "2", "3", "4")).build()
         ), convert(branches));
 
         clientV3
@@ -3393,7 +3443,8 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         assertEquals(Set.of(
                 ArtifactBranch.builder().groupId(GROUP).artifactId(artifactId).branchId(BranchId.LATEST.getRawBranchId()).versions(List.of("4", "3", "1")).build(),
                 ArtifactBranch.builder().groupId(GROUP).artifactId(artifactId).branchId("branch1").versions(List.of("4", "1")).build(),
-                ArtifactBranch.builder().groupId(GROUP).artifactId(artifactId).branchId("branch3").versions(List.of("3")).build()
+                ArtifactBranch.builder().groupId(GROUP).artifactId(artifactId).branchId("branch3").versions(List.of("3")).build(),
+                ArtifactBranch.builder().groupId(GROUP).artifactId(artifactId).branchId("branch4").versions(List.of("1", "3", "4")).build()
         ), convert(branches));
 
         // Delete the entire artifact and recreate it. Make sure branches have been cleaned up.

@@ -644,4 +644,9 @@ public interface SqlStatements {
 
     public String updateComment();
 
+    /**
+     * A statement used to select all version #s for a given artifactId.
+     */
+    public String selectArtifactVersionsSkipDisabled();
+
 }

@@ -92,6 +92,8 @@ public interface RegistryStorage extends DynamicConfigStorage {
      */
     boolean isAlive();
 
+    List<Long> getEnabledArtifactContentIds(String groupId, String artifactId);
+
     /**
      * Update artifact state.
      *
@@ -429,6 +431,18 @@ public interface RegistryStorage extends DynamicConfigStorage {
      * @throws RegistryStorageException
      */
     List<String> getArtifactVersions(String groupId, String artifactId) throws ArtifactNotFoundException, RegistryStorageException;
+
+    /**
+     * Gets a sorted set of all artifact versions that exist for a given artifact.
+     *
+     * @param groupId    (optional)
+     * @param artifactId
+     * @param behavior
+     * @throws ArtifactNotFoundException
+     * @throws RegistryStorageException
+     */
+    List<String> getArtifactVersions(String groupId, String artifactId, ArtifactRetrievalBehavior behavior)
+            throws ArtifactNotFoundException, RegistryStorageException;
 
     /**
      * Fetch the versions of the given artifact

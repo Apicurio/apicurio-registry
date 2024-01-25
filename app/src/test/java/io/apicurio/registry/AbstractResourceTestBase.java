@@ -16,6 +16,7 @@
 
 package io.apicurio.registry;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.rest.client.AdminClient;
 import io.apicurio.registry.rest.client.AdminClientFactory;
 import io.apicurio.registry.rest.client.RegistryClient;
@@ -75,6 +76,8 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
     protected AdminClient adminClientV2;
     protected RestService confluentClient;
 
+    protected ObjectMapper objectMapper;
+
     @BeforeAll
     protected void beforeAll() throws Exception {
         String serverUrl = "http://localhost:%s/apis";
@@ -84,6 +87,7 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
         clientV2 = createRestClientV2();
         adminClientV2 = createAdminClientV2();
         confluentClient = buildConfluentClient();
+        objectMapper = new ObjectMapper();
     }
 
     @AfterAll

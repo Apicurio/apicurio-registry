@@ -71,6 +71,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class ConfluentCompatApiTest extends AbstractResourceTestBase {
 
 
+
     @NotNull
     public String getBasePath() {
         return V6_BASE_PATH;
@@ -648,7 +649,7 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
 
     @Test
     public void testDeleteSchemaVersion() throws Exception {
-        final String SUBJECT = "testDeleteSchemaVersion";
+        final String SUBJECT = "testDeleteSchemaVersionv6";
         final Integer contentId1 = given()
                 .when()
                 .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)

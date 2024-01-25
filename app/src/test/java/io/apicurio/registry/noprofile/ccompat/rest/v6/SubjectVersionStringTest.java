@@ -40,7 +40,7 @@ public class SubjectVersionStringTest extends AbstractResourceTestBase {
 
     @Test
     public void testSubjectVersionString() throws Exception {
-        var SUBJECT = "test-cecc8b42-5ef5-4eff-82a5-96c1889839f9";
+        var SUBJECT = "testSubjectVersionStringV6";
         var schema1 = "{\"type\" : \"string\"}";
         var schema2 = "{\"type\" : \"int\"}";
 

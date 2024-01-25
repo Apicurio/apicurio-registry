@@ -246,7 +246,6 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
                 .body(anything());
 
 
-
         given()
                 .when()
                 .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)

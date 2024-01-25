@@ -88,7 +88,7 @@ public class ApiServiceImpl implements ApiService {
     private static final String SCHEMA_STATE_COMMENT_ADDITIONAL_PROPERTY = "ibmcompat-schema-state-comment";
 
     private List<SchemaVersion> getSchemaVersions(String schemaid) {
-        return storage.getArtifactVersions(null, schemaid)
+        return storage.getArtifactVersions(null, schemaid, DEFAULT)
                       .stream()
                       .map(versionid -> getSchemaVersionFromStorage(schemaid, versionid))
                       .filter(schemaVersion -> schemaVersion != null)
@@ -131,7 +131,7 @@ public class ApiServiceImpl implements ApiService {
     }
 
     private void populateSchemaSummary(String schemaid, SchemaSummary schemaSummary) {
-        List<ArtifactState> versionStates = storage.getArtifactVersions(null, schemaid).stream()
+        List<ArtifactState> versionStates = storage.getArtifactVersions(null, schemaid, DEFAULT).stream()
             .map(version -> storage.getArtifactVersionMetaData(null, schemaid, version).getState())
             .collect(Collectors.toList());
         Map<String, String> properties = storage.getArtifactMetaData(null, schemaid, DEFAULT).getProperties();
@@ -358,7 +358,7 @@ public class ApiServiceImpl implements ApiService {
         ArtifactState artifactState = getPatchedArtifactState(schemaModificationPatches);
         if(artifactState != null) {
             // Modify all the artifact version states
-            for (String version : storage.getArtifactVersions(null, schemaid)) {
+            for (String version : storage.getArtifactVersions(null, schemaid, DEFAULT)) {
                 try {
                     int versionnum = Integer.parseInt(version);
                     updateArtifactVersionState(schemaid, versionnum, artifactState);

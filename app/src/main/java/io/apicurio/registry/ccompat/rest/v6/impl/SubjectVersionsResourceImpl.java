@@ -25,8 +25,6 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import io.apicurio.registry.ccompat.rest.error.ReferenceExistsException;
-import io.apicurio.registry.ccompat.rest.error.SchemaNotSoftDeletedException;
-import io.apicurio.registry.ccompat.rest.error.SchemaSoftDeletedException;
 import io.apicurio.registry.ccompat.rest.error.UnprocessableEntityException;
 import io.apicurio.registry.ccompat.rest.v7.impl.AbstractResource;
 import io.apicurio.registry.content.ContentHandle;
@@ -128,7 +126,6 @@ public class SubjectVersionsResourceImpl extends AbstractResource implements Sub
     public int deleteSchemaVersion(
             String subject,
             String versionString) throws Exception {
-
         try {
             if (doesArtifactExist(subject, null)) {
 
@@ -136,7 +133,8 @@ public class SubjectVersionsResourceImpl extends AbstractResource implements Sub
                     List<Long> globalIdsReferencingSchema = getStorage().getGlobalIdsReferencingArtifact(null, subject, version);
                     ArtifactVersionMetaDataDto avmd = getStorage().getArtifactVersionMetaData(null, subject, version);
                     if (globalIdsReferencingSchema.isEmpty() || areAllSchemasDisabled(globalIdsReferencingSchema)) {
-                        return processDeleteVersion(subject, versionString, null, version, false, avmd);
+                        getStorage().deleteArtifactVersion(null, subject, version);
+                        return versionString;
                     } else {
                         //There are other schemas referencing this one, it cannot be deleted.
                         throw new ReferenceExistsException(String.format("There are subjects referencing %s", subject));
@@ -168,23 +166,6 @@ public class SubjectVersionsResourceImpl extends AbstractResource implements Sub
 
         return parseVersionString(subject, versionString, null
                 , version -> getStorage().getContentIdsReferencingArtifact(null, subject, version));
-    }
-
-    private String processDeleteVersion(String subject, String versionString, String groupId, String version, boolean fpermanent, ArtifactVersionMetaDataDto avmd) {
-        if (fpermanent) {
-            if (avmd.getState().equals(ArtifactState.ENABLED) || avmd.getState().equals(ArtifactState.DEPRECATED)) {
-                throw new SchemaNotSoftDeletedException(String.format("Subject %s version %s must be soft deleted first", subject, versionString));
-            } else if (avmd.getState().equals(ArtifactState.DISABLED)) {
-                getStorage().deleteArtifactVersion(groupId, subject, version);
-            }
-        } else {
-            if (avmd.getState().equals(ArtifactState.DISABLED)) {
-                throw new SchemaSoftDeletedException("Schema is already soft deleted");
-            } else {
-                getStorage().updateArtifactState(groupId, subject, version, ArtifactState.DISABLED);
-            }
-        }
-        return version;
     }
 
     protected Schema getSchema(String groupId, String subject, String versionString, boolean deleted) {

@@ -1,6 +1,6 @@
 var ApicurioRegistryConfig = {
     artifacts: {
-        url: "https://apicurio-registry-api-rhaf-apicurio-registry.apps.dev-eng-ocp4-mas.dev.3sca.net/apis/registry/v3"
+        url: "https://registry-api.dev.apicur.io/apis/registry/v3"
     },
     ui: {
         contextPath: "/",
@@ -12,10 +12,9 @@ var ApicurioRegistryConfig = {
         rbacEnabled: true,
         obacEnabled: false,
         options: {
-            url: "https://keycloak-rhaf-apicurio-designer.apps.dev-eng-ocp4-mas.dev.3sca.net/realms/registry",
+            url: "https://sso.dev.apicur.io/realms/apicurio",
             redirectUri: "http://localhost:8888",
-            clientId: "apicurio-registry",
-            scopes: "openid profile email offline_token"
+            clientId: "registry-ui"
         }
     },
     features: {

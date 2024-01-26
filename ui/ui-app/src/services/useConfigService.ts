@@ -80,7 +80,7 @@ export interface OidcJsAuthOptions {
     url: string;
     redirectUri: string;
     clientId: string;
-    scopes: string;
+    scope: string;
 }
 
 // Used when `type=keycloakjs`

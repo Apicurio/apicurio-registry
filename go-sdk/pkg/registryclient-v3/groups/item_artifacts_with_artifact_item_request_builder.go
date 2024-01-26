@@ -46,6 +46,11 @@ type ItemArtifactsWithArtifactItemRequestBuilderPutRequestConfiguration struct {
 	Options []i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestOption
 }
 
+// Branches manage branches of an artifact.
+func (m *ItemArtifactsWithArtifactItemRequestBuilder) Branches() *ItemArtifactsItemBranchesRequestBuilder {
+	return NewItemArtifactsItemBranchesRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
+}
+
 // NewItemArtifactsWithArtifactItemRequestBuilderInternal instantiates a new WithArtifactItemRequestBuilder and sets the default values.
 func NewItemArtifactsWithArtifactItemRequestBuilderInternal(pathParameters map[string]string, requestAdapter i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestAdapter) *ItemArtifactsWithArtifactItemRequestBuilder {
 	m := &ItemArtifactsWithArtifactItemRequestBuilder{

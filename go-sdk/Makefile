@@ -7,6 +7,10 @@ clean:
 generate:
 	./generate.sh
 
+.PHONY: generate-docker
+generate-docker:
+	./generate-docker.sh
+
 .PHONY: test
 test:
 	go test ./... -count=1

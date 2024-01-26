@@ -35,6 +35,7 @@ import io.apicurio.registry.types.ArtifactMediaTypes;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.types.ReferenceType;
+import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 
 import java.util.List;
@@ -99,12 +100,12 @@ public class IdsResourceImpl implements IdsResource {
         MediaType contentType = factory.getArtifactMediaType(metaData.getType());
 
         ContentHandle contentToReturn = artifact.getContent();
-        //TODO:carnalca when dereferencing is implemented, we should return the content dereferenced here
-        /*
+
+        ArtifactTypeUtilProvider artifactTypeProvider = factory.getArtifactTypeProvider(metaData.getType());
+
         if (dereference && !artifact.getReferences().isEmpty()) {
-            contentToReturn = factory.getArtifactTypeProvider(metaData.getType()).getContentDereferencer().dereference(artifact.getContent(), storage.resolveReferences(artifact.getReferences()));
+            contentToReturn = artifactTypeProvider.getContentDereferencer().dereference(artifact.getContent(), storage.resolveReferences(artifact.getReferences()));
         }
-        */
 
         Response.ResponseBuilder builder = Response.ok(contentToReturn, contentType);
         checkIfDeprecated(metaData::getState, metaData.getId(), metaData.getVersion(), builder);

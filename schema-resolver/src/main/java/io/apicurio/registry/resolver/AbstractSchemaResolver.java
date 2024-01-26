@@ -18,8 +18,8 @@ package io.apicurio.registry.resolver;
 
 import io.apicurio.registry.resolver.config.DefaultSchemaResolverConfig;
 import io.apicurio.registry.resolver.data.Record;
-import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
 import io.apicurio.registry.resolver.strategy.ArtifactReference;
+import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
 import io.apicurio.registry.resolver.utils.Utils;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.RegistryClientFactory;
@@ -62,6 +62,7 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
     protected String explicitArtifactGroupId;
     protected String explicitArtifactId;
     protected String explicitArtifactVersion;
+    protected boolean deserializerDereference;
 
     @Override
     public void configure(Map<String, ?> configs, SchemaParser<S, T> schemaParser) {
@@ -121,6 +122,8 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
         if (artifactVersionOverride != null) {
             this.explicitArtifactVersion = artifactVersionOverride;
         }
+
+        this.deserializerDereference = config.deserializerDereference();
     }
 
     /**
@@ -151,6 +154,7 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
      * Resolve an artifact reference for the given record, and optional parsed schema.  This will use
      * the artifact resolver strategy and then override the values from that strategy with any explicitly configured
      * values (groupId, artifactId, version).
+     *
      * @param data
      * @param parsedSchema
      * @param isReference
@@ -178,36 +182,54 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
 
     protected SchemaLookupResult<S> resolveSchemaByGlobalId(long globalId) {
         return schemaCache.getByGlobalId(globalId, globalIdKey -> {
-            //TODO getContentByGlobalId have to return some minumum metadata (groupId, artifactId and version)
-            //TODO or at least add some method to the api to return the version metadata by globalId
-//            ArtifactMetaData artifactMetadata = client.getArtifactMetaData("TODO", artifactId);
+            if (deserializerDereference) {
+                return resolveSchemaDereferenced(globalIdKey);
+            } else {
+                return resolveSchemaWithReferences(globalIdKey);
+            }
+        });
+    }
 
-            InputStream rawSchema = client.getContentByGlobalId(globalIdKey, false,  true);
+    private SchemaLookupResult<S> resolveSchemaDereferenced(long globalIdKey) {
+        InputStream rawSchema = client.getContentByGlobalId(globalIdKey, false, true);
 
-            //Get the artifact references
-            final List<io.apicurio.registry.rest.v2.beans.ArtifactReference> artifactReferences = client.getArtifactReferencesByGlobalId(globalId);
-            //If there are any references for the schema being parsed, resolve them before parsing the schema
-            final Map<String, ParsedSchema<S>> resolvedReferences = resolveReferences(artifactReferences);
+        byte[] schema = IoUtil.toBytes(rawSchema);
+        S parsed = schemaParser.parseSchema(schema, Collections.emptyMap());
 
-            byte[] schema = IoUtil.toBytes(rawSchema);
-            S parsed = schemaParser.parseSchema(schema, resolvedReferences);
+        ParsedSchemaImpl<S> ps = new ParsedSchemaImpl<S>()
+                .setParsedSchema(parsed)
+                .setRawSchema(schema);
 
-            ParsedSchemaImpl<S> ps = new ParsedSchemaImpl<S>()
-                    .setParsedSchema(parsed)
-                    .setSchemaReferences(new ArrayList<>(resolvedReferences.values()))
-                    .setRawSchema(schema);
+        SchemaLookupResult.SchemaLookupResultBuilder<S> result = SchemaLookupResult.builder();
 
-            SchemaLookupResult.SchemaLookupResultBuilder<S> result = SchemaLookupResult.builder();
-
-            return result
-                //FIXME it's impossible to retrieve this info with only the globalId
-//                  .groupId(null)
-//                  .artifactId(null)
-//                  .version(0)
+        return result
                 .globalId(globalIdKey)
                 .parsedSchema(ps)
                 .build();
-        });
+    }
+
+    private SchemaLookupResult<S> resolveSchemaWithReferences(long globalIdKey) {
+        InputStream rawSchema = client.getContentByGlobalId(globalIdKey, false, false);
+
+        //Get the artifact references
+        final List<io.apicurio.registry.rest.v2.beans.ArtifactReference> artifactReferences = client.getArtifactReferencesByGlobalId(globalIdKey);
+        //If there are any references for the schema being parsed, resolve them before parsing the schema
+        final Map<String, ParsedSchema<S>> resolvedReferences = resolveReferences(artifactReferences);
+
+        byte[] schema = IoUtil.toBytes(rawSchema);
+        S parsed = schemaParser.parseSchema(schema, resolvedReferences);
+
+        ParsedSchemaImpl<S> ps = new ParsedSchemaImpl<S>()
+                .setParsedSchema(parsed)
+                .setSchemaReferences(new ArrayList<>(resolvedReferences.values()))
+                .setRawSchema(schema);
+
+        SchemaLookupResult.SchemaLookupResultBuilder<S> result = SchemaLookupResult.builder();
+
+        return result
+                .globalId(globalIdKey)
+                .parsedSchema(ps)
+                .build();
     }
 
     protected Map<String, ParsedSchema<S>> resolveReferences(List<io.apicurio.registry.rest.v2.beans.ArtifactReference> artifactReferences) {
@@ -274,7 +296,7 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
             throw new IllegalArgumentException("Missing registry auth realm, set " + SchemaResolverConfig.AUTH_REALM);
         }
 
-        final String tokenEndpoint =  authServerUrl + String.format(SchemaResolverConfig.AUTH_SERVICE_URL_TOKEN_ENDPOINT, realm);
+        final String tokenEndpoint = authServerUrl + String.format(SchemaResolverConfig.AUTH_SERVICE_URL_TOKEN_ENDPOINT, realm);
 
         return configureAuthWithUrl(config, tokenEndpoint);
     }

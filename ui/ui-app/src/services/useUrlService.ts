@@ -1,3 +1,5 @@
+import { createOptions, httpGet } from "@utils/rest.utils";
+
 const githubRegex: RegExp = /^https:\/\/github\.com\/([^/]+)\/([^/]+)\/blob\/([^/]+)\/(.+)$/;
 
 
@@ -14,9 +16,14 @@ async function fetchUrlContent(url: string): Promise<string> {
 
     console.info("[UrlService] Fetching content from a URL: ", url);
 
-    return fetch(url).then(response => {
-        return response.text();
+    const endpoint: string = url;
+    const options: any = createOptions({
+        "Accept": "*"
     });
+    options.maxContentLength = "5242880"; // TODO 5MB hard-coded, make this configurable?
+    options.responseType = "text";
+    options.transformResponse = (data: any) => data;
+    return httpGet<string>(endpoint, options);
 }
 
 

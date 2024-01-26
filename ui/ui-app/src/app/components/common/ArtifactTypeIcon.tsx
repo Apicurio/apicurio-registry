@@ -1,6 +1,6 @@
 import { FunctionComponent } from "react";
 import "./ArtifactTypeIcon.css";
-import { ArtifactTypes } from "@models/artifactTypes.model.ts";
+import { ArtifactTypes } from "@services/useArtifactTypesService.ts";
 
 /**
  * Properties

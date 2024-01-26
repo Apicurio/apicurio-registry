@@ -14,8 +14,7 @@ var ApicurioRegistryConfig = {
         options: {
             url: "https://auth.apicur.io/auth/realms/apicurio-local",
             redirectUri: "http://localhost:8888",
-            clientId: "apicurio-registry-ui",
-            scopes: "openid profile email offline_token"
+            clientId: "apicurio-registry-ui"
         }
     },
     features: {

@@ -27,12 +27,20 @@ import {
     UploadArtifactForm
 } from "@app/pages";
 import { InvalidContentModal, RootPageHeader } from "@app/components";
-import { ArtifactsSearchResults, CreateArtifactData, GetArtifactsCriteria, Paging, Services } from "../../../services";
 import { ApiError } from "@models/apiError.model.ts";
 import { SearchedArtifact } from "@models/searchedArtifact.model.ts";
-import { AppNavigation, useAppNavigation } from "@hooks/useAppNavigation.ts";
 import { useSearchParams } from "react-router-dom";
 import { If, PleaseWaitModal, ProgressModal } from "@apicurio/common-ui-components";
+import {
+    ArtifactsSearchResults,
+    CreateArtifactData,
+    GetArtifactsCriteria,
+    Paging,
+    useGroupsService
+} from "@services/useGroupsService.ts";
+import { AppNavigation, useAppNavigation } from "@services/useAppNavigation.ts";
+import { useAdminService } from "@services/useAdminService.ts";
+import { useLoggerService } from "@services/useLoggerService.ts";
 
 /**
  * Properties
@@ -90,6 +98,9 @@ export const ArtifactsPage: FunctionComponent<ArtifactsPageProps> = () => {
     const [filterByGroupHook, setFilterByGroupHook] = useState<HookFunctionWrapper>();
 
     const appNavigation: AppNavigation = useAppNavigation();
+    const admin = useAdminService();
+    const groups = useGroupsService();
+    const logger = useLoggerService();
     const [ searchParams ] = useSearchParams();
 
     useEffect(() => {
@@ -111,7 +122,7 @@ export const ArtifactsPage: FunctionComponent<ArtifactsPageProps> = () => {
     };
 
     const onExportArtifacts = (): void => {
-        Services.getAdminService().exportAs("all-artifacts.zip").then(dref => {
+        admin.exportAs("all-artifacts.zip").then(dref => {
             const link = document.createElement("a");
             link.href = dref.href;
             link.download = "all-artifacts.zip";
@@ -145,7 +156,7 @@ export const ArtifactsPage: FunctionComponent<ArtifactsPageProps> = () => {
         setImportFormValid(false);
 
         if (importFile != null) {
-            Services.getAdminService().importFrom(importFile, (event: any) => {
+            admin.importFrom(importFile, (event: any) => {
                 let progress: number = 0;
                 if (event.lengthComputable) {
                     progress = Math.round(100 * (event.loaded / event.total));
@@ -176,10 +187,10 @@ export const ArtifactsPage: FunctionComponent<ArtifactsPageProps> = () => {
             if (!uploadFormData.groupId) {
                 data.groupId = "default";
             }
-            Services.getGroupsService().createArtifact(data).then(metaData => {
+            groups.createArtifact(data).then(metaData => {
                 const groupId: string = metaData.groupId ? metaData.groupId : "default";
                 const artifactLocation: string = `/artifacts/${ encodeURIComponent(groupId) }/${ encodeURIComponent(metaData.id) }`;
-                Services.getLoggerService().info("[ArtifactsPage] Artifact successfully uploaded.  Redirecting to details: ", artifactLocation);
+                logger.info("[ArtifactsPage] Artifact successfully uploaded.  Redirecting to details: ", artifactLocation);
                 appNavigation.navigateTo(artifactLocation);
             }).catch( error => {
                 pleaseWait(false);
@@ -218,7 +229,7 @@ export const ArtifactsPage: FunctionComponent<ArtifactsPageProps> = () => {
             type: criteria.filterSelection,
             value: criteria.filterValue
         };
-        return Services.getGroupsService().getArtifacts(gac, paging).then(results => {
+        return groups.getArtifacts(gac, paging).then(results => {
             onArtifactsLoaded(results);
         }).catch(error => {
             setPageError(toPageError(error, "Error searching for artifacts."));
@@ -268,13 +279,13 @@ export const ArtifactsPage: FunctionComponent<ArtifactsPageProps> = () => {
     };
 
     const handleInvalidContentError = (error: any): void => {
-        Services.getLoggerService().info("[ArtifactsPage] Invalid content error:", error);
+        logger.info("[ArtifactsPage] Invalid content error:", error);
         setInvalidContentError(error);
         setInvalidContentModalOpen(true);
     };
 
     const onGroupClick = (groupId: string): void => {
-        Services.getLoggerService().info("[ArtifactsPage] Filtering by group: ", groupId);
+        logger.info("[ArtifactsPage] Filtering by group: ", groupId);
         // Hack Alert:  when clicking on a Group in the artifact list, push a new filter state into
         // the toolbar.  This is done via a change-criteria hook function that we set up earlier.
         if (filterByGroupHook) {

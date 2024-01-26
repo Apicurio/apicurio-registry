@@ -16,8 +16,8 @@ import { SearchIcon } from "@patternfly/react-icons";
 import { OnPerPageSelect, OnSetPage } from "@patternfly/react-core/dist/js/components/Pagination/Pagination";
 import { ArtifactReference } from "@models/artifactReference.model.ts";
 import { ReferenceType } from "@models/referenceType.ts";
-import { Paging } from "@services/groups";
 import { ObjectSelect } from "@apicurio/common-ui-components";
+import { Paging } from "@services/useGroupsService.ts";
 
 export interface ReferencesToolbarFilterCriteria {
     filterSelection: string;

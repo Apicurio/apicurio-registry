@@ -17,7 +17,7 @@ import {
 } from "@patternfly/react-core";
 import { ExclamationTriangleIcon } from "@patternfly/react-icons";
 import { PageError } from "@app/pages";
-import { AppNavigation, useAppNavigation } from "@hooks/useAppNavigation.ts";
+import { AppNavigation, useAppNavigation } from "@services/useAppNavigation.ts";
 
 
 export type ErrorPageProps = {

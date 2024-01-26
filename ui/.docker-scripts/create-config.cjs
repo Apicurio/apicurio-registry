@@ -42,7 +42,7 @@ const CONFIG = {
             url: AUTH_URL,
             redirectUri: AUTH_REDIRECT_URL,
             clientId: AUTH_CLIENT_ID,
-            scopes: AUTH_CLIENT_SCOPES
+            scope: AUTH_CLIENT_SCOPES
         }
     },
     features: {

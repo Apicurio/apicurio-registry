@@ -13,10 +13,10 @@ import {
 } from "@patternfly/react-core";
 import { SearchIcon, SortAlphaDownAltIcon, SortAlphaDownIcon } from "@patternfly/react-icons";
 import { IfAuth, IfFeature } from "@app/components";
-import { Services } from "@services/services.ts";
-import { ArtifactsSearchResults, Paging } from "@services/groups";
 import { OnPerPageSelect, OnSetPage } from "@patternfly/react-core/dist/js/components/Pagination/Pagination";
 import { ObjectDropdown, ObjectSelect } from "@apicurio/common-ui-components";
+import { ArtifactsSearchResults, Paging } from "@services/useGroupsService.ts";
+import { useLoggerService } from "@services/useLoggerService.ts";
 
 export type ArtifactsPageToolbarFilterCriteria = {
     filterSelection: string;
@@ -68,6 +68,8 @@ export const ArtifactsPageToolbar: FunctionComponent<ArtifactsPageToolbarProps> 
     const [filterValue, setFilterValue] = useState("");
     const [filterAscending, setFilterAscending] = useState(true);
     const [kebabActions, setKebabActions] = useState<ActionType[]>([]);
+    
+    const logger = useLoggerService();
 
     const totalArtifactsCount = (): number => {
         return props.artifacts ? props.artifacts.count : 0;
@@ -86,7 +88,7 @@ export const ArtifactsPageToolbar: FunctionComponent<ArtifactsPageToolbarProps> 
     };
 
     const onToggleAscending = (): void => {
-        Services.getLoggerService().debug("[ArtifactsPageToolbar] Toggle the ascending flag.");
+        logger.debug("[ArtifactsPageToolbar] Toggle the ascending flag.");
         const newAscending: boolean = !filterAscending;
         setFilterAscending(newAscending);
         fireChangeEvent(newAscending, filterType.value, filterValue);
@@ -102,7 +104,7 @@ export const ArtifactsPageToolbar: FunctionComponent<ArtifactsPageToolbarProps> 
     };
 
     const filterByGroup = (groupId: string): void => {
-        Services.getLoggerService().info("[ArtifactsPageToolbar] Filtering by group: ", groupId);
+        logger.info("[ArtifactsPageToolbar] Filtering by group: ", groupId);
         if (groupId) {
             const newFilterType: FilterType = FILTER_TYPES[1]; // Filter by group
             const newFilterValue: string = groupId;
@@ -114,7 +116,7 @@ export const ArtifactsPageToolbar: FunctionComponent<ArtifactsPageToolbarProps> 
 
     useEffect(() => {
         if (props.filterByGroupHook) {
-            Services.getLoggerService().info("[ArtifactsPageToolbar] Setting change criteria hook");
+            logger.info("[ArtifactsPageToolbar] Setting change criteria hook");
             props.filterByGroupHook(filterByGroup);
         }
     }, []);

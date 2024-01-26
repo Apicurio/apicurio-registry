@@ -1,7 +1,6 @@
-import { Services } from "@services/services.ts";
+import { AdminService, useAdminService } from "@services/useAdminService.ts";
 
 export class ArtifactTypes {
-
     public static AVRO = "AVRO";
     public static PROTOBUF = "PROTOBUF";
     public static JSON = "JSON";
@@ -12,19 +11,6 @@ export class ArtifactTypes {
     public static WSDL = "WSDL";
     public static XSD = "XSD";
     public static XML = "XML";
-
-    public static async allTypes(): Promise<string[]> {
-        try {
-            // TODO cache the result of this
-            return (await Services.getAdminService().getArtifactTypes()).map(t => t.name);
-        } catch (e) {
-            return ["AVRO", "PROTOBUF", "JSON", "OPENAPI", "ASYNCAPI", "GRAPHQL", "KCONNECT", "WSDL", "XSD", "XML"];
-        }
-    }
-
-    public static async allTypesWithLabels(): Promise<any[]> {
-        return (await this.allTypes()).map(t => { return { id: t, label: this.getLabel(t) }; });
-    }
 
     public static getTitle(type: string): string {
         let title: string = type;
@@ -141,3 +127,41 @@ export class ArtifactTypes {
     }
 
 }
+
+let ALL_TYPES: string[] | undefined = undefined;
+
+const allTypes = async (admin: AdminService): Promise<string[]> => {
+    if (ALL_TYPES === undefined) {
+        try {
+            ALL_TYPES = (await admin.getArtifactTypes()).map(t => t.name);
+        } catch (e) {
+            ALL_TYPES = ["AVRO", "PROTOBUF", "JSON", "OPENAPI", "ASYNCAPI", "GRAPHQL", "KCONNECT", "WSDL", "XSD", "XML"];
+        }
+    }
+    return Promise.resolve(ALL_TYPES);
+};
+
+const allTypesWithLabels = async (admin: AdminService): Promise<any[]> => {
+    return allTypes(admin).then(types => {
+        return types.map(t => { return { id: t, label: ArtifactTypes.getLabel(t) }; });
+    });
+};
+
+
+export interface ArtifactTypesService {
+    allTypes(): Promise<string[]>;
+    allTypesWithLabels(): Promise<any[]>;
+}
+
+export const useArtifactTypesService: () => ArtifactTypesService = (): ArtifactTypesService => {
+    const admin: AdminService = useAdminService();
+
+    return {
+        allTypes(): Promise<string[]> {
+            return allTypes(admin);
+        },
+        allTypesWithLabels(): Promise<any[]> {
+            return allTypesWithLabels(admin);
+        }
+    };
+};

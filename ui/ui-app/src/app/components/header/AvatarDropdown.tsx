@@ -1,6 +1,7 @@
 import React, { FunctionComponent, useState } from "react";
 import { Avatar, Dropdown, DropdownItem, DropdownList, MenuToggle, MenuToggleElement } from "@patternfly/react-core";
-import { Services } from "@services/services.ts";
+import { AuthService, useAuth } from "@apicurio/common-ui-components";
+import { UserService, useUserService } from "@services/useUserService.ts";
 
 
 export type AvatarDropdownProps = {
@@ -10,6 +11,9 @@ export type AvatarDropdownProps = {
 
 export const AvatarDropdown: FunctionComponent<AvatarDropdownProps> = () => {
     const [isOpen, setIsOpen] = useState(false);
+
+    const auth: AuthService = useAuth();
+    const user: UserService = useUserService();
 
     const onSelect = (): void => {
         setIsOpen(!isOpen);
@@ -37,7 +41,7 @@ export const AvatarDropdown: FunctionComponent<AvatarDropdownProps> = () => {
                     icon={icon}
                 >
                     {
-                        Services.getUsersService().currentUser().displayName || "User"
+                        user.currentUser().displayName || "User"
                     }
                 </MenuToggle>
             )}
@@ -48,7 +52,7 @@ export const AvatarDropdown: FunctionComponent<AvatarDropdownProps> = () => {
                     key="link"
                     // Prevent the default onClick functionality for example purposes
                     onClick={(ev: any) => {
-                        Services.getAuthService().doLogout();
+                        auth.logout();
                         ev.preventDefault();
                     }}
                 >

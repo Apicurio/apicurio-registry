@@ -3,8 +3,8 @@ import { Button, Toolbar, ToolbarContent, ToolbarGroup, ToolbarItem } from "@pat
 import { QuestionCircleIcon } from "@patternfly/react-icons";
 import { AvatarDropdown, IfAuth } from "@app/components";
 import { AppAboutModal, BackendInfo, FrontendInfo } from "@apicurio/common-ui-components";
-import { Services } from "@services/services.ts";
-import { VersionType } from "@services/version";
+import { useVersionService, VersionService } from "@services/useVersionService.ts";
+import { SystemService, useSystemService } from "@services/useSystemService.ts";
 
 
 export type AppHeaderToolbarProps = {
@@ -14,14 +14,15 @@ export type AppHeaderToolbarProps = {
 
 export const AppHeaderToolbar: FunctionComponent<AppHeaderToolbarProps> = () => {
     const [isAboutModalOpen, setIsAboutModalOpen] = useState(false);
-    const version: VersionType = Services.getVersionService().getVersion();
+    const version: VersionService = useVersionService();
+    const system: SystemService = useSystemService();
 
     const frontendInfo: FrontendInfo = {
-        ...version
+        ...version.getVersion()
     };
 
     const fetchBackendInfo = async (): Promise<BackendInfo> => {
-        return Services.getSystemService().getInfo().then(info => {
+        return system.getInfo().then(info => {
             return {
                 name: info.name,
                 description: info.description,
@@ -39,7 +40,7 @@ export const AppHeaderToolbar: FunctionComponent<AppHeaderToolbarProps> = () => 
                 backendInfo={fetchBackendInfo}
                 backendLabel="Registry API info"
                 brandImageSrc="/apicurio_registry_logo_reverse.svg"
-                brandImageAlt={version.name}
+                brandImageAlt={version.getVersion().name}
                 isOpen={isAboutModalOpen}
                 onClose={() => setIsAboutModalOpen(false)} />
             <Toolbar id="app-header-toolbar" isFullHeight={true}>

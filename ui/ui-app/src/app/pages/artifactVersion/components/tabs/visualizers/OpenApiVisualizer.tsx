@@ -1,6 +1,6 @@
 import { FunctionComponent, useRef } from "react";
-import { Services } from "@services/services.ts";
-import { ConfigService } from "@services/config";
+import { ConfigService, useConfigService } from "@services/useConfigService.ts";
+import { LoggerService, useLoggerService } from "@services/useLoggerService.ts";
 
 export type OpenApiVisualizerProps = {
     spec: any;
@@ -9,7 +9,8 @@ export type OpenApiVisualizerProps = {
 
 
 export const OpenApiVisualizer: FunctionComponent<OpenApiVisualizerProps> = (props: OpenApiVisualizerProps) => {
-    const config: ConfigService = Services.getConfigService();
+    const config: ConfigService = useConfigService();
+    const logger: LoggerService = useLoggerService();
     const ref = useRef<any>();
 
     const oaiDocsUrl = (): string => {
@@ -20,7 +21,7 @@ export const OpenApiVisualizer: FunctionComponent<OpenApiVisualizerProps> = (pro
         return rval;
     };
 
-    Services.getLoggerService().info("[OpenApiVisualizer] OAI docs URL: ", oaiDocsUrl());
+    logger.info("[OpenApiVisualizer] OAI docs URL: ", oaiDocsUrl());
 
     const onIframeLoaded = (): void => {
         // Now it's OK to post a message to iframe with the content to render.

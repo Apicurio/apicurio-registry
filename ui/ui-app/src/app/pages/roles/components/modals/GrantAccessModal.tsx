@@ -12,10 +12,10 @@ import {
     Radio,
     TextInput
 } from "@patternfly/react-core";
-import { Principal } from "@services/config";
 import { OutlinedQuestionCircleIcon } from "@patternfly/react-icons";
 import "./GrantAccessModal.css";
 import { RoleMapping, RoleTypes } from "@models/roleMapping.model.ts";
+import { Principal } from "@services/useConfigService.ts";
 
 /**
  * Properties

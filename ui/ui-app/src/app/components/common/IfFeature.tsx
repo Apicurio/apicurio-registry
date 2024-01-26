@@ -1,5 +1,5 @@
 import React, { FunctionComponent } from "react";
-import { Services } from "@services/services.ts";
+import { useConfigService } from "@services/useConfigService.ts";
 
 /**
  * Properties
@@ -17,9 +17,10 @@ export type IfFeatureProps = {
  * UI elements based on the configured application feature set.
  */
 export const IfFeature: FunctionComponent<IfFeatureProps> = (props: IfFeatureProps) => {
+    const config = useConfigService();
 
     const accept = () => {
-        const features: any = Services.getConfigService().features();
+        const features: any = config.features();
         const featureValue: any = features[props.feature];
         if (props.is !== undefined) {
             return featureValue === props.is;

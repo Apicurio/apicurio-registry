@@ -1,6 +1,7 @@
 import React, { FunctionComponent } from "react";
 import { If } from "@apicurio/common-ui-components";
-import { Services } from "@services/services.ts";
+import { useUserService } from "@services/useUserService.ts";
+import { useConfigService } from "@services/useConfigService.ts";
 
 
 export type RuleValueProps = {
@@ -10,9 +11,11 @@ export type RuleValueProps = {
 };
 
 export const RuleValue: FunctionComponent<RuleValueProps> = (props: RuleValueProps) => {
-    const readOnly: boolean = Services.getConfigService().featureReadOnly();
-    const userIsAdmin: boolean = Services.getAuthService().isUserAdmin();
-    const userIsDev: boolean = Services.getAuthService().isUserDeveloper();
+    const config = useConfigService();
+    const user = useUserService();
+    const readOnly: boolean = config.featureReadOnly();
+    const userIsAdmin: boolean = user.isUserAdmin();
+    const userIsDev: boolean = user.isUserDeveloper();
 
     const isEditable: boolean = !readOnly && (props.isGlobalRule ? userIsAdmin : userIsDev);
 

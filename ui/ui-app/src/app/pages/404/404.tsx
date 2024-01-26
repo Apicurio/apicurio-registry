@@ -12,7 +12,7 @@ import {
     PageSectionVariants
 } from "@patternfly/react-core";
 import { ExclamationCircleIcon } from "@patternfly/react-icons";
-import { AppNavigation, useAppNavigation } from "@hooks/useAppNavigation.ts";
+import { AppNavigation, useAppNavigation } from "@services/useAppNavigation.ts";
 
 
 /**

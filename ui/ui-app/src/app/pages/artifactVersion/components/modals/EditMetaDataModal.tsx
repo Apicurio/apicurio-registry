@@ -13,8 +13,8 @@ import {
     TextArea,
     TextInput
 } from "@patternfly/react-core";
-import { EditableMetaData } from "@services/groups";
 import { ArtifactProperty, listToProperties, PropertiesFormGroup, propertiesToList } from "@app/pages";
+import { EditableMetaData } from "@services/useGroupsService.ts";
 
 
 /**

@@ -37,7 +37,7 @@ endif::[]
 
 // AMQ Streams titles
 :StreamsName: AMQ Streams
-:AMQStreamsURLVersion: 2.5
+:AMQStreamsURLVersion: 2.6
 
 :LinkStreamsOpenShift: https://access.redhat.com/documentation/en-us/red_hat_amq_streams/{AMQStreamsURLVersion}/html-single/using_amq_streams_on_openshift/index
 :NameStreamsOpenShift: Using {StreamsName} on OpenShift

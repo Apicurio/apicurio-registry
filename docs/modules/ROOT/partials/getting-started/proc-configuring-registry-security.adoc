@@ -28,7 +28,7 @@ ifdef::apicurio-registry[]
 link:https://www.keycloak.org/documentation[{keycloak} user documentation]. 
 endif::[]
 ifdef::rh-service-registry[]
-the link:https://access.redhat.com/documentation/en-us/red_hat_single_sign-on/{keycloak-version}[{keycloak} user documentation].
+link:https://access.redhat.com/documentation/en-us/red_hat_single_sign-on/{keycloak-version}[{keycloak} user documentation].
 endif::[]
 * {registry} is installed and running.
 
@@ -62,24 +62,25 @@ You can use the defaults for the other client settings.
 
 . In your {registry} deployment on OpenShift, set the following {registry} environment variables to configure authentication using {keycloak}:
 +
-.Configuration for {registry} authentication
-[.table-expandable,width="100%",cols="5,5,2,4",options="header"]
+.Configuration for {registry} authentication with {keycloak}
+[.table-expandable,width="100%",cols="5,6,2,4",options="header"]
 |===
 |Environment variable
 |Description
 |Type
 |Default
 |`AUTH_ENABLED`
-|If set to `true`, the environment variables that follow are required.
+|Enables authentication for {registry}. When set to `true`, the environment variables that follow are required for authentication using {keycloak}.
 |String
 |`false`
 |`KEYCLOAK_URL`
-|The URL of the {keycloak} authentication server to use. 
-|None
-|`KEYCLOAK_REALM`
-|The {keycloak} realm used for authentication.
+|The URL of the {keycloak} authentication server. For example, `\http://localhost:8080`.
 |String
-|`registry`
+|-
+|`KEYCLOAK_REALM`
+|The {keycloak} realm for authentication. For example, `registry.`
+|String
+|-
 |`KEYCLOAK_API_CLIENT_ID`
 |The client ID for the {registry} REST API.
 |String

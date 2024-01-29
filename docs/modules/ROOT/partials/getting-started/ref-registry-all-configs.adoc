@@ -799,3 +799,54 @@ The following {registry} configuration options are available for each component 
 |Skip artifact versions with DISABLED state when retrieving latest artifact version
 |===
 
+== ui
+.ui configuration options
+[.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]
+|===
+|Name
+|Type
+|Default
+|Available from
+|Description
+|`registry.ui.auth.oidc.clientId`
+|`string`
+|`apicurio-registry-ui`
+|`3.0.0`
+|The OIDC clientId
+|`registry.ui.auth.oidc.redirectUri`
+|`string`
+|`/`
+|`3.0.0`
+|The OIDC redirectUri
+|`registry.ui.contextPath`
+|`string`
+|`/`
+|`3.0.0`
+|Context path of the UI
+|`registry.ui.docsUrl`
+|`string`
+|`/docs/`
+|`3.0.0`
+|URL of the Documentation component
+|`registry.ui.features.breadcrumbs`
+|`string`
+|`true`
+|`3.0.0`
+|Enabled to show breadcrumbs in the UI
+|`registry.ui.features.readOnly`
+|`string`
+|`false`
+|`3.0.0`
+|Enabled to set the UI to read-only mode
+|`registry.ui.features.settings`
+|`string`
+|`true`
+|`3.0.0`
+|Enabled to show the Settings tab in the UI
+|`registry.ui.navPrefixPath`
+|`string`
+|`/`
+|`3.0.0`
+|Navigation prefix for all UI paths
+|===
+

@@ -20,6 +20,7 @@ import static java.lang.System.*;
 public class generateAllConfigPartial {
 
     private static Map<String, Option> allConfiguration = new HashMap();
+    private static Set<String> skipProperties = Set.of("registry.auth.url.configured");
 
     static class Option {
         final String name;
@@ -150,6 +151,9 @@ public class generateAllConfigPartial {
         for (AnnotationInstance annotation : configAnnotations) {
             var configName = annotation.value("name").value().toString();
             if (allConfiguration.containsKey(configName)) {
+                continue;
+            }
+            if (skipProperties.contains(configName)) {
                 continue;
             }
             switch (annotation.target().kind()) {

@@ -1,3 +1,5 @@
+import { createEndpoint, httpGet } from "@utils/rest.utils.ts";
+import { cloneObject } from "@utils/object.utils.ts";
 
 export enum AlertVariant {
     success = "success",
@@ -136,11 +138,46 @@ export function getRegistryConfig(): ApicurioRegistryConfig {
     return config;
 }
 
-const registryConfig: ApicurioRegistryConfig = getRegistryConfig();
+function overrideObject(base: any, overrides: any | undefined): any {
+    if (overrides === undefined) {
+        return {
+            ...base
+        };
+    }
+    const rval: any = {};
+    Object.getOwnPropertyNames(base).forEach(propertyName => {
+        const baseValue: any = base[propertyName];
+        const overrideValue: any = overrides[propertyName];
+        if (overrideValue) {
+            if (typeof baseValue === "object" && typeof overrideValue === "object") {
+                rval[propertyName] = overrideObject(baseValue, overrideValue);
+            } else {
+                rval[propertyName] = overrideValue;
+            }
+        } else {
+            rval[propertyName] = baseValue;
+        }
+    });
+    return rval;
+}
+
+function overrideConfig(base: ApicurioRegistryConfig, overrides: ApicurioRegistryConfig): ApicurioRegistryConfig {
+    const rval: ApicurioRegistryConfig = cloneObject(base);
+    rval.artifacts = {
+        url: overrides.artifacts.url
+    };
+    rval.ui = overrideObject(rval.ui, overrides.ui);
+    rval.auth = overrideObject(rval.auth, overrides.auth);
+    rval.features = overrideObject(rval.features, overrides.features);
+    return rval;
+}
+
+let registryConfig: ApicurioRegistryConfig = getRegistryConfig();
 
 
 export interface ConfigService {
 
+    fetchAndMergeConfigs(): Promise<void>;
     artifactsUrl(): string;
     uiContextPath(): string|undefined;
     uiOaiDocsUrl(): string;
@@ -160,6 +197,21 @@ export interface ConfigService {
 
 
 export class ConfigServiceImpl implements ConfigService {
+
+    public fetchAndMergeConfigs(): Promise<void> {
+        const endpoint: string = createEndpoint(this.artifactsUrl(), "/system/uiConfig");
+        console.info("[Config] Fetching UI configuration from: ", endpoint);
+        return httpGet<ApicurioRegistryConfig>(endpoint).then(config => {
+            console.info("[Config] UI configuration fetched successfully: ", config);
+            registryConfig = overrideConfig(config, registryConfig);
+        }).catch(error => {
+            console.error("[Config] Error fetching UI configuration: ", error);
+            console.error("------------------------------------------");
+            console.error("[Config] Note: using local UI config only!");
+            console.error("------------------------------------------");
+            return Promise.resolve();
+        });
+    }
 
     public artifactsUrl(): string {
         return registryConfig.artifacts.url || "http://localhost:8080/apis/registry/v3/";

@@ -3380,6 +3380,33 @@
                 }
             ]
         },
+        "/system/uiConfig": {
+            "summary": "Get UI configuration",
+            "description": "This endpoint is used by the user interface to retrieve UI specific configuration\nin a JSON payload.  This allows the UI and the backend to be configured in the \nsame place (the backend process/pod).  When the UI loads, it will make an API call\nto this endpoint to determine what UI features and options are configured.",
+            "get": {
+                "tags": [
+                    "System"
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/UserInterfaceConfig"
+                                }
+                            }
+                        },
+                        "description": "The UI config."
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "getUIConfig",
+                "summary": "Get UI config",
+                "description": "Returns the UI configuration properties for this server.  The registry UI can be\nconnected to a backend using just a URL.  The rest of the UI configuration can then\nbe fetched from the backend using this operation.  This allows UI and backend to\nboth be configured in the same place.\n\nThis operation may fail for one of the following reasons:\n\n* A server error occurred (HTTP error `500`)\n"
+            }
+        },
         "x-codegen-contextRoot": "/apis/registry/v3"
     },
     "components": {
@@ -4710,6 +4737,182 @@
                             "version": "2"
                         }
                     ]
+                }
+            },
+            "UserInterfaceConfig": {
+                "title": "Root Type for UserInterfaceConfig",
+                "description": "Defines the user interface configuration data type.",
+                "required": [
+                    "auth"
+                ],
+                "type": "object",
+                "properties": {
+                    "ui": {
+                        "$ref": "#/components/schemas/UserInterfaceConfigUi",
+                        "properties": {
+                            "contextPath": {
+                                "type": "string"
+                            },
+                            "navPrefixPath": {
+                                "type": "string"
+                            },
+                            "oaiDocsUrl": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "auth": {
+                        "$ref": "#/components/schemas/UserInterfaceConfigAuth",
+                        "properties": {
+                            "type": {
+                                "type": "string"
+                            },
+                            "rbacEnabled": {
+                                "type": "boolean"
+                            },
+                            "obacEnabled": {
+                                "type": "boolean"
+                            },
+                            "options": {
+                                "type": "object",
+                                "properties": {
+                                    "url": {
+                                        "type": "string"
+                                    },
+                                    "redirectUri": {
+                                        "type": "string"
+                                    },
+                                    "clientId": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "features": {
+                        "$ref": "#/components/schemas/UserInterfaceConfigFeatures",
+                        "properties": {
+                            "readOnly": {
+                                "type": "boolean"
+                            },
+                            "breadcrumbs": {
+                                "type": "boolean"
+                            },
+                            "roleManagement": {
+                                "type": "boolean"
+                            },
+                            "settings": {
+                                "type": "boolean"
+                            }
+                        }
+                    }
+                },
+                "example": {
+                    "ui": {
+                        "contextPath": "/",
+                        "navPrefixPath": "/",
+                        "oaiDocsUrl": "https://registry.apicur.io/docs"
+                    },
+                    "auth": {
+                        "type": "oidc",
+                        "rbacEnabled": true,
+                        "obacEnabled": false,
+                        "options": {
+                            "url": "https://auth.apicur.io/realms/apicurio",
+                            "redirectUri": "http://registry.apicur.io",
+                            "clientId": "apicurio-registry-ui"
+                        }
+                    },
+                    "features": {
+                        "readOnly": false,
+                        "breadcrumbs": true,
+                        "roleManagement": false,
+                        "settings": true
+                    }
+                }
+            },
+            "UserInterfaceConfigAuth": {
+                "title": "Root Type for UserInterfaceConfigAuth",
+                "description": "",
+                "required": [
+                    "obacEnabled",
+                    "rbacEnabled"
+                ],
+                "type": "object",
+                "properties": {
+                    "type": {
+                        "enum": [
+                            "none",
+                            "oidc"
+                        ],
+                        "type": "string"
+                    },
+                    "rbacEnabled": {
+                        "type": "boolean"
+                    },
+                    "obacEnabled": {
+                        "type": "boolean"
+                    },
+                    "options": {
+                        "$ref": "#/components/schemas/Properties"
+                    }
+                },
+                "example": {
+                    "type": "oidc",
+                    "rbacEnabled": true,
+                    "obacEnabled": false,
+                    "options": {
+                        "url": "https://auth.apicur.io/realms/apicurio",
+                        "redirectUri": "https://registry.apicur.io",
+                        "clientId": "registry-ui"
+                    }
+                }
+            },
+            "UserInterfaceConfigFeatures": {
+                "title": "Root Type for UserInterfaceConfigFeatures",
+                "description": "",
+                "required": [],
+                "type": "object",
+                "properties": {
+                    "readOnly": {
+                        "type": "boolean"
+                    },
+                    "breadcrumbs": {
+                        "type": "boolean"
+                    },
+                    "roleManagement": {
+                        "type": "boolean"
+                    },
+                    "settings": {
+                        "type": "boolean"
+                    }
+                },
+                "example": {
+                    "readOnly": false,
+                    "breadcrumbs": true,
+                    "roleManagement": false,
+                    "settings": true
+                }
+            },
+            "UserInterfaceConfigUi": {
+                "title": "Root Type for UserInterfaceConfigUi",
+                "description": "",
+                "type": "object",
+                "properties": {
+                    "contextPath": {
+                        "type": "string"
+                    },
+                    "navPrefixPath": {
+                        "type": "string"
+                    },
+                    "oaiDocsUrl": {
+                        "type": "string"
+                    }
+                },
+                "example": {
+                    "contextPath": "/",
+                    "navPrefixPath": "/",
+                    "oaiDocsUrl": "https://registry.apicur.io/docs"
                 }
             }
         },

@@ -30,10 +30,7 @@ public class ApicurioDataModelsContentDereferencer implements ContentDereference
 
     @Override
     public ContentHandle dereference(ContentHandle content, Map<String, ContentHandle> resolvedReferences) {
-        // TODO not yet implemented
-//        Document document = Library.readDocumentFromJSONString(content.content());
-//        Library.dereference(document);
-        return content;
+        throw new DereferencingNotSupportedException("Content dereferencing is not supported for data models supported type");
     }
     
     /**

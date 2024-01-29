@@ -17,8 +17,7 @@
 package io.apicurio.registry.noprofile.rest.v2;
 
 import static io.restassured.RestAssured.given;
-import static java.net.HttpURLConnection.HTTP_NO_CONTENT;
-import static java.net.HttpURLConnection.HTTP_OK;
+import static java.net.HttpURLConnection.*;
 import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.CoreMatchers.anything;
 import static org.hamcrest.Matchers.containsString;
@@ -2624,11 +2623,22 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .statusCode(HTTP_OK)
                 .extract().as(new TypeRef<List<ArtifactReference>>() {
                 });
+
         assertFalse(referenceResponse.isEmpty());
         assertEquals(2, referenceResponse.size());
         assertEquals(referencingMD.getGroupId(), referenceResponse.get(0).getGroupId());
         assertEquals(referencingMD.getId(), referenceResponse.get(0).getArtifactId());
         assertEquals(referencingMD.getVersion(), referenceResponse.get(0).getVersion());
+
+
+        // Dereferencing JSON Schema fails with 400 as it's not implemented.
+        given()
+                .when()
+                .pathParam("globalId", metadata.getGlobalId())
+                .queryParam("dereference", true)
+                .get("/registry/v2/ids/globalIds/{globalId}")
+                .then()
+                .statusCode(HTTP_BAD_REQUEST);
     }
 
     private byte[] concatContentAndReferences(byte[] contentBytes, byte[] referencesBytes) throws IOException {

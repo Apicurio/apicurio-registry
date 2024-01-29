@@ -366,6 +366,76 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
         }
     }
 
+    /**
+     * Same test as avroJsonWithReferences but using the dereference configuration for the deserializer only.
+     *
+     * @throws Exception
+     */
+    @Test
+    public void avroJsonWithReferencesDeserializerDereferenced() throws Exception {
+        try (AvroKafkaSerializer<AvroSchemaB> serializer = new AvroKafkaSerializer<AvroSchemaB>(restClient);
+             Deserializer<AvroSchemaB> deserializer = new AvroKafkaDeserializer<>(restClient)) {
+
+            Map<String, String> config = new HashMap<>();
+            config.put(AvroKafkaSerdeConfig.AVRO_ENCODING, AvroKafkaSerdeConfig.AVRO_ENCODING_JSON);
+            config.put(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true");
+            config.put(SerdeConfig.ENABLE_HEADERS, "false");
+            serializer.configure(config, false);
+
+            config = new HashMap<>();
+            config.put(AvroKafkaSerdeConfig.AVRO_ENCODING, AvroKafkaSerdeConfig.AVRO_ENCODING_JSON);
+            config.putIfAbsent(AvroKafkaSerdeConfig.AVRO_DATUM_PROVIDER, ReflectAvroDatumProvider.class.getName());
+            config.putIfAbsent(SchemaResolverConfig.DESERIALIZER_DEREFERENCE_SCHEMA, "true");
+            deserializer.configure(config, false);
+
+            AvroSchemaB avroSchemaB = new AvroSchemaB();
+            AvroSchemaA avroSchemaA = AvroSchemaA.GEMINI;
+            AvroSchemaA avroSchemaA2 = AvroSchemaA.GEMINI;
+            AvroSchemaC avroSchemaC = new AvroSchemaC();
+            AvroSchemaD avroSchemaD = new AvroSchemaD();
+            AvroSchemaE avroSchemaE = new AvroSchemaE();
+            AvroSchemaF avroSchemaF = new AvroSchemaF();
+
+            avroSchemaF.setPayload("Fschema");
+            avroSchemaF.setSymbol("Fsymbol");
+
+            avroSchemaE.setPayload("ESchema");
+            avroSchemaE.setSymbol("ESymbol");
+
+            avroSchemaD.setSchemaE(avroSchemaE);
+            avroSchemaD.setSymbol("Dsymbol");
+
+            avroSchemaC.setSymbol("CSymbol");
+            avroSchemaC.setPayload("CSchema");
+            avroSchemaC.setSchemaD(avroSchemaD);
+
+            avroSchemaB.setSchemaC(avroSchemaC);
+            avroSchemaB.setSchemaA(avroSchemaA);
+            avroSchemaB.setSchemaA2(avroSchemaA2);
+            avroSchemaB.setKey(UUID.randomUUID().toString());
+
+            avroSchemaB.setUnionTest(avroSchemaF);
+            avroSchemaB.setArrayTest(List.of(avroSchemaF));
+            avroSchemaB.setMapTest(Map.of("mapKey", avroSchemaF));
+
+            String artifactId = generateArtifactId();
+
+            byte[] bytes = serializer.serialize(artifactId, avroSchemaB);
+
+            // Test msg is stored as json, take 1st 9 bytes off (magic byte and long)
+            JSONObject msgAsJson = new JSONObject(new String(Arrays.copyOfRange(bytes, 9, bytes.length)));
+            Assertions.assertEquals("CSymbol", msgAsJson.getJSONObject("schemaC").getString("symbol"));
+
+            // some impl details ...
+            waitForSchema(globalId -> restClient.getContentByGlobalId(globalId) != null, bytes);
+
+            AvroSchemaB ir = deserializer.deserialize(artifactId, bytes);
+
+            Assertions.assertEquals(avroSchemaB, ir);
+            Assertions.assertEquals(AvroSchemaA.GEMINI, ir.getSchemaA());
+        }
+    }
+
     @Test
     public void testAvroUsingHeaders() throws Exception {
         Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord3\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");

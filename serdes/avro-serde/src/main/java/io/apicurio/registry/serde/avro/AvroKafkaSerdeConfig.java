@@ -43,6 +43,7 @@ public class AvroKafkaSerdeConfig extends BaseKafkaSerDeConfig {
     public static final String USE_SPECIFIC_AVRO_READER = "apicurio.registry.use-specific-avro-reader";
     public static final boolean USE_SPECIFIC_AVRO_READER_DEFAULT = false;
 
+
     private static ConfigDef configDef() {
         ConfigDef configDef = new ConfigDef()
                 .define(AVRO_ENCODING, Type.STRING, AvroEncoding.BINARY.name(), Importance.MEDIUM, "TODO docs")
@@ -71,5 +72,4 @@ public class AvroKafkaSerdeConfig extends BaseKafkaSerDeConfig {
     public boolean useSpecificAvroReader() {
         return this.getBoolean(USE_SPECIFIC_AVRO_READER);
     }
-
 }

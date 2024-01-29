@@ -19,6 +19,7 @@ package io.apicurio.registry.services.http;
 import io.apicurio.common.apps.config.Info;
 import io.apicurio.registry.ccompat.rest.error.ConflictException;
 import io.apicurio.registry.ccompat.rest.error.UnprocessableEntityException;
+import io.apicurio.registry.content.dereference.DereferencingNotSupportedException;
 import io.apicurio.registry.metrics.health.liveness.LivenessUtil;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.common.apps.multitenancy.exceptions.TenantForbiddenException;
@@ -130,6 +131,7 @@ public class RegistryExceptionMapperService {
         map.put(LimitExceededException.class, HTTP_CONFLICT);
         map.put(TenantNotAuthorizedException.class, HTTP_FORBIDDEN);
         map.put(TenantForbiddenException.class, HTTP_FORBIDDEN);
+        map.put(DereferencingNotSupportedException.class, HTTP_BAD_REQUEST);
         map.put(RoleMappingAlreadyExistsException.class, HTTP_CONFLICT);
         map.put(RoleMappingNotFoundException.class, HTTP_NOT_FOUND);
         map.put(TenantManagerClientException.class, HTTP_INTERNAL_ERROR);

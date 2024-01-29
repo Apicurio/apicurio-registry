@@ -4871,7 +4871,6 @@
             "UserInterfaceConfigFeatures": {
                 "title": "Root Type for UserInterfaceConfigFeatures",
                 "description": "",
-                "required": [],
                 "type": "object",
                 "properties": {
                     "readOnly": {

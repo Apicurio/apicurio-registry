@@ -12,18 +12,18 @@ const CONTEXT_PATH=process.env["REGISTRY_CONTEXT_PATH"];
 const NAV_PREFIX_PATH=process.env["REGISTRY_NAV_PREFIX_PATH"];
 const DOCS_URL=process.env["REGISTRY_DOCS_URL"];
 
-const AUTH_TYPE=process.env["REGISTRY_AUTH_TYPE"] || "none";
-const AUTH_RBAC_ENABLED=process.env["REGISTRY_AUTH_RBAC_ENABLED"] || "false";
-const AUTH_OBAC_ENABLED=process.env["REGISTRY_AUTH_OBAC_ENABLED"] || "false";
-const AUTH_URL=process.env["REGISTRY_AUTH_URL"] || "";
-const AUTH_CLIENT_ID=process.env["REGISTRY_AUTH_CLIENT_ID"] || "registry-ui";
-const AUTH_CLIENT_SCOPES=process.env["REGISTRY_AUTH_CLIENT_SCOPES"] || "openid profile email";
-const AUTH_REDIRECT_URL=process.env["REGISTRY_AUTH_REDIRECT_URL"] || "http://localhost:8888";
+const AUTH_TYPE=process.env["REGISTRY_AUTH_TYPE"];
+const AUTH_RBAC_ENABLED=process.env["REGISTRY_AUTH_RBAC_ENABLED"];
+const AUTH_OBAC_ENABLED=process.env["REGISTRY_AUTH_OBAC_ENABLED"];
+const AUTH_URL=process.env["REGISTRY_AUTH_URL"];
+const AUTH_CLIENT_ID=process.env["REGISTRY_AUTH_CLIENT_ID"];
+const AUTH_CLIENT_SCOPES=process.env["REGISTRY_AUTH_CLIENT_SCOPES"];
+const AUTH_REDIRECT_URL=process.env["REGISTRY_AUTH_REDIRECT_URL"];
 
-const FEATURE_READ_ONLY=process.env["REGISTRY_FEATURE_READ_ONLY"] || "false";
-const FEATURE_BREADCRUMBS=process.env["REGISTRY_FEATURE_BREADCRUMBS"] || "true";
-const FEATURE_ROLE_MANAGEMENT=process.env["REGISTRY_FEATURE_ROLE_MANAGEMENT"] || "false";
-const FEATURE_SETTINGS=process.env["REGISTRY_FEATURE_SETTINGS"] || "true";
+const FEATURE_READ_ONLY=process.env["REGISTRY_FEATURE_READ_ONLY"];
+const FEATURE_BREADCRUMBS=process.env["REGISTRY_FEATURE_BREADCRUMBS"];
+const FEATURE_ROLE_MANAGEMENT=process.env["REGISTRY_FEATURE_ROLE_MANAGEMENT"];
+const FEATURE_SETTINGS=process.env["REGISTRY_FEATURE_SETTINGS"];
 
 
 // Create the config to output.

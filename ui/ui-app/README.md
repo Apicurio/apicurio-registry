@@ -15,10 +15,10 @@ Run a full build
 `npm run build`
 
 Initialize config.js
-`./init-dev.sh none`
+`./init-dev.sh`
 
 Note: the init-dev.sh script just copies an appropriate file from config/config-*.js to the right place.  You can 
-either specify `none`, `oidc`, or `oidc-rbac` as the argument to the script.  The choice depends on how you are 
+either specify `local` or `3scale` (for example) as the argument to the script.  The choice depends on how you are 
 running the back-end component.
 
 Start the development server
@@ -29,4 +29,4 @@ Once the development server is running you can access the UI via http://localhos
 Note that you will need a registry back-end running for the UI to actually work.  The easiest way to do this is using 
 docker, but you could also run the registry from maven or any other way you choose.  Here is how you do it with Docker:
 
-`docker run -it -p 8080:8080 apicurio/apicurio-registry-mem:latest-snapshot`
+`docker run -it -p 8080:8080 apicurio/apicurio-registry:latest-snapshot`

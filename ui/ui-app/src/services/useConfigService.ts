@@ -1,3 +1,5 @@
+import { createEndpoint, httpGet } from "@utils/rest.utils.ts";
+import { cloneObject } from "@utils/object.utils.ts";
 
 export enum AlertVariant {
     success = "success",
@@ -106,10 +108,10 @@ export interface Principal {
 
 export interface ConfigType {
     artifacts: ArtifactsConfig;
-    auth: OidcJsAuthConfig | NoneAuthConfig | GetTokenAuthConfig;
+    auth?: OidcJsAuthConfig | NoneAuthConfig | GetTokenAuthConfig;
     principals?: Principal[] | (() => Principal[]);
     features?: FeaturesConfig;
-    ui: UiConfig;
+    ui?: UiConfig;
 }
 
 export interface ApicurioRegistryConfig extends ConfigType {
@@ -136,11 +138,70 @@ export function getRegistryConfig(): ApicurioRegistryConfig {
     return config;
 }
 
-const registryConfig: ApicurioRegistryConfig = getRegistryConfig();
+
+function difference(base: any, overrides: any | undefined): any {
+    const rval: any = cloneObject(overrides);
+
+    // Remove any properties that exist in base.
+    Object.getOwnPropertyNames(base).forEach(propertyName => {
+        if (typeof rval[propertyName] !== "object") {
+            delete rval[propertyName];
+        }
+    });
+
+    // Now diff any remaining props that are objects
+    Object.getOwnPropertyNames(rval).forEach(propertyName => {
+        const value: any = rval[propertyName];
+        const baseValue: any = base[propertyName];
+        if (typeof value === "object") {
+            rval[propertyName] = difference(baseValue, value);
+        }
+    });
+
+    // Now remove any properties with empty object values.
+    Object.getOwnPropertyNames(rval).forEach(propertyName => {
+        if (typeof rval[propertyName] === "object" && Object.keys(rval[propertyName]).length === 0) {
+            delete rval[propertyName];
+        }
+    });
+
+    return rval;
+}
+
+
+function overrideObject(base: any, overrides: any | undefined): any {
+    if (overrides === undefined) {
+        return {
+            ...base
+        };
+    }
+    const rval: any = {};
+    Object.getOwnPropertyNames(base).forEach(propertyName => {
+        const baseValue: any = base[propertyName];
+        const overrideValue: any = overrides[propertyName];
+        if (overrideValue) {
+            if (typeof baseValue === "object" && typeof overrideValue === "object") {
+                rval[propertyName] = overrideObject(baseValue, overrideValue);
+            } else {
+                rval[propertyName] = overrideValue;
+            }
+        } else {
+            rval[propertyName] = baseValue;
+        }
+    });
+    return rval;
+}
+
+function overrideConfig(base: ApicurioRegistryConfig, overrides: ApicurioRegistryConfig): ApicurioRegistryConfig {
+    return overrideObject(base, overrides);
+}
+
+let registryConfig: ApicurioRegistryConfig = getRegistryConfig();
 
 
 export interface ConfigService {
 
+    fetchAndMergeConfigs(): Promise<void>;
     artifactsUrl(): string;
     uiContextPath(): string|undefined;
     uiOaiDocsUrl(): string;
@@ -161,16 +222,43 @@ export interface ConfigService {
 
 export class ConfigServiceImpl implements ConfigService {
 
+    public fetchAndMergeConfigs(): Promise<void> {
+        const endpoint: string = createEndpoint(this.artifactsUrl(), "/system/uiConfig");
+
+        const localConfig: ApicurioRegistryConfig = registryConfig;
+
+        console.info("[Config] Fetching UI configuration from: ", endpoint);
+        return httpGet<ApicurioRegistryConfig>(endpoint).then(remoteConfig => {
+            console.info("[Config] UI configuration fetched successfully: ", remoteConfig);
+            // Always use the local config's "artifacts" property (contains the REST API endpoint)
+            remoteConfig.artifacts = localConfig.artifacts;
+            // Override the remote config with anything in the local config.  Then set the result
+            // as the new official app config.
+            registryConfig = overrideConfig(remoteConfig, localConfig);
+            // Check for extra/unknown local config and warn about it.
+            const diff: any = difference(remoteConfig, localConfig);
+            if (Object.keys(diff).length > 0) {
+                console.warn("[Config] Local config contains unexpected properties: ", diff);
+            }
+        }).catch(error => {
+            console.error("[Config] Error fetching UI configuration: ", error);
+            console.error("------------------------------------------");
+            console.error("[Config] Note: using local UI config only!");
+            console.error("------------------------------------------");
+            return Promise.resolve();
+        });
+    }
+
     public artifactsUrl(): string {
         return registryConfig.artifacts.url || "http://localhost:8080/apis/registry/v3/";
     }
 
     public uiContextPath(): string|undefined {
-        return registryConfig.ui.contextPath || "/";
+        return registryConfig.ui?.contextPath || "/";
     }
 
     public uiOaiDocsUrl(): string {
-        return registryConfig.ui.oaiDocsUrl || "http://localhost:8889";
+        return registryConfig.ui?.oaiDocsUrl || "/docs";
     }
 
     public uiNavPrefixPath(): string|undefined {
@@ -210,34 +298,25 @@ export class ConfigServiceImpl implements ConfigService {
     }
 
     public featureSettings(): boolean {
-        return this.features().settings || false;
+        return this.features().settings || true;
     }
 
     public authType(): string {
-        if (!registryConfig.auth || !registryConfig.auth.type) {
-            return "";
-        }
-        return registryConfig.auth.type;
+        return registryConfig.auth?.type || "none";
     }
 
     public authRbacEnabled(): boolean {
-        if (!registryConfig.auth || !registryConfig.auth.rbacEnabled) {
-            return false;
-        }
-        return registryConfig.auth.rbacEnabled;
+        return registryConfig.auth?.rbacEnabled || false;
     }
 
     public authObacEnabled(): boolean {
-        if (!registryConfig.auth || !registryConfig.auth.obacEnabled) {
-            return false;
-        }
-        return registryConfig.auth.obacEnabled;
+        return registryConfig.auth?.obacEnabled || false;
     }
 
     public authOptions(): OidcJsAuthOptions {
         if (registryConfig.auth) {
             const auth: OidcJsAuthConfig = registryConfig.auth as OidcJsAuthConfig;
-            return auth.options;
+            return auth.options || {};
         }
         return {} as any;
     }

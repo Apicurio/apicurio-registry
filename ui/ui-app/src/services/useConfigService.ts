@@ -1,5 +1,4 @@
 import { createEndpoint, httpGet } from "@utils/rest.utils.ts";
-import { cloneObject } from "@utils/object.utils.ts";
 
 export enum AlertVariant {
     success = "success",
@@ -108,10 +107,10 @@ export interface Principal {
 
 export interface ConfigType {
     artifacts: ArtifactsConfig;
-    auth: OidcJsAuthConfig | NoneAuthConfig | GetTokenAuthConfig;
+    auth?: OidcJsAuthConfig | NoneAuthConfig | GetTokenAuthConfig;
     principals?: Principal[] | (() => Principal[]);
     features?: FeaturesConfig;
-    ui: UiConfig;
+    ui?: UiConfig;
 }
 
 export interface ApicurioRegistryConfig extends ConfigType {
@@ -162,13 +161,10 @@ function overrideObject(base: any, overrides: any | undefined): any {
 }
 
 function overrideConfig(base: ApicurioRegistryConfig, overrides: ApicurioRegistryConfig): ApicurioRegistryConfig {
-    const rval: ApicurioRegistryConfig = cloneObject(base);
-    rval.artifacts = {
-        url: overrides.artifacts.url
-    };
-    rval.ui = overrideObject(rval.ui, overrides.ui);
-    rval.auth = overrideObject(rval.auth, overrides.auth);
-    rval.features = overrideObject(rval.features, overrides.features);
+    const rval: ApicurioRegistryConfig = overrideObject(base, overrides);
+    // Make sure to use the local (overrides) artifacts property, since that has the
+    // REST API endpoint (which is pretty important).
+    rval.artifacts = overrides.artifacts;
     return rval;
 }
 
@@ -218,11 +214,11 @@ export class ConfigServiceImpl implements ConfigService {
     }
 
     public uiContextPath(): string|undefined {
-        return registryConfig.ui.contextPath || "/";
+        return registryConfig.ui?.contextPath || "/";
     }
 
     public uiOaiDocsUrl(): string {
-        return registryConfig.ui.oaiDocsUrl || "http://localhost:8889";
+        return registryConfig.ui?.oaiDocsUrl || "/docs";
     }
 
     public uiNavPrefixPath(): string|undefined {
@@ -262,34 +258,25 @@ export class ConfigServiceImpl implements ConfigService {
     }
 
     public featureSettings(): boolean {
-        return this.features().settings || false;
+        return this.features().settings || true;
     }
 
     public authType(): string {
-        if (!registryConfig.auth || !registryConfig.auth.type) {
-            return "";
-        }
-        return registryConfig.auth.type;
+        return registryConfig.auth?.type || "none";
     }
 
     public authRbacEnabled(): boolean {
-        if (!registryConfig.auth || !registryConfig.auth.rbacEnabled) {
-            return false;
-        }
-        return registryConfig.auth.rbacEnabled;
+        return registryConfig.auth?.rbacEnabled || false;
     }
 
     public authObacEnabled(): boolean {
-        if (!registryConfig.auth || !registryConfig.auth.obacEnabled) {
-            return false;
-        }
-        return registryConfig.auth.obacEnabled;
+        return registryConfig.auth?.obacEnabled || false;
     }
 
     public authOptions(): OidcJsAuthOptions {
         if (registryConfig.auth) {
             const auth: OidcJsAuthConfig = registryConfig.auth as OidcJsAuthConfig;
-            return auth.options;
+            return auth.options || {};
         }
         return {} as any;
     }

@@ -1,4 +1,5 @@
 import { createEndpoint, httpGet } from "@utils/rest.utils.ts";
+import { cloneObject } from "@utils/object.utils.ts";
 
 export enum AlertVariant {
     success = "success",
@@ -137,6 +138,37 @@ export function getRegistryConfig(): ApicurioRegistryConfig {
     return config;
 }
 
+
+function difference(base: any, overrides: any | undefined): any {
+    const rval: any = cloneObject(overrides);
+
+    // Remove any properties that exist in base.
+    Object.getOwnPropertyNames(base).forEach(propertyName => {
+        if (typeof rval[propertyName] !== "object") {
+            delete rval[propertyName];
+        }
+    });
+
+    // Now diff any remaining props that are objects
+    Object.getOwnPropertyNames(rval).forEach(propertyName => {
+        const value: any = rval[propertyName];
+        const baseValue: any = base[propertyName];
+        if (typeof value === "object") {
+            rval[propertyName] = difference(baseValue, value);
+        }
+    });
+
+    // Now remove any properties with empty object values.
+    Object.getOwnPropertyNames(rval).forEach(propertyName => {
+        if (typeof rval[propertyName] === "object" && Object.keys(rval[propertyName]).length === 0) {
+            delete rval[propertyName];
+        }
+    });
+
+    return rval;
+}
+
+
 function overrideObject(base: any, overrides: any | undefined): any {
     if (overrides === undefined) {
         return {
@@ -161,11 +193,7 @@ function overrideObject(base: any, overrides: any | undefined): any {
 }
 
 function overrideConfig(base: ApicurioRegistryConfig, overrides: ApicurioRegistryConfig): ApicurioRegistryConfig {
-    const rval: ApicurioRegistryConfig = overrideObject(base, overrides);
-    // Make sure to use the local (overrides) artifacts property, since that has the
-    // REST API endpoint (which is pretty important).
-    rval.artifacts = overrides.artifacts;
-    return rval;
+    return overrideObject(base, overrides);
 }
 
 let registryConfig: ApicurioRegistryConfig = getRegistryConfig();
@@ -196,10 +224,22 @@ export class ConfigServiceImpl implements ConfigService {
 
     public fetchAndMergeConfigs(): Promise<void> {
         const endpoint: string = createEndpoint(this.artifactsUrl(), "/system/uiConfig");
+
+        const localConfig: ApicurioRegistryConfig = registryConfig;
+
         console.info("[Config] Fetching UI configuration from: ", endpoint);
-        return httpGet<ApicurioRegistryConfig>(endpoint).then(config => {
-            console.info("[Config] UI configuration fetched successfully: ", config);
-            registryConfig = overrideConfig(config, registryConfig);
+        return httpGet<ApicurioRegistryConfig>(endpoint).then(remoteConfig => {
+            console.info("[Config] UI configuration fetched successfully: ", remoteConfig);
+            // Always use the local config's "artifacts" property (contains the REST API endpoint)
+            remoteConfig.artifacts = localConfig.artifacts;
+            // Override the remote config with anything in the local config.  Then set the result
+            // as the new official app config.
+            registryConfig = overrideConfig(remoteConfig, localConfig);
+            // Check for extra/unknown local config and warn about it.
+            const diff: any = difference(remoteConfig, localConfig);
+            if (Object.keys(diff).length > 0) {
+                console.warn("[Config] Local config contains unexpected properties: ", diff);
+            }
         }).catch(error => {
             console.error("[Config] Error fetching UI configuration: ", error);
             console.error("------------------------------------------");

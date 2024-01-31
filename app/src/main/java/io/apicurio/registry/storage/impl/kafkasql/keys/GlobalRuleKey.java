@@ -7,7 +7,7 @@ import io.quarkus.runtime.annotations.RegisterForReflection;
 @RegisterForReflection
 public class GlobalRuleKey implements MessageKey {
 
-    private static final String GLOBAL_RULE_PARTITION_KEY = "__apicurio_registry_global_rule__";
+    static final String GLOBAL_RULE_PARTITION_KEY = "__apicurio_registry_global_rule__";
 
     private RuleType ruleType;
 

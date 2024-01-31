@@ -67,6 +67,12 @@ public class MessageTypeToKeyClass {
                 case ArtifactBranch:
                     index.put(type, ArtifactBranchKey.class);
                     break;
+                case ArtifactRules:
+                    index.put(type, ArtifactRulesKey.class);
+                    break;
+                case GlobalRules:
+                    index.put(type, GlobalRulesKey.class);
+                    break;
                 default:
                     throw new RuntimeAssertionFailedException("[MessageTypeToKeyClass] Type not mapped: " + type);
             }

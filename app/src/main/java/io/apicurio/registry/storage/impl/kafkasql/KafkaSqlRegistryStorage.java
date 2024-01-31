@@ -444,14 +444,8 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
             throw new ArtifactNotFoundException(groupId, artifactId);
         }
 
-        submitter.submitArtifactRule(groupId, artifactId, RuleType.COMPATIBILITY, ActionType.DELETE);
-
-        UUID reqId = ConcurrentUtil.get(submitter.submitArtifactRule(groupId, artifactId, RuleType.VALIDITY, ActionType.DELETE));
-        try {
-            coordinator.waitForResponse(reqId);
-        } catch (RuleNotFoundException e) {
-            // Eat this exception - we don't care if the rule didn't exist.
-        }
+        UUID reqId = ConcurrentUtil.get(submitter.submitArtifactRules(groupId, artifactId, ActionType.DELETE));
+        coordinator.waitForResponse(reqId);
     }
 
 
@@ -533,17 +527,8 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
 
     @Override
     public void deleteGlobalRules() {
-        // TODO This should use "DELETE FROM" instead of being rule specific
-
-        getGlobalRules().stream()
-                .map(r -> ConcurrentUtil.get(submitter.submitGlobalRule(r, ActionType.DELETE)))
-                .forEach(reqId -> {
-                    try {
-                        coordinator.waitForResponse(reqId);
-                    } catch (RuleNotFoundException e) {
-                        // Eat this exception - we don't care if the rule didn't exist.
-                    }
-                });
+        UUID reqId = ConcurrentUtil.get(submitter.submitGlobalRules(ActionType.DELETE));
+        coordinator.waitForResponse(reqId);
     }
 
 

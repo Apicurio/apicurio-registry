@@ -37,7 +37,7 @@ class SchemaNormalizerTest {
                 "}";
 
         // act
-        EnhancedAvroContentCanonicalizer canonicalizer = new EnhancedAvroContentCanonicalizer();
+        AvroContentCanonicalizer canonicalizer = new AvroContentCanonicalizer();
         ContentHandle schema = canonicalizer.canonicalize(ContentHandle.create(schemaStr), new HashMap<>());
         ContentHandle schemaWithOptional = canonicalizer.canonicalize(ContentHandle.create(schemaWithOptionalStr), new HashMap<>());
 
@@ -64,7 +64,7 @@ class SchemaNormalizerTest {
                 "}";
 
         // act
-        EnhancedAvroContentCanonicalizer canonicalizer = new EnhancedAvroContentCanonicalizer();
+        AvroContentCanonicalizer canonicalizer = new AvroContentCanonicalizer();
         ContentHandle schema = canonicalizer.canonicalize(ContentHandle.create(schemaStr), new HashMap<>());
         ContentHandle schemaWithNamespaceField = canonicalizer.canonicalize(ContentHandle.create(schemaWithNamespaceFieldStr), new HashMap<>());
 
@@ -91,7 +91,7 @@ class SchemaNormalizerTest {
                 "}";
 
         // act
-        EnhancedAvroContentCanonicalizer canonicalizer = new EnhancedAvroContentCanonicalizer();
+        AvroContentCanonicalizer canonicalizer = new AvroContentCanonicalizer();
         ContentHandle schema = canonicalizer.canonicalize(ContentHandle.create(schemaStr), new HashMap<>());
         ContentHandle schemaWithNamespaceField = canonicalizer.canonicalize(ContentHandle.create(schemaWithNamespaceFieldStr), new HashMap<>());
 
@@ -119,7 +119,7 @@ class SchemaNormalizerTest {
                 "}";
 
         // act
-        EnhancedAvroContentCanonicalizer canonicalizer = new EnhancedAvroContentCanonicalizer();
+        AvroContentCanonicalizer canonicalizer = new AvroContentCanonicalizer();
         ContentHandle schema = canonicalizer.canonicalize(ContentHandle.create(schemaStr), new HashMap<>());
         ContentHandle schemaWithDifferenceAttributesOrder = canonicalizer.canonicalize(ContentHandle.create(schemaWithDifferenceAttributesOrderStr), new HashMap<>());
 
@@ -155,7 +155,7 @@ class SchemaNormalizerTest {
                 "}";
 
         // act
-        EnhancedAvroContentCanonicalizer canonicalizer = new EnhancedAvroContentCanonicalizer();
+        AvroContentCanonicalizer canonicalizer = new AvroContentCanonicalizer();
         ContentHandle schema = canonicalizer.canonicalize(ContentHandle.create(schemaStr), new HashMap<>());
         ContentHandle schemaWithOptionalAttributesInField = canonicalizer.canonicalize(ContentHandle.create(schemaWithOptionalAttributesInFieldStr), new HashMap<>());
 
@@ -190,7 +190,7 @@ class SchemaNormalizerTest {
                 "}";
 
         // Act
-        EnhancedAvroContentCanonicalizer canonicalizer = new EnhancedAvroContentCanonicalizer();
+        AvroContentCanonicalizer canonicalizer = new AvroContentCanonicalizer();
         ContentHandle schema = canonicalizer.canonicalize(ContentHandle.create(schemaStr), new HashMap<>());
         ContentHandle schemasWithDifferenceAttributesOrderInField = canonicalizer.canonicalize(ContentHandle.create(schemasWithDifferenceAttributesOrderInFieldStr), new HashMap<>());
 
@@ -233,7 +233,7 @@ class SchemaNormalizerTest {
                 "}";
 
         // Act
-        EnhancedAvroContentCanonicalizer canonicalizer = new EnhancedAvroContentCanonicalizer();
+        AvroContentCanonicalizer canonicalizer = new AvroContentCanonicalizer();
         ContentHandle schema = canonicalizer.canonicalize(ContentHandle.create(schemaStr), new HashMap<>());
         ContentHandle schemaWithFieldsInDifferentOrder = canonicalizer.canonicalize(ContentHandle.create(schemaWithFieldsInDifferentOrderStr), new HashMap<>());
 
@@ -300,7 +300,7 @@ class SchemaNormalizerTest {
 
 
         // Act
-        EnhancedAvroContentCanonicalizer canonicalizer = new EnhancedAvroContentCanonicalizer();
+        AvroContentCanonicalizer canonicalizer = new AvroContentCanonicalizer();
         ContentHandle nestedSchema = canonicalizer.canonicalize(ContentHandle.create(nestedSchemaStr), new HashMap<>());
         ContentHandle schemaWithDifferenceAttributesOrderInNestedSchema = canonicalizer.canonicalize(ContentHandle.create(schemaWithDifferenceAttributesOrderInNestedSchemaStr), new HashMap<>());
 
@@ -319,7 +319,7 @@ class SchemaNormalizerTest {
         schemas.add(getSchemaFromResource("avro/simple/schema-self-ref-array-item.avsc"));
         schemas.add(getSchemaFromResource("avro/simple/schema-self-ref-union.avsc"));
 
-        EnhancedAvroContentCanonicalizer canonicalizer = new EnhancedAvroContentCanonicalizer();
+        AvroContentCanonicalizer canonicalizer = new AvroContentCanonicalizer();
 
         schemas.forEach(schema -> {
             ContentHandle avroSchema = canonicalizer.canonicalize(ContentHandle.create(schema), new HashMap<>());
@@ -340,7 +340,7 @@ class SchemaNormalizerTest {
         assertNotNull(schemaWithNullUnion);
 
         // the schema should be parsed with a non-null result
-        EnhancedAvroContentCanonicalizer canonicalizer = new EnhancedAvroContentCanonicalizer();
+        AvroContentCanonicalizer canonicalizer = new AvroContentCanonicalizer();
         final ContentHandle parsed = canonicalizer.canonicalize(ContentHandle.create(schemaWithNullUnion), new HashMap<>());
 
         assertNotNull(parsed);
@@ -353,7 +353,7 @@ class SchemaNormalizerTest {
         assertNotNull(schemaWithJavaType);
 
         // the schema should be parsed with a non-null result
-        EnhancedAvroContentCanonicalizer canonicalizer = new EnhancedAvroContentCanonicalizer();
+        AvroContentCanonicalizer canonicalizer = new AvroContentCanonicalizer();
         final ContentHandle parsed = canonicalizer.canonicalize(ContentHandle.create(schemaWithJavaType), new HashMap<>());
 
         assertNotNull(parsed);
@@ -366,7 +366,7 @@ class SchemaNormalizerTest {
         assertNotNull(schemaWithCustomType);
 
         // the schema should be parsed with a non-null result
-        EnhancedAvroContentCanonicalizer canonicalizer = new EnhancedAvroContentCanonicalizer();
+        AvroContentCanonicalizer canonicalizer = new AvroContentCanonicalizer();
         final ContentHandle parsed = canonicalizer.canonicalize(ContentHandle.create(schemaWithCustomType), new HashMap<>());
 
         assertNotNull(parsed);
@@ -379,7 +379,7 @@ class SchemaNormalizerTest {
         assertNotNull(schemaWithCustomType);
 
         // the schema should be parsed with a non-null result
-        EnhancedAvroContentCanonicalizer canonicalizer = new EnhancedAvroContentCanonicalizer();
+        AvroContentCanonicalizer canonicalizer = new AvroContentCanonicalizer();
         final ContentHandle parsed = canonicalizer.canonicalize(ContentHandle.create(schemaWithCustomType), new HashMap<>());
 
         assertNotNull(parsed);

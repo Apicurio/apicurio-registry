@@ -16,6 +16,7 @@
 
 package io.apicurio.registry.storage.impl.sql;
 
+import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.impl.sql.jdb.Handle;
 
 /**
@@ -28,5 +29,12 @@ public interface IDbUpgrader {
      * @param dbHandle
      */
     public void upgrade(Handle dbHandle) throws Exception;
+
+    /**
+     * Called by the {@link AbstractSqlRegistryStorage} class when upgrading the database.
+     * @param registryStorage
+     * @param dbHandle
+     */
+    public void upgrade(RegistryStorage registryStorage, Handle dbHandle) throws Exception;
 
 }

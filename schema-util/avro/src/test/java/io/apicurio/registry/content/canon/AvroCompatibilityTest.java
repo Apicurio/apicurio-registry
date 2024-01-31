@@ -28,7 +28,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class AvroCompatibilityTest {
-    private final ContentCanonicalizer avroCanonicalizer = new EnhancedAvroContentCanonicalizer();
+    private final ContentCanonicalizer avroCanonicalizer = new AvroContentCanonicalizer();
     private final String schemaString1 = "{\"type\":\"record\","
             + "\"name\":\"myrecord\","
             + "\"fields\":"

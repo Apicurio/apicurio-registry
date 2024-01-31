@@ -23,7 +23,7 @@ public class ArtifactRulesValue extends AbstractMessageValue {
      */
     @Override
     public MessageType getType() {
-        return MessageType.ArtifactRule;
+        return MessageType.ArtifactRules;
     }
     
 }

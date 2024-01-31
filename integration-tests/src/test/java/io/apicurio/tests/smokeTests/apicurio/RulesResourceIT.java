@@ -6,6 +6,9 @@ import io.apicurio.tests.utils.Constants;
 import io.apicurio.registry.rest.client.models.ArtifactMetaData;
 import io.apicurio.registry.rest.client.models.Rule;
 import io.apicurio.registry.rest.client.models.RuleType;
+import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
+import io.apicurio.registry.rules.integrity.IntegrityLevel;
+import io.apicurio.registry.rules.validity.ValidityLevel;
 import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
@@ -152,6 +155,59 @@ class RulesResourceIT extends ApicurioRegistryBaseIT {
             LOGGER.info("Available versions of artifact with ID {} are: {}", artifactId2, artifactVersions.toString());
             assertThat(artifactVersions, hasItems("1", "2"));
         });
+    }
+
+    @Test
+    @Tag(ACCEPTANCE)
+    void testDeleteAllArtifactRules() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        String artifactId1 = TestUtils.generateArtifactId();
+        String artifactDefinition = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
+
+        ByteArrayInputStream artifactData = new ByteArrayInputStream(artifactDefinition.getBytes(StandardCharsets.UTF_8));
+        ArtifactMetaData metaData = createArtifact(groupId, artifactId1, ArtifactType.AVRO, artifactData);
+        LOGGER.info("Created artifact {} with metadata {}", artifactId1, metaData);
+
+        // Validity rule
+        Rule rule = new Rule();
+        rule.setType(RuleType.VALIDITY);
+        rule.setConfig(ValidityLevel.SYNTAX_ONLY.name());
+        registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId1).rules().post(rule);
+        LOGGER.info("Created rule: {} - {} for artifact {}", rule.getType(), rule.getConfig(), artifactId1);
+
+        // Compatibility rule
+        rule = new Rule();
+        rule.setType(RuleType.COMPATIBILITY);
+        rule.setConfig(CompatibilityLevel.FULL.name());
+        registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId1).rules().post(rule);
+        LOGGER.info("Created rule: {} - {} for artifact {}", rule.getType(), rule.getConfig(), artifactId1);
+
+        // Integrity rule
+        rule = new Rule();
+        rule.setType(RuleType.INTEGRITY);
+        rule.setConfig(IntegrityLevel.NO_DUPLICATES.name());
+        registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId1).rules().post(rule);
+        LOGGER.info("Created rule: {} - {} for artifact {}", rule.getType(), rule.getConfig(), artifactId1);
+
+        // Check that all the rules exist.
+        List<RuleType> rules = registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId1).rules().get();
+        assertThat(rules.size(), is(3));
+        
+        // Check that the Integrity rule is configured
+        rule = registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId1).rules().byRule(RuleType.INTEGRITY.name()).get();
+        assertThat(rule.getConfig(), is(IntegrityLevel.NO_DUPLICATES.name()));
+        
+        // Delete all rules.
+        registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId1).rules().delete();
+
+        // Check that no rules exist.
+        rules = registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId1).rules().get();
+        assertThat(rules.size(), is(0));
+
+        // Check that the integrity rule is not found.
+        TestUtils.assertClientError("RuleNotFoundException", 404, () -> {
+            registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId1).rules().byRule(RuleType.INTEGRITY.name()).get();
+        }, errorCodeExtractor);
     }
 
     @Test

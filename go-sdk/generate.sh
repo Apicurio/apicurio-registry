@@ -16,7 +16,7 @@ URL="https://github.com/microsoft/kiota/releases/download/v${VERSION}/${PACKAGE_
 # COMMAND="kiota"
 # if ! command -v $COMMAND &> /dev/null
 # then
-  echo "System wide kiota could not be found, using local version"
+#  echo "System wide kiota could not be found, using local version"
   if [[ ! -f $SCRIPT_DIR/kiota_tmp/kiota ]]
   then
     echo "Local kiota could not be found, downloading"
@@ -39,8 +39,8 @@ cp $SCRIPT_DIR/../common/src/main/resources/META-INF/openapi-v2.json $SCRIPT_DIR
 cp $SCRIPT_DIR/../common/src/main/resources/META-INF/openapi.json $SCRIPT_DIR/v3.json
 
 # Hask to overcome https://github.com/microsoft/kiota/issues/3920
-$SED_NAME -i 's/NewComment/DTONewComment/' v2.json
-$SED_NAME -i 's/NewComment/DTONewComment/' v3.json
+$SED_NAME -i 's/NewComment/DTONewComment/' $SCRIPT_DIR/v2.json
+$SED_NAME -i 's/NewComment/DTONewComment/' $SCRIPT_DIR/v3.json
 
 $COMMAND generate \
   --language go \

@@ -2,10 +2,14 @@ package io.apicurio.registry.storage.decorator;
 
 import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.model.VersionId;
 import io.apicurio.registry.storage.dto.*;
 import io.apicurio.registry.storage.error.*;
 import io.apicurio.registry.storage.impexp.EntityInputStream;
 import io.apicurio.registry.storage.impl.sql.IdGenerator;
+import io.apicurio.registry.model.BranchId;
+import io.apicurio.registry.model.GA;
+import io.apicurio.registry.model.GAV;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.impexp.*;
@@ -336,6 +340,12 @@ public class RegistryStorageDecoratorBase extends RegistryStorageDecoratorReadOn
 
 
     @Override
+    public void importArtifactBranch(ArtifactBranchEntity entity) {
+        delegate.importArtifactBranch(entity);
+    }
+
+
+    @Override
     public void updateContentCanonicalHash(String newCanonicalHash, long contentId, String contentHash) {
         delegate.updateContentCanonicalHash(newCanonicalHash, contentId, contentHash);
     }
@@ -377,5 +387,23 @@ public class RegistryStorageDecoratorBase extends RegistryStorageDecoratorReadOn
     @Override
     public long nextCommentId() {
         return delegate.nextCommentId();
+    }
+
+
+    @Override
+    public void createOrUpdateArtifactBranch(GAV gav, BranchId branchId) {
+        delegate.createOrUpdateArtifactBranch(gav, branchId);
+    }
+
+
+    @Override
+    public void createOrReplaceArtifactBranch(GA ga, BranchId branchId, List<VersionId> versions) {
+        delegate.createOrReplaceArtifactBranch(ga, branchId, versions);
+    }
+
+
+    @Override
+    public void deleteArtifactBranch(GA ga, BranchId branchId) {
+        delegate.deleteArtifactBranch(ga, branchId);
     }
 }

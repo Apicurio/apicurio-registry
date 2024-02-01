@@ -1,7 +1,26 @@
 package io.apicurio.registry;
 
-import static io.apicurio.registry.rest.v3.V3ApiUtil.defaultGroupIdToNull;
-import static org.hamcrest.Matchers.equalTo;
+import com.microsoft.kiota.ApiException;
+import com.microsoft.kiota.RequestAdapter;
+import io.apicurio.registry.client.auth.VertXAuthFactory;
+import io.apicurio.registry.model.GroupId;
+import io.apicurio.registry.rest.client.RegistryClient;
+import io.apicurio.registry.rest.client.models.ArtifactMetaData;
+import io.apicurio.registry.rest.v3.V3ApiUtil;
+import io.apicurio.registry.rest.v3.beans.ArtifactReference;
+import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
+import io.apicurio.registry.types.ArtifactMediaTypes;
+import io.apicurio.registry.types.ArtifactState;
+import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.utils.tests.TestUtils;
+import io.apicurio.rest.client.auth.exception.NotAuthorizedException;
+import io.confluent.kafka.schemaregistry.client.rest.RestService;
+import io.kiota.http.vertx.VertXRequestAdapter;
+import io.restassured.RestAssured;
+import io.restassured.parsing.Parser;
+import io.restassured.response.ValidatableResponse;
+import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.TestInstance.Lifecycle;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -9,36 +28,9 @@ import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
-import com.microsoft.kiota.ApiException;
-import com.microsoft.kiota.RequestAdapter;
-import com.microsoft.kiota.authentication.AnonymousAuthenticationProvider;
-import com.microsoft.kiota.http.OkHttpRequestAdapter;
-import io.apicurio.registry.rest.client.models.ArtifactMetaData;
-import io.apicurio.registry.rest.v3.beans.ArtifactReference;
-import io.apicurio.rest.client.auth.exception.NotAuthorizedException;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.TestInstance;
-import org.junit.jupiter.api.TestInstance.Lifecycle;
-
-import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.rest.v3.V3ApiUtil;
-import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
-import io.apicurio.registry.types.ArtifactMediaTypes;
-import io.apicurio.registry.types.ArtifactState;
-import io.apicurio.registry.types.RuleType;
-import io.apicurio.registry.utils.tests.TestUtils;
-import io.confluent.kafka.schemaregistry.client.rest.RestService;
-import io.restassured.RestAssured;
-import io.restassured.parsing.Parser;
-import io.restassured.response.ValidatableResponse;
+import static org.hamcrest.Matchers.equalTo;
 
 /**
  * Abstract base class for all tests that test via the jax-rs layer.
@@ -78,7 +70,7 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
         return new RestService("http://localhost:" + testPort + "/apis/ccompat/v7");
     }
 
-    protected final RequestAdapter anonymousAdapter = new OkHttpRequestAdapter(new AnonymousAuthenticationProvider());
+    protected final RequestAdapter anonymousAdapter = new VertXRequestAdapter(VertXAuthFactory.defaultVertx);
     
     protected RegistryClient createRestClientV3() {
         anonymousAdapter.setBaseUrl(registryV3ApiUrl);
@@ -101,16 +93,16 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
         // Delete all global rules
         TestUtils.retry(() -> {
             try {
-                clientV3.admin().rules().delete().get(3, TimeUnit.SECONDS);
+                clientV3.admin().rules().delete();
             } catch (Exception err) {
                 // ignore
             }
-            Assertions.assertEquals(expectedDefaultRulesCount, clientV3.admin().rules().get().get(3, TimeUnit.SECONDS).size());
+            Assertions.assertEquals(expectedDefaultRulesCount, clientV3.admin().rules().get().size());
         });
     }
 
     protected Long createArtifact(String artifactId, String artifactType, String artifactContent) throws Exception {
-        return createArtifact("default", artifactId, artifactType, artifactContent);
+        return createArtifact(GroupId.DEFAULT.getRawGroupIdWithDefaultString(), artifactId, artifactType, artifactContent);
     }
 
 
@@ -125,7 +117,7 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
                     config.headers.add("X-Registry-ArtifactId", artifactId);
                     config.headers.add("X-Registry-ArtifactType", artifactType);
                 })
-                .get(3, TimeUnit.SECONDS);
+                ;
 
         assert( result.getId().equals(artifactId) );
         assert( result.getType().equals(artifactType) );
@@ -181,7 +173,7 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
                         config.headers.add("X-Registry-ArtifactType", artifactType);
                     }
                 })
-                .get(3, TimeUnit.SECONDS);
+                ;
     }
 
     protected ArtifactMetaData updateArtifactExtendedRaw(String groupId, String artifactId, String artifactType, String artifactContent, List<ArtifactReference> artifactReferences) throws Exception {
@@ -207,11 +199,11 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
                     config.headers.add("X-Registry-ArtifactId", artifactId);
                     config.headers.add("X-Registry-ArtifactType", artifactType);
                 })
-                .get(3, TimeUnit.SECONDS);
+                ;
     }
 
     protected Long createArtifactVersion(String artifactId, String artifactType, String artifactContent) throws Exception {
-        return createArtifactVersion("default", artifactId, artifactType, artifactContent);
+        return createArtifactVersion(GroupId.DEFAULT.getRawGroupIdWithDefaultString(), artifactId, artifactType, artifactContent);
     }
 
     protected Long createArtifactVersion(String groupId, String artifactId, String artifactType, String artifactContent) throws Exception {
@@ -225,7 +217,7 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
                 .byArtifactId(artifactId)
                 .versions()
                 .post(content, config -> {config.headers.add("X-Registry-ArtifactType", artifactType); })
-                .get(3, TimeUnit.SECONDS);
+                ;
 
         assert( version.getId().equals(artifactId) );
         assert( version.getType().equals(artifactType) );
@@ -233,7 +225,7 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
         return version.getGlobalId();
     }
 
-    protected void createArtifactRule(String groupId, String artifactId, RuleType ruleType, String ruleConfig) throws ExecutionException, InterruptedException, TimeoutException {
+    protected void createArtifactRule(String groupId, String artifactId, RuleType ruleType, String ruleConfig) {
         var rule = new io.apicurio.registry.rest.client.models.Rule();
         rule.setConfig(ruleConfig);
         rule.setType(io.apicurio.registry.rest.client.models.RuleType.forValue(ruleType.value()));
@@ -244,12 +236,11 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
                 .artifacts()
                 .byArtifactId(artifactId)
                 .rules()
-                .post(rule)
-                .get(3, TimeUnit.SECONDS);
+                .post(rule);
     }
 
     @SuppressWarnings("deprecation")
-    protected io.apicurio.registry.rest.client.models.Rule createGlobalRule(RuleType ruleType, String ruleConfig) throws ExecutionException, InterruptedException, TimeoutException {
+    protected io.apicurio.registry.rest.client.models.Rule createGlobalRule(RuleType ruleType, String ruleConfig) {
         var rule = new io.apicurio.registry.rest.client.models.Rule();
         rule.setConfig(ruleConfig);
         rule.setType(io.apicurio.registry.rest.client.models.RuleType.forValue(ruleType.value()));
@@ -257,15 +248,13 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
         clientV3
             .admin()
             .rules()
-            .post(rule)
-            .get(3, TimeUnit.SECONDS);
+            .post(rule);
         // TODO: verify this get
         return clientV3
                 .admin()
                 .rules()
                 .byRule(ruleType.value())
-                .get()
-                .get(3, TimeUnit.SECONDS);
+                .get();
     }
 
     /**
@@ -307,26 +296,24 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
             references = Collections.emptyList();
         }
         return references.stream()
-                .peek(r -> r.setGroupId(defaultGroupIdToNull(r.getGroupId())))
+                .peek(r -> r.setGroupId(new GroupId(r.getGroupId()).getRawGroupIdWithNull()))
                 .map(V3ApiUtil::referenceToDto)
                 .collect(Collectors.toList());
     }
 
-    protected void assertForbidden(ExecutionException executionException) {
-        Assertions.assertNotNull(executionException.getCause());
-        Assertions.assertEquals(ApiException.class, executionException.getCause().getClass());
-        Assertions.assertEquals(403, ((ApiException)executionException.getCause()).getResponseStatusCode());
+    protected void assertForbidden(Exception exception) {
+        Assertions.assertEquals(ApiException.class, exception.getClass());
+        Assertions.assertEquals(403, ((ApiException)exception).getResponseStatusCode());
     }
 
-    protected void assertNotAuthorized(ExecutionException executionException) {
-        Assertions.assertNotNull(executionException.getCause());
-
-        if (executionException.getCause() instanceof  NotAuthorizedException) {
+    protected void assertNotAuthorized(Exception exception) {
+        if (exception instanceof  NotAuthorizedException) {
             // thrown by the token provider adapter
         } else {
             // mapped by Kiota
-            Assertions.assertEquals(ApiException.class, executionException.getCause().getClass());
-            Assertions.assertEquals(401, ((ApiException) executionException.getCause()).getResponseStatusCode());
+            Assertions.assertEquals(ApiException.class, exception.getClass());
+            Assertions.assertEquals(401, ((ApiException) exception).getResponseStatusCode());
         }
     }
+
 }

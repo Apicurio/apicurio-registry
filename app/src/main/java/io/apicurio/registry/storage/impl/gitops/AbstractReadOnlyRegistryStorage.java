@@ -3,26 +3,18 @@ package io.apicurio.registry.storage.impl.gitops;
 import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.exception.UnreachableCodeException;
+import io.apicurio.registry.model.VersionId;
 import io.apicurio.registry.storage.RegistryStorage;
-import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
-import io.apicurio.registry.storage.dto.ArtifactOwnerDto;
-import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
-import io.apicurio.registry.storage.dto.CommentDto;
-import io.apicurio.registry.storage.dto.DownloadContextDto;
-import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
-import io.apicurio.registry.storage.dto.GroupMetaDataDto;
-import io.apicurio.registry.storage.dto.RuleConfigurationDto;
+import io.apicurio.registry.storage.dto.*;
 import io.apicurio.registry.storage.error.RegistryStorageException;
 import io.apicurio.registry.storage.impexp.EntityInputStream;
 import io.apicurio.registry.storage.impl.sql.IdGenerator;
+import io.apicurio.registry.model.BranchId;
+import io.apicurio.registry.model.GA;
+import io.apicurio.registry.model.GAV;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.RuleType;
-import io.apicurio.registry.utils.impexp.ArtifactRuleEntity;
-import io.apicurio.registry.utils.impexp.ArtifactVersionEntity;
-import io.apicurio.registry.utils.impexp.CommentEntity;
-import io.apicurio.registry.utils.impexp.ContentEntity;
-import io.apicurio.registry.utils.impexp.GlobalRuleEntity;
-import io.apicurio.registry.utils.impexp.GroupEntity;
+import io.apicurio.registry.utils.impexp.*;
 
 import java.util.Date;
 import java.util.List;
@@ -350,6 +342,12 @@ public abstract class AbstractReadOnlyRegistryStorage implements RegistryStorage
 
 
     @Override
+    public void importArtifactBranch(ArtifactBranchEntity entity) {
+        readOnlyViolation();
+    }
+
+
+    @Override
     public void updateContentCanonicalHash(String newCanonicalHash, long contentId, String contentHash) {
         readOnlyViolation();
     }
@@ -387,5 +385,23 @@ public abstract class AbstractReadOnlyRegistryStorage implements RegistryStorage
     public long nextCommentId() {
         readOnlyViolation();
         return 0;
+    }
+
+
+    @Override
+    public void createOrUpdateArtifactBranch(GAV gav, BranchId branchId) {
+        readOnlyViolation();
+    }
+
+
+    @Override
+    public void createOrReplaceArtifactBranch(GA ga, BranchId branchId, List<VersionId> versions) {
+        readOnlyViolation();
+    }
+
+
+    @Override
+    public void deleteArtifactBranch(GA ga, BranchId branchId) {
+        readOnlyViolation();
     }
 }

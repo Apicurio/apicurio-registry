@@ -16,7 +16,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
@@ -40,7 +39,7 @@ class MetadataIT extends ApicurioRegistryBaseIT {
         ArtifactMetaData metaData = createArtifact(groupId, artifactId, ArtifactType.AVRO, artifactData);
         LOGGER.info("Created artifact {} with metadata {}", artifactId, metaData);
 
-        ArtifactMetaData artifactMetaData = registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).meta().get().get(3, TimeUnit.SECONDS);
+        ArtifactMetaData artifactMetaData = registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).meta().get();
         LOGGER.info("Got metadata of artifact with ID {}: {}", artifactId, artifactMetaData);
 
         assertThat(artifactMetaData.getCreatedOn().toInstant().toEpochMilli(), OrderingComparison.greaterThan(0L));
@@ -57,7 +56,7 @@ class MetadataIT extends ApicurioRegistryBaseIT {
         registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).meta().put(emd);
 
         retryOp((rc) -> {
-            ArtifactMetaData amd = rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).meta().get().get(3, TimeUnit.SECONDS);
+            ArtifactMetaData amd = rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).meta().get();
             LOGGER.info("Got metadata of artifact with ID {}: {}", artifactId, amd);
 
             assertThat(amd.getId(), is(artifactId));
@@ -84,9 +83,9 @@ class MetadataIT extends ApicurioRegistryBaseIT {
         metaData = updateArtifact(groupId, artifactId, artifactUpdateData);
         LOGGER.info("Artifact with ID {} was updated: {}", artifactId, metaData);
 
-        retryOp((rc) -> rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersion("2").meta().get().get(3, TimeUnit.SECONDS));
+        retryOp((rc) -> rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("2").meta().get());
 
-        VersionMetaData versionMetaData = registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersion("2").meta().get().get(3, TimeUnit.SECONDS);
+        VersionMetaData versionMetaData = registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("2").meta().get();
 
         LOGGER.info("Got metadata of artifact with ID {}: {}", artifactId, versionMetaData);
 
@@ -98,10 +97,10 @@ class MetadataIT extends ApicurioRegistryBaseIT {
         emd.setName("Artifact Updated Name");
         emd.setDescription("The description of the artifact.");
 
-        registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersion("2").meta().put(emd).get(3, TimeUnit.SECONDS);
+        registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("2").meta().put(emd);
 
         retryOp((rc) -> {
-            ArtifactMetaData artifactMetaData = rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).meta().get().get(3, TimeUnit.SECONDS);
+            ArtifactMetaData artifactMetaData = rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).meta().get();
             LOGGER.info("Got metadata of artifact with ID {}: {}", artifactId, artifactMetaData);
             assertThat(artifactMetaData.getVersion(), is("2"));
             assertThat(artifactMetaData.getType(), is("AVRO"));
@@ -110,7 +109,7 @@ class MetadataIT extends ApicurioRegistryBaseIT {
             assertThat(artifactMetaData.getModifiedOn(), notNullValue());
         });
 
-        versionMetaData = registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersion("1").meta().get().get(3, TimeUnit.SECONDS);
+        versionMetaData = registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("1").meta().get();
 
         LOGGER.info("Got metadata of artifact with ID {} version 1: {}", artifactId, versionMetaData);
         assertThat(versionMetaData.getVersion(), is("1"));

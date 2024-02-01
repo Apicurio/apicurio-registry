@@ -22,6 +22,11 @@
         </dependency>
 
         <dependency>
+            <groupId>jakarta.validation</groupId>
+            <artifactId>jakarta.validation-api</artifactId>
+        </dependency>
+
+        <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-annotations</artifactId>
         </dependency>
@@ -124,21 +129,57 @@
                 <artifactId>build-helper-maven-plugin</artifactId>
                 <version>3.5.0</version>
                 <executions>
-                        <execution>
-                                <id>addSource</id>
-                                <phase>generate-sources</phase>
-                                <goals>
-                                        <goal>add-source</goal>
-                                </goals>
-                                <configuration>
-                                        <sources>
-                                                <source>${project.basedir}/target/generated-sources/jaxrs</source>
-                                        </sources>
-                                </configuration>
-                        </execution>
+                    <execution>
+                        <id>addSource</id>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>add-source</goal>
+                        </goals>
+                        <configuration>
+                            <sources>
+                                <source>${project.basedir}/target/generated-sources/jaxrs</source>
+                            </sources>
+                        </configuration>
+                    </execution>
                 </executions>
             </plugin>
         </plugins>
     </build>
+
+    <profiles>
+        <profile>
+            <id>go-sdk-generate-docker</id>
+            <activation>
+                <property>
+                    <name>!skipNonJavaGen</name>
+                </property>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>exec-maven-plugin</artifactId>
+                        <version>3.1.1</version>
+                        <executions>
+                            <execution>
+                                <goals>
+                                    <goal>exec</goal>
+                                </goals>
+                                <phase>generate-sources</phase>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <executable>/usr/bin/env</executable>
+                            <workingDirectory>${project.basedir}/../go-sdk</workingDirectory>
+                            <arguments>
+                                <argument>bash</argument>
+                                <argument>generate-docker.sh</argument>
+                            </arguments>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 
 </project>

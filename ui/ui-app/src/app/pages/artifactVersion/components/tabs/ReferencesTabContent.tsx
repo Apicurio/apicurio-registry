@@ -8,10 +8,10 @@ import {
     ReferencesToolbar,
     ReferencesToolbarFilterCriteria
 } from "@app/pages/artifactVersion/components/tabs/ReferencesToolbar.tsx";
-import { Paging } from "@services/groups";
 import { ReferenceType } from "@models/referenceType.ts";
-import { Services } from "@services/services.ts";
 import { ListWithToolbar } from "@apicurio/common-ui-components";
+import { GroupsService, Paging, useGroupsService } from "@services/useGroupsService.ts";
+import { LoggerService, useLoggerService } from "@services/useLoggerService.ts";
 
 /**
  * Properties
@@ -43,14 +43,17 @@ export const ReferencesTabContent: FunctionComponent<ReferencesTabContentProps> 
     });
     const [ referenceType, setReferenceType ] = useState<ReferenceType>("OUTBOUND");
 
+    const groups: GroupsService = useGroupsService();
+    const logger: LoggerService = useLoggerService();
+
     // Whenever the artifact or the type of references to display changes, query for all its references.
     useEffect(() => {
         setLoading(true);
 
-        Services.getGroupsService().getArtifactReferences(artifact?.globalId as number, referenceType).then(references => {
+        groups.getArtifactReferences(artifact?.globalId as number, referenceType).then(references => {
             setAllReferences(references);
         }).catch(error => {
-            Services.getLoggerService().error(error);
+            logger.error(error);
             setLoading(false);
             setError(true);
         });

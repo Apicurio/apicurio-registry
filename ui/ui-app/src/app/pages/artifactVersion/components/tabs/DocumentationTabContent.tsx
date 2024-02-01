@@ -2,8 +2,8 @@ import { FunctionComponent, useState } from "react";
 import { ErrorTabContent } from "@app/pages";
 import { If } from "@apicurio/common-ui-components";
 import YAML from "yaml";
-import { ArtifactTypes } from "@models/artifactTypes.model.ts";
 import { AsyncApiVisualizer, OpenApiVisualizer } from "@app/pages/artifactVersion/components/tabs/visualizers";
+import { ArtifactTypes } from "@services/useArtifactTypesService.ts";
 
 enum VisualizerType {
     OPENAPI, ASYNCAPI, OTHER

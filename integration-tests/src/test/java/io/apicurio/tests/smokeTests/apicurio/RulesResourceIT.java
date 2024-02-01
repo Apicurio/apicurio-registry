@@ -1,30 +1,33 @@
 package io.apicurio.tests.smokeTests.apicurio;
 
-import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.tests.ApicurioRegistryBaseIT;
-import io.apicurio.tests.utils.Constants;
-import io.apicurio.registry.rest.client.models.ArtifactMetaData;
-import io.apicurio.registry.rest.client.models.Rule;
-import io.apicurio.registry.rest.client.models.RuleType;
-import io.apicurio.registry.utils.IoUtil;
-import io.apicurio.registry.utils.tests.TestUtils;
-import io.quarkus.test.junit.QuarkusIntegrationTest;
+import static org.hamcrest.CoreMatchers.hasItems;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+
+import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.ByteArrayInputStream;
-import java.nio.charset.StandardCharsets;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-
-import static org.hamcrest.CoreMatchers.hasItems;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import io.apicurio.registry.rest.client.models.ArtifactMetaData;
+import io.apicurio.registry.rest.client.models.Rule;
+import io.apicurio.registry.rest.client.models.RuleType;
+import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
+import io.apicurio.registry.rules.integrity.IntegrityLevel;
+import io.apicurio.registry.rules.validity.ValidityLevel;
+import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.utils.IoUtil;
+import io.apicurio.registry.utils.tests.TestUtils;
+import io.apicurio.tests.ApicurioRegistryBaseIT;
+import io.apicurio.tests.utils.Constants;
+import io.quarkus.test.junit.QuarkusIntegrationTest;
 
 @Tag(Constants.SMOKE)
 @QuarkusIntegrationTest
@@ -34,34 +37,56 @@ class RulesResourceIT extends ApicurioRegistryBaseIT {
 
     @Test
     void createAndDeleteGlobalRules() throws Exception {
-        // Create a global rule
+        // Create a global rule (VALIDITY)
         Rule rule = new Rule();
         rule.setType(RuleType.VALIDITY);
-        rule.setConfig("SYNTAX_ONLY");
+        rule.setConfig(ValidityLevel.SYNTAX_ONLY.name());
+        registryClient.admin().rules().post(rule);
 
-        TestUtils.retry(() -> registryClient.admin().rules().post(rule).get(3, TimeUnit.SECONDS));
+        // Create a global rule (INTEGRITY)
+        rule = new Rule();
+        rule.setType(RuleType.INTEGRITY);
+        rule.setConfig(IntegrityLevel.ALL_REFS_MAPPED.name());
+        registryClient.admin().rules().post(rule);
 
-        // Check the rule was created.
-        retryOp((rc) -> {
-            Rule ruleConfig = rc.admin().rules().byRule(RuleType.VALIDITY.name()).get().get(3, TimeUnit.SECONDS);
-            assertNotNull(ruleConfig);
-            assertEquals("SYNTAX_ONLY", ruleConfig.getConfig());
-        });
+        // Create a global rule (COMPATIBILITY)
+        rule = new Rule();
+        rule.setType(RuleType.COMPATIBILITY);
+        rule.setConfig(CompatibilityLevel.FORWARD_TRANSITIVE.name());
+        registryClient.admin().rules().post(rule);
+
+        // Check the rules were created.
+        List<RuleType> rules = registryClient.admin().rules().get();
+        assertThat(rules.size(), is(3));
+        
+        // Check the rules were configured properly.
+        Rule ruleConfig = registryClient.admin().rules().byRule(RuleType.VALIDITY.name()).get();
+        assertNotNull(ruleConfig);
+        assertEquals(ValidityLevel.SYNTAX_ONLY.name(), ruleConfig.getConfig());
+        
+        ruleConfig = registryClient.admin().rules().byRule(RuleType.INTEGRITY.name()).get();
+        assertNotNull(ruleConfig);
+        assertEquals(IntegrityLevel.ALL_REFS_MAPPED.name(), ruleConfig.getConfig());
+
+        ruleConfig = registryClient.admin().rules().byRule(RuleType.COMPATIBILITY.name()).get();
+        assertNotNull(ruleConfig);
+        assertEquals(CompatibilityLevel.FORWARD_TRANSITIVE.name(), ruleConfig.getConfig());
 
         // Delete all rules
-        registryClient.admin().rules().delete().get(3, TimeUnit.SECONDS);
+        registryClient.admin().rules().delete();
 
         // No rules listed now
-        retryOp((rc) -> {
-            List<RuleType> rules = rc.admin().rules().get().get(3, TimeUnit.SECONDS);
-            assertEquals(0, rules.size());
-        });
+        rules = registryClient.admin().rules().get();
+        assertThat(rules.size(), is(0));
 
         // Should be null/error (never configured the COMPATIBILITY rule)
-        retryAssertClientError("RuleNotFoundException", 404, (rc) -> rc.admin().rules().byRule(RuleType.COMPATIBILITY.name()).get().get(3, TimeUnit.SECONDS), errorCodeExtractor);
+        retryAssertClientError("RuleNotFoundException", 404, (rc) -> rc.admin().rules().byRule(RuleType.COMPATIBILITY.name()).get(), errorCodeExtractor);
 
         // Should be null/error (deleted the VALIDITY rule)
-        retryAssertClientError("RuleNotFoundException", 404, (rc) -> rc.admin().rules().byRule(RuleType.COMPATIBILITY.name()).get().get(3, TimeUnit.SECONDS), errorCodeExtractor);
+        retryAssertClientError("RuleNotFoundException", 404, (rc) -> rc.admin().rules().byRule(RuleType.VALIDITY.name()).get(), errorCodeExtractor);
+
+        // Should be null/error (deleted the INTEGRITY rule)
+        retryAssertClientError("RuleNotFoundException", 404, (rc) -> rc.admin().rules().byRule(RuleType.INTEGRITY.name()).get(), errorCodeExtractor);
     }
 
     @Test
@@ -73,10 +98,10 @@ class RulesResourceIT extends ApicurioRegistryBaseIT {
         rule.setType(RuleType.VALIDITY);
         rule.setConfig("SYNTAX_ONLY");
 
-        TestUtils.retry(() -> registryClient.admin().rules().post(rule).get(3, TimeUnit.SECONDS));
+        TestUtils.retry(() -> registryClient.admin().rules().post(rule));
         LOGGER.info("Created rule: {} - {}", rule.getType(), rule.getConfig());
 
-        TestUtils.assertClientError("RuleAlreadyExistsException", 409, () -> registryClient.admin().rules().post(rule).get(3, TimeUnit.SECONDS), true, errorCodeExtractor);
+        TestUtils.assertClientError("RuleAlreadyExistsException", 409, () -> registryClient.admin().rules().post(rule), true, errorCodeExtractor);
 
         String invalidArtifactDefinition = "<type>record</type>\n<name>test</name>";
         String artifactId = TestUtils.generateArtifactId();
@@ -123,10 +148,10 @@ class RulesResourceIT extends ApicurioRegistryBaseIT {
         rule.setType(RuleType.VALIDITY);
         rule.setConfig("SYNTAX_ONLY");
 
-        registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId1).rules().post(rule).get(3, TimeUnit.SECONDS);
+        registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId1).rules().post(rule);
         LOGGER.info("Created rule: {} - {} for artifact {}", rule.getType(), rule.getConfig(), artifactId1);
 
-        TestUtils.assertClientError("RuleAlreadyExistsException", 409, () -> registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId1).rules().post(rule).get(3, TimeUnit.SECONDS), true, errorCodeExtractor);
+        TestUtils.assertClientError("RuleAlreadyExistsException", 409, () -> registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId1).rules().post(rule), true, errorCodeExtractor);
 
         String invalidArtifactDefinition = "<type>record</type>\n<name>test</name>";
         artifactData = new ByteArrayInputStream(invalidArtifactDefinition.getBytes(StandardCharsets.UTF_8));
@@ -157,6 +182,59 @@ class RulesResourceIT extends ApicurioRegistryBaseIT {
 
     @Test
     @Tag(ACCEPTANCE)
+    void testDeleteAllArtifactRules() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        String artifactId1 = TestUtils.generateArtifactId();
+        String artifactDefinition = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
+
+        ByteArrayInputStream artifactData = new ByteArrayInputStream(artifactDefinition.getBytes(StandardCharsets.UTF_8));
+        ArtifactMetaData metaData = createArtifact(groupId, artifactId1, ArtifactType.AVRO, artifactData);
+        LOGGER.info("Created artifact {} with metadata {}", artifactId1, metaData);
+
+        // Validity rule
+        Rule rule = new Rule();
+        rule.setType(RuleType.VALIDITY);
+        rule.setConfig(ValidityLevel.SYNTAX_ONLY.name());
+        registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId1).rules().post(rule);
+        LOGGER.info("Created rule: {} - {} for artifact {}", rule.getType(), rule.getConfig(), artifactId1);
+
+        // Compatibility rule
+        rule = new Rule();
+        rule.setType(RuleType.COMPATIBILITY);
+        rule.setConfig(CompatibilityLevel.FULL.name());
+        registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId1).rules().post(rule);
+        LOGGER.info("Created rule: {} - {} for artifact {}", rule.getType(), rule.getConfig(), artifactId1);
+
+        // Integrity rule
+        rule = new Rule();
+        rule.setType(RuleType.INTEGRITY);
+        rule.setConfig(IntegrityLevel.NO_DUPLICATES.name());
+        registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId1).rules().post(rule);
+        LOGGER.info("Created rule: {} - {} for artifact {}", rule.getType(), rule.getConfig(), artifactId1);
+
+        // Check that all the rules exist.
+        List<RuleType> rules = registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId1).rules().get();
+        assertThat(rules.size(), is(3));
+        
+        // Check that the Integrity rule is configured
+        rule = registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId1).rules().byRule(RuleType.INTEGRITY.name()).get();
+        assertThat(rule.getConfig(), is(IntegrityLevel.NO_DUPLICATES.name()));
+        
+        // Delete all rules.
+        registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId1).rules().delete();
+
+        // Check that no rules exist.
+        rules = registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId1).rules().get();
+        assertThat(rules.size(), is(0));
+
+        // Check that the integrity rule is not found.
+        TestUtils.assertClientError("RuleNotFoundException", 404, () -> {
+            registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId1).rules().byRule(RuleType.INTEGRITY.name()).get();
+        }, errorCodeExtractor);
+    }
+
+    @Test
+    @Tag(ACCEPTANCE)
     void testRulesDeletedWithArtifact() throws Exception {
         String groupId = TestUtils.generateGroupId();
         String artifactId1 = TestUtils.generateArtifactId();
@@ -170,29 +248,29 @@ class RulesResourceIT extends ApicurioRegistryBaseIT {
         rule.setType(RuleType.VALIDITY);
         rule.setConfig("SYNTAX_ONLY");
 
-        registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId1).rules().post(rule).get(3, TimeUnit.SECONDS);
+        registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId1).rules().post(rule);
         LOGGER.info("Created rule: {} - {} for artifact {}", rule.getType(), rule.getConfig(), artifactId1);
 
-        registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId1).delete().get(3, TimeUnit.SECONDS);
+        registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId1).delete();
 
         retryOp((rc) -> {
-            TestUtils.assertClientError("ArtifactNotFoundException", 404, () -> rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId1).meta().get().get(3, TimeUnit.SECONDS), errorCodeExtractor);
+            TestUtils.assertClientError("ArtifactNotFoundException", 404, () -> rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId1).meta().get(), errorCodeExtractor);
 
-            assertThat(rc.groups().byGroupId(groupId).artifacts().get().get(3, TimeUnit.SECONDS).getCount(), is(0));
+            assertThat(rc.groups().byGroupId(groupId).artifacts().get().getCount(), is(0));
 
             TestUtils.assertClientError("ArtifactNotFoundException", 404, () ->
-                    rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId1).rules().get().get(3, TimeUnit.SECONDS), errorCodeExtractor);
+                    rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId1).rules().get(), errorCodeExtractor);
             TestUtils.assertClientError("ArtifactNotFoundException", 404, () ->
-                    rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId1).rules().byRule(RuleType.VALIDITY.name()).get().get(3, TimeUnit.SECONDS), errorCodeExtractor);
+                    rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId1).rules().byRule(RuleType.VALIDITY.name()).get(), errorCodeExtractor);
         });
     }
 
     @AfterEach
     void clearRules() throws Exception {
         LOGGER.info("Removing all global rules");
-        registryClient.admin().rules().delete().get(3, TimeUnit.SECONDS);
+        registryClient.admin().rules().delete();
         retryOp((rc) -> {
-            List<RuleType> rules = rc.admin().rules().get().get(3, TimeUnit.SECONDS);
+            List<RuleType> rules = rc.admin().rules().get();
             assertEquals(0, rules.size(), "All global rules not deleted");
         });
     }

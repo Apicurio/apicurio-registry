@@ -1,9 +1,6 @@
 package io.apicurio.registry.auth;
 
 import com.microsoft.kiota.ApiException;
-import com.microsoft.kiota.authentication.AnonymousAuthenticationProvider;
-import com.microsoft.kiota.authentication.BaseBearerTokenAuthenticationProvider;
-import com.microsoft.kiota.http.OkHttpRequestAdapter;
 import io.apicurio.common.apps.config.Info;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.rest.client.RegistryClient;
@@ -11,15 +8,17 @@ import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.tests.ApicurioTestTags;
 import io.apicurio.registry.utils.tests.AuthTestProfileAnonymousCredentials;
 import io.apicurio.registry.utils.tests.JWKSMockServer;
+import io.kiota.http.vertx.VertXRequestAdapter;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
+import io.apicurio.registry.client.auth.VertXAuthFactory;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
+import static io.apicurio.registry.client.auth.VertXAuthFactory.buildOIDCWebClient;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @QuarkusTest
 @TestProfile(AuthTestProfileAnonymousCredentials.class)
@@ -34,24 +33,24 @@ public class AuthTestAnonymousCredentials extends AbstractResourceTestBase {
 
     @Test
     public void testWrongCreds() throws Exception {
-        var adapter = new OkHttpRequestAdapter(
-                new BaseBearerTokenAuthenticationProvider(
-                        new OidcAccessTokenProvider(authServerUrl, JWKSMockServer.WRONG_CREDS_CLIENT_ID, "secret")));
+        var adapter = new VertXRequestAdapter(buildOIDCWebClient(authServerUrl, JWKSMockServer.WRONG_CREDS_CLIENT_ID, "test55"));
         adapter.setBaseUrl(registryV3ApiUrl);
         RegistryClient client = new RegistryClient(adapter);
-        var executionException = Assertions.assertThrows(ExecutionException.class, () -> {
-            client.groups().byGroupId(groupId).artifacts().get().get(3, TimeUnit.SECONDS);
+
+        var exception = Assertions.assertThrows(Exception.class, () -> {
+            client.groups().byGroupId(groupId).artifacts().get();
         });
-        assertNotAuthorized(executionException);
+
+        assertTrue(exception.getMessage().contains("Unauthorized"));
     }
 
     @Test
     public void testNoCredentials() throws Exception {
-        var adapter = new OkHttpRequestAdapter(new AnonymousAuthenticationProvider());
+        var adapter = new VertXRequestAdapter(VertXAuthFactory.defaultVertx);
         adapter.setBaseUrl(registryV3ApiUrl);
         RegistryClient client = new RegistryClient(adapter);
         // Read-only operation should work without any credentials.
-        var results = client.search().artifacts().get(config -> config.queryParameters.group = groupId).get(3, TimeUnit.SECONDS);
+        var results = client.search().artifacts().get(config -> config.queryParameters.group = groupId);
         Assertions.assertTrue(results.getCount() >= 0);
 
         // Write operation should fail without any credentials
@@ -61,7 +60,7 @@ public class AuthTestAnonymousCredentials extends AbstractResourceTestBase {
                 "    \"namespace\" : \"my.example\",\r\n" +
                 "    \"fields\" : [{\"name\" : \"age\", \"type\" : \"int\"}]\r\n" +
                 "}";
-        var executionException = Assertions.assertThrows(ExecutionException.class, () -> {
+        var exception = Assertions.assertThrows(ApiException.class, () -> {
             var content = new io.apicurio.registry.rest.client.models.ArtifactContent();
             content.setContent(data);
             client
@@ -71,10 +70,8 @@ public class AuthTestAnonymousCredentials extends AbstractResourceTestBase {
                 .post(content, config -> {
                     config.headers.add("X-Registry-ArtifactType", ArtifactType.AVRO);
                     config.headers.add("X-Registry-ArtifactId", "testNoCredentials");
-                }).get(3, TimeUnit.SECONDS);
+                });
         });
-        Assertions.assertNotNull(executionException.getCause());
-        Assertions.assertEquals(ApiException.class, executionException.getCause().getClass());
-        Assertions.assertEquals(401, ((ApiException)executionException.getCause()).getResponseStatusCode());
+        Assertions.assertEquals(401, exception.getResponseStatusCode());
     }
 }

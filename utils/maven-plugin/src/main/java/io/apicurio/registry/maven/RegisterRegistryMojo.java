@@ -17,6 +17,7 @@ import java.util.Stack;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
+import io.apicurio.registry.rest.client.models.IfExists;
 import org.apache.avro.Schema;
 import org.apache.commons.io.FileUtils;
 import org.apache.maven.plugin.MojoExecutionException;
@@ -264,7 +265,7 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
                 .artifacts()
                 .post(content, config -> {
                     if (artifact.getIfExists() != null) {
-                        config.queryParameters.ifExists = artifact.getIfExists().value();
+                        config.queryParameters.ifExists = IfExists.forValue(artifact.getIfExists().value());
                     }
                     config.queryParameters.canonical = canonicalize;
                     config.headers.add("Content-Type", ContentTypes.APPLICATION_CREATE_EXTENDED);
@@ -277,8 +278,7 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
                     if (version != null) {
                         config.headers.add("X-Registry-Version", version);
                     }
-                })
-                .get();
+                });
 
         getLog().info(String.format("Successfully registered artifact [%s] / [%s].  GlobalId is [%d]", groupId, artifactId, amd.getGlobalId()));
 
@@ -339,7 +339,7 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
             for (ExistingReference ref : existingReferences) {
                 ArtifactMetaData amd;
                 if (ref.getVersion() == null || "LATEST".equalsIgnoreCase(ref.getVersion())) {
-                    amd = getClient().groups().byGroupId(ref.getGroupId()).artifacts().byArtifactId(ref.getArtifactId()).meta().get().get();
+                    amd = getClient().groups().byGroupId(ref.getGroupId()).artifacts().byArtifactId(ref.getArtifactId()).meta().get();
                 } else {
                     amd = new ArtifactMetaData();
                     amd.setGroupId(ref.getGroupId());

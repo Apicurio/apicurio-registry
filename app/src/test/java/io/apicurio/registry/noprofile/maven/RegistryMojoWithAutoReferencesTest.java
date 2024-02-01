@@ -23,7 +23,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @QuarkusTest
@@ -152,7 +151,7 @@ public class RegistryMojoWithAutoReferencesTest extends RegistryMojoTestBase {
     }
 
     private void validateStructure(String groupId, String artifactId, int expectedMainReferences, int expectedTotalArtifacts, Set<String> originalContents) throws Exception {
-        final ArtifactMetaData artifactWithReferences = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).meta().get().get(3, TimeUnit.SECONDS);
+        final ArtifactMetaData artifactWithReferences = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).meta().get();
         final String mainContent =
                 new String(
                         clientV3
@@ -161,13 +160,13 @@ public class RegistryMojoWithAutoReferencesTest extends RegistryMojoTestBase {
                                 .artifacts()
                                 .byArtifactId(artifactId)
                                 .versions()
-                                .byVersion(artifactWithReferences.getVersion())
+                                .byVersionExpression(artifactWithReferences.getVersion())
                                 .get()
-                                .get(3, TimeUnit.SECONDS).readAllBytes(), StandardCharsets.UTF_8);
+                                .readAllBytes(), StandardCharsets.UTF_8);
 
         Assertions.assertTrue(originalContents.contains(mainContent)); //The main content has been registered as-is.
 
-        final List<ArtifactReference> mainArtifactReferences = clientV3.ids().globalIds().byGlobalId(artifactWithReferences.getGlobalId()).references().get().get(3, TimeUnit.SECONDS);
+        final List<ArtifactReference> mainArtifactReferences = clientV3.ids().globalIds().byGlobalId(artifactWithReferences.getGlobalId()).references().get();
 
         //The main artifact has the expected number of references
         Assertions.assertEquals(expectedMainReferences, mainArtifactReferences.size());
@@ -176,7 +175,7 @@ public class RegistryMojoWithAutoReferencesTest extends RegistryMojoTestBase {
         validateReferences(mainArtifactReferences, originalContents);
 
         //The total number of artifacts for the directory structure is the expected.
-        Assertions.assertEquals(expectedTotalArtifacts, clientV3.groups().byGroupId(groupId).artifacts().get().get(3, TimeUnit.SECONDS).getCount().intValue());
+        Assertions.assertEquals(expectedTotalArtifacts, clientV3.groups().byGroupId(groupId).artifacts().get().getCount().intValue());
     }
 
     private void validateReferences(List<ArtifactReference> artifactReferences, Set<String> loadedContents) throws Exception {
@@ -188,9 +187,9 @@ public class RegistryMojoWithAutoReferencesTest extends RegistryMojoTestBase {
                             .artifacts()
                             .byArtifactId(artifactReference.getArtifactId())
                             .versions()
-                            .byVersion(artifactReference.getVersion())
+                            .byVersionExpression(artifactReference.getVersion())
                             .get()
-                            .get(3, TimeUnit.SECONDS).readAllBytes(), StandardCharsets.UTF_8);
+                            .readAllBytes(), StandardCharsets.UTF_8);
             ArtifactMetaData referenceMetadata = clientV3
                     .groups()
                     .byGroupId(artifactReference.getGroupId())
@@ -198,10 +197,10 @@ public class RegistryMojoWithAutoReferencesTest extends RegistryMojoTestBase {
                     .byArtifactId(artifactReference.getArtifactId())
                     .meta()
                     .get()
-                    .get(3, TimeUnit.SECONDS);
+                    ;
             Assertions.assertTrue(loadedContents.contains(referenceContent.trim()));
 
-            List<ArtifactReference> nestedReferences = clientV3.ids().globalIds().byGlobalId(referenceMetadata.getGlobalId()).references().get().get(3, TimeUnit.SECONDS);
+            List<ArtifactReference> nestedReferences = clientV3.ids().globalIds().byGlobalId(referenceMetadata.getGlobalId()).references().get();
 
             if (!nestedReferences.isEmpty()) {
                 validateReferences(nestedReferences, loadedContents);

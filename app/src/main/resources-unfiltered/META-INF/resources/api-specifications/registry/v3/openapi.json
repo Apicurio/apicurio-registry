@@ -647,7 +647,7 @@
             "parameters": [
                 {
                     "name": "groupId",
-                    "description": "The artifact group ID.  Must be a string provided by the client, representing the name of the grouping of artifacts.",
+                    "description": "The artifact group ID.  Must be a string provided by the client, representing the name of the grouping of artifacts. Must follow the \".{1,512}\" pattern.",
                     "schema": {
                         "$ref": "#/components/schemas/GroupId"
                     },
@@ -656,7 +656,7 @@
                 },
                 {
                     "name": "artifactId",
-                    "description": "The artifact ID.  Can be a string (client-provided) or UUID (server-generated), representing the unique artifact identifier.",
+                    "description": "The artifact ID.  Can be a string (client-provided) or UUID (server-generated), representing the unique artifact identifier. Must follow the \".{1,512}\" pattern.",
                     "schema": {
                         "$ref": "#/components/schemas/ArtifactId"
                     },
@@ -665,7 +665,7 @@
                 }
             ]
         },
-        "/groups/{groupId}/artifacts/{artifactId}/versions/{version}/meta": {
+        "/groups/{groupId}/artifacts/{artifactId}/versions/{versionExpression}/meta": {
             "summary": "Manage the metadata for a single version of an artifact in the registry.",
             "get": {
                 "tags": [
@@ -681,6 +681,9 @@
                             }
                         },
                         "description": "The artifact version's metadata."
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest"
                     },
                     "404": {
                         "$ref": "#/components/responses/NotFound"
@@ -711,6 +714,9 @@
                     "204": {
                         "description": "The artifact version's metadata was successfully updated."
                     },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest"
+                    },
                     "404": {
                         "$ref": "#/components/responses/NotFound"
                     },
@@ -730,6 +736,9 @@
                     "204": {
                         "description": "The artifact version's user-editable metadata was successfully deleted."
                     },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest"
+                    },
                     "404": {
                         "$ref": "#/components/responses/NotFound"
                     },
@@ -744,7 +753,7 @@
             "parameters": [
                 {
                     "name": "groupId",
-                    "description": "The artifact group ID.  Must be a string provided by the client, representing the name of the grouping of artifacts.",
+                    "description": "The artifact group ID.  Must be a string provided by the client, representing the name of the grouping of artifacts. Must follow the \".{1,512}\" pattern.",
                     "schema": {
                         "$ref": "#/components/schemas/GroupId"
                     },
@@ -753,7 +762,7 @@
                 },
                 {
                     "name": "artifactId",
-                    "description": "The artifact ID.  Can be a string (client-provided) or UUID (server-generated), representing the unique artifact identifier.",
+                    "description": "The artifact ID.  Can be a string (client-provided) or UUID (server-generated), representing the unique artifact identifier. Must follow the \".{1,512}\" pattern.",
                     "schema": {
                         "$ref": "#/components/schemas/ArtifactId"
                     },
@@ -761,17 +770,17 @@
                     "required": true
                 },
                 {
-                    "name": "version",
-                    "description": "The unique identifier of a specific version of the artifact content.",
+                    "name": "versionExpression",
+                    "description": "An expression resolvable to a specific version ID within the given group and artifact. The following rules apply:\n\n - If the expression is in the form \"branch={branchId}\", and artifact branch {branchId} exists: The expression is resolved to a version that the branch points to.\n - Otherwise: The expression is resolved to a version with the same ID, which must follow the \"[a-zA-Z0-9._\\\\-+]{1,256}\" pattern.",
                     "schema": {
-                        "$ref": "#/components/schemas/Version"
+                        "type": "string"
                     },
                     "in": "path",
                     "required": true
                 }
             ]
         },
-        "/groups/{groupId}/artifacts/{artifactId}/versions/{version}": {
+        "/groups/{groupId}/artifacts/{artifactId}/versions/{versionExpression}": {
             "summary": "Manage a single version of a single artifact in the registry.",
             "get": {
                 "tags": [
@@ -790,6 +799,9 @@
                 "responses": {
                     "200": {
                         "$ref": "#/components/responses/ArtifactContent"
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest"
                     },
                     "404": {
                         "$ref": "#/components/responses/NotFound"
@@ -810,6 +822,9 @@
                     "204": {
                         "description": "The artifact version was successfully deleted."
                     },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest"
+                    },
                     "404": {
                         "$ref": "#/components/responses/NotFound"
                     },
@@ -827,7 +842,7 @@
             "parameters": [
                 {
                     "name": "groupId",
-                    "description": "The artifact group ID.  Must be a string provided by the client, representing the name of the grouping of artifacts.",
+                    "description": "The artifact group ID.  Must be a string provided by the client, representing the name of the grouping of artifacts. Must follow the \".{1,512}\" pattern.",
                     "schema": {
                         "$ref": "#/components/schemas/GroupId"
                     },
@@ -836,7 +851,7 @@
                 },
                 {
                     "name": "artifactId",
-                    "description": "The artifact ID.  Can be a string (client-provided) or UUID (server-generated), representing the unique artifact identifier.",
+                    "description": "The artifact ID.  Can be a string (client-provided) or UUID (server-generated), representing the unique artifact identifier. Must follow the \".{1,512}\" pattern.",
                     "schema": {
                         "$ref": "#/components/schemas/ArtifactId"
                     },
@@ -844,17 +859,17 @@
                     "required": true
                 },
                 {
-                    "name": "version",
-                    "description": "The unique identifier of a specific version of the artifact content.",
+                    "name": "versionExpression",
+                    "description": "An expression resolvable to a specific version ID within the given group and artifact. The following rules apply:\n\n - If the expression is in the form \"branch={branchId}\", and artifact branch {branchId} exists: The expression is resolved to a version that the branch points to.\n - Otherwise: The expression is resolved to a version with the same ID, which must follow the \"[a-zA-Z0-9._\\\\-+]{1,256}\" pattern.",
                     "schema": {
-                        "$ref": "#/components/schemas/Version"
+                        "type": "string"
                     },
                     "in": "path",
                     "required": true
                 }
             ]
         },
-        "/groups/{groupId}/artifacts/{artifactId}/versions/{version}/state": {
+        "/groups/{groupId}/artifacts/{artifactId}/versions/{versionExpression}/state": {
             "summary": "Manage the state of a specific artifact version.",
             "put": {
                 "requestBody": {
@@ -891,7 +906,7 @@
             "parameters": [
                 {
                     "name": "groupId",
-                    "description": "The artifact group ID.  Must be a string provided by the client, representing the name of the grouping of artifacts.",
+                    "description": "The artifact group ID.  Must be a string provided by the client, representing the name of the grouping of artifacts. Must follow the \".{1,512}\" pattern.",
                     "schema": {
                         "$ref": "#/components/schemas/GroupId"
                     },
@@ -900,7 +915,7 @@
                 },
                 {
                     "name": "artifactId",
-                    "description": "The artifact ID.  Can be a string (client-provided) or UUID (server-generated), representing the unique artifact identifier.",
+                    "description": "The artifact ID.  Can be a string (client-provided) or UUID (server-generated), representing the unique artifact identifier. Must follow the \".{1,512}\" pattern.",
                     "schema": {
                         "$ref": "#/components/schemas/ArtifactId"
                     },
@@ -908,10 +923,10 @@
                     "required": true
                 },
                 {
-                    "name": "version",
-                    "description": "The unique identifier of a specific version of the artifact content.",
+                    "name": "versionExpression",
+                    "description": "An expression resolvable to a specific version ID within the given group and artifact. The following rules apply:\n\n - If the expression is in the form \"branch={branchId}\", and artifact branch {branchId} exists: The expression is resolved to a version that the branch points to.\n - Otherwise: The expression is resolved to a version with the same ID, which must follow the \"[a-zA-Z0-9._\\\\-+]{1,256}\" pattern.",
                     "schema": {
-                        "$ref": "#/components/schemas/Version"
+                        "type": "string"
                     },
                     "in": "path",
                     "required": true
@@ -1003,7 +1018,7 @@
             "parameters": [
                 {
                     "name": "groupId",
-                    "description": "The artifact group ID.  Must be a string provided by the client, representing the name of the grouping of artifacts.",
+                    "description": "The artifact group ID.  Must be a string provided by the client, representing the name of the grouping of artifacts. Must follow the \".{1,512}\" pattern.",
                     "schema": {
                         "$ref": "#/components/schemas/GroupId"
                     },
@@ -1012,7 +1027,7 @@
                 },
                 {
                     "name": "artifactId",
-                    "description": "The artifact ID.  Can be a string (client-provided) or UUID (server-generated), representing the unique artifact identifier.",
+                    "description": "The artifact ID.  Can be a string (client-provided) or UUID (server-generated), representing the unique artifact identifier. Must follow the \".{1,512}\" pattern.",
                     "schema": {
                         "$ref": "#/components/schemas/ArtifactId"
                     },
@@ -1107,7 +1122,7 @@
             "parameters": [
                 {
                     "name": "groupId",
-                    "description": "The artifact group ID.  Must be a string provided by the client, representing the name of the grouping of artifacts.",
+                    "description": "The artifact group ID.  Must be a string provided by the client, representing the name of the grouping of artifacts. Must follow the \".{1,512}\" pattern.",
                     "schema": {
                         "$ref": "#/components/schemas/GroupId"
                     },
@@ -1116,7 +1131,7 @@
                 },
                 {
                     "name": "artifactId",
-                    "description": "The artifact ID.  Can be a string (client-provided) or UUID (server-generated), representing the unique artifact identifier.",
+                    "description": "The artifact ID.  Can be a string (client-provided) or UUID (server-generated), representing the unique artifact identifier. Must follow the \".{1,512}\" pattern.",
                     "schema": {
                         "$ref": "#/components/schemas/ArtifactId"
                     },
@@ -1426,7 +1441,7 @@
                 }
             ]
         },
-        "/groups/{groupId}/artifacts/{artifactId}/versions/{version}/references": {
+        "/groups/{groupId}/artifacts/{artifactId}/versions/{versionExpression}/references": {
             "summary": "Manage the references for a single version of an artifact in the registry.",
             "get": {
                 "tags": [
@@ -1446,6 +1461,9 @@
                         },
                         "description": "List of all the artifact references for this artifact."
                     },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest"
+                    },
                     "404": {
                         "$ref": "#/components/responses/NotFound"
                     },
@@ -1460,7 +1478,7 @@
             "parameters": [
                 {
                     "name": "groupId",
-                    "description": "The artifact group ID.  Must be a string provided by the client, representing the name of the grouping of artifacts.",
+                    "description": "The artifact group ID.  Must be a string provided by the client, representing the name of the grouping of artifacts. Must follow the \".{1,512}\" pattern.",
                     "schema": {
                         "$ref": "#/components/schemas/GroupId"
                     },
@@ -1469,7 +1487,7 @@
                 },
                 {
                     "name": "artifactId",
-                    "description": "The artifact ID.  Can be a string (client-provided) or UUID (server-generated), representing the unique artifact identifier.",
+                    "description": "The artifact ID.  Can be a string (client-provided) or UUID (server-generated), representing the unique artifact identifier. Must follow the \".{1,512}\" pattern.",
                     "schema": {
                         "$ref": "#/components/schemas/ArtifactId"
                     },
@@ -1477,10 +1495,10 @@
                     "required": true
                 },
                 {
-                    "name": "version",
-                    "description": "The unique identifier of a specific version of the artifact content.",
+                    "name": "versionExpression",
+                    "description": "An expression resolvable to a specific version ID within the given group and artifact. The following rules apply:\n\n - If the expression is in the form \"branch={branchId}\", and artifact branch {branchId} exists: The expression is resolved to a version that the branch points to.\n - Otherwise: The expression is resolved to a version with the same ID, which must follow the \"[a-zA-Z0-9._\\\\-+]{1,256}\" pattern.",
                     "schema": {
-                        "$ref": "#/components/schemas/Version"
+                        "type": "string"
                     },
                     "in": "path",
                     "required": true
@@ -1638,225 +1656,6 @@
                 "summary": "Get resource limits information",
                 "description": "This operation retrieves the list of limitations on used resources, that are applied on the current instance of Registry."
             }
-        },
-        "/groups/{groupId}/artifacts/{artifactId}": {
-            "summary": "Manage a single artifact.",
-            "get": {
-                "tags": [
-                    "Artifacts"
-                ],
-                "parameters": [
-                    {
-                        "name": "references",
-                        "description": "Allows the user to specify how references in the content should be treated.",
-                        "schema": {
-                            "$ref": "#/components/schemas/HandleReferencesType"
-                        },
-                        "in": "query",
-                        "required": false
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "$ref": "#/components/responses/ArtifactContent"
-                    },
-                    "404": {
-                        "$ref": "#/components/responses/NotFound"
-                    },
-                    "500": {
-                        "$ref": "#/components/responses/ServerError"
-                    }
-                },
-                "operationId": "getLatestArtifact",
-                "summary": "Get latest artifact",
-                "description": "Returns the latest version of the artifact in its raw form.  The `Content-Type` of the\nresponse depends on the artifact type.  In most cases, this is `application/json`, but \nfor some types it may be different (for example, `PROTOBUF`).\nIf the latest version of the artifact is marked as `DISABLED`, the next available non-disabled version will be used.\n\nThis operation may fail for one of the following reasons:\n\n* No artifact with this `artifactId` exists or all versions are `DISABLED` (HTTP error `404`)\n* A server error occurred (HTTP error `500`)\n"
-            },
-            "put": {
-                "requestBody": {
-                    "description": "The new content of the artifact being updated. This is often, but not always, JSON data\nrepresenting one of the supported artifact types:\n\n* Avro (`AVRO`)\n* Protobuf (`PROTOBUF`)\n* JSON Schema (`JSON`)\n* Kafka Connect (`KCONNECT`)\n* OpenAPI (`OPENAPI`)\n* AsyncAPI (`ASYNCAPI`)\n* GraphQL (`GRAPHQL`)\n* Web Services Description Language (`WSDL`)\n* XML Schema (`XSD`)\n",
-                    "content": {
-                        "*/*": {
-                            "schema": {
-                                "$ref": "#/components/schemas/FileContent"
-                            },
-                            "examples": {
-                                "OpenAPI Example": {
-                                    "value": {
-                                        "openapi": "3.0.2",
-                                        "info": {
-                                            "title": "Empty API",
-                                            "version": "1.0.7",
-                                            "description": "An example API design using OpenAPI."
-                                        },
-                                        "paths": {
-                                            "/widgets": {
-                                                "get": {
-                                                    "responses": {
-                                                        "200": {
-                                                            "content": {
-                                                                "application/json": {
-                                                                    "schema": {
-                                                                        "type": "array",
-                                                                        "items": {
-                                                                            "type": "string"
-                                                                        }
-                                                                    }
-                                                                }
-                                                            },
-                                                            "description": "All widgets"
-                                                        }
-                                                    },
-                                                    "summary": "Get widgets"
-                                                }
-                                            }
-                                        },
-                                        "components": {
-                                            "schemas": {
-                                                "Widget": {
-                                                    "title": "Root Type for Widget",
-                                                    "description": "A sample data type.",
-                                                    "type": "object",
-                                                    "properties": {
-                                                        "property-1": {
-                                                            "type": "string"
-                                                        },
-                                                        "property-2": {
-                                                            "type": "boolean"
-                                                        }
-                                                    },
-                                                    "example": {
-                                                        "property-1": "value1",
-                                                        "property-2": true
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        },
-                        "application/create.extended+json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/ArtifactContent"
-                            }
-                        },
-                        "application/vnd.create.extended+json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/ArtifactContent"
-                            }
-                        }
-                    },
-                    "required": true
-                },
-                "tags": [
-                    "Artifacts"
-                ],
-                "parameters": [
-                    {
-                        "name": "X-Registry-Version",
-                        "description": "Specifies the version number of this new version of the artifact content.  This would typically\nbe a simple integer or a SemVer value.  If not provided, the server will assign a version number\nautomatically.",
-                        "schema": {
-                            "$ref": "#/components/schemas/Version"
-                        },
-                        "in": "header"
-                    },
-                    {
-                        "name": "X-Registry-Name",
-                        "description": "Specifies the artifact name of this new version of the artifact content. Name must be ASCII-only string. If this is not\nprovided, the server will extract the name from the artifact content.",
-                        "schema": {
-                            "$ref": "#/components/schemas/ArtifactName"
-                        },
-                        "in": "header"
-                    },
-                    {
-                        "name": "X-Registry-Name-Encoded",
-                        "description": "Specifies the artifact name of this new version of the artifact content. Value of this must be Base64 encoded string. If this is not provided, the server will extract the name from the artifact content.",
-                        "schema": {
-                            "$ref": "#/components/schemas/EncodedArtifactName"
-                        },
-                        "in": "header"
-                    },
-                    {
-                        "name": "X-Registry-Description",
-                        "description": "Specifies the artifact description of this new version of the artifact content. Description must be ASCII-only string. If this is not provided, the server will extract the description from the artifact content.",
-                        "schema": {
-                            "$ref": "#/components/schemas/ArtifactDescription"
-                        },
-                        "in": "header"
-                    },
-                    {
-                        "name": "X-Registry-Description-Encoded",
-                        "description": "Specifies the artifact description of this new version of the artifact content. Value of this must be Base64 encoded string. If this is not provided, the server will extract the description from the artifact content.",
-                        "schema": {
-                            "$ref": "#/components/schemas/EncodedArtifactDescription"
-                        },
-                        "in": "header"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ArtifactMetaData"
-                                }
-                            }
-                        },
-                        "description": "When successful, returns the updated artifact metadata."
-                    },
-                    "404": {
-                        "$ref": "#/components/responses/NotFound"
-                    },
-                    "409": {
-                        "$ref": "#/components/responses/Conflict"
-                    },
-                    "500": {
-                        "$ref": "#/components/responses/ServerError"
-                    }
-                },
-                "operationId": "updateArtifact",
-                "summary": "Update artifact",
-                "description": "Updates an artifact by uploading new content.  The body of the request can\nbe the raw content of the artifact or a JSON object containing both the raw content and\na set of references to other artifacts..  This is typically in JSON format for *most*\nof the supported types, but may be in another format for a few (for example, `PROTOBUF`).\nThe type of the content should be compatible with the artifact's type (it would be\nan error to update an `AVRO` artifact with new `OPENAPI` content, for example).\n\nThe update could fail for a number of reasons including:\n\n* Provided content (request body) was empty (HTTP error `400`)\n* No artifact with the `artifactId` exists (HTTP error `404`)\n* The new content violates one of the rules configured for the artifact (HTTP error `409`)\n* A server error occurred (HTTP error `500`)\n\nWhen successful, this creates a new version of the artifact, making it the most recent\n(and therefore official) version of the artifact."
-            },
-            "delete": {
-                "tags": [
-                    "Artifacts"
-                ],
-                "responses": {
-                    "204": {
-                        "description": "Returned when the artifact was successfully deleted."
-                    },
-                    "404": {
-                        "$ref": "#/components/responses/NotFound"
-                    },
-                    "500": {
-                        "$ref": "#/components/responses/ServerError"
-                    }
-                },
-                "operationId": "deleteArtifact",
-                "summary": "Delete artifact",
-                "description": "Deletes an artifact completely, resulting in all versions of the artifact also being\ndeleted.  This may fail for one of the following reasons:\n\n* No artifact with the `artifactId` exists (HTTP error `404`)\n* A server error occurred (HTTP error `500`)"
-            },
-            "parameters": [
-                {
-                    "name": "groupId",
-                    "description": "The artifact group ID.  Must be a string provided by the client, representing the name of the grouping of artifacts.",
-                    "schema": {
-                        "$ref": "#/components/schemas/GroupId"
-                    },
-                    "in": "path",
-                    "required": true
-                },
-                {
-                    "name": "artifactId",
-                    "description": "The artifact ID.  Can be a string (client-provided) or UUID (server-generated), representing the unique artifact identifier.",
-                    "schema": {
-                        "$ref": "#/components/schemas/ArtifactId"
-                    },
-                    "in": "path",
-                    "required": true
-                }
-            ]
         },
         "/groups/{groupId}/artifacts": {
             "summary": "Manage the collection of artifacts within a single group in the registry.",
@@ -2090,6 +1889,17 @@
                             "type": "string"
                         },
                         "in": "header"
+                    },
+                    {
+                        "name": "X-Registry-Artifact-Branches",
+                        "description": "An optional, comma-separated list of artifact branch IDs, that specify branches into which the newly created version will be added. The list may contain a single branch ID, but may not be empty. A new version is always automatically inserted into the \"latest\" branch. If any of the branches do not already exist, they will be created.",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "in": "header"
                     }
                 ],
                 "responses": {
@@ -2136,7 +1946,7 @@
             "parameters": [
                 {
                     "name": "groupId",
-                    "description": "The artifact group ID.  Must be a string provided by the client, representing the name of the grouping of artifacts.",
+                    "description": "The artifact group ID.  Must be a string provided by the client, representing the name of the grouping of artifacts. Must follow the \".{1,512}\" pattern.",
                     "schema": {
                         "$ref": "#/components/schemas/GroupId"
                     },
@@ -2183,7 +1993,7 @@
             "parameters": [
                 {
                     "name": "groupId",
-                    "description": "The artifact group ID.  Must be a string provided by the client, representing the name of the grouping of artifacts.",
+                    "description": "The artifact group ID.  Must be a string provided by the client, representing the name of the grouping of artifacts. Must follow the \".{1,512}\" pattern.",
                     "schema": {
                         "$ref": "#/components/schemas/GroupId"
                     },
@@ -2192,233 +2002,7 @@
                 },
                 {
                     "name": "artifactId",
-                    "description": "The artifact ID.  Can be a string (client-provided) or UUID (server-generated), representing the unique artifact identifier.",
-                    "schema": {
-                        "$ref": "#/components/schemas/ArtifactId"
-                    },
-                    "in": "path",
-                    "required": true
-                }
-            ]
-        },
-        "/groups/{groupId}/artifacts/{artifactId}/versions": {
-            "summary": "Manage all the versions of an artifact in the registry.",
-            "get": {
-                "tags": [
-                    "Versions"
-                ],
-                "parameters": [
-                    {
-                        "name": "offset",
-                        "description": "The number of versions to skip before starting to collect the result set.  Defaults to 0.",
-                        "schema": {
-                            "type": "integer"
-                        },
-                        "in": "query",
-                        "required": false
-                    },
-                    {
-                        "name": "limit",
-                        "description": "The number of versions to return.  Defaults to 20.",
-                        "schema": {
-                            "type": "integer"
-                        },
-                        "in": "query",
-                        "required": false
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/VersionSearchResults"
-                                },
-                                "examples": {
-                                    "All Versions": {
-                                        "value": [
-                                            5,
-                                            6,
-                                            10,
-                                            103
-                                        ]
-                                    }
-                                }
-                            }
-                        },
-                        "description": "List of all artifact versions."
-                    },
-                    "404": {
-                        "$ref": "#/components/responses/NotFound"
-                    },
-                    "500": {
-                        "$ref": "#/components/responses/ServerError"
-                    }
-                },
-                "operationId": "listArtifactVersions",
-                "summary": "List artifact versions",
-                "description": "Returns a list of all versions of the artifact.  The result set is paged.\n\nThis operation can fail for the following reasons:\n\n* No artifact with this `artifactId` exists (HTTP error `404`)\n* A server error occurred (HTTP error `500`)\n"
-            },
-            "post": {
-                "requestBody": {
-                    "description": "The content of the artifact version being created or the content and a set of references to other artifacts. This is often, but not always, JSON data\nrepresenting one of the supported artifact types:\n\n* Avro (`AVRO`)\n* Protobuf (`PROTOBUF`)\n* JSON Schema (`JSON`)\n* Kafka Connect (`KCONNECT`)\n* OpenAPI (`OPENAPI`)\n* AsyncAPI (`ASYNCAPI`)\n* GraphQL (`GRAPHQL`)\n* Web Services Description Language (`WSDL`)\n* XML Schema (`XSD`)\n",
-                    "content": {
-                        "*/*": {
-                            "schema": {
-                                "$ref": "#/components/schemas/FileContent"
-                            },
-                            "examples": {
-                                "OpenAPI Example": {
-                                    "value": {
-                                        "openapi": "3.0.2",
-                                        "info": {
-                                            "title": "Empty API",
-                                            "version": "1.0.7",
-                                            "description": "An example API design using OpenAPI."
-                                        },
-                                        "paths": {
-                                            "/widgets": {
-                                                "get": {
-                                                    "responses": {
-                                                        "200": {
-                                                            "content": {
-                                                                "application/json": {
-                                                                    "schema": {
-                                                                        "type": "array",
-                                                                        "items": {
-                                                                            "type": "string"
-                                                                        }
-                                                                    }
-                                                                }
-                                                            },
-                                                            "description": "All widgets"
-                                                        }
-                                                    },
-                                                    "summary": "Get widgets"
-                                                }
-                                            }
-                                        },
-                                        "components": {
-                                            "schemas": {
-                                                "Widget": {
-                                                    "title": "Root Type for Widget",
-                                                    "description": "A sample data type.",
-                                                    "type": "object",
-                                                    "properties": {
-                                                        "property-1": {
-                                                            "type": "string"
-                                                        },
-                                                        "property-2": {
-                                                            "type": "boolean"
-                                                        }
-                                                    },
-                                                    "example": {
-                                                        "property-1": "value1",
-                                                        "property-2": true
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        },
-                        "application/create.extended+json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/ArtifactContent"
-                            }
-                        },
-                        "application/vnd.create.extended+json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/ArtifactContent"
-                            }
-                        }
-                    },
-                    "required": true
-                },
-                "tags": [
-                    "Versions"
-                ],
-                "parameters": [
-                    {
-                        "name": "X-Registry-Version",
-                        "description": "Specifies the version number of this new version of the artifact content.  This would typically\nbe a simple integer or a SemVer value.  It must be unique within the artifact.  If this is not\nprovided, the server will generate a new, unique version number for this new updated content.",
-                        "schema": {
-                            "$ref": "#/components/schemas/Version"
-                        },
-                        "in": "header"
-                    },
-                    {
-                        "name": "X-Registry-Name",
-                        "description": "Specifies the artifact name of this new version of the artifact content. Name must be ASCII-only string. If this is not\nprovided, the server will extract the name from the artifact content.",
-                        "schema": {
-                            "$ref": "#/components/schemas/ArtifactName"
-                        },
-                        "in": "header"
-                    },
-                    {
-                        "name": "X-Registry-Description",
-                        "description": "Specifies the artifact description of this new version of the artifact content. Description must be ASCII-only string. If this is not provided, the server will extract the description from the artifact content.",
-                        "schema": {
-                            "$ref": "#/components/schemas/ArtifactDescription"
-                        },
-                        "in": "header"
-                    },
-                    {
-                        "name": "X-Registry-Description-Encoded",
-                        "description": "Specifies the artifact description of this new version of the artifact content. Value of this must be Base64 encoded string. If this is not provided, the server will extract the description from the artifact content.",
-                        "schema": {
-                            "$ref": "#/components/schemas/EncodedArtifactDescription"
-                        },
-                        "in": "header"
-                    },
-                    {
-                        "name": "X-Registry-Name-Encoded",
-                        "description": "Specifies the artifact name of this new version of the artifact content. Value of this must be Base64 encoded string. If this is not provided, the server will extract the name from the artifact content.",
-                        "schema": {
-                            "$ref": "#/components/schemas/EncodedArtifactName"
-                        },
-                        "in": "header"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/VersionMetaData"
-                                }
-                            }
-                        },
-                        "description": "The artifact version was successfully created."
-                    },
-                    "404": {
-                        "$ref": "#/components/responses/NotFound"
-                    },
-                    "409": {
-                        "$ref": "#/components/responses/RuleViolationConflict"
-                    },
-                    "500": {
-                        "$ref": "#/components/responses/ServerError"
-                    }
-                },
-                "operationId": "createArtifactVersion",
-                "summary": "Create artifact version",
-                "description": "Creates a new version of the artifact by uploading new content.  The configured rules for\nthe artifact are applied, and if they all pass, the new content is added as the most recent \nversion of the artifact.  If any of the rules fail, an error is returned.\n\nThe body of the request can be the raw content of the new artifact version, or the raw content \nand a set of references pointing to other artifacts, and the type\nof that content should match the artifact's type (for example if the artifact type is `AVRO`\nthen the content of the request should be an Apache Avro document).\n\nThis operation can fail for the following reasons:\n\n* Provided content (request body) was empty (HTTP error `400`)\n* No artifact with this `artifactId` exists (HTTP error `404`)\n* The new content violates one of the rules configured for the artifact (HTTP error `409`)\n* A server error occurred (HTTP error `500`)\n"
-            },
-            "parameters": [
-                {
-                    "name": "groupId",
-                    "description": "The artifact group ID.  Must be a string provided by the client, representing the name of the grouping of artifacts.",
-                    "schema": {
-                        "$ref": "#/components/schemas/GroupId"
-                    },
-                    "in": "path",
-                    "required": true
-                },
-                {
-                    "name": "artifactId",
-                    "description": "The artifact ID.  Can be a string (client-provided) or UUID (server-generated), representing the unique artifact identifier.",
+                    "description": "The artifact ID.  Can be a string (client-provided) or UUID (server-generated), representing the unique artifact identifier. Must follow the \".{1,512}\" pattern.",
                     "schema": {
                         "$ref": "#/components/schemas/ArtifactId"
                     },
@@ -2487,7 +2071,7 @@
             "parameters": [
                 {
                     "name": "groupId",
-                    "description": "The artifact group ID.  Must be a string provided by the client, representing the name of the grouping of artifacts.",
+                    "description": "The artifact group ID.  Must be a string provided by the client, representing the name of the grouping of artifacts. Must follow the \".{1,512}\" pattern.",
                     "schema": {
                         "$ref": "#/components/schemas/GroupId"
                     },
@@ -2496,7 +2080,7 @@
                 },
                 {
                     "name": "artifactId",
-                    "description": "The artifact ID.  Can be a string (client-provided) or UUID (server-generated), representing the unique artifact identifier.",
+                    "description": "The artifact ID.  Can be a string (client-provided) or UUID (server-generated), representing the unique artifact identifier. Must follow the \".{1,512}\" pattern.",
                     "schema": {
                         "$ref": "#/components/schemas/ArtifactId"
                     },
@@ -2555,7 +2139,7 @@
             "parameters": [
                 {
                     "name": "groupId",
-                    "description": "The artifact group ID.  Must be a string provided by the client, representing the name of the grouping of artifacts.",
+                    "description": "The artifact group ID.  Must be a string provided by the client, representing the name of the grouping of artifacts. Must follow the \".{1,512}\" pattern.",
                     "schema": {
                         "$ref": "#/components/schemas/GroupId"
                     },
@@ -2833,7 +2417,7 @@
             "parameters": [
                 {
                     "name": "groupId",
-                    "description": "The artifact group ID.  Must be a string provided by the client, representing the name of the grouping of artifacts.",
+                    "description": "The artifact group ID.  Must be a string provided by the client, representing the name of the grouping of artifacts. Must follow the \".{1,512}\" pattern.",
                     "schema": {
                         "$ref": "#/components/schemas/GroupId"
                     },
@@ -2842,7 +2426,7 @@
                 },
                 {
                     "name": "artifactId",
-                    "description": "The artifact ID.  Can be a string (client-provided) or UUID (server-generated), representing the unique artifact identifier.",
+                    "description": "The artifact ID.  Can be a string (client-provided) or UUID (server-generated), representing the unique artifact identifier. Must follow the \".{1,512}\" pattern.",
                     "schema": {
                         "$ref": "#/components/schemas/ArtifactId"
                     },
@@ -2851,7 +2435,7 @@
                 }
             ]
         },
-        "/groups/{groupId}/artifacts/{artifactId}/versions/{version}/comments": {
+        "/groups/{groupId}/artifacts/{artifactId}/versions/{versionExpression}/comments": {
             "summary": "Manage a collection of comments for an artifact version",
             "get": {
                 "tags": [
@@ -2870,6 +2454,9 @@
                             }
                         },
                         "description": "List of all the comments for this artifact."
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest"
                     },
                     "404": {
                         "$ref": "#/components/responses/NotFound"
@@ -2907,6 +2494,9 @@
                         },
                         "description": "The comment was successfully created."
                     },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest"
+                    },
                     "404": {
                         "$ref": "#/components/responses/NotFound"
                     },
@@ -2921,7 +2511,7 @@
             "parameters": [
                 {
                     "name": "groupId",
-                    "description": "The artifact group ID.  Must be a string provided by the client, representing the name of the grouping of artifacts.",
+                    "description": "The artifact group ID.  Must be a string provided by the client, representing the name of the grouping of artifacts. Must follow the \".{1,512}\" pattern.",
                     "schema": {
                         "$ref": "#/components/schemas/GroupId"
                     },
@@ -2930,7 +2520,7 @@
                 },
                 {
                     "name": "artifactId",
-                    "description": "The artifact ID.  Can be a string (client-provided) or UUID (server-generated), representing the unique artifact identifier.",
+                    "description": "The artifact ID.  Can be a string (client-provided) or UUID (server-generated), representing the unique artifact identifier. Must follow the \".{1,512}\" pattern.",
                     "schema": {
                         "$ref": "#/components/schemas/ArtifactId"
                     },
@@ -2938,17 +2528,17 @@
                     "required": true
                 },
                 {
-                    "name": "version",
-                    "description": "The unique identifier of a specific version of the artifact content.",
+                    "name": "versionExpression",
+                    "description": "An expression resolvable to a specific version ID within the given group and artifact. The following rules apply:\n\n - If the expression is in the form \"branch={branchId}\", and artifact branch {branchId} exists: The expression is resolved to a version that the branch points to.\n - Otherwise: The expression is resolved to a version with the same ID, which must follow the \"[a-zA-Z0-9._\\\\-+]{1,256}\" pattern.",
                     "schema": {
-                        "$ref": "#/components/schemas/Version"
+                        "type": "string"
                     },
                     "in": "path",
                     "required": true
                 }
             ]
         },
-        "/groups/{groupId}/artifacts/{artifactId}/versions/{version}/comments/{commentId}": {
+        "/groups/{groupId}/artifacts/{artifactId}/versions/{versionExpression}/comments/{commentId}": {
             "summary": "Manage a single comment",
             "put": {
                 "requestBody": {
@@ -2967,6 +2557,9 @@
                 "responses": {
                     "204": {
                         "description": "The value of the comment was successfully changed."
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest"
                     },
                     "404": {
                         "$ref": "#/components/responses/NotFound"
@@ -2987,6 +2580,9 @@
                     "204": {
                         "description": "The comment was successfully deleted."
                     },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest"
+                    },
                     "404": {
                         "$ref": "#/components/responses/NotFound"
                     },
@@ -3001,7 +2597,7 @@
             "parameters": [
                 {
                     "name": "groupId",
-                    "description": "The artifact group ID.  Must be a string provided by the client, representing the name of the grouping of artifacts.",
+                    "description": "The artifact group ID.  Must be a string provided by the client, representing the name of the grouping of artifacts. Must follow the \".{1,512}\" pattern.",
                     "schema": {
                         "$ref": "#/components/schemas/GroupId"
                     },
@@ -3010,7 +2606,7 @@
                 },
                 {
                     "name": "artifactId",
-                    "description": "The artifact ID.  Can be a string (client-provided) or UUID (server-generated), representing the unique artifact identifier.",
+                    "description": "The artifact ID.  Can be a string (client-provided) or UUID (server-generated), representing the unique artifact identifier. Must follow the \".{1,512}\" pattern.",
                     "schema": {
                         "$ref": "#/components/schemas/ArtifactId"
                     },
@@ -3018,10 +2614,10 @@
                     "required": true
                 },
                 {
-                    "name": "version",
-                    "description": "The unique identifier of a specific version of the artifact content.",
+                    "name": "versionExpression",
+                    "description": "An expression resolvable to a specific version ID within the given group and artifact. The following rules apply:\n\n - If the expression is in the form \"branch={branchId}\", and artifact branch {branchId} exists: The expression is resolved to a version that the branch points to.\n - Otherwise: The expression is resolved to a version with the same ID, which must follow the \"[a-zA-Z0-9._\\\\-+]{1,256}\" pattern.",
                     "schema": {
-                        "$ref": "#/components/schemas/Version"
+                        "type": "string"
                     },
                     "in": "path",
                     "required": true
@@ -3098,6 +2694,686 @@
                     "description": "SHA-256 content hash for a single artifact content.",
                     "schema": {
                         "type": "string"
+                    },
+                    "in": "path",
+                    "required": true
+                }
+            ]
+        },
+        "/groups/{groupId}/artifacts/{artifactId}/branches": {
+            "summary": "Manage branches of an artifact.",
+            "get": {
+                "tags": [
+                    "Branches"
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/ArtifactBranch"
+                                    }
+                                }
+                            }
+                        },
+                        "description": "List of all artifact versions."
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "listArtifactBranches",
+                "summary": "List artifact branches",
+                "description": "Returns a list of all branches in the artifact. Each branch is a list of version identifiers,\nordered from the latest (tip of the branch) to the oldest.\n\nThis operation can fail for the following reasons:\n\n* No artifact with this `artifactId` exists (HTTP error `404`)\n* A server error occurred (HTTP error `500`)\n"
+            },
+            "parameters": [
+                {
+                    "name": "groupId",
+                    "description": "The artifact group ID.  Must be a string provided by the client, representing the name of the grouping of artifacts. Must follow the \".{1,512}\" pattern.",
+                    "schema": {
+                        "$ref": "#/components/schemas/GroupId"
+                    },
+                    "in": "path",
+                    "required": true
+                },
+                {
+                    "name": "artifactId",
+                    "description": "The artifact ID.  Can be a string (client-provided) or UUID (server-generated), representing the unique artifact identifier. Must follow the \".{1,512}\" pattern.",
+                    "schema": {
+                        "$ref": "#/components/schemas/ArtifactId"
+                    },
+                    "in": "path",
+                    "required": true
+                }
+            ]
+        },
+        "/groups/{groupId}/artifacts/{artifactId}": {
+            "summary": "Manage a single artifact.",
+            "get": {
+                "tags": [
+                    "Artifacts"
+                ],
+                "parameters": [
+                    {
+                        "name": "references",
+                        "description": "Allows the user to specify how references in the content should be treated.",
+                        "schema": {
+                            "$ref": "#/components/schemas/HandleReferencesType"
+                        },
+                        "in": "query",
+                        "required": false
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "$ref": "#/components/responses/ArtifactContent"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "getLatestArtifact",
+                "summary": "Get latest artifact",
+                "description": "Returns the latest version of the artifact in its raw form.  The `Content-Type` of the\nresponse depends on the artifact type.  In most cases, this is `application/json`, but \nfor some types it may be different (for example, `PROTOBUF`).\nIf the latest version of the artifact is marked as `DISABLED`, the next available non-disabled version will be used.\n\nThis operation may fail for one of the following reasons:\n\n* No artifact with this `artifactId` exists or all versions are `DISABLED` (HTTP error `404`)\n* A server error occurred (HTTP error `500`)\n"
+            },
+            "put": {
+                "requestBody": {
+                    "description": "The new content of the artifact being updated. This is often, but not always, JSON data\nrepresenting one of the supported artifact types:\n\n* Avro (`AVRO`)\n* Protobuf (`PROTOBUF`)\n* JSON Schema (`JSON`)\n* Kafka Connect (`KCONNECT`)\n* OpenAPI (`OPENAPI`)\n* AsyncAPI (`ASYNCAPI`)\n* GraphQL (`GRAPHQL`)\n* Web Services Description Language (`WSDL`)\n* XML Schema (`XSD`)\n",
+                    "content": {
+                        "*/*": {
+                            "schema": {
+                                "$ref": "#/components/schemas/FileContent"
+                            },
+                            "examples": {
+                                "OpenAPI Example": {
+                                    "value": {
+                                        "openapi": "3.0.2",
+                                        "info": {
+                                            "title": "Empty API",
+                                            "version": "1.0.7",
+                                            "description": "An example API design using OpenAPI."
+                                        },
+                                        "paths": {
+                                            "/widgets": {
+                                                "get": {
+                                                    "responses": {
+                                                        "200": {
+                                                            "content": {
+                                                                "application/json": {
+                                                                    "schema": {
+                                                                        "type": "array",
+                                                                        "items": {
+                                                                            "type": "string"
+                                                                        }
+                                                                    }
+                                                                }
+                                                            },
+                                                            "description": "All widgets"
+                                                        }
+                                                    },
+                                                    "summary": "Get widgets"
+                                                }
+                                            }
+                                        },
+                                        "components": {
+                                            "schemas": {
+                                                "Widget": {
+                                                    "title": "Root Type for Widget",
+                                                    "description": "A sample data type.",
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "property-1": {
+                                                            "type": "string"
+                                                        },
+                                                        "property-2": {
+                                                            "type": "boolean"
+                                                        }
+                                                    },
+                                                    "example": {
+                                                        "property-1": "value1",
+                                                        "property-2": true
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        "application/create.extended+json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ArtifactContent"
+                            }
+                        },
+                        "application/vnd.create.extended+json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ArtifactContent"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "tags": [
+                    "Artifacts"
+                ],
+                "parameters": [
+                    {
+                        "name": "X-Registry-Version",
+                        "description": "Specifies the version number of this new version of the artifact content.  This would typically\nbe a simple integer or a SemVer value.  If not provided, the server will assign a version number\nautomatically.",
+                        "schema": {
+                            "$ref": "#/components/schemas/Version"
+                        },
+                        "in": "header"
+                    },
+                    {
+                        "name": "X-Registry-Name",
+                        "description": "Specifies the artifact name of this new version of the artifact content. Name must be ASCII-only string. If this is not\nprovided, the server will extract the name from the artifact content.",
+                        "schema": {
+                            "$ref": "#/components/schemas/ArtifactName"
+                        },
+                        "in": "header"
+                    },
+                    {
+                        "name": "X-Registry-Name-Encoded",
+                        "description": "Specifies the artifact name of this new version of the artifact content. Value of this must be Base64 encoded string. If this is not provided, the server will extract the name from the artifact content.",
+                        "schema": {
+                            "$ref": "#/components/schemas/EncodedArtifactName"
+                        },
+                        "in": "header"
+                    },
+                    {
+                        "name": "X-Registry-Description",
+                        "description": "Specifies the artifact description of this new version of the artifact content. Description must be ASCII-only string. If this is not provided, the server will extract the description from the artifact content.",
+                        "schema": {
+                            "$ref": "#/components/schemas/ArtifactDescription"
+                        },
+                        "in": "header"
+                    },
+                    {
+                        "name": "X-Registry-Description-Encoded",
+                        "description": "Specifies the artifact description of this new version of the artifact content. Value of this must be Base64 encoded string. If this is not provided, the server will extract the description from the artifact content.",
+                        "schema": {
+                            "$ref": "#/components/schemas/EncodedArtifactDescription"
+                        },
+                        "in": "header"
+                    },
+                    {
+                        "name": "X-Registry-Artifact-Branches",
+                        "description": "An optional, comma-separated list of artifact branch IDs, that specify branches into which the newly created version will be added. The list may contain a single branch ID, but may not be empty. A new version is always automatically inserted into the \"latest\" branch. If any of the branches do not already exist, they will be created.",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ArtifactMetaData"
+                                }
+                            }
+                        },
+                        "description": "When successful, returns the updated artifact metadata."
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/Conflict"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "updateArtifact",
+                "summary": "Update artifact",
+                "description": "Updates an artifact by uploading new content.  The body of the request can\nbe the raw content of the artifact or a JSON object containing both the raw content and\na set of references to other artifacts..  This is typically in JSON format for *most*\nof the supported types, but may be in another format for a few (for example, `PROTOBUF`).\nThe type of the content should be compatible with the artifact's type (it would be\nan error to update an `AVRO` artifact with new `OPENAPI` content, for example).\n\nThe update could fail for a number of reasons including:\n\n* Provided content (request body) was empty (HTTP error `400`)\n* No artifact with the `artifactId` exists (HTTP error `404`)\n* The new content violates one of the rules configured for the artifact (HTTP error `409`)\n* A server error occurred (HTTP error `500`)\n\nWhen successful, this creates a new version of the artifact, making it the most recent\n(and therefore official) version of the artifact."
+            },
+            "delete": {
+                "tags": [
+                    "Artifacts"
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Returned when the artifact was successfully deleted."
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "deleteArtifact",
+                "summary": "Delete artifact",
+                "description": "Deletes an artifact completely, resulting in all versions of the artifact also being\ndeleted.  This may fail for one of the following reasons:\n\n* No artifact with the `artifactId` exists (HTTP error `404`)\n* A server error occurred (HTTP error `500`)"
+            },
+            "parameters": [
+                {
+                    "name": "groupId",
+                    "description": "The artifact group ID.  Must be a string provided by the client, representing the name of the grouping of artifacts. Must follow the \".{1,512}\" pattern.",
+                    "schema": {
+                        "$ref": "#/components/schemas/GroupId"
+                    },
+                    "in": "path",
+                    "required": true
+                },
+                {
+                    "name": "artifactId",
+                    "description": "The artifact ID.  Can be a string (client-provided) or UUID (server-generated), representing the unique artifact identifier. Must follow the \".{1,512}\" pattern.",
+                    "schema": {
+                        "$ref": "#/components/schemas/ArtifactId"
+                    },
+                    "in": "path",
+                    "required": true
+                }
+            ]
+        },
+        "/groups/{groupId}/artifacts/{artifactId}/versions": {
+            "summary": "Manage all the versions of an artifact in the registry.",
+            "get": {
+                "tags": [
+                    "Versions"
+                ],
+                "parameters": [
+                    {
+                        "name": "offset",
+                        "description": "The number of versions to skip before starting to collect the result set.  Defaults to 0.",
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "in": "query",
+                        "required": false
+                    },
+                    {
+                        "name": "limit",
+                        "description": "The number of versions to return.  Defaults to 20.",
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "in": "query",
+                        "required": false
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/VersionSearchResults"
+                                },
+                                "examples": {
+                                    "All Versions": {
+                                        "value": [
+                                            5,
+                                            6,
+                                            10,
+                                            103
+                                        ]
+                                    }
+                                }
+                            }
+                        },
+                        "description": "List of all artifact versions."
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "listArtifactVersions",
+                "summary": "List artifact versions",
+                "description": "Returns a list of all versions of the artifact.  The result set is paged.\n\nThis operation can fail for the following reasons:\n\n* No artifact with this `artifactId` exists (HTTP error `404`)\n* A server error occurred (HTTP error `500`)\n"
+            },
+            "post": {
+                "requestBody": {
+                    "description": "The content of the artifact version being created or the content and a set of references to other artifacts. This is often, but not always, JSON data\nrepresenting one of the supported artifact types:\n\n* Avro (`AVRO`)\n* Protobuf (`PROTOBUF`)\n* JSON Schema (`JSON`)\n* Kafka Connect (`KCONNECT`)\n* OpenAPI (`OPENAPI`)\n* AsyncAPI (`ASYNCAPI`)\n* GraphQL (`GRAPHQL`)\n* Web Services Description Language (`WSDL`)\n* XML Schema (`XSD`)\n",
+                    "content": {
+                        "*/*": {
+                            "schema": {
+                                "$ref": "#/components/schemas/FileContent"
+                            },
+                            "examples": {
+                                "OpenAPI Example": {
+                                    "value": {
+                                        "openapi": "3.0.2",
+                                        "info": {
+                                            "title": "Empty API",
+                                            "version": "1.0.7",
+                                            "description": "An example API design using OpenAPI."
+                                        },
+                                        "paths": {
+                                            "/widgets": {
+                                                "get": {
+                                                    "responses": {
+                                                        "200": {
+                                                            "content": {
+                                                                "application/json": {
+                                                                    "schema": {
+                                                                        "type": "array",
+                                                                        "items": {
+                                                                            "type": "string"
+                                                                        }
+                                                                    }
+                                                                }
+                                                            },
+                                                            "description": "All widgets"
+                                                        }
+                                                    },
+                                                    "summary": "Get widgets"
+                                                }
+                                            }
+                                        },
+                                        "components": {
+                                            "schemas": {
+                                                "Widget": {
+                                                    "title": "Root Type for Widget",
+                                                    "description": "A sample data type.",
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "property-1": {
+                                                            "type": "string"
+                                                        },
+                                                        "property-2": {
+                                                            "type": "boolean"
+                                                        }
+                                                    },
+                                                    "example": {
+                                                        "property-1": "value1",
+                                                        "property-2": true
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        "application/create.extended+json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ArtifactContent"
+                            }
+                        },
+                        "application/vnd.create.extended+json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ArtifactContent"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "tags": [
+                    "Versions"
+                ],
+                "parameters": [
+                    {
+                        "name": "X-Registry-Version",
+                        "description": "Specifies the version number of this new version of the artifact content.  This would typically\nbe a simple integer or a SemVer value.  It must be unique within the artifact.  If this is not\nprovided, the server will generate a new, unique version number for this new updated content.",
+                        "schema": {
+                            "$ref": "#/components/schemas/Version"
+                        },
+                        "in": "header"
+                    },
+                    {
+                        "name": "X-Registry-Name",
+                        "description": "Specifies the artifact name of this new version of the artifact content. Name must be ASCII-only string. If this is not\nprovided, the server will extract the name from the artifact content.",
+                        "schema": {
+                            "$ref": "#/components/schemas/ArtifactName"
+                        },
+                        "in": "header"
+                    },
+                    {
+                        "name": "X-Registry-Description",
+                        "description": "Specifies the artifact description of this new version of the artifact content. Description must be ASCII-only string. If this is not provided, the server will extract the description from the artifact content.",
+                        "schema": {
+                            "$ref": "#/components/schemas/ArtifactDescription"
+                        },
+                        "in": "header"
+                    },
+                    {
+                        "name": "X-Registry-Description-Encoded",
+                        "description": "Specifies the artifact description of this new version of the artifact content. Value of this must be Base64 encoded string. If this is not provided, the server will extract the description from the artifact content.",
+                        "schema": {
+                            "$ref": "#/components/schemas/EncodedArtifactDescription"
+                        },
+                        "in": "header"
+                    },
+                    {
+                        "name": "X-Registry-Name-Encoded",
+                        "description": "Specifies the artifact name of this new version of the artifact content. Value of this must be Base64 encoded string. If this is not provided, the server will extract the name from the artifact content.",
+                        "schema": {
+                            "$ref": "#/components/schemas/EncodedArtifactName"
+                        },
+                        "in": "header"
+                    },
+                    {
+                        "name": "X-Registry-Artifact-Branches",
+                        "description": "An optional, comma-separated list of artifact branch IDs, that specify branches into which the newly created version will be added. The list may contain a single branch ID, but may not be empty. A new version is always automatically inserted into the \"latest\" branch. If any of the branches do not already exist, they will be created.",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/VersionMetaData"
+                                }
+                            }
+                        },
+                        "description": "The artifact version was successfully created."
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/RuleViolationConflict"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "createArtifactVersion",
+                "summary": "Create artifact version",
+                "description": "Creates a new version of the artifact by uploading new content.  The configured rules for\nthe artifact are applied, and if they all pass, the new content is added as the most recent \nversion of the artifact.  If any of the rules fail, an error is returned.\n\nThe body of the request can be the raw content of the new artifact version, or the raw content \nand a set of references pointing to other artifacts, and the type\nof that content should match the artifact's type (for example if the artifact type is `AVRO`\nthen the content of the request should be an Apache Avro document).\n\nThis operation can fail for the following reasons:\n\n* Provided content (request body) was empty (HTTP error `400`)\n* No artifact with this `artifactId` exists (HTTP error `404`)\n* The new content violates one of the rules configured for the artifact (HTTP error `409`)\n* A server error occurred (HTTP error `500`)\n"
+            },
+            "parameters": [
+                {
+                    "name": "groupId",
+                    "description": "The artifact group ID.  Must be a string provided by the client, representing the name of the grouping of artifacts. Must follow the \".{1,512}\" pattern.",
+                    "schema": {
+                        "$ref": "#/components/schemas/GroupId"
+                    },
+                    "in": "path",
+                    "required": true
+                },
+                {
+                    "name": "artifactId",
+                    "description": "The artifact ID.  Can be a string (client-provided) or UUID (server-generated), representing the unique artifact identifier. Must follow the \".{1,512}\" pattern.",
+                    "schema": {
+                        "$ref": "#/components/schemas/ArtifactId"
+                    },
+                    "in": "path",
+                    "required": true
+                }
+            ]
+        },
+        "/groups/{groupId}/artifacts/{artifactId}/branches/{branchId}": {
+            "summary": "Manage a single artifact branch.",
+            "get": {
+                "tags": [
+                    "Branches"
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ArtifactBranch"
+                                }
+                            }
+                        },
+                        "description": "List of versions in an artifact branch."
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "getArtifactBranch",
+                "summary": "List versions in an artifact branch",
+                "description": "Returns a list of version identifiers in the artifact branch, ordered from the latest (tip of the branch) to the oldest.\n\nThis operation can fail for the following reasons:\n\n* No group with this `groupId` exists (HTTP error `404`)\n* No artifact with this `artifactId` exists (HTTP error `404`)\n* No branch with this `branchId` exists (HTTP error `404`)\n* A server error occurred (HTTP error `500`)\n"
+            },
+            "put": {
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ArtifactBranch"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "tags": [
+                    "Branches"
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ArtifactBranch"
+                                }
+                            }
+                        },
+                        "description": "List of versions in an artifact branch."
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/Conflict"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "createOrReplaceArtifactBranch",
+                "summary": "Replace the sequence of versions contained in an artifact branch. Branch is created if it does not exist.",
+                "description": "Replace the sequence of versions contained in an artifact branch. Branch is created if it does not exist.  This operation is equivalent to deleting the artifact branch and adding each version in order to a new branch with the same name. This operation can be used to remove one or more versions from the branch. Returns a list of version identifiers in the artifact branch, ordered from the latest (tip of the branch) to the oldest.\nThis operation can fail for the following reasons:\n* No group with this `groupId` exists (HTTP error `404`)\n* No artifact with this `artifactId` exists (HTTP error `404`)\n* Version does not exist (HTTP error `409`)\n* Request contains duplicate versions. Artifact branches are append-only, cycles and history rewrites, except by this operation, are not supported. (HTTP error `409`)\n* A server error occurred (HTTP error `500`)\n"
+            },
+            "post": {
+                "requestBody": {
+                    "content": {
+                        "text/plain": {
+                            "schema": {
+                                "$ref": "#/components/schemas/Version"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "tags": [
+                    "Branches"
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ArtifactBranch"
+                                }
+                            }
+                        },
+                        "description": "List of versions in an artifact branch."
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/Conflict"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "createOrUpdateArtifactBranch",
+                "summary": "Add a new version to an artifact branch. Branch is created if it does not exist.",
+                "description": "Add a new version to an artifact branch. Branch is created if it does not exist. Returns a list of version identifiers in the artifact branch, ordered from the latest (tip of the branch) to the oldest.\nThis operation can fail for the following reasons:\n* No group with this `groupId` exists (HTTP error `404`)\n* No artifact with this `artifactId` exists (HTTP error `404`)\n* No branch with this `branchId` exists (HTTP error `404`)\n* Version does not exist (HTTP error `409`)\n* Branch already contains given version. Artifact branches are append-only, cycles and history rewrites, except by replacing the entire branch using createOrReplaceArtifactBranch operation,  are not supported. (HTTP error `409`)\n* A server error occurred \n"
+            },
+            "delete": {
+                "tags": [
+                    "Branches"
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Artifact branch was successfully deleted."
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/Conflict"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "deleteArtifactBranch",
+                "summary": "Delete artifact branch.",
+                "description": "Deletes a single branch in the artifact. Any artifact versions that are not referenced by a branch are deleted as well, however, this does not happen until deletion of the \"latest\" branch is supported.\nThis operation can fail for the following reasons:\n* No group with this `groupId` exists (HTTP error `404`)\n* No artifact with this `artifactId` exists (HTTP error `404`)\n* No branch with this `branchId` exists (HTTP error `404`)\n* Deletion of the \"latest\" branch is not supported (HTTP error `409`)\n* A server error occurred (HTTP error `500`)\n"
+            },
+            "parameters": [
+                {
+                    "name": "groupId",
+                    "description": "The artifact group ID.  Must be a string provided by the client, representing the name of the grouping of artifacts. Must follow the \".{1,512}\" pattern.",
+                    "schema": {
+                        "$ref": "#/components/schemas/GroupId"
+                    },
+                    "in": "path",
+                    "required": true
+                },
+                {
+                    "name": "artifactId",
+                    "description": "The artifact ID.  Can be a string (client-provided) or UUID (server-generated), representing the unique artifact identifier. Must follow the \".{1,512}\" pattern.",
+                    "schema": {
+                        "$ref": "#/components/schemas/ArtifactId"
+                    },
+                    "in": "path",
+                    "required": true
+                },
+                {
+                    "name": "branchId",
+                    "description": "Artifact branch ID.  Must follow the \"[a-zA-Z0-9._\\\\-+]{1,256}\" pattern.",
+                    "schema": {
+                        "$ref": "#/components/schemas/BranchId"
                     },
                     "in": "path",
                     "required": true
@@ -3313,21 +3589,6 @@
                     "description": "External documentation URL is not valid (it must be formatted as a URL).",
                     "context": "/info/externalDocs[url]"
                 }
-            },
-            "GroupId": {
-                "description": "An ID of a single artifact group.",
-                "type": "string",
-                "example": "\"my-group\""
-            },
-            "ArtifactId": {
-                "description": "The ID of a single artifact.",
-                "type": "string",
-                "example": "\"example-artifact\""
-            },
-            "Version": {
-                "description": "A single version of an artifact.  Can be provided by the client when creating a new version,\nor it can be server-generated.  The value can be any string unique to the artifact, but it is\nrecommended to use a simple integer or a semver value.",
-                "type": "string",
-                "example": "\"3.1.6\""
             },
             "Properties": {
                 "description": "User-defined name-value pairs. Name and value must be strings.",
@@ -4346,6 +4607,110 @@
                     "REWRITE"
                 ],
                 "type": "string"
+            },
+            "ArtifactId": {
+                "description": "The ID of a single artifact.",
+                "pattern": "^.{1,512}$",
+                "type": "string",
+                "example": "\"example-artifact\""
+            },
+            "GroupId": {
+                "description": "An ID of a single artifact group.",
+                "pattern": "^.{1,512}$",
+                "type": "string",
+                "example": "\"my-group\""
+            },
+            "Version": {
+                "description": "A single version of an artifact.  Can be provided by the client when creating a new version,\nor it can be server-generated.  The value can be any string unique to the artifact, but it is\nrecommended to use a simple integer or a semver value.",
+                "pattern": "^[a-zA-Z0-9._\\-+]{1,256}$",
+                "type": "string",
+                "example": "\"3.1.6\""
+            },
+            "BranchId": {
+                "description": "The ID of a single artifact branch.",
+                "pattern": "^[a-zA-Z0-9._\\-+]{1,256}$",
+                "type": "string",
+                "example": "\"latest\""
+            },
+            "ArtifactBranch": {
+                "title": "Root Type for ArtifactBranches",
+                "description": "",
+                "required": [
+                    "groupId",
+                    "artifactId",
+                    "branchId",
+                    "versions"
+                ],
+                "type": "object",
+                "properties": {
+                    "groupId": {
+                        "$ref": "#/components/schemas/GroupId",
+                        "description": ""
+                    },
+                    "artifactId": {
+                        "$ref": "#/components/schemas/ArtifactId",
+                        "description": ""
+                    },
+                    "branchId": {
+                        "$ref": "#/components/schemas/BranchId",
+                        "description": ""
+                    },
+                    "versions": {
+                        "description": "",
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/Version"
+                        }
+                    }
+                },
+                "example": {
+                    "latest": [
+                        {
+                            "groupId": "default",
+                            "artifactId": "user",
+                            "version": "4"
+                        },
+                        {
+                            "groupId": "default",
+                            "artifactId": "user",
+                            "version": "3"
+                        },
+                        {
+                            "groupId": "default",
+                            "artifactId": "user",
+                            "version": "2"
+                        },
+                        {
+                            "groupId": "default",
+                            "artifactId": "user",
+                            "version": "1"
+                        }
+                    ],
+                    "1.1.x": [
+                        {
+                            "groupId": "default",
+                            "artifactId": "user",
+                            "version": "3"
+                        },
+                        {
+                            "groupId": "default",
+                            "artifactId": "user",
+                            "version": "1"
+                        }
+                    ],
+                    "1.2.x": [
+                        {
+                            "groupId": "default",
+                            "artifactId": "user",
+                            "version": "4"
+                        },
+                        {
+                            "groupId": "default",
+                            "artifactId": "user",
+                            "version": "2"
+                        }
+                    ]
+                }
             }
         },
         "responses": {

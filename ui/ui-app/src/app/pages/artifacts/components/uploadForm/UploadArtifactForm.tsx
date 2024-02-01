@@ -13,10 +13,10 @@ import {
     TextInput
 } from "@patternfly/react-core";
 import { ExclamationCircleIcon } from "@patternfly/react-icons";
-import { CreateArtifactData } from "@services/groups";
-import { ArtifactTypes } from "@models/artifactTypes.model.ts";
 import { If, ObjectSelect, UrlUpload } from "@apicurio/common-ui-components";
-import { UrlService, useUrlService } from "@services/url.ts";
+import { CreateArtifactData } from "@services/useGroupsService.ts";
+import { UrlService, useUrlService } from "@services/useUrlService.ts";
+import { ArtifactTypesService, useArtifactTypesService } from "@services/useArtifactTypesService.ts";
 
 /**
  * Properties
@@ -58,6 +58,7 @@ export const UploadArtifactForm: FunctionComponent<UploadArtifactFormProps> = (p
     const [selectedType, setSelectedType] = useState<ArtifactTypeItem>(DEFAULT_ARTIFACT_TYPE);
 
     const urlService: UrlService = useUrlService();
+    const atService: ArtifactTypesService = useArtifactTypesService();
 
     const onFileTextChange = (_event: any, value: string | undefined): void => {
         setContent(value);
@@ -141,7 +142,7 @@ export const UploadArtifactForm: FunctionComponent<UploadArtifactFormProps> = (p
     };
 
     useEffect(() => {
-        ArtifactTypes.allTypesWithLabels().then(setArtifactTypes);
+        atService.allTypesWithLabels().then(setArtifactTypes);
     }, []);
 
     useEffect(() => {

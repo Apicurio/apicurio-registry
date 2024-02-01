@@ -1,15 +1,19 @@
 package io.apicurio.registry.limits;
 
-import java.io.InputStream;
-import java.util.Arrays;
-import java.util.Map;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-
 import com.microsoft.kiota.ApiException;
+import io.apicurio.registry.AbstractRegistryTestBase;
+import io.apicurio.registry.AbstractResourceTestBase;
+import io.apicurio.registry.model.GroupId;
+import io.apicurio.registry.rest.client.models.ArtifactContent;
+import io.apicurio.registry.rest.client.models.EditableMetaData;
 import io.apicurio.registry.storage.RegistryStorage;
+import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.Current;
+import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.tests.ApicurioTestTags;
+import io.apicurio.registry.utils.tests.TestUtils;
+import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.TestProfile;
 import jakarta.inject.Inject;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.Assertions;
@@ -18,15 +22,9 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
 
-import io.apicurio.registry.AbstractRegistryTestBase;
-import io.apicurio.registry.AbstractResourceTestBase;
-import io.apicurio.registry.rest.client.models.ArtifactContent;
-import io.apicurio.registry.rest.client.models.EditableMetaData;
-import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.utils.IoUtil;
-import io.apicurio.registry.utils.tests.TestUtils;
-import io.quarkus.test.junit.QuarkusTest;
-import io.quarkus.test.junit.TestProfile;
+import java.io.InputStream;
+import java.util.Arrays;
+import java.util.Map;
 
 @QuarkusTest
 @TestProfile(LimitsTestProfile.class)
@@ -69,14 +67,14 @@ public class LimitsTest extends AbstractResourceTestBase {
         clientV3
             .groups()
             // TODO: verify groupId = null cannot be used
-            .byGroupId("default")
+            .byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString())
             .artifacts()
             .byArtifactId(artifactId)
             .versions()
-            .byVersion("1")
+            .byVersionExpression("1")
             .meta()
             .put(meta)
-            .get(3, TimeUnit.SECONDS);
+            ;
 
         //invalid metadata
         EditableMetaData invalidmeta = new EditableMetaData();
@@ -89,38 +87,34 @@ public class LimitsTest extends AbstractResourceTestBase {
                 StringUtils.repeat('b', 5), fiveBytesText));
         invalidmeta.setProperties(props2);
         invalidmeta.setLabels(Arrays.asList(fiveBytesText, fiveBytesText));
-        var executionException1 = Assertions.assertThrows(ExecutionException.class, () -> {
+        var exception1 = Assertions.assertThrows(ApiException.class, () -> {
             clientV3
                 .groups()
-                .byGroupId("default")
+                .byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString())
                 .artifacts()
                 .byArtifactId(artifactId)
                 .versions()
-                .byVersion("1")
+                .byVersionExpression("1")
                 .meta()
                 .put(invalidmeta)
-                .get(3, TimeUnit.SECONDS);
+                ;
         });
-        Assertions.assertNotNull(executionException1.getCause());
-        Assertions.assertEquals(ApiException.class, executionException1.getCause().getClass());
-        Assertions.assertEquals(409, ((ApiException)executionException1.getCause()).getResponseStatusCode());
+        Assertions.assertEquals(409, exception1.getResponseStatusCode());
 
         //schema number 3 , exceeds the max number of schemas
-        var executionException2 = Assertions.assertThrows(ExecutionException.class, () -> {
+        var exception2 = Assertions.assertThrows(io.apicurio.registry.rest.client.models.Error.class, () -> {
             ArtifactContent data = new ArtifactContent();
             data.setContent("{}");
             clientV3
                 .groups()
-                .byGroupId("default")
+                .byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString())
                 .artifacts()
                 .post(data, config -> {
                     config.headers.add("X-Registry-ArtifactType", ArtifactType.JSON);
                     config.headers.add("X-Registry-ArtifactId", artifactId);
-                }).get(3, TimeUnit.SECONDS);
+                });
         });
-        Assertions.assertNotNull(executionException2.getCause());
-        Assertions.assertEquals(io.apicurio.registry.rest.client.models.Error.class, executionException2.getCause().getClass());
-        Assertions.assertEquals(409, ((io.apicurio.registry.rest.client.models.Error)executionException2.getCause()).getErrorCode());
+        Assertions.assertEquals(409, exception2.getErrorCode());
     }
 
 }

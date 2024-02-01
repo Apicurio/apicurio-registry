@@ -32,7 +32,7 @@ public class KafkaSqlKeyDeserializer implements Deserializer<MessageKey> {
         try {
             byte msgTypeOrdinal = data[0];
             Class<? extends MessageKey> keyClass = MessageTypeToKeyClass.ordToKeyClass(msgTypeOrdinal);
-            UnsynchronizedByteArrayInputStream in = new UnsynchronizedByteArrayInputStream(data, 1);
+            UnsynchronizedByteArrayInputStream in = new UnsynchronizedByteArrayInputStream(data, 1); // TODO: Deprecated
             MessageKey key = mapper.readValue(in, keyClass);
             return key;
         } catch (IOException e) {

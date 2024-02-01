@@ -13,7 +13,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 import static io.apicurio.tests.utils.Constants.SMOKE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -66,9 +65,9 @@ class RulesResourceConfluentIT extends ConfluentBaseIT {
     @AfterAll
     void clearRules() throws Exception {
         LOGGER.info("Removing all global rules");
-        registryClient.admin().rules().delete().get(3, TimeUnit.SECONDS);
+        registryClient.admin().rules().delete();
         retryOp((rc) -> {
-            List<RuleType> rules = rc.admin().rules().get().get(3, TimeUnit.SECONDS);
+            List<RuleType> rules = rc.admin().rules().get();
             assertEquals(0, rules.size(), "All global rules not deleted");
         });
     }

@@ -1,6 +1,6 @@
 import React, { FunctionComponent, useEffect, useState } from "react";
 import { Flex, FlexItem, PageSection, PageSectionVariants, Spinner } from "@patternfly/react-core";
-import { Services } from "@services/services.ts";
+import { UserService, useUserService } from "@services/useUserService.ts";
 
 /**
  * Properties
@@ -17,6 +17,7 @@ export type PageDataLoaderProps = {
  */
 export const PageDataLoader: FunctionComponent<PageDataLoaderProps> = (props: PageDataLoaderProps) => {
     const [isLoading, setLoading] = useState<boolean>(true);
+    const user: UserService = useUserService();
 
     useEffect(() => {
         if (props.loaders === undefined) {
@@ -29,7 +30,7 @@ export const PageDataLoader: FunctionComponent<PageDataLoaderProps> = (props: Pa
         if (!Array.isArray(loaders)) { loaders = [ loaders ]; }
         // Always add the "update current user" loader
         loaders = [
-            Services.getUsersService().updateCurrentUser(),
+            user.updateCurrentUser(),
             ...loaders
         ];
 

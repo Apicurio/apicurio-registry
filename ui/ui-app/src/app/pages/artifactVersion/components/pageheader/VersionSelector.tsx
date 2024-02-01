@@ -12,9 +12,9 @@ import {
 import { SearchIcon } from "@patternfly/react-icons";
 import { Link } from "react-router-dom";
 import { SearchedVersion } from "@models/searchedVersion.model.ts";
-import { Services } from "@services/services.ts";
-import { useAppNavigation } from "@hooks/useAppNavigation.ts";
 import { FromNow } from "@apicurio/common-ui-components";
+import { AppNavigation, useAppNavigation } from "@services/useAppNavigation.ts";
+import { ConfigService, useConfigService } from "@services/useConfigService.ts";
 
 
 /**
@@ -30,11 +30,12 @@ export type VersionSelectorProps = {
 export const VersionSelector: FunctionComponent<VersionSelectorProps> = (props: VersionSelectorProps) => {
     const [isOpen, setOpen] = useState<boolean>(false);
 
-    const appNav = useAppNavigation();
+    const config: ConfigService = useConfigService();
+    const appNav: AppNavigation = useAppNavigation();
 
     const dropdownClasses = (): string => {
         const classes: string[] = [ "version-selector-dropdown" ];
-        if (Services.getConfigService().featureReadOnly()) {
+        if (config.featureReadOnly()) {
             classes.push("dropdown-align-right");
         }
         return classes.join(" ");

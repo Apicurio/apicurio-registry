@@ -37,16 +37,16 @@ type ItemArtifactsItemVersionsRequestBuilderPostRequestConfiguration struct {
 	Options []i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestOption
 }
 
-// ByVersion manage a single version of a single artifact in the registry.
-func (m *ItemArtifactsItemVersionsRequestBuilder) ByVersion(version string) *ItemArtifactsItemVersionsWithVersionItemRequestBuilder {
+// ByVersionExpression manage a single version of a single artifact in the registry.
+func (m *ItemArtifactsItemVersionsRequestBuilder) ByVersionExpression(versionExpression string) *ItemArtifactsItemVersionsWithVersionExpressionItemRequestBuilder {
 	urlTplParams := make(map[string]string)
 	for idx, item := range m.BaseRequestBuilder.PathParameters {
 		urlTplParams[idx] = item
 	}
-	if version != "" {
-		urlTplParams["version"] = version
+	if versionExpression != "" {
+		urlTplParams["versionExpression"] = versionExpression
 	}
-	return NewItemArtifactsItemVersionsWithVersionItemRequestBuilderInternal(urlTplParams, m.BaseRequestBuilder.RequestAdapter)
+	return NewItemArtifactsItemVersionsWithVersionExpressionItemRequestBuilderInternal(urlTplParams, m.BaseRequestBuilder.RequestAdapter)
 }
 
 // NewItemArtifactsItemVersionsRequestBuilderInternal instantiates a new VersionsRequestBuilder and sets the default values.

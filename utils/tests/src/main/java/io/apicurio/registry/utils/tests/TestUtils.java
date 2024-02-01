@@ -329,13 +329,11 @@ public class TestUtils {
             runnable.run();
             Assertions.fail("Expected (but didn't get) a registry client application exception with code: " + expectedCode);
         } catch (Exception ex) {
-            // Unwrapping the ExecutionException
-            var e = ex.getCause();
-            if (e instanceof io.apicurio.registry.rest.client.models.Error) {
-                Assertions.assertEquals(expectedErrorName, ((io.apicurio.registry.rest.client.models.Error) e).getName(), () -> "e: " + e);
+            if (ex instanceof io.apicurio.registry.rest.client.models.Error) {
+                Assertions.assertEquals(expectedErrorName, ((io.apicurio.registry.rest.client.models.Error) ex).getName(), () -> "ex: " + ex);
                 Assertions.assertEquals(expectedCode, errorCodeExtractor.apply(ex));
             } else {
-                Assertions.assertEquals(expectedCode, ((ApiException) e).getResponseStatusCode());
+                Assertions.assertEquals(expectedCode, ((ApiException) ex).getResponseStatusCode());
             }
         }
     }

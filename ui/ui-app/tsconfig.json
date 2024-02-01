@@ -23,8 +23,8 @@
     "noFallthroughCasesInSwitch": true,
     "paths": {
       "@app/*": [ "./src/app/*" ],
-      "@hooks/*": [ "./src/hooks/*" ],
       "@models/*": [ "./src/models/*" ],
+      "@utils/*": [ "./src/utils/*" ],
       "@services/*": [ "./src/services/*" ]
     }
   },

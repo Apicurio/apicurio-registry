@@ -20,8 +20,8 @@ keywords = ["apicurio", "registry"]
 [tool.poetry.dependencies]
 python = "^3.9"
 microsoft-kiota-abstractions = "^1.0.0"
-microsoft-kiota-http = "^1.2.0"
-microsoft-kiota-serialization-json = "^1.0.0"
+microsoft-kiota-http = "^1.2.1"
+microsoft-kiota-serialization-json = "^1.0.1"
 microsoft-kiota-serialization-text = "^1.0.0"
 
 [tool.poetry.group.test.dependencies]

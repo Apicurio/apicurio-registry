@@ -1,7 +1,6 @@
 import { FunctionComponent, useEffect, useState } from "react";
 import "./ContentTabContent.css";
 import { ToggleGroup, ToggleGroupItem } from "@patternfly/react-core";
-import { Services } from "@services/services.ts";
 import YAML from "yaml";
 import useResizeObserver from "use-resize-observer";
 import Editor from "@monaco-editor/react";
@@ -78,7 +77,7 @@ export const ContentTabContent: FunctionComponent<ContentTabContentProps> = (pro
     };
 
     const handleInvalidContentError = (error: any): void => {
-        Services.getLoggerService().info("[Content] Invalid content error:", error);
+        console.info("[Content] Invalid content error:", error);
     };
 
     return (

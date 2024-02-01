@@ -3,7 +3,11 @@ package io.apicurio.registry.noprofile.storage;
 import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.model.BranchId;
+import io.apicurio.registry.model.GA;
+import io.apicurio.registry.model.GAV;
 import io.apicurio.registry.storage.RegistryStorage;
+import io.apicurio.registry.storage.RegistryStorage.ArtifactRetrievalBehavior;
 import io.apicurio.registry.storage.dto.*;
 import io.apicurio.registry.storage.error.*;
 import io.apicurio.registry.types.ArtifactState;
@@ -20,6 +24,7 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static io.apicurio.registry.storage.RegistryStorage.ArtifactRetrievalBehavior.DEFAULT;
+import static io.apicurio.registry.storage.RegistryStorage.ArtifactRetrievalBehavior.SKIP_DISABLED_LATEST;
 
 public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBase {
 
@@ -990,7 +995,7 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         // Delete first to cleanup after other tests
         storage().deleteAllUserData();
         createSomeUserData();
-        Assertions.assertEquals(8, countStorageEntities());
+        Assertions.assertEquals(10, countStorageEntities());
         // ^ TODO Change to 9 after https://github.com/Apicurio/apicurio-registry/issues/1721
         // Delete all
         storage().deleteAllUserData();
@@ -1034,8 +1039,9 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         return null;
     }
 
+
     @Test
-    public void testComments() throws Exception {
+    public void testComments() {
         String artifactId = "testComments-1";
         ContentHandle content = ContentHandle.create(OPENAPI_CONTENT);
         ArtifactMetaDataDto dto = storage().createArtifact(GROUP_ID, artifactId, null, ArtifactType.OPENAPI, content, null);
@@ -1043,27 +1049,119 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         Assertions.assertEquals(GROUP_ID, dto.getGroupId());
         Assertions.assertEquals(artifactId, dto.getId());
 
-        List<CommentDto> comments = storage().getArtifactVersionComments(GROUP_ID, artifactId, "latest");
+        List<CommentDto> comments = storage().getArtifactVersionComments(GROUP_ID, artifactId, dto.getVersion());
         Assertions.assertTrue(comments.isEmpty());
 
-        storage().createArtifactVersionComment(GROUP_ID, artifactId, "latest", "TEST_COMMENT_1");
-        storage().createArtifactVersionComment(GROUP_ID, artifactId, "latest", "TEST_COMMENT_2");
-        storage().createArtifactVersionComment(GROUP_ID, artifactId, "latest", "TEST_COMMENT_3");
+        storage().createArtifactVersionComment(GROUP_ID, artifactId, dto.getVersion(), "TEST_COMMENT_1");
+        storage().createArtifactVersionComment(GROUP_ID, artifactId, dto.getVersion(), "TEST_COMMENT_2");
+        storage().createArtifactVersionComment(GROUP_ID, artifactId, dto.getVersion(), "TEST_COMMENT_3");
 
-        comments = storage().getArtifactVersionComments(GROUP_ID, artifactId, "latest");
+        comments = storage().getArtifactVersionComments(GROUP_ID, artifactId, dto.getVersion());
         Assertions.assertEquals(3, comments.size());
 
-        storage().deleteArtifactVersionComment(GROUP_ID, artifactId, "latest", comments.get(1).getCommentId());
+        storage().deleteArtifactVersionComment(GROUP_ID, artifactId, dto.getVersion(), comments.get(1).getCommentId());
 
-        comments = storage().getArtifactVersionComments(GROUP_ID, artifactId, "latest");
+        comments = storage().getArtifactVersionComments(GROUP_ID, artifactId, dto.getVersion());
         Assertions.assertEquals(2, comments.size());
 
-        storage().updateArtifactVersionComment(GROUP_ID, artifactId, "latest", comments.get(0).getCommentId(), "TEST_COMMENT_4");
+        storage().updateArtifactVersionComment(GROUP_ID, artifactId, dto.getVersion(), comments.get(0).getCommentId(), "TEST_COMMENT_4");
 
-        comments = storage().getArtifactVersionComments(GROUP_ID, artifactId, "latest");
+        comments = storage().getArtifactVersionComments(GROUP_ID, artifactId, dto.getVersion());
         Assertions.assertEquals(2, comments.size());
         Assertions.assertEquals("TEST_COMMENT_4", comments.get(0).getValue());
     }
+
+
+    @Test
+    public void testArtifactBranches() {
+
+        var ga = new GA(GROUP_ID, "foo");
+
+        Assertions.assertThrows(ArtifactNotFoundException.class, () -> storage().getArtifactBranches(ga));
+
+        var content = ContentHandle.create(OPENAPI_CONTENT);
+        ArtifactMetaDataDto dtoV1 = storage().createArtifact(GROUP_ID, ga.getRawArtifactId(), null, ArtifactType.OPENAPI, content, null);
+        Assertions.assertNotNull(dtoV1);
+        Assertions.assertEquals(ga.getRawGroupIdWithDefaultString(), dtoV1.getGroupId());
+        Assertions.assertEquals(ga.getRawArtifactId(), dtoV1.getId());
+
+        var branches = storage().getArtifactBranches(ga);
+        Assertions.assertEquals(Map.of(BranchId.LATEST, List.of(new GAV(ga, dtoV1.getVersion()))), branches);
+
+        var latestBranch = storage().getArtifactBranch(ga, BranchId.LATEST, DEFAULT);
+        Assertions.assertEquals(List.of(new GAV(ga, dtoV1.getVersion())), latestBranch);
+
+        var gavV1 = storage().getArtifactBranchTip(ga, BranchId.LATEST, DEFAULT);
+        Assertions.assertNotNull(gavV1);
+        Assertions.assertEquals(gavV1.getRawGroupIdWithDefaultString(), dtoV1.getGroupId());
+        Assertions.assertEquals(gavV1.getRawArtifactId(), dtoV1.getId());
+        Assertions.assertEquals(gavV1.getRawVersionId(), dtoV1.getVersion());
+
+        var otherBranchId = new BranchId("other");
+        storage().createOrUpdateArtifactBranch(gavV1, otherBranchId);
+
+        content = ContentHandle.create(OPENAPI_CONTENT_V2);
+        var dtoV2 = storage().updateArtifact(ga.getRawGroupIdWithDefaultString(), ga.getRawArtifactId(), null, ArtifactType.OPENAPI, content, null);
+        Assertions.assertNotNull(dtoV2);
+        Assertions.assertEquals(ga.getRawGroupIdWithDefaultString(), dtoV2.getGroupId());
+        Assertions.assertEquals(ga.getRawArtifactId(), dtoV2.getId());
+
+        branches = storage().getArtifactBranches(ga);
+        Assertions.assertEquals(Map.of(
+                BranchId.LATEST, List.of(new GAV(ga, dtoV2.getVersion()), new GAV(ga, dtoV1.getVersion())),
+                otherBranchId, List.of(new GAV(ga, dtoV1.getVersion()))
+        ), branches);
+
+        latestBranch = storage().getArtifactBranch(ga, BranchId.LATEST, DEFAULT);
+        Assertions.assertEquals(List.of(new GAV(ga, dtoV2.getVersion()), new GAV(ga, dtoV1.getVersion())), latestBranch);
+
+        var otherBranch = storage().getArtifactBranch(ga, otherBranchId, DEFAULT);
+        Assertions.assertEquals(List.of(new GAV(ga, dtoV1.getVersion())), otherBranch);
+
+        var gavV2 = storage().getArtifactBranchTip(ga, BranchId.LATEST, DEFAULT);
+        Assertions.assertNotNull(gavV2);
+        Assertions.assertEquals(gavV2.getRawGroupIdWithDefaultString(), dtoV2.getGroupId());
+        Assertions.assertEquals(gavV2.getRawArtifactId(), dtoV2.getId());
+        Assertions.assertEquals(gavV2.getRawVersionId(), dtoV2.getVersion());
+
+        gavV1 = storage().getArtifactBranchTip(ga, otherBranchId, DEFAULT);
+        Assertions.assertNotNull(gavV1);
+        Assertions.assertEquals(gavV1.getRawGroupIdWithDefaultString(), dtoV1.getGroupId());
+        Assertions.assertEquals(gavV1.getRawArtifactId(), dtoV1.getId());
+        Assertions.assertEquals(gavV1.getRawVersionId(), dtoV1.getVersion());
+
+        storage().createOrUpdateArtifactBranch(gavV2, otherBranchId);
+
+        branches = storage().getArtifactBranches(ga);
+        Assertions.assertEquals(Map.of(
+                BranchId.LATEST, List.of(new GAV(ga, dtoV2.getVersion()), new GAV(ga, dtoV1.getVersion())),
+                otherBranchId, List.of(new GAV(ga, dtoV2.getVersion()), new GAV(ga, dtoV1.getVersion()))
+        ), branches);
+
+        Assertions.assertEquals(storage().getArtifactBranch(ga, BranchId.LATEST, DEFAULT), storage().getArtifactBranch(ga, otherBranchId, DEFAULT));
+        Assertions.assertEquals(storage().getArtifactBranchTip(ga, BranchId.LATEST, DEFAULT), storage().getArtifactBranchTip(ga, otherBranchId, DEFAULT));
+
+        storage().updateArtifactState(gavV2.getRawGroupIdWithDefaultString(), gavV2.getRawArtifactId(), gavV2.getRawVersionId(), ArtifactState.DISABLED);
+        Assertions.assertEquals(List.of(gavV1), storage().getArtifactBranch(ga, BranchId.LATEST, SKIP_DISABLED_LATEST));
+        Assertions.assertEquals(gavV1, storage().getArtifactBranchTip(ga, BranchId.LATEST, ArtifactRetrievalBehavior.SKIP_DISABLED_LATEST));
+
+        storage().updateArtifactState(gavV2.getRawGroupIdWithDefaultString(), gavV2.getRawArtifactId(), gavV2.getRawVersionId(), ArtifactState.ENABLED);
+        Assertions.assertEquals(List.of(gavV2, gavV1), storage().getArtifactBranch(ga, BranchId.LATEST, SKIP_DISABLED_LATEST));
+        Assertions.assertEquals(gavV2, storage().getArtifactBranchTip(ga, BranchId.LATEST, ArtifactRetrievalBehavior.SKIP_DISABLED_LATEST));
+
+        storage().deleteArtifactVersion(gavV1.getRawGroupIdWithDefaultString(), gavV1.getRawArtifactId(), gavV1.getRawVersionId());
+
+        Assertions.assertEquals(List.of(gavV2), storage().getArtifactBranch(ga, BranchId.LATEST, DEFAULT));
+        Assertions.assertEquals(List.of(gavV2), storage().getArtifactBranch(ga, otherBranchId, DEFAULT));
+
+        storage().deleteArtifactBranch(ga, otherBranchId);
+
+        Assertions.assertThrows(ArtifactBranchNotFoundException.class, () -> storage().getArtifactBranch(ga, otherBranchId, DEFAULT));
+        Assertions.assertThrows(VersionNotFoundException.class, () -> storage().getArtifactBranchTip(ga, otherBranchId, DEFAULT));
+
+        Assertions.assertThrows(NotAllowedException.class, () -> storage().deleteArtifactBranch(ga, BranchId.LATEST));
+    }
+
 
     private static String generateString(int size) {
         StringBuilder builder = new StringBuilder();

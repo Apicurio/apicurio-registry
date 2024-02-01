@@ -6,27 +6,16 @@ import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.metrics.StorageMetricsApply;
 import io.apicurio.registry.metrics.health.liveness.PersistenceExceptionLivenessApply;
 import io.apicurio.registry.metrics.health.readiness.PersistenceTimeoutReadinessApply;
+import io.apicurio.registry.model.BranchId;
+import io.apicurio.registry.model.GA;
+import io.apicurio.registry.model.GAV;
+import io.apicurio.registry.model.VersionId;
 import io.apicurio.registry.storage.ArtifactStateExt;
 import io.apicurio.registry.storage.StorageEvent;
 import io.apicurio.registry.storage.StorageEventType;
 import io.apicurio.registry.storage.decorator.RegistryStorageDecoratorReadOnlyBase;
-import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
-import io.apicurio.registry.storage.dto.ArtifactOwnerDto;
-import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
-import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
-import io.apicurio.registry.storage.dto.CommentDto;
-import io.apicurio.registry.storage.dto.DownloadContextDto;
-import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
-import io.apicurio.registry.storage.dto.GroupMetaDataDto;
-import io.apicurio.registry.storage.dto.RuleConfigurationDto;
-import io.apicurio.registry.storage.error.ArtifactAlreadyExistsException;
-import io.apicurio.registry.storage.error.ArtifactNotFoundException;
-import io.apicurio.registry.storage.error.RegistryStorageException;
-import io.apicurio.registry.storage.error.RoleMappingNotFoundException;
-import io.apicurio.registry.storage.error.RuleAlreadyExistsException;
-import io.apicurio.registry.storage.error.RuleNotFoundException;
-import io.apicurio.registry.storage.error.VersionAlreadyExistsException;
-import io.apicurio.registry.storage.error.VersionNotFoundException;
+import io.apicurio.registry.storage.dto.*;
+import io.apicurio.registry.storage.error.*;
 import io.apicurio.registry.storage.impexp.EntityInputStream;
 import io.apicurio.registry.storage.impl.kafkasql.keys.BootstrapKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.MessageKey;
@@ -42,12 +31,7 @@ import io.apicurio.registry.storage.importing.SqlDataImporter;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.ConcurrentUtil;
-import io.apicurio.registry.utils.impexp.ArtifactRuleEntity;
-import io.apicurio.registry.utils.impexp.ArtifactVersionEntity;
-import io.apicurio.registry.utils.impexp.CommentEntity;
-import io.apicurio.registry.utils.impexp.ContentEntity;
-import io.apicurio.registry.utils.impexp.GlobalRuleEntity;
-import io.apicurio.registry.utils.impexp.GroupEntity;
+import io.apicurio.registry.utils.impexp.*;
 import io.apicurio.registry.utils.kafka.KafkaUtil;
 import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.annotation.PreDestroy;
@@ -73,7 +57,6 @@ import static io.apicurio.registry.storage.RegistryStorage.ArtifactRetrievalBeha
  * An implementation of a registry artifactStore that extends the basic SQL artifactStore but federates 'write' operations
  * to other nodes in a cluster using a Kafka topic.  As a result, all reads are performed locally but all
  * writes are published to a topic for consumption by all nodes.
- *
  */
 @ApplicationScoped
 @PersistenceExceptionLivenessApply
@@ -461,14 +444,8 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
             throw new ArtifactNotFoundException(groupId, artifactId);
         }
 
-        submitter.submitArtifactRule(groupId, artifactId, RuleType.COMPATIBILITY, ActionType.DELETE);
-
-        UUID reqId = ConcurrentUtil.get(submitter.submitArtifactRule(groupId, artifactId, RuleType.VALIDITY, ActionType.DELETE));
-        try {
-            coordinator.waitForResponse(reqId);
-        } catch (RuleNotFoundException e) {
-            // Eat this exception - we don't care if the rule didn't exist.
-        }
+        UUID reqId = ConcurrentUtil.get(submitter.submitArtifactRules(groupId, artifactId, ActionType.DELETE));
+        coordinator.waitForResponse(reqId);
     }
 
 
@@ -550,17 +527,8 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
 
     @Override
     public void deleteGlobalRules() {
-        // TODO This should use "DELETE FROM" instead of being rule specific
-
-        getGlobalRules().stream()
-                .map(r -> ConcurrentUtil.get(submitter.submitGlobalRule(r, ActionType.DELETE)))
-                .forEach(reqId -> {
-                    try {
-                        coordinator.waitForResponse(reqId);
-                    } catch (RuleNotFoundException e) {
-                        // Eat this exception - we don't care if the rule didn't exist.
-                    }
-                });
+        UUID reqId = ConcurrentUtil.get(submitter.submitGlobalRules(ActionType.DELETE));
+        coordinator.waitForResponse(reqId);
     }
 
 
@@ -743,36 +711,31 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
 
     @Override
     public CommentDto createArtifactVersionComment(String groupId, String artifactId, String version, String value) {
-        String theVersion = delegate.normalizeVersion(groupId, artifactId, version);
         String createdBy = securityIdentity.getPrincipal().getName();
         Date createdOn = new Date();
 
-        return createArtifactVersionCommentRaw(groupId, artifactId, theVersion, this::nextCommentId, createdBy, createdOn, value);
+        return createArtifactVersionCommentRaw(groupId, artifactId, version, this::nextCommentId, createdBy, createdOn, value);
     }
 
 
     @Override
     public void deleteArtifactVersionComment(String groupId, String artifactId, String version, String commentId) {
-        String theVersion = delegate.normalizeVersion(groupId, artifactId, version);
-
-        if (!delegate.isArtifactVersionExists(groupId, artifactId, theVersion)) {
-            throw new VersionNotFoundException(groupId, artifactId, theVersion);
+        if (!delegate.isArtifactVersionExists(groupId, artifactId, version)) {
+            throw new VersionNotFoundException(groupId, artifactId, version);
         }
 
-        UUID reqId = ConcurrentUtil.get(submitter.submitComment(groupId, artifactId, theVersion, commentId, ActionType.DELETE));
+        UUID reqId = ConcurrentUtil.get(submitter.submitComment(groupId, artifactId, version, commentId, ActionType.DELETE));
         coordinator.waitForResponse(reqId);
     }
 
 
     @Override
     public void updateArtifactVersionComment(String groupId, String artifactId, String version, String commentId, String value) {
-        String theVersion = delegate.normalizeVersion(groupId, artifactId, version);
-
-        if (!delegate.isArtifactVersionExists(groupId, artifactId, theVersion)) {
-            throw new VersionNotFoundException(groupId, artifactId, theVersion);
+        if (!delegate.isArtifactVersionExists(groupId, artifactId, version)) {
+            throw new VersionNotFoundException(groupId, artifactId, version);
         }
 
-        UUID reqId = ConcurrentUtil.get(submitter.submitComment(groupId, artifactId, theVersion,
+        UUID reqId = ConcurrentUtil.get(submitter.submitComment(groupId, artifactId, version,
                 commentId, ActionType.UPDATE, null, null, value));
         coordinator.waitForResponse(reqId);
     }
@@ -801,8 +764,8 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
                 .properties(entity.properties)
                 .build();
         submitter.submitArtifact(entity.groupId, entity.artifactId, entity.version, ActionType.IMPORT,
-                entity.globalId, entity.artifactType, null, entity.createdBy, new Date(entity.createdOn), metaData, entity.versionId,
-                entity.state, entity.contentId, entity.isLatest);
+                entity.globalId, entity.artifactType, null, entity.createdBy, new Date(entity.createdOn), metaData, entity.versionOrder,
+                entity.state, entity.contentId);
     }
 
 
@@ -831,6 +794,12 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
         group.setModifiedOn(entity.modifiedOn);
         group.setProperties(entity.properties);
         submitter.submitGroup(ActionType.IMPORT, group);
+    }
+
+
+    @Override
+    public void importArtifactBranch(ArtifactBranchEntity entity) {
+        submitter.submitArtifactBranchImport(entity);
     }
 
 
@@ -911,5 +880,26 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
     public ArtifactMetaDataDto updateArtifact(String groupId, String artifactId, String version,
                                               String artifactType, ContentHandle content, List<ArtifactReferenceDto> references) {
         return delegate.updateArtifactWithMetadata(groupId, artifactId, version, artifactType, content, null, references);
+    }
+
+
+    @Override
+    public void createOrUpdateArtifactBranch(GAV gav, BranchId branchId) {
+        var uuid = ConcurrentUtil.get(submitter.submitArtifactBranch(ActionType.CREATE_OR_UPDATE, gav, branchId));
+        coordinator.waitForResponse(uuid);
+    }
+
+
+    @Override
+    public void createOrReplaceArtifactBranch(GA ga, BranchId branchId, List<VersionId> versions) {
+        var uuid = ConcurrentUtil.get(submitter.submitArtifactBranchCreateOrReplace(ga, branchId, versions));
+        coordinator.waitForResponse(uuid);
+    }
+
+
+    @Override
+    public void deleteArtifactBranch(GA ga, BranchId branchId) {
+        var uuid = ConcurrentUtil.get(submitter.submitArtifactBranch(ActionType.DELETE, ga, branchId));
+        coordinator.waitForResponse(uuid);
     }
 }

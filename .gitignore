@@ -21,6 +21,7 @@ website
 *~
 .notes
 **/bin
+*.jar
 
 apicurio-codegen
 /docs/.jbang/

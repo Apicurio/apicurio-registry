@@ -3,8 +3,9 @@ import "./RulesPage.css";
 import { PageSection, PageSectionVariants, TextContent } from "@patternfly/react-core";
 import { Rule } from "@models/rule.model.ts";
 import { RootPageHeader, RuleList } from "@app/components";
-import { Services } from "@services/services.ts";
 import { PageDataLoader, PageError, PageErrorHandler, toPageError } from "@app/pages";
+import { AdminService, useAdminService } from "@services/useAdminService.ts";
+import { LoggerService, useLoggerService } from "@services/useLoggerService.ts";
 
 
 export type RulesPageProps = {
@@ -19,35 +20,38 @@ export const RulesPage: FunctionComponent<RulesPageProps> = () => {
     const [loaders, setLoaders] = useState<Promise<any> | Promise<any>[] | undefined>();
     const [rules, setRules] = useState<Rule[]>([]);
 
+    const admin: AdminService = useAdminService();
+    const logger: LoggerService = useLoggerService();
+
     const createLoaders = (): Promise<any> => {
-        return Services.getAdminService().getRules().then(setRules).catch(error => {
+        return admin.getRules().then(setRules).catch(error => {
             setPageError(toPageError(error, "Error loading rules."));
         });
     };
 
     const doEnableRule = (ruleType: string): void => {
-        Services.getLoggerService().debug("[RulesPage] Enabling global rule:", ruleType);
+        logger.debug("[RulesPage] Enabling global rule:", ruleType);
         let config: string = "FULL";
         if (ruleType === "COMPATIBILITY") {
             config = "BACKWARD";
         }
-        Services.getAdminService().createRule(ruleType, config).catch(error => {
+        admin.createRule(ruleType, config).catch(error => {
             setPageError(toPageError(error, `Error enabling "${ ruleType }" global rule.`));
         });
         setRules([...rules, { config, type: ruleType }]);
     };
 
     const doDisableRule = (ruleType: string): void => {
-        Services.getLoggerService().debug("[RulesPage] Disabling global rule:", ruleType);
-        Services.getAdminService().deleteRule(ruleType).catch(error => {
+        logger.debug("[RulesPage] Disabling global rule:", ruleType);
+        admin.deleteRule(ruleType).catch(error => {
             setPageError(toPageError(error, `Error disabling "${ ruleType }" global rule.`));
         });
         setRules(rules.filter(r => r.type !== ruleType));
     };
 
     const doConfigureRule = (ruleType: string, config: string): void => {
-        Services.getLoggerService().debug("[RulesPage] Configuring global rule:", ruleType, config);
-        Services.getAdminService().updateRule(ruleType, config).catch(error => {
+        logger.debug("[RulesPage] Configuring global rule:", ruleType, config);
+        admin.updateRule(ruleType, config).catch(error => {
             setPageError(toPageError(error, `Error configuring "${ ruleType }" global rule.`));
         });
         setRules(rules.map(r => {
@@ -76,7 +80,9 @@ export const RulesPage: FunctionComponent<RulesPageProps> = () => {
                 </PageSection>
                 <PageSection variant={PageSectionVariants.default} isFilled={true}>
                     <React.Fragment>
-                        <RuleList rules={rules}
+                        <RuleList
+                            isGlobalRules={true}
+                            rules={rules}
                             onEnableRule={doEnableRule}
                             onDisableRule={doDisableRule}
                             onConfigureRule={doConfigureRule} />

@@ -13,9 +13,9 @@
   "devDependencies": {
     "@apicurio/eslint-config": "0.2.0",
     "@playwright/test": "1.41.1",
-    "@types/node": "20.11.5",
-    "@typescript-eslint/eslint-plugin": "6.19.1",
-    "@typescript-eslint/parser": "6.19.1",
+    "@types/node": "20.11.15",
+    "@typescript-eslint/eslint-plugin": "6.20.0",
+    "@typescript-eslint/parser": "6.20.0",
     "eslint": "8.56.0",
     "eslint-plugin-react-hooks": "4.6.0",
     "eslint-plugin-react-refresh": "0.4.5"

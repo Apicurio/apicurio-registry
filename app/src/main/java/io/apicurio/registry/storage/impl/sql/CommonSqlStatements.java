@@ -115,28 +115,13 @@ public abstract class CommonSqlStatements implements SqlStatements {
         return "INSERT INTO artifacts (groupId, artifactId, type, createdBy, createdOn) VALUES (?, ?, ?, ?, ?)";
     }
 
-    /**
-     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#updateArtifactLatest()
-     */
-    @Override
-    public String updateArtifactLatest() {
-        return "UPDATE artifacts SET latest = ? WHERE groupId = ? AND artifactId = ?";
-    }
-
-    /**
-     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#updateArtifactLatestGlobalId()
-     */
-    @Override
-    public String updateArtifactLatestGlobalId() {
-        return "UPDATE artifacts SET latest = (SELECT v.globalId FROM versions v WHERE v.groupId = ? AND v.artifactId = ? AND v.version = ?) WHERE groupId = ? AND artifactId = ?";
-    }
 
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#autoUpdateVersionForGlobalId()
      */
     @Override
     public String autoUpdateVersionForGlobalId() {
-        return "UPDATE versions SET version = versionId WHERE globalId = ?";
+        return "UPDATE versions SET version = versionOrder WHERE globalId = ?";
     }
 
     /**
@@ -144,11 +129,13 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String insertVersion(boolean firstVersion) {
+        // TODO: Use COALESCE to unify into a single query.
         String query;
         if (firstVersion) {
-            query = "INSERT INTO versions (globalId, groupId, artifactId, version, versionId, state, name, description, createdBy, createdOn, labels, properties, contentId) VALUES (?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?)";
+            query = "INSERT INTO versions (globalId, groupId, artifactId, version, versionOrder, state, name, description, createdBy, createdOn, labels, properties, contentId) VALUES (?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?)";
         } else {
-            query = "INSERT INTO versions (globalId, groupId, artifactId, version, versionId, state, name, description, createdBy, createdOn, labels, properties, contentId) VALUES (?, ?, ?, ?, (SELECT MAX(versionId) + 1 FROM versions WHERE groupId = ? AND artifactId = ?), ?, ?, ?, ?, ?, ?, ?, ?)";
+            // NOTE: Duplicated value of versionOrder is prevented by UQ_versions_2 constraint.
+            query = "INSERT INTO versions (globalId, groupId, artifactId, version, versionOrder, state, name, description, createdBy, createdOn, labels, properties, contentId) VALUES (?, ?, ?, ?, (SELECT MAX(versionOrder) + 1 FROM versions WHERE groupId = ? AND artifactId = ?), ?, ?, ?, ?, ?, ?, ?, ?)";
         }
         return query;
     }
@@ -203,7 +190,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
 
     @Override
     public String selectArtifactVersionMetaDataByContentId() {
-        return "SELECT a.*, v.contentId, v.globalId, v.version, v.versionId, v.state, v.name, v.description, v.labels, v.properties, v.createdBy AS modifiedBy, v.createdOn AS modifiedOn "
+        return "SELECT a.*, v.contentId, v.globalId, v.version, v.versionOrder, v.state, v.name, v.description, v.labels, v.properties, v.createdBy AS modifiedBy, v.createdOn AS modifiedOn "
                 + "FROM versions v "
                 + "JOIN artifacts a ON v.groupId = a.groupId AND v.artifactId = a.artifactId "
                 + "WHERE v.contentId = ?";
@@ -225,7 +212,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String selectArtifactVersionContentByGlobalId() {
-        return "SELECT v.globalId, v.version, v.versionId, v.contentId, c.content, c.artifactreferences FROM versions v "
+        return "SELECT v.globalId, v.version, v.versionOrder, v.contentId, c.content, c.artifactreferences FROM versions v "
                 + "JOIN content c ON v.contentId = c.contentId "
                 + "WHERE v.globalId = ?";
     }
@@ -235,7 +222,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String selectArtifactVersionContent() {
-        return "SELECT v.globalId, v.version, v.versionId, c.contentId, c.content, c.artifactreferences FROM versions v "
+        return "SELECT v.globalId, v.version, v.versionOrder, c.contentId, c.content, c.artifactreferences FROM versions v "
                 + "JOIN content c ON v.contentId = c.contentId "
                 + "WHERE v.groupId = ? AND v.artifactId = ? AND v.version = ?";
     }
@@ -245,77 +232,18 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String selectArtifactContentIds() {
-        return "SELECT v.contentId FROM versions v WHERE v.groupId = ? AND v.artifactId = ? AND v.state != 'DISABLED' ORDER BY v.versionId";
+        return "SELECT v.contentId FROM versions v WHERE v.groupId = ? AND v.artifactId = ? AND v.state != 'DISABLED' ORDER BY v.versionOrder";
     }
 
-    /**
-     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectLatestArtifactContent()
-     */
-    @Override
-    public String selectLatestArtifactContent() {
-        return "SELECT v.globalId, v.version, v.versionId, c.contentId, c.content, c.artifactreferences FROM artifacts a "
-                + "JOIN versions v ON a.latest = v.globalId "
-                + "JOIN content c ON v.contentId = c.contentId "
-                + "WHERE a.groupId = ? AND a.artifactId = ?";
-    }
-
-    /**
-     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectLatestArtifactContentSkipDisabledState()
-     */
-    @Override
-    public String selectLatestArtifactContentSkipDisabledState() {
-        return "SELECT v.globalId, v.version, v.versionId, c.contentId, c.content, c.artifactreferences FROM artifacts a "
-                + "JOIN versions v ON a.latest = v.globalId "
-                + "JOIN content c ON v.contentId = c.contentId "
-                + "WHERE a.groupId = ? AND a.artifactId = ? AND v.state != 'DISABLED'";
-    }
 
     @Override
-    public String selectLatestArtifactContentWithMaxGlobalIDSkipDisabledState() {
-        var inner = "SELECT MAX(v.globalId) "
-                + "FROM versions v "
-                + "WHERE v.groupId = ? AND v.artifactId = ? AND v.state != 'DISABLED'";
-
-        return "SELECT v.globalId, v.version, v.versionId, c.contentId, c.content, c.artifactreferences "
+    public String selectArtifactMetaData() {
+        return "SELECT a.*, v.contentId, v.globalId, v.version, v.versionOrder, v.state, v.name, v.description, v.labels, v.properties, v.createdBy AS modifiedBy, v.createdOn AS modifiedOn "
                 + "FROM artifacts a "
-                + "JOIN versions v ON a.groupId = v.groupId AND a.artifactId = v.artifactId "
-                + "JOIN content c ON v.contentId = c.contentId "
-                + "WHERE a.groupId = ? AND a.artifactId = ? AND v.globalId IN (" + inner + ")";
+                + "JOIN versions v ON  a.groupId = v.groupId AND a.artifactId = v.artifactId "
+                + "WHERE a.groupId = ? AND a.artifactId = ? AND v.version = ?";
     }
 
-    /**
-     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectLatestArtifactMetaData()
-     */
-    @Override
-    public String selectLatestArtifactMetaData() {
-        return "SELECT a.*, v.contentId, v.globalId, v.version, v.versionId, v.state, v.name, v.description, v.labels, v.properties, v.createdBy AS modifiedBy, v.createdOn AS modifiedOn "
-                + "FROM artifacts a "
-                + "JOIN versions v ON a.latest = v.globalId "
-                + "WHERE a.groupId = ? AND a.artifactId = ?";
-    }
-
-    /**
-     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectLatestArtifactMetaDataSkipDisabledState()
-     */
-    @Override
-    public String selectLatestArtifactMetaDataSkipDisabledState() {
-        return "SELECT a.*, v.contentId, v.globalId, v.version, v.versionId, v.state, v.name, v.description, v.labels, v.properties, v.createdBy AS modifiedBy, v.createdOn AS modifiedOn "
-                + "FROM artifacts a "
-                + "JOIN versions v ON  a.latest = v.globalId "
-                + "WHERE a.groupId = ? AND a.artifactId = ? AND v.state != 'DISABLED'";
-    }
-
-    @Override
-    public String selectLatestArtifactMetaDataWithMaxGlobalIDSkipDisabledState() {
-        var inner = "SELECT MAX(v.globalId) "
-                + "FROM versions v "
-                + "WHERE v.groupId = ? AND v.artifactId = ? AND v.state != 'DISABLED'";
-
-        return "SELECT a.*, v.contentId, v.globalId, v.version, v.versionId, v.state, v.name, v.description, v.labels, v.properties, v.createdBy AS modifiedBy, v.createdOn AS modifiedOn "
-                + "FROM artifacts a "
-                + "JOIN versions v ON a.groupId = v.groupId AND a.artifactId = v.artifactId "
-                + "WHERE a.groupId = ? AND a.artifactId = ? AND v.globalId IN (" + inner + ")";
-    }
 
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectContentIdByHash()
@@ -450,7 +378,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
     public String deleteAllProperties() {
         return "DELETE FROM properties WHERE globalId IN (SELECT globalId FROM versions)";
     }
-    
+
     @Override
     public String deleteAllComments() {
         return "DELETE FROM comments WHERE globalId IN (SELECT globalId FROM versions)";
@@ -507,7 +435,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String selectArtifactMetaDataByGlobalId() {
-        return "SELECT a.*, v.contentId, v.globalId, v.version, v.versionId, v.state, v.name, v.description, v.labels, v.properties, v.createdBy AS modifiedBy, v.createdOn AS modifiedOn "
+        return "SELECT a.*, v.contentId, v.globalId, v.version, v.versionOrder, v.state, v.name, v.description, v.labels, v.properties, v.createdBy AS modifiedBy, v.createdOn AS modifiedOn "
                 + "FROM artifacts a "
                 + "JOIN versions v ON a.groupId = v.groupId AND a.artifactId = v.artifactId "
                 + "WHERE v.globalId = ?";
@@ -544,7 +472,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
     public String deleteVersionProperties() {
         return "DELETE FROM properties WHERE globalId IN (SELECT v.globalId FROM versions v WHERE v.groupId = ? AND v.artifactId = ? AND v.version = ?)";
     }
-    
+
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#deleteVersionComments()
      */
@@ -752,7 +680,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String exportArtifactVersions() {
-        return "SELECT v.*, a.type, a.latest " +
+        return "SELECT v.*, a.type " +
                 "FROM versions v " +
                 "JOIN artifacts a ON  v.groupId = a.groupId AND v.artifactId = a.artifactId ";
     }
@@ -764,7 +692,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
     public String exportComments() {
         return "SELECT * FROM comments c ";
     }
-    
+
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#exportContent()
      */
@@ -789,6 +717,13 @@ public abstract class CommonSqlStatements implements SqlStatements {
         return "SELECT * FROM groups g ";
     }
 
+
+    @Override
+    public String exportArtifactBranches() {
+        return "SELECT * FROM artifact_branches ab";
+    }
+
+
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#importArtifactRule()
      */
@@ -802,7 +737,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String importArtifactVersion() {
-        return "INSERT INTO versions (globalId, groupId, artifactId, version, versionId, state, name, description, createdBy, createdOn, labels, properties, contentId) "
+        return "INSERT INTO versions (globalId, groupId, artifactId, version, versionOrder, state, name, description, createdBy, createdOn, labels, properties, contentId) "
                 + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
     }
 
@@ -838,7 +773,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
     public String selectMaxContentId() {
         return "SELECT MAX(contentId) FROM content ";
     }
-    
+
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectMaxGlobalId()
      */
@@ -1054,21 +989,127 @@ public abstract class CommonSqlStatements implements SqlStatements {
     public String insertComment() {
         return "INSERT INTO comments (commentId, globalId, createdBy, createdOn, cvalue) VALUES (?, ?, ?, ?, ?)";
     }
-    
+
     @Override
     public String selectComments() {
         return "SELECT c.* "
                 + "FROM comments c JOIN versions v ON v.globalId = c.globalId "
                 + "WHERE v.groupId = ? AND v.artifactId = ? AND v.version = ? ORDER BY c.createdOn DESC";
     }
-    
+
     @Override
     public String deleteComment() {
         return "DELETE FROM comments WHERE globalId = ? AND commentId = ? AND createdBy = ?";
     }
-    
+
     @Override
     public String updateComment() {
         return "UPDATE comments SET cvalue = ? WHERE globalId = ? AND commentId = ? AND createdBy = ?";
+    }
+
+
+    @Override
+    public String selectGAVByGlobalId() {
+        return "SELECT groupId, artifactId, version FROM versions " +
+                "WHERE globalId = ?";
+    }
+
+
+    @Override
+    public String selectArtifactBranches() {
+        return "SELECT ab.groupId, ab.artifactId, ab.branchId, ab.branchOrder, ab.version FROM artifact_branches ab " +
+                "WHERE ab.groupId = ? AND ab.artifactId = ?";
+    }
+
+
+    @Override
+    public String selectArtifactBranchOrdered() {
+        return "SELECT ab.groupId, ab.artifactId, ab.branchId, ab.branchOrder, ab.version FROM artifact_branches ab " +
+                "WHERE ab.groupId = ? AND ab.artifactId = ? AND ab.branchId = ? " +
+                "ORDER BY ab.branchOrder DESC";
+    }
+
+
+    @Override
+    public String selectArtifactBranchOrderedNotDisabled() {
+        return "SELECT ab.groupId, ab.artifactId, ab.branchId, ab.branchOrder, ab.version FROM artifact_branches ab " +
+                "JOIN versions v ON ab.groupId = v.groupId AND ab.artifactId = v.artifactId AND ab.version = v.version " +
+                "WHERE ab.groupId = ? AND ab.artifactId = ? AND ab.branchId = ? AND v.state != 'DISABLED' " +
+                "ORDER BY ab.branchOrder DESC";
+    }
+
+
+    @Override
+    public String insertArtifactBranch() {
+        // Note: Duplicated value of branchOrder is prevented by primary key
+        return "INSERT INTO artifact_branches (groupId, artifactId, branchId, branchOrder, version) " +
+                "SELECT ?, ?, ?, COALESCE(MAX(ab.branchOrder), 0) + 1, ? FROM artifact_branches ab " +
+                "WHERE ab.groupId = ? AND ab.artifactId = ? AND ab.branchId = ?";
+    }
+
+
+    @Override
+    public String selectArtifactBranchTip() {
+        return "SELECT ab.groupId, ab.artifactId, ab.version FROM artifact_branches ab " +
+                "WHERE ab.groupId = ? AND ab.artifactId = ? AND ab.branchId = ? " +
+                "ORDER BY ab.branchOrder DESC LIMIT 1";
+    }
+
+
+    @Override
+    public String selectArtifactBranchTipNotDisabled() {
+        return "SELECT ab.groupId, ab.artifactId, ab.version FROM artifact_branches ab " +
+                "JOIN versions v ON ab.groupId = v.groupId AND ab.artifactId = v.artifactId AND ab.version = v.version " +
+                "WHERE ab.groupId = ? AND ab.artifactId = ? AND ab.branchId = ? AND v.state != 'DISABLED' " +
+                "ORDER BY ab.branchOrder DESC LIMIT 1";
+    }
+
+
+    @Override
+    public String deleteArtifactBranch() {
+        return "DELETE FROM artifact_branches " +
+                "WHERE groupId = ? AND artifactId = ? AND branchId = ?";
+    }
+
+
+    @Override
+    public String deleteAllArtifactBranchesInArtifact() {
+        return "DELETE FROM artifact_branches " +
+                "WHERE groupId = ? AND artifactId = ?";
+    }
+
+
+    @Override
+    public String deleteAllArtifactBranchesInGroup() {
+        return "DELETE FROM artifact_branches " +
+                "WHERE groupId = ?";
+    }
+
+
+    @Override
+    public String deleteAllArtifactBranches() {
+        return "DELETE FROM artifact_branches";
+    }
+
+
+    @Override
+    public String deleteVersionInArtifactBranches() {
+        return "DELETE FROM artifact_branches " +
+                "WHERE groupId = ? AND artifactId = ? AND version = ?";
+    }
+
+
+    @Override
+    public String selectVersionsWithoutArtifactBranch() {
+        return "SELECT DISTINCT v.groupId, v.artifactId, v.version FROM versions v " +
+                "LEFT JOIN artifact_branches ab ON v.groupId = ab.groupId AND v.artifactId = ab.artifactId AND v.version = ab.version " +
+                "WHERE v.groupId = ? AND v.artifactId = ? AND ab.branchId IS NULL";
+    }
+
+
+    @Override
+    public String importArtifactBranch() {
+        return "INSERT INTO artifact_branches (groupId, artifactId, branchId, branchOrder, version) " +
+                "VALUES(?, ?, ?, ?, ?)";
     }
 }

@@ -22,7 +22,7 @@ type ItemArtifactsItemVersionsItemStateRequestBuilderPutRequestConfiguration str
 // NewItemArtifactsItemVersionsItemStateRequestBuilderInternal instantiates a new StateRequestBuilder and sets the default values.
 func NewItemArtifactsItemVersionsItemStateRequestBuilderInternal(pathParameters map[string]string, requestAdapter i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestAdapter) *ItemArtifactsItemVersionsItemStateRequestBuilder {
 	m := &ItemArtifactsItemVersionsItemStateRequestBuilder{
-		BaseRequestBuilder: *i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewBaseRequestBuilder(requestAdapter, "{+baseurl}/groups/{groupId}/artifacts/{artifactId}/versions/{version}/state", pathParameters),
+		BaseRequestBuilder: *i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewBaseRequestBuilder(requestAdapter, "{+baseurl}/groups/{groupId}/artifacts/{artifactId}/versions/{versionExpression}/state", pathParameters),
 	}
 	return m
 }

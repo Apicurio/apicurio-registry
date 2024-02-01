@@ -13,10 +13,10 @@ import {
 } from "@app/pages";
 import { RootPageHeader } from "@app/components";
 import { RoleMapping } from "@models/roleMapping.model.ts";
-import { Services } from "@services/services.ts";
 import { GrantAccessModal } from "@app/pages/roles/components/modals/GrantAccessModal.tsx";
-import { Principal } from "@services/config";
 import { If, PleaseWaitModal } from "@apicurio/common-ui-components";
+import { AdminService, useAdminService } from "@services/useAdminService.ts";
+import { Principal } from "@services/useConfigService.ts";
 
 
 export type RolesPageProps = {
@@ -39,8 +39,10 @@ export const RolesPage: FunctionComponent<RolesPageProps> = () => {
     const [roles, setRoles] = useState<RoleMapping[]>([]);
     const [criteria, setCriteria] = useState<RoleToolbarCriteria>();
 
+    const admin: AdminService = useAdminService();
+
     const createLoaders = (): Promise<any> => {
-        return Services.getAdminService().getRoleMappings().then(setRoles)
+        return admin.getRoleMappings().then(setRoles)
             .catch(error => {
                 setPageError(toPageError(error, "Error loading role mappings."));
             });
@@ -69,7 +71,7 @@ export const RolesPage: FunctionComponent<RolesPageProps> = () => {
 
     const updateRoleMapping = (principal: Principal, role: string): void => {
         pleaseWait(true, "Granting access, please wait...");
-        Services.getAdminService().updateRoleMapping(principal.id, role).then((mapping) => {
+        admin.updateRoleMapping(principal.id, role).then((mapping) => {
             const currentRoleMappings = roles;
             currentRoleMappings.forEach((role, index) => {
                 if (role.principalId === mapping.principalId) {
@@ -93,7 +95,7 @@ export const RolesPage: FunctionComponent<RolesPageProps> = () => {
             updateRoleMapping(principal, role);
         } else {
             pleaseWait(true, "Granting access, please wait...");
-            Services.getAdminService().createRoleMapping(principal.id, role, principal.displayName as string).then((mapping) => {
+            admin.createRoleMapping(principal.id, role, principal.displayName as string).then((mapping) => {
                 pleaseWait(false, "");
                 setRoles([mapping, ...roles]);
             }).catch(error => {
@@ -110,7 +112,7 @@ export const RolesPage: FunctionComponent<RolesPageProps> = () => {
 
     const onRevokeRoleMapping = (role: RoleMapping): void => {
         pleaseWait(true, `Revoking access for ${role.principalName || role.principalId}, please wait...`);
-        Services.getAdminService().deleteRoleMapping(role.principalId).then(() => {
+        admin.deleteRoleMapping(role.principalId).then(() => {
             pleaseWait(false, "");
             removeMapping(role.principalId);
         }).catch(error => {

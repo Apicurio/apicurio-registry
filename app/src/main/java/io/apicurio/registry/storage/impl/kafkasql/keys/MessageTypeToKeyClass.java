@@ -1,5 +1,6 @@
 package io.apicurio.registry.storage.impl.kafkasql.keys;
 
+import io.apicurio.registry.exception.RuntimeAssertionFailedException;
 import io.apicurio.registry.storage.impl.kafkasql.MessageType;
 
 import java.util.HashMap;
@@ -63,8 +64,17 @@ public class MessageTypeToKeyClass {
                 case Comment:
                     index.put(type, CommentKey.class);
                     break;
+                case ArtifactBranch:
+                    index.put(type, ArtifactBranchKey.class);
+                    break;
+                case ArtifactRules:
+                    index.put(type, ArtifactRulesKey.class);
+                    break;
+                case GlobalRules:
+                    index.put(type, GlobalRulesKey.class);
+                    break;
                 default:
-                    throw new RuntimeException("[MessageTypeToKeyClass] Type not mapped: " + type);
+                    throw new RuntimeAssertionFailedException("[MessageTypeToKeyClass] Type not mapped: " + type);
             }
         }
     }

@@ -1,6 +1,6 @@
 package io.apicurio.registry.storage.error;
 
-public class ReadOnlyStorageException extends RegistryStorageException {
+public class ReadOnlyStorageException extends NotAllowedException {
 
     private static final long serialVersionUID = 3167774388141291585L;
 

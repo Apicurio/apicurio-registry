@@ -1,11 +1,6 @@
 package io.apicurio.registry.resolver;
 
 import com.microsoft.kiota.RequestAdapter;
-import com.microsoft.kiota.authentication.AnonymousAuthenticationProvider;
-import com.microsoft.kiota.authentication.BaseBearerTokenAuthenticationProvider;
-import com.microsoft.kiota.http.OkHttpRequestAdapter;
-import io.apicurio.registry.auth.BasicAuthenticationProvider;
-import io.apicurio.registry.auth.OidcAccessTokenProvider;
 import io.apicurio.registry.resolver.config.DefaultSchemaResolverConfig;
 import io.apicurio.registry.resolver.data.Record;
 import io.apicurio.registry.resolver.strategy.ArtifactReference;
@@ -15,6 +10,8 @@ import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.ArtifactMetaData;
 import io.apicurio.registry.rest.client.models.VersionMetaData;
 import io.apicurio.registry.utils.IoUtil;
+import io.apicurio.registry.client.auth.VertXAuthFactory;
+import io.kiota.http.vertx.VertXRequestAdapter;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -24,7 +21,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.ExecutionException;
+
+import static io.apicurio.registry.client.auth.VertXAuthFactory.buildOIDCWebClient;
+import static io.apicurio.registry.client.auth.VertXAuthFactory.buildSimpleAuthWebClient;
 
 /**
  * Base implementation of {@link SchemaResolver}
@@ -65,7 +64,7 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
                     if (username != null) {
                         client = configureClientWithBasicAuth(config, baseUrl, username);
                     } else {
-                        var adapter = new OkHttpRequestAdapter(new AnonymousAuthenticationProvider());
+                        var adapter = new VertXRequestAdapter(VertXAuthFactory.defaultVertx);
                         adapter.setBaseUrl(baseUrl);
                         client = new RegistryClient(adapter);
                     }
@@ -164,32 +163,23 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
             //TODO or at least add some method to the api to return the version metadata by globalId
 //            ArtifactMetaData artifactMetadata = client.getArtifactMetaData("TODO", artifactId);
 
-            InputStream rawSchema = null;
-            ParsedSchemaImpl<S> ps = null;
-            try {
-                rawSchema = client.ids().globalIds().byGlobalId(globalId).get(config -> {
+            InputStream rawSchema = client.ids().globalIds().byGlobalId(globalId).get(config -> {
                     config.headers.add("CANONICAL", "false");
                     config.headers.add("DEREFERENCE", "true");
-                }).get();
+                });
 
                 //Get the artifact references
-                final List<io.apicurio.registry.rest.client.models.ArtifactReference> artifactReferences = client.ids().globalIds().byGlobalId(globalId).references().get().get();
+                final List<io.apicurio.registry.rest.client.models.ArtifactReference> artifactReferences = client.ids().globalIds().byGlobalId(globalId).references().get();
                 //If there are any references for the schema being parsed, resolve them before parsing the schema
                 final Map<String, ParsedSchema<S>> resolvedReferences = resolveReferences(artifactReferences);
 
                 byte[] schema = IoUtil.toBytes(rawSchema);
                 S parsed = schemaParser.parseSchema(schema, resolvedReferences);
 
-                ps = new ParsedSchemaImpl<S>()
+            ParsedSchemaImpl<S> ps = new ParsedSchemaImpl<S>()
                         .setParsedSchema(parsed)
                         .setSchemaReferences(new ArrayList<>(resolvedReferences.values()))
                         .setRawSchema(schema);
-
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            } catch (ExecutionException e) {
-                throw new RuntimeException(e);
-            }
 
             SchemaLookupResult.SchemaLookupResultBuilder<S> result = SchemaLookupResult.builder();
 
@@ -207,30 +197,23 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
     protected Map<String, ParsedSchema<S>> resolveReferences(List<io.apicurio.registry.rest.client.models.ArtifactReference> artifactReferences) {
         Map<String, ParsedSchema<S>> resolvedReferences = new HashMap<>();
         artifactReferences.forEach(reference -> {
-            try {
-                final InputStream referenceContent = client.groups().byGroupId(reference.getGroupId() == null ? "default" : reference.getGroupId()).artifacts().byArtifactId(reference.getArtifactId()).versions().byVersion(reference.getVersion()).get().get();
-                final List<io.apicurio.registry.rest.client.models.ArtifactReference> referenceReferences = client
-                    .groups()
-                    .byGroupId(reference.getGroupId() == null ? "default" : reference.getGroupId()) // TODO verify the old logic: .pathParams(List.of(groupId == null ? "null" : groupId, artifactId, version)) GroupRequestsProvider.java
-                    .artifacts()
-                    .byArtifactId(reference.getArtifactId())
-                    .versions()
-                    .byVersion(reference.getVersion())
-                    .references()
-                    .get()
-                    .get();
+            final InputStream referenceContent = client.groups().byGroupId(reference.getGroupId() == null ? "default" : reference.getGroupId()).artifacts().byArtifactId(reference.getArtifactId()).versions().byVersionExpression(reference.getVersion()).get();
+            final List<io.apicurio.registry.rest.client.models.ArtifactReference> referenceReferences = client
+                .groups()
+                .byGroupId(reference.getGroupId() == null ? "default" : reference.getGroupId()) // TODO verify the old logic: .pathParams(List.of(groupId == null ? "null" : groupId, artifactId, version)) GroupRequestsProvider.java
+                .artifacts()
+                .byArtifactId(reference.getArtifactId())
+                .versions()
+                .byVersionExpression(reference.getVersion())
+                .references()
+                .get();
 
-                if (!referenceReferences.isEmpty()) {
-                    final Map<String, ParsedSchema<S>> nestedReferences = resolveReferences(referenceReferences);
-                    resolvedReferences.putAll(nestedReferences);
-                    resolvedReferences.put(reference.getName(), parseSchemaFromStream(reference.getName(), referenceContent, resolveReferences(referenceReferences)));
-                } else {
-                    resolvedReferences.put(reference.getName(), parseSchemaFromStream(reference.getName(), referenceContent, Collections.emptyMap()));
-                }
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            } catch (ExecutionException e) {
-                throw new RuntimeException(e);
+            if (!referenceReferences.isEmpty()) {
+                final Map<String, ParsedSchema<S>> nestedReferences = resolveReferences(referenceReferences);
+                resolvedReferences.putAll(nestedReferences);
+                resolvedReferences.put(reference.getName(), parseSchemaFromStream(reference.getName(), referenceContent, resolveReferences(referenceReferences)));
+            } else {
+                resolvedReferences.put(reference.getName(), parseSchemaFromStream(reference.getName(), referenceContent, Collections.emptyMap()));
             }
         });
         return resolvedReferences;
@@ -298,9 +281,7 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
 
         final String clientScope = config.getAuthClientScope();
 
-        RequestAdapter adapter = new OkHttpRequestAdapter(
-                new BaseBearerTokenAuthenticationProvider(
-                        new OidcAccessTokenProvider(tokenEndpoint, clientId, clientSecret, null, clientScope)));
+        RequestAdapter adapter = new VertXRequestAdapter(buildOIDCWebClient(tokenEndpoint, clientId, clientSecret, clientScope));
         return adapter;
     }
 
@@ -312,7 +293,7 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
             throw new IllegalArgumentException("Missing registry auth password, set " + SchemaResolverConfig.AUTH_PASSWORD);
         }
 
-        var adapter = new OkHttpRequestAdapter(new BasicAuthenticationProvider(username, password));
+        var adapter = new VertXRequestAdapter(buildSimpleAuthWebClient(username, password));
 
         adapter.setBaseUrl(registryUrl);
         return new RegistryClient(adapter);

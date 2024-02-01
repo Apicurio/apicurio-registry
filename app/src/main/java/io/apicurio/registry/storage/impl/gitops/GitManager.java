@@ -280,10 +280,6 @@ public class GitManager {
                         e.artifactType = content.getArtifactType();
                         e.contentId = content.getId();
 
-                        if (i == versions.size() - 1) {
-                            e.isLatest = true;
-                        }
-
                         log.debug("Importing {}", e);
                         state.getStorage().importArtifactVersion(e);
 

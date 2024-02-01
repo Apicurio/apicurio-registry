@@ -9,11 +9,12 @@ import {
     SearchInput,
     TextContent
 } from "@patternfly/react-core";
-import { Services } from "@services/services.ts";
 import { RootPageHeader } from "@app/components";
 import { ConfigurationProperty } from "@models/configurationProperty.model.ts";
 import { ConfigProperty, PageDataLoader, PageError, PageErrorHandler, toPageError } from "@app/pages";
 import { If, IfNotEmpty } from "@apicurio/common-ui-components";
+import { AdminService, useAdminService } from "@services/useAdminService.ts";
+import { AlertsService, useAlertsService } from "@services/useAlertsService.tsx";
 
 
 interface PropertyGroup {
@@ -76,8 +77,11 @@ export const SettingsPage: FunctionComponent<SettingsPageProps> = () => {
     const [filterValue, setFilterValue] = useState("");
     const [searchCriteria, setSearchCriteria] = useState("");
 
+    const admin: AdminService = useAdminService();
+    const alerts: AlertsService = useAlertsService();
+
     const createLoaders = async (): Promise<any> => {
-        return Services.getAdminService().listConfigurationProperties().then( properties => {
+        return admin.listConfigurationProperties().then( properties => {
             setProperties(properties);
             filterProperties(properties);
         }).catch(error => {
@@ -131,11 +135,11 @@ export const SettingsPage: FunctionComponent<SettingsPageProps> = () => {
 
     const onPropertyChange = (property: ConfigurationProperty, newValue: string): void => {
         property.value = newValue;
-        Services.getAdminService().setConfigurationProperty(property.name, newValue).then(() => {
+        admin.setConfigurationProperty(property.name, newValue).then(() => {
             // The property was updated successfully.  Update the UI to display all config
             // properties (the list may have changed by changing one of the values).
             createLoaders();
-            Services.getAlertsService().settingChanged(property, newValue);
+            alerts.settingChanged(property, newValue);
         }).catch(error => {
             // Failed to set the property... report the error somehow.
             setPageError(toPageError(error, "Error setting configuration property"));

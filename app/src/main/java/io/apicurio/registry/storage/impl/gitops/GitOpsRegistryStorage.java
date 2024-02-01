@@ -11,6 +11,9 @@ import io.apicurio.registry.storage.dto.*;
 import io.apicurio.registry.storage.error.RegistryStorageException;
 import io.apicurio.registry.storage.impl.gitops.sql.BlueSqlStorage;
 import io.apicurio.registry.storage.impl.gitops.sql.GreenSqlStorage;
+import io.apicurio.registry.model.BranchId;
+import io.apicurio.registry.model.GA;
+import io.apicurio.registry.model.GAV;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.impexp.Entity;
 import io.quarkus.scheduler.Scheduled;
@@ -493,7 +496,19 @@ public class GitOpsRegistryStorage extends AbstractReadOnlyRegistryStorage {
 
 
     @Override
-    public String normalizeVersion(String groupId, String artifactId, String version) {
-        return proxy(storage -> storage.normalizeVersion(groupId, artifactId, version));
+    public Map<BranchId, List<GAV>> getArtifactBranches(GA ga) {
+        return proxy(storage -> storage.getArtifactBranches(ga));
+    }
+
+
+    @Override
+    public GAV getArtifactBranchTip(GA ga, BranchId branchId, ArtifactRetrievalBehavior behavior) {
+        return proxy(storage -> storage.getArtifactBranchTip(ga, branchId, behavior));
+    }
+
+
+    @Override
+    public List<GAV> getArtifactBranch(GA ga, BranchId branchId, ArtifactRetrievalBehavior behavior) {
+        return proxy(storage -> storage.getArtifactBranch(ga, branchId, behavior));
     }
 }

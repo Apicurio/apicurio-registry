@@ -2,6 +2,12 @@ package io.apicurio.registry.storage.impl.kafkasql.sql;
 
 import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
 import io.apicurio.common.apps.logging.Logged;
+import io.apicurio.registry.exception.RuntimeAssertionFailedException;
+import io.apicurio.registry.exception.UnreachableCodeException;
+import io.apicurio.registry.model.BranchId;
+import io.apicurio.registry.model.GA;
+import io.apicurio.registry.model.GAV;
+import io.apicurio.registry.model.VersionId;
 import io.apicurio.registry.storage.dto.ArtifactOwnerDto;
 import io.apicurio.registry.storage.dto.GroupMetaDataDto;
 import io.apicurio.registry.storage.error.ArtifactAlreadyExistsException;
@@ -16,12 +22,7 @@ import io.apicurio.registry.storage.impl.kafkasql.values.*;
 import io.apicurio.registry.storage.impl.sql.IdGenerator;
 import io.apicurio.registry.storage.impl.sql.SqlRegistryStorage;
 import io.apicurio.registry.types.RegistryException;
-import io.apicurio.registry.utils.impexp.ArtifactRuleEntity;
-import io.apicurio.registry.utils.impexp.ArtifactVersionEntity;
-import io.apicurio.registry.utils.impexp.CommentEntity;
-import io.apicurio.registry.utils.impexp.ContentEntity;
-import io.apicurio.registry.utils.impexp.GlobalRuleEntity;
-import io.apicurio.registry.utils.impexp.GroupEntity;
+import io.apicurio.registry.utils.impexp.*;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.context.control.ActivateRequestContext;
 import jakarta.inject.Inject;
@@ -32,6 +33,8 @@ import org.slf4j.Logger;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Supplier;
+
+import static java.util.stream.Collectors.toList;
 
 @ApplicationScoped
 @Logged
@@ -75,7 +78,7 @@ public class KafkaSqlSink {
             coordinator.notifyResponse(requestId, e);
         } catch (Throwable e) {
             log.debug("Unexpected exception detected: {}", e.getMessage());
-            coordinator.notifyResponse(requestId, new RegistryException(e));
+            coordinator.notifyResponse(requestId, new RegistryException(e)); // TODO: Any exception (no wrapping)
         }
     }
 
@@ -114,35 +117,42 @@ public class KafkaSqlSink {
                 return processArtifactMessage((ArtifactKey) key, (ArtifactValue) value);
             case ArtifactRule:
                 return processArtifactRuleMessage((ArtifactRuleKey) key, (ArtifactRuleValue) value);
+            case ArtifactRules:
+                return processArtifactRulesMessage((ArtifactRulesKey) key, (ArtifactRulesValue) value);
             case ArtifactVersion:
-                return processArtifactVersion((ArtifactVersionKey) key, (ArtifactVersionValue) value);
+                return processArtifactVersionMessage((ArtifactVersionKey) key, (ArtifactVersionValue) value);
             case Content:
-                return processContent((ContentKey) key, (ContentValue) value);
+                return processContentMessage((ContentKey) key, (ContentValue) value);
             case GlobalRule:
-                return processGlobalRule((GlobalRuleKey) key, (GlobalRuleValue) value);
+                return processGlobalRuleMessage((GlobalRuleKey) key, (GlobalRuleValue) value);
+            case GlobalRules:
+                return processGlobalRulesMessage((GlobalRulesKey) key, (GlobalRulesValue) value);
             case GlobalId:
-                return processGlobalId((GlobalIdKey) key, (GlobalIdValue) value);
+                return processGlobalIdMessage((GlobalIdKey) key, (GlobalIdValue) value);
             case ContentId:
-                return processContentId((ContentIdKey) key, (ContentIdValue) value);
+                return processContentIdMessage((ContentIdKey) key, (ContentIdValue) value);
             case RoleMapping:
-                return processRoleMapping((RoleMappingKey) key, (RoleMappingValue) value);
+                return processRoleMappingMessage((RoleMappingKey) key, (RoleMappingValue) value);
             case GlobalAction:
-                return processGlobalAction((GlobalActionKey) key, (GlobalActionValue) value);
+                return processGlobalActionMessage((GlobalActionKey) key, (GlobalActionValue) value);
             case Download:
-                return processDownload((DownloadKey) key, (DownloadValue) value);
+                return processDownloadMessage((DownloadKey) key, (DownloadValue) value);
             case ConfigProperty:
-                return processConfigProperty((ConfigPropertyKey) key, (ConfigPropertyValue) value);
+                return processConfigPropertyMessage((ConfigPropertyKey) key, (ConfigPropertyValue) value);
             case ArtifactOwner:
                 return processArtifactOwnerMessage((ArtifactOwnerKey) key, (ArtifactOwnerValue) value);
             case CommentId:
-                return processCommentId((CommentIdKey) key, (CommentIdValue) value);
+                return processCommentIdMessage((CommentIdKey) key, (CommentIdValue) value);
             case Comment:
-                return processComment((CommentKey) key, (CommentValue) value);
-            default:
-                log.warn("Unrecognized message type: {}", record.key());
-                throw new RegistryStorageException("Unexpected message type: " + messageType.name());
+                return processCommentMessage((CommentKey) key, (CommentValue) value);
+            case ArtifactBranch:
+                return processArtifactBranchMessage((ArtifactBranchKey) key, (ArtifactBranchValue) value);
+            case Bootstrap:
+                throw new UnreachableCodeException();
         }
+        throw new UnreachableCodeException("Switch statement not exhaustive.");
     }
+
 
     /**
      * Process a Kafka message of type "globalaction".
@@ -150,7 +160,7 @@ public class KafkaSqlSink {
      * @param key
      * @param value
      */
-    private Object processGlobalAction(GlobalActionKey key, GlobalActionValue value) {
+    private Object processGlobalActionMessage(GlobalActionKey key, GlobalActionValue value) {
         switch (value.getAction()) {
             case DELETE_ALL_USER_DATA:
                 sqlStore.deleteAllUserData();
@@ -166,7 +176,7 @@ public class KafkaSqlSink {
      * @param key
      * @param value
      */
-    private Object processDownload(DownloadKey key, DownloadValue value) {
+    private Object processDownloadMessage(DownloadKey key, DownloadValue value) {
         switch (value.getAction()) {
             case CREATE:
                 return sqlStore.createDownload(value.getDownloadContext());
@@ -183,7 +193,7 @@ public class KafkaSqlSink {
      * @param key
      * @param value
      */
-    private Object processConfigProperty(ConfigPropertyKey key, ConfigPropertyValue value) {
+    private Object processConfigPropertyMessage(ConfigPropertyKey key, ConfigPropertyValue value) {
         switch (value.getAction()) {
             case UPDATE:
                 DynamicConfigPropertyDto dto = new DynamicConfigPropertyDto(key.getPropertyName(), value.getValue());
@@ -272,7 +282,7 @@ public class KafkaSqlSink {
                     entity.groupId = key.getGroupId();
                     entity.artifactId = key.getArtifactId();
                     entity.version = value.getVersion();
-                    entity.versionId = value.getVersionId();
+                    entity.versionOrder = value.getVersionOrder();
                     entity.artifactType = value.getArtifactType();
                     entity.state = value.getState();
                     entity.name = value.getMetaData().getName();
@@ -281,7 +291,6 @@ public class KafkaSqlSink {
                     entity.createdOn = value.getCreatedOn().getTime();
                     entity.labels = value.getMetaData().getLabels();
                     entity.properties = value.getMetaData().getProperties();
-                    entity.isLatest = value.getLatest();
                     entity.contentId = value.getContentId();
                     sqlStore.importArtifactVersion(entity);
                     return null;
@@ -330,6 +339,22 @@ public class KafkaSqlSink {
     }
 
     /**
+     * Process a Kafka message of type "artifact rules".  This includes deleting all artifact rules.
+     *
+     * @param key
+     * @param value
+     */
+    private Object processArtifactRulesMessage(ArtifactRulesKey key, ArtifactRulesValue value) {
+        switch (value.getAction()) {
+            case DELETE:
+                sqlStore.deleteArtifactRules(key.getGroupId(), key.getArtifactId());
+                return null;
+            default:
+                return unsupported(key, value);
+        }
+    }
+
+    /**
      * Process a Kafka message of type "artifact owner".  This includes updating the owner for
      * a specific artifact.
      *
@@ -356,7 +381,7 @@ public class KafkaSqlSink {
      * @param key
      * @param value
      */
-    private Object processArtifactVersion(ArtifactVersionKey key, ArtifactVersionValue value) {
+    private Object processArtifactVersionMessage(ArtifactVersionKey key, ArtifactVersionValue value) {
         switch (value.getAction()) {
             case UPDATE:
                 sqlStore.updateArtifactVersionMetaData(key.getGroupId(), key.getArtifactId(), key.getVersion(), value.getMetaData());
@@ -380,7 +405,7 @@ public class KafkaSqlSink {
      * @param key
      * @param value
      */
-    private Object processContent(ContentKey key, ContentValue value) {
+    private Object processContentMessage(ContentKey key, ContentValue value) {
         switch (value.getAction()) {
             case CREATE:
                 if (!sqlStore.isContentExists(key.getContentHash())) {
@@ -420,7 +445,7 @@ public class KafkaSqlSink {
      * @param key
      * @param value
      */
-    private Object processGlobalRule(GlobalRuleKey key, GlobalRuleValue value) {
+    private Object processGlobalRuleMessage(GlobalRuleKey key, GlobalRuleValue value) {
         switch (value.getAction()) {
             case CREATE:
                 sqlStore.createGlobalRule(key.getRuleType(), value.getConfig());
@@ -443,13 +468,29 @@ public class KafkaSqlSink {
     }
 
     /**
+     * Process a Kafka message of type "global rules".  This includes deleting all global rules.
+     *
+     * @param key
+     * @param value
+     */
+    private Object processGlobalRulesMessage(GlobalRulesKey key, GlobalRulesValue value) {
+        switch (value.getAction()) {
+            case DELETE:
+                sqlStore.deleteGlobalRules();
+                return null;
+            default:
+                return unsupported(key, value);
+        }
+    }
+
+    /**
      * Process a Kafka message of type "role mapping".  This includes creating, updating, and deleting
      * role mappings.
      *
      * @param key
      * @param value
      */
-    private Object processRoleMapping(RoleMappingKey key, RoleMappingValue value) {
+    private Object processRoleMappingMessage(RoleMappingKey key, RoleMappingValue value) {
         switch (value.getAction()) {
             case CREATE:
                 sqlStore.createRoleMapping(key.getPrincipalId(), value.getRole(), value.getPrincipalName());
@@ -479,7 +520,7 @@ public class KafkaSqlSink {
      * @param key
      * @param value
      */
-    private Object processGlobalId(GlobalIdKey key, GlobalIdValue value) {
+    private Object processGlobalIdMessage(GlobalIdKey key, GlobalIdValue value) {
         switch (value.getAction()) {
             case CREATE:
                 return sqlStore.nextGlobalId();
@@ -498,7 +539,7 @@ public class KafkaSqlSink {
      * @param key
      * @param value
      */
-    private Object processContentId(ContentIdKey key, ContentIdValue value) {
+    private Object processContentIdMessage(ContentIdKey key, ContentIdValue value) {
         switch (value.getAction()) {
             case CREATE:
                 return sqlStore.nextContentId();
@@ -517,7 +558,7 @@ public class KafkaSqlSink {
      * @param key
      * @param value
      */
-    private Object processCommentId(CommentIdKey key, CommentIdValue value) {
+    private Object processCommentIdMessage(CommentIdKey key, CommentIdValue value) {
         switch (value.getAction()) {
             case CREATE:
                 return sqlStore.nextCommentId();
@@ -533,7 +574,7 @@ public class KafkaSqlSink {
     private Object unsupported(MessageKey key, AbstractMessageValue value) {
         final String m = String.format("Unsupported action '%s' for message type '%s'", value.getAction(), key.getType().name());
         log.warn(m);
-        throw new RegistryStorageException(m);
+        throw new RuntimeAssertionFailedException(m);
     }
 
     /**
@@ -543,7 +584,7 @@ public class KafkaSqlSink {
      * @param key
      * @param value
      */
-    private Object processComment(CommentKey key, CommentValue value) {
+    private Object processCommentMessage(CommentKey key, CommentValue value) {
         switch (value.getAction()) {
             case CREATE:
                 return sqlStore.createArtifactVersionCommentRaw(key.getGroupId(), key.getArtifactId(), key.getVersion(),
@@ -569,4 +610,30 @@ public class KafkaSqlSink {
         }
     }
 
+
+    private Object processArtifactBranchMessage(ArtifactBranchKey key, ArtifactBranchValue value) {
+        switch (value.getAction()) {
+            case CREATE_OR_UPDATE:
+                sqlStore.createOrUpdateArtifactBranch(new GAV(key.getGroupId(), key.getArtifactId(), value.getVersion()), new BranchId(key.getBranchId()));
+                return null;
+            case CREATE_OR_REPLACE:
+                sqlStore.createOrReplaceArtifactBranch(new GA(key.getGroupId(), key.getArtifactId()), new BranchId(key.getBranchId()),
+                        value.getVersions().stream().map(VersionId::new).collect(toList()));
+                return null;
+            case DELETE:
+                sqlStore.deleteArtifactBranch(new GA(key.getGroupId(), key.getArtifactId()), new BranchId(key.getBranchId()));
+                return null;
+            case IMPORT:
+                sqlStore.importArtifactBranch(ArtifactBranchEntity.builder()
+                        .groupId(key.getGroupId())
+                        .artifactId(key.getArtifactId())
+                        .branchId(key.getBranchId())
+                        .version(value.getVersion())
+                        .branchOrder(value.getBranchOrder())
+                        .build());
+                return null;
+            default:
+                return unsupported(key, value);
+        }
+    }
 }

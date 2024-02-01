@@ -1,6 +1,6 @@
 package io.apicurio.registry.storage.impl.sql;
 
-import io.apicurio.registry.storage.error.RegistryStorageException;
+import io.apicurio.registry.storage.impl.sql.jdb.HandleAction;
 import io.apicurio.registry.storage.impl.sql.jdb.HandleCallback;
 
 public interface HandleFactory {
@@ -14,7 +14,7 @@ public interface HandleFactory {
      */
     <R, X extends Exception> R withHandle(HandleCallback<R, X> callback) throws X;
 
-    <R, X extends Exception> R withHandleNoException(HandleCallback<R, X> callback) throws RegistryStorageException;
+    <R, X extends Exception> R withHandleNoException(HandleCallback<R, X> callback);
 
-    // TODO Add "action" version of these that do not return a value
+    <X extends Exception> void withHandleNoException(HandleAction<X> callback);
 }

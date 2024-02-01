@@ -26,16 +26,17 @@ import {
     toPageError,
     UploadVersionForm
 } from "@app/pages";
-import { Services } from "@services/services.ts";
 import { ReferencesTabContent } from "@app/pages/artifactVersion/components/tabs/ReferencesTabContent.tsx";
 import { IfFeature, InvalidContentModal } from "@app/components";
 import { ChangeOwnerModal } from "@app/pages/artifactVersion/components/modals/ChangeOwnerModal.tsx";
 import { ContentTypes } from "@models/contentTypes.model.ts";
-import { ArtifactTypes } from "@models/artifactTypes.model.ts";
-import { CreateVersionData, EditableMetaData } from "@services/groups";
-import { AppNavigation, useAppNavigation } from "@hooks/useAppNavigation.ts";
 import { ApiError } from "@models/apiError.model.ts";
 import { PleaseWaitModal } from "@apicurio/common-ui-components";
+import { AppNavigation, useAppNavigation } from "@services/useAppNavigation.ts";
+import { LoggerService, useLoggerService } from "@services/useLoggerService.ts";
+import { CreateVersionData, EditableMetaData, GroupsService, useGroupsService } from "@services/useGroupsService.ts";
+import { DownloadService, useDownloadService } from "@services/useDownloadService.ts";
+import { ArtifactTypes } from "@services/useArtifactTypesService.ts";
 
 
 export type ArtifactVersionPageProps = {
@@ -83,6 +84,9 @@ export const ArtifactVersionPage: FunctionComponent<ArtifactVersionPageProps> = 
     const [versions, setVersions] = useState<SearchedVersion[]>([]);
 
     const appNavigation: AppNavigation = useAppNavigation();
+    const logger: LoggerService = useLoggerService();
+    const groups: GroupsService = useGroupsService();
+    const download: DownloadService = useDownloadService();
     const { groupId, artifactId, version }= useParams();
 
     const is404 = (e: any) => {
@@ -104,17 +108,17 @@ export const ArtifactVersionPage: FunctionComponent<ArtifactVersionPageProps> = 
         if (gid == "default") {
             gid = null;
         }
-        Services.getLoggerService().info("Loading data for artifact: ", artifactId);
+        logger.info("Loading data for artifact: ", artifactId);
         return [
-            Services.getGroupsService().getArtifactMetaData(gid, artifactId as string, version as string)
+            groups.getArtifactMetaData(gid, artifactId as string, version as string)
                 .then(setArtifact)
                 .catch(error => {
                     setPageError(toPageError(error, "Error loading page data."));
                 }),
-            Services.getGroupsService().getArtifactContent(gid, artifactId as string, version as string)
+            groups.getArtifactContent(gid, artifactId as string, version as string)
                 .then(setArtifactContent)
                 .catch(e => {
-                    Services.getLoggerService().warn("Failed to get artifact content: ", e);
+                    logger.warn("Failed to get artifact content: ", e);
                     if (is404(e)) {
                         setArtifactContent("Artifact version content not available (404 Not Found).");
                     } else {
@@ -122,12 +126,12 @@ export const ArtifactVersionPage: FunctionComponent<ArtifactVersionPageProps> = 
                         setPageError(pageError);
                     }
                 }),
-            Services.getGroupsService().getArtifactRules(gid, artifactId as string)
+            groups.getArtifactRules(gid, artifactId as string)
                 .then(setRules)
                 .catch(error => {
                     setPageError(toPageError(error, "Error loading page data."));
                 }),
-            Services.getGroupsService().getArtifactVersions(gid, artifactId as string)
+            groups.getArtifactVersions(gid, artifactId as string)
                 .then(versions => {
                     setVersions(versions.reverse());
                 })
@@ -159,28 +163,28 @@ export const ArtifactVersionPage: FunctionComponent<ArtifactVersionPageProps> = 
     };
 
     const doEnableRule = (ruleType: string): void => {
-        Services.getLoggerService().debug("[ArtifactVersionPage] Enabling rule:", ruleType);
+        logger.debug("[ArtifactVersionPage] Enabling rule:", ruleType);
         let config: string = "FULL";
         if (ruleType === "COMPATIBILITY") {
             config = "BACKWARD";
         }
-        Services.getGroupsService().createArtifactRule(groupId as string, artifactId as string, ruleType, config).catch(error => {
+        groups.createArtifactRule(groupId as string, artifactId as string, ruleType, config).catch(error => {
             setPageError(toPageError(error, `Error enabling "${ ruleType }" artifact rule.`));
         });
         setRules([...rules, { config, type: ruleType }]);
     };
 
     const doDisableRule = (ruleType: string): void => {
-        Services.getLoggerService().debug("[ArtifactVersionPage] Disabling rule:", ruleType);
-        Services.getGroupsService().deleteArtifactRule(groupId as string, artifactId as string, ruleType).catch(error => {
+        logger.debug("[ArtifactVersionPage] Disabling rule:", ruleType);
+        groups.deleteArtifactRule(groupId as string, artifactId as string, ruleType).catch(error => {
             setPageError(toPageError(error, `Error disabling "${ ruleType }" artifact rule.`));
         });
         setRules(rules.filter(r => r.type !== ruleType));
     };
 
     const doConfigureRule = (ruleType: string, config: string): void => {
-        Services.getLoggerService().debug("[ArtifactVersionPage] Configuring rule:", ruleType, config);
-        Services.getGroupsService().updateArtifactRule(groupId as string, artifactId as string, ruleType, config).catch(error => {
+        logger.debug("[ArtifactVersionPage] Configuring rule:", ruleType, config);
+        groups.updateArtifactRule(groupId as string, artifactId as string, ruleType, config).catch(error => {
             setPageError(toPageError(error, `Error configuring "${ ruleType }" artifact rule.`));
         });
         setRules(rules.map(r => {
@@ -219,7 +223,7 @@ export const ArtifactVersionPage: FunctionComponent<ArtifactVersionPageProps> = 
         }
 
         const fname: string = nameOrId() + "." + fext;
-        Services.getDownloaderService().downloadToFS(content, contentType, fname).catch(error => {
+        download.downloadToFS(content, contentType, fname).catch(error => {
             setPageError(toPageError(error, "Error downloading artifact content."));
         });
     };
@@ -272,10 +276,10 @@ export const ArtifactVersionPage: FunctionComponent<ArtifactVersionPageProps> = 
                 content: uploadFormData as string,
                 type: artifactType()
             };
-            Services.getGroupsService().createArtifactVersion(groupId as string, artifactId as string, data).then(versionMetaData => {
+            groups.createArtifactVersion(groupId as string, artifactId as string, data).then(versionMetaData => {
                 const groupId: string = versionMetaData.groupId ? versionMetaData.groupId : "default";
                 const artifactVersionLocation: string = `/artifacts/${ encodeURIComponent(groupId) }/${ encodeURIComponent(versionMetaData.id) }/versions/${versionMetaData.version}`;
-                Services.getLoggerService().info("[ArtifactVersionPage] Artifact version successfully uploaded.  Redirecting to details: ", artifactVersionLocation);
+                logger.info("[ArtifactVersionPage] Artifact version successfully uploaded.  Redirecting to details: ", artifactVersionLocation);
                 pleaseWait(false, "");
                 appNavigation.navigateTo(artifactVersionLocation);
             }).catch( error => {
@@ -294,7 +298,7 @@ export const ArtifactVersionPage: FunctionComponent<ArtifactVersionPageProps> = 
     const doDeleteArtifact = (): void => {
         onDeleteModalClose();
         pleaseWait(true, "Deleting artifact, please wait...");
-        Services.getGroupsService().deleteArtifact(groupId as string, artifactId as string).then( () => {
+        groups.deleteArtifact(groupId as string, artifactId as string).then( () => {
             pleaseWait(false, "");
             appNavigation.navigateTo("/artifacts");
         });
@@ -317,7 +321,7 @@ export const ArtifactVersionPage: FunctionComponent<ArtifactVersionPageProps> = 
     };
 
     const doEditMetaData = (metaData: EditableMetaData): void => {
-        Services.getGroupsService().updateArtifactMetaData(groupId as string, artifactId as string, version as string, metaData).then( () => {
+        groups.updateArtifactMetaData(groupId as string, artifactId as string, version as string, metaData).then( () => {
             if (artifact) {
                 setArtifact({
                     ...artifact,
@@ -331,7 +335,7 @@ export const ArtifactVersionPage: FunctionComponent<ArtifactVersionPageProps> = 
     };
 
     const doChangeOwner = (newOwner: string): void => {
-        Services.getGroupsService().updateArtifactOwner(groupId as string, artifactId as string, newOwner).then( () => {
+        groups.updateArtifactOwner(groupId as string, artifactId as string, newOwner).then( () => {
             if (artifact) {
                 setArtifact({
                     ...artifact,
@@ -354,7 +358,7 @@ export const ArtifactVersionPage: FunctionComponent<ArtifactVersionPageProps> = 
     };
 
     const handleInvalidContentError = (error: any): void => {
-        Services.getLoggerService().info("INVALID CONTENT ERROR", error);
+        logger.info("INVALID CONTENT ERROR", error);
         setInvalidContentError(error);
         setIsInvalidContentModalOpen(true);
     };

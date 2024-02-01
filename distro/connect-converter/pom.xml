@@ -36,7 +36,7 @@
         </dependency>
         <dependency>
             <groupId>io.apicurio</groupId>
-            <artifactId>apicurio-registry-client</artifactId>
+            <artifactId>apicurio-registry-java-sdk</artifactId>
         </dependency>
     </dependencies>
 

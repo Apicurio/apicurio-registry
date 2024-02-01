@@ -16,6 +16,8 @@
 
 package io.apicurio.registry.storage;
 
+import lombok.Getter;
+
 /**
  * @author eric.wittmann@gmail.com
  */
@@ -23,34 +25,37 @@ public class VersionNotFoundException extends ArtifactNotFoundException {
 
     private static final long serialVersionUID = 969959730600115392L;
 
-    private final String version;
+    @Getter
+    private String groupId;
 
-    /**
-     * Constructor.
-     */
+    @Getter
+    private String artifactId;
+
+    @Getter
+    private String version;
+
+    @Getter
+    private Long globalId;
+
+
+    public VersionNotFoundException(long globalId) {
+        this.globalId = globalId;
+    }
+
+
     public VersionNotFoundException(String groupId, String artifactId, String version) {
-        super(groupId, artifactId);
+        this.groupId = groupId;
+        this.artifactId = artifactId;
         this.version = version;
     }
 
-    public VersionNotFoundException(String groupId, String artifactId, String version, Throwable cause) {
-        super(groupId, artifactId, cause);
-        this.version = version;
-    }
-
-    /**
-     * @return the version
-     */
-    public String getVersion() {
-        return version;
-    }
-
-    /**
-     * @see java.lang.Throwable#getMessage()
-     */
     @Override
     public String getMessage() {
-        return "No version '" + this.version + "' found for artifact with ID '" + this.getArtifactId() + "' in group '" + getGroupId() + "'.";
+        if (globalId != null) {
+            return "No version with global ID '" + globalId + "' found.";
+        } else {
+            return "No version '" + version + "' found for artifact with ID '" + artifactId + "' " +
+                    "in group '" + groupId + "'.";
+        }
     }
-
 }

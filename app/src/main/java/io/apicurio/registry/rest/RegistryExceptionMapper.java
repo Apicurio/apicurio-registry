@@ -17,6 +17,8 @@
 package io.apicurio.registry.rest;
 
 import io.apicurio.registry.ccompat.rest.error.ErrorCode;
+import io.apicurio.registry.ccompat.rest.error.*;
+import io.apicurio.registry.ccompat.rest.error.ConflictException;
 import io.apicurio.registry.ccompat.rest.error.UnprocessableEntityException;
 import io.apicurio.registry.rest.v2.beans.Error;
 import io.apicurio.registry.rules.RuleViolationException;
@@ -27,8 +29,6 @@ import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
 import io.apicurio.registry.storage.ContentNotFoundException;
 import io.apicurio.registry.storage.VersionNotFoundException;
-import org.slf4j.Logger;
-
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.servlet.http.HttpServletRequest;
@@ -37,6 +37,8 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.ext.ExceptionMapper;
 import jakarta.ws.rs.ext.Provider;
+import org.slf4j.Logger;
+
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -73,6 +75,13 @@ public class RegistryExceptionMapper implements ExceptionMapper<Throwable> {
         map.put(RuleViolationException.class, ErrorCode.INVALID_COMPATIBILITY_LEVEL.value());
         map.put(VersionNotFoundException.class, ErrorCode.VERSION_NOT_FOUND.value());
         map.put(UnprocessableEntityException.class, ErrorCode.INVALID_SCHEMA.value());
+        map.put(ConflictException.class, HTTP_CONFLICT);
+        map.put(SubjectNotSoftDeletedException.class, ErrorCode.SUBJECT_NOT_SOFT_DELETED.value());
+        map.put(SchemaNotSoftDeletedException.class, ErrorCode.SCHEMA_VERSION_NOT_SOFT_DELETED.value());
+        map.put(SchemaSoftDeletedException.class, ErrorCode.SCHEMA_VERSION_SOFT_DELETED.value());
+        map.put(SubjectSoftDeletedException.class, ErrorCode.SUBJECT_SOFT_DELETED.value());
+        map.put(ReferenceExistsException.class, ErrorCode.REFERENCE_EXISTS.value());
+        map.put(SchemaNotFoundException.class, ErrorCode.SCHEMA_NOT_FOUND.value());
         CONFLUENT_CODE_MAP = Collections.unmodifiableMap(map);
     }
 

@@ -74,6 +74,7 @@ class RulesResourceConfluentIT extends ConfluentBaseIT {
         ConfluentConfigUtils.testCompatibility(wrap(invalid), schemeSubject, 422);
 
         confluentService.deleteSubject(schemeSubject);
+        confluentService.deleteSubject(schemeSubject, true);
         waitForSubjectDeleted(schemeSubject);
     }
 

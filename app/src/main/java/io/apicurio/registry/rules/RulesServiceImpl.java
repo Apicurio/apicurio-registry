@@ -66,7 +66,7 @@ public class RulesServiceImpl implements RulesService {
         }
         LazyContentList currentContent = null;
         if (ruleApplicationType == RuleApplicationType.UPDATE) {
-            currentContent = new LazyContentList(storage, storage.getArtifactContentIds(groupId, artifactId));
+            currentContent = new LazyContentList(storage, storage.getEnabledArtifactContentIds(groupId, artifactId));
         } else {
             currentContent = new LazyContentList(storage, Collections.emptyList());
         }
@@ -112,7 +112,7 @@ public class RulesServiceImpl implements RulesService {
             throws RuleViolationException {
         LazyContentList currentContent = null;
         if (ruleApplicationType == RuleApplicationType.UPDATE) {
-            currentContent = new LazyContentList(storage, storage.getArtifactContentIds(groupId, artifactId));
+            currentContent = new LazyContentList(storage, storage.getEnabledArtifactContentIds(groupId, artifactId));
         }
         applyRule(groupId, artifactId, artifactType, currentContent, artifactContent, ruleType, ruleConfiguration, 
                 references, resolvedReferences);

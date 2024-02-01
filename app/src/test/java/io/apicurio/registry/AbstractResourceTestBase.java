@@ -16,6 +16,7 @@
 
 package io.apicurio.registry;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.rest.client.AdminClient;
 import io.apicurio.registry.rest.client.AdminClientFactory;
 import io.apicurio.registry.rest.client.RegistryClient;
@@ -30,6 +31,7 @@ import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.rest.client.auth.Auth;
+import io.confluent.kafka.schemaregistry.client.rest.RestService;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 import io.restassured.parsing.Parser;
@@ -72,6 +74,9 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
     protected String registryV2ApiUrl;
     protected RegistryClient clientV2;
     protected AdminClient adminClientV2;
+    protected RestService confluentClient;
+
+    protected ObjectMapper objectMapper;
 
     @BeforeAll
     protected void beforeAll() throws Exception {
@@ -81,12 +86,18 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
         registryV2ApiUrl = registryApiBaseUrl + "/registry/v2";
         clientV2 = createRestClientV2();
         adminClientV2 = createAdminClientV2();
+        confluentClient = buildConfluentClient();
+        objectMapper = new ObjectMapper();
     }
 
     @AfterAll
     protected void afterAll() {
         //delete data to
         //storage.deleteAllUserData();
+    }
+
+    protected RestService buildConfluentClient() {
+        return new RestService("http://localhost:" + testPort + "/apis/ccompat/v7");
     }
 
     protected RegistryClient createRestClientV2() {

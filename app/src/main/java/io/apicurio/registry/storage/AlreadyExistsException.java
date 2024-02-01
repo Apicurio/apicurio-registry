@@ -29,6 +29,10 @@ public abstract class AlreadyExistsException extends StorageException {
     public AlreadyExistsException(Throwable cause) {
         super(cause);
     }
+
+    public AlreadyExistsException(String cause) {
+        super(cause);
+    }
     
     public AlreadyExistsException(String reason, Throwable cause) {
         super(reason, cause);

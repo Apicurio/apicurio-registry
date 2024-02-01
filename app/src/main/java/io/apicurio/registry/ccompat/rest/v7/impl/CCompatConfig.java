@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.ccompat.store;
+package io.apicurio.registry.ccompat.rest.v7.impl;
 
 import java.util.function.Supplier;
 
@@ -46,4 +46,16 @@ public class CCompatConfig {
     @Info(category = "ccompat", description = "Maximum number of Subjects returned (compatibility API)", availableSince = "2.4.2.Final")
     Supplier<Integer> maxSubjects;
 
+
+    public Supplier<Boolean> getCanonicalHashModeEnabled() {
+        return canonicalHashModeEnabled;
+    }
+
+    public Supplier<Boolean> getLegacyIdModeEnabled() {
+        return legacyIdModeEnabled;
+    }
+
+    public Supplier<Integer> getMaxSubjects() {
+        return maxSubjects;
+    }
 }

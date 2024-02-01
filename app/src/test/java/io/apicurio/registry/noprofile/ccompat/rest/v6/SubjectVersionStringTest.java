@@ -14,12 +14,13 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.ccompat.rest;
+package io.apicurio.registry.noprofile.ccompat.rest.v6;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.ccompat.dto.Schema;
 import io.apicurio.registry.ccompat.dto.SchemaContent;
+import io.apicurio.registry.ccompat.rest.ContentTypes;
 import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.common.mapper.TypeRef;
 import org.junit.jupiter.api.Assertions;
@@ -39,7 +40,7 @@ public class SubjectVersionStringTest extends AbstractResourceTestBase {
 
     @Test
     public void testSubjectVersionString() throws Exception {
-        var SUBJECT = "test-cecc8b42-5ef5-4eff-82a5-96c1889839f9";
+        var SUBJECT = "testSubjectVersionStringV6";
         var schema1 = "{\"type\" : \"string\"}";
         var schema2 = "{\"type\" : \"int\"}";
 

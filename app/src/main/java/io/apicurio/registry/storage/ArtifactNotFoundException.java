@@ -26,6 +26,10 @@ public class ArtifactNotFoundException extends NotFoundException {
     private String groupId;
     private String artifactId;
 
+    public ArtifactNotFoundException() {
+        super();
+    }
+
     /**
      * Constructor.
      * @param groupId

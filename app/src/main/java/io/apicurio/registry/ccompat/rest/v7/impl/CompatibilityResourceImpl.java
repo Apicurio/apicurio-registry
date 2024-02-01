@@ -22,11 +22,18 @@ import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
 import io.apicurio.registry.ccompat.dto.CompatibilityCheckResponse;
 import io.apicurio.registry.ccompat.dto.SchemaContent;
+import io.apicurio.registry.ccompat.rest.error.UnprocessableEntityException;
 import io.apicurio.registry.ccompat.rest.v7.CompatibilityResource;
+import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
-
+import io.apicurio.registry.rules.RuleViolationException;
+import io.apicurio.registry.rules.UnprocessableSchemaException;
+import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
 import jakarta.interceptor.Interceptors;
+
+import java.util.Collections;
+import java.util.List;
 
 /**
  * @author Carles Arnal
@@ -39,13 +46,43 @@ public class CompatibilityResourceImpl extends AbstractResource implements Compa
     @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Write)
     public CompatibilityCheckResponse testCompatibilityBySubjectName(String subject, SchemaContent request, Boolean verbose, String groupId) throws Exception {
         final boolean fverbose = verbose == null ? Boolean.FALSE : verbose;
-        return facade.testCompatibilityBySubjectName(subject, request, fverbose, groupId);
+        try {
+            final List<String> versions = storage.getArtifactVersions(groupId, subject);
+            for (String version : versions) {
+                final ArtifactVersionMetaDataDto artifactVersionMetaData = storage.getArtifactVersionMetaData(groupId, subject, version);
+                rulesService.applyRules(groupId, subject, version, artifactVersionMetaData.getType(), ContentHandle.create(request.getSchema()), Collections.emptyList(), Collections.emptyMap());
+            }
+            return CompatibilityCheckResponse.IS_COMPATIBLE;
+        } catch (RuleViolationException ex) {
+            if (fverbose) {
+                return new CompatibilityCheckResponse(false, ex.getMessage());
+            } else {
+                return CompatibilityCheckResponse.IS_NOT_COMPATIBLE;
+            }
+        } catch (UnprocessableSchemaException ex) {
+            throw new UnprocessableEntityException(ex.getMessage());
+        }
     }
 
     @Override
     @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Write)
-    public CompatibilityCheckResponse testCompatibilityByVersion(String subject, String version, SchemaContent request, Boolean verbose, String groupId) throws Exception {
+    public CompatibilityCheckResponse testCompatibilityByVersion(String subject, String versionString, SchemaContent request, Boolean verbose, String groupId) throws Exception {
         final boolean fverbose = verbose == null ? Boolean.FALSE : verbose;
-        return facade.testCompatibilityByVersion(subject, version, request, fverbose, groupId);
+
+        return parseVersionString(subject, versionString, groupId, v -> {
+            try {
+                final ArtifactVersionMetaDataDto artifact = storage.getArtifactVersionMetaData(groupId, subject, v);
+                rulesService.applyRules(groupId, subject, v, artifact.getType(), ContentHandle.create(request.getSchema()), Collections.emptyList(), Collections.emptyMap());
+                return CompatibilityCheckResponse.IS_COMPATIBLE;
+            } catch (RuleViolationException ex) {
+                if (fverbose) {
+                    return new CompatibilityCheckResponse(false, ex.getMessage());
+                } else {
+                    return CompatibilityCheckResponse.IS_NOT_COMPATIBLE;
+                }
+            } catch (UnprocessableSchemaException ex) {
+                throw new UnprocessableEntityException(ex.getMessage());
+            }
+        });
     }
 }

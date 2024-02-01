@@ -14,26 +14,26 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.noprofile.ccompat.rest.v6;
+package io.apicurio.registry.noprofile.ccompat.rest.v7;
+
+import io.apicurio.registry.AbstractResourceTestBase;
+import io.quarkus.test.junit.QuarkusTest;
+import jakarta.enterprise.inject.Typed;
+import org.junit.jupiter.api.Test;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.CoreMatchers.anything;
 
-import org.junit.jupiter.api.Test;
-
-import io.apicurio.registry.AbstractResourceTestBase;
-import io.quarkus.test.junit.QuarkusTest;
-
 @QuarkusTest
-public class SubjectsResourceTest extends AbstractResourceTestBase {
-
+@Typed(SubjectsResourceTestV7.class)
+public class SubjectsResourceTestV7 extends AbstractResourceTestBase {
     @Test
     public void testListSubjectsEndpoint() {
         given()
-            .when().contentType(CT_JSON).get("/ccompat/v6/subjects")
-            .then()
-            .statusCode(200)
-            .body(anything());
+                .when().contentType(CT_JSON).get("/ccompat/v7/subjects")
+                .then()
+                .statusCode(200)
+                .body(anything());
     }
-
 }
+

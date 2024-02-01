@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.ccompat;
+package io.apicurio.registry.noprofile.ccompat;
 
 import io.api.sample.TableNotification;
 import io.apicurio.registry.AbstractResourceTestBase;
@@ -38,7 +38,7 @@ public class ConfluentSerdeTest extends AbstractResourceTestBase {
     @Test
     public void testProtobufSchemaWithReferences() {
         Properties properties = new Properties();
-        String serverUrl = "http://localhost:%s/apis/ccompat/v6";
+        String serverUrl = "http://localhost:%s/apis/ccompat/v7";
         properties.setProperty(KafkaProtobufSerializerConfig.SCHEMA_REGISTRY_URL_CONFIG, String.format(serverUrl, testPort));
         properties.setProperty(KafkaProtobufSerializerConfig.AUTO_REGISTER_SCHEMAS, "true");
 

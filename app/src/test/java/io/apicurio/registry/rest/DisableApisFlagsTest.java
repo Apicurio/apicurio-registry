@@ -55,9 +55,9 @@ public class DisableApisFlagsTest extends AbstractResourceTestBase {
 
         assertTrue(matcherService.isDisabled("/apis/ibmcompat/v1/schemas"));
 
-        assertTrue(matcherService.isDisabled("/apis/ccompat/v6/subjects/abcfoo/versions"));
+        assertTrue(matcherService.isDisabled("/apis/ccompat/v7/subjects/abcfoo/versions"));
 
-        assertFalse(matcherService.isDisabled("/apis/ccompat/v6/subjects"));
+        assertFalse(matcherService.isDisabled("/apis/ccompat/v7/subjects"));
 
         assertTrue(matcherService.isDisabled("/ui/artifacts"));
     }
@@ -135,12 +135,12 @@ public class DisableApisFlagsTest extends AbstractResourceTestBase {
             .when()
                 .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
                 .body(CCompatTestConstants.SCHEMA_SIMPLE_WRAPPED)
-                .post("/ccompat/v6/subjects/{subject}/versions", UUID.randomUUID().toString())
+                .post("/ccompat/v7/subjects/{subject}/versions", UUID.randomUUID().toString())
             .then()
                 .statusCode(404);
 
         var req = given()
-            .when().contentType(CT_JSON).get("/ccompat/v6/subjects")
+            .when().contentType(CT_JSON).get("/ccompat/v7/subjects")
             .then();
         if (disabledDirectAccess) {
             req.statusCode(404);

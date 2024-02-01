@@ -229,7 +229,7 @@ public class MultitenancyNoAuthTest extends AbstractRegistryTestBase {
         final List<SchemaProvider> schemaProviders = Arrays
                 .asList(new JsonSchemaProvider(), new AvroSchemaProvider(), new ProtobufSchemaProvider());
 
-        return new CachedSchemaRegistryClient(new RestService(baseUrl + "/apis/ccompat/v6"), 3, schemaProviders, null, null);
+        return new CachedSchemaRegistryClient(new RestService(baseUrl + "/apis/ccompat/v7"), 3, schemaProviders, null, null);
     }
 
 }

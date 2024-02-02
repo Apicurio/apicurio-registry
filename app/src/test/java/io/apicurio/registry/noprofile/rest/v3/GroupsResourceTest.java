@@ -1885,7 +1885,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
     }
 
     @Test
-    public void testPropertyValueNotNull() throws Exception {
+    public void testLabelWithNullValue() throws Exception {
         String group = UUID.randomUUID().toString();
         String artifactContent = resourceToString("openapi-empty.json");
 
@@ -1894,14 +1894,14 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         String artifactId = "Empty-" + idx;
         this.createArtifact(group, artifactId, ArtifactType.OPENAPI, artifactContent.replaceAll("Empty API", title));
 
-        Map<String, String> props = new HashMap<>();
-        props.put("test-key", null);
+        Map<String, String> labels = new HashMap<>();
+        labels.put("test-key", null);
 
         // Update the artifact meta-data
         EditableMetaData metaData = new EditableMetaData();
         metaData.setName(title);
         metaData.setDescription("Some description of an API");
-        metaData.setProperties(props);
+        metaData.setLabels(labels);
         given()
                 .when()
                 .contentType(CT_JSON)
@@ -1910,7 +1910,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .body(metaData)
                 .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/meta")
                 .then()
-                .statusCode(400);
+                .statusCode(200);
 
     }
 

@@ -23,8 +23,12 @@ public class SearchFilter {
         this.value = value;
     }
 
-    public static SearchFilter ofProperty(String propertyKey, String propertyValue) {
-        return new SearchFilter(SearchFilterType.properties, Pair.<String, String>of(propertyKey, propertyValue));
+    public static SearchFilter ofLabel(String propertyKey, String propertyValue) {
+        return new SearchFilter(SearchFilterType.labels, Pair.<String, String>of(propertyKey, propertyValue));
+    }
+
+    public static SearchFilter ofLabel(String propertyKey) {
+        return new SearchFilter(SearchFilterType.labels, Pair.<String, String>of(propertyKey, null));
     }
 
     public static SearchFilter ofGlobalId(Long value) {
@@ -45,10 +49,6 @@ public class SearchFilter {
 
     public static SearchFilter ofGroup(String value) {
         return new SearchFilter(SearchFilterType.group, value);
-    }
-
-    public static SearchFilter ofLabel(String value) {
-        return new SearchFilter(SearchFilterType.labels, value);
     }
 
     public static SearchFilter ofCanonicalHash(String value) {

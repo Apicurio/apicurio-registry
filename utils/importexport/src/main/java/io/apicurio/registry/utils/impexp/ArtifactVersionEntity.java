@@ -1,18 +1,18 @@
 package io.apicurio.registry.utils.impexp;
 
+import static lombok.AccessLevel.PRIVATE;
+
+import java.util.Map;
+
 import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import io.apicurio.registry.types.ArtifactState;
 import io.quarkus.runtime.annotations.RegisterForReflection;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
-
-import java.util.List;
-import java.util.Map;
-
-import static lombok.AccessLevel.PRIVATE;
 
 @Builder
 @NoArgsConstructor
@@ -36,8 +36,7 @@ public class ArtifactVersionEntity extends Entity {
     public String description;
     public String createdBy;
     public long createdOn;
-    public List<String> labels;
-    public Map<String, String> properties;
+    public Map<String, String> labels;
     public long contentId;
 
     /**

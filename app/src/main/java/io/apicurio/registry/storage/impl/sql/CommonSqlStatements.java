@@ -132,10 +132,10 @@ public abstract class CommonSqlStatements implements SqlStatements {
         // TODO: Use COALESCE to unify into a single query.
         String query;
         if (firstVersion) {
-            query = "INSERT INTO versions (globalId, groupId, artifactId, version, versionOrder, state, name, description, createdBy, createdOn, labels, properties, contentId) VALUES (?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?)";
+            query = "INSERT INTO versions (globalId, groupId, artifactId, version, versionOrder, state, name, description, createdBy, createdOn, labels, contentId) VALUES (?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?)";
         } else {
             // NOTE: Duplicated value of versionOrder is prevented by UQ_versions_2 constraint.
-            query = "INSERT INTO versions (globalId, groupId, artifactId, version, versionOrder, state, name, description, createdBy, createdOn, labels, properties, contentId) VALUES (?, ?, ?, ?, (SELECT MAX(versionOrder) + 1 FROM versions WHERE groupId = ? AND artifactId = ?), ?, ?, ?, ?, ?, ?, ?, ?)";
+            query = "INSERT INTO versions (globalId, groupId, artifactId, version, versionOrder, state, name, description, createdBy, createdOn, labels, contentId) VALUES (?, ?, ?, ?, (SELECT MAX(versionOrder) + 1 FROM versions WHERE groupId = ? AND artifactId = ?), ?, ?, ?, ?, ?, ?, ?)";
         }
         return query;
     }
@@ -324,7 +324,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String updateArtifactVersionMetaData() {
-        return "UPDATE versions SET name = ?, description = ?, labels = ?, properties = ? WHERE groupId = ? AND artifactId = ? AND version = ?";
+        return "UPDATE versions SET name = ?, description = ?, labels = ? WHERE groupId = ? AND artifactId = ? AND version = ?";
     }
 
     /**
@@ -482,21 +482,28 @@ public abstract class CommonSqlStatements implements SqlStatements {
     }
 
     /**
-     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#insertLabel()
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#insertVersionLabel()
      */
     @Override
-    public String insertLabel() {
-        return "INSERT INTO labels (globalId, label) VALUES (?, ?)";
+    public String insertVersionLabel() {
+        return "INSERT INTO version_labels (globalId, pkey, pvalue) VALUES (?, ?, ?)";
     }
 
     /**
-     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#insertProperty()
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#insertArtifactLabel()
      */
     @Override
-    public String insertProperty() {
-        return "INSERT INTO properties (globalId, pkey, pvalue) VALUES (?, ?, ?)";
+    public String insertArtifactLabel() {
+        return "INSERT INTO artifact_labels (globalId, pkey, pvalue) VALUES (?, ?, ?)";
     }
-
+    
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#insertGroupLabel()
+     */
+    @Override
+    public String insertGroupLabel() {
+        return "INSERT INTO group_labels (globalId, pkey, pvalue) VALUES (?, ?, ?)";
+    }
 
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectAllArtifactVersions()
@@ -737,8 +744,8 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String importArtifactVersion() {
-        return "INSERT INTO versions (globalId, groupId, artifactId, version, versionOrder, state, name, description, createdBy, createdOn, labels, properties, contentId) "
-                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        return "INSERT INTO versions (globalId, groupId, artifactId, version, versionOrder, state, name, description, createdBy, createdOn, labels, contentId) "
+                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
     }
 
     /**

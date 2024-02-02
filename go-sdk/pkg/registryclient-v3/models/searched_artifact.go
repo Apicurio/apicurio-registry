@@ -19,8 +19,6 @@ type SearchedArtifact struct {
 	groupId *string
 	// The ID of a single artifact.
 	id *string
-	// The labels property
-	labels []string
 	// The modifiedBy property
 	modifiedBy *string
 	// The modifiedOn property
@@ -118,22 +116,6 @@ func (m *SearchedArtifact) GetFieldDeserializers() map[string]func(i878a80d2330e
 		}
 		return nil
 	}
-	res["labels"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
-		val, err := n.GetCollectionOfPrimitiveValues("string")
-		if err != nil {
-			return err
-		}
-		if val != nil {
-			res := make([]string, len(val))
-			for i, v := range val {
-				if v != nil {
-					res[i] = *(v.(*string))
-				}
-			}
-			m.SetLabels(res)
-		}
-		return nil
-	}
 	res["modifiedBy"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
 		val, err := n.GetStringValue()
 		if err != nil {
@@ -197,11 +179,6 @@ func (m *SearchedArtifact) GetId() *string {
 	return m.id
 }
 
-// GetLabels gets the labels property value. The labels property
-func (m *SearchedArtifact) GetLabels() []string {
-	return m.labels
-}
-
 // GetModifiedBy gets the modifiedBy property value. The modifiedBy property
 func (m *SearchedArtifact) GetModifiedBy() *string {
 	return m.modifiedBy
@@ -255,12 +232,6 @@ func (m *SearchedArtifact) Serialize(writer i878a80d2330e89d26896388a3f487eef27b
 	}
 	{
 		err := writer.WriteStringValue("id", m.GetId())
-		if err != nil {
-			return err
-		}
-	}
-	if m.GetLabels() != nil {
-		err := writer.WriteCollectionOfStringValues("labels", m.GetLabels())
 		if err != nil {
 			return err
 		}
@@ -335,11 +306,6 @@ func (m *SearchedArtifact) SetId(value *string) {
 	m.id = value
 }
 
-// SetLabels sets the labels property value. The labels property
-func (m *SearchedArtifact) SetLabels(value []string) {
-	m.labels = value
-}
-
 // SetModifiedBy sets the modifiedBy property value. The modifiedBy property
 func (m *SearchedArtifact) SetModifiedBy(value *string) {
 	m.modifiedBy = value
@@ -374,7 +340,6 @@ type SearchedArtifactable interface {
 	GetDescription() *string
 	GetGroupId() *string
 	GetId() *string
-	GetLabels() []string
 	GetModifiedBy() *string
 	GetModifiedOn() *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time
 	GetName() *string
@@ -385,7 +350,6 @@ type SearchedArtifactable interface {
 	SetDescription(value *string)
 	SetGroupId(value *string)
 	SetId(value *string)
-	SetLabels(value []string)
 	SetModifiedBy(value *string)
 	SetModifiedOn(value *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time)
 	SetName(value *string)

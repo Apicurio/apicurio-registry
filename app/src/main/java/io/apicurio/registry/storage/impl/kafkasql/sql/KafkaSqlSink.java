@@ -286,7 +286,6 @@ public class KafkaSqlSink {
                     entity.createdBy = value.getCreatedBy();
                     entity.createdOn = value.getCreatedOn().getTime();
                     entity.labels = value.getMetaData().getLabels();
-                    entity.properties = value.getMetaData().getProperties();
                     entity.contentId = value.getContentId();
                     sqlStore.importArtifactVersion(entity);
                     return null;

@@ -85,6 +85,9 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
     @Inject
     CommonResourceOperations common;
+    
+    @Inject
+    io.apicurio.registry.rest.v3.GroupsResourceImpl v3;
 
     /**
      * @see io.apicurio.registry.rest.v2.GroupsResource#getLatestArtifact(java.lang.String, java.lang.String, io.apicurio.registry.rest.v2.beans.HandleReferencesType)
@@ -208,19 +211,11 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Audited(extractParameters = {"0", KEY_GROUP_ID, "1", KEY_ARTIFACT_ID, "2", KEY_EDITABLE_METADATA})
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
     public void updateArtifactMetaData(String groupId, String artifactId, EditableMetaData data) {
-        requireParameter("groupId", groupId);
-        requireParameter("artifactId", artifactId);
-
-        if (data.getProperties() != null) {
-            data.getProperties().forEach((k, v) -> requireParameter("property value", v));
-        }
-
-        EditableArtifactMetaDataDto dto = new EditableArtifactMetaDataDto();
-        dto.setName(data.getName());
-        dto.setDescription(data.getDescription());
-        dto.setLabels(data.getLabels());
-        dto.setProperties(data.getProperties());
-        storage.updateArtifactMetaData(defaultGroupIdToNull(groupId), artifactId, dto);
+        v3.updateArtifactMetaData(groupId, artifactId, io.apicurio.registry.rest.v3.beans.EditableMetaData.builder()
+                .description(data.getDescription())
+                .labels(data.getProperties())
+                .name(data.getName())
+                .build());
     }
 
     @Override
@@ -543,18 +538,11 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Audited(extractParameters = {"0", KEY_GROUP_ID, "1", KEY_ARTIFACT_ID, "2", KEY_VERSION, "3", KEY_EDITABLE_METADATA})
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
     public void updateArtifactVersionMetaData(String groupId, String artifactId, String version, EditableMetaData data) {
-        requireParameter("groupId", groupId);
-        requireParameter("artifactId", artifactId);
-        requireParameter("version", version);
-        if (data.getProperties() != null) {
-            data.getProperties().forEach((k, v) -> requireParameter("property value", v));
-        }
-        EditableArtifactMetaDataDto dto = new EditableArtifactMetaDataDto();
-        dto.setName(data.getName());
-        dto.setDescription(data.getDescription());
-        dto.setLabels(data.getLabels());
-        dto.setProperties(data.getProperties());
-        storage.updateArtifactVersionMetaData(defaultGroupIdToNull(groupId), artifactId, version, dto);
+        v3.updateArtifactVersionMetaData(groupId, artifactId, version, io.apicurio.registry.rest.v3.beans.EditableMetaData.builder()
+                .description(data.getDescription())
+                .labels(data.getProperties())
+                .name(data.getName())
+                .build());
     }
 
     /**
@@ -1093,7 +1081,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
     private EditableArtifactMetaDataDto getEditableMetaData(String name, String description) {
         if (name != null || description != null) {
-            return new EditableArtifactMetaDataDto(name, description, null, null);
+            return new EditableArtifactMetaDataDto(name, description, null);
         }
         return null;
     }

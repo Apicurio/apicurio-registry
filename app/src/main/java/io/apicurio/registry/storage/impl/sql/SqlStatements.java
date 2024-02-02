@@ -353,14 +353,19 @@ public interface SqlStatements {
     public String deleteVersion();
 
     /**
-     * A statement to insert a row in the "labels" table.
+     * A statement to insert a row in the "group_labels" table.
      */
-    public String insertLabel();
+    public String insertGroupLabel();
 
     /**
-     * A statement to insert a row in the "properties" table.
+     * A statement to insert a row in the "artifact_labels" table.
      */
-    public String insertProperty();
+    public String insertArtifactLabel();
+
+    /**
+     * A statement to insert a row in the "version_labels" table.
+     */
+    public String insertVersionLabel();
 
     /**
      * A statement to insert a row in the "references" table.

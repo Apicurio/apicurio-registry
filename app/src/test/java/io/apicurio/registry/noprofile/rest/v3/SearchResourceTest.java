@@ -3,9 +3,7 @@ package io.apicurio.registry.noprofile.rest.v3;
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.equalTo;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -111,9 +109,10 @@ public class SearchResourceTest extends AbstractResourceTestBase {
             String artifactId = "Empty-" + idx;
             this.createArtifact(group, artifactId, ArtifactType.OPENAPI, artifactContent.replaceAll("Empty API", title));
 
-            List<String> labels = new ArrayList<>(2);
-            labels.add("testSearchByLabels");
-            labels.add("testSearchByLabels-" + idx);
+            Map<String, String> labels = new HashMap<>();
+            labels.put("all-key", "all-value");
+            labels.put("key-" + idx, "value-" + idx);
+            labels.put("another-key-" + idx, "another-value-" + idx);
 
             // Update the artifact meta-data
             EditableMetaData metaData = new EditableMetaData();
@@ -134,7 +133,7 @@ public class SearchResourceTest extends AbstractResourceTestBase {
         TestUtils.retry(() -> {
             given()
                 .when()
-                    .queryParam("labels", "testSearchByLabels")
+                    .queryParam("labels", "all-key:all-value")
                     .get("/registry/v3/search/artifacts")
                 .then()
                     .statusCode(200)
@@ -144,60 +143,7 @@ public class SearchResourceTest extends AbstractResourceTestBase {
         TestUtils.retry(() -> {
             given()
                 .when()
-                    .queryParam("labels", "testSearchByLabels-2")
-                    .get("/registry/v3/search/artifacts")
-                .then()
-                    .statusCode(200)
-                    .body("count", equalTo(1));
-        });
-    }
-
-    @Test
-    public void testSearchByProperties() throws Exception {
-        String group = UUID.randomUUID().toString();
-        String artifactContent = resourceToString("openapi-empty.json");
-
-        // Create 5 artifacts with various properties
-        for (int idx = 0; idx < 5; idx++) {
-            String title = "Empty API " + idx;
-            String artifactId = "Empty-" + idx;
-            this.createArtifact(group, artifactId, ArtifactType.OPENAPI, artifactContent.replaceAll("Empty API", title));
-
-            Map<String, String> props = new HashMap<>();
-            props.put("all-key", "all-value");
-            props.put("key-" + idx, "value-" + idx);
-            props.put("another-key-" + idx, "another-value-" + idx);
-
-            // Update the artifact meta-data
-            EditableMetaData metaData = new EditableMetaData();
-            metaData.setName(title);
-            metaData.setDescription("Some description of an API");
-            metaData.setProperties(props);
-            given()
-                .when()
-                    .contentType(CT_JSON)
-                    .pathParam("groupId", group)
-                    .pathParam("artifactId", artifactId)
-                    .body(metaData)
-                    .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/meta")
-                .then()
-                    .statusCode(204);
-        }
-
-        TestUtils.retry(() -> {
-            given()
-                .when()
-                    .queryParam("properties", "all-key:all-value")
-                    .get("/registry/v3/search/artifacts")
-                .then()
-                    .statusCode(200)
-                    .body("count", equalTo(5));
-        });
-
-        TestUtils.retry(() -> {
-            given()
-                .when()
-                    .queryParam("properties", "key-1:value-1")
+                    .queryParam("labels", "key-1:value-1")
                     .get("/registry/v3/search/artifacts")
                 .then()
                     .statusCode(200)
@@ -207,8 +153,8 @@ public class SearchResourceTest extends AbstractResourceTestBase {
         TestUtils.retry(() -> {
             given()
                 .when()
-                    .queryParam("properties", "key-1:value-1")
-                    .queryParam("properties", "another-key-1:another-value-1")
+                    .queryParam("labels", "key-1:value-1")
+                    .queryParam("labels", "another-key-1:another-value-1")
                     .get("/registry/v3/search/artifacts")
                 .then()
                     .statusCode(200)
@@ -219,8 +165,8 @@ public class SearchResourceTest extends AbstractResourceTestBase {
         TestUtils.retry(() -> {
             given()
                 .when()
-                    .queryParam("properties", "key-1:value-1")
-                    .queryParam("properties", "key-2:value-2")
+                    .queryParam("labels", "key-1:value-1")
+                    .queryParam("labels", "key-2:value-2")
                     .get("/registry/v3/search/artifacts")
                 .then()
                     .statusCode(200)
@@ -229,7 +175,7 @@ public class SearchResourceTest extends AbstractResourceTestBase {
         TestUtils.retry(() -> {
             given()
                 .when()
-                    .queryParam("properties", "key-1:value-1:")
+                    .queryParam("labels", "key-1:value-1:")
                     .get("/registry/v3/search/artifacts")
                 .then()
                     .statusCode(200)
@@ -238,7 +184,7 @@ public class SearchResourceTest extends AbstractResourceTestBase {
         TestUtils.retry(() -> {
             given()
                 .when()
-                    .queryParam("properties", "key-1:")
+                    .queryParam("labels", "key-1:")
                     .get("/registry/v3/search/artifacts")
                 .then()
                     .statusCode(400);
@@ -246,7 +192,7 @@ public class SearchResourceTest extends AbstractResourceTestBase {
         TestUtils.retry(() -> {
             given()
                 .when()
-                    .queryParam("properties", ":value-1")
+                    .queryParam("labels", ":value-1")
                     .get("/registry/v3/search/artifacts")
                 .then()
                     .statusCode(400);
@@ -258,23 +204,23 @@ public class SearchResourceTest extends AbstractResourceTestBase {
         String group = UUID.randomUUID().toString();
         String artifactContent = resourceToString("openapi-empty.json");
 
-        // Create 5 artifacts with various properties
+        // Create 5 artifacts with various labels
         for (int idx = 0; idx < 5; idx++) {
             String title = "Empty API " + idx;
             String artifactId = "Empty-" + idx;
             this.createArtifact(group, artifactId, ArtifactType.OPENAPI, artifactContent.replaceAll("Empty API", title));
 
-            Map<String, String> props = new HashMap<>();
-            props.put("all-key", "lorem ipsum");
-            props.put("a-key-" + idx, "lorem ipsum");
-            props.put("an-another-key-" + idx, "lorem ipsum");
-            props.put("extra-key-" + (idx % 2), "lorem ipsum");
+            Map<String, String> labels = new HashMap<>();
+            labels.put("all-key", "lorem ipsum");
+            labels.put("a-key-" + idx, "lorem ipsum");
+            labels.put("an-another-key-" + idx, "lorem ipsum");
+            labels.put("extra-key-" + (idx % 2), "lorem ipsum");
 
             // Update the artifact meta-data
             EditableMetaData metaData = new EditableMetaData();
             metaData.setName(title);
             metaData.setDescription("Some description of an API");
-            metaData.setProperties(props);
+            metaData.setLabels(labels);
             given()
                     .when()
                     .contentType(CT_JSON)
@@ -288,7 +234,7 @@ public class SearchResourceTest extends AbstractResourceTestBase {
         TestUtils.retry(() -> {
             given()
                     .when()
-                    .queryParam("properties", "all-key")
+                    .queryParam("labels", "all-key")
                     .get("/registry/v3/search/artifacts")
                     .then()
                     .statusCode(200)
@@ -297,7 +243,7 @@ public class SearchResourceTest extends AbstractResourceTestBase {
         TestUtils.retry(() -> {
             given()
                     .when()
-                    .queryParam("properties", "a-key-1")
+                    .queryParam("labels", "a-key-1")
                     .get("/registry/v3/search/artifacts")
                     .then()
                     .statusCode(200)
@@ -306,7 +252,7 @@ public class SearchResourceTest extends AbstractResourceTestBase {
         TestUtils.retry(() -> {
             given()
                     .when()
-                    .queryParam("properties", "extra-key-0")
+                    .queryParam("labels", "extra-key-0")
                     .get("/registry/v3/search/artifacts")
                     .then()
                     .statusCode(200)
@@ -315,7 +261,7 @@ public class SearchResourceTest extends AbstractResourceTestBase {
         TestUtils.retry(() -> {
             given()
                     .when()
-                    .queryParam("properties", "extra-key-2")
+                    .queryParam("labels", "extra-key-2")
                     .get("/registry/v3/search/artifacts")
                     .then()
                     .statusCode(200)
@@ -324,7 +270,7 @@ public class SearchResourceTest extends AbstractResourceTestBase {
         TestUtils.retry(() -> {
             given()
                     .when()
-                    .queryParam("properties", ":all-key")
+                    .queryParam("labels", ":all-key")
                     .get("/registry/v3/search/artifacts")
                     .then()
                     .statusCode(400);
@@ -332,7 +278,7 @@ public class SearchResourceTest extends AbstractResourceTestBase {
         TestUtils.retry(() -> {
             given()
                     .when()
-                    .queryParam("properties", "all-key:")
+                    .queryParam("labels", "all-key:")
                     .get("/registry/v3/search/artifacts")
                     .then()
                     .statusCode(400);

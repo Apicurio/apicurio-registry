@@ -47,7 +47,7 @@ import static io.apicurio.registry.storage.RegistryStorage.ArtifactRetrievalBeha
 public class SchemagroupsResourceImpl implements SchemagroupsResource {
 
     private static final Integer GET_GROUPS_LIMIT = 1000;
-    private static final String PROP_CONTENT_TYPE = "x-content-type";
+    private static final String LABEL_CONTENT_TYPE = "x-content-type";
 
     @Inject
     @Current
@@ -142,7 +142,7 @@ public class SchemagroupsResourceImpl implements SchemagroupsResource {
         StoredArtifactDto artifact = storage.getArtifact(groupId, schemaId);
 
         ArtifactMetaDataDto metadata = storage.getArtifactMetaData(groupId, schemaId);
-        String contentType = metadata.getProperties().get(PROP_CONTENT_TYPE);
+        String contentType = metadata.getLabels().get(LABEL_CONTENT_TYPE);
 
         return Response.ok(artifact.getContent(), contentType).build();
     }
@@ -184,7 +184,7 @@ public class SchemagroupsResourceImpl implements SchemagroupsResource {
 
         //spec says: The ´Content-Type´ for the payload MUST be preserved by the registry and returned when the schema is requested, independent of the format identifier.
         EditableArtifactMetaDataDto metadata = new EditableArtifactMetaDataDto();
-        metadata.setProperties(Map.of(PROP_CONTENT_TYPE, request.getContentType()));
+        metadata.setLabels(Map.of(LABEL_CONTENT_TYPE, request.getContentType()));
 
         ArtifactMetaDataDto res;
         try {
@@ -232,7 +232,7 @@ public class SchemagroupsResourceImpl implements SchemagroupsResource {
         StoredArtifactDto artifact = storage.getArtifactVersion(groupId, schemaId, VersionUtil.toString(versionNumber));
 
         ArtifactVersionMetaDataDto metadata = storage.getArtifactVersionMetaData(groupId, schemaId, VersionUtil.toString(versionNumber));
-        String contentType = metadata.getProperties().get(PROP_CONTENT_TYPE);
+        String contentType = metadata.getLabels().get(LABEL_CONTENT_TYPE);
 
         return Response.ok(artifact.getContent(), contentType).build();
     }

@@ -99,7 +99,6 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         Assertions.assertEquals("Empty API", dto.getName());
         Assertions.assertEquals("An example API design using OpenAPI.", dto.getDescription());
         Assertions.assertNull(dto.getLabels());
-        Assertions.assertNull(dto.getProperties());
         Assertions.assertEquals(ArtifactState.ENABLED, dto.getState());
         Assertions.assertEquals("1", dto.getVersion());
 
@@ -117,7 +116,6 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         Assertions.assertEquals(ArtifactState.ENABLED, amdDto.getState());
         Assertions.assertEquals("1", amdDto.getVersion());
         Assertions.assertNull(amdDto.getLabels());
-        Assertions.assertNull(amdDto.getProperties());
 
         ArtifactVersionMetaDataDto versionMetaDataDto = storage().getArtifactVersionMetaData(GROUP_ID, artifactId, "1");
         Assertions.assertNotNull(versionMetaDataDto);
@@ -149,7 +147,7 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         String artifactId = "testCreateArtifactWithMetaData-1";
         ContentHandle content = ContentHandle.create(OPENAPI_CONTENT);
         EditableArtifactMetaDataDto metaData = new EditableArtifactMetaDataDto(
-                "NAME", "DESCRIPTION", Collections.singletonList("LABEL-1"), Collections.singletonMap("KEY", "VALUE")
+                "NAME", "DESCRIPTION", Collections.singletonMap("KEY", "VALUE")
         );
         ArtifactMetaDataDto dto = storage().createArtifactWithMetadata(GROUP_ID, artifactId, null, ArtifactType.OPENAPI, content, metaData, null);
         Assertions.assertNotNull(dto);
@@ -158,9 +156,7 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         Assertions.assertEquals("NAME", dto.getName());
         Assertions.assertEquals("DESCRIPTION", dto.getDescription());
         Assertions.assertNotNull(dto.getLabels());
-        Assertions.assertNotNull(dto.getProperties());
         Assertions.assertEquals(metaData.getLabels(), dto.getLabels());
-        Assertions.assertEquals(metaData.getProperties(), dto.getProperties());
         Assertions.assertEquals(ArtifactState.ENABLED, dto.getState());
         Assertions.assertEquals("1", dto.getVersion());
 
@@ -178,17 +174,14 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         Assertions.assertEquals(ArtifactState.ENABLED, amdDto.getState());
         Assertions.assertEquals("1", amdDto.getVersion());
         Assertions.assertEquals(metaData.getLabels(), amdDto.getLabels());
-        Assertions.assertEquals(metaData.getProperties(), amdDto.getProperties());
 
         // Test creating an artifact with meta-data that is too large for the DB
         artifactId = "testCreateArtifactWithMetaData-2";
         metaData = new EditableArtifactMetaDataDto();
         metaData.setName(generateString(600));
         metaData.setDescription(generateString(2000));
-        metaData.setLabels(new ArrayList<>());
-        metaData.getLabels().add("label-" + generateString(300));
-        metaData.setProperties(new HashMap<>());
-        metaData.getProperties().put("key-" + generateString(300), "value-" + generateString(2000));
+        metaData.setLabels(new HashMap<>());
+        metaData.getLabels().put("key-" + generateString(300), "value-" + generateString(2000));
         dto = storage().createArtifactWithMetadata(GROUP_ID, artifactId, null, ArtifactType.OPENAPI, content, metaData, null);
 
         dto = storage().getArtifactMetaData(dto.getGlobalId());
@@ -199,9 +192,7 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         Assertions.assertEquals(1024, dto.getDescription().length());
         Assertions.assertTrue(dto.getDescription().endsWith("..."));
         Assertions.assertNotNull(dto.getLabels());
-        Assertions.assertNotNull(dto.getProperties());
         Assertions.assertEquals(1, dto.getLabels().size());
-        Assertions.assertEquals(1, dto.getProperties().size());
     }
 
     @Test
@@ -361,7 +352,7 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         Assertions.assertEquals(1, versions.size());
 
         ContentHandle contentv2 = ContentHandle.create(OPENAPI_CONTENT_V2);
-        EditableArtifactMetaDataDto metaData = new EditableArtifactMetaDataDto("NAME", "DESC", Collections.singletonList("LBL"), Collections.singletonMap("K", "V"));
+        EditableArtifactMetaDataDto metaData = new EditableArtifactMetaDataDto("NAME", "DESC", Collections.singletonMap("K", "V"));
         ArtifactMetaDataDto dtov2 = storage().updateArtifactWithMetadata(GROUP_ID, artifactId, null, ArtifactType.OPENAPI, contentv2, metaData, null);
         Assertions.assertNotNull(dtov2);
         Assertions.assertEquals(GROUP_ID, dtov2.getGroupId());
@@ -371,7 +362,6 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         Assertions.assertEquals("NAME", dtov2.getName());
         Assertions.assertEquals("DESC", dtov2.getDescription());
         Assertions.assertEquals(metaData.getLabels(), dtov2.getLabels());
-        Assertions.assertEquals(metaData.getProperties(), dtov2.getProperties());
 
         versions = storage().getArtifactVersions(GROUP_ID, artifactId);
         Assertions.assertNotNull(versions);
@@ -395,7 +385,6 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         Assertions.assertEquals("Empty API", dto.getName());
         Assertions.assertEquals("An example API design using OpenAPI.", dto.getDescription());
         Assertions.assertNull(dto.getLabels());
-        Assertions.assertNull(dto.getProperties());
         Assertions.assertEquals(ArtifactState.ENABLED, dto.getState());
         Assertions.assertEquals("1", dto.getVersion());
 
@@ -408,7 +397,6 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         Assertions.assertEquals("Empty API", dto.getName());
         Assertions.assertEquals("An example API design using OpenAPI.", dto.getDescription());
         Assertions.assertNull(dto.getLabels());
-        Assertions.assertNull(dto.getProperties());
         Assertions.assertEquals(ArtifactState.ENABLED, dto.getState());
         Assertions.assertEquals("1", dto.getVersion());
     }
@@ -424,25 +412,21 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         Assertions.assertEquals("Empty API", dto.getName());
         Assertions.assertEquals("An example API design using OpenAPI.", dto.getDescription());
         Assertions.assertNull(dto.getLabels());
-        Assertions.assertNull(dto.getProperties());
         Assertions.assertEquals(ArtifactState.ENABLED, dto.getState());
         Assertions.assertEquals("1", dto.getVersion());
 
         String newName = "Updated Name";
         String newDescription = "Updated description.";
-        List<String> newLabels = Collections.singletonList("foo");
-        Map<String, String> newProperties = new HashMap<>();
-        newProperties.put("foo", "bar");
-        newProperties.put("ting", "bin");
-        EditableArtifactMetaDataDto emd = new EditableArtifactMetaDataDto(newName, newDescription, newLabels, newProperties);
+        Map<String, String> newLabels = new HashMap<>();
+        newLabels.put("foo", "bar");
+        newLabels.put("ting", "bin");
+        EditableArtifactMetaDataDto emd = new EditableArtifactMetaDataDto(newName, newDescription, newLabels);
         storage().updateArtifactMetaData(GROUP_ID, artifactId, emd);
 
         ArtifactMetaDataDto metaData = storage().getArtifactMetaData(GROUP_ID, artifactId);
         Assertions.assertNotNull(metaData);
         Assertions.assertEquals(newName, metaData.getName());
         Assertions.assertEquals(newDescription, metaData.getDescription());
-        Assertions.assertEquals(newLabels, metaData.getLabels());
-        Assertions.assertEquals(newProperties, metaData.getProperties());
     }
 
     @Test
@@ -498,17 +482,15 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         Assertions.assertEquals("Empty API", dto.getName());
         Assertions.assertEquals("An example API design using OpenAPI.", dto.getDescription());
         Assertions.assertNull(dto.getLabels());
-        Assertions.assertNull(dto.getProperties());
         Assertions.assertEquals(ArtifactState.ENABLED, dto.getState());
         Assertions.assertEquals("1", dto.getVersion());
 
         String newName = "Updated Name";
         String newDescription = "Updated description.";
-        List<String> newLabels = Collections.singletonList("foo");
-        Map<String, String> newProperties = new HashMap<>();
-        newProperties.put("foo", "bar");
-        newProperties.put("ting", "bin");
-        EditableArtifactMetaDataDto emd = new EditableArtifactMetaDataDto(newName, newDescription, newLabels, newProperties);
+        Map<String, String> newLabels = new HashMap<>();
+        newLabels.put("foo", "bar");
+        newLabels.put("ting", "bin");
+        EditableArtifactMetaDataDto emd = new EditableArtifactMetaDataDto(newName, newDescription, newLabels);
         storage().updateArtifactVersionMetaData(GROUP_ID, artifactId, "1", emd);
 
         ArtifactVersionMetaDataDto metaData = storage().getArtifactVersionMetaData(GROUP_ID, artifactId, "1");
@@ -528,7 +510,6 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         Assertions.assertEquals("Empty API", dto.getName());
         Assertions.assertEquals("An example API design using OpenAPI.", dto.getDescription());
         Assertions.assertNull(dto.getLabels());
-        Assertions.assertNull(dto.getProperties());
         Assertions.assertEquals(ArtifactState.ENABLED, dto.getState());
         Assertions.assertEquals("1", dto.getVersion());
 
@@ -676,7 +657,6 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         Assertions.assertEquals("Empty API", dto.getName());
         Assertions.assertEquals("An example API design using OpenAPI.", dto.getDescription());
         Assertions.assertNull(dto.getLabels());
-        Assertions.assertNull(dto.getProperties());
         Assertions.assertEquals(ArtifactState.ENABLED, dto.getState());
         Assertions.assertEquals("1", dto.getVersion());
 
@@ -838,13 +818,11 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
             String idxs = (idx < 10 ? "0" : "") + idx;
             String artifactId = artifactIdPrefix + idxs;
             ContentHandle content = ContentHandle.create(OPENAPI_CONTENT);
-            List<String> labels = Collections.singletonList("label-" + idx);
-            Map<String, String> properties = Collections.singletonMap("key", "value-" + idx);
+            Map<String, String> labels = Collections.singletonMap("key", "value-" + idx);
             EditableArtifactMetaDataDto metaData = new EditableArtifactMetaDataDto(
                     artifactId + "-name",
                     artifactId + "-description",
-                    labels,
-                    properties);
+                    labels);
             storage().createArtifactWithMetadata(GROUP_ID, artifactId, null, ArtifactType.OPENAPI, content, metaData, null);
         }
 
@@ -893,7 +871,7 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         Assertions.assertEquals("testSearchArtifacts-02-name", results.getArtifacts().get(1).getName());
 
 
-        filters = Collections.singleton(SearchFilter.ofLabel("label-17"));
+        filters = Collections.singleton(SearchFilter.ofLabel("key", "value-17"));
         results = storage().searchArtifacts(filters, OrderBy.name, OrderDirection.asc, 0, 10);
         Assertions.assertNotNull(results);
         Assertions.assertEquals(1, results.getCount());
@@ -901,14 +879,6 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         Assertions.assertEquals(1, results.getArtifacts().size());
         Assertions.assertEquals("testSearchArtifacts-17-name", results.getArtifacts().get(0).getName());
 
-
-        filters = Collections.singleton(SearchFilter.ofEverything("label-17"));
-        results = storage().searchArtifacts(filters, OrderBy.name, OrderDirection.asc, 0, 10);
-        Assertions.assertNotNull(results);
-        Assertions.assertEquals(1, results.getCount());
-        Assertions.assertNotNull(results.getArtifacts());
-        Assertions.assertEquals(1, results.getArtifacts().size());
-        Assertions.assertEquals("testSearchArtifacts-17-name", results.getArtifacts().get(0).getName());
 
         long end = System.currentTimeMillis();
         System.out.println("Search time: " + (end - start) + "ms");
@@ -929,7 +899,6 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
             EditableArtifactMetaDataDto metaData = new EditableArtifactMetaDataDto(
                     artifactId + "-name-" + idx,
                     artifactId + "-description-" + idx,
-                    null,
                     null);
             storage().updateArtifactWithMetadata(GROUP_ID, artifactId, null, ArtifactType.OPENAPI, content, metaData, null);
         }

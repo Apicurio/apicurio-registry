@@ -347,18 +347,7 @@
                     },
                     {
                         "name": "labels",
-                        "description": "Filter by label.  Include one or more label to only return artifacts containing all of the\nspecified labels.",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "type": "string"
-                            }
-                        },
-                        "in": "query"
-                    },
-                    {
-                        "name": "properties",
-                        "description": "Filter by one or more name/value property.  Separate each name/value pair using a colon.  For\nexample `properties=foo:bar` will return only artifacts with a custom property named `foo`\nand value `bar`.",
+                        "description": "Filter by one or more name/value label.  Separate each name/value pair using a colon.  For\nexample `labels=foo:bar` will return only artifacts with a label named `foo`\nand value `bar`.",
                         "schema": {
                             "type": "array",
                             "items": {
@@ -1323,42 +1312,6 @@
                 "description": "Returns information about the currently authenticated user."
             }
         },
-        "/ids/contentHashes/{contentHash}/references": {
-            "get": {
-                "tags": [
-                    "Artifacts"
-                ],
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "array",
-                                    "items": {
-                                        "$ref": "#/components/schemas/ArtifactReference"
-                                    }
-                                }
-                            }
-                        },
-                        "description": "A list containing all the references for the artifact with the given content hash."
-                    }
-                },
-                "operationId": "referencesByContentHash",
-                "summary": "List artifact references by hash",
-                "description": "Returns a list containing all the artifact references using the artifact content hash.\n\nThis operation may fail for one of the following reasons:\n\n* A server error occurred (HTTP error `500`)\n"
-            },
-            "parameters": [
-                {
-                    "name": "contentHash",
-                    "description": "SHA-256 content hash for a single artifact content.",
-                    "schema": {
-                        "type": "string"
-                    },
-                    "in": "path",
-                    "required": true
-                }
-            ]
-        },
         "/ids/contentIds/{contentId}/references": {
             "get": {
                 "tags": [
@@ -2134,7 +2087,7 @@
                 },
                 "operationId": "deleteGroupById",
                 "summary": "Delete a group by the specified ID.",
-                "description": "Deletes a group by identifier.\n\nThis operation can fail for the following reasons:\n\n* A server error occurred (HTTP error `500`)\n* The group does not exist (HTTP error `404`)\n"
+                "description": "Deletes a group by identifier.  This operation also deletes all artifacts within\nthe group, so should be used very carefully.\n\nThis operation can fail for the following reasons:\n\n* A server error occurred (HTTP error `500`)\n* The group does not exist (HTTP error `404`)\n"
             },
             "parameters": [
                 {
@@ -2625,73 +2578,6 @@
                 {
                     "name": "commentId",
                     "description": "The unique identifier of a single comment.",
-                    "schema": {
-                        "type": "string"
-                    },
-                    "in": "path",
-                    "required": true
-                }
-            ]
-        },
-        "/ids/contentIds/{contentId}/": {
-            "summary": "Access artifact content utilizing the unique content identifier for that content.",
-            "get": {
-                "tags": [
-                    "Artifacts"
-                ],
-                "responses": {
-                    "200": {
-                        "$ref": "#/components/responses/ArtifactContent"
-                    },
-                    "404": {
-                        "$ref": "#/components/responses/NotFound"
-                    },
-                    "500": {
-                        "$ref": "#/components/responses/ServerError"
-                    }
-                },
-                "operationId": "getContentById",
-                "summary": "Get artifact content by ID",
-                "description": "Gets the content for an artifact version in the registry using the unique content\nidentifier for that content.  This content ID may be shared by multiple artifact\nversions in the case where the artifact versions are identical.\n\nThis operation may fail for one of the following reasons:\n\n* No content with this `contentId` exists (HTTP error `404`)\n* A server error occurred (HTTP error `500`)\n"
-            },
-            "parameters": [
-                {
-                    "name": "contentId",
-                    "description": "Global identifier for a single artifact content.",
-                    "schema": {
-                        "format": "int64",
-                        "type": "integer"
-                    },
-                    "in": "path",
-                    "required": true
-                }
-            ]
-        },
-        "/ids/contentHashes/{contentHash}/": {
-            "summary": "Access artifact content utilizing the SHA-256 hash of the content.",
-            "get": {
-                "tags": [
-                    "Artifacts"
-                ],
-                "responses": {
-                    "200": {
-                        "$ref": "#/components/responses/ArtifactContent"
-                    },
-                    "404": {
-                        "$ref": "#/components/responses/NotFound"
-                    },
-                    "500": {
-                        "$ref": "#/components/responses/ServerError"
-                    }
-                },
-                "operationId": "getContentByHash",
-                "summary": "Get artifact content by SHA-256 hash",
-                "description": "Gets the content for an artifact version in the registry using the \nSHA-256 hash of the content.  This content hash may be shared by multiple artifact\nversions in the case where the artifact versions have identical content.\n\nThis operation may fail for one of the following reasons:\n\n* No content with this `contentHash` exists (HTTP error `404`)\n* A server error occurred (HTTP error `500`)\n"
-            },
-            "parameters": [
-                {
-                    "name": "contentHash",
-                    "description": "SHA-256 content hash for a single artifact content.",
                     "schema": {
                         "type": "string"
                     },
@@ -3407,6 +3293,109 @@
                 "description": "Returns the UI configuration properties for this server.  The registry UI can be\nconnected to a backend using just a URL.  The rest of the UI configuration can then\nbe fetched from the backend using this operation.  This allows UI and backend to\nboth be configured in the same place.\n\nThis operation may fail for one of the following reasons:\n\n* A server error occurred (HTTP error `500`)\n"
             }
         },
+        "/ids/contentHashes/{contentHash}/references": {
+            "get": {
+                "tags": [
+                    "Artifacts"
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/ArtifactReference"
+                                    }
+                                }
+                            }
+                        },
+                        "description": "A list containing all the references for the artifact with the given content hash."
+                    }
+                },
+                "operationId": "referencesByContentHash",
+                "summary": "List artifact references by hash",
+                "description": "Returns a list containing all the artifact references using the artifact content hash.\n\nThis operation may fail for one of the following reasons:\n\n* A server error occurred (HTTP error `500`)\n"
+            },
+            "parameters": [
+                {
+                    "name": "contentHash",
+                    "description": "SHA-256 content hash for a single artifact content.",
+                    "schema": {
+                        "type": "string"
+                    },
+                    "in": "path",
+                    "required": true
+                }
+            ]
+        },
+        "/ids/contentHashes/{contentHash}": {
+            "summary": "Access artifact content utilizing the SHA-256 hash of the content.",
+            "get": {
+                "tags": [
+                    "Artifacts"
+                ],
+                "responses": {
+                    "200": {
+                        "$ref": "#/components/responses/ArtifactContent"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "getContentByHash",
+                "summary": "Get artifact content by SHA-256 hash",
+                "description": "Gets the content for an artifact version in the registry using the \nSHA-256 hash of the content.  This content hash may be shared by multiple artifact\nversions in the case where the artifact versions have identical content.\n\nThis operation may fail for one of the following reasons:\n\n* No content with this `contentHash` exists (HTTP error `404`)\n* A server error occurred (HTTP error `500`)\n"
+            },
+            "parameters": [
+                {
+                    "name": "contentHash",
+                    "description": "SHA-256 content hash for a single artifact content.",
+                    "schema": {
+                        "type": "string"
+                    },
+                    "in": "path",
+                    "required": true
+                }
+            ]
+        },
+        "/ids/contentIds/{contentId}": {
+            "summary": "Access artifact content utilizing the unique content identifier for that content.",
+            "get": {
+                "tags": [
+                    "Artifacts"
+                ],
+                "responses": {
+                    "200": {
+                        "$ref": "#/components/responses/ArtifactContent"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "getContentById",
+                "summary": "Get artifact content by ID",
+                "description": "Gets the content for an artifact version in the registry using the unique content\nidentifier for that content.  This content ID may be shared by multiple artifact\nversions in the case where the artifact versions are identical.\n\nThis operation may fail for one of the following reasons:\n\n* No content with this `contentId` exists (HTTP error `404`)\n* A server error occurred (HTTP error `500`)\n"
+            },
+            "parameters": [
+                {
+                    "name": "contentId",
+                    "description": "Global identifier for a single artifact content.",
+                    "schema": {
+                        "format": "int64",
+                        "type": "integer"
+                    },
+                    "in": "path",
+                    "required": true
+                }
+            ]
+        },
         "x-codegen-contextRoot": "/apis/registry/v3"
     },
     "components": {
@@ -3423,25 +3412,14 @@
                         "type": "string"
                     },
                     "labels": {
-                        "description": "",
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        }
-                    },
-                    "properties": {
-                        "$ref": "#/components/schemas/Properties",
+                        "$ref": "#/components/schemas/Labels",
                         "description": ""
                     }
                 },
                 "example": {
                     "name": "Artifact Name",
                     "description": "The description of the artifact.",
-                    "labels": [
-                        "regional",
-                        "global"
-                    ],
-                    "properties": {
+                    "labels": {
                         "custom-1": "foo",
                         "custom-2": "bar"
                     }
@@ -3616,15 +3594,6 @@
                     "description": "External documentation URL is not valid (it must be formatted as a URL).",
                     "context": "/info/externalDocs[url]"
                 }
-            },
-            "Properties": {
-                "description": "User-defined name-value pairs. Name and value must be strings.",
-                "type": "object",
-                "additionalProperties": {
-                    "type": "string"
-                },
-                "x-codegen-inline": true,
-                "x-codegen-type": "StringMap"
             },
             "IfExists": {
                 "description": "",
@@ -3861,14 +3830,7 @@
                         "description": ""
                     },
                     "labels": {
-                        "description": "",
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        }
-                    },
-                    "properties": {
-                        "$ref": "#/components/schemas/Properties",
+                        "$ref": "#/components/schemas/Labels",
                         "description": ""
                     },
                     "groupId": {
@@ -3901,11 +3863,7 @@
                     "modifiedOn": "2019-07-19T15:09:00Z",
                     "globalId": 12984719247,
                     "contentId": 82736,
-                    "labels": [
-                        "label-1",
-                        "label-2"
-                    ],
-                    "properties": {
+                    "labels": {
                         "custom-1": "foo",
                         "custom-2": "bar"
                     },
@@ -3956,13 +3914,6 @@
                         "$ref": "#/components/schemas/ArtifactType",
                         "description": ""
                     },
-                    "labels": {
-                        "description": "",
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        }
-                    },
                     "state": {
                         "$ref": "#/components/schemas/ArtifactState",
                         "description": ""
@@ -3986,10 +3937,6 @@
                     "id": "Procurement-Invoice",
                     "name": "Artifact Name",
                     "description": "Description of the artifact",
-                    "labels": [
-                        "current",
-                        "internal"
-                    ],
                     "type": "AVRO",
                     "state": "ENABLED",
                     "createdBy": "user1",
@@ -4044,14 +3991,7 @@
                         "description": ""
                     },
                     "labels": {
-                        "description": "",
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        }
-                    },
-                    "properties": {
-                        "$ref": "#/components/schemas/Properties",
+                        "$ref": "#/components/schemas/Labels",
                         "description": ""
                     },
                     "groupId": {
@@ -4075,11 +4015,7 @@
                     "createdOn": "2019-05-17T12:00:00Z",
                     "globalId": 183282932983,
                     "contentId": 12347,
-                    "labels": [
-                        "label-1",
-                        "label-2"
-                    ],
-                    "properties": {
+                    "labels": {
                         "custom-1": "foo",
                         "custom-2": "bar"
                     },
@@ -4128,13 +4064,6 @@
                         "$ref": "#/components/schemas/ArtifactType",
                         "description": ""
                     },
-                    "labels": {
-                        "description": "",
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        }
-                    },
                     "state": {
                         "$ref": "#/components/schemas/ArtifactState",
                         "description": ""
@@ -4149,7 +4078,7 @@
                         "type": "string"
                     },
                     "properties": {
-                        "$ref": "#/components/schemas/Properties",
+                        "$ref": "#/components/schemas/Labels",
                         "description": ""
                     },
                     "contentId": {
@@ -4168,10 +4097,6 @@
                 "example": {
                     "name": "Artifact Version Name",
                     "description": "Description of the artifact version",
-                    "labels": [
-                        "current",
-                        "internal"
-                    ],
                     "type": "AVRO",
                     "state": "ENABLED",
                     "createdOn": "2018-02-10T09:30Z",
@@ -4475,7 +4400,7 @@
                         "type": "string"
                     },
                     "properties": {
-                        "$ref": "#/components/schemas/Properties",
+                        "$ref": "#/components/schemas/Labels",
                         "description": ""
                     }
                 },
@@ -4526,7 +4451,7 @@
                         "type": "string"
                     },
                     "properties": {
-                        "$ref": "#/components/schemas/Properties",
+                        "$ref": "#/components/schemas/Labels",
                         "description": ""
                     },
                     "id": {
@@ -4854,7 +4779,7 @@
                         "type": "boolean"
                     },
                     "options": {
-                        "$ref": "#/components/schemas/Properties"
+                        "$ref": "#/components/schemas/Labels"
                     }
                 },
                 "example": {
@@ -4913,6 +4838,15 @@
                     "navPrefixPath": "/",
                     "oaiDocsUrl": "https://registry.apicur.io/docs"
                 }
+            },
+            "Labels": {
+                "description": "User-defined name-value pairs. Name and value must be strings.",
+                "type": "object",
+                "additionalProperties": {
+                    "type": "string"
+                },
+                "x-codegen-inline": true,
+                "x-codegen-type": "StringMap"
             }
         },
         "responses": {

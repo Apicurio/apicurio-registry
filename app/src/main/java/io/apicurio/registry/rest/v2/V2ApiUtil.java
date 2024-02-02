@@ -70,8 +70,7 @@ public final class V2ApiUtil {
         metaData.setGlobalId(dto.getGlobalId());
         metaData.setContentId(dto.getContentId());
         metaData.setState(dto.getState());
-        metaData.setLabels(dto.getLabels());
-        metaData.setProperties(dto.getProperties());
+        metaData.setProperties(dto.getLabels());
         metaData.setReferences(Optional.ofNullable(dto.getReferences()).stream()
                 .flatMap(references -> references.stream().map(V2ApiUtil::referenceDtoToReference))
                 .collect(Collectors.toList()));
@@ -104,8 +103,7 @@ public final class V2ApiUtil {
         metaData.setGlobalId(dto.getGlobalId());
         metaData.setContentId(dto.getContentId());
         metaData.setState(dto.getState());
-        metaData.setLabels(dto.getLabels());
-        metaData.setProperties(dto.getProperties());
+        metaData.setProperties(dto.getLabels());
         return metaData;
     }
 
@@ -132,8 +130,7 @@ public final class V2ApiUtil {
         metaData.setGlobalId(dto.getGlobalId());
         metaData.setContentId(dto.getContentId());
         metaData.setState(dto.getState());
-        metaData.setLabels(dto.getLabels());
-        metaData.setProperties(dto.getProperties());
+        metaData.setProperties(dto.getLabels());
         return metaData;
     }
 
@@ -184,8 +181,7 @@ public final class V2ApiUtil {
         metaData.setGlobalId(dto.getGlobalId());
         metaData.setContentId(dto.getContentId());
         metaData.setState(dto.getState());
-        metaData.setLabels(dto.getLabels());
-        metaData.setProperties(dto.getProperties());
+        metaData.setProperties(dto.getLabels());
         return metaData;
     }
 
@@ -205,9 +201,6 @@ public final class V2ApiUtil {
         }
         if (editableArtifactMetaData.getLabels() != null && !editableArtifactMetaData.getLabels().isEmpty()) {
             amdd.setLabels(editableArtifactMetaData.getLabels());
-        }
-        if (editableArtifactMetaData.getProperties() != null) {
-            amdd.setProperties(editableArtifactMetaData.getProperties());
         }
         return amdd;
     }
@@ -239,7 +232,6 @@ public final class V2ApiUtil {
             sa.setDescription(artifact.getDescription());
             sa.setId(artifact.getId());
             sa.setGroupId(artifact.getGroupId());
-            sa.setLabels(artifact.getLabels());
             sa.setModifiedBy(artifact.getModifiedBy());
             sa.setModifiedOn(artifact.getModifiedOn());
             sa.setName(artifact.getName());
@@ -278,11 +270,9 @@ public final class V2ApiUtil {
             sv.setDescription(version.getDescription());
             sv.setGlobalId(version.getGlobalId());
             sv.setContentId(version.getContentId());
-            sv.setLabels(version.getLabels());
             sv.setName(version.getName());
             sv.setState(version.getState());
             sv.setType(version.getType());
-            sv.setProperties(version.getProperties());
             sv.setVersion(version.getVersion());
             results.getVersions().add(sv);
         });

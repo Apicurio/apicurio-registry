@@ -122,7 +122,6 @@ public class GenerateCanonicalHashImportIT extends ApicurioRegistryBaseIT {
                 versionEntity.groupId = null;
                 versionEntity.labels = null;
                 versionEntity.name = null;
-                versionEntity.properties = null;
                 versionEntity.state = ArtifactState.ENABLED;
                 versionEntity.version = "1";
                 versionEntity.versionOrder = 1;

@@ -19,8 +19,6 @@ public class SearchedVersionDto {
     private Date createdOn;
     private String createdBy;
     private String type;
-    private List<String> labels = new ArrayList<>();
-    private Map<String, String> properties = new HashMap<>();
     private ArtifactState state;
     private long globalId;
     private long contentId;

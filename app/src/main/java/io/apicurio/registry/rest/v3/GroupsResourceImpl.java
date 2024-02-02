@@ -220,15 +220,10 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         requireParameter("groupId", groupId);
         requireParameter("artifactId", artifactId);
 
-        if (data.getProperties() != null) {
-            data.getProperties().forEach((k, v) -> requireParameter("property value", v));
-        }
-
         EditableArtifactMetaDataDto dto = new EditableArtifactMetaDataDto();
         dto.setName(data.getName());
         dto.setDescription(data.getDescription());
         dto.setLabels(data.getLabels());
-        dto.setProperties(data.getProperties());
         storage.updateArtifactMetaData(new GroupId(groupId).getRawGroupIdWithNull(), artifactId, dto);
     }
 
@@ -569,14 +564,10 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         var gav = VersionExpressionParser.parse(new GA(groupId, artifactId), versionExpression,
                 (ga, branchId) -> storage.getArtifactBranchTip(ga, branchId, ArtifactRetrievalBehavior.DEFAULT));
 
-        if (data.getProperties() != null) {
-            data.getProperties().forEach((k, v) -> requireParameter("property value", v));
-        }
         EditableArtifactMetaDataDto dto = new EditableArtifactMetaDataDto();
         dto.setName(data.getName());
         dto.setDescription(data.getDescription());
         dto.setLabels(data.getLabels());
-        dto.setProperties(data.getProperties());
         storage.updateArtifactVersionMetaData(gav.getRawGroupIdWithNull(), gav.getRawArtifactId(), gav.getRawVersionId(), dto);
     }
 
@@ -1277,7 +1268,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
     private EditableArtifactMetaDataDto getEditableMetaData(String name, String description) {
         if (name != null || description != null) {
-            return new EditableArtifactMetaDataDto(name, description, null, null);
+            return new EditableArtifactMetaDataDto(name, description, null);
         }
         return null;
     }

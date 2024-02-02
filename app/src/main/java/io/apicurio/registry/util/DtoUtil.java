@@ -22,9 +22,6 @@ public final class DtoUtil {
         if (editableArtifactMetaData.getLabels() != null && !editableArtifactMetaData.getLabels().isEmpty()) {
             amdd.setLabels(editableArtifactMetaData.getLabels());
         }
-        if (editableArtifactMetaData.getProperties() != null) {
-            amdd.setProperties(editableArtifactMetaData.getProperties());
-        }
         return amdd;
     }
 

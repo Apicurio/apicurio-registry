@@ -13,7 +13,7 @@ type CreateGroupMetaData struct {
 	// The id property
 	id *string
 	// User-defined name-value pairs. Name and value must be strings.
-	properties Propertiesable
+	properties Labelsable
 }
 
 // NewCreateGroupMetaData instantiates a new CreateGroupMetaData and sets the default values.
@@ -62,12 +62,12 @@ func (m *CreateGroupMetaData) GetFieldDeserializers() map[string]func(i878a80d23
 		return nil
 	}
 	res["properties"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
-		val, err := n.GetObjectValue(CreatePropertiesFromDiscriminatorValue)
+		val, err := n.GetObjectValue(CreateLabelsFromDiscriminatorValue)
 		if err != nil {
 			return err
 		}
 		if val != nil {
-			m.SetProperties(val.(Propertiesable))
+			m.SetProperties(val.(Labelsable))
 		}
 		return nil
 	}
@@ -80,7 +80,7 @@ func (m *CreateGroupMetaData) GetId() *string {
 }
 
 // GetProperties gets the properties property value. User-defined name-value pairs. Name and value must be strings.
-func (m *CreateGroupMetaData) GetProperties() Propertiesable {
+func (m *CreateGroupMetaData) GetProperties() Labelsable {
 	return m.properties
 }
 
@@ -129,7 +129,7 @@ func (m *CreateGroupMetaData) SetId(value *string) {
 }
 
 // SetProperties sets the properties property value. User-defined name-value pairs. Name and value must be strings.
-func (m *CreateGroupMetaData) SetProperties(value Propertiesable) {
+func (m *CreateGroupMetaData) SetProperties(value Labelsable) {
 	m.properties = value
 }
 
@@ -139,8 +139,8 @@ type CreateGroupMetaDataable interface {
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.Parsable
 	GetDescription() *string
 	GetId() *string
-	GetProperties() Propertiesable
+	GetProperties() Labelsable
 	SetDescription(value *string)
 	SetId(value *string)
-	SetProperties(value Propertiesable)
+	SetProperties(value Labelsable)
 }

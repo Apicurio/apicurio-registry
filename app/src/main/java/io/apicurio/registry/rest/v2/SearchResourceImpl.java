@@ -93,9 +93,6 @@ public class SearchResourceImpl implements SearchResource {
             filters.add(SearchFilter.ofGroup(gidOrNull(group)));
         }
 
-        if (labels != null && !labels.isEmpty()) {
-            labels.forEach(label -> filters.add(SearchFilter.ofLabel(label)));
-        }
         if (properties != null && !properties.isEmpty()) {
             properties.stream()
                 .map(prop -> {
@@ -115,7 +112,7 @@ public class SearchResourceImpl implements SearchResource {
                        propertyKey = prop.substring(0, delimiterIndex);
                        propertyValue = prop.substring(delimiterIndex + 1);
                    }
-                   return SearchFilter.ofProperty(propertyKey, propertyValue);
+                   return SearchFilter.ofLabel(propertyKey, propertyValue);
                 })
                 .forEach(filters::add);
         }

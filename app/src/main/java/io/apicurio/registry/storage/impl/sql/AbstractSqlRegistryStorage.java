@@ -423,13 +423,12 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
      * IMPORTANT: Private methods can't be @Transactional. Callers MUST have started a transaction.
      */
     private ArtifactVersionMetaDataDto createArtifactVersionRaw(boolean firstVersion, String groupId, String artifactId, String version,
-                                                                String name, String description, List<String> labels,
-                                                                Map<String, String> properties, String createdBy, Date createdOn,
+                                                                String name, String description,
+                                                                Map<String, String> labels, String createdBy, Date createdOn,
                                                                 Long contentId, IdGenerator globalIdGenerator) {
 
         ArtifactState state = ArtifactState.ENABLED;
         String labelsStr = SqlUtil.serializeLabels(labels);
-        String propertiesStr = SqlUtil.serializeProperties(properties);
 
         if (globalIdGenerator == null) {
             globalIdGenerator = this::nextGlobalId;
@@ -457,8 +456,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                         .bind(7, createdBy)
                         .bind(8, createdOn)
                         .bind(9, labelsStr)
-                        .bind(10, propertiesStr)
-                        .bind(11, contentId)
+                        .bind(10, contentId)
                         .execute();
 
                 createOrUpdateArtifactBranchRaw(new GAV(groupId, artifactId, finalVersion1), BranchId.LATEST);
@@ -482,8 +480,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                         .bind(9, createdBy)
                         .bind(10, createdOn)
                         .bind(11, labelsStr)
-                        .bind(12, propertiesStr)
-                        .bind(13, contentId)
+                        .bind(12, contentId)
                         .execute();
 
                 // If version is null, update the row we just inserted to set the version to the generated versionOrder
@@ -503,22 +500,11 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
         return handles.withHandleNoException(handle -> {
 
-            // Insert labels into the "labels" table
-            if (labels != null && !labels.isEmpty()) {
-                labels.forEach(label -> {
-
-                    handle.createUpdate(sqlStatements.insertLabel())
-                            .bind(0, globalId)
-                            .bind(1, limitStr(label.toLowerCase(), 256))
-                            .execute();
-                });
-            }
-
             // Insert properties into the "properties" table
-            if (properties != null && !properties.isEmpty()) {
-                properties.forEach((k, v) -> {
+            if (labels != null && !labels.isEmpty()) {
+                labels.forEach((k, v) -> {
 
-                    handle.createUpdate(sqlStatements.insertProperty())
+                    handle.createUpdate(sqlStatements.insertVersionLabel())
                             .bind(0, globalId)
                             .bind(1, limitStr(k.toLowerCase(), 256))
                             .bind(2, limitStr(v.toLowerCase(), 1024))
@@ -706,7 +692,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
                 // Then create a row in the content and versions tables (for the content and version meta-data)
                 ArtifactVersionMetaDataDto vmdd = createArtifactVersionRaw(true, groupId, artifactId, version,
-                        metaData.getName(), metaData.getDescription(), metaData.getLabels(), metaData.getProperties(), createdBy, createdOn,
+                        metaData.getName(), metaData.getDescription(), metaData.getLabels(), createdBy, createdOn,
                         contentId, globalIdGenerator);
 
                 // Get the content, so we can return references in the metadata
@@ -717,7 +703,6 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                 amdd.setCreatedBy(createdBy);
                 amdd.setCreatedOn(createdOn.getTime());
                 amdd.setLabels(metaData.getLabels());
-                amdd.setProperties(metaData.getProperties());
                 amdd.setReferences(contentDto.getReferences());
                 return amdd;
             });
@@ -927,8 +912,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                 // Metadata comes from the latest version
                 String name = latest.getName();
                 String description = latest.getDescription();
-                List<String> labels = latest.getLabels();
-                Map<String, String> properties = latest.getProperties();
+                Map<String, String> labels = latest.getLabels();
 
                 // Provided metadata will override inherited values from latest version
                 if (metaData.getName() != null) {
@@ -940,18 +924,14 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                 if (metaData.getLabels() != null) {
                     labels = metaData.getLabels();
                 }
-                if (metaData.getProperties() != null) {
-                    properties = metaData.getProperties();
-                }
 
                 // Now create the version and return the new version metadata.
                 ArtifactVersionMetaDataDto versionDto = createArtifactVersionRaw(false, groupId, artifactId, version,
-                        name, description, labels, properties, createdBy, createdOn, contentId, globalIdGenerator);
+                        name, description, labels, createdBy, createdOn, contentId, globalIdGenerator);
                 ArtifactMetaDataDto dto = convert(groupId, artifactId, versionDto);
                 dto.setCreatedOn(latest.getCreatedOn());
                 dto.setCreatedBy(latest.getCreatedBy());
                 dto.setLabels(labels);
-                dto.setProperties(properties);
                 return dto;
             });
         } catch (Exception ex) {
@@ -1056,13 +1036,6 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                             query.bind(idx, filter.getStringValue().toLowerCase());
                         });
                         break;
-                    case labels:
-                        where.append("EXISTS(SELECT l.globalId FROM labels l WHERE l.label = ? AND l.globalId = v.globalId)");
-                        binders.add((query, idx) -> {
-                            //    Note: convert search to lowercase when searching for labels (case-insensitivity support).
-                            query.bind(idx, filter.getStringValue().toLowerCase());
-                        });
-                        break;
                     case name:
                         where.append("v.name LIKE ? OR a.artifactId LIKE ?");
                         binders.add((query, idx) -> {
@@ -1090,7 +1063,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                             query.bind(idx, filter.getStringValue());
                         });
                         break;
-                    case properties:
+                    case labels:
                         Pair<String, String> property = filter.getPropertyFilterValue();
                         //    Note: convert search to lowercase when searching for properties (case-insensitivity support).
                         String propKey = property.getKey().toLowerCase();
@@ -1665,10 +1638,9 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                     .bind(0, limitStr(metaData.getName(), 512))
                     .bind(1, limitStr(metaData.getDescription(), 1024, true))
                     .bind(2, SqlUtil.serializeLabels(metaData.getLabels()))
-                    .bind(3, SqlUtil.serializeProperties(metaData.getProperties()))
-                    .bind(4, normalizeGroupId(groupId))
-                    .bind(5, artifactId)
-                    .bind(6, version)
+                    .bind(3, normalizeGroupId(groupId))
+                    .bind(4, artifactId)
+                    .bind(5, version)
                     .execute();
             if (rowCount == 0) {
                 throw new VersionNotFoundException(groupId, artifactId, version);
@@ -1685,23 +1657,11 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                     .bind(0, globalId)
                     .execute();
 
-            // Insert new labels into the "labels" table
-            List<String> labels = metaData.getLabels();
+            // Insert new labels into the "version_labels" table
+            Map<String, String> labels = metaData.getLabels();
             if (labels != null && !labels.isEmpty()) {
-                labels.forEach(label -> {
-                    String sqli = sqlStatements.insertLabel();
-                    handle.createUpdate(sqli)
-                            .bind(0, globalId)
-                            .bind(1, limitStr(label.toLowerCase(), 256))
-                            .execute();
-                });
-            }
-
-            // Insert new properties into the "properties" table
-            Map<String, String> properties = metaData.getProperties();
-            if (properties != null && !properties.isEmpty()) {
-                properties.forEach((k, v) -> {
-                    String sqli = sqlStatements.insertProperty();
+                labels.forEach((k, v) -> {
+                    String sqli = sqlStatements.insertVersionLabel();
                     handle.createUpdate(sqli)
                             .bind(0, globalId)
                             .bind(1, limitStr(k.toLowerCase(), 256))
@@ -2087,7 +2047,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                         .bind(4, group.getCreatedOn() == 0 ? new Date() : new Date(group.getCreatedOn()))
                         .bind(5, group.getModifiedBy())
                         .bind(6, group.getModifiedOn() == 0 ? null : new Date(group.getModifiedOn()))
-                        .bind(7, SqlUtil.serializeProperties(group.getProperties()))
+                        .bind(7, SqlUtil.serializeLabels(group.getProperties()))
                         .execute();
                 return null;
             });
@@ -2109,7 +2069,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                     .bind(1, group.getArtifactsType())
                     .bind(2, group.getModifiedBy())
                     .bind(3, group.getModifiedOn())
-                    .bind(4, SqlUtil.serializeProperties(group.getProperties()))
+                    .bind(4, SqlUtil.serializeLabels(group.getProperties()))
                     .bind(5, group.getGroupId())
                     .execute();
             if (rows == 0) {
@@ -2905,24 +2865,13 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                         .bind(8, entity.createdBy)
                         .bind(9, new Date(entity.createdOn))
                         .bind(10, SqlUtil.serializeLabels(entity.labels))
-                        .bind(11, SqlUtil.serializeProperties(entity.properties))
-                        .bind(12, entity.contentId)
+                        .bind(11, entity.contentId)
                         .execute();
 
-                // Insert labels into the "labels" table
+                // Insert labels into the "version_labels" table
                 if (entity.labels != null && !entity.labels.isEmpty()) {
-                    entity.labels.forEach(label -> {
-                        handle.createUpdate(sqlStatements.insertLabel())
-                                .bind(0, entity.globalId)
-                                .bind(1, label.toLowerCase())
-                                .execute();
-                    });
-                }
-
-                // Insert properties into the "properties" table
-                if (entity.properties != null && !entity.properties.isEmpty()) {
-                    entity.properties.forEach((k, v) -> {
-                        handle.createUpdate(sqlStatements.insertProperty())
+                    entity.labels.forEach((k, v) -> {
+                        handle.createUpdate(sqlStatements.insertVersionLabel())
                                 .bind(0, entity.globalId)
                                 .bind(1, k.toLowerCase())
                                 .bind(2, v.toLowerCase())
@@ -2990,7 +2939,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                         .bind(4, new Date(entity.createdOn))
                         .bind(5, entity.modifiedBy)
                         .bind(6, new Date(entity.modifiedOn))
-                        .bind(7, SqlUtil.serializeProperties(entity.properties))
+                        .bind(7, SqlUtil.serializeLabels(entity.properties))
                         .execute();
                 return null;
             });

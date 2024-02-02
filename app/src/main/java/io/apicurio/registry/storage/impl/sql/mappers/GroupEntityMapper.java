@@ -34,7 +34,7 @@ public class GroupEntityMapper implements RowMapper<GroupEntity> {
         entity.createdOn = rs.getTimestamp("createdOn").getTime();
         entity.modifiedBy = rs.getString("modifiedBy");
         entity.modifiedOn = ofNullable(rs.getTimestamp("modifiedOn")).map(Timestamp::getTime).orElse(0L);
-        entity.properties = SqlUtil.deserializeProperties(rs.getString("properties"));
+        entity.properties = SqlUtil.deserializeLabels(rs.getString("properties"));
         return entity;
     }
 

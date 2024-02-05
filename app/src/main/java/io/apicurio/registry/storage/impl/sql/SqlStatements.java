@@ -537,6 +537,8 @@ public interface SqlStatements {
 
     public String insertSequenceValue();
 
+    String selectContentByContentId();
+
     /*
      * The next few statements support exporting data from the DB.
      */
@@ -557,7 +559,9 @@ public interface SqlStatements {
      * The next few statements support importing data into the DB.
      */
 
-    public String importContent();
+    public String insertContent();
+
+    String updateContentByContentId();
 
     public String importGlobalRule();
 

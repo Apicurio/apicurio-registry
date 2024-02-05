@@ -71,6 +71,7 @@ import io.apicurio.registry.storage.dto.RuleConfigurationDto;
 import io.apicurio.registry.storage.dto.SearchFilter;
 import io.apicurio.registry.storage.dto.StoredArtifactDto;
 import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
+import io.apicurio.registry.storage.impl.sql.RegistryContentUtils;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.types.ReferenceType;
@@ -185,7 +186,7 @@ public class GroupsResourceImpl implements GroupsResource {
         ArtifactTypeUtilProvider artifactTypeProvider = factory.getArtifactTypeProvider(metaData.getType());
 
         if (dereference && !artifact.getReferences().isEmpty() && artifactTypeProvider.getContentDereferencer() != null) {
-            contentToReturn = artifactTypeProvider.getContentDereferencer().dereference(artifact.getContent(), storage.resolveReferences(artifact.getReferences()));
+            contentToReturn = artifactTypeProvider.getContentDereferencer().dereference(artifact.getContent(), RegistryContentUtils.recursivelyResolveReferences(artifact.getReferences(), storage::getContentByReference));
         }
 
         Response.ResponseBuilder builder = Response.ok(contentToReturn, contentType);
@@ -573,7 +574,7 @@ public class GroupsResourceImpl implements GroupsResource {
         ArtifactTypeUtilProvider artifactTypeProvider = factory.getArtifactTypeProvider(metaData.getType());
 
         if (dereference && !artifact.getReferences().isEmpty()) {
-            contentToReturn = artifactTypeProvider.getContentDereferencer().dereference(artifact.getContent(), storage.resolveReferences(artifact.getReferences()));
+            contentToReturn = artifactTypeProvider.getContentDereferencer().dereference(artifact.getContent(), RegistryContentUtils.recursivelyResolveReferences(artifact.getReferences(), storage::getContentByReference));
         }
 
         Response.ResponseBuilder builder = Response.ok(contentToReturn, contentType);
@@ -950,7 +951,7 @@ public class GroupsResourceImpl implements GroupsResource {
             final List<ArtifactReferenceDto> referencesAsDtos = toReferenceDtos(references);
 
             //Try to resolve the new artifact references and the nested ones (if any)
-            final Map<String, ContentHandle> resolvedReferences = storage.resolveReferences(referencesAsDtos);
+            final Map<String, ContentHandle> resolvedReferences = RegistryContentUtils.recursivelyResolveReferences(referencesAsDtos, storage::getContentByReference);
 
             rulesService.applyRules(defaultGroupIdToNull(groupId), artifactId, artifactType, content, RuleApplicationType.CREATE, references, resolvedReferences);
 
@@ -1047,7 +1048,7 @@ public class GroupsResourceImpl implements GroupsResource {
         final List<ArtifactReferenceDto> referencesAsDtos = toReferenceDtos(references);
 
         //Try to resolve the new artifact references and the nested ones (if any)
-        final Map<String, ContentHandle> resolvedReferences = storage.resolveReferences(referencesAsDtos);
+        final Map<String, ContentHandle> resolvedReferences = RegistryContentUtils.recursivelyResolveReferences(referencesAsDtos, storage::getContentByReference);
 
         String artifactType = lookupArtifactType(groupId, artifactId);
         rulesService.applyRules(defaultGroupIdToNull(groupId), artifactId, artifactType, content, RuleApplicationType.UPDATE, references, resolvedReferences);
@@ -1156,7 +1157,7 @@ public class GroupsResourceImpl implements GroupsResource {
         //Transform the given references into dtos and set the contentId, this will also detect if any of the passed references does not exist.
         final List<ArtifactReferenceDto> referencesAsDtos = toReferenceDtos(references);
 
-        final Map<String, ContentHandle> resolvedReferences = storage.resolveReferences(referencesAsDtos);
+        final Map<String, ContentHandle> resolvedReferences = RegistryContentUtils.recursivelyResolveReferences(referencesAsDtos, storage::getContentByReference);
 
         rulesService.applyRules(defaultGroupIdToNull(groupId), artifactId, artifactType, content, RuleApplicationType.UPDATE, references, resolvedReferences);
         EditableArtifactMetaDataDto metaData = getEditableMetaData(name, description);

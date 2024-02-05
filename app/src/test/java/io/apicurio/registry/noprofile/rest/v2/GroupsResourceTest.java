@@ -16,61 +16,13 @@
 
 package io.apicurio.registry.noprofile.rest.v2;
 
-import static io.restassured.RestAssured.given;
-import static java.net.HttpURLConnection.*;
-import static org.hamcrest.CoreMatchers.anyOf;
-import static org.hamcrest.CoreMatchers.anything;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.equalToObject;
-import static org.hamcrest.Matchers.greaterThanOrEqualTo;
-import static org.hamcrest.Matchers.not;
-import static org.hamcrest.Matchers.notNullValue;
-import static org.hamcrest.Matchers.nullValue;
-import static org.hamcrest.Matchers.startsWith;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-
-import org.apache.commons.codec.digest.DigestUtils;
-import org.hamcrest.Matchers;
-import org.jose4j.base64url.Base64;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
-import org.junit.jupiter.api.condition.DisabledOnOs;
-import org.junit.jupiter.api.condition.OS;
-
 import com.google.common.hash.Hashing;
-
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.rest.client.exception.RuleViolationException;
-import io.apicurio.registry.rest.v2.beans.ArtifactOwner;
-import io.apicurio.registry.types.ArtifactState;
-import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
-import io.apicurio.registry.rest.v2.beans.ArtifactReference;
-import io.apicurio.registry.rest.v2.beans.Comment;
-import io.apicurio.registry.rest.v2.beans.EditableMetaData;
-import io.apicurio.registry.rest.v2.beans.IfExists;
-import io.apicurio.registry.rest.v2.beans.NewComment;
-import io.apicurio.registry.rest.v2.beans.Rule;
-import io.apicurio.registry.rest.v2.beans.UpdateState;
-import io.apicurio.registry.rest.v2.beans.VersionMetaData;
+import io.apicurio.registry.rest.v2.beans.*;
 import io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType;
-import io.apicurio.registry.storage.impl.sql.SqlUtil;
+import io.apicurio.registry.storage.impl.sql.RegistryContentUtils;
+import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ReferenceType;
 import io.apicurio.registry.types.RuleType;
@@ -81,6 +33,28 @@ import io.restassured.config.EncoderConfig;
 import io.restassured.config.RestAssuredConfig;
 import io.restassured.http.ContentType;
 import io.restassured.response.ValidatableResponse;
+import org.apache.commons.codec.digest.DigestUtils;
+import org.hamcrest.Matchers;
+import org.jose4j.base64url.Base64;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.OS;
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.*;
+
+import static io.restassured.RestAssured.given;
+import static java.net.HttpURLConnection.*;
+import static org.hamcrest.CoreMatchers.anyOf;
+import static org.hamcrest.CoreMatchers.anything;
+import static org.hamcrest.Matchers.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * @author eric.wittmann@gmail.com
@@ -2562,7 +2536,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .extract().as(new TypeRef<List<ArtifactReference>>() {
                 });
 
-        final String referencesSerialized = SqlUtil.serializeReferences(toReferenceDtos(references));
+        final String referencesSerialized = RegistryContentUtils.serializeReferences(toReferenceDtos(references));
 
         //We calculate the hash using the content itself and the references
         String contentHash = DigestUtils.sha256Hex(concatContentAndReferences(artifactContent.getBytes(StandardCharsets.UTF_8), referencesSerialized.getBytes(StandardCharsets.UTF_8)));

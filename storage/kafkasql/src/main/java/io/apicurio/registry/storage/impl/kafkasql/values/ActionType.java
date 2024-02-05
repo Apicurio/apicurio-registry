@@ -35,11 +35,19 @@ public enum ActionType {
     CLEAR(4),
     IMPORT(5),
     RESET(6),
-
     /**
      * Deletes ALL user (tenant) data. Does not delete global data, such as log configuration.
      */
-    DELETE_ALL_USER_DATA(7);
+    DELETE_ALL_USER_DATA(7),
+    CREATE_OR_UPDATE(8),
+
+    UPGRADE_BOOTSTRAP(9),
+    UPGRADE_TRY_LOCK(10),
+    UPGRADE_ABORT_AND_UNLOCK(11),
+    UPGRADE_COMMIT_AND_UNLOCK(12),
+    UPGRADE_LOCK_HEARTBEAT(13),
+    UPGRADE_WAIT_HEARTBEAT(14),
+    ;
 
     private final byte ord;
 
@@ -75,7 +83,7 @@ public enum ActionType {
 
     public static ActionType fromOrd(byte ord) {
         ActionType res = ordIndex.get(ord);
-        if(res == null) {
+        if (res == null) {
             throw new IllegalArgumentException(String.format("Could not find ActionType with ord value %s", ord));
         }
         return res;
@@ -88,19 +96,19 @@ public enum ActionType {
 
     @JsonCreator
     public static ActionType deserialize(Object value) {
-        if(value instanceof Number) {
+        if (value instanceof Number) {
             Number num = (Number) value;
             // Sanity check
-            if(num.longValue() > Byte.MAX_VALUE) {
+            if (num.longValue() > Byte.MAX_VALUE) {
                 throw new IllegalArgumentException(String.format("Unexpectedly high numeric value %s for ActionType ord", num));
             }
             return fromOrd(num.byteValue());
         }
         // For backwards compatibility
-        if(value instanceof String) {
+        if (value instanceof String) {
             String normalizedString = ((String) value).toLowerCase();
             ActionType res = normalizedStringMapping.get(normalizedString);
-            if(res != null) {
+            if (res != null) {
                 return res;
             }
         }

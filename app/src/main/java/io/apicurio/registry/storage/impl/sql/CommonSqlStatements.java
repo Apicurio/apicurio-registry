@@ -777,6 +777,14 @@ public abstract class CommonSqlStatements implements SqlStatements {
         return "SELECT g.* FROM groups g WHERE g.tenantId = ? AND g.groupId = ?";
     }
 
+
+    @Override
+    public String selectContentByContentId() {
+        return "SELECT c.* FROM content c "
+                + "WHERE c.tenantId = ? AND c.contentId = ?";
+    }
+
+
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#exportArtifactRules()
      */
@@ -813,6 +821,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
                 + "WHERE c.tenantId = ?";
     }
 
+
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#exportGlobalRules()
      */
@@ -846,13 +855,18 @@ public abstract class CommonSqlStatements implements SqlStatements {
                 + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
     }
 
-    /**
-     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#importContent()
-     */
+
     @Override
-    public String importContent() {
+    public String insertContent() {
         return "INSERT INTO content (tenantId, contentId, canonicalHash, contentHash, content, artifactreferences) VALUES (?, ?, ?, ?, ?, ?)";
     }
+
+
+    public String updateContentByContentId() {
+        return "UPDATE content SET contentHash = ?, canonicalHash = ?,  content = ?, artifactreferences = ? " +
+                "WHERE tenantId = ? AND contentId = ?";
+    }
+
 
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#importGlobalRule()

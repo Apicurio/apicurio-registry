@@ -16,50 +16,38 @@
 
 package io.apicurio.registry.utils.export;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.apicurio.registry.rest.v2.beans.ArtifactReference;
+import io.apicurio.registry.types.ArtifactState;
+import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.utils.IoUtil;
+import io.apicurio.registry.utils.export.mappers.ArtifactReferenceMapper;
+import io.apicurio.registry.utils.impexp.*;
+import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.kafka.schemaregistry.client.rest.RestService;
+import io.confluent.kafka.schemaregistry.client.rest.entities.Schema;
+import io.confluent.kafka.schemaregistry.client.rest.entities.SchemaReference;
+import io.confluent.kafka.schemaregistry.client.rest.entities.SchemaString;
+import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
+import io.quarkus.runtime.QuarkusApplication;
+import io.quarkus.runtime.annotations.QuarkusMain;
+import jakarta.inject.Inject;
+import org.apache.commons.codec.digest.DigestUtils;
+import org.jboss.logging.Logger;
+
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.TrustManager;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
-import java.util.Collection;
-import java.util.Comparator;
-import java.util.Date;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import io.apicurio.registry.rest.v2.beans.ArtifactReference;
-import io.apicurio.registry.utils.export.mappers.ArtifactReferenceMapper;
-import io.confluent.kafka.schemaregistry.client.rest.entities.SchemaReference;
-import org.jboss.logging.Logger;
+import java.util.*;
 import java.util.zip.ZipOutputStream;
-
-import io.apicurio.registry.types.ArtifactState;
-import io.apicurio.registry.utils.impexp.GlobalRuleEntity;
-import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
-import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
-import io.confluent.kafka.schemaregistry.client.rest.RestService;
-import io.confluent.kafka.schemaregistry.client.rest.entities.Schema;
-import io.confluent.kafka.schemaregistry.client.rest.entities.SchemaString;
-import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
-import org.apache.commons.codec.digest.DigestUtils;
-
-import io.apicurio.registry.types.RuleType;
-import io.apicurio.registry.utils.IoUtil;
-import io.apicurio.registry.utils.impexp.ArtifactRuleEntity;
-import io.apicurio.registry.utils.impexp.ArtifactVersionEntity;
-import io.apicurio.registry.utils.impexp.ContentEntity;
-import io.apicurio.registry.utils.impexp.EntityWriter;
-import io.apicurio.registry.utils.impexp.ManifestEntity;
-import io.quarkus.runtime.QuarkusApplication;
-import io.quarkus.runtime.annotations.QuarkusMain;
-
-import jakarta.inject.Inject;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLSocketFactory;
-import javax.net.ssl.TrustManager;
 
 /**
  * @author Fabian Martinez
@@ -202,7 +190,6 @@ public class Export implements QuarkusApplication {
 
         String content = schemaString.getSchemaString();
         byte[] contentBytes = IoUtil.toBytes(content);
-        String contentHash = DigestUtils.sha256Hex(contentBytes);
 
         // Export all references first
         for (SchemaReference ref : metadata.getReferences()) {
@@ -210,48 +197,60 @@ public class Export implements QuarkusApplication {
         }
 
         List<ArtifactReference> references = artifactReferenceMapper.map(metadata.getReferences());
+        var serializedReferences = serializeReferences(references);
 
         String artifactType = metadata.getSchemaType().toUpperCase(Locale.ROOT);
 
-        Long contentId = context.getContentIndex().computeIfAbsent(contentHash, k -> {
-            ContentEntity contentEntity = new ContentEntity();
-            contentEntity.contentId = metadata.getId();
-            contentEntity.contentHash = contentHash;
-            contentEntity.canonicalHash = null;
-            contentEntity.contentBytes = contentBytes;
-            contentEntity.artifactType = artifactType;
-            contentEntity.serializedReferences = serializeReferences(references);
-            try {
-                context.getWriter().writeEntity(contentEntity);
-            } catch (IOException e) {
-                throw new RuntimeException(e);
+        try (var out = new ByteArrayOutputStream()) {
+            out.write(contentBytes);
+            if (serializedReferences != null) {
+                out.write(serializedReferences.getBytes(StandardCharsets.UTF_8));
             }
+            var contentHash = DigestUtils.sha256Hex(out.toByteArray());
 
-            return contentEntity.contentId;
-        });
 
-        ArtifactVersionEntity versionEntity = new ArtifactVersionEntity();
-        versionEntity.artifactId = subject;
-        versionEntity.artifactType = artifactType;
-        versionEntity.contentId = contentId;
-        versionEntity.createdBy = "export-confluent-utility";
-        versionEntity.createdOn = System.currentTimeMillis();
-        versionEntity.description = null;
-        versionEntity.globalId = -1;
-        versionEntity.groupId = null;
-        versionEntity.isLatest = isLatest;
-        versionEntity.labels = null;
-        versionEntity.name = null;
-        versionEntity.properties = null;
-        versionEntity.state = ArtifactState.ENABLED;
-        versionEntity.version = String.valueOf(metadata.getVersion());
-        versionEntity.versionId = metadata.getVersion();
+            Long contentId = context.getContentIndex().computeIfAbsent(contentHash, k -> {
+                ContentEntity contentEntity = new ContentEntity();
+                contentEntity.contentId = metadata.getId();
+                contentEntity.contentHash = contentHash;
+                contentEntity.canonicalHash = null;
+                contentEntity.contentBytes = contentBytes;
+                contentEntity.artifactType = artifactType;
+                contentEntity.serializedReferences = serializedReferences;
+                try {
+                    context.getWriter().writeEntity(contentEntity);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
 
-        context.getWriter().writeEntity(versionEntity);
+                return contentEntity.contentId;
+            });
+
+
+            ArtifactVersionEntity versionEntity = new ArtifactVersionEntity();
+            versionEntity.artifactId = subject;
+            versionEntity.artifactType = artifactType;
+            versionEntity.contentId = contentId;
+            versionEntity.createdBy = "export-confluent-utility";
+            versionEntity.createdOn = System.currentTimeMillis();
+            versionEntity.description = null;
+            versionEntity.globalId = -1;
+            versionEntity.groupId = null;
+            versionEntity.isLatest = isLatest;
+            versionEntity.labels = null;
+            versionEntity.name = null;
+            versionEntity.properties = null;
+            versionEntity.state = ArtifactState.ENABLED;
+            versionEntity.version = String.valueOf(metadata.getVersion());
+            versionEntity.versionId = metadata.getVersion();
+
+            context.getWriter().writeEntity(versionEntity);
+        }
     }
 
     /**
      * Serializes the given collection of references to a string
+     *
      * @param references
      */
     private String serializeReferences(List<ArtifactReference> references) {

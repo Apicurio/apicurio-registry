@@ -20,75 +20,38 @@ import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
 import io.apicurio.common.apps.logging.Logged;
 import io.apicurio.common.apps.multitenancy.TenantContext;
 import io.apicurio.registry.content.ContentHandle;
-import io.apicurio.registry.content.canon.ContentCanonicalizer;
 import io.apicurio.registry.content.extract.ContentExtractor;
 import io.apicurio.registry.content.extract.ExtractedMetaData;
 import io.apicurio.registry.metrics.StorageMetricsApply;
 import io.apicurio.registry.metrics.health.liveness.PersistenceExceptionLivenessApply;
 import io.apicurio.registry.metrics.health.readiness.PersistenceTimeoutReadinessApply;
-import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
-import io.apicurio.registry.storage.ArtifactNotFoundException;
-import io.apicurio.registry.storage.ArtifactStateExt;
-import io.apicurio.registry.storage.ContentNotFoundException;
-import io.apicurio.registry.storage.GroupAlreadyExistsException;
-import io.apicurio.registry.storage.GroupNotFoundException;
-import io.apicurio.registry.storage.LogConfigurationNotFoundException;
-import io.apicurio.registry.storage.RegistryStorage;
-import io.apicurio.registry.storage.RegistryStorageException;
-import io.apicurio.registry.storage.RoleMappingNotFoundException;
-import io.apicurio.registry.storage.RuleAlreadyExistsException;
-import io.apicurio.registry.storage.RuleNotFoundException;
-import io.apicurio.registry.storage.StorageEvent;
-import io.apicurio.registry.storage.StorageEventType;
-import io.apicurio.registry.storage.VersionAlreadyExistsException;
-import io.apicurio.registry.storage.VersionNotFoundException;
-import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
-import io.apicurio.registry.storage.dto.ArtifactOwnerDto;
-import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
-import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
-import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
-import io.apicurio.registry.storage.dto.CommentDto;
-import io.apicurio.registry.storage.dto.ContentWrapperDto;
-import io.apicurio.registry.storage.dto.DownloadContextDto;
-import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
-import io.apicurio.registry.storage.dto.GroupMetaDataDto;
-import io.apicurio.registry.storage.dto.GroupSearchResultsDto;
-import io.apicurio.registry.storage.dto.LogConfigurationDto;
-import io.apicurio.registry.storage.dto.OrderBy;
-import io.apicurio.registry.storage.dto.OrderDirection;
-import io.apicurio.registry.storage.dto.RoleMappingDto;
-import io.apicurio.registry.storage.dto.RuleConfigurationDto;
-import io.apicurio.registry.storage.dto.SearchFilter;
-import io.apicurio.registry.storage.dto.StoredArtifactDto;
-import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
+import io.apicurio.registry.storage.*;
+import io.apicurio.registry.storage.dto.*;
 import io.apicurio.registry.storage.impexp.EntityInputStream;
-import io.apicurio.registry.storage.impl.kafkasql.keys.BootstrapKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.MessageKey;
 import io.apicurio.registry.storage.impl.kafkasql.sql.KafkaSqlSink;
 import io.apicurio.registry.storage.impl.kafkasql.sql.KafkaSqlStore;
+import io.apicurio.registry.storage.impl.kafkasql.upgrade.KafkaSqlUpgraderManager;
 import io.apicurio.registry.storage.impl.kafkasql.values.ActionType;
 import io.apicurio.registry.storage.impl.kafkasql.values.MessageValue;
+import io.apicurio.registry.storage.impl.sql.RegistryContentUtils;
 import io.apicurio.registry.storage.impl.sql.SqlStorageEvent;
 import io.apicurio.registry.storage.impl.sql.SqlStorageEventType;
-import io.apicurio.registry.storage.impl.sql.SqlUtil;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 import io.apicurio.registry.util.DataImporter;
 import io.apicurio.registry.utils.ConcurrentUtil;
-import io.apicurio.registry.utils.impexp.ArtifactRuleEntity;
-import io.apicurio.registry.utils.impexp.ArtifactVersionEntity;
-import io.apicurio.registry.utils.impexp.CommentEntity;
-import io.apicurio.registry.utils.impexp.ContentEntity;
-import io.apicurio.registry.utils.impexp.Entity;
-import io.apicurio.registry.utils.impexp.GlobalRuleEntity;
-import io.apicurio.registry.utils.impexp.GroupEntity;
+import io.apicurio.registry.utils.impexp.*;
 import io.apicurio.registry.utils.kafka.KafkaUtil;
 import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
-import org.apache.commons.codec.digest.DigestUtils;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.event.Event;
+import jakarta.enterprise.event.Observes;
+import jakarta.inject.Inject;
 import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -96,26 +59,12 @@ import org.apache.kafka.common.config.TopicConfig;
 import org.apache.kafka.common.errors.TopicExistsException;
 import org.slf4j.Logger;
 
-import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.enterprise.event.Event;
-import jakarta.enterprise.event.Observes;
-import jakarta.inject.Inject;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Date;
-import java.util.EnumSet;
-import java.util.HashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
@@ -170,10 +119,10 @@ public class KafkaSqlRegistryStorage implements RegistryStorage {
     ArtifactStateExt artifactStateEx;
 
     @Inject
-    KafkaSqlUpgrader upgrader;
+    Event<StorageEvent> storageEvent;
 
     @Inject
-    Event<StorageEvent> storageEvent;
+    KafkaSqlUpgraderManager upgraderManager;
 
     private volatile boolean bootstrapped = false;
     private volatile boolean stopped = true;
@@ -187,9 +136,10 @@ public class KafkaSqlRegistryStorage implements RegistryStorage {
             autoCreateTopics();
         }
     }
-    
+
     /**
      * Handles SQL storage CDI events.
+     *
      * @param event
      */
     public void handleSqlStorageEvent(@Observes SqlStorageEvent event) {
@@ -255,15 +205,15 @@ public class KafkaSqlRegistryStorage implements RegistryStorage {
      * Start the KSQL Kafka consumer thread which is responsible for subscribing to the kafka topic,
      * consuming JournalRecord entries found on that topic, and applying those journal entries to
      * the internal data model.
+     *
      * @param consumer
      */
     private void startConsumerThread(final KafkaConsumer<MessageKey, MessageValue> consumer) {
         log.info("Starting KSQL consumer thread on topic: {}", configuration.topic());
         log.info("Bootstrap servers: {}", configuration.bootstrapServers());
 
-        final String bootstrapId = UUID.randomUUID().toString();
-        submitter.submitBootstrap(bootstrapId);
-        final long bootstrapStart = System.currentTimeMillis();
+        // Initialize upgrader manager and start bootstrap timer
+        upgraderManager.init();
 
         Runnable runner = () -> {
             try {
@@ -286,20 +236,6 @@ public class KafkaSqlRegistryStorage implements RegistryStorage {
                                 return;
                             }
 
-                            // If the key is a Bootstrap key, then we have processed all messages and can set bootstrapped to 'true'
-                            if (record.key().getType() == MessageType.Bootstrap) {
-                                BootstrapKey bkey = (BootstrapKey) record.key();
-                                if (bkey.getBootstrapId().equals(bootstrapId)) {
-                                    upgrader.upgrade();
-                                    this.bootstrapped = true;
-                                    storageEvent.fireAsync(StorageEvent.builder()
-                                            .type(StorageEventType.READY)
-                                            .build());
-                                    log.info("KafkaSQL storage bootstrapped in {} ms.", System.currentTimeMillis() - bootstrapStart);
-                                }
-                                return;
-                            }
-
                             // If the value is null, then this is a tombstone (or unrecognized) message and should not
                             // be processed.
                             if (record.value() == null) {
@@ -309,6 +245,14 @@ public class KafkaSqlRegistryStorage implements RegistryStorage {
 
                             // TODO instead of processing the journal record directly on the consumer thread, instead queue them and have *another* thread process the queue
                             kafkaSqlSink.processMessage(record);
+
+                            if (!bootstrapped && upgraderManager.isClosed()) {
+                                bootstrapped = true;
+                                storageEvent.fireAsync(StorageEvent.builder()
+                                        .type(StorageEventType.READY)
+                                        .build());
+                                log.info("KafkaSQL storage bootstrapped in {} ms.", upgraderManager.getBootstrapAndUpgradeDuration().toMillis());
+                            }
                         });
                     }
                 }
@@ -326,7 +270,7 @@ public class KafkaSqlRegistryStorage implements RegistryStorage {
     /**
      * Generate a new globalId.  This must be done by sending a message to Kafka so that all nodes in the cluster are
      * guaranteed to generate the same globalId.
-     *
+     * <p>
      * TODO we can improve performance of this by reserving batches of globalIds instead of doing it one at a time.  Not yet done
      *      due to a desire to avoid premature optimization.
      */
@@ -338,7 +282,7 @@ public class KafkaSqlRegistryStorage implements RegistryStorage {
     /**
      * Generate a new contentId.  This must be done by sending a message to Kafka so that all nodes in the cluster are
      * guaranteed to generate the same contentId.
-     *
+     * <p>
      * TODO we can improve performance of this by reserving batches of contentIds instead of doing it one at a time.  Not yet done
      *      due to a desire to avoid premature optimization.
      */
@@ -350,7 +294,7 @@ public class KafkaSqlRegistryStorage implements RegistryStorage {
     /**
      * Generate a new commentId.  This must be done by sending a message to Kafka so that all nodes in the cluster are
      * guaranteed to generate the same commentId.
-     *
+     * <p>
      * TODO we can improve performance of this by reserving batches of commentIds instead of doing it one at a time.  Not yet done
      *      due to a desire to avoid premature optimization.
      */
@@ -359,63 +303,48 @@ public class KafkaSqlRegistryStorage implements RegistryStorage {
         return (long) coordinator.waitForResponse(uuid);
     }
 
-    /**
-     * Ensures that the given content exists in the database.  If it's already in the DB, then this just
-     * returns the content hash.  If the content does not yet exist in the DB, then it is added (by sending
-     * the appropriate message to the Kafka topic and awaiting the response).
-     *
-     * @param content
-     * @param groupId
-     * @param artifactId
-     * @param artifactType
-     */
-    private String ensureContent(ContentHandle content, String groupId, String artifactId, String artifactType, List<ArtifactReferenceDto> references) {
-        try {
 
-            String referencesSerialized = SqlUtil.serializeReferences(references);
-            byte[] contentBytes = content.bytes();
-            String contentHash = DigestUtils.sha256Hex(concatContentAndReferences(contentBytes, referencesSerialized));
-
-            if (!sqlStore.isContentExists(contentHash)) {
-                long contentId = nextClusterContentId();
-
-                ContentHandle canonicalContent = this.canonicalizeContent(artifactType, content, references);
-                byte[] canonicalContentBytes = canonicalContent.bytes();
-                String canonicalContentHash = DigestUtils.sha256Hex(concatContentAndReferences(canonicalContentBytes, referencesSerialized));
-
-                CompletableFuture<UUID> future = submitter.submitContent(tenantContext.tenantId(), contentId, contentHash, ActionType.CREATE, canonicalContentHash, content, SqlUtil.serializeReferences(references));
-                UUID uuid = ConcurrentUtil.get(future);
-                coordinator.waitForResponse(uuid);
-            }
-
-            return contentHash;
-        } catch (IOException e) {
-            throw new RegistryStorageException(e);
-        }
+    @Override
+    public ContentEntity getContentEntityByContentId(long contentId) {
+        return sqlStore.getContentEntityByContentId(contentId);
     }
 
-    protected long ensureContentAndGetContentId(ContentHandle content, String canonicalContentHash, List<ArtifactReferenceDto> references) {
-        byte[] contentBytes = content.bytes();
-        String contentHash = DigestUtils.sha256Hex(contentBytes);
+
+    protected ContentEntity getOrCreateContent(String artifactType, ContentHandle content, List<ArtifactReferenceDto> references) {
+
+        var car = ContentAndReferencesDto.builder().content(content).references(references).build();
+        var contentHash = RegistryContentUtils.contentHash(car);
 
         if (!sqlStore.isContentExists(contentHash)) {
-            long contentId = nextClusterContentId();
 
-            CompletableFuture<UUID> future = submitter.submitContent(tenantContext.tenantId(), contentId, contentHash, ActionType.CREATE, canonicalContentHash, content, SqlUtil.serializeReferences(references));
+            long contentId = nextClusterContentId();
+            var canonicalContentHash = RegistryContentUtils.canonicalContentHash(artifactType, car, sqlStore::getContentByReference);
+            var serializedReferences = RegistryContentUtils.serializeReferences(references);
+
+            CompletableFuture<UUID> future = submitter.submitContent(ActionType.CREATE_OR_UPDATE, tenantContext.tenantId(), contentId, contentHash, canonicalContentHash, content, serializedReferences);
             UUID uuid = ConcurrentUtil.get(future);
             coordinator.waitForResponse(uuid);
-            return contentId;
-        }
 
-        return sqlStore.contentIdFromHash(contentHash);
+            var res = new ContentEntity();
+            res.contentId = contentId;
+            res.contentHash = contentHash;
+            res.canonicalHash = canonicalContentHash;
+            res.contentBytes = content.bytes();
+            res.serializedReferences = serializedReferences;
+            return res;
+        } else {
+            var contentId = sqlStore.contentIdFromHash(contentHash);
+            return sqlStore.getContentEntityByContentId(contentId);
+        }
     }
+
 
     /**
      * @see io.apicurio.registry.storage.RegistryStorage#createArtifact (java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.types.ArtifactType, io.apicurio.registry.content.ContentHandle)
      */
     @Override
     public ArtifactMetaDataDto createArtifact(String groupId, String artifactId, String version, String artifactType,
-            ContentHandle content, List<ArtifactReferenceDto> references) throws ArtifactAlreadyExistsException, RegistryStorageException {
+                                              ContentHandle content, List<ArtifactReferenceDto> references) throws ArtifactAlreadyExistsException, RegistryStorageException {
         return createArtifactWithMetadata(groupId, artifactId, version, artifactType, content, null, references);
     }
 
@@ -424,12 +353,12 @@ public class KafkaSqlRegistryStorage implements RegistryStorage {
      */
     @Override
     public ArtifactMetaDataDto createArtifactWithMetadata(String groupId, String artifactId, String version,
-            String artifactType, ContentHandle content, EditableArtifactMetaDataDto metaData, List<ArtifactReferenceDto> references) throws ArtifactAlreadyExistsException, RegistryStorageException {
+                                                          String artifactType, ContentHandle content, EditableArtifactMetaDataDto metaData, List<ArtifactReferenceDto> references) throws ArtifactAlreadyExistsException, RegistryStorageException {
         if (sqlStore.isArtifactExists(groupId, artifactId)) {
             throw new ArtifactAlreadyExistsException(groupId, artifactId);
         }
 
-        String contentHash = ensureContent(content, groupId, artifactId, artifactType, references);
+        var contentEntity = getOrCreateContent(artifactType, content, references);
         String createdBy = securityIdentity.getPrincipal().getName();
         Date createdOn = new Date();
 
@@ -452,7 +381,7 @@ public class KafkaSqlRegistryStorage implements RegistryStorage {
 
         UUID uuid = ConcurrentUtil.get(
                 submitter.submitArtifact(tenantContext.tenantId(), groupId, artifactId, version, ActionType.CREATE,
-                        globalId, artifactType, contentHash, createdBy, createdOn, metaData));
+                        globalId, artifactType, contentEntity.contentHash, createdBy, createdOn, metaData));
         return (ArtifactMetaDataDto) coordinator.waitForResponse(uuid);
     }
 
@@ -513,7 +442,7 @@ public class KafkaSqlRegistryStorage implements RegistryStorage {
      * @see io.apicurio.registry.storage.RegistryStorage#getArtifactByContentId(long)
      */
     @Override
-    public ContentWrapperDto getArtifactByContentId(long contentId) throws ContentNotFoundException, RegistryStorageException {
+    public ContentAndReferencesDto getArtifactByContentId(long contentId) throws ContentNotFoundException, RegistryStorageException {
         return sqlStore.getArtifactByContentId(contentId);
     }
 
@@ -521,7 +450,7 @@ public class KafkaSqlRegistryStorage implements RegistryStorage {
      * @see io.apicurio.registry.storage.RegistryStorage#getArtifactByContentHash(java.lang.String)
      */
     @Override
-    public ContentWrapperDto getArtifactByContentHash(String contentHash) throws ContentNotFoundException, RegistryStorageException {
+    public ContentAndReferencesDto getArtifactByContentHash(String contentHash) throws ContentNotFoundException, RegistryStorageException {
         return sqlStore.getArtifactByContentHash(contentHash);
     }
 
@@ -530,7 +459,7 @@ public class KafkaSqlRegistryStorage implements RegistryStorage {
      */
     @Override
     public ArtifactMetaDataDto updateArtifact(String groupId, String artifactId, String version, String artifactType,
-            ContentHandle content, List<ArtifactReferenceDto> references) throws ArtifactNotFoundException, RegistryStorageException {
+                                              ContentHandle content, List<ArtifactReferenceDto> references) throws ArtifactNotFoundException, RegistryStorageException {
         return updateArtifactWithMetadata(groupId, artifactId, version, artifactType, content, null, references);
     }
 
@@ -539,7 +468,7 @@ public class KafkaSqlRegistryStorage implements RegistryStorage {
      */
     @Override
     public ArtifactMetaDataDto updateArtifactWithMetadata(String groupId, String artifactId, String version,
-            String artifactType, ContentHandle content, EditableArtifactMetaDataDto metaData, List<ArtifactReferenceDto> references) throws ArtifactNotFoundException, RegistryStorageException {
+                                                          String artifactType, ContentHandle content, EditableArtifactMetaDataDto metaData, List<ArtifactReferenceDto> references) throws ArtifactNotFoundException, RegistryStorageException {
         if (!sqlStore.isArtifactExists(groupId, artifactId)) {
             throw new ArtifactNotFoundException(groupId, artifactId);
         }
@@ -548,7 +477,7 @@ public class KafkaSqlRegistryStorage implements RegistryStorage {
             throw new VersionAlreadyExistsException(groupId, artifactId, version);
         }
 
-        String contentHash = ensureContent(content, groupId, artifactId, artifactType, references);
+        var contentEntity = getOrCreateContent(artifactType, content, references);
         String createdBy = securityIdentity.getPrincipal().getName();
         Date createdOn = new Date();
 
@@ -560,7 +489,7 @@ public class KafkaSqlRegistryStorage implements RegistryStorage {
 
         UUID reqId = ConcurrentUtil.get(
                 submitter.submitArtifact(tenantContext.tenantId(), groupId, artifactId, version, ActionType.UPDATE,
-                        globalId, artifactType, contentHash, createdBy, createdOn, metaData));
+                        globalId, artifactType, contentEntity.contentHash, createdBy, createdOn, metaData));
         return (ArtifactMetaDataDto) coordinator.waitForResponse(reqId);
     }
 
@@ -633,7 +562,8 @@ public class KafkaSqlRegistryStorage implements RegistryStorage {
     @Override
     public void updateArtifactOwner(String groupId, String artifactId, ArtifactOwnerDto owner) throws ArtifactNotFoundException, RegistryStorageException {
         // Note: the next line will throw ArtifactNotFoundException if the artifact does not exist, so there is no need for an extra check.
-        /*ArtifactMetaDataDto metaDataDto = */sqlStore.getArtifactMetaData(groupId, artifactId, DEFAULT);
+        /*ArtifactMetaDataDto metaDataDto = */
+        sqlStore.getArtifactMetaData(groupId, artifactId, DEFAULT);
 
         UUID reqId = ConcurrentUtil.get(submitter.submitArtifactOwner(tenantContext.tenantId(), groupId, artifactId, ActionType.UPDATE, owner.getOwner()));
         coordinator.waitForResponse(reqId);
@@ -819,6 +749,7 @@ public class KafkaSqlRegistryStorage implements RegistryStorage {
     /**
      * Fetches the meta data for the given artifact version, validates the state (optionally), and then calls back the handler
      * with the metadata.  If the artifact is not found, this will throw an exception.
+     *
      * @param groupId
      * @param artifactId
      * @param version
@@ -906,13 +837,13 @@ public class KafkaSqlRegistryStorage implements RegistryStorage {
 
     private void updateArtifactState(ArtifactState currentState, String groupId, String artifactId, String version, ArtifactState newState, EditableArtifactMetaDataDto metaData) {
         artifactStateEx.applyState(
-            s ->  {
-                UUID reqId = ConcurrentUtil.get(submitter.submitArtifactVersion(tenantContext.tenantId(), groupId, artifactId,
-                        version, ActionType.UPDATE, newState, metaData));
-                coordinator.waitForResponse(reqId);
-            },
-            currentState,
-            newState
+                s -> {
+                    UUID reqId = ConcurrentUtil.get(submitter.submitArtifactVersion(tenantContext.tenantId(), groupId, artifactId,
+                            version, ActionType.UPDATE, newState, metaData));
+                    coordinator.waitForResponse(reqId);
+                },
+                currentState,
+                newState
         );
     }
 
@@ -1080,7 +1011,10 @@ public class KafkaSqlRegistryStorage implements RegistryStorage {
             // wait for a few seconds before we send the reset messages.  Due to partitioning,
             // we can't guarantee ordering of these next two messages, and we NEED them to
             // be consumed after all the import messages.
-            try { Thread.sleep(2000); } catch (Exception e) {}
+            try {
+                Thread.sleep(2000);
+            } catch (Exception e) {
+            }
 
             // Make sure the contentId sequence is set high enough
             resetContentId();
@@ -1177,7 +1111,7 @@ public class KafkaSqlRegistryStorage implements RegistryStorage {
 
     @Override
     public void deleteAllUserData() throws RegistryStorageException {
-        UUID reqId = ConcurrentUtil.get(submitter.submitGlobalAction(tenantContext.tenantId(),  ActionType.DELETE_ALL_USER_DATA));
+        UUID reqId = ConcurrentUtil.get(submitter.submitGlobalAction(tenantContext.tenantId(), ActionType.DELETE_ALL_USER_DATA));
         coordinator.waitForResponse(reqId);
     }
 
@@ -1210,9 +1144,10 @@ public class KafkaSqlRegistryStorage implements RegistryStorage {
         sqlStore.deleteAllExpiredDownloads();
     }
 
+
     @Override
-    public Map<String, ContentHandle> resolveReferences(List<ArtifactReferenceDto> references) {
-        return sqlStore.resolveReferences(references);
+    public ContentAndReferencesDto getContentByReference(ArtifactReferenceDto reference) {
+        return sqlStore.getContentByReference(reference);
     }
 
     /**
@@ -1318,10 +1253,10 @@ public class KafkaSqlRegistryStorage implements RegistryStorage {
         String commentId = String.valueOf(nextClusterCommentId());
 
         UUID reqId = ConcurrentUtil.get(
-                submitter.submitComment(tenantContext.tenantId(), groupId, artifactId, theVersion, commentId, 
+                submitter.submitComment(tenantContext.tenantId(), groupId, artifactId, theVersion, commentId,
                         ActionType.CREATE, createdBy, createdOn, value));
         coordinator.waitForResponse(reqId);
-        
+
         return CommentDto.builder()
                 .commentId(commentId)
                 .createdBy(createdBy)
@@ -1329,14 +1264,14 @@ public class KafkaSqlRegistryStorage implements RegistryStorage {
                 .value(value)
                 .build();
     }
-    
+
     /**
      * @see io.apicurio.registry.storage.RegistryStorage#deleteArtifactVersionComment(java.lang.String, java.lang.String, java.lang.String, java.lang.String)
      */
     @Override
     public void deleteArtifactVersionComment(String groupId, String artifactId, String version, String commentId) {
         String theVersion = sqlStore.resolveVersion(groupId, artifactId, version);
-        
+
         if (!sqlStore.isArtifactVersionExists(groupId, artifactId, theVersion)) {
             throw new VersionNotFoundException(groupId, artifactId, theVersion);
         }
@@ -1344,19 +1279,19 @@ public class KafkaSqlRegistryStorage implements RegistryStorage {
         UUID reqId = ConcurrentUtil.get(submitter.submitComment(tenantContext.tenantId(), groupId, artifactId, theVersion, commentId, ActionType.DELETE));
         coordinator.waitForResponse(reqId);
     }
-    
+
     /**
      * @see io.apicurio.registry.storage.RegistryStorage#updateArtifactVersionComment(java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String)
      */
     @Override
     public void updateArtifactVersionComment(String groupId, String artifactId, String version, String commentId, String value) {
         String theVersion = sqlStore.resolveVersion(groupId, artifactId, version);
-        
+
         if (!sqlStore.isArtifactVersionExists(groupId, artifactId, theVersion)) {
             throw new VersionNotFoundException(groupId, artifactId, theVersion);
         }
 
-        UUID reqId = ConcurrentUtil.get(submitter.submitComment(tenantContext.tenantId(), groupId, artifactId, theVersion, 
+        UUID reqId = ConcurrentUtil.get(submitter.submitComment(tenantContext.tenantId(), groupId, artifactId, theVersion,
                 commentId, ActionType.UPDATE, null, null, value));
         coordinator.waitForResponse(reqId);
     }
@@ -1381,10 +1316,12 @@ public class KafkaSqlRegistryStorage implements RegistryStorage {
         RuleConfigurationDto config = new RuleConfigurationDto(entity.configuration);
         submitter.submitArtifactRule(tenantContext.tenantId(), entity.groupId, entity.artifactId, entity.type, ActionType.IMPORT, config);
     }
+
     public void importComment(CommentEntity entity) {
-        submitter.submitComment(tenantContext.tenantId(), entity.commentId, ActionType.IMPORT, entity.globalId, 
+        submitter.submitComment(tenantContext.tenantId(), entity.commentId, ActionType.IMPORT, entity.globalId,
                 entity.createdBy, new Date(entity.createdOn), entity.value);
     }
+
     protected void importArtifactVersion(ArtifactVersionEntity entity) {
         EditableArtifactMetaDataDto metaData = EditableArtifactMetaDataDto.builder()
                 .name(entity.name)
@@ -1396,13 +1333,16 @@ public class KafkaSqlRegistryStorage implements RegistryStorage {
                 entity.globalId, entity.artifactType, null, entity.createdBy, new Date(entity.createdOn), metaData, entity.versionId,
                 entity.state, entity.contentId, entity.isLatest);
     }
+
     protected void importContent(ContentEntity entity) {
-        submitter.submitContent(tenantContext.tenantId(), entity.contentId, entity.contentHash, ActionType.IMPORT, entity.canonicalHash, ContentHandle.create(entity.contentBytes), entity.serializedReferences);
+        submitter.submitContent(ActionType.IMPORT, tenantContext.tenantId(), entity.contentId, entity.contentHash, entity.canonicalHash, ContentHandle.create(entity.contentBytes), entity.serializedReferences);
     }
+
     protected void importGlobalRule(GlobalRuleEntity entity) {
         RuleConfigurationDto config = new RuleConfigurationDto(entity.configuration);
         submitter.submitGlobalRule(tenantContext.tenantId(), entity.ruleType, ActionType.IMPORT, config);
     }
+
     protected void importGroup(GroupEntity entity) {
         GroupEntity e = entity;
         GroupMetaDataDto group = new GroupMetaDataDto();
@@ -1416,10 +1356,12 @@ public class KafkaSqlRegistryStorage implements RegistryStorage {
         group.setProperties(e.properties);
         submitter.submitGroup(tenantContext.tenantId(), ActionType.IMPORT, group);
     }
+
     private void resetContentId() {
         UUID reqId = ConcurrentUtil.get(submitter.submitGlobalId(tenantContext.tenantId(), ActionType.RESET));
         coordinator.waitForResponse(reqId);
     }
+
     private void resetGlobalId() {
         UUID reqId = ConcurrentUtil.get(submitter.submitContentId(tenantContext.tenantId(), ActionType.RESET));
         coordinator.waitForResponse(reqId);
@@ -1427,6 +1369,7 @@ public class KafkaSqlRegistryStorage implements RegistryStorage {
 
     /**
      * Canonicalize the given content, returns the content unchanged in the case of an error.
+     *
      * @param artifactType
      * @param content
      */
@@ -1436,15 +1379,18 @@ public class KafkaSqlRegistryStorage implements RegistryStorage {
 
     /**
      * Canonicalize the given content, returns the content unchanged in the case of an error.
+     *
      * @param artifactType
      * @param content
      */
     protected ContentHandle canonicalizeContent(String artifactType, ContentHandle content, List<ArtifactReferenceDto> references) {
         try {
-            ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(artifactType);
-            ContentCanonicalizer canonicalizer = provider.getContentCanonicalizer();
-            ContentHandle canonicalContent = canonicalizer.canonicalize(content, this.resolveReferences(references));
-            return canonicalContent;
+            return RegistryContentUtils.canonicalizeContent(artifactType,
+                    ContentAndReferencesDto.builder()
+                            .content(content)
+                            .references(references)
+                            .build(),
+                    this::getContentByReference);
         } catch (Exception e) {
             log.debug("Failed to canonicalize content of type: {}", artifactType);
             return content;

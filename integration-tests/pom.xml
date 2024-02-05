@@ -156,6 +156,7 @@
                         <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
                         <maven.home>${maven.home}</maven.home>
                         <groups>${groups}</groups>
+                        <project.version>${project.version}</project.version>
                     </systemPropertyVariables>
                 </configuration>
                 <executions>

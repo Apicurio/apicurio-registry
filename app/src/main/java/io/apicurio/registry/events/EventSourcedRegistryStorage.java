@@ -20,38 +20,17 @@ import io.apicurio.registry.events.dto.ArtifactId;
 import io.apicurio.registry.events.dto.ArtifactRuleChange;
 import io.apicurio.registry.events.dto.ArtifactStateChange;
 import io.apicurio.registry.events.dto.RegistryEventType;
-import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
-import io.apicurio.registry.storage.ArtifactNotFoundException;
-import io.apicurio.registry.storage.ContentNotFoundException;
-import io.apicurio.registry.storage.GroupAlreadyExistsException;
-import io.apicurio.registry.storage.GroupNotFoundException;
-import io.apicurio.registry.storage.RegistryStorageException;
-import io.apicurio.registry.storage.RuleAlreadyExistsException;
-import io.apicurio.registry.storage.RuleNotFoundException;
-import io.apicurio.registry.storage.VersionNotFoundException;
+import io.apicurio.registry.storage.*;
 import io.apicurio.registry.storage.decorator.RegistryStorageDecorator;
-import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
-import io.apicurio.registry.storage.dto.ArtifactOwnerDto;
-import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
-import io.apicurio.registry.storage.dto.ContentWrapperDto;
-import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
-import io.apicurio.registry.storage.dto.GroupMetaDataDto;
-import io.apicurio.registry.storage.dto.GroupSearchResultsDto;
-import io.apicurio.registry.storage.dto.OrderBy;
-import io.apicurio.registry.storage.dto.OrderDirection;
-import io.apicurio.registry.storage.dto.RuleConfigurationDto;
-import io.apicurio.registry.storage.dto.SearchFilter;
-import io.apicurio.registry.storage.dto.StoredArtifactDto;
+import io.apicurio.registry.storage.dto.*;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.RuleType;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
-import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
 
 /**
  * @author Fabian Martinez
@@ -125,7 +104,7 @@ public class EventSourcedRegistryStorage extends RegistryStorageDecorator {
      */
     @Override
     public ArtifactMetaDataDto createArtifactWithMetadata(String groupId, String artifactId, String version,
-            String artifactType, ContentHandle content, EditableArtifactMetaDataDto metaData, List<ArtifactReferenceDto> references) throws ArtifactAlreadyExistsException, RegistryStorageException {
+                                                          String artifactType, ContentHandle content, EditableArtifactMetaDataDto metaData, List<ArtifactReferenceDto> references) throws ArtifactAlreadyExistsException, RegistryStorageException {
         ArtifactMetaDataDto meta = delegate.createArtifactWithMetadata(groupId, artifactId, version, artifactType, content, metaData, references);
         ArtifactId data = new ArtifactId();
         data.setGroupId(groupId);
@@ -155,26 +134,6 @@ public class EventSourcedRegistryStorage extends RegistryStorageDecorator {
     }
 
     @Override
-    public StoredArtifactDto getArtifact(String groupId, String artifactId) throws ArtifactNotFoundException, RegistryStorageException {
-        return delegate.getArtifact(groupId, artifactId);
-    }
-
-    @Override
-    public StoredArtifactDto getArtifact(String groupId, String artifactId, ArtifactRetrievalBehavior behavior) throws ArtifactNotFoundException, RegistryStorageException {
-        return delegate.getArtifact(groupId, artifactId, behavior);
-    }
-
-    @Override
-    public ContentWrapperDto getArtifactByContentHash(String contentHash) throws ContentNotFoundException, RegistryStorageException {
-        return delegate.getArtifactByContentHash(contentHash);
-    }
-
-    @Override
-    public ContentWrapperDto getArtifactByContentId(long contentId) throws ContentNotFoundException, RegistryStorageException {
-        return delegate.getArtifactByContentId(contentId);
-    }
-
-    @Override
     public ArtifactMetaDataDto updateArtifact(String groupId, String artifactId, String version, String artifactType, ContentHandle content, List<ArtifactReferenceDto> references)
             throws ArtifactNotFoundException, RegistryStorageException {
         ArtifactMetaDataDto meta = delegate.updateArtifact(groupId, artifactId, version, artifactType, content, references);
@@ -189,7 +148,7 @@ public class EventSourcedRegistryStorage extends RegistryStorageDecorator {
 
     @Override
     public ArtifactMetaDataDto updateArtifactWithMetadata(String groupId, String artifactId, String version, String artifactType, ContentHandle content,
-            EditableArtifactMetaDataDto metaData, List<ArtifactReferenceDto> references) throws ArtifactNotFoundException, RegistryStorageException {
+                                                          EditableArtifactMetaDataDto metaData, List<ArtifactReferenceDto> references) throws ArtifactNotFoundException, RegistryStorageException {
         ArtifactMetaDataDto meta = delegate.updateArtifactWithMetadata(groupId, artifactId, version, artifactType, content, metaData, references);
         ArtifactId data = new ArtifactId();
         data.setGroupId(groupId);
@@ -210,11 +169,6 @@ public class EventSourcedRegistryStorage extends RegistryStorageDecorator {
     public void updateArtifactOwner(String groupId, String artifactId, ArtifactOwnerDto owner) throws ArtifactNotFoundException, RegistryStorageException {
         delegate.updateArtifactOwner(groupId, artifactId, owner);
         //TODO consider a change ownership event
-    }
-
-    @Override
-    public List<RuleType> getArtifactRules(String groupId, String artifactId) throws ArtifactNotFoundException, RegistryStorageException {
-        return delegate.getArtifactRules(groupId, artifactId);
     }
 
     /**
@@ -332,29 +286,5 @@ public class EventSourcedRegistryStorage extends RegistryStorageDecorator {
         ArtifactId data = new ArtifactId();
         data.setGroupId(groupId);
         fireEvent(RegistryEventType.GROUP_DELETED, groupId, data, null);
-    }
-
-    /**
-     * @see io.apicurio.registry.storage.RegistryStorage#resolveReferences(List)
-     */
-    @Override
-    public Map<String, ContentHandle> resolveReferences(List<ArtifactReferenceDto> references) {
-        return delegate.resolveReferences(references);
-    }
-
-    /**
-     * @see io.apicurio.registry.storage.RegistryStorage#isArtifactExists(String, String)
-     */
-    @Override
-    public boolean isArtifactExists(String groupId, String artifactId) throws RegistryStorageException {
-        return delegate.isArtifactExists(groupId, artifactId);
-    }
-
-    /**
-     * @see io.apicurio.registry.storage.RegistryStorage#searchGroups(Set, OrderBy, OrderDirection, Integer, Integer)
-     */
-    @Override
-    public GroupSearchResultsDto searchGroups(Set<SearchFilter> filters, OrderBy orderBy, OrderDirection orderDirection, Integer offset, Integer limit) {
-        return delegate.searchGroups(filters, orderBy, orderDirection, offset, limit);
     }
 }

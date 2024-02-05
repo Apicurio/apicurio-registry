@@ -30,8 +30,9 @@ import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessChe
 import io.apicurio.registry.storage.ArtifactNotFoundException;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
-import io.apicurio.registry.storage.dto.ContentWrapperDto;
+import io.apicurio.registry.storage.dto.ContentAndReferencesDto;
 import io.apicurio.registry.storage.dto.StoredArtifactDto;
+import io.apicurio.registry.storage.impl.sql.RegistryContentUtils;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.util.ArtifactTypeUtil;
 import jakarta.interceptor.Interceptors;
@@ -61,16 +62,24 @@ public class SchemasResourceImpl extends AbstractResource implements SchemasReso
             contentHandle = artifactVersion.getContent();
             references = artifactVersion.getReferences();
         } else {
-            ContentWrapperDto contentWrapper = getStorage().getArtifactByContentId(id);
+            ContentAndReferencesDto contentAndReferences = getStorage().getArtifactByContentId(id);
             contentHandle = getStorage().getArtifactByContentId(id).getContent();
-            references = contentWrapper.getReferences();
+            references = contentAndReferences.getReferences();
             List<ArtifactMetaDataDto> artifacts = getStorage().getArtifactVersionsByContentId(id);
             if (artifacts == null || artifacts.isEmpty()) {
                 //the contentId points to an orphaned content
                 throw new ArtifactNotFoundException("ContentId: " + id);
             }
         }
-        return getConverter().convert(contentHandle, ArtifactTypeUtil.determineArtifactType(contentHandle, null, null, getStorage().resolveReferences(references), getFactory().getAllArtifactTypes()), references);
+        return getConverter().convert(contentHandle,
+                ArtifactTypeUtil.determineArtifactType(
+                        contentHandle,
+                        null,
+                        null,
+                        RegistryContentUtils.recursivelyResolveReferences(references, r -> getStorage().getContentByReference(r)),
+                        getFactory().getAllArtifactTypes()
+                ),
+                references);
     }
 
     @Override

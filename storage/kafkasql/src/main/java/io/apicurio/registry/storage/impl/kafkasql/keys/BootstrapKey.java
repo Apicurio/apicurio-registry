@@ -22,6 +22,7 @@ import io.quarkus.runtime.annotations.RegisterForReflection;
 /**
  * @author eric.wittmann@gmail.com
  */
+@Deprecated
 @RegisterForReflection
 public class BootstrapKey implements MessageKey {
 

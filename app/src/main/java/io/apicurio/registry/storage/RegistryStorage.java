@@ -19,7 +19,6 @@ package io.apicurio.registry.storage;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 
@@ -27,28 +26,11 @@ import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
 import io.apicurio.common.apps.config.DynamicConfigStorage;
 import io.apicurio.common.apps.multitenancy.TenantContext;
 import io.apicurio.registry.content.ContentHandle;
-import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
-import io.apicurio.registry.storage.dto.ArtifactOwnerDto;
-import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
-import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
-import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
-import io.apicurio.registry.storage.dto.CommentDto;
-import io.apicurio.registry.storage.dto.ContentWrapperDto;
-import io.apicurio.registry.storage.dto.DownloadContextDto;
-import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
-import io.apicurio.registry.storage.dto.GroupMetaDataDto;
-import io.apicurio.registry.storage.dto.GroupSearchResultsDto;
-import io.apicurio.registry.storage.dto.LogConfigurationDto;
-import io.apicurio.registry.storage.dto.OrderBy;
-import io.apicurio.registry.storage.dto.OrderDirection;
-import io.apicurio.registry.storage.dto.RoleMappingDto;
-import io.apicurio.registry.storage.dto.RuleConfigurationDto;
-import io.apicurio.registry.storage.dto.SearchFilter;
-import io.apicurio.registry.storage.dto.StoredArtifactDto;
-import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
+import io.apicurio.registry.storage.dto.*;
 import io.apicurio.registry.storage.impexp.EntityInputStream;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.utils.impexp.ContentEntity;
 import io.apicurio.registry.utils.impexp.Entity;
 
 /**
@@ -197,7 +179,7 @@ public interface RegistryStorage extends DynamicConfigStorage {
      * @throws ContentNotFoundException
      * @throws RegistryStorageException
      */
-    ContentWrapperDto getArtifactByContentId(long contentId) throws ContentNotFoundException, RegistryStorageException;
+    ContentAndReferencesDto getArtifactByContentId(long contentId) throws ContentNotFoundException, RegistryStorageException;
 
     /**
      * Gets some artifact content by the SHA-256 hash of that content.  This method of getting content
@@ -208,7 +190,7 @@ public interface RegistryStorage extends DynamicConfigStorage {
      * @throws ContentNotFoundException
      * @throws RegistryStorageException
      */
-    ContentWrapperDto getArtifactByContentHash(String contentHash) throws ContentNotFoundException, RegistryStorageException;
+    ContentAndReferencesDto getArtifactByContentHash(String contentHash) throws ContentNotFoundException, RegistryStorageException;
 
     /**
      * Get artifact metadata for a given contentId
@@ -789,10 +771,11 @@ public interface RegistryStorage extends DynamicConfigStorage {
     List<String> getTenantsWithStaleConfigProperties(Instant since);
 
 
-    /**
-     * @return The artifact references resolved as a map containing the reference name as key and the referenced artifact content.
-     */
-    Map<String, ContentHandle> resolveReferences(List<ArtifactReferenceDto> references);
+    ContentAndReferencesDto getContentByReference(ArtifactReferenceDto reference);
+
+
+    ContentEntity getContentEntityByContentId(long contentId);
+
 
     /**
      * @param groupId

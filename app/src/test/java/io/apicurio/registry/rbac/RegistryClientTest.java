@@ -47,7 +47,7 @@ import io.apicurio.registry.rest.v2.beans.SortOrder;
 import io.apicurio.registry.rest.v2.beans.UpdateState;
 import io.apicurio.registry.rest.v2.beans.VersionMetaData;
 import io.apicurio.registry.rest.v2.beans.VersionSearchResults;
-import io.apicurio.registry.storage.impl.sql.SqlUtil;
+import io.apicurio.registry.storage.impl.sql.RegistryContentUtils;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
@@ -901,7 +901,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
 
         createArtifactWithReferences(groupId, secondArtifactId, artifactReferences);
 
-        String referencesSerialized = SqlUtil.serializeReferences(toReferenceDtos(artifactReferences));
+        String referencesSerialized = RegistryContentUtils.serializeReferences(toReferenceDtos(artifactReferences));
 
         contentHash = DigestUtils.sha256Hex(concatContentAndReferences(ARTIFACT_CONTENT.getBytes(StandardCharsets.UTF_8), referencesSerialized));
 

@@ -16,10 +16,10 @@
 
 package io.apicurio.registry.storage.impl.kafkasql.values;
 
+import io.apicurio.registry.storage.impl.kafkasql.MessageType;
+
 import java.util.HashMap;
 import java.util.Map;
-
-import io.apicurio.registry.storage.impl.kafkasql.MessageType;
 
 /**
  * Provides a mapping from a message type to the {@link MessageValue} for that message type.
@@ -45,6 +45,9 @@ public class MessageTypeToValueClass {
                     break;
                 case Content:
                     index.put(type, ContentValue.class);
+                    break;
+                case ContentV2:
+                    index.put(type, ContentV2Value.class);
                     break;
                 case GlobalRule:
                     index.put(type, GlobalRuleValue.class);
@@ -81,6 +84,9 @@ public class MessageTypeToValueClass {
                     break;
                 case Comment:
                     index.put(type, CommentValue.class);
+                    break;
+                case Upgrader:
+                    index.put(type, UpgraderValue.class);
                     break;
                 default:
                     throw new RuntimeException("[MessageTypeToValueClass] Type not mapped: " + type);

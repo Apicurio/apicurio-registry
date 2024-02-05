@@ -1,17 +1,5 @@
 package io.apicurio.registry.storage.impl.kafkasql.sql;
 
-import java.util.Optional;
-import java.util.UUID;
-import java.util.function.Supplier;
-
-import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.enterprise.context.control.ActivateRequestContext;
-import jakarta.inject.Inject;
-
-import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.kafka.common.header.Header;
-import org.slf4j.Logger;
-
 import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
 import io.apicurio.common.apps.logging.Logged;
 import io.apicurio.common.apps.multitenancy.ApicurioTenantContext;
@@ -26,51 +14,25 @@ import io.apicurio.registry.storage.impl.kafkasql.KafkaSqlCoordinator;
 import io.apicurio.registry.storage.impl.kafkasql.KafkaSqlRegistryStorage;
 import io.apicurio.registry.storage.impl.kafkasql.KafkaSqlSubmitter;
 import io.apicurio.registry.storage.impl.kafkasql.MessageType;
-import io.apicurio.registry.storage.impl.kafkasql.keys.ArtifactKey;
-import io.apicurio.registry.storage.impl.kafkasql.keys.ArtifactOwnerKey;
-import io.apicurio.registry.storage.impl.kafkasql.keys.ArtifactRuleKey;
-import io.apicurio.registry.storage.impl.kafkasql.keys.ArtifactVersionKey;
-import io.apicurio.registry.storage.impl.kafkasql.keys.CommentIdKey;
-import io.apicurio.registry.storage.impl.kafkasql.keys.CommentKey;
-import io.apicurio.registry.storage.impl.kafkasql.keys.ConfigPropertyKey;
-import io.apicurio.registry.storage.impl.kafkasql.keys.ContentIdKey;
-import io.apicurio.registry.storage.impl.kafkasql.keys.ContentKey;
-import io.apicurio.registry.storage.impl.kafkasql.keys.DownloadKey;
-import io.apicurio.registry.storage.impl.kafkasql.keys.GlobalActionKey;
-import io.apicurio.registry.storage.impl.kafkasql.keys.GlobalIdKey;
-import io.apicurio.registry.storage.impl.kafkasql.keys.GlobalRuleKey;
-import io.apicurio.registry.storage.impl.kafkasql.keys.GroupKey;
-import io.apicurio.registry.storage.impl.kafkasql.keys.LogConfigKey;
-import io.apicurio.registry.storage.impl.kafkasql.keys.MessageKey;
-import io.apicurio.registry.storage.impl.kafkasql.keys.RoleMappingKey;
-import io.apicurio.registry.storage.impl.kafkasql.values.AbstractMessageValue;
-import io.apicurio.registry.storage.impl.kafkasql.values.ArtifactOwnerValue;
-import io.apicurio.registry.storage.impl.kafkasql.values.ArtifactRuleValue;
-import io.apicurio.registry.storage.impl.kafkasql.values.ArtifactValue;
-import io.apicurio.registry.storage.impl.kafkasql.values.ArtifactVersionValue;
-import io.apicurio.registry.storage.impl.kafkasql.values.CommentIdValue;
-import io.apicurio.registry.storage.impl.kafkasql.values.CommentValue;
-import io.apicurio.registry.storage.impl.kafkasql.values.ConfigPropertyValue;
-import io.apicurio.registry.storage.impl.kafkasql.values.ContentIdValue;
-import io.apicurio.registry.storage.impl.kafkasql.values.ContentValue;
-import io.apicurio.registry.storage.impl.kafkasql.values.DownloadValue;
-import io.apicurio.registry.storage.impl.kafkasql.values.GlobalActionValue;
-import io.apicurio.registry.storage.impl.kafkasql.values.GlobalIdValue;
-import io.apicurio.registry.storage.impl.kafkasql.values.GlobalRuleValue;
-import io.apicurio.registry.storage.impl.kafkasql.values.GroupValue;
-import io.apicurio.registry.storage.impl.kafkasql.values.LogConfigValue;
-import io.apicurio.registry.storage.impl.kafkasql.values.MessageValue;
-import io.apicurio.registry.storage.impl.kafkasql.values.RoleMappingValue;
+import io.apicurio.registry.storage.impl.kafkasql.keys.*;
+import io.apicurio.registry.storage.impl.kafkasql.upgrade.KafkaSqlUpgraderManager;
+import io.apicurio.registry.storage.impl.kafkasql.values.*;
 import io.apicurio.registry.storage.impl.sql.IdGenerator;
 import io.apicurio.registry.storage.impl.sql.IdGenerator.StaticIdGenerator;
 import io.apicurio.registry.storage.impl.sql.jdb.Handle;
 import io.apicurio.registry.types.RegistryException;
-import io.apicurio.registry.utils.impexp.ArtifactRuleEntity;
-import io.apicurio.registry.utils.impexp.ArtifactVersionEntity;
-import io.apicurio.registry.utils.impexp.CommentEntity;
-import io.apicurio.registry.utils.impexp.ContentEntity;
-import io.apicurio.registry.utils.impexp.GlobalRuleEntity;
-import io.apicurio.registry.utils.impexp.GroupEntity;
+import io.apicurio.registry.utils.impexp.*;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.context.control.ActivateRequestContext;
+import jakarta.inject.Inject;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.common.header.Header;
+import org.slf4j.Logger;
+
+import java.time.Instant;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.function.Supplier;
 
 /**
  * @author Fabian Martinez
@@ -97,11 +59,14 @@ public class KafkaSqlSink {
     @Inject
     TenantContextLoader tcl;
 
+    @Inject
+    KafkaSqlUpgraderManager upgraderManager;
+
     /**
      * Called by the {@link KafkaSqlRegistryStorage} main Kafka consumer loop to process a single
      * message in the topic.  Each message represents some attempt to modify the registry data.  So
      * each message much be consumed and applied to the in-memory SQL data store.
-     *
+     * <p>
      * This method extracts the UUID from the message headers, delegates the message processing
      * to <code>doProcessMessage()</code>, and handles any exceptions that might occur. Finally
      * it will report the result to any local threads that may be waiting (via the coordinator).
@@ -129,6 +94,7 @@ public class KafkaSqlSink {
 
     /**
      * Extracts the UUID from the message.  The UUID should be found in a message header.
+     *
      * @param record
      */
     private UUID extractUuid(ConsumerRecord<MessageKey, MessageValue> record) {
@@ -146,18 +112,23 @@ public class KafkaSqlSink {
     /**
      * Process the message and return a result.  This method may also throw an exception if something
      * goes wrong.
+     *
      * @param record
      */
     private Object doProcessMessage(ConsumerRecord<MessageKey, MessageValue> record) {
+        Instant timestamp = Instant.ofEpochMilli(record.timestamp());
         MessageKey key = record.key();
         MessageValue value = record.value();
 
-        String tenantId = key.getTenantId();
-        if (tenantId != null) {
-            ApicurioTenantContext tctx = tcl.loadBatchJobContext(tenantId);
-            tenantContext.setContext(tctx);
-        }
         try {
+            upgraderManager.read(timestamp, key, value);
+
+            String tenantId = key.getTenantId();
+            if (tenantId != null) {
+                ApicurioTenantContext tctx = tcl.loadBatchJobContext(tenantId);
+                tenantContext.setContext(tctx);
+            }
+
             MessageType messageType = key.getType();
             switch (messageType) {
                 case Group:
@@ -170,6 +141,8 @@ public class KafkaSqlSink {
                     return processArtifactVersion((ArtifactVersionKey) key, (ArtifactVersionValue) value);
                 case Content:
                     return processContent((ContentKey) key, (ContentValue) value);
+                case ContentV2:
+                    return processContentV2((ContentV2Key) key, (ContentV2Value) value);
                 case GlobalRule:
                     return processGlobalRule((GlobalRuleKey) key, (GlobalRuleValue) value);
                 case GlobalId:
@@ -192,6 +165,8 @@ public class KafkaSqlSink {
                     return processCommentId((CommentIdKey) key, (CommentIdValue) value);
                 case Comment:
                     return processComment((CommentKey) key, (CommentValue) value);
+                case Upgrader:
+                    return null; // Ignore, processed by KafkaSqlUpgraderManager
                 default:
                     log.warn("Unrecognized message type: {}", record.key());
                     throw new RegistryStorageException("Unexpected message type: " + messageType.name());
@@ -204,6 +179,7 @@ public class KafkaSqlSink {
 
     /**
      * Process a Kafka message of type "globalaction".
+     *
      * @param key
      * @param value
      */
@@ -219,6 +195,7 @@ public class KafkaSqlSink {
 
     /**
      * Process a Kafka message of type "download".
+     *
      * @param key
      * @param value
      */
@@ -235,6 +212,7 @@ public class KafkaSqlSink {
 
     /**
      * Process a Kafka message of type "configProperty".
+     *
      * @param key
      * @param value
      */
@@ -254,6 +232,7 @@ public class KafkaSqlSink {
 
     /**
      * Process a Kafka message of type "group".  This includes creating, updating, and deleting groups.
+     *
      * @param key
      * @param value
      */
@@ -303,6 +282,7 @@ public class KafkaSqlSink {
 
     /**
      * Process a Kafka message of type "artifact".  This includes creating, updating, and deleting artifacts.
+     *
      * @param key
      * @param value
      */
@@ -350,7 +330,7 @@ public class KafkaSqlSink {
         } catch (ArtifactNotFoundException | ArtifactAlreadyExistsException e) {
             // Send a tombstone message to clean up the unique Kafka message that caused this failure.  We may be
             // able to do this for other errors, but these two are definitely safe.
-            submitter.send(key, null);
+            submitter.send(key, null); // TODO: This does not do anything, since UUID is always unique.
             throw e;
         }
     }
@@ -358,6 +338,7 @@ public class KafkaSqlSink {
     /**
      * Process a Kafka message of type "artifact rule".  This includes creating, updating, and deleting
      * rules for a specific artifact.
+     *
      * @param key
      * @param value
      */
@@ -390,6 +371,7 @@ public class KafkaSqlSink {
     /**
      * Process a Kafka message of type "artifact owner".  This includes updating the owner for
      * a specific artifact.
+     *
      * @param key
      * @param value
      */
@@ -405,10 +387,10 @@ public class KafkaSqlSink {
 
     /**
      * Process a Kafka message of type "artifact version".  This includes:
-     *
-     *  - Updating version meta-data and state
-     *  - Deleting version meta-data and state
-     *  - Deleting an artifact version
+     * <p>
+     * - Updating version meta-data and state
+     * - Deleting version meta-data and state
+     * - Deleting an artifact version
      *
      * @param key
      * @param value
@@ -432,14 +414,16 @@ public class KafkaSqlSink {
     /**
      * Process a Kafka message of type "content".  This primarily means creating or updating a row in
      * the content table.
+     *
      * @param key
      * @param value
      */
+    @Deprecated
     private Object processContent(ContentKey key, ContentValue value) {
         switch (value.getAction()) {
             case CREATE:
                 if (!sqlStore.isContentExists(key.getContentHash())) {
-                    sqlStore.storeContent(key.getContentId(), key.getContentHash(), value.getCanonicalHash(), value.getContent(), value.getSerializedReferences());
+                    sqlStore.createOrUpdateContentByContentId(key.getContentId(), key.getContentHash(), value.getCanonicalHash(), value.getContent(), value.getSerializedReferences());
                 }
                 return null;
             case IMPORT:
@@ -460,6 +444,29 @@ public class KafkaSqlSink {
                 return unsupported(key, value);
         }
     }
+
+
+    private Object processContentV2(ContentV2Key key, ContentV2Value value) {
+        switch (value.getAction()) {
+            case CREATE_OR_UPDATE:
+                sqlStore.createOrUpdateContentByContentId(key.getContentId(), value.getContentHash(), value.getCanonicalContentHash(), value.getContent(), value.getSerializedReferences());
+                return null;
+            case IMPORT:
+                if (!sqlStore.isContentExists(key.getContentId())) {
+                    ContentEntity entity = new ContentEntity();
+                    entity.contentId = key.getContentId();
+                    entity.contentHash = value.getContentHash();
+                    entity.canonicalHash = value.getCanonicalContentHash();
+                    entity.contentBytes = value.getContent().bytes();
+                    entity.serializedReferences = value.getSerializedReferences();
+                    sqlStore.importContent(entity);
+                }
+                return null;
+            default:
+                return unsupported(key, value);
+        }
+    }
+
 
     /**
      * Process a Kafka message of type "global rule".  This includes creating, updating, and deleting
@@ -523,6 +530,7 @@ public class KafkaSqlSink {
     /**
      * Process a Kafka message of type "global id".  This is typically used to generate a new globalId that
      * is unique and consistent across the cluster.
+     *
      * @param key
      * @param value
      */
@@ -541,6 +549,7 @@ public class KafkaSqlSink {
     /**
      * Process a Kafka message of type "content id".  This is typically used to generate a new contentId that
      * is unique and consistent across the cluster.
+     *
      * @param key
      * @param value
      */
@@ -559,6 +568,7 @@ public class KafkaSqlSink {
     /**
      * Process a Kafka message of type "comment id".  This is typically used to generate a new commentId that
      * is unique and consistent across the cluster.
+     *
      * @param key
      * @param value
      */
@@ -577,6 +587,7 @@ public class KafkaSqlSink {
     /**
      * Process a Kafka message of type "log config".  This includes updating and deleting
      * log configurations.
+     *
      * @param key
      * @param value
      */
@@ -598,17 +609,18 @@ public class KafkaSqlSink {
         log.warn(m);
         throw new RegistryStorageException(m);
     }
-    
+
     /**
      * Process a Kafka message of type "comment".  This includes creating, updating, and deleting
      * comments for a specific artifact version.
+     *
      * @param key
      * @param value
      */
     private Object processComment(CommentKey key, CommentValue value) {
         switch (value.getAction()) {
             case CREATE:
-                return sqlStore.createArtifactVersionComment(key.getGroupId(), key.getArtifactId(), key.getVersion(), 
+                return sqlStore.createArtifactVersionComment(key.getGroupId(), key.getArtifactId(), key.getVersion(),
                         new StaticIdGenerator(Long.parseLong(key.getCommentId())),
                         value.getCreatedBy(), value.getCreatedOn(), value.getValue());
             case UPDATE:

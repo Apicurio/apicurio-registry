@@ -16,12 +16,12 @@
 
 package io.apicurio.registry.storage.impl.sql.mappers;
 
+import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
+import io.apicurio.registry.storage.impl.sql.RegistryContentUtils;
+import io.apicurio.registry.storage.impl.sql.jdb.RowMapper;
+
 import java.sql.ResultSet;
 import java.sql.SQLException;
-
-import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
-import io.apicurio.registry.storage.impl.sql.SqlUtil;
-import io.apicurio.registry.storage.impl.sql.jdb.RowMapper;
 
 /**
  * @author eric.wittmann@gmail.com
@@ -42,7 +42,7 @@ public class ArtifactReferenceDtoMapper implements RowMapper<ArtifactReferenceDt
     @Override
     public ArtifactReferenceDto map(ResultSet rs) throws SQLException {
         ArtifactReferenceDto dto = new ArtifactReferenceDto();
-        dto.setGroupId(SqlUtil.denormalizeGroupId(rs.getString("groupId")));
+        dto.setGroupId(RegistryContentUtils.denormalizeGroupId(rs.getString("groupId")));
         dto.setArtifactId(rs.getString("artifactId"));
         dto.setVersion(rs.getString("version"));
         dto.setName(rs.getString("name"));

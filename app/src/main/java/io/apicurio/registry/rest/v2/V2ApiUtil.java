@@ -305,7 +305,7 @@ public final class V2ApiUtil {
         group.setModifiedBy(dto.getModifiedBy());
         group.setCreatedOn(new Date(dto.getCreatedOn()));
         group.setModifiedOn(new Date(dto.getModifiedOn()));
-        group.setProperties(dto.getProperties());
+        group.setProperties(dto.getLabels());
         return group;
     }
 

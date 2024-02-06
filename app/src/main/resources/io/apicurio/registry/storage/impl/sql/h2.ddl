@@ -20,8 +20,8 @@ CREATE INDEX IDX_artifacts_2 ON artifacts(createdOn);
 
 CREATE TABLE artifact_labels (groupId VARCHAR(512) NOT NULL, artifactId VARCHAR(512) NOT NULL, pkey VARCHAR(256) NOT NULL, pvalue VARCHAR(1024));
 ALTER TABLE artifact_labels ADD CONSTRAINT FK_alabels_1 FOREIGN KEY (groupId, artifactId) REFERENCES artifacts(groupId, artifactId);
-CREATE INDEX IDX_alabels_1 ON labels(pkey);
-CREATE INDEX IDX_alabels_2 ON labels(pvalue);
+CREATE INDEX IDX_alabels_1 ON artifact_labels(pkey);
+CREATE INDEX IDX_alabels_2 ON artifact_labels(pvalue);
 
 CREATE TABLE rules (groupId VARCHAR(512) NOT NULL, artifactId VARCHAR(512) NOT NULL, type VARCHAR(32) NOT NULL, configuration VARCHAR(1024) NOT NULL);
 ALTER TABLE rules ADD PRIMARY KEY (groupId, artifactId, type);
@@ -56,8 +56,8 @@ CREATE INDEX IDX_artifact_branches_1 ON artifact_branches(groupId, artifactId, b
 
 CREATE TABLE version_labels (globalId BIGINT NOT NULL, pkey VARCHAR(256) NOT NULL, pvalue VARCHAR(1024));
 ALTER TABLE version_labels ADD CONSTRAINT FK_vlabels_1 FOREIGN KEY (globalId) REFERENCES versions(globalId);
-CREATE INDEX IDX_vlabels_1 ON labels(pkey);
-CREATE INDEX IDX_vlabels_2 ON labels(pvalue);
+CREATE INDEX IDX_vlabels_1 ON version_labels(pkey);
+CREATE INDEX IDX_vlabels_2 ON version_labels(pvalue);
 
 CREATE TABLE comments (commentId VARCHAR(128) NOT NULL, globalId BIGINT NOT NULL, createdBy VARCHAR(256), createdOn TIMESTAMP WITHOUT TIME ZONE NOT NULL, cvalue VARCHAR(1024) NOT NULL);
 ALTER TABLE comments ADD PRIMARY KEY (commentId);
@@ -69,8 +69,8 @@ ALTER TABLE groups ADD PRIMARY KEY (groupId);
 
 CREATE TABLE group_labels (groupId VARCHAR(512) NOT NULL, pkey VARCHAR(256) NOT NULL, pvalue VARCHAR(1024));
 ALTER TABLE group_labels ADD CONSTRAINT FK_glabels_1 FOREIGN KEY (groupId) REFERENCES groups(groupId);
-CREATE INDEX IDX_glabels_1 ON labels(pkey);
-CREATE INDEX IDX_glabels_2 ON labels(pvalue);
+CREATE INDEX IDX_glabels_1 ON group_labels(pkey);
+CREATE INDEX IDX_glabels_2 ON group_labels(pvalue);
 
 CREATE TABLE acls (principalId VARCHAR(256) NOT NULL, role VARCHAR(32) NOT NULL, principalName VARCHAR(256));
 ALTER TABLE acls ADD PRIMARY KEY (principalId);

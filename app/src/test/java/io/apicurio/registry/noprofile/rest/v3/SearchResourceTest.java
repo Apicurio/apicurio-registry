@@ -12,7 +12,6 @@ import org.junit.jupiter.api.Test;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.rest.v3.beans.EditableMetaData;
 import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
 
 @QuarkusTest
@@ -113,7 +112,9 @@ public class SearchResourceTest extends AbstractResourceTestBase {
             labels.put("all-key", "all-value");
             labels.put("key-" + idx, "value-" + idx);
             labels.put("another-key-" + idx, "another-value-" + idx);
-
+            labels.put("a-key-" + idx, "lorem ipsum");
+            labels.put("extra-key-" + (idx % 2), "lorem ipsum");
+            
             // Update the artifact meta-data
             EditableMetaData metaData = new EditableMetaData();
             metaData.setName(title);
@@ -130,73 +131,98 @@ public class SearchResourceTest extends AbstractResourceTestBase {
                     .statusCode(204);
         }
 
-        TestUtils.retry(() -> {
-            given()
-                .when()
-                    .queryParam("labels", "all-key:all-value")
-                    .get("/registry/v3/search/artifacts")
-                .then()
-                    .statusCode(200)
-                    .body("count", equalTo(5));
-        });
+        given()
+            .when()
+                .queryParam("labels", "all-key:all-value")
+                .get("/registry/v3/search/artifacts")
+            .then()
+                .statusCode(200)
+                .body("count", equalTo(5));
 
-        TestUtils.retry(() -> {
-            given()
-                .when()
-                    .queryParam("labels", "key-1:value-1")
-                    .get("/registry/v3/search/artifacts")
-                .then()
-                    .statusCode(200)
-                    .body("count", equalTo(1));
-        });
+        given()
+            .when()
+                .queryParam("labels", "key-1:value-1")
+                .get("/registry/v3/search/artifacts")
+            .then()
+                .statusCode(200)
+                .body("count", equalTo(1));
 
-        TestUtils.retry(() -> {
-            given()
-                .when()
-                    .queryParam("labels", "key-1:value-1")
-                    .queryParam("labels", "another-key-1:another-value-1")
-                    .get("/registry/v3/search/artifacts")
-                .then()
-                    .statusCode(200)
-                    .body("count", equalTo(1));
-        });
+        given()
+            .when()
+                .queryParam("labels", "key-1:value-1")
+                .queryParam("labels", "another-key-1:another-value-1")
+                .get("/registry/v3/search/artifacts")
+            .then()
+                .statusCode(200)
+                .body("count", equalTo(1));
 
-        //negative test cases
-        TestUtils.retry(() -> {
-            given()
-                .when()
-                    .queryParam("labels", "key-1:value-1")
-                    .queryParam("labels", "key-2:value-2")
-                    .get("/registry/v3/search/artifacts")
-                .then()
-                    .statusCode(200)
-                    .body("count", equalTo(0));
-        });
-        TestUtils.retry(() -> {
-            given()
-                .when()
-                    .queryParam("labels", "key-1:value-1:")
-                    .get("/registry/v3/search/artifacts")
-                .then()
-                    .statusCode(200)
-                    .body("count", equalTo(0));
-        });
-        TestUtils.retry(() -> {
-            given()
-                .when()
-                    .queryParam("labels", "key-1:")
-                    .get("/registry/v3/search/artifacts")
-                .then()
-                    .statusCode(400);
-        });
-        TestUtils.retry(() -> {
-            given()
-                .when()
-                    .queryParam("labels", ":value-1")
-                    .get("/registry/v3/search/artifacts")
-                .then()
-                    .statusCode(400);
-        });
+        given()
+            .when()
+                .queryParam("labels", "key-1:value-1")
+                .queryParam("labels", "key-2:value-2")
+                .get("/registry/v3/search/artifacts")
+            .then()
+                .statusCode(200)
+                .body("count", equalTo(0));
+        given()
+            .when()
+                .queryParam("labels", "key-1:value-1:")
+                .get("/registry/v3/search/artifacts")
+            .then()
+                .statusCode(200)
+                .body("count", equalTo(0));
+        given()
+            .when()
+                .queryParam("labels", "key-1:")
+                .get("/registry/v3/search/artifacts")
+            .then()
+                .statusCode(400);
+        given()
+            .when()
+                .queryParam("labels", ":value-1")
+                .get("/registry/v3/search/artifacts")
+            .then()
+                .statusCode(400);
+        given()
+            .when()
+                .queryParam("labels", "all-key")
+                .get("/registry/v3/search/artifacts")
+            .then()
+                .statusCode(200)
+                .body("count", equalTo(5));
+        given()
+            .when()
+                .queryParam("labels", "a-key-1")
+                .get("/registry/v3/search/artifacts")
+            .then()
+                .statusCode(200)
+                .body("count", equalTo(1));
+        given()
+            .when()
+                .queryParam("labels", "extra-key-0")
+                .get("/registry/v3/search/artifacts")
+            .then()
+                .statusCode(200)
+                .body("count", equalTo(3));
+        given()
+            .when()
+                .queryParam("labels", "extra-key-2")
+                .get("/registry/v3/search/artifacts")
+            .then()
+                .statusCode(200)
+                .body("count", equalTo(0));
+        given()
+            .when()
+                .queryParam("labels", ":all-key")
+                .get("/registry/v3/search/artifacts")
+            .then()
+                .statusCode(400);
+        given()
+            .when()
+                .queryParam("labels", "all-key:")
+                .get("/registry/v3/search/artifacts")
+            .then()
+                .statusCode(400);
     }
 
     @Test
@@ -231,58 +257,6 @@ public class SearchResourceTest extends AbstractResourceTestBase {
                     .then()
                     .statusCode(204);
         }
-        TestUtils.retry(() -> {
-            given()
-                    .when()
-                    .queryParam("labels", "all-key")
-                    .get("/registry/v3/search/artifacts")
-                    .then()
-                    .statusCode(200)
-                    .body("count", equalTo(5));
-        });
-        TestUtils.retry(() -> {
-            given()
-                    .when()
-                    .queryParam("labels", "a-key-1")
-                    .get("/registry/v3/search/artifacts")
-                    .then()
-                    .statusCode(200)
-                    .body("count", equalTo(1));
-        });
-        TestUtils.retry(() -> {
-            given()
-                    .when()
-                    .queryParam("labels", "extra-key-0")
-                    .get("/registry/v3/search/artifacts")
-                    .then()
-                    .statusCode(200)
-                    .body("count", equalTo(3));
-        });
-        TestUtils.retry(() -> {
-            given()
-                    .when()
-                    .queryParam("labels", "extra-key-2")
-                    .get("/registry/v3/search/artifacts")
-                    .then()
-                    .statusCode(200)
-                    .body("count", equalTo(0));
-        });
-        TestUtils.retry(() -> {
-            given()
-                    .when()
-                    .queryParam("labels", ":all-key")
-                    .get("/registry/v3/search/artifacts")
-                    .then()
-                    .statusCode(400);
-        });
-        TestUtils.retry(() -> {
-            given()
-                    .when()
-                    .queryParam("labels", "all-key:")
-                    .get("/registry/v3/search/artifacts")
-                    .then()
-                    .statusCode(400);
-        });
     }
 
     @Test

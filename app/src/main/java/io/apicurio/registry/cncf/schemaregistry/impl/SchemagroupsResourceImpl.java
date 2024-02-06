@@ -86,7 +86,7 @@ public class SchemagroupsResourceImpl implements SchemagroupsResource {
                 .groupId(groupId)
                 .description(data.getDescription())
                 .artifactsType(data.getFormat())
-                .properties(data.getGroupProperties());
+                .labels(data.getGroupProperties());
 
         String user = securityIdentity.getPrincipal().getName();
 

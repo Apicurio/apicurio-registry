@@ -4450,7 +4450,7 @@
                     "description": {
                         "type": "string"
                     },
-                    "properties": {
+                    "labels": {
                         "$ref": "#/components/schemas/Labels",
                         "description": ""
                     },
@@ -4462,7 +4462,7 @@
                 "example": {
                     "id": "group-identifier",
                     "description": "The description of the artifact.",
-                    "properties": {
+                    "labels": {
                         "custom-1": "foo",
                         "custom-2": "bar"
                     }

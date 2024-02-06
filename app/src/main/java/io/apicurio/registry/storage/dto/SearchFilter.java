@@ -23,12 +23,12 @@ public class SearchFilter {
         this.value = value;
     }
 
-    public static SearchFilter ofLabel(String propertyKey, String propertyValue) {
-        return new SearchFilter(SearchFilterType.labels, Pair.<String, String>of(propertyKey, propertyValue));
+    public static SearchFilter ofLabel(String labelKey, String labelValue) {
+        return new SearchFilter(SearchFilterType.labels, Pair.<String, String>of(labelKey, labelValue));
     }
 
-    public static SearchFilter ofLabel(String propertyKey) {
-        return new SearchFilter(SearchFilterType.labels, Pair.<String, String>of(propertyKey, null));
+    public static SearchFilter ofLabel(String labelKey) {
+        return new SearchFilter(SearchFilterType.labels, Pair.<String, String>of(labelKey, null));
     }
 
     public static SearchFilter ofGlobalId(Long value) {
@@ -64,7 +64,7 @@ public class SearchFilter {
     }
 
     @SuppressWarnings("unchecked")
-    public Pair<String, String> getPropertyFilterValue() {
+    public Pair<String, String> getLabelFilterValue() {
         if (value == null) {
             return null;
         }

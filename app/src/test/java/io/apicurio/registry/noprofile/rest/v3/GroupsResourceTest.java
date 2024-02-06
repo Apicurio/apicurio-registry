@@ -1,11 +1,67 @@
 package io.apicurio.registry.noprofile.rest.v3;
 
+import static io.restassured.RestAssured.given;
+import static java.net.HttpURLConnection.HTTP_NO_CONTENT;
+import static java.net.HttpURLConnection.HTTP_OK;
+import static java.util.concurrent.TimeUnit.SECONDS;
+import static java.util.stream.Collectors.toSet;
+import static org.hamcrest.CoreMatchers.anyOf;
+import static org.hamcrest.CoreMatchers.anything;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.endsWith;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.equalToObject;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.Matchers.startsWith;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.testcontainers.shaded.org.awaitility.Awaitility.await;
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+
+import org.apache.commons.codec.digest.DigestUtils;
+import org.hamcrest.Matchers;
+import org.jose4j.base64url.Base64;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.OS;
+
 import com.google.common.hash.Hashing;
+
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.model.BranchId;
 import io.apicurio.registry.model.GroupId;
 import io.apicurio.registry.rest.client.models.Error;
-import io.apicurio.registry.rest.v3.beans.*;
+import io.apicurio.registry.rest.v3.beans.ArtifactBranch;
+import io.apicurio.registry.rest.v3.beans.ArtifactMetaData;
+import io.apicurio.registry.rest.v3.beans.ArtifactOwner;
+import io.apicurio.registry.rest.v3.beans.ArtifactReference;
+import io.apicurio.registry.rest.v3.beans.Comment;
+import io.apicurio.registry.rest.v3.beans.EditableMetaData;
+import io.apicurio.registry.rest.v3.beans.IfExists;
+import io.apicurio.registry.rest.v3.beans.NewComment;
+import io.apicurio.registry.rest.v3.beans.Rule;
+import io.apicurio.registry.rest.v3.beans.UpdateState;
+import io.apicurio.registry.rest.v3.beans.VersionMetaData;
 import io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType;
 import io.apicurio.registry.rules.integrity.IntegrityLevel;
 import io.apicurio.registry.storage.impl.sql.SqlUtil;
@@ -20,32 +76,6 @@ import io.restassured.config.EncoderConfig;
 import io.restassured.config.RestAssuredConfig;
 import io.restassured.http.ContentType;
 import io.restassured.response.ValidatableResponse;
-import org.apache.commons.codec.digest.DigestUtils;
-import org.hamcrest.Matchers;
-import org.jose4j.base64url.Base64;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
-import org.junit.jupiter.api.condition.DisabledOnOs;
-import org.junit.jupiter.api.condition.OS;
-
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
-import java.util.*;
-
-import static io.restassured.RestAssured.given;
-import static java.net.HttpURLConnection.HTTP_NO_CONTENT;
-import static java.net.HttpURLConnection.HTTP_OK;
-import static java.util.concurrent.TimeUnit.SECONDS;
-import static java.util.stream.Collectors.toSet;
-import static org.hamcrest.CoreMatchers.anyOf;
-import static org.hamcrest.CoreMatchers.anything;
-import static org.hamcrest.Matchers.*;
-import static org.junit.jupiter.api.Assertions.*;
-import static org.testcontainers.shaded.org.awaitility.Awaitility.await;
 
 @QuarkusTest
 public class GroupsResourceTest extends AbstractResourceTestBase {
@@ -1806,54 +1836,53 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .body("message", equalTo("No artifact with ID 'testGetArtifactMetaData/MissingAPI' in group 'GroupsResourceTest' was found."));
 
         // Update the artifact meta-data
-        String metaData = "{\"name\": \"Empty API Name\", \"description\": \"Empty API description.\", \"labels\":[\"Empty API label 1\",\"Empty API label 2\"], \"properties\":{\"additionalProp1\": \"Empty API additional property\"}}";
+        EditableMetaData amd = EditableMetaData.builder()
+                .name("Empty API Name")
+                .description("Empty API description.")
+                .labels(Map.of("additionalProp1", "Empty API additional property"))
+                .build();
         given()
                 .when()
                 .contentType(CT_JSON)
                 .pathParam("groupId", GROUP)
                 .pathParam("artifactId", "testGetArtifactMetaData/EmptyAPI")
-                .body(metaData)
+                .body(amd)
                 .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/meta")
                 .then()
                 .statusCode(204);
 
 
         // Get the (updated) artifact meta-data
-        TestUtils.retry(() -> {
-            List<String> expectedLabels = Arrays.asList("Empty API label 1", "Empty API label 2");
-            Map<String, String> expectedProperties = new HashMap<>();
-            expectedProperties.put("additionalProp1", "Empty API additional property");
+        Map<String, String> expectedLabels = new HashMap<>();
+        expectedLabels.put("additionalProp1", "Empty API additional property");
 
-            String version = given()
-                    .when()
-                    .pathParam("groupId", GROUP)
-                    .pathParam("artifactId", "testGetArtifactMetaData/EmptyAPI")
-                    .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/meta")
-                    .then()
-                    .statusCode(200)
-                    .body("id", equalTo("testGetArtifactMetaData/EmptyAPI"))
-                    .body("version", anything())
-                    .body("name", equalTo("Empty API Name"))
-                    .body("description", equalTo("Empty API description."))
-                    .body("labels", equalToObject(expectedLabels))
-                    .body("properties", equalToObject(expectedProperties))
-                    .extract().body().path("version");
+        String version = given()
+            .when()
+                .pathParam("groupId", GROUP)
+                .pathParam("artifactId", "testGetArtifactMetaData/EmptyAPI")
+                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/meta")
+            .then()
+                .statusCode(200)
+                .body("id", equalTo("testGetArtifactMetaData/EmptyAPI"))
+                .body("version", anything())
+                .body("name", equalTo("Empty API Name"))
+                .body("description", equalTo("Empty API description."))
+                .body("labels", equalToObject(expectedLabels))
+                .extract().body().path("version");
 
-            // Make sure the version specific meta-data also returns all the custom meta-data
-            given()
-                    .when()
-                    .pathParam("groupId", GROUP)
-                    .pathParam("artifactId", "testGetArtifactMetaData/EmptyAPI")
-                    .pathParam("version", version)
-                    .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/{version}/meta")
-                    .then()
-                    .statusCode(200)
-                    .body("name", equalTo("Empty API Name"))
-                    .body("description", equalTo("Empty API description."))
-                    .body("labels", equalToObject(expectedLabels))
-                    .body("properties", equalToObject(expectedProperties))
-                    .extract().body().path("version");
-        });
+        // Make sure the version specific meta-data also returns all the custom meta-data
+        given()
+            .when()
+                .pathParam("groupId", GROUP)
+                .pathParam("artifactId", "testGetArtifactMetaData/EmptyAPI")
+                .pathParam("version", version)
+                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/{version}/meta")
+            .then()
+                .statusCode(200)
+                .body("name", equalTo("Empty API Name"))
+                .body("description", equalTo("Empty API description."))
+                .body("labels", equalToObject(expectedLabels))
+                .extract().body().path("version");
 
         // Update the artifact content and then make sure the name/description meta-data is still available
         String updatedArtifactContent = artifactContent.replace("Empty API", "Empty API (Updated)");
@@ -1903,14 +1932,28 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         metaData.setDescription("Some description of an API");
         metaData.setLabels(labels);
         given()
-                .when()
+            .when()
                 .contentType(CT_JSON)
                 .pathParam("groupId", group)
                 .pathParam("artifactId", artifactId)
                 .body(metaData)
                 .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/meta")
-                .then()
-                .statusCode(200);
+            .then()
+                .statusCode(204);
+        
+        // Get the (updated) artifact meta-data
+        Map<String, String> expectedLabels = new HashMap<>();
+        expectedLabels.put("test-key", null);
+        given()
+            .when()
+                .pathParam("groupId", group)
+                .pathParam("artifactId", artifactId)
+                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/meta")
+            .then()
+                .statusCode(200)
+                .body("id", equalTo(artifactId))
+                .body("version", anything())
+                .body("labels", equalToObject(expectedLabels));
 
     }
 

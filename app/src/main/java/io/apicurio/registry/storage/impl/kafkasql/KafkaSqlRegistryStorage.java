@@ -804,7 +804,7 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
         group.setGroupId(entity.groupId);
         group.setModifiedBy(entity.modifiedBy);
         group.setModifiedOn(entity.modifiedOn);
-        group.setProperties(entity.properties);
+        group.setLabels(entity.labels);
         submitter.submitGroup(ActionType.IMPORT, group);
     }
 

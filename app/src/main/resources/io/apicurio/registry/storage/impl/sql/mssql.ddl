@@ -21,7 +21,7 @@ CREATE INDEX IDX_artifacts_2 ON artifacts(createdOn);
 
 CREATE TABLE artifact_labels (groupId NVARCHAR(512) NOT NULL, artifactId NVARCHAR(512) NOT NULL, pkey NVARCHAR(256) NOT NULL, pvalue NVARCHAR(1024));
 ALTER TABLE artifact_labels ADD CONSTRAINT FK_alabels_1 FOREIGN KEY (groupId, artifactId) REFERENCES artifacts(groupId, artifactId);
-CREATE INDEX IDX_alabels_1 ON group_labels(pkey);
+CREATE INDEX IDX_alabels_1 ON artifact_labels(pkey);
 
 CREATE TABLE rules (groupId NVARCHAR(512) NOT NULL, artifactId NVARCHAR(512) NOT NULL, type NVARCHAR(32) NOT NULL, configuration NVARCHAR(1024) NOT NULL);
 ALTER TABLE rules ADD PRIMARY KEY (groupId, artifactId, type);

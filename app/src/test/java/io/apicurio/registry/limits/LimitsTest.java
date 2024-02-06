@@ -1,11 +1,23 @@
 package io.apicurio.registry.limits;
 
+import java.io.InputStream;
+import java.util.Map;
+
+import org.apache.commons.lang3.StringUtils;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
+
 import com.microsoft.kiota.ApiException;
+
 import io.apicurio.registry.AbstractRegistryTestBase;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.model.GroupId;
 import io.apicurio.registry.rest.client.models.ArtifactContent;
 import io.apicurio.registry.rest.client.models.EditableMetaData;
+import io.apicurio.registry.rest.client.models.Labels;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.Current;
@@ -15,16 +27,6 @@ import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import jakarta.inject.Inject;
-import org.apache.commons.lang3.StringUtils;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Tag;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
-
-import java.io.InputStream;
-import java.util.Arrays;
-import java.util.Map;
 
 @QuarkusTest
 @TestProfile(LimitsTestProfile.class)
@@ -58,12 +60,11 @@ public class LimitsTest extends AbstractResourceTestBase {
         meta.setName(StringUtils.repeat('a', 512));
         meta.setDescription(StringUtils.repeat('a', 1024));
         String fourBytesText = StringUtils.repeat('a', 4);
-        var props = new io.apicurio.registry.rest.client.models.Properties();
-        props.setAdditionalData(Map.of(
+        var labels = new Labels();
+        labels.setAdditionalData(Map.of(
                 StringUtils.repeat('a', 4), fourBytesText,
                 StringUtils.repeat('b', 4), fourBytesText));
-        meta.setProperties(props);
-        meta.setLabels(Arrays.asList(fourBytesText, fourBytesText));
+        meta.setLabels(labels);
         clientV3
             .groups()
             // TODO: verify groupId = null cannot be used
@@ -81,12 +82,11 @@ public class LimitsTest extends AbstractResourceTestBase {
         invalidmeta.setName(StringUtils.repeat('a', 513));
         invalidmeta.setDescription(StringUtils.repeat('a', 1025));
         String fiveBytesText = StringUtils.repeat('a', 5);
-        var props2 = new io.apicurio.registry.rest.client.models.Properties();
-        props2.setAdditionalData(Map.of(
+        var labels2 = new Labels();
+        labels2.setAdditionalData(Map.of(
                 StringUtils.repeat('a', 5), fiveBytesText,
                 StringUtils.repeat('b', 5), fiveBytesText));
-        invalidmeta.setProperties(props2);
-        invalidmeta.setLabels(Arrays.asList(fiveBytesText, fiveBytesText));
+        invalidmeta.setLabels(labels2);
         var exception1 = Assertions.assertThrows(ApiException.class, () -> {
             clientV3
                 .groups()

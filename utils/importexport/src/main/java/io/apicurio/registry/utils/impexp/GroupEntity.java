@@ -24,7 +24,7 @@ public class GroupEntity extends Entity {
     public long createdOn;
     public String modifiedBy;
     public long modifiedOn;
-    public Map<String, String> properties;
+    public Map<String, String> labels;
 
     /**
      * @see io.apicurio.registry.utils.impexp.Entity#getEntityType()

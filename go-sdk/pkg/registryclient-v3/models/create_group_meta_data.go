@@ -13,7 +13,7 @@ type CreateGroupMetaData struct {
 	// The id property
 	id *string
 	// User-defined name-value pairs. Name and value must be strings.
-	properties Labelsable
+	labels Labelsable
 }
 
 // NewCreateGroupMetaData instantiates a new CreateGroupMetaData and sets the default values.
@@ -61,13 +61,13 @@ func (m *CreateGroupMetaData) GetFieldDeserializers() map[string]func(i878a80d23
 		}
 		return nil
 	}
-	res["properties"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
+	res["labels"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
 		val, err := n.GetObjectValue(CreateLabelsFromDiscriminatorValue)
 		if err != nil {
 			return err
 		}
 		if val != nil {
-			m.SetProperties(val.(Labelsable))
+			m.SetLabels(val.(Labelsable))
 		}
 		return nil
 	}
@@ -79,9 +79,9 @@ func (m *CreateGroupMetaData) GetId() *string {
 	return m.id
 }
 
-// GetProperties gets the properties property value. User-defined name-value pairs. Name and value must be strings.
-func (m *CreateGroupMetaData) GetProperties() Labelsable {
-	return m.properties
+// GetLabels gets the labels property value. User-defined name-value pairs. Name and value must be strings.
+func (m *CreateGroupMetaData) GetLabels() Labelsable {
+	return m.labels
 }
 
 // Serialize serializes information the current object
@@ -99,7 +99,7 @@ func (m *CreateGroupMetaData) Serialize(writer i878a80d2330e89d26896388a3f487eef
 		}
 	}
 	{
-		err := writer.WriteObjectValue("properties", m.GetProperties())
+		err := writer.WriteObjectValue("labels", m.GetLabels())
 		if err != nil {
 			return err
 		}
@@ -128,9 +128,9 @@ func (m *CreateGroupMetaData) SetId(value *string) {
 	m.id = value
 }
 
-// SetProperties sets the properties property value. User-defined name-value pairs. Name and value must be strings.
-func (m *CreateGroupMetaData) SetProperties(value Labelsable) {
-	m.properties = value
+// SetLabels sets the labels property value. User-defined name-value pairs. Name and value must be strings.
+func (m *CreateGroupMetaData) SetLabels(value Labelsable) {
+	m.labels = value
 }
 
 // CreateGroupMetaDataable
@@ -139,8 +139,8 @@ type CreateGroupMetaDataable interface {
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.Parsable
 	GetDescription() *string
 	GetId() *string
-	GetProperties() Labelsable
+	GetLabels() Labelsable
 	SetDescription(value *string)
 	SetId(value *string)
-	SetProperties(value Labelsable)
+	SetLabels(value Labelsable)
 }

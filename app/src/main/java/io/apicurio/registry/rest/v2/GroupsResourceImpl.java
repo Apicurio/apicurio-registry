@@ -287,7 +287,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         GroupMetaDataDto.GroupMetaDataDtoBuilder group = GroupMetaDataDto.builder()
                 .groupId(data.getId())
                 .description(data.getDescription())
-                .properties(data.getProperties());
+                .labels(data.getProperties());
 
         String user = securityIdentity.getPrincipal().getName();
         group.createdBy(user).createdOn(new Date().getTime());

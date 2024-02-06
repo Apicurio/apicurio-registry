@@ -66,6 +66,12 @@ public class MessageTypeToValueClass {
                 case ArtifactBranch:
                     index.put(type, ArtifactBranchValue.class);
                     break;
+                case ArtifactRules:
+                    index.put(type, ArtifactRulesValue.class);
+                    break;
+                case GlobalRules:
+                    index.put(type, GlobalRulesValue.class);
+                    break;
                 default:
                     throw new RuntimeAssertionFailedException("[MessageTypeToValueClass] Type not mapped: " + type);
             }

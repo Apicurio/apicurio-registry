@@ -23,7 +23,6 @@ public class ArtifactMetaDataDtoMapper implements RowMapper<ArtifactMetaDataDto>
      */
     @Override
     public ArtifactMetaDataDto map(ResultSet rs) throws SQLException {
-        java.lang.System.out.println("===========> mdd mapper: " + rs.getString("labels"));
         ArtifactMetaDataDto dto = new ArtifactMetaDataDto();
         dto.setGroupId(SqlUtil.denormalizeGroupId(rs.getString("groupId")));
         dto.setId(rs.getString("artifactId"));

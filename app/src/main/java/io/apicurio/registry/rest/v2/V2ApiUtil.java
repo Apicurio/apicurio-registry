@@ -4,6 +4,9 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.Date;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -70,11 +73,70 @@ public final class V2ApiUtil {
         metaData.setGlobalId(dto.getGlobalId());
         metaData.setContentId(dto.getContentId());
         metaData.setState(dto.getState());
-        metaData.setProperties(dto.getLabels());
+        metaData.setLabels(toV2Labels(dto.getLabels()));
+        metaData.setProperties(toV2Properties(dto.getLabels()));
         metaData.setReferences(Optional.ofNullable(dto.getReferences()).stream()
                 .flatMap(references -> references.stream().map(V2ApiUtil::referenceDtoToReference))
                 .collect(Collectors.toList()));
         return metaData;
+    }
+
+    /**
+     * Converts v3 labels into v2 properties.
+     * @param v3Labels
+     * @return
+     */
+    private static Map<String, String> toV2Properties(Map<String, String> v3Labels) {
+        Map<String, String> rval = new LinkedHashMap<>();
+        if (v3Labels != null) {
+            v3Labels.entrySet().forEach(entry -> {
+                if (entry.getValue() != null && !entry.getValue().trim().isEmpty()) {
+                    rval.put(entry.getKey(), entry.getValue());
+                }
+            });
+        }
+        if (rval.isEmpty()) {
+            return null;
+        }
+        return rval;
+    }
+
+    /**
+     * Converts v3 labels into v2 labels.
+     * @param v3Labels
+     */
+    private static List<String> toV2Labels(Map<String, String> v3Labels) {
+        List<String> rval = new ArrayList<>();
+        if (v3Labels != null) {
+            v3Labels.entrySet().forEach(entry -> {
+                if (entry.getValue() == null || entry.getValue().trim().isEmpty()) {
+                    rval.add(entry.getKey());
+                }
+            });
+        }
+        if (rval.isEmpty()) {
+            return null;
+        }
+        return rval;
+    }
+
+    /**
+     * Converts v2 labels and properties into v3 labels.
+     * @param v2Labels
+     * @param v2Properties
+     */
+    public static Map<String, String> toV3Labels(List<String> v2Labels, Map<String, String> v2Properties) {
+        Map<String, String> rval = new LinkedHashMap<>();
+        if (v2Labels != null) {
+            v2Labels.forEach(label -> rval.put(label, null));
+        }
+        if (v2Properties != null) {
+            rval.putAll(v2Properties);
+        }
+        if (rval.isEmpty()) {
+            return null;
+        }
+        return rval;
     }
 
     /**
@@ -103,7 +165,8 @@ public final class V2ApiUtil {
         metaData.setGlobalId(dto.getGlobalId());
         metaData.setContentId(dto.getContentId());
         metaData.setState(dto.getState());
-        metaData.setProperties(dto.getLabels());
+        metaData.setLabels(toV2Labels(dto.getLabels()));
+        metaData.setProperties(toV2Properties(dto.getLabels()));
         return metaData;
     }
 
@@ -130,33 +193,8 @@ public final class V2ApiUtil {
         metaData.setGlobalId(dto.getGlobalId());
         metaData.setContentId(dto.getContentId());
         metaData.setState(dto.getState());
-        metaData.setProperties(dto.getLabels());
-        return metaData;
-    }
-
-    /**
-     * Creates a jax-rs version meta-data entity from the id, type, and artifactStore meta-data.
-     *
-     * @param groupId
-     * @param artifactId
-     * @param artifactType
-     * @param amd
-     */
-    public static final VersionMetaData dtoToVersionMetaData(String groupId, String artifactId,
-                                                             String artifactType, ArtifactMetaData amd) {
-        VersionMetaData metaData = new VersionMetaData();
-        metaData.setGroupId(groupId);
-        metaData.setId(artifactId);
-        metaData.setCreatedBy(amd.getCreatedBy());
-        metaData.setCreatedOn(amd.getCreatedOn());
-        metaData.setDescription(amd.getDescription());
-        metaData.setName(amd.getName());
-        metaData.setType(artifactType);
-        metaData.setVersion(amd.getVersion());
-        metaData.setGlobalId(amd.getGlobalId());
-        metaData.setState(amd.getState());
-        metaData.setLabels(amd.getLabels());
-        metaData.setProperties(amd.getProperties());
+        metaData.setLabels(toV2Labels(dto.getLabels()));
+        metaData.setProperties(toV2Properties(dto.getLabels()));
         return metaData;
     }
 
@@ -181,7 +219,8 @@ public final class V2ApiUtil {
         metaData.setGlobalId(dto.getGlobalId());
         metaData.setContentId(dto.getContentId());
         metaData.setState(dto.getState());
-        metaData.setProperties(dto.getLabels());
+        metaData.setLabels(toV2Labels(dto.getLabels()));
+        metaData.setProperties(toV2Properties(dto.getLabels()));
         return metaData;
     }
 

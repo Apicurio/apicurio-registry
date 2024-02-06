@@ -259,9 +259,14 @@ jobs:
           curl -s http://localhost:8080/apis/registry/v3/system/info
           echo "--"
           echo ""
-          echo "UI Config Info:"
+          echo "UI Config Info (Local):"
           echo "--"
           curl -s http://localhost:8888/config.js
+          echo "--"
+          echo ""
+          echo "UI Config Info (Remote):"
+          echo "--"
+          curl -s http://localhost:8080/apis/registry/v3/system/uiConfig
           echo "--"
           echo ""
           echo "UI Version Info:"

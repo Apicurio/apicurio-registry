@@ -187,10 +187,8 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         metaData.setDescription(generateString(2000));
         metaData.setLabels(new HashMap<>());
         metaData.getLabels().put("key-" + generateString(300), "value-" + generateString(2000));
-        System.out.println("===========> CREATE ARTIFACT WITH METADATA");
         ArtifactMetaDataDto dto = storage().createArtifactWithMetadata(GROUP_ID, artifactId, null, ArtifactType.OPENAPI, content, metaData, null);
 
-        System.out.println("===========> GET META-DATA");
         dto = storage().getArtifactMetaData(dto.getGlobalId());
         Assertions.assertNotNull(dto);
         Assertions.assertEquals(GROUP_ID, dto.getGroupId());

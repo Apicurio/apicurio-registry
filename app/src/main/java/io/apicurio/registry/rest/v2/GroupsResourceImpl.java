@@ -213,7 +213,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     public void updateArtifactMetaData(String groupId, String artifactId, EditableMetaData data) {
         v3.updateArtifactMetaData(groupId, artifactId, io.apicurio.registry.rest.v3.beans.EditableMetaData.builder()
                 .description(data.getDescription())
-                .labels(data.getProperties())
+                .labels(V2ApiUtil.toV3Labels(data.getLabels(), data.getProperties()))
                 .name(data.getName())
                 .build());
     }
@@ -540,7 +540,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     public void updateArtifactVersionMetaData(String groupId, String artifactId, String version, EditableMetaData data) {
         v3.updateArtifactVersionMetaData(groupId, artifactId, version, io.apicurio.registry.rest.v3.beans.EditableMetaData.builder()
                 .description(data.getDescription())
-                .labels(data.getProperties())
+                .labels(V2ApiUtil.toV3Labels(data.getLabels(), data.getProperties()))
                 .name(data.getName())
                 .build());
     }

@@ -522,11 +522,6 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         ArtifactState state = ArtifactState.ENABLED;
         String labelsStr = SqlUtil.serializeLabels(labels);
 
-        java.lang.System.out.println("===========> createArtifactVersionRaw: " + labelsStr);
-        java.lang.System.out.println("===========> groupId: " + groupId);
-        java.lang.System.out.println("===========> artifactId: " + artifactId);
-        java.lang.System.out.println("===========> version: " + version);
-
         if (globalIdGenerator == null) {
             globalIdGenerator = this::nextGlobalId;
         }
@@ -541,9 +536,6 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             }
             final String finalVersion1 = version; // Lambda requirement
             handles.withHandleNoException(handle -> {
-
-                java.lang.System.out.println("===========> insert version: " + labelsStr);
-
                 handle.createUpdate(sqlStatements.insertVersion(true))
                         .bind(0, globalId)
                         .bind(1, normalizeGroupId(groupId))
@@ -565,9 +557,6 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         } else {
             final String finalVersion2 = version; // Lambda requirement
             handles.withHandleNoException(handle -> {
-
-                java.lang.System.out.println("===========> insert version: " + labelsStr);
-
                 handle.createUpdate(sqlStatements.insertVersion(false))
                         .bind(0, globalId)
                         .bind(1, normalizeGroupId(groupId))
@@ -598,23 +587,6 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                 return null;
             });
         }
-        
-        handles.withHandleNoException(handle -> {
-            handle.createQuery("SELECT * FROM versions v WHERE v.globalId = " + globalId).map(
-                    new RowMapper<Map>() {
-                        public Map map(ResultSet rs) throws SQLException {
-                            java.lang.System.out.println("============> -----");
-                            java.lang.System.out.println("============> globalId: " + rs.getString("globalId"));
-                            java.lang.System.out.println("============> groupId:  " + rs.getString("groupId"));
-                            java.lang.System.out.println("============> artyId:   " + rs.getString("artifactId"));
-                            java.lang.System.out.println("============> version:  " + rs.getString("version"));
-                            java.lang.System.out.println("============> labels:   " + rs.getString("labels"));
-                            java.lang.System.out.println("============> -----");
-                            return null;
-                        }
-                    }
-            ).list();
-        });
 
         return handles.withHandleNoException(handle -> {
 
@@ -1280,25 +1252,6 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             var ga = new GA(groupId, artifactId);
             try {
                 var gav = getArtifactBranchTip(ga, BranchId.LATEST, behavior);
-
-                handle.createQuery("SELECT * FROM versions v WHERE v.groupId = ? AND v.artifactId = ? AND v.version = ?")
-                    .bind(0, gav.getRawGroupId())
-                    .bind(1, gav.getRawArtifactId())
-                    .bind(2, gav.getRawVersionId())
-                    .map(
-                        new RowMapper<Map>() {
-                            public Map map(ResultSet rs) throws SQLException {
-                                java.lang.System.out.println("============> -----");
-                                java.lang.System.out.println("============> globalId: " + rs.getString("globalId"));
-                                java.lang.System.out.println("============> groupId:  " + rs.getString("groupId"));
-                                java.lang.System.out.println("============> artyId:   " + rs.getString("artifactId"));
-                                java.lang.System.out.println("============> version:  " + rs.getString("version"));
-                                java.lang.System.out.println("============> labels:   " + rs.getString("labels"));
-                                java.lang.System.out.println("============> -----");
-                                return null;
-                            }
-                        }
-                ).list();
 
                 return handle.createQuery(sqlStatements.selectArtifactMetaData())
                         .bind(0, gav.getRawGroupId())
@@ -3267,8 +3220,6 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         if (metaData == null) {
             metaData = new EditableArtifactMetaDataDto();
         }
-
-        java.lang.System.out.println("===========> createArtifactWithMetadata: " + metaData.getLabels());
 
         return createArtifactWithMetadataRaw(groupId, artifactId, version, artifactType, contentId, createdBy, createdOn,
                 metaData, globalIdGenerator);

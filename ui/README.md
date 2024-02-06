@@ -130,3 +130,9 @@ npm run test
 
 The tests assume that the UI is running on localhost port 8888.
 
+Note that you need to have Playwright installed for this to work.  Typically you can install
+Playwright with the following command:
+
+```
+npx playwright install
+```

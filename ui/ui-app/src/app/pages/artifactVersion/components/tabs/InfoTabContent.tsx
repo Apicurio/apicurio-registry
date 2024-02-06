@@ -42,10 +42,6 @@ export type InfoTabContentProps = {
  */
 export const InfoTabContent: FunctionComponent<InfoTabContentProps> = (props: InfoTabContentProps) => {
 
-    const labels = (): string[] => {
-        return props.artifact.labels || [];
-    };
-
     const description = (): string => {
         return props.artifact.description || "No description";
     };
@@ -145,25 +141,11 @@ export const InfoTabContent: FunctionComponent<InfoTabContentProps> = (props: In
                             </DescriptionListGroup>
                             <DescriptionListGroup>
                                 <DescriptionListTerm>Labels</DescriptionListTerm>
-                                {labels().length ?
-                                    <DescriptionListDescription data-testid="artifact-details-labels">{
-                                        labels().map((label) =>
-                                            <Label key={`label-${label}`} color="blue" style={{ marginBottom: "2px", marginLeft: "5px" }}>
-                                                <Truncate className="label-truncate" content={label} />
-                                            </Label>
-                                        )
-                                    }</DescriptionListDescription> :
-                                    <DescriptionListDescription className="empty-state-text" data-testid="artifact-details-labels">No labels</DescriptionListDescription>
-                                }
-
-                            </DescriptionListGroup>
-                            <DescriptionListGroup>
-                                <DescriptionListTerm>Properties</DescriptionListTerm>
-                                {!props.artifact.properties || !Object.keys(props.artifact.properties).length ?
-                                    <DescriptionListDescription data-testid="artifact-details-properties" className="empty-state-text">No properties</DescriptionListDescription> :
-                                    <DescriptionListDescription data-testid="artifact-details-properties">{Object.entries(props.artifact.properties).map(([key, value]) =>
-                                        <Label key={`property-${key}`} color="purple" style={{ marginBottom: "2px", marginLeft: "5px" }}>
-                                            <Truncate className="property-truncate" content={`${key}=${value}`} />
+                                {!props.artifact.labels || !Object.keys(props.artifact.labels).length ?
+                                    <DescriptionListDescription data-testid="artifact-details-labels" className="empty-state-text">No labels</DescriptionListDescription> :
+                                    <DescriptionListDescription data-testid="artifact-details-labels">{Object.entries(props.artifact.labels).map(([key, value]) =>
+                                        <Label key={`label-${key}`} color="purple" style={{ marginBottom: "2px", marginRight: "5px" }}>
+                                            <Truncate className="label-truncate" content={`${key}=${value}`} />
                                         </Label>
                                     )}</DescriptionListDescription>
                                 }

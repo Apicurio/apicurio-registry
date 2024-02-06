@@ -4,27 +4,23 @@ import {
     Button,
     Form,
     FormGroup,
-    FormHelperText,
     Grid,
     GridItem,
-    HelperText,
-    HelperTextItem,
     Modal,
     TextArea,
     TextInput
 } from "@patternfly/react-core";
-import { ArtifactProperty, listToProperties, PropertiesFormGroup, propertiesToList } from "@app/pages";
+import { ArtifactLabel, listToLabels, LabelsFormGroup, labelsToList } from "@app/pages";
 import { EditableMetaData } from "@services/useGroupsService.ts";
 
 
 /**
- * Properties
+ * Labels
  */
 export type EditMetaDataModalProps = {
     name: string;
     description: string;
-    labels: string[];
-    properties: { [key: string]: string|undefined };
+    labels: { [key: string]: string|undefined };
     isOpen: boolean;
     onClose: () => void;
     onEditMetaData: (metaData: EditableMetaData) => void;
@@ -34,13 +30,11 @@ export type EditMetaDataModalProps = {
  * Models the edit meta data dialog.
  */
 export const EditMetaDataModal: FunctionComponent<EditMetaDataModalProps> = (props: EditMetaDataModalProps) => {
-    const [labels, setLabels] = useState("");
-    const [properties, setProperties] = useState<ArtifactProperty[]>([]);
+    const [labels, setLabels] = useState<ArtifactLabel[]>([]);
     const [isValid, setIsValid] = useState(true);
     const [metaData, setMetaData] = useState<EditableMetaData>({
         description: "",
-        labels: [],
-        properties: {},
+        labels: {},
         name: ""
     });
 
@@ -48,7 +42,7 @@ export const EditMetaDataModal: FunctionComponent<EditMetaDataModalProps> = (pro
     const doEdit = (): void => {
         const newMetaData: EditableMetaData = {
             ...metaData,
-            properties: listToProperties(properties)
+            labels: listToLabels(labels)
         };
         props.onEditMetaData(newMetaData);
     };
@@ -60,18 +54,6 @@ export const EditMetaDataModal: FunctionComponent<EditMetaDataModalProps> = (pro
         });
     };
 
-    const onLabelsChange = (_event: any, value: string): void => {
-        let labels: string[] = [];
-        if (value && value.trim().length > 0) {
-            labels = value.trim().split(",").map(item => item.trim());
-        }
-        setLabels(value);
-        setMetaData({
-            ...metaData,
-            labels
-        });
-    };
-
     const onDescriptionChange = (_event: any, value: string): void => {
         setMetaData({
             ...metaData,
@@ -79,45 +61,43 @@ export const EditMetaDataModal: FunctionComponent<EditMetaDataModalProps> = (pro
         });
     };
 
-    const onPropertiesChange = (properties: ArtifactProperty[]): void => {
-        setProperties(properties);
+    const onLabelsChange = (labels: ArtifactLabel[]): void => {
+        setLabels(labels);
     };
 
     const validate = (): void => {
-        const propertiesClone: ArtifactProperty[] = [...properties];
+        const labelsClone: ArtifactLabel[] = [...labels];
         let isValid: boolean = true;
-        if (propertiesClone) {
-            const propertyKeys: string[] = [];
-            propertiesClone.forEach(property => {
-                property.nameValidated = "default";
-                if ((property.name === "" || property.name === undefined) && property.value !== "") {
-                    property.nameValidated = "error";
+        if (labelsClone) {
+            const labelKeys: string[] = [];
+            labelsClone.forEach(label => {
+                label.nameValidated = "default";
+                if ((label.name === "" || label.name === undefined) && label.value !== "") {
+                    label.nameValidated = "error";
                     isValid = false;
-                } else if (property.name !== "" && property.name !== undefined) {
-                    if (propertyKeys.includes(property.name)) {
-                        property.nameValidated = "error";
+                } else if (label.name !== "" && label.name !== undefined) {
+                    if (labelKeys.includes(label.name)) {
+                        label.nameValidated = "error";
                         isValid = false;
                     }
-                    propertyKeys.push(property.name);
+                    labelKeys.push(label.name);
                 }
             });
         }
         setIsValid(isValid);
-        setProperties(properties);
+        setLabels(labels);
     };
 
     useEffect(() => {
         validate();
-    }, [properties, metaData]);
+    }, [labels, metaData]);
 
     useEffect(() => {
         if (props.isOpen) {
-            setLabels(props.labels.join(", "));
-            setProperties(propertiesToList(props.properties));
+            setLabels(labelsToList(props.labels));
             setMetaData({
                 description: props.description,
                 labels: props.labels,
-                properties: props.properties,
                 name: props.name
             });
             setIsValid(true);
@@ -174,34 +154,7 @@ export const EditMetaDataModal: FunctionComponent<EditMetaDataModalProps> = (pro
                             />
                         </FormGroup>
                     </GridItem>
-
-                    <GridItem span={12}>
-                        <FormGroup
-                            label="Labels"
-                            fieldId="form-labels"
-                        >
-                            <TextInput
-                                isRequired={false}
-                                type="text"
-                                id="form-labels"
-                                data-testid="edit-metadata-modal-labels"
-                                name="form-labels"
-                                aria-describedby="form-labels-helper"
-                                value={labels}
-                                placeholder="Artifact labels"
-                                onChange={onLabelsChange}
-                            />
-                            <FormHelperText>
-                                <HelperText>
-                                    <HelperTextItem>
-                                        A comma-separated list of labels to apply to the artifact.
-                                    </HelperTextItem>
-                                </HelperText>
-                            </FormHelperText>
-                        </FormGroup>
-                    </GridItem>
-                    <PropertiesFormGroup properties={properties}
-                        onChange={onPropertiesChange} />
+                    <LabelsFormGroup labels={labels} onChange={onLabelsChange} />
                 </Grid>
             </Form>
         </Modal>

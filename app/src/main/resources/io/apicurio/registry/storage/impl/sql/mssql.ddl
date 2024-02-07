@@ -4,7 +4,7 @@
 
 CREATE TABLE apicurio (prop_name NVARCHAR(255) NOT NULL, prop_value NVARCHAR(255));
 ALTER TABLE apicurio ADD PRIMARY KEY (prop_name);
-INSERT INTO apicurio (prop_name, prop_value) VALUES ('db_version', 1);
+INSERT INTO apicurio (prop_name, prop_value) VALUES ('db_version', 100);
 
 -- TODO: Different column name in h2
 CREATE TABLE sequences (name NVARCHAR(32) NOT NULL, value BIGINT NOT NULL);

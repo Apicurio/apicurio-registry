@@ -58,19 +58,15 @@ public class RegistryStoragePerformanceTest {
             String artifactId = artifactIdPrefix + idx;
             String title = "API " + artifactId;
             String description = "Number " + idx + " all time on the top APIs list.";
-            List<String> labels = new ArrayList<String>();
-            labels.add("the-label");
-            labels.add("label-" + idx);
-            Map<String, String> properties = new HashMap<>();
-            properties.put("key", "value");
-            properties.put("key-" + idx, "value-" + idx);
+            Map<String, String> labels = new HashMap<>();
+            labels.put("key", "value");
+            labels.put("key-" + idx, "value-" + idx);
             ContentHandle content = ContentHandle.create(
                     OPENAPI_CONTENT_TEMPLATE
                         .replaceAll("TITLE", title)
                         .replaceAll("DESCRIPTION", description)
                         .replaceAll("VERSION", String.valueOf(idx)));
-            EditableArtifactMetaDataDto metaData = new EditableArtifactMetaDataDto(title, description, labels,
-                    properties);
+            EditableArtifactMetaDataDto metaData = new EditableArtifactMetaDataDto(title, description, labels);
             storage.createArtifactWithMetadata(GROUP_ID, artifactId, null, ArtifactType.OPENAPI, content, metaData, null);
 
             System.out.print(".");
@@ -113,14 +109,14 @@ public class RegistryStoragePerformanceTest {
 
         long startLabelSearch = System.currentTimeMillis();
 
-        filters = Collections.singleton(SearchFilter.ofLabel("label-" + (NUM_ARTIFACTS-1)));
+        filters = Collections.singleton(SearchFilter.ofLabel("key-" + (NUM_ARTIFACTS-1)));
         results = storage.searchArtifacts(filters, OrderBy.name, OrderDirection.asc, 0, 10);
         long endLabelSearch = System.currentTimeMillis();
         Assertions.assertNotNull(results);
         Assertions.assertEquals(1, results.getCount());
 
         long startAllLabelSearch = System.currentTimeMillis();
-        filters = Collections.singleton(SearchFilter.ofLabel("the-label"));
+        filters = Collections.singleton(SearchFilter.ofLabel("key"));
         results = storage.searchArtifacts(filters, OrderBy.name, OrderDirection.asc, 0, 10);
         long endAllLabelSearch = System.currentTimeMillis();
         Assertions.assertNotNull(results);

@@ -12,6 +12,13 @@ public class StringUtil {
         return limitStr(value, limit, false);
     }
 
+    public static String asLowerCase(String value) {
+        if (value == null) {
+            return null;
+        }
+        return value.toLowerCase();
+    }
+
 
     public static String limitStr(String value, int limit, boolean withEllipsis) {
         if (StringUtil.isEmpty(value)) {

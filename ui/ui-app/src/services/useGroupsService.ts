@@ -56,8 +56,7 @@ export interface ArtifactsSearchResults {
 export interface EditableMetaData {
     name: string;
     description: string;
-    labels: string[];
-    properties: { [key: string]: string|undefined };
+    labels: { [key: string]: string|undefined };
 }
 
 export interface ClientGeneration {

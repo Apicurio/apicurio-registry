@@ -19,12 +19,10 @@ type SearchedVersion struct {
 	description *string
 	// The globalId property
 	globalId *int64
-	// The labels property
-	labels []string
 	// The name property
 	name *string
 	// User-defined name-value pairs. Name and value must be strings.
-	properties Propertiesable
+	properties Labelsable
 	// The references property
 	references []ArtifactReferenceable
 	// Describes the state of an artifact or artifact version.  The following statesare possible:* ENABLED* DISABLED* DEPRECATED
@@ -125,22 +123,6 @@ func (m *SearchedVersion) GetFieldDeserializers() map[string]func(i878a80d2330e8
 		}
 		return nil
 	}
-	res["labels"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
-		val, err := n.GetCollectionOfPrimitiveValues("string")
-		if err != nil {
-			return err
-		}
-		if val != nil {
-			res := make([]string, len(val))
-			for i, v := range val {
-				if v != nil {
-					res[i] = *(v.(*string))
-				}
-			}
-			m.SetLabels(res)
-		}
-		return nil
-	}
 	res["name"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
 		val, err := n.GetStringValue()
 		if err != nil {
@@ -152,12 +134,12 @@ func (m *SearchedVersion) GetFieldDeserializers() map[string]func(i878a80d2330e8
 		return nil
 	}
 	res["properties"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
-		val, err := n.GetObjectValue(CreatePropertiesFromDiscriminatorValue)
+		val, err := n.GetObjectValue(CreateLabelsFromDiscriminatorValue)
 		if err != nil {
 			return err
 		}
 		if val != nil {
-			m.SetProperties(val.(Propertiesable))
+			m.SetProperties(val.(Labelsable))
 		}
 		return nil
 	}
@@ -215,18 +197,13 @@ func (m *SearchedVersion) GetGlobalId() *int64 {
 	return m.globalId
 }
 
-// GetLabels gets the labels property value. The labels property
-func (m *SearchedVersion) GetLabels() []string {
-	return m.labels
-}
-
 // GetName gets the name property value. The name property
 func (m *SearchedVersion) GetName() *string {
 	return m.name
 }
 
 // GetProperties gets the properties property value. User-defined name-value pairs. Name and value must be strings.
-func (m *SearchedVersion) GetProperties() Propertiesable {
+func (m *SearchedVersion) GetProperties() Labelsable {
 	return m.properties
 }
 
@@ -278,12 +255,6 @@ func (m *SearchedVersion) Serialize(writer i878a80d2330e89d26896388a3f487eef27b0
 	}
 	{
 		err := writer.WriteInt64Value("globalId", m.GetGlobalId())
-		if err != nil {
-			return err
-		}
-	}
-	if m.GetLabels() != nil {
-		err := writer.WriteCollectionOfStringValues("labels", m.GetLabels())
 		if err != nil {
 			return err
 		}
@@ -370,18 +341,13 @@ func (m *SearchedVersion) SetGlobalId(value *int64) {
 	m.globalId = value
 }
 
-// SetLabels sets the labels property value. The labels property
-func (m *SearchedVersion) SetLabels(value []string) {
-	m.labels = value
-}
-
 // SetName sets the name property value. The name property
 func (m *SearchedVersion) SetName(value *string) {
 	m.name = value
 }
 
 // SetProperties sets the properties property value. User-defined name-value pairs. Name and value must be strings.
-func (m *SearchedVersion) SetProperties(value Propertiesable) {
+func (m *SearchedVersion) SetProperties(value Labelsable) {
 	m.properties = value
 }
 
@@ -414,9 +380,8 @@ type SearchedVersionable interface {
 	GetCreatedOn() *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time
 	GetDescription() *string
 	GetGlobalId() *int64
-	GetLabels() []string
 	GetName() *string
-	GetProperties() Propertiesable
+	GetProperties() Labelsable
 	GetReferences() []ArtifactReferenceable
 	GetState() *ArtifactState
 	GetTypeEscaped() *string
@@ -426,9 +391,8 @@ type SearchedVersionable interface {
 	SetCreatedOn(value *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time)
 	SetDescription(value *string)
 	SetGlobalId(value *int64)
-	SetLabels(value []string)
 	SetName(value *string)
-	SetProperties(value Propertiesable)
+	SetProperties(value Labelsable)
 	SetReferences(value []ArtifactReferenceable)
 	SetState(value *ArtifactState)
 	SetTypeEscaped(value *string)

@@ -23,12 +23,10 @@ type VersionMetaData struct {
 	groupId *string
 	// The ID of a single artifact.
 	id *string
-	// The labels property
-	labels []string
+	// User-defined name-value pairs. Name and value must be strings.
+	labels Labelsable
 	// The name property
 	name *string
-	// User-defined name-value pairs. Name and value must be strings.
-	properties Propertiesable
 	// Describes the state of an artifact or artifact version.  The following statesare possible:* ENABLED* DISABLED* DEPRECATED
 	state *ArtifactState
 	// The type property
@@ -148,18 +146,12 @@ func (m *VersionMetaData) GetFieldDeserializers() map[string]func(i878a80d2330e8
 		return nil
 	}
 	res["labels"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
-		val, err := n.GetCollectionOfPrimitiveValues("string")
+		val, err := n.GetObjectValue(CreateLabelsFromDiscriminatorValue)
 		if err != nil {
 			return err
 		}
 		if val != nil {
-			res := make([]string, len(val))
-			for i, v := range val {
-				if v != nil {
-					res[i] = *(v.(*string))
-				}
-			}
-			m.SetLabels(res)
+			m.SetLabels(val.(Labelsable))
 		}
 		return nil
 	}
@@ -170,16 +162,6 @@ func (m *VersionMetaData) GetFieldDeserializers() map[string]func(i878a80d2330e8
 		}
 		if val != nil {
 			m.SetName(val)
-		}
-		return nil
-	}
-	res["properties"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
-		val, err := n.GetObjectValue(CreatePropertiesFromDiscriminatorValue)
-		if err != nil {
-			return err
-		}
-		if val != nil {
-			m.SetProperties(val.(Propertiesable))
 		}
 		return nil
 	}
@@ -231,19 +213,14 @@ func (m *VersionMetaData) GetId() *string {
 	return m.id
 }
 
-// GetLabels gets the labels property value. The labels property
-func (m *VersionMetaData) GetLabels() []string {
+// GetLabels gets the labels property value. User-defined name-value pairs. Name and value must be strings.
+func (m *VersionMetaData) GetLabels() Labelsable {
 	return m.labels
 }
 
 // GetName gets the name property value. The name property
 func (m *VersionMetaData) GetName() *string {
 	return m.name
-}
-
-// GetProperties gets the properties property value. User-defined name-value pairs. Name and value must be strings.
-func (m *VersionMetaData) GetProperties() Propertiesable {
-	return m.properties
 }
 
 // GetState gets the state property value. Describes the state of an artifact or artifact version.  The following statesare possible:* ENABLED* DISABLED* DEPRECATED
@@ -305,20 +282,14 @@ func (m *VersionMetaData) Serialize(writer i878a80d2330e89d26896388a3f487eef27b0
 			return err
 		}
 	}
-	if m.GetLabels() != nil {
-		err := writer.WriteCollectionOfStringValues("labels", m.GetLabels())
+	{
+		err := writer.WriteObjectValue("labels", m.GetLabels())
 		if err != nil {
 			return err
 		}
 	}
 	{
 		err := writer.WriteStringValue("name", m.GetName())
-		if err != nil {
-			return err
-		}
-	}
-	{
-		err := writer.WriteObjectValue("properties", m.GetProperties())
 		if err != nil {
 			return err
 		}
@@ -391,19 +362,14 @@ func (m *VersionMetaData) SetId(value *string) {
 	m.id = value
 }
 
-// SetLabels sets the labels property value. The labels property
-func (m *VersionMetaData) SetLabels(value []string) {
+// SetLabels sets the labels property value. User-defined name-value pairs. Name and value must be strings.
+func (m *VersionMetaData) SetLabels(value Labelsable) {
 	m.labels = value
 }
 
 // SetName sets the name property value. The name property
 func (m *VersionMetaData) SetName(value *string) {
 	m.name = value
-}
-
-// SetProperties sets the properties property value. User-defined name-value pairs. Name and value must be strings.
-func (m *VersionMetaData) SetProperties(value Propertiesable) {
-	m.properties = value
 }
 
 // SetState sets the state property value. Describes the state of an artifact or artifact version.  The following statesare possible:* ENABLED* DISABLED* DEPRECATED
@@ -432,9 +398,8 @@ type VersionMetaDataable interface {
 	GetGlobalId() *int64
 	GetGroupId() *string
 	GetId() *string
-	GetLabels() []string
+	GetLabels() Labelsable
 	GetName() *string
-	GetProperties() Propertiesable
 	GetState() *ArtifactState
 	GetTypeEscaped() *string
 	GetVersion() *string
@@ -445,9 +410,8 @@ type VersionMetaDataable interface {
 	SetGlobalId(value *int64)
 	SetGroupId(value *string)
 	SetId(value *string)
-	SetLabels(value []string)
+	SetLabels(value Labelsable)
 	SetName(value *string)
-	SetProperties(value Propertiesable)
 	SetState(value *ArtifactState)
 	SetTypeEscaped(value *string)
 	SetVersion(value *string)

@@ -1,12 +1,11 @@
 package io.apicurio.registry.storage.impl.sql.mappers;
 
-import io.apicurio.registry.storage.dto.SearchedVersionDto;
-import io.apicurio.registry.storage.impl.sql.SqlUtil;
-import io.apicurio.registry.storage.impl.sql.jdb.RowMapper;
-import io.apicurio.registry.types.ArtifactState;
-
 import java.sql.ResultSet;
 import java.sql.SQLException;
+
+import io.apicurio.registry.storage.dto.SearchedVersionDto;
+import io.apicurio.registry.storage.impl.sql.jdb.RowMapper;
+import io.apicurio.registry.types.ArtifactState;
 
 public class SearchedVersionMapper implements RowMapper<SearchedVersionDto> {
 
@@ -33,8 +32,6 @@ public class SearchedVersionMapper implements RowMapper<SearchedVersionDto> {
         dto.setCreatedOn(rs.getTimestamp("createdOn"));
         dto.setName(rs.getString("name"));
         dto.setDescription(rs.getString("description"));
-        dto.setLabels(SqlUtil.deserializeLabels(rs.getString("labels")));
-        dto.setProperties(SqlUtil.deserializeProperties(rs.getString("properties")));
         dto.setType(rs.getString("type"));
         dto.setState(ArtifactState.valueOf(rs.getString("state")));
         return dto;

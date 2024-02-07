@@ -23,8 +23,12 @@ public class SearchFilter {
         this.value = value;
     }
 
-    public static SearchFilter ofProperty(String propertyKey, String propertyValue) {
-        return new SearchFilter(SearchFilterType.properties, Pair.<String, String>of(propertyKey, propertyValue));
+    public static SearchFilter ofLabel(String labelKey, String labelValue) {
+        return new SearchFilter(SearchFilterType.labels, Pair.<String, String>of(labelKey, labelValue));
+    }
+
+    public static SearchFilter ofLabel(String labelKey) {
+        return new SearchFilter(SearchFilterType.labels, Pair.<String, String>of(labelKey, null));
     }
 
     public static SearchFilter ofGlobalId(Long value) {
@@ -47,10 +51,6 @@ public class SearchFilter {
         return new SearchFilter(SearchFilterType.group, value);
     }
 
-    public static SearchFilter ofLabel(String value) {
-        return new SearchFilter(SearchFilterType.labels, value);
-    }
-
     public static SearchFilter ofCanonicalHash(String value) {
         return new SearchFilter(SearchFilterType.canonicalHash, value);
     }
@@ -64,7 +64,7 @@ public class SearchFilter {
     }
 
     @SuppressWarnings("unchecked")
-    public Pair<String, String> getPropertyFilterValue() {
+    public Pair<String, String> getLabelFilterValue() {
         if (value == null) {
             return null;
         }

@@ -2,7 +2,7 @@ import React, { FunctionComponent } from "react";
 import { Button, FormGroup, GridItem, TextInput } from "@patternfly/react-core";
 import { MinusCircleIcon, PlusCircleIcon } from "@patternfly/react-icons";
 
-export type ArtifactProperty = {
+export type ArtifactLabel = {
     name: string;
     value: string | undefined;
     nameValidated: "success" | "warning" | "error" | "default";
@@ -10,17 +10,17 @@ export type ArtifactProperty = {
 }
 
 /**
- * Properties
+ * Labels
  */
-export type PropertiesFormGroupProps = {
-    properties: ArtifactProperty[];
-    onChange: (properties: ArtifactProperty[]) => void;
+export type LabelsFormGroupProps = {
+    labels: ArtifactLabel[];
+    onChange: (labels: ArtifactLabel[]) => void;
 };
 
-export const PropertiesFormGroup: FunctionComponent<PropertiesFormGroupProps> = ({ properties, onChange }: PropertiesFormGroupProps) => {
+export const LabelsFormGroup: FunctionComponent<LabelsFormGroupProps> = ({ labels, onChange }: LabelsFormGroupProps) => {
 
-    const addArtifactProperty = (): void => {
-        const newProps: ArtifactProperty[] = [...properties, {
+    const addArtifactLabel = (): void => {
+        const newProps: ArtifactLabel[] = [...labels, {
             name: "",
             value: "",
             nameValidated: "default",
@@ -29,59 +29,59 @@ export const PropertiesFormGroup: FunctionComponent<PropertiesFormGroupProps> = 
         onChange(newProps);
     };
 
-    const removeProperty = (propertyToRemove: ArtifactProperty): void => {
-        const newProps: ArtifactProperty[] = properties.filter(property => property !== propertyToRemove);
+    const removeLabel = (labelToRemove: ArtifactLabel): void => {
+        const newProps: ArtifactLabel[] = labels.filter(label => label !== labelToRemove);
         onChange(newProps);
     };
 
     return (
         <React.Fragment>
             <GridItem span={12}>
-                <label className="pf-c-form__label"><span className="pf-c-form__label-text">Properties</span></label>
+                <label className="pf-c-form__label"><span className="pf-c-form__label-text">Labels</span></label>
             </GridItem>
             {
-                properties.map((property, idx) => (
+                labels.map((label, idx) => (
                     <React.Fragment key={idx}>
                         <FormGroup
-                            fieldId={`form-properties-key-${idx}`}
+                            fieldId={`form-labels-key-${idx}`}
                             isRequired={true}
                             label={idx === 0 ? "Key" : ""}>
                             <TextInput
                                 type="text"
                                 placeholder="Enter key"
-                                id={`form-properties-key-${idx}`}
-                                data-testid={`edit-metadata-modal-property-name-${idx}`}
-                                name={`form-properties-key-${idx}`}
-                                validated={property.nameValidated}
-                                value={property.name}
+                                id={`form-labels-key-${idx}`}
+                                data-testid={`edit-metadata-modal-label-name-${idx}`}
+                                name={`form-labels-key-${idx}`}
+                                validated={label.nameValidated}
+                                value={label.name}
                                 onChange={(_event, newVal) => {
-                                    property.name = newVal;
-                                    onChange([...properties]);
+                                    label.name = newVal;
+                                    onChange([...labels]);
                                 }}
                             />
                         </FormGroup>
                         <FormGroup
-                            fieldId={`form-properties-value-${idx}`}
+                            fieldId={`form-labels-value-${idx}`}
                             label={idx === 0 ? "Value" : ""}
                         >
                             <div className="prop-value-group">
                                 <TextInput
                                     type="text"
-                                    id={`form-properties-value-${idx}`}
-                                    data-testid={`edit-metadata-modal-property-value-${idx}`}
+                                    id={`form-labels-value-${idx}`}
+                                    data-testid={`edit-metadata-modal-label-value-${idx}`}
                                     placeholder="Enter value"
-                                    name={`form-properties-value-${idx}`}
-                                    validated={property.valueValidated}
-                                    value={property.value}
+                                    name={`form-labels-value-${idx}`}
+                                    validated={label.valueValidated}
+                                    value={label.value}
                                     onChange={(_event, newVal) => {
-                                        property.value = newVal;
-                                        onChange([...properties]);
+                                        label.value = newVal;
+                                        onChange([...labels]);
                                     }}
                                 />
                                 <Button key={"remove-button-new"} variant="link"
                                     icon={<MinusCircleIcon />} iconPosition="right"
                                     className="pf-m-plain" onClick={() => {
-                                        removeProperty(property);
+                                        removeLabel(label);
                                     }} />
                             </div>
                         </FormGroup>
@@ -92,11 +92,11 @@ export const PropertiesFormGroup: FunctionComponent<PropertiesFormGroupProps> = 
                 <Button
                     variant="link"
                     icon={<PlusCircleIcon />}
-                    className="add-property-button"
-                    data-testid="edit-metadata-modal-add-property"
-                    onClick={() => addArtifactProperty()}
+                    className="add-label-button"
+                    data-testid="edit-metadata-modal-add-label"
+                    onClick={() => addArtifactLabel()}
                 >
-                    Add property
+                    Add label
                 </Button>{" "}
             </GridItem>
         </React.Fragment>

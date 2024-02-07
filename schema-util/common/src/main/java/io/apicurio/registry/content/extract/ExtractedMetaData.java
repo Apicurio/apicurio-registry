@@ -1,14 +1,12 @@
 package io.apicurio.registry.content.extract;
 
-import java.util.List;
 import java.util.Map;
 
 public class ExtractedMetaData {
 
     private String name;
     private String description;
-    private List<String> labels;
-    private Map<String, String> properties;
+    private Map<String, String> labels;
     
     /**
      * Constructor.
@@ -47,29 +45,15 @@ public class ExtractedMetaData {
     /**
      * @return the labels
      */
-    public List<String> getLabels() {
+    public Map<String, String> getLabels() {
         return labels;
     }
 
     /**
      * @param labels the labels to set
      */
-    public void setLabels(List<String> labels) {
+    public void setLabels(Map<String, String> labels) {
         this.labels = labels;
-    }
-
-    /**
-     * @return the properties
-     */
-    public Map<String, String> getProperties() {
-        return properties;
-    }
-
-    /**
-     * @param properties the properties to set
-     */
-    public void setProperties(Map<String, String> properties) {
-        this.properties = properties;
     }
 
 }

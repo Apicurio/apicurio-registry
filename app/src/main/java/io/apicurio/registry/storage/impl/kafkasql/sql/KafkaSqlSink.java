@@ -223,7 +223,7 @@ public class KafkaSqlSink {
                     .createdOn(value.getCreatedOn())
                     .modifiedBy(value.getModifiedBy())
                     .modifiedOn(value.getModifiedOn())
-                    .properties(value.getProperties())
+                    .labels(value.getLabels())
                     .build();
         };
         switch (value.getAction()) {
@@ -249,7 +249,7 @@ public class KafkaSqlSink {
                 entity.groupId = key.getGroupId();
                 entity.modifiedBy = value.getModifiedBy();
                 entity.modifiedOn = value.getModifiedOn();
-                entity.properties = value.getProperties();
+                entity.labels = value.getLabels();
                 sqlStore.importGroup(entity);
                 return null;
             default:
@@ -290,7 +290,6 @@ public class KafkaSqlSink {
                     entity.createdBy = value.getCreatedBy();
                     entity.createdOn = value.getCreatedOn().getTime();
                     entity.labels = value.getMetaData().getLabels();
-                    entity.properties = value.getMetaData().getProperties();
                     entity.contentId = value.getContentId();
                     sqlStore.importArtifactVersion(entity);
                     return null;

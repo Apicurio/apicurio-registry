@@ -48,8 +48,7 @@ const EMPTY_ARTIFACT_META_DATA: ArtifactMetaData = {
     id: "",
     name: "",
     description: "",
-    labels: [],
-    properties: {},
+    labels: {},
     type: "",
     version: "",
     createdBy: "",
@@ -244,12 +243,8 @@ export const ArtifactVersionPage: FunctionComponent<ArtifactVersionPageProps> = 
         return artifact?.description || "";
     };
 
-    const artifactLabels = (): string[] => {
-        return artifact?.labels || [];
-    };
-
-    const artifactProperties = (): { [key: string]: string } => {
-        return artifact?.properties || {};
+    const artifactLabels = (): { [key: string]: string } => {
+        return artifact?.labels || {};
     };
 
     const onUploadFormValid = (isValid: boolean): void => {
@@ -468,7 +463,6 @@ export const ArtifactVersionPage: FunctionComponent<ArtifactVersionPageProps> = 
             <EditMetaDataModal name={artifactName()}
                 description={artifactDescription()}
                 labels={artifactLabels()}
-                properties={artifactProperties()}
                 isOpen={isEditModalOpen}
                 onClose={onEditModalClose}
                 onEditMetaData={doEditMetaData}

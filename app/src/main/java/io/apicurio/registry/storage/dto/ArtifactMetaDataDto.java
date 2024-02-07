@@ -29,7 +29,6 @@ public class ArtifactMetaDataDto {
     private long contentId;
     private String type;
     private ArtifactState state;
-    private List<String> labels;
-    private Map<String, String> properties;
+    private Map<String, String> labels;
     private List<ArtifactReferenceDto> references;
 }

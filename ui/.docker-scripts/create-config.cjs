@@ -6,7 +6,7 @@ const CONFIG_OUTPUT_PATH=process.env["REGISTRY_CONFIG_OUTPUT_PATH"] || "/opt/app
 
 console.info("Generating application config at:", CONFIG_OUTPUT_PATH);
 
-const REGISTRY_API_URL=process.env["REGISTRY_API_URL"] || "http://localhost:8080/apis/registry/v2";
+const REGISTRY_API_URL=process.env["REGISTRY_API_URL"] || "http://localhost:8080/apis/registry/v3";
 
 const CONTEXT_PATH=process.env["REGISTRY_CONTEXT_PATH"];
 const NAV_PREFIX_PATH=process.env["REGISTRY_NAV_PREFIX_PATH"];

@@ -11,7 +11,7 @@ type UserInterfaceConfigAuth struct {
 	// The obacEnabled property
 	obacEnabled *bool
 	// User-defined name-value pairs. Name and value must be strings.
-	options Propertiesable
+	options Labelsable
 	// The rbacEnabled property
 	rbacEnabled *bool
 	// The type property
@@ -49,12 +49,12 @@ func (m *UserInterfaceConfigAuth) GetFieldDeserializers() map[string]func(i878a8
 		return nil
 	}
 	res["options"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
-		val, err := n.GetObjectValue(CreatePropertiesFromDiscriminatorValue)
+		val, err := n.GetObjectValue(CreateLabelsFromDiscriminatorValue)
 		if err != nil {
 			return err
 		}
 		if val != nil {
-			m.SetOptions(val.(Propertiesable))
+			m.SetOptions(val.(Labelsable))
 		}
 		return nil
 	}
@@ -87,7 +87,7 @@ func (m *UserInterfaceConfigAuth) GetObacEnabled() *bool {
 }
 
 // GetOptions gets the options property value. User-defined name-value pairs. Name and value must be strings.
-func (m *UserInterfaceConfigAuth) GetOptions() Propertiesable {
+func (m *UserInterfaceConfigAuth) GetOptions() Labelsable {
 	return m.options
 }
 
@@ -148,7 +148,7 @@ func (m *UserInterfaceConfigAuth) SetObacEnabled(value *bool) {
 }
 
 // SetOptions sets the options property value. User-defined name-value pairs. Name and value must be strings.
-func (m *UserInterfaceConfigAuth) SetOptions(value Propertiesable) {
+func (m *UserInterfaceConfigAuth) SetOptions(value Labelsable) {
 	m.options = value
 }
 
@@ -167,11 +167,11 @@ type UserInterfaceConfigAuthable interface {
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.AdditionalDataHolder
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.Parsable
 	GetObacEnabled() *bool
-	GetOptions() Propertiesable
+	GetOptions() Labelsable
 	GetRbacEnabled() *bool
 	GetTypeEscaped() *UserInterfaceConfigAuth_type
 	SetObacEnabled(value *bool)
-	SetOptions(value Propertiesable)
+	SetOptions(value Labelsable)
 	SetRbacEnabled(value *bool)
 	SetTypeEscaped(value *UserInterfaceConfigAuth_type)
 }

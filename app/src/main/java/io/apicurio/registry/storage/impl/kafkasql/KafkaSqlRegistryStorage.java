@@ -574,7 +574,6 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
         metaDataDto.setName(metadata.getName());
         metaDataDto.setDescription(metadata.getDescription());
         metaDataDto.setLabels(metadata.getLabels());
-        metaDataDto.setProperties(metadata.getProperties());
         updateArtifactState(metadata.getState(), groupId, artifactId, metadata.getVersion(), state, metaDataDto);
     }
 
@@ -586,7 +585,6 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
         metaDataDto.setName(metadata.getName());
         metaDataDto.setDescription(metadata.getDescription());
         metaDataDto.setLabels(metadata.getLabels());
-        metaDataDto.setProperties(metadata.getProperties());
         updateArtifactState(metadata.getState(), groupId, artifactId, version, state, metaDataDto);
     }
 
@@ -761,7 +759,6 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
                 .name(entity.name)
                 .description(entity.description)
                 .labels(entity.labels)
-                .properties(entity.properties)
                 .build();
         submitter.submitArtifact(entity.groupId, entity.artifactId, entity.version, ActionType.IMPORT,
                 entity.globalId, entity.artifactType, null, entity.createdBy, new Date(entity.createdOn), metaData, entity.versionOrder,
@@ -792,7 +789,7 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
         group.setGroupId(entity.groupId);
         group.setModifiedBy(entity.modifiedBy);
         group.setModifiedOn(entity.modifiedOn);
-        group.setProperties(entity.properties);
+        group.setLabels(entity.labels);
         submitter.submitGroup(ActionType.IMPORT, group);
     }
 

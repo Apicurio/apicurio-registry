@@ -16,7 +16,7 @@ public final class CNCFApiUtil {
         }
         group.setCreatedtimeutc(new Date(dto.getCreatedOn()));
         group.setUpdatedtimeutc(new Date(dto.getModifiedOn()));
-        group.setGroupProperties(dto.getProperties());
+        group.setGroupProperties(dto.getLabels());
         return group;
     }
 

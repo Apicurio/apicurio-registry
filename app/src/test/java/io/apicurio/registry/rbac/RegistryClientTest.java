@@ -127,16 +127,16 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         CreateGroupMetaData groupMetaData = new CreateGroupMetaData();
         groupMetaData.setId(groupId);
         groupMetaData.setDescription("Groups test crud");
-        io.apicurio.registry.rest.client.models.Properties props = new io.apicurio.registry.rest.client.models.Properties();
-        props.setAdditionalData(Map.of("p1", "v1", "p2", "v2"));
-        groupMetaData.setProperties(props);
+        Labels labels = new Labels();
+        labels.setAdditionalData(Map.of("p1", "v1", "p2", "v2"));
+        groupMetaData.setLabels(labels);
 
         clientV3.groups().post(groupMetaData);
 
         final GroupMetaData artifactGroup = clientV3.groups().byGroupId(groupId).get();
         assertEquals(groupMetaData.getId(), artifactGroup.getId());
         assertEquals(groupMetaData.getDescription(), artifactGroup.getDescription());
-        assertEquals(groupMetaData.getProperties().getAdditionalData(), artifactGroup.getProperties().getAdditionalData());
+        assertEquals(groupMetaData.getLabels().getAdditionalData(), artifactGroup.getProperties().getAdditionalData());
 
 
         String group1Id = UUID.randomUUID().toString();
@@ -714,60 +714,10 @@ public class RegistryClientTest extends AbstractResourceTestBase {
                 .count());
     }
 
-    @Test
-    public void testLabels() throws Exception {
-        //Preparation
-        final String groupId = "testLabels";
-        String artifactId = generateArtifactId();
-
-        try {
-            ArtifactContent content = new ArtifactContent();
-            content.setContent("{\"name\":\"redhat\"}");
-            clientV3.groups().byGroupId(groupId).artifacts().post(content, config -> {
-                config.headers.add("X-Registry-ArtifactId", artifactId);
-                config.headers.add("X-Registry-ArtifactType", ArtifactType.JSON);
-                config.headers.add("Content-Type", "application/create.extended+json");
-            });
-            EditableMetaData emd = new EditableMetaData();
-            emd.setName("testLabels");
-
-            final List<String> artifactLabels = Arrays.asList("Open Api", "Awesome Artifact", "JSON", "registry-client-test-testLabels");
-            emd.setLabels(artifactLabels);
-
-            //Execution
-            clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).meta().put(emd);
-
-            //Assertions
-            retry(() -> {
-                ArtifactMetaData artifactMetaData = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).meta().get();
-                Assertions.assertNotNull(artifactMetaData);
-                Assertions.assertEquals("testLabels", artifactMetaData.getName());
-                Assertions.assertEquals(4, artifactMetaData.getLabels().size());
-                Assertions.assertTrue(artifactMetaData.getLabels().containsAll(artifactLabels));
-            });
-
-            retry((() -> {
-                ArtifactSearchResults results = clientV3.search().artifacts().get(config -> {
-                    config.queryParameters.offset = 0;
-                    config.queryParameters.limit = 10;
-                    config.queryParameters.name = "testLabels";
-                    config.queryParameters.orderby = SortBy.Name;
-                    config.queryParameters.order = SortOrder.Asc;
-                });
-                Assertions.assertNotNull(results);
-                Assertions.assertEquals(1, results.getCount());
-                Assertions.assertEquals(1, results.getArtifacts().size());
-                Assertions.assertTrue(results.getArtifacts().get(0).getLabels().containsAll(artifactLabels));
-            }));
-        } finally {
-            clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).delete();
-        }
-    }
-
    @Test
-   public void testProperties() throws Exception {
+   public void testLabels() throws Exception {
        //Preparation
-       final String groupId = "testProperties";
+       final String groupId = "testLabels";
        String artifactId = generateArtifactId();
        try {
             ArtifactContent content = new ArtifactContent();
@@ -781,13 +731,13 @@ public class RegistryClientTest extends AbstractResourceTestBase {
            EditableMetaData emd = new EditableMetaData();
            emd.setName("testProperties");
 
-           final Map<String, Object> artifactProperties = new HashMap<>();
-           artifactProperties.put("extraProperty1", "value for extra property 1");
-           artifactProperties.put("extraProperty2", "value for extra property 2");
-           artifactProperties.put("extraProperty3", "value for extra property 3");
-           var props = new io.apicurio.registry.rest.client.models.Properties();
-           props.setAdditionalData(artifactProperties);
-           emd.setProperties(props);
+           final Map<String, Object> artifactLabels = new HashMap<>();
+           artifactLabels.put("extraProperty1", "value for extra property 1");
+           artifactLabels.put("extraProperty2", "value for extra property 2");
+           artifactLabels.put("extraProperty3", "value for extra property 3");
+           var labels = new Labels();
+           labels.setAdditionalData(artifactLabels);
+           emd.setLabels(labels);
 
            //Execution
            clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).meta().put(emd);
@@ -797,10 +747,10 @@ public class RegistryClientTest extends AbstractResourceTestBase {
                ArtifactMetaData artifactMetaData = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).meta().get();
                Assertions.assertNotNull(artifactMetaData);
                Assertions.assertEquals("testProperties", artifactMetaData.getName());
-               Assertions.assertEquals(3, artifactMetaData.getProperties().getAdditionalData().size());
-               Assertions.assertTrue(artifactMetaData.getProperties().getAdditionalData().keySet().containsAll(artifactProperties.keySet()));
-               for (String key : artifactMetaData.getProperties().getAdditionalData().keySet()) {
-                   assertEquals(artifactMetaData.getProperties().getAdditionalData().get(key), artifactProperties.get(key));
+               Assertions.assertEquals(3, artifactMetaData.getLabels().getAdditionalData().size());
+               Assertions.assertTrue(artifactMetaData.getLabels().getAdditionalData().keySet().containsAll(artifactLabels.keySet()));
+               for (String key : artifactMetaData.getLabels().getAdditionalData().keySet()) {
+                   assertEquals(artifactMetaData.getLabels().getAdditionalData().get(key), artifactLabels.get(key));
                }
            });
        } finally {

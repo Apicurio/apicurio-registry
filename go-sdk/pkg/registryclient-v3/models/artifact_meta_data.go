@@ -23,16 +23,14 @@ type ArtifactMetaData struct {
 	groupId *string
 	// The ID of a single artifact.
 	id *string
-	// The labels property
-	labels []string
+	// User-defined name-value pairs. Name and value must be strings.
+	labels Labelsable
 	// The modifiedBy property
 	modifiedBy *string
 	// The modifiedOn property
 	modifiedOn *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time
 	// The name property
 	name *string
-	// User-defined name-value pairs. Name and value must be strings.
-	properties Propertiesable
 	// The references property
 	references []ArtifactReferenceable
 	// Describes the state of an artifact or artifact version.  The following statesare possible:* ENABLED* DISABLED* DEPRECATED
@@ -154,18 +152,12 @@ func (m *ArtifactMetaData) GetFieldDeserializers() map[string]func(i878a80d2330e
 		return nil
 	}
 	res["labels"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
-		val, err := n.GetCollectionOfPrimitiveValues("string")
+		val, err := n.GetObjectValue(CreateLabelsFromDiscriminatorValue)
 		if err != nil {
 			return err
 		}
 		if val != nil {
-			res := make([]string, len(val))
-			for i, v := range val {
-				if v != nil {
-					res[i] = *(v.(*string))
-				}
-			}
-			m.SetLabels(res)
+			m.SetLabels(val.(Labelsable))
 		}
 		return nil
 	}
@@ -196,16 +188,6 @@ func (m *ArtifactMetaData) GetFieldDeserializers() map[string]func(i878a80d2330e
 		}
 		if val != nil {
 			m.SetName(val)
-		}
-		return nil
-	}
-	res["properties"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
-		val, err := n.GetObjectValue(CreatePropertiesFromDiscriminatorValue)
-		if err != nil {
-			return err
-		}
-		if val != nil {
-			m.SetProperties(val.(Propertiesable))
 		}
 		return nil
 	}
@@ -273,8 +255,8 @@ func (m *ArtifactMetaData) GetId() *string {
 	return m.id
 }
 
-// GetLabels gets the labels property value. The labels property
-func (m *ArtifactMetaData) GetLabels() []string {
+// GetLabels gets the labels property value. User-defined name-value pairs. Name and value must be strings.
+func (m *ArtifactMetaData) GetLabels() Labelsable {
 	return m.labels
 }
 
@@ -291,11 +273,6 @@ func (m *ArtifactMetaData) GetModifiedOn() *i336074805fc853987abe6f7fe3ad97a6a6f
 // GetName gets the name property value. The name property
 func (m *ArtifactMetaData) GetName() *string {
 	return m.name
-}
-
-// GetProperties gets the properties property value. User-defined name-value pairs. Name and value must be strings.
-func (m *ArtifactMetaData) GetProperties() Propertiesable {
-	return m.properties
 }
 
 // GetReferences gets the references property value. The references property
@@ -362,8 +339,8 @@ func (m *ArtifactMetaData) Serialize(writer i878a80d2330e89d26896388a3f487eef27b
 			return err
 		}
 	}
-	if m.GetLabels() != nil {
-		err := writer.WriteCollectionOfStringValues("labels", m.GetLabels())
+	{
+		err := writer.WriteObjectValue("labels", m.GetLabels())
 		if err != nil {
 			return err
 		}
@@ -382,12 +359,6 @@ func (m *ArtifactMetaData) Serialize(writer i878a80d2330e89d26896388a3f487eef27b
 	}
 	{
 		err := writer.WriteStringValue("name", m.GetName())
-		if err != nil {
-			return err
-		}
-	}
-	{
-		err := writer.WriteObjectValue("properties", m.GetProperties())
 		if err != nil {
 			return err
 		}
@@ -472,8 +443,8 @@ func (m *ArtifactMetaData) SetId(value *string) {
 	m.id = value
 }
 
-// SetLabels sets the labels property value. The labels property
-func (m *ArtifactMetaData) SetLabels(value []string) {
+// SetLabels sets the labels property value. User-defined name-value pairs. Name and value must be strings.
+func (m *ArtifactMetaData) SetLabels(value Labelsable) {
 	m.labels = value
 }
 
@@ -490,11 +461,6 @@ func (m *ArtifactMetaData) SetModifiedOn(value *i336074805fc853987abe6f7fe3ad97a
 // SetName sets the name property value. The name property
 func (m *ArtifactMetaData) SetName(value *string) {
 	m.name = value
-}
-
-// SetProperties sets the properties property value. User-defined name-value pairs. Name and value must be strings.
-func (m *ArtifactMetaData) SetProperties(value Propertiesable) {
-	m.properties = value
 }
 
 // SetReferences sets the references property value. The references property
@@ -528,11 +494,10 @@ type ArtifactMetaDataable interface {
 	GetGlobalId() *int64
 	GetGroupId() *string
 	GetId() *string
-	GetLabels() []string
+	GetLabels() Labelsable
 	GetModifiedBy() *string
 	GetModifiedOn() *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time
 	GetName() *string
-	GetProperties() Propertiesable
 	GetReferences() []ArtifactReferenceable
 	GetState() *ArtifactState
 	GetTypeEscaped() *string
@@ -544,11 +509,10 @@ type ArtifactMetaDataable interface {
 	SetGlobalId(value *int64)
 	SetGroupId(value *string)
 	SetId(value *string)
-	SetLabels(value []string)
+	SetLabels(value Labelsable)
 	SetModifiedBy(value *string)
 	SetModifiedOn(value *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time)
 	SetName(value *string)
-	SetProperties(value Propertiesable)
 	SetReferences(value []ArtifactReferenceable)
 	SetState(value *ArtifactState)
 	SetTypeEscaped(value *string)

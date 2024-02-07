@@ -206,7 +206,6 @@ public class Export implements QuarkusApplication {
         versionEntity.groupId = null;
         versionEntity.labels = null;
         versionEntity.name = null;
-        versionEntity.properties = null;
         versionEntity.state = ArtifactState.ENABLED;
         versionEntity.version = String.valueOf(metadata.getVersion());
         versionEntity.versionOrder = metadata.getVersion();

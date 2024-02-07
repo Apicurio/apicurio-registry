@@ -188,6 +188,16 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         log.info("Checking to see if the DB is up-to-date.");
         log.info("Build's DB version is {}", DB_VERSION);
         int version = this.getDatabaseVersion(handle);
+
+        // Fast-fail if we try to run Registry v3 against a v2 DB.
+        // TODO how to do this for kafkasql??
+        if (version < 100) {
+            String message = "[Apicurio Registry 3.x] Detected legacy 2.x database.  Automatic upgrade from 2.x to 3.x is not supported.  Please see documentation for migration instructions.";
+            log.error("--------------------------");
+            log.error(message);
+            log.error("--------------------------");
+            throw new RuntimeException(message);
+        }
         return version == DB_VERSION;
     }
 

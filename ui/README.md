@@ -72,7 +72,7 @@ variables can be used to control the behavior of the UI:
 
 | ENV var     | Description | Default |
 | ----------- | ----------- | ------- |
-| REGISTRY_API_URL | Location of the backend API. | http://localhost:8080/apis/registry/v2 |
+| REGISTRY_API_URL | Location of the backend API. | http://localhost:8080/apis/registry/v3 |
 | REGISTRY_AUTH_TYPE | Type of authentication to use. [none, oidc] | none |
 | REGISTRY_AUTH_URL | URL of the OIDC server. | "" |
 | REGISTRY_AUTH_CLIENT_ID | Client ID for auth using OIDC. | registry-ui |

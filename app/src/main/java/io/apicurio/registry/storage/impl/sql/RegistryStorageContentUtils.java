@@ -130,8 +130,7 @@ public class RegistryStorageContentUtils {
             return new EditableArtifactMetaDataDto(
                     extractedMetadata.getName(),
                     extractedMetadata.getDescription(),
-                    extractedMetadata.getLabels(),
-                    extractedMetadata.getProperties());
+                    extractedMetadata.getLabels());
         } else {
             return new EditableArtifactMetaDataDto();
         }

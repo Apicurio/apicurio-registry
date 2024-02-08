@@ -31,8 +31,6 @@ public class SearchedArtifactMapper implements RowMapper<SearchedArtifactDto> {
         dto.setCreatedOn(rs.getTimestamp("createdOn"));
         dto.setName(rs.getString("name"));
         dto.setDescription(rs.getString("description"));
-        dto.setLabels(SqlUtil.deserializeLabels(rs.getString("labels")));
-//        dto.setProperties(SqlUtil.deserializeProperties(rs.getString("properties")));
         dto.setModifiedBy(rs.getString("modifiedBy"));
         dto.setModifiedOn(rs.getTimestamp("modifiedOn"));
         dto.setType(rs.getString("type"));

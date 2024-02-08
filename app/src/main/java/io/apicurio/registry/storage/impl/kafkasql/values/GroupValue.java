@@ -17,7 +17,7 @@ public class GroupValue extends AbstractMessageValue {
     private long createdOn;
     private String modifiedBy;
     private long modifiedOn;
-    private Map<String, String> properties;
+    private Map<String, String> labels;
 
     private boolean onlyArtifacts;
 
@@ -46,7 +46,7 @@ public class GroupValue extends AbstractMessageValue {
         value.setCreatedOn(meta.getCreatedOn());
         value.setModifiedBy(meta.getModifiedBy());
         value.setModifiedOn(meta.getModifiedOn());
-        value.setProperties(meta.getProperties());
+        value.setLabels(meta.getLabels());
         return value;
     }
 
@@ -143,20 +143,6 @@ public class GroupValue extends AbstractMessageValue {
     }
 
     /**
-     * @return the properties
-     */
-    public Map<String, String> getProperties() {
-        return properties;
-    }
-
-    /**
-     * @param properties the properties to set
-     */
-    public void setProperties(Map<String, String> properties) {
-        this.properties = properties;
-    }
-
-    /**
      * @return the onlyArtifacts
      */
     public boolean isOnlyArtifacts() {
@@ -168,6 +154,20 @@ public class GroupValue extends AbstractMessageValue {
      */
     public void setOnlyArtifacts(boolean onlyArtifacts) {
         this.onlyArtifacts = onlyArtifacts;
+    }
+
+    /**
+     * @return the labels
+     */
+    public Map<String, String> getLabels() {
+        return labels;
+    }
+
+    /**
+     * @param labels the labels to set
+     */
+    public void setLabels(Map<String, String> labels) {
+        this.labels = labels;
     }
 
 }

@@ -31,6 +31,9 @@ public class EntityReader {
 
     public Entity readEntity() throws IOException {
         ZipEntry entry = zip.getNextEntry();
+        while (entry != null && entry.isDirectory()) {
+            entry = zip.getNextEntry();
+        }
         if (entry != null) {
             String path = entry.getName();
             EntityType entityType = parseEntityType(path);

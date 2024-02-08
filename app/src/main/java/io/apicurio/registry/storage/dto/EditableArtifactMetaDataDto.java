@@ -1,10 +1,15 @@
 package io.apicurio.registry.storage.dto;
 
-import io.quarkus.runtime.annotations.RegisterForReflection;
-import lombok.*;
-
-import java.util.List;
 import java.util.Map;
+
+import io.quarkus.runtime.annotations.RegisterForReflection;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
 
 @NoArgsConstructor
 @AllArgsConstructor
@@ -18,6 +23,5 @@ public class EditableArtifactMetaDataDto {
 
     private String name;
     private String description;
-    private List<String> labels;
-    private Map<String, String> properties;
+    private Map<String, String> labels;
 }

@@ -1,16 +1,16 @@
 package io.apicurio.registry.limits;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Function;
+
+import org.slf4j.Logger;
+
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.metrics.StorageMetricsStore;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import org.slf4j.Logger;
-
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.function.Function;
 
 /**
  * Component that provides the logic to enforce the limits in the usage of the registry
@@ -27,10 +27,8 @@ public class RegistryLimitsService {
     private static final String MAX_NAME_LENGTH_EXCEEDED_MSG = "Maximum artifact name length exceeded";
     private static final String MAX_DESC_LENGTH_EXCEEDED_MSG = "Maximum artifact description length exceeded";
     private static final String MAX_LABELS_EXCEEDED_MSG = "Maximum number of labels exceeded for this artifact";
-    private static final String MAX_LABEL_SIZE_EXCEEDED_MSG = "Maximum label size exceeded";
-    private static final String MAX_PROPERTIES_EXCEEDED_MSG = "Maximum number of properties exceeded for this artifact";
-    private static final String MAX_PROP_KEY_SIZE_EXCEEDED_MSG = "Maximum property key size exceeded";
-    private static final String MAX_PROP_VALUE_SIZE_EXCEEDED_MSG = "Maximum property value size exceeded";
+    private static final String MAX_LABEL_KEY_SIZE_EXCEEDED_MSG = "Maximum label key size exceeded";
+    private static final String MAX_LABEL_VALUE_SIZE_EXCEEDED_MSG = "Maximum label value size exceeded";
 
     @Inject
     Logger log;
@@ -178,42 +176,24 @@ public class RegistryLimitsService {
         }
 
         if (meta.getLabels() != null) {
-            if (isLimitEnabled(RegistryLimitsConfiguration::getMaxArtifactLabelsCount) &&
-                    meta.getLabels().size() > registryLimitsConfiguration.getMaxArtifactLabelsCount()) {
+            if (isLimitEnabled(RegistryLimitsConfiguration::getMaxArtifactPropertiesCount) &&
+                    meta.getLabels().size() > registryLimitsConfiguration.getMaxArtifactPropertiesCount()) {
 
                 errorMessages.add(MAX_LABELS_EXCEEDED_MSG);
-
-            } else if (isLimitEnabled(RegistryLimitsConfiguration::getMaxLabelSizeBytes)) {
-
-                meta.getLabels().forEach(l -> {
-
-                    if (l.getBytes(StandardCharsets.UTF_8).length >
-                            registryLimitsConfiguration.getMaxLabelSizeBytes()) {
-                        errorMessages.add(MAX_LABEL_SIZE_EXCEEDED_MSG);
-                    }
-                });
-            }
-        }
-
-        if (meta.getProperties() != null) {
-            if (isLimitEnabled(RegistryLimitsConfiguration::getMaxArtifactPropertiesCount) &&
-                    meta.getProperties().size() > registryLimitsConfiguration.getMaxArtifactPropertiesCount()) {
-
-                errorMessages.add(MAX_PROPERTIES_EXCEEDED_MSG);
 
             } else if (isLimitEnabled(RegistryLimitsConfiguration::getMaxPropertyKeySizeBytes) ||
                     isLimitEnabled(RegistryLimitsConfiguration::getMaxPropertyValueSizeBytes)){
 
-                meta.getProperties().entrySet().forEach(e -> {
+                meta.getLabels().entrySet().forEach(e -> {
 
                     if (isLimitEnabled(RegistryLimitsConfiguration::getMaxPropertyKeySizeBytes) &&
                             e.getKey().length() > registryLimitsConfiguration.getMaxPropertyKeySizeBytes()) {
-                        errorMessages.add(MAX_PROP_KEY_SIZE_EXCEEDED_MSG);
+                        errorMessages.add(MAX_LABEL_KEY_SIZE_EXCEEDED_MSG);
                     }
 
                     if (isLimitEnabled(RegistryLimitsConfiguration::getMaxPropertyValueSizeBytes) &&
                             e.getValue().length() > registryLimitsConfiguration.getMaxPropertyValueSizeBytes()) {
-                        errorMessages.add(MAX_PROP_VALUE_SIZE_EXCEEDED_MSG);
+                        errorMessages.add(MAX_LABEL_VALUE_SIZE_EXCEEDED_MSG);
                     }
                 });
             }

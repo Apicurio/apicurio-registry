@@ -1,5 +1,5 @@
 export * from "./EditMetaDataModal.tsx";
-export * from "./PropertiesFormGroup.tsx";
+export * from "./LabelsFormGroup.tsx";
 
-export * from "./listToProperties.function.ts";
-export * from "./propertiesToList.function.ts";
+export * from "./listToLabels.function.ts";
+export * from "./labelsToList.function.ts";

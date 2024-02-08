@@ -22,7 +22,7 @@ type GroupMetaData struct {
 	// The modifiedOn property
 	modifiedOn *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time
 	// User-defined name-value pairs. Name and value must be strings.
-	properties Propertiesable
+	properties Labelsable
 }
 
 // NewGroupMetaData instantiates a new GroupMetaData and sets the default values.
@@ -121,12 +121,12 @@ func (m *GroupMetaData) GetFieldDeserializers() map[string]func(i878a80d2330e89d
 		return nil
 	}
 	res["properties"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
-		val, err := n.GetObjectValue(CreatePropertiesFromDiscriminatorValue)
+		val, err := n.GetObjectValue(CreateLabelsFromDiscriminatorValue)
 		if err != nil {
 			return err
 		}
 		if val != nil {
-			m.SetProperties(val.(Propertiesable))
+			m.SetProperties(val.(Labelsable))
 		}
 		return nil
 	}
@@ -149,7 +149,7 @@ func (m *GroupMetaData) GetModifiedOn() *i336074805fc853987abe6f7fe3ad97a6a6f307
 }
 
 // GetProperties gets the properties property value. User-defined name-value pairs. Name and value must be strings.
-func (m *GroupMetaData) GetProperties() Propertiesable {
+func (m *GroupMetaData) GetProperties() Labelsable {
 	return m.properties
 }
 
@@ -242,7 +242,7 @@ func (m *GroupMetaData) SetModifiedOn(value *i336074805fc853987abe6f7fe3ad97a6a6
 }
 
 // SetProperties sets the properties property value. User-defined name-value pairs. Name and value must be strings.
-func (m *GroupMetaData) SetProperties(value Propertiesable) {
+func (m *GroupMetaData) SetProperties(value Labelsable) {
 	m.properties = value
 }
 
@@ -256,12 +256,12 @@ type GroupMetaDataable interface {
 	GetId() *string
 	GetModifiedBy() *string
 	GetModifiedOn() *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time
-	GetProperties() Propertiesable
+	GetProperties() Labelsable
 	SetCreatedBy(value *string)
 	SetCreatedOn(value *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time)
 	SetDescription(value *string)
 	SetId(value *string)
 	SetModifiedBy(value *string)
 	SetModifiedOn(value *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time)
-	SetProperties(value Propertiesable)
+	SetProperties(value Labelsable)
 }

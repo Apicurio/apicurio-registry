@@ -35,7 +35,6 @@ public class ArtifactVersionEntityMapper implements RowMapper<ArtifactVersionEnt
         entity.createdOn = rs.getTimestamp("createdOn").getTime();
         entity.state = ArtifactState.valueOf(rs.getString("state"));
         entity.labels = SqlUtil.deserializeLabels(rs.getString("labels"));
-        entity.properties = SqlUtil.deserializeProperties(rs.getString("properties"));
         entity.contentId = rs.getLong("contentId");
         entity.artifactType = rs.getString("type");
         return entity;

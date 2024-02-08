@@ -241,44 +241,29 @@ public interface SqlStatements {
     public String updateArtifactVersionMetaData();
 
     /**
+     * A statement to delete the labels for a single artifact version.
+     */
+    public String deleteVersionLabelsByGAV();
+
+    /**
      * A statement to delete all labels for all versions for a single artifact.
      */
-    public String deleteLabels();
+    public String deleteVersionLabelsByGA();
 
     /**
      * A statement to delete all labels for a single artifact version by globalId
      */
-    public String deleteLabelsByGlobalId();
+    public String deleteVersionLabelsByGlobalId();
 
     /**
      * A statement to delete all labels for all versions for all artifacts in a groupId.
      */
-    public String deleteLabelsByGroupId();
+    public String deleteVersionLabelsByGroupId();
 
     /**
      * A statement to delete all labels for all versions for all artifacts
      */
-    String deleteAllLabels();
-
-    /**
-     * A statement to delete all properties for all versions for a single artifact.
-     */
-    public String deleteProperties();
-
-    /**
-     * A statement to delete all properties for a single artifact version by globalId
-     */
-    public String deletePropertiesByGlobalId();
-
-    /**
-     * A statement to delete all properties for all versions for all artifacts in a groupId.
-     */
-    public String deletePropertiesByGroupId();
-
-    /**
-     * A statement to delete all properties for all versions for all artifacts
-     */
-    public String deleteAllProperties();
+    public String deleteVersionLabelsByAll();
 
     /**
      * A statement to delete all comments for all versions for all artifacts
@@ -331,17 +316,6 @@ public interface SqlStatements {
      * A statement to update the state of an artifact version (by globalId);
      */
     public String updateArtifactVersionState();
-
-    /**
-     * A statement to delete the labels for a single artifact version.
-     */
-    public String deleteVersionLabels();
-
-    /**
-     * A statement to delete the properties for a single artifact version.
-     */
-    public String deleteVersionProperties();
-
     /**
      * A statement to delete the comments for a single artifact version.
      */
@@ -353,14 +327,19 @@ public interface SqlStatements {
     public String deleteVersion();
 
     /**
-     * A statement to insert a row in the "labels" table.
+     * A statement to insert a row in the "group_labels" table.
      */
-    public String insertLabel();
+    public String insertGroupLabel();
 
     /**
-     * A statement to insert a row in the "properties" table.
+     * A statement to insert a row in the "artifact_labels" table.
      */
-    public String insertProperty();
+    public String insertArtifactLabel();
+
+    /**
+     * A statement to insert a row in the "version_labels" table.
+     */
+    public String insertVersionLabel();
 
     /**
      * A statement to insert a row in the "references" table.

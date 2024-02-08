@@ -55,7 +55,7 @@ public class SearchResourceImpl implements SearchResource {
     @Override
     @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Read)
     public ArtifactSearchResults searchArtifacts(String name, BigInteger offset, BigInteger limit, SortOrder order,
-            SortBy orderby, List<String> labels, List<String> properties, String description, String group,
+            SortBy orderby, List<String> labels, String description, String group,
             Long globalId, Long contentId)
     {
         if (orderby == null) {
@@ -83,28 +83,25 @@ public class SearchResourceImpl implements SearchResource {
         }
 
         if (labels != null && !labels.isEmpty()) {
-            labels.forEach(label -> filters.add(SearchFilter.ofLabel(label)));
-        }
-        if (properties != null && !properties.isEmpty()) {
-            properties.stream()
+            labels.stream()
                 .map(prop -> {
                    int delimiterIndex = prop.indexOf(":");
-                   String propertyKey;
-                   String propertyValue;
+                   String labelKey;
+                   String labelValue;
                    if (delimiterIndex == 0) {
-                       throw new BadRequestException("property search filter wrong formatted, missing left side of ':' delimiter");
+                       throw new BadRequestException("label search filter wrong formatted, missing left side of ':' delimiter");
                    }
                    if (delimiterIndex == (prop.length() - 1)) {
-                       throw new BadRequestException("property search filter wrong formatted, missing right side of ':' delimiter");
+                       throw new BadRequestException("label search filter wrong formatted, missing right side of ':' delimiter");
                    }
                    if (delimiterIndex < 0) {
-                       propertyKey = prop;
-                       propertyValue = null;
+                       labelKey = prop;
+                       labelValue = null;
                    } else{
-                       propertyKey = prop.substring(0, delimiterIndex);
-                       propertyValue = prop.substring(delimiterIndex + 1);
+                       labelKey = prop.substring(0, delimiterIndex);
+                       labelValue = prop.substring(delimiterIndex + 1);
                    }
-                   return SearchFilter.ofProperty(propertyKey, propertyValue);
+                   return SearchFilter.ofLabel(labelKey, labelValue);
                 })
                 .forEach(filters::add);
         }

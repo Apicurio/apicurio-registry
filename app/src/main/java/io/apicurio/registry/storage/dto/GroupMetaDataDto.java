@@ -23,5 +23,5 @@ public class GroupMetaDataDto implements Serializable {
     private long createdOn;
     private String modifiedBy;
     private long modifiedOn;
-    private Map<String, String> properties;
+    private Map<String, String> labels;
 }

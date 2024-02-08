@@ -10,12 +10,10 @@ type EditableMetaData struct {
 	additionalData map[string]any
 	// The description property
 	description *string
-	// The labels property
-	labels []string
+	// User-defined name-value pairs. Name and value must be strings.
+	labels Labelsable
 	// The name property
 	name *string
-	// User-defined name-value pairs. Name and value must be strings.
-	properties Propertiesable
 }
 
 // NewEditableMetaData instantiates a new EditableMetaData and sets the default values.
@@ -54,18 +52,12 @@ func (m *EditableMetaData) GetFieldDeserializers() map[string]func(i878a80d2330e
 		return nil
 	}
 	res["labels"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
-		val, err := n.GetCollectionOfPrimitiveValues("string")
+		val, err := n.GetObjectValue(CreateLabelsFromDiscriminatorValue)
 		if err != nil {
 			return err
 		}
 		if val != nil {
-			res := make([]string, len(val))
-			for i, v := range val {
-				if v != nil {
-					res[i] = *(v.(*string))
-				}
-			}
-			m.SetLabels(res)
+			m.SetLabels(val.(Labelsable))
 		}
 		return nil
 	}
@@ -79,32 +71,17 @@ func (m *EditableMetaData) GetFieldDeserializers() map[string]func(i878a80d2330e
 		}
 		return nil
 	}
-	res["properties"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
-		val, err := n.GetObjectValue(CreatePropertiesFromDiscriminatorValue)
-		if err != nil {
-			return err
-		}
-		if val != nil {
-			m.SetProperties(val.(Propertiesable))
-		}
-		return nil
-	}
 	return res
 }
 
-// GetLabels gets the labels property value. The labels property
-func (m *EditableMetaData) GetLabels() []string {
+// GetLabels gets the labels property value. User-defined name-value pairs. Name and value must be strings.
+func (m *EditableMetaData) GetLabels() Labelsable {
 	return m.labels
 }
 
 // GetName gets the name property value. The name property
 func (m *EditableMetaData) GetName() *string {
 	return m.name
-}
-
-// GetProperties gets the properties property value. User-defined name-value pairs. Name and value must be strings.
-func (m *EditableMetaData) GetProperties() Propertiesable {
-	return m.properties
 }
 
 // Serialize serializes information the current object
@@ -115,20 +92,14 @@ func (m *EditableMetaData) Serialize(writer i878a80d2330e89d26896388a3f487eef27b
 			return err
 		}
 	}
-	if m.GetLabels() != nil {
-		err := writer.WriteCollectionOfStringValues("labels", m.GetLabels())
+	{
+		err := writer.WriteObjectValue("labels", m.GetLabels())
 		if err != nil {
 			return err
 		}
 	}
 	{
 		err := writer.WriteStringValue("name", m.GetName())
-		if err != nil {
-			return err
-		}
-	}
-	{
-		err := writer.WriteObjectValue("properties", m.GetProperties())
 		if err != nil {
 			return err
 		}
@@ -152,8 +123,8 @@ func (m *EditableMetaData) SetDescription(value *string) {
 	m.description = value
 }
 
-// SetLabels sets the labels property value. The labels property
-func (m *EditableMetaData) SetLabels(value []string) {
+// SetLabels sets the labels property value. User-defined name-value pairs. Name and value must be strings.
+func (m *EditableMetaData) SetLabels(value Labelsable) {
 	m.labels = value
 }
 
@@ -162,21 +133,14 @@ func (m *EditableMetaData) SetName(value *string) {
 	m.name = value
 }
 
-// SetProperties sets the properties property value. User-defined name-value pairs. Name and value must be strings.
-func (m *EditableMetaData) SetProperties(value Propertiesable) {
-	m.properties = value
-}
-
 // EditableMetaDataable
 type EditableMetaDataable interface {
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.AdditionalDataHolder
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.Parsable
 	GetDescription() *string
-	GetLabels() []string
+	GetLabels() Labelsable
 	GetName() *string
-	GetProperties() Propertiesable
 	SetDescription(value *string)
-	SetLabels(value []string)
+	SetLabels(value Labelsable)
 	SetName(value *string)
-	SetProperties(value Propertiesable)
 }

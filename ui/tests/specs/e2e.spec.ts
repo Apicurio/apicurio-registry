@@ -33,7 +33,6 @@ test("End to End - Upload artifact", async ({ page }) => {
     await expect(page.getByTestId("artifact-details-id")).toHaveText("MyArtifact");
     await expect(page.getByTestId("artifact-details-state")).toHaveText("ENABLED");
     await expect(page.getByTestId("artifact-details-labels")).toHaveText("No labels");
-    await expect(page.getByTestId("artifact-details-properties")).toHaveText("No properties");
 });
 
 
@@ -46,29 +45,32 @@ test("End to End - Edit metadata", async ({ page }) => {
     await expect(page.getByTestId("edit-metadata-modal-name")).toHaveValue("Empty API Spec");
 
     // Change/add some values
-    await page.getByTestId("edit-metadata-modal-name").fill("My Empty API");
+    await page.getByTestId("edit-metadata-modal-name").fill("Empty API Spec UPDATED");
     await page.getByTestId("edit-metadata-modal-description").fill("A simple empty API.");
-    await page.getByTestId("edit-metadata-modal-labels").fill("one, two, three");
 
-    // Add a property
-    await page.getByTestId("edit-metadata-modal-add-property").click();
-    await page.getByTestId("edit-metadata-modal-property-name-0").fill("some-key");
-    await page.getByTestId("edit-metadata-modal-property-value-0").fill("some-value");
+    // Add a label
+    await page.getByTestId("edit-metadata-modal-add-label").click();
+    await page.getByTestId("edit-metadata-modal-label-name-0").fill("some-key");
+    await page.getByTestId("edit-metadata-modal-label-value-0").fill("some-value");
 
     // Save changes
     await page.getByTestId("modal-btn-edit").click();
 
+    // Wait
+    await page.waitForTimeout(500);
+
+    // Reload the page
+    await page.reload();
+
     // Assert the meta-data is as expected
-    await expect(page.getByTestId("artifact-details-name")).toHaveText("My Empty API");
+    await expect(page.getByTestId("artifact-details-name")).toHaveText("Empty API Spec UPDATED");
     await expect(page.getByTestId("artifact-details-description")).toHaveText("A simple empty API.");
     await expect(page.getByTestId("artifact-details-id")).toHaveText("MyArtifact");
     await expect(page.getByTestId("artifact-details-state")).toHaveText("ENABLED");
-    expect(page.getByTestId("artifact-details-labels").getByText("one")).toBeDefined();
-    expect(page.getByTestId("artifact-details-labels").getByText("two")).toBeDefined();
-    expect(page.getByTestId("artifact-details-labels").getByText("three")).toBeDefined();
-    expect(page.getByTestId("artifact-details-properties").getByText("some-key")).toBeDefined();
-    expect(page.getByTestId("artifact-details-properties").getByText("some-value")).toBeDefined();
+    expect(page.getByTestId("artifact-details-labels").getByText("some-key")).toBeDefined();
+    expect(page.getByTestId("artifact-details-labels").getByText("some-value")).toBeDefined();
 });
+
 
 
 test("End to End - Artifact specific rules", async ({ page }) => {

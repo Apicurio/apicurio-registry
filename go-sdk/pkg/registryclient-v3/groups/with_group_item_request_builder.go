@@ -47,7 +47,7 @@ func NewWithGroupItemRequestBuilder(rawUrl string, requestAdapter i2ae4187f7daee
 	return NewWithGroupItemRequestBuilderInternal(urlParams, requestAdapter)
 }
 
-// Delete deletes a group by identifier.This operation can fail for the following reasons:* A server error occurred (HTTP error `500`)* The group does not exist (HTTP error `404`)
+// Delete deletes a group by identifier.  This operation also deletes all artifacts withinthe group, so should be used very carefully.This operation can fail for the following reasons:* A server error occurred (HTTP error `500`)* The group does not exist (HTTP error `404`)
 func (m *WithGroupItemRequestBuilder) Delete(ctx context.Context, requestConfiguration *WithGroupItemRequestBuilderDeleteRequestConfiguration) error {
 	requestInfo, err := m.ToDeleteRequestInformation(ctx, requestConfiguration)
 	if err != nil {
@@ -84,7 +84,7 @@ func (m *WithGroupItemRequestBuilder) Get(ctx context.Context, requestConfigurat
 	return res.(i00eb2e63d156923d00d8e86fe16b5d74daf30e363c9f185a8165cb42aa2f2c71.GroupMetaDataable), nil
 }
 
-// ToDeleteRequestInformation deletes a group by identifier.This operation can fail for the following reasons:* A server error occurred (HTTP error `500`)* The group does not exist (HTTP error `404`)
+// ToDeleteRequestInformation deletes a group by identifier.  This operation also deletes all artifacts withinthe group, so should be used very carefully.This operation can fail for the following reasons:* A server error occurred (HTTP error `500`)* The group does not exist (HTTP error `404`)
 func (m *WithGroupItemRequestBuilder) ToDeleteRequestInformation(ctx context.Context, requestConfiguration *WithGroupItemRequestBuilderDeleteRequestConfiguration) (*i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestInformation, error) {
 	requestInfo := i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewRequestInformationWithMethodAndUrlTemplateAndPathParameters(i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.DELETE, m.BaseRequestBuilder.UrlTemplate, m.BaseRequestBuilder.PathParameters)
 	if requestConfiguration != nil {

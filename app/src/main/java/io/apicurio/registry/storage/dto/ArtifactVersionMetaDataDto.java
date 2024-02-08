@@ -1,10 +1,15 @@
 package io.apicurio.registry.storage.dto;
 
-import io.apicurio.registry.types.ArtifactState;
-import lombok.*;
-
-import java.util.List;
 import java.util.Map;
+
+import io.apicurio.registry.types.ArtifactState;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
 
 @NoArgsConstructor
 @AllArgsConstructor
@@ -25,6 +30,5 @@ public class ArtifactVersionMetaDataDto {
     private long createdOn;
     private String type;
     private ArtifactState state;
-    private List<String> labels;
-    private Map<String, String> properties;
+    private Map<String, String> labels;
 }

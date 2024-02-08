@@ -132,10 +132,10 @@ public abstract class CommonSqlStatements implements SqlStatements {
         // TODO: Use COALESCE to unify into a single query.
         String query;
         if (firstVersion) {
-            query = "INSERT INTO versions (globalId, groupId, artifactId, version, versionOrder, state, name, description, createdBy, createdOn, labels, properties, contentId) VALUES (?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?)";
+            query = "INSERT INTO versions (globalId, groupId, artifactId, version, versionOrder, state, name, description, createdBy, createdOn, labels, contentId) VALUES (?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?)";
         } else {
             // NOTE: Duplicated value of versionOrder is prevented by UQ_versions_2 constraint.
-            query = "INSERT INTO versions (globalId, groupId, artifactId, version, versionOrder, state, name, description, createdBy, createdOn, labels, properties, contentId) VALUES (?, ?, ?, ?, (SELECT MAX(versionOrder) + 1 FROM versions WHERE groupId = ? AND artifactId = ?), ?, ?, ?, ?, ?, ?, ?, ?)";
+            query = "INSERT INTO versions (globalId, groupId, artifactId, version, versionOrder, state, name, description, createdBy, createdOn, labels, contentId) VALUES (?, ?, ?, ?, (SELECT MAX(versionOrder) + 1 FROM versions WHERE groupId = ? AND artifactId = ?), ?, ?, ?, ?, ?, ?, ?)";
         }
         return query;
     }
@@ -190,7 +190,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
 
     @Override
     public String selectArtifactVersionMetaDataByContentId() {
-        return "SELECT a.*, v.contentId, v.globalId, v.version, v.versionOrder, v.state, v.name, v.description, v.labels, v.properties, v.createdBy AS modifiedBy, v.createdOn AS modifiedOn "
+        return "SELECT a.*, v.contentId, v.globalId, v.version, v.versionOrder, v.state, v.name, v.description, v.labels, v.createdBy AS modifiedBy, v.createdOn AS modifiedOn "
                 + "FROM versions v "
                 + "JOIN artifacts a ON v.groupId = a.groupId AND v.artifactId = a.artifactId "
                 + "WHERE v.contentId = ?";
@@ -238,7 +238,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
 
     @Override
     public String selectArtifactMetaData() {
-        return "SELECT a.*, v.contentId, v.globalId, v.version, v.versionOrder, v.state, v.name, v.description, v.labels, v.properties, v.createdBy AS modifiedBy, v.createdOn AS modifiedOn "
+        return "SELECT a.groupId, a.artifactId, a.type, a.createdBy, a.createdOn, v.contentId, v.globalId, v.version, v.versionOrder, v.state, v.name, v.description, v.labels, v.createdBy AS modifiedBy, v.createdOn AS modifiedOn "
                 + "FROM artifacts a "
                 + "JOIN versions v ON  a.groupId = v.groupId AND a.artifactId = v.artifactId "
                 + "WHERE a.groupId = ? AND a.artifactId = ? AND v.version = ?";
@@ -324,59 +324,33 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String updateArtifactVersionMetaData() {
-        return "UPDATE versions SET name = ?, description = ?, labels = ?, properties = ? WHERE groupId = ? AND artifactId = ? AND version = ?";
+        return "UPDATE versions SET name = ?, description = ?, labels = ? WHERE groupId = ? AND artifactId = ? AND version = ?";
     }
 
     /**
-     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#deleteLabels()
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#deleteVersionLabelsByGA()
      */
     @Override
-    public String deleteLabels() {
-        return "DELETE FROM labels WHERE globalId IN (SELECT globalId FROM versions WHERE groupId = ? AND artifactId = ?)";
+    public String deleteVersionLabelsByGA() {
+        return "DELETE FROM version_labels WHERE globalId IN (SELECT globalId FROM versions WHERE groupId = ? AND artifactId = ?)";
     }
 
     /**
-     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#deleteLabelsByGlobalId()
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#deleteVersionLabelsByGlobalId()
      */
     @Override
-    public String deleteLabelsByGlobalId() {
-        return "DELETE FROM labels WHERE globalId = ?";
+    public String deleteVersionLabelsByGlobalId() {
+        return "DELETE FROM version_labels WHERE globalId = ?";
     }
 
     @Override
-    public String deleteLabelsByGroupId() {
-        return "DELETE FROM labels WHERE globalId IN (SELECT globalId FROM versions WHERE groupId = ?)";
+    public String deleteVersionLabelsByGroupId() {
+        return "DELETE FROM version_labels WHERE globalId IN (SELECT globalId FROM versions WHERE groupId = ?)";
     }
 
     @Override
-    public String deleteAllLabels() {
-        return "DELETE FROM labels WHERE globalId IN (SELECT globalId FROM versions)";
-    }
-
-    /**
-     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#deleteProperties()
-     */
-    @Override
-    public String deleteProperties() {
-        return "DELETE FROM properties WHERE globalId IN (SELECT globalId FROM versions WHERE groupId = ? AND artifactId = ?)";
-    }
-
-    /**
-     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#deletePropertiesByGlobalId()
-     */
-    @Override
-    public String deletePropertiesByGlobalId() {
-        return "DELETE FROM properties WHERE globalId = ?";
-    }
-
-    @Override
-    public String deletePropertiesByGroupId() {
-        return "DELETE FROM properties WHERE globalId IN (SELECT globalId FROM versions WHERE groupId = ?)";
-    }
-
-    @Override
-    public String deleteAllProperties() {
-        return "DELETE FROM properties WHERE globalId IN (SELECT globalId FROM versions)";
+    public String deleteVersionLabelsByAll() {
+        return "DELETE FROM version_labels WHERE globalId IN (SELECT globalId FROM versions)";
     }
 
     @Override
@@ -435,7 +409,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String selectArtifactMetaDataByGlobalId() {
-        return "SELECT a.*, v.contentId, v.globalId, v.version, v.versionOrder, v.state, v.name, v.description, v.labels, v.properties, v.createdBy AS modifiedBy, v.createdOn AS modifiedOn "
+        return "SELECT a.groupId, a.artifactId, a.type, a.createdBy, a.createdOn, v.contentId, v.globalId, v.version, v.versionOrder, v.state, v.name, v.description, v.labels, v.createdBy AS modifiedBy, v.createdOn AS modifiedOn "
                 + "FROM artifacts a "
                 + "JOIN versions v ON a.groupId = v.groupId AND a.artifactId = v.artifactId "
                 + "WHERE v.globalId = ?";
@@ -458,19 +432,11 @@ public abstract class CommonSqlStatements implements SqlStatements {
     }
 
     /**
-     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#deleteVersionLabels()
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#deleteVersionLabelsByGAV()
      */
     @Override
-    public String deleteVersionLabels() {
-        return "DELETE FROM labels WHERE globalId IN (SELECT v.globalId FROM versions v WHERE v.groupId = ? AND v.artifactId = ? AND v.version = ?)";
-    }
-
-    /**
-     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#deleteVersionProperties()
-     */
-    @Override
-    public String deleteVersionProperties() {
-        return "DELETE FROM properties WHERE globalId IN (SELECT v.globalId FROM versions v WHERE v.groupId = ? AND v.artifactId = ? AND v.version = ?)";
+    public String deleteVersionLabelsByGAV() {
+        return "DELETE FROM version_labels WHERE globalId IN (SELECT v.globalId FROM versions v WHERE v.groupId = ? AND v.artifactId = ? AND v.version = ?)";
     }
 
     /**
@@ -482,21 +448,28 @@ public abstract class CommonSqlStatements implements SqlStatements {
     }
 
     /**
-     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#insertLabel()
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#insertVersionLabel()
      */
     @Override
-    public String insertLabel() {
-        return "INSERT INTO labels (globalId, label) VALUES (?, ?)";
+    public String insertVersionLabel() {
+        return "INSERT INTO version_labels (globalId, pkey, pvalue) VALUES (?, ?, ?)";
     }
 
     /**
-     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#insertProperty()
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#insertArtifactLabel()
      */
     @Override
-    public String insertProperty() {
-        return "INSERT INTO properties (globalId, pkey, pvalue) VALUES (?, ?, ?)";
+    public String insertArtifactLabel() {
+        return "INSERT INTO artifact_labels (globalId, pkey, pvalue) VALUES (?, ?, ?)";
     }
-
+    
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#insertGroupLabel()
+     */
+    @Override
+    public String insertGroupLabel() {
+        return "INSERT INTO group_labels (globalId, pkey, pvalue) VALUES (?, ?, ?)";
+    }
 
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectAllArtifactVersions()
@@ -622,7 +595,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String insertGroup() {
-        return "INSERT INTO groups (groupId, description, artifactsType, createdBy, createdOn, modifiedBy, modifiedOn, properties) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+        return "INSERT INTO groups (groupId, description, artifactsType, createdBy, createdOn, modifiedBy, modifiedOn, labels) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
     }
 
     /**
@@ -630,7 +603,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String updateGroup() {
-        return "UPDATE groups SET description = ? , artifactsType = ? , modifiedBy = ? , modifiedOn = ? , properties = ? WHERE groupId = ?";
+        return "UPDATE groups SET description = ? , artifactsType = ? , modifiedBy = ? , modifiedOn = ? , labels = ? WHERE groupId = ?";
     }
 
     /**
@@ -737,8 +710,8 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String importArtifactVersion() {
-        return "INSERT INTO versions (globalId, groupId, artifactId, version, versionOrder, state, name, description, createdBy, createdOn, labels, properties, contentId) "
-                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        return "INSERT INTO versions (globalId, groupId, artifactId, version, versionOrder, state, name, description, createdBy, createdOn, labels, contentId) "
+                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
     }
 
     /**
@@ -762,7 +735,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String importGroup() {
-        return "INSERT INTO groups (groupId, description, artifactsType, createdBy, createdOn, modifiedBy, modifiedOn, properties) "
+        return "INSERT INTO groups (groupId, description, artifactsType, createdBy, createdOn, modifiedBy, modifiedOn, labels) "
                 + "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
     }
 

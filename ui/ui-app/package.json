@@ -17,7 +17,7 @@
     "@monaco-editor/react": "4.6.0",
     "@types/luxon": "3.4.2",
     "@types/react": "18.2.55",
-    "@types/react-dom": "18.2.18",
+    "@types/react-dom": "18.2.19",
     "@typescript-eslint/eslint-plugin": "6.21.0",
     "@typescript-eslint/parser": "6.21.0",
     "@vitejs/plugin-react-swc": "3.6.0",
@@ -26,7 +26,7 @@
     "eslint-plugin-react-refresh": "0.4.5",
     "rimraf": "5.0.5",
     "typescript": "5.3.3",
-    "vite": "5.0.12",
+    "vite": "5.1.0",
     "vite-tsconfig-paths": "4.3.1"
   },
   "dependencies": {
@@ -39,7 +39,7 @@
     "@patternfly/react-table": "5.2.0",
     "axios": "1.6.7",
     "luxon": "3.4.4",
-    "oidc-client-ts": "3.0.0",
+    "oidc-client-ts": "3.0.1",
     "react": "18.2.0",
     "react-dom": "18.2.0",
     "react-router-dom": "6.22.0",

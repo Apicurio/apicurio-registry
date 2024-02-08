@@ -27,7 +27,7 @@ public class ContentMapper implements RowMapper<ContentWrapperDto> {
         byte[] contentBytes = rs.getBytes("content");
         ContentHandle content = ContentHandle.create(contentBytes);
         contentWrapperDto.setContent(content);
-        contentWrapperDto.setReferences(SqlUtil.deserializeReferences(rs.getString("artifactreferences")));
+        contentWrapperDto.setReferences(SqlUtil.deserializeReferences(rs.getString("refs")));
         return contentWrapperDto;
     }
 

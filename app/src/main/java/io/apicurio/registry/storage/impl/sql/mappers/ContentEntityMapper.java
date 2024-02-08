@@ -27,9 +27,9 @@ public class ContentEntityMapper implements RowMapper<ContentEntity> {
         entity.contentHash = rs.getString("contentHash");
         entity.contentBytes = rs.getBytes("content");
         try {
-            entity.serializedReferences = rs.getString("artifactreferences");
+            entity.serializedReferences = rs.getString("refs");
         } catch (Exception e) {
-            //The old database does not have te artifactreferences column, just ignore;
+            //The old database does not have te references column, just ignore;
         }
         return entity;
     }

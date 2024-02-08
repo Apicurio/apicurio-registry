@@ -29,7 +29,7 @@ public class StoredArtifactMapper implements RowMapper<StoredArtifactDto> {
                 .globalId(rs.getLong("globalId"))
                 .version(rs.getString("version"))
                 .versionOrder(rs.getInt("versionOrder"))
-                .references(SqlUtil.deserializeReferences(rs.getString("artifactreferences")))
+                .references(SqlUtil.deserializeReferences(rs.getString("refs")))
                 .build();
     }
 }

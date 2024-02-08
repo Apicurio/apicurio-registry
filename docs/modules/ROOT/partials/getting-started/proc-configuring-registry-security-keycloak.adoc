@@ -18,7 +18,7 @@ see xref:registry-security-keycloak[].
 endif::[]
 ====
 
-You can enable authentication for the {registry} web console and core REST API using {keycloak} based on OAuth using OpenID Connect (OIDC). The same {keycloak} realm and users are federated across the {registry} web console and core REST API using OpenID Connect so that you only require one set of credentials.
+The {registry} web console and core REST API support authentication in {keycloak} based on OAuth and OpenID Connect (OIDC). The same {keycloak} realm and users are federated across the {registry} web console and core REST API using OpenID Connect so that you only require one set of credentials.
 
 {registry} provides role-based authorization for default admin, write, and read-only user roles. {registry} provides content-based authorization at the schema or API level, where only the creator of the registry artifact can update or delete it. {registry} authentication and authorization settings are disabled by default. 
 

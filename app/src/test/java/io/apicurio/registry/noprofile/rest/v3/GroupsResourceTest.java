@@ -986,15 +986,50 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .statusCode(204);
 
         // Verify that all 3 artifacts were deleted
-        TestUtils.retry(() -> {
-            given()
-                    .when()
-                    .queryParam("group", group)
-                    .get("/registry/v3/search/artifacts")
-                    .then()
-                    .statusCode(200)
-                    .body("count", equalTo(0));
-        });
+        given()
+                .when()
+                .queryParam("group", group)
+                .get("/registry/v3/search/artifacts")
+                .then()
+                .statusCode(200)
+                .body("count", equalTo(0));
+    }
+
+    @Test
+    public void testDeleteGroupWithArtifacts() throws Exception {
+        String group = "testDeleteGroupWithArtifacts";
+        String artifactContent = resourceToString("openapi-empty.json");
+
+        // Create several artifacts in the group.
+        createArtifact(group, "EmptyAPI-1", ArtifactType.OPENAPI, artifactContent);
+        createArtifact(group, "EmptyAPI-2", ArtifactType.OPENAPI, artifactContent);
+        createArtifact(group, "EmptyAPI-3", ArtifactType.OPENAPI, artifactContent);
+
+        // Make sure we can search for all three artifacts in the group.
+        given()
+                .when()
+                .queryParam("group", group)
+                .get("/registry/v3/search/artifacts")
+                .then()
+                .statusCode(200)
+                .body("count", equalTo(3));
+
+        // Delete the *group* (should delete all artifacts)
+        given()
+                .when()
+                .pathParam("groupId", group)
+                .delete("/registry/v3/groups/{groupId}")
+                .then()
+                .statusCode(204);
+
+        // Verify that all 3 artifacts were deleted
+        given()
+                .when()
+                .queryParam("group", group)
+                .get("/registry/v3/search/artifacts")
+                .then()
+                .statusCode(200)
+                .body("count", equalTo(0));
     }
 
     @Test

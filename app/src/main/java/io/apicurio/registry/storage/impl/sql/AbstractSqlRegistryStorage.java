@@ -2087,6 +2087,12 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                     .bind(0, normalizeGroupId(groupId))
                     .execute();
 
+            // Delete all artifacts in the group (TODO there is currently no FK from artifacts to groups)
+            handle.createUpdate(sqlStatements.deleteArtifactsByGroupId())
+                    .bind(0, normalizeGroupId(groupId))
+                    .execute();
+
+            // Now delete the group (labels and rules etc will cascade)
             int rows = handle.createUpdate(sqlStatements.deleteGroup())
                     .bind(0, groupId)
                     .execute();
@@ -2719,6 +2725,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     /**
      * IMPORTANT: Private methods can't be @Transactional. Callers MUST have started a transaction.
      */
+    // TODO call this in a cleanup cron job instead?
     private void deleteAllOrphanedContent() {
         log.debug("Deleting all orphaned content");
         handles.withHandleNoException(handle -> {

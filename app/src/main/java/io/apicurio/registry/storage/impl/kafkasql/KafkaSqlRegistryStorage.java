@@ -597,8 +597,24 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
 
 
     @Override
-    public void updateGroupMetaData(GroupMetaDataDto group) {
-        UUID reqId = ConcurrentUtil.get(submitter.submitGroup(ActionType.UPDATE, group));
+    public void updateGroupMetaData(String groupId, EditableGroupMetaDataDto edto) {
+        String modifiedBy = securityIdentity.getPrincipal().getName();
+        Date modifiedOn = new Date();
+        
+        updateGroupMetaData(groupId, edto.getDescription(), edto.getLabels(), modifiedBy, modifiedOn);
+    }
+    
+    @Override
+    public void updateGroupMetaData(String groupId, String description, Map<String, String> labels, 
+            String modifiedBy, Date modifiedOn) {
+        // Note: the next line will throw GroupNotFoundException if the group does not exist, so there is no need for an extra check.
+        GroupMetaDataDto dto = delegate.getGroupMetaData(groupId);
+        dto.setModifiedBy(modifiedBy);
+        dto.setModifiedOn(modifiedOn.getTime());
+        dto.setDescription(description);
+        dto.setLabels(labels);
+        
+        UUID reqId = ConcurrentUtil.get(submitter.submitGroup(ActionType.UPDATE, dto));
         coordinator.waitForResponse(reqId);
     }
 

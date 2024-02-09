@@ -560,14 +560,6 @@ public interface RegistryStorage extends DynamicConfigStorage {
     void createGroup(GroupMetaDataDto group) throws GroupAlreadyExistsException, RegistryStorageException;
 
     /**
-     * Updates the metadata of an existent group.
-     *
-     * @param group
-     * @throws RegistryStorageException
-     */
-    void updateGroupMetaData(GroupMetaDataDto group) throws GroupNotFoundException, RegistryStorageException;
-
-    /**
      * Deletes a group identified by the given groupId and DELETES ALL resources related to this group
      *
      * @param groupId (optional)
@@ -575,6 +567,14 @@ public interface RegistryStorage extends DynamicConfigStorage {
      * @throws RegistryStorageException
      */
     void deleteGroup(String groupId) throws GroupNotFoundException, RegistryStorageException;
+
+    /**
+     * Updates the metadata for a group.
+     * @param groupId
+     * @param dto
+     */
+    void updateGroupMetaData(String groupId, EditableGroupMetaDataDto dto);
+    void updateGroupMetaData(String groupId, String description, Map<String, String> labels, String modifiedBy, Date modifiedOn);
 
     /**
      * Get all groupIds
@@ -950,4 +950,5 @@ public interface RegistryStorage extends DynamicConfigStorage {
          */
         SKIP_DISABLED_LATEST
     }
+
 }

@@ -3,7 +3,7 @@ package io.apicurio.tests.smokeTests.apicurio;
 import io.apicurio.tests.ApicurioRegistryBaseIT;
 import io.apicurio.tests.utils.Constants;
 import io.apicurio.registry.rest.client.models.ArtifactMetaData;
-import io.apicurio.registry.rest.client.models.EditableMetaData;
+import io.apicurio.registry.rest.client.models.EditableArtifactMetaData;
 import io.apicurio.registry.rest.client.models.VersionMetaData;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.tests.TestUtils;
@@ -48,7 +48,7 @@ class MetadataIT extends ApicurioRegistryBaseIT {
         assertThat(artifactMetaData.getVersion(), is("1"));
         assertThat(artifactMetaData.getType(), is("AVRO"));
 
-        EditableMetaData emd = new EditableMetaData();
+        EditableArtifactMetaData emd = new EditableArtifactMetaData();
 
         emd.setName("Artifact Updated Name");
         emd.setDescription("The description of the artifact.");
@@ -92,7 +92,7 @@ class MetadataIT extends ApicurioRegistryBaseIT {
         assertThat(versionMetaData.getVersion(), is("2"));
         assertThat(versionMetaData.getType(), is("AVRO"));
 
-        EditableMetaData emd = new EditableMetaData();
+        EditableArtifactMetaData emd = new EditableArtifactMetaData();
 
         emd.setName("Artifact Updated Name");
         emd.setDescription("The description of the artifact.");

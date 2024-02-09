@@ -9,7 +9,7 @@ import org.junit.jupiter.api.Test;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.rest.client.models.ArtifactContent;
 import io.apicurio.registry.rest.client.models.ArtifactSearchResults;
-import io.apicurio.registry.rest.client.models.EditableMetaData;
+import io.apicurio.registry.rest.client.models.EditableArtifactMetaData;
 import io.apicurio.registry.rest.client.models.Labels;
 import io.apicurio.registry.rest.client.models.SortBy;
 import io.apicurio.registry.rest.client.models.SortOrder;
@@ -59,7 +59,7 @@ public class ArtifactSearchTest extends AbstractResourceTestBase {
         Assertions.assertEquals(1, results.getCount());
 
         // Update the meta-data for the artifact
-        EditableMetaData metaData = new EditableMetaData();
+        EditableArtifactMetaData metaData = new EditableArtifactMetaData();
         metaData.setName(title);
         metaData.setDescription(description);
         Labels labels = new Labels();

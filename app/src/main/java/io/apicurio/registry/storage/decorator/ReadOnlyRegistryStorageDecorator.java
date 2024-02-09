@@ -21,6 +21,7 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Supplier;
 
 @ApplicationScoped
@@ -241,11 +242,20 @@ public class ReadOnlyRegistryStorageDecorator extends RegistryStorageDecoratorRe
         delegate.createGroup(group);
     }
 
-
+    
     @Override
-    public void updateGroupMetaData(GroupMetaDataDto group) throws GroupNotFoundException, RegistryStorageException {
+    public void updateGroupMetaData(String groupId, EditableGroupMetaDataDto dto) {
         checkReadOnly();
-        delegate.updateGroupMetaData(group);
+        delegate.updateGroupMetaData(groupId, dto);
+    }
+    
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#updateGroupMetaData(java.lang.String, java.lang.String, java.util.Map, java.lang.String, java.util.Date)
+     */
+    @Override
+    public void updateGroupMetaData(String groupId, String description, Map<String, String> labels, String modifiedBy, Date modifiedOn) {
+        checkReadOnly();
+        delegate.updateGroupMetaData(groupId, description, labels, modifiedBy, modifiedOn);
     }
 
 

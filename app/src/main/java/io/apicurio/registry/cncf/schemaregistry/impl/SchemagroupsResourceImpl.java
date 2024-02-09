@@ -96,14 +96,12 @@ public class SchemagroupsResourceImpl implements SchemagroupsResource {
 
             storage.createGroup(group.build());
         } catch (GroupAlreadyExistsException e) {
-            GroupMetaDataDto existing = storage.getGroupMetaData(groupId);
+            EditableGroupMetaDataDto dto = EditableGroupMetaDataDto.builder()
+                    .description(data.getDescription())
+                    .labels(data.getGroupProperties())
+                    .build();
 
-            group.createdBy(existing.getCreatedBy())
-                .createdOn(existing.getCreatedOn())
-                .modifiedBy(user)
-                .modifiedOn(new Date().getTime());
-
-            storage.updateGroupMetaData(group.build());
+            storage.updateGroupMetaData(groupId, dto);
         }
     }
 

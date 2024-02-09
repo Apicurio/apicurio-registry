@@ -153,7 +153,8 @@ public class ReadOnlyRegistryStorageTest {
                 entry("updateArtifactWithMetadata9", new State(true, s -> s.updateArtifactWithMetadata(null, null, null, null, null, null, null, null, null))),
                 entry("updateContentCanonicalHash3", new State(true, s -> s.updateContentCanonicalHash(null, 0, null))),
                 entry("updateGlobalRule2", new State(true, s -> s.updateGlobalRule(null, null))),
-                entry("updateGroupMetaData1", new State(true, s -> s.updateGroupMetaData(null))),
+                entry("updateGroupMetaData2", new State(true, s -> s.updateGroupMetaData(null, null))),
+                entry("updateGroupMetaData5", new State(true, s -> s.updateGroupMetaData(null, null, null, null, null))),
                 entry("updateRoleMapping2", new State(true, s -> s.updateRoleMapping(null, null)))
         );
 

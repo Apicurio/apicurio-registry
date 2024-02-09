@@ -34,7 +34,6 @@ import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.interceptor.Interceptors;
-import jakarta.validation.constraints.NotNull;
 import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.HttpMethod;
 import jakarta.ws.rs.NotAllowedException;
@@ -216,7 +215,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Override
     @Audited(extractParameters = {"0", KEY_GROUP_ID, "1", KEY_ARTIFACT_ID, "2", KEY_EDITABLE_METADATA})
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
-    public void updateArtifactMetaData(String groupId, String artifactId, EditableMetaData data) {
+    public void updateArtifactMetaData(String groupId, String artifactId, EditableArtifactMetaData data) {
         requireParameter("groupId", groupId);
         requireParameter("artifactId", artifactId);
 
@@ -266,6 +265,19 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Authorized(style = AuthorizedStyle.GroupOnly, level = AuthorizedLevel.Write)
     public void deleteGroupById(String groupId) {
         storage.deleteGroup(groupId);
+    }
+    
+    /**
+     * @see io.apicurio.registry.rest.v3.GroupsResource#updateGroupById(java.lang.String, io.apicurio.registry.rest.v3.beans.EditableGroupMetaData)
+     */
+    @Override
+    public void updateGroupById(String groupId, EditableGroupMetaData data) {
+        requireParameter("groupId", groupId);
+
+        EditableGroupMetaDataDto dto = new EditableGroupMetaDataDto();
+        dto.setDescription(data.getDescription());
+        dto.setLabels(data.getLabels());
+        storage.updateGroupMetaData(new GroupId(groupId).getRawGroupIdWithNull(), dto);
     }
 
     @Override
@@ -551,12 +563,12 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     }
 
     /**
-     * @see io.apicurio.registry.rest.v3.GroupsResource#updateArtifactVersionMetaData(java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.rest.v3.beans.EditableMetaData)
+     * @see io.apicurio.registry.rest.v3.GroupsResource#updateArtifactVersionMetaData(java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.rest.v3.beans.EditableArtifactMetaData)
      */
     @Override
     @Audited(extractParameters = {"0", KEY_GROUP_ID, "1", KEY_ARTIFACT_ID, "2", KEY_VERSION, "3", KEY_EDITABLE_METADATA})
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
-    public void updateArtifactVersionMetaData(String groupId, String artifactId, String versionExpression, EditableMetaData data) {
+    public void updateArtifactVersionMetaData(String groupId, String artifactId, String versionExpression, EditableArtifactMetaData data) {
         requireParameter("groupId", groupId);
         requireParameter("artifactId", artifactId);
         requireParameter("versionExpression", versionExpression);
@@ -1022,10 +1034,13 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     }
 
 
+    /**
+     * @see io.apicurio.registry.rest.v3.GroupsResource#createOrUpdateArtifactBranch(java.lang.String, java.lang.String, java.lang.String, java.lang.String)
+     */
     @Override
     @Audited(extractParameters = {"0", KEY_GROUP_ID, "1", KEY_ARTIFACT_ID, "2", "branch_id", "3", KEY_VERSION}) // TODO
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
-    public ArtifactBranch createOrUpdateArtifactBranch(String groupId, String artifactId, String rawBranchId, @NotNull String version) {
+    public ArtifactBranch createOrUpdateArtifactBranch(String groupId, String artifactId, String rawBranchId, String version) {
         requireParameter("groupId", groupId);
         requireParameter("artifactId", artifactId);
         requireParameter("branchId", rawBranchId);
@@ -1053,7 +1068,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Override
     @Audited(extractParameters = {"0", KEY_GROUP_ID, "1", KEY_ARTIFACT_ID, "2", "branch_id", "3", "branch"}) // TODO
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
-    public ArtifactBranch createOrReplaceArtifactBranch(String groupId, String artifactId, String rawBranchId, @NotNull ArtifactBranch branch) {
+    public ArtifactBranch createOrReplaceArtifactBranch(String groupId, String artifactId, String rawBranchId, ArtifactBranch branch) {
         requireParameter("groupId", groupId);
         requireParameter("artifactId", artifactId);
         requireParameter("branchId", rawBranchId);

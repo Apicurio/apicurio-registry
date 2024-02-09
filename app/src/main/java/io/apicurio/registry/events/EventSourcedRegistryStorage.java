@@ -251,14 +251,14 @@ public class EventSourcedRegistryStorage extends RegistryStorageDecoratorBase im
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#updateGroupMetaData(io.apicurio.registry.storage.dto.GroupMetaDataDto)
+     * @see io.apicurio.registry.storage.decorator.RegistryStorageDecoratorBase#updateGroupMetaData(java.lang.String, io.apicurio.registry.storage.dto.EditableGroupMetaDataDto)
      */
     @Override
-    public void updateGroupMetaData(GroupMetaDataDto group) throws GroupNotFoundException, RegistryStorageException {
-        delegate.updateGroupMetaData(group);
+    public void updateGroupMetaData(String groupId, EditableGroupMetaDataDto dto) throws GroupNotFoundException, RegistryStorageException {
+        delegate.updateGroupMetaData(groupId, dto);
         ArtifactId data = new ArtifactId();
-        data.setGroupId(group.getGroupId());
-        fireEvent(RegistryEventType.GROUP_UPDATED, group.getGroupId(), data, null);
+        data.setGroupId(groupId);
+        fireEvent(RegistryEventType.GROUP_UPDATED, groupId, data, null);
     }
 
     /**

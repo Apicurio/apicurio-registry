@@ -56,7 +56,7 @@ import io.apicurio.registry.rest.v3.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v3.beans.ArtifactOwner;
 import io.apicurio.registry.rest.v3.beans.ArtifactReference;
 import io.apicurio.registry.rest.v3.beans.Comment;
-import io.apicurio.registry.rest.v3.beans.EditableMetaData;
+import io.apicurio.registry.rest.v3.beans.EditableArtifactMetaData;
 import io.apicurio.registry.rest.v3.beans.IfExists;
 import io.apicurio.registry.rest.v3.beans.NewComment;
 import io.apicurio.registry.rest.v3.beans.Rule;
@@ -1871,7 +1871,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .body("message", equalTo("No artifact with ID 'testGetArtifactMetaData/MissingAPI' in group 'GroupsResourceTest' was found."));
 
         // Update the artifact meta-data
-        EditableMetaData amd = EditableMetaData.builder()
+        EditableArtifactMetaData amd = EditableArtifactMetaData.builder()
                 .name("Empty API Name")
                 .description("Empty API description.")
                 .labels(Map.of("additionalProp1", "Empty API additional property"))
@@ -1962,7 +1962,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         labels.put("test-key", null);
 
         // Update the artifact meta-data
-        EditableMetaData metaData = new EditableMetaData();
+        EditableArtifactMetaData metaData = new EditableArtifactMetaData();
         metaData.setName(title);
         metaData.setDescription("Some description of an API");
         metaData.setLabels(labels);

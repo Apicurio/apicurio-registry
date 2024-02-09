@@ -18,6 +18,7 @@ import io.apicurio.registry.utils.impexp.*;
 
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 
 public abstract class AbstractReadOnlyRegistryStorage implements RegistryStorage {
 
@@ -187,7 +188,13 @@ public abstract class AbstractReadOnlyRegistryStorage implements RegistryStorage
 
 
     @Override
-    public void updateGroupMetaData(GroupMetaDataDto group) throws RegistryStorageException {
+    public void updateGroupMetaData(String groupId, EditableGroupMetaDataDto dto) {
+        readOnlyViolation();
+    }
+    
+    @Override
+    public void updateGroupMetaData(String groupId, String description, Map<String, String> labels,
+            String modifiedBy, Date modifiedOn) {
         readOnlyViolation();
     }
 

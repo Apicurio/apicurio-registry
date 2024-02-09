@@ -16,6 +16,7 @@ import io.apicurio.registry.utils.impexp.*;
 
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Forwards all method calls to the delegate, extends the read-only base.
@@ -188,9 +189,15 @@ public class RegistryStorageDecoratorBase extends RegistryStorageDecoratorReadOn
 
 
     @Override
-    public void updateGroupMetaData(GroupMetaDataDto group)
-            throws GroupNotFoundException, RegistryStorageException {
-        delegate.updateGroupMetaData(group);
+    public void updateGroupMetaData(String groupId, EditableGroupMetaDataDto dto) throws GroupNotFoundException, RegistryStorageException {
+        delegate.updateGroupMetaData(groupId, dto);
+    }
+    
+    
+    @Override
+    public void updateGroupMetaData(String groupId, String description, Map<String, String> labels,
+            String modifiedBy, Date modifiedOn) {
+        delegate.updateGroupMetaData(groupId, description, labels, modifiedBy, modifiedOn);
     }
 
 

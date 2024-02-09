@@ -321,6 +321,14 @@ public abstract class CommonSqlStatements implements SqlStatements {
     public String updateArtifactVersionMetaData() {
         return "UPDATE versions SET name = ?, description = ?, labels = ? WHERE groupId = ? AND artifactId = ? AND version = ?";
     }
+    
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#deleteGroupLabelsByGroupId()
+     */
+    @Override
+    public String deleteGroupLabelsByGroupId() {
+        return "DELETE FROM group_labels WHERE groupId = ?";
+    }
 
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#deleteVersionLabelsByGlobalId()
@@ -562,7 +570,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String updateGroup() {
-        return "UPDATE groups SET description = ? , artifactsType = ? , modifiedBy = ? , modifiedOn = ? , labels = ? WHERE groupId = ?";
+        return "UPDATE groups SET description = ? , modifiedBy = ? , modifiedOn = ? , labels = ? WHERE groupId = ?";
     }
 
     /**

@@ -690,7 +690,7 @@
                     "content": {
                         "application/json": {
                             "schema": {
-                                "$ref": "#/components/schemas/EditableMetaData"
+                                "$ref": "#/components/schemas/EditableArtifactMetaData"
                             }
                         }
                     },
@@ -2042,65 +2042,6 @@
                 }
             ]
         },
-        "/groups/{groupId}": {
-            "summary": "Collection to manage a single group in the registry.",
-            "get": {
-                "tags": [
-                    "Groups"
-                ],
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/GroupMetaData"
-                                }
-                            }
-                        },
-                        "description": "The group's metadata."
-                    },
-                    "404": {
-                        "$ref": "#/components/responses/NotFound"
-                    },
-                    "500": {
-                        "$ref": "#/components/responses/ServerError"
-                    }
-                },
-                "operationId": "getGroupById",
-                "summary": "Get a group by the specified ID.",
-                "description": "Returns a group using the specified id.\n\nThis operation can fail for the following reasons:\n\n* No group exists with the specified ID (HTTP error `404`)\n* A server error occurred (HTTP error `500`)"
-            },
-            "delete": {
-                "tags": [
-                    "Groups"
-                ],
-                "responses": {
-                    "204": {
-                        "description": "Empty content indicates a successful deletion."
-                    },
-                    "404": {
-                        "$ref": "#/components/responses/NotFound"
-                    },
-                    "500": {
-                        "$ref": "#/components/responses/ServerError"
-                    }
-                },
-                "operationId": "deleteGroupById",
-                "summary": "Delete a group by the specified ID.",
-                "description": "Deletes a group by identifier.  This operation also deletes all artifacts within\nthe group, so should be used very carefully.\n\nThis operation can fail for the following reasons:\n\n* A server error occurred (HTTP error `500`)\n* The group does not exist (HTTP error `404`)\n"
-            },
-            "parameters": [
-                {
-                    "name": "groupId",
-                    "description": "The artifact group ID.  Must be a string provided by the client, representing the name of the grouping of artifacts. Must follow the \".{1,512}\" pattern.",
-                    "schema": {
-                        "$ref": "#/components/schemas/GroupId"
-                    },
-                    "in": "path",
-                    "required": true
-                }
-            ]
-        },
         "/groups": {
             "summary": "Collection of the groups in the registry.",
             "get": {
@@ -2231,7 +2172,7 @@
                     "content": {
                         "application/json": {
                             "schema": {
-                                "$ref": "#/components/schemas/EditableMetaData"
+                                "$ref": "#/components/schemas/EditableArtifactMetaData"
                             }
                         }
                     },
@@ -3396,35 +3337,99 @@
                 }
             ]
         },
+        "/groups/{groupId}": {
+            "summary": "Collection to manage a single group in the registry.",
+            "get": {
+                "tags": [
+                    "Groups"
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/GroupMetaData"
+                                }
+                            }
+                        },
+                        "description": "The group's metadata."
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "getGroupById",
+                "summary": "Get a group by the specified ID.",
+                "description": "Returns a group using the specified id.\n\nThis operation can fail for the following reasons:\n\n* No group exists with the specified ID (HTTP error `404`)\n* A server error occurred (HTTP error `500`)"
+            },
+            "put": {
+                "requestBody": {
+                    "description": "The new group metadata.",
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/EditableGroupMetaData"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "tags": [
+                    "Groups"
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Empty response when the metadata is successfully updated."
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "updateGroupById",
+                "summary": "Update group metadata",
+                "description": "Updates the metadata of a group using the specified id.\n\nThis operation can fail for the following reasons:\n\n* No group exists with the specified ID (HTTP error `404`)\n* A server error occurred (HTTP error `500`)"
+            },
+            "delete": {
+                "tags": [
+                    "Groups"
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Empty content indicates a successful deletion."
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "deleteGroupById",
+                "summary": "Delete a group by the specified ID.",
+                "description": "Deletes a group by identifier.  This operation also deletes all artifacts within\nthe group, so should be used very carefully.\n\nThis operation can fail for the following reasons:\n\n* A server error occurred (HTTP error `500`)\n* The group does not exist (HTTP error `404`)\n"
+            },
+            "parameters": [
+                {
+                    "name": "groupId",
+                    "description": "The artifact group ID.  Must be a string provided by the client, representing the name of the grouping of artifacts. Must follow the \".{1,512}\" pattern.",
+                    "schema": {
+                        "$ref": "#/components/schemas/GroupId"
+                    },
+                    "in": "path",
+                    "required": true
+                }
+            ]
+        },
         "x-codegen-contextRoot": "/apis/registry/v3"
     },
     "components": {
         "schemas": {
-            "EditableMetaData": {
-                "title": "Root Type for EditableArtifactMetaData",
-                "description": "",
-                "type": "object",
-                "properties": {
-                    "name": {
-                        "type": "string"
-                    },
-                    "description": {
-                        "type": "string"
-                    },
-                    "labels": {
-                        "$ref": "#/components/schemas/Labels",
-                        "description": ""
-                    }
-                },
-                "example": {
-                    "name": "Artifact Name",
-                    "description": "The description of the artifact.",
-                    "labels": {
-                        "custom-1": "foo",
-                        "custom-2": "bar"
-                    }
-                }
-            },
             "Rule": {
                 "title": "Root Type for Rule",
                 "description": "",
@@ -4847,6 +4852,52 @@
                 },
                 "x-codegen-inline": true,
                 "x-codegen-type": "StringMap"
+            },
+            "EditableArtifactMetaData": {
+                "title": "Root Type for EditableArtifactMetaData",
+                "description": "",
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string"
+                    },
+                    "description": {
+                        "type": "string"
+                    },
+                    "labels": {
+                        "$ref": "#/components/schemas/Labels",
+                        "description": ""
+                    }
+                },
+                "example": {
+                    "name": "Artifact Name",
+                    "description": "The description of the artifact.",
+                    "labels": {
+                        "custom-1": "foo",
+                        "custom-2": "bar"
+                    }
+                }
+            },
+            "EditableGroupMetaData": {
+                "title": "Root Type for EditableArtifactMetaData",
+                "description": "",
+                "type": "object",
+                "properties": {
+                    "description": {
+                        "type": "string"
+                    },
+                    "labels": {
+                        "$ref": "#/components/schemas/Labels",
+                        "description": ""
+                    }
+                },
+                "example": {
+                    "description": "The description of the group.",
+                    "labels": {
+                        "custom-1": "foo",
+                        "custom-2": "bar"
+                    }
+                }
             }
         },
         "responses": {

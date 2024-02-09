@@ -53,7 +53,7 @@ public class GitOpsRegistryStorage extends AbstractReadOnlyRegistryStorage {
     GitManager gitManager;
 
     @ConfigProperty(name = "registry.storage.kind")
-    @Info
+    @Info(category = "storage", description = "Application storage variant, for example, sql, kafkasql, or gitops", availableSince = "3.0.0.Final")
     String registryStorageType;
 
     // Fair lock, so we ensure the writer does not wait indefinitely under high throughput.

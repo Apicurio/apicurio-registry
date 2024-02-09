@@ -29,7 +29,7 @@ public class RegistryStorageProducer {
     Instance<RegistryStorageDecorator> decorators;
 
     @ConfigProperty(name = "registry.storage.kind")
-    @Info
+    @Info(category = "storage", description = "Application storage variant, for example, sql, kafkasql, or gitops", availableSince = "3.0.0.Final")
     String registryStorageType;
 
     private RegistryStorage cachedCurrent;

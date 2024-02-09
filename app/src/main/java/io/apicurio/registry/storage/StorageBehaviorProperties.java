@@ -10,7 +10,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 public class StorageBehaviorProperties {
 
     @ConfigProperty(name = "artifacts.skip.disabled.latest", defaultValue = "true")
-    @Info(category = "store", description = "Skip artifact versions with DISABLED state when retrieving latest artifact version", availableSince = "2.4.2-SNAPSHOT")
+    @Info(category = "storage", description = "Skip artifact versions with DISABLED state when retrieving latest artifact version", availableSince = "2.4.2-SNAPSHOT")
     boolean skipLatestDisabledArtifacts;
 
     public ArtifactRetrievalBehavior getDefaultArtifactRetrievalBehavior() {

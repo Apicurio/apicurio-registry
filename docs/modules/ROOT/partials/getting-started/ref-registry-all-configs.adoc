@@ -3,22 +3,6 @@
 
 The following {registry} configuration options are available for each component category:
 
-== 
-. configuration options
-[.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]
-|===
-|Name
-|Type
-|Default
-|Available from
-|Description
-|`registry.storage.kind`
-|`string`
-|
-|
-|
-|===
-
 == api
 .api configuration options
 [.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]
@@ -571,6 +555,11 @@ The following {registry} configuration options are available for each component 
 |Default
 |Available from
 |Description
+|`artifacts.skip.disabled.latest`
+|`boolean`
+|`true`
+|`2.4.2-SNAPSHOT`
+|Skip artifact versions with DISABLED state when retrieving latest artifact version
 |`registry.datasource.blue.db-kind`
 |`string`
 |`h2`
@@ -776,27 +765,16 @@ The following {registry} configuration options are available for each component 
 |`h2`
 |`3.0.0.Final`
 |Application datasource database type
+|`registry.storage.kind`
+|`string`
+|
+|`3.0.0.Final`
+|Application storage variant, for example, sql, kafkasql, or gitops
 |`registry.storage.read-only`
 |`boolean [dynamic]`
 |`false`
 |`2.5.0.Final`
 |Enable Registry storage read-only mode
-|===
-
-== store
-.store configuration options
-[.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]
-|===
-|Name
-|Type
-|Default
-|Available from
-|Description
-|`artifacts.skip.disabled.latest`
-|`boolean`
-|`true`
-|`2.4.2-SNAPSHOT`
-|Skip artifact versions with DISABLED state when retrieving latest artifact version
 |===
 
 == ui

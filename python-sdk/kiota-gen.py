@@ -10,7 +10,16 @@ from pathlib import Path
 import xml.etree.ElementTree as ET
 
 KIOTA_OS_NAMES = {"Windows": "win", "Darwin": "osx", "Linux": "linux"}
-KIOTA_ARCH_NAMES = {"32bit": "x86", "64bit": "x64"}
+KIOTA_ARCH_NAMES = {
+    "x86_64": "x64",
+    "amd64": "x64",
+    "i386": "x86",
+    "x86": "x86",
+    "x86_64": "x64",
+    "amd64": "x64",
+    "aarch64": "arm64",
+    "arm64": "arm64",
+}
 
 
 def generate_kiota_client_files(setup_kwargs):
@@ -19,13 +28,11 @@ def generate_kiota_client_files(setup_kwargs):
         print("Unsupported operating system.")
         exit(1)
 
-    kiota_arch_name = KIOTA_ARCH_NAMES.get(platform.architecture()[0], None)
+    machine = platform.machine().lower()
+    kiota_arch_name = KIOTA_ARCH_NAMES.get(machine, None)
     if kiota_arch_name is None:
         print("Unsupported architecture.")
         exit(1)
-
-    if platform.processor()[0] == "arm" and kiota_arch_name == "x64":
-        kiota_arch_name = "arm64"
 
     kiota_release_name = f"{kiota_os_name}-{kiota_arch_name}.zip"
     # Detecting the Kiota version from a .csproj file so that it can be updated by automatic tool (e.g. Dependabot)

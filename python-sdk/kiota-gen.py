@@ -15,7 +15,7 @@ KIOTA_ARCH_NAMES = {32: "x86", 64: "x64"}
 
 # https://stackoverflow.com/a/7171315/7898052
 def os_bits(machine=platform.machine().lower()):
-    machine2bits = {"amd64": 64, "x86_64": 64, "i386": 32, "x86": 32}
+    machine2bits = {"amd64": 64, "arm64": 64, "x86_64": 64, "i386": 32, "x86": 32}
     return machine2bits.get(machine, None)
 
 

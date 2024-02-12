@@ -18,8 +18,9 @@ KIOTA_ARCH_NAMES = {
     "x86_64": "x64",
     "amd64": "x64",
     "aarch64": "arm64",
-    "arm64": "arm64"
+    "arm64": "arm64",
 }
+
 
 def generate_kiota_client_files(setup_kwargs):
     kiota_os_name = KIOTA_OS_NAMES.get(platform.system(), None)

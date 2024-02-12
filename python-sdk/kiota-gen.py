@@ -10,14 +10,16 @@ from pathlib import Path
 import xml.etree.ElementTree as ET
 
 KIOTA_OS_NAMES = {"Windows": "win", "Darwin": "osx", "Linux": "linux"}
-KIOTA_ARCH_NAMES = {32: "x86", 64: "x64"}
-
-
-# https://stackoverflow.com/a/7171315/7898052
-def os_bits(machine):
-    machine2bits = {"amd64": 64, "arm64": 64, "x86_64": 64, "i386": 32, "x86": 32}
-    return machine2bits.get(machine, None)
-
+KIOTA_ARCH_NAMES = {
+    "x86_64": "x64",
+    "amd64": "x64",
+    "i386": "x86",
+    "x86": "x86",
+    "x86_64": "x64",
+    "amd64": "x64",
+    "aarch64": "arm64",
+    "arm64": "arm64"
+}
 
 def generate_kiota_client_files(setup_kwargs):
     kiota_os_name = KIOTA_OS_NAMES.get(platform.system(), None)
@@ -26,13 +28,10 @@ def generate_kiota_client_files(setup_kwargs):
         exit(1)
 
     machine = platform.machine().lower()
-    kiota_arch_name = KIOTA_ARCH_NAMES.get(os_bits(machine), None)
+    kiota_arch_name = KIOTA_ARCH_NAMES.get(machine, None)
     if kiota_arch_name is None:
         print("Unsupported architecture.")
         exit(1)
-
-    if machine.startswith("arm") and kiota_arch_name == "x64":
-        kiota_arch_name = "arm64"
 
     kiota_release_name = f"{kiota_os_name}-{kiota_arch_name}.zip"
     # Detecting the Kiota version from a .csproj file so that it can be updated by automatic tool (e.g. Dependabot)

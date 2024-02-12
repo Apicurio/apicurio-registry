@@ -10,7 +10,13 @@ from pathlib import Path
 import xml.etree.ElementTree as ET
 
 KIOTA_OS_NAMES = {"Windows": "win", "Darwin": "osx", "Linux": "linux"}
-KIOTA_ARCH_NAMES = {"32bit": "x86", "64bit": "x64"}
+KIOTA_ARCH_NAMES = {32: "x86", 64: "x64"}
+
+
+# https://stackoverflow.com/a/7171315/7898052
+def os_bits(machine=platform.machine()):
+    machine2bits = {"AMD64": 64, "x86_64": 64, "i386": 32, "x86": 32}
+    return machine2bits.get(machine, None)
 
 
 def generate_kiota_client_files(setup_kwargs):
@@ -19,7 +25,7 @@ def generate_kiota_client_files(setup_kwargs):
         print("Unsupported operating system.")
         exit(1)
 
-    kiota_arch_name = KIOTA_ARCH_NAMES.get(platform.architecture()[0], None)
+    kiota_arch_name = KIOTA_ARCH_NAMES.get(os_bits(), None)
     if kiota_arch_name is None:
         print("Unsupported architecture.")
         exit(1)

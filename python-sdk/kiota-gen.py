@@ -14,7 +14,7 @@ KIOTA_ARCH_NAMES = {32: "x86", 64: "x64"}
 
 
 # https://stackoverflow.com/a/7171315/7898052
-def os_bits(machine=platform.machine().lower()):
+def os_bits(machine):
     machine2bits = {"amd64": 64, "arm64": 64, "x86_64": 64, "i386": 32, "x86": 32}
     return machine2bits.get(machine, None)
 
@@ -25,12 +25,13 @@ def generate_kiota_client_files(setup_kwargs):
         print("Unsupported operating system.")
         exit(1)
 
-    kiota_arch_name = KIOTA_ARCH_NAMES.get(os_bits(), None)
+    machine = platform.machine().lower()
+    kiota_arch_name = KIOTA_ARCH_NAMES.get(os_bits(machine), None)
     if kiota_arch_name is None:
         print("Unsupported architecture.")
         exit(1)
 
-    if platform.processor()[0] == "arm" and kiota_arch_name == "x64":
+    if machine.startswith("arm") and kiota_arch_name == "x64":
         kiota_arch_name = "arm64"
 
     kiota_release_name = f"{kiota_os_name}-{kiota_arch_name}.zip"

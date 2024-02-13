@@ -8,7 +8,7 @@ DDLS="app/src/main/resources/io/apicurio/registry/storage/impl/sql/postgresql.dd
 for ddl in $DDLS 
 do
     echo "Processing DDL $ddl"
-    DB_VERSION_INSERT=$(grep "INSERT INTO apicurio (prop_name, prop_value) VALUES ('db_version'" $ddl)
+    DB_VERSION_INSERT=$(grep "INSERT INTO apicurio (propName, propValue) VALUES ('db_version'" $ddl)
     DB_VERSION_IN_DDL=$(echo $DB_VERSION_INSERT | awk '{ print $8 }' - | awk -F ")" '{ print $1}' -)
     echo "DB version in DDL is $DB_VERSION_IN_DDL"
 

@@ -49,7 +49,7 @@ public class H2SqlStatements extends CommonSqlStatements {
      */
     @Override
     public String upsertContent() {
-        return "INSERT INTO content (contentId, canonicalHash, contentHash, content, artifactreferences) VALUES (?, ?, ?, ?, ?)";
+        return "INSERT INTO content (contentId, canonicalHash, contentHash, content, refs) VALUES (?, ?, ?, ?, ?)";
     }
 
     /**
@@ -61,34 +61,18 @@ public class H2SqlStatements extends CommonSqlStatements {
     }
 
     /**
-     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectCurrentSequenceValue()
-     */
-    @Override
-    public String selectCurrentSequenceValue() {
-        return "SELECT seq_value FROM sequences WHERE name = ? ";
-    }
-
-    /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#resetSequenceValue()
      */
     @Override
     public String resetSequenceValue() {
-        return "MERGE INTO sequences (name, seq_value) KEY (name) VALUES(?, ?)";
+        return "MERGE INTO sequences (seqName, seqValue) KEY (seqName) VALUES(?, ?)";
     }
 
     /**
-     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#insertSequenceValue()
+     * @see SqlStatements#upsertContentReference()
      */
     @Override
-    public String insertSequenceValue() {
-        return "INSERT INTO sequences (name, seq_value) VALUES (?, ?)";
-    }
-
-    /**
-     * @see SqlStatements#upsertReference()
-     */
-    @Override
-    public String upsertReference() {
-        return "INSERT INTO artifactreferences (contentId, groupId, artifactId, version, name) VALUES (?, ?, ?, ?, ?)";
+    public String upsertContentReference() {
+        return "INSERT INTO content_references (contentId, groupId, artifactId, version, name) VALUES (?, ?, ?, ?, ?)";
     }
 }

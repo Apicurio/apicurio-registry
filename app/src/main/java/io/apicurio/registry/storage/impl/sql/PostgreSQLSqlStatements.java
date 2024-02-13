@@ -49,7 +49,7 @@ public class PostgreSQLSqlStatements extends CommonSqlStatements {
      */
     @Override
     public String upsertContent() {
-        return "INSERT INTO content (contentId, canonicalHash, contentHash, content, artifactreferences) VALUES (?, ?, ?, ?, ?) ON CONFLICT (contentHash) DO NOTHING";
+        return "INSERT INTO content (contentId, canonicalHash, contentHash, content, refs) VALUES (?, ?, ?, ?, ?) ON CONFLICT (contentHash) DO NOTHING";
     }
 
     /**
@@ -57,7 +57,7 @@ public class PostgreSQLSqlStatements extends CommonSqlStatements {
      */
     @Override
     public String getNextSequenceValue() {
-        return "INSERT INTO sequences (name, value) VALUES (?, 1) ON CONFLICT (name) DO UPDATE SET value = sequences.value + 1 RETURNING value";
+        return "INSERT INTO sequences (seqName, seqValue) VALUES (?, 1) ON CONFLICT (seqName) DO UPDATE SET seqValue = sequences.seqValue + 1 RETURNING seqValue";
     }
 
     /**
@@ -65,14 +65,14 @@ public class PostgreSQLSqlStatements extends CommonSqlStatements {
      */
     @Override
     public String resetSequenceValue() {
-        return "INSERT INTO sequences (name, value) VALUES (?, ?) ON CONFLICT (name) DO UPDATE SET value = ?";
+        return "INSERT INTO sequences (seqName, seqValue) VALUES (?, ?) ON CONFLICT (seqName) DO UPDATE SET seqValue = ?";
     }
 
     /**
-     * @see SqlStatements#upsertReference()
+     * @see SqlStatements#upsertContentReference()
      */
     @Override
-    public String upsertReference() {
-        return "INSERT INTO artifactreferences (contentId, groupId, artifactId, version, name) VALUES (?, ?, ?, ?, ?) ON CONFLICT (contentId, name) DO NOTHING";
+    public String upsertContentReference() {
+        return "INSERT INTO content_references (contentId, groupId, artifactId, version, name) VALUES (?, ?, ?, ?, ?) ON CONFLICT (contentId, name) DO NOTHING";
     }
 }

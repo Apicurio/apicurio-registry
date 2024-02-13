@@ -568,7 +568,7 @@ public interface RegistryStorage extends DynamicConfigStorage {
     void updateGroupMetaData(GroupMetaDataDto group) throws GroupNotFoundException, RegistryStorageException;
 
     /**
-     * Deletes a group intified by the given groupId and DELETES ALL resources related to this group
+     * Deletes a group identified by the given groupId and DELETES ALL resources related to this group
      *
      * @param groupId (optional)
      * @throws GroupNotFoundException

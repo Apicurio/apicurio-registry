@@ -57,7 +57,7 @@ public class ArtifactStateTest extends AbstractResourceTestBase {
         Assertions.assertEquals(ArtifactState.ENABLED, tamd.getState());
         Assertions.assertNull(tamd.getDescription());
 
-        EditableMetaData emd = new EditableMetaData();
+        EditableArtifactMetaData emd = new EditableArtifactMetaData();
         String description = "Testing artifact state";
         emd.setDescription(description);
 

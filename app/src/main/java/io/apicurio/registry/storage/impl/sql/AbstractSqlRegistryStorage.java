@@ -62,6 +62,7 @@ import io.apicurio.registry.storage.dto.CommentDto;
 import io.apicurio.registry.storage.dto.ContentWrapperDto;
 import io.apicurio.registry.storage.dto.DownloadContextDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
+import io.apicurio.registry.storage.dto.EditableGroupMetaDataDto;
 import io.apicurio.registry.storage.dto.GroupMetaDataDto;
 import io.apicurio.registry.storage.dto.GroupSearchResultsDto;
 import io.apicurio.registry.storage.dto.OrderBy;
@@ -1653,7 +1654,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             }
 
 
-            // Delete all appropriate rows in the "labels" table
+            // Delete all appropriate rows in the "version_labels" table
             handle.createUpdate(sqlStatements.deleteVersionLabelsByGlobalId())
                     .bind(0, globalId)
                     .execute();
@@ -1783,7 +1784,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     @Override
     @Transactional
     public void deleteArtifactVersionComment(String groupId, String artifactId, String version, String commentId) {
-        log.debug("Deleting an artifact rule for artifact: {} {} @ {}", groupId, artifactId, version);
+        log.debug("Deleting a version comment for artifact: {} {} @ {}", groupId, artifactId, version);
         String deletedBy = securityIdentity.getPrincipal().getName();
 
         handles.withHandle(handle -> {
@@ -2031,6 +2032,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     public void createGroup(GroupMetaDataDto group) throws GroupAlreadyExistsException, RegistryStorageException {
         try {
             handles.withHandle(handle -> {
+                // Insert a row into the groups table
                 handle.createUpdate(sqlStatements.insertGroup())
                         .bind(0, group.getGroupId())
                         .bind(1, group.getDescription())
@@ -2042,6 +2044,20 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                         .bind(6, group.getModifiedOn() == 0 ? null : new Date(group.getModifiedOn()))
                         .bind(7, SqlUtil.serializeLabels(group.getLabels()))
                         .execute();
+                
+                // Insert new labels into the "group_labels" table
+                Map<String, String> labels = group.getLabels();
+                if (labels != null && !labels.isEmpty()) {
+                    labels.forEach((k, v) -> {
+                        String sqli = sqlStatements.insertGroupLabel();
+                        handle.createUpdate(sqli)
+                                .bind(0, group.getGroupId())
+                                .bind(1, limitStr(k.toLowerCase(), 256))
+                                .bind(2, limitStr(asLowerCase(v), 512))
+                                .execute();
+                    });
+                }
+                
                 return null;
             });
         } catch (Exception ex) {
@@ -2050,26 +2066,6 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             }
             throw ex;
         }
-    }
-
-
-    @Override
-    @Transactional
-    public void updateGroupMetaData(GroupMetaDataDto group) throws GroupNotFoundException, RegistryStorageException {
-        handles.withHandleNoException(handle -> {
-            int rows = handle.createUpdate(sqlStatements.updateGroup())
-                    .bind(0, group.getDescription())
-                    .bind(1, group.getArtifactsType())
-                    .bind(2, group.getModifiedBy())
-                    .bind(3, group.getModifiedOn())
-                    .bind(4, SqlUtil.serializeLabels(group.getLabels()))
-                    .bind(5, group.getGroupId())
-                    .execute();
-            if (rows == 0) {
-                throw new GroupNotFoundException(group.getGroupId());
-            }
-            return null;
-        });
     }
 
 
@@ -2102,7 +2098,59 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             return null;
         });
     }
+    
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#updateGroupMetaData(java.lang.String, io.apicurio.registry.storage.dto.EditableGroupMetaDataDto)
+     */
+    @Override
+    @Transactional
+    public void updateGroupMetaData(String groupId, EditableGroupMetaDataDto dto) {
+        String modifiedBy = securityIdentity.getPrincipal().getName();
+        Date modifiedOn = new Date();
+        updateGroupMetaData(groupId, dto.getDescription(), dto.getLabels(), modifiedBy, modifiedOn);
+    }
+    
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#updateGroupMetaData(java.lang.String, java.lang.String, java.util.Map, java.lang.String, java.util.Date)
+     */
+    @Override
+    @Transactional
+    public void updateGroupMetaData(String groupId, String description, Map<String, String> labels, String modifiedBy, Date modifiedOn) {
+        log.debug("Updating metadata for group {}.", groupId);
 
+        handles.withHandleNoException(handle -> {
+            // Update the row in the groups table
+            int rows = handle.createUpdate(sqlStatements.updateGroup())
+                    .bind(0, description)
+                    .bind(1, modifiedBy)
+                    .bind(2, modifiedOn)
+                    .bind(3, SqlUtil.serializeLabels(labels))
+                    .bind(4, groupId)
+                    .execute();
+            if (rows == 0) {
+                throw new GroupNotFoundException(groupId);
+            }
+            
+            // Delete all appropriate rows in the "group_labels" table
+            handle.createUpdate(sqlStatements.deleteGroupLabelsByGroupId())
+                    .bind(0, groupId)
+                    .execute();
+
+            // Insert new labels into the "group_labels" table
+            if (labels != null && !labels.isEmpty()) {
+                labels.forEach((k, v) -> {
+                    String sqli = sqlStatements.insertGroupLabel();
+                    handle.createUpdate(sqli)
+                            .bind(0, groupId)
+                            .bind(1, limitStr(k.toLowerCase(), 256))
+                            .bind(2, limitStr(asLowerCase(v), 512))
+                            .execute();
+                });
+            }
+            
+            return null;
+        });
+    }
 
     @Override
     @Transactional

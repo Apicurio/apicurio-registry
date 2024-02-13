@@ -284,7 +284,7 @@ public final class V3ApiUtil {
         group.setModifiedBy(dto.getModifiedBy());
         group.setCreatedOn(new Date(dto.getCreatedOn()));
         group.setModifiedOn(new Date(dto.getModifiedOn()));
-        group.setProperties(dto.getLabels());
+        group.setLabels(dto.getLabels());
         return group;
     }
 

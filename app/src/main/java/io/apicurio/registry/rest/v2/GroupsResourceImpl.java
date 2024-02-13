@@ -211,7 +211,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Audited(extractParameters = {"0", KEY_GROUP_ID, "1", KEY_ARTIFACT_ID, "2", KEY_EDITABLE_METADATA})
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
     public void updateArtifactMetaData(String groupId, String artifactId, EditableMetaData data) {
-        v3.updateArtifactMetaData(groupId, artifactId, io.apicurio.registry.rest.v3.beans.EditableMetaData.builder()
+        v3.updateArtifactMetaData(groupId, artifactId, io.apicurio.registry.rest.v3.beans.EditableArtifactMetaData.builder()
                 .description(data.getDescription())
                 .labels(V2ApiUtil.toV3Labels(data.getLabels(), data.getProperties()))
                 .name(data.getName())
@@ -538,7 +538,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Audited(extractParameters = {"0", KEY_GROUP_ID, "1", KEY_ARTIFACT_ID, "2", KEY_VERSION, "3", KEY_EDITABLE_METADATA})
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
     public void updateArtifactVersionMetaData(String groupId, String artifactId, String version, EditableMetaData data) {
-        v3.updateArtifactVersionMetaData(groupId, artifactId, version, io.apicurio.registry.rest.v3.beans.EditableMetaData.builder()
+        v3.updateArtifactVersionMetaData(groupId, artifactId, version, io.apicurio.registry.rest.v3.beans.EditableArtifactMetaData.builder()
                 .description(data.getDescription())
                 .labels(V2ApiUtil.toV3Labels(data.getLabels(), data.getProperties()))
                 .name(data.getName())

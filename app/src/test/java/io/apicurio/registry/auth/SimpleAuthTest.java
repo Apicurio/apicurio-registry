@@ -6,7 +6,7 @@ import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.ArtifactContent;
 import io.apicurio.registry.rest.client.models.ArtifactMetaData;
 import io.apicurio.registry.rest.client.models.ArtifactOwner;
-import io.apicurio.registry.rest.client.models.EditableMetaData;
+import io.apicurio.registry.rest.client.models.EditableArtifactMetaData;
 import io.apicurio.registry.rest.client.models.IfExists;
 import io.apicurio.registry.rest.client.models.Rule;
 import io.apicurio.registry.rest.client.models.RuleType;
@@ -260,7 +260,7 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
             config.headers.add("X-Registry-ArtifactType", ArtifactType.JSON);
         });
 
-        EditableMetaData updatedMetaData = new EditableMetaData();
+        EditableArtifactMetaData updatedMetaData = new EditableArtifactMetaData();
         updatedMetaData.setName("Updated Name");
         // Dev user cannot edit the same artifact because Dev user is not the owner
         var exception1 = Assertions.assertThrows(Exception.class, () -> {
@@ -295,10 +295,7 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
         //Preparation
         final String groupId = "testGetArtifactOwner";
         final String artifactId = generateArtifactId();
-
         final String version = "1";
-        final String name = "testGetArtifactOwnerName";
-        final String description = "testGetArtifactOwnerDescription";
 
         //Execution
         var artifactContent = new ArtifactContent();

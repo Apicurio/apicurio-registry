@@ -136,7 +136,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         final GroupMetaData artifactGroup = clientV3.groups().byGroupId(groupId).get();
         assertEquals(groupMetaData.getId(), artifactGroup.getId());
         assertEquals(groupMetaData.getDescription(), artifactGroup.getDescription());
-        assertEquals(groupMetaData.getLabels().getAdditionalData(), artifactGroup.getProperties().getAdditionalData());
+        assertEquals(groupMetaData.getLabels().getAdditionalData(), artifactGroup.getLabels().getAdditionalData());
 
 
         String group1Id = UUID.randomUUID().toString();
@@ -306,7 +306,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
 
             Thread.sleep(2000);
 
-            EditableMetaData emd = new EditableMetaData();
+            EditableArtifactMetaData emd = new EditableArtifactMetaData();
             emd.setName("testAsyncCRUD");
             clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).meta().put(emd);
 
@@ -728,7 +728,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
                 config.headers.add("Content-Type", "application/create.extended+json");
             });
 
-           EditableMetaData emd = new EditableMetaData();
+           EditableArtifactMetaData emd = new EditableArtifactMetaData();
            emd.setName("testProperties");
 
            final Map<String, Object> artifactLabels = new HashMap<>();
@@ -1522,8 +1522,8 @@ public class RegistryClientTest extends AbstractResourceTestBase {
                 clientV3.admin().roleMappings().byPrincipalId("TestUser2").get();
             });
             // RoleMappingNotFoundException
-            Assertions.assertEquals(404, exception.getErrorCode());
-            Assertions.assertEquals("RoleMappingNotFoundException", exception.getName());
+            Assertions.assertEquals(404, exception2.getErrorCode());
+            Assertions.assertEquals("RoleMappingNotFoundException", exception2.getName());
         });
 
         // Get the list of mappings (should be 1 of them)

@@ -10,7 +10,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
 import io.apicurio.registry.AbstractResourceTestBase;
-import io.apicurio.registry.rest.v3.beans.EditableMetaData;
+import io.apicurio.registry.rest.v3.beans.EditableArtifactMetaData;
 import io.apicurio.registry.types.ArtifactType;
 import io.quarkus.test.junit.QuarkusTest;
 
@@ -116,7 +116,7 @@ public class SearchResourceTest extends AbstractResourceTestBase {
             labels.put("extra-key-" + (idx % 2), "lorem ipsum");
             
             // Update the artifact meta-data
-            EditableMetaData metaData = new EditableMetaData();
+            EditableArtifactMetaData metaData = new EditableArtifactMetaData();
             metaData.setName(title);
             metaData.setDescription("Some description of an API");
             metaData.setLabels(labels);
@@ -243,7 +243,7 @@ public class SearchResourceTest extends AbstractResourceTestBase {
             labels.put("extra-key-" + (idx % 2), "lorem ipsum");
 
             // Update the artifact meta-data
-            EditableMetaData metaData = new EditableMetaData();
+            EditableArtifactMetaData metaData = new EditableArtifactMetaData();
             metaData.setName(title);
             metaData.setDescription("Some description of an API");
             metaData.setLabels(labels);

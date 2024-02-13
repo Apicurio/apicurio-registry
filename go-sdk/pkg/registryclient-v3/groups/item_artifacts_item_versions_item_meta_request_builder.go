@@ -90,7 +90,7 @@ func (m *ItemArtifactsItemVersionsItemMetaRequestBuilder) Get(ctx context.Contex
 }
 
 // Put updates the user-editable portion of the artifact version's metadata.  Only some of the metadata fields are editable by the user.  For example, `description` is editable, but `createdOn` is not.This operation can fail for the following reasons:* No artifact with this `artifactId` exists (HTTP error `404`)* No version with this `version` exists (HTTP error `404`)* A server error occurred (HTTP error `500`)
-func (m *ItemArtifactsItemVersionsItemMetaRequestBuilder) Put(ctx context.Context, body i00eb2e63d156923d00d8e86fe16b5d74daf30e363c9f185a8165cb42aa2f2c71.EditableMetaDataable, requestConfiguration *ItemArtifactsItemVersionsItemMetaRequestBuilderPutRequestConfiguration) error {
+func (m *ItemArtifactsItemVersionsItemMetaRequestBuilder) Put(ctx context.Context, body i00eb2e63d156923d00d8e86fe16b5d74daf30e363c9f185a8165cb42aa2f2c71.EditableArtifactMetaDataable, requestConfiguration *ItemArtifactsItemVersionsItemMetaRequestBuilderPutRequestConfiguration) error {
 	requestInfo, err := m.ToPutRequestInformation(ctx, body, requestConfiguration)
 	if err != nil {
 		return err
@@ -130,7 +130,7 @@ func (m *ItemArtifactsItemVersionsItemMetaRequestBuilder) ToGetRequestInformatio
 }
 
 // ToPutRequestInformation updates the user-editable portion of the artifact version's metadata.  Only some of the metadata fields are editable by the user.  For example, `description` is editable, but `createdOn` is not.This operation can fail for the following reasons:* No artifact with this `artifactId` exists (HTTP error `404`)* No version with this `version` exists (HTTP error `404`)* A server error occurred (HTTP error `500`)
-func (m *ItemArtifactsItemVersionsItemMetaRequestBuilder) ToPutRequestInformation(ctx context.Context, body i00eb2e63d156923d00d8e86fe16b5d74daf30e363c9f185a8165cb42aa2f2c71.EditableMetaDataable, requestConfiguration *ItemArtifactsItemVersionsItemMetaRequestBuilderPutRequestConfiguration) (*i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestInformation, error) {
+func (m *ItemArtifactsItemVersionsItemMetaRequestBuilder) ToPutRequestInformation(ctx context.Context, body i00eb2e63d156923d00d8e86fe16b5d74daf30e363c9f185a8165cb42aa2f2c71.EditableArtifactMetaDataable, requestConfiguration *ItemArtifactsItemVersionsItemMetaRequestBuilderPutRequestConfiguration) (*i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestInformation, error) {
 	requestInfo := i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewRequestInformationWithMethodAndUrlTemplateAndPathParameters(i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.PUT, m.BaseRequestBuilder.UrlTemplate, m.BaseRequestBuilder.PathParameters)
 	if requestConfiguration != nil {
 		requestInfo.Headers.AddAll(requestConfiguration.Headers)

@@ -1,5 +1,16 @@
 package io.apicurio.registry.storage.impl.kafkasql;
 
+import static java.util.stream.Collectors.toList;
+
+import java.util.Collections;
+import java.util.Date;
+import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+
+import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.header.internals.RecordHeader;
+
 import io.apicurio.common.apps.logging.Logged;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.model.BranchId;
@@ -10,8 +21,46 @@ import io.apicurio.registry.storage.dto.DownloadContextDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.GroupMetaDataDto;
 import io.apicurio.registry.storage.dto.RuleConfigurationDto;
-import io.apicurio.registry.storage.impl.kafkasql.keys.*;
-import io.apicurio.registry.storage.impl.kafkasql.values.*;
+import io.apicurio.registry.storage.impl.kafkasql.keys.ArtifactBranchKey;
+import io.apicurio.registry.storage.impl.kafkasql.keys.ArtifactKey;
+import io.apicurio.registry.storage.impl.kafkasql.keys.ArtifactOwnerKey;
+import io.apicurio.registry.storage.impl.kafkasql.keys.ArtifactRuleKey;
+import io.apicurio.registry.storage.impl.kafkasql.keys.ArtifactRulesKey;
+import io.apicurio.registry.storage.impl.kafkasql.keys.ArtifactVersionKey;
+import io.apicurio.registry.storage.impl.kafkasql.keys.BootstrapKey;
+import io.apicurio.registry.storage.impl.kafkasql.keys.CommentIdKey;
+import io.apicurio.registry.storage.impl.kafkasql.keys.CommentKey;
+import io.apicurio.registry.storage.impl.kafkasql.keys.ConfigPropertyKey;
+import io.apicurio.registry.storage.impl.kafkasql.keys.ContentIdKey;
+import io.apicurio.registry.storage.impl.kafkasql.keys.ContentKey;
+import io.apicurio.registry.storage.impl.kafkasql.keys.DownloadKey;
+import io.apicurio.registry.storage.impl.kafkasql.keys.GlobalActionKey;
+import io.apicurio.registry.storage.impl.kafkasql.keys.GlobalIdKey;
+import io.apicurio.registry.storage.impl.kafkasql.keys.GlobalRuleKey;
+import io.apicurio.registry.storage.impl.kafkasql.keys.GlobalRulesKey;
+import io.apicurio.registry.storage.impl.kafkasql.keys.GroupKey;
+import io.apicurio.registry.storage.impl.kafkasql.keys.MessageKey;
+import io.apicurio.registry.storage.impl.kafkasql.keys.RoleMappingKey;
+import io.apicurio.registry.storage.impl.kafkasql.values.ActionType;
+import io.apicurio.registry.storage.impl.kafkasql.values.ArtifactBranchValue;
+import io.apicurio.registry.storage.impl.kafkasql.values.ArtifactOwnerValue;
+import io.apicurio.registry.storage.impl.kafkasql.values.ArtifactRuleValue;
+import io.apicurio.registry.storage.impl.kafkasql.values.ArtifactRulesValue;
+import io.apicurio.registry.storage.impl.kafkasql.values.ArtifactValue;
+import io.apicurio.registry.storage.impl.kafkasql.values.ArtifactVersionValue;
+import io.apicurio.registry.storage.impl.kafkasql.values.CommentIdValue;
+import io.apicurio.registry.storage.impl.kafkasql.values.CommentValue;
+import io.apicurio.registry.storage.impl.kafkasql.values.ConfigPropertyValue;
+import io.apicurio.registry.storage.impl.kafkasql.values.ContentIdValue;
+import io.apicurio.registry.storage.impl.kafkasql.values.ContentValue;
+import io.apicurio.registry.storage.impl.kafkasql.values.DownloadValue;
+import io.apicurio.registry.storage.impl.kafkasql.values.GlobalActionValue;
+import io.apicurio.registry.storage.impl.kafkasql.values.GlobalIdValue;
+import io.apicurio.registry.storage.impl.kafkasql.values.GlobalRuleValue;
+import io.apicurio.registry.storage.impl.kafkasql.values.GlobalRulesValue;
+import io.apicurio.registry.storage.impl.kafkasql.values.GroupValue;
+import io.apicurio.registry.storage.impl.kafkasql.values.MessageValue;
+import io.apicurio.registry.storage.impl.kafkasql.values.RoleMappingValue;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.impexp.ArtifactBranchEntity;
@@ -20,16 +69,6 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Observes;
 import jakarta.enterprise.event.Shutdown;
 import jakarta.inject.Inject;
-import org.apache.kafka.clients.producer.ProducerRecord;
-import org.apache.kafka.common.header.internals.RecordHeader;
-
-import java.util.Collections;
-import java.util.Date;
-import java.util.List;
-import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-
-import static java.util.stream.Collectors.toList;
 
 @ApplicationScoped
 @Logged
@@ -81,9 +120,9 @@ public class KafkaSqlSubmitter {
     /* ******************************************************************************************
      * Group
      * ****************************************************************************************** */
-    public CompletableFuture<UUID> submitGroup(ActionType action, GroupMetaDataDto meta) {
-        GroupKey key = GroupKey.create(meta.getGroupId());
-        GroupValue value = GroupValue.create(action, meta);
+    public CompletableFuture<UUID> submitGroup(ActionType action, GroupMetaDataDto dto) {
+        GroupKey key = GroupKey.create(dto.getGroupId());
+        GroupValue value = GroupValue.create(action, dto);
         return send(key, value);
     }
     public CompletableFuture<UUID> submitGroup(String groupId, ActionType action, boolean onlyArtifacts) {

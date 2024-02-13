@@ -228,6 +228,11 @@ public interface SqlStatements {
      * A statement to update the meta-data of a specific artifact version.
      */
     public String updateArtifactVersionMetaData();
+    
+    /**
+     * A statement to delete all rows in the group_labels table for a given group.
+     */
+    public String deleteGroupLabelsByGroupId();
 
     /**
      * A statement to delete the labels for a single artifact version.
@@ -556,4 +561,5 @@ public interface SqlStatements {
     public String deleteAllArtifactBranches();
 
     public String selectVersionsWithoutArtifactBranch();
+
 }

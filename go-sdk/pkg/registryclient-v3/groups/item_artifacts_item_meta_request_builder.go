@@ -99,7 +99,7 @@ func (m *ItemArtifactsItemMetaRequestBuilder) Post(ctx context.Context, body i00
 }
 
 // Put updates the editable parts of the artifact's metadata.  Not all metadata fields canbe updated.  For example, `createdOn` and `createdBy` are both read-only properties.This operation can fail for the following reasons:* No artifact with the `artifactId` exists (HTTP error `404`)* A server error occurred (HTTP error `500`)
-func (m *ItemArtifactsItemMetaRequestBuilder) Put(ctx context.Context, body i00eb2e63d156923d00d8e86fe16b5d74daf30e363c9f185a8165cb42aa2f2c71.EditableMetaDataable, requestConfiguration *ItemArtifactsItemMetaRequestBuilderPutRequestConfiguration) error {
+func (m *ItemArtifactsItemMetaRequestBuilder) Put(ctx context.Context, body i00eb2e63d156923d00d8e86fe16b5d74daf30e363c9f185a8165cb42aa2f2c71.EditableArtifactMetaDataable, requestConfiguration *ItemArtifactsItemMetaRequestBuilderPutRequestConfiguration) error {
 	requestInfo, err := m.ToPutRequestInformation(ctx, body, requestConfiguration)
 	if err != nil {
 		return err
@@ -145,7 +145,7 @@ func (m *ItemArtifactsItemMetaRequestBuilder) ToPostRequestInformation(ctx conte
 }
 
 // ToPutRequestInformation updates the editable parts of the artifact's metadata.  Not all metadata fields canbe updated.  For example, `createdOn` and `createdBy` are both read-only properties.This operation can fail for the following reasons:* No artifact with the `artifactId` exists (HTTP error `404`)* A server error occurred (HTTP error `500`)
-func (m *ItemArtifactsItemMetaRequestBuilder) ToPutRequestInformation(ctx context.Context, body i00eb2e63d156923d00d8e86fe16b5d74daf30e363c9f185a8165cb42aa2f2c71.EditableMetaDataable, requestConfiguration *ItemArtifactsItemMetaRequestBuilderPutRequestConfiguration) (*i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestInformation, error) {
+func (m *ItemArtifactsItemMetaRequestBuilder) ToPutRequestInformation(ctx context.Context, body i00eb2e63d156923d00d8e86fe16b5d74daf30e363c9f185a8165cb42aa2f2c71.EditableArtifactMetaDataable, requestConfiguration *ItemArtifactsItemMetaRequestBuilderPutRequestConfiguration) (*i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestInformation, error) {
 	requestInfo := i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewRequestInformationWithMethodAndUrlTemplateAndPathParameters(i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.PUT, m.BaseRequestBuilder.UrlTemplate, m.BaseRequestBuilder.PathParameters)
 	if requestConfiguration != nil {
 		requestInfo.Headers.AddAll(requestConfiguration.Headers)

@@ -56,7 +56,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String getDatabaseVersion() {
-        return "SELECT a.prop_value FROM apicurio a WHERE a.prop_name = ?";
+        return "SELECT a.propValue FROM apicurio a WHERE a.propName = ?";
     }
 
     /**
@@ -411,7 +411,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String insertVersionLabel() {
-        return "INSERT INTO version_labels (globalId, pkey, pvalue) VALUES (?, ?, ?)";
+        return "INSERT INTO version_labels (globalId, labelKey, labelValue) VALUES (?, ?, ?)";
     }
 
     /**
@@ -419,7 +419,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String insertArtifactLabel() {
-        return "INSERT INTO artifact_labels (globalId, pkey, pvalue) VALUES (?, ?, ?)";
+        return "INSERT INTO artifact_labels (globalId, labelKey, labelValue) VALUES (?, ?, ?)";
     }
     
     /**
@@ -427,7 +427,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String insertGroupLabel() {
-        return "INSERT INTO group_labels (globalId, pkey, pvalue) VALUES (?, ?, ?)";
+        return "INSERT INTO group_labels (globalId, labelKey, labelValue) VALUES (?, ?, ?)";
     }
 
     /**
@@ -847,7 +847,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String selectConfigPropertyByName() {
-        return "SELECT c.* FROM config c WHERE c.pname = ?";
+        return "SELECT c.* FROM config c WHERE c.propName = ?";
     }
 
     /**
@@ -855,7 +855,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String deleteConfigProperty() {
-        return "DELETE FROM config WHERE pname = ?";
+        return "DELETE FROM config WHERE propName = ?";
     }
 
     /**
@@ -863,7 +863,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String insertConfigProperty() {
-        return "INSERT INTO config (pname, pvalue, modifiedOn) VALUES (?, ?, ?)";
+        return "INSERT INTO config (propName, propValue, modifiedOn) VALUES (?, ?, ?)";
     }
 
     /**
@@ -909,12 +909,12 @@ public abstract class CommonSqlStatements implements SqlStatements {
 
     @Override
     public String insertSequenceValue() {
-        return "INSERT INTO sequences (seq_name, seq_value) VALUES (?, ?)";
+        return "INSERT INTO sequences (seqName, seqValue) VALUES (?, ?)";
     }
 
     @Override
     public String selectCurrentSequenceValue() {
-        return "SELECT seq_value FROM sequences WHERE seq_name = ? ";
+        return "SELECT seqValue FROM sequences WHERE seqName = ? ";
     }
 
     @Override

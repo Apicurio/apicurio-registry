@@ -300,7 +300,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         log.debug("---");
 
         statements.forEach(statement -> {
-            log.info(statement);
+            log.debug(statement);
             handle.createUpdate(statement).execute();
         });
         log.debug("---");
@@ -1055,7 +1055,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                                 + "v.groupId LIKE ? OR "
                                 + "a.artifactId LIKE ? OR "
                                 + "v.description LIKE ? OR "
-                                + "EXISTS(SELECT l.globalId FROM version_labels l WHERE l.pkey = ? AND l.globalId = v.globalId)");
+                                + "EXISTS(SELECT l.globalId FROM version_labels l WHERE l.labelKey = ? AND l.globalId = v.globalId)");
                         binders.add((query, idx) -> {
                             query.bind(idx, "%" + filter.getStringValue() + "%");
                         });
@@ -1104,13 +1104,13 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                         Pair<String, String> label = filter.getLabelFilterValue();
                         //    Note: convert search to lowercase when searching for labels (case-insensitivity support).
                         String labelKey = label.getKey().toLowerCase();
-                        where.append("EXISTS(SELECT l.globalId FROM version_labels l WHERE l.pkey = ?");
+                        where.append("EXISTS(SELECT l.globalId FROM version_labels l WHERE l.labelKey = ?");
                         binders.add((query, idx) -> {
                             query.bind(idx, labelKey);
                         });
                         if (label.getValue() != null) {
                             String labelValue = label.getValue().toLowerCase();
-                            where.append(" AND l.pvalue = ?");
+                            where.append(" AND l.labelValue = ?");
                             binders.add((query, idx) -> {
                                 query.bind(idx, labelValue);
                             });

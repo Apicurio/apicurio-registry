@@ -66,14 +66,14 @@ public class SQLServerSqlStatements extends CommonSqlStatements {
     public String getNextSequenceValue() {
         return String.join(" ",
                 "MERGE INTO sequences AS target",
-                "USING (VALUES  (?)) AS source (seq_name)",
-                "ON (target.seq_name = source.seq_name)",
+                "USING (VALUES  (?)) AS source (seqName)",
+                "ON (target.seqName = source.seqName)",
                 "WHEN MATCHED THEN",
-                    "UPDATE SET seq_value = target.seq_value + 1",
+                    "UPDATE SET seqValue = target.seqValue + 1",
                 "WHEN NOT MATCHED THEN",
-                    "INSERT (seq_name, seq_value)",
-                    "VALUES (source.seq_name, 1)",
-                "OUTPUT INSERTED.seq_value;");
+                    "INSERT (seqName, seqValue)",
+                    "VALUES (source.seqName, 1)",
+                "OUTPUT INSERTED.seqValue;");
     }
 
     /**
@@ -83,14 +83,14 @@ public class SQLServerSqlStatements extends CommonSqlStatements {
     public String resetSequenceValue() {
         return String.join(" ",
                 "MERGE INTO sequences AS target",
-                "USING (VALUES (?, ?)) AS source (seq_name, seq_value)",
-                "ON (target.seq_name = source.seq_name)",
+                "USING (VALUES (?, ?)) AS source (seqName, seqValue)",
+                "ON (target.seqName = source.seqName)",
                 "WHEN MATCHED THEN",
-                    "UPDATE SET seq_value = ?",
+                    "UPDATE SET seqValue = ?",
                 "WHEN NOT MATCHED THEN",
-                    "INSERT (seq_name, seq_value)",
-                    "VALUES (source.seq_name, source.seq_value)",
-                "OUTPUT INSERTED.seq_value;");
+                    "INSERT (seqName, seqValue)",
+                    "VALUES (source.seqName, source.seqValue)",
+                "OUTPUT INSERTED.seqValue;");
     }
 
     /**

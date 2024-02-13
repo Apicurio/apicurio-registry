@@ -57,7 +57,7 @@ public class PostgreSQLSqlStatements extends CommonSqlStatements {
      */
     @Override
     public String getNextSequenceValue() {
-        return "INSERT INTO sequences (seq_name, seq_value) VALUES (?, 1) ON CONFLICT (seq_name) DO UPDATE SET seq_value = sequences.seq_value + 1 RETURNING seq_value";
+        return "INSERT INTO sequences (seqName, seqValue) VALUES (?, 1) ON CONFLICT (seqName) DO UPDATE SET seqValue = sequences.seqValue + 1 RETURNING seqValue";
     }
 
     /**
@@ -65,7 +65,7 @@ public class PostgreSQLSqlStatements extends CommonSqlStatements {
      */
     @Override
     public String resetSequenceValue() {
-        return "INSERT INTO sequences (seq_name, seq_value) VALUES (?, ?) ON CONFLICT (seq_name) DO UPDATE SET seq_value = ?";
+        return "INSERT INTO sequences (seqName, seqValue) VALUES (?, ?) ON CONFLICT (seqName) DO UPDATE SET seqValue = ?";
     }
 
     /**

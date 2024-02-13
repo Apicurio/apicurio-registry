@@ -2,15 +2,15 @@
 -- DDL for the Apicurio Registry - Database: PostgreSQL 10+
 -- *********************************************************************
 
-CREATE TABLE apicurio (prop_name VARCHAR(255) NOT NULL, prop_value VARCHAR(255));
-ALTER TABLE apicurio ADD PRIMARY KEY (prop_name);
-INSERT INTO apicurio (prop_name, prop_value) VALUES ('db_version', 100);
+CREATE TABLE apicurio (propName VARCHAR(255) NOT NULL, propValue VARCHAR(255));
+ALTER TABLE apicurio ADD PRIMARY KEY (propName);
+INSERT INTO apicurio (propName, propValue) VALUES ('db_version', 100);
 
-CREATE TABLE sequences (seq_name VARCHAR(32) NOT NULL, seq_value BIGINT NOT NULL);
-ALTER TABLE sequences ADD PRIMARY KEY (seq_name);
+CREATE TABLE sequences (seqName VARCHAR(32) NOT NULL, seqValue BIGINT NOT NULL);
+ALTER TABLE sequences ADD PRIMARY KEY (seqName);
 
-CREATE TABLE config (pname VARCHAR(255) NOT NULL, pvalue VARCHAR(1024) NOT NULL, modifiedOn BIGINT NOT NULL);
-ALTER TABLE config ADD PRIMARY KEY (pname);
+CREATE TABLE config (propName VARCHAR(255) NOT NULL, propValue VARCHAR(1024) NOT NULL, modifiedOn BIGINT NOT NULL);
+ALTER TABLE config ADD PRIMARY KEY (propName);
 CREATE INDEX IDX_config_1 ON config(modifiedOn);
 
 CREATE TABLE acls (principalId VARCHAR(256) NOT NULL, role VARCHAR(32) NOT NULL, principalName VARCHAR(256));
@@ -36,10 +36,10 @@ ALTER TABLE content_references ADD CONSTRAINT FK_content_references_1 FOREIGN KE
 CREATE TABLE groups (groupId VARCHAR(512) NOT NULL, description VARCHAR(1024), artifactsType VARCHAR(32), createdBy VARCHAR(256), createdOn TIMESTAMP WITHOUT TIME ZONE NOT NULL, modifiedBy VARCHAR(256), modifiedOn TIMESTAMP WITHOUT TIME ZONE, labels TEXT);
 ALTER TABLE groups ADD PRIMARY KEY (groupId);
 
-CREATE TABLE group_labels (groupId VARCHAR(512) NOT NULL, pkey VARCHAR(256) NOT NULL, pvalue VARCHAR(512));
+CREATE TABLE group_labels (groupId VARCHAR(512) NOT NULL, labelKey VARCHAR(256) NOT NULL, labelValue VARCHAR(512));
 ALTER TABLE group_labels ADD CONSTRAINT FK_glabels_1 FOREIGN KEY (groupId) REFERENCES groups(groupId) ON DELETE CASCADE;
-CREATE INDEX IDX_glabels_1 ON group_labels(pkey);
-CREATE INDEX IDX_glabels_2 ON group_labels(pvalue);
+CREATE INDEX IDX_glabels_1 ON group_labels(labelKey);
+CREATE INDEX IDX_glabels_2 ON group_labels(labelValue);
 
 CREATE TABLE group_rules (groupId VARCHAR(512) NOT NULL, type VARCHAR(32) NOT NULL, configuration VARCHAR(1024) NOT NULL);
 ALTER TABLE group_rules ADD PRIMARY KEY (groupId, type);
@@ -51,10 +51,10 @@ CREATE INDEX IDX_artifacts_0 ON artifacts USING HASH (type);
 CREATE INDEX IDX_artifacts_1 ON artifacts USING HASH (createdBy);
 CREATE INDEX IDX_artifacts_2 ON artifacts(createdOn);
 
-CREATE TABLE artifact_labels (groupId VARCHAR(512) NOT NULL, artifactId VARCHAR(512) NOT NULL, pkey VARCHAR(256) NOT NULL, pvalue VARCHAR(512));
+CREATE TABLE artifact_labels (groupId VARCHAR(512) NOT NULL, artifactId VARCHAR(512) NOT NULL, labelKey VARCHAR(256) NOT NULL, labelValue VARCHAR(512));
 ALTER TABLE artifact_labels ADD CONSTRAINT FK_alabels_1 FOREIGN KEY (groupId, artifactId) REFERENCES artifacts(groupId, artifactId) ON DELETE CASCADE;
-CREATE INDEX IDX_alabels_1 ON artifact_labels(pkey);
-CREATE INDEX IDX_alabels_2 ON artifact_labels(pvalue);
+CREATE INDEX IDX_alabels_1 ON artifact_labels(labelKey);
+CREATE INDEX IDX_alabels_2 ON artifact_labels(labelValue);
 
 CREATE TABLE artifact_rules (groupId VARCHAR(512) NOT NULL, artifactId VARCHAR(512) NOT NULL, type VARCHAR(32) NOT NULL, configuration VARCHAR(1024) NOT NULL);
 ALTER TABLE artifact_rules ADD PRIMARY KEY (groupId, artifactId, type);
@@ -78,10 +78,10 @@ CREATE INDEX IDX_versions_5 ON versions USING HASH (createdBy);
 CREATE INDEX IDX_versions_6 ON versions(createdOn);
 CREATE INDEX IDX_versions_7 ON versions USING HASH (contentId);
 
-CREATE TABLE version_labels (globalId BIGINT NOT NULL, pkey VARCHAR(256) NOT NULL, pvalue VARCHAR(512));
+CREATE TABLE version_labels (globalId BIGINT NOT NULL, labelKey VARCHAR(256) NOT NULL, labelValue VARCHAR(512));
 ALTER TABLE version_labels ADD CONSTRAINT FK_vlabels_1 FOREIGN KEY (globalId) REFERENCES versions(globalId) ON DELETE CASCADE;
-CREATE INDEX IDX_vlabels_1 ON version_labels(pkey);
-CREATE INDEX IDX_vlabels_2 ON version_labels(pvalue);
+CREATE INDEX IDX_vlabels_1 ON version_labels(labelKey);
+CREATE INDEX IDX_vlabels_2 ON version_labels(labelValue);
 
 CREATE TABLE version_comments (commentId VARCHAR(128) NOT NULL, globalId BIGINT NOT NULL, createdBy VARCHAR(256), createdOn TIMESTAMP WITHOUT TIME ZONE NOT NULL, cvalue VARCHAR(1024) NOT NULL);
 ALTER TABLE version_comments ADD PRIMARY KEY (commentId);

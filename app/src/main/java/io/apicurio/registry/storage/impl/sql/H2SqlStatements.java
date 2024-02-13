@@ -65,7 +65,7 @@ public class H2SqlStatements extends CommonSqlStatements {
      */
     @Override
     public String resetSequenceValue() {
-        return "MERGE INTO sequences (seq_name, seq_value) KEY (seq_name) VALUES(?, ?)";
+        return "MERGE INTO sequences (seqName, seqValue) KEY (seqName) VALUES(?, ?)";
     }
 
     /**

@@ -2032,6 +2032,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     public void createGroup(GroupMetaDataDto group) throws GroupAlreadyExistsException, RegistryStorageException {
         try {
             handles.withHandle(handle -> {
+                // Insert a row into the groups table
                 handle.createUpdate(sqlStatements.insertGroup())
                         .bind(0, group.getGroupId())
                         .bind(1, group.getDescription())
@@ -2043,6 +2044,20 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                         .bind(6, group.getModifiedOn() == 0 ? null : new Date(group.getModifiedOn()))
                         .bind(7, SqlUtil.serializeLabels(group.getLabels()))
                         .execute();
+                
+                // Insert new labels into the "group_labels" table
+                Map<String, String> labels = group.getLabels();
+                if (labels != null && !labels.isEmpty()) {
+                    labels.forEach((k, v) -> {
+                        String sqli = sqlStatements.insertGroupLabel();
+                        handle.createUpdate(sqli)
+                                .bind(0, group.getGroupId())
+                                .bind(1, limitStr(k.toLowerCase(), 256))
+                                .bind(2, limitStr(asLowerCase(v), 512))
+                                .execute();
+                    });
+                }
+                
                 return null;
             });
         } catch (Exception ex) {
@@ -2104,6 +2119,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         log.debug("Updating metadata for group {}.", groupId);
 
         handles.withHandleNoException(handle -> {
+            // Update the row in the groups table
             int rows = handle.createUpdate(sqlStatements.updateGroup())
                     .bind(0, description)
                     .bind(1, modifiedBy)

@@ -136,7 +136,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         final GroupMetaData artifactGroup = clientV3.groups().byGroupId(groupId).get();
         assertEquals(groupMetaData.getId(), artifactGroup.getId());
         assertEquals(groupMetaData.getDescription(), artifactGroup.getDescription());
-        assertEquals(groupMetaData.getLabels().getAdditionalData(), artifactGroup.getProperties().getAdditionalData());
+        assertEquals(groupMetaData.getLabels().getAdditionalData(), artifactGroup.getLabels().getAdditionalData());
 
 
         String group1Id = UUID.randomUUID().toString();

@@ -435,7 +435,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String insertGroupLabel() {
-        return "INSERT INTO group_labels (globalId, labelKey, labelValue) VALUES (?, ?, ?)";
+        return "INSERT INTO group_labels (groupId, labelKey, labelValue) VALUES (?, ?, ?)";
     }
 
     /**

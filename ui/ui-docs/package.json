@@ -31,7 +31,7 @@
     "react-dom": "18.2.0",
     "mobx": "6.12.0",
     "styled-components": "6.1.8",
-    "core-js": "3.35.1",
+    "core-js": "3.36.0",
     "redoc": "2.1.3"
   }
 }

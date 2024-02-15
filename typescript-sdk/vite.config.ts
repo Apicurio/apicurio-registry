@@ -18,10 +18,14 @@ export default defineConfig({
         },
         rollupOptions: {
             external: [
-                "@patternfly/patternfly",
-                "@patternfly/react-core",
-                "@patternfly/react-icons",
-                "@patternfly/react-table",
+                "@kiota-community/kiota-gen",
+                "@microsoft/kiota-abstractions",
+                "@microsoft/kiota-http-fetchlibrary",
+                "@microsoft/kiota-serialization-form",
+                "@microsoft/kiota-serialization-json",
+                "@microsoft/kiota-authentication-azure",
+                "@microsoft/kiota-serialization-text",
+                "@microsoft/kiota-serialization-multipart",
                 "react",
                 "react-dom",
                 "react/jsx-runtime"

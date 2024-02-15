@@ -7,6 +7,7 @@ Use standard Node/NPM tooling to build the code in this library.
 
 ```
 npm install
+npm run generate-registry-sdk
 npm run lint
 npm run build
 ```

@@ -1,0 +1,19 @@
+// Metadata created by nebel
+include::{mod-loc}shared/all-attributes.adoc[]
+
+[id="configuring-registry-security_{context}"]
+= Configuring {registry} security options
+
+[role="_abstract"]
+This chapter explains how to set configuration options for {registry} security. For example, this includes authentication in {keycloak} or Microsoft Azure Active Directory and role-based authorization in {registry}. 
+
+* xref:registry-security-keycloak_{context}[]
+* xref:registry-security-azure_{context}[]
+* xref:registry-security-settings_{context}[]
+
+NOTE: For a list of all available configuration options, see {registry-config-reference}.
+
+//INCLUDES
+include::{mod-loc}getting-started/proc-configuring-registry-security-keycloak.adoc[leveloffset=+1]
+include::{mod-loc}getting-started/proc-configuring-registry-security-azure.adoc[leveloffset=+1]
+include::{mod-loc}getting-started/ref-registry-security-configuration.adoc[leveloffset=+1]

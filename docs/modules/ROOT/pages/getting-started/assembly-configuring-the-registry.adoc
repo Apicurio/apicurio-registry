@@ -5,10 +5,8 @@ include::{mod-loc}shared/all-attributes.adoc[]
 = Configuring your {registry} deployment
 
 [role="_abstract"]
-This chapter explains how to set important configuration options for {registry}. This includes features such as authentication and authorization, logging, events, and health checks: 
+This chapter explains how to set important configuration options for your {registry} deployment. This includes features such as the {registry} web console, logging, events, and health checks: 
 
-* xref:registry-security_{context}[]
-* xref:registry-security-settings_{context}[]
 ifdef::apicurio-registry[]
 * xref:configuring-registry-ui_{context}[]
 endif::[]
@@ -17,11 +15,9 @@ endif::[]
 * xref:configuring-liveness-readiness-probes_{context}[]
 * xref:registry-liveness-env-vars_{context}[]
 
-NOTE: For a list of available configuration options, see {registry-config-reference}.
+NOTE: For a list of all available configuration options, see {registry-config-reference}.
 
 //INCLUDES
-include::{mod-loc}getting-started/proc-configuring-registry-security.adoc[leveloffset=+1]
-include::{mod-loc}getting-started/ref-registry-security-configuration.adoc[leveloffset=+1]
 ifdef::apicurio-registry[]
 include::{mod-loc}getting-started/proc-configuring-registry-ui.adoc[leveloffset=+1]
 endif::[]

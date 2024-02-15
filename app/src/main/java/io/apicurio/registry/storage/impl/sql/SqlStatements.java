@@ -482,6 +482,8 @@ public interface SqlStatements {
 
     public String selectRoleMappings();
 
+    public String countRoleMappings();
+
     public String updateRoleMapping();
 
     public String selectRoleMappingCountByPrincipal();

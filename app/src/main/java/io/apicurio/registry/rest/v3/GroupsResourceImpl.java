@@ -271,6 +271,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
      * @see io.apicurio.registry.rest.v3.GroupsResource#updateGroupById(java.lang.String, io.apicurio.registry.rest.v3.beans.EditableGroupMetaData)
      */
     @Override
+    @Authorized(style = AuthorizedStyle.GroupOnly, level = AuthorizedLevel.Write)
     public void updateGroupById(String groupId, EditableGroupMetaData data) {
         requireParameter("groupId", groupId);
 

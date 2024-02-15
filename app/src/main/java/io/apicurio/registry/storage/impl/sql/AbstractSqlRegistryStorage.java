@@ -68,6 +68,7 @@ import io.apicurio.registry.storage.dto.GroupSearchResultsDto;
 import io.apicurio.registry.storage.dto.OrderBy;
 import io.apicurio.registry.storage.dto.OrderDirection;
 import io.apicurio.registry.storage.dto.RoleMappingDto;
+import io.apicurio.registry.storage.dto.RoleMappingSearchResultsDto;
 import io.apicurio.registry.storage.dto.RuleConfigurationDto;
 import io.apicurio.registry.storage.dto.SearchFilter;
 import io.apicurio.registry.storage.dto.SearchFilterType;
@@ -2419,6 +2420,27 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         });
     }
 
+    @Override
+    @Transactional
+    public RoleMappingSearchResultsDto searchRoleMappings(int offset, int limit) throws RegistryStorageException {
+        log.debug("Searching role mappings.");
+        return handles.withHandleNoException(handle -> {
+            String query = sqlStatements.selectRoleMappings() + " LIMIT ? OFFSET ?";
+            String countQuery = sqlStatements.countRoleMappings();
+            List<RoleMappingDto> mappings = handle.createQuery(query)
+                    .bind(0, limit)
+                    .bind(1, offset)
+                    .map(RoleMappingDtoMapper.instance)
+                    .list();
+            Integer count = handle.createQuery(countQuery)
+                    .mapTo(Integer.class)
+                    .one();
+            return RoleMappingSearchResultsDto.builder()
+                    .count(count)
+                    .roleMappings(mappings)
+                    .build();
+        });
+    }
 
     @Override
     @Transactional

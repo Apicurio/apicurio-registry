@@ -650,6 +650,13 @@ public interface RegistryStorage extends DynamicConfigStorage {
     List<RoleMappingDto> getRoleMappings() throws RegistryStorageException;
 
     /**
+     * Search for role mappings.
+     * @param offset         the number of artifacts to skip
+     * @param limit          the result size limit
+     */
+    RoleMappingSearchResultsDto searchRoleMappings(int offset, int limit) throws RegistryStorageException;
+    
+    /**
      * Gets the details of a single role mapping.
      *
      * @param principalId

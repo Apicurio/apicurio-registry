@@ -14,6 +14,8 @@ import {
     httpPostWithReturn, httpPut,
     httpPutWithReturn
 } from "@utils/rest.utils.ts";
+import { Paging } from "@services/useGroupsService.ts";
+import { RoleMappingSearchResults } from "@models/roleMappingSearchResults.model.ts";
 
 
 const getArtifactTypes = async (config: ConfigService, auth: AuthService): Promise<ArtifactTypeInfo[]> => {
@@ -85,13 +87,20 @@ const deleteRule = async (config: ConfigService, auth: AuthService, type: string
     return httpDelete(endpoint, options);
 };
 
-const getRoleMappings = async (config: ConfigService, auth: AuthService): Promise<RoleMapping[]> => {
+const getRoleMappings = async (config: ConfigService, auth: AuthService, paging: Paging): Promise<RoleMappingSearchResults> => {
     console.info("[AdminService] Getting the list of role mappings.");
+    const start: number = (paging.page - 1) * paging.pageSize;
+    const end: number = start + paging.pageSize;
+    const queryParams: any = {
+        limit: end,
+        offset: start
+    };
+
     const baseHref: string = config.artifactsUrl();
     const token: string | undefined = await auth.getToken();
     const options = createOptions(createHeaders(token));
-    const endpoint: string = createEndpoint(baseHref, "/admin/roleMappings");
-    return httpGet<RoleMapping[]>(endpoint, options);
+    const endpoint: string = createEndpoint(baseHref, "/admin/roleMappings", {}, queryParams);
+    return httpGet<RoleMappingSearchResults>(endpoint, options);
 };
 
 const getRoleMapping = async (config: ConfigService, auth: AuthService, principalId: string): Promise<RoleMapping> => {
@@ -218,7 +227,7 @@ export interface AdminService {
     createRule(type: string, config: string): Promise<Rule>;
     updateRule(type: string, config: string): Promise<Rule|null>;
     deleteRule(type: string): Promise<null>;
-    getRoleMappings(): Promise<RoleMapping[]>;
+    getRoleMappings(paging: Paging): Promise<RoleMappingSearchResults>;
     getRoleMapping(principalId: string): Promise<RoleMapping>;
     createRoleMapping(principalId: string, role: string, principalName: string): Promise<RoleMapping>;
     updateRoleMapping(principalId: string, role: string): Promise<RoleMapping>;
@@ -254,8 +263,8 @@ export const useAdminService: () => AdminService = (): AdminService => {
         deleteRule(type: string): Promise<null> {
             return deleteRule(config, auth, type);
         },
-        getRoleMappings(): Promise<RoleMapping[]> {
-            return getRoleMappings(config, auth);
+        getRoleMappings(paging: Paging): Promise<RoleMappingSearchResults> {
+            return getRoleMappings(config, auth, paging);
         },
         getRoleMapping(principalId: string): Promise<RoleMapping> {
             return getRoleMapping(config, auth, principalId);

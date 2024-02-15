@@ -588,7 +588,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
                 .then()
                 .statusCode(200)
                 .contentType(ContentType.JSON)
-                .body("[0]", nullValue());
+                .body("roleMappings[0]", nullValue());
 
         // Add
         RoleMapping mapping = new RoleMapping();
@@ -604,40 +604,34 @@ public class AdminResourceTest extends AbstractResourceTestBase {
                 .body(anything());
 
         // Verify the mapping was added.
-        TestUtils.retry(() -> {
-            given()
-                    .when()
-                    .get("/registry/v3/admin/roleMappings/TestUser")
-                    .then()
-                    .statusCode(200)
-                    .contentType(ContentType.JSON)
-                    .body("principalId", equalTo("TestUser"))
-                    .body("principalName", equalTo("Foo bar"))
-                    .body("role", equalTo("DEVELOPER"));
-        });
-        TestUtils.retry(() -> {
-            given()
-                    .when()
-                    .get("/registry/v3/admin/roleMappings")
-                    .then()
-                    .statusCode(200)
-                    .contentType(ContentType.JSON)
-                    .body("[0].principalId", equalTo("TestUser"))
-                    .body("[0].principalName", equalTo("Foo bar"))
-                    .body("[0].role", equalTo("DEVELOPER"));
-        });
+        given()
+                .when()
+                .get("/registry/v3/admin/roleMappings/TestUser")
+                .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .body("principalId", equalTo("TestUser"))
+                .body("principalName", equalTo("Foo bar"))
+                .body("role", equalTo("DEVELOPER"));
+        given()
+                .when()
+                .get("/registry/v3/admin/roleMappings")
+                .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .body("roleMappings[0].principalId", equalTo("TestUser"))
+                .body("roleMappings[0].principalName", equalTo("Foo bar"))
+                .body("roleMappings[0].role", equalTo("DEVELOPER"));
 
         // Try to add the rule again - should get a 409
-        TestUtils.retry(() -> {
-            given()
-                    .when()
-                    .contentType(CT_JSON).body(mapping)
-                    .post("/registry/v3/admin/roleMappings")
-                    .then()
-                    .statusCode(409)
-                    .body("error_code", equalTo(409))
-                    .body("message", equalTo("A mapping for principal 'TestUser' and role 'DEVELOPER' already exists."));
-        });
+        given()
+                .when()
+                .contentType(CT_JSON).body(mapping)
+                .post("/registry/v3/admin/roleMappings")
+                .then()
+                .statusCode(409)
+                .body("error_code", equalTo(409))
+                .body("message", equalTo("A mapping for principal 'TestUser' and role 'DEVELOPER' already exists."));
 
         // Add another mapping
         mapping.setPrincipalId("TestUser2");
@@ -652,17 +646,15 @@ public class AdminResourceTest extends AbstractResourceTestBase {
                 .body(anything());
 
         // Get the list of mappings (should be 2 of them)
-        TestUtils.retry(() -> {
-            given()
-                    .when()
-                    .get("/registry/v3/admin/roleMappings")
-                    .then()
-                    .statusCode(200)
-                    .contentType(ContentType.JSON)
-                    .body("[0].principalId", anyOf(equalTo("TestUser"), equalTo("TestUser2")))
-                    .body("[1].principalId", anyOf(equalTo("TestUser"), equalTo("TestUser2")))
-                    .body("[2]", nullValue());
-        });
+        given()
+                .when()
+                .get("/registry/v3/admin/roleMappings")
+                .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .body("roleMappings[0].principalId", anyOf(equalTo("TestUser"), equalTo("TestUser2")))
+                .body("roleMappings[1].principalId", anyOf(equalTo("TestUser"), equalTo("TestUser2")))
+                .body("roleMappings[2]", nullValue());
 
         // Get a single mapping by principal
         given()
@@ -686,16 +678,14 @@ public class AdminResourceTest extends AbstractResourceTestBase {
                 .statusCode(204);
 
         // Get a single (updated) mapping
-        TestUtils.retry(() -> {
-            given()
-                    .when()
-                    .get("/registry/v3/admin/roleMappings/TestUser")
-                    .then()
-                    .statusCode(200)
-                    .contentType(ContentType.JSON)
-                    .body("principalId", equalTo("TestUser"))
-                    .body("role", equalTo("READ_ONLY"));
-        });
+        given()
+                .when()
+                .get("/registry/v3/admin/roleMappings/TestUser")
+                .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .body("principalId", equalTo("TestUser"))
+                .body("role", equalTo("READ_ONLY"));
 
         // Try to update a role mapping that doesn't exist
         given()
@@ -728,29 +718,25 @@ public class AdminResourceTest extends AbstractResourceTestBase {
                 .body(anything());
 
         // Get the (deleted) mapping by name (should fail with a 404)
-        TestUtils.retry(() -> {
-            given()
-                    .when()
-                    .get("/registry/v3/admin/roleMappings/TestUser2")
-                    .then()
-                    .statusCode(404)
-                    .contentType(ContentType.JSON)
-                    .body("error_code", equalTo(404))
-                    .body("message", equalTo("No role mapping for principal 'TestUser2' was found."));
-        });
+        given()
+                .when()
+                .get("/registry/v3/admin/roleMappings/TestUser2")
+                .then()
+                .statusCode(404)
+                .contentType(ContentType.JSON)
+                .body("error_code", equalTo(404))
+                .body("message", equalTo("No role mapping for principal 'TestUser2' was found."));
 
         // Get the list of mappings (should be 1 of them)
-        TestUtils.retry(() -> {
-            given()
-                    .when()
-                    .get("/registry/v3/admin/roleMappings")
-                    .then()
-                    .log().all()
-                    .statusCode(200)
-                    .contentType(ContentType.JSON)
-                    .body("[0].principalId", equalTo("TestUser"))
-                    .body("[1]", nullValue());
-        });
+        given()
+                .when()
+                .get("/registry/v3/admin/roleMappings")
+                .then()
+                .log().all()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .body("roleMappings[0].principalId", equalTo("TestUser"))
+                .body("roleMappings[1]", nullValue());
 
         // Clean up
         given()
@@ -761,6 +747,45 @@ public class AdminResourceTest extends AbstractResourceTestBase {
                 .body(anything());
     }
 
+
+    @Test
+    public void testRoleMappingPaging() throws Exception {
+        // Start with no role mappings
+        Assertions.assertEquals(0, clientV3.admin().roleMappings().get().getCount().intValue());
+
+        // Add some mappings
+        for (int i = 0; i < 20; i++) {
+            RoleMapping mapping = new RoleMapping();
+            mapping.setPrincipalId("principal-" + i);
+            mapping.setRole(RoleType.DEVELOPER);
+            mapping.setPrincipalName("Principal " + i);
+            clientV3.admin().roleMappings().post(mapping);
+        }
+        
+        // Make sure we created 20 mappings
+        Assertions.assertEquals(20, clientV3.admin().roleMappings().get().getCount().intValue());
+        
+        // Get the first 5
+        RoleMappingSearchResults results = clientV3.admin().roleMappings().get(config -> config.queryParameters.limit = 5);
+        Assertions.assertEquals(5, results.getRoleMappings().size());
+        Assertions.assertEquals(20, results.getCount());
+        Assertions.assertEquals("principal-0", results.getRoleMappings().get(0).getPrincipalId());
+        Assertions.assertEquals("principal-4", results.getRoleMappings().get(4).getPrincipalId());
+
+        // Get the second 5
+        results = clientV3.admin().roleMappings().get(config -> { config.queryParameters.limit = 5; config.queryParameters.offset = 5; });
+        Assertions.assertEquals(5, results.getRoleMappings().size());
+        Assertions.assertEquals(20, results.getCount());
+        Assertions.assertEquals("principal-5", results.getRoleMappings().get(0).getPrincipalId());
+        Assertions.assertEquals("principal-9", results.getRoleMappings().get(4).getPrincipalId());
+        
+        // Cleanup
+        for (int i = 0; i < 20; i++) {
+            clientV3.admin().roleMappings().byPrincipalId("principal-" + i).delete();
+        }
+    }
+
+    
     @Test
     public void testConfigProperties() throws Exception {
         String property1Name = "registry.ccompat.legacy-id-mode.enabled";

@@ -8,6 +8,7 @@ export * from "./referenceType";
 export * from "./artifactOwner.model";
 export * from "./systemInfo.model";
 export * from "./roleMapping.model";
+export * from "./roleMappingSearchResults.model";
 export * from "./RuleViolationCause.model";
 export * from "./contentTypes.model";
 export * from "./versionMetaData.model";

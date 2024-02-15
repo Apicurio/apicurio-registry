@@ -14,6 +14,7 @@ import java.util.List;
 @ToString
 public class VersionSearchResultsDto {
 
-    private long count;
+    @Builder.Default
     private List<SearchedVersionDto> versions = new ArrayList<>();
+    private long count;
 }

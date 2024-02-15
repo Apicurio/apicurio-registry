@@ -114,7 +114,7 @@ public class AdminClientTest extends AbstractResourceTestBase {
     @Test
     public void testRoleMappings() throws Exception {
         // Start with no role mappings
-        List<RoleMapping> roleMappings = clientV3.admin().roleMappings().get();
+        List<RoleMapping> roleMappings = clientV3.admin().roleMappings().get().getRoleMappings();
         Assertions.assertTrue(roleMappings.isEmpty());
 
         // Add
@@ -130,7 +130,7 @@ public class AdminClientTest extends AbstractResourceTestBase {
             Assertions.assertEquals(RoleType.DEVELOPER, roleMapping.getRole());
         });
         TestUtils.retry(() -> {
-            List<RoleMapping> mappings = clientV3.admin().roleMappings().get();
+            List<RoleMapping> mappings = clientV3.admin().roleMappings().get().getRoleMappings();
             Assertions.assertEquals(1, mappings.size());
             Assertions.assertEquals("TestUser", mappings.get(0).getPrincipalId());
             Assertions.assertEquals(RoleType.DEVELOPER, mappings.get(0).getRole());
@@ -151,7 +151,7 @@ public class AdminClientTest extends AbstractResourceTestBase {
 
         // Get the list of mappings (should be 2 of them)
         TestUtils.retry(() -> {
-            List<RoleMapping> mappings = clientV3.admin().roleMappings().get();
+            List<RoleMapping> mappings = clientV3.admin().roleMappings().get().getRoleMappings();
             Assertions.assertEquals(2, mappings.size());
         });
 
@@ -193,7 +193,7 @@ public class AdminClientTest extends AbstractResourceTestBase {
 
         // Get the list of mappings (should be 1 of them)
         TestUtils.retry(() -> {
-            List<RoleMapping> mappings = clientV3.admin().roleMappings().get();
+            List<RoleMapping> mappings = clientV3.admin().roleMappings().get().getRoleMappings();
             Assertions.assertEquals(1, mappings.size());
             Assertions.assertEquals("TestUser", mappings.get(0).getPrincipalId());
         });

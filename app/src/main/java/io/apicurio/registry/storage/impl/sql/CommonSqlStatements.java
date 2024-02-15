@@ -793,6 +793,14 @@ public abstract class CommonSqlStatements implements SqlStatements {
     public String selectRoleMappings() {
         return "SELECT a.* FROM acls a ";
     }
+    
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#countRoleMappings()
+     */
+    @Override
+    public String countRoleMappings() {
+        return "SELECT count(a.principalId) FROM acls a ";
+    }
 
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#updateRoleMapping()

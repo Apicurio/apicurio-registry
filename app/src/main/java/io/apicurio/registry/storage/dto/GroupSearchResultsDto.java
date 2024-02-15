@@ -15,6 +15,7 @@ import java.util.List;
 @ToString
 public class GroupSearchResultsDto {
 
+    @Builder.Default
     private List<SearchedGroupDto> groups = new ArrayList<SearchedGroupDto>();
 
     private Integer count;

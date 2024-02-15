@@ -1,6 +1,36 @@
 package io.apicurio.registry.rest.v3;
 
-import io.apicurio.common.apps.config.*;
+import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_FOR_BROWSER;
+import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_NAME;
+import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_PRINCIPAL_ID;
+import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_ROLE_MAPPING;
+import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_RULE;
+import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_RULE_TYPE;
+import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_UPDATE_ROLE;
+import static io.apicurio.registry.util.DtoUtil.appAuthPropertyToRegistry;
+import static io.apicurio.registry.util.DtoUtil.registryAuthPropertyToApp;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.math.BigInteger;
+import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import java.util.zip.ZipInputStream;
+
+import org.eclipse.microprofile.config.Config;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.slf4j.Logger;
+
+import io.apicurio.common.apps.config.Dynamic;
+import io.apicurio.common.apps.config.DynamicConfigPropertyDef;
+import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
+import io.apicurio.common.apps.config.DynamicConfigPropertyIndex;
+import io.apicurio.common.apps.config.Info;
 import io.apicurio.common.apps.logging.Logged;
 import io.apicurio.common.apps.logging.audit.Audited;
 import io.apicurio.registry.auth.Authorized;
@@ -10,7 +40,14 @@ import io.apicurio.registry.auth.RoleBasedAccessApiOperation;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.rest.MissingRequiredParameterException;
-import io.apicurio.registry.rest.v3.beans.*;
+import io.apicurio.registry.rest.v3.beans.ArtifactTypeInfo;
+import io.apicurio.registry.rest.v3.beans.ConfigurationProperty;
+import io.apicurio.registry.rest.v3.beans.DownloadRef;
+import io.apicurio.registry.rest.v3.beans.RoleMapping;
+import io.apicurio.registry.rest.v3.beans.RoleMappingSearchResults;
+import io.apicurio.registry.rest.v3.beans.Rule;
+import io.apicurio.registry.rest.v3.beans.UpdateConfigurationProperty;
+import io.apicurio.registry.rest.v3.beans.UpdateRole;
 import io.apicurio.registry.rest.v3.shared.DataExporter;
 import io.apicurio.registry.rules.DefaultRuleDeletionException;
 import io.apicurio.registry.rules.RulesProperties;
@@ -18,13 +55,13 @@ import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.DownloadContextDto;
 import io.apicurio.registry.storage.dto.DownloadContextType;
 import io.apicurio.registry.storage.dto.RoleMappingDto;
+import io.apicurio.registry.storage.dto.RoleMappingSearchResultsDto;
 import io.apicurio.registry.storage.dto.RuleConfigurationDto;
 import io.apicurio.registry.storage.error.ConfigPropertyNotFoundException;
 import io.apicurio.registry.storage.error.InvalidPropertyValueException;
 import io.apicurio.registry.storage.error.RuleNotFoundException;
 import io.apicurio.registry.storage.impexp.EntityInputStream;
 import io.apicurio.registry.types.Current;
-import io.apicurio.registry.types.RoleType;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 import io.apicurio.registry.utils.impexp.Entity;
@@ -36,24 +73,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
-import org.eclipse.microprofile.config.Config;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
-import org.slf4j.Logger;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-import java.util.zip.ZipInputStream;
-
-import static io.apicurio.common.apps.logging.audit.AuditingConstants.*;
-import static io.apicurio.registry.util.DtoUtil.appAuthPropertyToRegistry;
-import static io.apicurio.registry.util.DtoUtil.registryAuthPropertyToApp;
 
 @ApplicationScoped
 @Interceptors({ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class})
@@ -287,16 +306,21 @@ public class AdminResourceImpl implements AdminResource {
     }
 
     /**
-     * @see io.apicurio.registry.rest.v3.AdminResource#listRoleMappings()
+     * @see io.apicurio.registry.rest.v3.AdminResource#listRoleMappings(java.math.BigInteger, java.math.BigInteger)
      */
     @Override
     @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
     @RoleBasedAccessApiOperation
-    public List<RoleMapping> listRoleMappings() {
-        List<RoleMappingDto> mappings = storage.getRoleMappings();
-        return mappings.stream().map(dto -> {
-            return dtoToRoleMapping(dto);
-        }).collect(Collectors.toList());
+    public RoleMappingSearchResults listRoleMappings(BigInteger limit, BigInteger offset) {
+        if (offset == null) {
+            offset = BigInteger.valueOf(0);
+        }
+        if (limit == null) {
+            limit = BigInteger.valueOf(20);
+        }
+
+        RoleMappingSearchResultsDto dto = storage.searchRoleMappings(offset.intValue(), limit.intValue());
+        return V3ApiUtil.dtoToRoleMappingSearchResults(dto);
     }
 
     /**
@@ -307,7 +331,7 @@ public class AdminResourceImpl implements AdminResource {
     @RoleBasedAccessApiOperation
     public RoleMapping getRoleMapping(String principalId) {
         RoleMappingDto dto = storage.getRoleMapping(principalId);
-        return dtoToRoleMapping(dto);
+        return V3ApiUtil.dtoToRoleMapping(dto);
     }
 
     /**
@@ -352,7 +376,7 @@ public class AdminResourceImpl implements AdminResource {
         // on whether the value is actually configured and stored in the DB or not).
         return dynamicPropertyIndex.getAcceptedPropertyNames().stream()
                 .sorted((pname1, pname2) -> pname1.compareTo(pname2))
-                .map(pname -> propsI.containsKey(pname) ? dtoToConfigurationProperty(dynamicPropertyIndex.getProperty(pname), propsI.get(pname)) : defToConfigurationProperty(dynamicPropertyIndex.getProperty(pname)))
+                .map(pname -> propsI.containsKey(pname) ? V3ApiUtil.dtoToConfigurationProperty(dynamicPropertyIndex.getProperty(pname), propsI.get(pname)) : defToConfigurationProperty(dynamicPropertyIndex.getProperty(pname)))
                 .collect(Collectors.toList());
     }
 
@@ -369,7 +393,7 @@ public class AdminResourceImpl implements AdminResource {
         if (dto == null) {
             return defToConfigurationProperty(def);
         } else {
-            return dtoToConfigurationProperty(def, dto);
+            return V3ApiUtil.dtoToConfigurationProperty(def, dto);
         }
     }
 
@@ -401,14 +425,6 @@ public class AdminResourceImpl implements AdminResource {
         storage.deleteConfigProperty(propertyName);
     }
 
-    private static RoleMapping dtoToRoleMapping(RoleMappingDto dto) {
-        RoleMapping mapping = new RoleMapping();
-        mapping.setPrincipalId(dto.getPrincipalId());
-        mapping.setRole(RoleType.valueOf(dto.getRole()));
-        mapping.setPrincipalName(dto.getPrincipalName());
-        return mapping;
-    }
-
 
     private static boolean isNullOrTrue(Boolean value) {
         return value == null || value;
@@ -416,16 +432,6 @@ public class AdminResourceImpl implements AdminResource {
 
     private String createDownloadHref(String downloadId) {
         return "/apis/registry/v3/downloads/" + downloadId;
-    }
-
-    private static ConfigurationProperty dtoToConfigurationProperty(DynamicConfigPropertyDef def, DynamicConfigPropertyDto dto) {
-        ConfigurationProperty rval = new ConfigurationProperty();
-        rval.setName(def.getName());
-        rval.setValue(dto.getValue());
-        rval.setType(def.getType().getName());
-        rval.setLabel(def.getLabel());
-        rval.setDescription(def.getDescription());
-        return rval;
     }
 
     private ConfigurationProperty defToConfigurationProperty(DynamicConfigPropertyDef def) {

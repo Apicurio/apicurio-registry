@@ -162,5 +162,14 @@ public class AuthTestLocalRoles extends AbstractResourceTestBase {
                     config.headers.add("X-Registry-ArtifactId", getClass().getSimpleName());
                 });
         client.admin().rules().post(rule);
+        
+        // Now delete the role mapping
+        clientAdmin
+                .admin()
+                .roleMappings()
+                .byPrincipalId(JWKSMockServer.NO_ROLE_CLIENT_ID)
+                .delete()
+                ;
+        
     }
 }

@@ -1444,7 +1444,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
     @Test
     public void testRoleMappings() throws Exception {
         // Start with no role mappings
-        List<RoleMapping> roleMappings = clientV3.admin().roleMappings().get();
+        List<RoleMapping> roleMappings = clientV3.admin().roleMappings().get().getRoleMappings();
         Assertions.assertTrue(roleMappings.isEmpty());
 
         // Add
@@ -1454,25 +1454,20 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         clientV3.admin().roleMappings().post(mapping);
 
         // Verify the mapping was added.
-        TestUtils.retry(() -> {
-            RoleMapping roleMapping = clientV3.admin().roleMappings().byPrincipalId("TestUser").get();
-            Assertions.assertEquals("TestUser", roleMapping.getPrincipalId());
-            Assertions.assertEquals(RoleType.DEVELOPER, roleMapping.getRole());
-        });
-        TestUtils.retry(() -> {
-            List<RoleMapping> mappings = clientV3.admin().roleMappings().get();
-            Assertions.assertEquals(1, mappings.size());
-            Assertions.assertEquals("TestUser", mappings.get(0).getPrincipalId());
-            Assertions.assertEquals(RoleType.DEVELOPER, mappings.get(0).getRole());
-        });
+        RoleMapping roleMapping = clientV3.admin().roleMappings().byPrincipalId("TestUser").get();
+        Assertions.assertEquals("TestUser", roleMapping.getPrincipalId());
+        Assertions.assertEquals(RoleType.DEVELOPER, roleMapping.getRole());
+
+        List<RoleMapping> mappings = clientV3.admin().roleMappings().get().getRoleMappings();
+        Assertions.assertEquals(1, mappings.size());
+        Assertions.assertEquals("TestUser", mappings.get(0).getPrincipalId());
+        Assertions.assertEquals(RoleType.DEVELOPER, mappings.get(0).getRole());
 
         // Try to add the rule again - should get a 409
-        TestUtils.retry(() -> {
-            var exception = Assertions.assertThrows(ApiException.class, () -> {
-                clientV3.admin().roleMappings().post(mapping);
-            });
-            Assertions.assertEquals(409, exception.getResponseStatusCode());
+        var exception = Assertions.assertThrows(ApiException.class, () -> {
+            clientV3.admin().roleMappings().post(mapping);
         });
+        Assertions.assertEquals(409, exception.getResponseStatusCode());
 
         // Add another mapping
         mapping.setPrincipalId("TestUser2");
@@ -1480,10 +1475,8 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         clientV3.admin().roleMappings().post(mapping);
 
         // Get the list of mappings (should be 2 of them)
-        TestUtils.retry(() -> {
-            List<RoleMapping> mappings = clientV3.admin().roleMappings().get();
-            Assertions.assertEquals(2, mappings.size());
-        });
+        mappings = clientV3.admin().roleMappings().get().getRoleMappings();
+        Assertions.assertEquals(2, mappings.size());
 
         // Get a single mapping by principal
         RoleMapping tu2Mapping = clientV3.admin().roleMappings().byPrincipalId("TestUser2").get();
@@ -1496,42 +1489,36 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         clientV3.admin().roleMappings().byPrincipalId("TestUser").put(updated);
 
         // Get a single (updated) mapping
-        TestUtils.retry(() -> {
-            RoleMapping tum = clientV3.admin().roleMappings().byPrincipalId("TestUser").get();
-            Assertions.assertEquals("TestUser", tum.getPrincipalId());
-            Assertions.assertEquals(RoleType.READ_ONLY, tum.getRole());
-        });
+        RoleMapping tum = clientV3.admin().roleMappings().byPrincipalId("TestUser").get();
+        Assertions.assertEquals("TestUser", tum.getPrincipalId());
+        Assertions.assertEquals(RoleType.READ_ONLY, tum.getRole());
 
         // Try to update a role mapping that doesn't exist
-        var exception = Assertions.assertThrows(io.apicurio.registry.rest.client.models.Error.class, () -> {
+        var error = Assertions.assertThrows(io.apicurio.registry.rest.client.models.Error.class, () -> {
             UpdateRole updated2 = new UpdateRole();
             updated2.setRole(RoleType.ADMIN);
             clientV3.admin().roleMappings().byPrincipalId("UnknownPrincipal").put(updated2);
         });
 
         // RoleMappingNotFoundException
-        Assertions.assertEquals(404, exception.getErrorCode());
-        Assertions.assertEquals("RoleMappingNotFoundException", exception.getName());
+        Assertions.assertEquals(404, error.getErrorCode());
+        Assertions.assertEquals("RoleMappingNotFoundException", error.getName());
 
         // Delete a role mapping
         clientV3.admin().roleMappings().byPrincipalId("TestUser2").delete();
 
         // Get the (deleted) mapping by name (should fail with a 404)
-        TestUtils.retry(() -> {
-            var exception2 = Assertions.assertThrows(io.apicurio.registry.rest.client.models.Error.class, () -> {
-                clientV3.admin().roleMappings().byPrincipalId("TestUser2").get();
-            });
-            // RoleMappingNotFoundException
-            Assertions.assertEquals(404, exception2.getErrorCode());
-            Assertions.assertEquals("RoleMappingNotFoundException", exception2.getName());
+        var exception2 = Assertions.assertThrows(io.apicurio.registry.rest.client.models.Error.class, () -> {
+            clientV3.admin().roleMappings().byPrincipalId("TestUser2").get();
         });
+        // RoleMappingNotFoundException
+        Assertions.assertEquals(404, exception2.getErrorCode());
+        Assertions.assertEquals("RoleMappingNotFoundException", exception2.getName());
 
         // Get the list of mappings (should be 1 of them)
-        TestUtils.retry(() -> {
-            List<RoleMapping> mappings = clientV3.admin().roleMappings().get();
-            Assertions.assertEquals(1, mappings.size());
-            Assertions.assertEquals("TestUser", mappings.get(0).getPrincipalId());
-        });
+        mappings = clientV3.admin().roleMappings().get().getRoleMappings();
+        Assertions.assertEquals(1, mappings.size());
+        Assertions.assertEquals("TestUser", mappings.get(0).getPrincipalId());
 
         // Clean up
         clientV3.admin().roleMappings().byPrincipalId("TestUser").delete();

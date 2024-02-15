@@ -105,6 +105,7 @@ public class ReadOnlyRegistryStorageTest {
                 entry("getRoleForPrincipal1", new State(false, s -> s.getRoleForPrincipal(null))),
                 entry("getRoleMapping1", new State(false, s -> s.getRoleMapping(null))),
                 entry("getRoleMappings0", new State(false, RegistryStorage::getRoleMappings)),
+                entry("searchRoleMappings2", new State(false, s -> s.searchRoleMappings(0, 20))),
                 entry("getStaleConfigProperties1", new State(false, s -> s.getStaleConfigProperties(null))),
                 entry("importArtifactBranch1", new State(true, s -> s.importArtifactBranch(null))),
                 entry("importArtifactRule1", new State(true, s -> s.importArtifactRule(null))),

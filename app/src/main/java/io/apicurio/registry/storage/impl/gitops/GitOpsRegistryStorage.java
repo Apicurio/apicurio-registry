@@ -374,6 +374,11 @@ public class GitOpsRegistryStorage extends AbstractReadOnlyRegistryStorage {
     public List<RoleMappingDto> getRoleMappings() {
         return proxy(RegistryStorage::getRoleMappings);
     }
+    
+    @Override
+    public RoleMappingSearchResultsDto searchRoleMappings(int offset, int limit) throws RegistryStorageException {
+        return proxy(storage -> storage.searchRoleMappings(offset, limit));
+    }
 
 
     @Override

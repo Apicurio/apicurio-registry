@@ -263,6 +263,11 @@ public abstract class RegistryStorageDecoratorReadOnlyBase implements RegistrySt
     public List<RoleMappingDto> getRoleMappings() throws RegistryStorageException {
         return delegate.getRoleMappings();
     }
+    
+    @Override
+    public RoleMappingSearchResultsDto searchRoleMappings(int offset, int limit) throws RegistryStorageException {
+        return delegate.searchRoleMappings(offset, limit);
+    }
 
 
     @Override

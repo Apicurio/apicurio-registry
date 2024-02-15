@@ -14,6 +14,7 @@ import java.util.List;
 @ToString
 public class ArtifactSearchResultsDto {
 
+    @Builder.Default
     private List<SearchedArtifactDto> artifacts = new ArrayList<>();
     private long count;
 }

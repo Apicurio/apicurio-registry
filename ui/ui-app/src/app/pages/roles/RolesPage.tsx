@@ -17,6 +17,7 @@ import { GrantAccessModal } from "@app/pages/roles/components/modals/GrantAccess
 import { If, PleaseWaitModal } from "@apicurio/common-ui-components";
 import { AdminService, useAdminService } from "@services/useAdminService.ts";
 import { Principal } from "@services/useConfigService.ts";
+import { Paging } from "@services/useGroupsService.ts";
 
 
 export type RolesPageProps = {
@@ -42,7 +43,11 @@ export const RolesPage: FunctionComponent<RolesPageProps> = () => {
     const admin: AdminService = useAdminService();
 
     const createLoaders = (): Promise<any> => {
-        return admin.getRoleMappings().then(setRoles)
+        const paging: Paging = {
+            page: 1,
+            pageSize: 100
+        };
+        return admin.getRoleMappings(paging).then(results => setRoles(results.roleMappings))
             .catch(error => {
                 setPageError(toPageError(error, "Error loading role mappings."));
             });

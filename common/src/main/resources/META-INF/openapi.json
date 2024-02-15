@@ -1231,61 +1231,6 @@
                 }
             ]
         },
-        "/admin/roleMappings": {
-            "summary": "Collection to manage role mappings for authenticated principals",
-            "get": {
-                "tags": [
-                    "Admin"
-                ],
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "array",
-                                    "items": {
-                                        "$ref": "#/components/schemas/RoleMapping"
-                                    }
-                                }
-                            }
-                        },
-                        "description": "A successful response will return the list of role mappings."
-                    },
-                    "500": {
-                        "$ref": "#/components/responses/ServerError"
-                    }
-                },
-                "operationId": "listRoleMappings",
-                "summary": "List all role mappings",
-                "description": "Gets a list of all role mappings configured in the registry (if any).\n\nThis operation can fail for the following reasons:\n\n* A server error occurred (HTTP error `500`)\n"
-            },
-            "post": {
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/RoleMapping"
-                            }
-                        }
-                    },
-                    "required": true
-                },
-                "tags": [
-                    "Admin"
-                ],
-                "responses": {
-                    "204": {
-                        "description": "Returned when the role mapping was successfully created."
-                    },
-                    "500": {
-                        "$ref": "#/components/responses/ServerError"
-                    }
-                },
-                "operationId": "createRoleMapping",
-                "summary": "Create a new role mapping",
-                "description": "Creates a new mapping between a user/principal and a role.\n\nThis operation can fail for the following reasons:\n\n* A server error occurred (HTTP error `500`)\n\n"
-            }
-        },
         "/users/me": {
             "summary": "Retrieves information about the current user",
             "get": {
@@ -3426,6 +3371,76 @@
                 }
             ]
         },
+        "/admin/roleMappings": {
+            "summary": "Collection to manage role mappings for authenticated principals",
+            "get": {
+                "tags": [
+                    "Admin"
+                ],
+                "parameters": [
+                    {
+                        "name": "limit",
+                        "description": "The number of role mappings to return.  Defaults to 20.",
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "in": "query"
+                    },
+                    {
+                        "name": "offset",
+                        "description": "The number of role mappings to skip before starting the result set.  Defaults to 0.",
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RoleMappingSearchResults"
+                                }
+                            }
+                        },
+                        "description": "A successful response will return the list of role mappings."
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "listRoleMappings",
+                "summary": "List all role mappings",
+                "description": "Gets a list of all role mappings configured in the registry (if any).\n\nThis operation can fail for the following reasons:\n\n* A server error occurred (HTTP error `500`)\n"
+            },
+            "post": {
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/RoleMapping"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "tags": [
+                    "Admin"
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Returned when the role mapping was successfully created."
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "createRoleMapping",
+                "summary": "Create a new role mapping",
+                "description": "Creates a new mapping between a user/principal and a role.\n\nThis operation can fail for the following reasons:\n\n* A server error occurred (HTTP error `500`)\n\n"
+            }
+        },
         "x-codegen-contextRoot": "/apis/registry/v3"
     },
     "components": {
@@ -4898,6 +4913,39 @@
                         "custom-2": "bar"
                     }
                 }
+            },
+            "RoleMappingSearchResults": {
+                "description": "Describes the response received when searching for artifacts.",
+                "required": [
+                    "count",
+                    "roleMappings"
+                ],
+                "type": "object",
+                "properties": {
+                    "roleMappings": {
+                        "description": "The role mappings returned in the result set.",
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/RoleMapping"
+                        }
+                    },
+                    "count": {
+                        "description": "The total number of role mappings that matched the query that produced the result set (may be \nmore than the number of role mappings in the result set).",
+                        "type": "integer"
+                    }
+                },
+                "example": [
+                    {
+                        "principalId": "user-1",
+                        "principalName": "user-1",
+                        "role": "ADMIN"
+                    },
+                    {
+                        "principalId": "svc_account_84874587_123484",
+                        "principalName": "user-svc-account",
+                        "role": "READ_ONLY"
+                    }
+                ]
             }
         },
         "responses": {

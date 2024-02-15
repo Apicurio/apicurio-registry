@@ -1,13 +1,40 @@
 package io.apicurio.registry.rest.v3;
 
-import io.apicurio.registry.rest.v3.beans.*;
-import io.apicurio.registry.storage.dto.*;
-
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.Optional;
 import java.util.stream.Collectors;
+
+import io.apicurio.common.apps.config.DynamicConfigPropertyDef;
+import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
+import io.apicurio.registry.rest.v3.beans.ArtifactMetaData;
+import io.apicurio.registry.rest.v3.beans.ArtifactReference;
+import io.apicurio.registry.rest.v3.beans.ArtifactSearchResults;
+import io.apicurio.registry.rest.v3.beans.Comment;
+import io.apicurio.registry.rest.v3.beans.ConfigurationProperty;
+import io.apicurio.registry.rest.v3.beans.GroupMetaData;
+import io.apicurio.registry.rest.v3.beans.GroupSearchResults;
+import io.apicurio.registry.rest.v3.beans.RoleMapping;
+import io.apicurio.registry.rest.v3.beans.RoleMappingSearchResults;
+import io.apicurio.registry.rest.v3.beans.SearchedArtifact;
+import io.apicurio.registry.rest.v3.beans.SearchedGroup;
+import io.apicurio.registry.rest.v3.beans.SearchedVersion;
+import io.apicurio.registry.rest.v3.beans.SortOrder;
+import io.apicurio.registry.rest.v3.beans.VersionMetaData;
+import io.apicurio.registry.rest.v3.beans.VersionSearchResults;
+import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
+import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
+import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
+import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
+import io.apicurio.registry.storage.dto.CommentDto;
+import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
+import io.apicurio.registry.storage.dto.GroupMetaDataDto;
+import io.apicurio.registry.storage.dto.GroupSearchResultsDto;
+import io.apicurio.registry.storage.dto.RoleMappingDto;
+import io.apicurio.registry.storage.dto.RoleMappingSearchResultsDto;
+import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
+import io.apicurio.registry.types.RoleType;
 
 public final class V3ApiUtil {
 
@@ -296,4 +323,32 @@ public final class V3ApiUtil {
                 .value(dto.getValue())
                 .build();
     }
+
+    public static RoleMapping dtoToRoleMapping(RoleMappingDto dto) {
+        RoleMapping mapping = new RoleMapping();
+        mapping.setPrincipalId(dto.getPrincipalId());
+        mapping.setRole(RoleType.valueOf(dto.getRole()));
+        mapping.setPrincipalName(dto.getPrincipalName());
+        return mapping;
+    }
+
+    public static RoleMappingSearchResults dtoToRoleMappingSearchResults(RoleMappingSearchResultsDto dto) {
+        RoleMappingSearchResults results = new RoleMappingSearchResults();
+        results.setCount((int) dto.getCount());
+        results.setRoleMappings(dto.getRoleMappings().stream().map(rm -> {
+            return dtoToRoleMapping(rm);
+        }).collect(Collectors.toList()));
+        return results;
+    }
+
+    public static ConfigurationProperty dtoToConfigurationProperty(DynamicConfigPropertyDef def, DynamicConfigPropertyDto dto) {
+        ConfigurationProperty rval = new ConfigurationProperty();
+        rval.setName(def.getName());
+        rval.setValue(dto.getValue());
+        rval.setType(def.getType().getName());
+        rval.setLabel(def.getLabel());
+        rval.setDescription(def.getDescription());
+        return rval;
+    }
+
 }

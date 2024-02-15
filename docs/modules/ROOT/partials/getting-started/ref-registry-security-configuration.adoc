@@ -37,7 +37,7 @@ You can set the following environment variables to configure authentication for 
 |Type
 |Default
 |`AUTH_ENABLED`
-|Enables authentication in {registry}. When set to `true`, the environment variables that follow are required for authentication in {keycloak}.
+|Enables authentication for {registry}. When set to `true`, the environment variables that follow are required for authentication using {keycloak}.
 |String
 |`false`
 |`KEYCLOAK_URL`
@@ -45,7 +45,7 @@ You can set the following environment variables to configure authentication for 
 |String
 |-
 |`KEYCLOAK_REALM`
-|The {keycloak} realm for authentication. For example,`registry.`
+|The {keycloak} realm for authentication. For example, `registry.`
 |String
 |-
 |`KEYCLOAK_API_CLIENT_ID`

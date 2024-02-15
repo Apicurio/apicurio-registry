@@ -9,11 +9,6 @@ type AdminRequestBuilder struct {
 	i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.BaseRequestBuilder
 }
 
-// ArtifactTypes the list of artifact types supported by this instance of Registry.
-func (m *AdminRequestBuilder) ArtifactTypes() *ArtifactTypesRequestBuilder {
-	return NewArtifactTypesRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
-}
-
 // Config the config property
 func (m *AdminRequestBuilder) Config() *ConfigRequestBuilder {
 	return NewConfigRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)

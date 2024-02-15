@@ -9,6 +9,11 @@ type ConfigRequestBuilder struct {
 	i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.BaseRequestBuilder
 }
 
+// ArtifactTypes the list of artifact types supported by this instance of Registry.
+func (m *ConfigRequestBuilder) ArtifactTypes() *ConfigArtifactTypesRequestBuilder {
+	return NewConfigArtifactTypesRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
+}
+
 // NewConfigRequestBuilderInternal instantiates a new ConfigRequestBuilder and sets the default values.
 func NewConfigRequestBuilderInternal(pathParameters map[string]string, requestAdapter i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestAdapter) *ConfigRequestBuilder {
 	m := &ConfigRequestBuilder{

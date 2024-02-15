@@ -23,7 +23,7 @@ const getArtifactTypes = async (config: ConfigService, auth: AuthService): Promi
     const baseHref: string = config.artifactsUrl();
     const token: string | undefined = await auth.getToken();
     const options = createOptions(createHeaders(token));
-    const endpoint: string = createEndpoint(baseHref, "/admin/artifactTypes");
+    const endpoint: string = createEndpoint(baseHref, "/admin/config/artifactTypes");
     return httpGet<ArtifactTypeInfo[]>(endpoint, options);
 };
 

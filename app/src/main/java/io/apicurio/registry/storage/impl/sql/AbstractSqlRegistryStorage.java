@@ -527,7 +527,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
      */
     private ArtifactVersionMetaDataDto createArtifactVersionRaw(boolean firstVersion, String groupId, String artifactId, String version,
                                                                 String name, String description,
-                                                                Map<String, String> labels, String createdBy, Date createdOn,
+                                                                Map<String, String> labels, String owner, Date createdOn,
                                                                 Long contentId, IdGenerator globalIdGenerator) {
 
         ArtifactState state = ArtifactState.ENABLED;
@@ -555,7 +555,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                         .bind(4, state)
                         .bind(5, limitStr(name, 512))
                         .bind(6, limitStr(description, 1024, true))
-                        .bind(7, createdBy)
+                        .bind(7, owner)
                         .bind(8, createdOn)
                         .bind(9, labelsStr)
                         .bind(10, contentId)
@@ -578,7 +578,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                         .bind(6, state)
                         .bind(7, limitStr(name, 512))
                         .bind(8, limitStr(description, 1024, true))
-                        .bind(9, createdBy)
+                        .bind(9, owner)
                         .bind(10, createdOn)
                         .bind(11, labelsStr)
                         .bind(12, contentId)
@@ -744,7 +744,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                                                           List<ArtifactReferenceDto> references)
             throws ArtifactNotFoundException, ArtifactAlreadyExistsException, RegistryStorageException {
 
-        String createdBy = securityIdentity.getPrincipal().getName();
+        String owner = securityIdentity.getPrincipal().getName();
         Date createdOn = new Date();
 
         if (groupId != null && !isGroupExists(groupId)) {
@@ -753,8 +753,8 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                     .groupId(groupId)
                     .createdOn(createdOn.getTime())
                     .modifiedOn(createdOn.getTime())
-                    .createdBy(createdBy)
-                    .modifiedBy(createdBy)
+                    .owner(owner)
+                    .modifiedBy(owner)
                     .build());
         }
 
@@ -768,7 +768,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         }
         // This current method is skipped in KafkaSQL, and the one below is called directly,
         // so references must be added to the metadata there.
-        return createArtifactWithMetadataRaw(groupId, artifactId, version, artifactType, contentId, createdBy, createdOn, md, null);
+        return createArtifactWithMetadataRaw(groupId, artifactId, version, artifactType, contentId, owner, createdOn, md, null);
     }
 
 
@@ -776,7 +776,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
      * IMPORTANT: Private methods can't be @Transactional. Callers MUST have started a transaction.
      */
     private ArtifactMetaDataDto createArtifactWithMetadataRaw(String groupId, String artifactId, String version,
-                                                              String artifactType, long contentId, String createdBy,
+                                                              String artifactType, long contentId, String owner,
                                                               Date createdOn, EditableArtifactMetaDataDto metaData,
                                                               IdGenerator globalIdGenerator) {
         log.debug("Inserting an artifact row for: {} {}", groupId, artifactId);
@@ -787,13 +787,13 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                         .bind(0, normalizeGroupId(groupId))
                         .bind(1, artifactId)
                         .bind(2, artifactType)
-                        .bind(3, createdBy)
+                        .bind(3, owner)
                         .bind(4, createdOn)
                         .execute();
 
                 // Then create a row in the content and versions tables (for the content and version meta-data)
                 ArtifactVersionMetaDataDto vmdd = createArtifactVersionRaw(true, groupId, artifactId, version,
-                        metaData.getName(), metaData.getDescription(), metaData.getLabels(), createdBy, createdOn,
+                        metaData.getName(), metaData.getDescription(), metaData.getLabels(), owner, createdOn,
                         contentId, globalIdGenerator);
 
                 // Get the content, so we can return references in the metadata
@@ -801,7 +801,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
                 // Return the new artifact meta-data
                 ArtifactMetaDataDto amdd = convert(groupId, artifactId, vmdd);
-                amdd.setCreatedBy(createdBy);
+                amdd.setOwner(owner);
                 amdd.setCreatedOn(createdOn.getTime());
                 amdd.setLabels(metaData.getLabels());
                 amdd.setReferences(contentDto.getReferences());
@@ -936,7 +936,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                                                              String artifactType, ContentHandle content, EditableArtifactMetaDataDto metaData, List<ArtifactReferenceDto> references,
                                                              IdGenerator globalIdGenerator) throws ArtifactNotFoundException, RegistryStorageException {
 
-        String createdBy = securityIdentity.getPrincipal().getName();
+        String owner = securityIdentity.getPrincipal().getName();
         Date createdOn = new Date();
 
         // Put the content in the DB and get the unique content ID back.
@@ -949,7 +949,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             metaData = utils.extractEditableArtifactMetadata(artifactType, content);
         }
 
-        return updateArtifactWithMetadataRaw(groupId, artifactId, version, contentId, createdBy, createdOn,
+        return updateArtifactWithMetadataRaw(groupId, artifactId, version, contentId, owner, createdOn,
                 metaData, null);
     }
 
@@ -958,7 +958,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
      * IMPORTANT: Private methods can't be @Transactional. Callers MUST have started a transaction.
      */
     private ArtifactMetaDataDto updateArtifactWithMetadataRaw(String groupId, String artifactId, String version,
-                                                              long contentId, String createdBy, Date createdOn,
+                                                              long contentId, String owner, Date createdOn,
                                                               EditableArtifactMetaDataDto metaData, IdGenerator globalIdGenerator)
             throws ArtifactNotFoundException, RegistryStorageException {
         log.debug("Updating artifact {} {} with a new version (content).", groupId, artifactId);
@@ -987,10 +987,10 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
                 // Now create the version and return the new version metadata.
                 ArtifactVersionMetaDataDto versionDto = createArtifactVersionRaw(false, groupId, artifactId, version,
-                        name, description, labels, createdBy, createdOn, contentId, globalIdGenerator);
+                        name, description, labels, owner, createdOn, contentId, globalIdGenerator);
                 ArtifactMetaDataDto dto = convert(groupId, artifactId, versionDto);
                 dto.setCreatedOn(latest.getCreatedOn());
-                dto.setCreatedBy(latest.getCreatedBy());
+                dto.setOwner(latest.getOwner());
                 dto.setLabels(labels);
                 return dto;
             });
@@ -1162,7 +1162,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                     .append(orderByQuery)
                     .append(limitOffset)
                     .toString()
-                    .replace("{{selectColumns}}", "a.*, v.globalId, v.version, v.state, v.name, v.description, v.labels, v.createdBy AS modifiedBy, v.createdOn AS modifiedOn");
+                    .replace("{{selectColumns}}", "a.*, v.globalId, v.version, v.state, v.name, v.description, v.labels, v.owner AS modifiedBy, v.createdOn AS modifiedOn");
             Query artifactsQuery = handle.createQuery(artifactsQuerySql);
             String countQuerySql = new StringBuilder(selectTemplate)
                     .append(where)
@@ -1714,17 +1714,17 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     public CommentDto createArtifactVersionComment(String groupId, String artifactId, String version, String value) {
         log.debug("Inserting an artifact comment row for artifact: {} {} version: {}", groupId, artifactId, version);
 
-        String createdBy = securityIdentity.getPrincipal().getName();
+        String owner = securityIdentity.getPrincipal().getName();
         Date createdOn = new Date();
 
-        return createArtifactVersionCommentRaw(groupId, artifactId, version, this::nextCommentId, createdBy, createdOn, value);
+        return createArtifactVersionCommentRaw(groupId, artifactId, version, this::nextCommentId, owner, createdOn, value);
     }
 
 
     @Override
     @Transactional
     public CommentDto createArtifactVersionCommentRaw(String groupId, String artifactId, String version, IdGenerator commentId,
-                                                      String createdBy, Date createdOn, String value) {
+                                                      String owner, Date createdOn, String value) {
         try {
             return handles.withHandle(handle -> {
 
@@ -1733,7 +1733,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                 var entity = CommentEntity.builder()
                         .commentId(String.valueOf(commentId.generate()))
                         .globalId(metadata.getGlobalId())
-                        .createdBy(createdBy)
+                        .owner(owner)
                         .createdOn(createdOn.getTime())
                         .value(value)
                         .build();
@@ -1744,7 +1744,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
                 return CommentDto.builder()
                         .commentId(entity.commentId)
-                        .createdBy(createdBy)
+                        .owner(owner)
                         .createdOn(createdOn.getTime())
                         .value(value)
                         .build();
@@ -2038,7 +2038,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                         .bind(0, group.getGroupId())
                         .bind(1, group.getDescription())
                         .bind(2, group.getArtifactsType())
-                        .bind(3, group.getCreatedBy())
+                        .bind(3, group.getOwner())
                         // TODO io.apicurio.registry.storage.dto.GroupMetaDataDto should not use raw numeric timestamps
                         .bind(4, group.getCreatedOn() == 0 ? new Date() : new Date(group.getCreatedOn()))
                         .bind(5, group.getModifiedBy())
@@ -2918,7 +2918,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                         .bind(0, normalizeGroupId(entity.groupId))
                         .bind(1, entity.artifactId)
                         .bind(2, entity.artifactType)
-                        .bind(3, entity.createdBy)
+                        .bind(3, entity.owner)
                         .bind(4, new Date(entity.createdOn))
                         .execute();
             }
@@ -2934,7 +2934,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                         .bind(5, entity.state)
                         .bind(6, entity.name)
                         .bind(7, entity.description)
-                        .bind(8, entity.createdBy)
+                        .bind(8, entity.owner)
                         .bind(9, new Date(entity.createdOn))
                         .bind(10, SqlUtil.serializeLabels(entity.labels))
                         .bind(11, entity.contentId)
@@ -3007,7 +3007,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                         .bind(0, SqlUtil.normalizeGroupId(entity.groupId))
                         .bind(1, entity.description)
                         .bind(2, entity.artifactsType)
-                        .bind(3, entity.createdBy)
+                        .bind(3, entity.owner)
                         .bind(4, new Date(entity.createdOn))
                         .bind(5, entity.modifiedBy)
                         .bind(6, new Date(entity.modifiedOn))
@@ -3028,7 +3028,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             handle.createUpdate(sqlStatements.insertVersionComment())
                     .bind(0, entity.commentId)
                     .bind(1, entity.globalId)
-                    .bind(2, entity.createdBy)
+                    .bind(2, entity.owner)
                     .bind(3, new Date(entity.createdOn))
                     .bind(4, entity.value)
                     .execute();
@@ -3210,7 +3210,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     @Override
     @Transactional
     public ArtifactMetaDataDto updateArtifactWithMetadata(String groupId, String artifactId, String version,
-                                                          String artifactType, String contentHash, String createdBy, Date createdOn,
+                                                          String artifactType, String contentHash, String owner, Date createdOn,
                                                           EditableArtifactMetaDataDto metaData,
                                                           IdGenerator globalIdGenerator)
             throws ArtifactNotFoundException, RegistryStorageException {
@@ -3222,7 +3222,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             metaData = new EditableArtifactMetaDataDto();
         }
 
-        return updateArtifactWithMetadataRaw(groupId, artifactId, version, contentId, createdBy, createdOn,
+        return updateArtifactWithMetadataRaw(groupId, artifactId, version, contentId, owner, createdOn,
                 metaData, globalIdGenerator);
     }
 
@@ -3230,7 +3230,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     @Override
     @Transactional
     public ArtifactMetaDataDto createArtifactWithMetadata(String groupId, String artifactId, String version,
-                                                          String artifactType, String contentHash, String createdBy,
+                                                          String artifactType, String contentHash, String owner,
                                                           Date createdOn, EditableArtifactMetaDataDto metaData, IdGenerator globalIdGenerator)
             throws ArtifactNotFoundException, RegistryStorageException {
 
@@ -3241,7 +3241,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             metaData = new EditableArtifactMetaDataDto();
         }
 
-        return createArtifactWithMetadataRaw(groupId, artifactId, version, artifactType, contentId, createdBy, createdOn,
+        return createArtifactWithMetadataRaw(groupId, artifactId, version, artifactType, contentId, owner, createdOn,
                 metaData, globalIdGenerator);
     }
 

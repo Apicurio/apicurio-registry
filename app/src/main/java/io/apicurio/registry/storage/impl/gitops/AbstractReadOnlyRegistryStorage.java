@@ -288,7 +288,7 @@ public abstract class AbstractReadOnlyRegistryStorage implements RegistryStorage
 
 
     @Override
-    public CommentDto createArtifactVersionCommentRaw(String groupId, String artifactId, String version, IdGenerator commentId, String createdBy, Date createdOn, String value) {
+    public CommentDto createArtifactVersionCommentRaw(String groupId, String artifactId, String version, IdGenerator commentId, String owner, Date createdOn, String value) {
         readOnlyViolation();
         return null;
     }
@@ -361,14 +361,14 @@ public abstract class AbstractReadOnlyRegistryStorage implements RegistryStorage
 
 
     @Override
-    public ArtifactMetaDataDto updateArtifactWithMetadata(String groupId, String artifactId, String version, String artifactType, String contentHash, String createdBy, Date createdOn, EditableArtifactMetaDataDto metaData, IdGenerator globalIdGenerator) {
+    public ArtifactMetaDataDto updateArtifactWithMetadata(String groupId, String artifactId, String version, String artifactType, String contentHash, String owner, Date createdOn, EditableArtifactMetaDataDto metaData, IdGenerator globalIdGenerator) {
         readOnlyViolation();
         return null;
     }
 
 
     @Override
-    public ArtifactMetaDataDto createArtifactWithMetadata(String groupId, String artifactId, String version, String artifactType, String contentHash, String createdBy, Date createdOn, EditableArtifactMetaDataDto metaData, IdGenerator globalIdGenerator) throws RegistryStorageException {
+    public ArtifactMetaDataDto createArtifactWithMetadata(String groupId, String artifactId, String version, String artifactType, String contentHash, String owner, Date createdOn, EditableArtifactMetaDataDto metaData, IdGenerator globalIdGenerator) throws RegistryStorageException {
         readOnlyViolation();
         return null;
     }

@@ -13,6 +13,6 @@ public class CommentDto {
 
     private String commentId;
     private String value;
-    private String createdBy;
+    private String owner;
     private long createdOn;
 }

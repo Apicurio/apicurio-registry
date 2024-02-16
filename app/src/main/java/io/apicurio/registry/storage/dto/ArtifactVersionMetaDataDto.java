@@ -26,7 +26,7 @@ public class ArtifactVersionMetaDataDto {
     private long contentId;
     private String name;
     private String description;
-    private String createdBy;
+    private String owner;
     private long createdOn;
     private String type;
     private ArtifactState state;

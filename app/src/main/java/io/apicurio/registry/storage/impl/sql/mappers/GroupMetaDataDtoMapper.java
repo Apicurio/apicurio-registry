@@ -30,7 +30,7 @@ public class GroupMetaDataDtoMapper implements RowMapper<GroupMetaDataDto> {
         String type = rs.getString("artifactsType");
         dto.setArtifactsType(type);
 
-        dto.setCreatedBy(rs.getString("createdBy"));
+        dto.setOwner(rs.getString("owner"));
         dto.setCreatedOn(rs.getTimestamp("createdOn").getTime());
 
         dto.setModifiedBy(rs.getString("modifiedBy"));

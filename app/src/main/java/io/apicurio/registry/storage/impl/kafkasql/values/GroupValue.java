@@ -13,7 +13,7 @@ public class GroupValue extends AbstractMessageValue {
 
     private String description;
     private String artifactsType;
-    private String createdBy;
+    private String owner;
     private long createdOn;
     private String modifiedBy;
     private long modifiedOn;
@@ -42,7 +42,7 @@ public class GroupValue extends AbstractMessageValue {
         value.setAction(action);
         value.setDescription(meta.getDescription());
         value.setArtifactsType(meta.getArtifactsType());
-        value.setCreatedBy(meta.getCreatedBy());
+        value.setOwner(meta.getOwner());
         value.setCreatedOn(meta.getCreatedOn());
         value.setModifiedBy(meta.getModifiedBy());
         value.setModifiedOn(meta.getModifiedOn());
@@ -87,17 +87,17 @@ public class GroupValue extends AbstractMessageValue {
     }
 
     /**
-     * @return the createdBy
+     * @return the owner
      */
-    public String getCreatedBy() {
-        return createdBy;
+    public String getOwner() {
+        return owner;
     }
 
     /**
-     * @param createdBy the createdBy to set
+     * @param owner the owner to set
      */
-    public void setCreatedBy(String createdBy) {
-        this.createdBy = createdBy;
+    public void setOwner(String owner) {
+        this.owner = owner;
     }
 
     /**

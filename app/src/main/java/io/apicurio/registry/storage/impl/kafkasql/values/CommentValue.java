@@ -11,7 +11,7 @@ import java.util.Date;
 public class CommentValue extends AbstractMessageValue {
 
     private long globalId;
-    private String createdBy;
+    private String owner;
     private Date createdOn;
     private String value;
 
@@ -19,15 +19,15 @@ public class CommentValue extends AbstractMessageValue {
      * Creator method.
      * @param action
      * @param globalId
-     * @param createdBy
+     * @param owner
      * @param createdOn
      * @param value
      */
-    public static final CommentValue create(ActionType action, long globalId, String createdBy, Date createdOn, String value) {
+    public static final CommentValue create(ActionType action, long globalId, String owner, Date createdOn, String value) {
         CommentValue cv = new CommentValue();
         cv.setAction(action);
         cv.setGlobalId(globalId);
-        cv.setCreatedBy(createdBy);
+        cv.setOwner(owner);
         cv.setCreatedOn(createdOn);
         cv.setValue(value);
         return cv;
@@ -42,17 +42,17 @@ public class CommentValue extends AbstractMessageValue {
     }
 
     /**
-     * @return the createdBy
+     * @return the owner
      */
-    public String getCreatedBy() {
-        return createdBy;
+    public String getOwner() {
+        return owner;
     }
 
     /**
-     * @param createdBy the createdBy to set
+     * @param owner the owner to set
      */
-    public void setCreatedBy(String createdBy) {
-        this.createdBy = createdBy;
+    public void setOwner(String owner) {
+        this.owner = owner;
     }
 
     /**

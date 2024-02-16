@@ -17,7 +17,7 @@ public class SearchedGroupDto {
     private String id;
     private String description;
     private Date createdOn;
-    private String createdBy;
+    private String owner;
     private Date modifiedOn;
     private String modifiedBy;
 }

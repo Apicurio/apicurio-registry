@@ -7,7 +7,7 @@ export interface VersionMetaData {
     labels: string[]|null;
     type: string;
     version: number;
-    createdBy: string;
+    owner: string;
     createdOn: Date;
     contentId: number|null;
     globalId: number;

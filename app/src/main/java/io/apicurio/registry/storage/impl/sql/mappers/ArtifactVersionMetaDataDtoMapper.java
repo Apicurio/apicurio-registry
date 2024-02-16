@@ -30,7 +30,7 @@ public class ArtifactVersionMetaDataDtoMapper implements RowMapper<ArtifactVersi
         dto.setGlobalId(rs.getLong("globalId"));
         dto.setContentId(rs.getLong("contentId"));
         dto.setState(ArtifactState.valueOf(rs.getString("state")));
-        dto.setCreatedBy(rs.getString("createdBy"));
+        dto.setOwner(rs.getString("owner"));
         dto.setCreatedOn(rs.getTimestamp("createdOn").getTime());
         dto.setName(rs.getString("name"));
         dto.setDescription(rs.getString("description"));

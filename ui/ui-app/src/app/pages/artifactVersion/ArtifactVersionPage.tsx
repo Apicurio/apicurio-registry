@@ -51,7 +51,7 @@ const EMPTY_ARTIFACT_META_DATA: ArtifactMetaData = {
     labels: {},
     type: "",
     version: "",
-    createdBy: "",
+    owner: "",
     createdOn: "",
     modifiedBy: "",
     modifiedOn: "",
@@ -334,7 +334,7 @@ export const ArtifactVersionPage: FunctionComponent<ArtifactVersionPageProps> = 
             if (artifact) {
                 setArtifact({
                     ...artifact,
-                    createdBy: newOwner
+                    owner: newOwner
                 });
             }
         }).catch( error => {
@@ -469,7 +469,7 @@ export const ArtifactVersionPage: FunctionComponent<ArtifactVersionPageProps> = 
             />
             <ChangeOwnerModal isOpen={isChangeOwnerModalOpen}
                 onClose={onChangeOwnerModalClose}
-                currentOwner={artifact?.createdBy || ""}
+                currentOwner={artifact?.owner || ""}
                 onChangeOwner={doChangeOwner}
             />
             <InvalidContentModal error={invalidContentError}

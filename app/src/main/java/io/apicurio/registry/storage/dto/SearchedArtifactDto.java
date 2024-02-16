@@ -25,7 +25,7 @@ public class SearchedArtifactDto {
     private String name;
     private String description;
     private Date createdOn;
-    private String createdBy;
+    private String owner;
     private String type;
     private ArtifactState state;
     private Date modifiedOn;

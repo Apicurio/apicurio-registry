@@ -8,7 +8,7 @@ export interface ArtifactMetaData {
     labels: { [key: string]: string };
     type: string;
     version: string;
-    createdBy: string;
+    owner: string;
     createdOn: string;
     modifiedBy: string;
     modifiedOn: string;

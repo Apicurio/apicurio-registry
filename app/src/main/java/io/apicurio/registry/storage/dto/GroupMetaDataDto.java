@@ -19,7 +19,7 @@ public class GroupMetaDataDto implements Serializable {
     private String groupId;
     private String description;
     private String artifactsType;
-    private String createdBy;
+    private String owner;
     private long createdOn;
     private String modifiedBy;
     private long modifiedOn;

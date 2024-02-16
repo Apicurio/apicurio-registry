@@ -91,7 +91,7 @@ public class SchemagroupsResourceImpl implements SchemagroupsResource {
         String user = securityIdentity.getPrincipal().getName();
 
         try {
-            group.createdBy(user)
+            group.owner(user)
                 .createdOn(new Date().getTime());
 
             storage.createGroup(group.build());

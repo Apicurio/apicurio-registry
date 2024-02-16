@@ -11,8 +11,6 @@ type VersionMetaData struct {
 	additionalData map[string]any
 	// The contentId property
 	contentId *int64
-	// The createdBy property
-	createdBy *string
 	// The createdOn property
 	createdOn *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time
 	// The description property
@@ -27,6 +25,8 @@ type VersionMetaData struct {
 	labels Labelsable
 	// The name property
 	name *string
+	// The owner property
+	owner *string
 	// Describes the state of an artifact or artifact version.  The following statesare possible:* ENABLED* DISABLED* DEPRECATED
 	state *ArtifactState
 	// The type property
@@ -57,11 +57,6 @@ func (m *VersionMetaData) GetContentId() *int64 {
 	return m.contentId
 }
 
-// GetCreatedBy gets the createdBy property value. The createdBy property
-func (m *VersionMetaData) GetCreatedBy() *string {
-	return m.createdBy
-}
-
 // GetCreatedOn gets the createdOn property value. The createdOn property
 func (m *VersionMetaData) GetCreatedOn() *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time {
 	return m.createdOn
@@ -82,16 +77,6 @@ func (m *VersionMetaData) GetFieldDeserializers() map[string]func(i878a80d2330e8
 		}
 		if val != nil {
 			m.SetContentId(val)
-		}
-		return nil
-	}
-	res["createdBy"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
-		val, err := n.GetStringValue()
-		if err != nil {
-			return err
-		}
-		if val != nil {
-			m.SetCreatedBy(val)
 		}
 		return nil
 	}
@@ -165,6 +150,16 @@ func (m *VersionMetaData) GetFieldDeserializers() map[string]func(i878a80d2330e8
 		}
 		return nil
 	}
+	res["owner"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
+		val, err := n.GetStringValue()
+		if err != nil {
+			return err
+		}
+		if val != nil {
+			m.SetOwner(val)
+		}
+		return nil
+	}
 	res["state"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
 		val, err := n.GetEnumValue(ParseArtifactState)
 		if err != nil {
@@ -223,6 +218,11 @@ func (m *VersionMetaData) GetName() *string {
 	return m.name
 }
 
+// GetOwner gets the owner property value. The owner property
+func (m *VersionMetaData) GetOwner() *string {
+	return m.owner
+}
+
 // GetState gets the state property value. Describes the state of an artifact or artifact version.  The following statesare possible:* ENABLED* DISABLED* DEPRECATED
 func (m *VersionMetaData) GetState() *ArtifactState {
 	return m.state
@@ -242,12 +242,6 @@ func (m *VersionMetaData) GetVersion() *string {
 func (m *VersionMetaData) Serialize(writer i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.SerializationWriter) error {
 	{
 		err := writer.WriteInt64Value("contentId", m.GetContentId())
-		if err != nil {
-			return err
-		}
-	}
-	{
-		err := writer.WriteStringValue("createdBy", m.GetCreatedBy())
 		if err != nil {
 			return err
 		}
@@ -294,6 +288,12 @@ func (m *VersionMetaData) Serialize(writer i878a80d2330e89d26896388a3f487eef27b0
 			return err
 		}
 	}
+	{
+		err := writer.WriteStringValue("owner", m.GetOwner())
+		if err != nil {
+			return err
+		}
+	}
 	if m.GetState() != nil {
 		cast := (*m.GetState()).String()
 		err := writer.WriteStringValue("state", &cast)
@@ -332,11 +332,6 @@ func (m *VersionMetaData) SetContentId(value *int64) {
 	m.contentId = value
 }
 
-// SetCreatedBy sets the createdBy property value. The createdBy property
-func (m *VersionMetaData) SetCreatedBy(value *string) {
-	m.createdBy = value
-}
-
 // SetCreatedOn sets the createdOn property value. The createdOn property
 func (m *VersionMetaData) SetCreatedOn(value *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time) {
 	m.createdOn = value
@@ -372,6 +367,11 @@ func (m *VersionMetaData) SetName(value *string) {
 	m.name = value
 }
 
+// SetOwner sets the owner property value. The owner property
+func (m *VersionMetaData) SetOwner(value *string) {
+	m.owner = value
+}
+
 // SetState sets the state property value. Describes the state of an artifact or artifact version.  The following statesare possible:* ENABLED* DISABLED* DEPRECATED
 func (m *VersionMetaData) SetState(value *ArtifactState) {
 	m.state = value
@@ -392,7 +392,6 @@ type VersionMetaDataable interface {
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.AdditionalDataHolder
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.Parsable
 	GetContentId() *int64
-	GetCreatedBy() *string
 	GetCreatedOn() *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time
 	GetDescription() *string
 	GetGlobalId() *int64
@@ -400,11 +399,11 @@ type VersionMetaDataable interface {
 	GetId() *string
 	GetLabels() Labelsable
 	GetName() *string
+	GetOwner() *string
 	GetState() *ArtifactState
 	GetTypeEscaped() *string
 	GetVersion() *string
 	SetContentId(value *int64)
-	SetCreatedBy(value *string)
 	SetCreatedOn(value *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time)
 	SetDescription(value *string)
 	SetGlobalId(value *int64)
@@ -412,6 +411,7 @@ type VersionMetaDataable interface {
 	SetId(value *string)
 	SetLabels(value Labelsable)
 	SetName(value *string)
+	SetOwner(value *string)
 	SetState(value *ArtifactState)
 	SetTypeEscaped(value *string)
 	SetVersion(value *string)

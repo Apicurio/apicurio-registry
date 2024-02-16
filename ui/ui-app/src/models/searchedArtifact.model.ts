@@ -8,7 +8,7 @@ export interface SearchedArtifact {
     description: string;
     labels: string[];
     createdOn: Date;
-    createdBy: string;
+    owner: string;
     modifiedOn: Date;
     modifiedBy: string;
 

@@ -286,9 +286,9 @@ public class RegistryStorageDecoratorBase extends RegistryStorageDecoratorReadOn
 
 
     @Override
-    public CommentDto createArtifactVersionCommentRaw(String groupId, String artifactId, String version, IdGenerator commentId, String createdBy, Date createdOn, String value) {
+    public CommentDto createArtifactVersionCommentRaw(String groupId, String artifactId, String version, IdGenerator commentId, String owner, Date createdOn, String value) {
         return delegate.createArtifactVersionCommentRaw(groupId, artifactId, version, commentId,
-                createdBy, createdOn, value);
+                owner, createdOn, value);
     }
 
 
@@ -360,22 +360,22 @@ public class RegistryStorageDecoratorBase extends RegistryStorageDecoratorReadOn
 
     @Override
     public ArtifactMetaDataDto updateArtifactWithMetadata(String groupId, String artifactId, String version,
-                                                          String artifactType, String contentHash, String createdBy,
+                                                          String artifactType, String contentHash, String owner,
                                                           Date createdOn, EditableArtifactMetaDataDto metaData,
                                                           IdGenerator globalIdGenerator) {
         return delegate.updateArtifactWithMetadata(groupId, artifactId, version,
-                artifactType, contentHash, createdBy, createdOn, metaData, globalIdGenerator);
+                artifactType, contentHash, owner, createdOn, metaData, globalIdGenerator);
     }
 
 
     @Override
     public ArtifactMetaDataDto createArtifactWithMetadata(String groupId, String artifactId, String version,
-                                                          String artifactType, String contentHash, String createdBy,
+                                                          String artifactType, String contentHash, String owner,
                                                           Date createdOn, EditableArtifactMetaDataDto metaData,
                                                           IdGenerator globalIdGenerator)
             throws ArtifactNotFoundException, RegistryStorageException {
         return delegate.createArtifactWithMetadata(groupId, artifactId, version,
-                artifactType, contentHash, createdBy, createdOn, metaData, globalIdGenerator);
+                artifactType, contentHash, owner, createdOn, metaData, globalIdGenerator);
     }
 
 

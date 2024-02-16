@@ -11,8 +11,6 @@ type ArtifactMetaData struct {
 	additionalData map[string]any
 	// The contentId property
 	contentId *int64
-	// The createdBy property
-	createdBy *string
 	// The createdOn property
 	createdOn *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time
 	// The description property
@@ -31,6 +29,8 @@ type ArtifactMetaData struct {
 	modifiedOn *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time
 	// The name property
 	name *string
+	// The owner property
+	owner *string
 	// The references property
 	references []ArtifactReferenceable
 	// Describes the state of an artifact or artifact version.  The following statesare possible:* ENABLED* DISABLED* DEPRECATED
@@ -63,11 +63,6 @@ func (m *ArtifactMetaData) GetContentId() *int64 {
 	return m.contentId
 }
 
-// GetCreatedBy gets the createdBy property value. The createdBy property
-func (m *ArtifactMetaData) GetCreatedBy() *string {
-	return m.createdBy
-}
-
 // GetCreatedOn gets the createdOn property value. The createdOn property
 func (m *ArtifactMetaData) GetCreatedOn() *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time {
 	return m.createdOn
@@ -88,16 +83,6 @@ func (m *ArtifactMetaData) GetFieldDeserializers() map[string]func(i878a80d2330e
 		}
 		if val != nil {
 			m.SetContentId(val)
-		}
-		return nil
-	}
-	res["createdBy"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
-		val, err := n.GetStringValue()
-		if err != nil {
-			return err
-		}
-		if val != nil {
-			m.SetCreatedBy(val)
 		}
 		return nil
 	}
@@ -191,6 +176,16 @@ func (m *ArtifactMetaData) GetFieldDeserializers() map[string]func(i878a80d2330e
 		}
 		return nil
 	}
+	res["owner"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
+		val, err := n.GetStringValue()
+		if err != nil {
+			return err
+		}
+		if val != nil {
+			m.SetOwner(val)
+		}
+		return nil
+	}
 	res["references"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
 		val, err := n.GetCollectionOfObjectValues(CreateArtifactReferenceFromDiscriminatorValue)
 		if err != nil {
@@ -275,6 +270,11 @@ func (m *ArtifactMetaData) GetName() *string {
 	return m.name
 }
 
+// GetOwner gets the owner property value. The owner property
+func (m *ArtifactMetaData) GetOwner() *string {
+	return m.owner
+}
+
 // GetReferences gets the references property value. The references property
 func (m *ArtifactMetaData) GetReferences() []ArtifactReferenceable {
 	return m.references
@@ -299,12 +299,6 @@ func (m *ArtifactMetaData) GetVersion() *string {
 func (m *ArtifactMetaData) Serialize(writer i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.SerializationWriter) error {
 	{
 		err := writer.WriteInt64Value("contentId", m.GetContentId())
-		if err != nil {
-			return err
-		}
-	}
-	{
-		err := writer.WriteStringValue("createdBy", m.GetCreatedBy())
 		if err != nil {
 			return err
 		}
@@ -363,6 +357,12 @@ func (m *ArtifactMetaData) Serialize(writer i878a80d2330e89d26896388a3f487eef27b
 			return err
 		}
 	}
+	{
+		err := writer.WriteStringValue("owner", m.GetOwner())
+		if err != nil {
+			return err
+		}
+	}
 	if m.GetReferences() != nil {
 		cast := make([]i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.Parsable, len(m.GetReferences()))
 		for i, v := range m.GetReferences() {
@@ -413,11 +413,6 @@ func (m *ArtifactMetaData) SetContentId(value *int64) {
 	m.contentId = value
 }
 
-// SetCreatedBy sets the createdBy property value. The createdBy property
-func (m *ArtifactMetaData) SetCreatedBy(value *string) {
-	m.createdBy = value
-}
-
 // SetCreatedOn sets the createdOn property value. The createdOn property
 func (m *ArtifactMetaData) SetCreatedOn(value *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time) {
 	m.createdOn = value
@@ -463,6 +458,11 @@ func (m *ArtifactMetaData) SetName(value *string) {
 	m.name = value
 }
 
+// SetOwner sets the owner property value. The owner property
+func (m *ArtifactMetaData) SetOwner(value *string) {
+	m.owner = value
+}
+
 // SetReferences sets the references property value. The references property
 func (m *ArtifactMetaData) SetReferences(value []ArtifactReferenceable) {
 	m.references = value
@@ -488,7 +488,6 @@ type ArtifactMetaDataable interface {
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.AdditionalDataHolder
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.Parsable
 	GetContentId() *int64
-	GetCreatedBy() *string
 	GetCreatedOn() *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time
 	GetDescription() *string
 	GetGlobalId() *int64
@@ -498,12 +497,12 @@ type ArtifactMetaDataable interface {
 	GetModifiedBy() *string
 	GetModifiedOn() *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time
 	GetName() *string
+	GetOwner() *string
 	GetReferences() []ArtifactReferenceable
 	GetState() *ArtifactState
 	GetTypeEscaped() *string
 	GetVersion() *string
 	SetContentId(value *int64)
-	SetCreatedBy(value *string)
 	SetCreatedOn(value *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time)
 	SetDescription(value *string)
 	SetGlobalId(value *int64)
@@ -513,6 +512,7 @@ type ArtifactMetaDataable interface {
 	SetModifiedBy(value *string)
 	SetModifiedOn(value *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time)
 	SetName(value *string)
+	SetOwner(value *string)
 	SetReferences(value []ArtifactReferenceable)
 	SetState(value *ArtifactState)
 	SetTypeEscaped(value *string)

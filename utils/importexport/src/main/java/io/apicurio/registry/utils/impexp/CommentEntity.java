@@ -17,7 +17,7 @@ public class CommentEntity extends Entity {
 
     public long globalId;
     public String commentId;
-    public String createdBy;
+    public String owner;
     public long createdOn;
     public String value;
 

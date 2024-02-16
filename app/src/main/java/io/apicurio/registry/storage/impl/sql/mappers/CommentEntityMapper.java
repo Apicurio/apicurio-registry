@@ -24,7 +24,7 @@ public class CommentEntityMapper implements RowMapper<CommentEntity> {
         CommentEntity entity = new CommentEntity();
         entity.globalId = rs.getLong("globalId");
         entity.commentId = rs.getString("commentId");
-        entity.createdBy = rs.getString("createdBy");
+        entity.owner = rs.getString("owner");
         entity.createdOn = rs.getTimestamp("createdOn").getTime();
         entity.value = rs.getString("cvalue");
         return entity;

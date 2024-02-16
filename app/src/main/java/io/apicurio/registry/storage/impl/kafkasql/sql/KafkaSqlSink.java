@@ -264,7 +264,7 @@ public class KafkaSqlSink {
                     .groupId(key.getGroupId())
                     .description(value.getDescription())
                     .artifactsType(value.getArtifactsType())
-                    .createdBy(value.getCreatedBy())
+                    .owner(value.getOwner())
                     .createdOn(value.getCreatedOn())
                     .modifiedBy(value.getModifiedBy())
                     .modifiedOn(value.getModifiedOn())
@@ -291,7 +291,7 @@ public class KafkaSqlSink {
             case IMPORT:
                 GroupEntity entity = new GroupEntity();
                 entity.artifactsType = value.getArtifactsType();
-                entity.createdBy = value.getCreatedBy();
+                entity.owner = value.getOwner();
                 entity.createdOn = value.getCreatedOn();
                 entity.description = value.getDescription();
                 entity.groupId = key.getGroupId();
@@ -316,11 +316,11 @@ public class KafkaSqlSink {
             switch (value.getAction()) {
                 case CREATE:
                     return sqlStore.createArtifactWithMetadata(key.getGroupId(), key.getArtifactId(), value.getVersion(), value.getArtifactType(),
-                            value.getContentHash(), value.getCreatedBy(), value.getCreatedOn(),
+                            value.getContentHash(), value.getOwner(), value.getCreatedOn(),
                             value.getMetaData(), IdGenerator.single(value.getGlobalId()));
                 case UPDATE:
                     return sqlStore.updateArtifactWithMetadata(key.getGroupId(), key.getArtifactId(), value.getVersion(), value.getArtifactType(),
-                            value.getContentHash(), value.getCreatedBy(), value.getCreatedOn(),
+                            value.getContentHash(), value.getOwner(), value.getCreatedOn(),
                             value.getMetaData(), IdGenerator.single(value.getGlobalId()));
                 case DELETE:
                     return sqlStore.deleteArtifact(key.getGroupId(), key.getArtifactId());
@@ -335,7 +335,7 @@ public class KafkaSqlSink {
                     entity.state = value.getState();
                     entity.name = value.getMetaData().getName();
                     entity.description = value.getMetaData().getDescription();
-                    entity.createdBy = value.getCreatedBy();
+                    entity.owner = value.getOwner();
                     entity.createdOn = value.getCreatedOn().getTime();
                     entity.labels = value.getMetaData().getLabels();
                     entity.contentId = value.getContentId();
@@ -636,7 +636,7 @@ public class KafkaSqlSink {
             case CREATE:
                 return sqlStore.createArtifactVersionCommentRaw(key.getGroupId(), key.getArtifactId(), key.getVersion(),
                         IdGenerator.single(Long.parseLong(key.getCommentId())),
-                        value.getCreatedBy(), value.getCreatedOn(), value.getValue());
+                        value.getOwner(), value.getCreatedOn(), value.getValue());
             case UPDATE:
                 sqlStore.updateArtifactVersionComment(key.getGroupId(), key.getArtifactId(), key.getVersion(), key.getCommentId(), value.getValue());
                 return null;
@@ -647,7 +647,7 @@ public class KafkaSqlSink {
                 CommentEntity entity = new CommentEntity();
                 entity.commentId = key.getCommentId();
                 entity.globalId = value.getGlobalId();
-                entity.createdBy = value.getCreatedBy();
+                entity.owner = value.getOwner();
                 entity.createdOn = value.getCreatedOn().getTime();
                 entity.value = value.getValue();
                 sqlStore.importComment(entity);

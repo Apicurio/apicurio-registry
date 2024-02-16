@@ -27,7 +27,7 @@ public class SearchedArtifactMapper implements RowMapper<SearchedArtifactDto> {
         dto.setGroupId(SqlUtil.denormalizeGroupId(rs.getString("groupId")));
         dto.setId(rs.getString("artifactId"));
         dto.setState(ArtifactState.valueOf(rs.getString("state")));
-        dto.setCreatedBy(rs.getString("createdBy"));
+        dto.setOwner(rs.getString("owner"));
         dto.setCreatedOn(rs.getTimestamp("createdOn"));
         dto.setName(rs.getString("name"));
         dto.setDescription(rs.getString("description"));

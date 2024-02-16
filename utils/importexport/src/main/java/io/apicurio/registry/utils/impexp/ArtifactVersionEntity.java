@@ -34,7 +34,7 @@ public class ArtifactVersionEntity extends Entity {
     public ArtifactState state;
     public String name;
     public String description;
-    public String createdBy;
+    public String owner;
     public long createdOn;
     public Map<String, String> labels;
     public long contentId;

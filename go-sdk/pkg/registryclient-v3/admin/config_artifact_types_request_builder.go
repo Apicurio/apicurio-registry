@@ -6,36 +6,36 @@ import (
 	i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f "github.com/microsoft/kiota-abstractions-go"
 )
 
-// ArtifactTypesRequestBuilder the list of artifact types supported by this instance of Registry.
-type ArtifactTypesRequestBuilder struct {
+// ConfigArtifactTypesRequestBuilder the list of artifact types supported by this instance of Registry.
+type ConfigArtifactTypesRequestBuilder struct {
 	i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.BaseRequestBuilder
 }
 
-// ArtifactTypesRequestBuilderGetRequestConfiguration configuration for the request such as headers, query parameters, and middleware options.
-type ArtifactTypesRequestBuilderGetRequestConfiguration struct {
+// ConfigArtifactTypesRequestBuilderGetRequestConfiguration configuration for the request such as headers, query parameters, and middleware options.
+type ConfigArtifactTypesRequestBuilderGetRequestConfiguration struct {
 	// Request headers
 	Headers *i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestHeaders
 	// Request options
 	Options []i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestOption
 }
 
-// NewArtifactTypesRequestBuilderInternal instantiates a new ArtifactTypesRequestBuilder and sets the default values.
-func NewArtifactTypesRequestBuilderInternal(pathParameters map[string]string, requestAdapter i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestAdapter) *ArtifactTypesRequestBuilder {
-	m := &ArtifactTypesRequestBuilder{
-		BaseRequestBuilder: *i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewBaseRequestBuilder(requestAdapter, "{+baseurl}/admin/artifactTypes", pathParameters),
+// NewConfigArtifactTypesRequestBuilderInternal instantiates a new ArtifactTypesRequestBuilder and sets the default values.
+func NewConfigArtifactTypesRequestBuilderInternal(pathParameters map[string]string, requestAdapter i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestAdapter) *ConfigArtifactTypesRequestBuilder {
+	m := &ConfigArtifactTypesRequestBuilder{
+		BaseRequestBuilder: *i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewBaseRequestBuilder(requestAdapter, "{+baseurl}/admin/config/artifactTypes", pathParameters),
 	}
 	return m
 }
 
-// NewArtifactTypesRequestBuilder instantiates a new ArtifactTypesRequestBuilder and sets the default values.
-func NewArtifactTypesRequestBuilder(rawUrl string, requestAdapter i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestAdapter) *ArtifactTypesRequestBuilder {
+// NewConfigArtifactTypesRequestBuilder instantiates a new ArtifactTypesRequestBuilder and sets the default values.
+func NewConfigArtifactTypesRequestBuilder(rawUrl string, requestAdapter i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestAdapter) *ConfigArtifactTypesRequestBuilder {
 	urlParams := make(map[string]string)
 	urlParams["request-raw-url"] = rawUrl
-	return NewArtifactTypesRequestBuilderInternal(urlParams, requestAdapter)
+	return NewConfigArtifactTypesRequestBuilderInternal(urlParams, requestAdapter)
 }
 
 // Get gets a list of all the configured artifact types.This operation can fail for the following reasons:* A server error occurred (HTTP error `500`)
-func (m *ArtifactTypesRequestBuilder) Get(ctx context.Context, requestConfiguration *ArtifactTypesRequestBuilderGetRequestConfiguration) ([]i00eb2e63d156923d00d8e86fe16b5d74daf30e363c9f185a8165cb42aa2f2c71.ArtifactTypeInfoable, error) {
+func (m *ConfigArtifactTypesRequestBuilder) Get(ctx context.Context, requestConfiguration *ConfigArtifactTypesRequestBuilderGetRequestConfiguration) ([]i00eb2e63d156923d00d8e86fe16b5d74daf30e363c9f185a8165cb42aa2f2c71.ArtifactTypeInfoable, error) {
 	requestInfo, err := m.ToGetRequestInformation(ctx, requestConfiguration)
 	if err != nil {
 		return nil, err
@@ -57,7 +57,7 @@ func (m *ArtifactTypesRequestBuilder) Get(ctx context.Context, requestConfigurat
 }
 
 // ToGetRequestInformation gets a list of all the configured artifact types.This operation can fail for the following reasons:* A server error occurred (HTTP error `500`)
-func (m *ArtifactTypesRequestBuilder) ToGetRequestInformation(ctx context.Context, requestConfiguration *ArtifactTypesRequestBuilderGetRequestConfiguration) (*i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestInformation, error) {
+func (m *ConfigArtifactTypesRequestBuilder) ToGetRequestInformation(ctx context.Context, requestConfiguration *ConfigArtifactTypesRequestBuilderGetRequestConfiguration) (*i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestInformation, error) {
 	requestInfo := i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewRequestInformationWithMethodAndUrlTemplateAndPathParameters(i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.GET, m.BaseRequestBuilder.UrlTemplate, m.BaseRequestBuilder.PathParameters)
 	if requestConfiguration != nil {
 		requestInfo.Headers.AddAll(requestConfiguration.Headers)
@@ -68,6 +68,6 @@ func (m *ArtifactTypesRequestBuilder) ToGetRequestInformation(ctx context.Contex
 }
 
 // WithUrl returns a request builder with the provided arbitrary URL. Using this method means any other path or query parameters are ignored.
-func (m *ArtifactTypesRequestBuilder) WithUrl(rawUrl string) *ArtifactTypesRequestBuilder {
-	return NewArtifactTypesRequestBuilder(rawUrl, m.BaseRequestBuilder.RequestAdapter)
+func (m *ConfigArtifactTypesRequestBuilder) WithUrl(rawUrl string) *ConfigArtifactTypesRequestBuilder {
+	return NewConfigArtifactTypesRequestBuilder(rawUrl, m.BaseRequestBuilder.RequestAdapter)
 }

@@ -59,36 +59,6 @@
                 }
             ]
         },
-        "/admin/artifactTypes": {
-            "summary": "The list of artifact types supported by this instance of Registry.",
-            "get": {
-                "tags": [
-                    "Artifact Type",
-                    "Admin"
-                ],
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "array",
-                                    "items": {
-                                        "$ref": "#/components/schemas/ArtifactTypeInfo"
-                                    }
-                                }
-                            }
-                        },
-                        "description": "The list of available artifact types."
-                    },
-                    "500": {
-                        "$ref": "#/components/responses/ServerError"
-                    }
-                },
-                "operationId": "listArtifactTypes",
-                "summary": "List artifact types",
-                "description": "Gets a list of all the configured artifact types.\n\nThis operation can fail for the following reasons:\n\n* A server error occurred (HTTP error `500`)\n"
-            }
-        },
         "/admin/rules": {
             "summary": "Manage the global rules that apply to all artifacts if not otherwise configured.",
             "get": {
@@ -3439,6 +3409,36 @@
                 "operationId": "createRoleMapping",
                 "summary": "Create a new role mapping",
                 "description": "Creates a new mapping between a user/principal and a role.\n\nThis operation can fail for the following reasons:\n\n* A server error occurred (HTTP error `500`)\n\n"
+            }
+        },
+        "/admin/config/artifactTypes": {
+            "summary": "The list of artifact types supported by this instance of Registry.",
+            "get": {
+                "tags": [
+                    "Artifact Type",
+                    "Admin"
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/ArtifactTypeInfo"
+                                    }
+                                }
+                            }
+                        },
+                        "description": "The list of available artifact types."
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "listArtifactTypes",
+                "summary": "List artifact types",
+                "description": "Gets a list of all the configured artifact types.\n\nThis operation can fail for the following reasons:\n\n* A server error occurred (HTTP error `500`)\n"
             }
         },
         "x-codegen-contextRoot": "/apis/registry/v3"

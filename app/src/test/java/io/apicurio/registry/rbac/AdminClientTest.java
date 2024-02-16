@@ -104,7 +104,7 @@ public class AdminClientTest extends AbstractResourceTestBase {
 
     @Test
     public void listArtifactTypes() throws Exception {
-        final List<ArtifactTypeInfo> artifactTypes = clientV3.admin().artifactTypes().get();
+        final List<ArtifactTypeInfo> artifactTypes = clientV3.admin().config().artifactTypes().get();
 
         assertTrue(artifactTypes.size() > 0);
         assertTrue(artifactTypes.stream().anyMatch(t -> t.getName().equals("OPENAPI")));

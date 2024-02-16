@@ -9,8 +9,6 @@ import (
 type GroupMetaData struct {
 	// Stores additional data not described in the OpenAPI description found when deserializing. Can be used for serialization as well.
 	additionalData map[string]any
-	// The createdBy property
-	createdBy *string
 	// The createdOn property
 	createdOn *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time
 	// The description property
@@ -23,6 +21,8 @@ type GroupMetaData struct {
 	modifiedBy *string
 	// The modifiedOn property
 	modifiedOn *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time
+	// The owner property
+	owner *string
 }
 
 // NewGroupMetaData instantiates a new GroupMetaData and sets the default values.
@@ -42,11 +42,6 @@ func (m *GroupMetaData) GetAdditionalData() map[string]any {
 	return m.additionalData
 }
 
-// GetCreatedBy gets the createdBy property value. The createdBy property
-func (m *GroupMetaData) GetCreatedBy() *string {
-	return m.createdBy
-}
-
 // GetCreatedOn gets the createdOn property value. The createdOn property
 func (m *GroupMetaData) GetCreatedOn() *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time {
 	return m.createdOn
@@ -60,16 +55,6 @@ func (m *GroupMetaData) GetDescription() *string {
 // GetFieldDeserializers the deserialization information for the current model
 func (m *GroupMetaData) GetFieldDeserializers() map[string]func(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
 	res := make(map[string]func(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error)
-	res["createdBy"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
-		val, err := n.GetStringValue()
-		if err != nil {
-			return err
-		}
-		if val != nil {
-			m.SetCreatedBy(val)
-		}
-		return nil
-	}
 	res["createdOn"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
 		val, err := n.GetTimeValue()
 		if err != nil {
@@ -130,6 +115,16 @@ func (m *GroupMetaData) GetFieldDeserializers() map[string]func(i878a80d2330e89d
 		}
 		return nil
 	}
+	res["owner"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
+		val, err := n.GetStringValue()
+		if err != nil {
+			return err
+		}
+		if val != nil {
+			m.SetOwner(val)
+		}
+		return nil
+	}
 	return res
 }
 
@@ -153,14 +148,13 @@ func (m *GroupMetaData) GetModifiedOn() *i336074805fc853987abe6f7fe3ad97a6a6f307
 	return m.modifiedOn
 }
 
+// GetOwner gets the owner property value. The owner property
+func (m *GroupMetaData) GetOwner() *string {
+	return m.owner
+}
+
 // Serialize serializes information the current object
 func (m *GroupMetaData) Serialize(writer i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.SerializationWriter) error {
-	{
-		err := writer.WriteStringValue("createdBy", m.GetCreatedBy())
-		if err != nil {
-			return err
-		}
-	}
 	{
 		err := writer.WriteTimeValue("createdOn", m.GetCreatedOn())
 		if err != nil {
@@ -198,6 +192,12 @@ func (m *GroupMetaData) Serialize(writer i878a80d2330e89d26896388a3f487eef27b0a0
 		}
 	}
 	{
+		err := writer.WriteStringValue("owner", m.GetOwner())
+		if err != nil {
+			return err
+		}
+	}
+	{
 		err := writer.WriteAdditionalData(m.GetAdditionalData())
 		if err != nil {
 			return err
@@ -209,11 +209,6 @@ func (m *GroupMetaData) Serialize(writer i878a80d2330e89d26896388a3f487eef27b0a0
 // SetAdditionalData sets the AdditionalData property value. Stores additional data not described in the OpenAPI description found when deserializing. Can be used for serialization as well.
 func (m *GroupMetaData) SetAdditionalData(value map[string]any) {
 	m.additionalData = value
-}
-
-// SetCreatedBy sets the createdBy property value. The createdBy property
-func (m *GroupMetaData) SetCreatedBy(value *string) {
-	m.createdBy = value
 }
 
 // SetCreatedOn sets the createdOn property value. The createdOn property
@@ -246,22 +241,27 @@ func (m *GroupMetaData) SetModifiedOn(value *i336074805fc853987abe6f7fe3ad97a6a6
 	m.modifiedOn = value
 }
 
+// SetOwner sets the owner property value. The owner property
+func (m *GroupMetaData) SetOwner(value *string) {
+	m.owner = value
+}
+
 // GroupMetaDataable
 type GroupMetaDataable interface {
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.AdditionalDataHolder
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.Parsable
-	GetCreatedBy() *string
 	GetCreatedOn() *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time
 	GetDescription() *string
 	GetId() *string
 	GetLabels() Labelsable
 	GetModifiedBy() *string
 	GetModifiedOn() *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time
-	SetCreatedBy(value *string)
+	GetOwner() *string
 	SetCreatedOn(value *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time)
 	SetDescription(value *string)
 	SetId(value *string)
 	SetLabels(value Labelsable)
 	SetModifiedBy(value *string)
 	SetModifiedOn(value *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time)
+	SetOwner(value *string)
 }

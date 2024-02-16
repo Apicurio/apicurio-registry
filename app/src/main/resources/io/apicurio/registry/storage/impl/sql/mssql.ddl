@@ -33,7 +33,7 @@ CREATE TABLE content_references (contentId BIGINT NOT NULL, groupId NVARCHAR(512
 ALTER TABLE content_references ADD PRIMARY KEY (contentId, name);
 ALTER TABLE content_references ADD CONSTRAINT FK_content_references_1 FOREIGN KEY (contentId) REFERENCES content(contentId) ON DELETE CASCADE;
 
-CREATE TABLE groups (groupId NVARCHAR(512) NOT NULL, description NVARCHAR(1024), artifactsType NVARCHAR(32), createdBy NVARCHAR(256), createdOn DATETIME2(6) NOT NULL, modifiedBy NVARCHAR(256), modifiedOn DATETIME2(6), labels TEXT);
+CREATE TABLE groups (groupId NVARCHAR(512) NOT NULL, description NVARCHAR(1024), artifactsType NVARCHAR(32), owner NVARCHAR(256), createdOn DATETIME2(6) NOT NULL, modifiedBy NVARCHAR(256), modifiedOn DATETIME2(6), labels TEXT);
 ALTER TABLE groups ADD PRIMARY KEY (groupId);
 
 CREATE TABLE group_labels (groupId NVARCHAR(512) NOT NULL, labelKey NVARCHAR(256) NOT NULL, labelValue NVARCHAR(512));
@@ -45,10 +45,10 @@ CREATE TABLE group_rules (groupId NVARCHAR(512) NOT NULL, type NVARCHAR(32) NOT 
 ALTER TABLE group_rules ADD PRIMARY KEY (groupId, type);
 ALTER TABLE group_rules ADD CONSTRAINT FK_grules_1 FOREIGN KEY (groupId) REFERENCES groups(groupId) ON DELETE CASCADE;
 
-CREATE TABLE artifacts (groupId NVARCHAR(512) NOT NULL, artifactId NVARCHAR(512) NOT NULL, type NVARCHAR(32) NOT NULL, createdBy NVARCHAR(256), createdOn DATETIME2(6) NOT NULL, labels TEXT);
+CREATE TABLE artifacts (groupId NVARCHAR(512) NOT NULL, artifactId NVARCHAR(512) NOT NULL, type NVARCHAR(32) NOT NULL, owner NVARCHAR(256), createdOn DATETIME2(6) NOT NULL, labels TEXT);
 ALTER TABLE artifacts ADD PRIMARY KEY (groupId, artifactId);
 CREATE INDEX IDX_artifacts_0 ON artifacts(type);
-CREATE INDEX IDX_artifacts_1 ON artifacts(createdBy);
+CREATE INDEX IDX_artifacts_1 ON artifacts(owner);
 CREATE INDEX IDX_artifacts_2 ON artifacts(createdOn);
 
 CREATE TABLE artifact_labels (groupId NVARCHAR(512) NOT NULL, artifactId NVARCHAR(512) NOT NULL, labelKey NVARCHAR(256) NOT NULL, labelValue NVARCHAR(512));
@@ -64,7 +64,7 @@ ALTER TABLE artifact_rules ADD PRIMARY KEY (groupId, artifactId, type);
 -- The "versionOrder" field is needed to generate "version" when it is not provided.
 -- It contains the same information as the "branchOrder" in the "latest" branch, but we cannot use it because of a chicken-and-egg problem.
 -- At least it is no longer confusingly called "versionId". The "versionOrder" field should not be used for any other purpose.
-CREATE TABLE versions (globalId BIGINT NOT NULL, groupId NVARCHAR(512) NOT NULL, artifactId NVARCHAR(512) NOT NULL, version NVARCHAR(256), versionOrder INT NOT NULL, state NVARCHAR(64) NOT NULL, name NVARCHAR(512), description NVARCHAR(1024), createdBy NVARCHAR(256), createdOn DATETIME2(6) NOT NULL, labels TEXT, contentId BIGINT NOT NULL);
+CREATE TABLE versions (globalId BIGINT NOT NULL, groupId NVARCHAR(512) NOT NULL, artifactId NVARCHAR(512) NOT NULL, version NVARCHAR(256), versionOrder INT NOT NULL, state NVARCHAR(64) NOT NULL, name NVARCHAR(512), description NVARCHAR(1024), owner NVARCHAR(256), createdOn DATETIME2(6) NOT NULL, labels TEXT, contentId BIGINT NOT NULL);
 ALTER TABLE versions ADD PRIMARY KEY (globalId);
 ALTER TABLE versions ADD CONSTRAINT UQ_versions_1 UNIQUE (groupId, artifactId, version);
 ALTER TABLE versions ADD CONSTRAINT UQ_versions_2 UNIQUE (globalId, versionOrder);
@@ -74,7 +74,7 @@ CREATE INDEX IDX_versions_1 ON versions(version);
 CREATE INDEX IDX_versions_2 ON versions(state);
 CREATE INDEX IDX_versions_3 ON versions(name);
 -- CREATE INDEX IDX_versions_4 ON versions(description); TODO: Why commented out? Maybe the same as IDX_props_2?
-CREATE INDEX IDX_versions_5 ON versions(createdBy);
+CREATE INDEX IDX_versions_5 ON versions(owner);
 CREATE INDEX IDX_versions_6 ON versions(createdOn);
 CREATE INDEX IDX_versions_7 ON versions(contentId);
 
@@ -83,10 +83,10 @@ ALTER TABLE version_labels ADD CONSTRAINT FK_vlabels_1 FOREIGN KEY (globalId) RE
 CREATE INDEX IDX_vlabels_1 ON version_labels(labelKey);
 CREATE INDEX IDX_vlabels_2 ON version_labels(labelValue);
 
-CREATE TABLE version_comments (commentId NVARCHAR(128) NOT NULL, globalId BIGINT NOT NULL, createdBy NVARCHAR(256), createdOn DATETIME2(6) NOT NULL, cvalue NVARCHAR(1024) NOT NULL);
+CREATE TABLE version_comments (commentId NVARCHAR(128) NOT NULL, globalId BIGINT NOT NULL, owner NVARCHAR(256), createdOn DATETIME2(6) NOT NULL, cvalue NVARCHAR(1024) NOT NULL);
 ALTER TABLE version_comments ADD PRIMARY KEY (commentId);
 ALTER TABLE version_comments ADD CONSTRAINT FK_version_comments_1 FOREIGN KEY (globalId) REFERENCES versions(globalId) ON DELETE CASCADE;
-CREATE INDEX IDX_version_comments_1 ON version_comments(createdBy);
+CREATE INDEX IDX_version_comments_1 ON version_comments(owner);
 
 -- This table is defined way down here because it has a FK to the artifacts table *and* the versions table
 CREATE TABLE artifact_branches (groupId NVARCHAR(512) NOT NULL, artifactId NVARCHAR(512) NOT NULL, branchId NVARCHAR(256) NOT NULL, branchOrder INT NOT NULL, version NVARCHAR(256) NOT NULL);

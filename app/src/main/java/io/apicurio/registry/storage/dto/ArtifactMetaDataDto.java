@@ -19,7 +19,7 @@ public class ArtifactMetaDataDto {
     private String id;
     private String name;
     private String description;
-    private String createdBy;
+    private String owner;
     private long createdOn;
     private String modifiedBy;
     private long modifiedOn;

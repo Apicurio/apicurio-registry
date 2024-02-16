@@ -226,7 +226,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
         ArtifactMetaDataDto dto = storage.getArtifactMetaData(defaultGroupIdToNull(groupId), artifactId);
         ArtifactOwner owner = new ArtifactOwner();
-        owner.setOwner(dto.getCreatedBy());
+        owner.setOwner(dto.getOwner());
         return owner;
     }
 
@@ -290,7 +290,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                 .labels(data.getProperties());
 
         String user = securityIdentity.getPrincipal().getName();
-        group.createdBy(user).createdOn(new Date().getTime());
+        group.owner(user).createdOn(new Date().getTime());
 
         storage.createGroup(group.build());
 

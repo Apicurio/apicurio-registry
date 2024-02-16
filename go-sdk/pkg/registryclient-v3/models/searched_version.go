@@ -11,8 +11,6 @@ type SearchedVersion struct {
 	additionalData map[string]any
 	// The contentId property
 	contentId *int64
-	// The createdBy property
-	createdBy *string
 	// The createdOn property
 	createdOn *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time
 	// The description property
@@ -21,6 +19,8 @@ type SearchedVersion struct {
 	globalId *int64
 	// The name property
 	name *string
+	// The owner property
+	owner *string
 	// User-defined name-value pairs. Name and value must be strings.
 	properties Labelsable
 	// The references property
@@ -55,11 +55,6 @@ func (m *SearchedVersion) GetContentId() *int64 {
 	return m.contentId
 }
 
-// GetCreatedBy gets the createdBy property value. The createdBy property
-func (m *SearchedVersion) GetCreatedBy() *string {
-	return m.createdBy
-}
-
 // GetCreatedOn gets the createdOn property value. The createdOn property
 func (m *SearchedVersion) GetCreatedOn() *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time {
 	return m.createdOn
@@ -80,16 +75,6 @@ func (m *SearchedVersion) GetFieldDeserializers() map[string]func(i878a80d2330e8
 		}
 		if val != nil {
 			m.SetContentId(val)
-		}
-		return nil
-	}
-	res["createdBy"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
-		val, err := n.GetStringValue()
-		if err != nil {
-			return err
-		}
-		if val != nil {
-			m.SetCreatedBy(val)
 		}
 		return nil
 	}
@@ -130,6 +115,16 @@ func (m *SearchedVersion) GetFieldDeserializers() map[string]func(i878a80d2330e8
 		}
 		if val != nil {
 			m.SetName(val)
+		}
+		return nil
+	}
+	res["owner"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
+		val, err := n.GetStringValue()
+		if err != nil {
+			return err
+		}
+		if val != nil {
+			m.SetOwner(val)
 		}
 		return nil
 	}
@@ -202,6 +197,11 @@ func (m *SearchedVersion) GetName() *string {
 	return m.name
 }
 
+// GetOwner gets the owner property value. The owner property
+func (m *SearchedVersion) GetOwner() *string {
+	return m.owner
+}
+
 // GetProperties gets the properties property value. User-defined name-value pairs. Name and value must be strings.
 func (m *SearchedVersion) GetProperties() Labelsable {
 	return m.properties
@@ -236,12 +236,6 @@ func (m *SearchedVersion) Serialize(writer i878a80d2330e89d26896388a3f487eef27b0
 		}
 	}
 	{
-		err := writer.WriteStringValue("createdBy", m.GetCreatedBy())
-		if err != nil {
-			return err
-		}
-	}
-	{
 		err := writer.WriteTimeValue("createdOn", m.GetCreatedOn())
 		if err != nil {
 			return err
@@ -261,6 +255,12 @@ func (m *SearchedVersion) Serialize(writer i878a80d2330e89d26896388a3f487eef27b0
 	}
 	{
 		err := writer.WriteStringValue("name", m.GetName())
+		if err != nil {
+			return err
+		}
+	}
+	{
+		err := writer.WriteStringValue("owner", m.GetOwner())
 		if err != nil {
 			return err
 		}
@@ -321,11 +321,6 @@ func (m *SearchedVersion) SetContentId(value *int64) {
 	m.contentId = value
 }
 
-// SetCreatedBy sets the createdBy property value. The createdBy property
-func (m *SearchedVersion) SetCreatedBy(value *string) {
-	m.createdBy = value
-}
-
 // SetCreatedOn sets the createdOn property value. The createdOn property
 func (m *SearchedVersion) SetCreatedOn(value *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time) {
 	m.createdOn = value
@@ -344,6 +339,11 @@ func (m *SearchedVersion) SetGlobalId(value *int64) {
 // SetName sets the name property value. The name property
 func (m *SearchedVersion) SetName(value *string) {
 	m.name = value
+}
+
+// SetOwner sets the owner property value. The owner property
+func (m *SearchedVersion) SetOwner(value *string) {
+	m.owner = value
 }
 
 // SetProperties sets the properties property value. User-defined name-value pairs. Name and value must be strings.
@@ -376,22 +376,22 @@ type SearchedVersionable interface {
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.AdditionalDataHolder
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.Parsable
 	GetContentId() *int64
-	GetCreatedBy() *string
 	GetCreatedOn() *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time
 	GetDescription() *string
 	GetGlobalId() *int64
 	GetName() *string
+	GetOwner() *string
 	GetProperties() Labelsable
 	GetReferences() []ArtifactReferenceable
 	GetState() *ArtifactState
 	GetTypeEscaped() *string
 	GetVersion() *string
 	SetContentId(value *int64)
-	SetCreatedBy(value *string)
 	SetCreatedOn(value *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time)
 	SetDescription(value *string)
 	SetGlobalId(value *int64)
 	SetName(value *string)
+	SetOwner(value *string)
 	SetProperties(value Labelsable)
 	SetReferences(value []ArtifactReferenceable)
 	SetState(value *ArtifactState)

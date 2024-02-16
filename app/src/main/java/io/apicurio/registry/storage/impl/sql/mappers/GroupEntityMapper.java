@@ -30,7 +30,7 @@ public class GroupEntityMapper implements RowMapper<GroupEntity> {
         entity.description = rs.getString("description");
         String type = rs.getString("artifactsType");
         entity.artifactsType = type;
-        entity.createdBy = rs.getString("createdBy");
+        entity.owner = rs.getString("owner");
         entity.createdOn = rs.getTimestamp("createdOn").getTime();
         entity.modifiedBy = rs.getString("modifiedBy");
         entity.modifiedOn = ofNullable(rs.getTimestamp("modifiedOn")).map(Timestamp::getTime).orElse(0L);

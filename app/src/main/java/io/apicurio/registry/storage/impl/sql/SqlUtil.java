@@ -101,7 +101,7 @@ public class SqlUtil {
         artifactMeta.setContentId(versionMeta.getContentId());
         artifactMeta.setGroupId(denormalizeGroupId(groupId));
         artifactMeta.setId(artifactId);
-        artifactMeta.setModifiedBy(versionMeta.getCreatedBy());
+        artifactMeta.setModifiedBy(versionMeta.getOwner());
         artifactMeta.setModifiedOn(versionMeta.getCreatedOn());
         artifactMeta.setState(versionMeta.getState());
         artifactMeta.setName(versionMeta.getName());

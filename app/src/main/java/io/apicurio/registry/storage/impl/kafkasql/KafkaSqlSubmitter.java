@@ -136,17 +136,17 @@ public class KafkaSqlSubmitter {
      * Artifact
      * ****************************************************************************************** */
     public CompletableFuture<UUID> submitArtifact(String groupId, String artifactId, String version, ActionType action,
-            Long globalId, String artifactType, String contentHash, String createdBy, Date createdOn,
+            Long globalId, String artifactType, String contentHash, String owner, Date createdOn,
             EditableArtifactMetaDataDto metaData, Integer versionOrder, ArtifactState state, Long contentId) {
         ArtifactKey key = ArtifactKey.create(groupId, artifactId);
-        ArtifactValue value = ArtifactValue.create(action, globalId, version, artifactType, contentHash, createdBy, createdOn, metaData,
+        ArtifactValue value = ArtifactValue.create(action, globalId, version, artifactType, contentHash, owner, createdOn, metaData,
                 versionOrder, state, contentId);
         return send(key, value);
     }
     public CompletableFuture<UUID> submitArtifact(String groupId, String artifactId, String version, ActionType action,
-            Long globalId, String artifactType, String contentHash, String createdBy, Date createdOn,
+            Long globalId, String artifactType, String contentHash, String owner, Date createdOn,
             EditableArtifactMetaDataDto metaData) {
-        return submitArtifact(groupId, artifactId, version, action, globalId, artifactType, contentHash, createdBy, createdOn,
+        return submitArtifact(groupId, artifactId, version, action, globalId, artifactType, contentHash, owner, createdOn,
                 metaData, null, null, null);
     }
     public CompletableFuture<UUID> submitArtifact(String groupId, String artifactId, ActionType action) {
@@ -206,22 +206,22 @@ public class KafkaSqlSubmitter {
      * Artifact Version comments
      * ****************************************************************************************** */
     public CompletableFuture<UUID> submitComment(String groupId, String artifactId, String version,
-            String commentId, ActionType action, long globalId, String createdBy, Date createdOn, String value) {
+            String commentId, ActionType action, long globalId, String owner, Date createdOn, String value) {
         CommentKey key = CommentKey.create(groupId, artifactId, version, commentId);
-        CommentValue cv = CommentValue.create(action, globalId, createdBy, createdOn, value);
+        CommentValue cv = CommentValue.create(action, globalId, owner, createdOn, value);
         return send(key, cv);
     }
     public CompletableFuture<UUID> submitComment(String groupId, String artifactId, String version,
-            String commentId, ActionType action, String createdBy, Date createdOn, String value) {
-        return submitComment(groupId, artifactId, version, commentId, action, -1, createdBy, createdOn, value);
+            String commentId, ActionType action, String owner, Date createdOn, String value) {
+        return submitComment(groupId, artifactId, version, commentId, action, -1, owner, createdOn, value);
     }
     public CompletableFuture<UUID> submitComment(String groupId, String artifactId, String version,
             String commentId, ActionType action) {
         return submitComment(groupId, artifactId, version, commentId, action, null, null, null);
     }
     public CompletableFuture<UUID> submitComment(String commentId, ActionType action, long globalId,
-            String createdBy, Date createdOn, String value) {
-        return submitComment("<import-comments>", "_", "_", commentId, action, globalId, createdBy, createdOn, value);
+            String owner, Date createdOn, String value) {
+        return submitComment("<import-comments>", "_", "_", commentId, action, globalId, owner, createdOn, value);
     }
 
 

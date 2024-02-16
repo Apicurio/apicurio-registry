@@ -9,6 +9,6 @@ export interface SearchedVersion {
     description: string;
     labels: string[];
     createdOn: string;
-    createdBy: string;
+    owner: string;
 
 }

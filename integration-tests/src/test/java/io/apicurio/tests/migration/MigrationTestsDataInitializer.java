@@ -129,7 +129,7 @@ public class MigrationTestsDataInitializer {
             avroSchema = new AvroGenericRecordSchemaFactory(List.of("u" + idx));
             String content2 = IoUtil.toString(avroSchema.generateSchemaStream());
             artifactContent.setContent(content2);
-            var vmd = source.groups().byGroupId("testDoNotPreserveIdsImport").artifacts().byArtifactId(artifactId).put(artifactContent);
+            source.groups().byGroupId("testDoNotPreserveIdsImport").artifacts().byArtifactId(artifactId).put(artifactContent);
             TestUtils.retry(() -> source.ids().globalIds().byGlobalId(amd.getGlobalId()).get());
             doNotPreserveIdsImportArtifacts.put("testDoNotPreserveIdsImport:" + artifactId, content2);
         }
@@ -198,7 +198,7 @@ public class MigrationTestsDataInitializer {
                 versionEntity.artifactId = artifactId;
                 versionEntity.artifactType = artifactType;
                 versionEntity.contentId = contentId;
-                versionEntity.createdBy = "integration-tests";
+                versionEntity.owner = "integration-tests";
                 versionEntity.createdOn = System.currentTimeMillis();
                 versionEntity.description = null;
                 versionEntity.globalId = migrateGlobalIdseq.getAndIncrement();

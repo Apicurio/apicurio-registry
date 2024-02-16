@@ -115,7 +115,7 @@ public class GenerateCanonicalHashImportIT extends ApicurioRegistryBaseIT {
                 versionEntity.artifactId = artifactId;
                 versionEntity.artifactType = artifactType;
                 versionEntity.contentId = contentId;
-                versionEntity.createdBy = "integration-tests";
+                versionEntity.owner = "integration-tests";
                 versionEntity.createdOn = System.currentTimeMillis();
                 versionEntity.description = null;
                 versionEntity.globalId = globalIdSeq.getAndIncrement();

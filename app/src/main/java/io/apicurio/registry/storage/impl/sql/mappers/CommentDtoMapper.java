@@ -23,7 +23,7 @@ public class CommentDtoMapper implements RowMapper<CommentDto> {
     public CommentDto map(ResultSet rs) throws SQLException {
         return CommentDto.builder()
                 .commentId(rs.getString("commentId"))
-                .createdBy(rs.getString("createdBy"))
+                .owner(rs.getString("owner"))
                 .createdOn(rs.getTimestamp("createdOn").getTime())
                 .value(rs.getString("cvalue"))
                 .build();

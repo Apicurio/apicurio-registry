@@ -107,13 +107,13 @@ export const InfoTabContent: FunctionComponent<InfoTabContentProps> = (props: In
                                     <FromNow date={props.artifact.createdOn} />
                                 </DescriptionListDescription>
                             </DescriptionListGroup>
-                            <If condition={props.artifact.createdBy !== undefined && props.artifact.createdBy !== ""}>
+                            <If condition={props.artifact.owner !== undefined && props.artifact.owner !== ""}>
                                 <DescriptionListGroup>
                                     <DescriptionListTerm>Owner</DescriptionListTerm>
                                     <DescriptionListDescription data-testid="artifact-details-created-by">
-                                        <span>{props.artifact.createdBy}</span>
+                                        <span>{props.artifact.owner}</span>
                                         <span>
-                                            <IfAuth isAdminOrOwner={true} owner={props.artifact.createdBy}>
+                                            <IfAuth isAdminOrOwner={true} owner={props.artifact.owner}>
                                                 <IfFeature feature="readOnly" isNot={true}>
                                                     <Button id="edit-action"
                                                         data-testid="artifact-btn-change-owner"

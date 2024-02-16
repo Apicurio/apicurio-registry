@@ -20,7 +20,7 @@ public class GroupEntity extends Entity {
     public String groupId;
     public String description;
     public String artifactsType;
-    public String createdBy;
+    public String owner;
     public long createdOn;
     public String modifiedBy;
     public long modifiedOn;

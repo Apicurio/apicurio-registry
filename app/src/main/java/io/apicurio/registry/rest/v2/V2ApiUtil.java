@@ -48,7 +48,7 @@ public final class V2ApiUtil {
     public static ArtifactMetaData dtoToMetaData(String groupId, String artifactId,
                                                  String artifactType, ArtifactMetaDataDto dto) {
         ArtifactMetaData metaData = new ArtifactMetaData();
-        metaData.setCreatedBy(dto.getCreatedBy());
+        metaData.setCreatedBy(dto.getOwner());
         metaData.setCreatedOn(new Date(dto.getCreatedOn()));
         metaData.setDescription(dto.getDescription());
         if (groupId != null) {
@@ -148,12 +148,12 @@ public final class V2ApiUtil {
     public static final ArtifactMetaData dtoToMetaData(String groupId, String artifactId, String artifactType,
                                                        ArtifactVersionMetaDataDto dto) {
         ArtifactMetaData metaData = new ArtifactMetaData();
-        metaData.setCreatedBy(dto.getCreatedBy());
+        metaData.setCreatedBy(dto.getOwner());
         metaData.setCreatedOn(new Date(dto.getCreatedOn()));
         metaData.setDescription(dto.getDescription());
         metaData.setGroupId(groupId);
         metaData.setId(artifactId);
-        metaData.setModifiedBy(dto.getCreatedBy());
+        metaData.setModifiedBy(dto.getOwner());
         metaData.setModifiedOn(new Date(dto.getCreatedOn()));
         metaData.setName(dto.getName());
         if (artifactType != null) {
@@ -184,7 +184,7 @@ public final class V2ApiUtil {
         VersionMetaData metaData = new VersionMetaData();
         metaData.setGroupId(groupId);
         metaData.setId(artifactId);
-        metaData.setCreatedBy(dto.getCreatedBy());
+        metaData.setCreatedBy(dto.getOwner());
         metaData.setCreatedOn(new Date(dto.getCreatedOn()));
         metaData.setDescription(dto.getDescription());
         metaData.setName(dto.getName());
@@ -210,7 +210,7 @@ public final class V2ApiUtil {
         VersionMetaData metaData = new VersionMetaData();
         metaData.setGroupId(groupId);
         metaData.setId(artifactId);
-        metaData.setCreatedBy(dto.getCreatedBy());
+        metaData.setCreatedBy(dto.getOwner());
         metaData.setCreatedOn(new Date(dto.getCreatedOn()));
         metaData.setDescription(dto.getDescription());
         metaData.setName(dto.getName());
@@ -266,7 +266,7 @@ public final class V2ApiUtil {
         results.setArtifacts(new ArrayList<>(dto.getArtifacts().size()));
         dto.getArtifacts().forEach(artifact -> {
             SearchedArtifact sa = new SearchedArtifact();
-            sa.setCreatedBy(artifact.getCreatedBy());
+            sa.setCreatedBy(artifact.getOwner());
             sa.setCreatedOn(artifact.getCreatedOn());
             sa.setDescription(artifact.getDescription());
             sa.setId(artifact.getId());
@@ -287,7 +287,7 @@ public final class V2ApiUtil {
         results.setGroups(new ArrayList<>(dto.getGroups().size()));
         dto.getGroups().forEach(group -> {
             SearchedGroup sg = new SearchedGroup();
-            sg.setCreatedBy(group.getCreatedBy());
+            sg.setCreatedBy(group.getOwner());
             sg.setCreatedOn(group.getCreatedOn());
             sg.setDescription(group.getDescription());
             sg.setId(group.getId());
@@ -304,7 +304,7 @@ public final class V2ApiUtil {
         results.setVersions(new ArrayList<>(dto.getVersions().size()));
         dto.getVersions().forEach(version -> {
             SearchedVersion sv = new SearchedVersion();
-            sv.setCreatedBy(version.getCreatedBy());
+            sv.setCreatedBy(version.getOwner());
             sv.setCreatedOn(version.getCreatedOn());
             sv.setDescription(version.getDescription());
             sv.setGlobalId(version.getGlobalId());
@@ -340,7 +340,7 @@ public final class V2ApiUtil {
         GroupMetaData group = new GroupMetaData();
         group.setId(dto.getGroupId());
         group.setDescription(dto.getDescription());
-        group.setCreatedBy(dto.getCreatedBy());
+        group.setCreatedBy(dto.getOwner());
         group.setModifiedBy(dto.getModifiedBy());
         group.setCreatedOn(new Date(dto.getCreatedOn()));
         group.setModifiedOn(new Date(dto.getModifiedOn()));
@@ -351,7 +351,7 @@ public final class V2ApiUtil {
     public static Comment commentDtoToComment(CommentDto dto) {
         return Comment.builder()
                 .commentId(dto.getCommentId())
-                .createdBy(dto.getCreatedBy())
+                .createdBy(dto.getOwner())
                 .createdOn(new Date(dto.getCreatedOn()))
                 .value(dto.getValue())
                 .build();

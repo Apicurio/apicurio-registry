@@ -20,21 +20,21 @@ public class ArtifactValue extends ArtifactVersionValue {
     private String version;
     private String artifactType;
     private String contentHash;
-    private String createdBy;
+    private String owner;
     private Date createdOn;
     private Integer versionOrder;
     private Long contentId;
 
 
     public static ArtifactValue create(ActionType action, Long globalId, String version, String artifactType, String contentHash,
-                                       String createdBy, Date createdOn, EditableArtifactMetaDataDto metaData, Integer versionOrder, ArtifactState state, Long contentId) {
+                                       String owner, Date createdOn, EditableArtifactMetaDataDto metaData, Integer versionOrder, ArtifactState state, Long contentId) {
         ArtifactValue value = new ArtifactValue();
         value.setAction(action);
         value.setGlobalId(globalId);
         value.setVersion(version);
         value.setArtifactType(artifactType);
         value.setContentHash(contentHash);
-        value.setCreatedBy(createdBy);
+        value.setOwner(owner);
         value.setCreatedOn(createdOn);
         value.setMetaData(metaData);
         value.setVersionOrder(versionOrder);

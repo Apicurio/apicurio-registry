@@ -839,7 +839,7 @@ public interface RegistryStorage extends DynamicConfigStorage {
 
 
     CommentDto createArtifactVersionCommentRaw(String groupId, String artifactId, String version, IdGenerator commentId,
-                                               String createdBy, Date createdOn, String value);
+                                               String owner, Date createdOn, String value);
 
 
     void resetGlobalId();
@@ -900,13 +900,13 @@ public interface RegistryStorage extends DynamicConfigStorage {
 
 
     ArtifactMetaDataDto updateArtifactWithMetadata(String groupId, String artifactId, String version,
-                                                   String artifactType, String contentHash, String createdBy, Date createdOn,
+                                                   String artifactType, String contentHash, String owner, Date createdOn,
                                                    EditableArtifactMetaDataDto metaData,
                                                    IdGenerator globalIdGenerator);
 
 
     ArtifactMetaDataDto createArtifactWithMetadata(String groupId, String artifactId, String version,
-                                                   String artifactType, String contentHash, String createdBy,
+                                                   String artifactType, String contentHash, String owner,
                                                    Date createdOn, EditableArtifactMetaDataDto metaData, IdGenerator globalIdGenerator)
             throws ArtifactNotFoundException, RegistryStorageException;
 

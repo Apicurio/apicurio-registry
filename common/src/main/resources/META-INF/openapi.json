@@ -2139,7 +2139,7 @@
                 },
                 "operationId": "updateArtifactMetaData",
                 "summary": "Update artifact metadata",
-                "description": "Updates the editable parts of the artifact's metadata.  Not all metadata fields can\nbe updated.  For example, `createdOn` and `createdBy` are both read-only properties.\n\nThis operation can fail for the following reasons:\n\n* No artifact with the `artifactId` exists (HTTP error `404`)\n* A server error occurred (HTTP error `500`)"
+                "description": "Updates the editable parts of the artifact's metadata.  Not all metadata fields can\nbe updated.  For example, `createdOn` and `owner` are both read-only properties.\n\nThis operation can fail for the following reasons:\n\n* No artifact with the `artifactId` exists (HTTP error `404`)\n* A server error occurred (HTTP error `500`)"
             },
             "post": {
                 "requestBody": {
@@ -3795,7 +3795,7 @@
                 "description": "",
                 "required": [
                     "id",
-                    "createdBy",
+                    "owner",
                     "createdOn",
                     "modifiedBy",
                     "modifiedOn",
@@ -3814,7 +3814,7 @@
                     "description": {
                         "type": "string"
                     },
-                    "createdBy": {
+                    "owner": {
                         "type": "string"
                     },
                     "createdOn": {
@@ -3877,7 +3877,7 @@
                     "description": "Description of the artifact",
                     "type": "AVRO",
                     "version": 18,
-                    "createdBy": "user1",
+                    "owner": "user1",
                     "createdOn": "2019-03-22T12:51:19Z",
                     "modifiedBy": "user2",
                     "modifiedOn": "2019-07-19T15:09:00Z",
@@ -3900,7 +3900,7 @@
             "SearchedArtifact": {
                 "description": "Models a single artifact from the result set returned when searching for artifacts.",
                 "required": [
-                    "createdBy",
+                    "owner",
                     "createdOn",
                     "id",
                     "type",
@@ -3926,7 +3926,7 @@
                         "description": "",
                         "type": "string"
                     },
-                    "createdBy": {
+                    "owner": {
                         "description": "",
                         "type": "string"
                     },
@@ -3959,7 +3959,7 @@
                     "description": "Description of the artifact",
                     "type": "AVRO",
                     "state": "ENABLED",
-                    "createdBy": "user1",
+                    "owner": "user1",
                     "createdOn": "2019-03-22T12:51:19Z"
                 }
             },
@@ -3968,7 +3968,7 @@
                 "description": "",
                 "required": [
                     "createdOn",
-                    "createdBy",
+                    "owner",
                     "version",
                     "type",
                     "globalId",
@@ -3986,7 +3986,7 @@
                     "description": {
                         "type": "string"
                     },
-                    "createdBy": {
+                    "owner": {
                         "type": "string"
                     },
                     "createdOn": {
@@ -4031,7 +4031,7 @@
                     "type": "PROTOBUF",
                     "name": "Artifact Name",
                     "description": "The description of the artifact",
-                    "createdBy": "user1",
+                    "owner": "user1",
                     "createdOn": "2019-05-17T12:00:00Z",
                     "globalId": 183282932983,
                     "contentId": 12347,
@@ -4052,7 +4052,7 @@
             "SearchedVersion": {
                 "description": "Models a single artifact from the result set returned when searching for artifacts.",
                 "required": [
-                    "createdBy",
+                    "owner",
                     "createdOn",
                     "type",
                     "state",
@@ -4076,7 +4076,7 @@
                         "description": "",
                         "type": "string"
                     },
-                    "createdBy": {
+                    "owner": {
                         "description": "",
                         "type": "string"
                     },
@@ -4120,7 +4120,7 @@
                     "type": "AVRO",
                     "state": "ENABLED",
                     "createdOn": "2018-02-10T09:30Z",
-                    "createdBy": "some text",
+                    "owner": "some text",
                     "globalId": 37,
                     "version": 85,
                     "properties": {},
@@ -4339,7 +4339,7 @@
                 "description": "Models a single group from the result set returned when searching for groups.",
                 "required": [
                     "description",
-                    "createdBy",
+                    "owner",
                     "createdOn",
                     "id",
                     "modifiedBy",
@@ -4360,7 +4360,7 @@
                         "description": "",
                         "type": "string"
                     },
-                    "createdBy": {
+                    "owner": {
                         "description": "",
                         "type": "string"
                     },
@@ -4378,7 +4378,7 @@
                     "id": "My-Group",
                     "name": "Group Name",
                     "description": "Description of the group",
-                    "createdBy": "user1",
+                    "owner": "user1",
                     "createdOn": "2019-03-22T12:51:19Z",
                     "modifiedBy": "user1",
                     "modifiedOn": "2019-03-22T12:51:19Z"
@@ -4390,7 +4390,7 @@
                 "required": [
                     "id",
                     "description",
-                    "createdBy",
+                    "owner",
                     "createdOn",
                     "modifiedBy",
                     "modifiedOn",
@@ -4405,7 +4405,7 @@
                     "description": {
                         "type": "string"
                     },
-                    "createdBy": {
+                    "owner": {
                         "type": "string"
                     },
                     "createdOn": {
@@ -4428,7 +4428,7 @@
                     "id": "group-identifier",
                     "description": "Description of the group",
                     "artifactsType": "AVRO",
-                    "createdBy": "user1",
+                    "owner": "user1",
                     "createdOn": "2019-03-22T12:51:19Z",
                     "modifiedBy": "user2",
                     "modifiedOn": "2019-07-19T15:09:00Z",
@@ -4540,7 +4540,7 @@
                 "title": "Root Type for NewComment",
                 "description": "",
                 "required": [
-                    "createdBy",
+                    "owner",
                     "createdOn",
                     "value",
                     "commentId"
@@ -4555,7 +4555,7 @@
                         "format": "date-time",
                         "type": "string"
                     },
-                    "createdBy": {
+                    "owner": {
                         "description": "",
                         "type": "string"
                     },
@@ -4567,7 +4567,7 @@
                 "example": {
                     "commentId": "12345",
                     "value": "This is a comment on an artifact version.",
-                    "createdBy": "bwayne",
+                    "owner": "bwayne",
                     "createdOn": "2023-07-01T15:22:01Z"
                 }
             },

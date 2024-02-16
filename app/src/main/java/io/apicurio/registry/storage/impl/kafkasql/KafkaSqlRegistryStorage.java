@@ -268,7 +268,7 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
     @Override
     public ArtifactMetaDataDto createArtifactWithMetadata(String groupId, String artifactId, String version,
                                                           String artifactType, String contentHash,
-                                                          String createdBy, Date createdOn,
+                                                          String owner, Date createdOn,
                                                           EditableArtifactMetaDataDto metaData, IdGenerator globalIdGenerator) {
         var contentDto = getArtifactByContentHash(contentHash);
         return createArtifactWithMetadataRaw(groupId, artifactId, version, artifactType, contentDto.getContent(),
@@ -295,7 +295,7 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
         }
 
         String contentHash = ensureContent(content, artifactType, references);
-        String createdBy = securityIdentity.getPrincipal().getName();
+        String owner = securityIdentity.getPrincipal().getName();
         Date createdOn = new Date();
 
         if (metaData == null) {
@@ -308,8 +308,8 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
                     .groupId(groupId)
                     .createdOn(0)
                     .modifiedOn(0)
-                    .createdBy(createdBy)
-                    .modifiedBy(createdBy)
+                    .owner(owner)
+                    .modifiedBy(owner)
                     .build());
         }
 
@@ -317,7 +317,7 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
 
         UUID uuid = ConcurrentUtil.get(
                 submitter.submitArtifact(groupId, artifactId, version, ActionType.CREATE,
-                        globalId, artifactType, contentHash, createdBy, createdOn, metaData));
+                        globalId, artifactType, contentHash, owner, createdOn, metaData));
         return (ArtifactMetaDataDto) coordinator.waitForResponse(uuid);
     }
 
@@ -358,7 +358,7 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
     @Override
     public ArtifactMetaDataDto updateArtifactWithMetadata(String groupId, String artifactId, String version,
                                                           String artifactType, String contentHash,
-                                                          String createdBy, Date createdOn,
+                                                          String owner, Date createdOn,
                                                           EditableArtifactMetaDataDto metaData, IdGenerator globalIdGenerator) {
         var contentDto = getArtifactByContentHash(contentHash);
         return updateArtifactWithMetadataRaw(groupId, artifactId, version,
@@ -388,7 +388,7 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
         }
 
         String contentHash = ensureContent(content, artifactType, references);
-        String createdBy = securityIdentity.getPrincipal().getName();
+        String owner = securityIdentity.getPrincipal().getName();
         Date createdOn = new Date();
 
         if (metaData == null) {
@@ -399,7 +399,7 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
 
         UUID reqId = ConcurrentUtil.get(
                 submitter.submitArtifact(groupId, artifactId, version, ActionType.UPDATE,
-                        globalId, artifactType, contentHash, createdBy, createdOn, metaData));
+                        globalId, artifactType, contentHash, owner, createdOn, metaData));
         return (ArtifactMetaDataDto) coordinator.waitForResponse(reqId);
     }
 
@@ -725,10 +725,10 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
 
     @Override
     public CommentDto createArtifactVersionComment(String groupId, String artifactId, String version, String value) {
-        String createdBy = securityIdentity.getPrincipal().getName();
+        String owner = securityIdentity.getPrincipal().getName();
         Date createdOn = new Date();
 
-        return createArtifactVersionCommentRaw(groupId, artifactId, version, this::nextCommentId, createdBy, createdOn, value);
+        return createArtifactVersionCommentRaw(groupId, artifactId, version, this::nextCommentId, owner, createdOn, value);
     }
 
 
@@ -765,7 +765,7 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
     @Override
     public void importComment(CommentEntity entity) {
         submitter.submitComment(entity.commentId, ActionType.IMPORT, entity.globalId,
-                entity.createdBy, new Date(entity.createdOn), entity.value);
+                entity.owner, new Date(entity.createdOn), entity.value);
     }
 
 
@@ -777,7 +777,7 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
                 .labels(entity.labels)
                 .build();
         submitter.submitArtifact(entity.groupId, entity.artifactId, entity.version, ActionType.IMPORT,
-                entity.globalId, entity.artifactType, null, entity.createdBy, new Date(entity.createdOn), metaData, entity.versionOrder,
+                entity.globalId, entity.artifactType, null, entity.owner, new Date(entity.createdOn), metaData, entity.versionOrder,
                 entity.state, entity.contentId);
     }
 
@@ -799,7 +799,7 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
     public void importGroup(GroupEntity entity) {
         GroupMetaDataDto group = new GroupMetaDataDto();
         group.setArtifactsType(entity.artifactsType);
-        group.setCreatedBy(entity.createdBy);
+        group.setOwner(entity.owner);
         group.setCreatedOn(entity.createdOn);
         group.setDescription(entity.description);
         group.setGroupId(entity.groupId);
@@ -832,17 +832,17 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
 
     @Override
     public CommentDto createArtifactVersionCommentRaw(String groupId, String artifactId, String version, IdGenerator commentIdGen,
-                                                      String createdBy, Date createdOn, String value) {
+                                                      String owner, Date createdOn, String value) {
         String commentId = String.valueOf(commentIdGen.generate());
 
         UUID reqId = ConcurrentUtil.get(
                 submitter.submitComment(groupId, artifactId, version, commentId,
-                        ActionType.CREATE, createdBy, createdOn, value));
+                        ActionType.CREATE, owner, createdOn, value));
         coordinator.waitForResponse(reqId);
 
         return CommentDto.builder()
                 .commentId(commentId)
-                .createdBy(createdBy)
+                .owner(owner)
                 .createdOn(createdOn.getTime())
                 .value(value)
                 .build();

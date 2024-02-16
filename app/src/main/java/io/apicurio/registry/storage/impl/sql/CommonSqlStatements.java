@@ -112,7 +112,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String insertArtifact() {
-        return "INSERT INTO artifacts (groupId, artifactId, type, createdBy, createdOn) VALUES (?, ?, ?, ?, ?)";
+        return "INSERT INTO artifacts (groupId, artifactId, type, owner, createdOn) VALUES (?, ?, ?, ?, ?)";
     }
 
 
@@ -132,10 +132,10 @@ public abstract class CommonSqlStatements implements SqlStatements {
         // TODO: Use COALESCE to unify into a single query.
         String query;
         if (firstVersion) {
-            query = "INSERT INTO versions (globalId, groupId, artifactId, version, versionOrder, state, name, description, createdBy, createdOn, labels, contentId) VALUES (?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?)";
+            query = "INSERT INTO versions (globalId, groupId, artifactId, version, versionOrder, state, name, description, owner, createdOn, labels, contentId) VALUES (?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?)";
         } else {
             // NOTE: Duplicated value of versionOrder is prevented by UQ_versions_2 constraint.
-            query = "INSERT INTO versions (globalId, groupId, artifactId, version, versionOrder, state, name, description, createdBy, createdOn, labels, contentId) VALUES (?, ?, ?, ?, (SELECT MAX(versionOrder) + 1 FROM versions WHERE groupId = ? AND artifactId = ?), ?, ?, ?, ?, ?, ?, ?)";
+            query = "INSERT INTO versions (globalId, groupId, artifactId, version, versionOrder, state, name, description, owner, createdOn, labels, contentId) VALUES (?, ?, ?, ?, (SELECT MAX(versionOrder) + 1 FROM versions WHERE groupId = ? AND artifactId = ?), ?, ?, ?, ?, ?, ?, ?)";
         }
         return query;
     }
@@ -182,7 +182,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
 
     @Override
     public String selectArtifactVersionMetaDataByContentId() {
-        return "SELECT a.*, v.contentId, v.globalId, v.version, v.versionOrder, v.state, v.name, v.description, v.labels, v.createdBy AS modifiedBy, v.createdOn AS modifiedOn "
+        return "SELECT a.*, v.contentId, v.globalId, v.version, v.versionOrder, v.state, v.name, v.description, v.labels, v.owner AS modifiedBy, v.createdOn AS modifiedOn "
                 + "FROM versions v "
                 + "JOIN artifacts a ON v.groupId = a.groupId AND v.artifactId = a.artifactId "
                 + "WHERE v.contentId = ?";
@@ -230,7 +230,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
 
     @Override
     public String selectArtifactMetaData() {
-        return "SELECT a.groupId, a.artifactId, a.type, a.createdBy, a.createdOn, v.contentId, v.globalId, v.version, v.versionOrder, v.state, v.name, v.description, v.labels, v.createdBy AS modifiedBy, v.createdOn AS modifiedOn "
+        return "SELECT a.groupId, a.artifactId, a.type, a.owner, a.createdOn, v.contentId, v.globalId, v.version, v.versionOrder, v.state, v.name, v.description, v.labels, v.owner AS modifiedBy, v.createdOn AS modifiedOn "
                 + "FROM artifacts a "
                 + "JOIN versions v ON  a.groupId = v.groupId AND a.artifactId = v.artifactId "
                 + "WHERE a.groupId = ? AND a.artifactId = ? AND v.version = ?";
@@ -279,7 +279,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
 
     @Override
     public String updateArtifactOwner() {
-        return "UPDATE artifacts SET createdBy = ? WHERE groupId = ? AND artifactId = ?";
+        return "UPDATE artifacts SET owner = ? WHERE groupId = ? AND artifactId = ?";
     }
 
     /**
@@ -384,7 +384,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String selectArtifactMetaDataByGlobalId() {
-        return "SELECT a.groupId, a.artifactId, a.type, a.createdBy, a.createdOn, v.contentId, v.globalId, v.version, v.versionOrder, v.state, v.name, v.description, v.labels, v.createdBy AS modifiedBy, v.createdOn AS modifiedOn "
+        return "SELECT a.groupId, a.artifactId, a.type, a.owner, a.createdOn, v.contentId, v.globalId, v.version, v.versionOrder, v.state, v.name, v.description, v.labels, v.owner AS modifiedBy, v.createdOn AS modifiedOn "
                 + "FROM artifacts a "
                 + "JOIN versions v ON a.groupId = v.groupId AND a.artifactId = v.artifactId "
                 + "WHERE v.globalId = ?";
@@ -562,7 +562,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String insertGroup() {
-        return "INSERT INTO groups (groupId, description, artifactsType, createdBy, createdOn, modifiedBy, modifiedOn, labels) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+        return "INSERT INTO groups (groupId, description, artifactsType, owner, createdOn, modifiedBy, modifiedOn, labels) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
     }
 
     /**
@@ -677,7 +677,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String importArtifactVersion() {
-        return "INSERT INTO versions (globalId, groupId, artifactId, version, versionOrder, state, name, description, createdBy, createdOn, labels, contentId) "
+        return "INSERT INTO versions (globalId, groupId, artifactId, version, versionOrder, state, name, description, owner, createdOn, labels, contentId) "
                 + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
     }
 
@@ -702,7 +702,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String importGroup() {
-        return "INSERT INTO groups (groupId, description, artifactsType, createdBy, createdOn, modifiedBy, modifiedOn, labels) "
+        return "INSERT INTO groups (groupId, description, artifactsType, owner, createdOn, modifiedBy, modifiedOn, labels) "
                 + "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
     }
 
@@ -935,7 +935,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
 
     @Override
     public String insertVersionComment() {
-        return "INSERT INTO version_comments (commentId, globalId, createdBy, createdOn, cvalue) VALUES (?, ?, ?, ?, ?)";
+        return "INSERT INTO version_comments (commentId, globalId, owner, createdOn, cvalue) VALUES (?, ?, ?, ?, ?)";
     }
 
     @Override
@@ -947,12 +947,12 @@ public abstract class CommonSqlStatements implements SqlStatements {
 
     @Override
     public String deleteVersionComment() {
-        return "DELETE FROM version_comments WHERE globalId = ? AND commentId = ? AND createdBy = ?";
+        return "DELETE FROM version_comments WHERE globalId = ? AND commentId = ? AND owner = ?";
     }
 
     @Override
     public String updateVersionComment() {
-        return "UPDATE version_comments SET cvalue = ? WHERE globalId = ? AND commentId = ? AND createdBy = ?";
+        return "UPDATE version_comments SET cvalue = ? WHERE globalId = ? AND commentId = ? AND owner = ?";
     }
 
 

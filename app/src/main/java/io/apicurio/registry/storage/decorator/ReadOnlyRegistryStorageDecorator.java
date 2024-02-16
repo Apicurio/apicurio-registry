@@ -364,9 +364,9 @@ public class ReadOnlyRegistryStorageDecorator extends RegistryStorageDecoratorRe
 
     @Override
     public CommentDto createArtifactVersionCommentRaw(String groupId, String artifactId, String version,
-                                                      IdGenerator commentId, String createdBy, Date createdOn, String value) {
+                                                      IdGenerator commentId, String owner, Date createdOn, String value) {
         checkReadOnly();
-        return delegate.createArtifactVersionCommentRaw(groupId, artifactId, version, commentId, createdBy, createdOn, value);
+        return delegate.createArtifactVersionCommentRaw(groupId, artifactId, version, commentId, owner, createdOn, value);
     }
 
 
@@ -449,23 +449,23 @@ public class ReadOnlyRegistryStorageDecorator extends RegistryStorageDecoratorRe
 
     @Override
     public ArtifactMetaDataDto updateArtifactWithMetadata(String groupId, String artifactId, String version,
-                                                          String artifactType, String contentHash, String createdBy,
+                                                          String artifactType, String contentHash, String owner,
                                                           Date createdOn, EditableArtifactMetaDataDto metaData,
                                                           IdGenerator globalIdGenerator) {
         checkReadOnly();
-        return delegate.updateArtifactWithMetadata(groupId, artifactId, version, artifactType, contentHash, createdBy,
+        return delegate.updateArtifactWithMetadata(groupId, artifactId, version, artifactType, contentHash, owner,
                 createdOn, metaData, globalIdGenerator);
     }
 
 
     @Override
     public ArtifactMetaDataDto createArtifactWithMetadata(String groupId, String artifactId, String version,
-                                                          String artifactType, String contentHash, String createdBy,
+                                                          String artifactType, String contentHash, String owner,
                                                           Date createdOn, EditableArtifactMetaDataDto metaData,
                                                           IdGenerator globalIdGenerator)
             throws ArtifactNotFoundException, RegistryStorageException {
         checkReadOnly();
-        return delegate.createArtifactWithMetadata(groupId, artifactId, version, artifactType, contentHash, createdBy,
+        return delegate.createArtifactWithMetadata(groupId, artifactId, version, artifactType, contentHash, owner,
                 createdOn, metaData, globalIdGenerator);
     }
 

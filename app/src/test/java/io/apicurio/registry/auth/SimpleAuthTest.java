@@ -311,7 +311,7 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
         assertEquals(groupId, created.getGroupId());
         assertEquals(artifactId, created.getId());
         assertEquals(version, created.getVersion());
-        assertEquals("developer-client", created.getCreatedBy());
+        assertEquals("developer-client", created.getOwner());
 
         //Get the artifact owner via the REST API and verify it
         ArtifactOwner owner = client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).owner().get();
@@ -349,7 +349,7 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
         assertEquals(groupId, created.getGroupId());
         assertEquals(artifactId, created.getId());
         assertEquals(version, created.getVersion());
-        assertEquals("developer-client", created.getCreatedBy());
+        assertEquals("developer-client", created.getOwner());
 
         //Get the artifact owner via the REST API and verify it
         ArtifactOwner owner = client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).owner().get();
@@ -399,7 +399,7 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
         assertEquals(groupId, created.getGroupId());
         assertEquals(artifactId, created.getId());
         assertEquals(version, created.getVersion());
-        assertEquals("developer-client", created.getCreatedBy());
+        assertEquals("developer-client", created.getOwner());
 
         //Get the artifact owner via the REST API and verify it
         ArtifactOwner owner = client_dev1.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).owner().get();

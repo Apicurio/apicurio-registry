@@ -199,7 +199,7 @@ public class Export implements QuarkusApplication {
         versionEntity.artifactId = subject;
         versionEntity.artifactType = artifactType;
         versionEntity.contentId = contentId;
-        versionEntity.createdBy = "export-confluent-utility";
+        versionEntity.owner = "export-confluent-utility";
         versionEntity.createdOn = System.currentTimeMillis();
         versionEntity.description = null;
         versionEntity.globalId = -1;

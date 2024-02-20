@@ -37,6 +37,7 @@ import org.junit.jupiter.api.TestInstance;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.containers.Network;
 import org.testcontainers.containers.wait.strategy.Wait;
 
 import java.util.Collections;
@@ -158,7 +159,9 @@ public class KafkaSqlStorageUpgradeIT extends ApicurioRegistryBaseIT implements 
         private void startOldRegistryVersion(String registryImage, String bootstrapServers) {
             genericContainer = new GenericContainer<>(registryImage)
                     .withEnv(Map.of("KAFKA_BOOTSTRAP_SERVERS", bootstrapServers, "QUARKUS_HTTP_PORT", "8081"))
-                    .withNetworkMode("host");
+                    .withNetwork(Network.SHARED);
+
+            genericContainer.setPortBindings(List.of("8081:8081"));
 
             genericContainer.start();
             genericContainer.waitingFor(Wait.forLogMessage(".*(KSQL Kafka Consumer Thread) KafkaSQL storage bootstrapped.*", 1));

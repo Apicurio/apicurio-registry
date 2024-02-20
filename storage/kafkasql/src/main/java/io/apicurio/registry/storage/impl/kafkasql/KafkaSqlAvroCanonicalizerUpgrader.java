@@ -93,7 +93,7 @@ public class KafkaSqlAvroCanonicalizerUpgrader implements IDbUpgrader {
 
             logger.debug("Avro content canonicalHash outdated value detected, updating contentId {}", contentEntity.contentEntity.contentId);
 
-            submitter.submitContent(contentEntity.tenantId, contentEntity.contentEntity.contentId, contentEntity.contentEntity.contentHash, ActionType.UPDATE, canonicalContentHash, null, contentEntity.contentEntity.serializedReferences != null ? contentEntity.contentEntity.serializedReferences : null);
+            submitter.submitContent(contentEntity.tenantId, contentEntity.contentEntity.contentId, contentEntity.contentEntity.contentHash, ActionType.UPDATE, canonicalContentHash, ContentHandle.create(contentEntity.contentEntity.contentBytes), contentEntity.contentEntity.serializedReferences != null ? contentEntity.contentEntity.serializedReferences : null);
 
         } catch (Exception e) {
             logger.warn("Error found processing content with id {} and hash {}", contentEntity.contentEntity.contentId, contentEntity.contentEntity.contentHash, e);

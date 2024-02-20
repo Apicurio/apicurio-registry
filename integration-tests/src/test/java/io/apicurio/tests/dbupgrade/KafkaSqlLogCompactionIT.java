@@ -109,8 +109,7 @@ public class KafkaSqlLogCompactionIT extends ApicurioRegistryBaseIT implements T
                 String bootstrapServers = System.getProperty("bootstrap.servers");
 
                 genericContainer = new GenericContainer("quay.io/apicurio/apicurio-registry-kafkasql:2.1.2.Final")
-                        .withEnv(Map.of("KAFKA_BOOTSTRAP_SERVERS", bootstrapServers, "QUARKUS_HTTP_PORT", "8081"))
-                        .withNetworkMode("host");
+                        .withEnv(Map.of("KAFKA_BOOTSTRAP_SERVERS", bootstrapServers, "QUARKUS_HTTP_PORT", "8081"));
 
                 //create the topic with agressive log compaction
                 createTopic("kafkasql-journal", 1, bootstrapServers);

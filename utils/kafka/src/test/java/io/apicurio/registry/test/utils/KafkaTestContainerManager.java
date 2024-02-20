@@ -50,13 +50,16 @@ public class KafkaTestContainerManager implements QuarkusTestResourceLifecycleMa
             kafka.withLogConsumer(new Slf4jLogConsumer(LoggerFactory.getLogger("kafka-testcontainer")));
             kafka.start();
 
+            String externalBootstrapServers = kafka.getBootstrapServers();
+
             String bootstrapServers = "redpanda:19092";
-            System.setProperty("bootstrap.servers", bootstrapServers);
+            System.setProperty("bootstrap.servers.internal", bootstrapServers);
+            System.setProperty("bootstrap.servers.external", externalBootstrapServers);
 
             return Map.of(
-                    "bootstrap.servers", bootstrapServers,
-                    "registry.events.kafka.config.bootstrap.servers", bootstrapServers,
-                    "registry.kafkasql.bootstrap.servers", bootstrapServers);
+                    "bootstrap.servers", externalBootstrapServers,
+                    "registry.events.kafka.config.bootstrap.servers", externalBootstrapServers,
+                    "registry.kafkasql.bootstrap.servers", externalBootstrapServers);
         } else {
             return Collections.emptyMap();
         }

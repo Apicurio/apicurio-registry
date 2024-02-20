@@ -40,6 +40,7 @@ import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.containers.Network;
 import org.testcontainers.containers.wait.strategy.Wait;
 
 import java.util.Collections;
@@ -106,24 +107,28 @@ public class KafkaSqlLogCompactionIT extends ApicurioRegistryBaseIT implements T
         public Map<String, String> start() {
             if (!Boolean.parseBoolean(System.getProperty("cluster.tests"))) {
 
-                String bootstrapServers = System.getProperty("bootstrap.servers");
+                String externalBootstrapServers = System.getProperty("bootstrap.servers.external");
+                String internalBootstrapServers = System.getProperty("bootstrap.servers.internal");
 
-                genericContainer = new GenericContainer("quay.io/apicurio/apicurio-registry-kafkasql:2.1.2.Final")
-                        .withEnv(Map.of("KAFKA_BOOTSTRAP_SERVERS", bootstrapServers, "QUARKUS_HTTP_PORT", "8081"));
+                genericContainer = new GenericContainer<>("quay.io/apicurio/apicurio-registry-kafkasql:2.1.2.Final")
+                        .withEnv(Map.of("KAFKA_BOOTSTRAP_SERVERS", internalBootstrapServers, "QUARKUS_HTTP_PORT", "8081"))
+                        .withExposedPorts(8081)
+                        .withNetwork(Network.SHARED);
 
-                //create the topic with agressive log compaction
-                createTopic("kafkasql-journal", 1, bootstrapServers);
-
+                genericContainer.setPortBindings(List.of("8081:8081"));
+                genericContainer.waitingFor(Wait.forHttp("/apis/registry/v2/search/artifacts").forStatusCode(200));
                 genericContainer.start();
-                genericContainer.waitingFor(Wait.forLogMessage(".*(KSQL Kafka Consumer Thread) KafkaSQL storage bootstrapped.*", 1));
+                //create the topic with agressive log compaction
+                createTopic("kafkasql-journal", 1, externalBootstrapServers);
+                genericContainer.start();
 
                 var registryClient = RegistryClientFactory.create("http://localhost:8081");
 
                 try {
-                    RegistryWaitUtils.retry(registryClient, registryClient1 -> CustomTestsUtils.createArtifact(registryClient, ArtifactType.AVRO, ApicurioRegistryBaseIT.resourceToString("artifactTypes/" + "avro/multi-field_v1.json")));
+                    RegistryWaitUtils.retry(registryClient, registryClient1 -> CustomTestsUtils.createArtifact(registryClient, PREPARE_LOG_COMPACTION, ArtifactType.AVRO, ApicurioRegistryBaseIT.resourceToString("artifactTypes/" + "avro/multi-field_v1.json")));
 
-                    var artifactdata = CustomTestsUtils.createArtifact(registryClient, ArtifactType.JSON, ApicurioRegistryBaseIT.resourceToString("artifactTypes/" + "jsonSchema/person_v1.json"));
-                    CustomTestsUtils.createArtifact(registryClient, ArtifactType.PROTOBUF, ApicurioRegistryBaseIT.resourceToString("artifactTypes/" + "protobuf/tutorial_v1.proto"));
+                    var artifactdata = CustomTestsUtils.createArtifact(registryClient, PREPARE_LOG_COMPACTION, ArtifactType.JSON, ApicurioRegistryBaseIT.resourceToString("artifactTypes/" + "jsonSchema/person_v1.json"));
+                    CustomTestsUtils.createArtifact(registryClient, PREPARE_LOG_COMPACTION, ArtifactType.PROTOBUF, ApicurioRegistryBaseIT.resourceToString("artifactTypes/" + "protobuf/tutorial_v1.proto"));
 
                     assertEquals(3, registryClient.listArtifactsInGroup(PREPARE_LOG_COMPACTION).getCount());
 
@@ -165,15 +170,11 @@ public class KafkaSqlLogCompactionIT extends ApicurioRegistryBaseIT implements T
         public void createTopic(String topic, int partitions, String bootstrapServers) {
             var journal = new NewTopic(topic, partitions, (short) 1);
 
-            /*journal.configs(Map.of(
+            journal.configs(Map.of(
                     "min.cleanable.dirty.ratio","0.000001",
                     "cleanup.policy","compact",
                     "segment.ms", "100",
                     "delete.retention.ms", "100"
-            ));*/
-
-            journal.configs(Map.of(
-                    "cleanup.policy", "compact"
             ));
 
             adminClient(bootstrapServers).createTopics(List.of(journal));

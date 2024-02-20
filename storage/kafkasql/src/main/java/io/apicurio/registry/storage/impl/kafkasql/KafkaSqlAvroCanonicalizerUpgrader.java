@@ -63,7 +63,7 @@ public class KafkaSqlAvroCanonicalizerUpgrader implements IDbUpgrader {
 
     @Override
     public void upgrade(RegistryStorage registryStorage, Handle dbHandle) throws Exception {
-        String sql = "SELECT c.contentId, c.content, c.canonicalHash, c.contentHash, c.artifactreferences, a.type "
+        String sql = "SELECT c.contentId, c.content, c.canonicalHash, c.contentHash, c.artifactreferences, v.tenantId "
                 + "FROM versions v "
                 + "JOIN content c on c.contentId = v.contentId "
                 + "JOIN artifacts a ON v.tenantId = a.tenantId AND v.groupId = a.groupId AND v.artifactId = a.artifactId "
@@ -83,8 +83,12 @@ public class KafkaSqlAvroCanonicalizerUpgrader implements IDbUpgrader {
         try {
 
             String canonicalContentHash;
-            byte[] referencesBytes = contentEntity.contentEntity.serializedReferences.getBytes(StandardCharsets.UTF_8);
-            canonicalContentHash = DigestUtils.sha256Hex(concatContentAndReferences(this.canonicalizeContent(contentEntity.contentEntity, contentEntity.contentEntity.artifactType).bytes(), referencesBytes));
+            if (contentEntity.contentEntity.serializedReferences != null) {
+                byte[] referencesBytes = contentEntity.contentEntity.serializedReferences.getBytes(StandardCharsets.UTF_8);
+                canonicalContentHash = DigestUtils.sha256Hex(concatContentAndReferences(this.canonicalizeContent(contentEntity.contentEntity, ArtifactType.AVRO).bytes(), referencesBytes));
+            } else {
+                canonicalContentHash = DigestUtils.sha256Hex(this.canonicalizeContent(contentEntity.contentEntity, contentEntity.contentEntity.artifactType).bytes());
+            }
 
             if (canonicalContentHash.equals(contentEntity.contentEntity.canonicalHash)) {
                 logger.debug("Skipping content because the canonical hash is up to date, updating contentId {}", contentEntity.contentEntity.contentId);
@@ -121,6 +125,7 @@ public class KafkaSqlAvroCanonicalizerUpgrader implements IDbUpgrader {
     }
 
     public static class TenantContentEntityRowMapper implements RowMapper<TenantContentEntity> {
+
         @Override
         public TenantContentEntity map(ResultSet rs) throws SQLException {
             TenantContentEntity e = new TenantContentEntity();

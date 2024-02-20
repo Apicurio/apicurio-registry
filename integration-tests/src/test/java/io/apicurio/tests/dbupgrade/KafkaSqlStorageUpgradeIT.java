@@ -129,7 +129,7 @@ public class KafkaSqlStorageUpgradeIT extends ApicurioRegistryBaseIT implements 
         public Map<String, String> start() {
             if (!Boolean.parseBoolean(System.getProperty("cluster.tests"))) {
 
-                String bootstrapServers = System.getProperty("bootstrap.servers");
+                String bootstrapServers = System.getProperty("bootstrap.servers.internal");
                 startOldRegistryVersion("quay.io/apicurio/apicurio-registry-kafkasql:2.1.2.Final", bootstrapServers);
 
                 try {
@@ -159,12 +159,13 @@ public class KafkaSqlStorageUpgradeIT extends ApicurioRegistryBaseIT implements 
         private void startOldRegistryVersion(String registryImage, String bootstrapServers) {
             genericContainer = new GenericContainer<>(registryImage)
                     .withEnv(Map.of("KAFKA_BOOTSTRAP_SERVERS", bootstrapServers, "QUARKUS_HTTP_PORT", "8081"))
+                    .withExposedPorts(8081)
                     .withNetwork(Network.SHARED);
 
             genericContainer.setPortBindings(List.of("8081:8081"));
 
+            genericContainer.waitingFor(Wait.forHttp("/apis/registry/v2/search/artifacts").forStatusCode(200));
             genericContainer.start();
-            genericContainer.waitingFor(Wait.forLogMessage(".*(KSQL Kafka Consumer Thread) KafkaSQL storage bootstrapped.*", 1));
         }
     }
 }

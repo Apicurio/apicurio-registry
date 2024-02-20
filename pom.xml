@@ -151,7 +151,7 @@
         <node.version>16.17.0</node.version>
 
         <!-- Quarkus Version -->
-        <quarkus.version>3.7.3</quarkus.version>
+        <quarkus.version>3.2.10.Final</quarkus.version>
 
         <!-- Jandex -->
         <jandex.version>1.2.3</jandex.version>
@@ -175,7 +175,7 @@
         <picocli.version>4.6.3</picocli.version>
 
         <!-- Confluent API / client -->
-        <confluent.version>7.6.0</confluent.version>
+        <confluent.version>7.5.3</confluent.version>
 
         <!-- Default Quarkus configuration profile -->
         <quarkus.profile>dev</quarkus.profile>
@@ -218,7 +218,7 @@
         <woodstox-core.version>6.6.0</woodstox-core.version>
 
         <!-- Kafka Connect -->
-        <connect.version>7.6.0-ce</connect.version>
+        <connect.version>3.6.1</connect.version>
 
         <!-- Specifications -->
         <annotation-api.version>1.3.5</annotation-api.version>

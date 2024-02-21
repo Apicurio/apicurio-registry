@@ -58,6 +58,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import static io.apicurio.tests.dbupgrade.UpgradeTestsDataInitializer.PREPARE_AVRO_GROUP;
 import static io.apicurio.tests.dbupgrade.UpgradeTestsDataInitializer.PREPARE_PROTO_GROUP;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -86,6 +87,7 @@ public class SqlStorageUpgradeIT extends ApicurioRegistryBaseIT implements TestS
     protected static CustomTestsUtils.ArtifactData artifactWithReferences;
     protected static List<ArtifactReference> artifactReferences;
     protected static CustomTestsUtils.ArtifactData protoData;
+    protected static CustomTestsUtils.ArtifactData avroData;
 
     public static RegistryClient upgradeTenantClient;
 
@@ -119,6 +121,50 @@ public class SqlStorageUpgradeIT extends ApicurioRegistryBaseIT implements TestS
     @Test
     public void testStorageUpgradeProtobufUpgraderKafkaSql() throws Exception {
         testStorageUpgradeProtobufUpgrader("protobufCanonicalHashKafkaSql");
+    }
+
+    @Test
+    public void testStorageUpgradeAvroUpgraderKafkaSql() throws Exception {
+        testStorageUpgradeAvroUpgrader("testStorageUpgradeAvroUpgraderKafkaSql");
+    }
+
+    public void testStorageUpgradeAvroUpgrader(String testName) throws Exception {
+        //The check must be retried so the kafka storage has been bootstrapped
+        retry(() -> assertEquals(3, upgradeTenantClient.listArtifactsInGroup(PREPARE_AVRO_GROUP).getCount()));
+
+        var searchResults = upgradeTenantClient.listArtifactsInGroup(PREPARE_AVRO_GROUP);
+
+        var avros = searchResults.getArtifacts().stream()
+                .filter(ar -> ar.getType().equals(ArtifactType.AVRO))
+                .collect(Collectors.toList());
+
+        System.out.println("Avro artifacts are " + avros.size());
+        assertEquals(1, avros.size());
+        var avroMetadata = upgradeTenantClient.getArtifactMetaData(avros.get(0).getGroupId(), avros.get(0).getId());
+        var content = upgradeTenantClient.getContentByGlobalId(avroMetadata.getGlobalId());
+
+        //search with canonicalize
+        var versionMetadata = upgradeTenantClient.getArtifactVersionMetaDataByContent(avros.get(0).getGroupId(), avros.get(0).getId(), true, null, content);
+        assertEquals(avroData.meta.getContentId(), versionMetadata.getContentId());
+
+        String test1content = ApicurioRegistryBaseIT.resourceToString("artifactTypes/" + "avro/multi-field_v1.json");
+
+        //search with canonicalize
+        versionMetadata = upgradeTenantClient.getArtifactVersionMetaDataByContent(avros.get(0).getGroupId(), avros.get(0).getId(), true, null, IoUtil.toStream(test1content));
+        assertEquals(avroData.meta.getContentId(), versionMetadata.getContentId());
+
+        //search without canonicalize
+        versionMetadata = upgradeTenantClient.getArtifactVersionMetaDataByContent(avros.get(0).getGroupId(), avros.get(0).getId(), false, null, IoUtil.toStream(test1content));
+        assertEquals(avroData.meta.getContentId(), versionMetadata.getContentId());
+
+        //create one more avro artifact and verify
+        String test2content = ApicurioRegistryBaseIT.resourceToString("artifactTypes/" + "avro/multi-field_v2.json");
+        avroData = CustomTestsUtils.createArtifact(upgradeTenantClient, PREPARE_AVRO_GROUP, ArtifactType.AVRO, test2content);
+        versionMetadata = upgradeTenantClient.getArtifactVersionMetaDataByContent(PREPARE_AVRO_GROUP, avroData.meta.getId(), true, null, IoUtil.toStream(test2content));
+        assertEquals(avroData.meta.getContentId(), versionMetadata.getContentId());
+
+        //assert total num of artifacts
+        assertEquals(4, upgradeTenantClient.listArtifactsInGroup(PREPARE_AVRO_GROUP).getCount());
     }
 
     public void testStorageUpgradeProtobufUpgrader(String testName) throws Exception {
@@ -200,6 +246,7 @@ public class SqlStorageUpgradeIT extends ApicurioRegistryBaseIT implements TestS
                     //Prepare the data for the content and canonical hash upgraders using an isolated tenant so we don't have data conflicts.
                     UpgradeTestsDataInitializer.prepareProtobufHashUpgradeTest(tenantUpgradeClient.client);
                     UpgradeTestsDataInitializer.prepareReferencesUpgradeTest(tenantUpgradeClient.client);
+                    UpgradeTestsDataInitializer.prepareAvroCanonicalHashUpgradeData(tenantUpgradeClient.client);
 
                     upgradeTenantClient = tenantUpgradeClient.client;
 

@@ -29,7 +29,6 @@ import io.apicurio.tests.utils.TestSeparator;
 import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -45,8 +44,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import static io.apicurio.tests.dbupgrade.UpgradeTestsDataInitializer.ARTIFACT_CONTENT;
-import static io.apicurio.tests.dbupgrade.UpgradeTestsDataInitializer.PREPARE_PROTO_GROUP;
+import static io.apicurio.tests.dbupgrade.UpgradeTestsDataInitializer.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
@@ -57,12 +55,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 @Tag(Constants.DB_UPGRADE)
 @Tag(Constants.KAFKA_SQL)
 @QuarkusTestResource(value = KafkaTestContainerManager.class, restrictToAnnotatedClass = true)
-@QuarkusTestResource(value = KafkaSqlStorageUpgradeIT.KafkaSqlStorageUpgradeInitializer.class, restrictToAnnotatedClass = true)
+@QuarkusTestResource(value = KafkaSqlProtobufUpgraderIT.KafkaSqlStorageProtobufUpgraderInitializer.class, restrictToAnnotatedClass = true)
 @QuarkusIntegrationTest
-public class KafkaSqlStorageUpgradeIT extends ApicurioRegistryBaseIT implements TestSeparator, Constants {
+public class KafkaSqlProtobufUpgraderIT extends ApicurioRegistryBaseIT implements TestSeparator, Constants {
 
     static final Logger logger = LoggerFactory.getLogger(KafkaSqlLogCompactionIT.class);
-
     protected static CustomTestsUtils.ArtifactData artifactWithReferences;
     protected static List<ArtifactReference> artifactReferences;
     protected static CustomTestsUtils.ArtifactData protoData;
@@ -112,17 +109,7 @@ public class KafkaSqlStorageUpgradeIT extends ApicurioRegistryBaseIT implements 
         assertEquals(4, registryClient.listArtifactsInGroup(PREPARE_PROTO_GROUP).getCount());
     }
 
-    @Test
-    public void testStorageUpgradeReferencesContentHash() throws Exception {
-        //The check must be retried so the kafka storage has been bootstrapped
-        retry(() -> Assertions.assertTrue(registryClient.listArtifactsInGroup(artifactWithReferences.meta.getGroupId()).getCount() > 0), 1000L);
-        //Once the storage is filled with the proper information, if we try to create the same artifact with the same references, no new version will be created and the same ids are used.
-        CustomTestsUtils.ArtifactData upgradedArtifact = CustomTestsUtils.createArtifactWithReferences(artifactWithReferences.meta.getGroupId(), artifactWithReferences.meta.getId(), registryClient, ArtifactType.AVRO, ARTIFACT_CONTENT, artifactReferences);
-        assertEquals(artifactWithReferences.meta.getGlobalId(), upgradedArtifact.meta.getGlobalId());
-        assertEquals(artifactWithReferences.meta.getContentId(), upgradedArtifact.meta.getContentId());
-    }
-
-    public static class KafkaSqlStorageUpgradeInitializer implements QuarkusTestResourceLifecycleManager {
+    public static class KafkaSqlStorageProtobufUpgraderInitializer implements QuarkusTestResourceLifecycleManager {
         private GenericContainer genericContainer;
 
         @Override
@@ -134,9 +121,7 @@ public class KafkaSqlStorageUpgradeIT extends ApicurioRegistryBaseIT implements 
 
                 try {
                     var registryClient = RegistryClientFactory.create("http://localhost:8081/");
-
                     UpgradeTestsDataInitializer.prepareProtobufHashUpgradeTest(registryClient);
-                    UpgradeTestsDataInitializer.prepareReferencesUpgradeTest(registryClient);
                 } catch (Exception e) {
                     logger.warn("Error filling old registry with information: ", e);
                 }

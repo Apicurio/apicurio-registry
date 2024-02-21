@@ -70,7 +70,7 @@ public class KafkaSqlDeploymentManager {
         deleteRegistryDeployment();
 
         //The Registry version 2.3 is deployed, the version introducing artifact references.
-        prepareTestsInfra(KAFKA_RESOURCES, APPLICATION_2_3_KAFKA_RESOURCES, false, null, false);
+        prepareTestsInfra(null, APPLICATION_2_3_KAFKA_RESOURCES, false, null, false);
         prepareKafkaSqlReferencesMigrationData(ApicurioRegistryBaseIT.getRegistryBaseUrl());
 
         //Once the references data is ready, we delete this old deployment and finally the current one is deployed.

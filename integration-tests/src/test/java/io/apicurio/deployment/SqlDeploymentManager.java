@@ -81,7 +81,7 @@ public class SqlDeploymentManager {
         deleteRegistryDeployment();
 
         //The Registry version 2.3 is deployed, the version introducing artifact references.
-        prepareTestsInfra(DATABASE_RESOURCES, APPLICATION_2_3_SQL_RESOURCES, false, null, true);
+        prepareTestsInfra(null, APPLICATION_2_3_SQL_RESOURCES, false, null, true);
         prepareSqlReferencesMigrationData();
 
         //Once the references data is ready, we delete this old deployment and finally the current one is deployed.

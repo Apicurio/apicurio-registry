@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.apicurio.tests.dbupgrade;
+package io.apicurio.tests.dbupgrade.kafka;
 
 import io.apicurio.registry.rest.client.RegistryClientFactory;
 import io.apicurio.registry.test.utils.KafkaTestContainerManager;

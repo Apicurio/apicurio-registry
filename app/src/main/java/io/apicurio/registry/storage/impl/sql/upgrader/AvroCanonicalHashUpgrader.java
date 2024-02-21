@@ -84,9 +84,16 @@ public class AvroCanonicalHashUpgrader implements IDbUpgrader {
     private void updateCanonicalHash(TypeContentEntity contentEntity, Handle dbHandle) {
         try {
             String canonicalContentHash;
-            byte[] referencesBytes = contentEntity.contentEntity.serializedReferences.getBytes(StandardCharsets.UTF_8);
-            canonicalContentHash = DigestUtils.sha256Hex(concatContentAndReferences(this.canonicalizeContent(contentEntity.contentEntity, contentEntity.type).bytes(), referencesBytes));
+            byte[] contentBytes = this.canonicalizeContent(contentEntity.contentEntity, ArtifactType.AVRO).bytes();
 
+            logger.debug("Processing content {}", contentEntity.toString());
+
+            if (contentEntity.contentEntity.serializedReferences != null) {
+                byte[] referencesBytes = contentEntity.contentEntity.serializedReferences.getBytes(StandardCharsets.UTF_8);
+                canonicalContentHash = DigestUtils.sha256Hex(concatContentAndReferences(contentBytes, referencesBytes));
+            } else {
+                canonicalContentHash = DigestUtils.sha256Hex(contentBytes);
+            }
             if (canonicalContentHash.equals(contentEntity.contentEntity.canonicalHash)) {
                 logger.debug("Skipping content because the canonical hash is up to date, updating contentId {}", contentEntity.contentEntity.contentId);
                 return;

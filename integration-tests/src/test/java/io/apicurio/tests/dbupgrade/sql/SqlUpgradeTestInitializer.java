@@ -14,14 +14,17 @@ import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
 import org.junit.jupiter.api.Assertions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.testcontainers.Testcontainers;
 import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.containers.Network;
 import org.testcontainers.containers.wait.strategy.Wait;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-public class SqUpgradeTestInitializer implements QuarkusTestResourceLifecycleManager {
+public class SqlUpgradeTestInitializer implements QuarkusTestResourceLifecycleManager {
 
     private static final Logger logger = LoggerFactory.getLogger(SqlStorageUpgradeIT.class);
     GenericContainer registryContainer;
@@ -41,15 +44,10 @@ public class SqUpgradeTestInitializer implements QuarkusTestResourceLifecycleMan
             String userName = System.getProperty("quarkus.datasource.username");
             String password = System.getProperty("quarkus.datasource.password");
 
-            String tenantManagerUrl = startTenantManagerApplication("quay.io/apicurio/apicurio-tenant-manager-api:latest", jdbcUrl, userName, password);
-            String registryBaseUrl = startOldRegistryVersion("quay.io/apicurio/apicurio-registry-sql:2.1.0.Final", jdbcUrl, userName, password, tenantManagerUrl);
-
             try {
 
-                //Warm up until the tenant manager is ready.
-                TestUtils.retry(() -> {
-                    getTenantManagerClient(tenantManagerUrl).listTenants(TenantStatusValue.READY, 0, 1, SortOrder.asc, SortBy.tenantId);
-                });
+                String tenantManagerUrl = startTenantManagerApplication("quay.io/apicurio/apicurio-tenant-manager-api:latest", jdbcUrl, userName, password);
+                String registryBaseUrl = startOldRegistryVersion(getRegistryImage(), jdbcUrl, userName, password, tenantManagerUrl);
 
                 prepareData(tenantManagerUrl, registryBaseUrl);
 
@@ -70,7 +68,7 @@ public class SqUpgradeTestInitializer implements QuarkusTestResourceLifecycleMan
         UpgradeTestsDataInitializer.prepareTestStorageUpgrade(SqlStorageUpgradeIT.class.getSimpleName(), tenantManagerUrl, "http://localhost:8081");
 
         //Wait until all the data is available for the upgrade test.
-        TestUtils.retry(() -> Assertions.assertEquals(10, getTenantManagerClient(tenantManagerUrl).listTenants(TenantStatusValue.READY, 0, 51, SortOrder.asc, SortBy.tenantId).getCount()));
+        TestUtils.retry(() -> Assertions.assertEquals(11, getTenantManagerClient(tenantManagerUrl).listTenants(TenantStatusValue.READY, 0, 51, SortOrder.asc, SortBy.tenantId).getCount()));
 
         MultitenancySupport mt = new MultitenancySupport(tenantManagerUrl, registryBaseUrl);
         TenantUser tenantUser = new TenantUser(UUID.randomUUID().toString(), UUID.randomUUID().toString(), "storageUpgrade", UUID.randomUUID().toString());
@@ -79,17 +77,29 @@ public class SqUpgradeTestInitializer implements QuarkusTestResourceLifecycleMan
         SqlStorageUpgradeIT.upgradeTenantClient = tenantUpgradeClient.client;
     }
 
+    public String getRegistryImage() {
+        return "quay.io/apicurio/apicurio-registry-sql:2.1.0.Final";
+    }
+
     private String startTenantManagerApplication(String tenantManagerImageName, String jdbcUrl, String username, String password) {
+        int postgresqlPort = Integer.parseInt(System.getProperty("postgres.port"));
+        jdbcUrl = jdbcUrl.replace("localhost", "host.testcontainers.internal");
+
+        Testcontainers.exposeHostPorts(postgresqlPort);
+
         tenantManagerContainer = new GenericContainer<>(tenantManagerImageName)
                 .withEnv(Map.of("DATASOURCE_URL", jdbcUrl,
                         "REGISTRY_ROUTE_URL", "",
                         "DATASOURCE_USERNAME", username,
                         "DATASOURCE_PASSWORD", password,
                         "QUARKUS_HTTP_PORT", "8585"))
-                .withNetworkMode("host");
+                .withExposedPorts(8585)
+                .withAccessToHost(true)
+                .withNetwork(Network.SHARED);
 
+        tenantManagerContainer.setPortBindings(List.of("8585:8585"));
+        tenantManagerContainer.waitingFor(Wait.forHttp("/api/v1/tenants").forStatusCode(200));
         tenantManagerContainer.start();
-        tenantManagerContainer.waitingFor(Wait.forLogMessage(".*Installed features:*", 1));
 
         return "http://localhost:8585";
     }
@@ -106,7 +116,21 @@ public class SqUpgradeTestInitializer implements QuarkusTestResourceLifecycleMan
         }
     }
 
-    private String startOldRegistryVersion(String imageName, String jdbcUrl, String username, String password, String tenantManagerUrl) {
+
+    private String startOldRegistryVersion(String imageName, String jdbcUrl, String username, String password, String tenantManagerUrl) throws Exception {
+        final String registryBaseUrl = "http://localhost:8081";
+
+        MultitenancySupport mt = new MultitenancySupport(tenantManagerUrl, registryBaseUrl);
+        TenantUser tenantUser = new TenantUser(UUID.randomUUID().toString(), UUID.randomUUID().toString(), "storageUpgrade", UUID.randomUUID().toString());
+        mt.createTenant(tenantUser);
+
+        int postgresqlPort = Integer.parseInt(System.getProperty("postgres.port"));
+        tenantManagerUrl = tenantManagerUrl.replace("localhost", "host.testcontainers.internal");
+        jdbcUrl = jdbcUrl.replace("localhost", "host.testcontainers.internal");
+
+        Testcontainers.exposeHostPorts(postgresqlPort);
+        Testcontainers.exposeHostPorts(8585);
+
         registryContainer = new GenericContainer<>(imageName)
                 .withEnv(Map.of(
                         "REGISTRY_ENABLE_MULTITENANCY", "true",
@@ -116,14 +140,16 @@ public class SqUpgradeTestInitializer implements QuarkusTestResourceLifecycleMan
                         "REGISTRY_DATASOURCE_USERNAME", username,
                         "REGISTRY_DATASOURCE_PASSWORD", password,
                         "QUARKUS_HTTP_PORT", "8081"))
-                .dependsOn(tenantManagerContainer)
-                .withNetworkMode("host");
+                .withExposedPorts(8081)
+                .withNetwork(Network.SHARED)
+                .dependsOn(tenantManagerContainer);
 
+        //If this returns a not found
+        registryContainer.waitingFor(Wait.forHttp("/t/" + tenantUser.tenantId + "/apis/registry/v2/health").forStatusCode(404));
+        registryContainer.setPortBindings(List.of("8081:8081"));
         registryContainer.start();
-        //TODO change log message
-        registryContainer.waitingFor(Wait.forLogMessage(".*Installed features:*", 1));
 
-        return "http://localhost:8081";
+        return registryBaseUrl;
     }
 
     public synchronized TenantManagerClient getTenantManagerClient(String tenantManagerUrl) {

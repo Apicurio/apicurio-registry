@@ -22,7 +22,9 @@ import io.apicurio.tenantmanager.api.datamodel.SortOrder;
 import io.apicurio.tenantmanager.api.datamodel.TenantStatusValue;
 import io.apicurio.tenantmanager.client.TenantManagerClientImpl;
 import io.apicurio.tests.ApicurioRegistryBaseIT;
-import io.apicurio.tests.dbupgrade.SqlStorageUpgradeIT;
+import io.apicurio.tests.dbupgrade.sql.SqlAvroUpgraderIT;
+import io.apicurio.tests.dbupgrade.sql.SqlReferencesUpgraderIT;
+import io.apicurio.tests.dbupgrade.sql.SqlStorageUpgradeIT;
 import io.apicurio.tests.dbupgrade.UpgradeTestsDataInitializer;
 import io.apicurio.tests.multitenancy.MultitenancySupport;
 import io.apicurio.tests.multitenancy.TenantUser;
@@ -115,7 +117,10 @@ public class SqlDeploymentManager {
         //Prepare the data for the content and canonical hash upgraders using an isolated tenant so we don't have data conflicts.
         UpgradeTestsDataInitializer.prepareProtobufHashUpgradeTest(tenantUpgradeClient.client);
         UpgradeTestsDataInitializer.prepareReferencesUpgradeTest(tenantUpgradeClient.client);
+        UpgradeTestsDataInitializer.prepareAvroCanonicalHashUpgradeData(tenantUpgradeClient.client);
 
         SqlStorageUpgradeIT.upgradeTenantClient = tenantUpgradeClient.client;
+        SqlAvroUpgraderIT.upgradeTenantClient = tenantUpgradeClient.client;
+        SqlReferencesUpgraderIT.upgradeTenantClient = tenantUpgradeClient.client;
     }
 }

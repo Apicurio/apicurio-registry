@@ -26,7 +26,7 @@ import io.apicurio.tenantmanager.api.datamodel.SortOrder;
 import io.apicurio.tenantmanager.api.datamodel.TenantStatusValue;
 import io.apicurio.tenantmanager.client.TenantManagerClient;
 import io.apicurio.tenantmanager.client.TenantManagerClientImpl;
-import io.apicurio.tests.dbupgrade.SqlStorageUpgradeIT;
+import io.apicurio.tests.dbupgrade.sql.SqlStorageUpgradeIT;
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
 import io.zonky.test.db.postgres.embedded.EmbeddedPostgres;
 import org.slf4j.Logger;

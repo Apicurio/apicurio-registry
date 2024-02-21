@@ -14,15 +14,15 @@
  * limitations under the License.
  */
 
-package io.apicurio.tests.dbupgrade;
+package io.apicurio.tests.dbupgrade.kafka;
 
 import io.apicurio.registry.rest.client.RegistryClientFactory;
-import io.apicurio.registry.rest.v2.beans.ArtifactReference;
 import io.apicurio.registry.test.utils.KafkaTestContainerManager;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.tests.SimpleDisplayName;
 import io.apicurio.tests.ApicurioRegistryBaseIT;
+import io.apicurio.tests.dbupgrade.UpgradeTestsDataInitializer;
 import io.apicurio.tests.utils.Constants;
 import io.apicurio.tests.utils.CustomTestsUtils;
 import io.apicurio.tests.utils.TestSeparator;
@@ -44,7 +44,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import static io.apicurio.tests.dbupgrade.UpgradeTestsDataInitializer.*;
+import static io.apicurio.tests.dbupgrade.UpgradeTestsDataInitializer.PREPARE_PROTO_GROUP;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
@@ -60,9 +60,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 public class KafkaSqlProtobufUpgraderIT extends ApicurioRegistryBaseIT implements TestSeparator, Constants {
 
     static final Logger logger = LoggerFactory.getLogger(KafkaSqlLogCompactionIT.class);
-    protected static CustomTestsUtils.ArtifactData artifactWithReferences;
-    protected static List<ArtifactReference> artifactReferences;
-    protected static CustomTestsUtils.ArtifactData protoData;
+    public static CustomTestsUtils.ArtifactData protoData;
 
     @Override
     public void cleanArtifacts() throws Exception {

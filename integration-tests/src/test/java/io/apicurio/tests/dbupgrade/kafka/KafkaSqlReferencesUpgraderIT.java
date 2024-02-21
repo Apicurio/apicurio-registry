@@ -1,4 +1,4 @@
-package io.apicurio.tests.dbupgrade;
+package io.apicurio.tests.dbupgrade.kafka;
 
 import io.apicurio.registry.rest.client.RegistryClientFactory;
 import io.apicurio.registry.rest.v2.beans.ArtifactReference;
@@ -6,6 +6,7 @@ import io.apicurio.registry.test.utils.KafkaTestContainerManager;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.tests.SimpleDisplayName;
 import io.apicurio.tests.ApicurioRegistryBaseIT;
+import io.apicurio.tests.dbupgrade.UpgradeTestsDataInitializer;
 import io.apicurio.tests.utils.Constants;
 import io.apicurio.tests.utils.CustomTestsUtils;
 import io.apicurio.tests.utils.TestSeparator;
@@ -40,8 +41,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 public class KafkaSqlReferencesUpgraderIT extends ApicurioRegistryBaseIT implements TestSeparator, Constants {
 
     static final Logger logger = LoggerFactory.getLogger(KafkaSqlLogCompactionIT.class);
-    protected static CustomTestsUtils.ArtifactData artifactWithReferences;
-    protected static List<ArtifactReference> artifactReferences;
+    public static CustomTestsUtils.ArtifactData artifactWithReferences;
+    public static List<ArtifactReference> artifactReferences;
 
     @Override
     public void cleanArtifacts() throws Exception {

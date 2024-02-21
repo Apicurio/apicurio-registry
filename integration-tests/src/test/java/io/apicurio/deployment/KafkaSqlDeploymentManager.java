@@ -91,5 +91,6 @@ public class KafkaSqlDeploymentManager {
         UpgradeTestsDataInitializer.prepareProtobufHashUpgradeTest(registryClient);
         UpgradeTestsDataInitializer.prepareReferencesUpgradeTest(registryClient);
         UpgradeTestsDataInitializer.prepareLogCompactionTests(registryClient);
+        UpgradeTestsDataInitializer.prepareAvroCanonicalHashUpgradeData(registryClient);
     }
 }

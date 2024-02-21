@@ -31,8 +31,8 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import static io.apicurio.deployment.k8s.K8sClientManager.kubernetesClient;
 import static io.apicurio.deployment.KubernetesTestResources.*;
+import static io.apicurio.deployment.RegistryDeploymentManager.kubernetesClient;
 import static io.apicurio.deployment.RegistryDeploymentManager.prepareTestsInfra;
 
 public class KafkaSqlDeploymentManager {
@@ -61,13 +61,29 @@ public class KafkaSqlDeploymentManager {
     private static void prepareKafkaDbUpgradeTests(String registryImage) throws Exception {
         LOGGER.info("Preparing data for KafkaSQL DB Upgrade migration tests...");
 
-        //For the migration tests first we deploy the in-memory variant, add some data and then the appropriate variant is deployed.
-        prepareTestsInfra(KAFKA_RESOURCES, APPLICATION_OLD_KAFKA_RESOURCES, false, null, false);
+        //For the migration tests first we deploy the 2.1 version and add the required data.
+        prepareTestsInfra(KAFKA_RESOURCES, APPLICATION_2_1_KAFKA_RESOURCES, false, null, false);
         prepareKafkaSqlMigrationData(ApicurioRegistryBaseIT.getRegistryBaseUrl());
 
         final RollableScalableResource<Deployment> deploymentResource = kubernetesClient().apps().deployments().inNamespace(TEST_NAMESPACE).withName(APPLICATION_DEPLOYMENT);
+        //Once all the data has been introduced, the old deployment is deleted.
+        deleteRegistryDeployment();
 
-        kubernetesClient().apps().deployments().inNamespace(TEST_NAMESPACE).withName(APPLICATION_DEPLOYMENT).delete();
+        //The Registry version 2.3 is deployed, the version introducing artifact references.
+        prepareTestsInfra(KAFKA_RESOURCES, APPLICATION_2_3_KAFKA_RESOURCES, false, null, false);
+        prepareKafkaSqlReferencesMigrationData(ApicurioRegistryBaseIT.getRegistryBaseUrl());
+
+        //Once the references data is ready, we delete this old deployment and finally the current one is deployed.
+        deleteRegistryDeployment();
+
+        LOGGER.info("Finished preparing data for the KafkaSQL DB Upgrade tests.");
+        prepareTestsInfra(null, APPLICATION_KAFKA_RESOURCES, false, registryImage, false);
+    }
+
+    private static void deleteRegistryDeployment() {
+        final RollableScalableResource<Deployment> deploymentResource = kubernetesClient.apps().deployments().inNamespace(TEST_NAMESPACE).withName(APPLICATION_DEPLOYMENT);
+
+        kubernetesClient.apps().deployments().inNamespace(TEST_NAMESPACE).withName(APPLICATION_DEPLOYMENT).delete();
 
         //Wait for the deployment to be deleted
         CompletableFuture<List<Deployment>> deployment = deploymentResource
@@ -80,17 +96,19 @@ public class KafkaSqlDeploymentManager {
         } finally {
             deployment.cancel(true);
         }
-
-        LOGGER.info("Finished preparing data for the KafkaSQL DB Upgrade tests.");
-        prepareTestsInfra(null, APPLICATION_KAFKA_RESOURCES, false, registryImage, false);
     }
 
     private static void prepareKafkaSqlMigrationData(String registryBaseUrl) throws Exception {
         var registryClient = RegistryClientFactory.create(registryBaseUrl);
 
         UpgradeTestsDataInitializer.prepareProtobufHashUpgradeTest(registryClient);
-        UpgradeTestsDataInitializer.prepareReferencesUpgradeTest(registryClient);
         UpgradeTestsDataInitializer.prepareLogCompactionTests(registryClient);
         UpgradeTestsDataInitializer.prepareAvroCanonicalHashUpgradeData(registryClient);
+    }
+
+    private static void prepareKafkaSqlReferencesMigrationData(String registryBaseUrl) throws Exception {
+        var registryClient = RegistryClientFactory.create(registryBaseUrl);
+
+        UpgradeTestsDataInitializer.prepareReferencesUpgradeTest(registryClient);
     }
 }

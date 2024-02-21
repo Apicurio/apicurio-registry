@@ -31,6 +31,7 @@ import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 import io.apicurio.registry.types.provider.DefaultArtifactTypeUtilProviderImpl;
 import io.apicurio.registry.utils.impexp.ContentEntity;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.context.control.ActivateRequestContext;
 import jakarta.inject.Inject;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.slf4j.Logger;
@@ -63,6 +64,8 @@ public class KafkaSqlAvroCanonicalizerUpgrader implements IDbUpgrader {
 
     @Override
     public void upgrade(RegistryStorage registryStorage, Handle dbHandle) throws Exception {
+        this.storage = registryStorage;
+
         String sql = "SELECT c.contentId, c.content, c.canonicalHash, c.contentHash, c.artifactreferences, v.tenantId "
                 + "FROM versions v "
                 + "JOIN content c on c.contentId = v.contentId "
@@ -79,15 +82,20 @@ public class KafkaSqlAvroCanonicalizerUpgrader implements IDbUpgrader {
         }
     }
 
+    @ActivateRequestContext
     protected void updateCanonicalHash(TenantContentEntity contentEntity) {
         try {
 
             String canonicalContentHash;
+            byte[] contentBytes = this.canonicalizeContent(contentEntity.contentEntity, ArtifactType.AVRO).bytes();
+
+            logger.debug("Processing content {}", contentEntity.toString());
+
             if (contentEntity.contentEntity.serializedReferences != null) {
                 byte[] referencesBytes = contentEntity.contentEntity.serializedReferences.getBytes(StandardCharsets.UTF_8);
-                canonicalContentHash = DigestUtils.sha256Hex(concatContentAndReferences(this.canonicalizeContent(contentEntity.contentEntity, ArtifactType.AVRO).bytes(), referencesBytes));
+                canonicalContentHash = DigestUtils.sha256Hex(concatContentAndReferences(contentBytes, referencesBytes));
             } else {
-                canonicalContentHash = DigestUtils.sha256Hex(this.canonicalizeContent(contentEntity.contentEntity, contentEntity.contentEntity.artifactType).bytes());
+                canonicalContentHash = DigestUtils.sha256Hex(contentBytes);
             }
 
             if (canonicalContentHash.equals(contentEntity.contentEntity.canonicalHash)) {

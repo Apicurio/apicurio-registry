@@ -23,6 +23,7 @@ import io.apicurio.tenantmanager.api.datamodel.TenantStatusValue;
 import io.apicurio.tenantmanager.client.TenantManagerClientImpl;
 import io.apicurio.tests.ApicurioRegistryBaseIT;
 import io.apicurio.tests.dbupgrade.sql.SqlAvroUpgraderIT;
+import io.apicurio.tests.dbupgrade.sql.SqlProtobufCanonicalHashUpgraderIT;
 import io.apicurio.tests.dbupgrade.sql.SqlReferencesUpgraderIT;
 import io.apicurio.tests.dbupgrade.sql.SqlStorageUpgradeIT;
 import io.apicurio.tests.dbupgrade.UpgradeTestsDataInitializer;
@@ -81,7 +82,7 @@ public class SqlDeploymentManager {
         deleteRegistryDeployment();
 
         //The Registry version 2.3 is deployed, the version introducing artifact references.
-        prepareTestsInfra(null, APPLICATION_2_3_SQL_RESOURCES, false, null, true);
+        prepareTestsInfra(null, APPLICATION_2_3_SQL_RESOURCES, false, null, false);
         prepareSqlReferencesMigrationData();
 
         //Once the references data is ready, we delete this old deployment and finally the current one is deployed.
@@ -129,6 +130,7 @@ public class SqlDeploymentManager {
         UpgradeTestsDataInitializer.prepareAvroCanonicalHashUpgradeData(tenantUpgradeClient.client);
 
         SqlStorageUpgradeIT.upgradeTenantClient = tenantUpgradeClient.client;
+        SqlProtobufCanonicalHashUpgraderIT.upgradeTenantClient = tenantUpgradeClient.client;
         SqlAvroUpgraderIT.upgradeTenantClient = tenantUpgradeClient.client;
         SqlReferencesUpgraderIT.upgradeTenantClient = tenantUpgradeClient.client;
     }

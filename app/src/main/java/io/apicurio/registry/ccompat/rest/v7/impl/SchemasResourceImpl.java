@@ -14,7 +14,6 @@ import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.dto.ContentWrapperDto;
 import io.apicurio.registry.storage.dto.StoredArtifactDto;
-import io.apicurio.registry.storage.error.ArtifactNotFoundException;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.util.ArtifactTypeUtil;
 import jakarta.interceptor.Interceptors;
@@ -41,13 +40,8 @@ public class SchemasResourceImpl extends AbstractResource implements SchemasReso
             references = artifactVersion.getReferences();
         } else {
             ContentWrapperDto contentWrapper = storage.getArtifactByContentId(id);
-            contentHandle = storage.getArtifactByContentId(id).getContent();
+            contentHandle = contentWrapper.getContent();
             references = contentWrapper.getReferences();
-            List<ArtifactMetaDataDto> artifacts = storage.getArtifactVersionsByContentId(id);
-            if (artifacts == null || artifacts.isEmpty()) {
-                //the contentId points to an orphaned content
-                throw new ArtifactNotFoundException("ContentId: " + id);
-            }
         }
         return converter.convert(contentHandle, ArtifactTypeUtil.determineArtifactType(contentHandle, null, null, storage.resolveReferences(references), factory.getAllArtifactTypes()), references);
     }

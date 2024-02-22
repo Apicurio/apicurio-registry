@@ -286,7 +286,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             @SuppressWarnings("unchecked")
             Class<IDbUpgrader> upgraderClass = (Class<IDbUpgrader>) Class.forName(cname);
             IDbUpgrader upgrader = upgraderClass.getConstructor().newInstance();
-            upgrader.upgrade(this, handle);
+            upgrader.upgrade( handle);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

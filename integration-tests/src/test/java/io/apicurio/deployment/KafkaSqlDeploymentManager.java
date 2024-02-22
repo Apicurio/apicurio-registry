@@ -32,8 +32,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import static io.apicurio.deployment.KubernetesTestResources.*;
-import static io.apicurio.deployment.RegistryDeploymentManager.kubernetesClient;
 import static io.apicurio.deployment.RegistryDeploymentManager.prepareTestsInfra;
+import static io.apicurio.deployment.k8s.K8sClientManager.kubernetesClient;
 
 public class KafkaSqlDeploymentManager {
 
@@ -65,12 +65,11 @@ public class KafkaSqlDeploymentManager {
         prepareTestsInfra(KAFKA_RESOURCES, APPLICATION_2_1_KAFKA_RESOURCES, false, null, false);
         prepareKafkaSqlMigrationData(ApicurioRegistryBaseIT.getRegistryBaseUrl());
 
-        final RollableScalableResource<Deployment> deploymentResource = kubernetesClient().apps().deployments().inNamespace(TEST_NAMESPACE).withName(APPLICATION_DEPLOYMENT);
         //Once all the data has been introduced, the old deployment is deleted.
         deleteRegistryDeployment();
 
         //The Registry version 2.3 is deployed, the version introducing artifact references.
-        prepareTestsInfra(null, APPLICATION_2_3_KAFKA_RESOURCES, false, null, false);
+        prepareTestsInfra(null, APPLICATION_2_4_KAFKA_RESOURCES, false, null, false);
         prepareKafkaSqlReferencesMigrationData(ApicurioRegistryBaseIT.getRegistryBaseUrl());
 
         //Once the references data is ready, we delete this old deployment and finally the current one is deployed.
@@ -81,9 +80,9 @@ public class KafkaSqlDeploymentManager {
     }
 
     private static void deleteRegistryDeployment() {
-        final RollableScalableResource<Deployment> deploymentResource = kubernetesClient.apps().deployments().inNamespace(TEST_NAMESPACE).withName(APPLICATION_DEPLOYMENT);
+        final RollableScalableResource<Deployment> deploymentResource = kubernetesClient().apps().deployments().inNamespace(TEST_NAMESPACE).withName(APPLICATION_DEPLOYMENT);
 
-        kubernetesClient.apps().deployments().inNamespace(TEST_NAMESPACE).withName(APPLICATION_DEPLOYMENT).delete();
+        kubernetesClient().apps().deployments().inNamespace(TEST_NAMESPACE).withName(APPLICATION_DEPLOYMENT).delete();
 
         //Wait for the deployment to be deleted
         CompletableFuture<List<Deployment>> deployment = deploymentResource

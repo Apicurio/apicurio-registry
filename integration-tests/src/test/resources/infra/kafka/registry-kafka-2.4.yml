@@ -3,17 +3,17 @@ kind: Deployment
 metadata:
   namespace: "apicurio-registry-e2e"
   labels:
-    app: apicurio-registry-sql
+    app: apicurio-registry-kafka
   name: apicurio-registry-deployment
 spec:
-  replicas: 3
+  replicas: 1
   selector:
     matchLabels:
-      app: apicurio-registry-sql
+      app: apicurio-registry-kafka
   template:
     metadata:
       labels:
-        app: apicurio-registry-sql
+        app: apicurio-registry-kafka
     spec:
       containers:
         - env:
@@ -21,25 +21,9 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.namespace
-            - name: REGISTRY_DATASOURCE_URL
-              value: jdbc:postgresql://postgresql-service:5432/registry
-            - name: REGISTRY_DATASOURCE_USERNAME
-              value: "apicurio"
-            - name: REGISTRY_DATASOURCE_PASSWORD
-              value: "registry"
-            - name: REGISTRY_ENABLE_MULTITENANCY
-              value: "true"
-            - name: REGISTRY_DISABLE_APIS
-              value: ""
-            - name: TENANT_MANAGER_AUTH_ENABLED
-              value: "false"
-            - name: REGISTRY_MULTITENANCY_REAPER_PERIOD_SECONDS
-              value: "10"
-            - name: REGISTRY_MULTITENANCY_REAPER_EVERY
-              value: "3s"
-            - name: TENANT_MANAGER_URL
-              value: "http://tenant-manager-service:8585"
-          image: quay.io/apicurio/apicurio-registry-sql:2.3.0.Final
+            - name: KAFKA_BOOTSTRAP_SERVERS
+              value: kafka-service:9092
+          image: quay.io/apicurio/apicurio-registry-kafkasql:2.4.4.Final
           imagePullPolicy: Always
           livenessProbe:
             failureThreshold: 3
@@ -51,7 +35,7 @@ spec:
             periodSeconds: 10
             successThreshold: 1
             timeoutSeconds: 10
-          name: apicurio-registry-sql
+          name: apicurio-registry-kafka
           ports:
             - containerPort: 8080
               name: http
@@ -72,7 +56,7 @@ kind: Service
 metadata:
   namespace: "apicurio-registry-e2e"
   labels:
-    app: apicurio-registry-sql
+    app: apicurio-registry-kafka
   name: apicurio-registry-service
 spec:
   ports:
@@ -81,7 +65,7 @@ spec:
       targetPort: 8080
       nodePort: 32586
   selector:
-    app: apicurio-registry-sql
+    app: apicurio-registry-kafka
   type: LoadBalancer
   sessionAffinity: None
   externalTrafficPolicy: Cluster

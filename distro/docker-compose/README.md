@@ -36,7 +36,9 @@ This setup contains a fully configured Apicurio Registry package already integra
 
 Here is the port mapping:
 - 8080 for Keycloak
-- 8081 for the Registry
+- 8081 for the Registry API
+- 8888 for the Registry UI
+
 
 #### Starting the environment
 
@@ -57,15 +59,15 @@ docker system prune --volumes
 The Keycloak instance is already configured, you don't have to create the realms manually.
 
 At the first start there are no default users added to Keycloak. Please navigate to:
-`http://YOUR_IP:8090`
+`http://YOUR_IP:8080`
 
-The default credentials for Keycloak are: `admin` and the password can be found in the previously generated `.env` file, under `KEYCLOAK_PASSWORD`.
+The default credentials for Keycloak are: `admin` and the password is also `admin`.
 
 Select Registry realm and add a user to it. You'll need to also assign the appropriated role.
 
-
 #### Login to Apicurio and Keycloak
 
-Apicurio URL: `http://YOUR_IP:8080`
-Keycloak URL: `http://YOUR_IP:8090`
+Apicurio Registry UI URL: `http://YOUR_IP:8888`
+Apicurio Registry API URL: `http://YOUR_IP:8081`
+Keycloak URL: `http://YOUR_IP:8080`
 

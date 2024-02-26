@@ -27,4 +27,4 @@ chown -R $UID /registry/go-sdk &&
 chgrp -R $GID /registry/go-sdk
 END
 
-docker run --rm -v $SCRIPT_DIR/..:/registry golang:1.21.6 /bin/bash -c "$SCRIPT"
+docker run --platform linux/amd64 --rm -v $SCRIPT_DIR/..:/registry golang:1.21.6 /bin/bash -c "$SCRIPT"

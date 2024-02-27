@@ -23,7 +23,7 @@ endif::[]
 ----
 <dependency>
     <groupId>io.apicurio</groupId>
-    <artifactId>apicurio-registry-client</artifactId>
+    <artifactId>apicurio-registry-java-sdk</artifactId>
     <version>${apicurio-registry.version}</version>
 </dependency>
 ----
@@ -37,7 +37,10 @@ public class ClientExample {
     public static void main(String[] args) throws Exception {
        // Create a registry client
        String registryUrl = "https://my-registry.my-domain.com/apis/registry/v2"; <1>
-       RegistryClient client = RegistryClientFactory.create(registryUrl); <2>
+       VertXRequestAdapter vertXRequestAdapter = new VertXRequestAdapter(VertXAuthFactory.defaultVertx);
+       vertXRequestAdapter.setBaseUrl(REGISTRY_URL);
+
+       RegistryClient client = new RegistryClient(vertXRequestAdapter); <2>
     }
 }
 ----

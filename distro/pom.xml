@@ -13,7 +13,5 @@
     <modules>
         <module>connect-converter</module>
         <module>docker</module>
-        <module>docker-compose</module>
-        <module>openshift-template</module>
     </modules>
 </project>

@@ -1,0 +1,361 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: example-components-template
+labels:
+  template: example-components-template
+objects:
+
+
+  # MySQL
+
+
+  - kind: ConfigMap
+    apiVersion: v1
+    metadata:
+      name: example-components-mysql-init
+      namespace: ${NAMESPACE}
+    immutable: false
+    data:
+      init.sql: |
+        USE inventory;
+
+        # Create and populate our products using a single insert with many rows
+
+        CREATE TABLE products (
+          id INTEGER NOT NULL AUTO_INCREMENT PRIMARY KEY,
+          name VARCHAR(255) NOT NULL,
+          description VARCHAR(512),
+          weight FLOAT
+        );
+
+        ALTER TABLE products AUTO_INCREMENT = 101;
+
+        INSERT INTO products
+        VALUES (default,"scooter","Small 2-wheel scooter",3.14),
+               (default,"car battery","12V car battery",8.1),
+               (default,"12-pack drill bits","12-pack of drill bits with sizes ranging from #40 to #3",0.8),
+               (default,"hammer","12oz carpenter's hammer",0.75),
+               (default,"hammer","14oz carpenter's hammer",0.875),
+               (default,"hammer","16oz carpenter's hammer",1.0),
+               (default,"rocks","box of assorted rocks",5.3),
+               (default,"jacket","water resistant black wind breaker",0.1),
+               (default,"spare tire","24 inch spare tire",22.2);
+
+        # Create and populate the products on hand using multiple inserts
+
+        CREATE TABLE products_on_hand (
+          product_id INTEGER NOT NULL PRIMARY KEY,
+          quantity INTEGER NOT NULL,
+          FOREIGN KEY (product_id) REFERENCES products(id)
+        );
+
+        INSERT INTO products_on_hand VALUES (101,3);
+        INSERT INTO products_on_hand VALUES (102,8);
+        INSERT INTO products_on_hand VALUES (103,18);
+        INSERT INTO products_on_hand VALUES (104,4);
+        INSERT INTO products_on_hand VALUES (105,5);
+        INSERT INTO products_on_hand VALUES (106,0);
+        INSERT INTO products_on_hand VALUES (107,44);
+        INSERT INTO products_on_hand VALUES (108,2);
+        INSERT INTO products_on_hand VALUES (109,5);
+
+        # Create some customers ...
+
+        CREATE TABLE customers (
+          id INTEGER NOT NULL AUTO_INCREMENT PRIMARY KEY,
+          first_name VARCHAR(255) NOT NULL,
+          last_name VARCHAR(255) NOT NULL,
+          email VARCHAR(255) NOT NULL UNIQUE KEY
+        ) AUTO_INCREMENT=1001;
+
+        INSERT INTO customers
+        VALUES (default,"Sally","Thomas","sally.thomas@acme.com"),
+               (default,"George","Bailey","gbailey@foobar.com"),
+               (default,"Edward","Walker","ed@walker.com"),
+               (default,"Anne","Kretchmar","annek@noanswer.org");
+
+        # Create some fake addresses
+
+        CREATE TABLE addresses (
+          id INTEGER NOT NULL AUTO_INCREMENT PRIMARY KEY,
+          customer_id INTEGER NOT NULL,
+          street VARCHAR(255) NOT NULL,
+          city VARCHAR(255) NOT NULL,
+          state VARCHAR(255) NOT NULL,
+          zip VARCHAR(255) NOT NULL,
+          type enum('SHIPPING','BILLING','LIVING') NOT NULL,
+          FOREIGN KEY address_customer (customer_id) REFERENCES customers(id)
+        ) AUTO_INCREMENT = 10;
+
+        INSERT INTO addresses
+
+        VALUES (default,1001,'3183 Moore Avenue','Euless','Texas','76036','SHIPPING'),
+               (default,1001,'2389 Hidden Valley Road','Harrisburg','Pennsylvania','17116','BILLING'),
+               (default,1002,'281 Riverside Drive','Augusta','Georgia','30901','BILLING'),
+               (default,1003,'3787 Brownton Road','Columbus','Mississippi','39701','SHIPPING'),
+               (default,1003,'2458 Lost Creek Road','Bethlehem','Pennsylvania','18018','SHIPPING'),
+               (default,1003,'4800 Simpson Square','Hillsdale','Oklahoma','73743','BILLING'),
+               (default,1004,'1289 University Hill Road','Canehill','Arkansas','72717','LIVING');
+
+        # Create some very simple orders
+
+        CREATE TABLE orders (
+          order_number INTEGER NOT NULL AUTO_INCREMENT PRIMARY KEY,
+          order_date DATE NOT NULL,
+          purchaser INTEGER NOT NULL,
+          quantity INTEGER NOT NULL,
+          product_id INTEGER NOT NULL,
+          FOREIGN KEY order_customer (purchaser) REFERENCES customers(id),
+          FOREIGN KEY ordered_product (product_id) REFERENCES products(id)
+        ) AUTO_INCREMENT = 10001;
+
+        INSERT INTO orders
+        VALUES (default, '2016-01-16', 1001, 1, 102),
+               (default, '2016-01-17', 1002, 2, 105),
+               (default, '2016-02-19', 1002, 2, 106),
+               (default, '2016-02-21', 1003, 1, 107);  
+
+  - kind: Deployment
+    apiVersion: apps/v1
+    metadata:
+      name: example-components-mysql
+      namespace: ${NAMESPACE}
+      labels:
+        app: example-components-mysql
+    spec:
+      replicas: 1
+      selector:
+        matchLabels:
+          app: example-components-mysql
+      template:
+        metadata:
+          labels:
+            app: example-components-mysql
+        spec:
+          containers:
+            - resources:
+                limits:
+                  cpu: 1000m
+                  memory: 1024Mi
+                requests:
+                  cpu: 500m
+                  memory: 512Mi
+              terminationMessagePath: /dev/termination-log
+              name: mysql
+              env:
+                - name: MYSQL_ROOT_PASSWORD
+                  value: ${MYSQL_ROOT_PASSWORD}
+                - name: MYSQL_USER
+                  value: ${MYSQL_USER}
+                - name: MYSQL_PASSWORD
+                  value: ${MYSQL_PASSWORD}
+                - name: MYSQL_DATABASE
+                  value: ${MYSQL_DATABASE}
+              ports:
+                - containerPort: 3306
+                  protocol: TCP
+              imagePullPolicy: IfNotPresent
+              terminationMessagePolicy: File
+              image: mysql:latest
+              securityContext:
+                allowPrivilegeEscalation: false
+                runAsNonRoot: true
+                capabilities:
+                  drop:
+                    - ALL
+                seccompProfile:
+                  type: RuntimeDefault
+              livenessProbe:
+                exec:
+                  command: [ "mysqladmin", "--user=${MYSQL_ROOT_USER}", "--password=${MYSQL_ROOT_PASSWORD}", "ping" ]
+                initialDelaySeconds: 30
+                periodSeconds: 10
+                timeoutSeconds: 5
+              volumeMounts:
+                - name: mysql-init-volume
+                  mountPath: /docker-entrypoint-initdb.d
+          volumes:
+            - name: mysql-init-volume
+              configMap:
+                name: example-components-mysql-init
+          restartPolicy: Always
+          terminationGracePeriodSeconds: 30
+          dnsPolicy: ClusterFirst
+          securityContext: { }
+          schedulerName: default-scheduler
+      strategy:
+        type: RollingUpdate
+        rollingUpdate:
+          maxUnavailable: 25%
+          maxSurge: 25%
+      revisionHistoryLimit: 10
+      progressDeadlineSeconds: 600
+
+
+  - kind: Service
+    apiVersion: v1
+    metadata:
+      name: example-components-mysql
+      namespace: ${NAMESPACE}
+      labels:
+        app: example-components-mysql
+    spec:
+      selector:
+        app: example-components-mysql
+      ports:
+        - protocol: TCP
+          port: 3306
+          targetPort: 3306
+
+
+    # Kafka
+
+
+  - kind: Kafka
+    apiVersion: kafka.strimzi.io/v1beta2
+    metadata:
+      name: example-components-kafka
+      namespace: ${NAMESPACE}
+    spec:
+      entityOperator:
+        topicOperator: { } # Required
+        userOperator: { } # Required
+      kafka:
+        config:
+          offsets.topic.replication.factor: 1
+          transaction.state.log.min.isr: 1
+          transaction.state.log.replication.factor: 1
+        listeners:
+          - name: plain
+            port: 9092
+            tls: false
+            type: internal
+          - name: tls
+            port: 9093
+            tls: true
+            type: internal
+        replicas: 1
+        storage:
+          type: ephemeral
+        version: 3.4.0
+      zookeeper:
+        replicas: 1
+        storage:
+          type: ephemeral
+
+
+  - apiVersion: kafka.strimzi.io/v1beta2
+    kind: KafkaConnect
+    metadata:
+      annotations:
+        strimzi.io/use-connector-resources: "true"
+      name: example-components-kafka-connect
+      namespace: ${NAMESPACE}
+    spec:
+      bootstrapServers: example-components-kafka-kafka-bootstrap.${NAMESPACE}.svc:9093
+      build:
+        output:
+          image: ${KAFKA_CONNECT_IMAGE}
+          type: docker
+          pushSecret: example-components-pull-secret
+        plugins:
+          - name: debezium-connector-mysql
+            artifacts:
+              - type: zip
+                url: https://repo1.maven.org/maven2/io/debezium/debezium-connector-mysql/2.3.3.Final/debezium-connector-mysql-2.3.3.Final-plugin.zip
+              - type: zip
+                url: https://repo1.maven.org/maven2/io/debezium/debezium-scripting/2.3.3.Final/debezium-scripting-2.3.3.Final.zip
+              - type: jar
+                url: https://repo1.maven.org/maven2/org/apache/groovy/groovy/4.0.9/groovy-4.0.9.jar
+              - type: jar
+                url: https://repo1.maven.org/maven2/org/apache/groovy/groovy-json/4.0.9/groovy-json-4.0.9.jar
+              - type: jar
+                url: https://repo1.maven.org/maven2/org/apache/groovy/groovy-jsr223/4.0.9/groovy-jsr223-4.0.9.jar
+              - type: zip
+                url: https://repo1.maven.org/maven2/io/apicurio/apicurio-registry-distro-connect-converter/2.4.4.Final/apicurio-registry-distro-connect-converter-2.4.4.Final.zip
+      config:
+        config.storage.replication.factor: 1
+        offset.storage.replication.factor: 1
+        status.storage.replication.factor: 1
+      replicas: 1
+      tls:
+        trustedCertificates:
+          - certificate: ca.crt
+            secretName: example-components-kafka-cluster-ca-cert
+
+
+  - apiVersion: kafka.strimzi.io/v1beta2
+    kind: KafkaConnector
+    metadata:
+      labels:
+        strimzi.io/cluster: example-components-kafka-connect
+      name: example-components-kafka-connector
+      namespace: ${NAMESPACE}
+    spec:
+      class: io.debezium.connector.mysql.MySqlConnector
+      config:
+
+        value.converter: io.apicurio.registry.utils.converter.AvroConverter
+        value.converter.apicurio.registry.auto-register: true
+        value.converter.apicurio.registry.find-latest: true
+        value.converter.apicurio.registry.url: http://example-components-registry-service.${NAMESPACE}.svc.cluster.local:8080/apis/registry/v2
+
+        key.converter: io.apicurio.registry.utils.converter.AvroConverter
+        key.converter.apicurio.registry.auto-register: true
+        key.converter.apicurio.registry.find-latest: true
+        key.converter.apicurio.registry.url: http://example-components-registry-service.${NAMESPACE}.svc.cluster.local:8080/apis/registry/v2
+
+        database.server.id: 1
+        database.hostname: example-components-mysql.${NAMESPACE}.svc.cluster.local
+        database.port: 3306
+        database.user: ${MYSQL_ROOT_USER}
+        database.password: ${MYSQL_ROOT_PASSWORD}
+        database.dbname: inventory
+        database.cdcschema: ASNCDC
+
+        schema.name.adjustment.mode: avro
+        topic.prefix: example
+
+        schema.history.internal.kafka.topic: schema-changes.inventory
+        schema.history.internal.kafka.bootstrap.servers: example-components-kafka-kafka-bootstrap.${NAMESPACE}.svc:9092 # TODO TLS?
+      tasksMax: 1
+
+
+  # Apicurio Registry
+
+
+  - kind: ApicurioRegistry
+    apiVersion: registry.apicur.io/v1
+    metadata:
+      name: example-components-registry
+      namespace: ${NAMESPACE}
+    spec:
+      configuration:
+        persistence: kafkasql
+        kafkasql:
+          bootstrapServers: example-components-kafka-kafka-bootstrap.${NAMESPACE}.svc:9092
+        logLevel: DEBUG
+        registryLogLevel: DEBUG
+
+
+parameters:
+  - name: NAMESPACE
+    required: true
+  - name: MYSQL_ROOT_USER
+    value: root # From MySQL image
+    required: true
+  - name: MYSQL_ROOT_PASSWORD
+    value: debezium
+    required: true
+  - name: MYSQL_USER
+    value: mysqluser
+    required: true
+  - name: MYSQL_PASSWORD
+    value: mysqlpassword
+    required: true
+  - name: MYSQL_DATABASE
+    value: inventory
+    required: true
+  - name: KAFKA_CONNECT_IMAGE
+    required: true

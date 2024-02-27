@@ -361,11 +361,3 @@ jobs:
 
       - name: Build Apicurio Registry with Examples
         run: cd apicurio-registry && mvn clean install -DskipTests -Pexamples
-
-      - name: Google Chat Notification
-        if: ${{ failure() }}
-        uses: Co-qn/google-chat-notification@releases/v1
-        with:
-          name: ${{ github.workflow }}
-          url: ${{ secrets.GOOGLE_CHAT_WEBHOOK }}
-          status: ${{ job.status }}

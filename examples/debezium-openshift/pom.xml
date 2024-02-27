@@ -1,0 +1,316 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>io.apicurio</groupId>
+        <artifactId>apicurio-registry-examples</artifactId>
+        <version>3.0.0-SNAPSHOT</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>apicurio-registry-examples-debezium-openshift</artifactId>
+
+    <properties>
+        <lombok.version>1.18.28</lombok.version>
+    </properties>
+
+    <dependencies>
+
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-resteasy-jackson</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.github.java-json-tools</groupId>
+                    <artifactId>jackson-coreutils</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-jdbc-mysql</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-agroal</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-smallrye-health</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-scheduler</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-container-image-jib</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.apicurio</groupId>
+            <artifactId>apicurio-registry-serdes-avro-serde</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.kafka</groupId>
+            <artifactId>kafka-clients</artifactId>
+            <version>${kafka.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <version>${lombok.version}</version>
+        </dependency>
+
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>io.quarkus</groupId>
+                <artifactId>quarkus-maven-plugin</artifactId>
+                <extensions>true</extensions>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>build</goal>
+                            <goal>generate-code</goal>
+                            <goal>generate-code-tests</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <artifactId>maven-compiler-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <systemPropertyVariables>
+                        <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
+                        <maven.home>${maven.home}</maven.home>
+                    </systemPropertyVariables>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-registry-maven-plugin</artifactId>
+                <version>${apicurio-registry.version}</version>
+                <executions>
+                    <execution>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>download</goal>
+                        </goals>
+                        <configuration>
+                            <registryUrl>
+                                ${registry.url}/apis/registry/v2
+                            </registryUrl>
+
+                            <artifacts>
+                                <artifact>
+                                    <groupId>default</groupId>
+                                    <artifactId>event.block</artifactId>
+                                    <file>${project.build.directory}/resources/block.avsc</file>
+                                    <overwrite>true</overwrite>
+                                </artifact>
+                                <artifact>
+                                    <groupId>default</groupId>
+                                    <artifactId>io.debezium.connector.mysql.Source</artifactId>
+                                    <file>${project.build.directory}/resources/Source.avsc</file>
+                                    <overwrite>true</overwrite>
+                                </artifact>
+                                <artifact>
+                                    <groupId>default</groupId>
+                                    <artifactId>io.debezium.connector.schema.Change</artifactId>
+                                    <file>${project.build.directory}/resources/Change.avsc</file>
+                                    <overwrite>true</overwrite>
+                                </artifact>
+                                <artifact>
+                                    <groupId>default</groupId>
+                                    <artifactId>io.debezium.connector.schema.Column</artifactId>
+                                    <file>${project.build.directory}/resources/Column.avsc</file>
+                                    <overwrite>true</overwrite>
+                                </artifact>
+                                <artifact>
+                                    <groupId>default</groupId>
+                                    <artifactId>io.debezium.connector.schema.Table</artifactId>
+                                    <file>${project.build.directory}/resources/Table.avsc</file>
+                                    <overwrite>true</overwrite>
+                                </artifact>
+
+                                <artifact>
+                                    <groupId>default</groupId>
+                                    <artifactId>example-key</artifactId>
+                                    <file>${project.build.directory}/resources/SchemaChangeKey.avsc</file>
+                                    <overwrite>true</overwrite>
+                                </artifact>
+                                <artifact>
+                                    <groupId>default</groupId>
+                                    <artifactId>example-value</artifactId>
+                                    <file>${project.build.directory}/resources/SchemaChangeValue.avsc</file>
+                                    <overwrite>true</overwrite>
+                                </artifact>
+
+                                <artifact>
+                                    <groupId>default</groupId>
+                                    <artifactId>example.inventory.addresses-key
+                                    </artifactId>
+                                    <file>${project.build.directory}/resources/addresses/Key.avsc</file>
+                                    <overwrite>true</overwrite>
+                                </artifact>
+                                <artifact>
+                                    <groupId>default</groupId>
+                                    <artifactId>example.inventory.addresses-value
+                                    </artifactId>
+                                    <file>${project.build.directory}/resources/addresses/Envelope.avsc</file>
+                                    <overwrite>true</overwrite>
+                                </artifact>
+                                <artifact>
+                                    <groupId>default</groupId>
+                                    <artifactId>example.inventory.addresses.Value
+                                    </artifactId>
+                                    <file>${project.build.directory}/resources/addresses/Value.avsc</file>
+                                    <overwrite>true</overwrite>
+                                </artifact>
+
+                                <artifact>
+                                    <groupId>default</groupId>
+                                    <artifactId>example.inventory.customers-key
+                                    </artifactId>
+                                    <file>${project.build.directory}/resources/customers/Key.avsc</file>
+                                    <overwrite>true</overwrite>
+                                </artifact>
+                                <artifact>
+                                    <groupId>default</groupId>
+                                    <artifactId>example.inventory.customers-value
+                                    </artifactId>
+                                    <file>${project.build.directory}/resources/customers/Envelope.avsc</file>
+                                    <overwrite>true</overwrite>
+                                </artifact>
+                                <artifact>
+                                    <groupId>default</groupId>
+                                    <artifactId>example.inventory.customers.Value
+                                    </artifactId>
+                                    <file>${project.build.directory}/resources/customers/Value.avsc</file>
+                                    <overwrite>true</overwrite>
+                                </artifact>
+
+                                <artifact>
+                                    <groupId>default</groupId>
+                                    <artifactId>example.inventory.orders-key
+                                    </artifactId>
+                                    <file>${project.build.directory}/resources/orders/Key.avsc</file>
+                                    <overwrite>true</overwrite>
+                                </artifact>
+                                <artifact>
+                                    <groupId>default</groupId>
+                                    <artifactId>example.inventory.orders-value
+                                    </artifactId>
+                                    <file>${project.build.directory}/resources/orders/Envelope.avsc</file>
+                                    <overwrite>true</overwrite>
+                                </artifact>
+                                <artifact>
+                                    <groupId>default</groupId>
+                                    <artifactId>example.inventory.orders.Value
+                                    </artifactId>
+                                    <file>${project.build.directory}/resources/orders/Value.avsc</file>
+                                    <overwrite>true</overwrite>
+                                </artifact>
+
+                                <artifact>
+                                    <groupId>default</groupId>
+                                    <artifactId>example.inventory.products-key
+                                    </artifactId>
+                                    <file>${project.build.directory}/resources/products/Key.avsc</file>
+                                    <overwrite>true</overwrite>
+                                </artifact>
+                                <artifact>
+                                    <groupId>default</groupId>
+                                    <artifactId>example.inventory.products-value
+                                    </artifactId>
+                                    <file>${project.build.directory}/resources/products/Envelope.avsc</file>
+                                    <overwrite>true</overwrite>
+                                </artifact>
+                                <artifact>
+                                    <groupId>default</groupId>
+                                    <artifactId>example.inventory.products.Value
+                                    </artifactId>
+                                    <file>${project.build.directory}/resources/products/Value.avsc</file>
+                                    <overwrite>true</overwrite>
+                                </artifact>
+
+                                <artifact>
+                                    <groupId>default</groupId>
+                                    <artifactId>example.inventory.products_on_hand-key
+                                    </artifactId>
+                                    <file>${project.build.directory}/resources/products_on_hand/Key.avsc</file>
+                                    <overwrite>true</overwrite>
+                                </artifact>
+                                <artifact>
+                                    <groupId>default</groupId>
+                                    <artifactId>example.inventory.products_on_hand-value
+                                    </artifactId>
+                                    <file>${project.build.directory}/resources/products_on_hand/Envelope.avsc</file>
+                                    <overwrite>true</overwrite>
+                                </artifact>
+                                <artifact>
+                                    <groupId>default</groupId>
+                                    <artifactId>example.inventory.products_on_hand.Value
+                                    </artifactId>
+                                    <file>${project.build.directory}/resources/products_on_hand/Value.avsc</file>
+                                    <overwrite>true</overwrite>
+                                </artifact>
+
+                            </artifacts>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.avro</groupId>
+                <artifactId>avro-maven-plugin</artifactId>
+                <version>${version.avro}</version>
+                <executions>
+                    <execution>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>schema</goal>
+                        </goals>
+                        <configuration>
+                            <stringType>String</stringType>
+                            <imports>
+                                <import>${project.basedir}/target/resources/Column.avsc</import>
+                                <import>${project.basedir}/target/resources/Table.avsc</import>
+
+                                <import>${project.basedir}/target/resources/addresses/Value.avsc</import>
+                                <import>${project.basedir}/target/resources/customers/Value.avsc</import>
+                                <import>${project.basedir}/target/resources/orders/Value.avsc</import>
+                                <import>${project.basedir}/target/resources/products/Value.avsc</import>
+                                <import>${project.basedir}/target/resources/products_on_hand/Value.avsc</import>
+                            </imports>
+                            <sourceDirectory>${project.basedir}/target/resources/</sourceDirectory>
+                            <outputDirectory>${project.basedir}/target/generated-sources/avro</outputDirectory>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+        </plugins>
+    </build>
+
+    <profiles>
+    </profiles>
+</project>

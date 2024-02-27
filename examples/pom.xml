@@ -240,13 +240,5 @@
                 </plugins>
             </build>
         </profile>
-        <profile>
-            <id>protobuf</id>
-            <modules>
-                <module>simple-protobuf</module>
-                <module>protobuf-bean</module>
-                <module>protobuf-find-latest</module>
-            </modules>
-        </profile>
     </profiles>
 </project>

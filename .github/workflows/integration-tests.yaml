@@ -340,20 +340,13 @@ jobs:
           path: artifacts
 
   build-examples:
-    name: Build and run applicatione examples
+    name: Build and Run Application examples
     runs-on: ubuntu-20.04
     needs: prepare-integration-tests
     steps:
       - name: Checkout Code with Ref '${{ github.ref }}'
         uses: actions/checkout@v2
         with:
-          path: apicurio-registry-examples
-
-      - name: Checkout Apicurio Registry
-        if: github.event_name == 'repository_dispatch'
-        uses: actions/checkout@v2
-        with:
-          repository: Apicurio/apicurio-registry
           path: apicurio-registry
 
       - name: Set up JDK 17
@@ -363,14 +356,10 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
-      - name: Check Dependency Tree
-        run: cd apicurio-registry-examples && mvn dependency:tree --no-transfer-progress
-
       - name: Run Apicurio Registry application
         run: docker run -d -p 8080:8080 -it ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:1d
 
       - name: Build Apicurio Registry with Examples
-        if: github.event_name == 'repository_dispatch'
         run: cd apicurio-registry && mvn clean install -DskipTests -Pexamples
 
       - name: Google Chat Notification

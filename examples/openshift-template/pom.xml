@@ -6,7 +6,7 @@
         <groupId>io.apicurio</groupId>
         <artifactId>apicurio-registry-distro</artifactId>
         <version>3.0.0-SNAPSHOT</version>
-        <relativePath>../pom.xml</relativePath>
+        <relativePath>../../distro/pom.xml</relativePath>
     </parent>
 
     <artifactId>apicurio-registry-distro-openshift-template</artifactId>

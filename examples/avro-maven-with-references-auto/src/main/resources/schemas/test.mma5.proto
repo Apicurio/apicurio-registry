@@ -1,0 +1,7 @@
+syntax = "proto3";
+
+package test.mma;
+
+message OtherRecord5 {
+	int32 other_id = 1;
+}

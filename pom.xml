@@ -302,6 +302,11 @@
             </dependency>
             <dependency>
                 <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-registry-examples</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
                 <artifactId>apicurio-registry-serde-common</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -1000,6 +1005,12 @@
             <id>integration-tests</id>
             <modules>
                 <module>integration-tests</module>
+            </modules>
+        </profile>
+        <profile>
+            <id>examples</id>
+            <modules>
+                <module>examples</module>
             </modules>
         </profile>
         <profile>

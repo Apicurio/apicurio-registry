@@ -5,7 +5,7 @@ on:
     inputs:
       image:
         description: 'Image to be scanned'
-        default: quay.io/apicurio/apicurio-registry:latest-snapshot
+        default: 'quay.io/apicurio/apicurio-registry:latest-snapshot'
         required: true
   schedule:
     - cron: "0 6 * * *"

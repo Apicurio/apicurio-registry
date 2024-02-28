@@ -2,10 +2,16 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>io.apicurio</groupId>
     <artifactId>apicurio-registry-examples</artifactId>
     <version>3.0.0-SNAPSHOT</version>
     <packaging>pom</packaging>
+
+    <parent>
+        <groupId>io.apicurio</groupId>
+        <artifactId>apicurio-registry</artifactId>
+        <version>3.0.0-SNAPSHOT</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
 
     <url>https://www.apicur.io/</url>
     <description>Open Source API &amp; Schema Registry</description>
@@ -68,10 +74,7 @@
         <maven.compiler.target>11</maven.compiler.target>
 
         <!-- Kafka -->
-        <kafka.version>2.8.1</kafka.version>
-
-        <!-- Confluent API / client -->
-        <confluent.version>5.5.1</confluent.version>
+        <kafka.version>3.5.0</kafka.version>
 
         <!-- RestEasy -->
         <resteasy.version>4.5.8.Final</resteasy.version>

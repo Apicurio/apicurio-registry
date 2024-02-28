@@ -145,6 +145,7 @@ public class CustomStrategyExample {
             consumer.close();
         }
 
+        VertXAuthFactory.defaultVertx.close();
         System.out.println("Done (success).");
     }
 

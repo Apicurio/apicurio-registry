@@ -9,6 +9,16 @@ Each example in this repository attempts to demonstrate some specific use-case o
 There are numerous options available when integrating with the registry, and therefore the set
 of examples found here may not cover every configuration permutation.
 
+These examples rely on an Apicurio Registry server being available, you can start one with the latest build by running:
+``
+docker run -p 8080:8080 -it apicurio/apicurio-registry:latest-snapshot
+``
+This command will start an Apicurio Registry server and make it available at the port 8080 of localhost.
+
+Some examples also require a Kafka Cluster available, you can very easily run one using the [docker-compose resources available in the tools folder](/tools/kafka-compose/kafka-compose.yaml)
+
+Simply run ``docker-compose  -f examples/tools/kafka-compose/kafka-compose.yaml up`` and you'll have a Kafka broker available at the port 9092.
+
 # List of Examples
 A list of examples is included below, with descriptions and explanations of each covered use-case.
 

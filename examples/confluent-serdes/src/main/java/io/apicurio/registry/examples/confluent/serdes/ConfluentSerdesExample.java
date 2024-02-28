@@ -41,7 +41,6 @@ import org.apache.kafka.common.serialization.StringSerializer;
 
 import io.apicurio.registry.serde.SerdeConfig;
 import io.apicurio.registry.serde.avro.AvroKafkaDeserializer;
-import io.confluent.kafka.serializers.KafkaAvroSerializer;
 
 /**
  * This example demonstrates how to use the Apicurio Registry in a very simple publish/subscribe

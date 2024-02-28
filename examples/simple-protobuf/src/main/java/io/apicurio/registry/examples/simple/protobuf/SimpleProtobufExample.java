@@ -143,6 +143,7 @@ public class SimpleProtobufExample {
         //because the default ArtifactResolverStrategy is TopicIdStrategy the artifactId is in the form of topicName-value
         System.out.println(IoUtil.toString(client.groups().byGroupId("default").artifacts().byArtifactId(topicName + "-value").versions().byVersionExpression("1").get()));
         System.out.println();
+        VertXAuthFactory.defaultVertx.close();
         System.out.println("Done (success).");
     }
 

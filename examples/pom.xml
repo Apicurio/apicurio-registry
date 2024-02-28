@@ -52,9 +52,6 @@
         <module>mix-avro</module>
         <module>jsonschema-validation</module>
         <module>simple-validation</module>
-        <module>quarkus-auth</module>
-        <module>simple-avro-downstream</module>
-        <module>rest-client-downstream</module>
         <module>serdes-with-references</module>
         <module>avro-maven-with-references</module>
         <module>avro-maven-with-references-auto</module>

@@ -25,7 +25,6 @@ import java.nio.charset.StandardCharsets;
 import io.apicurio.registry.client.auth.VertXAuthFactory;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.ArtifactContent;
-import io.apicurio.registry.rest.client.models.ArtifactTypeInfo;
 import io.apicurio.rest.client.util.IoUtil;
 import io.kiota.http.vertx.VertXRequestAdapter;
 

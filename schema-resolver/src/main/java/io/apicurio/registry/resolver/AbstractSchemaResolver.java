@@ -14,7 +14,6 @@ import java.util.Optional;
 
 import com.microsoft.kiota.RequestAdapter;
 
-import io.apicurio.registry.client.auth.VertXAuthFactory;
 import io.apicurio.registry.resolver.config.DefaultSchemaResolverConfig;
 import io.apicurio.registry.resolver.data.Record;
 import io.apicurio.registry.resolver.strategy.ArtifactReference;

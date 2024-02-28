@@ -1,6 +1,5 @@
 package io.apicurio.registry.examples;
 
-import io.apicurio.registry.client.auth.VertXAuthFactory;
 import io.apicurio.registry.examples.util.RegistryDemoUtil;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.kiota.http.vertx.VertXRequestAdapter;

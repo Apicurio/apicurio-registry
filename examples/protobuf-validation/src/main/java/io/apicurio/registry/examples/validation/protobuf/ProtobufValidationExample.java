@@ -19,24 +19,25 @@ package io.apicurio.registry.examples.validation.protobuf;
 import io.apicurio.registry.resolver.SchemaResolverConfig;
 import io.apicurio.registry.resolver.strategy.ArtifactReference;
 import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.rest.client.RegistryClientFactory;
-import io.apicurio.registry.rest.v2.beans.IfExists;
+import io.apicurio.registry.rest.client.models.ArtifactContent;
 import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.rest.client.auth.OidcAuth;
-import io.apicurio.rest.client.auth.exception.AuthErrorHandler;
-import io.apicurio.rest.client.spi.ApicurioHttpClient;
-import io.apicurio.rest.client.spi.ApicurioHttpClientFactory;
+import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.schema.validation.protobuf.ProtobufMetadata;
 import io.apicurio.schema.validation.protobuf.ProtobufRecord;
 import io.apicurio.schema.validation.protobuf.ProtobufValidationResult;
 import io.apicurio.schema.validation.protobuf.ProtobufValidator;
 import io.apicurio.schema.validation.protobuf.ref.MessageExampleOuterClass.MessageExample;
+import io.kiota.http.vertx.VertXRequestAdapter;
 
-import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
 
-import static io.apicurio.schema.validation.protobuf.ref.MessageExample2OuterClass.*;
+import static io.apicurio.registry.client.auth.VertXAuthFactory.buildOIDCWebClient;
+import static io.apicurio.registry.client.auth.VertXAuthFactory.defaultVertx;
+import static io.apicurio.schema.validation.protobuf.ref.MessageExample2OuterClass.MessageExample2;
 
 /**
  * This example demonstrates how to use Apicurio Registry Schema Validation library for Protobuf
@@ -79,8 +80,16 @@ public class ProtobufValidationExample {
         // Register the schema with the registry (only if it is not already registered)
         String artifactId = ProtobufValidationExample.class.getSimpleName();
         RegistryClient client = createRegistryClient(REGISTRY_URL);
-        client.createArtifact("default", artifactId, ArtifactType.PROTOBUF, IfExists.RETURN_OR_UPDATE,
-                new ByteArrayInputStream(SCHEMA.getBytes(StandardCharsets.UTF_8)));
+
+        ArtifactContent artifactContent = new ArtifactContent();
+        artifactContent.setContent(IoUtil.toString(SCHEMA.getBytes(StandardCharsets.UTF_8)));
+
+        final io.apicurio.registry.rest.client.models.ArtifactMetaData metaData = client.groups().byGroupId("default").artifacts().post(artifactContent, config -> {
+            config.queryParameters.ifExists = io.apicurio.registry.rest.client.models.IfExists.RETURN_OR_UPDATE;
+            config.headers.add("X-Registry-ArtifactId", artifactId);
+            config.headers.add("X-Registry-ArtifactType", ArtifactType.PROTOBUF);
+        });
+
 
         // Create an artifact reference pointing to the artifact we just created
         // and pass it to the ProtobufValidator
@@ -124,7 +133,7 @@ public class ProtobufValidationExample {
         ProtobufValidationResult recordValidationResult = validator.validate(record);
         System.out.println("Validation result: " + recordValidationResult);
         System.out.println();
-
+        defaultVertx.close();
     }
 
     /**
@@ -137,12 +146,13 @@ public class ProtobufValidationExample {
         if (tokenEndpoint != null) {
             final String authClient = System.getenv(SchemaResolverConfig.AUTH_CLIENT_ID);
             final String authSecret = System.getenv(SchemaResolverConfig.AUTH_CLIENT_SECRET);
-            ApicurioHttpClient httpClient = ApicurioHttpClientFactory.create(tokenEndpoint,
-                    new AuthErrorHandler());
-            OidcAuth auth = new OidcAuth(httpClient, authClient, authSecret);
-            return RegistryClientFactory.create(registryUrl, Collections.emptyMap(), auth);
+            var adapter = new VertXRequestAdapter(buildOIDCWebClient(tokenEndpoint, authClient, authSecret));
+            adapter.setBaseUrl(registryUrl);
+            return new RegistryClient(adapter);
         } else {
-            return RegistryClientFactory.create(registryUrl);
+            VertXRequestAdapter vertXRequestAdapter = new VertXRequestAdapter(defaultVertx);
+            vertXRequestAdapter.setBaseUrl(registryUrl);
+            return new RegistryClient(vertXRequestAdapter);
         }
     }
 

@@ -16,32 +16,30 @@
 
 package io.apicurio.registry.examples.validation.json;
 
-import java.io.ByteArrayInputStream;
+import io.apicurio.registry.resolver.SchemaResolverConfig;
+import io.apicurio.registry.resolver.strategy.ArtifactReference;
+import io.apicurio.registry.rest.client.RegistryClient;
+import io.apicurio.registry.rest.client.models.ArtifactContent;
+import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.utils.IoUtil;
+import io.apicurio.schema.validation.json.JsonMetadata;
+import io.apicurio.schema.validation.json.JsonRecord;
+import io.apicurio.schema.validation.json.JsonValidationResult;
+import io.apicurio.schema.validation.json.JsonValidator;
+import io.kiota.http.vertx.VertXRequestAdapter;
+
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
-import io.apicurio.registry.resolver.SchemaResolverConfig;
-import io.apicurio.registry.resolver.strategy.ArtifactReference;
-import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.rest.client.RegistryClientFactory;
-import io.apicurio.registry.rest.v2.beans.IfExists;
-import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.rest.client.auth.OidcAuth;
-import io.apicurio.rest.client.auth.exception.AuthErrorHandler;
-import io.apicurio.rest.client.spi.ApicurioHttpClient;
-import io.apicurio.rest.client.spi.ApicurioHttpClientFactory;
-import io.apicurio.schema.validation.json.JsonMetadata;
-import io.apicurio.schema.validation.json.JsonRecord;
-import io.apicurio.schema.validation.json.JsonValidationResult;
-import io.apicurio.schema.validation.json.JsonValidator;
-import java.util.Collections;
+import static io.apicurio.registry.client.auth.VertXAuthFactory.buildOIDCWebClient;
+import static io.apicurio.registry.client.auth.VertXAuthFactory.defaultVertx;
 
 /**
  * This example demonstrates how to use Apicurio Registry Schema Validation library for JSON and JSON Schema.
- *
+ * <p>
  * The following aspects are demonstrated:
  *
  * <ol>
@@ -50,7 +48,7 @@ import java.util.Collections;
  *   <li>Successfully validate Java objects using static configuration to always use the same schema for validation</li>
  *   <li>Successfully validate Java objects using dynamic configuration to dynamically choose the schema to use for validation</li>
  * </ol>
- *
+ * <p>
  * Pre-requisites:
  *
  * <ul>
@@ -62,7 +60,7 @@ import java.util.Collections;
 public class JsonSchemaValidationExample {
 
     private static final String REGISTRY_URL = "http://localhost:8080/apis/registry/v2";
-    
+
     public static final String SCHEMA = "{" +
             "    \"$id\": \"https://example.com/message.schema.json\"," +
             "    \"$schema\": \"http://json-schema.org/draft-07/schema#\"," +
@@ -84,21 +82,30 @@ public class JsonSchemaValidationExample {
             "}";
 
 
-    public static final void main(String [] args) throws Exception {
+    public static final void main(String[] args) throws Exception {
         System.out.println("Starting example " + JsonSchemaValidationExample.class.getSimpleName());
-        
+
 
         // Register the schema with the registry (only if it is not already registered)
         String artifactId = JsonSchemaValidationExample.class.getSimpleName();
         RegistryClient client = createRegistryClient(REGISTRY_URL);
-        client.createArtifact("default", artifactId, ArtifactType.JSON, IfExists.RETURN_OR_UPDATE, new ByteArrayInputStream(SCHEMA.getBytes(StandardCharsets.UTF_8)));
+
+        ArtifactContent artifactContent = new ArtifactContent();
+        artifactContent.setContent(IoUtil.toString(SCHEMA.getBytes(StandardCharsets.UTF_8)));
+
+        final io.apicurio.registry.rest.client.models.ArtifactMetaData metaData = client.groups().byGroupId("default").artifacts().post(artifactContent, config -> {
+            config.queryParameters.ifExists = io.apicurio.registry.rest.client.models.IfExists.RETURN_OR_UPDATE;
+            config.headers.add("X-Registry-ArtifactId", artifactId);
+            config.headers.add("X-Registry-ArtifactType", ArtifactType.JSON);
+        });
+
 
         // Create an artifact reference pointing to the artifact we just created
         // and pass it to the JsonValidator
         ArtifactReference artifactReference = ArtifactReference.builder()
-            .groupId("default")
-            .artifactId(artifactId)
-            .build();
+                .groupId("default")
+                .artifactId(artifactId)
+                .build();
 
         // Create the JsonValidator providing an ArtifactReference
         // this ArtifactReference will allways be used to lookup the schema in the registry when using "validateByArtifactReference"
@@ -137,7 +144,7 @@ public class JsonSchemaValidationExample {
         System.out.println();
 
     }
-    
+
     /**
      * Creates the registry client
      */
@@ -148,11 +155,13 @@ public class JsonSchemaValidationExample {
         if (tokenEndpoint != null) {
             final String authClient = System.getenv(SchemaResolverConfig.AUTH_CLIENT_ID);
             final String authSecret = System.getenv(SchemaResolverConfig.AUTH_CLIENT_SECRET);
-            ApicurioHttpClient httpClient = ApicurioHttpClientFactory.create(tokenEndpoint, new AuthErrorHandler());
-            OidcAuth auth = new OidcAuth(httpClient, authClient, authSecret);
-            return RegistryClientFactory.create(registryUrl, Collections.emptyMap(), auth);
+            var adapter = new VertXRequestAdapter(buildOIDCWebClient(tokenEndpoint, authClient, authSecret));
+            adapter.setBaseUrl(registryUrl);
+            return new RegistryClient(adapter);
         } else {
-            return RegistryClientFactory.create(registryUrl);
+            VertXRequestAdapter vertXRequestAdapter = new VertXRequestAdapter(defaultVertx);
+            vertXRequestAdapter.setBaseUrl(registryUrl);
+            return new RegistryClient(vertXRequestAdapter);
         }
     }
 

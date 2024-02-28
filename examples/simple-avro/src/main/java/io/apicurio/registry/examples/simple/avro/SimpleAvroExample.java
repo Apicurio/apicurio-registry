@@ -134,6 +134,7 @@ public class SimpleAvroExample {
      * Creates the Kafka producer.
      */
     private static Producer<Object, Object> createKafkaProducer() {
+
         Properties props = new Properties();
 
         // Configure kafka settings

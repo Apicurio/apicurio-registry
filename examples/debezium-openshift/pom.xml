@@ -106,7 +106,7 @@
             <plugin>
                 <groupId>io.apicurio</groupId>
                 <artifactId>apicurio-registry-maven-plugin</artifactId>
-                <version>${apicurio-registry.version}</version>
+                <version>${project.version}</version>
                 <executions>
                     <execution>
                         <phase>generate-sources</phase>

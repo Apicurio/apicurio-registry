@@ -4,6 +4,7 @@ import io.apicurio.registry.client.auth.VertXAuthFactory;
 import io.apicurio.registry.examples.util.RegistryDemoUtil;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.kiota.http.vertx.VertXRequestAdapter;
+import io.vertx.core.Vertx;
 
 import java.util.UUID;
 
@@ -21,10 +22,12 @@ import static io.apicurio.registry.client.auth.VertXAuthFactory.buildOIDCWebClie
 public class SimpleRegistryDemo {
 
     private static final RegistryClient client;
+    private static final Vertx vertx;
 
     static {
         // Create a Service Registry client
         String registryUrl = "http://localhost:8080/apis/registry/v2";
+        vertx = Vertx.vertx();
         client = createProperClient(registryUrl);
     }
 
@@ -40,6 +43,8 @@ public class SimpleRegistryDemo {
         RegistryDemoUtil.getSchemaFromRegistry(client, artifactId);
 
         RegistryDemoUtil.deleteSchema(client, artifactId);
+
+        vertx.close();
     }
 
     public static RegistryClient createProperClient(String registryUrl) {
@@ -51,7 +56,7 @@ public class SimpleRegistryDemo {
             adapter.setBaseUrl(registryUrl);
             return new RegistryClient(adapter);
         } else {
-            VertXRequestAdapter vertXRequestAdapter = new VertXRequestAdapter(VertXAuthFactory.defaultVertx);
+            VertXRequestAdapter vertXRequestAdapter = new VertXRequestAdapter(vertx);
             vertXRequestAdapter.setBaseUrl(registryUrl);
             return new RegistryClient(vertXRequestAdapter);
         }

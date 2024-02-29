@@ -1,9 +1,11 @@
 package io.apicurio.deployment;
 
 import io.fabric8.kubernetes.api.model.Namespace;
+import io.fabric8.kubernetes.api.model.PodList;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientBuilder;
 import io.fabric8.kubernetes.client.LocalPortForward;
+import io.fabric8.kubernetes.client.dsl.LogWatch;
 import io.fabric8.kubernetes.client.dsl.Resource;
 import io.fabric8.openshift.api.model.Route;
 import io.fabric8.openshift.client.DefaultOpenShiftClient;
@@ -17,6 +19,7 @@ import org.testcontainers.shaded.org.apache.commons.io.IOUtils;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -37,6 +40,8 @@ public class RegistryDeploymentManager implements TestExecutionListener {
 
     static KubernetesClient kubernetesClient;
     static LocalPortForward registryPortForward;
+
+    static List<LogWatch> logWatch;
 
     @Override
     public void testPlanExecutionStarted(TestPlan testPlan) {
@@ -71,6 +76,10 @@ public class RegistryDeploymentManager implements TestExecutionListener {
                 }
             }
 
+            if (logWatch != null && !logWatch.isEmpty()) {
+                logWatch.forEach(LogWatch::close);
+            }
+
             final Resource<Namespace> namespaceResource = kubernetesClient.namespaces()
                     .withName(TEST_NAMESPACE);
             namespaceResource.delete();
@@ -99,12 +108,15 @@ public class RegistryDeploymentManager implements TestExecutionListener {
         if (Boolean.parseBoolean(System.getProperty("deployInMemory"))) {
             LOGGER.info("Deploying In Memory Registry Variant with image: {} ##################################################", System.getProperty("registry-in-memory-image"));
             InMemoryDeploymentManager.deployInMemoryApp(System.getProperty("registry-in-memory-image"));
+            logWatch = streamPodLogs("apicurio-registry-memory");
         } else if (Boolean.parseBoolean(System.getProperty("deploySql"))) {
             LOGGER.info("Deploying SQL Registry Variant with image: {} ##################################################", System.getProperty("registry-sql-image"));
             SqlDeploymentManager.deploySqlApp(System.getProperty("registry-sql-image"));
+            logWatch = streamPodLogs("apicurio-registry-sql");
         } else if (Boolean.parseBoolean(System.getProperty("deployKafka"))) {
             LOGGER.info("Deploying Kafka SQL Registry Variant with image: {} ##################################################", System.getProperty("registry-kafkasql-image"));
             KafkaSqlDeploymentManager.deployKafkaApp(System.getProperty("registry-kafkasql-image"));
+            logWatch = streamPodLogs("apicurio-registry-kafka");
         }
     }
 
@@ -179,5 +191,20 @@ public class RegistryDeploymentManager implements TestExecutionListener {
         //Wait for all the external resources pods to be ready
         kubernetesClient.pods()
                 .inNamespace(TEST_NAMESPACE).waitUntilReady(60, TimeUnit.SECONDS);
+    }
+
+    private static List<LogWatch> streamPodLogs(String container) {
+        List<LogWatch> logWatchList = new ArrayList<>();
+
+        PodList podList = kubernetesClient.pods().inNamespace(TEST_NAMESPACE).withLabel("app", container).list();
+
+        podList.getItems().forEach(p -> logWatchList.add(kubernetesClient.pods()
+                .inNamespace(TEST_NAMESPACE)
+                .withName(p.getMetadata().getName())
+                .inContainer(container)
+                .tailingLines(10)
+                .watchLog(System.out)));
+
+        return logWatchList;
     }
 }

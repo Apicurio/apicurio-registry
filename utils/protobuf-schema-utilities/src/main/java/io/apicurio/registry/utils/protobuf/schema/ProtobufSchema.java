@@ -18,8 +18,6 @@ package io.apicurio.registry.utils.protobuf.schema;
 
 import java.util.Objects;
 
-import com.google.protobuf.DescriptorProtos;
-import com.google.protobuf.Descriptors;
 import com.google.protobuf.Descriptors.FileDescriptor;
 import com.squareup.wire.schema.internal.parser.ProtoFileElement;
 
@@ -29,7 +27,6 @@ import com.squareup.wire.schema.internal.parser.ProtoFileElement;
 public class ProtobufSchema {
 
     private final FileDescriptor fileDescriptor;
-    private final Descriptors.Descriptor descriptor;
     private ProtoFileElement protoFileElement;
     private ProtobufFile protobufFile;
 
@@ -38,15 +35,6 @@ public class ProtobufSchema {
         Objects.requireNonNull(protoFileElement);
         this.fileDescriptor = fileDescriptor;
         this.protoFileElement = protoFileElement;
-        this.descriptor = null;
-    }
-
-    public ProtobufSchema(Descriptors.Descriptor descriptor, ProtoFileElement protoFileElement) {
-        Objects.requireNonNull(descriptor);
-        Objects.requireNonNull(protoFileElement);
-        this.descriptor = descriptor;
-        this.protoFileElement = protoFileElement;
-        this.fileDescriptor = null;
     }
 
     /**
@@ -73,7 +61,4 @@ public class ProtobufSchema {
         return protobufFile;
     }
 
-    public Descriptors.Descriptor getDescriptor() {
-        return descriptor;
-    }
 }

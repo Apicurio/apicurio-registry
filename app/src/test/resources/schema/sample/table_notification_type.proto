@@ -1,5 +1,5 @@
 syntax = "proto3";
-package sample3;
+package sample;
 option java_package = "io.api.sample";
 option java_multiple_files = true;
 

@@ -159,6 +159,20 @@ public class FileDescriptorUtils {
         return FileDescriptor.buildFrom(toFileDescriptorProto(schemaDefinition, protoFileName, optionalPackageName, Collections.emptyMap()), baseDependencies());
     }
 
+    public static FileDescriptor protoFileToFileDescriptor(String schemaDefinition, String protoFileName, Optional<String> optionalPackageName, Map<String, String> schemaDefs, Map<String, Descriptors.FileDescriptor> dependencies)
+            throws DescriptorValidationException {
+        Objects.requireNonNull(schemaDefinition);
+        Objects.requireNonNull(protoFileName);
+
+        final List<Descriptors.FileDescriptor> baseDependencies = Arrays.asList(baseDependencies());
+        final Set<Descriptors.FileDescriptor> joinedDependencies = new HashSet<>(baseDependencies);
+        joinedDependencies.addAll(dependencies.values());
+
+        Descriptors.FileDescriptor[] dependenciesArray = new Descriptors.FileDescriptor[joinedDependencies.size()];
+
+        return FileDescriptor.buildFrom(toFileDescriptorProto(schemaDefinition, protoFileName, optionalPackageName, schemaDefs), joinedDependencies.toArray(dependenciesArray));
+    }
+
     public static final class ReadSchemaException extends Exception {
         private final File file;
 
@@ -455,181 +469,6 @@ public class FileDescriptorUtils {
         return toFileDescriptorProto(schemaDefinition, protoFileName, optionalPackageName, Collections.emptyMap());
     }
 
-    public static FileDescriptorProto toFileDescriptor(String schemaDefinition, String protoFileName, Optional<String> optionalPackageName, Map<String, String> deps) {
-        final ProtobufSchemaLoader.ProtobufSchemaLoaderContext protobufSchemaLoaderContext;
-        try {
-            protobufSchemaLoaderContext =
-                    ProtobufSchemaLoader.loadSchema(optionalPackageName, protoFileName, schemaDefinition, deps);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-
-        FileDescriptorProto.Builder descriptorBuilder = FileDescriptorProto.newBuilder();
-        ProtoFile element = protobufSchemaLoaderContext.getProtoFile();
-        Schema schema = protobufSchemaLoaderContext.getSchema();
-
-        descriptorBuilder.setName(protoFileName);
-
-        Syntax syntax = element.getSyntax();
-        if (Syntax.PROTO_3.equals(syntax)) {
-            descriptorBuilder.setSyntax(syntax.toString());
-        }
-        if (element.getPackageName() != null) {
-            descriptorBuilder.setPackage(element.getPackageName());
-        }
-
-        for (ProtoType protoType : schema.getTypes()) {
-            if (!isParentLevelType(protoType, optionalPackageName)) {
-                continue;
-            }
-
-            Type type = schema.getType(protoType);
-            if (type instanceof MessageType) {
-                DescriptorProto
-                        message = messageElementToDescriptorProto((MessageType) type, schema, element);
-                descriptorBuilder.addMessageType(message);
-            } else if (type instanceof EnumType) {
-                EnumDescriptorProto message = enumElementToProto((EnumType) type);
-                descriptorBuilder.addEnumType(message);
-            }
-        }
-
-        for (Service service : element.getServices()) {
-            ServiceDescriptorProto serviceDescriptorProto = serviceElementToProto(service);
-            descriptorBuilder.addService(serviceDescriptorProto);
-        }
-
-        //dependencies on protobuf default types are always added
-        for (String ref : element.getImports()) {
-            descriptorBuilder.addDependency(ref);
-        }
-
-        for (String ref : element.getPublicImports()) {
-            boolean add = true;
-            for (int i = 0; i < descriptorBuilder.getDependencyCount(); i++) {
-                if (descriptorBuilder.getDependency(i).equals(ref)) {
-                    descriptorBuilder.addPublicDependency(i);
-                    add = false;
-                }
-            }
-            if (add) {
-                descriptorBuilder.addDependency(ref);
-                descriptorBuilder.addPublicDependency(descriptorBuilder.getDependencyCount() - 1);
-            }
-        }
-
-        String javaPackageName = findOptionString(JAVA_PACKAGE_OPTION, element.getOptions());
-        if (javaPackageName != null) {
-            FileOptions options = DescriptorProtos.FileOptions.newBuilder().setJavaPackage(javaPackageName).build();
-            descriptorBuilder.mergeOptions(options);
-        }
-
-        String javaOuterClassname = findOptionString(JAVA_OUTER_CLASSNAME_OPTION, element.getOptions());
-        if (javaOuterClassname != null) {
-            FileOptions options = DescriptorProtos.FileOptions.newBuilder().setJavaOuterClassname(javaOuterClassname).build();
-            descriptorBuilder.mergeOptions(options);
-        }
-
-        Boolean javaMultipleFiles = findOptionBoolean(JAVA_MULTIPLE_FILES_OPTION, element.getOptions());
-        if (javaMultipleFiles != null) {
-            FileOptions options = DescriptorProtos.FileOptions.newBuilder().setJavaMultipleFiles(javaMultipleFiles).build();
-            descriptorBuilder.mergeOptions(options);
-        }
-
-        Boolean javaStringCheckUtf8 = findOptionBoolean(JAVA_STRING_CHECK_UTF8_OPTION, element.getOptions());
-        if (javaStringCheckUtf8 != null) {
-            FileOptions options = DescriptorProtos.FileOptions.newBuilder().setJavaStringCheckUtf8(javaStringCheckUtf8).build();
-            descriptorBuilder.mergeOptions(options);
-        }
-
-        Boolean javaGenericServices = findOptionBoolean(JAVA_GENERIC_SERVICES_OPTION, element.getOptions());
-        if (javaGenericServices != null) {
-            FileOptions options = DescriptorProtos.FileOptions.newBuilder().setJavaGenericServices(javaGenericServices).build();
-            descriptorBuilder.mergeOptions(options);
-        }
-
-        Boolean ccGenericServices = findOptionBoolean(CC_GENERIC_SERVICES_OPTION, element.getOptions());
-        if (ccGenericServices != null) {
-            FileOptions options = DescriptorProtos.FileOptions.newBuilder().setCcGenericServices(ccGenericServices).build();
-            descriptorBuilder.mergeOptions(options);
-        }
-
-        Boolean ccEnableArenas = findOptionBoolean(CC_ENABLE_ARENAS_OPTION, element.getOptions());
-        if (ccEnableArenas != null) {
-            FileOptions options = DescriptorProtos.FileOptions.newBuilder().setCcEnableArenas(ccEnableArenas).build();
-            descriptorBuilder.mergeOptions(options);
-        }
-
-        String csharpNamespace = findOptionString(CSHARP_NAMESPACE_OPTION, element.getOptions());
-        if (csharpNamespace != null) {
-            FileOptions options = DescriptorProtos.FileOptions.newBuilder().setCsharpNamespace(csharpNamespace).build();
-            descriptorBuilder.mergeOptions(options);
-        }
-
-        String goPackageName = findOptionString(GO_PACKAGE_OPTION, element.getOptions());
-        if (goPackageName != null) {
-            FileOptions options = DescriptorProtos.FileOptions.newBuilder().setGoPackage(goPackageName).build();
-            descriptorBuilder.mergeOptions(options);
-        }
-
-        String objcClassPrefix = findOptionString(OBJC_CLASS_PREFIX_OPTION, element.getOptions());
-        if (objcClassPrefix != null) {
-            FileOptions options = DescriptorProtos.FileOptions.newBuilder().setObjcClassPrefix(objcClassPrefix).build();
-            descriptorBuilder.mergeOptions(options);
-        }
-
-        Boolean phpGenericServices = findOptionBoolean(PHP_GENERIC_SERVICES_OPTION, element.getOptions());
-        if (phpGenericServices != null) {
-            FileOptions options = DescriptorProtos.FileOptions.newBuilder().setPhpGenericServices(phpGenericServices).build();
-            descriptorBuilder.mergeOptions(options);
-        }
-
-        String phpClassPrefix = findOptionString(PHP_CLASS_PREFIX_OPTION, element.getOptions());
-        if (phpClassPrefix != null) {
-            FileOptions options = DescriptorProtos.FileOptions.newBuilder().setPhpClassPrefix(phpClassPrefix).build();
-            descriptorBuilder.mergeOptions(options);
-        }
-
-        String phpMetadataNamespace = findOptionString(PHP_METADATA_NAMESPACE_OPTION, element.getOptions());
-        if (phpMetadataNamespace != null) {
-            FileOptions options = DescriptorProtos.FileOptions.newBuilder().setPhpMetadataNamespace(phpMetadataNamespace).build();
-            descriptorBuilder.mergeOptions(options);
-        }
-
-        String phpNamespace = findOptionString(PHP_NAMESPACE_OPTION, element.getOptions());
-        if (phpNamespace != null) {
-            FileOptions options = DescriptorProtos.FileOptions.newBuilder().setPhpNamespace(phpNamespace).build();
-            descriptorBuilder.mergeOptions(options);
-        }
-
-        Boolean pyGenericServices = findOptionBoolean(PY_GENERIC_SERVICES_OPTION, element.getOptions());
-        if (pyGenericServices != null) {
-            FileOptions options = DescriptorProtos.FileOptions.newBuilder().setPyGenericServices(pyGenericServices).build();
-            descriptorBuilder.mergeOptions(options);
-        }
-
-        String rubyPackage = findOptionString(RUBY_PACKAGE_OPTION, element.getOptions());
-        if (rubyPackage != null) {
-            FileOptions options = DescriptorProtos.FileOptions.newBuilder().setRubyPackage(rubyPackage).build();
-            descriptorBuilder.mergeOptions(options);
-        }
-
-        String swiftPrefix = findOptionString(SWIFT_PREFIX_OPTION, element.getOptions());
-        if (swiftPrefix != null) {
-            FileOptions options = DescriptorProtos.FileOptions.newBuilder().setSwiftPrefix(swiftPrefix).build();
-            descriptorBuilder.mergeOptions(options);
-        }
-
-        FileOptions.OptimizeMode optimizeFor = findOption(OPTIMIZE_FOR_OPTION, element.getOptions())
-                .map(o -> FileOptions.OptimizeMode.valueOf(o.getValue().toString())).orElse(null);
-        if (optimizeFor != null) {
-            FileOptions options = DescriptorProtos.FileOptions.newBuilder().setOptimizeFor(optimizeFor).build();
-            descriptorBuilder.mergeOptions(options);
-        }
-
-        return descriptorBuilder.build();
-    }
-
 
     public static FileDescriptorProto toFileDescriptorProto(String schemaDefinition, String protoFileName, Optional<String> optionalPackageName, Map<String, String> deps) {
         final ProtobufSchemaLoader.ProtobufSchemaLoaderContext protobufSchemaLoaderContext;
@@ -640,170 +479,171 @@ public class FileDescriptorUtils {
             throw new RuntimeException(e);
         }
 
-        FileDescriptorProto.Builder descriptorBuilder = FileDescriptorProto.newBuilder();
-        ProtoFile element = protobufSchemaLoaderContext.getProtoFile();
-        Schema schema = protobufSchemaLoaderContext.getSchema();
+        FileDescriptorProto.Builder schema = FileDescriptorProto.newBuilder();
 
-        descriptorBuilder.setName(protoFileName);
+        ProtoFile element = protobufSchemaLoaderContext.getProtoFile();
+        Schema schemaContext = protobufSchemaLoaderContext.getSchema();
+
+        schema.setName(protoFileName);
 
         Syntax syntax = element.getSyntax();
         if (Syntax.PROTO_3.equals(syntax)) {
-            descriptorBuilder.setSyntax(syntax.toString());
+            schema.setSyntax(syntax.toString());
         }
         if (element.getPackageName() != null) {
-            descriptorBuilder.setPackage(element.getPackageName());
+            schema.setPackage(element.getPackageName());
         }
 
-        for (ProtoType protoType : schema.getTypes()) {
+        for (ProtoType protoType : schemaContext.getTypes()) {
             if (!isParentLevelType(protoType, optionalPackageName)) {
                 continue;
             }
 
-            Type type = schema.getType(protoType);
+            Type type = schemaContext.getType(protoType);
             if (type instanceof MessageType) {
                 DescriptorProto
-                        message = messageElementToDescriptorProto((MessageType) type, schema, element);
-                descriptorBuilder.addMessageType(message);
+                        message = messageElementToDescriptorProto((MessageType) type, schemaContext, element);
+                schema.addMessageType(message);
             } else if (type instanceof EnumType) {
                 EnumDescriptorProto message = enumElementToProto((EnumType) type);
-                descriptorBuilder.addEnumType(message);
+                schema.addEnumType(message);
             }
         }
 
         for (Service service : element.getServices()) {
             ServiceDescriptorProto serviceDescriptorProto = serviceElementToProto(service);
-            descriptorBuilder.addService(serviceDescriptorProto);
+            schema.addService(serviceDescriptorProto);
         }
 
         //dependencies on protobuf default types are always added
         for (String ref : element.getImports()) {
-            descriptorBuilder.addDependency(ref);
+            schema.addDependency(ref);
         }
 
         for (String ref : element.getPublicImports()) {
             boolean add = true;
-            for (int i = 0; i < descriptorBuilder.getDependencyCount(); i++) {
-                if (descriptorBuilder.getDependency(i).equals(ref)) {
-                    descriptorBuilder.addPublicDependency(i);
+            for (int i = 0; i < schema.getDependencyCount(); i++) {
+                if (schema.getDependency(i).equals(ref)) {
+                    schema.addPublicDependency(i);
                     add = false;
                 }
             }
             if (add) {
-                descriptorBuilder.addDependency(ref);
-                descriptorBuilder.addPublicDependency(descriptorBuilder.getDependencyCount() - 1);
+                schema.addDependency(ref);
+                schema.addPublicDependency(schema.getDependencyCount() - 1);
             }
         }
 
         String javaPackageName = findOptionString(JAVA_PACKAGE_OPTION, element.getOptions());
         if (javaPackageName != null) {
             FileOptions options = DescriptorProtos.FileOptions.newBuilder().setJavaPackage(javaPackageName).build();
-            descriptorBuilder.mergeOptions(options);
+            schema.mergeOptions(options);
         }
 
         String javaOuterClassname = findOptionString(JAVA_OUTER_CLASSNAME_OPTION, element.getOptions());
         if (javaOuterClassname != null) {
             FileOptions options = DescriptorProtos.FileOptions.newBuilder().setJavaOuterClassname(javaOuterClassname).build();
-            descriptorBuilder.mergeOptions(options);
+            schema.mergeOptions(options);
         }
 
         Boolean javaMultipleFiles = findOptionBoolean(JAVA_MULTIPLE_FILES_OPTION, element.getOptions());
         if (javaMultipleFiles != null) {
             FileOptions options = DescriptorProtos.FileOptions.newBuilder().setJavaMultipleFiles(javaMultipleFiles).build();
-            descriptorBuilder.mergeOptions(options);
+            schema.mergeOptions(options);
         }
 
         Boolean javaStringCheckUtf8 = findOptionBoolean(JAVA_STRING_CHECK_UTF8_OPTION, element.getOptions());
         if (javaStringCheckUtf8 != null) {
             FileOptions options = DescriptorProtos.FileOptions.newBuilder().setJavaStringCheckUtf8(javaStringCheckUtf8).build();
-            descriptorBuilder.mergeOptions(options);
+            schema.mergeOptions(options);
         }
 
         Boolean javaGenericServices = findOptionBoolean(JAVA_GENERIC_SERVICES_OPTION, element.getOptions());
         if (javaGenericServices != null) {
             FileOptions options = DescriptorProtos.FileOptions.newBuilder().setJavaGenericServices(javaGenericServices).build();
-            descriptorBuilder.mergeOptions(options);
+            schema.mergeOptions(options);
         }
 
         Boolean ccGenericServices = findOptionBoolean(CC_GENERIC_SERVICES_OPTION, element.getOptions());
         if (ccGenericServices != null) {
             FileOptions options = DescriptorProtos.FileOptions.newBuilder().setCcGenericServices(ccGenericServices).build();
-            descriptorBuilder.mergeOptions(options);
+            schema.mergeOptions(options);
         }
 
         Boolean ccEnableArenas = findOptionBoolean(CC_ENABLE_ARENAS_OPTION, element.getOptions());
         if (ccEnableArenas != null) {
             FileOptions options = DescriptorProtos.FileOptions.newBuilder().setCcEnableArenas(ccEnableArenas).build();
-            descriptorBuilder.mergeOptions(options);
+            schema.mergeOptions(options);
         }
 
         String csharpNamespace = findOptionString(CSHARP_NAMESPACE_OPTION, element.getOptions());
         if (csharpNamespace != null) {
             FileOptions options = DescriptorProtos.FileOptions.newBuilder().setCsharpNamespace(csharpNamespace).build();
-            descriptorBuilder.mergeOptions(options);
+            schema.mergeOptions(options);
         }
 
         String goPackageName = findOptionString(GO_PACKAGE_OPTION, element.getOptions());
         if (goPackageName != null) {
             FileOptions options = DescriptorProtos.FileOptions.newBuilder().setGoPackage(goPackageName).build();
-            descriptorBuilder.mergeOptions(options);
+            schema.mergeOptions(options);
         }
 
         String objcClassPrefix = findOptionString(OBJC_CLASS_PREFIX_OPTION, element.getOptions());
         if (objcClassPrefix != null) {
             FileOptions options = DescriptorProtos.FileOptions.newBuilder().setObjcClassPrefix(objcClassPrefix).build();
-            descriptorBuilder.mergeOptions(options);
+            schema.mergeOptions(options);
         }
 
         Boolean phpGenericServices = findOptionBoolean(PHP_GENERIC_SERVICES_OPTION, element.getOptions());
         if (phpGenericServices != null) {
             FileOptions options = DescriptorProtos.FileOptions.newBuilder().setPhpGenericServices(phpGenericServices).build();
-            descriptorBuilder.mergeOptions(options);
+            schema.mergeOptions(options);
         }
 
         String phpClassPrefix = findOptionString(PHP_CLASS_PREFIX_OPTION, element.getOptions());
         if (phpClassPrefix != null) {
             FileOptions options = DescriptorProtos.FileOptions.newBuilder().setPhpClassPrefix(phpClassPrefix).build();
-            descriptorBuilder.mergeOptions(options);
+            schema.mergeOptions(options);
         }
 
         String phpMetadataNamespace = findOptionString(PHP_METADATA_NAMESPACE_OPTION, element.getOptions());
         if (phpMetadataNamespace != null) {
             FileOptions options = DescriptorProtos.FileOptions.newBuilder().setPhpMetadataNamespace(phpMetadataNamespace).build();
-            descriptorBuilder.mergeOptions(options);
+            schema.mergeOptions(options);
         }
 
         String phpNamespace = findOptionString(PHP_NAMESPACE_OPTION, element.getOptions());
         if (phpNamespace != null) {
             FileOptions options = DescriptorProtos.FileOptions.newBuilder().setPhpNamespace(phpNamespace).build();
-            descriptorBuilder.mergeOptions(options);
+            schema.mergeOptions(options);
         }
 
         Boolean pyGenericServices = findOptionBoolean(PY_GENERIC_SERVICES_OPTION, element.getOptions());
         if (pyGenericServices != null) {
             FileOptions options = DescriptorProtos.FileOptions.newBuilder().setPyGenericServices(pyGenericServices).build();
-            descriptorBuilder.mergeOptions(options);
+            schema.mergeOptions(options);
         }
 
         String rubyPackage = findOptionString(RUBY_PACKAGE_OPTION, element.getOptions());
         if (rubyPackage != null) {
             FileOptions options = DescriptorProtos.FileOptions.newBuilder().setRubyPackage(rubyPackage).build();
-            descriptorBuilder.mergeOptions(options);
+            schema.mergeOptions(options);
         }
 
         String swiftPrefix = findOptionString(SWIFT_PREFIX_OPTION, element.getOptions());
         if (swiftPrefix != null) {
             FileOptions options = DescriptorProtos.FileOptions.newBuilder().setSwiftPrefix(swiftPrefix).build();
-            descriptorBuilder.mergeOptions(options);
+            schema.mergeOptions(options);
         }
 
         FileOptions.OptimizeMode optimizeFor = findOption(OPTIMIZE_FOR_OPTION, element.getOptions())
                 .map(o -> FileOptions.OptimizeMode.valueOf(o.getValue().toString())).orElse(null);
         if (optimizeFor != null) {
             FileOptions options = DescriptorProtos.FileOptions.newBuilder().setOptimizeFor(optimizeFor).build();
-            descriptorBuilder.mergeOptions(options);
+            schema.mergeOptions(options);
         }
 
-        return descriptorBuilder.build();
+        return schema.build();
     }
 
     /**
@@ -818,17 +658,15 @@ public class FileDescriptorUtils {
             String packageName = optionalPackageName.get();
 
             //If the type doesn't start with the package name, ignore it.
-            if (typeName.startsWith("google.type") || typeName.startsWith("google.protobuf")
-                    || typeName.startsWith("metadata")
-                    || typeName.startsWith("additionalTypes")) {
+            if (!typeName.startsWith(packageName)) {
                 return false;
             }
-            //No well-known type, dependency in another package
-            if (!typeName.contains(packageName)) {
-                return true;
-            }
+            //We only want to consider the parent level types. The list can contain following,
+            //[io.apicurio.foo.bar.Customer.Address, io.apicurio.foo.bar.Customer, google.protobuf.Timestamp]
+            //We want to only get the type "io.apicurio.foo.bar.Customer" which is parent level type.
             String[] typeNames = typeName.split(packageName)[1].split("\\.");
-            return typeNames.length <= 2;
+            boolean isNotNested = typeNames.length <= 2;
+            return isNotNested;
         }
 
         //In case the package is not defined, we select the types that are not google types or metadata types.
@@ -1044,7 +882,7 @@ public class FileDescriptorUtils {
 
         message.protoBuilder().addAllNestedType(allNestedTypes.values());
         message.protoBuilder().addAllField(allFields);
-        return message.protoBuilder().build();
+        return message.build();
     }
 
     private static String determineFieldType(ProtoType protoType, Schema schema) {
@@ -1607,7 +1445,6 @@ public class FileDescriptorUtils {
     private static MessageDefinition toDynamicMessage(
             MessageElement messageElem
     ) {
-
         MessageDefinition.Builder message = MessageDefinition.newBuilder(messageElem.getName());
         for (TypeElement type : messageElem.getNestedTypes()) {
             if (type instanceof MessageElement) {

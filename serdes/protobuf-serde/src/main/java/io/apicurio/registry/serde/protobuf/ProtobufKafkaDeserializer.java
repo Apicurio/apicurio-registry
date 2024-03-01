@@ -27,7 +27,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import io.apicurio.registry.utils.protobuf.schema.FileDescriptorUtils;
 import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.header.Headers;
@@ -142,7 +141,6 @@ public class ProtobufKafkaDeserializer<U extends Message> extends AbstractKafkaD
             ByteArrayInputStream is = new ByteArrayInputStream(bytes);
 
             Descriptor descriptor = null;
-
             if (headers != null) {
                 String messageTypeName = serdeHeaders.getProtobufTypeName(headers);
                 if (messageTypeName != null) {
@@ -150,12 +148,6 @@ public class ProtobufKafkaDeserializer<U extends Message> extends AbstractKafkaD
                 }
             }
             if (descriptor == null){
-
-                //Dereference enabled, try to get descriptor from filedescriptorproto
-                if (schema.getParsedSchema().getDescriptor() != null) {
-                    descriptor = schema.getParsedSchema().getDescriptor();
-                }
-
                 try {
                     Ref ref = Ref.parseDelimitedFrom(is);
                     descriptor = schema.getParsedSchema().getFileDescriptor().findMessageTypeByName(ref.getName());

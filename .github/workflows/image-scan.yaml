@@ -11,7 +11,14 @@ on:
     - cron: "0 6 * * *"
 
 jobs:
+  call-image-scan-registry-default:
+    if: ${{ github.event.inputs.image }} == ''
+    uses: Apicurio/apicurio-gh-workflows/.github/workflows/image-scan.yaml@main
+    with:
+      image: quay.io/apicurio/apicurio-registry:latest-snapshot
+
   call-image-scan-registry:
+    if: ${{ github.event.inputs.image }} != ''
     uses: Apicurio/apicurio-gh-workflows/.github/workflows/image-scan.yaml@main
     with:
       image: ${{ github.event.inputs.image }}

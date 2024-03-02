@@ -31,14 +31,8 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import static io.apicurio.deployment.KubernetesTestResources.APPLICATION_DEPLOYMENT;
-import static io.apicurio.deployment.KubernetesTestResources.APPLICATION_KAFKA_MULTITENANT_RESOURCES;
-import static io.apicurio.deployment.KubernetesTestResources.APPLICATION_KAFKA_RESOURCES;
-import static io.apicurio.deployment.KubernetesTestResources.APPLICATION_KAFKA_SECURED_RESOURCES;
-import static io.apicurio.deployment.KubernetesTestResources.APPLICATION_OLD_KAFKA_RESOURCES;
-import static io.apicurio.deployment.KubernetesTestResources.KAFKA_RESOURCES;
-import static io.apicurio.deployment.KubernetesTestResources.TEST_NAMESPACE;
-import static io.apicurio.deployment.RegistryDeploymentManager.kubernetesClient;
+import static io.apicurio.deployment.k8s.K8sClientManager.kubernetesClient;
+import static io.apicurio.deployment.KubernetesTestResources.*;
 import static io.apicurio.deployment.RegistryDeploymentManager.prepareTestsInfra;
 
 public class KafkaSqlDeploymentManager {
@@ -56,6 +50,8 @@ public class KafkaSqlDeploymentManager {
             case Constants.KAFKA_SQL:
                 prepareKafkaDbUpgradeTests(registryImage);
                 break;
+            case Constants.KAFKASQL_MANUAL:
+                break;
             default:
                 prepareTestsInfra(KAFKA_RESOURCES, APPLICATION_KAFKA_RESOURCES, false, registryImage, false);
                 break;
@@ -69,9 +65,9 @@ public class KafkaSqlDeploymentManager {
         prepareTestsInfra(KAFKA_RESOURCES, APPLICATION_OLD_KAFKA_RESOURCES, false, null, false);
         prepareKafkaSqlMigrationData(ApicurioRegistryBaseIT.getRegistryBaseUrl());
 
-        final RollableScalableResource<Deployment> deploymentResource = kubernetesClient.apps().deployments().inNamespace(TEST_NAMESPACE).withName(APPLICATION_DEPLOYMENT);
+        final RollableScalableResource<Deployment> deploymentResource = kubernetesClient().apps().deployments().inNamespace(TEST_NAMESPACE).withName(APPLICATION_DEPLOYMENT);
 
-        kubernetesClient.apps().deployments().inNamespace(TEST_NAMESPACE).withName(APPLICATION_DEPLOYMENT).delete();
+        kubernetesClient().apps().deployments().inNamespace(TEST_NAMESPACE).withName(APPLICATION_DEPLOYMENT).delete();
 
         //Wait for the deployment to be deleted
         CompletableFuture<List<Deployment>> deployment = deploymentResource

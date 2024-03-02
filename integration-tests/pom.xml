@@ -683,6 +683,14 @@
         </profile>
 
         <profile>
+            <id>kafkasql-manual</id>
+            <properties>
+                <skipTests>false</skipTests>
+                <groups>kafkasql-manual</groups>
+            </properties>
+        </profile>
+
+        <profile>
             <id>openshift</id>
             <build>
                 <plugins>

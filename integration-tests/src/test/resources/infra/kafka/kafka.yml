@@ -1,10 +1,10 @@
 apiVersion: v1
 kind: Service
 metadata:
-  namespace: "apicurio-registry-e2e"
+  namespace: "apicurio-registry-e2e" # TODO Remove
+  name: kafka-service
   labels:
     app: kafka-service
-  name: kafka-service
 spec:
   ports:
      - protocol: TCP
@@ -16,8 +16,10 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  namespace: "apicurio-registry-e2e"
+  namespace: "apicurio-registry-e2e" # TODO Remove
   name: kafka-service
+  labels:
+    app: kafka-service
 spec:
   selector:
     matchLabels:

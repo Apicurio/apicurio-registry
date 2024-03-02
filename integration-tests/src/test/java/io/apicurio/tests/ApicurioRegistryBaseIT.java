@@ -16,7 +16,7 @@
 
 package io.apicurio.tests;
 
-import io.apicurio.deployment.PortForwardManager;
+import io.apicurio.deployment.KeycloakPortForwardExtension;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.RegistryClientFactory;
 import io.apicurio.registry.rest.client.exception.ArtifactNotFoundException;
@@ -87,7 +87,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 @DisplayNameGeneration(SimpleDisplayName.class)
 @TestInstance(Lifecycle.PER_CLASS)
-@ExtendWith(PortForwardManager.class)
+@ExtendWith(KeycloakPortForwardExtension.class)
 public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
 
     private static final Logger log = LoggerFactory.getLogger(TestUtils.class);

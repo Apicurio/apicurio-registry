@@ -14,46 +14,40 @@
  * limitations under the License.
  */
 
-package io.apicurio.tests.dbupgrade;
+package io.apicurio.tests.kafkasql.manual;
 
+import io.apicurio.deployment.TestConfiguration;
+import io.apicurio.deployment.manual.KafkaRunner;
+import io.apicurio.deployment.manual.ProxyKafkaRunner;
+import io.apicurio.deployment.manual.ProxyRegistryRunner;
+import io.apicurio.deployment.manual.RegistryRunner;
 import io.apicurio.registry.utils.tests.SimpleDisplayName;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.tests.utils.Constants;
 import io.apicurio.tests.utils.TestSeparator;
-import junit.framework.AssertionFailedError;
-import lombok.Getter;
 import org.junit.jupiter.api.*;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.testcontainers.containers.output.Slf4jLogConsumer;
-import org.testcontainers.redpanda.RedpandaContainer;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.*;
+import java.util.List;
 import java.util.function.BiConsumer;
-import java.util.function.Function;
 
+import static io.apicurio.deployment.manual.ProxyRegistryRunner.createClusterOrJAR;
+import static io.apicurio.tests.utils.AssertUtils.exactlyOne;
+import static io.apicurio.tests.utils.AssertUtils.none;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
 
 /**
  * This class is responsible for testing {@code io.apicurio.registry.storage.impl.kafkasql.upgrade.KafkaSqlUpgraderManager}
  */
 @DisplayNameGeneration(SimpleDisplayName.class)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-@Tag(Constants.DB_UPGRADE)
-@Tag(Constants.KAFKA_SQL)
+@Tag(Constants.KAFKASQL_MANUAL)
 public class KafkaSqlStorageUpgraderManagerIT implements TestSeparator, Constants {
 
-    private static final Logger log = LoggerFactory.getLogger(KafkaSqlStorageUpgraderManagerIT.class);
-
     public static final int LOCK_TIMEOUT_SECONDS = 10;
+
+    private long testTimeoutMultiplier = 1;
 
     private static final BiConsumer<String, RegistryRunner> REPORTER = (line, node) -> {
         if (line.contains("We detected a significant time difference")) {
@@ -90,15 +84,21 @@ public class KafkaSqlStorageUpgraderManagerIT implements TestSeparator, Constant
         }
     };
 
-    private RedpandaContainer kafka;
+
+    private KafkaRunner kafka = new ProxyKafkaRunner();
+
+
+    @BeforeAll
+    protected void beforeAll() {
+        if (TestConfiguration.isClusterTests()) {
+            testTimeoutMultiplier = 3; // We need more time for Kubernetes
+        }
+    }
 
 
     @BeforeEach
     protected void beforeEach() {
-        log.info("Starting the Kafka Test Container");
-        kafka = new RedpandaContainer("docker.redpanda.com/vectorized/redpanda");
-        kafka.withLogConsumer(new Slf4jLogConsumer(LoggerFactory.getLogger("kafka")));
-        kafka.start();
+        kafka.startAndWait();
     }
 
 
@@ -110,29 +110,27 @@ public class KafkaSqlStorageUpgraderManagerIT implements TestSeparator, Constant
      */
     @Test
     public void testUpgradeHappyPath() throws Exception {
-        if (!RegistryRunner.isSupported()) {
-            log.warn("TESTS IN 'KafkaSqlStorageUpgraderManagerIT' COULD NOT RUN");
-            return;
-        }
-        var node1 = new RegistryNode();
-        var node2 = new RegistryNode();
-        var node3 = new RegistryNode();
+        var node1 = createClusterOrJAR();
+        var node2 = createClusterOrJAR();
+        var node3 = createClusterOrJAR();
         try {
             var startingLine = Instant.now().plusMillis(1000);
 
             // Start the nodes, no induced problems
-            node1.start(1, startingLine, kafka.getBootstrapServers(), Duration.ZERO, false, Duration.ZERO, REPORTER);
-            node2.start(2, startingLine, kafka.getBootstrapServers(), Duration.ZERO, false, Duration.ZERO, REPORTER);
-            node3.start(3, startingLine, kafka.getBootstrapServers(), Duration.ZERO, false, Duration.ZERO, REPORTER);
+            startExtended(node1, 1, startingLine, kafka.getBootstrapServers(), Duration.ZERO, false, Duration.ZERO, REPORTER);
+            startExtended(node2, 2, startingLine, kafka.getBootstrapServers(), Duration.ZERO, false, Duration.ZERO, REPORTER);
+            startExtended(node3, 3, startingLine, kafka.getBootstrapServers(), Duration.ZERO, false, Duration.ZERO, REPORTER);
+
+            // Wait on the nodes to start
+            TestUtils.waitFor("Registry nodes have started", 3 * 1000, 6 * LOCK_TIMEOUT_SECONDS * 1000 * testTimeoutMultiplier,
+                    () -> node1.isStarted() && node2.isStarted() && node3.isStarted()
+            );
 
             // Wait on the nodes to stop
-            TestUtils.waitFor("Registry nodes have stopped", 3 * 1000, 6 * LOCK_TIMEOUT_SECONDS * 1000,
+            TestUtils.waitFor("Registry nodes have stopped", 3 * 1000, 6 * LOCK_TIMEOUT_SECONDS * 1000 * testTimeoutMultiplier,
                     () -> node1.isStopped() && node2.isStopped() && node3.isStopped()
             );
 
-            assertNull(node1.getError());
-            assertNull(node2.getError());
-            assertNull(node3.getError());
             assertEquals(true, node1.getReport().get("finished"));
             assertEquals(true, node2.getReport().get("finished"));
             assertEquals(true, node3.getReport().get("finished"));
@@ -148,9 +146,9 @@ public class KafkaSqlStorageUpgraderManagerIT implements TestSeparator, Constant
             verifyRestart(node1, node2, node3);
 
         } finally {
-            node1.stop();
-            node2.stop();
-            node3.stop();
+            node1.stopAndWait();
+            node2.stopAndWait();
+            node3.stopAndWait();
         }
     }
 
@@ -162,31 +160,28 @@ public class KafkaSqlStorageUpgraderManagerIT implements TestSeparator, Constant
      */
     @Test
     public void testUpgradeFail() throws Exception {
-        if (!RegistryRunner.isSupported()) {
-            log.warn("TESTS IN 'KafkaSqlStorageUpgraderManagerIT' COULD NOT RUN");
-            return;
-        }
-        var node1 = new RegistryNode();
-        var node2 = new RegistryNode();
-        var node3 = new RegistryNode();
+        var node1 = createClusterOrJAR();
+        var node2 = createClusterOrJAR();
+        var node3 = createClusterOrJAR();
         try {
             var startingLine = Instant.now().plusMillis(1000);
 
             // Start the nodes, first two will fail
-            node1.start(1, startingLine, kafka.getBootstrapServers(), Duration.ZERO, true, Duration.ZERO, REPORTER);
-            node2.start(2, startingLine, kafka.getBootstrapServers(), Duration.ZERO, true, Duration.ZERO, REPORTER);
+            startExtended(node1, 1, startingLine, kafka.getBootstrapServers(), Duration.ZERO, true, Duration.ZERO, REPORTER);
+            startExtended(node2, 2, startingLine, kafka.getBootstrapServers(), Duration.ZERO, true, Duration.ZERO, REPORTER);
             // Delay the third node
-            node3.start(3, startingLine, kafka.getBootstrapServers(), Duration.ofSeconds(LOCK_TIMEOUT_SECONDS), false, Duration.ZERO, REPORTER);
+            startExtended(node3, 3, startingLine, kafka.getBootstrapServers(), Duration.ofSeconds(LOCK_TIMEOUT_SECONDS), false, Duration.ZERO, REPORTER);
+
+            // Wait on the nodes to start
+            TestUtils.waitFor("Registry nodes have started", 3 * 1000, 6 * LOCK_TIMEOUT_SECONDS * 1000 * testTimeoutMultiplier,
+                    () -> node1.isStarted() && node2.isStarted() && node3.isStarted()
+            );
 
             // Wait on the nodes to stop
-            TestUtils.waitFor("Registry nodes have stopped", 3 * 1000, 6 * LOCK_TIMEOUT_SECONDS * 1000,
+            TestUtils.waitFor("Registry nodes have stopped", 3 * 1000, 6 * LOCK_TIMEOUT_SECONDS * 1000 * testTimeoutMultiplier,
                     () -> node1.isStopped() && node2.isStopped() && node3.isStopped()
             );
 
-            // Nodes finished without errors
-            assertNull(node1.getError());
-            assertNull(node2.getError());
-            assertNull(node3.getError());
             assertEquals(true, node1.getReport().get("finished"));
             assertEquals(true, node2.getReport().get("finished"));
             assertEquals(true, node3.getReport().get("finished"));
@@ -226,9 +221,9 @@ public class KafkaSqlStorageUpgraderManagerIT implements TestSeparator, Constant
             verifyRestart(node1, node2, node3);
 
         } finally {
-            node1.stop();
-            node2.stop();
-            node3.stop();
+            node1.stopAndWait();
+            node2.stopAndWait();
+            node3.stopAndWait();
         }
     }
 
@@ -240,31 +235,28 @@ public class KafkaSqlStorageUpgraderManagerIT implements TestSeparator, Constant
      */
     @Test
     public void testUpgradeDelay() throws Exception {
-        if (!RegistryRunner.isSupported()) {
-            log.warn("TESTS IN 'KafkaSqlStorageUpgraderManagerIT' COULD NOT RUN");
-            return;
-        }
-        var node1 = new RegistryNode();
-        var node2 = new RegistryNode();
-        var node3 = new RegistryNode();
+        var node1 = createClusterOrJAR();
+        var node2 = createClusterOrJAR();
+        var node3 = createClusterOrJAR();
         try {
             var startingLine = Instant.now().plusMillis(1000);
 
             // Start the nodes, first two will fail
-            node1.start(1, startingLine, kafka.getBootstrapServers(), Duration.ZERO, false, Duration.ofSeconds(LOCK_TIMEOUT_SECONDS + 1), REPORTER);
-            node2.start(2, startingLine, kafka.getBootstrapServers(), Duration.ZERO, false, Duration.ofSeconds(LOCK_TIMEOUT_SECONDS + 1), REPORTER);
+            startExtended(node1, 1, startingLine, kafka.getBootstrapServers(), Duration.ZERO, false, Duration.ofSeconds(LOCK_TIMEOUT_SECONDS + 1), REPORTER);
+            startExtended(node2, 2, startingLine, kafka.getBootstrapServers(), Duration.ZERO, false, Duration.ofSeconds(LOCK_TIMEOUT_SECONDS + 1), REPORTER);
             // Delay the third node
-            node3.start(3, startingLine, kafka.getBootstrapServers(), Duration.ofSeconds(3 * LOCK_TIMEOUT_SECONDS), false, Duration.ZERO, REPORTER);
+            startExtended(node3, 3, startingLine, kafka.getBootstrapServers(), Duration.ofSeconds(3 * LOCK_TIMEOUT_SECONDS), false, Duration.ZERO, REPORTER);
+
+            // Wait on the nodes to start
+            TestUtils.waitFor("Registry nodes have started", 3 * 1000, 6 * LOCK_TIMEOUT_SECONDS * 1000 * testTimeoutMultiplier,
+                    () -> node1.isStarted() && node2.isStarted() && node3.isStarted()
+            );
 
             // Wait on the nodes to stop
-            TestUtils.waitFor("Registry nodes have stopped", 3 * 1000, 9 * LOCK_TIMEOUT_SECONDS * 1000,
+            TestUtils.waitFor("Registry nodes have stopped", 3 * 1000, 9 * LOCK_TIMEOUT_SECONDS * 1000 * testTimeoutMultiplier,
                     () -> node1.isStopped() && node2.isStopped() && node3.isStopped()
             );
 
-            // Nodes finished without errors
-            assertNull(node1.getError());
-            assertNull(node2.getError());
-            assertNull(node3.getError());
             assertEquals(null, node1.getReport().get("finished")); // We stopped the node
             assertEquals(null, node2.getReport().get("finished")); // We stopped the node
             assertEquals(true, node3.getReport().get("finished"));
@@ -301,9 +293,9 @@ public class KafkaSqlStorageUpgraderManagerIT implements TestSeparator, Constant
             verifyRestart(node1, node2, node3);
 
         } finally {
-            node1.stop();
-            node2.stop();
-            node3.stop();
+            node1.stopAndWait();
+            node2.stopAndWait();
+            node3.stopAndWait();
         }
     }
 
@@ -314,13 +306,9 @@ public class KafkaSqlStorageUpgraderManagerIT implements TestSeparator, Constant
      */
     @Test
     public void testUpgradeCrash() throws Exception {
-        if (!RegistryRunner.isSupported()) {
-            log.warn("TESTS IN 'KafkaSqlStorageUpgraderManagerIT' COULD NOT RUN");
-            return;
-        }
-        var node1 = new RegistryNode();
-        var node2 = new RegistryNode();
-        var node3 = new RegistryNode();
+        var node1 = createClusterOrJAR();
+        var node2 = createClusterOrJAR();
+        var node3 = createClusterOrJAR();
         try {
             var startingLine = Instant.now().plusMillis(1000);
 
@@ -334,20 +322,21 @@ public class KafkaSqlStorageUpgraderManagerIT implements TestSeparator, Constant
             };
 
             // Start the nodes, first two will crash
-            node1.start(1, startingLine, kafka.getBootstrapServers(), Duration.ZERO, false, Duration.ZERO, reporter);
-            node2.start(2, startingLine, kafka.getBootstrapServers(), Duration.ZERO, false, Duration.ZERO, reporter);
+            startExtended(node1, 1, startingLine, kafka.getBootstrapServers(), Duration.ZERO, false, Duration.ZERO, reporter);
+            startExtended(node2, 2, startingLine, kafka.getBootstrapServers(), Duration.ZERO, false, Duration.ZERO, reporter);
             // Delay the third node
-            node3.start(3, startingLine, kafka.getBootstrapServers(), Duration.ofSeconds(3 * LOCK_TIMEOUT_SECONDS), false, Duration.ZERO, reporter);
+            startExtended(node3, 3, startingLine, kafka.getBootstrapServers(), Duration.ofSeconds(3 * LOCK_TIMEOUT_SECONDS), false, Duration.ZERO, reporter);
+
+            // Wait on the nodes to start
+            TestUtils.waitFor("Registry nodes have started", 3 * 1000, 6 * LOCK_TIMEOUT_SECONDS * 1000 * testTimeoutMultiplier,
+                    () -> node1.isStarted() && node2.isStarted() && node3.isStarted()
+            );
 
             // Wait on the nodes to stop
-            TestUtils.waitFor("Registry nodes have stopped", 3 * 1000, 9 * LOCK_TIMEOUT_SECONDS * 1000,
+            TestUtils.waitFor("Registry nodes have stopped", 3 * 1000, 9 * LOCK_TIMEOUT_SECONDS * 1000 * testTimeoutMultiplier,
                     () -> node1.isStopped() && node2.isStopped() && node3.isStopped()
             );
 
-            // Nodes finished without errors
-            assertNull(node1.getError());
-            assertNull(node2.getError());
-            assertNull(node3.getError());
             assertEquals(null, node1.getReport().get("finished")); // We stopped the node
             assertEquals(null, node2.getReport().get("finished")); // We stopped the node
             assertEquals(true, node3.getReport().get("finished"));
@@ -384,34 +373,36 @@ public class KafkaSqlStorageUpgraderManagerIT implements TestSeparator, Constant
             verifyRestart(node1, node2, node3);
 
         } finally {
-            node1.stop();
-            node2.stop();
-            node3.stop();
+            node1.stopAndWait();
+            node2.stopAndWait();
+            node3.stopAndWait();
         }
     }
 
 
-    private void verifyRestart(RegistryNode node1, RegistryNode node2, RegistryNode node3) throws Exception {
+    private void verifyRestart(ProxyRegistryRunner node1, ProxyRegistryRunner node2, ProxyRegistryRunner node3) throws Exception {
 
         // Let's restart and make sure we upgraded
-        node1.stop();
-        node2.stop();
-        node3.stop();
+        node1.stopAndWait();
+        node2.stopAndWait();
+        node3.stopAndWait();
 
         var startingLine = Instant.now().plusMillis(1000);
 
-        node1.start(1, startingLine, kafka.getBootstrapServers(), Duration.ZERO, false, Duration.ZERO, REPORTER);
-        node2.start(2, startingLine, kafka.getBootstrapServers(), Duration.ZERO, false, Duration.ZERO, REPORTER);
-        node3.start(3, startingLine, kafka.getBootstrapServers(), Duration.ZERO, false, Duration.ZERO, REPORTER);
+        startExtended(node1, 1, startingLine, kafka.getBootstrapServers(), Duration.ZERO, false, Duration.ZERO, REPORTER);
+        startExtended(node2, 2, startingLine, kafka.getBootstrapServers(), Duration.ZERO, false, Duration.ZERO, REPORTER);
+        startExtended(node3, 3, startingLine, kafka.getBootstrapServers(), Duration.ZERO, false, Duration.ZERO, REPORTER);
+
+        // Wait on the nodes to start
+        TestUtils.waitFor("Registry nodes have started", 3 * 1000, 6 * LOCK_TIMEOUT_SECONDS * 1000 * testTimeoutMultiplier,
+                () -> node1.isStarted() && node2.isStarted() && node3.isStarted()
+        );
 
         // Wait on the nodes to stop
-        TestUtils.waitFor("Registry nodes have stopped", 3 * 1000, 3 * LOCK_TIMEOUT_SECONDS * 1000,
+        TestUtils.waitFor("Registry nodes have stopped", 3 * 1000, 3 * LOCK_TIMEOUT_SECONDS * 1000 * testTimeoutMultiplier,
                 () -> node1.isStopped() && node2.isStopped() && node3.isStopped()
         );
 
-        assertNull(node1.getError());
-        assertNull(node2.getError());
-        assertNull(node3.getError());
         assertEquals(true, node1.getReport().get("finished"));
         assertEquals(true, node2.getReport().get("finished"));
         assertEquals(true, node3.getReport().get("finished"));
@@ -424,144 +415,16 @@ public class KafkaSqlStorageUpgraderManagerIT implements TestSeparator, Constant
 
     @AfterEach
     protected void afterEach() {
-        if (kafka != null) {
-            kafka.stop();
-        }
+        kafka.stopAndWait();
     }
 
 
-    private static class RegistryNode extends RegistryRunner {
-
-        public void start(int nodeId, Instant startingLine, String bootstrapServers, Duration upgradeTestInitDelay,
-                          boolean upgradeTestFail, Duration upgradeTestDelay, BiConsumer<String, RegistryRunner> reporter) {
-            var c = new ArrayList<String>();
-            c.add("-Dregistry.kafkasql.upgrade-test-mode=true");
-            c.add(String.format("-Dregistry.kafkasql.upgrade-test-init-delay=%sms", upgradeTestInitDelay.toMillis()));
-            c.add(String.format("-Dregistry.kafkasql.upgrade-test-fail=%s", upgradeTestFail));
-            c.add(String.format("-Dregistry.kafkasql.upgrade-test-delay=%sms", upgradeTestDelay.toMillis()));
-            start(nodeId, startingLine, bootstrapServers, c, reporter);
-        }
-    }
-
-
-    public static class RegistryRunner {
-
-        private static final String KAFKASQL_REGISTRY_JAR_WORK_PATH = "../storage/kafkasql/target";
-        private static final String KAFKASQL_REGISTRY_JAR_PATH = "apicurio-registry-storage-kafkasql-%s-runner.jar";
-        private static final String PROJECT_VERSION = System.getProperty("project.version");
-
-        private volatile Thread runner;
-        private volatile boolean stop;
-        @Getter
-        private volatile int nodeId;
-        @Getter
-        private volatile Exception error;
-        @Getter
-        private Map<String, Object> report = new HashMap<>();
-
-        public synchronized void start(int nodeId, Instant startingLine, String bootstrapServers, List<String> args, BiConsumer<String, RegistryRunner> reporter) {
-            if (!isStopped()) {
-                throw new IllegalStateException("Node is not stopped.");
-            }
-            this.nodeId = nodeId;
-            stop = false;
-            error = null;
-            report = new HashMap<>();
-            runner = new Thread(() -> {
-                ProcessBuilder builder = new ProcessBuilder();
-                builder.directory(new File(KAFKASQL_REGISTRY_JAR_WORK_PATH));
-                builder.environment().put("REGISTRY_LOG_LEVEL", "DEBUG");
-                var c = new ArrayList<String>();
-
-                c.add("java");
-                c.add(String.format("-Dquarkus.http.port=%s", 8780 + nodeId));
-                c.add(String.format("-Dregistry.kafkasql.bootstrap.servers=%s", bootstrapServers));
-                c.addAll(args);
-
-                c.add("-jar");
-                c.add(String.format(KAFKASQL_REGISTRY_JAR_PATH, PROJECT_VERSION));
-
-                builder.command(c);
-                builder.redirectErrorStream(true);
-                Process process = null;
-                while (!stop) {
-                    try {
-                        if (Instant.now().isAfter(startingLine)) {
-                            process = builder.start();
-                            break;
-                        } else {
-                            Thread.sleep(Duration.between(Instant.now(), startingLine).abs().toMillis());
-                        }
-                    } catch (IOException ex) {
-                        log.error("Could not start Registry instance.", ex);
-                        error = ex;
-                        stop = true;
-                    } catch (InterruptedException e) {
-                        // stop?
-                    }
-                }
-                if (process != null) {
-                    if (!stop) {
-                        log.info("Started process: '{}' with PID {} (node {}).", String.join(" ", c), process.pid(), nodeId);
-                        try (Scanner scanner = new Scanner(process.getInputStream(), StandardCharsets.UTF_8)) {
-                            while (!stop) {
-                                if (scanner.hasNextLine()) {
-                                    var line = scanner.nextLine();
-                                    LoggerFactory.getLogger("node " + nodeId).info(line);
-                                    reporter.accept(line, this);
-                                }
-                            }
-                        }
-                    }
-                    process.destroy();
-                    stop = false;
-                }
-            });
-            runner.start();
-        }
-
-        public boolean isStopped() {
-            return runner == null || !runner.isAlive();
-        }
-
-        public void stop() {
-            if (runner != null) {
-                stop = true;
-                runner.interrupt();
-            }
-        }
-
-        static boolean isSupported() {
-            return Files.exists(Path.of(KAFKASQL_REGISTRY_JAR_WORK_PATH, String.format(KAFKASQL_REGISTRY_JAR_PATH, PROJECT_VERSION)));
-        }
-    }
-
-    @SafeVarargs
-    private static <T> T exactlyOne(Function<T, Boolean> condition, T... items) {
-        List<T> selected = new ArrayList<>();
-        for (T item : items) {
-            if (condition.apply(item)) {
-                selected.add(item);
-            }
-        }
-        if (selected.size() == 1) {
-            return selected.get(0);
-        } else {
-            throw new AssertionFailedError("None or more than one item fulfilled the condition: " + selected);
-        }
-    }
-
-
-    @SafeVarargs
-    private static <T> void none(Function<T, Boolean> condition, T... items) {
-        List<T> selected = new ArrayList<>();
-        for (T item : items) {
-            if (condition.apply(item)) {
-                selected.add(item);
-            }
-        }
-        if (selected.size() != 0) {
-            throw new AssertionFailedError("One or more items fulfilled the condition: " + selected);
-        }
+    private static void startExtended(ProxyRegistryRunner node, int nodeId, Instant startingLine, String bootstrapServers, Duration upgradeTestInitDelay, boolean upgradeTestFail, Duration upgradeTestDelay, BiConsumer<String, RegistryRunner> reporter) {
+        node.start(nodeId, startingLine, null, bootstrapServers, List.of(
+                "-Dregistry.kafkasql.upgrade-test-mode=true",
+                String.format("-Dregistry.kafkasql.upgrade-test-init-delay=%sms", upgradeTestInitDelay.toMillis()),
+                String.format("-Dregistry.kafkasql.upgrade-test-fail=%s", upgradeTestFail),
+                String.format("-Dregistry.kafkasql.upgrade-test-delay=%sms", upgradeTestDelay.toMillis())
+        ), reporter);
     }
 }

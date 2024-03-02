@@ -14,8 +14,11 @@
  * limitations under the License.
  */
 
-package io.apicurio.tests.dbupgrade;
+package io.apicurio.tests.kafkasql.manual;
 
+import io.apicurio.deployment.TestConfiguration;
+import io.apicurio.deployment.manual.ProxyKafkaRunner;
+import io.apicurio.deployment.manual.ProxyRegistryRunner;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.RegistryClientFactory;
@@ -24,66 +27,58 @@ import io.apicurio.registry.rest.v2.beans.ArtifactReference;
 import io.apicurio.registry.rest.v2.beans.Rule;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.tests.SimpleDisplayName;
-import io.apicurio.tests.dbupgrade.KafkaSqlStorageUpgraderManagerIT.RegistryRunner;
 import io.apicurio.tests.utils.Constants;
 import io.apicurio.tests.utils.TestSeparator;
-import io.quarkus.test.junit.QuarkusIntegrationTest;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.testcontainers.containers.output.Slf4jLogConsumer;
-import org.testcontainers.redpanda.RedpandaContainer;
 import org.testcontainers.shaded.org.awaitility.Awaitility;
 import org.testcontainers.shaded.org.awaitility.core.ConditionTimeoutException;
 
 import java.io.IOException;
 import java.time.Duration;
-import java.time.Instant;
 import java.util.List;
 import java.util.stream.IntStream;
 
+import static io.apicurio.deployment.manual.ProxyKafkaRunner.createCompactingTopic;
+import static io.apicurio.deployment.manual.ProxyRegistryRunner.createClusterOrJAR;
 import static io.apicurio.tests.ApicurioRegistryBaseIT.resourceToString;
-import static io.apicurio.tests.dbupgrade.KafkaSqlProtobufContentUpgradeIssueOldIT.createTopic;
-import static io.apicurio.tests.dbupgrade.KafkaSqlProtobufContentUpgradeIssueOldIT.waitOnRegistryStart;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 
 @DisplayNameGeneration(SimpleDisplayName.class)
 @TestInstance(Lifecycle.PER_CLASS)
-@Tag(Constants.DB_UPGRADE)
-@Tag(Constants.KAFKA_SQL)
-@QuarkusIntegrationTest
+@Tag(Constants.KAFKASQL_MANUAL)
 public class KafkaSqlProtobufContentUpgradeIssueNewIT implements TestSeparator, Constants {
 
-    private static final Logger log = LoggerFactory.getLogger(KafkaSqlProtobufContentUpgradeIssueNewIT.class);
+    private long testTimeoutMultiplier = 1;
 
-    private RedpandaContainer kafka;
-    private RegistryRunner node;
+    private ProxyKafkaRunner kafka;
+    private ProxyRegistryRunner registry;
     private RegistryClient client;
 
 
-    @Test
-    public void testNew() throws IOException, InterruptedException {
-        if (!RegistryRunner.isSupported()) {
-            log.warn("TESTS IN 'KafkaSqlProtobufContentUpgradeIssueNewIT' COULD NOT RUN");
-            return;
+    @BeforeAll
+    protected void beforeAll() {
+        if (TestConfiguration.isClusterTests()) {
+            testTimeoutMultiplier = 3; // We need more time for Kubernetes
         }
+    }
+
+
+    @Test
+    public void testNew() throws IOException {
         try {
-            log.info("Starting the Kafka Test Container");
-            kafka = new RedpandaContainer("docker.redpanda.com/vectorized/redpanda");
-            kafka.withLogConsumer(new Slf4jLogConsumer(LoggerFactory.getLogger("kafka")));
-            kafka.start();
+            kafka = new ProxyKafkaRunner();
+            kafka.startAndWait();
 
             // Create the topic with aggressive log compaction
-            createTopic("kafkasql-journal", 1, kafka.getBootstrapServers());
+            createCompactingTopic(kafka, "kafkasql-journal", 1);
 
-            node = new RegistryRunner();
-            node.start(1, Instant.now(), kafka.getBootstrapServers(), List.of(/*"-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=5001"*/), (node, line) -> {
-            });
+            registry = createClusterOrJAR();
+            registry.start(kafka.getBootstrapServers());
+            registry.waitUntilReady();
 
-            client = RegistryClientFactory.create("http://localhost:8781");
-            waitOnRegistryStart(client);
+            client = RegistryClientFactory.create(registry.getClientURL());
 
             // Create a protobuf artifact with reference
             var anyData = resourceToString("artifactTypes/protobuf/any.proto");
@@ -98,22 +93,20 @@ public class KafkaSqlProtobufContentUpgradeIssueNewIT implements TestSeparator, 
 
             try {
                 // Work with the topic to induce compaction
-                Awaitility.await("reproduce protobuf upgrade issue").atMost(Duration.ofSeconds(90)).until(() -> {
+                Awaitility.await("reproduce protobuf upgrade issue").atMost(Duration.ofSeconds(90 * testTimeoutMultiplier)).until(() -> {
 
                     // Flip a global rule several times
                     client.createGlobalRule(new Rule("FULL", RuleType.VALIDITY));
-                    IntStream.range(0, 10).forEach(_ignored -> {
+                    IntStream.range(0, 20).forEach(ignored -> {
                         client.updateGlobalRuleConfig(RuleType.VALIDITY, new Rule("FULL", RuleType.VALIDITY));
                         client.updateGlobalRuleConfig(RuleType.VALIDITY, new Rule("NONE", RuleType.VALIDITY));
                     });
                     client.deleteGlobalRule(RuleType.VALIDITY);
 
                     // Restart Registry
-                    node.stop();
-                    Awaitility.await("node is stopped").atMost(Duration.ofSeconds(10)).until(() -> node.isStopped());
-                    node.start(1, Instant.now(), kafka.getBootstrapServers(), List.of(/*"-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=5001"*/), (node, line) -> {
-                    });
-                    waitOnRegistryStart(client);
+                    registry.stopAndWait();
+                    registry.start(kafka.getBootstrapServers());
+                    registry.waitUntilReady();
 
                     // Check that the protobuf artifact disappeared
                     try {
@@ -127,18 +120,18 @@ public class KafkaSqlProtobufContentUpgradeIssueNewIT implements TestSeparator, 
                 Assertions.fail("Protobuf artifact should not disappear because of compaction");
             } catch (ConditionTimeoutException ex) {
                 // This means success, compaction did not cause the artifact to disappear
+                // Sadly we need to wait to confirm
             }
 
         } finally {
-            if (kafka != null) {
-                kafka.stop();
-            }
-            if (node != null) {
-                node.stop();
-                Thread.sleep(3000); // Give time to stop
-            }
             if (client != null) {
                 client.close();
+            }
+            if (registry != null) {
+                registry.stopAndWait();
+            }
+            if (kafka != null) {
+                kafka.stopAndWait();
             }
         }
     }

@@ -41,14 +41,8 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import static io.apicurio.deployment.KubernetesTestResources.APPLICATION_DEPLOYMENT;
-import static io.apicurio.deployment.KubernetesTestResources.APPLICATION_OLD_SQL_RESOURCES;
-import static io.apicurio.deployment.KubernetesTestResources.APPLICATION_SQL_MULTITENANT_RESOURCES;
-import static io.apicurio.deployment.KubernetesTestResources.APPLICATION_SQL_RESOURCES;
-import static io.apicurio.deployment.KubernetesTestResources.APPLICATION_SQL_SECURED_RESOURCES;
-import static io.apicurio.deployment.KubernetesTestResources.DATABASE_RESOURCES;
-import static io.apicurio.deployment.KubernetesTestResources.TEST_NAMESPACE;
-import static io.apicurio.deployment.RegistryDeploymentManager.kubernetesClient;
+import static io.apicurio.deployment.k8s.K8sClientManager.kubernetesClient;
+import static io.apicurio.deployment.KubernetesTestResources.*;
 import static io.apicurio.deployment.RegistryDeploymentManager.prepareTestsInfra;
 
 public class SqlDeploymentManager {
@@ -80,9 +74,9 @@ public class SqlDeploymentManager {
 
         prepareSqlMigrationData(ApicurioRegistryBaseIT.getTenantManagerUrl(), ApicurioRegistryBaseIT.getRegistryBaseUrl());
 
-        final RollableScalableResource<Deployment> deploymentResource = kubernetesClient.apps().deployments().inNamespace(TEST_NAMESPACE).withName(APPLICATION_DEPLOYMENT);
+        final RollableScalableResource<Deployment> deploymentResource = kubernetesClient().apps().deployments().inNamespace(TEST_NAMESPACE).withName(APPLICATION_DEPLOYMENT);
 
-        kubernetesClient.apps().deployments().inNamespace(TEST_NAMESPACE).withName(APPLICATION_DEPLOYMENT).delete();
+        kubernetesClient().apps().deployments().inNamespace(TEST_NAMESPACE).withName(APPLICATION_DEPLOYMENT).delete();
 
         //Wait for the deployment to be deleted
         CompletableFuture<List<Deployment>> deployment = deploymentResource

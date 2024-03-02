@@ -45,7 +45,7 @@ public class KubernetesTestResources {
     protected static final String DATABASE_RESOURCES = "/infra/sql/postgresql.yml";
     protected static final String KEYCLOAK_RESOURCES = "/infra/auth/keycloak.yml";
 
-    protected static final String TEST_NAMESPACE = "apicurio-registry-e2e";
+    public static final String TEST_NAMESPACE = "apicurio-registry-e2e";
 
     protected static final String APPLICATION_SERVICE = "apicurio-registry-service";
     protected static final String APPLICATION_DEPLOYMENT = "apicurio-registry-deployment";

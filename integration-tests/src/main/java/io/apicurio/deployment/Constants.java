@@ -40,6 +40,8 @@ public class Constants {
      */
     static final String KAFKA_SQL = "kafkasqlit";
 
+    static final String KAFKASQL_MANUAL = "kafkasql-manual";
+
     /**
      * Tag for sql db upgrade tests profile.
      */

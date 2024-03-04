@@ -1,7 +1,6 @@
 apiVersion: v1
 kind: Service
 metadata:
-  namespace: "apicurio-registry-e2e" # TODO Remove
   name: kafka-service
   labels:
     app: kafka-service
@@ -15,17 +14,12 @@ spec:
       protocol: TCP
       port: 19092
       targetPort: 19092
-  #    - name: controller
-  #      protocol: TCP
-  #      port: 29092
-  #      targetPort: 29092
   selector:
     app: kafka-service
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  namespace: "apicurio-registry-e2e" # TODO Remove
   name: kafka-service
   labels:
     app: kafka-service
@@ -52,17 +46,12 @@ spec:
           env:
             - name: LOG_DIR
               value: /tmp/logs
-            #            - name: KAFKA_CONTROLLER_LISTENER_NAMES
-            #              value: CONTROLLER
             - name: KAFKA_LISTENERS
               value: PLAINTEXT://:9092,EXTERNAL://:19092,CONTROLLER://:9093
             - name: KAFKA_ADVERTISED_LISTENERS
               value: PLAINTEXT://kafka-service:9092,EXTERNAL://localhost:19092
-            #            - name: KAFKA_INTER_BROKER_LISTENER_NAME
-            #              value: INTERNAL
             - name: LISTENER_SECURITY_PROTOCOL_MAP
               value: PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT
           ports:
             - containerPort: 9092
             - containerPort: 19092
-#            - containerPort: 29092

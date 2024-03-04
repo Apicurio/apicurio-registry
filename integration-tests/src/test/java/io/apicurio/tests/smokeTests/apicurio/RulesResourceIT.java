@@ -16,9 +16,9 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.apicurio.registry.rest.client.models.ArtifactMetaData;
 import io.apicurio.registry.rest.client.models.Rule;
 import io.apicurio.registry.rest.client.models.RuleType;
+import io.apicurio.registry.rest.client.models.VersionMetaData;
 import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
 import io.apicurio.registry.rules.integrity.IntegrityLevel;
 import io.apicurio.registry.rules.validity.ValidityLevel;
@@ -108,15 +108,15 @@ class RulesResourceIT extends ApicurioRegistryBaseIT {
 
         LOGGER.info("Invalid artifact sent {}", invalidArtifactDefinition);
         TestUtils.assertClientError("RuleViolationException", 409, () -> createArtifact(groupId, artifactId, ArtifactType.AVRO, IoUtil.toStream(invalidArtifactDefinition)), errorCodeExtractor);
-        TestUtils.assertClientError("ArtifactNotFoundException", 404, () -> updateArtifact(groupId, artifactId, IoUtil.toStream(invalidArtifactDefinition)), errorCodeExtractor);
+        TestUtils.assertClientError("ArtifactNotFoundException", 404, () -> createArtifactVersion(groupId, artifactId, IoUtil.toStream(invalidArtifactDefinition)), errorCodeExtractor);
 
         ByteArrayInputStream artifactData = new ByteArrayInputStream("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"long\"}]}".getBytes(StandardCharsets.UTF_8));
 
-        ArtifactMetaData metaData = createArtifact(groupId, artifactId, ArtifactType.AVRO, artifactData);
+        VersionMetaData metaData = createArtifact(groupId, artifactId, ArtifactType.AVRO, artifactData);
         LOGGER.info("Created artifact {} with metadata {}", artifactId, metaData.toString());
 
         artifactData = new ByteArrayInputStream("{\"type\":\"record\",\"name\":\"myrecord2\",\"fields\":[{\"name\":\"bar\",\"type\":\"long\"}]}".getBytes(StandardCharsets.UTF_8));
-        metaData = updateArtifact(groupId, artifactId, artifactData);
+        metaData = createArtifactVersion(groupId, artifactId, artifactData);
         LOGGER.info("Artifact with Id:{} was updated:{}", artifactId, metaData.toString());
 
         retryOp((rc) -> {
@@ -134,7 +134,7 @@ class RulesResourceIT extends ApicurioRegistryBaseIT {
         String artifactDefinition = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
 
         ByteArrayInputStream artifactData = new ByteArrayInputStream(artifactDefinition.getBytes(StandardCharsets.UTF_8));
-        ArtifactMetaData metaData = createArtifact(groupId, artifactId1, ArtifactType.AVRO, artifactData);
+        VersionMetaData metaData = createArtifact(groupId, artifactId1, ArtifactType.AVRO, artifactData);
         LOGGER.info("Created artifact {} with metadata {}", artifactId1, metaData);
 
         String artifactId2 = TestUtils.generateArtifactId();
@@ -157,16 +157,16 @@ class RulesResourceIT extends ApicurioRegistryBaseIT {
         artifactData = new ByteArrayInputStream(invalidArtifactDefinition.getBytes(StandardCharsets.UTF_8));
 
         ByteArrayInputStream iad = artifactData;
-        TestUtils.assertClientError("RuleViolationException", 409, () -> updateArtifact(groupId, artifactId1, iad), errorCodeExtractor);
+        TestUtils.assertClientError("RuleViolationException", 409, () -> createArtifactVersion(groupId, artifactId1, iad), errorCodeExtractor);
 
         String updatedArtifactData = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"bar\",\"type\":\"long\"}]}";
 
         artifactData = new ByteArrayInputStream(updatedArtifactData.getBytes(StandardCharsets.UTF_8));
-        metaData = updateArtifact(groupId, artifactId2, artifactData);
+        metaData = createArtifactVersion(groupId, artifactId2, artifactData);
         LOGGER.info("Artifact with ID {} was updated: {}", artifactId2, metaData.toString());
 
         artifactData = new ByteArrayInputStream(updatedArtifactData.getBytes(StandardCharsets.UTF_8));
-        metaData = updateArtifact(groupId, artifactId1, artifactData);
+        metaData = createArtifactVersion(groupId, artifactId1, artifactData);
         LOGGER.info("Artifact with ID {} was updated: {}", artifactId1, metaData.toString());
 
         retryOp((rc) -> {
@@ -188,7 +188,7 @@ class RulesResourceIT extends ApicurioRegistryBaseIT {
         String artifactDefinition = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
 
         ByteArrayInputStream artifactData = new ByteArrayInputStream(artifactDefinition.getBytes(StandardCharsets.UTF_8));
-        ArtifactMetaData metaData = createArtifact(groupId, artifactId1, ArtifactType.AVRO, artifactData);
+        VersionMetaData metaData = createArtifact(groupId, artifactId1, ArtifactType.AVRO, artifactData);
         LOGGER.info("Created artifact {} with metadata {}", artifactId1, metaData);
 
         // Validity rule
@@ -241,7 +241,7 @@ class RulesResourceIT extends ApicurioRegistryBaseIT {
         String artifactDefinition = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
 
         ByteArrayInputStream artifactData = new ByteArrayInputStream(artifactDefinition.getBytes(StandardCharsets.UTF_8));
-        ArtifactMetaData metaData = createArtifact(groupId, artifactId1, ArtifactType.AVRO, artifactData);
+        VersionMetaData metaData = createArtifact(groupId, artifactId1, ArtifactType.AVRO, artifactData);
         LOGGER.info("Created artifact {} with metadata {}", artifactId1, metaData);
 
         Rule rule = new Rule();
@@ -254,7 +254,7 @@ class RulesResourceIT extends ApicurioRegistryBaseIT {
         registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId1).delete();
 
         retryOp((rc) -> {
-            TestUtils.assertClientError("ArtifactNotFoundException", 404, () -> rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId1).meta().get(), errorCodeExtractor);
+            TestUtils.assertClientError("ArtifactNotFoundException", 404, () -> rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId1).get(), errorCodeExtractor);
 
             assertThat(rc.groups().byGroupId(groupId).artifacts().get().getCount(), is(0));
 

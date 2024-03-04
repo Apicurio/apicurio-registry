@@ -75,6 +75,7 @@ public class RegistryExceptionMapperService {
         map.put(GroupNotFoundException.class, HTTP_NOT_FOUND);
         map.put(InvalidArtifactIdException.class, HTTP_BAD_REQUEST);
         map.put(InvalidArtifactStateException.class, HTTP_BAD_REQUEST);
+        map.put(InvalidVersionStateException.class, HTTP_BAD_REQUEST);
         map.put(InvalidArtifactTypeException.class, HTTP_BAD_REQUEST);
         map.put(InvalidGroupIdException.class, HTTP_BAD_REQUEST);
         map.put(InvalidPropertyValueException.class, HTTP_BAD_REQUEST);

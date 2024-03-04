@@ -1,22 +1,43 @@
 package io.apicurio.registry.storage.decorator;
 
-import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
-import io.apicurio.registry.content.ContentHandle;
-import io.apicurio.registry.storage.RegistryStorage;
-import io.apicurio.registry.storage.dto.*;
-import io.apicurio.registry.storage.error.*;
-import io.apicurio.registry.model.BranchId;
-import io.apicurio.registry.model.GA;
-import io.apicurio.registry.model.GAV;
-import io.apicurio.registry.types.RuleType;
-import io.apicurio.registry.utils.impexp.Entity;
-
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
+
+import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
+import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.model.BranchId;
+import io.apicurio.registry.model.GA;
+import io.apicurio.registry.model.GAV;
+import io.apicurio.registry.storage.RegistryStorage;
+import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
+import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
+import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
+import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
+import io.apicurio.registry.storage.dto.CommentDto;
+import io.apicurio.registry.storage.dto.ContentWrapperDto;
+import io.apicurio.registry.storage.dto.GroupMetaDataDto;
+import io.apicurio.registry.storage.dto.GroupSearchResultsDto;
+import io.apicurio.registry.storage.dto.OrderBy;
+import io.apicurio.registry.storage.dto.OrderDirection;
+import io.apicurio.registry.storage.dto.RoleMappingDto;
+import io.apicurio.registry.storage.dto.RoleMappingSearchResultsDto;
+import io.apicurio.registry.storage.dto.RuleConfigurationDto;
+import io.apicurio.registry.storage.dto.SearchFilter;
+import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
+import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
+import io.apicurio.registry.storage.error.ArtifactNotFoundException;
+import io.apicurio.registry.storage.error.ContentNotFoundException;
+import io.apicurio.registry.storage.error.GroupNotFoundException;
+import io.apicurio.registry.storage.error.RegistryStorageException;
+import io.apicurio.registry.storage.error.RuleAlreadyExistsException;
+import io.apicurio.registry.storage.error.RuleNotFoundException;
+import io.apicurio.registry.storage.error.VersionNotFoundException;
+import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.utils.impexp.Entity;
 
 /**
  * Forwards all read-only method calls to the delegate.
@@ -64,35 +85,21 @@ public abstract class RegistryStorageDecoratorReadOnlyBase implements RegistrySt
 
 
     @Override
-    public StoredArtifactDto getArtifact(String groupId, String artifactId)
-            throws ArtifactNotFoundException, RegistryStorageException {
-        return delegate.getArtifact(groupId, artifactId);
-    }
-
-
-    @Override
-    public StoredArtifactDto getArtifact(String groupId, String artifactId, ArtifactRetrievalBehavior behavior)
-            throws ArtifactNotFoundException, RegistryStorageException {
-        return delegate.getArtifact(groupId, artifactId, behavior);
-    }
-
-
-    @Override
-    public ContentWrapperDto getArtifactByContentId(long contentId)
+    public ContentWrapperDto getContentById(long contentId)
             throws ContentNotFoundException, RegistryStorageException {
-        return delegate.getArtifactByContentId(contentId);
+        return delegate.getContentById(contentId);
     }
 
 
     @Override
-    public ContentWrapperDto getArtifactByContentHash(String contentHash)
+    public ContentWrapperDto getContentByHash(String contentHash)
             throws ContentNotFoundException, RegistryStorageException {
-        return delegate.getArtifactByContentHash(contentHash);
+        return delegate.getContentByHash(contentHash);
     }
 
 
     @Override
-    public List<ArtifactMetaDataDto> getArtifactVersionsByContentId(long contentId) {
+    public List<ArtifactVersionMetaDataDto> getArtifactVersionsByContentId(long contentId) {
         return delegate.getArtifactVersionsByContentId(contentId);
     }
 
@@ -118,24 +125,10 @@ public abstract class RegistryStorageDecoratorReadOnlyBase implements RegistrySt
 
 
     @Override
-    public ArtifactMetaDataDto getArtifactMetaData(String groupId, String artifactId, ArtifactRetrievalBehavior behavior)
-            throws ArtifactNotFoundException, RegistryStorageException {
-        return delegate.getArtifactMetaData(groupId, artifactId, behavior);
-    }
-
-
-    @Override
-    public ArtifactVersionMetaDataDto getArtifactVersionMetaData(String groupId, String artifactId,
+    public ArtifactVersionMetaDataDto getArtifactVersionMetaDataByContent(String groupId, String artifactId,
                                                                  boolean canonical, ContentHandle content, List<ArtifactReferenceDto> artifactReferences)
             throws ArtifactNotFoundException, RegistryStorageException {
-        return delegate.getArtifactVersionMetaData(groupId, artifactId, canonical, content, artifactReferences);
-    }
-
-
-    @Override
-    public ArtifactMetaDataDto getArtifactMetaData(long globalId)
-            throws ArtifactNotFoundException, RegistryStorageException {
-        return delegate.getArtifactMetaData(globalId);
+        return delegate.getArtifactVersionMetaDataByContent(groupId, artifactId, canonical, content, artifactReferences);
     }
 
 
@@ -176,16 +169,16 @@ public abstract class RegistryStorageDecoratorReadOnlyBase implements RegistrySt
 
 
     @Override
-    public StoredArtifactDto getArtifactVersion(long globalId)
+    public StoredArtifactVersionDto getArtifactVersionContent(long globalId)
             throws ArtifactNotFoundException, RegistryStorageException {
-        return delegate.getArtifactVersion(globalId);
+        return delegate.getArtifactVersionContent(globalId);
     }
 
 
     @Override
-    public StoredArtifactDto getArtifactVersion(String groupId, String artifactId, String version)
+    public StoredArtifactVersionDto getArtifactVersionContent(String groupId, String artifactId, String version)
             throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
-        return delegate.getArtifactVersion(groupId, artifactId, version);
+        return delegate.getArtifactVersionContent(groupId, artifactId, version);
     }
 
 
@@ -194,6 +187,13 @@ public abstract class RegistryStorageDecoratorReadOnlyBase implements RegistrySt
                                                                  String version)
             throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
         return delegate.getArtifactVersionMetaData(groupId, artifactId, version);
+    }
+    
+    
+    @Override
+    public ArtifactVersionMetaDataDto getArtifactVersionMetaData(Long globalId)
+            throws VersionNotFoundException, RegistryStorageException {
+        return delegate.getArtifactVersionMetaData(globalId);
     }
 
 
@@ -238,6 +238,12 @@ public abstract class RegistryStorageDecoratorReadOnlyBase implements RegistrySt
     @Override
     public long countArtifactVersions(String groupId, String artifactId) throws RegistryStorageException {
         return delegate.countArtifactVersions(groupId, artifactId);
+    }
+    
+    
+    @Override
+    public long countActiveArtifactVersions(String groupId, String artifactId) throws RegistryStorageException {
+        return delegate.countActiveArtifactVersions(groupId, artifactId);
     }
 
 
@@ -318,20 +324,14 @@ public abstract class RegistryStorageDecoratorReadOnlyBase implements RegistrySt
 
 
     @Override
-    public List<Long> getArtifactContentIds(String groupId, String artifactId) {
-        return delegate.getArtifactContentIds(groupId, artifactId);
+    public List<Long> getContentIdsReferencingArtifactVersion(String groupId, String artifactId, String version) {
+        return delegate.getContentIdsReferencingArtifactVersion(groupId, artifactId, version);
     }
 
 
     @Override
-    public List<Long> getContentIdsReferencingArtifact(String groupId, String artifactId, String version) {
-        return delegate.getContentIdsReferencingArtifact(groupId, artifactId, version);
-    }
-
-
-    @Override
-    public List<Long> getGlobalIdsReferencingArtifact(String groupId, String artifactId, String version) {
-        return delegate.getGlobalIdsReferencingArtifact(groupId, artifactId, version);
+    public List<Long> getGlobalIdsReferencingArtifactVersion(String groupId, String artifactId, String version) {
+        return delegate.getGlobalIdsReferencingArtifactVersion(groupId, artifactId, version);
     }
 
 

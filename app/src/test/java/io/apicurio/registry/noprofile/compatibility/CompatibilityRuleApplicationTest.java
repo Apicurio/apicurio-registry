@@ -270,7 +270,7 @@ public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {
         var exception = Assertions.assertThrows(ApiException.class, () -> {
             ArtifactContent content = new ArtifactContent();
             content.setContent(INVALID_SCHEMA_WITH_MAP);
-            clientV3.groups().byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString()).artifacts().byArtifactId(artifactId).put(content);
+            clientV3.groups().byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString()).artifacts().byArtifactId(artifactId).versions().post(content);
         });
         Assertions.assertEquals(422, exception.getResponseStatusCode());
     }
@@ -290,7 +290,7 @@ public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {
         var exception = Assertions.assertThrows(ApiException.class, () -> {
             ArtifactContent content = new ArtifactContent();
             content.setContent(INVALID_SCHEMA_WITH_MAP);
-            clientV3.groups().byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString()).artifacts().byArtifactId(artifactId).put(content);
+            clientV3.groups().byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString()).artifacts().byArtifactId(artifactId).versions().post(content);
         });
         Assertions.assertEquals(422, exception.getResponseStatusCode());
     }
@@ -314,10 +314,10 @@ public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {
         clientV3.groups().byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString()).artifacts().byArtifactId(artifactId).rules().post(rule);
 
         //Should fail, the new version is not compatible with the first one
-        var exception = Assertions.assertThrows(Exception.class, () -> {
+        Assertions.assertThrows(Exception.class, () -> {
             ArtifactContent content = new ArtifactContent();
             content.setContent(SCHEMA_WITH_MAP);
-            clientV3.groups().byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString()).artifacts().byArtifactId(artifactId).put(content);
+            clientV3.groups().byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString()).artifacts().byArtifactId(artifactId).versions().post(content);
         });
 
         //Change rule to backward, should pass since the new version is compatible with the latest one
@@ -327,6 +327,6 @@ public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {
         clientV3.groups().byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString()).artifacts().byArtifactId(artifactId).rules().byRule(RuleType.COMPATIBILITY.getValue()).put(rule);
         ArtifactContent content = new ArtifactContent();
         content.setContent(SCHEMA_WITH_MAP);
-        clientV3.groups().byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString()).artifacts().byArtifactId(artifactId).put(content);
+        clientV3.groups().byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString()).artifacts().byArtifactId(artifactId).versions().post(content);
     }
 }

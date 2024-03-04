@@ -7,8 +7,6 @@ import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
-import java.util.stream.Collectors;
 
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v2.beans.ArtifactReference;
@@ -31,6 +29,7 @@ import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.GroupMetaDataDto;
 import io.apicurio.registry.storage.dto.GroupSearchResultsDto;
 import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
+import io.apicurio.registry.types.ArtifactState;
 
 public final class V2ApiUtil {
 
@@ -59,7 +58,7 @@ public final class V2ApiUtil {
         if (artifactId != null) {
             metaData.setId(artifactId);
         } else {
-            metaData.setId(dto.getId());
+            metaData.setId(dto.getArtifactId());
         }
         metaData.setModifiedBy(dto.getModifiedBy());
         metaData.setModifiedOn(new Date(dto.getModifiedOn()));
@@ -69,15 +68,9 @@ public final class V2ApiUtil {
         } else {
             metaData.setType(dto.getType());
         }
-        metaData.setVersion(dto.getVersion());
-        metaData.setGlobalId(dto.getGlobalId());
-        metaData.setContentId(dto.getContentId());
-        metaData.setState(dto.getState());
+        metaData.setState(ArtifactState.ENABLED); // TODO artifact state has gone away from the storage layer
         metaData.setLabels(toV2Labels(dto.getLabels()));
         metaData.setProperties(toV2Properties(dto.getLabels()));
-        metaData.setReferences(Optional.ofNullable(dto.getReferences()).stream()
-                .flatMap(references -> references.stream().map(V2ApiUtil::referenceDtoToReference))
-                .collect(Collectors.toList()));
         return metaData;
     }
 
@@ -164,7 +157,7 @@ public final class V2ApiUtil {
         metaData.setVersion(dto.getVersion());
         metaData.setGlobalId(dto.getGlobalId());
         metaData.setContentId(dto.getContentId());
-        metaData.setState(dto.getState());
+        metaData.setState(ArtifactState.valueOf(dto.getState().name()));
         metaData.setLabels(toV2Labels(dto.getLabels()));
         metaData.setProperties(toV2Properties(dto.getLabels()));
         return metaData;
@@ -189,10 +182,7 @@ public final class V2ApiUtil {
         metaData.setDescription(dto.getDescription());
         metaData.setName(dto.getName());
         metaData.setType(artifactType);
-        metaData.setVersion(dto.getVersion());
-        metaData.setGlobalId(dto.getGlobalId());
-        metaData.setContentId(dto.getContentId());
-        metaData.setState(dto.getState());
+        metaData.setState(ArtifactState.ENABLED); // This is ok because this method is only called when creating an artifact version
         metaData.setLabels(toV2Labels(dto.getLabels()));
         metaData.setProperties(toV2Properties(dto.getLabels()));
         return metaData;
@@ -218,7 +208,7 @@ public final class V2ApiUtil {
         metaData.setVersion(dto.getVersion());
         metaData.setGlobalId(dto.getGlobalId());
         metaData.setContentId(dto.getContentId());
-        metaData.setState(dto.getState());
+        metaData.setState(ArtifactState.fromValue(dto.getState().name()));
         metaData.setLabels(toV2Labels(dto.getLabels()));
         metaData.setProperties(toV2Properties(dto.getLabels()));
         return metaData;
@@ -251,11 +241,11 @@ public final class V2ApiUtil {
     public static int compare(SortOrder sortOrder, ArtifactMetaDataDto metaDataDto1, ArtifactMetaDataDto metaDataDto2) {
         String name1 = metaDataDto1.getName();
         if (name1 == null) {
-            name1 = metaDataDto1.getId();
+            name1 = metaDataDto1.getArtifactId();
         }
         String name2 = metaDataDto2.getName();
         if (name2 == null) {
-            name2 = metaDataDto2.getId();
+            name2 = metaDataDto2.getArtifactId();
         }
         return sortOrder == SortOrder.desc ? name2.compareToIgnoreCase(name1) : name1.compareToIgnoreCase(name2);
     }
@@ -269,12 +259,12 @@ public final class V2ApiUtil {
             sa.setCreatedBy(artifact.getOwner());
             sa.setCreatedOn(artifact.getCreatedOn());
             sa.setDescription(artifact.getDescription());
-            sa.setId(artifact.getId());
+            sa.setId(artifact.getArtifactId());
             sa.setGroupId(artifact.getGroupId());
             sa.setModifiedBy(artifact.getModifiedBy());
             sa.setModifiedOn(artifact.getModifiedOn());
             sa.setName(artifact.getName());
-            sa.setState(artifact.getState());
+            sa.setState(ArtifactState.ENABLED);
             sa.setType(artifact.getType());
             results.getArtifacts().add(sa);
         });
@@ -310,7 +300,7 @@ public final class V2ApiUtil {
             sv.setGlobalId(version.getGlobalId());
             sv.setContentId(version.getContentId());
             sv.setName(version.getName());
-            sv.setState(version.getState());
+            sv.setState(ArtifactState.fromValue(version.getState().name()));
             sv.setType(version.getType());
             sv.setVersion(version.getVersion());
             results.getVersions().add(sv);

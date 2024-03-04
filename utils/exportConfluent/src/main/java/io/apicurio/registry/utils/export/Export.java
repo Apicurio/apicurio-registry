@@ -1,13 +1,39 @@
 package io.apicurio.registry.utils.export;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.security.SecureRandom;
+import java.util.Collection;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.zip.ZipOutputStream;
+
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.TrustManager;
+
+import org.apache.commons.codec.digest.DigestUtils;
+import org.jboss.logging.Logger;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
 import io.apicurio.registry.rest.v3.beans.ArtifactReference;
-import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.types.VersionState;
 import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.export.mappers.ArtifactReferenceMapper;
-import io.apicurio.registry.utils.impexp.*;
+import io.apicurio.registry.utils.impexp.ArtifactRuleEntity;
+import io.apicurio.registry.utils.impexp.ArtifactVersionEntity;
+import io.apicurio.registry.utils.impexp.ContentEntity;
+import io.apicurio.registry.utils.impexp.EntityWriter;
+import io.apicurio.registry.utils.impexp.GlobalRuleEntity;
+import io.apicurio.registry.utils.impexp.ManifestEntity;
 import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.RestService;
@@ -18,19 +44,6 @@ import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientExcept
 import io.quarkus.runtime.QuarkusApplication;
 import io.quarkus.runtime.annotations.QuarkusMain;
 import jakarta.inject.Inject;
-import org.apache.commons.codec.digest.DigestUtils;
-import org.jboss.logging.Logger;
-
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLSocketFactory;
-import javax.net.ssl.TrustManager;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.security.SecureRandom;
-import java.util.*;
-import java.util.zip.ZipOutputStream;
 
 @QuarkusMain(name = "ConfluentExport")
 public class Export implements QuarkusApplication {
@@ -206,7 +219,7 @@ public class Export implements QuarkusApplication {
         versionEntity.groupId = null;
         versionEntity.labels = null;
         versionEntity.name = null;
-        versionEntity.state = ArtifactState.ENABLED;
+        versionEntity.state = VersionState.ENABLED;
         versionEntity.version = String.valueOf(metadata.getVersion());
         versionEntity.versionOrder = metadata.getVersion();
 

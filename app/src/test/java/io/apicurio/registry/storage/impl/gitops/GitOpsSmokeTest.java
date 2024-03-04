@@ -59,7 +59,7 @@ class GitOpsSmokeTest {
         assertEquals("BACKWARD", storage.getArtifactRule("foo", "petstore", RuleType.COMPATIBILITY).getConfiguration());
 
         // Artifact versions
-        var version = storage.getArtifactVersion("foo", "petstore", "1");
+        var version = storage.getArtifactVersionContent("foo", "petstore", "1");
         assertEquals(1, version.getGlobalId());
         assertEquals(1, version.getContentId());
         var content = loadFile("git/smoke01/content/petstore-1.0.0.yaml");
@@ -80,7 +80,7 @@ class GitOpsSmokeTest {
         assertEquals(Set.of(), Set.copyOf(storage.getArtifactRules("bar", "person")));
 
         // Artifact versions
-        version = storage.getArtifactVersion("bar", "person", "1");
+        version = storage.getArtifactVersionContent("bar", "person", "1");
         assertEquals(1, version.getGlobalId());
         assertEquals(42, version.getContentId());
         content = loadFile("git/smoke02/content/Person.json");

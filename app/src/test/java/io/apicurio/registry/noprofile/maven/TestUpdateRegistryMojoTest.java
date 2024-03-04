@@ -5,16 +5,15 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
-import io.apicurio.registry.maven.TestArtifact;
-import io.apicurio.registry.maven.TestUpdateRegistryMojo;
 import org.apache.avro.Schema;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import io.apicurio.registry.maven.TestArtifact;
+import io.apicurio.registry.maven.TestUpdateRegistryMojo;
 import io.apicurio.registry.rest.client.models.ArtifactContent;
-import io.apicurio.registry.rest.client.models.ArtifactMetaData;
 import io.apicurio.registry.rest.client.models.Rule;
 import io.apicurio.registry.rest.client.models.RuleType;
 import io.apicurio.registry.types.ArtifactType;
@@ -46,7 +45,7 @@ public class TestUpdateRegistryMojoTest extends RegistryMojoTestBase {
                                                   "}");
         ArtifactContent content = new ArtifactContent();
         content.setContent(schema.toString());
-        ArtifactMetaData meta = clientV3.groups().byGroupId(groupId).artifacts().post(content, config -> {
+        clientV3.groups().byGroupId(groupId).artifacts().post(content, config -> {
             config.headers.add("X-Registry-ArtifactId", artifactId);
             config.headers.add("X-Registry-ArtifactType", ArtifactType.AVRO);
         });

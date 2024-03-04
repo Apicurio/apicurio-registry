@@ -12,7 +12,7 @@ import java.util.List;
 @Setter
 @EqualsAndHashCode
 @ToString
-public class StoredArtifactDto {
+public class StoredArtifactVersionDto {
 
     private Long globalId;
 

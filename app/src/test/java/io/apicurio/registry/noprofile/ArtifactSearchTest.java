@@ -65,7 +65,7 @@ public class ArtifactSearchTest extends AbstractResourceTestBase {
         Labels labels = new Labels();
         labels.setAdditionalData(Collections.singletonMap("testCaseInsensitiveSearchKey", "testCaseInsensitiveSearchValue"));
         metaData.setLabels(labels);
-        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).meta().put(metaData);
+        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).put(metaData);
 
         // Now try various cases when searching by labels
         ArtifactSearchResults ires = clientV3.search().artifacts().get(config -> {

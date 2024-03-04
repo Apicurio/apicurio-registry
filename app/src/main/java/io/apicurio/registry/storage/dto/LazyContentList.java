@@ -40,7 +40,7 @@ public class LazyContentList implements List<ContentHandle> {
     @Override
     public ContentHandle get(int index) {
         //Not the best solution, works for now...
-        return storage.getArtifactByContentId(contentIds.get(index)).getContent();
+        return storage.getContentById(contentIds.get(index)).getContent();
     }
 
     @Override
@@ -153,7 +153,7 @@ public class LazyContentList implements List<ContentHandle> {
     @Override
     public void forEach(Consumer<? super ContentHandle> action) {
         for (Long contentId : contentIds) {
-            ContentHandle retrievedContent = storage.getArtifactByContentId(contentId).getContent();
+            ContentHandle retrievedContent = storage.getContentById(contentId).getContent();
             action.accept(retrievedContent);
         }
     }
@@ -164,7 +164,7 @@ public class LazyContentList implements List<ContentHandle> {
 
     public ContentHandle getContentById(long contentId) {
         if (contentIds.contains(contentId)) {
-            return storage.getArtifactByContentId(contentId).getContent();
+            return storage.getContentById(contentId).getContent();
         } else {
             throw new NoSuchElementException(String.format("No content found with id %d", contentId));
         }

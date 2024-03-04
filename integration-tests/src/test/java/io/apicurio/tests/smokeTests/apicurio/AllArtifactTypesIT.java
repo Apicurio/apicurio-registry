@@ -54,12 +54,12 @@ class AllArtifactTypesIT extends ApicurioRegistryBaseIT {
         // Find artifact by content
         ArtifactContent content = new ArtifactContent();
         content.setContent(v1Content);
-        VersionMetaData byContent = registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).meta().post(content, config -> {
+        VersionMetaData byContent = registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).post(content, config -> {
             config.queryParameters.canonical = false;
         });
         assertNotNull(byContent);
         assertNotNull(byContent.getGlobalId());
-        assertEquals(artifactId, byContent.getId());
+        assertEquals(artifactId, byContent.getArtifactId());
         assertNotNull(byContent.getVersion());
 
         // Update artifact (invalid content)

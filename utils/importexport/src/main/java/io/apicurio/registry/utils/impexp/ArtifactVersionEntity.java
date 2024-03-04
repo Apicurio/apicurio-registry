@@ -7,7 +7,7 @@ import java.util.Map;
 import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
-import io.apicurio.registry.types.ArtifactState;
+import io.apicurio.registry.types.VersionState;
 import io.quarkus.runtime.annotations.RegisterForReflection;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -31,7 +31,7 @@ public class ArtifactVersionEntity extends Entity {
     public int versionOrder;
 
     public String artifactType;
-    public ArtifactState state;
+    public VersionState state;
     public String name;
     public String description;
     public String owner;

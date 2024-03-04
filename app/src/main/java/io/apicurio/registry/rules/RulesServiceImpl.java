@@ -6,7 +6,7 @@ import io.apicurio.registry.content.canon.ContentCanonicalizer;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.LazyContentList;
 import io.apicurio.registry.storage.dto.RuleConfigurationDto;
-import io.apicurio.registry.storage.dto.StoredArtifactDto;
+import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
@@ -125,7 +125,7 @@ public class RulesServiceImpl implements RulesService {
     public void applyRules(String groupId, String artifactId, String artifactVersion, String artifactType,
                            ContentHandle updatedContent, List<ArtifactReference> references,
                            Map<String, ContentHandle> resolvedReferences) throws RuleViolationException {
-        StoredArtifactDto versionContent = storage.getArtifactVersion(groupId, artifactId, artifactVersion);
+        StoredArtifactVersionDto versionContent = storage.getArtifactVersionContent(groupId, artifactId, artifactVersion);
         applyGlobalAndArtifactRules(groupId, artifactId, artifactType, Collections.singletonList(versionContent.getContent()),
                 updatedContent, storage.getArtifactRules(groupId, artifactId), references, resolvedReferences);
     }
@@ -136,7 +136,7 @@ public class RulesServiceImpl implements RulesService {
                                  Map<String, ContentHandle> resolvedReferences) throws RuleViolationException {
         ArtifactTypeUtilProvider artifactTypeProvider = providerFactory.getArtifactTypeProvider(artifactType);
         ContentCanonicalizer contentCanonicalizer = artifactTypeProvider.getContentCanonicalizer();
-        StoredArtifactDto versionContent = storage.getArtifactVersion(groupId, artifactId, artifactVersion);
+        StoredArtifactVersionDto versionContent = storage.getArtifactVersionContent(groupId, artifactId, artifactVersion);
         applyGlobalAndArtifactRules(groupId, artifactId, artifactType,
                 Collections.singletonList(contentCanonicalizer.canonicalize(versionContent.getContent(), Map.of())),
                 updatedContent, storage.getArtifactRules(groupId, artifactId), references, resolvedReferences);

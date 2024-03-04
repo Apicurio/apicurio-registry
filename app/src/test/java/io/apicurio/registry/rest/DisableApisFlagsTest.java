@@ -66,7 +66,7 @@ public class DisableApisFlagsTest extends AbstractResourceTestBase {
                 .when()
                 .pathParam("groupId", GROUP)
                 .pathParam("artifactId", "testDeleteArtifactVersion/EmptyAPI")
-                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}")
+                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest")
                 .then()
                 .statusCode(200)
                 .body("openapi", equalTo("3.0.2"))

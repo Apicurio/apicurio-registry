@@ -5,14 +5,14 @@ import static io.apicurio.registry.utils.tests.TestUtils.retry;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
-import io.apicurio.registry.AbstractResourceTestBase;
 import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
+import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.rest.client.models.ArtifactContent;
-import io.apicurio.registry.rest.client.models.ArtifactMetaData;
+import io.apicurio.registry.rest.client.models.VersionMetaData;
 import io.apicurio.registry.serde.SerdeConfig;
 import io.apicurio.registry.serde.jsonschema.JsonSchemaKafkaDeserializer;
 import io.apicurio.registry.serde.jsonschema.JsonSchemaKafkaSerializer;
@@ -33,7 +33,7 @@ public class JsonSerdeTest extends AbstractResourceTestBase {
 
         ArtifactContent content = new ArtifactContent();
         content.setContent(jsonSchema);
-        ArtifactMetaData amd = clientV3.groups().byGroupId(groupId).artifacts().post(content, config -> {
+        VersionMetaData amd = clientV3.groups().byGroupId(groupId).artifacts().post(content, config -> {
             config.headers.add("X-Registry-ArtifactId", artifactId + "-value");
             config.headers.add("X-Registry-ArtifactType", ArtifactType.JSON);
         });

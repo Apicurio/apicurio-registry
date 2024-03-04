@@ -2,9 +2,8 @@ package io.apicurio.registry.rest;
 
 import java.util.function.Supplier;
 
+import io.apicurio.registry.types.VersionState;
 import jakarta.ws.rs.core.Response;
-
-import io.apicurio.registry.types.ArtifactState;
 
 /**
  * Remove once Quarkus issue #9887 is fixed!
@@ -12,13 +11,13 @@ import io.apicurio.registry.types.ArtifactState;
  */
 public class HeadersHack {
     public static void checkIfDeprecated(
-            Supplier<ArtifactState> stateSupplier,
+            Supplier<VersionState> stateSupplier,
             String groupId,
             String artifactId,
             Object version,
             Response.ResponseBuilder builder
     ) {
-        if (stateSupplier.get() == ArtifactState.DEPRECATED) {
+        if (stateSupplier.get() == VersionState.DEPRECATED) {
             builder.header(Headers.DEPRECATED, true);
             builder.header(Headers.GROUP_ID, groupId);
             builder.header(Headers.ARTIFACT_ID, artifactId);

@@ -2,7 +2,6 @@ package io.apicurio.registry.storage.impl.sql;
 
 import static io.apicurio.registry.storage.RegistryStorage.ArtifactRetrievalBehavior.DEFAULT;
 import static io.apicurio.registry.storage.impl.sql.RegistryStorageContentUtils.notEmpty;
-import static io.apicurio.registry.storage.impl.sql.SqlUtil.convert;
 import static io.apicurio.registry.storage.impl.sql.SqlUtil.normalizeGroupId;
 import static io.apicurio.registry.utils.StringUtil.asLowerCase;
 import static io.apicurio.registry.utils.StringUtil.limitStr;
@@ -47,14 +46,13 @@ import io.apicurio.registry.model.BranchId;
 import io.apicurio.registry.model.GA;
 import io.apicurio.registry.model.GAV;
 import io.apicurio.registry.model.VersionId;
-import io.apicurio.registry.storage.ArtifactStateExt;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.StorageBehaviorProperties;
 import io.apicurio.registry.storage.StorageEvent;
 import io.apicurio.registry.storage.StorageEventType;
+import io.apicurio.registry.storage.VersionStateExt;
 import io.apicurio.registry.storage.dto.ArtifactBranchDto;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
-import io.apicurio.registry.storage.dto.ArtifactOwnerDto;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
@@ -63,6 +61,7 @@ import io.apicurio.registry.storage.dto.ContentWrapperDto;
 import io.apicurio.registry.storage.dto.DownloadContextDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.EditableGroupMetaDataDto;
+import io.apicurio.registry.storage.dto.EditableVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.GroupMetaDataDto;
 import io.apicurio.registry.storage.dto.GroupSearchResultsDto;
 import io.apicurio.registry.storage.dto.OrderBy;
@@ -71,11 +70,10 @@ import io.apicurio.registry.storage.dto.RoleMappingDto;
 import io.apicurio.registry.storage.dto.RoleMappingSearchResultsDto;
 import io.apicurio.registry.storage.dto.RuleConfigurationDto;
 import io.apicurio.registry.storage.dto.SearchFilter;
-import io.apicurio.registry.storage.dto.SearchFilterType;
 import io.apicurio.registry.storage.dto.SearchedArtifactDto;
 import io.apicurio.registry.storage.dto.SearchedGroupDto;
 import io.apicurio.registry.storage.dto.SearchedVersionDto;
-import io.apicurio.registry.storage.dto.StoredArtifactDto;
+import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
 import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
 import io.apicurio.registry.storage.error.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.error.ArtifactBranchNotFoundException;
@@ -176,7 +174,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     SecurityIdentity securityIdentity;
 
     @Inject
-    ArtifactStateExt artifactStateEx;
+    VersionStateExt artifactStateEx;
 
     HandleFactory handles;
 
@@ -409,7 +407,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
     @Override
     @Transactional
-    public ContentWrapperDto getArtifactByContentId(long contentId) throws ContentNotFoundException, RegistryStorageException {
+    public ContentWrapperDto getContentById(long contentId) throws ContentNotFoundException, RegistryStorageException {
         return handles.withHandleNoException(handle -> {
             Optional<ContentWrapperDto> res = handle.createQuery(sqlStatements().selectContentById())
                     .bind(0, contentId)
@@ -422,7 +420,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
     @Override
     @Transactional
-    public ContentWrapperDto getArtifactByContentHash(String contentHash) throws ContentNotFoundException, RegistryStorageException {
+    public ContentWrapperDto getContentByHash(String contentHash) throws ContentNotFoundException, RegistryStorageException {
         return handles.withHandleNoException(handle -> {
             Optional<ContentWrapperDto> res = handle.createQuery(sqlStatements().selectContentByContentHash())
                     .bind(0, contentHash)
@@ -435,11 +433,11 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
     @Override
     @Transactional
-    public List<ArtifactMetaDataDto> getArtifactVersionsByContentId(long contentId) {
+    public List<ArtifactVersionMetaDataDto> getArtifactVersionsByContentId(long contentId) {
         return handles.withHandleNoException(handle -> {
-            List<ArtifactMetaDataDto> dtos = handle.createQuery(sqlStatements().selectArtifactVersionMetaDataByContentId())
+            List<ArtifactVersionMetaDataDto> dtos = handle.createQuery(sqlStatements().selectArtifactVersionMetaDataByContentId())
                     .bind(0, contentId)
-                    .map(ArtifactMetaDataDtoMapper.instance)
+                    .map(ArtifactVersionMetaDataDtoMapper.instance)
                     .list();
             if (dtos.isEmpty()) {
                 throw new ContentNotFoundException(contentId);
@@ -464,59 +462,9 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         });
     }
 
-
     @Override
     @Transactional
-    public List<Long> getArtifactContentIds(String groupId, String artifactId) {
-        return handles.withHandleNoException(handle -> {
-            return handle.createQuery(sqlStatements().selectArtifactContentIds())
-                    .bind(0, normalizeGroupId(groupId))
-                    .bind(1, artifactId)
-                    .mapTo(Long.class)
-                    .list();
-        });
-    }
-
-
-    @Override
-    @Transactional
-    public void updateArtifactState(String groupId, String artifactId, ArtifactState state) throws ArtifactNotFoundException, RegistryStorageException {
-        log.debug("Updating the state of artifact {} {} to {}", groupId, artifactId, state.name());
-        // We're not skipping the latest artifact version even if it's disabled, so it can be enabled again
-        var metadata = getArtifactMetaData(groupId, artifactId, DEFAULT);
-        updateArtifactVersionStateRaw(metadata.getGlobalId(), metadata.getState(), state);
-    }
-
-
-    @Override
-    @Transactional
-    public void updateArtifactState(String groupId, String artifactId, String version, ArtifactState state)
-            throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
-        log.debug("Updating the state of artifact {} {}, version {} to {}", groupId, artifactId, version, state.name());
-        var metadata = getArtifactVersionMetaData(groupId, artifactId, version);
-        updateArtifactVersionStateRaw(metadata.getGlobalId(), metadata.getState(), state);
-    }
-
-
-    /**
-     * IMPORTANT: Private methods can't be @Transactional. Callers MUST have started a transaction.
-     */
-    private void updateArtifactVersionStateRaw(long globalId, ArtifactState oldState, ArtifactState newState) {
-        handles.withHandleNoException(handle -> {
-            artifactStateEx.applyState(s -> {
-                handle.createUpdate(sqlStatements.updateArtifactVersionState())
-                        .bind(0, s.name())
-                        .bind(1, globalId)
-                        .execute();
-            }, oldState, newState);
-            return null;
-        });
-    }
-
-
-    @Override
-    @Transactional
-    public ArtifactMetaDataDto createArtifact(String groupId, String artifactId, String version, String artifactType,
+    public ArtifactVersionMetaDataDto createArtifact(String groupId, String artifactId, String version, String artifactType,
                                               ContentHandle content, List<ArtifactReferenceDto> references) throws ArtifactAlreadyExistsException, ArtifactNotFoundException, RegistryStorageException {
         return createArtifactWithMetadata(groupId, artifactId, version, artifactType, content, null, references);
     }
@@ -525,10 +473,9 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     /**
      * IMPORTANT: Private methods can't be @Transactional. Callers MUST have started a transaction.
      */
-    private ArtifactVersionMetaDataDto createArtifactVersionRaw(boolean firstVersion, String groupId, String artifactId, String version,
-                                                                String name, String description,
-                                                                Map<String, String> labels, String owner, Date createdOn,
-                                                                Long contentId, IdGenerator globalIdGenerator) {
+    private ArtifactVersionMetaDataDto createArtifactVersionRaw(boolean firstVersion, String groupId, String artifactId, 
+            String version, String name, String description, Map<String, String> labels, String owner, Date createdOn,
+            Long contentId, IdGenerator globalIdGenerator) {
 
         ArtifactState state = ArtifactState.ENABLED;
         String labelsStr = SqlUtil.serializeLabels(labels);
@@ -739,9 +686,8 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
     @Override
     @Transactional
-    public ArtifactMetaDataDto createArtifactWithMetadata(String groupId, String artifactId, String version,
-                                                          String artifactType, ContentHandle content, EditableArtifactMetaDataDto metaData,
-                                                          List<ArtifactReferenceDto> references)
+    public ArtifactVersionMetaDataDto createArtifactWithMetadata(String groupId, String artifactId, String version,
+            String artifactType, ContentHandle content, EditableArtifactMetaDataDto metaData, List<ArtifactReferenceDto> references)
             throws ArtifactNotFoundException, ArtifactAlreadyExistsException, RegistryStorageException {
 
         String owner = securityIdentity.getPrincipal().getName();
@@ -764,7 +710,12 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         // If the metaData provided is null, try to figure it out from the content.
         EditableArtifactMetaDataDto md = metaData;
         if (md == null) {
-            md = utils.extractEditableArtifactMetadata(artifactType, content);
+            EditableVersionMetaDataDto vmd = utils.extractEditableArtifactMetadata(artifactType, content);
+            md = EditableArtifactMetaDataDto.builder()
+                    .name(vmd.getName())
+                    .description(vmd.getDescription())
+                    .labels(vmd.getLabels())
+                    .build();
         }
         // This current method is skipped in KafkaSQL, and the one below is called directly,
         // so references must be added to the metadata there.
@@ -775,13 +726,15 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     /**
      * IMPORTANT: Private methods can't be @Transactional. Callers MUST have started a transaction.
      */
-    private ArtifactMetaDataDto createArtifactWithMetadataRaw(String groupId, String artifactId, String version,
-                                                              String artifactType, long contentId, String owner,
-                                                              Date createdOn, EditableArtifactMetaDataDto metaData,
-                                                              IdGenerator globalIdGenerator) {
+    private ArtifactVersionMetaDataDto createArtifactWithMetadataRaw(String groupId, String artifactId, String version,
+            String artifactType, long contentId, String owner, Date createdOn, EditableArtifactMetaDataDto metaData,
+            IdGenerator globalIdGenerator) {
         log.debug("Inserting an artifact row for: {} {}", groupId, artifactId);
         try {
             return handles.withHandle(handle -> {
+                Map<String, String> labels = metaData.getLabels();
+                String labelsStr = SqlUtil.serializeLabels(labels);
+
                 // Create a row in the artifacts table.
                 handle.createUpdate(sqlStatements.insertArtifact())
                         .bind(0, normalizeGroupId(groupId))
@@ -789,23 +742,34 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                         .bind(2, artifactType)
                         .bind(3, owner)
                         .bind(4, createdOn)
+                        .bind(5, owner) // modifiedBy
+                        .bind(6, createdOn) // modifiedOn
+                        .bind(7, limitStr(metaData.getName(), 512))
+                        .bind(8, limitStr(metaData.getDescription(), 1024, true))
+                        .bind(9, labelsStr)
                         .execute();
 
+                // Insert labels into the "artifact_labels" table
+                if (labels != null && !labels.isEmpty()) {
+                    labels.forEach((k, v) -> {
+                        handle.createUpdate(sqlStatements.insertArtifactLabel())
+                                .bind(0, normalizeGroupId(groupId))
+                                .bind(1, artifactId)
+                                .bind(2, limitStr(k.toLowerCase(), 256))
+                                .bind(3, limitStr(v.toLowerCase(), 512))
+                                .execute();
+                    });
+                }
+                
                 // Then create a row in the content and versions tables (for the content and version meta-data)
                 ArtifactVersionMetaDataDto vmdd = createArtifactVersionRaw(true, groupId, artifactId, version,
                         metaData.getName(), metaData.getDescription(), metaData.getLabels(), owner, createdOn,
                         contentId, globalIdGenerator);
 
                 // Get the content, so we can return references in the metadata
-                ContentWrapperDto contentDto = getArtifactByContentId(contentId);
-
-                // Return the new artifact meta-data
-                ArtifactMetaDataDto amdd = convert(groupId, artifactId, vmdd);
-                amdd.setOwner(owner);
-                amdd.setCreatedOn(createdOn.getTime());
-                amdd.setLabels(metaData.getLabels());
-                amdd.setReferences(contentDto.getReferences());
-                return amdd;
+                //ContentWrapperDto contentDto = getContentById(contentId);
+                
+                return vmdd;
             });
         } catch (Exception ex) {
             if (sqlStatements.isPrimaryKeyViolation(ex)) {
@@ -879,63 +843,26 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         });
     }
 
-
     @Override
-    public StoredArtifactDto getArtifact(String groupId, String artifactId)
-            throws ArtifactNotFoundException, RegistryStorageException {
-        return getArtifact(groupId, artifactId, storageBehaviorProps.getDefaultArtifactRetrievalBehavior());
+    public ArtifactVersionMetaDataDto createArtifactVersion(String groupId, String artifactId, String version, String artifactType,
+            ContentHandle content, List<ArtifactReferenceDto> references) throws ArtifactNotFoundException, RegistryStorageException {
+        return createArtifactVersionWithMetadata(groupId, artifactId, version, artifactType, content, 
+                EditableVersionMetaDataDto.builder().build(), references);
     }
-
-
-    @Override
-    @Transactional
-    public StoredArtifactDto getArtifact(String groupId, String artifactId, ArtifactRetrievalBehavior behavior)
-            throws ArtifactNotFoundException, RegistryStorageException {
-
-        log.debug("Selecting a single artifact (latest version) by artifactId: {} {} (behavior = {})", groupId, artifactId, behavior);
-
-        return handles.withHandle(handle -> {
-            var ga = new GA(groupId, artifactId);
-            try {
-                var gav = getArtifactBranchTip(ga, BranchId.LATEST, behavior);
-
-                return handle.createQuery(sqlStatements.selectArtifactVersionContent())
-                        .bind(0, gav.getRawGroupId())
-                        .bind(1, gav.getRawArtifactId())
-                        .bind(2, gav.getRawVersionId())
-                        .map(StoredArtifactMapper.instance)
-                        .findOne()
-                        .orElseThrow(() -> new ArtifactNotFoundException(ga.getRawGroupIdWithDefaultString(), ga.getRawArtifactId()));
-
-            } catch (VersionNotFoundException ex) {
-                throw new ArtifactNotFoundException(ga.getRawGroupIdWithDefaultString(), ga.getRawArtifactId(), ex);
-            }
-        });
-    }
-
-
-    @Override
-    public ArtifactMetaDataDto updateArtifact(String groupId, String artifactId, String version, String artifactType,
-                                              ContentHandle content, List<ArtifactReferenceDto> references) throws ArtifactNotFoundException, RegistryStorageException {
-        return updateArtifactWithMetadata(groupId, artifactId, version, artifactType, content, null, references);
-    }
-
 
     @Override
     @Transactional
-    public ArtifactMetaDataDto updateArtifactWithMetadata(String groupId, String artifactId, String version,
-                                                          String artifactType, ContentHandle content,
-                                                          EditableArtifactMetaDataDto metaData, List<ArtifactReferenceDto> references)
-            throws ArtifactNotFoundException, RegistryStorageException {
-
-
-        return updateArtifactWithMetadata(groupId, artifactId, version, artifactType, content, metaData, references, null);
+    public ArtifactVersionMetaDataDto createArtifactVersionWithMetadata(String groupId, String artifactId, String version,
+            String artifactType, ContentHandle content, EditableVersionMetaDataDto metaData, List<ArtifactReferenceDto> references)
+            throws ArtifactNotFoundException, RegistryStorageException
+    {
+        return createArtifactVersionWithMetadata(groupId, artifactId, version, artifactType, content, metaData, references, null);
     }
 
-    protected ArtifactMetaDataDto updateArtifactWithMetadata(String groupId, String artifactId, String version,
-                                                             String artifactType, ContentHandle content, EditableArtifactMetaDataDto metaData, List<ArtifactReferenceDto> references,
-                                                             IdGenerator globalIdGenerator) throws ArtifactNotFoundException, RegistryStorageException {
-
+    private ArtifactVersionMetaDataDto createArtifactVersionWithMetadata(String groupId, String artifactId, String version,
+            String artifactType, ContentHandle content, EditableVersionMetaDataDto metaData, List<ArtifactReferenceDto> references,
+            IdGenerator globalIdGenerator) throws ArtifactNotFoundException, RegistryStorageException
+    {
         String owner = securityIdentity.getPrincipal().getName();
         Date createdOn = new Date();
 
@@ -949,7 +876,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             metaData = utils.extractEditableArtifactMetadata(artifactType, content);
         }
 
-        return updateArtifactWithMetadataRaw(groupId, artifactId, version, contentId, owner, createdOn,
+        return createArtifactVersionWithMetadata(groupId, artifactId, version, contentId, owner, createdOn,
                 metaData, null);
     }
 
@@ -957,22 +884,18 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     /**
      * IMPORTANT: Private methods can't be @Transactional. Callers MUST have started a transaction.
      */
-    private ArtifactMetaDataDto updateArtifactWithMetadataRaw(String groupId, String artifactId, String version,
-                                                              long contentId, String owner, Date createdOn,
-                                                              EditableArtifactMetaDataDto metaData, IdGenerator globalIdGenerator)
+    private ArtifactVersionMetaDataDto createArtifactVersionWithMetadata(String groupId, String artifactId, String version,
+            long contentId, String owner, Date createdOn, EditableVersionMetaDataDto metaData, IdGenerator globalIdGenerator)
             throws ArtifactNotFoundException, RegistryStorageException {
-        log.debug("Updating artifact {} {} with a new version (content).", groupId, artifactId);
-
-        //For the update we want to get meta-data from previous (latest) existing version, no matter the state.
-        ArtifactMetaDataDto latest = this.getArtifactMetaData(groupId, artifactId, DEFAULT);
+        log.debug("Creating new artifact version for {} {} (version {}).", groupId, artifactId, version);
 
         try {
             // Create version and return
             return handles.withHandle(handle -> {
                 // Metadata comes from the latest version
-                String name = latest.getName();
-                String description = latest.getDescription();
-                Map<String, String> labels = latest.getLabels();
+                String name = null;
+                String description = null;
+                Map<String, String> labels = null;
 
                 // Provided metadata will override inherited values from latest version
                 if (metaData.getName() != null) {
@@ -988,11 +911,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                 // Now create the version and return the new version metadata.
                 ArtifactVersionMetaDataDto versionDto = createArtifactVersionRaw(false, groupId, artifactId, version,
                         name, description, labels, owner, createdOn, contentId, globalIdGenerator);
-                ArtifactMetaDataDto dto = convert(groupId, artifactId, versionDto);
-                dto.setCreatedOn(latest.getCreatedOn());
-                dto.setOwner(latest.getOwner());
-                dto.setLabels(labels);
-                return dto;
+                return versionDto;
             });
         } catch (Exception ex) {
             if (sqlStatements.isPrimaryKeyViolation(ex)) {
@@ -1002,6 +921,20 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         }
     }
 
+    @Override
+    @Transactional
+    public long countActiveArtifactVersions(String groupId, String artifactId) throws RegistryStorageException {
+        log.debug("Searching for versions of artifact {} {}", groupId, artifactId);
+        return handles.withHandleNoException(handle -> {
+            Integer count = handle.createQuery(sqlStatements.selectActiveArtifactVersionsCount())
+                    .bind(0, normalizeGroupId(groupId))
+                    .bind(1, artifactId)
+                    .mapTo(Integer.class)
+                    .one();
+            return count.longValue();
+        });
+        
+    }
 
     @Override
     @Transactional
@@ -1030,34 +963,34 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             StringBuilder limitOffset = new StringBuilder();
 
             // Formulate the SELECT clause for the artifacts query
-            selectTemplate.append("SELECT {{selectColumns}} ")
-                    .append("FROM artifacts a ")
-                    .append("JOIN versions v ON v.groupId = a.groupId AND v.artifactId = a.artifactId ")
-                    .append("JOIN artifact_branches ab ON ab.groupId = v.groupId AND ab.artifactId = v.artifactId AND ab.branchId = '")
-                    .append(BranchId.LATEST.getRawBranchId())
-                    .append("' AND ab.version = v.version ");
-
-            if (hasContentFilter(filters)) {
-                selectTemplate.append("JOIN content c ON v.contentId = c.contentId ");
-            }
+            selectTemplate.append("SELECT {{selectColumns}} FROM artifacts a ");
 
             // Formulate the WHERE clause for both queries
-            where.append("WHERE (ab.branchOrder = (SELECT MAX(branchOrder) FROM artifact_branches ab2 WHERE ab2.groupId = ab.groupId AND ab2.artifactId = ab.artifactId AND ab2.branchId = ab.branchId))");
+            String op;
+            boolean first = true;
             for (SearchFilter filter : filters) {
-                where.append(" AND (");
+                if (first) {
+                    where.append(" WHERE (");
+                    first = false;
+                } else {
+                    where.append(" AND (");
+                }
                 switch (filter.getType()) {
                     case description:
-                        where.append("v.description LIKE ?");
+                        op = filter.isNot() ? "NOT LIKE" : "LIKE";
+                        where.append("a.description ");
+                        where.append(op);
+                        where.append(" ?");
                         binders.add((query, idx) -> {
                             query.bind(idx, "%" + filter.getStringValue() + "%");
                         });
                         break;
                     case everything:
-                        where.append("v.name LIKE ? OR "
-                                + "v.groupId LIKE ? OR "
+                        where.append("a.name LIKE ? OR "
+                                + "a.groupId LIKE ? OR "
                                 + "a.artifactId LIKE ? OR "
-                                + "v.description LIKE ? OR "
-                                + "EXISTS(SELECT l.globalId FROM version_labels l WHERE l.labelKey = ? AND l.globalId = v.globalId)");
+                                + "a.description LIKE ? OR "
+                                + "EXISTS(SELECT l.* FROM artifact_labels l WHERE l.labelKey = ? AND l.groupId = a.groupId AND l.artifactId = a.artifactId)");
                         binders.add((query, idx) -> {
                             query.bind(idx, "%" + filter.getStringValue() + "%");
                         });
@@ -1076,7 +1009,8 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                         });
                         break;
                     case name:
-                        where.append("v.name LIKE ? OR a.artifactId LIKE ?");
+                        op = filter.isNot() ? "NOT LIKE" : "LIKE";
+                        where.append("a.name " + op + " ? OR a.artifactId " + op + " ?");
                         binders.add((query, idx) -> {
                             query.bind(idx, "%" + filter.getStringValue() + "%");
                         });
@@ -1085,51 +1019,74 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                         });
                         break;
                     case group:
-                        where.append("v.groupId = ?");
+                        op = filter.isNot() ? "!=" : "=";
+                        where.append("a.groupId " + op + " ?");
                         binders.add((query, idx) -> {
                             query.bind(idx, normalizeGroupId(filter.getStringValue()));
                         });
                         break;
                     case contentHash:
-                        where.append("c.contentHash = ?");
+                        op = filter.isNot() ? "!=" : "=";
+                        where.append("EXISTS(SELECT c.* FROM content c JOIN versions v ON c.contentId = v.contentId WHERE v.groupId = a.groupId AND v.artifactId = a.artifactId AND ");
+                        where.append("c.contentHash " + op + " ?");
                         binders.add((query, idx) -> {
                             query.bind(idx, filter.getStringValue());
                         });
+                        where.append(")");
                         break;
                     case canonicalHash:
-                        where.append("c.canonicalHash = ?");
+                        op = filter.isNot() ? "!=" : "=";
+                        where.append("EXISTS(SELECT c.* FROM content c JOIN versions v ON c.contentId = v.contentId WHERE v.groupId = a.groupId AND v.artifactId = a.artifactId AND ");
+                        where.append("c.canonicalHash " + op + " ?");
                         binders.add((query, idx) -> {
                             query.bind(idx, filter.getStringValue());
                         });
+                        where.append(")");
                         break;
                     case labels:
+                        op = filter.isNot() ? "!=" : "=";
                         Pair<String, String> label = filter.getLabelFilterValue();
                         //    Note: convert search to lowercase when searching for labels (case-insensitivity support).
                         String labelKey = label.getKey().toLowerCase();
-                        where.append("EXISTS(SELECT l.globalId FROM version_labels l WHERE l.labelKey = ?");
+                        where.append("EXISTS(SELECT l.* FROM artifact_labels l WHERE l.labelKey " + op + " ?");
                         binders.add((query, idx) -> {
                             query.bind(idx, labelKey);
                         });
                         if (label.getValue() != null) {
                             String labelValue = label.getValue().toLowerCase();
-                            where.append(" AND l.labelValue = ?");
+                            where.append(" AND l.labelValue " + op + " ?");
                             binders.add((query, idx) -> {
                                 query.bind(idx, labelValue);
                             });
                         }
-                        where.append(" AND l.globalId = v.globalId)");
+                        where.append(" AND l.groupId = a.groupId AND l.artifactId = a.artifactId)");
                         break;
                     case globalId:
-                        where.append("v.globalId = ?");
+                        op = filter.isNot() ? "!=" : "=";
+                        where.append("EXISTS(SELECT v.* FROM versions v WHERE v.groupId = a.groupId AND v.artifactId = a.artifactId AND ");
+                        where.append("v.globalId " + op + " ?");
                         binders.add((query, idx) -> {
                             query.bind(idx, filter.getNumberValue().longValue());
                         });
+                        where.append(")");
                         break;
                     case contentId:
-                        where.append("v.contentId = ?");
+                        op = filter.isNot() ? "!=" : "=";
+                        where.append("EXISTS(SELECT c.* FROM content c JOIN versions v ON c.contentId = v.contentId WHERE v.groupId = a.groupId AND v.artifactId = a.artifactId AND ");
+                        where.append("v.contentId " + op + " ?");
                         binders.add((query, idx) -> {
                             query.bind(idx, filter.getNumberValue().longValue());
                         });
+                        where.append(")");
+                        break;
+                    case state:
+                        op = filter.isNot() ? "!=" : "=";
+                        where.append("EXISTS(SELECT v.* FROM versions v WHERE v.groupId = a.groupId AND v.artifactId = a.artifactId AND ");
+                        where.append("v.state " + op + " ?");
+                        binders.add((query, idx) -> {
+                            query.bind(idx, filter.getStringValue());
+                        });
+                        where.append(")");
                         break;
                 }
                 where.append(")");
@@ -1138,14 +1095,13 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             // Add order by to artifact query
             switch (orderBy) {
                 case name:
-                    orderByQuery.append(" ORDER BY coalesce(v.name, a.artifactId)");
+                    orderByQuery.append(" ORDER BY coalesce(a.name, a.artifactId)");
                     break;
                 case createdOn:
-                    orderByQuery.append(" ORDER BY v.createdOn");
+                    orderByQuery.append(" ORDER BY a.createdOn");
                     break;
                 case globalId:
-                    orderByQuery.append(" ORDER BY v.globalId");
-                    break;
+                    throw new RuntimeException("Sort by globalId no longer supported.");
             }
             orderByQuery.append(" ").append(orderDirection.name());
 
@@ -1162,7 +1118,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                     .append(orderByQuery)
                     .append(limitOffset)
                     .toString()
-                    .replace("{{selectColumns}}", "a.*, v.globalId, v.version, v.state, v.name, v.description, v.labels, v.owner AS modifiedBy, v.createdOn AS modifiedOn");
+                    .replace("{{selectColumns}}", "a.*");
             Query artifactsQuery = handle.createQuery(artifactsQuerySql);
             String countQuerySql = new StringBuilder(selectTemplate)
                     .append(where)
@@ -1198,39 +1154,20 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         });
     }
 
-
     @Override
-    public ArtifactMetaDataDto getArtifactMetaData(String groupId, String artifactId)
-            throws ArtifactNotFoundException, RegistryStorageException {
-        return getArtifactMetaData(groupId, artifactId, storageBehaviorProps.getDefaultArtifactRetrievalBehavior());
-    }
-
-
-    @Override
-    @Transactional
-    public ArtifactMetaDataDto getArtifactMetaData(String groupId, String artifactId, ArtifactRetrievalBehavior behavior) {
-
-        log.debug("Selecting artifact (latest version) meta-data: {} {} (behavior = {})", groupId, artifactId, behavior);
+    public ArtifactMetaDataDto getArtifactMetaData(String groupId, String artifactId) throws ArtifactNotFoundException, RegistryStorageException {
+        log.debug("Selecting artifact meta-data: {} {}", groupId, artifactId);
 
         return handles.withHandle(handle -> {
-            var ga = new GA(groupId, artifactId);
-            try {
-                var gav = getArtifactBranchTip(ga, BranchId.LATEST, behavior);
-
-                return handle.createQuery(sqlStatements.selectArtifactMetaData())
-                        .bind(0, gav.getRawGroupId())
-                        .bind(1, gav.getRawArtifactId())
-                        .bind(2, gav.getRawVersionId())
-                        .map(ArtifactMetaDataDtoMapper.instance)
-                        .findOne()
-                        .orElseThrow(() -> new ArtifactNotFoundException(ga.getRawGroupIdWithDefaultString(), ga.getRawArtifactId()));
-
-            } catch (VersionNotFoundException ex) {
-                throw new ArtifactNotFoundException(ga.getRawGroupIdWithDefaultString(), ga.getRawArtifactId(), ex);
-            }
+            Optional<ArtifactMetaDataDto> res = handle.createQuery(sqlStatements.selectArtifactMetaData())
+                    .bind(0, normalizeGroupId(groupId))
+                    .bind(1, artifactId)
+                    .map(ArtifactMetaDataDtoMapper.instance)
+                    .findOne();
+            return res.orElseThrow(() -> new ArtifactNotFoundException(groupId, artifactId));
         });
+        
     }
-
 
     /**
      * IMPORTANT: Private methods can't be @Transactional. Callers MUST have started a transaction.
@@ -1254,7 +1191,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
      */
     @Override
     @Transactional
-    public ArtifactVersionMetaDataDto getArtifactVersionMetaData(String groupId, String artifactId, boolean canonical,
+    public ArtifactVersionMetaDataDto getArtifactVersionMetaDataByContent(String groupId, String artifactId, boolean canonical,
                                                                  ContentHandle content, List<ArtifactReferenceDto> references)
             throws ArtifactNotFoundException, RegistryStorageException {
 
@@ -1277,57 +1214,104 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         });
     }
 
-
     @Override
     @Transactional
-    public ArtifactMetaDataDto getArtifactMetaData(long globalId)
-            throws ArtifactNotFoundException, RegistryStorageException {
-        log.debug("Getting meta-data for globalId: {}", globalId);
-        return handles.withHandle(handle -> {
-            Optional<ArtifactMetaDataDto> res = handle.createQuery(sqlStatements.selectArtifactMetaDataByGlobalId())
-                    .bind(0, globalId)
-                    .map(ArtifactMetaDataDtoMapper.instance)
-                    .findOne();
-            return res.orElseThrow(() -> new ArtifactNotFoundException(null, String.valueOf(globalId)));
-        });
-    }
-
-
-    @Override
-    @Transactional
-    public void updateArtifactMetaData(String groupId, String artifactId, EditableArtifactMetaDataDto editableMetadata)
+    public void updateArtifactMetaData(String groupId, String artifactId, EditableArtifactMetaDataDto metaData)
             throws ArtifactNotFoundException, RegistryStorageException {
         log.debug("Updating meta-data for an artifact: {} {}", groupId, artifactId);
 
-        var metadata = getArtifactMetaData(groupId, artifactId, storageBehaviorProps.getDefaultArtifactRetrievalBehavior());
-        updateArtifactVersionMetadataRaw(metadata.getGlobalId(), groupId, artifactId, metadata.getVersion(), editableMetadata);
-    }
-
-
-    @Override
-    @Transactional
-    public void updateArtifactOwner(String groupId, String artifactId, ArtifactOwnerDto owner)
-            throws ArtifactNotFoundException, RegistryStorageException {
-        log.debug("Updating ownership of an artifact: {} {}", groupId, artifactId);
-
         handles.withHandle(handle -> {
-            int rowCount = handle.createUpdate(sqlStatements.updateArtifactOwner())
-                    .bind(0, owner.getOwner())
-                    .bind(1, normalizeGroupId(groupId))
-                    .bind(2, artifactId)
-                    .execute();
-            if (rowCount == 0) {
-                if (!isArtifactExists(groupId, artifactId)) {
+            boolean modified = false;
+            if (metaData.getName() != null) {
+                int rowCount = handle.createUpdate(sqlStatements.updateArtifactName())
+                        .bind(0, limitStr(metaData.getName(), 512))
+                        .bind(1, normalizeGroupId(groupId))
+                        .bind(2, artifactId)
+                        .execute();
+                modified = true;
+                if (rowCount == 0) {
                     throw new ArtifactNotFoundException(groupId, artifactId);
                 }
-                // Likely someone tried to set the owner to the same value.  That is
-                // not an error.  No need to throw.
             }
+
+            if (metaData.getDescription() != null) {
+                int rowCount = handle.createUpdate(sqlStatements.updateArtifactDescription())
+                        .bind(0, limitStr(metaData.getDescription(), 1024))
+                        .bind(1, normalizeGroupId(groupId))
+                        .bind(2, artifactId)
+                        .execute();
+                modified = true;
+                if (rowCount == 0) {
+                    throw new ArtifactNotFoundException(groupId, artifactId);
+                }
+            }
+
+            // TODO versions shouldn't have owners, only groups and artifacts?
+            if (metaData.getOwner() != null && !metaData.getOwner().trim().isEmpty()) {
+                int rowCount = handle.createUpdate(sqlStatements.updateArtifactOwner())
+                        .bind(0, metaData.getOwner())
+                        .bind(1, normalizeGroupId(groupId))
+                        .bind(2, artifactId)
+                        .execute();
+                modified = true;
+                if (rowCount == 0) {
+                    throw new ArtifactNotFoundException(groupId, artifactId);
+                }
+            }
+
+            if (metaData.getLabels() != null) {
+                int rowCount = handle.createUpdate(sqlStatements.updateArtifactLabels())
+                        .bind(0, SqlUtil.serializeLabels(metaData.getLabels()))
+                        .bind(1, normalizeGroupId(groupId))
+                        .bind(2, artifactId)
+                        .execute();
+                modified = true;
+                if (rowCount == 0) {
+                    throw new ArtifactNotFoundException(groupId, artifactId);
+                }
+
+                // Delete all appropriate rows in the "artifact_labels" table
+                handle.createUpdate(sqlStatements.deleteArtifactLabels())
+                        .bind(0, normalizeGroupId(groupId))
+                        .bind(1, artifactId)
+                        .execute();
+
+                // Insert new labels into the "artifact_labels" table
+                Map<String, String> labels = metaData.getLabels();
+                if (labels != null && !labels.isEmpty()) {
+                    labels.forEach((k, v) -> {
+                        String sqli = sqlStatements.insertArtifactLabel();
+                        handle.createUpdate(sqli)
+                                .bind(0, normalizeGroupId(groupId))
+                                .bind(1, artifactId)
+                                .bind(2, limitStr(k.toLowerCase(), 256))
+                                .bind(3, limitStr(asLowerCase(v), 512))
+                                .execute();
+                    });
+                }
+            }
+
+            if (modified) {
+                String modifiedBy = securityIdentity.getPrincipal().getName();
+                Date modifiedOn = new Date();
+                int rowCount = handle.createUpdate(sqlStatements.updateArtifactModifiedByOn())
+                        .bind(0, modifiedBy)
+                        .bind(1, modifiedOn)
+                        .bind(2, normalizeGroupId(groupId))
+                        .bind(3, artifactId)
+                        .execute();
+                modified = true;
+                if (rowCount == 0) {
+                    throw new ArtifactNotFoundException(groupId, artifactId);
+                }
+                
+            }
+
             return null;
         });
     }
 
-
+    
     @Override
     @Transactional
     public List<RuleType> getArtifactRules(String groupId, String artifactId)
@@ -1535,11 +1519,11 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
     @Override
     @Transactional
-    public StoredArtifactDto getArtifactVersion(long globalId)
+    public StoredArtifactVersionDto getArtifactVersionContent(long globalId)
             throws ArtifactNotFoundException, RegistryStorageException {
         log.debug("Selecting a single artifact version by globalId: {}", globalId);
         return handles.withHandle(handle -> {
-            Optional<StoredArtifactDto> res = handle.createQuery(sqlStatements.selectArtifactVersionContentByGlobalId())
+            Optional<StoredArtifactVersionDto> res = handle.createQuery(sqlStatements.selectArtifactVersionContentByGlobalId())
                     .bind(0, globalId)
                     .map(StoredArtifactMapper.instance)
                     .findOne();
@@ -1550,11 +1534,11 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
     @Override
     @Transactional
-    public StoredArtifactDto getArtifactVersion(String groupId, String artifactId, String version)
+    public StoredArtifactVersionDto getArtifactVersionContent(String groupId, String artifactId, String version)
             throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
         log.debug("Selecting a single artifact version by artifactId: {} {} and version {}", groupId, artifactId, version);
         return handles.withHandle(handle -> {
-            Optional<StoredArtifactDto> res = handle.createQuery(sqlStatements.selectArtifactVersionContent())
+            Optional<StoredArtifactVersionDto> res = handle.createQuery(sqlStatements.selectArtifactVersionContent())
                     .bind(0, normalizeGroupId(groupId))
                     .bind(1, artifactId)
                     .bind(2, version)
@@ -1609,6 +1593,18 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         deleteAllOrphanedContent();
     }
 
+    @Override
+    @Transactional
+    public ArtifactVersionMetaDataDto getArtifactVersionMetaData(Long globalId)
+            throws VersionNotFoundException, RegistryStorageException {
+        return handles.withHandle(handle -> {
+            Optional<ArtifactVersionMetaDataDto> res = handle.createQuery(sqlStatements.selectArtifactVersionMetaDataByGlobalId())
+                    .bind(0, globalId)
+                    .map(ArtifactVersionMetaDataDtoMapper.instance)
+                    .findOne();
+            return res.orElseThrow(() -> new VersionNotFoundException(globalId));
+        });
+    }
 
     @Override
     @Transactional
@@ -1627,7 +1623,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
     @Override
     @Transactional
-    public void updateArtifactVersionMetaData(String groupId, String artifactId, String version, EditableArtifactMetaDataDto editableMetadata)
+    public void updateArtifactVersionMetaData(String groupId, String artifactId, String version, EditableVersionMetaDataDto editableMetadata)
             throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
         log.debug("Updating meta-data for an artifact version: {} {}", groupId, artifactId);
 
@@ -1639,76 +1635,79 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     /**
      * IMPORTANT: Private methods can't be @Transactional. Callers MUST have started a transaction.
      */
-    private void updateArtifactVersionMetadataRaw(long globalId, String groupId, String artifactId, String version, EditableArtifactMetaDataDto metaData) {
-
+    private void updateArtifactVersionMetadataRaw(long globalId, String groupId, String artifactId, String version, EditableVersionMetaDataDto metaData) {
         handles.withHandle(handle -> {
-            int rowCount = handle.createUpdate(sqlStatements.updateArtifactVersionMetaData())
-                    .bind(0, limitStr(metaData.getName(), 512))
-                    .bind(1, limitStr(metaData.getDescription(), 1024, true))
-                    .bind(2, SqlUtil.serializeLabels(metaData.getLabels()))
-                    .bind(3, normalizeGroupId(groupId))
-                    .bind(4, artifactId)
-                    .bind(5, version)
-                    .execute();
-            if (rowCount == 0) {
-                throw new VersionNotFoundException(groupId, artifactId, version);
+            if (metaData.getName() != null) {
+                int rowCount = handle.createUpdate(sqlStatements.updateArtifactVersionNameByGAV())
+                        .bind(0, limitStr(metaData.getName(), 512))
+                        .bind(1, normalizeGroupId(groupId))
+                        .bind(2, artifactId)
+                        .bind(3, version)
+                        .execute();
+                if (rowCount == 0) {
+                    throw new VersionNotFoundException(groupId, artifactId, version);
+                }
             }
 
+            if (metaData.getDescription() != null) {
+                int rowCount = handle.createUpdate(sqlStatements.updateArtifactVersionDescriptionByGAV())
+                        .bind(0, limitStr(metaData.getDescription(), 1024))
+                        .bind(1, normalizeGroupId(groupId))
+                        .bind(2, artifactId)
+                        .bind(3, version)
+                        .execute();
+                if (rowCount == 0) {
+                    throw new VersionNotFoundException(groupId, artifactId, version);
+                }
+            }
 
-            // Delete all appropriate rows in the "version_labels" table
-            handle.createUpdate(sqlStatements.deleteVersionLabelsByGlobalId())
-                    .bind(0, globalId)
-                    .execute();
+            if (metaData.getState() != null) {
+                int rowCount = handle.createUpdate(sqlStatements.updateArtifactVersionStateByGAV())
+                        .bind(0, metaData.getState().name())
+                        .bind(1, normalizeGroupId(groupId))
+                        .bind(2, artifactId)
+                        .bind(3, version)
+                        .execute();
+                if (rowCount == 0) {
+                    throw new VersionNotFoundException(groupId, artifactId, version);
+                }
+            }
 
-            // Insert new labels into the "version_labels" table
-            Map<String, String> labels = metaData.getLabels();
-            if (labels != null && !labels.isEmpty()) {
-                labels.forEach((k, v) -> {
-                    String sqli = sqlStatements.insertVersionLabel();
-                    handle.createUpdate(sqli)
-                            .bind(0, globalId)
-                            .bind(1, limitStr(k.toLowerCase(), 256))
-                            .bind(2, limitStr(asLowerCase(v), 512))
-                            .execute();
-                });
+            if (metaData.getLabels() != null) {
+                int rowCount = handle.createUpdate(sqlStatements.updateArtifactVersionLabelsByGAV())
+                        .bind(0, SqlUtil.serializeLabels(metaData.getLabels()))
+                        .bind(1, normalizeGroupId(groupId))
+                        .bind(2, artifactId)
+                        .bind(3, version)
+                        .execute();
+                if (rowCount == 0) {
+                    throw new VersionNotFoundException(groupId, artifactId, version);
+                }
+
+                // Delete all appropriate rows in the "version_labels" table
+                handle.createUpdate(sqlStatements.deleteVersionLabelsByGlobalId())
+                        .bind(0, globalId)
+                        .execute();
+
+                // Insert new labels into the "version_labels" table
+                Map<String, String> labels = metaData.getLabels();
+                if (labels != null && !labels.isEmpty()) {
+                    labels.forEach((k, v) -> {
+                        String sqli = sqlStatements.insertVersionLabel();
+                        handle.createUpdate(sqli)
+                                .bind(0, globalId)
+                                .bind(1, limitStr(k.toLowerCase(), 256))
+                                .bind(2, limitStr(asLowerCase(v), 512))
+                                .execute();
+                    });
+                }
             }
 
             return null;
         });
     }
 
-
-    @Override
-    @Transactional
-    public void deleteArtifactVersionMetaData(String groupId, String artifactId, String version)
-            throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
-        log.debug("Deleting user-defined meta-data for artifact {} {} version {}", groupId, artifactId, version);
-        handles.withHandle(handle -> {
-            // NULL out the name, description, labels and columns of the "versions" table.
-            int rowCount = handle.createUpdate(sqlStatements.updateArtifactVersionMetaData())
-                    .bind(0, (String) null)
-                    .bind(1, (String) null)
-                    .bind(2, (String) null)
-                    .bind(3, normalizeGroupId(groupId))
-                    .bind(4, artifactId)
-                    .bind(5, version)
-                    .execute();
-
-            // Delete labels
-            handle.createUpdate(sqlStatements.deleteVersionLabelsByGAV())
-                    .bind(0, normalizeGroupId(groupId))
-                    .bind(1, artifactId)
-                    .bind(2, version)
-                    .execute();
-
-            if (rowCount == 0) {
-                throw new VersionNotFoundException(groupId, artifactId, version);
-            }
-            return null;
-        });
-    }
-
-
+    
     @Override
     @Transactional
     public CommentDto createArtifactVersionComment(String groupId, String artifactId, String version, String value) {
@@ -1726,29 +1725,26 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     public CommentDto createArtifactVersionCommentRaw(String groupId, String artifactId, String version, IdGenerator commentId,
                                                       String owner, Date createdOn, String value) {
         try {
-            return handles.withHandle(handle -> {
+            var metadata = getArtifactVersionMetaData(groupId, artifactId, version);
 
-                var metadata = getArtifactVersionMetaData(groupId, artifactId, version);
+            var entity = CommentEntity.builder()
+                    .commentId(String.valueOf(commentId.generate()))
+                    .globalId(metadata.getGlobalId())
+                    .owner(owner)
+                    .createdOn(createdOn.getTime())
+                    .value(value)
+                    .build();
 
-                var entity = CommentEntity.builder()
-                        .commentId(String.valueOf(commentId.generate()))
-                        .globalId(metadata.getGlobalId())
-                        .owner(owner)
-                        .createdOn(createdOn.getTime())
-                        .value(value)
-                        .build();
+            importComment(entity);
 
-                importComment(entity);
+            log.debug("Comment row successfully inserted.");
 
-                log.debug("Comment row successfully inserted.");
-
-                return CommentDto.builder()
-                        .commentId(entity.commentId)
-                        .owner(owner)
-                        .createdOn(createdOn.getTime())
-                        .value(value)
-                        .build();
-            });
+            return CommentDto.builder()
+                    .commentId(entity.commentId)
+                    .owner(owner)
+                    .createdOn(createdOn.getTime())
+                    .value(value)
+                    .build();
         } catch (VersionNotFoundException ex) {
             throw ex;
         } catch (Exception ex) {
@@ -2108,24 +2104,15 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     public void updateGroupMetaData(String groupId, EditableGroupMetaDataDto dto) {
         String modifiedBy = securityIdentity.getPrincipal().getName();
         Date modifiedOn = new Date();
-        updateGroupMetaData(groupId, dto.getDescription(), dto.getLabels(), modifiedBy, modifiedOn);
-    }
-    
-    /**
-     * @see io.apicurio.registry.storage.RegistryStorage#updateGroupMetaData(java.lang.String, java.lang.String, java.util.Map, java.lang.String, java.util.Date)
-     */
-    @Override
-    @Transactional
-    public void updateGroupMetaData(String groupId, String description, Map<String, String> labels, String modifiedBy, Date modifiedOn) {
         log.debug("Updating metadata for group {}.", groupId);
 
         handles.withHandleNoException(handle -> {
             // Update the row in the groups table
             int rows = handle.createUpdate(sqlStatements.updateGroup())
-                    .bind(0, description)
+                    .bind(0, dto.getDescription())
                     .bind(1, modifiedBy)
                     .bind(2, modifiedOn)
-                    .bind(3, SqlUtil.serializeLabels(labels))
+                    .bind(3, SqlUtil.serializeLabels(dto.getLabels()))
                     .bind(4, groupId)
                     .execute();
             if (rows == 0) {
@@ -2138,8 +2125,8 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                     .execute();
 
             // Insert new labels into the "group_labels" table
-            if (labels != null && !labels.isEmpty()) {
-                labels.forEach((k, v) -> {
+            if (dto.getLabels() != null && !dto.getLabels().isEmpty()) {
+                dto.getLabels().forEach((k, v) -> {
                     String sqli = sqlStatements.insertGroupLabel();
                     handle.createUpdate(sqli)
                             .bind(0, groupId)
@@ -2614,7 +2601,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
     @Override
     @Transactional
-    public List<Long> getContentIdsReferencingArtifact(String groupId, String artifactId, String version) {
+    public List<Long> getContentIdsReferencingArtifactVersion(String groupId, String artifactId, String version) {
         return handles.withHandleNoException(handle -> {
             return handle.createQuery(sqlStatements().selectContentIdsReferencingArtifactBy())
                     .bind(0, normalizeGroupId(groupId))
@@ -2628,7 +2615,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
     @Override
     @Transactional
-    public List<Long> getGlobalIdsReferencingArtifact(String groupId, String artifactId, String version) {
+    public List<Long> getGlobalIdsReferencingArtifactVersion(String groupId, String artifactId, String version) {
         return handles.withHandleNoException(handle -> {
             return handle.createQuery(sqlStatements().selectGlobalIdsReferencingArtifactBy())
                     .bind(0, normalizeGroupId(groupId))
@@ -2779,7 +2766,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                         //TODO improve exception handling
                         try {
                             final ArtifactVersionMetaDataDto referencedArtifactMetaData = getArtifactVersionMetaData(reference.getGroupId(), reference.getArtifactId(), reference.getVersion());
-                            final ContentWrapperDto referencedContent = getArtifactByContentId(referencedArtifactMetaData.getContentId());
+                            final ContentWrapperDto referencedContent = getContentById(referencedArtifactMetaData.getContentId());
                             resolveReferences(resolvedReferences, referencedContent.getReferences());
                             resolvedReferences.put(reference.getName(), referencedContent.getContent());
                         } catch (VersionNotFoundException ex) {
@@ -2913,13 +2900,18 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         handles.withHandleNoException(handle -> {
 
             if (!isArtifactExists(entity.groupId, entity.artifactId)) {
-
+                String labelsStr = SqlUtil.serializeLabels(entity.labels);
                 handle.createUpdate(sqlStatements.insertArtifact())
                         .bind(0, normalizeGroupId(entity.groupId))
                         .bind(1, entity.artifactId)
                         .bind(2, entity.artifactType)
                         .bind(3, entity.owner)
                         .bind(4, new Date(entity.createdOn))
+                        .bind(5, entity.owner) // modifiedBy
+                        .bind(6, new Date(entity.createdOn)) // modifiedOn
+                        .bind(7, entity.name)
+                        .bind(8, entity.description)
+                        .bind(9,  labelsStr)
                         .execute();
             }
 
@@ -3209,27 +3201,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
     @Override
     @Transactional
-    public ArtifactMetaDataDto updateArtifactWithMetadata(String groupId, String artifactId, String version,
-                                                          String artifactType, String contentHash, String owner, Date createdOn,
-                                                          EditableArtifactMetaDataDto metaData,
-                                                          IdGenerator globalIdGenerator)
-            throws ArtifactNotFoundException, RegistryStorageException {
-
-        long contentId = contentIdFromHash(contentHash)
-                .orElseThrow(() -> new RegistryStorageException("Content hash not found."));
-
-        if (metaData == null) {
-            metaData = new EditableArtifactMetaDataDto();
-        }
-
-        return updateArtifactWithMetadataRaw(groupId, artifactId, version, contentId, owner, createdOn,
-                metaData, globalIdGenerator);
-    }
-
-
-    @Override
-    @Transactional
-    public ArtifactMetaDataDto createArtifactWithMetadata(String groupId, String artifactId, String version,
+    public ArtifactVersionMetaDataDto createArtifactWithMetadata(String groupId, String artifactId, String version,
                                                           String artifactType, String contentHash, String owner,
                                                           Date createdOn, EditableArtifactMetaDataDto metaData, IdGenerator globalIdGenerator)
             throws ArtifactNotFoundException, RegistryStorageException {
@@ -3523,13 +3495,4 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         });
     }
 
-
-    private static boolean hasContentFilter(Set<SearchFilter> filters) {
-        for (SearchFilter searchFilter : filters) {
-            if (searchFilter.getType() == SearchFilterType.contentHash || searchFilter.getType() == SearchFilterType.canonicalHash) {
-                return true;
-            }
-        }
-        return false;
-    }
 }

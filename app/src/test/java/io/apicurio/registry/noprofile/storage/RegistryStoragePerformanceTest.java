@@ -66,7 +66,7 @@ public class RegistryStoragePerformanceTest {
                         .replaceAll("TITLE", title)
                         .replaceAll("DESCRIPTION", description)
                         .replaceAll("VERSION", String.valueOf(idx)));
-            EditableArtifactMetaDataDto metaData = new EditableArtifactMetaDataDto(title, description, labels);
+            EditableArtifactMetaDataDto metaData = new EditableArtifactMetaDataDto(title, description, null, labels);
             storage.createArtifactWithMetadata(GROUP_ID, artifactId, null, ArtifactType.OPENAPI, content, metaData, null);
 
             System.out.print(".");
@@ -77,7 +77,7 @@ public class RegistryStoragePerformanceTest {
         long endCreate = System.currentTimeMillis();
 
         long startGetArtifact = System.currentTimeMillis();
-        StoredArtifactDto storedArtifact = storage.getArtifact(GROUP_ID, artifactIdPrefix + "77");
+        StoredArtifactVersionDto storedArtifact = storage.getArtifactVersionContent(GROUP_ID, artifactIdPrefix + "77", "1");
         long endGetArtifact = System.currentTimeMillis();
         Assertions.assertNotNull(storedArtifact);
 

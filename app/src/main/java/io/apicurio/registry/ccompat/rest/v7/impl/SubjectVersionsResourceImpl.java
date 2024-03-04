@@ -16,13 +16,13 @@ import io.apicurio.registry.ccompat.rest.v7.SubjectVersionsResource;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
-import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
-import io.apicurio.registry.storage.dto.StoredArtifactDto;
+import io.apicurio.registry.storage.dto.EditableVersionMetaDataDto;
+import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
 import io.apicurio.registry.storage.error.ArtifactNotFoundException;
 import io.apicurio.registry.storage.error.InvalidArtifactTypeException;
 import io.apicurio.registry.storage.error.VersionNotFoundException;
-import io.apicurio.registry.types.ArtifactState;
+import io.apicurio.registry.types.VersionState;
 import io.apicurio.registry.util.ArtifactTypeUtil;
 import io.apicurio.registry.util.VersionUtil;
 import jakarta.inject.Inject;
@@ -74,7 +74,7 @@ public class SubjectVersionsResourceImpl extends AbstractResource implements Sub
 
         try {
             ArtifactVersionMetaDataDto dto = lookupSchema(groupId, subject, request.getSchema(), request.getReferences(), request.getSchemaType(), fnormalize);
-            if (dto.getState().equals(ArtifactState.DISABLED)) {
+            if (dto.getState().equals(VersionState.DISABLED)) {
                 throw new ArtifactNotFoundException(groupId, subject);
             }
             sid = cconfig.legacyIdModeEnabled.get() ? dto.getGlobalId() : dto.getContentId();
@@ -91,7 +91,7 @@ public class SubjectVersionsResourceImpl extends AbstractResource implements Sub
                     throw new UnprocessableEntityException(String.format("Given schema is not from type: %s", request.getSchemaType()));
                 }
 
-                ArtifactMetaDataDto artifactMeta = createOrUpdateArtifact(subject, request.getSchema(), artifactType, request.getReferences(), groupId);
+                ArtifactVersionMetaDataDto artifactMeta = createOrUpdateArtifact(subject, request.getSchema(), artifactType, request.getReferences(), groupId);
                 sid = cconfig.legacyIdModeEnabled.get() ? artifactMeta.getGlobalId() : artifactMeta.getContentId();
             } catch (InvalidArtifactTypeException ex) {
                 //If no artifact type can be inferred, throw invalid schema ex
@@ -119,7 +119,7 @@ public class SubjectVersionsResourceImpl extends AbstractResource implements Sub
                 final boolean fpermanent = permanent == null ? Boolean.FALSE : permanent;
 
                 return VersionUtil.toInteger(parseVersionString(subject, versionString, groupId, version -> {
-                    List<Long> globalIdsReferencingSchema = storage.getGlobalIdsReferencingArtifact(groupId, subject, version);
+                    List<Long> globalIdsReferencingSchema = storage.getGlobalIdsReferencingArtifactVersion(groupId, subject, version);
                     ArtifactVersionMetaDataDto avmd = storage.getArtifactVersionMetaData(groupId, subject, version);
                     if (globalIdsReferencingSchema.isEmpty() || areAllSchemasDisabled(globalIdsReferencingSchema)) {
                         return processDeleteVersion(subject, versionString, groupId, version, fpermanent, avmd);
@@ -137,18 +137,22 @@ public class SubjectVersionsResourceImpl extends AbstractResource implements Sub
         }
     }
 
-    private String processDeleteVersion(String subject, String versionString, String groupId, String version, boolean fpermanent, ArtifactVersionMetaDataDto avmd) {
+    private String processDeleteVersion(String subject, String versionString, String groupId, String version,
+            boolean fpermanent, ArtifactVersionMetaDataDto avmd) {
         if (fpermanent) {
-            if (avmd.getState().equals(ArtifactState.ENABLED) || avmd.getState().equals(ArtifactState.DEPRECATED)) {
+            if (avmd.getState().equals(VersionState.ENABLED) || avmd.getState().equals(VersionState.DEPRECATED)) {
                 throw new SchemaNotSoftDeletedException(String.format("Subject %s version %s must be soft deleted first", subject, versionString));
-            } else if (avmd.getState().equals(ArtifactState.DISABLED)) {
+            } else if (avmd.getState().equals(VersionState.DISABLED)) {
                 storage.deleteArtifactVersion(groupId, subject, version);
             }
         } else {
-            if (avmd.getState().equals(ArtifactState.DISABLED)) {
+            if (avmd.getState().equals(VersionState.DISABLED)) {
                 throw new SchemaSoftDeletedException("Schema is already soft deleted");
             } else {
-                storage.updateArtifactState(groupId, subject, version, ArtifactState.DISABLED);
+                EditableVersionMetaDataDto emd = EditableVersionMetaDataDto.builder()
+                        .state(VersionState.DISABLED)
+                        .build();
+                storage.updateArtifactVersionMetaData(groupId, subject, version, emd);
             }
         }
         return version;
@@ -165,18 +169,18 @@ public class SubjectVersionsResourceImpl extends AbstractResource implements Sub
     @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Read)
     public List<Long> getSchemasReferencedBy(String subject, String versionString, String groupId) throws Exception {
         if (cconfig.legacyIdModeEnabled.get()) {
-            return parseVersionString(subject, versionString, groupId, version -> storage.getGlobalIdsReferencingArtifact(groupId, subject, version));
+            return parseVersionString(subject, versionString, groupId, version -> storage.getGlobalIdsReferencingArtifactVersion(groupId, subject, version));
         }
 
-        return parseVersionString(subject, versionString, groupId, version -> storage.getContentIdsReferencingArtifact(groupId, subject, version));
+        return parseVersionString(subject, versionString, groupId, version -> storage.getContentIdsReferencingArtifactVersion(groupId, subject, version));
     }
 
     protected Schema getSchema(String groupId, String subject, String versionString, boolean deleted) {
-        if (doesArtifactExist(subject, groupId) && isArtifactActive(subject, groupId, SKIP_DISABLED_LATEST)) {
+        if (doesArtifactExist(subject, groupId) && isArtifactActive(subject, groupId)) {
             return parseVersionString(subject, versionString, groupId, version -> {
                 ArtifactVersionMetaDataDto amd = storage.getArtifactVersionMetaData(groupId, subject, version);
-                if (amd.getState() != ArtifactState.DISABLED || deleted) {
-                    StoredArtifactDto storedArtifact = storage.getArtifactVersion(groupId, subject, amd.getVersion());
+                if (amd.getState() != VersionState.DISABLED || deleted) {
+                    StoredArtifactVersionDto storedArtifact = storage.getArtifactVersionContent(groupId, subject, amd.getVersion());
                     return converter.convert(subject, storedArtifact);
                 } else {
                     throw new VersionNotFoundException(groupId, subject, version);

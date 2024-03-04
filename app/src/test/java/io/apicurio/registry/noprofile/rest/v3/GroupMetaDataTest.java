@@ -30,7 +30,7 @@ public class GroupMetaDataTest extends AbstractResourceTestBase {
         body.setLabels(l);
         GroupMetaData gmd = clientV3.groups().post(body);
         
-        Assertions.assertEquals(groupId, gmd.getId());
+        Assertions.assertEquals(groupId, gmd.getGroupId());
         Assertions.assertEquals("My favorite test group.", gmd.getDescription());
         Assertions.assertEquals(labels, gmd.getLabels().getAdditionalData());
     }
@@ -52,7 +52,7 @@ public class GroupMetaDataTest extends AbstractResourceTestBase {
         // Now fetch the metadata
         GroupMetaData gmd = clientV3.groups().byGroupId(groupId).get();
         
-        Assertions.assertEquals(groupId, gmd.getId());
+        Assertions.assertEquals(groupId, gmd.getGroupId());
         Assertions.assertEquals("My favorite test group.", gmd.getDescription());
         Assertions.assertEquals(labels, gmd.getLabels().getAdditionalData());
     }
@@ -82,7 +82,7 @@ public class GroupMetaDataTest extends AbstractResourceTestBase {
         // Now fetch the metadata
         GroupMetaData gmd = clientV3.groups().byGroupId(groupId).get();
 
-        Assertions.assertEquals(groupId, gmd.getId());
+        Assertions.assertEquals(groupId, gmd.getGroupId());
         Assertions.assertEquals("UPDATED DESCRIPTION", gmd.getDescription());
         Assertions.assertEquals(labels2, gmd.getLabels().getAdditionalData());
     }

@@ -19,6 +19,7 @@ import io.apicurio.registry.model.GAV;
 import io.apicurio.registry.model.VersionId;
 import io.apicurio.registry.storage.dto.DownloadContextDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
+import io.apicurio.registry.storage.dto.EditableVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.GroupMetaDataDto;
 import io.apicurio.registry.storage.dto.RuleConfigurationDto;
 import io.apicurio.registry.storage.impl.kafkasql.keys.ArtifactBranchKey;
@@ -61,7 +62,7 @@ import io.apicurio.registry.storage.impl.kafkasql.values.GlobalRulesValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.GroupValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.MessageValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.RoleMappingValue;
-import io.apicurio.registry.types.ArtifactState;
+import io.apicurio.registry.types.VersionState;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.impexp.ArtifactBranchEntity;
 import io.apicurio.registry.utils.kafka.ProducerActions;
@@ -137,7 +138,7 @@ public class KafkaSqlSubmitter {
      * ****************************************************************************************** */
     public CompletableFuture<UUID> submitArtifact(String groupId, String artifactId, String version, ActionType action,
             Long globalId, String artifactType, String contentHash, String owner, Date createdOn,
-            EditableArtifactMetaDataDto metaData, Integer versionOrder, ArtifactState state, Long contentId) {
+            EditableArtifactMetaDataDto metaData, Integer versionOrder, VersionState state, Long contentId) {
         ArtifactKey key = ArtifactKey.create(groupId, artifactId);
         ArtifactValue value = ArtifactValue.create(action, globalId, version, artifactType, contentHash, owner, createdOn, metaData,
                 versionOrder, state, contentId);
@@ -157,14 +158,14 @@ public class KafkaSqlSubmitter {
     /* ******************************************************************************************
      * Version
      * ****************************************************************************************** */
-    public CompletableFuture<UUID> submitArtifactVersion(String groupId, String artifactId, String version, ActionType action, ArtifactState state,
-            EditableArtifactMetaDataDto metaData) {
+    public CompletableFuture<UUID> submitArtifactVersion(String groupId, String artifactId, String version, ActionType action,
+            EditableVersionMetaDataDto metaData) {
         ArtifactVersionKey key = ArtifactVersionKey.create(groupId, artifactId, version);
-        ArtifactVersionValue value = ArtifactVersionValue.create(action, state, metaData);
+        ArtifactVersionValue value = ArtifactVersionValue.create(action, metaData);
         return send(key, value);
     }
     public CompletableFuture<UUID> submitVersion(String groupId, String artifactId, String version, ActionType action) {
-        return submitArtifactVersion(groupId, artifactId, version, action, null, null);
+        return submitArtifactVersion(groupId, artifactId, version, action, null);
     }
 
 

@@ -143,6 +143,11 @@ public interface SqlStatements {
     public String selectAllArtifactVersionsCount();
 
     /**
+     * A statement used to count the total # of non-disabled versions for an artifact.
+     */
+    public String selectActiveArtifactVersionsCount();
+
+    /**
      * A statement used to count the total # of versions for all artifact.
      */
     public String selectTotalArtifactVersionsCount();
@@ -205,9 +210,29 @@ public interface SqlStatements {
     public String updateArtifactRule();
 
     /**
+     * A statement to update a single artifact name.
+     */
+    public String updateArtifactName();
+
+    /**
+     * A statement to update a single artifact description.
+     */
+    public String updateArtifactDescription();
+
+    /**
+     * A statement to update the modified by and modified on for an artifact.
+     */
+    public String updateArtifactModifiedByOn();
+
+    /**
      * A statement to update a single artifact owner.
      */
     public String updateArtifactOwner();
+
+    /**
+     * A statement to update a single artifact labels.
+     */
+    public String updateArtifactLabels();
 
     /**
      * A statement to delete a single artifact rule.
@@ -224,16 +249,28 @@ public interface SqlStatements {
      */
     public String deleteAllArtifactRules();
 
-    /**
-     * A statement to update the meta-data of a specific artifact version.
+    /*
+     * Statements to update the meta-data of a specific artifact version.
      */
+
     public String updateArtifactVersionMetaData();
-    
+    public String updateArtifactVersionNameByGAV();
+    public String updateArtifactVersionDescriptionByGAV();
+    public String updateArtifactVersionLabelsByGAV();
+    public String updateArtifactVersionOwnerByGAV();
+    public String updateArtifactVersionStateByGAV();
+
+
     /**
      * A statement to delete all rows in the group_labels table for a given group.
      */
     public String deleteGroupLabelsByGroupId();
 
+    /**
+     * A statement to delete all rows in the artifact_labels table for a given artifact.
+     */
+    public String deleteArtifactLabels();
+    
     /**
      * A statement to delete the labels for a single artifact version.
      */

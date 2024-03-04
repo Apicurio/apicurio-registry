@@ -126,7 +126,7 @@ public class SearchResourceTest extends AbstractResourceTestBase {
                     .pathParam("groupId", group)
                     .pathParam("artifactId", artifactId)
                     .body(metaData)
-                    .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/meta")
+                    .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}")
                 .then()
                     .statusCode(204);
         }
@@ -253,7 +253,7 @@ public class SearchResourceTest extends AbstractResourceTestBase {
                     .pathParam("groupId", group)
                     .pathParam("artifactId", artifactId)
                     .body(metaData)
-                    .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/meta")
+                    .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}")
                     .then()
                     .statusCode(204);
         }

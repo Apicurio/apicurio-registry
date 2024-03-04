@@ -1,17 +1,7 @@
 package io.apicurio.registry.resolver;
 
-import com.microsoft.kiota.RequestAdapter;
-import io.apicurio.registry.resolver.config.DefaultSchemaResolverConfig;
-import io.apicurio.registry.resolver.data.Record;
-import io.apicurio.registry.resolver.strategy.ArtifactReference;
-import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
-import io.apicurio.registry.resolver.utils.Utils;
-import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.rest.client.models.ArtifactMetaData;
-import io.apicurio.registry.rest.client.models.VersionMetaData;
-import io.apicurio.registry.utils.IoUtil;
-import io.apicurio.registry.client.auth.VertXAuthFactory;
-import io.kiota.http.vertx.VertXRequestAdapter;
+import static io.apicurio.registry.client.auth.VertXAuthFactory.buildOIDCWebClient;
+import static io.apicurio.registry.client.auth.VertXAuthFactory.buildSimpleAuthWebClient;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -22,8 +12,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-import static io.apicurio.registry.client.auth.VertXAuthFactory.buildOIDCWebClient;
-import static io.apicurio.registry.client.auth.VertXAuthFactory.buildSimpleAuthWebClient;
+import com.microsoft.kiota.RequestAdapter;
+
+import io.apicurio.registry.client.auth.VertXAuthFactory;
+import io.apicurio.registry.resolver.config.DefaultSchemaResolverConfig;
+import io.apicurio.registry.resolver.data.Record;
+import io.apicurio.registry.resolver.strategy.ArtifactReference;
+import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
+import io.apicurio.registry.resolver.utils.Utils;
+import io.apicurio.registry.rest.client.RegistryClient;
+import io.apicurio.registry.rest.client.models.VersionMetaData;
+import io.apicurio.registry.utils.IoUtil;
+import io.kiota.http.vertx.VertXRequestAdapter;
 
 /**
  * Base implementation of {@link SchemaResolver}
@@ -299,19 +299,11 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
         return new RegistryClient(adapter);
     }
 
-    protected void loadFromArtifactMetaData(ArtifactMetaData artifactMetadata, SchemaLookupResult.SchemaLookupResultBuilder<S> resultBuilder) {
-        resultBuilder.globalId(artifactMetadata.getGlobalId());
-        resultBuilder.contentId(artifactMetadata.getContentId());
-        resultBuilder.groupId(artifactMetadata.getGroupId());
-        resultBuilder.artifactId(artifactMetadata.getId());
-        resultBuilder.version(String.valueOf(artifactMetadata.getVersion()));
-    }
-
     protected void loadFromArtifactMetaData(VersionMetaData artifactMetadata, SchemaLookupResult.SchemaLookupResultBuilder<S> resultBuilder) {
         resultBuilder.globalId(artifactMetadata.getGlobalId());
         resultBuilder.contentId(artifactMetadata.getContentId());
         resultBuilder.groupId(artifactMetadata.getGroupId());
-        resultBuilder.artifactId(artifactMetadata.getId());
+        resultBuilder.artifactId(artifactMetadata.getArtifactId());
         resultBuilder.version(String.valueOf(artifactMetadata.getVersion()));
     }
 }

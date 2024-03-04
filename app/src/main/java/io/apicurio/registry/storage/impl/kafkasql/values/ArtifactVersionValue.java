@@ -1,8 +1,7 @@
 package io.apicurio.registry.storage.impl.kafkasql.values;
 
-import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
+import io.apicurio.registry.storage.dto.EditableVersionMetaDataDto;
 import io.apicurio.registry.storage.impl.kafkasql.MessageType;
-import io.apicurio.registry.types.ArtifactState;
 import io.quarkus.runtime.annotations.RegisterForReflection;
 import lombok.ToString;
 
@@ -10,19 +9,16 @@ import lombok.ToString;
 @ToString
 public class ArtifactVersionValue extends AbstractMessageValue {
 
-    private ArtifactState state;
-    private EditableArtifactMetaDataDto metaData;
+    private EditableVersionMetaDataDto metaData;
 
     /**
      * Creator method.
      * @param action
-     * @param state
      * @param metaData
      */
-    public static final ArtifactVersionValue create(ActionType action, ArtifactState state, EditableArtifactMetaDataDto metaData) {
+    public static final ArtifactVersionValue create(ActionType action, EditableVersionMetaDataDto metaData) {
         ArtifactVersionValue value = new ArtifactVersionValue();
         value.setAction(action);
-        value.setState(state);
         value.setMetaData(metaData);
         return value;
     }
@@ -38,29 +34,15 @@ public class ArtifactVersionValue extends AbstractMessageValue {
     /**
      * @return the metaData
      */
-    public EditableArtifactMetaDataDto getMetaData() {
+    public EditableVersionMetaDataDto getMetaData() {
         return metaData;
     }
 
     /**
      * @param metaData the metaData to set
      */
-    public void setMetaData(EditableArtifactMetaDataDto metaData) {
+    public void setMetaData(EditableVersionMetaDataDto metaData) {
         this.metaData = metaData;
-    }
-
-    /**
-     * @return the state
-     */
-    public ArtifactState getState() {
-        return state;
-    }
-
-    /**
-     * @param state the state to set
-     */
-    public void setState(ArtifactState state) {
-        this.state = state;
     }
 
 }

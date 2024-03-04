@@ -2,7 +2,6 @@ package io.apicurio.registry.storage.impl.kafkasql.sql;
 
 import static java.util.stream.Collectors.toList;
 
-import java.util.Date;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Supplier;
@@ -19,7 +18,6 @@ import io.apicurio.registry.model.BranchId;
 import io.apicurio.registry.model.GA;
 import io.apicurio.registry.model.GAV;
 import io.apicurio.registry.model.VersionId;
-import io.apicurio.registry.storage.dto.ArtifactOwnerDto;
 import io.apicurio.registry.storage.dto.GroupMetaDataDto;
 import io.apicurio.registry.storage.error.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.error.ArtifactNotFoundException;
@@ -70,6 +68,7 @@ import io.apicurio.registry.storage.impl.kafkasql.values.RoleMappingValue;
 import io.apicurio.registry.storage.impl.sql.IdGenerator;
 import io.apicurio.registry.storage.impl.sql.SqlRegistryStorage;
 import io.apicurio.registry.types.RegistryException;
+import io.apicurio.registry.types.VersionState;
 import io.apicurio.registry.utils.impexp.ArtifactBranchEntity;
 import io.apicurio.registry.utils.impexp.ArtifactRuleEntity;
 import io.apicurio.registry.utils.impexp.ArtifactVersionEntity;
@@ -278,8 +277,8 @@ public class KafkaSqlSink {
                 sqlStore.createGroup(dto);
                 return null;
             case UPDATE:
-                sqlStore.updateGroupMetaData(dto.getGroupId(), dto.getDescription(), dto.getLabels(), 
-                        dto.getModifiedBy(), new Date(dto.getModifiedOn()));
+//                sqlStore.updateGroupMetaData(dto.getGroupId(), dto.getDescription(), dto.getLabels(), 
+//                        dto.getModifiedBy(), new Date(dto.getModifiedOn()));
                 return null;
             case DELETE:
                 if (value.isOnlyArtifacts()) {
@@ -319,9 +318,9 @@ public class KafkaSqlSink {
                             value.getContentHash(), value.getOwner(), value.getCreatedOn(),
                             value.getMetaData(), IdGenerator.single(value.getGlobalId()));
                 case UPDATE:
-                    return sqlStore.updateArtifactWithMetadata(key.getGroupId(), key.getArtifactId(), value.getVersion(), value.getArtifactType(),
-                            value.getContentHash(), value.getOwner(), value.getCreatedOn(),
-                            value.getMetaData(), IdGenerator.single(value.getGlobalId()));
+//                    return sqlStore.updateArtifactWithMetadata(key.getGroupId(), key.getArtifactId(), value.getVersion(), value.getArtifactType(),
+//                            value.getContentHash(), value.getOwner(), value.getCreatedOn(),
+//                            value.getMetaData(), IdGenerator.single(value.getGlobalId()));
                 case DELETE:
                     return sqlStore.deleteArtifact(key.getGroupId(), key.getArtifactId());
                 case IMPORT:
@@ -332,7 +331,7 @@ public class KafkaSqlSink {
                     entity.version = value.getVersion();
                     entity.versionOrder = value.getVersionOrder();
                     entity.artifactType = value.getArtifactType();
-                    entity.state = value.getState();
+                    entity.state = VersionState.ENABLED; // TODO this used to be included but is now missing.  wtd?
                     entity.name = value.getMetaData().getName();
                     entity.description = value.getMetaData().getDescription();
                     entity.owner = value.getOwner();
@@ -411,7 +410,7 @@ public class KafkaSqlSink {
     private Object processArtifactOwnerMessage(ArtifactOwnerKey key, ArtifactOwnerValue value) {
         switch (value.getAction()) {
             case UPDATE:
-                sqlStore.updateArtifactOwner(key.getGroupId(), key.getArtifactId(), new ArtifactOwnerDto(value.getOwner()));
+//                sqlStore.updateArtifactOwner(key.getGroupId(), key.getArtifactId(), new ArtifactOwnerDto(value.getOwner()));
                 return null;
             default:
                 return unsupported(key, value);
@@ -432,13 +431,12 @@ public class KafkaSqlSink {
         switch (value.getAction()) {
             case UPDATE:
                 sqlStore.updateArtifactVersionMetaData(key.getGroupId(), key.getArtifactId(), key.getVersion(), value.getMetaData());
-                sqlStore.updateArtifactState(key.getGroupId(), key.getArtifactId(), key.getVersion(), value.getState());
                 return null;
             case DELETE:
                 sqlStore.deleteArtifactVersion(key.getGroupId(), key.getArtifactId(), key.getVersion());
                 return null;
             case CLEAR:
-                sqlStore.deleteArtifactVersionMetaData(key.getGroupId(), key.getArtifactId(), key.getVersion());
+//                sqlStore.deleteArtifactVersionMetaData(key.getGroupId(), key.getArtifactId(), key.getVersion());
                 return null;
             default:
                 return unsupported(key, value);

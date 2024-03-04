@@ -79,7 +79,6 @@ public class AuthTestProfileBasicClientCredentials extends AbstractResourceTestB
                             .byGroupId(groupId)
                             .artifacts()
                             .byArtifactId(artifactId)
-                            .meta()
                             .get()
                             );
             assertNotNull(client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get());

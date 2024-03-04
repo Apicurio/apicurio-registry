@@ -1,10 +1,24 @@
 package io.apicurio.tests.serdes.apicurio;
 
-import io.apicurio.tests.ApicurioRegistryBaseIT;
-import io.apicurio.tests.common.serdes.TestObject;
-import io.apicurio.tests.utils.Constants;
-import io.apicurio.tests.utils.KafkaFacade;
-import io.apicurio.registry.rest.client.models.ArtifactMetaData;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import org.apache.avro.Schema;
+import org.apache.avro.generic.GenericData;
+import org.apache.avro.generic.GenericRecord;
+import org.apache.kafka.clients.consumer.Consumer;
+import org.apache.kafka.clients.producer.Producer;
+import org.apache.kafka.common.serialization.StringDeserializer;
+import org.apache.kafka.common.serialization.StringSerializer;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+
+import io.apicurio.registry.rest.client.models.VersionMetaData;
 import io.apicurio.registry.serde.SerdeConfig;
 import io.apicurio.registry.serde.avro.AvroKafkaDeserializer;
 import io.apicurio.registry.serde.avro.AvroKafkaSerdeConfig;
@@ -19,24 +33,11 @@ import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.registry.utils.tests.TooManyRequestsMock;
+import io.apicurio.tests.ApicurioRegistryBaseIT;
+import io.apicurio.tests.common.serdes.TestObject;
+import io.apicurio.tests.utils.Constants;
+import io.apicurio.tests.utils.KafkaFacade;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
-import org.apache.avro.Schema;
-import org.apache.avro.generic.GenericData;
-import org.apache.avro.generic.GenericRecord;
-import org.apache.kafka.clients.consumer.Consumer;
-import org.apache.kafka.clients.producer.Producer;
-import org.apache.kafka.common.serialization.StringDeserializer;
-import org.apache.kafka.common.serialization.StringSerializer;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Disabled;
-import org.junit.jupiter.api.Tag;
-import org.junit.jupiter.api.Test;
-
-import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @Tag(Constants.SERDES)
 @QuarkusIntegrationTest
@@ -172,7 +173,7 @@ public class AvroSerdeIT extends ApicurioRegistryBaseIT {
             .withProducerProperty(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true")
             .withAfterProduceValidator(() -> {
                 return TestUtils.retry(() -> {
-                    ArtifactMetaData meta = registryClient.groups().byGroupId("default").artifacts().byArtifactId(artifactId).meta().get();
+                    VersionMetaData meta = registryClient.groups().byGroupId("default").artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").meta().get();
                     registryClient.ids().globalIds().byGlobalId(meta.getGlobalId()).get();
                     return true;
                 });
@@ -181,7 +182,7 @@ public class AvroSerdeIT extends ApicurioRegistryBaseIT {
             .test();
 
 
-        ArtifactMetaData meta = registryClient.groups().byGroupId("default").artifacts().byArtifactId(artifactId).meta().get();
+        VersionMetaData meta = registryClient.groups().byGroupId("default").artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").meta().get();
         byte[] rawSchema = IoUtil.toBytes(registryClient.ids().globalIds().byGlobalId(meta.getGlobalId()).get());
 
         assertEquals(new String(avroSchema.generateSchemaBytes()), new String(rawSchema));
@@ -458,7 +459,7 @@ public class AvroSerdeIT extends ApicurioRegistryBaseIT {
                 .withConsumerProperty(AvroKafkaSerdeConfig.AVRO_ENCODING, AvroKafkaSerdeConfig.AVRO_ENCODING_JSON)
                 .withAfterProduceValidator(() -> {
                     return TestUtils.retry(() -> {
-                        ArtifactMetaData meta = registryClient.groups().byGroupId("default").artifacts().byArtifactId(artifactId).meta().get();
+                        VersionMetaData meta = registryClient.groups().byGroupId("default").artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").meta().get();
                         registryClient.ids().globalIds().byGlobalId(meta.getGlobalId()).get();
                         return true;
                     });
@@ -489,7 +490,7 @@ public class AvroSerdeIT extends ApicurioRegistryBaseIT {
                 .withConsumerProperty(AvroKafkaSerdeConfig.AVRO_DATUM_PROVIDER, ReflectAvroDatumProvider.class.getName())
                 .withAfterProduceValidator(() -> {
                     return TestUtils.retry(() -> {
-                        ArtifactMetaData meta = registryClient.groups().byGroupId("default").artifacts().byArtifactId(artifactId).meta().get();
+                        VersionMetaData meta = registryClient.groups().byGroupId("default").artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").meta().get();
                         registryClient.ids().globalIds().byGlobalId(meta.getGlobalId()).get();
                         return true;
                     });
@@ -522,7 +523,7 @@ public class AvroSerdeIT extends ApicurioRegistryBaseIT {
                 .withConsumerProperty(SerdeConfig.USE_ID, IdOption.contentId.name())
                 .withAfterProduceValidator(() -> {
                     return TestUtils.retry(() -> {
-                        ArtifactMetaData meta = registryClient.groups().byGroupId("default").artifacts().byArtifactId(artifactId).meta().get();
+                        VersionMetaData meta = registryClient.groups().byGroupId("default").artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").meta().get();
                         registryClient.ids().globalIds().byGlobalId(meta.getGlobalId()).get();
                         return true;
                     });
@@ -555,7 +556,7 @@ public class AvroSerdeIT extends ApicurioRegistryBaseIT {
                 .withConsumerProperty(SerdeConfig.USE_ID, IdOption.contentId.name())
                 .withAfterProduceValidator(() -> {
                     return TestUtils.retry(() -> {
-                        ArtifactMetaData meta = registryClient.groups().byGroupId("default").artifacts().byArtifactId(artifactId).meta().get();
+                        VersionMetaData meta = registryClient.groups().byGroupId("default").artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").meta().get();
                         registryClient.ids().globalIds().byGlobalId(meta.getGlobalId()).get();
                         return true;
                     });
@@ -592,7 +593,7 @@ public class AvroSerdeIT extends ApicurioRegistryBaseIT {
                 .withProducerProperty(SerdeConfig.USE_ID, IdOption.contentId.name())
                 .withAfterProduceValidator(() -> {
                     return TestUtils.retry(() -> {
-                        ArtifactMetaData meta = registryClient.groups().byGroupId("default").artifacts().byArtifactId(artifactId).meta().get();
+                        VersionMetaData meta = registryClient.groups().byGroupId("default").artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").meta().get();
                         registryClient.ids().globalIds().byGlobalId(meta.getGlobalId()).get();
                         return true;
                     });
@@ -629,7 +630,7 @@ public class AvroSerdeIT extends ApicurioRegistryBaseIT {
                 .withConsumerProperty(SerdeConfig.USE_ID, IdOption.contentId.name())
                 .withAfterProduceValidator(() -> {
                     return TestUtils.retry(() -> {
-                        ArtifactMetaData meta = registryClient.groups().byGroupId("default").artifacts().byArtifactId(artifactId).meta().get();
+                        VersionMetaData meta = registryClient.groups().byGroupId("default").artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").meta().get();
                         registryClient.ids().globalIds().byGlobalId(meta.getGlobalId()).get();
                         return true;
                     });
@@ -682,7 +683,7 @@ public class AvroSerdeIT extends ApicurioRegistryBaseIT {
                 .withProducerProperty(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true")
                 .withAfterProduceValidator(() -> {
                     return TestUtils.retry(() -> {
-                        ArtifactMetaData meta = registryClient.groups().byGroupId("default").artifacts().byArtifactId(artifactId).meta().get();
+                        VersionMetaData meta = registryClient.groups().byGroupId("default").artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").meta().get();
                         registryClient.ids().globalIds().byGlobalId(meta.getGlobalId()).get();
                         return true;
                     });

@@ -7,10 +7,6 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
-import io.apicurio.registry.serde.SerdeConfig;
-import io.api.sample.TableNotification;
-import io.kiota.http.vertx.VertXRequestAdapter;
-import io.apicurio.registry.client.auth.VertXAuthFactory;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serializer;
 import org.junit.jupiter.api.Assertions;
@@ -19,14 +15,19 @@ import org.junit.jupiter.api.Test;
 
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.DynamicMessage;
+
+import io.api.sample.TableNotification;
 import io.apicurio.registry.AbstractResourceTestBase;
+import io.apicurio.registry.client.auth.VertXAuthFactory;
 import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.rest.client.models.ArtifactMetaData;
+import io.apicurio.registry.rest.client.models.VersionMetaData;
+import io.apicurio.registry.serde.SerdeConfig;
 import io.apicurio.registry.serde.protobuf.ProtobufKafkaDeserializer;
 import io.apicurio.registry.serde.protobuf.ProtobufKafkaSerializer;
 import io.apicurio.registry.serde.strategy.SimpleTopicIdStrategy;
 import io.apicurio.registry.support.TestCmmn;
 import io.apicurio.registry.utils.tests.TestUtils;
+import io.kiota.http.vertx.VertXRequestAdapter;
 import io.quarkus.test.junit.QuarkusTest;
 
 @QuarkusTest
@@ -128,7 +129,7 @@ public class ProtobufSerdeTest extends AbstractResourceTestBase {
             waitForSchema(globalId -> {
                 try {
                     if (restClient.ids().globalIds().byGlobalId(globalId).get().readAllBytes().length > 0) {
-                        ArtifactMetaData artifactMetadata = restClient.groups().byGroupId(groupId).artifacts().byArtifactId(topic).meta().get();
+                        VersionMetaData artifactMetadata = restClient.groups().byGroupId(groupId).artifacts().byArtifactId(topic).versions().byVersionExpression("branch=latest").meta().get();
                         assertEquals(globalId, artifactMetadata.getGlobalId());
                         return true;
                     }

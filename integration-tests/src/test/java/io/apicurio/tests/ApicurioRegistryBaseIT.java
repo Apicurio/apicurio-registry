@@ -97,7 +97,7 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
             ArtifactSearchResults artifacts = registryClient.search().artifacts().get();
             for (SearchedArtifact artifact : artifacts.getArtifacts()) {
                 try {
-                    registryClient.groups().byGroupId(normalizeGroupId(artifact.getGroupId())).artifacts().byArtifactId(artifact.getId()).delete();
+                    registryClient.groups().byGroupId(normalizeGroupId(artifact.getGroupId())).artifacts().byArtifactId(artifact.getArtifactId()).delete();
                     registryClient.groups().byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString()).artifacts().delete();
                 } catch (ApiException e) {
                     //because of async storage artifact may be already deleted but listed anyway
@@ -116,10 +116,10 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
         return groupId != null ? groupId : "default"; // TODO
     }
 
-    protected ArtifactMetaData createArtifact(String groupId, String artifactId, String artifactType, InputStream artifact) throws Exception {
+    protected VersionMetaData createArtifact(String groupId, String artifactId, String artifactType, InputStream artifact) throws Exception {
         ArtifactContent content = new ArtifactContent();
         content.setContent(new String(artifact.readAllBytes(), StandardCharsets.UTF_8));
-        ArtifactMetaData amd = registryClient.groups().byGroupId(groupId).artifacts().post(content, config -> {
+        VersionMetaData vmd = registryClient.groups().byGroupId(groupId).artifacts().post(content, config -> {
             config.queryParameters.canonical = false;
             config.queryParameters.ifExists = IfExists.FAIL;
             config.headers.add("X-Registry-ArtifactId", artifactId);
@@ -127,16 +127,16 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
         });
 
         // make sure we have schema registered
-        ensureClusterSync(amd.getGlobalId());
-        ensureClusterSync(normalizeGroupId(amd.getGroupId()), amd.getId(), String.valueOf(amd.getVersion()));
+        ensureClusterSync(vmd.getGlobalId());
+        ensureClusterSync(normalizeGroupId(vmd.getGroupId()), vmd.getArtifactId(), String.valueOf(vmd.getVersion()));
 
-        return amd;
+        return vmd;
     }
 
-    protected ArtifactMetaData createArtifact(String groupId, String artifactId, String version, String ifExists, String artifactType, InputStream artifact) throws Exception {
+    protected VersionMetaData createArtifact(String groupId, String artifactId, String version, String ifExists, String artifactType, InputStream artifact) throws Exception {
         ArtifactContent content = new ArtifactContent();
         content.setContent(new String(artifact.readAllBytes(), StandardCharsets.UTF_8));
-        ArtifactMetaData amd = registryClient.groups().byGroupId(groupId).artifacts().post(content, config -> {
+        VersionMetaData vmd = registryClient.groups().byGroupId(groupId).artifacts().post(content, config -> {
             config.queryParameters.canonical = false;
             config.queryParameters.ifExists = IfExists.forValue(ifExists);
             config.headers.add("X-Registry-ArtifactId", artifactId);
@@ -145,10 +145,10 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
         });
 
         // make sure we have schema registered
-        ensureClusterSync(amd.getGlobalId());
-        ensureClusterSync(amd.getGroupId(), amd.getId(), String.valueOf(amd.getVersion()));
+        ensureClusterSync(vmd.getGlobalId());
+        ensureClusterSync(vmd.getGroupId(), vmd.getArtifactId(), String.valueOf(vmd.getVersion()));
 
-        return amd;
+        return vmd;
     }
 
     protected VersionMetaData createArtifactVersion(String groupId, String artifactId, InputStream artifact) throws Exception {
@@ -160,19 +160,7 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
 
         //wait for storage
         ensureClusterSync(meta.getGlobalId());
-        ensureClusterSync(normalizeGroupId(meta.getGroupId()), meta.getId(), String.valueOf(meta.getVersion()));
-
-        return meta;
-    }
-
-    protected ArtifactMetaData updateArtifact(String groupId, String artifactId, InputStream artifact) throws Exception {
-        ArtifactContent content = new ArtifactContent();
-        content.setContent(new String(artifact.readAllBytes(), StandardCharsets.UTF_8));
-        ArtifactMetaData meta = registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).put(content);
-
-        //wait for storage
-        ensureClusterSync(meta.getGlobalId());
-        ensureClusterSync(normalizeGroupId(meta.getGroupId()), meta.getId(), String.valueOf(meta.getVersion()));
+        ensureClusterSync(normalizeGroupId(meta.getGroupId()), meta.getArtifactId(), String.valueOf(meta.getVersion()));
 
         return meta;
     }

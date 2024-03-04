@@ -10,7 +10,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import io.apicurio.registry.AbstractResourceTestBase;
-import io.apicurio.registry.rest.v3.beans.ArtifactMetaData;
+import io.apicurio.registry.rest.v3.beans.VersionMetaData;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
@@ -32,7 +32,7 @@ public class IdsResourceTest extends AbstractResourceTestBase {
         String artifactId2 = "testIdsAfterCreate/Empty-2";
 
         // Create artifact 1
-        ArtifactMetaData amd1 = given()
+        VersionMetaData amd1 = given()
                 .when()
                     .contentType(CT_JSON)
                     .pathParam("groupId", GROUP)
@@ -43,9 +43,9 @@ public class IdsResourceTest extends AbstractResourceTestBase {
                 .then()
                     .statusCode(200)
                 .extract()
-                    .as(ArtifactMetaData.class);
+                    .as(VersionMetaData.class);
         // Create artifact 2
-        ArtifactMetaData amd2 = given()
+        VersionMetaData amd2 = given()
                 .when()
                     .contentType(CT_JSON)
                     .pathParam("groupId", GROUP)
@@ -56,7 +56,7 @@ public class IdsResourceTest extends AbstractResourceTestBase {
                 .then()
                     .statusCode(200)
                 .extract()
-                    .as(ArtifactMetaData.class);
+                    .as(VersionMetaData.class);
 
         Assertions.assertNotNull(amd1.getGlobalId());
         Assertions.assertNotNull(amd1.getContentId());
@@ -71,7 +71,7 @@ public class IdsResourceTest extends AbstractResourceTestBase {
                 .contentType(CT_JSON)
                 .pathParam("groupId", GROUP)
                 .pathParam("artifactId", artifactId1)
-                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/meta")
+                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest/meta")
             .then()
                 .statusCode(200)
                 .body("type", equalTo(ArtifactType.OPENAPI))
@@ -85,7 +85,7 @@ public class IdsResourceTest extends AbstractResourceTestBase {
                 .contentType(CT_JSON)
                 .pathParam("groupId", GROUP)
                 .pathParam("artifactId", artifactId2)
-                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/meta")
+                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest/meta")
             .then()
                 .statusCode(200)
                 .body("type", equalTo(ArtifactType.OPENAPI))
@@ -97,7 +97,7 @@ public class IdsResourceTest extends AbstractResourceTestBase {
             .when()
                 .contentType(CT_JSON)
                 .pathParam("groupId", GROUP)
-                .pathParam("artifactId", amd1.getId())
+                .pathParam("artifactId", amd1.getArtifactId())
                 .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions")
             .then()
                 .statusCode(200)
@@ -111,7 +111,7 @@ public class IdsResourceTest extends AbstractResourceTestBase {
             .when()
                 .contentType(CT_JSON)
                 .pathParam("groupId", GROUP)
-                .pathParam("artifactId", amd1.getId())
+                .pathParam("artifactId", amd1.getArtifactId())
                 .pathParam("version", amd1.getVersion())
                 .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/{version}/meta")
             .then()
@@ -130,7 +130,7 @@ public class IdsResourceTest extends AbstractResourceTestBase {
         String artifactId = "testGetByGlobalId/Empty";
 
         // Create the artifact.
-        ArtifactMetaData amd = given()
+        VersionMetaData amd = given()
                 .when()
                 .contentType(CT_JSON)
                 .pathParam("groupId", GROUP)
@@ -141,7 +141,7 @@ public class IdsResourceTest extends AbstractResourceTestBase {
                 .then()
                 .statusCode(200)
                 .extract()
-                .as(ArtifactMetaData.class);
+                .as(VersionMetaData.class);
 
         long globalId = amd.getGlobalId();
 
@@ -188,7 +188,7 @@ public class IdsResourceTest extends AbstractResourceTestBase {
         String artifactId = "testGetByContentId/Empty";
 
         // Create the artifact.
-        ArtifactMetaData amd = given()
+        VersionMetaData amd = given()
                 .when()
                     .contentType(CT_JSON)
                     .pathParam("groupId", GROUP)
@@ -199,7 +199,7 @@ public class IdsResourceTest extends AbstractResourceTestBase {
                 .then()
                     .statusCode(200)
                 .extract()
-                    .as(ArtifactMetaData.class);
+                    .as(VersionMetaData.class);
 
         long contentId = amd.getContentId();
 

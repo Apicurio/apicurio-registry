@@ -1,42 +1,43 @@
 package io.apicurio.registry.ccompat.rest.v7.impl;
 
 
-import io.apicurio.registry.ccompat.dto.SchemaReference;
-import io.apicurio.registry.ccompat.rest.error.ConflictException;
-import io.apicurio.registry.ccompat.rest.error.UnprocessableEntityException;
-import io.apicurio.registry.content.ContentHandle;
-import io.apicurio.registry.rest.v3.beans.ArtifactReference;
-import io.apicurio.registry.rules.RuleApplicationType;
-import io.apicurio.registry.rules.RuleViolationException;
-import io.apicurio.registry.rules.RulesService;
-import io.apicurio.registry.storage.RegistryStorage;
-import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
-import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
-import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
-import io.apicurio.registry.storage.dto.StoredArtifactDto;
-import io.apicurio.registry.storage.error.ArtifactNotFoundException;
-import io.apicurio.registry.storage.error.RuleNotFoundException;
-import io.apicurio.registry.storage.error.VersionNotFoundException;
-import io.apicurio.registry.types.ArtifactState;
-import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.types.Current;
-import io.apicurio.registry.types.RuleType;
-import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
-import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
-import org.apache.avro.AvroTypeException;
-import org.apache.avro.SchemaParseException;
-import org.apache.commons.codec.digest.DigestUtils;
-import org.slf4j.Logger;
-
-import jakarta.inject.Inject;
-
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import static io.apicurio.registry.storage.RegistryStorage.ArtifactRetrievalBehavior.DEFAULT;
+import org.apache.avro.AvroTypeException;
+import org.apache.avro.SchemaParseException;
+import org.apache.commons.codec.digest.DigestUtils;
+import org.slf4j.Logger;
+
+import io.apicurio.registry.ccompat.dto.SchemaReference;
+import io.apicurio.registry.ccompat.rest.error.ConflictException;
+import io.apicurio.registry.ccompat.rest.error.UnprocessableEntityException;
+import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.model.BranchId;
+import io.apicurio.registry.model.GA;
+import io.apicurio.registry.model.GAV;
+import io.apicurio.registry.rest.v3.beans.ArtifactReference;
+import io.apicurio.registry.rules.RuleApplicationType;
+import io.apicurio.registry.rules.RuleViolationException;
+import io.apicurio.registry.rules.RulesService;
+import io.apicurio.registry.storage.RegistryStorage;
+import io.apicurio.registry.storage.RegistryStorage.ArtifactRetrievalBehavior;
+import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
+import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
+import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
+import io.apicurio.registry.storage.error.ArtifactNotFoundException;
+import io.apicurio.registry.storage.error.RuleNotFoundException;
+import io.apicurio.registry.storage.error.VersionNotFoundException;
+import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.Current;
+import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.types.VersionState;
+import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
+import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
+import jakarta.inject.Inject;
 
 public abstract class AbstractResource {
 
@@ -59,8 +60,8 @@ public abstract class AbstractResource {
     @Inject
     ArtifactTypeUtilProviderFactory factory;
 
-    protected ArtifactMetaDataDto createOrUpdateArtifact(String subject, String schema, String artifactType, List<SchemaReference> references, String groupId) {
-        ArtifactMetaDataDto res;
+    protected ArtifactVersionMetaDataDto createOrUpdateArtifact(String subject, String schema, String artifactType, List<SchemaReference> references, String groupId) {
+        ArtifactVersionMetaDataDto res;
         final List<ArtifactReferenceDto> parsedReferences = parseReferences(references, groupId);
         final List<ArtifactReference> artifactReferences = parsedReferences.stream().map(dto -> ArtifactReference.builder().name(dto.getName()).groupId(dto.getGroupId()).artifactId(dto.getArtifactId()).version(dto.getVersion()).build()).collect(Collectors.toList());
         final Map<String, ContentHandle> resolvedReferences = storage.resolveReferences(parsedReferences);
@@ -73,7 +74,7 @@ public abstract class AbstractResource {
                 res = storage.createArtifact(groupId, subject, null, artifactType, schemaContent, parsedReferences);
             } else {
                 rulesService.applyRules(groupId, subject, artifactType, schemaContent, RuleApplicationType.UPDATE, artifactReferences, resolvedReferences);
-                res = storage.updateArtifact(groupId, subject, null, artifactType, schemaContent, parsedReferences);
+                res = storage.createArtifactVersion(groupId, subject, null, artifactType, schemaContent, parsedReferences);
             }
         } catch (RuleViolationException ex) {
             if (ex.getRuleType() == RuleType.VALIDITY) {
@@ -95,7 +96,7 @@ public abstract class AbstractResource {
 
             if (cconfig.canonicalHashModeEnabled.get() || normalize) {
                 try {
-                    amd = storage.getArtifactVersionMetaData(groupId, subject, true, ContentHandle.create(schema), artifactReferences);
+                    amd = storage.getArtifactVersionMetaDataByContent(groupId, subject, true, ContentHandle.create(schema), artifactReferences);
                 } catch (ArtifactNotFoundException ex) {
                     if (type.equals(ArtifactType.AVRO)) {
                         //When comparing using content, sometimes the references might be inlined into the content, try to dereference the existing content and compare as a fallback. See https://github.com/Apicurio/apicurio-registry/issues/3588 for more information.
@@ -103,7 +104,7 @@ public abstract class AbstractResource {
                         //This approach only works for schema types with dereference support (for now, only Avro in the ccompat API).
                         amd = storage.getArtifactVersions(groupId, subject)
                                 .stream().filter(version -> {
-                                    StoredArtifactDto artifactVersion = storage.getArtifactVersion(groupId, subject, version);
+                                    StoredArtifactVersionDto artifactVersion = storage.getArtifactVersionContent(groupId, subject, version);
                                     Map<String, ContentHandle> artifactVersionReferences = storage.resolveReferences(artifactVersion.getReferences());
                                     String dereferencedExistingContentSha = DigestUtils.sha256Hex(artifactTypeProvider.getContentDereferencer().dereference(artifactVersion.getContent(), artifactVersionReferences).content());
                                     return dereferencedExistingContentSha.equals(DigestUtils.sha256Hex(schema));
@@ -117,7 +118,7 @@ public abstract class AbstractResource {
                 }
 
             } else {
-                amd = storage.getArtifactVersionMetaData(groupId, subject, false, ContentHandle.create(schema), artifactReferences);
+                amd = storage.getArtifactVersionMetaDataByContent(groupId, subject, false, ContentHandle.create(schema), artifactReferences);
             }
 
             return amd;
@@ -150,43 +151,38 @@ public abstract class AbstractResource {
         return resolvedReferences;
     }
 
-    protected boolean isArtifactActive(String subject, String groupId, RegistryStorage.ArtifactRetrievalBehavior retrievalBehavior) {
-        final ArtifactState state = storage.getArtifactMetaData(groupId, subject, retrievalBehavior).getState();
-        return storage.isArtifactExists(groupId, subject) && (state.equals(ArtifactState.ENABLED) || state.equals(ArtifactState.DEPRECATED));
+    protected boolean isArtifactActive(String subject, String groupId) {
+        long count = storage.countActiveArtifactVersions(groupId, subject);
+        return count > 0;
     }
 
     protected String getLatestArtifactVersionForSubject(String subject, String groupId) {
         try {
-            ArtifactMetaDataDto latest = storage.getArtifactMetaData(groupId, subject);
-            return latest.getVersion();
+            GAV latestGAV = storage.getArtifactBranchTip(new GA(groupId, subject), BranchId.LATEST, ArtifactRetrievalBehavior.SKIP_DISABLED_LATEST);
+            return latestGAV.getRawVersionId();
         } catch (ArtifactNotFoundException ex) {
             throw new VersionNotFoundException(groupId, subject, "latest");
         }
     }
 
-    protected boolean shouldFilterState(boolean deleted, ArtifactState state) {
+    protected boolean shouldFilterState(boolean deleted, VersionState state) {
         if (deleted) {
             //if deleted is enabled, just return all states
             return true;
         } else {
-            return state.equals(ArtifactState.ENABLED);
+            return state.equals(VersionState.ENABLED);
         }
     }
 
     protected boolean areAllSchemasDisabled(List<Long> globalIds) {
         return globalIds.stream().anyMatch(globalId -> {
-            ArtifactState state = storage.getArtifactMetaData(globalId).getState();
-            return state.equals(ArtifactState.DISABLED);
+            VersionState state = storage.getArtifactVersionMetaData(globalId).getState();
+            return state.equals(VersionState.DISABLED);
         });
     }
 
     protected boolean doesArtifactExist(String artifactId, String groupId) {
-        try {
-            storage.getArtifact(groupId, artifactId, DEFAULT);
-            return true;
-        } catch (ArtifactNotFoundException ignored) {
-            return false;
-        }
+        return storage.isArtifactExists(groupId, artifactId);
     }
 
     protected boolean doesArtifactRuleExist(String artifactId, RuleType type, String groupId) {

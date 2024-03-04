@@ -1,22 +1,23 @@
 package io.apicurio.registry.storage.impl.sql;
 
-import io.apicurio.registry.content.ContentHandle;
-import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
-import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
-import io.apicurio.registry.types.RegistryException;
-import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
-import io.apicurio.registry.util.ArtifactTypeUtil;
-import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
-import org.apache.commons.codec.digest.DigestUtils;
-import org.slf4j.Logger;
-
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
+
+import org.apache.commons.codec.digest.DigestUtils;
+import org.slf4j.Logger;
+
+import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
+import io.apicurio.registry.storage.dto.EditableVersionMetaDataDto;
+import io.apicurio.registry.types.RegistryException;
+import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
+import io.apicurio.registry.util.ArtifactTypeUtil;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 
 /**
  * TODO Refactor
@@ -122,17 +123,18 @@ public class RegistryStorageContentUtils {
     }
 
 
-    public EditableArtifactMetaDataDto extractEditableArtifactMetadata(String artifactType, ContentHandle content) {
+    public EditableVersionMetaDataDto extractEditableArtifactMetadata(String artifactType, ContentHandle content) {
         var provider = factory.getArtifactTypeProvider(artifactType);
         var extractor = provider.getContentExtractor();
         var extractedMetadata = extractor.extract(content);
         if (extractedMetadata != null) {
-            return new EditableArtifactMetaDataDto(
-                    extractedMetadata.getName(),
-                    extractedMetadata.getDescription(),
-                    extractedMetadata.getLabels());
+            return EditableVersionMetaDataDto.builder()
+                    .name(extractedMetadata.getName())
+                    .description(extractedMetadata.getDescription())
+                    .labels(extractedMetadata.getLabels())
+                    .build();
         } else {
-            return new EditableArtifactMetaDataDto();
+            return EditableVersionMetaDataDto.builder().build();
         }
     }
 

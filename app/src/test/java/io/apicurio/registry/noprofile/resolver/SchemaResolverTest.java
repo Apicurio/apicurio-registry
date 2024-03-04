@@ -91,7 +91,7 @@ public class SchemaResolverTest extends AbstractResourceTestBase {
 
         var runtimeException = Assertions.assertThrows(RuntimeException.class, () -> resolver.resolveSchema(new CustomResolverRecord(avroRecord, ArtifactReference.builder().groupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString()).artifactId("foo").build())));
         io.apicurio.registry.rest.client.models.Error error = (io.apicurio.registry.rest.client.models.Error) runtimeException.getCause();
-        assertEquals("ArtifactNotFoundException", error.getName());
+        assertEquals("VersionNotFoundException", error.getName());
         assertEquals(404, error.getErrorCode());
 
         resolver.close();

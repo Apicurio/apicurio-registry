@@ -1,20 +1,42 @@
 package io.apicurio.registry.noprofile.serde;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+import org.apache.kafka.common.header.Header;
+import org.apache.kafka.common.header.Headers;
+import org.apache.kafka.common.header.internals.RecordHeaders;
+import org.apache.kafka.common.serialization.Deserializer;
+import org.everit.json.schema.ValidationException;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-
 import io.apicurio.registry.AbstractResourceTestBase;
+import io.apicurio.registry.client.auth.VertXAuthFactory;
 import io.apicurio.registry.resolver.DefaultSchemaResolver;
 import io.apicurio.registry.resolver.ParsedSchema;
 import io.apicurio.registry.resolver.SchemaResolver;
 import io.apicurio.registry.resolver.SchemaResolverConfig;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.ArtifactContent;
-import io.apicurio.registry.rest.client.models.ArtifactMetaData;
 import io.apicurio.registry.rest.client.models.ArtifactReference;
 import io.apicurio.registry.rest.client.models.IfExists;
+import io.apicurio.registry.rest.client.models.VersionMetaData;
 import io.apicurio.registry.serde.SchemaResolverConfigurer;
 import io.apicurio.registry.serde.SerdeConfig;
 import io.apicurio.registry.serde.SerdeHeaders;
@@ -33,28 +55,6 @@ import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.kiota.http.vertx.VertXRequestAdapter;
 import io.quarkus.test.junit.QuarkusTest;
-import io.apicurio.registry.client.auth.VertXAuthFactory;
-import org.apache.kafka.common.header.Header;
-import org.apache.kafka.common.header.Headers;
-import org.apache.kafka.common.header.internals.RecordHeaders;
-import org.apache.kafka.common.serialization.Deserializer;
-import org.everit.json.schema.ValidationException;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @QuarkusTest
 public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
@@ -403,7 +403,7 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
 
         final ArtifactContent content = new ArtifactContent();
         content.setContent(new String(address.readAllBytes(), StandardCharsets.UTF_8));
-        final ArtifactMetaData amdAddress =
+        final VersionMetaData amdAddress =
                 client
                         .groups()
                         .byGroupId("GLOBAL")
@@ -418,7 +418,7 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
                         });
 
         content.setContent(new String(email.readAllBytes(), StandardCharsets.UTF_8));
-        final ArtifactMetaData amdEmail =
+        final VersionMetaData amdEmail =
                 client
                         .groups()
                         .byGroupId("GLOBAL")
@@ -433,7 +433,7 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
                         });
 
         content.setContent(new String(phone.readAllBytes(), StandardCharsets.UTF_8));
-        final ArtifactMetaData amdPhone =
+        final VersionMetaData amdPhone =
                 client
                         .groups()
                         .byGroupId("GLOBAL")
@@ -451,19 +451,19 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
         final ArtifactReference addressReference = new ArtifactReference();
         addressReference.setVersion(amdAddress.getVersion());
         addressReference.setGroupId(amdAddress.getGroupId());
-        addressReference.setArtifactId(amdAddress.getId());
+        addressReference.setArtifactId(amdAddress.getArtifactId());
         addressReference.setName("sample.address.json");
 
         final ArtifactReference emailReference = new ArtifactReference();
         emailReference.setVersion(amdEmail.getVersion());
         emailReference.setGroupId(amdEmail.getGroupId());
-        emailReference.setArtifactId(amdEmail.getId());
+        emailReference.setArtifactId(amdEmail.getArtifactId());
         emailReference.setName("sample.email.json");
 
         final ArtifactReference phoneReference = new ArtifactReference();
         phoneReference.setVersion(amdPhone.getVersion());
         phoneReference.setGroupId(amdPhone.getGroupId());
-        phoneReference.setArtifactId(amdPhone.getId());
+        phoneReference.setArtifactId(amdPhone.getArtifactId());
         phoneReference.setName("sample.phone.json");
 
         List<ArtifactReference> artifactReferences = new ArrayList<>();
@@ -495,8 +495,8 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
                 DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         JsonNode validationFor = objectMapper.readTree(data);
 
-        ArtifactMetaData global =
-            client.groups().byGroupId("GLOBAL").artifacts().byArtifactId("sample.account.json").meta().get();
+        VersionMetaData global =
+            client.groups().byGroupId("GLOBAL").artifacts().byArtifactId("sample.account.json").versions().byVersionExpression("branch=latest").meta().get();
                 // client.getArtifactMetaData("GLOBAL", "sample.account.json");
         io.apicurio.registry.resolver.strategy.ArtifactReference artifactReference = io.apicurio.registry.resolver.strategy.ArtifactReference.builder().globalId(global.getGlobalId())
                 .groupId("GLOBAL")//.version("4")

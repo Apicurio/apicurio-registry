@@ -4,7 +4,7 @@ import java.nio.file.Path;
 import java.util.Set;
 
 import io.apicurio.registry.content.ContentHandle;
-import io.apicurio.registry.rest.client.models.ArtifactMetaData;
+import io.apicurio.registry.rest.client.models.VersionMetaData;
 import io.apicurio.registry.types.ArtifactType;
 
 public class IndexedResource {
@@ -13,7 +13,7 @@ public class IndexedResource {
     private final String type;
     private final String resourceName;
     private final ContentHandle content;
-    private ArtifactMetaData registration;
+    private VersionMetaData registration;
 
     /**
      * Constructor.
@@ -86,14 +86,14 @@ public class IndexedResource {
     /**
      * @return the registration
      */
-    public ArtifactMetaData getRegistration() {
+    public VersionMetaData getRegistration() {
         return registration;
     }
 
     /**
      * @param registration the registration to set
      */
-    public void setRegistration(ArtifactMetaData registration) {
+    public void setRegistration(VersionMetaData registration) {
         this.registration = registration;
     }
 

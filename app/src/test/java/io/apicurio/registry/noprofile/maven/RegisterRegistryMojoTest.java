@@ -27,8 +27,8 @@ public class RegisterRegistryMojoTest extends RegistryMojoTestBase {
     public void testRegister() throws IOException, MojoFailureException, MojoExecutionException {
         super.testRegister(mojo, groupId);
 
-        Assertions.assertNotNull(clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(KEY_SUBJECT).meta().get());
-        Assertions.assertNotNull(clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(VALUE_SUBJECT).meta().get());
+        Assertions.assertNotNull(clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(KEY_SUBJECT).get());
+        Assertions.assertNotNull(clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(VALUE_SUBJECT).get());
     }
 
     @Test
@@ -36,7 +36,7 @@ public class RegisterRegistryMojoTest extends RegistryMojoTestBase {
         this.mojo.setSkip(true);
         super.testRegister(mojo, groupId);
 
-        Assertions.assertThrows(Exception.class, () -> clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(KEY_SUBJECT).meta().get());
-        Assertions.assertThrows(Exception.class, () -> clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(VALUE_SUBJECT).meta().get());
+        Assertions.assertThrows(Exception.class, () -> clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(KEY_SUBJECT).get());
+        Assertions.assertThrows(Exception.class, () -> clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(VALUE_SUBJECT).get());
     }
 }

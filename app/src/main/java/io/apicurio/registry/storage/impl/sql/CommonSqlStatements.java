@@ -112,7 +112,8 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String insertArtifact() {
-        return "INSERT INTO artifacts (groupId, artifactId, type, owner, createdOn) VALUES (?, ?, ?, ?, ?)";
+        return "INSERT INTO artifacts (groupId, artifactId, type, owner, createdOn, modifiedBy, modifiedOn, name, description, labels) "
+                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
     }
 
 
@@ -230,10 +231,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
 
     @Override
     public String selectArtifactMetaData() {
-        return "SELECT a.groupId, a.artifactId, a.type, a.owner, a.createdOn, v.contentId, v.globalId, v.version, v.versionOrder, v.state, v.name, v.description, v.labels, v.owner AS modifiedBy, v.createdOn AS modifiedOn "
-                + "FROM artifacts a "
-                + "JOIN versions v ON  a.groupId = v.groupId AND a.artifactId = v.artifactId "
-                + "WHERE a.groupId = ? AND a.artifactId = ? AND v.version = ?";
+        return "SELECT a.* FROM artifacts a WHERE a.groupId = ? AND a.artifactId = ?";
     }
 
 
@@ -277,9 +275,44 @@ public abstract class CommonSqlStatements implements SqlStatements {
         return "UPDATE artifact_rules SET configuration = ? WHERE groupId = ? AND artifactId = ? AND type = ?";
     }
 
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#updateArtifactModifiedByOn()
+     */
+    @Override
+    public String updateArtifactModifiedByOn() {
+        return "UPDATE artifacts SET modifiedBy = ?, modifiedOn = ? WHERE groupId = ? AND artifactId = ?";
+    }
+    
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#updateArtifactOwner()
+     */
     @Override
     public String updateArtifactOwner() {
         return "UPDATE artifacts SET owner = ? WHERE groupId = ? AND artifactId = ?";
+    }
+    
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#updateArtifactName()
+     */
+    @Override
+    public String updateArtifactName() {
+        return "UPDATE artifacts SET name = ? WHERE groupId = ? AND artifactId = ?";
+    }
+    
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#updateArtifactDescription()
+     */
+    @Override
+    public String updateArtifactDescription() {
+        return "UPDATE artifacts SET description = ? WHERE groupId = ? AND artifactId = ?";
+    }
+    
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#updateArtifactLabels()
+     */
+    @Override
+    public String updateArtifactLabels() {
+        return "UPDATE artifacts SET labels = ? WHERE groupId = ? AND artifactId = ?";
     }
 
     /**
@@ -323,11 +356,67 @@ public abstract class CommonSqlStatements implements SqlStatements {
     }
     
     /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#updateArtifactVersionNameByGAV()
+     */
+    @Override
+    public String updateArtifactVersionNameByGAV() {
+        return "UPDATE versions SET name = ? WHERE groupId = ? AND artifactId = ? AND version = ?";
+    }
+    
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#updateArtifactVersionDescriptionByGAV()
+     */
+    @Override
+    public String updateArtifactVersionDescriptionByGAV() {
+        return "UPDATE versions SET description = ? WHERE groupId = ? AND artifactId = ? AND version = ?";
+    }
+    
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#updateArtifactVersionOwnerByGAV()
+     */
+    @Override
+    public String updateArtifactVersionOwnerByGAV() {
+        return "UPDATE versions SET owner = ? WHERE groupId = ? AND artifactId = ? AND version = ?";
+    }
+    
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#updateArtifactVersionStateByGAV()
+     */
+    @Override
+    public String updateArtifactVersionStateByGAV() {
+        return "UPDATE versions SET state = ? WHERE groupId = ? AND artifactId = ? AND version = ?";
+    }
+    
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#updateArtifactVersionLabelsByGAV()
+     */
+    @Override
+    public String updateArtifactVersionLabelsByGAV() {
+        return "UPDATE versions SET labels = ? WHERE groupId = ? AND artifactId = ? AND version = ?";
+    }
+    
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#updateArtifactVersionState()
+     */
+    @Override
+    public String updateArtifactVersionState() {
+        return "UPDATE versions SET state = ? WHERE globalId = ?";
+    }
+    
+    /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#deleteGroupLabelsByGroupId()
      */
     @Override
     public String deleteGroupLabelsByGroupId() {
         return "DELETE FROM group_labels WHERE groupId = ?";
+    }
+    
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#deleteArtifactLabels()
+     */
+    @Override
+    public String deleteArtifactLabels() {
+        return "DELETE FROM artifact_labels WHERE groupId = ? AND artifactId = ?";
     }
 
     /**
@@ -391,14 +480,6 @@ public abstract class CommonSqlStatements implements SqlStatements {
     }
 
     /**
-     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#updateArtifactVersionState()
-     */
-    @Override
-    public String updateArtifactVersionState() {
-        return "UPDATE versions SET state = ? WHERE globalId = ?";
-    }
-
-    /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#deleteVersion()
      */
     @Override
@@ -427,7 +508,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String insertArtifactLabel() {
-        return "INSERT INTO artifact_labels (globalId, labelKey, labelValue) VALUES (?, ?, ?)";
+        return "INSERT INTO artifact_labels (groupId, artifactId, labelKey, labelValue) VALUES (?, ?, ?, ?)";
     }
     
     /**
@@ -465,6 +546,16 @@ public abstract class CommonSqlStatements implements SqlStatements {
         return "SELECT COUNT(v.globalId) FROM versions v "
                 + "JOIN artifacts a ON a.groupId = v.groupId AND a.artifactId = v.artifactId "
                 + "WHERE a.groupId = ? AND a.artifactId = ? ";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectActiveArtifactVersionsCount()
+     */
+    @Override
+    public String selectActiveArtifactVersionsCount() {
+        return "SELECT COUNT(v.globalId) FROM versions v "
+                + "JOIN artifacts a ON a.groupId = v.groupId AND a.artifactId = v.artifactId "
+                + "WHERE a.groupId = ? AND a.artifactId = ? AND v.state != 'DISABLED'";
     }
 
     /**

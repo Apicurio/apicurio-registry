@@ -2,7 +2,11 @@ package io.apicurio.registry.noprofile.storage;
 
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.model.BranchId;
+import io.apicurio.registry.model.GA;
+import io.apicurio.registry.model.GAV;
 import io.apicurio.registry.storage.RegistryStorage;
+import io.apicurio.registry.storage.RegistryStorage.ArtifactRetrievalBehavior;
 import io.apicurio.registry.storage.dto.*;
 import io.apicurio.registry.storage.error.ArtifactNotFoundException;
 import io.apicurio.registry.types.ArtifactType;
@@ -71,31 +75,32 @@ public class RegistryStorageSmokeTest extends AbstractResourceTestBase {
         int size = getStorage().getArtifactIds(null).size();
 
         // Create 2 version of an artifact and one other artifact
-        ArtifactMetaDataDto meta1 = getStorage().createArtifact(GROUP_ID, ARTIFACT_ID_1, null, ArtifactType.JSON, ContentHandle.create("content1"), null);
-        ArtifactMetaDataDto meta2 = getStorage().updateArtifact(GROUP_ID, ARTIFACT_ID_1, null, ArtifactType.JSON, ContentHandle.create("content2"), null);
+        ArtifactVersionMetaDataDto meta1 = getStorage().createArtifact(GROUP_ID, ARTIFACT_ID_1, null, ArtifactType.JSON, ContentHandle.create("content1"), null);
+        ArtifactVersionMetaDataDto meta2 = getStorage().createArtifactVersion(GROUP_ID, ARTIFACT_ID_1, null, ArtifactType.JSON, ContentHandle.create("content2"), null);
         getStorage().createArtifact(GROUP_ID, ARTIFACT_ID_2, null, ArtifactType.AVRO, ContentHandle.create("content3"), null);
 
         assertEquals(size + 2, getStorage().getArtifactIds(null).size());
         assertTrue(getStorage().getArtifactIds(null).contains(ARTIFACT_ID_1));
 
-        StoredArtifactDto a1 = getStorage().getArtifact(GROUP_ID, ARTIFACT_ID_1);
+        StoredArtifactVersionDto a1 = getStorage().getArtifactVersionContent(GROUP_ID, ARTIFACT_ID_1, meta2.getVersion());
         assertNotNull(a1);
         assertNotNull(a1.getGlobalId());
         assertNotNull(a1.getVersion());
         assertNotNull(a1.getContent());
 
-        ArtifactMetaDataDto metaLatest = getStorage().getArtifactMetaData(GROUP_ID, ARTIFACT_ID_1);
+        GAV latestGAV = getStorage().getArtifactBranchTip(new GA(GROUP_ID, ARTIFACT_ID_1), BranchId.LATEST, ArtifactRetrievalBehavior.DEFAULT);
+        ArtifactVersionMetaDataDto metaLatest = getStorage().getArtifactVersionMetaData(GROUP_ID, ARTIFACT_ID_1, latestGAV.getRawVersionId());
         assertEquals(meta2, metaLatest);
 
         List<String> versions = getStorage().getArtifactVersions(GROUP_ID, ARTIFACT_ID_1);
         assertEquals(2, versions.size());
         assertTrue(versions.contains(a1.getVersion()));
 
-        assertEquals(a1, getStorage().getArtifact(GROUP_ID, ARTIFACT_ID_1));
+        assertEquals(a1, getStorage().getArtifactVersionContent(GROUP_ID, ARTIFACT_ID_1, meta2.getVersion()));
 
         // define name in an older version metadata
         getStorage().updateArtifactVersionMetaData(GROUP_ID, ARTIFACT_ID_1, meta1.getVersion(),
-                EditableArtifactMetaDataDto.builder().name("foo").build());
+                EditableVersionMetaDataDto.builder().name("foo").build());
 
         // update can be async
         retry(() -> {

@@ -3,6 +3,7 @@ package io.apicurio.registry.storage.dto;
 import java.util.Map;
 
 import io.apicurio.registry.types.VersionState;
+import io.quarkus.runtime.annotations.RegisterForReflection;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
@@ -18,19 +19,20 @@ import lombok.ToString;
 @Setter
 @EqualsAndHashCode
 @ToString
-public class ArtifactVersionMetaDataDto {
+@RegisterForReflection
+public class EditableVersionMetaDataDto {
+    
+    public static EditableVersionMetaDataDto fromEditableArtifactMetaDataDto(EditableArtifactMetaDataDto amd) {
+        return EditableVersionMetaDataDto.builder()
+                .name(amd.getName())
+                .description(amd.getDescription())
+                .labels(amd.getLabels())
+                .build();
+    }
 
-    private String groupId;
-    private String artifactId;
-    private String version;
-    private int versionOrder;
-    private long globalId;
-    private long contentId;
+
     private String name;
     private String description;
-    private String owner;
-    private long createdOn;
-    private String type;
     private VersionState state;
     private Map<String, String> labels;
 }

@@ -1,12 +1,15 @@
 package io.apicurio.tests.serdes.apicurio;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+
 import com.google.protobuf.DynamicMessage;
-import io.apicurio.tests.ApicurioRegistryBaseIT;
-import io.apicurio.tests.common.serdes.proto.TestCmmn;
-import io.apicurio.tests.protobuf.ProtobufTestMessage;
-import io.apicurio.tests.utils.Constants;
-import io.apicurio.tests.utils.KafkaFacade;
-import io.apicurio.registry.rest.client.models.ArtifactMetaData;
+
+import io.apicurio.registry.rest.client.models.VersionMetaData;
 import io.apicurio.registry.serde.SerdeConfig;
 import io.apicurio.registry.serde.protobuf.ProtobufKafkaDeserializer;
 import io.apicurio.registry.serde.protobuf.ProtobufKafkaDeserializerConfig;
@@ -16,13 +19,12 @@ import io.apicurio.registry.serde.strategy.TopicIdStrategy;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.tests.TestUtils;
+import io.apicurio.tests.ApicurioRegistryBaseIT;
+import io.apicurio.tests.common.serdes.proto.TestCmmn;
+import io.apicurio.tests.protobuf.ProtobufTestMessage;
+import io.apicurio.tests.utils.Constants;
+import io.apicurio.tests.utils.KafkaFacade;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Tag;
-import org.junit.jupiter.api.Test;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @Tag(Constants.SERDES)
 @QuarkusIntegrationTest
@@ -173,7 +175,7 @@ public class ProtobufSerdeIT extends ApicurioRegistryBaseIT {
         ProtobufUUIDTestMessage schemaV2 = new ProtobufUUIDTestMessage();
 
         createArtifact("default", artifactId, ArtifactType.PROTOBUF, schemaV1.generateArtificialSchemaStream());
-        updateArtifact("default", artifactId, schemaV2.generateSchemaStream());
+        createArtifactVersion("default", artifactId, schemaV2.generateSchemaStream());
 
         //by default the artifact is found by content so this should work by finding the version 1 of the artifact
         new SimpleSerdesTesterBuilder<ProtobufTestMessage, ProtobufTestMessage>()
@@ -405,7 +407,7 @@ public class ProtobufSerdeIT extends ApicurioRegistryBaseIT {
             .withProducerProperty(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true")
             .withAfterProduceValidator(() -> {
                 return TestUtils.retry(() -> {
-                    ArtifactMetaData meta = registryClient.groups().byGroupId("default").artifacts().byArtifactId(artifactId).meta().get();
+                    VersionMetaData meta = registryClient.groups().byGroupId("default").artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").meta().get();
                     registryClient.ids().globalIds().byGlobalId(meta.getGlobalId()).get();
                     return true;
                 });
@@ -441,7 +443,7 @@ public class ProtobufSerdeIT extends ApicurioRegistryBaseIT {
             .withConsumerProperty(SerdeConfig.DESERIALIZER_SPECIFIC_VALUE_RETURN_CLASS, DynamicMessage.class.getName())
             .withAfterProduceValidator(() -> {
                 return TestUtils.retry(() -> {
-                    ArtifactMetaData meta = registryClient.groups().byGroupId("default").artifacts().byArtifactId(artifactId).meta().get();
+                    VersionMetaData meta = registryClient.groups().byGroupId("default").artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").meta().get();
                     registryClient.ids().globalIds().byGlobalId(meta.getGlobalId()).get();
                     return true;
                 });
@@ -476,7 +478,7 @@ public class ProtobufSerdeIT extends ApicurioRegistryBaseIT {
             .withConsumerProperty(ProtobufKafkaDeserializerConfig.DERIVE_CLASS_FROM_SCHEMA, "true")
             .withAfterProduceValidator(() -> {
                 return TestUtils.retry(() -> {
-                    ArtifactMetaData meta = registryClient.groups().byGroupId("default").artifacts().byArtifactId(artifactId).meta().get();
+                    VersionMetaData meta = registryClient.groups().byGroupId("default").artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").meta().get();
                     registryClient.ids().globalIds().byGlobalId(meta.getGlobalId()).get();
                     return true;
                 });
@@ -512,7 +514,7 @@ public class ProtobufSerdeIT extends ApicurioRegistryBaseIT {
                 .withConsumerProperty(ProtobufKafkaDeserializerConfig.DERIVE_CLASS_FROM_SCHEMA, "true")
                 .withAfterProduceValidator(() -> {
                     return TestUtils.retry(() -> {
-                        ArtifactMetaData meta = registryClient.groups().byGroupId("default").artifacts().byArtifactId(artifactId).meta().get();
+                        VersionMetaData meta = registryClient.groups().byGroupId("default").artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").meta().get();
                         registryClient.ids().globalIds().byGlobalId(meta.getGlobalId()).get();
                         return true;
                     });

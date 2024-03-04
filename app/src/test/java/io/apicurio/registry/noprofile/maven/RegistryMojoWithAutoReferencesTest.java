@@ -1,19 +1,5 @@
 package io.apicurio.registry.noprofile.maven;
 
-import io.apicurio.registry.maven.DownloadRegistryMojo;
-import io.apicurio.registry.maven.RegisterArtifact;
-import io.apicurio.registry.maven.RegisterRegistryMojo;
-import io.apicurio.registry.rest.client.models.ArtifactMetaData;
-import io.apicurio.registry.rest.client.models.ArtifactReference;
-import io.apicurio.registry.rest.v3.beans.IfExists;
-import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.utils.IoUtil;
-import io.apicurio.registry.utils.tests.TestUtils;
-import io.quarkus.test.junit.QuarkusTest;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -24,6 +10,21 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import io.apicurio.registry.maven.DownloadRegistryMojo;
+import io.apicurio.registry.maven.RegisterArtifact;
+import io.apicurio.registry.maven.RegisterRegistryMojo;
+import io.apicurio.registry.rest.client.models.ArtifactReference;
+import io.apicurio.registry.rest.client.models.VersionMetaData;
+import io.apicurio.registry.rest.v3.beans.IfExists;
+import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.utils.IoUtil;
+import io.apicurio.registry.utils.tests.TestUtils;
+import io.quarkus.test.junit.QuarkusTest;
 
 @QuarkusTest
 public class RegistryMojoWithAutoReferencesTest extends RegistryMojoTestBase {
@@ -151,7 +152,7 @@ public class RegistryMojoWithAutoReferencesTest extends RegistryMojoTestBase {
     }
 
     private void validateStructure(String groupId, String artifactId, int expectedMainReferences, int expectedTotalArtifacts, Set<String> originalContents) throws Exception {
-        final ArtifactMetaData artifactWithReferences = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).meta().get();
+        final VersionMetaData artifactWithReferences = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").meta().get();
         final String mainContent =
                 new String(
                         clientV3
@@ -190,11 +191,13 @@ public class RegistryMojoWithAutoReferencesTest extends RegistryMojoTestBase {
                             .byVersionExpression(artifactReference.getVersion())
                             .get()
                             .readAllBytes(), StandardCharsets.UTF_8);
-            ArtifactMetaData referenceMetadata = clientV3
+            VersionMetaData referenceMetadata = clientV3
                     .groups()
                     .byGroupId(artifactReference.getGroupId())
                     .artifacts()
                     .byArtifactId(artifactReference.getArtifactId())
+                    .versions()
+                    .byVersionExpression("branch=latest")
                     .meta()
                     .get()
                     ;

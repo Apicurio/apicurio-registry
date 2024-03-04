@@ -1,6 +1,24 @@
 package io.apicurio.registry.storage.impl.gitops;
 
 
+import static org.apache.commons.io.FilenameUtils.concat;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URISyntaxException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.List;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
+import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.api.errors.GitAPIException;
+import org.eclipse.jgit.revwalk.RevCommit;
+import org.eclipse.jgit.transport.URIish;
+import org.eclipse.jgit.treewalk.TreeWalk;
+import org.slf4j.Logger;
+
 import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
 import io.apicurio.registry.storage.impl.gitops.model.GitFile;
 import io.apicurio.registry.storage.impl.gitops.model.Type;
@@ -12,8 +30,8 @@ import io.apicurio.registry.storage.impl.gitops.model.v0.Rule;
 import io.apicurio.registry.storage.impl.gitops.model.v0.Setting;
 import io.apicurio.registry.storage.impl.gitops.model.v0.Version;
 import io.apicurio.registry.storage.impl.sql.RegistryStorageContentUtils;
-import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.types.VersionState;
 import io.apicurio.registry.util.ContentTypeUtil;
 import io.apicurio.registry.utils.impexp.ArtifactRuleEntity;
 import io.apicurio.registry.utils.impexp.ArtifactVersionEntity;
@@ -24,23 +42,6 @@ import jakarta.annotation.PreDestroy;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import lombok.Getter;
-import org.eclipse.jgit.api.Git;
-import org.eclipse.jgit.api.errors.GitAPIException;
-import org.eclipse.jgit.revwalk.RevCommit;
-import org.eclipse.jgit.transport.URIish;
-import org.eclipse.jgit.treewalk.TreeWalk;
-import org.slf4j.Logger;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.URISyntaxException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.util.List;
-import java.util.UUID;
-import java.util.stream.Collectors;
-
-import static org.apache.commons.io.FilenameUtils.concat;
 
 @ApplicationScoped
 public class GitManager {
@@ -271,8 +272,9 @@ public class GitManager {
                     e.artifactId = artifact.getId();
                     e.version = version.getId();
                     e.globalId = version.getGlobalId();
-                    e.state = ArtifactState.ENABLED;
+                    e.state = VersionState.ENABLED;
                     e.createdOn = state.getUpdatedCommit().getCommitTime();
+                    // TODO name, description, labels
 
                     var content = processContent(state, artifactFile, version.getContentFile());
                     if (content != null) {

@@ -9,6 +9,7 @@ import io.apicurio.registry.metrics.StorageMetricsApply;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.*;
 import io.apicurio.registry.storage.error.RegistryStorageException;
+import io.apicurio.registry.storage.error.VersionNotFoundException;
 import io.apicurio.registry.storage.impl.gitops.sql.BlueSqlStorage;
 import io.apicurio.registry.storage.impl.gitops.sql.GreenSqlStorage;
 import io.apicurio.registry.model.BranchId;
@@ -199,31 +200,19 @@ public class GitOpsRegistryStorage extends AbstractReadOnlyRegistryStorage {
 
 
     @Override
-    public StoredArtifactDto getArtifact(String groupId, String artifactId) {
-        return proxy(storage -> storage.getArtifact(groupId, artifactId));
+    public ContentWrapperDto getContentById(long contentId) {
+        return proxy(storage -> storage.getContentById(contentId));
     }
 
 
     @Override
-    public StoredArtifactDto getArtifact(String groupId, String artifactId, ArtifactRetrievalBehavior behavior) {
-        return proxy(storage -> storage.getArtifact(groupId, artifactId, behavior));
+    public ContentWrapperDto getContentByHash(String contentHash) {
+        return proxy(storage -> storage.getContentByHash(contentHash));
     }
 
 
     @Override
-    public ContentWrapperDto getArtifactByContentId(long contentId) {
-        return proxy(storage -> storage.getArtifactByContentId(contentId));
-    }
-
-
-    @Override
-    public ContentWrapperDto getArtifactByContentHash(String contentHash) {
-        return proxy(storage -> storage.getArtifactByContentHash(contentHash));
-    }
-
-
-    @Override
-    public List<ArtifactMetaDataDto> getArtifactVersionsByContentId(long contentId) {
+    public List<ArtifactVersionMetaDataDto> getArtifactVersionsByContentId(long contentId) {
         return proxy(storage -> storage.getArtifactVersionsByContentId(contentId));
     }
 
@@ -231,13 +220,6 @@ public class GitOpsRegistryStorage extends AbstractReadOnlyRegistryStorage {
     public List<Long> getEnabledArtifactContentIds(String groupId, String artifactId) {
         return proxy(storage -> storage.getEnabledArtifactContentIds(groupId, artifactId));
     }
-
-
-    @Override
-    public List<Long> getArtifactContentIds(String groupId, String artifactId) {
-        return proxy(storage -> storage.getArtifactContentIds(groupId, artifactId));
-    }
-
 
     @Override
     public Set<String> getArtifactIds(Integer limit) {
@@ -258,20 +240,8 @@ public class GitOpsRegistryStorage extends AbstractReadOnlyRegistryStorage {
 
 
     @Override
-    public ArtifactMetaDataDto getArtifactMetaData(String groupId, String artifactId, ArtifactRetrievalBehavior behavior) {
-        return proxy(storage -> storage.getArtifactMetaData(groupId, artifactId, behavior));
-    }
-
-
-    @Override
-    public ArtifactVersionMetaDataDto getArtifactVersionMetaData(String groupId, String artifactId, boolean canonical, ContentHandle content, List<ArtifactReferenceDto> artifactReferences) {
-        return proxy(storage -> storage.getArtifactVersionMetaData(groupId, artifactId, canonical, content, artifactReferences));
-    }
-
-
-    @Override
-    public ArtifactMetaDataDto getArtifactMetaData(long globalId) {
-        return proxy(storage -> storage.getArtifactMetaData(globalId));
+    public ArtifactVersionMetaDataDto getArtifactVersionMetaDataByContent(String groupId, String artifactId, boolean canonical, ContentHandle content, List<ArtifactReferenceDto> artifactReferences) {
+        return proxy(storage -> storage.getArtifactVersionMetaDataByContent(groupId, artifactId, canonical, content, artifactReferences));
     }
 
 
@@ -305,20 +275,26 @@ public class GitOpsRegistryStorage extends AbstractReadOnlyRegistryStorage {
 
 
     @Override
-    public StoredArtifactDto getArtifactVersion(long globalId) {
-        return proxy(storage -> storage.getArtifactVersion(globalId));
+    public StoredArtifactVersionDto getArtifactVersionContent(long globalId) {
+        return proxy(storage -> storage.getArtifactVersionContent(globalId));
     }
 
 
     @Override
-    public StoredArtifactDto getArtifactVersion(String groupId, String artifactId, String version) {
-        return proxy(storage -> storage.getArtifactVersion(groupId, artifactId, version));
+    public StoredArtifactVersionDto getArtifactVersionContent(String groupId, String artifactId, String version) {
+        return proxy(storage -> storage.getArtifactVersionContent(groupId, artifactId, version));
     }
 
 
     @Override
     public ArtifactVersionMetaDataDto getArtifactVersionMetaData(String groupId, String artifactId, String version) {
         return proxy(storage -> storage.getArtifactVersionMetaData(groupId, artifactId, version));
+    }
+    
+    @Override
+    public ArtifactVersionMetaDataDto getArtifactVersionMetaData(Long globalId)
+            throws VersionNotFoundException, RegistryStorageException {
+        return proxy(storage -> storage.getArtifactVersionMetaData(globalId));
     }
 
 
@@ -355,6 +331,12 @@ public class GitOpsRegistryStorage extends AbstractReadOnlyRegistryStorage {
     @Override
     public long countArtifacts() {
         return proxy(RegistryStorage::countArtifacts);
+    }
+    
+    
+    @Override
+    public long countActiveArtifactVersions(String groupId, String artifactId) {
+        return proxy(storage -> storage.countActiveArtifactVersions(groupId, artifactId));
     }
 
 
@@ -453,14 +435,14 @@ public class GitOpsRegistryStorage extends AbstractReadOnlyRegistryStorage {
 
 
     @Override
-    public List<Long> getContentIdsReferencingArtifact(String groupId, String artifactId, String version) {
-        return proxy(storage -> storage.getContentIdsReferencingArtifact(groupId, artifactId, version));
+    public List<Long> getContentIdsReferencingArtifactVersion(String groupId, String artifactId, String version) {
+        return proxy(storage -> storage.getContentIdsReferencingArtifactVersion(groupId, artifactId, version));
     }
 
 
     @Override
-    public List<Long> getGlobalIdsReferencingArtifact(String groupId, String artifactId, String version) {
-        return proxy(storage -> storage.getGlobalIdsReferencingArtifact(groupId, artifactId, version));
+    public List<Long> getGlobalIdsReferencingArtifactVersion(String groupId, String artifactId, String version) {
+        return proxy(storage -> storage.getGlobalIdsReferencingArtifactVersion(groupId, artifactId, version));
     }
 
 

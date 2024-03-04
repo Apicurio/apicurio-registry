@@ -1,23 +1,7 @@
 package io.apicurio.tests.migration;
 
-import io.apicurio.registry.client.auth.VertXAuthFactory;
-import io.apicurio.registry.model.BranchId;
-import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.types.ArtifactState;
-import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.utils.IoUtil;
-import io.apicurio.registry.utils.impexp.ArtifactBranchEntity;
-import io.apicurio.registry.utils.impexp.ArtifactVersionEntity;
-import io.apicurio.registry.utils.impexp.ContentEntity;
-import io.apicurio.registry.utils.impexp.EntityWriter;
-import io.apicurio.tests.ApicurioRegistryBaseIT;
-import io.apicurio.tests.serdes.apicurio.JsonSchemaMsgFactory;
-import io.apicurio.tests.utils.Constants;
-import io.kiota.http.vertx.VertXRequestAdapter;
-import io.quarkus.test.junit.QuarkusIntegrationTest;
-import org.apache.commons.codec.digest.DigestUtils;
-import org.junit.jupiter.api.Tag;
-import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -31,8 +15,25 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.zip.ZipOutputStream;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import org.apache.commons.codec.digest.DigestUtils;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+
+import io.apicurio.registry.client.auth.VertXAuthFactory;
+import io.apicurio.registry.model.BranchId;
+import io.apicurio.registry.rest.client.RegistryClient;
+import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.VersionState;
+import io.apicurio.registry.utils.IoUtil;
+import io.apicurio.registry.utils.impexp.ArtifactBranchEntity;
+import io.apicurio.registry.utils.impexp.ArtifactVersionEntity;
+import io.apicurio.registry.utils.impexp.ContentEntity;
+import io.apicurio.registry.utils.impexp.EntityWriter;
+import io.apicurio.tests.ApicurioRegistryBaseIT;
+import io.apicurio.tests.serdes.apicurio.JsonSchemaMsgFactory;
+import io.apicurio.tests.utils.Constants;
+import io.kiota.http.vertx.VertXRequestAdapter;
+import io.quarkus.test.junit.QuarkusIntegrationTest;
 
 @QuarkusIntegrationTest
 @Tag(Constants.MIGRATION)
@@ -68,7 +69,7 @@ public class GenerateCanonicalHashImportIT extends ApicurioRegistryBaseIT {
                       The only way is to generate canonical hash and then search artifact by it. But that needs apicurio-registry-app module as dependency.
                  */
 
-                var registryContent = dest.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get();
+                var registryContent = dest.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").get();
                 assertNotNull(registryContent);
                 assertEquals(content, IoUtil.toString(registryContent));
             }
@@ -122,7 +123,7 @@ public class GenerateCanonicalHashImportIT extends ApicurioRegistryBaseIT {
                 versionEntity.groupId = null;
                 versionEntity.labels = null;
                 versionEntity.name = null;
-                versionEntity.state = ArtifactState.ENABLED;
+                versionEntity.state = VersionState.ENABLED;
                 versionEntity.version = "1";
                 versionEntity.versionOrder = 1;
 

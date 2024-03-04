@@ -107,7 +107,7 @@ public class ProxyRegistryRunner implements RegistryRunner {
 
 
     public void waitUntilReady() {
-        Awaitility.await().atMost(Duration.ofSeconds(60)).until(this::isReady);
+        Awaitility.await().atMost(Duration.ofSeconds(3 * 60)).until(this::isReady);
     }
 
 

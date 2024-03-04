@@ -19,7 +19,6 @@ package io.apicurio.registry.storage.impl.kafkasql.upgrade;
 import io.apicurio.common.apps.config.Info;
 import io.apicurio.registry.exception.RuntimeAssertionFailedException;
 import io.apicurio.registry.exception.UnreachableCodeException;
-import io.apicurio.registry.storage.impl.kafkasql.KafkaSqlCoordinator;
 import io.apicurio.registry.storage.impl.kafkasql.KafkaSqlSubmitter;
 import io.apicurio.registry.storage.impl.kafkasql.keys.MessageKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.UpgraderKey;
@@ -88,9 +87,6 @@ public class KafkaSqlUpgraderManager {
 
     @Inject
     KafkaSqlSubmitter submitter;
-
-    @Inject
-    KafkaSqlCoordinator coordinator;
 
     @Inject
     KafkaSqlStore sqlStore;
@@ -256,7 +252,7 @@ public class KafkaSqlUpgraderManager {
                                     // Our own lock has timed out, we can try again
                                     localTryLocked = false;
                                     switchState(State.TRY_LOCK);
-                                    log.debug("Our own lock attempt timed out.");
+                                    log.warn("Our own lock attempt timed out.");
                                 } else {
                                     log.debug("Waiting for us or somebody else to acquire the lock.");
                                     // We need to ensure that we receive some kind of message to be woken up.
@@ -279,7 +275,7 @@ public class KafkaSqlUpgraderManager {
                                 var now = Instant.now();
                                 if (now.isAfter(lockMap.get(localUpgraderUUID).latestLockTimestamp.plus(scale(lockTimeout, 0.5f)))) {
                                     // We should unlock and wait, then try again
-                                    log.debug("We've got the lock but we don't have enough time ({} ms remaining). Unlocking.",
+                                    log.warn("We've got the lock but we don't have enough time ({} ms remaining). Unlocking.",
                                             Duration.between(lockMap.get(localUpgraderUUID).latestLockTimestamp, now).toMillis());
                                     submitter.send(UpgraderKey.create(true), UpgraderValue.create(ActionType.UPGRADE_ABORT_AND_UNLOCK, localUpgraderUUID, targetVersion));
                                     localTryLocked = false;

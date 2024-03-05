@@ -2,11 +2,6 @@ name: Trivy Image Scan
 
 on:
   workflow_dispatch:
-    inputs:
-      image:
-        description: 'Image to be scanned'
-        default: quay.io/apicurio/apicurio-registry:latest-snapshot
-        required: true
   schedule:
     - cron: "0 6 * * *"
 
@@ -14,4 +9,4 @@ jobs:
   call-image-scan-registry:
     uses: Apicurio/apicurio-gh-workflows/.github/workflows/image-scan.yaml@main
     with:
-      image: ${{ github.event.inputs.image }}
+      image: quay.io/apicurio/apicurio-registry:latest-snapshot

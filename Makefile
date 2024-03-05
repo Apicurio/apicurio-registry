@@ -446,12 +446,19 @@ run-kafkasql-integration-tests:
 	@echo "----------------------------------------------------------------------"
 	./mvnw verify -am --no-transfer-progress -Pintegration-tests $(REGISTRY_IMAGE) -P$(INTEGRATION_TESTS_PROFILE) -Premote-kafka -pl integration-tests -Dmaven.javadoc.skip=true --no-transfer-progress
 
-.PHONY: run-kafkasql-upgrade-tests ## Runs sql e2e tests
+.PHONY: run-kafkasql-upgrade-tests ## Runs kafkasql e2e integration tests
 run-kafkasql-upgrade-tests :
 	@echo "----------------------------------------------------------------------"
 	@echo "                 Running KafkaSql Upgrade Integration Tests                        "
 	@echo "----------------------------------------------------------------------"
 	./mvnw verify -am --no-transfer-progress -Pintegration-tests $(REGISTRY_IMAGE) -Pkafkasqlit -Premote-kafka -pl integration-tests -Dmaven.javadoc.skip=true --no-transfer-progress
+
+.PHONY: run-kafkasql-manual-tests ## Runs kafkasql manual integration tests
+run-kafkasql-manual-tests :
+	@echo "----------------------------------------------------------------------"
+	@echo "                 Running KafkaSql Manual Integration Tests                        "
+	@echo "----------------------------------------------------------------------"
+	./mvnw verify -am --no-transfer-progress -Pintegration-tests $(REGISTRY_IMAGE) -Pkafkasql-manual -Premote-kafka -pl integration-tests -Dmaven.javadoc.skip=true --no-transfer-progress
 
 .PHONY: run-kafkasql-migration-integration-tests ## Runs kafkasql migration integration tests
 run-kafkasql-migration-integration-tests:

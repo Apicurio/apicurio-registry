@@ -16,13 +16,13 @@
 
 package io.apicurio.registry.storage.impl.sql.mappers;
 
+import io.apicurio.registry.storage.dto.GroupMetaDataDto;
+import io.apicurio.registry.storage.impl.sql.RegistryContentUtils;
+import io.apicurio.registry.storage.impl.sql.jdb.RowMapper;
+
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
-
-import io.apicurio.registry.storage.dto.GroupMetaDataDto;
-import io.apicurio.registry.storage.impl.sql.SqlUtil;
-import io.apicurio.registry.storage.impl.sql.jdb.RowMapper;
 
 /**
  * @author Fabian Martinez
@@ -43,7 +43,7 @@ public class GroupMetaDataDtoMapper implements RowMapper<GroupMetaDataDto> {
     @Override
     public GroupMetaDataDto map(ResultSet rs) throws SQLException {
         GroupMetaDataDto dto = new GroupMetaDataDto();
-        dto.setGroupId(SqlUtil.denormalizeGroupId(rs.getString("groupId")));
+        dto.setGroupId(RegistryContentUtils.denormalizeGroupId(rs.getString("groupId")));
         dto.setDescription(rs.getString("description"));
 
         String type = rs.getString("artifactsType");
@@ -56,7 +56,7 @@ public class GroupMetaDataDtoMapper implements RowMapper<GroupMetaDataDto> {
         Timestamp modifiedOn = rs.getTimestamp("modifiedOn");
         dto.setModifiedOn(modifiedOn == null ? 0 : modifiedOn.getTime());
 
-        dto.setProperties(SqlUtil.deserializeProperties(rs.getString("properties")));
+        dto.setProperties(RegistryContentUtils.deserializeProperties(rs.getString("properties")));
 
         return dto;
     }

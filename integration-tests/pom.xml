@@ -156,6 +156,7 @@
                         <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
                         <maven.home>${maven.home}</maven.home>
                         <groups>${groups}</groups>
+                        <project.version>${project.version}</project.version>
                     </systemPropertyVariables>
                 </configuration>
                 <executions>
@@ -678,6 +679,14 @@
             <properties>
                 <skipTests>false</skipTests>
                 <groups>kafkasqlit</groups>
+            </properties>
+        </profile>
+
+        <profile>
+            <id>kafkasql-manual</id>
+            <properties>
+                <skipTests>false</skipTests>
+                <groups>kafkasql-manual</groups>
             </properties>
         </profile>
 

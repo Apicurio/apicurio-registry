@@ -29,8 +29,9 @@ import io.apicurio.registry.rest.v2.shared.CommonResourceOperations;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
-import io.apicurio.registry.storage.dto.ContentWrapperDto;
+import io.apicurio.registry.storage.dto.ContentAndReferencesDto;
 import io.apicurio.registry.storage.dto.StoredArtifactDto;
+import io.apicurio.registry.storage.impl.sql.RegistryContentUtils;
 import io.apicurio.registry.types.ArtifactMediaTypes;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.Current;
@@ -41,6 +42,7 @@ import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 import java.util.List;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.interceptor.Interceptors;
@@ -104,7 +106,7 @@ public class IdsResourceImpl implements IdsResource {
         ArtifactTypeUtilProvider artifactTypeProvider = factory.getArtifactTypeProvider(metaData.getType());
 
         if (dereference && !artifact.getReferences().isEmpty()) {
-            contentToReturn = artifactTypeProvider.getContentDereferencer().dereference(artifact.getContent(), storage.resolveReferences(artifact.getReferences()));
+            contentToReturn = artifactTypeProvider.getContentDereferencer().dereference(artifact.getContent(), RegistryContentUtils.recursivelyResolveReferences(artifact.getReferences(), storage::getContentByReference));
         }
 
         Response.ResponseBuilder builder = Response.ok(contentToReturn, contentType);
@@ -136,8 +138,8 @@ public class IdsResourceImpl implements IdsResource {
      */
     @Override
     public List<ArtifactReference> referencesByContentId(long contentId) {
-        ContentWrapperDto artifact = storage.getArtifactByContentId(contentId);
-        return artifact.getReferences().stream()
+        ContentAndReferencesDto contentAndReferences = storage.getArtifactByContentId(contentId);
+        return contentAndReferences.getReferences().stream()
                 .map(V2ApiUtil::referenceDtoToReference)
                 .collect(Collectors.toList());
     }

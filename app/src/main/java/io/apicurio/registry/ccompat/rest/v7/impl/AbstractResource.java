@@ -33,6 +33,7 @@ import io.apicurio.registry.storage.dto.StoredArtifactDto;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
 import io.apicurio.registry.storage.RuleNotFoundException;
 import io.apicurio.registry.storage.VersionNotFoundException;
+import io.apicurio.registry.storage.impl.sql.RegistryContentUtils;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.Current;
@@ -106,7 +107,7 @@ public abstract class AbstractResource {
         ArtifactMetaDataDto res;
         final List<ArtifactReferenceDto> parsedReferences = parseReferences(references, groupId);
         final List<ArtifactReference> artifactReferences = parsedReferences.stream().map(dto -> ArtifactReference.builder().name(dto.getName()).groupId(dto.getGroupId()).artifactId(dto.getArtifactId()).version(dto.getVersion()).build()).collect(Collectors.toList());
-        final Map<String, ContentHandle> resolvedReferences = storage.resolveReferences(parsedReferences);
+        final Map<String, ContentHandle> resolvedReferences = RegistryContentUtils.recursivelyResolveReferences(parsedReferences, storage::getContentByReference);
         try {
             ContentHandle schemaContent;
             schemaContent = ContentHandle.create(schema);
@@ -147,7 +148,7 @@ public abstract class AbstractResource {
                         amd = storage.getArtifactVersions(groupId, subject)
                                 .stream().filter(version -> {
                                     StoredArtifactDto artifactVersion = storage.getArtifactVersion(groupId, subject, version);
-                                    Map<String, ContentHandle> artifactVersionReferences = storage.resolveReferences(artifactVersion.getReferences());
+                                    Map<String, ContentHandle> artifactVersionReferences = RegistryContentUtils.recursivelyResolveReferences(artifactVersion.getReferences(), storage::getContentByReference);
                                     String dereferencedExistingContentSha = DigestUtils.sha256Hex(artifactTypeProvider.getContentDereferencer().dereference(artifactVersion.getContent(), artifactVersionReferences).content());
                                     return dereferencedExistingContentSha.equals(DigestUtils.sha256Hex(schema));
                                 })
@@ -182,7 +183,7 @@ public abstract class AbstractResource {
                 return artifactReferenceDto;
             }).collect(Collectors.toList());
 
-            resolvedReferences = storage.resolveReferences(referencesAsDtos);
+            resolvedReferences = RegistryContentUtils.recursivelyResolveReferences(referencesAsDtos, storage::getContentByReference);
 
             if (references.size() > resolvedReferences.size()) {
                 //There are unresolvable references, which is not allowed.

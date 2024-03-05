@@ -24,8 +24,10 @@ import java.util.Map;
  */
 public enum MessageType {
 
+    @Deprecated // Handled by KafkaSqlUpgraderManager
     Bootstrap(0),
     GlobalRule(1),
+    @Deprecated // Handled by ContentV2
     Content(2),
     Artifact(3),
     ArtifactRule(4),
@@ -41,6 +43,8 @@ public enum MessageType {
     ArtifactOwner(14),
     CommentId(15),
     Comment(16),
+    ContentV2(17),
+    Upgrader(18),
     ;
 
     private final byte ord;

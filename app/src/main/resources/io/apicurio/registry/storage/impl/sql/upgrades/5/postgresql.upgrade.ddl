@@ -4,5 +4,3 @@
 -- *********************************************************************
 
 UPDATE apicurio SET prop_value = 5 WHERE prop_name = 'db_version';
-
-UPGRADER:io.apicurio.registry.storage.impl.sql.upgrader.ProtobufCanonicalHashUpgrader;

@@ -2,23 +2,13 @@ package io.apicurio.registry.storage.impl.kafkasql;
 
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
-import io.apicurio.registry.storage.impl.sql.SqlUtil;
+import io.apicurio.registry.storage.dto.ContentAndReferencesDto;
+import io.apicurio.registry.storage.impl.sql.RegistryContentUtils;
 import io.apicurio.registry.util.AbstractDataImporter;
-import io.apicurio.registry.utils.impexp.ArtifactRuleEntity;
-import io.apicurio.registry.utils.impexp.ArtifactVersionEntity;
-import io.apicurio.registry.utils.impexp.CommentEntity;
-import io.apicurio.registry.utils.impexp.ContentEntity;
-import io.apicurio.registry.utils.impexp.GlobalRuleEntity;
-import io.apicurio.registry.utils.impexp.GroupEntity;
-import org.apache.commons.codec.digest.DigestUtils;
+import io.apicurio.registry.utils.impexp.*;
 import org.slf4j.Logger;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class KafkaSqlDataImporter extends AbstractDataImporter {
@@ -79,12 +69,21 @@ public class KafkaSqlDataImporter extends AbstractDataImporter {
 
     @Override
     public void importContent(ContentEntity entity) {
-        List<ArtifactReferenceDto> references = SqlUtil.deserializeReferences(entity.serializedReferences);
+        // We need to resolve recursive references to compute canonical content hash.
+        // We could wait for content dependencies, but they might not actually exist (reference integrity rule is optional).
+        // TODO: We should either not compute the canonical hash during import, or do it after the import is finished,
+        // but the column would have to be nullable.
+
+        List<ArtifactReferenceDto> references = RegistryContentUtils.deserializeReferences(entity.serializedReferences);
 
         // We do not need canonicalHash if we have artifactType
         if (entity.canonicalHash == null && entity.artifactType != null) {
-            ContentHandle canonicalContent = registryStorage.canonicalizeContent(entity.artifactType, ContentHandle.create(entity.contentBytes), references);
-            entity.canonicalHash = DigestUtils.sha256Hex(canonicalContent.bytes());
+            entity.canonicalHash = RegistryContentUtils.canonicalContentHash(entity.artifactType,
+                    ContentAndReferencesDto.builder()
+                            .content(ContentHandle.create(entity.contentBytes))
+                            .references(references)
+                            .build(),
+                    r -> getRegistryStorage().getContentByReference(r));
         }
 
         getContentIdMapping().put(entity.contentId, entity.contentId);

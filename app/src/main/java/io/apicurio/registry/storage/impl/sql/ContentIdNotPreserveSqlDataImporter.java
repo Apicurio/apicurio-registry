@@ -3,9 +3,9 @@ package io.apicurio.registry.storage.impl.sql;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.storage.RegistryStorageException;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
+import io.apicurio.registry.storage.dto.ContentAndReferencesDto;
 import io.apicurio.registry.storage.impl.sql.jdb.Handle;
 import io.apicurio.registry.utils.impexp.ContentEntity;
-import org.apache.commons.codec.digest.DigestUtils;
 import org.slf4j.Logger;
 
 import java.util.List;
@@ -19,13 +19,22 @@ public class ContentIdNotPreserveSqlDataImporter extends SqlDataImporter {
 
     @Override
     public void importContent(ContentEntity entity) {
-        List<ArtifactReferenceDto> references = SqlUtil.deserializeReferences(entity.serializedReferences);
+        // We need to resolve recursive references to compute canonical content hash.
+        // We could wait for content dependencies, but they might not actually exist (reference integrity rule is optional).
+        // TODO: We should either not compute the canonical hash during import, or do it after the import is finished,
+        // but the column would have to be nullable.
+
+        List<ArtifactReferenceDto> references = RegistryContentUtils.deserializeReferences(entity.serializedReferences);
 
         // We do not need canonicalHash if we have artifactType
         if (entity.canonicalHash == null) {
             if (entity.artifactType != null) {
-                ContentHandle canonicalContent = getRegistryStorage().canonicalizeContent(entity.artifactType, ContentHandle.create(entity.contentBytes), references);
-                entity.canonicalHash = DigestUtils.sha256Hex(canonicalContent.bytes());
+                entity.canonicalHash = RegistryContentUtils.canonicalContentHash(entity.artifactType,
+                        ContentAndReferencesDto.builder()
+                                .content(ContentHandle.create(entity.contentBytes))
+                                .references(references)
+                                .build(),
+                        r -> getRegistryStorage().getContentByReference(r));
             } else {
                 throw new RegistryStorageException("There is not enough information about content. Artifact Type and CanonicalHash are both missing.");
             }

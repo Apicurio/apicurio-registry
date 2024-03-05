@@ -1,0 +1,65 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: apicurio-registry-node-PLACEHOLDER_REGISTRY_NODE_ID-deployment
+  labels:
+    app: apicurio-registry-node-PLACEHOLDER_REGISTRY_NODE_ID
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: apicurio-registry-node-PLACEHOLDER_REGISTRY_NODE_ID
+  template:
+    metadata:
+      labels:
+        app: apicurio-registry-node-PLACEHOLDER_REGISTRY_NODE_ID
+    spec:
+      containers:
+        - name: apicurio-registry-node-PLACEHOLDER_REGISTRY_NODE_ID
+          image: PLACEHOLDER_REGISTRY_IMAGE
+          imagePullPolicy: Always
+          env:
+            - name: JAVA_OPTS_APPEND
+              value: PLACEHOLDER_JAVA_OPTIONS
+            - name: JAVA_OPTIONS # Special case for Registry <= 2.5.8.Final, see https://access.redhat.com/solutions/7041059
+              value: PLACEHOLDER_JAVA_OPTIONS
+            - name: REGISTRY_LOG_LEVEL
+              value: DEBUG
+          ports:
+            - containerPort: 8080
+              name: http
+              protocol: TCP
+          readinessProbe:
+            failureThreshold: 60 # Intentionally high
+            httpGet:
+              path: /health/ready
+              port: 8080
+              scheme: HTTP
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 10
+          livenessProbe:
+            failureThreshold: 60 # Intentionally high
+            httpGet:
+              path: /health/live
+              port: 8080
+              scheme: HTTP
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: apicurio-registry-node-PLACEHOLDER_REGISTRY_NODE_ID-service
+  labels:
+    app: apicurio-registry-node-PLACEHOLDER_REGISTRY_NODE_ID
+spec:
+  selector:
+    app: apicurio-registry-node-PLACEHOLDER_REGISTRY_NODE_ID
+  ports:
+    - protocol: TCP
+      port: PLACEHOLDER_REGISTRY_PORT
+      targetPort: 8080

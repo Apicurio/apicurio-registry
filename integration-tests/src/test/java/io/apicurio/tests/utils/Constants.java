@@ -86,6 +86,9 @@ public interface Constants {
      */
     String DB_UPGRADE = "dbupgrade";
 
+    String KAFKASQL_MANUAL = "kafkasql-manual";
+
+
     Path LOGS_DIR = Paths.get("target/logs/");
 
     /**

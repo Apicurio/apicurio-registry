@@ -3,7 +3,7 @@ package io.apicurio.registry.storage.impl.kafkasql;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.storage.RegistryStorageException;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
-import io.apicurio.registry.storage.impl.sql.SqlUtil;
+import io.apicurio.registry.storage.impl.sql.RegistryContentUtils;
 import io.apicurio.registry.utils.impexp.ContentEntity;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.slf4j.Logger;
@@ -19,7 +19,7 @@ public class ContentIdNotPreserveKafkaSqlDataImporter extends KafkaSqlDataImport
 
     @Override
     public void importContent(ContentEntity entity) {
-        List<ArtifactReferenceDto> references = SqlUtil.deserializeReferences(entity.serializedReferences);
+        List<ArtifactReferenceDto> references = RegistryContentUtils.deserializeReferences(entity.serializedReferences);
 
         // We do not need canonicalHash if we have artifactType
         if (entity.canonicalHash == null) {
@@ -33,7 +33,7 @@ public class ContentIdNotPreserveKafkaSqlDataImporter extends KafkaSqlDataImport
 
         // When we do not want to preserve contentId, the best solution to import content is create new one with the contentBytes
         // It makes sure there won't be any conflicts
-        long newContentId = getRegistryStorage().ensureContentAndGetContentId(ContentHandle.create(entity.contentBytes), entity.canonicalHash, references);
+        long newContentId = getRegistryStorage().getOrCreateContent(entity.artifactType, ContentHandle.create(entity.contentBytes), references).contentId;
 
         getContentIdMapping().put(entity.contentId, newContentId);
 

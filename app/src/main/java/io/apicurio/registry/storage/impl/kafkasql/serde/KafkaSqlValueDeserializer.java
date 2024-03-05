@@ -1,25 +1,22 @@
 package io.apicurio.registry.storage.impl.kafkasql.serde;
 
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import io.apicurio.registry.content.ContentHandle;
-import io.apicurio.registry.storage.impl.kafkasql.MessageType;
-import io.apicurio.registry.storage.impl.kafkasql.values.ActionType;
-import io.apicurio.registry.storage.impl.kafkasql.values.ContentValue;
-import io.apicurio.registry.storage.impl.kafkasql.values.MessageTypeToValueClass;
-import io.apicurio.registry.storage.impl.kafkasql.values.MessageValue;
-import org.apache.commons.io.input.UnsynchronizedByteArrayInputStream;
+import java.util.Optional;
+
+import org.apache.kafka.common.header.Header;
+import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import io.apicurio.registry.storage.impl.kafkasql.KafkaSqlMessage;
 
 /**
  * Kafka deserializer responsible for deserializing the value of a KSQL Kafka message.
  */
-public class KafkaSqlValueDeserializer implements Deserializer<MessageValue> {
+public class KafkaSqlValueDeserializer implements Deserializer<KafkaSqlMessage> {
 
     private static final Logger log = LoggerFactory.getLogger(KafkaSqlValueDeserializer.class);
 
@@ -30,24 +27,37 @@ public class KafkaSqlValueDeserializer implements Deserializer<MessageValue> {
     }
 
     /**
-     * @see Deserializer#deserialize(String, byte[])
+     * @see org.apache.kafka.common.serialization.Deserializer#deserialize(java.lang.String, byte[])
      */
     @Override
-    public MessageValue deserialize(String topic, byte[] data) {
+    public KafkaSqlMessage deserialize(String topic, byte[] data) {
+        // Not supported - must deserializer with headers.
+        return null;
+    }
+
+    /**
+     * @see org.apache.kafka.common.serialization.Deserializer#deserialize(java.lang.String, org.apache.kafka.common.header.Headers, byte[])
+     */
+    @Override
+    public KafkaSqlMessage deserialize(String topic, Headers headers, byte[] data) {
         // Return null for tombstone messages
         if (data == null) {
             return null;
         }
 
         try {
-            byte msgTypeOrdinal = data[0];
-            if (msgTypeOrdinal == MessageType.Content.getOrd()) {
-                return this.deserializeContent(topic, data);
+            String messageType = extractMessageType(headers);
+            if (messageType == null) {
+                log.error("Message missing required header: mt");
+                return null;
             }
-            Class<? extends MessageValue> keyClass = MessageTypeToValueClass.ordToValue(msgTypeOrdinal);
-            UnsynchronizedByteArrayInputStream in = new UnsynchronizedByteArrayInputStream(data, 1);
-            MessageValue key = mapper.readValue(in, keyClass);
-            return key;
+
+            Class<? extends KafkaSqlMessage> msgClass = KafkaSqlMessageIndex.lookup(messageType);
+            if (msgClass == null) {
+                throw new Exception("Unknown KafkaSql message class: " + msgClass);
+            }
+            KafkaSqlMessage message = mapper.readValue(data, msgClass);
+            return message;
         } catch (Exception e) {
             log.error("Error deserializing a Kafka+SQL message (value).", e);
             return null;
@@ -55,47 +65,19 @@ public class KafkaSqlValueDeserializer implements Deserializer<MessageValue> {
     }
 
     /**
-     * Special case deserialize of a {@link ContentValue} value.
-     * @param topic
-     * @param data
+     * Extracts the UUID from the message.  The UUID should be found in a message header.
+     *
+     * @param record
      */
-    private ContentValue deserializeContent(String topic, byte[] data) {
-        ByteBuffer byteBuffer = ByteBuffer.wrap(data);
-        byteBuffer.get(); // the first byte is the message type ordinal, skip that
-        byte actionOrdinal = byteBuffer.get();
-
-        // Canonical hash (length of string + string bytes)
-        String canonicalHash = null;
-        int hashLen = byteBuffer.getInt();
-        if (hashLen > 0) {
-            byte[] bytes = new byte[hashLen];
-            byteBuffer.get(bytes);
-            canonicalHash = new String(bytes, StandardCharsets.UTF_8);
-        }
-
-        // Content (length of content + content bytes)
-        ContentHandle contentHandle = null;
-        int numContentBytes = byteBuffer.getInt();
-        if (numContentBytes > 0) {
-            byte[] contentBytes = new byte[numContentBytes];
-            byteBuffer.get(contentBytes);
-            contentHandle = ContentHandle.create(contentBytes);
-        }
-
-        String serializedReferences = null;
-        //When deserializing from other storage versions, the references byte count might not be there, so we first check if there are anything remaining in the buffer
-        if (byteBuffer.hasRemaining()) {
-            // References (length of references + references bytes)
-            int referencesLen = byteBuffer.getInt();
-            if (referencesLen > 0) {
-                byte[] bytes = new byte[referencesLen];
-                byteBuffer.get(bytes);
-                serializedReferences = new String(bytes, StandardCharsets.UTF_8);
-            }
-        }
-        ActionType action = ActionType.fromOrd(actionOrdinal);
-
-        return ContentValue.create(action, canonicalHash, contentHandle, serializedReferences);
+    private static String extractMessageType(Headers headers) {
+        return Optional.ofNullable(headers.headers("mt"))
+                .map(Iterable::iterator)
+                .map(it -> {
+                    return it.hasNext() ? it.next() : null;
+                })
+                .map(Header::value)
+                .map(String::new)
+                .orElse(null);
     }
 
 }

@@ -811,10 +811,6 @@ public interface RegistryStorage extends DynamicConfigStorage {
     void updateArtifactVersionComment(String groupId, String artifactId, String version, String commentId, String value);
 
 
-    CommentDto createArtifactVersionCommentRaw(String groupId, String artifactId, String version, IdGenerator commentId,
-                                               String owner, Date createdOn, String value);
-
-
     void resetGlobalId();
 
 

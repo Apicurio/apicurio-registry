@@ -272,13 +272,6 @@ public class RegistryStorageDecoratorBase extends RegistryStorageDecoratorReadOn
 
 
     @Override
-    public CommentDto createArtifactVersionCommentRaw(String groupId, String artifactId, String version, IdGenerator commentId, String owner, Date createdOn, String value) {
-        return delegate.createArtifactVersionCommentRaw(groupId, artifactId, version, commentId,
-                owner, createdOn, value);
-    }
-
-
-    @Override
     public void resetGlobalId() {
         delegate.resetGlobalId();
     }

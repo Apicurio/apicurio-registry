@@ -266,13 +266,6 @@ public abstract class AbstractReadOnlyRegistryStorage implements RegistryStorage
 
 
     @Override
-    public CommentDto createArtifactVersionCommentRaw(String groupId, String artifactId, String version, IdGenerator commentId, String owner, Date createdOn, String value) {
-        readOnlyViolation();
-        return null;
-    }
-
-
-    @Override
     public void resetGlobalId() {
         readOnlyViolation();
     }

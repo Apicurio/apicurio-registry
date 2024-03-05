@@ -45,7 +45,6 @@ public class ReadOnlyRegistryStorageTest {
                 entry("createArtifact6", new State(true, s -> s.createArtifact(null, null, null, null, null, null))),
                 entry("createArtifactRule4", new State(true, s -> s.createArtifactRule(null, null, null, null))),
                 entry("createArtifactVersionComment4", new State(true, s -> s.createArtifactVersionComment(null, null, null, null))),
-                entry("createArtifactVersionCommentRaw7", new State(true, s -> s.createArtifactVersionCommentRaw(null, null, null, null, null, null, null))),
                 entry("createArtifactWithMetadata7", new State(true, s -> s.createArtifactWithMetadata(null, null, null, null, null, null, null))),
                 entry("createArtifactWithMetadata9", new State(true, s -> s.createArtifactWithMetadata(null, null, null, null, null, null, null, null, null))),
                 entry("createDownload1", new State(true, s -> s.createDownload(null))),

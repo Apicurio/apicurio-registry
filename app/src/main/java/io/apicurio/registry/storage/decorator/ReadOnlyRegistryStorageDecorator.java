@@ -341,14 +341,6 @@ public class ReadOnlyRegistryStorageDecorator extends RegistryStorageDecoratorRe
 
 
     @Override
-    public CommentDto createArtifactVersionCommentRaw(String groupId, String artifactId, String version,
-                                                      IdGenerator commentId, String owner, Date createdOn, String value) {
-        checkReadOnly();
-        return delegate.createArtifactVersionCommentRaw(groupId, artifactId, version, commentId, owner, createdOn, value);
-    }
-
-
-    @Override
     public void resetGlobalId() {
         checkReadOnly();
         delegate.resetGlobalId();

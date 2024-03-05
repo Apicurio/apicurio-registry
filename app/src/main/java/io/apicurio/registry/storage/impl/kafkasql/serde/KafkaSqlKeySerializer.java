@@ -1,19 +1,20 @@
 package io.apicurio.registry.storage.impl.kafkasql.serde;
 
-import com.fasterxml.jackson.annotation.JsonInclude.Include;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import io.apicurio.registry.storage.impl.kafkasql.keys.MessageKey;
+import java.io.IOException;
+import java.io.UncheckedIOException;
+
 import org.apache.commons.io.output.UnsynchronizedByteArrayOutputStream;
 import org.apache.kafka.common.serialization.Serializer;
 
-import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.nio.ByteBuffer;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import io.apicurio.registry.storage.impl.kafkasql.KafkaSqlMessageKey;
 
 /**
  * Responsible for serializing the message key to bytes.
  */
-public class KafkaSqlKeySerializer implements Serializer<MessageKey> {
+public class KafkaSqlKeySerializer implements Serializer<KafkaSqlMessageKey> {
     
     private static final ObjectMapper mapper = new ObjectMapper();
     static {
@@ -24,10 +25,9 @@ public class KafkaSqlKeySerializer implements Serializer<MessageKey> {
      * @see Serializer#serialize(String, Object)
      */
     @Override
-    public byte[] serialize(String topic, MessageKey messageKey) {
+    public byte[] serialize(String topic, KafkaSqlMessageKey messageKey) {
         try {
-            UnsynchronizedByteArrayOutputStream out = new UnsynchronizedByteArrayOutputStream();
-            out.write(ByteBuffer.allocate(1).put((byte) messageKey.getType().getOrd()).array());
+            UnsynchronizedByteArrayOutputStream out = UnsynchronizedByteArrayOutputStream.builder().get();
             mapper.writeValue(out, messageKey);
             return out.toByteArray();
         } catch (IOException e) {

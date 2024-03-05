@@ -1720,9 +1720,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     }
 
 
-    @Override
-    @Transactional
-    public CommentDto createArtifactVersionCommentRaw(String groupId, String artifactId, String version, IdGenerator commentId,
+    private CommentDto createArtifactVersionCommentRaw(String groupId, String artifactId, String version, IdGenerator commentId,
                                                       String owner, Date createdOn, String value) {
         try {
             var metadata = getArtifactVersionMetaData(groupId, artifactId, version);

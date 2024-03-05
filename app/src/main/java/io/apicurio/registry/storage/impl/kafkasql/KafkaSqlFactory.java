@@ -1,13 +1,11 @@
 package io.apicurio.registry.storage.impl.kafkasql;
 
 import io.apicurio.common.apps.config.Info;
-import io.apicurio.registry.storage.impl.kafkasql.keys.MessageKey;
 import io.apicurio.registry.storage.impl.kafkasql.serde.KafkaSqlKeyDeserializer;
 import io.apicurio.registry.storage.impl.kafkasql.serde.KafkaSqlKeySerializer;
 import io.apicurio.registry.storage.impl.kafkasql.serde.KafkaSqlPartitioner;
 import io.apicurio.registry.storage.impl.kafkasql.serde.KafkaSqlValueDeserializer;
 import io.apicurio.registry.storage.impl.kafkasql.serde.KafkaSqlValueSerializer;
-import io.apicurio.registry.storage.impl.kafkasql.values.MessageValue;
 import io.apicurio.registry.utils.RegistryProperties;
 import io.apicurio.registry.utils.kafka.AsyncProducer;
 import io.apicurio.registry.utils.kafka.ProducerActions;
@@ -186,7 +184,7 @@ public class KafkaSqlFactory {
      */
     @ApplicationScoped
     @Produces
-    public ProducerActions<MessageKey, MessageValue> createKafkaProducer() {
+    public ProducerActions<KafkaSqlMessageKey, KafkaSqlMessage> createKafkaProducer() {
         Properties props = (Properties) producerProperties.clone();
 
         // Configure kafka settings
@@ -201,7 +199,7 @@ public class KafkaSqlFactory {
         // Create the Kafka producer
         KafkaSqlKeySerializer keySerializer = new KafkaSqlKeySerializer();
         KafkaSqlValueSerializer valueSerializer = new KafkaSqlValueSerializer();
-        return new AsyncProducer<MessageKey, MessageValue>(props, keySerializer, valueSerializer);
+        return new AsyncProducer<KafkaSqlMessageKey, KafkaSqlMessage>(props, keySerializer, valueSerializer);
     }
 
     /**
@@ -209,7 +207,7 @@ public class KafkaSqlFactory {
      */
     @ApplicationScoped
     @Produces
-    public KafkaConsumer<MessageKey, MessageValue> createKafkaConsumer() {
+    public KafkaConsumer<KafkaSqlMessageKey, KafkaSqlMessage> createKafkaConsumer() {
         Properties props = (Properties) consumerProperties.clone();
 
         props.putIfAbsent(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
@@ -223,7 +221,7 @@ public class KafkaSqlFactory {
         // Create the Kafka Consumer
         KafkaSqlKeyDeserializer keyDeserializer = new KafkaSqlKeyDeserializer();
         KafkaSqlValueDeserializer valueDeserializer = new KafkaSqlValueDeserializer();
-        KafkaConsumer<MessageKey, MessageValue> consumer = new KafkaConsumer<>(props, keyDeserializer, valueDeserializer);
+        KafkaConsumer<KafkaSqlMessageKey, KafkaSqlMessage> consumer = new KafkaConsumer<>(props, keyDeserializer, valueDeserializer);
         return consumer;
     }
 

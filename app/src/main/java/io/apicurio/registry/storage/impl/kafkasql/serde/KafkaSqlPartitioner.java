@@ -1,11 +1,12 @@
 package io.apicurio.registry.storage.impl.kafkasql.serde;
 
-import io.apicurio.registry.storage.impl.kafkasql.keys.MessageKey;
 import org.apache.kafka.clients.producer.Partitioner;
 import org.apache.kafka.clients.producer.internals.StickyPartitionCache;
 import org.apache.kafka.common.Cluster;
 import org.apache.kafka.common.PartitionInfo;
 import org.apache.kafka.common.utils.Utils;
+
+import io.apicurio.registry.storage.impl.kafkasql.KafkaSqlMessageKey;
 
 import java.util.List;
 import java.util.Map;
@@ -44,7 +45,7 @@ public class KafkaSqlPartitioner implements Partitioner {
         int numPartitions = partitions.size();
         
         // hash the partition key to choose a partition
-        MessageKey msgKey = (MessageKey) key;
+        KafkaSqlMessageKey msgKey = (KafkaSqlMessageKey) key;
         String partitionKey = msgKey.getPartitionKey();
         return Utils.toPositive(Utils.murmur2(partitionKey.getBytes())) % numPartitions;
     }

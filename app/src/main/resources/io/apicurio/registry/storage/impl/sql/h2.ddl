@@ -4,7 +4,7 @@
 
 CREATE TABLE apicurio (prop_name VARCHAR(255) NOT NULL, prop_value VARCHAR(255));
 ALTER TABLE apicurio ADD PRIMARY KEY (prop_name);
-INSERT INTO apicurio (prop_name, prop_value) VALUES ('db_version', 14);
+INSERT INTO apicurio (prop_name, prop_value) VALUES ('db_version', 15);
 
 CREATE TABLE sequences (tenantId VARCHAR(128) NOT NULL, name VARCHAR(32) NOT NULL, seq_value BIGINT NOT NULL);
 ALTER TABLE sequences ADD PRIMARY KEY (tenantId, name);

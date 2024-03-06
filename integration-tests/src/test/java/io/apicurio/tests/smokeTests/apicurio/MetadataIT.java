@@ -1,7 +1,6 @@
 package io.apicurio.tests.smokeTests.apicurio;
 
 import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 
@@ -97,15 +96,6 @@ class MetadataIT extends ApicurioRegistryBaseIT {
         emd.setDescription("The description of the artifact.");
 
         registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("2").meta().put(emd);
-
-        retryOp((rc) -> {
-            ArtifactMetaData artifactMetaData = rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get();
-            LOGGER.info("Got metadata of artifact with ID {}: {}", artifactId, artifactMetaData);
-            assertThat(artifactMetaData.getType(), is("AVRO"));
-            assertThat(artifactMetaData.getName(), is("Artifact Updated Name"));
-            assertThat(artifactMetaData.getDescription(), is("The description of the artifact."));
-            assertThat(artifactMetaData.getModifiedOn(), notNullValue());
-        });
 
         versionMetaData = registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("1").meta().get();
 

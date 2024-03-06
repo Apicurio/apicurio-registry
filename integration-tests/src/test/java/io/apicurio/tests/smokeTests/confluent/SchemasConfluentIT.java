@@ -188,7 +188,7 @@ public class SchemasConfluentIT extends ConfluentBaseIT {
 
         assertThat(1, is(confluentService.getAllSubjects().size()));
 
-        Response ar = ArtifactUtils.getArtifact("default", subjectName);
+        Response ar = ArtifactUtils.getArtifact("default", subjectName, "branch=latest", 200);
         assertEquals(rawSchema, ar.asString());
         LOGGER.info(ar.asString());
 

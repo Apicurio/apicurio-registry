@@ -69,7 +69,7 @@ public abstract class AbstractReferencesCanonicalHashUpgrader implements IDbUpgr
     private void updateEntity(Handle handle, ExtendedContentEntity entity) {
         try {
             beforeEach();
-            if (entity.contentEntity.serializedReferences != null || ArtifactType.PROTOBUF.equals(entity.type) /* Replaces ProtobufCanonicalHashUpgrader */) {
+            if (entityHasToBeUpgraded(entity) /* Replaces ProtobufCanonicalHashUpgrader */) {
 
                 var newCanonicalHash = RegistryContentUtils.canonicalContentHash(
                         entity.type,
@@ -89,6 +89,10 @@ public abstract class AbstractReferencesCanonicalHashUpgrader implements IDbUpgr
         } catch (Exception ex) {
             log.warn("Failed to update canonical content hash for contentId {} and tenantId {}.", entity.contentEntity.contentId, entity.tenantId, ex);
         }
+    }
+
+    private static boolean entityHasToBeUpgraded(ExtendedContentEntity entity) {
+        return entity.contentEntity.serializedReferences != null || ArtifactType.PROTOBUF.equals(entity.type) || ArtifactType.AVRO.equals(entity.type);
     }
 
     protected abstract void beforeEach();

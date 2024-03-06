@@ -38,18 +38,7 @@ public class PostgreSqlEmbeddedTestResource implements QuarkusTestResourceLifecy
     @Override
     public Map<String, String> start() {
         if (!Boolean.parseBoolean(System.getProperty("cluster.tests"))) {
-
-            String currentEnv = System.getenv("CURRENT_ENV");
-
-            if (currentEnv != null && "mas".equals(currentEnv)) {
-                Map<String, String> props = new HashMap<>();
-                props.put("quarkus.datasource.jdbc.url", "jdbc:postgresql://localhost:5432/test");
-                props.put("quarkus.datasource.username", "test");
-                props.put("quarkus.datasource.password", "test");
-                return props;
-            } else {
-                return startPostgresql();
-            }
+            return startPostgresql();
         }
         return Collections.emptyMap();
     }
@@ -63,6 +52,8 @@ public class PostgreSqlEmbeddedTestResource implements QuarkusTestResourceLifecy
 
         String datasourceUrl = database.getJdbcUrl("postgres", "postgres");
 
+        database.getPort();
+
         Map<String, String> props = new HashMap<>();
         props.put("quarkus.datasource.jdbc.url", datasourceUrl);
         props.put("quarkus.datasource.username", "postgres");
@@ -71,6 +62,7 @@ public class PostgreSqlEmbeddedTestResource implements QuarkusTestResourceLifecy
         System.setProperty("quarkus.datasource.jdbc.url", datasourceUrl);
         System.setProperty("quarkus.datasource.username", "postgres");
         System.setProperty("quarkus.datasource.password", "postgres");
+        System.setProperty("postgres.port", String.valueOf(database.getPort()));
 
         return props;
     }

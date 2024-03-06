@@ -25,6 +25,13 @@ import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.tests.ApicurioRegistryBaseIT;
+import io.apicurio.tests.dbupgrade.kafka.KafkaSqlAvroUpgraderIT;
+import io.apicurio.tests.dbupgrade.kafka.KafkaSqlProtobufUpgraderIT;
+import io.apicurio.tests.dbupgrade.kafka.KafkaSqlReferencesUpgraderIT;
+import io.apicurio.tests.dbupgrade.sql.SqlAvroUpgraderIT;
+import io.apicurio.tests.dbupgrade.sql.SqlProtobufCanonicalHashUpgraderIT;
+import io.apicurio.tests.dbupgrade.sql.SqlReferencesUpgraderIT;
+import io.apicurio.tests.dbupgrade.sql.SqlStorageUpgradeIT;
 import io.apicurio.tests.multitenancy.MultitenancySupport;
 import io.apicurio.tests.multitenancy.TenantUserClient;
 import io.apicurio.tests.utils.CustomTestsUtils;
@@ -43,17 +50,16 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class UpgradeTestsDataInitializer {
 
-    protected static final String REFERENCE_CONTENT = "{\"name\":\"ibm\"}";
-    protected static final String ARTIFACT_CONTENT = "{\"name\":\"redhat\"}";
-
+    public static final String REFERENCE_CONTENT = "{\"name\":\"ibm\", \"type\": \"record\", \"fields\": [{\"name\": \"username\", \"type\": \"string\"}]}";
+    public static final String ARTIFACT_CONTENT = "{\"name\":\"redhat\", \"type\": \"record\", \"fields\": [{\"name\": \"username\", \"type\": \"string\"}]}";
     public static final String PREPARE_LOG_COMPACTION = "prepareLogCompactionGroup";
     public static final String PREPARE_PROTO_GROUP = "prepareProtobufHashUpgradeTest";
+    public static final String PREPARE_AVRO_GROUP = "prepareAvroCanonicalHashUpgradeData";
     public static final String PREPARE_REFERENCES_GROUP = "prepareReferencesUpgradeTest";
-
     private static final Logger logger = LoggerFactory.getLogger(UpgradeTestsDataInitializer.class);
 
     public static void prepareProtobufHashUpgradeTest(RegistryClient registryClient) throws Exception {
-        logger.info("Preparing ProtobufHashUpgradeTest test data...");
+        logger.info("Preparing AvroCanonicalHashUpgrade test data...");
 
         RegistryWaitUtils.retry(registryClient, registryClient1 -> CustomTestsUtils.createArtifact(registryClient, PREPARE_PROTO_GROUP, ArtifactType.AVRO, resourceToString("artifactTypes/" + "avro/multi-field_v1.json")));
         CustomTestsUtils.createArtifact(registryClient, PREPARE_PROTO_GROUP, ArtifactType.JSON, resourceToString("artifactTypes/" + "jsonSchema/person_v1.json"));
@@ -68,17 +74,38 @@ public class UpgradeTestsDataInitializer {
         assertEquals(3, registryClient.listArtifactsInGroup(PREPARE_PROTO_GROUP).getCount());
 
         //Once prepared, set the global variable, so we can compare during the test execution
-        KafkaSqlStorageUpgradeIT.protoData = protoData;
-        SqlStorageUpgradeIT.protoData = protoData;
+        KafkaSqlProtobufUpgraderIT.protoData = protoData;
+        SqlProtobufCanonicalHashUpgraderIT.protoData = protoData;
 
         logger.info("Finished preparing ProtobufHashUpgradeTest test data.");
+    }
+
+    public static void prepareAvroCanonicalHashUpgradeData(RegistryClient registryClient) throws Exception {
+        logger.info("Preparing AvroCanonicalHashUpgrade test data...");
+
+        RegistryWaitUtils.retry(registryClient, registryClient1 -> CustomTestsUtils.createArtifact(registryClient, PREPARE_AVRO_GROUP, ArtifactType.JSON, resourceToString("artifactTypes/" + "jsonSchema/person_v1.json")));
+        CustomTestsUtils.createArtifact(registryClient, PREPARE_AVRO_GROUP, ArtifactType.PROTOBUF, resourceToString("artifactTypes/" + "protobuf/tutorial_v1.proto"));
+        String test1content = resourceToString("artifactTypes/" + "avro/multi-field_v1.json");
+
+        var avroData = CustomTestsUtils.createArtifact(registryClient, PREPARE_AVRO_GROUP, ArtifactType.AVRO, test1content);
+
+        //verify search with canonicalize returns the expected artifact metadata
+        var versionMetadata = registryClient.getArtifactVersionMetaDataByContent(PREPARE_AVRO_GROUP, avroData.meta.getId(), true, null, IoUtil.toStream(test1content));
+        assertEquals(avroData.meta.getContentId(), versionMetadata.getContentId());
+
+        assertEquals(3, registryClient.listArtifactsInGroup(PREPARE_AVRO_GROUP).getCount());
+
+        //Once prepared, set the global variable, so we can compare during the test execution
+        KafkaSqlAvroUpgraderIT.avroData = avroData;
+        SqlAvroUpgraderIT.avroData = avroData;
+
+        logger.info("Finished preparing AvroCanonicalHashUpgrade test data.");
     }
 
     public static void prepareReferencesUpgradeTest(RegistryClient registryClient) throws Exception {
         logger.info("Preparing ReferencesUpgradeTest test data...");
 
         final CustomTestsUtils.ArtifactData artifact = CustomTestsUtils.createArtifact(registryClient, PREPARE_REFERENCES_GROUP, ArtifactType.JSON, REFERENCE_CONTENT);
-
         //Create a second artifact referencing the first one, the hash will be the same using version 2.4.1.Final.
         var artifactReference = new ArtifactReference();
 
@@ -88,11 +115,9 @@ public class UpgradeTestsDataInitializer {
         artifactReference.setVersion(artifact.meta.getVersion());
 
         var artifactReferences = List.of(artifactReference);
-
         String artifactId = UUID.randomUUID().toString();
 
         final CustomTestsUtils.ArtifactData artifactWithReferences = CustomTestsUtils.createArtifactWithReferences(PREPARE_REFERENCES_GROUP, artifactId, registryClient, ArtifactType.AVRO, ARTIFACT_CONTENT, artifactReferences);
-
         String calculatedHash = DigestUtils.sha256Hex(ARTIFACT_CONTENT);
 
         //Assertions
@@ -100,10 +125,10 @@ public class UpgradeTestsDataInitializer {
         assertEquals(calculatedHash, artifactWithReferences.contentHash);
 
         //Once prepared, set the global variables, so we can compare during the test execution.
-        KafkaSqlStorageUpgradeIT.artifactReferences = artifactReferences;
-        KafkaSqlStorageUpgradeIT.artifactWithReferences = artifactWithReferences;
-        SqlStorageUpgradeIT.artifactReferences = artifactReferences;
-        SqlStorageUpgradeIT.artifactWithReferences = artifactWithReferences;
+        KafkaSqlReferencesUpgraderIT.artifactReferences = artifactReferences;
+        KafkaSqlReferencesUpgraderIT.artifactWithReferences = artifactWithReferences;
+        SqlReferencesUpgraderIT.artifactReferences = artifactReferences;
+        SqlReferencesUpgraderIT.artifactWithReferences = artifactWithReferences;
 
         logger.info("Finished preparing ReferencesUpgradeTest test data.");
     }
@@ -112,11 +137,8 @@ public class UpgradeTestsDataInitializer {
         logger.info("Preparing TestStorageUpgrade test data...");
 
         MultitenancySupport mt = new MultitenancySupport(tenantManagerUrl, registryBaseUrl);
-
         List<TenantData> data = loadData(mt, testName);
-
         verifyData(data);
-
         SqlStorageUpgradeIT.data = data;
 
         logger.info("Finished preparing TestStorageUpgrade test data.");
@@ -126,9 +148,7 @@ public class UpgradeTestsDataInitializer {
         try {
 
             logger.info("Preparing LogCompactionTests test data...");
-
             RegistryWaitUtils.retry(registryClient, registryClient1 -> CustomTestsUtils.createArtifact(registryClient, PREPARE_LOG_COMPACTION, ArtifactType.AVRO, ApicurioRegistryBaseIT.resourceToString("artifactTypes/" + "avro/multi-field_v1.json")));
-
             var artifactdata = CustomTestsUtils.createArtifact(registryClient, PREPARE_LOG_COMPACTION, ArtifactType.JSON, ApicurioRegistryBaseIT.resourceToString("artifactTypes/" + "jsonSchema/person_v1.json"));
             CustomTestsUtils.createArtifact(registryClient, PREPARE_LOG_COMPACTION, ArtifactType.PROTOBUF, ApicurioRegistryBaseIT.resourceToString("artifactTypes/" + "protobuf/tutorial_v1.proto"));
             assertEquals(3, registryClient.listArtifactsInGroup(PREPARE_LOG_COMPACTION).getCount());
@@ -165,7 +185,6 @@ public class UpgradeTestsDataInitializer {
             tenants.add(tenant);
 
             logger.info("Tenant {} created...", tenant.tenant.user.tenantId);
-
             RegistryClient client = user.client;
 
             Rule comp = new Rule();

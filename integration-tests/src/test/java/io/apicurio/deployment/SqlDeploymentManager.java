@@ -22,7 +22,10 @@ import io.apicurio.tenantmanager.api.datamodel.SortOrder;
 import io.apicurio.tenantmanager.api.datamodel.TenantStatusValue;
 import io.apicurio.tenantmanager.client.TenantManagerClientImpl;
 import io.apicurio.tests.ApicurioRegistryBaseIT;
-import io.apicurio.tests.dbupgrade.SqlStorageUpgradeIT;
+import io.apicurio.tests.dbupgrade.sql.SqlAvroUpgraderIT;
+import io.apicurio.tests.dbupgrade.sql.SqlProtobufCanonicalHashUpgraderIT;
+import io.apicurio.tests.dbupgrade.sql.SqlReferencesUpgraderIT;
+import io.apicurio.tests.dbupgrade.sql.SqlStorageUpgradeIT;
 import io.apicurio.tests.dbupgrade.UpgradeTestsDataInitializer;
 import io.apicurio.tests.multitenancy.MultitenancySupport;
 import io.apicurio.tests.multitenancy.TenantUser;
@@ -41,9 +44,9 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import static io.apicurio.deployment.k8s.K8sClientManager.kubernetesClient;
 import static io.apicurio.deployment.KubernetesTestResources.*;
 import static io.apicurio.deployment.RegistryDeploymentManager.prepareTestsInfra;
+import static io.apicurio.deployment.k8s.K8sClientManager.kubernetesClient;
 
 public class SqlDeploymentManager {
 
@@ -69,11 +72,25 @@ public class SqlDeploymentManager {
     private static void prepareSqlDbUpgradeTests(String registryImage) throws Exception {
         LOGGER.info("Preparing data for SQL DB Upgrade migration tests...");
 
-        //For the migration tests first we deploy the in-memory variant, add some data and then the appropriate variant is deployed.
-        prepareTestsInfra(DATABASE_RESOURCES, APPLICATION_OLD_SQL_RESOURCES, false, null, true);
-
+        //For the migration tests first we deploy the 2.1 version and add the required data.
+        prepareTestsInfra(DATABASE_RESOURCES, APPLICATION_2_1_SQL_RESOURCES, false, null, true);
         prepareSqlMigrationData(ApicurioRegistryBaseIT.getTenantManagerUrl(), ApicurioRegistryBaseIT.getRegistryBaseUrl());
 
+        //Once all the data has been introduced, the old deployment is deleted.
+        deleteRegistryDeployment();
+
+        //The Registry version 2.3 is deployed, the version introducing artifact references.
+        prepareTestsInfra(null, APPLICATION_2_4_SQL_RESOURCES, false, null, false);
+        prepareSqlReferencesMigrationData();
+
+        //Once the references data is ready, we delete this old deployment and finally the current one is deployed.
+        deleteRegistryDeployment();
+
+        LOGGER.info("Finished preparing data for the SQL DB Upgrade tests.");
+        prepareTestsInfra(null, APPLICATION_SQL_MULTITENANT_RESOURCES, false, registryImage, false);
+    }
+
+    private static void deleteRegistryDeployment() {
         final RollableScalableResource<Deployment> deploymentResource = kubernetesClient().apps().deployments().inNamespace(TEST_NAMESPACE).withName(APPLICATION_DEPLOYMENT);
 
         kubernetesClient().apps().deployments().inNamespace(TEST_NAMESPACE).withName(APPLICATION_DEPLOYMENT).delete();
@@ -89,9 +106,6 @@ public class SqlDeploymentManager {
         } finally {
             deployment.cancel(true);
         }
-
-        LOGGER.info("Finished preparing data for the SQL DB Upgrade tests.");
-        prepareTestsInfra(null, APPLICATION_SQL_MULTITENANT_RESOURCES, false, registryImage, false);
     }
 
     private static void prepareSqlMigrationData(String tenantManagerUrl, String registryBaseUrl) throws Exception {
@@ -101,11 +115,8 @@ public class SqlDeploymentManager {
         TestUtils.retry(() -> tenantManagerClient.listTenants(TenantStatusValue.READY, 0, 1, SortOrder.asc, SortBy.tenantId));
 
         LOGGER.info("Tenant manager is ready, filling registry with test data...");
-
         UpgradeTestsDataInitializer.prepareTestStorageUpgrade(SqlStorageUpgradeIT.class.getSimpleName(), tenantManagerUrl, registryBaseUrl);
-
         TestUtils.waitFor("Waiting for tenant data to be available...", 3000, 180000, () -> tenantManagerClient.listTenants(TenantStatusValue.READY, 0, 51, SortOrder.asc, SortBy.tenantId).getCount() == 10);
-
         LOGGER.info("Done filling registry with test data...");
 
         MultitenancySupport mt = new MultitenancySupport(tenantManagerUrl, registryBaseUrl);
@@ -114,8 +125,15 @@ public class SqlDeploymentManager {
 
         //Prepare the data for the content and canonical hash upgraders using an isolated tenant so we don't have data conflicts.
         UpgradeTestsDataInitializer.prepareProtobufHashUpgradeTest(tenantUpgradeClient.client);
-        UpgradeTestsDataInitializer.prepareReferencesUpgradeTest(tenantUpgradeClient.client);
+        UpgradeTestsDataInitializer.prepareAvroCanonicalHashUpgradeData(tenantUpgradeClient.client);
 
         SqlStorageUpgradeIT.upgradeTenantClient = tenantUpgradeClient.client;
+        SqlProtobufCanonicalHashUpgraderIT.upgradeTenantClient = tenantUpgradeClient.client;
+        SqlAvroUpgraderIT.upgradeTenantClient = tenantUpgradeClient.client;
+        SqlReferencesUpgraderIT.upgradeTenantClient = tenantUpgradeClient.client;
+    }
+
+    private static void prepareSqlReferencesMigrationData() throws Exception {
+        UpgradeTestsDataInitializer.prepareReferencesUpgradeTest(SqlReferencesUpgraderIT.upgradeTenantClient);
     }
 }

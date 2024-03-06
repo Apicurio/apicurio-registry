@@ -29,4 +29,9 @@ public interface IDbUpgrader {
      */
     public void upgrade(Handle dbHandle) throws Exception;
 
+    /**
+     * Called by the {@link AbstractSqlRegistryStorage} class when upgrading the database.
+     * @param registryStorage
+     * @param dbHandle
+     */
 }

@@ -35,8 +35,11 @@ public class KubernetesTestResources {
     protected static final String APPLICATION_SQL_MULTITENANT_RESOURCES = "/infra/sql/registry-multitenant-sql.yml";
     protected static final String APPLICATION_KAFKA_MULTITENANT_RESOURCES = "/infra/kafka/registry-multitenant-kafka.yml";
 
-    protected static final String APPLICATION_OLD_SQL_RESOURCES = "/infra/sql/registry-sql-old.yml";
-    protected static final String APPLICATION_OLD_KAFKA_RESOURCES = "/infra/kafka/registry-kafka-old.yml";
+    protected static final String APPLICATION_2_1_SQL_RESOURCES = "/infra/sql/registry-sql-2-1.yml";
+    protected static final String APPLICATION_2_4_SQL_RESOURCES = "/infra/sql/registry-sql-2-4.yml";
+
+    protected static final String APPLICATION_2_1_KAFKA_RESOURCES = "/infra/kafka/registry-kafka-2.1.yml";
+    protected static final String APPLICATION_2_4_KAFKA_RESOURCES = "/infra/kafka/registry-kafka-2.4.yml";
 
     protected static final String TENANT_MANAGER_RESOURCES = "/infra/tenant-manager/tenant-manager.yml";
     protected static final String TENANT_MANAGER_DATABASE = "/infra/tenant-manager/tenant-manager-database.yml";

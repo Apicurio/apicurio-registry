@@ -818,7 +818,7 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
      */
     @Override
     public void createOrReplaceArtifactBranch(GA ga, BranchId branchId, List<VersionId> versions) {
-        List<String> rawVersions = versions.stream().map(v -> v.getRawVersionId()).collect(Collectors.toList());
+        List<String> rawVersions = versions == null ? List.of() : versions.stream().map(v -> v.getRawVersionId()).collect(Collectors.toList());
         var message = new CreateOrReplaceArtifactBranch3Message(ga.getRawGroupIdWithNull(), ga.getRawArtifactId(), 
                 branchId.getRawBranchId(), rawVersions);
         var uuid = ConcurrentUtil.get(submitter.submitMessage(message));

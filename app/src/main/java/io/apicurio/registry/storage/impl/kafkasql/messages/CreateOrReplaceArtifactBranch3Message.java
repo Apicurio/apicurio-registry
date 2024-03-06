@@ -37,7 +37,7 @@ public class CreateOrReplaceArtifactBranch3Message extends AbstractMessage {
     public Object dispatchTo(RegistryStorage storage) {
         GA ga = new GA(groupId, artifactId);
         BranchId bid = new BranchId(branchId);
-        List<VersionId> versionIds = versions.stream().map(v -> new VersionId(v)).collect(Collectors.toList());
+        List<VersionId> versionIds = versions == null ? List.of() : versions.stream().map(v -> new VersionId(v)).collect(Collectors.toList());
         storage.createOrReplaceArtifactBranch(ga, bid, versionIds);
         return null;
     }

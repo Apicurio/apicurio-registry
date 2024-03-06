@@ -88,11 +88,12 @@ async def test_basic_upload_download():
         "paths": {}
     }"""
     create_artifact = await client.groups.by_group_id("default").artifacts.post(payload)
-    assert create_artifact.id is not None
+    assert create_artifact.artifactId is not None
 
     return_artifact = (
         await client.groups.by_group_id("default")
-        .artifacts.by_artifact_id(create_artifact.id)
+        .artifacts.by_artifact_id(create_artifact.artifactId)
+        .versions.by_version_id("branch=latest")
         .get()
     )
     print(str(return_artifact, "utf-8"))
@@ -131,10 +132,10 @@ async def test_issue_3465():
     create_artifact = await client.groups.by_group_id("default").artifacts.post(
         payload, request_configuration=request_configuration
     )
-    assert create_artifact.id == "foo"
+    assert create_artifact.artifactId == "foo"
 
     # check the return or update functionality
     create_artifact = await client.groups.by_group_id("default").artifacts.post(
         payload, request_configuration=request_configuration
     )
-    assert create_artifact.id == "foo"
+    assert create_artifact.artifactId == "foo"

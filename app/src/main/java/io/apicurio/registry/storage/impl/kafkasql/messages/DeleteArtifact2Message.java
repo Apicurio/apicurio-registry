@@ -27,8 +27,7 @@ public class DeleteArtifact2Message extends AbstractMessage {
      */
     @Override
     public Object dispatchTo(RegistryStorage storage) {
-        storage.deleteArtifact(groupId, artifactId);
-        return null;
+        return storage.deleteArtifact(groupId, artifactId);
     }
 
 }

@@ -2284,8 +2284,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     @Override
     public void importData(EntityInputStream entities, boolean preserveGlobalId, boolean preserveContentId) {
         DataImporter dataImporter = new SqlDataImporter(log, utils, this, preserveGlobalId, preserveContentId);
-        dataImporter.importData(entities, () -> {
-        });
+        dataImporter.importData(entities, () -> {});
     }
 
 

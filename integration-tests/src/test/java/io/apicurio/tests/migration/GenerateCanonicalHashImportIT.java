@@ -43,7 +43,7 @@ public class GenerateCanonicalHashImportIT extends ApicurioRegistryBaseIT {
     public void testGeneratingCanonicalHashOnImport() throws Exception {
         var adapter = new VertXRequestAdapter(VertXAuthFactory.defaultVertx);
         adapter.setBaseUrl(ApicurioRegistryBaseIT.getRegistryV3ApiUrl());
-        RegistryClient dest = new RegistryClient(adapter);
+        RegistryClient client = new RegistryClient(adapter);
 
         Map<String, String> artifacts = new HashMap<>();
 
@@ -53,27 +53,24 @@ public class GenerateCanonicalHashImportIT extends ApicurioRegistryBaseIT {
             String content = IoUtil.toString(jsonSchema.getSchemaStream());
             artifacts.put(artifactId, content);
         }
-        var importReq = dest.admin().importEscaped().toPostRequestInformation(generateExportedZip(artifacts));
+        var importReq = client.admin().importEscaped().toPostRequestInformation(generateExportedZip(artifacts));
         importReq.headers.replace("Content-Type", Set.of("application/zip"));
         adapter.sendPrimitive(importReq, new HashMap<>(), Void.class);
-        // dest.importData(generateExportedZip(artifacts), false, false);
 
-        retry(() -> {
-            for (var entry : artifacts.entrySet()) {
-                String groupId = "default";
-                String artifactId = entry.getKey();
-                String content = entry.getValue();
+        for (var entry : artifacts.entrySet()) {
+            String groupId = "default";
+            String artifactId = entry.getKey();
+            String content = entry.getValue();
 
-                /*
-                TODO: Check if the canonical hash is generated correctly.
-                      The only way is to generate canonical hash and then search artifact by it. But that needs apicurio-registry-app module as dependency.
-                 */
+            /*
+            TODO: Check if the canonical hash is generated correctly.
+                  The only way is to generate canonical hash and then search artifact by it. But that needs apicurio-registry-app module as dependency.
+             */
 
-                var registryContent = dest.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").get();
-                assertNotNull(registryContent);
-                assertEquals(content, IoUtil.toString(registryContent));
-            }
-        });
+            var registryContent = client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").get();
+            assertNotNull(registryContent);
+            assertEquals(content, IoUtil.toString(registryContent));
+        }
 
     }
 

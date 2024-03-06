@@ -17,7 +17,7 @@
     "@monaco-editor/react": "4.6.0",
     "@types/luxon": "3.4.2",
     "@types/react": "18.2.63",
-    "@types/react-dom": "18.2.19",
+    "@types/react-dom": "18.2.20",
     "@typescript-eslint/eslint-plugin": "7.1.1",
     "@typescript-eslint/parser": "7.1.1",
     "@vitejs/plugin-react-swc": "3.6.0",
@@ -44,6 +44,6 @@
     "react-dom": "18.2.0",
     "react-router-dom": "6.22.2",
     "use-resize-observer": "9.1.0",
-    "yaml": "2.4.0"
+    "yaml": "2.4.1"
   }
 }

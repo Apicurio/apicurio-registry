@@ -191,16 +191,6 @@ public class SchemasConfluentIT extends ConfluentBaseIT {
         Response ar = ArtifactUtils.getArtifact("default", subjectName, "branch=latest", 200);
         assertEquals(rawSchema, ar.asString());
         LOGGER.info(ar.asString());
-
-        TestUtils.waitFor("artifact created", Constants.POLL_INTERVAL, Constants.TIMEOUT_GLOBAL, () -> {
-            try {
-                return registryClient.groups().byGroupId("default").artifacts().byArtifactId(subjectName).versions().byVersionExpression("branch=latest").get().readAllBytes().length > 0;
-            } catch (WebApplicationException e) {
-                return false;
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        });
     }
 
     @Test

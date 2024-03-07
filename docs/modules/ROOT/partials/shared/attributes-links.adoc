@@ -26,7 +26,7 @@ endif::[]
 :LinkServiceRegistryMigration: https://access.redhat.com/documentation/en-us/{productpkg}/{ServiceRegistryURLVersion}/html-single/migrating_{RegistryProductURL}_deployments/index
 :NameServiceRegistryMigration: Migrating {registry-name-full} deployments
 
-:LinkServiceRegistryRESTAPI: https://access.redhat.com/webassets/avalon/d/Red_Hat_Integration-2023.q2-Service_Registry_User_Guide-en-US/files/registry-rest-api.htm
+:LinkServiceRegistryRESTAPI: https://access.redhat.com/webassets/avalon/d/Red_Hat_Integration-2023.q4-Service_Registry_User_Guide-en-US/files/registry-rest-api.htm
 :NameServiceRegistryRESTAPI: Apicurio Registry v2 core REST API documentation
 
 :LinkOpenShiftAddOperator: https://docs.openshift.com/container-platform/latest/operators/admin/olm-adding-operators-to-cluster.html

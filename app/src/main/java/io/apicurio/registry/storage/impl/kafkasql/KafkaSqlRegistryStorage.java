@@ -746,7 +746,8 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
      */
     @Override
     public void importContent(ContentEntity entity) {
-        var message = new ImportContent1Message(entity);
+        String content = ContentHandle.create(entity.contentBytes).content();
+        var message = new ImportContent1Message(entity, content);
         var uuid = ConcurrentUtil.get(submitter.submitMessage(message));
         coordinator.waitForResponse(uuid);
     }

@@ -88,9 +88,6 @@ async def test_basic_upload_download():
         "paths": {}
     }"""
     meta_data = await client.groups.by_group_id("default").artifacts.post(payload)
-    print("-------------");
-    print(meta_data)
-    print("-------------");
     assert meta_data.artifact_id is not None
 
     return_artifact = (

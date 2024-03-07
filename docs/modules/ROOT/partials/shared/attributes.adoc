@@ -87,13 +87,15 @@ endif::[]
 :reg: ®
 :trade: ™
 
-//Include attributes for external linking
+// Include attributes for external linking
 include::attributes-links.adoc[]
 
-// Download URLs
+// Container catalog URL
 :download-url-registry-container-catalog: https://catalog.redhat.com/software/containers/search
-//:download-url-registry-distribution: https://access.redhat.com/jbossnetwork/restricted/listSoftware.html?product=rhboar&downloadType=distributions
+// v2 download URL
 :download-url-registry-distribution: https://access.redhat.com/jbossnetwork/restricted/listSoftware.html?downloadType=distributions&product=red.hat.integration
+// v3 download URL 
+//:download-url-registry-distribution: https://access.redhat.com/jbossnetwork/restricted/listSoftware.html?product=rhboar&downloadType=distributions
 
 
 // internal links
@@ -111,4 +113,3 @@ include::attributes-links.adoc[]
 :kafka-client-serdes: xref:using-kafka-client-serdes_{context}[]
 :registry-client-serdes-config: xref:configuring-kafka-client-serdes_{context}[]
 :registry-rest-api: link:{attachmentsdir}/registry-rest-api.htm[Apicurio Registry REST API documentation]
-

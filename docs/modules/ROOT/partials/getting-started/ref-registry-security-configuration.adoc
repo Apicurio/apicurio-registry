@@ -344,5 +344,8 @@ calls to the REST API, set the following options to `true`:
 
 [role="_additional-resources"]
 .Additional resources
-* For an example of how to set environment variables in your {registry} deployment on OpenShift, see xref:configuring-liveness-readiness-probes_{context}[]
+ifdef::rh-service-registry[]
+* For an example of how to set environment variables in your {registry} deployment on OpenShift, see xref:manage-registry-environment-variables[]
+endif::[]
 * For details on configuring custom authentication for {registry}, the see https://quarkus.io/guides/security-openid-connect-web-authentication[Quarkus Open ID Connect documentation]
+

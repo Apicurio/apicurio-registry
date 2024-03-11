@@ -118,8 +118,7 @@ jobs:
           cd python-sdk
           make publish
         env:
-          PYPI_USERNAME: ${{ secrets.PYPI_USERNAME }}
-          PYPI_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+          PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
         if: github.event.inputs.skip-python-sdk == 'false'
 
       - name: Commit Release Version Change

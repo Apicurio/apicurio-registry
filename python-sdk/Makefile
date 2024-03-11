@@ -25,7 +25,7 @@ build: install
 
 .PHONY: publish
 publish: install
-	poetry publish --build -u ${PYPI_USERNAME} -p ${PYPI_PASSWORD}
+	poetry publish --build -u __token__ -p ${PYPI_TOKEN}
 
 .PHONY: update
 update:

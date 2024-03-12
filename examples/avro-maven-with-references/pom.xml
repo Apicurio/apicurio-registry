@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <parent>
+        <artifactId>apicurio-registry-examples</artifactId>
+        <groupId>io.apicurio</groupId>
+        <version>3.0.0-SNAPSHOT</version>
+    </parent>
+    <modelVersion>4.0.0</modelVersion>
+
+    <artifactId>apicurio-registry-examples-avro-maven-with-references</artifactId>
+    <packaging>jar</packaging>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-registry-maven-plugin</artifactId>
+                <version>${project.version}</version>
+                <executions>
+                    <execution>
+                        <id>register-artifact</id>
+                        <goals>
+                            <goal>register</goal>
+                        </goals>
+                        <phase>process-test-resources</phase>
+                        <configuration>
+                            <registryUrl>http://localhost:8080/apis/registry/v2</registryUrl>
+                            <artifacts>
+                                <artifact>
+                                    <groupId>avro-maven-with-references</groupId>
+                                    <artifactId>TradeKey</artifactId>
+                                    <version>2.0</version>
+                                    <type>AVRO</type>
+                                    <file>
+                                        ${project.basedir}/src/main/resources/schemas/TradeKey.avsc
+                                    </file>
+                                    <ifExists>RETURN_OR_UPDATE</ifExists>
+                                    <canonicalize>true</canonicalize>
+                                    <references>
+                                        <reference>
+                                            <name>com.kubetrade.schema.common.Exchange</name>
+                                            <groupId>test-group</groupId>
+                                            <artifactId>Exchange</artifactId>
+                                            <version>2.0</version>
+                                            <type>AVRO</type>
+                                            <file>
+                                                ${project.basedir}/src/main/resources/schemas/Exchange.avsc
+                                            </file>
+                                            <ifExists>RETURN_OR_UPDATE</ifExists>
+                                            <canonicalize>true</canonicalize>
+                                        </reference>
+                                    </references>
+                                </artifact>
+                            </artifacts>
+                            <existingReferences></existingReferences>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>

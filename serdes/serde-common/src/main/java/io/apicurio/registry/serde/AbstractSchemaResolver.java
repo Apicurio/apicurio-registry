@@ -15,6 +15,7 @@ import io.apicurio.registry.serde.strategy.ArtifactReference;
 import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.client.auth.VertXAuthFactory;
 import io.kiota.http.vertx.VertXRequestAdapter;
+import io.vertx.core.Vertx;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -44,10 +45,16 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
     protected String explicitArtifactId;
     protected String explicitArtifactVersion;
 
+    protected Vertx vertx;
+
     @SuppressWarnings({ "rawtypes", "unchecked" })
     @Override
     public void configure(Map<String, ?> configs, io.apicurio.registry.resolver.SchemaParser<S, T> schemaMapper) {
         this.schemaParser = schemaMapper;
+
+        if (this.vertx == null) {
+            this.vertx = VertXAuthFactory.defaultVertx;
+        }
 
         Object isKeyFromConfig = configs.get(SerdeConfig.IS_KEY);
         //is key have to come always, we set it
@@ -79,6 +86,11 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
     @Override
     public void configure(Map<String, ?> configs, boolean isKey, SchemaParser<S> schemaParser) {
         this.isKey = isKey;
+
+        if (this.vertx == null) {
+            this.vertx = VertXAuthFactory.defaultVertx;
+        }
+
         DefaultSchemaResolverConfig config = new DefaultSchemaResolverConfig(configs);
         if (client == null) {
             String baseUrl = config.getRegistryUrl();
@@ -98,7 +110,7 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
                     if (username != null) {
                         client = configureClientWithBasicAuth(config, baseUrl, username);
                     } else {
-                        RequestAdapter adapter = new VertXRequestAdapter(VertXAuthFactory.defaultVertx);
+                        RequestAdapter adapter = new VertXRequestAdapter(this.vertx);
                         adapter.setBaseUrl(baseUrl);
                         client = new RegistryClient(adapter);
                     }
@@ -135,7 +147,6 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
         if (artifactVersionOverride != null) {
             this.explicitArtifactVersion = artifactVersionOverride;
         }
-
     }
 
     /**
@@ -230,6 +241,9 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
 
     @Override
     public void close() throws IOException {
+        if (this.vertx != null) {
+            this.vertx.close();
+        }
     }
 
     private RegistryClient configureClientWithBearerAuthentication(DefaultSchemaResolverConfig config, String registryUrl, String authServerUrl, String tokenEndpoint) {
@@ -267,7 +281,7 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
             throw new IllegalArgumentException("Missing registry auth secret, set " + SerdeConfig.AUTH_CLIENT_SECRET);
         }
 
-        RequestAdapter adapter = new VertXRequestAdapter(buildOIDCWebClient(tokenEndpoint, clientId, clientSecret));
+        RequestAdapter adapter = new VertXRequestAdapter(buildOIDCWebClient(this.vertx, tokenEndpoint, clientId, clientSecret));
         return adapter;
     }
 
@@ -279,7 +293,7 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
             throw new IllegalArgumentException("Missing registry auth password, set " + SerdeConfig.AUTH_PASSWORD);
         }
 
-        var adapter = new VertXRequestAdapter(buildSimpleAuthWebClient(username, password));
+        var adapter = new VertXRequestAdapter(buildSimpleAuthWebClient(this.vertx, username, password));
 
         adapter.setBaseUrl(registryUrl);
         return new RegistryClient(adapter);

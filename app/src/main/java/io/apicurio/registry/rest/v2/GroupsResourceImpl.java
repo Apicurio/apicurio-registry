@@ -99,7 +99,9 @@ import io.apicurio.registry.storage.error.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.error.ArtifactNotFoundException;
 import io.apicurio.registry.storage.error.InvalidArtifactIdException;
 import io.apicurio.registry.storage.error.InvalidGroupIdException;
+import io.apicurio.registry.storage.error.RegistryStorageException;
 import io.apicurio.registry.storage.error.VersionNotFoundException;
+import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ReferenceType;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.types.VersionState;
@@ -164,18 +166,22 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
             references = HandleReferencesType.PRESERVE;
         }
 
-        GAV latestGAV = storage.getArtifactBranchTip(new GA(groupId, artifactId), BranchId.LATEST, ArtifactRetrievalBehavior.SKIP_DISABLED_LATEST);
-        ArtifactVersionMetaDataDto metaData = storage.getArtifactVersionMetaData(latestGAV.getRawGroupIdWithNull(), latestGAV.getRawArtifactId(), latestGAV.getRawVersionId());
-        StoredArtifactVersionDto artifact = storage.getArtifactVersionContent(defaultGroupIdToNull(groupId), artifactId, latestGAV.getRawVersionId());
+        try {
+            GAV latestGAV = storage.getArtifactBranchTip(new GA(groupId, artifactId), BranchId.LATEST, ArtifactRetrievalBehavior.SKIP_DISABLED_LATEST);
+            ArtifactVersionMetaDataDto metaData = storage.getArtifactVersionMetaData(latestGAV.getRawGroupIdWithNull(), latestGAV.getRawArtifactId(), latestGAV.getRawVersionId());
+            StoredArtifactVersionDto artifact = storage.getArtifactVersionContent(defaultGroupIdToNull(groupId), artifactId, latestGAV.getRawVersionId());
 
-        MediaType contentType = factory.getArtifactMediaType(metaData.getType());
+            MediaType contentType = factory.getArtifactMediaType(metaData.getType());
 
-        ContentHandle contentToReturn = artifact.getContent();
-        contentToReturn = handleContentReferences(references, metaData.getType(), contentToReturn, artifact.getReferences());  
-        
-        Response.ResponseBuilder builder = Response.ok(contentToReturn, contentType);
-        checkIfDeprecated(metaData::getState, groupId, artifactId, metaData.getVersion(), builder);
-        return builder.build();
+            ContentHandle contentToReturn = artifact.getContent();
+            contentToReturn = handleContentReferences(references, metaData.getType(), contentToReturn, artifact.getReferences());  
+            
+            Response.ResponseBuilder builder = Response.ok(contentToReturn, contentType);
+            checkIfDeprecated(metaData::getState, groupId, artifactId, metaData.getVersion(), builder);
+            return builder.build();
+        } catch (VersionNotFoundException e) {
+            throw new ArtifactNotFoundException(e.getGroupId(), e.getArtifactId());
+        }
     }
 
     /**
@@ -261,7 +267,21 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         requireParameter("artifactId", artifactId);
 
         ArtifactMetaDataDto dto = storage.getArtifactMetaData(defaultGroupIdToNull(groupId), artifactId);
-        return V2ApiUtil.dtoToMetaData(defaultGroupIdToNull(groupId), artifactId, dto.getType(), dto);
+        GAV latestGAV = storage.getArtifactBranchTip(new GA(groupId, artifactId), BranchId.LATEST, ArtifactRetrievalBehavior.SKIP_DISABLED_LATEST);
+        ArtifactVersionMetaDataDto vdto = storage.getArtifactVersionMetaData(latestGAV.getRawGroupIdWithNull(), latestGAV.getRawArtifactId(), latestGAV.getRawVersionId());
+        
+        ArtifactMetaData amd = V2ApiUtil.dtoToMetaData(defaultGroupIdToNull(groupId), artifactId, dto.getType(), dto);
+        amd.setContentId(vdto.getContentId());
+        amd.setGlobalId(vdto.getGlobalId());
+        amd.setVersion(vdto.getVersion());
+        amd.setName(vdto.getName());
+        amd.setDescription(vdto.getDescription());
+        amd.setModifiedBy(vdto.getOwner());
+        amd.setModifiedOn(new Date(vdto.getCreatedOn()));
+        amd.setLabels(V2ApiUtil.toV2Labels(vdto.getLabels()));
+        amd.setProperties(V2ApiUtil.toV2Properties(vdto.getLabels()));
+        amd.setState(ArtifactState.fromValue(vdto.getState().name()));
+        return amd;
     }
 
     /**
@@ -271,10 +291,11 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Audited(extractParameters = {"0", KEY_GROUP_ID, "1", KEY_ARTIFACT_ID, "2", KEY_EDITABLE_METADATA})
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
     public void updateArtifactMetaData(String groupId, String artifactId, EditableMetaData data) {
-        v3.updateArtifactMetaData(groupId, artifactId, io.apicurio.registry.rest.v3.beans.EditableArtifactMetaData.builder()
+        GAV latestGAV = storage.getArtifactBranchTip(new GA(groupId, artifactId), BranchId.LATEST, ArtifactRetrievalBehavior.DEFAULT);
+        storage.updateArtifactVersionMetaData(groupId, artifactId, latestGAV.getRawVersionId(), EditableVersionMetaDataDto.builder()
+                .name(data.getName())
                 .description(data.getDescription())
                 .labels(V2ApiUtil.toV3Labels(data.getLabels(), data.getProperties()))
-                .name(data.getName())
                 .build());
     }
 
@@ -510,7 +531,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         
         // Possible race condition here.  Worst case should be that the update fails with a reasonable message.
         GAV latestGAV = storage.getArtifactBranchTip(new GA(defaultGroupIdToNull(groupId), artifactId), 
-                BranchId.LATEST, ArtifactRetrievalBehavior.SKIP_DISABLED_LATEST);
+                BranchId.LATEST, ArtifactRetrievalBehavior.DEFAULT);
         updateArtifactVersionState(groupId, artifactId, latestGAV.getRawVersionId(), data);
     }
 

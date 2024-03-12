@@ -79,7 +79,7 @@ public final class V2ApiUtil {
      * @param v3Labels
      * @return
      */
-    private static Map<String, String> toV2Properties(Map<String, String> v3Labels) {
+    public static Map<String, String> toV2Properties(Map<String, String> v3Labels) {
         Map<String, String> rval = new LinkedHashMap<>();
         if (v3Labels != null) {
             v3Labels.entrySet().forEach(entry -> {
@@ -98,7 +98,7 @@ public final class V2ApiUtil {
      * Converts v3 labels into v2 labels.
      * @param v3Labels
      */
-    private static List<String> toV2Labels(Map<String, String> v3Labels) {
+    public static List<String> toV2Labels(Map<String, String> v3Labels) {
         List<String> rval = new ArrayList<>();
         if (v3Labels != null) {
             v3Labels.entrySet().forEach(entry -> {

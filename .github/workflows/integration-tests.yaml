@@ -324,7 +324,7 @@ jobs:
           echo "Starting Registry App (In Memory)"
           docker run -it -p 8181:8080 -d ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:1d
           cd registry-v2
-          ./mvnw -T 1.5C -Pintegration-tests clean install -DskipTests=true -Dmaven.javadoc.skip=true
+          ./mvnw -T 1.5C -Pintegration-tests clean install -DskipTests=true -DskipUiBuild=true -Dmaven.javadoc.skip=true
           cd integration-tests
           ../mvnw -T 1.5C verify -Pregression -Dmaven.javadoc.skip=true -Dquarkus.http.test-host=localhost -Dquarkus.http.test-port=8181
 

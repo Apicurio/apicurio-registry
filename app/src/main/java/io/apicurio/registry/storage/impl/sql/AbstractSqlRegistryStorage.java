@@ -1628,18 +1628,11 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         log.debug("Updating meta-data for an artifact version: {} {}", groupId, artifactId);
 
         var metadata = getArtifactVersionMetaData(groupId, artifactId, version);
-        updateArtifactVersionMetadataRaw(metadata.getGlobalId(), groupId, artifactId, version, editableMetadata);
-    }
-
-
-    /**
-     * IMPORTANT: Private methods can't be @Transactional. Callers MUST have started a transaction.
-     */
-    private void updateArtifactVersionMetadataRaw(long globalId, String groupId, String artifactId, String version, EditableVersionMetaDataDto metaData) {
+        long globalId = metadata.getGlobalId();
         handles.withHandle(handle -> {
-            if (metaData.getName() != null) {
+            if (editableMetadata.getName() != null) {
                 int rowCount = handle.createUpdate(sqlStatements.updateArtifactVersionNameByGAV())
-                        .bind(0, limitStr(metaData.getName(), 512))
+                        .bind(0, limitStr(editableMetadata.getName(), 512))
                         .bind(1, normalizeGroupId(groupId))
                         .bind(2, artifactId)
                         .bind(3, version)
@@ -1649,9 +1642,9 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                 }
             }
 
-            if (metaData.getDescription() != null) {
+            if (editableMetadata.getDescription() != null) {
                 int rowCount = handle.createUpdate(sqlStatements.updateArtifactVersionDescriptionByGAV())
-                        .bind(0, limitStr(metaData.getDescription(), 1024))
+                        .bind(0, limitStr(editableMetadata.getDescription(), 1024))
                         .bind(1, normalizeGroupId(groupId))
                         .bind(2, artifactId)
                         .bind(3, version)
@@ -1661,9 +1654,9 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                 }
             }
 
-            if (metaData.getState() != null) {
+            if (editableMetadata.getState() != null) {
                 int rowCount = handle.createUpdate(sqlStatements.updateArtifactVersionStateByGAV())
-                        .bind(0, metaData.getState().name())
+                        .bind(0, editableMetadata.getState().name())
                         .bind(1, normalizeGroupId(groupId))
                         .bind(2, artifactId)
                         .bind(3, version)
@@ -1673,9 +1666,9 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                 }
             }
 
-            if (metaData.getLabels() != null) {
+            if (editableMetadata.getLabels() != null) {
                 int rowCount = handle.createUpdate(sqlStatements.updateArtifactVersionLabelsByGAV())
-                        .bind(0, SqlUtil.serializeLabels(metaData.getLabels()))
+                        .bind(0, SqlUtil.serializeLabels(editableMetadata.getLabels()))
                         .bind(1, normalizeGroupId(groupId))
                         .bind(2, artifactId)
                         .bind(3, version)
@@ -1690,7 +1683,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                         .execute();
 
                 // Insert new labels into the "version_labels" table
-                Map<String, String> labels = metaData.getLabels();
+                Map<String, String> labels = editableMetadata.getLabels();
                 if (labels != null && !labels.isEmpty()) {
                     labels.forEach((k, v) -> {
                         String sqli = sqlStatements.insertVersionLabel();

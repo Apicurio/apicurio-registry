@@ -14,7 +14,6 @@ import { ArtifactMetaData } from "@models/artifactMetaData.model.ts";
 import { VersionMetaData } from "@models/versionMetaData.model.ts";
 import { ReferenceType } from "@models/referenceType.ts";
 import { ArtifactReference } from "@models/artifactReference.model.ts";
-import { ArtifactOwner } from "@models/artifactOwner.model.ts";
 import { SearchedVersion } from "@models/searchedVersion.model.ts";
 import { Rule } from "@models/rule.model.ts";
 import { AuthService, useAuth } from "@apicurio/common-ui-components";
@@ -204,16 +203,9 @@ const updateArtifactVersionMetaData = async (config: ConfigService, auth: AuthSe
 };
 
 const updateArtifactOwner = async (config: ConfigService, auth: AuthService, groupId: string|null, artifactId: string, newOwner: string): Promise<void> => {
-    groupId = normalizeGroupId(groupId);
-
-    const baseHref: string = config.artifactsUrl();
-    const token: string | undefined = await auth.getToken();
-    const endpoint: string = createEndpoint(baseHref, "/groups/:groupId/artifacts/:artifactId/owner", { groupId, artifactId });
-    const artifactOwner: ArtifactOwner = {
+    return updateArtifactMetaData(config, auth, groupId, artifactId, {
         owner: newOwner
-    };
-    const options = createOptions(createHeaders(token));
-    return httpPut<ArtifactOwner>(endpoint, artifactOwner, options);
+    } as any);
 };
 
 const getArtifactVersionContent = async (config: ConfigService, auth: AuthService, groupId: string|null, artifactId: string, version: string): Promise<string> => {

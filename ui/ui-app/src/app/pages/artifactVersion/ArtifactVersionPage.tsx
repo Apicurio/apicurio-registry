@@ -301,7 +301,7 @@ export const ArtifactVersionPage: FunctionComponent<ArtifactVersionPageProps> = 
     };
 
     const doEditMetaData = (metaData: EditableMetaData): void => {
-        groups.updateArtifactMetaData(groupId as string, artifactId as string, version as string, metaData).then( () => {
+        groups.updateArtifactVersionMetaData(groupId as string, artifactId as string, version as string, metaData).then( () => {
             if (artifact) {
                 setArtifact({
                     ...artifact,

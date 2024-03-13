@@ -181,15 +181,24 @@ const getLatestArtifact = async (config: ConfigService, auth: AuthService, group
     return getArtifactVersionContent(config, auth, groupId, artifactId, "latest");
 };
 
-const updateArtifactMetaData = async (config: ConfigService, auth: AuthService, groupId: string|null, artifactId: string, version: string, metaData: EditableMetaData): Promise<void> => {
+const updateArtifactMetaData = async (config: ConfigService, auth: AuthService, groupId: string|null, artifactId: string, metaData: EditableMetaData): Promise<void> => {
     groupId = normalizeGroupId(groupId);
 
     const baseHref: string = config.artifactsUrl();
     const token: string | undefined = await auth.getToken();
-    let endpoint: string = createEndpoint(baseHref, "/groups/:groupId/artifacts/:artifactId/versions/:version/meta", { groupId, artifactId, version });
-    if (version === "latest") {
-        endpoint = createEndpoint(baseHref, "/groups/:groupId/artifacts/:artifactId", { groupId, artifactId });
-    }
+    const endpoint: string = createEndpoint(baseHref, "/groups/:groupId/artifacts/:artifactId", { groupId, artifactId });
+    const options = createOptions(createHeaders(token));
+    return httpPut<EditableMetaData>(endpoint, metaData, options);
+};
+
+const updateArtifactVersionMetaData = async (config: ConfigService, auth: AuthService, groupId: string|null, artifactId: string, version: string, metaData: EditableMetaData): Promise<void> => {
+    groupId = normalizeGroupId(groupId);
+
+    const baseHref: string = config.artifactsUrl();
+    const token: string | undefined = await auth.getToken();
+    const versionExpression: string = (version == "latest") ? "branch=latest" : version;
+    const endpoint: string = createEndpoint(baseHref, "/groups/:groupId/artifacts/:artifactId/versions/:versionExpression/meta",
+        { groupId, artifactId, versionExpression });
     const options = createOptions(createHeaders(token));
     return httpPut<EditableMetaData>(endpoint, metaData, options);
 };
@@ -339,7 +348,8 @@ export interface GroupsService {
     getArtifactVersionMetaData(groupId: string|null, artifactId: string, version: string): Promise<VersionMetaData>;
     getArtifactReferences(globalId: number, refType: ReferenceType): Promise<ArtifactReference[]>;
     getLatestArtifact(groupId: string|null, artifactId: string): Promise<string>;
-    updateArtifactMetaData(groupId: string|null, artifactId: string, version: string, metaData: EditableMetaData): Promise<void>;
+    updateArtifactMetaData(groupId: string|null, artifactId: string, metaData: EditableMetaData): Promise<void>;
+    updateArtifactVersionMetaData(groupId: string|null, artifactId: string, version: string, metaData: EditableMetaData): Promise<void>;
     updateArtifactOwner(groupId: string|null, artifactId: string, newOwner: string): Promise<void>;
     getArtifactVersionContent(groupId: string|null, artifactId: string, version: string): Promise<string>;
     getArtifactVersions(groupId: string|null, artifactId: string): Promise<SearchedVersion[]>;
@@ -378,8 +388,11 @@ export const useGroupsService: () => GroupsService = (): GroupsService => {
         getLatestArtifact(groupId: string|null, artifactId: string): Promise<string> {
             return getLatestArtifact(config, auth, groupId, artifactId);
         },
-        updateArtifactMetaData(groupId: string|null, artifactId: string, version: string, metaData: EditableMetaData): Promise<void> {
-            return updateArtifactMetaData(config, auth, groupId, artifactId, version, metaData);
+        updateArtifactMetaData(groupId: string|null, artifactId: string, metaData: EditableMetaData): Promise<void> {
+            return updateArtifactMetaData(config, auth, groupId, artifactId, metaData);
+        },
+        updateArtifactVersionMetaData(groupId: string|null, artifactId: string, version: string, metaData: EditableMetaData): Promise<void> {
+            return updateArtifactVersionMetaData(config, auth, groupId, artifactId, version, metaData);
         },
         updateArtifactOwner(groupId: string|null, artifactId: string, newOwner: string): Promise<void> {
             return updateArtifactOwner(config, auth, groupId, artifactId, newOwner);

@@ -37,28 +37,12 @@ import { LoggerService, useLoggerService } from "@services/useLoggerService.ts";
 import { CreateVersionData, EditableMetaData, GroupsService, useGroupsService } from "@services/useGroupsService.ts";
 import { DownloadService, useDownloadService } from "@services/useDownloadService.ts";
 import { ArtifactTypes } from "@services/useArtifactTypesService.ts";
+import { VersionMetaData } from "@models/versionMetaData.model.ts";
 
 
 export type ArtifactVersionPageProps = {
     // No properties
 }
-
-const EMPTY_ARTIFACT_META_DATA: ArtifactMetaData = {
-    groupId: null,
-    id: "",
-    name: "",
-    description: "",
-    labels: {},
-    type: "",
-    version: "",
-    owner: "",
-    createdOn: "",
-    modifiedBy: "",
-    modifiedOn: "",
-    globalId: 1,
-    contentId: 1,
-    state: ""
-};
 
 /**
  * The artifact version page.
@@ -67,7 +51,8 @@ export const ArtifactVersionPage: FunctionComponent<ArtifactVersionPageProps> = 
     const [pageError, setPageError] = useState<PageError>();
     const [loaders, setLoaders] = useState<Promise<any> | Promise<any>[] | undefined>();
     const [activeTabKey, setActiveTabKey] = useState("overview");
-    const [artifact, setArtifact] = useState<ArtifactMetaData>(EMPTY_ARTIFACT_META_DATA);
+    const [artifact, setArtifact] = useState<ArtifactMetaData>();
+    const [artifactVersion, setArtifactVersion] = useState<VersionMetaData>();
     const [artifactContent, setArtifactContent] = useState("");
     const [invalidContentError, setInvalidContentError] = useState<ApiError>();
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -109,12 +94,17 @@ export const ArtifactVersionPage: FunctionComponent<ArtifactVersionPageProps> = 
         }
         logger.info("Loading data for artifact: ", artifactId);
         return [
-            groups.getArtifactMetaData(gid, artifactId as string, version as string)
+            groups.getArtifactMetaData(gid, artifactId as string)
                 .then(setArtifact)
                 .catch(error => {
                     setPageError(toPageError(error, "Error loading page data."));
                 }),
-            groups.getArtifactContent(gid, artifactId as string, version as string)
+            groups.getArtifactVersionMetaData(gid, artifactId as string, version as string)
+                .then(setArtifactVersion)
+                .catch(error => {
+                    setPageError(toPageError(error, "Error loading page data."));
+                }),
+            groups.getArtifactVersionContent(gid, artifactId as string, version as string)
                 .then(setArtifactContent)
                 .catch(e => {
                     logger.warn("Failed to get artifact content: ", e);
@@ -153,12 +143,7 @@ export const ArtifactVersionPage: FunctionComponent<ArtifactVersionPageProps> = 
     };
 
     const showDocumentationTab = (): boolean => {
-        if (artifact) {
-            // return (artifact.type === "OPENAPI" || artifact.type === "ASYNCAPI") && artifact.state !== "DISABLED";
-            return artifact.type === "OPENAPI" && artifact.state !== "DISABLED";
-        } else {
-            return false;
-        }
+        return artifact?.type === "OPENAPI" && artifactVersion?.state !== "DISABLED";
     };
 
     const doEnableRule = (ruleType: string): void => {
@@ -228,7 +213,7 @@ export const ArtifactVersionPage: FunctionComponent<ArtifactVersionPageProps> = 
     };
 
     const nameOrId = (): string => {
-        return artifact?.name || artifact?.id || "";
+        return artifact?.name || artifact?.artifactId || "";
     };
 
     const artifactType = (): string => {
@@ -273,7 +258,7 @@ export const ArtifactVersionPage: FunctionComponent<ArtifactVersionPageProps> = 
             };
             groups.createArtifactVersion(groupId as string, artifactId as string, data).then(versionMetaData => {
                 const groupId: string = versionMetaData.groupId ? versionMetaData.groupId : "default";
-                const artifactVersionLocation: string = `/artifacts/${ encodeURIComponent(groupId) }/${ encodeURIComponent(versionMetaData.id) }/versions/${versionMetaData.version}`;
+                const artifactVersionLocation: string = `/artifacts/${ encodeURIComponent(groupId) }/${ encodeURIComponent(versionMetaData.artifactId) }/versions/${versionMetaData.version}`;
                 logger.info("[ArtifactVersionPage] Artifact version successfully uploaded.  Redirecting to details: ", artifactVersionLocation);
                 pleaseWait(false, "");
                 appNavigation.navigateTo(artifactVersionLocation);
@@ -364,7 +349,9 @@ export const ArtifactVersionPage: FunctionComponent<ArtifactVersionPageProps> = 
 
     const tabs: any[] = [
         <Tab eventKey="overview" title="Overview" key="overview" tabContentId="tab-info">
-            <InfoTabContent artifact={artifact}
+            <InfoTabContent
+                artifact={artifact as ArtifactMetaData}
+                version={artifactVersion as VersionMetaData}
                 isLatest={version === "latest"}
                 rules={rules}
                 onEnableRule={doEnableRule}
@@ -376,13 +363,13 @@ export const ArtifactVersionPage: FunctionComponent<ArtifactVersionPageProps> = 
             />
         </Tab>,
         <Tab eventKey="documentation" title="Documentation" key="documentation" className="documentation-tab">
-            <DocumentationTabContent artifactContent={artifactContent} artifactType={artifact.type} />
+            <DocumentationTabContent artifactContent={artifactContent} artifactType={artifact?.type as string} />
         </Tab>,
         <Tab eventKey="content" title="Content" key="content">
-            <ContentTabContent artifactContent={artifactContent} artifactType={artifact.type} />
+            <ContentTabContent artifactContent={artifactContent} artifactType={artifact?.type as string} />
         </Tab>,
         <Tab eventKey="references" title="References" key="references">
-            <ReferencesTabContent artifact={artifact} />
+            <ReferencesTabContent version={artifactVersion as VersionMetaData} />
         </Tab>,
     ];
     if (!showDocumentationTab()) {

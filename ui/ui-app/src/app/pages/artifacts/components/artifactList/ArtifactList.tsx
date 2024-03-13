@@ -45,7 +45,7 @@ export const ArtifactList: FunctionComponent<ArtifactListProps> = (props: Artifa
         <DataList aria-label="List of artifacts" className="artifact-list">
             {
                 props.artifacts.map( (artifact, /* idx */) =>
-                    <DataListItemRow className="artifact-list-item" key={artifact.id}>
+                    <DataListItemRow className="artifact-list-item" key={artifact.artifactId}>
                         <DataListItemCells
                             dataListCells={[
                                 <DataListCell key="type icon" className="type-icon-cell">
@@ -54,7 +54,7 @@ export const ArtifactList: FunctionComponent<ArtifactListProps> = (props: Artifa
                                 <DataListCell key="main content" className="content-cell">
                                     <div className="artifact-title">
                                         <ArtifactGroup groupId={artifact.groupId} onClick={props.onGroupClick} />
-                                        <ArtifactName groupId={artifact.groupId} id={artifact.id} name={artifact.name} />
+                                        <ArtifactName groupId={artifact.groupId} id={artifact.artifactId} name={artifact.name} />
                                         {
                                             statuses(artifact).map( status =>
                                                 <Badge className="status-badge" key={status} isRead={true}>{status}</Badge>

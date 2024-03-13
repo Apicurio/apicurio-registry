@@ -144,17 +144,26 @@ const getArtifacts = async (config: ConfigService, auth: AuthService, criteria: 
     });
 };
 
-const getArtifactMetaData = async (config: ConfigService, auth: AuthService, groupId: string|null, artifactId: string, version: string): Promise<ArtifactMetaData> => {
+const getArtifactMetaData = async (config: ConfigService, auth: AuthService, groupId: string|null, artifactId: string): Promise<ArtifactMetaData> => {
     groupId = normalizeGroupId(groupId);
 
     const baseHref: string = config.artifactsUrl();
     const token: string | undefined = await auth.getToken();
-    let endpoint: string = createEndpoint(baseHref, "/groups/:groupId/artifacts/:artifactId/versions/:version/meta", { groupId, artifactId, version });
-    if (version === "latest") {
-        endpoint = createEndpoint(baseHref, "/groups/:groupId/artifacts/:artifactId/meta", { groupId, artifactId });
-    }
+    const endpoint: string = createEndpoint(baseHref, "/groups/:groupId/artifacts/:artifactId", { groupId, artifactId });
     const options = createOptions(createHeaders(token));
     return httpGet<ArtifactMetaData>(endpoint, options);
+};
+
+const getArtifactVersionMetaData = async (config: ConfigService, auth: AuthService, groupId: string|null, artifactId: string, version: string): Promise<VersionMetaData> => {
+    groupId = normalizeGroupId(groupId);
+
+    const baseHref: string = config.artifactsUrl();
+    const token: string | undefined = await auth.getToken();
+    const versionExpression: string = (version == "latest") ? "branch=latest" : version;
+    const endpoint: string = createEndpoint(baseHref, "/groups/:groupId/artifacts/:artifactId/versions/:versionExpression/meta",
+        { groupId, artifactId, versionExpression });
+    const options = createOptions(createHeaders(token));
+    return httpGet<VersionMetaData>(endpoint, options);
 };
 
 const getArtifactReferences = async (config: ConfigService, auth: AuthService, globalId: number, refType: ReferenceType): Promise<ArtifactReference[]> => {
@@ -169,7 +178,7 @@ const getArtifactReferences = async (config: ConfigService, auth: AuthService, g
 };
 
 const getLatestArtifact = async (config: ConfigService, auth: AuthService, groupId: string|null, artifactId: string): Promise<string> => {
-    return getArtifactContent(config, auth, groupId, artifactId, "latest");
+    return getArtifactVersionContent(config, auth, groupId, artifactId, "latest");
 };
 
 const updateArtifactMetaData = async (config: ConfigService, auth: AuthService, groupId: string|null, artifactId: string, version: string, metaData: EditableMetaData): Promise<void> => {
@@ -179,7 +188,7 @@ const updateArtifactMetaData = async (config: ConfigService, auth: AuthService, 
     const token: string | undefined = await auth.getToken();
     let endpoint: string = createEndpoint(baseHref, "/groups/:groupId/artifacts/:artifactId/versions/:version/meta", { groupId, artifactId, version });
     if (version === "latest") {
-        endpoint = createEndpoint(baseHref, "/groups/:groupId/artifacts/:artifactId/meta", { groupId, artifactId });
+        endpoint = createEndpoint(baseHref, "/groups/:groupId/artifacts/:artifactId", { groupId, artifactId });
     }
     const options = createOptions(createHeaders(token));
     return httpPut<EditableMetaData>(endpoint, metaData, options);
@@ -198,15 +207,14 @@ const updateArtifactOwner = async (config: ConfigService, auth: AuthService, gro
     return httpPut<ArtifactOwner>(endpoint, artifactOwner, options);
 };
 
-const getArtifactContent = async (config: ConfigService, auth: AuthService, groupId: string|null, artifactId: string, version: string): Promise<string> => {
+const getArtifactVersionContent = async (config: ConfigService, auth: AuthService, groupId: string|null, artifactId: string, version: string): Promise<string> => {
     groupId = normalizeGroupId(groupId);
 
     const baseHref: string = config.artifactsUrl();
     const token: string | undefined = await auth.getToken();
-    let endpoint: string = createEndpoint(baseHref, "/groups/:groupId/artifacts/:artifactId/versions/:version", { groupId, artifactId, version });
-    if (version === "latest") {
-        endpoint = createEndpoint(baseHref, "/groups/:groupId/artifacts/:artifactId", { groupId, artifactId });
-    }
+    const versionExpression: string = (version == "latest") ? "branch=latest" : version;
+    const endpoint: string = createEndpoint(baseHref, "/groups/:groupId/artifacts/:artifactId/versions/:versionExpression",
+        { groupId, artifactId, versionExpression });
 
     const headers: any = createHeaders(token);
     headers["Accept"] = "*";
@@ -327,12 +335,13 @@ export interface GroupsService {
     createArtifact(data: CreateArtifactData): Promise<ArtifactMetaData>;
     createArtifactVersion(groupId: string|null, artifactId: string, data: CreateVersionData): Promise<VersionMetaData>;
     getArtifacts(criteria: GetArtifactsCriteria, paging: Paging): Promise<ArtifactsSearchResults>;
-    getArtifactMetaData(groupId: string|null, artifactId: string, version: string): Promise<ArtifactMetaData>;
+    getArtifactMetaData(groupId: string|null, artifactId: string): Promise<ArtifactMetaData>;
+    getArtifactVersionMetaData(groupId: string|null, artifactId: string, version: string): Promise<VersionMetaData>;
     getArtifactReferences(globalId: number, refType: ReferenceType): Promise<ArtifactReference[]>;
     getLatestArtifact(groupId: string|null, artifactId: string): Promise<string>;
     updateArtifactMetaData(groupId: string|null, artifactId: string, version: string, metaData: EditableMetaData): Promise<void>;
     updateArtifactOwner(groupId: string|null, artifactId: string, newOwner: string): Promise<void>;
-    getArtifactContent(groupId: string|null, artifactId: string, version: string): Promise<string>;
+    getArtifactVersionContent(groupId: string|null, artifactId: string, version: string): Promise<string>;
     getArtifactVersions(groupId: string|null, artifactId: string): Promise<SearchedVersion[]>;
     getArtifactRules(groupId: string|null, artifactId: string): Promise<Rule[]>;
     getArtifactRule(groupId: string|null, artifactId: string, type: string): Promise<Rule>;
@@ -357,8 +366,11 @@ export const useGroupsService: () => GroupsService = (): GroupsService => {
         getArtifacts(criteria: GetArtifactsCriteria, paging: Paging): Promise<ArtifactsSearchResults> {
             return getArtifacts(config, auth, criteria, paging);
         },
-        getArtifactMetaData(groupId: string|null, artifactId: string, version: string): Promise<ArtifactMetaData> {
-            return getArtifactMetaData(config, auth, groupId, artifactId, version);
+        getArtifactMetaData(groupId: string|null, artifactId: string): Promise<ArtifactMetaData> {
+            return getArtifactMetaData(config, auth, groupId, artifactId);
+        },
+        getArtifactVersionMetaData(groupId: string|null, artifactId: string, version: string): Promise<VersionMetaData> {
+            return getArtifactVersionMetaData(config, auth, groupId, artifactId, version);
         },
         getArtifactReferences(globalId: number, refType: ReferenceType): Promise<ArtifactReference[]> {
             return getArtifactReferences(config, auth, globalId, refType);
@@ -372,8 +384,8 @@ export const useGroupsService: () => GroupsService = (): GroupsService => {
         updateArtifactOwner(groupId: string|null, artifactId: string, newOwner: string): Promise<void> {
             return updateArtifactOwner(config, auth, groupId, artifactId, newOwner);
         },
-        getArtifactContent(groupId: string|null, artifactId: string, version: string): Promise<string> {
-            return getArtifactContent(config, auth, groupId, artifactId, version);
+        getArtifactVersionContent(groupId: string|null, artifactId: string, version: string): Promise<string> {
+            return getArtifactVersionContent(config, auth, groupId, artifactId, version);
         },
         getArtifactVersions(groupId: string|null, artifactId: string): Promise<SearchedVersion[]> {
             return getArtifactVersions(config, auth, groupId, artifactId);

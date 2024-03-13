@@ -2,7 +2,6 @@ import { FunctionComponent, useEffect, useState } from "react";
 import "./ReferencesTabContent.css";
 import { EmptyState, EmptyStateBody, EmptyStateVariant, Title } from "@patternfly/react-core";
 import { ReferenceList, ReferencesSort } from "./ReferenceList.tsx";
-import { ArtifactMetaData } from "@models/artifactMetaData.model.ts";
 import { ArtifactReference } from "@models/artifactReference.model.ts";
 import {
     ReferencesToolbar,
@@ -12,18 +11,19 @@ import { ReferenceType } from "@models/referenceType.ts";
 import { ListWithToolbar } from "@apicurio/common-ui-components";
 import { GroupsService, Paging, useGroupsService } from "@services/useGroupsService.ts";
 import { LoggerService, useLoggerService } from "@services/useLoggerService.ts";
+import { VersionMetaData } from "@models/versionMetaData.model.ts";
 
 /**
  * Properties
  */
 export type ReferencesTabContentProps = {
-    artifact: ArtifactMetaData | null;
+    version: VersionMetaData | null;
 };
 
 /**
  * The UI of the "References" tab in the artifact version details page.
  */
-export const ReferencesTabContent: FunctionComponent<ReferencesTabContentProps> = ({ artifact }: ReferencesTabContentProps) => {
+export const ReferencesTabContent: FunctionComponent<ReferencesTabContentProps> = ({ version }: ReferencesTabContentProps) => {
     const [ isLoading, setLoading ] = useState<boolean>(true);
     const [ isError, setError ] = useState<boolean>(false);
     const [ allReferences, setAllReferences ] = useState<ArtifactReference[]>([]);
@@ -50,14 +50,14 @@ export const ReferencesTabContent: FunctionComponent<ReferencesTabContentProps> 
     useEffect(() => {
         setLoading(true);
 
-        groups.getArtifactReferences(artifact?.globalId as number, referenceType).then(references => {
+        groups.getArtifactReferences(version?.globalId as number, referenceType).then(references => {
             setAllReferences(references);
         }).catch(error => {
             logger.error(error);
             setLoading(false);
             setError(true);
         });
-    }, [artifact, referenceType]);
+    }, [version, referenceType]);
 
     // Whenever we get new references, or the paging or sorting changes, perform filtering/paging on the references
     useEffect(() => {

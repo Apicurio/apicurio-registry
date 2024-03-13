@@ -16,7 +16,7 @@ import io.apicurio.registry.AbstractRegistryTestBase;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.model.GroupId;
 import io.apicurio.registry.rest.client.models.ArtifactContent;
-import io.apicurio.registry.rest.client.models.EditableArtifactMetaData;
+import io.apicurio.registry.rest.client.models.EditableVersionMetaData;
 import io.apicurio.registry.rest.client.models.Labels;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.types.ArtifactType;
@@ -56,7 +56,7 @@ public class LimitsTest extends AbstractResourceTestBase {
         createArtifactVersion(artifactId, ArtifactType.JSON, content);
 
         //valid metadata
-        EditableArtifactMetaData meta = new EditableArtifactMetaData();
+        EditableVersionMetaData meta = new EditableVersionMetaData();
         meta.setName(StringUtils.repeat('a', 512));
         meta.setDescription(StringUtils.repeat('a', 1024));
         String fourBytesText = StringUtils.repeat('a', 4);
@@ -78,7 +78,7 @@ public class LimitsTest extends AbstractResourceTestBase {
             ;
 
         //invalid metadata
-        EditableArtifactMetaData invalidmeta = new EditableArtifactMetaData();
+        EditableVersionMetaData invalidmeta = new EditableVersionMetaData();
         invalidmeta.setName(StringUtils.repeat('a', 513));
         invalidmeta.setDescription(StringUtils.repeat('a', 1025));
         String fiveBytesText = StringUtils.repeat('a', 5);

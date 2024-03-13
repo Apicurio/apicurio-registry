@@ -80,7 +80,6 @@ public class AuthTestNoRoles extends AbstractResourceTestBase {
                         .byGroupId(groupId)
                         .artifacts()
                         .byArtifactId(artifactId)
-                        .meta()
                         .get()
                         );
             assertNotNull(client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get());

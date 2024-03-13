@@ -45,11 +45,13 @@ CREATE TABLE group_rules (groupId VARCHAR(512) NOT NULL, type VARCHAR(32) NOT NU
 ALTER TABLE group_rules ADD PRIMARY KEY (groupId, type);
 ALTER TABLE group_rules ADD CONSTRAINT FK_grules_1 FOREIGN KEY (groupId) REFERENCES groups(groupId) ON DELETE CASCADE;
 
-CREATE TABLE artifacts (groupId VARCHAR(512) NOT NULL, artifactId VARCHAR(512) NOT NULL, type VARCHAR(32) NOT NULL, owner VARCHAR(256), createdOn TIMESTAMP WITHOUT TIME ZONE NOT NULL, labels TEXT);
+CREATE TABLE artifacts (groupId VARCHAR(512) NOT NULL, artifactId VARCHAR(512) NOT NULL, type VARCHAR(32) NOT NULL, owner VARCHAR(256), createdOn TIMESTAMP WITHOUT TIME ZONE NOT NULL, modifiedBy VARCHAR(256), modifiedOn TIMESTAMP WITHOUT TIME ZONE, name VARCHAR(512), description VARCHAR(1024), labels TEXT);
 ALTER TABLE artifacts ADD PRIMARY KEY (groupId, artifactId);
 CREATE HASH INDEX IDX_artifacts_0 ON artifacts(type);
 CREATE HASH INDEX IDX_artifacts_1 ON artifacts(owner);
 CREATE INDEX IDX_artifacts_2 ON artifacts(createdOn);
+CREATE INDEX IDX_artifacts_3 ON artifacts(name);
+CREATE INDEX IDX_artifacts_4 ON artifacts(description);
 
 CREATE TABLE artifact_labels (groupId VARCHAR(512) NOT NULL, artifactId VARCHAR(512) NOT NULL, labelKey VARCHAR(256) NOT NULL, labelValue VARCHAR(512));
 ALTER TABLE artifact_labels ADD CONSTRAINT FK_alabels_1 FOREIGN KEY (groupId, artifactId) REFERENCES artifacts(groupId, artifactId) ON DELETE CASCADE;

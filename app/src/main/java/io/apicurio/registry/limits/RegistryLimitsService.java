@@ -2,12 +2,14 @@ package io.apicurio.registry.limits;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 
 import org.slf4j.Logger;
 
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
+import io.apicurio.registry.storage.dto.EditableVersionMetaDataDto;
 import io.apicurio.registry.storage.metrics.StorageMetricsStore;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -102,7 +104,7 @@ public class RegistryLimitsService {
         }
     }
 
-    public LimitsCheckResult canCreateArtifactVersion(String groupId, String artifactId, EditableArtifactMetaDataDto meta, ContentHandle content) {
+    public LimitsCheckResult canCreateArtifactVersion(String groupId, String artifactId, EditableVersionMetaDataDto meta, ContentHandle content) {
 
         LimitsCheckResult mr = checkMetaData(meta);
         if (!mr.isAllowed()) {
@@ -160,31 +162,68 @@ public class RegistryLimitsService {
         }
         List<String> errorMessages = new ArrayList<>();
 
+        checkName(meta.getName(), errorMessages);
+        checkDescription(meta.getDescription(), errorMessages);
+        checkLabels(meta.getLabels(), errorMessages);
+
+        if (errorMessages.isEmpty()) {
+            return LimitsCheckResult.ok();
+        } else {
+            return LimitsCheckResult.disallowed(String.join(", ", errorMessages));
+        }
+    }
+
+    public LimitsCheckResult checkMetaData(EditableVersionMetaDataDto meta) {
+        if (meta == null || registryLimitsConfiguration == null) {
+            return LimitsCheckResult.ok();
+        }
+        List<String> errorMessages = new ArrayList<>();
+
+        checkName(meta.getName(), errorMessages);
+        checkDescription(meta.getDescription(), errorMessages);
+        checkLabels(meta.getLabels(), errorMessages);
+
+        if (errorMessages.isEmpty()) {
+            return LimitsCheckResult.ok();
+        } else {
+            return LimitsCheckResult.disallowed(String.join(", ", errorMessages));
+        }
+    }
+
+    protected void checkName(String name, List<String> errorMessages) {
         //name is limited at db level to 512 chars
-        if (meta.getName() != null && isLimitEnabled(RegistryLimitsConfiguration::getMaxArtifactNameLengthChars)) {
-            if (meta.getName().length() > registryLimitsConfiguration.getMaxArtifactNameLengthChars()) {
+        if (name != null && isLimitEnabled(RegistryLimitsConfiguration::getMaxArtifactNameLengthChars)) {
+            if (name.length() > registryLimitsConfiguration.getMaxArtifactNameLengthChars()) {
                 errorMessages.add(MAX_NAME_LENGTH_EXCEEDED_MSG);
             }
         }
+    }
 
+    protected void checkDescription(String description, List<String> errorMessages) {
         //description is limited at db level to 1024 chars
-        if (meta.getDescription() != null && isLimitEnabled(RegistryLimitsConfiguration::getMaxArtifactDescriptionLengthChars)) {
+        if (description != null && isLimitEnabled(RegistryLimitsConfiguration::getMaxArtifactDescriptionLengthChars)) {
 
-            if (meta.getDescription().length() > registryLimitsConfiguration.getMaxArtifactDescriptionLengthChars()) {
+            if (description.length() > registryLimitsConfiguration.getMaxArtifactDescriptionLengthChars()) {
                 errorMessages.add(MAX_DESC_LENGTH_EXCEEDED_MSG);
             }
         }
+    }
 
-        if (meta.getLabels() != null) {
+    /**
+     * @param meta
+     * @param errorMessages
+     */
+    protected void checkLabels(Map<String, String> labels, List<String> errorMessages) {
+        if (labels != null) {
             if (isLimitEnabled(RegistryLimitsConfiguration::getMaxArtifactPropertiesCount) &&
-                    meta.getLabels().size() > registryLimitsConfiguration.getMaxArtifactPropertiesCount()) {
+                    labels.size() > registryLimitsConfiguration.getMaxArtifactPropertiesCount()) {
 
                 errorMessages.add(MAX_LABELS_EXCEEDED_MSG);
 
             } else if (isLimitEnabled(RegistryLimitsConfiguration::getMaxPropertyKeySizeBytes) ||
                     isLimitEnabled(RegistryLimitsConfiguration::getMaxPropertyValueSizeBytes)){
 
-                meta.getLabels().entrySet().forEach(e -> {
+                labels.entrySet().forEach(e -> {
 
                     if (isLimitEnabled(RegistryLimitsConfiguration::getMaxPropertyKeySizeBytes) &&
                             e.getKey().length() > registryLimitsConfiguration.getMaxPropertyKeySizeBytes()) {
@@ -197,12 +236,6 @@ public class RegistryLimitsService {
                     }
                 });
             }
-        }
-
-        if (errorMessages.isEmpty()) {
-            return LimitsCheckResult.ok();
-        } else {
-            return LimitsCheckResult.disallowed(String.join(", ", errorMessages));
         }
     }
 

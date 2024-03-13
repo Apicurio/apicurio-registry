@@ -9,18 +9,14 @@ import (
 type ArtifactMetaData struct {
 	// Stores additional data not described in the OpenAPI description found when deserializing. Can be used for serialization as well.
 	additionalData map[string]any
-	// The contentId property
-	contentId *int64
+	// The ID of a single artifact.
+	artifactId *string
 	// The createdOn property
 	createdOn *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time
 	// The description property
 	description *string
-	// The globalId property
-	globalId *int64
 	// An ID of a single artifact group.
 	groupId *string
-	// The ID of a single artifact.
-	id *string
 	// User-defined name-value pairs. Name and value must be strings.
 	labels Labelsable
 	// The modifiedBy property
@@ -31,14 +27,8 @@ type ArtifactMetaData struct {
 	name *string
 	// The owner property
 	owner *string
-	// The references property
-	references []ArtifactReferenceable
-	// Describes the state of an artifact or artifact version.  The following statesare possible:* ENABLED* DISABLED* DEPRECATED
-	state *ArtifactState
 	// The type property
 	typeEscaped *string
-	// The version property
-	version *string
 }
 
 // NewArtifactMetaData instantiates a new ArtifactMetaData and sets the default values.
@@ -58,9 +48,9 @@ func (m *ArtifactMetaData) GetAdditionalData() map[string]any {
 	return m.additionalData
 }
 
-// GetContentId gets the contentId property value. The contentId property
-func (m *ArtifactMetaData) GetContentId() *int64 {
-	return m.contentId
+// GetArtifactId gets the artifactId property value. The ID of a single artifact.
+func (m *ArtifactMetaData) GetArtifactId() *string {
+	return m.artifactId
 }
 
 // GetCreatedOn gets the createdOn property value. The createdOn property
@@ -76,13 +66,13 @@ func (m *ArtifactMetaData) GetDescription() *string {
 // GetFieldDeserializers the deserialization information for the current model
 func (m *ArtifactMetaData) GetFieldDeserializers() map[string]func(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
 	res := make(map[string]func(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error)
-	res["contentId"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
-		val, err := n.GetInt64Value()
+	res["artifactId"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
+		val, err := n.GetStringValue()
 		if err != nil {
 			return err
 		}
 		if val != nil {
-			m.SetContentId(val)
+			m.SetArtifactId(val)
 		}
 		return nil
 	}
@@ -106,16 +96,6 @@ func (m *ArtifactMetaData) GetFieldDeserializers() map[string]func(i878a80d2330e
 		}
 		return nil
 	}
-	res["globalId"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
-		val, err := n.GetInt64Value()
-		if err != nil {
-			return err
-		}
-		if val != nil {
-			m.SetGlobalId(val)
-		}
-		return nil
-	}
 	res["groupId"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
 		val, err := n.GetStringValue()
 		if err != nil {
@@ -123,16 +103,6 @@ func (m *ArtifactMetaData) GetFieldDeserializers() map[string]func(i878a80d2330e
 		}
 		if val != nil {
 			m.SetGroupId(val)
-		}
-		return nil
-	}
-	res["id"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
-		val, err := n.GetStringValue()
-		if err != nil {
-			return err
-		}
-		if val != nil {
-			m.SetId(val)
 		}
 		return nil
 	}
@@ -186,32 +156,6 @@ func (m *ArtifactMetaData) GetFieldDeserializers() map[string]func(i878a80d2330e
 		}
 		return nil
 	}
-	res["references"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
-		val, err := n.GetCollectionOfObjectValues(CreateArtifactReferenceFromDiscriminatorValue)
-		if err != nil {
-			return err
-		}
-		if val != nil {
-			res := make([]ArtifactReferenceable, len(val))
-			for i, v := range val {
-				if v != nil {
-					res[i] = v.(ArtifactReferenceable)
-				}
-			}
-			m.SetReferences(res)
-		}
-		return nil
-	}
-	res["state"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
-		val, err := n.GetEnumValue(ParseArtifactState)
-		if err != nil {
-			return err
-		}
-		if val != nil {
-			m.SetState(val.(*ArtifactState))
-		}
-		return nil
-	}
 	res["type"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
 		val, err := n.GetStringValue()
 		if err != nil {
@@ -222,32 +166,12 @@ func (m *ArtifactMetaData) GetFieldDeserializers() map[string]func(i878a80d2330e
 		}
 		return nil
 	}
-	res["version"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
-		val, err := n.GetStringValue()
-		if err != nil {
-			return err
-		}
-		if val != nil {
-			m.SetVersion(val)
-		}
-		return nil
-	}
 	return res
-}
-
-// GetGlobalId gets the globalId property value. The globalId property
-func (m *ArtifactMetaData) GetGlobalId() *int64 {
-	return m.globalId
 }
 
 // GetGroupId gets the groupId property value. An ID of a single artifact group.
 func (m *ArtifactMetaData) GetGroupId() *string {
 	return m.groupId
-}
-
-// GetId gets the id property value. The ID of a single artifact.
-func (m *ArtifactMetaData) GetId() *string {
-	return m.id
 }
 
 // GetLabels gets the labels property value. User-defined name-value pairs. Name and value must be strings.
@@ -275,30 +199,15 @@ func (m *ArtifactMetaData) GetOwner() *string {
 	return m.owner
 }
 
-// GetReferences gets the references property value. The references property
-func (m *ArtifactMetaData) GetReferences() []ArtifactReferenceable {
-	return m.references
-}
-
-// GetState gets the state property value. Describes the state of an artifact or artifact version.  The following statesare possible:* ENABLED* DISABLED* DEPRECATED
-func (m *ArtifactMetaData) GetState() *ArtifactState {
-	return m.state
-}
-
 // GetTypeEscaped gets the type property value. The type property
 func (m *ArtifactMetaData) GetTypeEscaped() *string {
 	return m.typeEscaped
 }
 
-// GetVersion gets the version property value. The version property
-func (m *ArtifactMetaData) GetVersion() *string {
-	return m.version
-}
-
 // Serialize serializes information the current object
 func (m *ArtifactMetaData) Serialize(writer i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.SerializationWriter) error {
 	{
-		err := writer.WriteInt64Value("contentId", m.GetContentId())
+		err := writer.WriteStringValue("artifactId", m.GetArtifactId())
 		if err != nil {
 			return err
 		}
@@ -316,19 +225,7 @@ func (m *ArtifactMetaData) Serialize(writer i878a80d2330e89d26896388a3f487eef27b
 		}
 	}
 	{
-		err := writer.WriteInt64Value("globalId", m.GetGlobalId())
-		if err != nil {
-			return err
-		}
-	}
-	{
 		err := writer.WriteStringValue("groupId", m.GetGroupId())
-		if err != nil {
-			return err
-		}
-	}
-	{
-		err := writer.WriteStringValue("id", m.GetId())
 		if err != nil {
 			return err
 		}
@@ -363,33 +260,8 @@ func (m *ArtifactMetaData) Serialize(writer i878a80d2330e89d26896388a3f487eef27b
 			return err
 		}
 	}
-	if m.GetReferences() != nil {
-		cast := make([]i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.Parsable, len(m.GetReferences()))
-		for i, v := range m.GetReferences() {
-			if v != nil {
-				cast[i] = v.(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.Parsable)
-			}
-		}
-		err := writer.WriteCollectionOfObjectValues("references", cast)
-		if err != nil {
-			return err
-		}
-	}
-	if m.GetState() != nil {
-		cast := (*m.GetState()).String()
-		err := writer.WriteStringValue("state", &cast)
-		if err != nil {
-			return err
-		}
-	}
 	{
 		err := writer.WriteStringValue("type", m.GetTypeEscaped())
-		if err != nil {
-			return err
-		}
-	}
-	{
-		err := writer.WriteStringValue("version", m.GetVersion())
 		if err != nil {
 			return err
 		}
@@ -408,9 +280,9 @@ func (m *ArtifactMetaData) SetAdditionalData(value map[string]any) {
 	m.additionalData = value
 }
 
-// SetContentId sets the contentId property value. The contentId property
-func (m *ArtifactMetaData) SetContentId(value *int64) {
-	m.contentId = value
+// SetArtifactId sets the artifactId property value. The ID of a single artifact.
+func (m *ArtifactMetaData) SetArtifactId(value *string) {
+	m.artifactId = value
 }
 
 // SetCreatedOn sets the createdOn property value. The createdOn property
@@ -423,19 +295,9 @@ func (m *ArtifactMetaData) SetDescription(value *string) {
 	m.description = value
 }
 
-// SetGlobalId sets the globalId property value. The globalId property
-func (m *ArtifactMetaData) SetGlobalId(value *int64) {
-	m.globalId = value
-}
-
 // SetGroupId sets the groupId property value. An ID of a single artifact group.
 func (m *ArtifactMetaData) SetGroupId(value *string) {
 	m.groupId = value
-}
-
-// SetId sets the id property value. The ID of a single artifact.
-func (m *ArtifactMetaData) SetId(value *string) {
-	m.id = value
 }
 
 // SetLabels sets the labels property value. User-defined name-value pairs. Name and value must be strings.
@@ -463,58 +325,33 @@ func (m *ArtifactMetaData) SetOwner(value *string) {
 	m.owner = value
 }
 
-// SetReferences sets the references property value. The references property
-func (m *ArtifactMetaData) SetReferences(value []ArtifactReferenceable) {
-	m.references = value
-}
-
-// SetState sets the state property value. Describes the state of an artifact or artifact version.  The following statesare possible:* ENABLED* DISABLED* DEPRECATED
-func (m *ArtifactMetaData) SetState(value *ArtifactState) {
-	m.state = value
-}
-
 // SetTypeEscaped sets the type property value. The type property
 func (m *ArtifactMetaData) SetTypeEscaped(value *string) {
 	m.typeEscaped = value
-}
-
-// SetVersion sets the version property value. The version property
-func (m *ArtifactMetaData) SetVersion(value *string) {
-	m.version = value
 }
 
 // ArtifactMetaDataable
 type ArtifactMetaDataable interface {
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.AdditionalDataHolder
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.Parsable
-	GetContentId() *int64
+	GetArtifactId() *string
 	GetCreatedOn() *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time
 	GetDescription() *string
-	GetGlobalId() *int64
 	GetGroupId() *string
-	GetId() *string
 	GetLabels() Labelsable
 	GetModifiedBy() *string
 	GetModifiedOn() *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time
 	GetName() *string
 	GetOwner() *string
-	GetReferences() []ArtifactReferenceable
-	GetState() *ArtifactState
 	GetTypeEscaped() *string
-	GetVersion() *string
-	SetContentId(value *int64)
+	SetArtifactId(value *string)
 	SetCreatedOn(value *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time)
 	SetDescription(value *string)
-	SetGlobalId(value *int64)
 	SetGroupId(value *string)
-	SetId(value *string)
 	SetLabels(value Labelsable)
 	SetModifiedBy(value *string)
 	SetModifiedOn(value *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time)
 	SetName(value *string)
 	SetOwner(value *string)
-	SetReferences(value []ArtifactReferenceable)
-	SetState(value *ArtifactState)
 	SetTypeEscaped(value *string)
-	SetVersion(value *string)
 }

@@ -14,7 +14,7 @@ type SearchedGroup struct {
 	// The description property
 	description *string
 	// An ID of a single artifact group.
-	id *string
+	groupId *string
 	// The modifiedBy property
 	modifiedBy *string
 	// The modifiedOn property
@@ -73,13 +73,13 @@ func (m *SearchedGroup) GetFieldDeserializers() map[string]func(i878a80d2330e89d
 		}
 		return nil
 	}
-	res["id"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
+	res["groupId"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
 		val, err := n.GetStringValue()
 		if err != nil {
 			return err
 		}
 		if val != nil {
-			m.SetId(val)
+			m.SetGroupId(val)
 		}
 		return nil
 	}
@@ -116,9 +116,9 @@ func (m *SearchedGroup) GetFieldDeserializers() map[string]func(i878a80d2330e89d
 	return res
 }
 
-// GetId gets the id property value. An ID of a single artifact group.
-func (m *SearchedGroup) GetId() *string {
-	return m.id
+// GetGroupId gets the groupId property value. An ID of a single artifact group.
+func (m *SearchedGroup) GetGroupId() *string {
+	return m.groupId
 }
 
 // GetModifiedBy gets the modifiedBy property value. The modifiedBy property
@@ -151,7 +151,7 @@ func (m *SearchedGroup) Serialize(writer i878a80d2330e89d26896388a3f487eef27b0a0
 		}
 	}
 	{
-		err := writer.WriteStringValue("id", m.GetId())
+		err := writer.WriteStringValue("groupId", m.GetGroupId())
 		if err != nil {
 			return err
 		}
@@ -198,9 +198,9 @@ func (m *SearchedGroup) SetDescription(value *string) {
 	m.description = value
 }
 
-// SetId sets the id property value. An ID of a single artifact group.
-func (m *SearchedGroup) SetId(value *string) {
-	m.id = value
+// SetGroupId sets the groupId property value. An ID of a single artifact group.
+func (m *SearchedGroup) SetGroupId(value *string) {
+	m.groupId = value
 }
 
 // SetModifiedBy sets the modifiedBy property value. The modifiedBy property
@@ -224,13 +224,13 @@ type SearchedGroupable interface {
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.Parsable
 	GetCreatedOn() *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time
 	GetDescription() *string
-	GetId() *string
+	GetGroupId() *string
 	GetModifiedBy() *string
 	GetModifiedOn() *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time
 	GetOwner() *string
 	SetCreatedOn(value *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time)
 	SetDescription(value *string)
-	SetId(value *string)
+	SetGroupId(value *string)
 	SetModifiedBy(value *string)
 	SetModifiedOn(value *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time)
 	SetOwner(value *string)

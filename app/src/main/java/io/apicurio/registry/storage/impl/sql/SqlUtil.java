@@ -94,22 +94,16 @@ public class SqlUtil {
         return new GroupId(groupId).getRawGroupIdWithNull();
     }
 
-
-    public static ArtifactMetaDataDto convert(String groupId, String artifactId, ArtifactVersionMetaDataDto versionMeta) {
+    public static ArtifactMetaDataDto asArtifactMetaData(ArtifactVersionMetaDataDto versionMeta) {
         ArtifactMetaDataDto artifactMeta = new ArtifactMetaDataDto();
-        artifactMeta.setGlobalId(versionMeta.getGlobalId());
-        artifactMeta.setContentId(versionMeta.getContentId());
-        artifactMeta.setGroupId(denormalizeGroupId(groupId));
-        artifactMeta.setId(artifactId);
+        artifactMeta.setGroupId(versionMeta.getGroupId());
+        artifactMeta.setArtifactId(versionMeta.getArtifactId());
         artifactMeta.setModifiedBy(versionMeta.getOwner());
         artifactMeta.setModifiedOn(versionMeta.getCreatedOn());
-        artifactMeta.setState(versionMeta.getState());
         artifactMeta.setName(versionMeta.getName());
         artifactMeta.setDescription(versionMeta.getDescription());
         artifactMeta.setLabels(versionMeta.getLabels());
         artifactMeta.setType(versionMeta.getType());
-        artifactMeta.setVersion(versionMeta.getVersion());
-        artifactMeta.setVersionOrder(versionMeta.getVersionOrder());
         return artifactMeta;
     }
 }

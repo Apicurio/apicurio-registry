@@ -23,7 +23,7 @@ from apicurioregistrysdk.client.models.artifact_content import ArtifactContent
 
 REGISTRY_HOST = "localhost"
 REGISTRY_PORT = 8080
-REGISTRY_URL = f"http://{REGISTRY_HOST}:{REGISTRY_PORT}/apis/registry/v2"
+REGISTRY_URL = f"http://{REGISTRY_HOST}:{REGISTRY_PORT}/apis/registry/v3"
 MAX_POLL_TIME = 120
 POLL_INTERVAL = 1
 start_time = time.time()
@@ -87,12 +87,13 @@ async def test_basic_upload_download():
         },
         "paths": {}
     }"""
-    create_artifact = await client.groups.by_group_id("default").artifacts.post(payload)
-    assert create_artifact.id is not None
+    meta_data = await client.groups.by_group_id("default").artifacts.post(payload)
+    assert meta_data.artifact_id is not None
 
     return_artifact = (
         await client.groups.by_group_id("default")
-        .artifacts.by_artifact_id(create_artifact.id)
+        .artifacts.by_artifact_id(meta_data.artifact_id)
+        .versions.by_version_expression("branch=latest")
         .get()
     )
     print(str(return_artifact, "utf-8"))
@@ -128,13 +129,13 @@ async def test_issue_3465():
         )
     )
 
-    create_artifact = await client.groups.by_group_id("default").artifacts.post(
+    meta_data = await client.groups.by_group_id("default").artifacts.post(
         payload, request_configuration=request_configuration
     )
-    assert create_artifact.id == "foo"
+    assert meta_data.artifact_id == "foo"
 
     # check the return or update functionality
-    create_artifact = await client.groups.by_group_id("default").artifacts.post(
+    meta_data = await client.groups.by_group_id("default").artifacts.post(
         payload, request_configuration=request_configuration
     )
-    assert create_artifact.id == "foo"
+    assert meta_data.artifact_id == "foo"

@@ -14,6 +14,8 @@ type EditableArtifactMetaData struct {
 	labels Labelsable
 	// The name property
 	name *string
+	// The owner property
+	owner *string
 }
 
 // NewEditableArtifactMetaData instantiates a new EditableArtifactMetaData and sets the default values.
@@ -71,6 +73,16 @@ func (m *EditableArtifactMetaData) GetFieldDeserializers() map[string]func(i878a
 		}
 		return nil
 	}
+	res["owner"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
+		val, err := n.GetStringValue()
+		if err != nil {
+			return err
+		}
+		if val != nil {
+			m.SetOwner(val)
+		}
+		return nil
+	}
 	return res
 }
 
@@ -82,6 +94,11 @@ func (m *EditableArtifactMetaData) GetLabels() Labelsable {
 // GetName gets the name property value. The name property
 func (m *EditableArtifactMetaData) GetName() *string {
 	return m.name
+}
+
+// GetOwner gets the owner property value. The owner property
+func (m *EditableArtifactMetaData) GetOwner() *string {
+	return m.owner
 }
 
 // Serialize serializes information the current object
@@ -100,6 +117,12 @@ func (m *EditableArtifactMetaData) Serialize(writer i878a80d2330e89d26896388a3f4
 	}
 	{
 		err := writer.WriteStringValue("name", m.GetName())
+		if err != nil {
+			return err
+		}
+	}
+	{
+		err := writer.WriteStringValue("owner", m.GetOwner())
 		if err != nil {
 			return err
 		}
@@ -133,6 +156,11 @@ func (m *EditableArtifactMetaData) SetName(value *string) {
 	m.name = value
 }
 
+// SetOwner sets the owner property value. The owner property
+func (m *EditableArtifactMetaData) SetOwner(value *string) {
+	m.owner = value
+}
+
 // EditableArtifactMetaDataable
 type EditableArtifactMetaDataable interface {
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.AdditionalDataHolder
@@ -140,7 +168,9 @@ type EditableArtifactMetaDataable interface {
 	GetDescription() *string
 	GetLabels() Labelsable
 	GetName() *string
+	GetOwner() *string
 	SetDescription(value *string)
 	SetLabels(value Labelsable)
 	SetName(value *string)
+	SetOwner(value *string)
 }

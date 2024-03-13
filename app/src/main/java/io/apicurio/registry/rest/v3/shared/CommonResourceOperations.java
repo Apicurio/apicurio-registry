@@ -19,7 +19,7 @@ public class CommonResourceOperations {
     RegistryStorage storage;
 
     public List<ArtifactReference> getReferencesByContentHash(String contentHash) {
-        ContentWrapperDto artifact = storage.getArtifactByContentHash(contentHash);
+        ContentWrapperDto artifact = storage.getContentByHash(contentHash);
         return artifact.getReferences().stream()
                 .map(V3ApiUtil::referenceDtoToReference)
                 .collect(Collectors.toList());

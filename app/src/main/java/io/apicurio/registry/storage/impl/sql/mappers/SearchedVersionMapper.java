@@ -5,7 +5,7 @@ import java.sql.SQLException;
 
 import io.apicurio.registry.storage.dto.SearchedVersionDto;
 import io.apicurio.registry.storage.impl.sql.jdb.RowMapper;
-import io.apicurio.registry.types.ArtifactState;
+import io.apicurio.registry.types.VersionState;
 
 public class SearchedVersionMapper implements RowMapper<SearchedVersionDto> {
 
@@ -27,13 +27,12 @@ public class SearchedVersionMapper implements RowMapper<SearchedVersionDto> {
         dto.setVersion(rs.getString("version"));
         dto.setVersionOrder(rs.getInt("versionOrder"));
         dto.setContentId(rs.getLong("contentId"));
-        dto.setState(ArtifactState.valueOf(rs.getString("state")));
+        dto.setState(VersionState.valueOf(rs.getString("state")));
         dto.setOwner(rs.getString("owner"));
         dto.setCreatedOn(rs.getTimestamp("createdOn"));
         dto.setName(rs.getString("name"));
         dto.setDescription(rs.getString("description"));
         dto.setType(rs.getString("type"));
-        dto.setState(ArtifactState.valueOf(rs.getString("state")));
         return dto;
     }
 

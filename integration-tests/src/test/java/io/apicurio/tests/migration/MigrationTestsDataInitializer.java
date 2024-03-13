@@ -1,22 +1,9 @@
 package io.apicurio.tests.migration;
 
-import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.rest.client.models.ArtifactContent;
-import io.apicurio.registry.rest.client.models.ArtifactReference;
-import io.apicurio.registry.rest.client.models.Rule;
-import io.apicurio.registry.rest.client.models.RuleType;
-import io.apicurio.registry.types.ArtifactState;
-import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.utils.IoUtil;
-import io.apicurio.registry.utils.impexp.ArtifactVersionEntity;
-import io.apicurio.registry.utils.impexp.ContentEntity;
-import io.apicurio.registry.utils.impexp.EntityWriter;
-import io.apicurio.registry.utils.tests.TestUtils;
-import io.apicurio.tests.serdes.apicurio.AvroGenericRecordSchemaFactory;
-import io.apicurio.tests.serdes.apicurio.JsonSchemaMsgFactory;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import org.apache.commons.codec.digest.DigestUtils;
+import static io.apicurio.tests.migration.DataMigrationIT.doNotPreserveIdsImportArtifacts;
+import static io.apicurio.tests.migration.DataMigrationIT.migrateGlobalIds;
+import static io.apicurio.tests.migration.DataMigrationIT.migrateReferencesMap;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -33,10 +20,24 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.zip.ZipOutputStream;
 
-import static io.apicurio.tests.migration.DataMigrationIT.doNotPreserveIdsImportArtifacts;
-import static io.apicurio.tests.migration.DataMigrationIT.migrateGlobalIds;
-import static io.apicurio.tests.migration.DataMigrationIT.migrateReferencesMap;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import org.apache.commons.codec.digest.DigestUtils;
+
+import io.apicurio.registry.rest.client.RegistryClient;
+import io.apicurio.registry.rest.client.models.ArtifactContent;
+import io.apicurio.registry.rest.client.models.ArtifactReference;
+import io.apicurio.registry.rest.client.models.Rule;
+import io.apicurio.registry.rest.client.models.RuleType;
+import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.VersionState;
+import io.apicurio.registry.utils.IoUtil;
+import io.apicurio.registry.utils.impexp.ArtifactVersionEntity;
+import io.apicurio.registry.utils.impexp.ContentEntity;
+import io.apicurio.registry.utils.impexp.EntityWriter;
+import io.apicurio.registry.utils.tests.TestUtils;
+import io.apicurio.tests.serdes.apicurio.AvroGenericRecordSchemaFactory;
+import io.apicurio.tests.serdes.apicurio.JsonSchemaMsgFactory;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
 
 public class MigrationTestsDataInitializer {
 
@@ -77,7 +78,7 @@ public class MigrationTestsDataInitializer {
             List<ArtifactReference> updatedReferences = idx > 0 ? getSingletonRefList("migrateTest", "avro-" + (idx - 1), "2", "myRef" + idx) : Collections.emptyList();
             content.setContent(new String(avroSchema.generateSchemaStream().readAllBytes(), StandardCharsets.UTF_8));
             content.setReferences(updatedReferences);
-            var vmd = source.groups().byGroupId("migrateTest").artifacts().byArtifactId(artifactId).put(content);
+            var vmd = source.groups().byGroupId("migrateTest").artifacts().byArtifactId(artifactId).versions().post(content);
             TestUtils.retry(() -> source.ids().globalIds().byGlobalId(vmd.getGlobalId()));
             assertTrue(matchesReferences(updatedReferences, source.ids().globalIds().byGlobalId(vmd.getGlobalId()).references().get()));
             migrateReferencesMap.put(vmd.getGlobalId(), updatedReferences);
@@ -129,7 +130,7 @@ public class MigrationTestsDataInitializer {
             avroSchema = new AvroGenericRecordSchemaFactory(List.of("u" + idx));
             String content2 = IoUtil.toString(avroSchema.generateSchemaStream());
             artifactContent.setContent(content2);
-            source.groups().byGroupId("testDoNotPreserveIdsImport").artifacts().byArtifactId(artifactId).put(artifactContent);
+            source.groups().byGroupId("testDoNotPreserveIdsImport").artifacts().byArtifactId(artifactId).versions().post(artifactContent);
             TestUtils.retry(() -> source.ids().globalIds().byGlobalId(amd.getGlobalId()).get());
             doNotPreserveIdsImportArtifacts.put("testDoNotPreserveIdsImport:" + artifactId, content2);
         }
@@ -205,7 +206,7 @@ public class MigrationTestsDataInitializer {
                 versionEntity.groupId = null;
                 versionEntity.labels = null;
                 versionEntity.name = null;
-                versionEntity.state = ArtifactState.ENABLED;
+                versionEntity.state = VersionState.ENABLED;
                 versionEntity.version = "1";
                 versionEntity.versionOrder = 1;
 

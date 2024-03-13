@@ -10,18 +10,9 @@ import java.nio.charset.StandardCharsets;
 
 public class ArtifactUtils {
 
-
-    public static Response getArtifact(String groupId, String artifactId) {
-        return getArtifact(groupId, artifactId, "", 200);
-    }
-
-    public static Response getArtifact(String groupId, String artifactId, int returnCode) {
-        return getArtifact(groupId, artifactId, "", returnCode);
-    }
-
     public static Response getArtifact(String groupId, String artifactId, String version, int returnCode) {
         return
-            BaseHttpUtils.getRequest(RestConstants.JSON, ApicurioRegistryBaseIT.getRegistryV3ApiUrl() + "/groups/" + encodeURIComponent(groupId) + "/artifacts/" + encodeURIComponent(artifactId) + "/" + version, returnCode);
+            BaseHttpUtils.getRequest(RestConstants.JSON, ApicurioRegistryBaseIT.getRegistryV3ApiUrl() + "/groups/" + encodeURIComponent(groupId) + "/artifacts/" + encodeURIComponent(artifactId) + "/versions/" + version, returnCode);
     }
 
     public static Response createArtifact(String groupId, String artifactId, String artifact, int returnCode) {

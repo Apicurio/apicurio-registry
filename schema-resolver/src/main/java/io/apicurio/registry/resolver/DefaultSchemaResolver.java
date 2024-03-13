@@ -1,14 +1,5 @@
 package io.apicurio.registry.resolver;
 
-import io.apicurio.registry.resolver.data.Record;
-import io.apicurio.registry.resolver.strategy.ArtifactCoordinates;
-import io.apicurio.registry.resolver.strategy.ArtifactReference;
-import io.apicurio.registry.rest.client.models.ArtifactContent;
-import io.apicurio.registry.rest.client.models.ArtifactMetaData;
-import io.apicurio.registry.rest.client.models.IfExists;
-import io.apicurio.registry.rest.client.models.VersionMetaData;
-import io.apicurio.registry.utils.IoUtil;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -16,6 +7,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+
+import io.apicurio.registry.resolver.data.Record;
+import io.apicurio.registry.resolver.strategy.ArtifactCoordinates;
+import io.apicurio.registry.resolver.strategy.ArtifactReference;
+import io.apicurio.registry.rest.client.models.ArtifactContent;
+import io.apicurio.registry.rest.client.models.IfExists;
+import io.apicurio.registry.rest.client.models.VersionMetaData;
+import io.apicurio.registry.utils.IoUtil;
 
 /**
  * Default implementation of {@link SchemaResolver}
@@ -256,7 +255,6 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
                     .byGroupId(artifactReference.getGroupId() == null ? "default" : artifactReference.getGroupId())
                     .artifacts()
                     .byArtifactId(artifactReference.getArtifactId())
-                    .meta()
                     .post(content, config -> {
                         config.queryParameters.canonical = true;
                         config.headers.add("Content-Type", "application/get.extended+json");
@@ -280,7 +278,7 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
 
             ArtifactContent content = new ArtifactContent();
             content.setContent(rawSchemaString);
-            ArtifactMetaData artifactMetadata = client
+            VersionMetaData artifactMetadata = client
                         .groups()
                         .byGroupId(artifactReference.getGroupId() == null ? "default" : artifactReference.getGroupId())
                         .artifacts()
@@ -317,7 +315,7 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
             ArtifactContent content = new ArtifactContent();
             content.setContent(rawSchemaString);
             content.setReferences(artifactReferences);
-            ArtifactMetaData artifactMetadata = client
+            VersionMetaData artifactMetadata = client
                         .groups()
                         .byGroupId(artifactReference.getGroupId() == null ? "default" : artifactReference.getGroupId())
                         .artifacts()
@@ -378,19 +376,17 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
     private SchemaLookupResult<S> resolveByCoordinates(String groupId, String artifactId, String version) {
         SchemaLookupResult.SchemaLookupResultBuilder<S> result = SchemaLookupResult.builder();
         //TODO if getArtifactVersion returns the artifact version and globalid in the headers we can reduce this to only one http call
+        
+        if (version == null) {
+            version = "branch=latest";
+        }
 
         S parsed = null;
         byte[] schema = null;
         Long gid;
-        if (version == null) {
-            ArtifactMetaData metadata = client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).meta().get();
-            loadFromArtifactMetaData(metadata, result);
-            gid = metadata.getGlobalId();
-        } else {
-            VersionMetaData metadata = client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression(version).meta().get();
-            loadFromArtifactMetaData(metadata, result);
-            gid = metadata.getGlobalId();
-        }
+        VersionMetaData metadata = client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression(version).meta().get();
+        loadFromArtifactMetaData(metadata, result);
+        gid = metadata.getGlobalId();
 
         InputStream rawSchema = client.ids().globalIds().byGlobalId(gid).get();
 

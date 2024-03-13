@@ -11,7 +11,7 @@ import io.apicurio.datamodels.Library;
 import io.apicurio.datamodels.models.Document;
 import io.apicurio.datamodels.util.ModelTypeUtil;
 import io.apicurio.registry.content.ContentHandle;
-import io.apicurio.registry.rest.client.models.ArtifactMetaData;
+import io.apicurio.registry.rest.client.models.VersionMetaData;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.protobuf.schema.ProtobufFile;
 
@@ -70,11 +70,11 @@ public class ReferenceIndex {
     /**
      * Index an existing (remote) reference using a resource name and remote artifact metadata.
      * @param resourceName
-     * @param amd
+     * @param vmd
      */
-    public void index(String resourceName, ArtifactMetaData amd) {
+    public void index(String resourceName, VersionMetaData vmd) {
         IndexedResource res = new IndexedResource(null, null, resourceName, null);
-        res.setRegistration(amd);
+        res.setRegistration(vmd);
         this.index.add(res);
     }
 

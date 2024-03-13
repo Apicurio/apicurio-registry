@@ -1,18 +1,5 @@
 package io.apicurio.registry.maven;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import io.apicurio.registry.content.ContentHandle;
-import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.rest.client.models.ArtifactContent;
-import io.apicurio.registry.rest.client.models.ArtifactMetaData;
-import io.apicurio.registry.rest.client.models.ArtifactReference;
-import io.apicurio.registry.rest.client.models.IfExists;
-import io.apicurio.registry.types.ContentTypes;
-import io.apicurio.registry.utils.IoUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -23,6 +10,21 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.rest.client.RegistryClient;
+import io.apicurio.registry.rest.client.models.ArtifactContent;
+import io.apicurio.registry.rest.client.models.ArtifactReference;
+import io.apicurio.registry.rest.client.models.IfExists;
+import io.apicurio.registry.rest.client.models.VersionMetaData;
+import io.apicurio.registry.types.ContentTypes;
+import io.apicurio.registry.utils.IoUtil;
 
 public abstract class AbstractDirectoryParser<Schema> {
 
@@ -59,17 +61,19 @@ public abstract class AbstractDirectoryParser<Schema> {
         return nestedSchema;
     }
 
-    protected ArtifactReference registerNestedSchema(String referenceName, List<ArtifactReference> nestedArtifactReferences, RegisterArtifact nestedSchema, String artifactContent) throws FileNotFoundException, ExecutionException, InterruptedException {
-        ArtifactMetaData referencedArtifactMetadata = registerArtifact(nestedSchema, IoUtil.toStream(artifactContent), nestedArtifactReferences);
+    protected ArtifactReference registerNestedSchema(String referenceName, List<ArtifactReference> nestedArtifactReferences, 
+            RegisterArtifact nestedSchema, String artifactContent) throws FileNotFoundException, ExecutionException, InterruptedException
+    {
+        VersionMetaData referencedArtifactMetadata = registerArtifact(nestedSchema, IoUtil.toStream(artifactContent), nestedArtifactReferences);
         ArtifactReference referencedArtifact = new ArtifactReference();
         referencedArtifact.setName(referenceName);
-        referencedArtifact.setArtifactId(referencedArtifactMetadata.getId());
+        referencedArtifact.setArtifactId(referencedArtifactMetadata.getArtifactId());
         referencedArtifact.setGroupId(referencedArtifactMetadata.getGroupId());
         referencedArtifact.setVersion(referencedArtifactMetadata.getVersion());
         return referencedArtifact;
     }
 
-    private ArtifactMetaData registerArtifact(RegisterArtifact artifact, InputStream artifactContent, List<ArtifactReference> references) throws ExecutionException, InterruptedException {
+    private VersionMetaData registerArtifact(RegisterArtifact artifact, InputStream artifactContent, List<ArtifactReference> references) throws ExecutionException, InterruptedException {
         String groupId = artifact.getGroupId();
         String artifactId = artifact.getArtifactId();
         String version = artifact.getVersion();
@@ -97,7 +101,7 @@ public abstract class AbstractDirectoryParser<Schema> {
             ref.setName(r.getName());
             return ref;
         }).collect(Collectors.toList()));
-        ArtifactMetaData amd = client
+        VersionMetaData amd = client
                 .groups()
                 .byGroupId(groupId)
                 .artifacts()

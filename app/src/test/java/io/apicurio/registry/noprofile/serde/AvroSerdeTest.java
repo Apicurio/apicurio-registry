@@ -1,16 +1,51 @@
 package io.apicurio.registry.noprofile.serde;
 
-import com.kubetrade.schema.trade.*;
+import static io.apicurio.registry.utils.tests.TestUtils.waitForSchema;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.function.Supplier;
+
+import org.apache.avro.Schema;
+import org.apache.avro.generic.GenericData;
+import org.apache.kafka.common.header.Headers;
+import org.apache.kafka.common.header.internals.RecordHeaders;
+import org.apache.kafka.common.serialization.Deserializer;
+import org.apache.kafka.common.serialization.Serializer;
+import org.json.JSONObject;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
+
+import com.kubetrade.schema.trade.AvroSchemaA;
+import com.kubetrade.schema.trade.AvroSchemaB;
+import com.kubetrade.schema.trade.AvroSchemaC;
+import com.kubetrade.schema.trade.AvroSchemaD;
+import com.kubetrade.schema.trade.AvroSchemaE;
+import com.kubetrade.schema.trade.AvroSchemaF;
+
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.client.auth.VertXAuthFactory;
 import io.apicurio.registry.model.GroupId;
 import io.apicurio.registry.resolver.SchemaResolverConfig;
 import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
 import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.rest.client.models.ArtifactMetaData;
+import io.apicurio.registry.rest.client.models.VersionMetaData;
 import io.apicurio.registry.serde.SerdeConfig;
 import io.apicurio.registry.serde.SerdeHeaders;
-import io.apicurio.registry.serde.avro.*;
+import io.apicurio.registry.serde.avro.AvroKafkaDeserializer;
+import io.apicurio.registry.serde.avro.AvroKafkaSerdeConfig;
+import io.apicurio.registry.serde.avro.AvroKafkaSerializer;
+import io.apicurio.registry.serde.avro.DefaultAvroDatumProvider;
+import io.apicurio.registry.serde.avro.ReflectAllowNullAvroDatumProvider;
+import io.apicurio.registry.serde.avro.ReflectAvroDatumProvider;
 import io.apicurio.registry.serde.avro.strategy.QualifiedRecordIdStrategy;
 import io.apicurio.registry.serde.avro.strategy.RecordIdStrategy;
 import io.apicurio.registry.serde.avro.strategy.TopicRecordIdStrategy;
@@ -26,25 +61,6 @@ import io.confluent.kafka.serializers.KafkaAvroDeserializer;
 import io.confluent.kafka.serializers.KafkaAvroSerializer;
 import io.kiota.http.vertx.VertXRequestAdapter;
 import io.quarkus.test.junit.QuarkusTest;
-import org.apache.avro.Schema;
-import org.apache.avro.generic.GenericData;
-import org.apache.kafka.common.header.Headers;
-import org.apache.kafka.common.header.internals.RecordHeaders;
-import org.apache.kafka.common.serialization.Deserializer;
-import org.apache.kafka.common.serialization.Serializer;
-import org.json.JSONObject;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
-
-import java.io.IOException;
-import java.util.*;
-import java.util.function.Supplier;
-
-import static io.apicurio.registry.utils.tests.TestUtils.waitForSchema;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @QuarkusTest
 public class AvroSerdeTest extends AbstractResourceTestBase {
@@ -119,18 +135,18 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
     @Test
     public void testAvro() throws Exception {
         testAvroAutoRegisterIdInBody(RecordIdStrategy.class, () -> {
-            return restClient.groups().byGroupId("test-group-avro").artifacts().byArtifactId("myrecord3").meta().get();
+            return restClient.groups().byGroupId("test-group-avro").artifacts().byArtifactId("myrecord3").versions().byVersionExpression("branch=latest").meta().get();
         });
     }
 
     @Test
     public void testAvroQualifiedRecordIdStrategy() throws Exception {
         testAvroAutoRegisterIdInBody(QualifiedRecordIdStrategy.class, () -> {
-            return restClient.groups().byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString()).artifacts().byArtifactId("test-group-avro.myrecord3").meta().get();
+            return restClient.groups().byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString()).artifacts().byArtifactId("test-group-avro.myrecord3").versions().byVersionExpression("branch=latest").meta().get();
         });
     }
 
-    private void testAvroAutoRegisterIdInBody(Class<? extends ArtifactReferenceResolverStrategy<?, ?>> strategy, Supplier<ArtifactMetaData> artifactFinder) throws Exception {
+    private void testAvroAutoRegisterIdInBody(Class<? extends ArtifactReferenceResolverStrategy<?, ?>> strategy, Supplier<VersionMetaData> artifactFinder) throws Exception {
         Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord3\",\"namespace\":\"test-group-avro\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");
         try (AvroKafkaSerializer<GenericData.Record> serializer = new AvroKafkaSerializer<GenericData.Record>(restClient);
              Deserializer<GenericData.Record> deserializer = new AvroKafkaDeserializer<>(restClient)) {
@@ -155,7 +171,7 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
             waitForSchema(globalId -> {
                 try {
                     if (restClient.ids().globalIds().byGlobalId(globalId).get().readAllBytes().length > 0) {
-                        ArtifactMetaData artifactMetadata = artifactFinder.get();
+                        VersionMetaData artifactMetadata = artifactFinder.get();
                         assertEquals(globalId, artifactMetadata.getGlobalId());
                         return true;
                     }

@@ -2,14 +2,13 @@ package io.apicurio.registry.auth;
 
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
+import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.GroupMetaDataDto;
 import io.apicurio.registry.storage.error.NotFoundException;
 import io.apicurio.registry.types.Current;
 import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.inject.Inject;
 import jakarta.interceptor.InvocationContext;
-
-import static io.apicurio.registry.storage.RegistryStorage.ArtifactRetrievalBehavior.DEFAULT;
 
 public abstract class AbstractAccessController implements IAccessController {
 
@@ -58,7 +57,7 @@ public abstract class AbstractAccessController implements IAccessController {
 
     private boolean verifyArtifactOwner(String groupId, String artifactId) {
         try {
-            ArtifactMetaDataDto dto = storage.getArtifactMetaData(groupId, artifactId, DEFAULT);
+            ArtifactMetaDataDto dto = storage.getArtifactMetaData(groupId, artifactId);
             String owner = dto.getOwner();
             return owner == null || owner.equals(securityIdentity.getPrincipal().getName());
         } catch (NotFoundException nfe) {
@@ -71,7 +70,8 @@ public abstract class AbstractAccessController implements IAccessController {
 
     private boolean verifyArtifactOwner(long globalId) {
         try {
-            ArtifactMetaDataDto dto = storage.getArtifactMetaData(globalId);
+            ArtifactVersionMetaDataDto versionMetaData = storage.getArtifactVersionMetaData(globalId);
+            ArtifactMetaDataDto dto = storage.getArtifactMetaData(versionMetaData.getGroupId(), versionMetaData.getArtifactId());
             String owner = dto.getOwner();
             return owner == null || owner.equals(securityIdentity.getPrincipal().getName());
         } catch (NotFoundException nfe) {

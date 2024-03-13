@@ -2,7 +2,7 @@ package io.apicurio.registry.storage.dto;
 
 import java.util.Map;
 
-import io.apicurio.registry.types.ArtifactState;
+import io.apicurio.registry.types.VersionState;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
@@ -20,6 +20,8 @@ import lombok.ToString;
 @ToString
 public class ArtifactVersionMetaDataDto {
 
+    private String groupId;
+    private String artifactId;
     private String version;
     private int versionOrder;
     private long globalId;
@@ -29,6 +31,6 @@ public class ArtifactVersionMetaDataDto {
     private String owner;
     private long createdOn;
     private String type;
-    private ArtifactState state;
+    private VersionState state;
     private Map<String, String> labels;
 }

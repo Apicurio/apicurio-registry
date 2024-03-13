@@ -6,7 +6,6 @@ import java.sql.SQLException;
 import io.apicurio.registry.storage.dto.SearchedArtifactDto;
 import io.apicurio.registry.storage.impl.sql.SqlUtil;
 import io.apicurio.registry.storage.impl.sql.jdb.RowMapper;
-import io.apicurio.registry.types.ArtifactState;
 
 public class SearchedArtifactMapper implements RowMapper<SearchedArtifactDto> {
 
@@ -25,8 +24,7 @@ public class SearchedArtifactMapper implements RowMapper<SearchedArtifactDto> {
     public SearchedArtifactDto map(ResultSet rs) throws SQLException {
         SearchedArtifactDto dto = new SearchedArtifactDto();
         dto.setGroupId(SqlUtil.denormalizeGroupId(rs.getString("groupId")));
-        dto.setId(rs.getString("artifactId"));
-        dto.setState(ArtifactState.valueOf(rs.getString("state")));
+        dto.setArtifactId(rs.getString("artifactId"));
         dto.setOwner(rs.getString("owner"));
         dto.setCreatedOn(rs.getTimestamp("createdOn"));
         dto.setName(rs.getString("name"));

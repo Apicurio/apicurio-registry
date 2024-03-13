@@ -14,7 +14,7 @@ type GroupMetaData struct {
 	// The description property
 	description *string
 	// An ID of a single artifact group.
-	id *string
+	groupId *string
 	// User-defined name-value pairs. Name and value must be strings.
 	labels Labelsable
 	// The modifiedBy property
@@ -75,13 +75,13 @@ func (m *GroupMetaData) GetFieldDeserializers() map[string]func(i878a80d2330e89d
 		}
 		return nil
 	}
-	res["id"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
+	res["groupId"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
 		val, err := n.GetStringValue()
 		if err != nil {
 			return err
 		}
 		if val != nil {
-			m.SetId(val)
+			m.SetGroupId(val)
 		}
 		return nil
 	}
@@ -128,9 +128,9 @@ func (m *GroupMetaData) GetFieldDeserializers() map[string]func(i878a80d2330e89d
 	return res
 }
 
-// GetId gets the id property value. An ID of a single artifact group.
-func (m *GroupMetaData) GetId() *string {
-	return m.id
+// GetGroupId gets the groupId property value. An ID of a single artifact group.
+func (m *GroupMetaData) GetGroupId() *string {
+	return m.groupId
 }
 
 // GetLabels gets the labels property value. User-defined name-value pairs. Name and value must be strings.
@@ -168,7 +168,7 @@ func (m *GroupMetaData) Serialize(writer i878a80d2330e89d26896388a3f487eef27b0a0
 		}
 	}
 	{
-		err := writer.WriteStringValue("id", m.GetId())
+		err := writer.WriteStringValue("groupId", m.GetGroupId())
 		if err != nil {
 			return err
 		}
@@ -221,9 +221,9 @@ func (m *GroupMetaData) SetDescription(value *string) {
 	m.description = value
 }
 
-// SetId sets the id property value. An ID of a single artifact group.
-func (m *GroupMetaData) SetId(value *string) {
-	m.id = value
+// SetGroupId sets the groupId property value. An ID of a single artifact group.
+func (m *GroupMetaData) SetGroupId(value *string) {
+	m.groupId = value
 }
 
 // SetLabels sets the labels property value. User-defined name-value pairs. Name and value must be strings.
@@ -252,14 +252,14 @@ type GroupMetaDataable interface {
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.Parsable
 	GetCreatedOn() *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time
 	GetDescription() *string
-	GetId() *string
+	GetGroupId() *string
 	GetLabels() Labelsable
 	GetModifiedBy() *string
 	GetModifiedOn() *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time
 	GetOwner() *string
 	SetCreatedOn(value *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time)
 	SetDescription(value *string)
-	SetId(value *string)
+	SetGroupId(value *string)
 	SetLabels(value Labelsable)
 	SetModifiedBy(value *string)
 	SetModifiedOn(value *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time)

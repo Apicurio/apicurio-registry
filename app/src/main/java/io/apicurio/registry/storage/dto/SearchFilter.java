@@ -2,10 +2,13 @@ package io.apicurio.registry.storage.dto;
 
 import org.apache.commons.lang3.tuple.Pair;
 
+import io.apicurio.registry.types.VersionState;
+
 public class SearchFilter {
 
     private SearchFilterType type;
     private Object value;
+    private boolean not;
 
     /**
      * Constructor.
@@ -57,6 +60,10 @@ public class SearchFilter {
 
     public static SearchFilter ofContentHash(String value) {
         return new SearchFilter(SearchFilterType.contentHash, value);
+    }
+
+    public static SearchFilter ofState(VersionState state) {
+        return new SearchFilter(SearchFilterType.state, state.name());
     }
 
     public static SearchFilter ofEverything(String value) {
@@ -127,7 +134,27 @@ public class SearchFilter {
      */
     @Override
     public String toString() {
-        return "SearchFilter [type=" + type + ", value=" + value + "]";
+        return "SearchFilter" + (isNot() ? " NOT" : "") + " [type=" + type + ", value=" + value + "]";
+    }
+
+    /**
+     * @return the not
+     */
+    public boolean isNot() {
+        return not;
+    }
+
+    /**
+     * @param not the not to set
+     */
+    public void setNot(boolean not) {
+        this.not = not;
+    }
+    
+    public SearchFilter negated() {
+        SearchFilter filter = new SearchFilter(type, value);
+        filter.setNot(true);
+        return filter;
     }
 
 }

@@ -97,7 +97,7 @@ public class DoNotPreserveIdsImportIT extends ApicurioRegistryBaseIT {
                 String groupId = entry.getKey().split(":")[0];
                 String artifactId = entry.getKey().split(":")[1];
                 String content = entry.getValue();
-                var registryContent = dest.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get();
+                var registryContent = dest.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").get();
                 assertNotNull(registryContent);
                 assertEquals(content, IoUtil.toString(registryContent));
             }

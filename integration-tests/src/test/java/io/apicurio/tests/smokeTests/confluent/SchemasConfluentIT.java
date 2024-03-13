@@ -157,7 +157,7 @@ public class SchemasConfluentIT extends ConfluentBaseIT {
         createArtifactViaConfluentClient(schema, subjectName);
 
         TestUtils.waitFor("artifactCreated", Constants.POLL_INTERVAL, Constants.TIMEOUT_GLOBAL, () -> {
-            return registryClient.groups().byGroupId("default").artifacts().byArtifactId(subjectName).meta().get() != null;
+            return registryClient.groups().byGroupId("default").artifacts().byArtifactId(subjectName).get() != null;
         });
 
         String invalidSchema = "{\"schema\":\"{\\\"type\\\": \\\"bloop\\\"}\"}";
@@ -188,19 +188,9 @@ public class SchemasConfluentIT extends ConfluentBaseIT {
 
         assertThat(1, is(confluentService.getAllSubjects().size()));
 
-        Response ar = ArtifactUtils.getArtifact("default", subjectName);
+        Response ar = ArtifactUtils.getArtifact("default", subjectName, "branch=latest", 200);
         assertEquals(rawSchema, ar.asString());
         LOGGER.info(ar.asString());
-
-        TestUtils.waitFor("artifact created", Constants.POLL_INTERVAL, Constants.TIMEOUT_GLOBAL, () -> {
-            try {
-                return registryClient.groups().byGroupId("default").artifacts().byArtifactId(subjectName).get().readAllBytes().length > 0;
-            } catch (WebApplicationException e) {
-                return false;
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        });
     }
 
     @Test
@@ -223,7 +213,7 @@ public class SchemasConfluentIT extends ConfluentBaseIT {
 
         TestUtils.waitFor("artifact created", Constants.POLL_INTERVAL, Constants.TIMEOUT_GLOBAL, () -> {
             try {
-                return registryClient.groups().byGroupId("default").artifacts().byArtifactId(subjectName).get().readAllBytes().length > 0;
+                return registryClient.groups().byGroupId("default").artifacts().byArtifactId(subjectName).versions().byVersionExpression("branch=latest").get().readAllBytes().length > 0;
             } catch (WebApplicationException e) {
                 return false;
             } catch (IOException e) {

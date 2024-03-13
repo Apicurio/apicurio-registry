@@ -9,7 +9,7 @@ import io.apicurio.registry.ccompat.dto.SchemaReference;
 import io.apicurio.registry.ccompat.dto.SubjectVersion;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
-import io.apicurio.registry.storage.dto.StoredArtifactDto;
+import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -27,11 +27,11 @@ public class ApiConverter {
         return (int) value;
     }
 
-    public Schema convert(String subject, StoredArtifactDto storedArtifact) {
+    public Schema convert(String subject, StoredArtifactVersionDto storedArtifact) {
         return convert(subject, storedArtifact, null);
     }
 
-    public Schema convert(String subject, StoredArtifactDto storedArtifact, String artifactType) {
+    public Schema convert(String subject, StoredArtifactVersionDto storedArtifact, String artifactType) {
         return new Schema(
                 convertUnsigned(cconfig.legacyIdModeEnabled.get() ? storedArtifact.getGlobalId() : storedArtifact.getContentId()),
                 subject,

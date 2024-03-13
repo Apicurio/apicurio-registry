@@ -1,18 +1,19 @@
 package io.apicurio.registry.noprofile.content;
 
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.extract.ContentExtractor;
 import io.apicurio.registry.content.extract.ExtractedMetaData;
 import io.apicurio.registry.rest.client.models.ArtifactContent;
-import io.apicurio.registry.rest.client.models.ArtifactMetaData;
+import io.apicurio.registry.rest.client.models.VersionMetaData;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Test;
 
 @QuarkusTest
 public class ContentExtractorTest extends AbstractResourceTestBase {
@@ -158,7 +159,7 @@ public class ContentExtractorTest extends AbstractResourceTestBase {
 
         ArtifactContent data = new ArtifactContent();
         data.setContent(content);
-        ArtifactMetaData amd = clientV3.groups().byGroupId(groupId).artifacts().post(data, config -> {
+        VersionMetaData amd = clientV3.groups().byGroupId(groupId).artifacts().post(data, config -> {
             config.headers.add("X-Registry-ArtifactId", artifactId);
             config.headers.add("X-Registry-ArtifactType", ArtifactType.AVRO);
         });
@@ -171,7 +172,7 @@ public class ContentExtractorTest extends AbstractResourceTestBase {
         name = "schema_" + System.currentTimeMillis();
         content = String.format(avroFormat, name);
         data.setContent(content);
-        amd = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).put(data);
+        amd = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().post(data);
         Assertions.assertEquals(name, amd.getName());
     }
 
@@ -200,7 +201,7 @@ public class ContentExtractorTest extends AbstractResourceTestBase {
 
         ArtifactContent data = new ArtifactContent();
         data.setContent(content);
-        ArtifactMetaData amd = clientV3.groups().byGroupId(groupId).artifacts().post(data, config -> {
+        VersionMetaData amd = clientV3.groups().byGroupId(groupId).artifacts().post(data, config -> {
             config.headers.add("X-Registry-ArtifactId", artifactId);
             config.headers.add("X-Registry-ArtifactType", ArtifactType.JSON);
         });
@@ -212,7 +213,7 @@ public class ContentExtractorTest extends AbstractResourceTestBase {
         name = "schema-" + generateArtifactId();
         content = String.format(jsonFormat, name, description);
         data.setContent(content);
-        amd = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).put(data);
+        amd = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().post(data);
 
         Assertions.assertEquals(name, amd.getName());
     }
@@ -242,7 +243,7 @@ public class ContentExtractorTest extends AbstractResourceTestBase {
 
         ArtifactContent data = new ArtifactContent();
         data.setContent(content);
-        ArtifactMetaData amd = clientV3.groups().byGroupId(groupId).artifacts().post(data, config -> {
+        VersionMetaData amd = clientV3.groups().byGroupId(groupId).artifacts().post(data, config -> {
             config.headers.add("X-Registry-ArtifactId", artifactId);
             config.headers.add("X-Registry-ArtifactType", ArtifactType.OPENAPI);
         });
@@ -254,7 +255,7 @@ public class ContentExtractorTest extends AbstractResourceTestBase {
         name = "api-" + generateArtifactId();
         content = String.format(openapiFormat, name, description);
         data.setContent(content);
-        amd = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).put(data);
+        amd = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().post(data);
 
         Assertions.assertEquals(name, amd.getName());
     }
@@ -284,7 +285,7 @@ public class ContentExtractorTest extends AbstractResourceTestBase {
 
         ArtifactContent data = new ArtifactContent();
         data.setContent(content);
-        ArtifactMetaData amd = clientV3.groups().byGroupId(groupId).artifacts().post(data, config -> {
+        VersionMetaData amd = clientV3.groups().byGroupId(groupId).artifacts().post(data, config -> {
             config.headers.add("X-Registry-ArtifactId", artifactId);
             config.headers.add("X-Registry-ArtifactType", ArtifactType.ASYNCAPI);
         });
@@ -296,7 +297,7 @@ public class ContentExtractorTest extends AbstractResourceTestBase {
         name = "api-" + generateArtifactId();
         content = String.format(asyncapiFormat, name, description);
         data.setContent(content);
-        amd = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).put(data);
+        amd = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().post(data);
 
         Assertions.assertEquals(name, amd.getName());
     }
@@ -322,7 +323,7 @@ public class ContentExtractorTest extends AbstractResourceTestBase {
 
         ArtifactContent data = new ArtifactContent();
         data.setContent(content);
-        ArtifactMetaData amd = clientV3.groups().byGroupId(groupId).artifacts().post(data, config -> {
+        VersionMetaData amd = clientV3.groups().byGroupId(groupId).artifacts().post(data, config -> {
             config.headers.add("X-Registry-ArtifactId", artifactId);
             config.headers.add("X-Registry-ArtifactType", ArtifactType.WSDL);
         });
@@ -352,7 +353,7 @@ public class ContentExtractorTest extends AbstractResourceTestBase {
 
         ArtifactContent data = new ArtifactContent();
         data.setContent(content);
-        ArtifactMetaData amd = clientV3.groups().byGroupId(groupId).artifacts().post(data, config -> {
+        VersionMetaData amd = clientV3.groups().byGroupId(groupId).artifacts().post(data, config -> {
             config.headers.add("X-Registry-ArtifactId", artifactId);
             config.headers.add("X-Registry-ArtifactType", ArtifactType.XSD);
         });

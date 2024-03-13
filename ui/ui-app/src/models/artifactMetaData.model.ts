@@ -2,7 +2,7 @@
 export interface ArtifactMetaData {
 
     groupId: string|null;
-    id: string;
+    artifactId: string;
     name: string|null;
     description: string|null;
     labels: { [key: string]: string };

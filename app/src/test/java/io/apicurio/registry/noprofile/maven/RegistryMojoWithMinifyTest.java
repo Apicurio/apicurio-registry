@@ -47,23 +47,19 @@ public class RegistryMojoWithMinifyTest extends RegistryMojoTestBase {
         registerMojo.execute();
 
         // Wait for the artifact to be created.
-        TestUtils.retry(() -> {
-            InputStream artifactInputStream = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId("userInfoMinified").get();
-            String artifactContent = new String(artifactInputStream.readAllBytes(), StandardCharsets.UTF_8);
-            Assertions.assertEquals("{\"type\":\"record\",\"name\":\"userInfo\",\"namespace\":\"my.example\",\"fields\":[{\"name\":\"age\",\"type\":\"int\"}]}", artifactContent);
-        });
+        InputStream artifactInputStream = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId("userInfoMinified").versions().byVersionExpression("branch=latest").get();
+        String artifactContent = new String(artifactInputStream.readAllBytes(), StandardCharsets.UTF_8);
+        Assertions.assertEquals("{\"type\":\"record\",\"name\":\"userInfo\",\"namespace\":\"my.example\",\"fields\":[{\"name\":\"age\",\"type\":\"int\"}]}", artifactContent);
 
         // Wait for the artifact to be created.
-        TestUtils.retry(() -> {
-            InputStream artifactInputStream = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId("userInfoNotMinified").get();
-            String artifactContent = new String(artifactInputStream.readAllBytes(), StandardCharsets.UTF_8);
-            Assertions.assertEquals("{\n" +
-                    "  \"type\" : \"record\",\n" +
-                    "  \"name\" : \"userInfo\",\n" +
-                    "  \"namespace\" : \"my.example\",\n" +
-                    "  \"fields\" : [{\"name\" : \"age\", \"type\" : \"int\"}]\n" +
-                    "}", artifactContent);
-        });
+        artifactInputStream = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId("userInfoNotMinified").versions().byVersionExpression("branch=latest").get();
+        artifactContent = new String(artifactInputStream.readAllBytes(), StandardCharsets.UTF_8);
+        Assertions.assertEquals("{\n" +
+                "  \"type\" : \"record\",\n" +
+                "  \"name\" : \"userInfo\",\n" +
+                "  \"namespace\" : \"my.example\",\n" +
+                "  \"fields\" : [{\"name\" : \"age\", \"type\" : \"int\"}]\n" +
+                "}", artifactContent);
     }
 
 }

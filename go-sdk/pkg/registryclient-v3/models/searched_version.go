@@ -26,7 +26,7 @@ type SearchedVersion struct {
 	// The references property
 	references []ArtifactReferenceable
 	// Describes the state of an artifact or artifact version.  The following statesare possible:* ENABLED* DISABLED* DEPRECATED
-	state *ArtifactState
+	state *VersionState
 	// The type property
 	typeEscaped *string
 	// The version property
@@ -155,12 +155,12 @@ func (m *SearchedVersion) GetFieldDeserializers() map[string]func(i878a80d2330e8
 		return nil
 	}
 	res["state"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
-		val, err := n.GetEnumValue(ParseArtifactState)
+		val, err := n.GetEnumValue(ParseVersionState)
 		if err != nil {
 			return err
 		}
 		if val != nil {
-			m.SetState(val.(*ArtifactState))
+			m.SetState(val.(*VersionState))
 		}
 		return nil
 	}
@@ -213,7 +213,7 @@ func (m *SearchedVersion) GetReferences() []ArtifactReferenceable {
 }
 
 // GetState gets the state property value. Describes the state of an artifact or artifact version.  The following statesare possible:* ENABLED* DISABLED* DEPRECATED
-func (m *SearchedVersion) GetState() *ArtifactState {
+func (m *SearchedVersion) GetState() *VersionState {
 	return m.state
 }
 
@@ -357,7 +357,7 @@ func (m *SearchedVersion) SetReferences(value []ArtifactReferenceable) {
 }
 
 // SetState sets the state property value. Describes the state of an artifact or artifact version.  The following statesare possible:* ENABLED* DISABLED* DEPRECATED
-func (m *SearchedVersion) SetState(value *ArtifactState) {
+func (m *SearchedVersion) SetState(value *VersionState) {
 	m.state = value
 }
 
@@ -383,7 +383,7 @@ type SearchedVersionable interface {
 	GetOwner() *string
 	GetProperties() Labelsable
 	GetReferences() []ArtifactReferenceable
-	GetState() *ArtifactState
+	GetState() *VersionState
 	GetTypeEscaped() *string
 	GetVersion() *string
 	SetContentId(value *int64)
@@ -394,7 +394,7 @@ type SearchedVersionable interface {
 	SetOwner(value *string)
 	SetProperties(value Labelsable)
 	SetReferences(value []ArtifactReferenceable)
-	SetState(value *ArtifactState)
+	SetState(value *VersionState)
 	SetTypeEscaped(value *string)
 	SetVersion(value *string)
 }

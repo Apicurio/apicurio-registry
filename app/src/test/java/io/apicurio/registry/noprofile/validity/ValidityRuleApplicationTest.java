@@ -71,7 +71,7 @@ public class ValidityRuleApplicationTest extends AbstractResourceTestBase {
         var exception = Assertions.assertThrows(io.apicurio.registry.rest.client.models.Error.class, () -> {
             ArtifactContent content = new ArtifactContent();
             content.setContent(INVALID_SCHEMA);
-            clientV3.groups().byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString()).artifacts().byArtifactId(artifactId).put(content);
+            clientV3.groups().byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString()).artifacts().byArtifactId(artifactId).versions().post(content);
         });
         assertEquals("RuleViolationException", exception.getName());
         assertEquals(409, exception.getErrorCode());
@@ -89,7 +89,7 @@ public class ValidityRuleApplicationTest extends AbstractResourceTestBase {
         var exception = Assertions.assertThrows(io.apicurio.registry.rest.client.models.Error.class, () -> {
             ArtifactContent content = new ArtifactContent();
             content.setContent(INVALID_SCHEMA_WITH_MAP);
-            clientV3.groups().byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString()).artifacts().byArtifactId(artifactId).put(content);
+            clientV3.groups().byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString()).artifacts().byArtifactId(artifactId).versions().post(content);
         });
         assertEquals("RuleViolationException", exception.getName());
         assertEquals(409, exception.getErrorCode());

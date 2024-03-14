@@ -220,16 +220,16 @@ export const ArtifactVersionPage: FunctionComponent<ArtifactVersionPageProps> = 
         return artifact?.type || "";
     };
 
-    const artifactName = (): string => {
-        return artifact?.name || "";
+    const versionName = (): string => {
+        return artifactVersion?.name || "";
     };
 
-    const artifactDescription = (): string => {
-        return artifact?.description || "";
+    const versionDescription = (): string => {
+        return artifactVersion?.description || "";
     };
 
-    const artifactLabels = (): { [key: string]: string } => {
-        return artifact?.labels || {};
+    const versionLabels = (): { [key: string]: string } => {
+        return artifactVersion?.labels || {};
     };
 
     const onUploadFormValid = (isValid: boolean): void => {
@@ -303,10 +303,10 @@ export const ArtifactVersionPage: FunctionComponent<ArtifactVersionPageProps> = 
     const doEditMetaData = (metaData: EditableMetaData): void => {
         groups.updateArtifactVersionMetaData(groupId as string, artifactId as string, version as string, metaData).then( () => {
             if (artifact) {
-                setArtifact({
-                    ...artifact,
+                setArtifactVersion({
+                    ...artifactVersion,
                     ...metaData
-                } as ArtifactMetaData);
+                } as VersionMetaData);
             }
         }).catch( error => {
             setPageError(toPageError(error, "Error editing artifact metadata."));
@@ -447,9 +447,10 @@ export const ArtifactVersionPage: FunctionComponent<ArtifactVersionPageProps> = 
             >
                 <p>Do you want to delete this artifact and all of its versions?  This action cannot be undone.</p>
             </Modal>
-            <EditMetaDataModal name={artifactName()}
-                description={artifactDescription()}
-                labels={artifactLabels()}
+            <EditMetaDataModal
+                name={versionName()}
+                description={versionDescription()}
+                labels={versionLabels()}
                 isOpen={isEditModalOpen}
                 onClose={onEditModalClose}
                 onEditMetaData={doEditMetaData}

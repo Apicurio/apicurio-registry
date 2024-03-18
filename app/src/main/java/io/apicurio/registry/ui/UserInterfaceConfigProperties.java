@@ -19,7 +19,7 @@ public class UserInterfaceConfigProperties {
     public String docsUrl;
     
     
-    @ConfigProperty(name = "registry.auth.url.configured")
+    @ConfigProperty(name = "quarkus.oidc.auth-server-url")
     public String authOidcUrl;
     @ConfigProperty(name = "registry.ui.auth.oidc.redirectUri", defaultValue = "/")
     @Info(category = "ui", description = "The OIDC redirectUri", availableSince = "3.0.0")

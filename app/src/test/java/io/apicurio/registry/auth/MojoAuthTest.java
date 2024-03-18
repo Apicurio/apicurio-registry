@@ -28,7 +28,7 @@ import static io.apicurio.registry.client.auth.VertXAuthFactory.buildOIDCWebClie
 @Tag(ApicurioTestTags.SLOW)
 public class MojoAuthTest extends RegistryMojoTestBase {
 
-    @ConfigProperty(name = "registry.auth.token.endpoint")
+    @ConfigProperty(name = "quarkus.oidc.token-path")
     @Info(category = "auth", description = "Auth token endpoint", availableSince = "2.1.0.Final")
     String authServerUrlConfigured;
 

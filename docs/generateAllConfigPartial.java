@@ -20,7 +20,7 @@ import static java.lang.System.*;
 public class generateAllConfigPartial {
 
     private static Map<String, Option> allConfiguration = new HashMap();
-    private static Set<String> skipProperties = Set.of("registry.auth.url.configured");
+    private static Set<String> skipProperties = Set.of("quarkus.oidc.auth-server-url");
 
     static class Option {
         final String name;

@@ -43,6 +43,51 @@ The following {registry} configuration options are available for each component 
 |Default
 |Available from
 |Description
+|`apicurio.authn.audit.log.prefix`
+|`string`
+|`audit`
+|`2.2.6`
+|Prefix used for application audit logging.
+|`apicurio.authn.basic-client-credentials.cache-expiration`
+|`integer`
+|`10`
+|`2.2.6.Final`
+|Default client credentials token expiration time.
+|`apicurio.authn.basic-client-credentials.cache-expiration-offset`
+|`integer`
+|`10`
+|`2.5.9.Final`
+|Client credentials token expiration offset from JWT expiration.
+|`apicurio.authn.basic-client-credentials.enabled`
+|`boolean [dynamic]`
+|`false`
+|`2.1.0.Final`
+|Enable basic auth client credentials
+|`apicurio.authn.basic.scope`
+|`optional<string>`
+|
+|`2.5.0.Final`
+|Client credentials scope.
+|`quarkus.oidc.client-id`
+|`string`
+|
+|`2.0.0.Final`
+|Client identifier used by the server for authentication.
+|`quarkus.oidc.client-secret`
+|`optional<string>`
+|
+|`2.1.0.Final`
+|Client secret used by the server for authentication.
+|`quarkus.oidc.tenant-enabled`
+|`boolean`
+|`false`
+|`2.0.0.Final`
+|Enable auth
+|`quarkus.oidc.token-path`
+|`string`
+|
+|`2.1.0.Final`
+|Authentication server token endpoint.
 |`registry.auth.admin-override.claim`
 |`string`
 |`org-admin`
@@ -83,51 +128,11 @@ The following {registry} configuration options are available for each component 
 |`false`
 |`2.1.0.Final`
 |Anonymous read access
-|`registry.auth.audit.log.prefix`
-|`string`
-|`audit`
-|`2.2.6`
-|Prefix used for application audit logging.
 |`registry.auth.authenticated-read-access.enabled`
 |`boolean [dynamic]`
 |`false`
 |`2.1.4.Final`
 |Authenticated read access
-|`registry.auth.basic-auth-client-credentials.cache-expiration`
-|`integer`
-|`10`
-|`2.2.6.Final`
-|Default client credentials token expiration time.
-|`registry.auth.basic-auth-client-credentials.cache-expiration-offset`
-|`integer`
-|`10`
-|`2.5.9.Final`
-|Client credentials token expiration offset from JWT expiration.
-|`registry.auth.basic-auth-client-credentials.enabled`
-|`boolean [dynamic]`
-|`false`
-|`2.1.0.Final`
-|Enable basic auth client credentials
-|`registry.auth.basic-auth.scope`
-|`optional<string>`
-|
-|`2.5.0.Final`
-|Client credentials scope.
-|`registry.auth.client-id`
-|`string`
-|
-|`2.0.0.Final`
-|Client identifier used by the server for authentication.
-|`registry.auth.client-secret`
-|`optional<string>`
-|
-|`2.1.0.Final`
-|Client secret used by the server for authentication.
-|`registry.auth.enabled`
-|`boolean`
-|`false`
-|`2.0.0.Final`
-|Enable auth
 |`registry.auth.owner-only-authorization`
 |`boolean [dynamic]`
 |`false`
@@ -168,11 +173,6 @@ The following {registry} configuration options are available for each component 
 |`sr-readonly`
 |`2.1.0.Final`
 |Auth roles readonly
-|`registry.auth.token.endpoint`
-|`string`
-|
-|`2.1.0.Final`
-|Authentication server url.
 |===
 
 == cache

@@ -17,9 +17,11 @@ import java.util.stream.Collectors;
 public class AvroSchemaParser<U> implements SchemaParser<Schema, U> {
 
     private AvroDatumProvider<U> avroDatumProvider;
+    private boolean removeJavaProperties;
 
-    public AvroSchemaParser(AvroDatumProvider<U> avroDatumProvider) {
+    public AvroSchemaParser(AvroDatumProvider<U> avroDatumProvider, boolean removeJavaProperties) {
         this.avroDatumProvider = avroDatumProvider;
+        this.removeJavaProperties = removeJavaProperties;
     }
 
     /**
@@ -35,7 +37,7 @@ public class AvroSchemaParser<U> implements SchemaParser<Schema, U> {
      */
     @Override
     public Schema parseSchema(byte[] rawSchema, Map<String, ParsedSchema<Schema>> resolvedReferences) {
-        return AvroSchemaUtils.parse(IoUtil.toString(rawSchema), new ArrayList<>(resolvedReferences.values()));
+        return AvroSchemaUtils.parse(IoUtil.toString(rawSchema), new ArrayList<>(resolvedReferences.values()), removeJavaProperties);
     }
 
     /**
@@ -44,6 +46,7 @@ public class AvroSchemaParser<U> implements SchemaParser<Schema, U> {
     @Override
     public ParsedSchema<Schema> getSchemaFromData(Record<U> data) {
         Schema schema = avroDatumProvider.toSchema(data.payload());
+        schema = AvroSchemaUtils.removeJavaPropertiesIfNeeded(schema, removeJavaProperties);
         final List<ParsedSchema<Schema>> resolvedReferences = handleReferences(schema);
         return new ParsedSchemaImpl<Schema>()
                 .setParsedSchema(schema)
@@ -59,7 +62,7 @@ public class AvroSchemaParser<U> implements SchemaParser<Schema, U> {
     public ParsedSchema<Schema> getSchemaFromData(Record<U> data, boolean dereference) {
         if (dereference) {
             Schema schema = avroDatumProvider.toSchema(data.payload());
-
+            schema = AvroSchemaUtils.removeJavaPropertiesIfNeeded(schema, removeJavaProperties);
             return new ParsedSchemaImpl<Schema>()
                     .setParsedSchema(schema)
                     .setReferenceName(schema.getFullName())

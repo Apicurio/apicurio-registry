@@ -57,7 +57,7 @@ public class SchemasResourceImpl extends AbstractResource implements SchemasReso
     public SchemaInfo getSchema(int id) {
         ContentHandle contentHandle;
         List<ArtifactReferenceDto> references;
-        if (getCconfig().getCanonicalHashModeEnabled().get()) {
+        if (getCconfig().getLegacyIdModeEnabled().get()) {
             StoredArtifactDto artifactVersion = getStorage().getArtifactVersion(id);
             contentHandle = artifactVersion.getContent();
             references = artifactVersion.getReferences();

@@ -412,7 +412,6 @@
                             <inputs>
                                 <param>${project.build.outputDirectory}/application.properties</param>
                                 <param>${project.build.outputDirectory}/application-prod.properties</param>
-                                <param>${project.build.outputDirectory}/application-dev.properties</param>
                                 <param>${project.build.outputDirectory}/application-test.properties</param>
                             </inputs>
                             <deleteInputs>false</deleteInputs>
@@ -429,7 +428,6 @@
                             <inputs>
                                 <param>${project.build.outputDirectory}/application.properties</param>
                                 <param>${project.build.outputDirectory}/application-prod.properties</param>
-                                <param>${project.build.outputDirectory}/application-dev.properties</param>
                                 <param>${project.build.outputDirectory}/application-test.properties</param>
                             </inputs>
                             <deleteInputs>true</deleteInputs>

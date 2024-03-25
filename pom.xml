@@ -140,6 +140,7 @@
         <avro.version>1.11.3</avro.version>
         <wire-schema.version>4.9.7</wire-schema.version>
         <wire-compiler.version>4.9.7</wire-compiler.version>
+        <ok-http.version>4.12.0</ok-http.version>
         <okio-jvm.version>3.8.0</okio-jvm.version>
         <okio.version>3.8.0</okio.version>
         <okio-fake-file-system.version>3.8.0</okio-fake-file-system.version>
@@ -513,6 +514,11 @@
                 <groupId>com.squareup.okio</groupId>
                 <artifactId>okio-jvm</artifactId>
                 <version>${okio-jvm.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.squareup.okio</groupId>
+                <artifactId>okhttp</artifactId>
+                <version>${ok-http.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.squareup.okio</groupId>

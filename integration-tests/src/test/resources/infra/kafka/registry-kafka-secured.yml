@@ -27,23 +27,19 @@ spec:
               value: "kafkasql"
             - name: AUTH_ENABLED
               value: "true"
-            - name: KEYCLOAK_API_CLIENT_ID
+            - name: QUARKUS_OIDC_CLIENT_ID
               value: "registry-api"
-            - name: KEYCLOAK_UI_CLIENT_ID
+            - name: REGISTRY_UI_AUTH_OIDC_CLIENT_ID
               value: apicurio-registry
-            - name: REGISTRY_UI_CONFIG_AUTH_KEYCLOAK_URL
-              value: 'http://localhost:8090'
-            - name: KEYCLOAK_REALM
-              value: 'registry'
             - name: QUARKUS_OIDC_AUTH_SERVER_URL
               value: "http://keycloak-service:8090/realms/registry"
             - name: QUARKUS_OIDC_TLS_VERIFICATION
               value: none
-            - name: TOKEN_ENDPOINT
+            - name: QUARKUS_OIDC_TOKEN_PATH
               value: "http://keycloak-service:8090/realms/registry/protocol/openid-connect/token"
-            - name: CLIENT_CREDENTIALS_BASIC_AUTH_ENABLED
+            - name: APICURIO_AUTHN_BASIC_CLIENT_CREDENTIALS_ENABLED
               value: "true"
-            - name: REGISTRY_AUTH_RBAC_ENABLED
+            - name: REGISTRY_AUTH_ROLE_BASED_AUTHORIZATION
               value: "true"
             - name: REGISTRY_AUTH_ROLE_SOURCE
               value: "token"

@@ -528,6 +528,11 @@
             </dependency>
             <dependency>
                 <groupId>com.squareup.okio</groupId>
+                <artifactId>okhttp</artifactId>
+                <version>${ok-http.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.squareup.okio</groupId>
                 <artifactId>okio-fakefilesystem</artifactId>
                 <version>${okio-fake-file-system.version}</version>
             </dependency>

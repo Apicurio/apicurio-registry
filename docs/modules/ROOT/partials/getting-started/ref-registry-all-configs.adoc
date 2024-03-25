@@ -791,12 +791,12 @@ The following {registry} configuration options are available for each component 
 |Default
 |Available from
 |Description
-|`registry.ui.auth.oidc.clientId`
+|`registry.ui.auth.oidc.client-id`
 |`string`
 |`apicurio-registry-ui`
 |`3.0.0`
 |The OIDC clientId
-|`registry.ui.auth.oidc.redirectUri`
+|`registry.ui.auth.oidc.redirect-uri`
 |`string`
 |`/`
 |`3.0.0`

@@ -21,7 +21,7 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.namespace
-            - name: AUTH_ENABLED
+            - name: QUARKUS_OIDC_TENANT_ENABLED
               value: "true"
             - name: QUARKUS_OIDC_CLIENT_ID
               value: "registry-api"

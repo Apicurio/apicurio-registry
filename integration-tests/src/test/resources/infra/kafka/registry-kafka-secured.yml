@@ -25,7 +25,7 @@ spec:
               value: kafka-service:9092
             - name: REGISTRY_STORAGE_KIND
               value: "kafkasql"
-            - name: AUTH_ENABLED
+            - name: QUARKUS_OIDC_TENANT_ENABLED
               value: "true"
             - name: QUARKUS_OIDC_CLIENT_ID
               value: "registry-api"

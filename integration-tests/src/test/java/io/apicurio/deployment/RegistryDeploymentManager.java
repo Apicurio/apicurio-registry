@@ -28,11 +28,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import static io.apicurio.deployment.Constants.REGISTRY_IMAGE;
-import static io.apicurio.deployment.KubernetesTestResources.APPLICATION_SERVICE;
-import static io.apicurio.deployment.KubernetesTestResources.E2E_NAMESPACE_RESOURCE;
-import static io.apicurio.deployment.KubernetesTestResources.KEYCLOAK_RESOURCES;
-import static io.apicurio.deployment.KubernetesTestResources.REGISTRY_OPENSHIFT_ROUTE;
-import static io.apicurio.deployment.KubernetesTestResources.TEST_NAMESPACE;
+import static io.apicurio.deployment.KubernetesTestResources.*;
 
 public class RegistryDeploymentManager implements TestExecutionListener {
 
@@ -64,38 +60,48 @@ public class RegistryDeploymentManager implements TestExecutionListener {
     public void testPlanExecutionFinished(TestPlan testPlan) {
         LOGGER.info("Test suite ended ##################################################");
 
-        //Finally, once the testsuite is done, cleanup all the resources in the cluster
-        if (kubernetesClient != null && !(Boolean.parseBoolean(System.getProperty("preserveNamespace")))) {
-            LOGGER.info("Closing test resources ##################################################");
+        try {
 
-            if (registryPortForward != null) {
+
+            //Finally, once the testsuite is done, cleanup all the resources in the cluster
+            if (kubernetesClient != null && !(Boolean.parseBoolean(System.getProperty("preserveNamespace")))) {
+                LOGGER.info("Closing test resources ##################################################");
+
+                if (registryPortForward != null) {
+                    try {
+                        registryPortForward.close();
+                    } catch (IOException e) {
+                        LOGGER.error("Error closing registry port forward", e);
+                    }
+                }
+
+                if (logWatch != null && !logWatch.isEmpty()) {
+                    logWatch.forEach(LogWatch::close);
+                }
+
+                final Resource<Namespace> namespaceResource = kubernetesClient.namespaces()
+                        .withName(TEST_NAMESPACE);
+
+                namespaceResource.delete();
+
+                // wait the namespace to be deleted
+                CompletableFuture<List<Namespace>> namespace = namespaceResource
+                        .informOnCondition(Collection::isEmpty).orTimeout(1, TimeUnit.MINUTES);
+
                 try {
-                    registryPortForward.close();
-                } catch (IOException e) {
-                    LOGGER.warn("Error closing registry port forward", e);
+                    namespace.get(60, TimeUnit.SECONDS);
+                } catch (ExecutionException | InterruptedException | TimeoutException e) {
+                    LOGGER.error("Error waiting for namespace deletion", e);
+                } finally {
+                    namespace.cancel(true);
                 }
             }
-
-            if (logWatch != null && !logWatch.isEmpty()) {
-                logWatch.forEach(LogWatch::close);
+        } catch (Exception e) {
+            LOGGER.error("Exception closing test resources", e);
+        } finally {
+            if (kubernetesClient != null) {
+                kubernetesClient.close();
             }
-
-            final Resource<Namespace> namespaceResource = kubernetesClient.namespaces()
-                    .withName(TEST_NAMESPACE);
-            namespaceResource.delete();
-
-            // wait the namespace to be deleted
-            CompletableFuture<List<Namespace>> namespace = namespaceResource
-                    .informOnCondition(Collection::isEmpty);
-
-            try {
-                namespace.get(60, TimeUnit.SECONDS);
-            } catch (ExecutionException | InterruptedException | TimeoutException e) {
-                LOGGER.warn("Error waiting for namespace deletion", e);
-            } finally {
-                namespace.cancel(true);
-            }
-            kubernetesClient.close();
         }
     }
 

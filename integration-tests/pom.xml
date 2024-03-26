@@ -24,6 +24,16 @@
         <dependency>
             <groupId>io.fabric8</groupId>
             <artifactId>kubernetes-client</artifactId>
+            <exclusions>
+                <exclusion>
+                    <artifactId>kubernetes-httpclient-okhttp</artifactId>
+                    <groupId>io.fabric8</groupId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>io.fabric8</groupId>
+            <artifactId>kubernetes-httpclient-jdk</artifactId>
         </dependency>
         <dependency>
             <groupId>io.fabric8</groupId>

@@ -29,6 +29,8 @@ spec:
               value: "apicurio"
             - name: REGISTRY_DATASOURCE_PASSWORD
               value: "registry"
+            - name: QUARKUS_OIDC_TENANT_ENABLED
+              value: "true"
             - name: QUARKUS_OIDC_CLIENT_ID
               value: "registry-api"
             - name: REGISTRY_UI_AUTH_OIDC_CLIENT_ID

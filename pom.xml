@@ -140,10 +140,10 @@
         <avro.version>1.11.3</avro.version>
         <wire-schema.version>4.9.7</wire-schema.version>
         <wire-compiler.version>4.9.7</wire-compiler.version>
-        <ok-http.version>4.12.0</ok-http.version>
+        <okhttp.version>4.12.0</okhttp.version>
         <okio-jvm.version>3.8.0</okio-jvm.version>
         <okio.version>3.8.0</okio.version>
-        <okio-fake-file-system.version>3.8.0</okio-fake-file-system.version>
+        <okio-fake-file-system.version>3.7.0</okio-fake-file-system.version>
         <icu4j.version>74.2</icu4j.version>
         <protobuf.version>3.25.3</protobuf.version>
         <xmlsec.version>4.0.2</xmlsec.version>
@@ -498,7 +498,7 @@
             <dependency>
                 <artifactId>kotlinx-serialization-core</artifactId>
                 <groupId>org.jetbrains.kotlinx</groupId>
-                <version>1.6.3</version>
+                <version>1.6.2</version>
             </dependency>
             <dependency>
                 <groupId>com.ibm.icu</groupId>
@@ -518,7 +518,7 @@
             <dependency>
                 <groupId>com.squareup.okio</groupId>
                 <artifactId>okhttp</artifactId>
-                <version>${ok-http.version}</version>
+                <version>${okhttp.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.squareup.okio</groupId>

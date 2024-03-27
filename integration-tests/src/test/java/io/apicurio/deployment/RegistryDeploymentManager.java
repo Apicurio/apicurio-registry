@@ -62,7 +62,6 @@ public class RegistryDeploymentManager implements TestExecutionListener {
 
         try {
 
-
             //Finally, once the testsuite is done, cleanup all the resources in the cluster
             if (kubernetesClient != null && !(Boolean.parseBoolean(System.getProperty("preserveNamespace")))) {
                 LOGGER.info("Closing test resources ##################################################");
@@ -89,7 +88,7 @@ public class RegistryDeploymentManager implements TestExecutionListener {
                         .informOnCondition(Collection::isEmpty).orTimeout(1, TimeUnit.MINUTES);
 
                 try {
-                    namespace.get(60, TimeUnit.SECONDS);
+                    namespace.get(360, TimeUnit.SECONDS);
                 } catch (ExecutionException | InterruptedException | TimeoutException e) {
                     LOGGER.error("Error waiting for namespace deletion", e);
                 } finally {
@@ -173,6 +172,7 @@ public class RegistryDeploymentManager implements TestExecutionListener {
                 final Route registryRoute = openShiftClient.routes()
                         .load(RegistryDeploymentManager.class.getResourceAsStream(REGISTRY_OPENSHIFT_ROUTE))
                         .create();
+
                 System.setProperty("quarkus.http.test-host", registryRoute.getSpec().getHost());
                 System.setProperty("quarkus.http.test-port", "80");
 
@@ -196,7 +196,7 @@ public class RegistryDeploymentManager implements TestExecutionListener {
 
         //Wait for all the external resources pods to be ready
         kubernetesClient.pods()
-                .inNamespace(TEST_NAMESPACE).waitUntilReady(60, TimeUnit.SECONDS);
+                .inNamespace(TEST_NAMESPACE).waitUntilReady(360, TimeUnit.SECONDS);
     }
 
     private static List<LogWatch> streamPodLogs(String container) {

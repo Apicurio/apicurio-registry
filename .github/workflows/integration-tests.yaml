@@ -38,6 +38,23 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
+      # Open-Source Machine emulator that allows you to emulate multiple CPU architectures on your machine
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+
+      # Docker CLI plugin for extended build capabilities with BuildKit
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v1
+
+      - name: Inspect builder
+        run: |
+          echo "Name:      ${{ steps.buildx.outputs.name }}"
+          echo "Endpoint:  ${{ steps.buildx.outputs.endpoint }}"
+          echo "Status:    ${{ steps.buildx.outputs.status }}"
+          echo "Flags:     ${{ steps.buildx.outputs.flags }}"
+          echo "Platforms: ${{ steps.buildx.outputs.platforms }}"
+
       - name: Get maven wrapper
         run: mvn -N io.takari:maven:wrapper -Dmaven=3.8.2
 
@@ -46,7 +63,7 @@ jobs:
 
       - name: Build and Push Application image
         run: |
-          docker build --push -f ./distro/docker/target/docker/Dockerfile.jvm -t ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:1d ./distro/docker/target/docker
+          docker buildx build --push -f ./distro/docker/target/docker/Dockerfile.jvm -t ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:1d --platform linux/amd64,linux/arm64,linux/s390x,linux/ppc64le ./distro/docker/target/docker
 
   prepare-ui-tests:
     name: Prepare for UI Integration Tests

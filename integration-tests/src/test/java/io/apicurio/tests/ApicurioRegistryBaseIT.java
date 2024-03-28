@@ -79,7 +79,7 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
 
     @BeforeAll
     void prepareRestAssured() {
-        authServerUrlConfigured = Optional.ofNullable(ConfigProvider.getConfig().getConfigValue("registry.auth.token.endpoint").getValue())
+        authServerUrlConfigured = Optional.ofNullable(ConfigProvider.getConfig().getConfigValue("quarkus.oidc.token-path").getValue())
                 .orElse("http://localhost:8090/realms/registry/protocol/openid-connect/token");
         registryClient = createRegistryClient();
         RestAssured.baseURI = getRegistryV3ApiUrl();

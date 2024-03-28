@@ -17,7 +17,7 @@ public class AuthConfig {
     @Inject
     Logger log;
 
-    @ConfigProperty(name = "registry.auth.enabled", defaultValue = "false")
+    @ConfigProperty(name = "quarkus.oidc.tenant-enabled", defaultValue = "false")
     boolean authenticationEnabled;
 
     @ConfigProperty(name = "registry.auth.role-based-authorization", defaultValue = "false")

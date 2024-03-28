@@ -10,10 +10,10 @@ public class GitTestRepositoryManager implements QuarkusTestResourceLifecycleMan
     @Getter
     private static GitTestRepository testRepository;
 
-
     @Override
     public Map<String, String> start() {
         testRepository = new GitTestRepository();
+
         testRepository.initialize();
 
         return Map.of(

@@ -57,7 +57,7 @@ public class JsonSerdeReferencesExample {
         ArtifactContent content = new ArtifactContent();
         content.setContent(IoUtil.toString(citySchema));
 
-        final io.apicurio.registry.rest.client.models.ArtifactMetaData amdCity = client.groups().byGroupId("default").artifacts().post(content, config -> {
+        final io.apicurio.registry.rest.client.models.VersionMetaData amdCity = client.groups().byGroupId("default").artifacts().post(content, config -> {
             config.queryParameters.ifExists = io.apicurio.registry.rest.client.models.IfExists.RETURN_OR_UPDATE;
             config.headers.add("X-Registry-ArtifactId", "city");
             config.headers.add("X-Registry-ArtifactType", ArtifactType.JSON);
@@ -66,7 +66,7 @@ public class JsonSerdeReferencesExample {
         final ArtifactReference reference = new ArtifactReference();
         reference.setVersion(amdCity.getVersion());
         reference.setGroupId(amdCity.getGroupId());
-        reference.setArtifactId(amdCity.getId());
+        reference.setArtifactId(amdCity.getArtifactId());
         reference.setName("city.json");
 
         // Register the schema with the registry (only if it is not already registered)
@@ -77,7 +77,7 @@ public class JsonSerdeReferencesExample {
         content.setContent(IoUtil.toString(citizenSchema));
         content.setReferences(Collections.singletonList(reference));
 
-        final io.apicurio.registry.rest.client.models.ArtifactMetaData amdCitizen = client.groups().byGroupId("default").artifacts().post(content, config -> {
+        final io.apicurio.registry.rest.client.models.VersionMetaData amdCitizen = client.groups().byGroupId("default").artifacts().post(content, config -> {
             config.queryParameters.ifExists = io.apicurio.registry.rest.client.models.IfExists.RETURN;
             config.headers.add("X-Registry-ArtifactId", artifactId);
             config.headers.add("X-Registry-ArtifactType", ArtifactType.JSON);

@@ -73,7 +73,7 @@ public class CustomSchemaResolver<D> extends AbstractSchemaResolver<Schema, D> {
 
             content.setContent(IoUtil.toString(schemaContent));
 
-            final io.apicurio.registry.rest.client.models.ArtifactMetaData metaData = client.groups().byGroupId("default").artifacts().post(content, config -> {
+            final io.apicurio.registry.rest.client.models.VersionMetaData metaData = client.groups().byGroupId("default").artifacts().post(content, config -> {
                 config.queryParameters.ifExists = io.apicurio.registry.rest.client.models.IfExists.RETURN_OR_UPDATE;
                 config.headers.add("X-Registry-ArtifactId", artifactId);
                 config.headers.add("X-Registry-ArtifactType", ArtifactType.AVRO);

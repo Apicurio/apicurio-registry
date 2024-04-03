@@ -31,7 +31,7 @@ public class RegistryDemoUtil {
             ArtifactContent artifactContent = new ArtifactContent();
             artifactContent.setContent(IoUtil.toString(content));
 
-            final io.apicurio.registry.rest.client.models.ArtifactMetaData metaData = service.groups().byGroupId("default").artifacts().post(artifactContent, config -> {
+            final io.apicurio.registry.rest.client.models.VersionMetaData metaData = service.groups().byGroupId("default").artifacts().post(artifactContent, config -> {
                 config.queryParameters.ifExists = IfExists.RETURN;
                 config.headers.add("X-Registry-ArtifactId", artifactId);
                 config.headers.add("X-Registry-ArtifactType", "JSON");
@@ -55,7 +55,7 @@ public class RegistryDemoUtil {
         LOGGER.info("---------------------------------------------------------");
         LOGGER.info("=====> Fetching artifact from the registry for JSON Schema with ID: {}", artifactId);
         try {
-            final ArtifactMetaData metaData = service.groups().byGroupId("default").artifacts().byArtifactId(artifactId).meta().get();
+            final ArtifactMetaData metaData = service.groups().byGroupId("default").artifacts().byArtifactId(artifactId).get();
             assert metaData != null;
             LOGGER.info("=====> Successfully fetched JSON Schema artifact in Service Registry: {}", metaData);
             LOGGER.info("---------------------------------------------------------");

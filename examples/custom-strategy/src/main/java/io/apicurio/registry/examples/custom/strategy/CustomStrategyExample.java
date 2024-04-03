@@ -83,7 +83,7 @@ public class CustomStrategyExample {
 
         content.setContent(Config.SCHEMA);
 
-        final io.apicurio.registry.rest.client.models.ArtifactMetaData metaData = client.groups().byGroupId("default").artifacts().post(content, config -> {
+        final io.apicurio.registry.rest.client.models.VersionMetaData metaData = client.groups().byGroupId("default").artifacts().post(content, config -> {
             config.queryParameters.ifExists = io.apicurio.registry.rest.client.models.IfExists.RETURN;
             config.headers.add("X-Registry-ArtifactId", artifactId);
             config.headers.add("X-Registry-ArtifactType", ArtifactType.AVRO);

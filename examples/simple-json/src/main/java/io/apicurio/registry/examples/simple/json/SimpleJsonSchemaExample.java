@@ -19,7 +19,7 @@ package io.apicurio.registry.examples.simple.json;
 import io.apicurio.registry.client.auth.VertXAuthFactory;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.ArtifactContent;
-import io.apicurio.registry.rest.client.models.ArtifactMetaData;
+import io.apicurio.registry.rest.client.models.VersionMetaData;
 import io.apicurio.registry.serde.SerdeConfig;
 import io.apicurio.registry.serde.jsonschema.JsonSchemaKafkaDeserializer;
 import io.apicurio.registry.serde.jsonschema.JsonSchemaKafkaSerializer;
@@ -110,7 +110,7 @@ public class SimpleJsonSchemaExample {
 
         content.setContent(IoUtil.toString(SCHEMA.getBytes(StandardCharsets.UTF_8)));
 
-        final ArtifactMetaData created = client.groups().byGroupId("default").artifacts().post(content, config -> {
+        final VersionMetaData created = client.groups().byGroupId("default").artifacts().post(content, config -> {
             config.queryParameters.ifExists = io.apicurio.registry.rest.client.models.IfExists.RETURN_OR_UPDATE;
             config.headers.add("X-Registry-ArtifactId", artifactId);
             config.headers.add("X-Registry-ArtifactType", ArtifactType.JSON);

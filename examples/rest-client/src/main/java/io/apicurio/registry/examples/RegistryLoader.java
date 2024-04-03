@@ -54,7 +54,7 @@ public class RegistryLoader {
             ArtifactContent artifactContent = new ArtifactContent();
             artifactContent.setContent(IoUtil.toString(contentIS));
 
-            final io.apicurio.registry.rest.client.models.ArtifactMetaData amdCity = client.groups().byGroupId("default").artifacts().post(artifactContent, config -> {
+            final io.apicurio.registry.rest.client.models.VersionMetaData amdCity = client.groups().byGroupId("default").artifacts().post(artifactContent, config -> {
                 config.queryParameters.ifExists = io.apicurio.registry.rest.client.models.IfExists.RETURN_OR_UPDATE;
                 config.headers.add("X-Registry-ArtifactId", "city");
                 config.headers.add("X-Registry-ArtifactType", "JSON");

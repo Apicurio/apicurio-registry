@@ -96,7 +96,7 @@ public class SimpleAvroMavenExample {
 
 
         String schemaData = null;
-        try (InputStream latestArtifact = client.groups().byGroupId("default").artifacts().byArtifactId(artifactId).get()) {
+        try (InputStream latestArtifact = client.groups().byGroupId("default").artifacts().byArtifactId(artifactId).versions().byVersionExpression("1").get()) {
             schemaData = toString(latestArtifact);
         } catch (ApiException e) {
             System.err.println("Schema not registered in registry.  Before running this example, please do:");

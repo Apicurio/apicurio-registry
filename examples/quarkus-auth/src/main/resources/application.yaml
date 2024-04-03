@@ -1,0 +1,74 @@
+quarkus:
+  http:
+    port: 8082
+
+apicurio:
+  registry:
+    url: ${APICURIO_REGISTRY_URL:}
+  auth:
+    client:
+      id: ${CLIENT_ID:}
+      secret: ${CLIENT_SECRET:}
+
+auth:
+  service:
+    token-url: ${TOKEN_URL:}
+
+kafka:
+  bootstrap:
+    servers: ${KAFKA_BOOTSTRAP_SERVERS:}
+
+mp:
+  messaging:
+    connector:
+      smallrye-kafka:
+        security:
+          protocol: SASL_SSL
+        sasl:
+          mechanism: OAUTHBEARER
+          jaas:
+            config: org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required oauth.client.id="${apicurio.auth.client.id}" oauth.client.secret="${apicurio.auth.client.secret}" oauth.token.endpoint.uri="${auth.service.token-url}" ;
+          login:
+            callback:
+              handler:
+                class: io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler
+    outgoing:
+      events:
+        connector: smallrye-kafka
+        topic: events
+        key:
+          serializer: org.apache.kafka.common.serialization.StringSerializer
+        value:
+          serializer: io.apicurio.registry.serde.avro.AvroKafkaSerializer
+        apicurio:
+          registry:
+            url: ${apicurio.registry.url}
+            artifact-resolver-strategy: io.apicurio.registry.serde.avro.strategy.RecordIdStrategy
+            auto-register: true
+            # find-latest: true
+          auth:
+            service:
+              token:
+                endpoint: ${auth.service.token-url}
+            client:
+              id: ${apicurio.auth.client.id}
+              secret: ${apicurio.auth.client.secret}
+    incoming:
+      events-sink:
+        connector: smallrye-kafka
+        topic: events
+        key:
+          deserializer: org.apache.kafka.common.serialization.StringDeserializer
+        value:
+          deserializer: io.apicurio.registry.serde.avro.AvroKafkaDeserializer
+        apicurio:
+          registry:
+            url: ${apicurio.registry.url}
+            use-specific-avro-reader: true
+          auth:
+            service:
+              token:
+                endpoint: ${auth.service.token-url}
+            client:
+              id: ${apicurio.auth.client.id}
+              secret: ${apicurio.auth.client.secret}

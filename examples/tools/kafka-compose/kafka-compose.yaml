@@ -1,0 +1,15 @@
+---
+version: '3'
+
+services:
+
+  kafka:
+    image: quay.io/strimzi/kafka:0.39.0-kafka-3.6.1
+    command: [
+      "sh", "-c",
+      "./bin/kafka-storage.sh format -t $$(./bin/kafka-storage.sh random-uuid) -c ./config/kraft/server.properties && ./bin/kafka-server-start.sh ./config/kraft/server.properties"
+    ]
+    ports:
+      - "9092:9092"
+    environment:
+      LOG_DIR: "/tmp/logs"

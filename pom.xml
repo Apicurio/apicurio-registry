@@ -201,7 +201,7 @@
         <!-- JSON Schema Validator -->
         <org.everit.json.schema.version>1.14.4</org.everit.json.schema.version>
         <org.json>20240303</org.json>
-        <jackson.version>2.17.0</jackson.version>
+        <jackson.version>2.15.2</jackson.version>
 
         <!-- Dependency versions -->
         <lombok.version>1.18.32</lombok.version>

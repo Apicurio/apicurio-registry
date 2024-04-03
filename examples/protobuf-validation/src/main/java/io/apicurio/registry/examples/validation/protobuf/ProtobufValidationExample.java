@@ -84,7 +84,7 @@ public class ProtobufValidationExample {
         ArtifactContent artifactContent = new ArtifactContent();
         artifactContent.setContent(IoUtil.toString(SCHEMA.getBytes(StandardCharsets.UTF_8)));
 
-        final io.apicurio.registry.rest.client.models.ArtifactMetaData metaData = client.groups().byGroupId("default").artifacts().post(artifactContent, config -> {
+        final io.apicurio.registry.rest.client.models.VersionMetaData metaData = client.groups().byGroupId("default").artifacts().post(artifactContent, config -> {
             config.queryParameters.ifExists = io.apicurio.registry.rest.client.models.IfExists.RETURN_OR_UPDATE;
             config.headers.add("X-Registry-ArtifactId", artifactId);
             config.headers.add("X-Registry-ArtifactType", ArtifactType.PROTOBUF);

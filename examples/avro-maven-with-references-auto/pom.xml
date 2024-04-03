@@ -26,7 +26,7 @@
                         </goals>
                         <phase>process-test-resources</phase>
                         <configuration>
-                            <registryUrl>http://localhost:8080/apis/registry/v2</registryUrl>
+                            <registryUrl>http://localhost:8080/apis/registry/v3</registryUrl>
                             <artifacts>
                                 <artifact>
                                     <groupId>avro-maven-with-references-auto</groupId>

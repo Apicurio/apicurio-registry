@@ -14,7 +14,7 @@
   "devDependencies": {
     "@apicurio/eslint-config": "0.2.0",
     "@types/react": "18.2.74",
-    "@types/react-dom": "18.2.23",
+    "@types/react-dom": "18.2.24",
     "@typescript-eslint/eslint-plugin": "7.5.0",
     "@typescript-eslint/parser": "7.5.0",
     "@vitejs/plugin-react-swc": "3.6.0",
@@ -23,7 +23,7 @@
     "eslint-plugin-react-refresh": "0.4.6",
     "rimraf": "5.0.5",
     "typescript": "5.4.3",
-    "vite": "5.2.7",
+    "vite": "5.2.8",
     "vite-tsconfig-paths": "4.3.2"
   },
   "dependencies": {

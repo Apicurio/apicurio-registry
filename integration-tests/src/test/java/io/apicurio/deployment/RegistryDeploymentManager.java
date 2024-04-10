@@ -215,6 +215,6 @@ public class RegistryDeploymentManager implements TestExecutionListener {
 
         //Wait for all the external resources pods to be ready
         kubernetesClient().pods()
-                .inNamespace(TEST_NAMESPACE).waitUntilReady(60, TimeUnit.SECONDS);
+                .inNamespace(TEST_NAMESPACE).waitUntilReady(180, TimeUnit.SECONDS);
     }
 }

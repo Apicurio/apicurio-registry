@@ -97,7 +97,12 @@ The following {registry} configuration options are available for each component 
 |`integer`
 |`10`
 |`2.2.6.Final`
-|Client credentials token expiration time.
+|Default client credentials token expiration time.
+|`registry.auth.basic-auth-client-credentials.cache-expiration-offset`
+|`integer`
+|`10`
+|`2.5.9.Final`
+|Client credentials token expiration offset from JWT expiration.
 |`registry.auth.basic-auth-client-credentials.enabled`
 |`boolean [dynamic]`
 |`false`

@@ -80,7 +80,7 @@ public class AuthorizedInterceptor {
                 }
     
                 // Anonymous users are allowed to perform read-only operations, but only if
-                // registry.auth.anonymous-read-access.enabled is set to 'true'
+                // apicurio.auth.anonymous-read-access.enabled is set to 'true'
                 if (authConfig.anonymousReadAccessEnabled.get() && annotation.level() == AuthorizedLevel.Read) {
                     log.trace("Anonymous user is being granted access to read-only operation.");
                     return context.proceed();

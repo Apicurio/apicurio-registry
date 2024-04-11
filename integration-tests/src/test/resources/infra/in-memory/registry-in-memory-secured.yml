@@ -25,7 +25,7 @@ spec:
               value: "true"
             - name: QUARKUS_OIDC_CLIENT_ID
               value: "registry-api"
-            - name: REGISTRY_UI_AUTH_OIDC_CLIENT_ID
+            - name: APICURIO_UI_AUTH_OIDC_CLIENT_ID
               value: apicurio-registry
             - name: QUARKUS_OIDC_AUTH_SERVER_URL
               value: "http://keycloak-service:8090/realms/registry"
@@ -35,9 +35,9 @@ spec:
               value: "http://keycloak-service:8090/realms/registry/protocol/openid-connect/token"
             - name: APICURIO_AUTHN_BASIC_CLIENT_CREDENTIALS_ENABLED
               value: "true"
-            - name: REGISTRY_AUTH_ROLE_BASED_AUTHORIZATION
+            - name: APICURIO_AUTH_ROLE_BASED_AUTHORIZATION
               value: "true"
-            - name: REGISTRY_AUTH_ROLE_SOURCE
+            - name: APICURIO_AUTH_ROLE_SOURCE
               value: "token"
           image: registry-image
           imagePullPolicy: Always

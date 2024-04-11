@@ -18,11 +18,11 @@ import java.util.Map;
 @ApplicationScoped
 public class RedirectFilter implements Filter {
 
-    @ConfigProperty(name = "registry.enable-redirects")
+    @ConfigProperty(name = "apicurio.enable-redirects")
     @Info(category = "redirects", description = "Enable redirects", availableSince = "2.1.2.Final")
     Boolean redirectsEnabled;
 
-    @ConfigProperty(name = "registry.redirects")
+    @ConfigProperty(name = "apicurio.redirects")
     @Info(category = "redirects", description = "Registry redirects", availableSince = "2.1.2.Final")
     Map<String, String> redirectsConfig;
     Map<String, String> redirects = new HashMap<>();

@@ -66,7 +66,7 @@ The example in this section shows a Kafka topic named `my-registry-events` runni
 ** `KAFKA_BOOTSTRAP_SERVERS=my-kafka-host:9092`
 +
 Alternatively, you can set the properties for the kafka producer by using the `registry.events.kafka.config` prefix, for example:
-`registry.events.kafka.config.bootstrap.servers=my-kafka-host:9092`
+`apicurio.events.kafka.config.bootstrap.servers=my-kafka-host:9092`
 
 . If required, you can also set the Kafka topic partition to use to produce events:
 ** `registry.events.kafka.topic-partition=1`

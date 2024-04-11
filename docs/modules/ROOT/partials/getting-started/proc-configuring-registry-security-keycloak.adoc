@@ -103,7 +103,7 @@ TIP: For an example of setting environment variables on OpenShift, see xref:conf
 |Type
 |Default value
 |`ROLE_BASED_AUTHZ_ENABLED`
-|`registry.auth.role-based-authorization`
+|`apicurio.auth.role-based-authorization`
 |Boolean
 |`false`
 |===
@@ -145,7 +145,7 @@ TIP: For an example of setting environment variables on OpenShift, see xref:conf
 |Type
 |Default value
 |`REGISTRY_AUTH_OBAC_ENABLED`
-|`registry.auth.owner-only-authorization`
+|`apicurio.auth.owner-only-authorization`
 |Boolean
 |`false`
 |===

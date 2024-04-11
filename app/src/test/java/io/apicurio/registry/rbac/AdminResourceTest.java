@@ -788,8 +788,8 @@ public class AdminResourceTest extends AbstractResourceTestBase {
     
     @Test
     public void testConfigProperties() throws Exception {
-        String property1Name = "registry.ccompat.legacy-id-mode.enabled";
-        String property2Name = "registry.rest.artifact.deletion.enabled";
+        String property1Name = "apicurio.ccompat.legacy-id-mode.enabled";
+        String property2Name = "apicurio.rest.artifact.deletion.enabled";
 
         // Start with default mappings
         given()

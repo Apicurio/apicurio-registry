@@ -10,7 +10,7 @@ public class AuthTestProfileWithHeaderRoles implements QuarkusTestProfile {
 
     @Override
     public Map<String, String> getConfigOverrides() {
-        return Map.of("smallrye.jwt.sign.key.location", "privateKey.jwk", "registry.auth.role-source", "header");
+        return Map.of("smallrye.jwt.sign.key.location", "privateKey.jwk", "apicurio.auth.role-source", "header");
     }
 
     @Override

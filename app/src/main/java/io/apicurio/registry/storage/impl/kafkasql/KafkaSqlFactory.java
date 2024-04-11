@@ -27,27 +27,27 @@ import java.util.UUID;
 public class KafkaSqlFactory {
 
     @Inject
-    @ConfigProperty(name = "registry.kafkasql.bootstrap.servers")
+    @ConfigProperty(name = "apicurio.kafkasql.bootstrap.servers")
     @Info(category = "storage", description = "Kafka sql storage bootstrap servers")
     String bootstrapServers;
 
     @Inject
-    @ConfigProperty(name = "registry.kafkasql.topic", defaultValue = "kafkasql-journal")
+    @ConfigProperty(name = "apicurio.kafkasql.topic", defaultValue = "kafkasql-journal")
     @Info(category = "storage", description = "Kafka sql storage topic name")
     String topic;
 
     @Inject
-    @RegistryProperties(value = "registry.kafkasql.topic")
+    @RegistryProperties(value = "apicurio.kafkasql.topic")
     @Info(category = "storage", description = "Kafka sql storage topic properties")
     Properties topicProperties;
 
     @Inject
-    @ConfigProperty(name = "registry.kafkasql.topic.auto-create", defaultValue = "true")
+    @ConfigProperty(name = "apicurio.kafkasql.topic.auto-create", defaultValue = "true")
     @Info(category = "storage", description = "Kafka sql storage topic auto create")
     Boolean topicAutoCreate;
 
     @Inject
-    @ConfigProperty(name = "registry.kafkasql.consumer.poll.timeout", defaultValue = "1000")
+    @ConfigProperty(name = "apicurio.kafkasql.consumer.poll.timeout", defaultValue = "1000")
     @Info(category = "storage", description = "Kafka sql storage consumer poll timeout")
     Integer pollTimeout;
 
@@ -77,7 +77,7 @@ public class KafkaSqlFactory {
     )
     Properties adminProperties;
 
-    @ConfigProperty(name = "registry.kafkasql.security.sasl.enabled", defaultValue = "false")
+    @ConfigProperty(name = "apicurio.kafkasql.security.sasl.enabled", defaultValue = "false")
     @Info(category = "storage", description = "Kafka sql storage sasl enabled")
     boolean saslEnabled;
 
@@ -85,23 +85,23 @@ public class KafkaSqlFactory {
     @Info(category = "storage", description = "Kafka sql storage security protocol")
     Optional<String> protocol;
 
-    @ConfigProperty(name = "registry.kafkasql.security.sasl.mechanism", defaultValue = "")
+    @ConfigProperty(name = "apicurio.kafkasql.security.sasl.mechanism", defaultValue = "")
     @Info(category = "storage", description = "Kafka sql storage sasl mechanism")
     String saslMechanism;
 
-    @ConfigProperty(name = "registry.kafkasql.security.sasl.client-id", defaultValue = "")
+    @ConfigProperty(name = "apicurio.kafkasql.security.sasl.client-id", defaultValue = "")
     @Info(category = "storage", description = "Kafka sql storage sasl client identifier")
     String clientId;
 
-    @ConfigProperty(name = "registry.kafkasql.security.sasl.client-secret", defaultValue = "")
+    @ConfigProperty(name = "apicurio.kafkasql.security.sasl.client-secret", defaultValue = "")
     @Info(category = "storage", description = "Kafka sql storage sasl client secret")
     String clientSecret;
 
-    @ConfigProperty(name = "registry.kafkasql.security.sasl.token.endpoint", defaultValue = "")
+    @ConfigProperty(name = "apicurio.kafkasql.security.sasl.token.endpoint", defaultValue = "")
     @Info(category = "storage", description = "Kafka sql storage sasl token endpoint")
     String tokenEndpoint;
 
-    @ConfigProperty(name = "registry.kafkasql.security.sasl.login.callback.handler.class", defaultValue = "")
+    @ConfigProperty(name = "apicurio.kafkasql.security.sasl.login.callback.handler.class", defaultValue = "")
     @Info(category = "storage", description = "Kafka sql storage sasl login callback handler")
     String loginCallbackHandler;
 

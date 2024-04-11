@@ -10,7 +10,7 @@ public class AuthTestProfileAnonymousCredentials implements QuarkusTestProfile {
 
     @Override
     public Map<String, String> getConfigOverrides() {
-        return Map.of("registry.auth.anonymous-read-access.enabled", "true", "smallrye.jwt.sign.key.location", "privateKey.jwk");
+        return Map.of("apicurio.auth.anonymous-read-access.enabled", "true", "smallrye.jwt.sign.key.location", "privateKey.jwk");
     }
 
     @Override

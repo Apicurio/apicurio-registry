@@ -37,8 +37,8 @@ public class KafkaTestContainerManager implements QuarkusTestResourceLifecycleMa
 
             return Map.of(
                     "bootstrap.servers", externalBootstrapServers,
-                    "registry.events.kafka.config.bootstrap.servers", externalBootstrapServers,
-                    "registry.kafkasql.bootstrap.servers", externalBootstrapServers);
+                    "apicurio.events.kafka.config.bootstrap.servers", externalBootstrapServers,
+                    "apicurio.kafkasql.bootstrap.servers", externalBootstrapServers);
         } else {
             return Collections.emptyMap();
         }

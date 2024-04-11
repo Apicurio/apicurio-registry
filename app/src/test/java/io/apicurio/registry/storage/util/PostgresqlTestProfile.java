@@ -11,7 +11,7 @@ public class PostgresqlTestProfile implements QuarkusTestProfile {
 
     @Override
     public Map<String, String> getConfigOverrides() {
-        return Collections.singletonMap("registry.storage.db-kind", "postgresql");
+        return Collections.singletonMap("apicurio.storage.db-kind", "postgresql");
     }
 
     @Override

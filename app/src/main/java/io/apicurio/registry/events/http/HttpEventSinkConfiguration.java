@@ -16,7 +16,7 @@ import io.apicurio.registry.utils.RegistryProperties;
 @ApplicationScoped
 public class HttpEventSinkConfiguration {
 
-    @ConfigProperty(name = "registry.events.ksink")
+    @ConfigProperty(name = "apicurio.events.ksink")
     @Info(category = "events", description = "Events Kafka sink enabled", availableSince = "2.0.0.Final")
     Optional<String> ksink;
 

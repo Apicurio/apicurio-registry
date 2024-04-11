@@ -188,7 +188,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         return sqlStatements;
     }
 
-    @ConfigProperty(name = "registry.sql.init", defaultValue = "true")
+    @ConfigProperty(name = "apicurio.sql.init", defaultValue = "true")
     @Info(category = "storage", description = "SQL init", availableSince = "2.0.0.Final")
     boolean initDB;
 

@@ -21,10 +21,10 @@ public class UserInterfaceConfigProperties {
     
     @ConfigProperty(name = "quarkus.oidc.auth-server-url")
     public String authOidcUrl;
-    @ConfigProperty(name = "registry.ui.auth.oidc.redirect-uri", defaultValue = "/")
+    @ConfigProperty(name = "apicurio.ui.auth.oidc.redirect-uri", defaultValue = "/")
     @Info(category = "ui", description = "The OIDC redirectUri", availableSince = "3.0.0")
     public String authOidcRedirectUri;
-    @ConfigProperty(name = "registry.ui.auth.oidc.client-id", defaultValue = "apicurio-registry-ui")
+    @ConfigProperty(name = "apicurio.ui.auth.oidc.client-id", defaultValue = "apicurio-registry-ui")
     @Info(category = "ui", description = "The OIDC clientId", availableSince = "3.0.0")
     public String authOidcClientId;
 

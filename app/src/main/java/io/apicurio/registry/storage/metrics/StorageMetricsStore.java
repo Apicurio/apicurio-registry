@@ -37,12 +37,12 @@ public class StorageMetricsStore {
     Logger log;
 
     @Inject
-    @ConfigProperty(defaultValue = "30000", name = "registry.storage.metrics.cache.check-period")
+    @ConfigProperty(defaultValue = "30000", name = "apicurio.storage.metrics.cache.check-period")
     @Info(category = "health", description = "Storage metrics cache check period", availableSince = "2.1.0.Final")
     Long limitsCheckPeriod;
 
     @Inject
-    @ConfigProperty(defaultValue = "1000", name = "registry.storage.metrics.cache.max-size")
+    @ConfigProperty(defaultValue = "1000", name = "apicurio.storage.metrics.cache.max-size")
     @Info(category = "limits", description = "Storage metrics cache max size.", availableSince = "2.4.1.Final")
     Long cacheMaxSize;
 

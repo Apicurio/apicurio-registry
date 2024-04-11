@@ -12,7 +12,7 @@ The following {registry} configuration options are available for each component 
 |Default
 |Available from
 |Description
-|`registry.api.errors.include-stack-in-response`
+|`apicurio.api.errors.include-stack-in-response`
 |`boolean`
 |`false`
 |`2.1.4.Final`
@@ -88,87 +88,87 @@ The following {registry} configuration options are available for each component 
 |
 |`2.1.0.Final`
 |Authentication server token endpoint.
-|`registry.auth.admin-override.claim`
+|`apicurio.auth.admin-override.claim`
 |`string`
 |`org-admin`
 |`2.1.0.Final`
 |Auth admin override claim
-|`registry.auth.admin-override.claim-value`
+|`apicurio.auth.admin-override.claim-value`
 |`string`
 |`true`
 |`2.1.0.Final`
 |Auth admin override claim value
-|`registry.auth.admin-override.enabled`
+|`apicurio.auth.admin-override.enabled`
 |`boolean`
 |`false`
 |`2.1.0.Final`
 |Auth admin override enabled
-|`registry.auth.admin-override.from`
+|`apicurio.auth.admin-override.from`
 |`string`
 |`token`
 |`2.1.0.Final`
 |Auth admin override from
-|`registry.auth.admin-override.role`
+|`apicurio.auth.admin-override.role`
 |`string`
 |`sr-admin`
 |`2.1.0.Final`
 |Auth admin override role
-|`registry.auth.admin-override.type`
+|`apicurio.auth.admin-override.type`
 |`string`
 |`role`
 |`2.1.0.Final`
 |Auth admin override type
-|`registry.auth.admin-override.user`
+|`apicurio.auth.admin-override.user`
 |`string`
 |`admin`
 |`3.0.0.Final`
 |Auth admin override user name
-|`registry.auth.anonymous-read-access.enabled`
+|`apicurio.auth.anonymous-read-access.enabled`
 |`boolean [dynamic]`
 |`false`
 |`2.1.0.Final`
 |Anonymous read access
-|`registry.auth.authenticated-read-access.enabled`
+|`apicurio.auth.authenticated-read-access.enabled`
 |`boolean [dynamic]`
 |`false`
 |`2.1.4.Final`
 |Authenticated read access
-|`registry.auth.owner-only-authorization`
+|`apicurio.auth.owner-only-authorization`
 |`boolean [dynamic]`
 |`false`
 |`2.0.0.Final`
 |Artifact owner-only authorization
-|`registry.auth.owner-only-authorization.limit-group-access`
+|`apicurio.auth.owner-only-authorization.limit-group-access`
 |`boolean [dynamic]`
 |`false`
 |`2.1.0.Final`
 |Artifact group owner-only authorization
-|`registry.auth.role-based-authorization`
+|`apicurio.auth.role-based-authorization`
 |`boolean`
 |`false`
 |`2.1.0.Final`
 |Enable role based authorization
-|`registry.auth.role-source`
+|`apicurio.auth.role-source`
 |`string`
 |`token`
 |`2.1.0.Final`
 |Auth roles source
-|`registry.auth.role-source.header.name`
+|`apicurio.auth.role-source.header.name`
 |`string`
 |
 |`2.4.3.Final`
 |Header authorization name
-|`registry.auth.roles.admin`
+|`apicurio.auth.roles.admin`
 |`string`
 |`sr-admin`
 |`2.0.0.Final`
 |Auth roles admin
-|`registry.auth.roles.developer`
+|`apicurio.auth.roles.developer`
 |`string`
 |`sr-developer`
 |`2.1.0.Final`
 |Auth roles developer
-|`registry.auth.roles.readonly`
+|`apicurio.auth.roles.readonly`
 |`string`
 |`sr-readonly`
 |`2.1.0.Final`
@@ -184,7 +184,7 @@ The following {registry} configuration options are available for each component 
 |Default
 |Available from
 |Description
-|`registry.config.cache.enabled`
+|`apicurio.config.cache.enabled`
 |`boolean`
 |`true`
 |`2.2.2.Final`
@@ -200,17 +200,17 @@ The following {registry} configuration options are available for each component 
 |Default
 |Available from
 |Description
-|`registry.ccompat.legacy-id-mode.enabled`
+|`apicurio.ccompat.legacy-id-mode.enabled`
 |`boolean [dynamic]`
 |`false`
 |`2.0.2.Final`
 |Legacy ID mode (compatibility API)
-|`registry.ccompat.max-subjects`
+|`apicurio.ccompat.max-subjects`
 |`integer [dynamic]`
 |`1000`
 |`2.4.2.Final`
 |Maximum number of Subjects returned (compatibility API)
-|`registry.ccompat.use-canonical-hash`
+|`apicurio.ccompat.use-canonical-hash`
 |`boolean [dynamic]`
 |`false`
 |`2.3.0.Final`
@@ -242,7 +242,7 @@ The following {registry} configuration options are available for each component 
 |Default
 |Available from
 |Description
-|`registry.events.ksink`
+|`apicurio.events.ksink`
 |`optional<string>`
 |
 |`2.0.0.Final`
@@ -258,17 +258,17 @@ The following {registry} configuration options are available for each component 
 |Default
 |Available from
 |Description
-|`registry.gitops.id`
+|`apicurio.gitops.id`
 |`string`
 |
 |`3.0.0`
 |Identifier of this Registry instance. Only data that references this identifier will be loaded.
-|`registry.gitops.repo.origin.branch`
+|`apicurio.gitops.repo.origin.branch`
 |`string`
 |`main`
 |`3.0.0`
 |Name of the branch in the remote git repository containing data to be loaded.
-|`registry.gitops.repo.origin.uri`
+|`apicurio.gitops.repo.origin.uri`
 |`string`
 |
 |`3.0.0`
@@ -289,92 +289,92 @@ The following {registry} configuration options are available for each component 
 |Default
 |Available from
 |Description
-|`registry.liveness.errors.ignored`
+|`apicurio.liveness.errors.ignored`
 |`optional<list<string>>`
 |
 |`1.2.3.Final`
 |Ignored liveness errors
-|`registry.metrics.PersistenceExceptionLivenessCheck.counterResetWindowDurationSec`
+|`apicurio.metrics.PersistenceExceptionLivenessCheck.counterResetWindowDurationSec`
 |`integer`
 |`60`
 |`1.0.2.Final`
 |Counter reset window duration of persistence liveness check
-|`registry.metrics.PersistenceExceptionLivenessCheck.disableLogging`
+|`apicurio.metrics.PersistenceExceptionLivenessCheck.disableLogging`
 |`boolean`
 |`false`
 |`2.0.0.Final`
 |Disable logging of persistence liveness check
-|`registry.metrics.PersistenceExceptionLivenessCheck.errorThreshold`
+|`apicurio.metrics.PersistenceExceptionLivenessCheck.errorThreshold`
 |`integer`
 |`1`
 |`1.0.2.Final`
 |Error threshold of persistence liveness check
-|`registry.metrics.PersistenceExceptionLivenessCheck.statusResetWindowDurationSec`
+|`apicurio.metrics.PersistenceExceptionLivenessCheck.statusResetWindowDurationSec`
 |`integer`
 |`300`
 |`1.0.2.Final`
 |Status reset window duration of persistence liveness check
-|`registry.metrics.PersistenceTimeoutReadinessCheck.counterResetWindowDurationSec`
+|`apicurio.metrics.PersistenceTimeoutReadinessCheck.counterResetWindowDurationSec`
 |`integer`
 |`60`
 |`1.0.2.Final`
 |Counter reset window duration of persistence readiness check
-|`registry.metrics.PersistenceTimeoutReadinessCheck.errorThreshold`
+|`apicurio.metrics.PersistenceTimeoutReadinessCheck.errorThreshold`
 |`integer`
 |`5`
 |`1.0.2.Final`
 |Error threshold of persistence readiness check
-|`registry.metrics.PersistenceTimeoutReadinessCheck.statusResetWindowDurationSec`
+|`apicurio.metrics.PersistenceTimeoutReadinessCheck.statusResetWindowDurationSec`
 |`integer`
 |`300`
 |`1.0.2.Final`
 |Status reset window duration of persistence readiness check
-|`registry.metrics.PersistenceTimeoutReadinessCheck.timeoutSec`
+|`apicurio.metrics.PersistenceTimeoutReadinessCheck.timeoutSec`
 |`integer`
 |`15`
 |`1.0.2.Final`
 |Timeout of persistence readiness check
-|`registry.metrics.ResponseErrorLivenessCheck.counterResetWindowDurationSec`
+|`apicurio.metrics.ResponseErrorLivenessCheck.counterResetWindowDurationSec`
 |`integer`
 |`60`
 |`1.0.2.Final`
 |Counter reset window duration of response liveness check
-|`registry.metrics.ResponseErrorLivenessCheck.disableLogging`
+|`apicurio.metrics.ResponseErrorLivenessCheck.disableLogging`
 |`boolean`
 |`false`
 |`2.0.0.Final`
 |Disable logging of response liveness check
-|`registry.metrics.ResponseErrorLivenessCheck.errorThreshold`
+|`apicurio.metrics.ResponseErrorLivenessCheck.errorThreshold`
 |`integer`
 |`1`
 |`1.0.2.Final`
 |Error threshold of response liveness check
-|`registry.metrics.ResponseErrorLivenessCheck.statusResetWindowDurationSec`
+|`apicurio.metrics.ResponseErrorLivenessCheck.statusResetWindowDurationSec`
 |`integer`
 |`300`
 |`1.0.2.Final`
 |Status reset window duration of response liveness check
-|`registry.metrics.ResponseTimeoutReadinessCheck.counterResetWindowDurationSec`
+|`apicurio.metrics.ResponseTimeoutReadinessCheck.counterResetWindowDurationSec`
 |`instance<integer>`
 |`60`
 |`1.0.2.Final`
 |Counter reset window duration of response readiness check
-|`registry.metrics.ResponseTimeoutReadinessCheck.errorThreshold`
+|`apicurio.metrics.ResponseTimeoutReadinessCheck.errorThreshold`
 |`instance<integer>`
 |`1`
 |`1.0.2.Final`
 |Error threshold of response readiness check
-|`registry.metrics.ResponseTimeoutReadinessCheck.statusResetWindowDurationSec`
+|`apicurio.metrics.ResponseTimeoutReadinessCheck.statusResetWindowDurationSec`
 |`instance<integer>`
 |`300`
 |`1.0.2.Final`
 |Status reset window duration of response readiness check
-|`registry.metrics.ResponseTimeoutReadinessCheck.timeoutSec`
+|`apicurio.metrics.ResponseTimeoutReadinessCheck.timeoutSec`
 |`instance<integer>`
 |`10`
 |`1.0.2.Final`
 |Timeout of response readiness check
-|`registry.storage.metrics.cache.check-period`
+|`apicurio.storage.metrics.cache.check-period`
 |`long`
 |`30000`
 |`2.1.0.Final`
@@ -487,7 +487,7 @@ The following {registry} configuration options are available for each component 
 |`-1`
 |`2.1.0.Final`
 |Max versions per artifacts
-|`registry.storage.metrics.cache.max-size`
+|`apicurio.storage.metrics.cache.max-size`
 |`long`
 |`1000`
 |`2.4.1.Final`
@@ -503,12 +503,12 @@ The following {registry} configuration options are available for each component 
 |Default
 |Available from
 |Description
-|`registry.enable-redirects`
+|`apicurio.enable-redirects`
 |`boolean`
 |
 |`2.1.2.Final`
 |Enable redirects
-|`registry.redirects`
+|`apicurio.redirects`
 |`map<string, string>`
 |
 |`2.1.2.Final`
@@ -534,17 +534,17 @@ The following {registry} configuration options are available for each component 
 |Default
 |Available from
 |Description
-|`registry.rest.artifact.deletion.enabled`
+|`apicurio.rest.artifact.deletion.enabled`
 |`boolean [dynamic]`
 |`false`
 |`2.4.2-SNAPSHOT`
 |Enables artifact version deletion
-|`registry.rest.artifact.download.maxSize`
+|`apicurio.rest.artifact.download.maxSize`
 |`int`
 |`1000000`
 |`2.2.6-SNAPSHOT`
 |Max size of the artifact allowed to be downloaded from URL
-|`registry.rest.artifact.download.skipSSLValidation`
+|`apicurio.rest.artifact.download.skipSSLValidation`
 |`boolean`
 |`false`
 |`2.2.6-SNAPSHOT`
@@ -565,112 +565,112 @@ The following {registry} configuration options are available for each component 
 |`true`
 |`2.4.2-SNAPSHOT`
 |Skip artifact versions with DISABLED state when retrieving latest artifact version
-|`registry.datasource.blue.db-kind`
+|`apicurio.datasource.blue.db-kind`
 |`string`
 |`h2`
 |`3.0.0.Final`
 |Gitops blue datasource db kind
-|`registry.datasource.blue.jdbc.initial-size`
+|`apicurio.datasource.blue.jdbc.initial-size`
 |`string`
 |`20`
 |`3.0.0.Final`
 |Gitops blue datasource pool initial size
-|`registry.datasource.blue.jdbc.max-size`
+|`apicurio.datasource.blue.jdbc.max-size`
 |`string`
 |`100`
 |`3.0.0.Final`
 |Gitops blue datasource pool max size
-|`registry.datasource.blue.jdbc.min-size`
+|`apicurio.datasource.blue.jdbc.min-size`
 |`string`
 |`20`
 |`3.0.0.Final`
 |Gitops blue datasource pool minimum size
-|`registry.datasource.blue.jdbc.url`
+|`apicurio.datasource.blue.jdbc.url`
 |`string`
 |`jdbc:h2:mem:registry_db`
 |`3.0.0.Final`
 |Gitops blue datasource jdbc url
-|`registry.datasource.blue.password`
+|`apicurio.datasource.blue.password`
 |`string`
 |`sa`
 |`3.0.0.Final`
 |Gitops blue datasource password
-|`registry.datasource.blue.username`
+|`apicurio.datasource.blue.username`
 |`string`
 |`sa`
 |`3.0.0.Final`
 |Gitops blue datasource username
-|`registry.datasource.green.db-kind`
+|`apicurio.datasource.green.db-kind`
 |`string`
 |`h2`
 |`3.0.0.Final`
 |Gitops green datasource db kind
-|`registry.datasource.green.jdbc.initial-size`
+|`apicurio.datasource.green.jdbc.initial-size`
 |`string`
 |`20`
 |`3.0.0.Final`
 |Gitops green datasource pool initial size
-|`registry.datasource.green.jdbc.max-size`
+|`apicurio.datasource.green.jdbc.max-size`
 |`string`
 |`100`
 |`3.0.0.Final`
 |Gitops green datasource pool max size
-|`registry.datasource.green.jdbc.min-size`
+|`apicurio.datasource.green.jdbc.min-size`
 |`string`
 |`20`
 |`3.0.0.Final`
 |Gitops green datasource pool minimum size
-|`registry.datasource.green.jdbc.url`
+|`apicurio.datasource.green.jdbc.url`
 |`string`
 |`jdbc:h2:mem:registry_db`
 |`3.0.0.Final`
 |Gitops green datasource jdbc url
-|`registry.datasource.green.password`
+|`apicurio.datasource.green.password`
 |`string`
 |`sa`
 |`3.0.0.Final`
 |Gitops green datasource password
-|`registry.datasource.green.username`
+|`apicurio.datasource.green.username`
 |`string`
 |`sa`
 |`3.0.0.Final`
 |Gitops green datasource username
-|`registry.datasource.jdbc.initial-size`
+|`apicurio.datasource.jdbc.initial-size`
 |`string`
 |`20`
 |`3.0.0.Final`
 |Application datasource pool initial size
-|`registry.datasource.jdbc.max-size`
+|`apicurio.datasource.jdbc.max-size`
 |`string`
 |`100`
 |`3.0.0.Final`
 |Application datasource pool maximum size
-|`registry.datasource.jdbc.min-size`
+|`apicurio.datasource.jdbc.min-size`
 |`string`
 |`20`
 |`3.0.0.Final`
 |Application datasource pool minimum size
-|`registry.datasource.password`
+|`apicurio.datasource.password`
 |`string`
 |`sa`
 |`3.0.0.Final`
 |Application datasource password
-|`registry.datasource.url`
+|`apicurio.datasource.url`
 |`string`
 |`jdbc:h2:mem:registry_db`
 |`3.0.0.Final`
 |Application datasource jdbc url
-|`registry.datasource.username`
+|`apicurio.datasource.username`
 |`string`
 |`sa`
 |`3.0.0.Final`
 |Application datasource username
-|`registry.kafkasql.bootstrap.servers`
+|`apicurio.kafkasql.bootstrap.servers`
 |`string`
 |
 |
 |Kafka sql storage bootstrap servers
-|`registry.kafkasql.consumer.poll.timeout`
+|`apicurio.kafkasql.consumer.poll.timeout`
 |`integer`
 |`1000`
 |
@@ -685,32 +685,32 @@ The following {registry} configuration options are available for each component 
 |
 |
 |Kafka sql storage security protocol
-|`registry.kafkasql.security.sasl.client-id`
+|`apicurio.kafkasql.security.sasl.client-id`
 |`string`
 |
 |
 |Kafka sql storage sasl client identifier
-|`registry.kafkasql.security.sasl.client-secret`
+|`apicurio.kafkasql.security.sasl.client-secret`
 |`string`
 |
 |
 |Kafka sql storage sasl client secret
-|`registry.kafkasql.security.sasl.enabled`
+|`apicurio.kafkasql.security.sasl.enabled`
 |`boolean`
 |`false`
 |
 |Kafka sql storage sasl enabled
-|`registry.kafkasql.security.sasl.login.callback.handler.class`
+|`apicurio.kafkasql.security.sasl.login.callback.handler.class`
 |`string`
 |
 |
 |Kafka sql storage sasl login callback handler
-|`registry.kafkasql.security.sasl.mechanism`
+|`apicurio.kafkasql.security.sasl.mechanism`
 |`string`
 |
 |
 |Kafka sql storage sasl mechanism
-|`registry.kafkasql.security.sasl.token.endpoint`
+|`apicurio.kafkasql.security.sasl.token.endpoint`
 |`string`
 |
 |
@@ -750,27 +750,27 @@ The following {registry} configuration options are available for each component 
 |
 |
 |Kafka sql storage ssl truststore password
-|`registry.kafkasql.topic`
+|`apicurio.kafkasql.topic`
 |`string`
 |`kafkasql-journal`
 |
 |Kafka sql storage topic name
-|`registry.kafkasql.topic.auto-create`
+|`apicurio.kafkasql.topic.auto-create`
 |`boolean`
 |`true`
 |
 |Kafka sql storage topic auto create
-|`registry.sql.init`
+|`apicurio.sql.init`
 |`boolean`
 |`true`
 |`2.0.0.Final`
 |SQL init
-|`registry.storage.db-kind`
+|`apicurio.storage.db-kind`
 |`string`
 |`h2`
 |`3.0.0.Final`
 |Application datasource database type
-|`registry.storage.kind`
+|`apicurio.storage.kind`
 |`string`
 |
 |`3.0.0.Final`
@@ -791,12 +791,12 @@ The following {registry} configuration options are available for each component 
 |Default
 |Available from
 |Description
-|`registry.ui.auth.oidc.client-id`
+|`apicurio.ui.auth.oidc.client-id`
 |`string`
 |`apicurio-registry-ui`
 |`3.0.0`
 |The OIDC clientId
-|`registry.ui.auth.oidc.redirect-uri`
+|`apicurio.ui.auth.oidc.redirect-uri`
 |`string`
 |`/`
 |`3.0.0`

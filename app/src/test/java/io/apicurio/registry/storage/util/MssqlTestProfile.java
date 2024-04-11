@@ -11,7 +11,7 @@ public class MssqlTestProfile implements QuarkusTestProfile {
 
     @Override
     public Map<String, String> getConfigOverrides() {
-        return Collections.singletonMap("registry.storage.db-kind", "mssql");
+        return Collections.singletonMap("apicurio.storage.db-kind", "mssql");
     }
 
     @Override

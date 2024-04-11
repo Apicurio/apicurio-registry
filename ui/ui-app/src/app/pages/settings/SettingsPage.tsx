@@ -36,19 +36,19 @@ const PROPERTY_GROUPS: PropertyGroup[] = [
         id: "authz",
         label: "Authorization settings",
         propertyNames: [
-            "registry.auth.owner-only-authorization",
-            "registry.auth.owner-only-authorization.limit-group-access",
-            "registry.auth.anonymous-read-access.enabled",
-            "registry.auth.authenticated-read-access.enabled",
+            "apicurio.auth.owner-only-authorization",
+            "apicurio.auth.owner-only-authorization.limit-group-access",
+            "apicurio.auth.anonymous-read-access.enabled",
+            "apicurio.auth.authenticated-read-access.enabled",
         ]
     },
     {
         id: "compatibility",
         label: "Compatibility settings",
         propertyNames: [
-            "registry.ccompat.legacy-id-mode.enabled",
-            "registry.ccompat.use-canonical-hash",
-            "registry.ccompat.max-subjects",
+            "apicurio.ccompat.legacy-id-mode.enabled",
+            "apicurio.ccompat.use-canonical-hash",
+            "apicurio.ccompat.max-subjects",
         ]
     },
     {

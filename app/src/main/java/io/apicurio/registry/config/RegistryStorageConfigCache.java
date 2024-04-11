@@ -27,7 +27,7 @@ public class RegistryStorageConfigCache extends RegistryStorageDecoratorBase imp
     @Inject
     Logger log;
 
-    @ConfigProperty(name = "registry.config.cache.enabled", defaultValue = "true")
+    @ConfigProperty(name = "apicurio.config.cache.enabled", defaultValue = "true")
     @Info(category = "cache", description = "Registry cache enabled", availableSince = "2.2.2.Final")
     boolean enabled;
 
@@ -79,7 +79,7 @@ public class RegistryStorageConfigCache extends RegistryStorageDecoratorBase imp
         configCache.clear();
     }
 
-    @Scheduled(concurrentExecution = SKIP, every = "{registry.config.refresh.every}")
+    @Scheduled(concurrentExecution = SKIP, every = "{apicurio.config.refresh.every}")
     void run() {
         if (!enabled) {
             return;

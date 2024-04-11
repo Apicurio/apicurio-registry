@@ -53,7 +53,7 @@ public class GitOpsRegistryStorage extends AbstractReadOnlyRegistryStorage {
     @Inject
     GitManager gitManager;
 
-    @ConfigProperty(name = "registry.storage.kind")
+    @ConfigProperty(name = "apicurio.storage.kind")
     @Info(category = "storage", description = "Application storage variant, for example, sql, kafkasql, or gitops", availableSince = "3.0.0.Final")
     String registryStorageType;
 
@@ -87,7 +87,7 @@ public class GitOpsRegistryStorage extends AbstractReadOnlyRegistryStorage {
         }
     }
 
-    @Scheduled(concurrentExecution = SKIP, every = "{registry.gitops.refresh.every}")
+    @Scheduled(concurrentExecution = SKIP, every = "{apicurio.gitops.refresh.every}")
     void refresh() {
         if (registryStorageType.equals("gitops")) {
             log.debug("Running GitOps refresh. Active database is {} and state is {}.", active == green ? "green" : "blue", state);

@@ -24,7 +24,7 @@ Which storage variant will be used is determined by the following configuration:
 
 |Option|Command argument|Env. variable|
 |---|---|---|
-|Registry Storage Variant|`-Dregistry.storage.kind`|`REGISTRY_STORAGE_KIND`|
+|Registry Storage Variant|`-Dapicurio.storage.kind`|`REGISTRY_STORAGE_KIND`|
 
 For this property, there are three possible values:
 - *sql* - for the SQL storage variant.
@@ -81,10 +81,10 @@ The following parameters are available for executable files:
   
 | Option                    |Command argument| Env. variable                  |
 |---------------------------|---|--------------------------------|
-| Registry SQL storage kind |`-Dregistry.storage.db-kind`| `REGISTRY_STORAGE_DB_KIND`     |
-| Data Source URL           |`-Dregistry.datasource.url`| `REGISTRY_DATASOURCE_URL`      |
-| DS Username               |`-Dregistry.datasource.username`| `REGISTRY_DATASOURCE_USERNAME` |
-| DS Password               |`-Dregistry.datasource.password`| `REGISTRY_DATASOURCE_PASSWORD` |
+| Registry SQL storage kind |`-Dapicurio.storage.db-kind`| `REGISTRY_STORAGE_DB_KIND`     |
+| Data Source URL           |`-Dapicurio.datasource.url`| `REGISTRY_DATASOURCE_URL`      |
+| DS Username               |`-Dapicurio.datasource.username`| `REGISTRY_DATASOURCE_USERNAME` |
+| DS Password               |`-Dapicurio.datasource.password`| `REGISTRY_DATASOURCE_PASSWORD` |
 
 To see additional options, visit:
  - [Data Source config](https://quarkus.io/guides/datasource) 
@@ -94,9 +94,9 @@ To see additional options, visit:
 `./mvnw clean install -Pprod -DskipTests` builds the application artifact.
 The newly built runner can be found in `/app/target`
 ```
-java Dregistry.storage.kind=kafkasql -jar apicurio-registry-app-<version>-SNAPSHOT-runner.jar
+java Dapicurio.storage.kind=kafkasql -jar apicurio-registry-app-<version>-SNAPSHOT-runner.jar
 ```
-For using Kafka as the persistent storage for the server information the only required configuration is to set the property *registry.storage.kind*.
+For using Kafka as the persistent storage for the server information the only required configuration is to set the property *apicurio.storage.kind*.
 
 Should result in Quarkus and the registry starting up, with the ui and APIs available on localhost port 8080.
 By default, this will look for a kafka instance on `localhost:9092`, see [kafka-quickstart](https://kafka.apache.org/quickstart).
@@ -106,7 +106,7 @@ with the necessary details to connect to a kafka instance using a PKCS12 certifi
 scram-sha-512 credentials for user authorisation.
 ```
 java \
--Dregistry.storage.kind=kafkasql \
+-Dapicurio.storage.kind=kafkasql \
 -Dregistry.kafka.common.bootstrap.servers=<kafka_bootstrap_server_address> \
 -Dregistry.kafka.common.ssl.truststore.location=<truststore_file_location>\
 -Dregistry.kafka.common.ssl.truststore.password=<truststore_file_password> \

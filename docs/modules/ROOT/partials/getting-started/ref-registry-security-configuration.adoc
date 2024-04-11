@@ -120,7 +120,7 @@ You can set the following options to `true` to enable role-based authorization i
 |Boolean
 |`false`
 |`ROLE_BASED_AUTHZ_ENABLED`
-|`registry.auth.role-based-authorization`
+|`apicurio.auth.role-based-authorization`
 |Boolean
 |`false`
 |===
@@ -273,12 +273,12 @@ You can set the following options to `true` to enable owner-only authorization f
 |`false`
 
 |`REGISTRY_AUTH_OBAC_ENABLED`
-|`registry.auth.owner-only-authorization`
+|`apicurio.auth.owner-only-authorization`
 |Boolean
 |`false`
 
 |`REGISTRY_AUTH_OBAC_LIMIT_GROUP_ACCESS`
-|`registry.auth.owner-only-authorization.limit-group-access`
+|`apicurio.auth.owner-only-authorization.limit-group-access`
 |Boolean
 |`false`
 |===
@@ -307,7 +307,7 @@ To enable authenticated read access, you must first enable role-based authorizat
 |Boolean
 |`false`
 |`REGISTRY_AUTH_AUTHENTICATED_READS_ENABLED`
-|`registry.auth.authenticated-read-access.enabled`
+|`apicurio.auth.authenticated-read-access.enabled`
 |Boolean
 |`false`
 |===
@@ -336,7 +336,7 @@ calls to the REST API, set the following options to `true`:
 |Boolean
 |`false`
 |`REGISTRY_AUTH_ANONYMOUS_READ_ACCESS_ENABLED`
-|`registry.auth.anonymous-read-access.enabled`
+|`apicurio.auth.anonymous-read-access.enabled`
 |Boolean
 |`false`
 |===

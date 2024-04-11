@@ -28,7 +28,7 @@ public class DownloadReaper {
     /**
      * Minimal granularity is 1 minute.
      */
-    @Scheduled(delay = 2, concurrentExecution = SKIP, every = "{registry.downloads.reaper.every}")
+    @Scheduled(delay = 2, concurrentExecution = SKIP, every = "{apicurio.downloads.reaper.every}")
     void run() {
         try {
             if(storage.isReady()) {

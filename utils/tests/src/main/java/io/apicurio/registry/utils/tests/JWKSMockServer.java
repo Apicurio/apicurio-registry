@@ -109,9 +109,9 @@ public class JWKSMockServer implements QuarkusTestResourceLifecycleManager {
         props.put("quarkus.oidc.auth-server-url", authServerUrl);
         props.put("quarkus.oidc.token-path", tokenEndpoint);
         props.put("quarkus.oidc.tenant-enabled", "true");
-        props.put("registry.auth.role-based-authorization", "true");
-        props.put("registry.auth.owner-only-authorization", "true");
-        props.put("registry.auth.admin-override.enabled", "true");
+        props.put("apicurio.auth.role-based-authorization", "true");
+        props.put("apicurio.auth.owner-only-authorization", "true");
+        props.put("apicurio.auth.admin-override.enabled", "true");
         props.put("apicurio.authn.basic-client-credentials.enabled", "true");
 
         return props;

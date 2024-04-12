@@ -23,7 +23,7 @@ public class KafkaFactory {
     @ConfigProperty(name = "kafka.bootstrap.servers")
     String bootstrapServers;
 
-    @ConfigProperty(name = "registry.url")
+    @ConfigProperty(name = "apicurio.url")
     String registryUrl;
 
     public KafkaConsumer<Object, Object> createKafkaConsumer() {

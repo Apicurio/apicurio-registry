@@ -158,7 +158,7 @@ public class generateAllConfigPartial {
             }
             switch (annotation.target().kind()) {
                 case FIELD:
-                    configName = configName.replace("app.authn.", "registry.auth.");
+                    configName = configName.replace("app.authn.", "apicurio.auth.");
 
 
                     var defaultValue = Optional.ofNullable(annotation.value("defaultValue")).map(v -> v.value().toString()).orElse("");
@@ -247,7 +247,7 @@ public class generateAllConfigPartial {
                                 opt.getAvailableFrom()
                         ));
             } else {
-                if (key.startsWith("registry.")) {
+                if (key.startsWith("apicurio.")) {
                     allConfiguration.put(key,
                             new Option(
                                     key,

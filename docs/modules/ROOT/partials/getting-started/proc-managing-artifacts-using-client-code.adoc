@@ -18,7 +18,7 @@ You can also manage artifacts stored in {registry} using a Java client applicati
 +
 [source,java,subs="+quotes,attributes"]
 ----
-String registryUrl_node1 = PropertiesUtil.property(clientProperties, "registry.url.node1",
+String registryUrl_node1 = PropertiesUtil.property(clientProperties, "apicurio.url.node1",
   "http://my-cluster-service-registry-myproject.example.com/api"); <1>
    try (RegistryService service = RegistryClient.create(registryUrl_node1)) 
    {

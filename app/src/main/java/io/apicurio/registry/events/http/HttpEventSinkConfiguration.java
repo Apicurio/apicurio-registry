@@ -21,7 +21,7 @@ public class HttpEventSinkConfiguration {
     Optional<String> ksink;
 
     @Produces
-    public HttpSinksConfiguration sinkConfig(@RegistryProperties(value = {"registry.events.sink"}) Properties properties) {
+    public HttpSinksConfiguration sinkConfig(@RegistryProperties(value = {"apicurio.events.sink"}) Properties properties) {
         List<HttpSinkConfiguration> httpSinks = properties.stringPropertyNames().stream()
             .map(key -> new HttpSinkConfiguration(key, properties.getProperty(key)))
             .collect(Collectors.toList());

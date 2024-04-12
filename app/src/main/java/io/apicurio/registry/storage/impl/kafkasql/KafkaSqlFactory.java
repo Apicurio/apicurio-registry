@@ -52,27 +52,27 @@ public class KafkaSqlFactory {
     Integer pollTimeout;
 
     @Inject
-    @ConfigProperty(name = "registry.kafkasql.coordinator.response-timeout", defaultValue = "30000")
+    @ConfigProperty(name = "apicurio.kafkasql.coordinator.response-timeout", defaultValue = "30000")
     @Info(category = "storage", description = "Kafka sql storage coordinator response timeout")
     Integer responseTimeout;
 
     @Inject
     @RegistryProperties(
-            value = {"registry.kafka.common", "registry.kafkasql.producer"},
+            value = {"apicurio.kafka.common", "apicurio.kafkasql.producer"},
             empties = {"ssl.endpoint.identification.algorithm="}
     )
     Properties producerProperties;
 
     @Inject
     @RegistryProperties(
-            value = {"registry.kafka.common", "registry.kafkasql.consumer"},
+            value = {"apicurio.kafka.common", "apicurio.kafkasql.consumer"},
             empties = {"ssl.endpoint.identification.algorithm="}
     )
     Properties consumerProperties;
 
     @Inject
     @RegistryProperties(
-            value = {"registry.kafka.common", "registry.kafkasql.admin"},
+            value = {"apicurio.kafka.common", "apicurio.kafkasql.admin"},
             empties = {"ssl.endpoint.identification.algorithm="}
     )
     Properties adminProperties;
@@ -81,7 +81,7 @@ public class KafkaSqlFactory {
     @Info(category = "storage", description = "Kafka sql storage sasl enabled")
     boolean saslEnabled;
 
-    @ConfigProperty(name = "registry.kafkasql.security.protocol", defaultValue = "")
+    @ConfigProperty(name = "apicurio.kafkasql.security.protocol", defaultValue = "")
     @Info(category = "storage", description = "Kafka sql storage security protocol")
     Optional<String> protocol;
 
@@ -105,31 +105,31 @@ public class KafkaSqlFactory {
     @Info(category = "storage", description = "Kafka sql storage sasl login callback handler")
     String loginCallbackHandler;
 
-    @ConfigProperty(name = "registry.kafkasql.security.ssl.truststore.location")
+    @ConfigProperty(name = "apicurio.kafkasql.security.ssl.truststore.location")
     @Info(category = "storage", description = "Kafka sql storage ssl truststore location")
     Optional<String> trustStoreLocation;
 
-    @ConfigProperty(name = "registry.kafkasql.security.ssl.truststore.type")
+    @ConfigProperty(name = "apicurio.kafkasql.security.ssl.truststore.type")
     @Info(category = "storage", description = "Kafka sql storage ssl truststore type")
     Optional<String> trustStoreType;
 
-    @ConfigProperty(name = "registry.kafkasql.ssl.truststore.password")
+    @ConfigProperty(name = "apicurio.kafkasql.ssl.truststore.password")
     @Info(category = "storage", description = "Kafka sql storage ssl truststore password")
     Optional<String> trustStorePassword;
 
-    @ConfigProperty(name = "registry.kafkasql.ssl.keystore.location")
+    @ConfigProperty(name = "apicurio.kafkasql.ssl.keystore.location")
     @Info(category = "storage", description = "Kafka sql storage ssl keystore location")
     Optional<String> keyStoreLocation;
 
-    @ConfigProperty(name = "registry.kafkasql.ssl.keystore.type")
+    @ConfigProperty(name = "apicurio.kafkasql.ssl.keystore.type")
     @Info(category = "storage", description = "Kafka sql storage ssl keystore type")
     Optional<String> keyStoreType;
 
-    @ConfigProperty(name = "registry.kafkasql.ssl.keystore.password")
+    @ConfigProperty(name = "apicurio.kafkasql.ssl.keystore.password")
     @Info(category = "storage", description = "Kafka sql storage ssl keystore password")
     Optional<String> keyStorePassword;
 
-    @ConfigProperty(name = "registry.kafkasql.ssl.key.password")
+    @ConfigProperty(name = "apicurio.kafkasql.ssl.key.password")
     @Info(category = "storage", description = "Kafka sql storage ssl key password")
     Optional<String> keyPassword;
 

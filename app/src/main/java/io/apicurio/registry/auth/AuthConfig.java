@@ -24,26 +24,26 @@ public class AuthConfig {
     @Info(category = "auth", description = "Enable role based authorization", availableSince = "2.1.0.Final")
     boolean roleBasedAuthorizationEnabled;
 
-    @Dynamic(label = "Artifact owner-only authorization", description = "When selected, Service Registry allows only the artifact owner (creator) to modify an artifact.", requires = "registry.auth.enabled=true")
+    @Dynamic(label = "Artifact owner-only authorization", description = "When selected, Service Registry allows only the artifact owner (creator) to modify an artifact.", requires = "apicurio.auth.enabled=true")
     @ConfigProperty(name = "apicurio.auth.owner-only-authorization", defaultValue = "false")
     @Info(category = "auth", description = "Artifact owner-only authorization", availableSince = "2.0.0.Final")
     Supplier<Boolean> ownerOnlyAuthorizationEnabled;
 
     @Dynamic(label = "Artifact group owner-only authorization", description = "When selected, Service Registry allows only the artifact group owner (creator) to modify an artifact group.", requires = {
-            "registry.auth.enabled=true",
+            "apicurio.auth.enabled=true",
             "apicurio.auth.owner-only-authorization=true"
     })
     @ConfigProperty(name = "apicurio.auth.owner-only-authorization.limit-group-access", defaultValue = "false")
     @Info(category = "auth", description = "Artifact group owner-only authorization", availableSince = "2.1.0.Final")
     Supplier<Boolean> ownerOnlyAuthorizationLimitGroupAccess;
 
-    @Dynamic(label = "Anonymous read access", description = "When selected, requests from anonymous users (requests without any credentials) are granted read-only access.", requires = "registry.auth.enabled=true")
+    @Dynamic(label = "Anonymous read access", description = "When selected, requests from anonymous users (requests without any credentials) are granted read-only access.", requires = "apicurio.auth.enabled=true")
     @ConfigProperty(name = "apicurio.auth.anonymous-read-access.enabled", defaultValue = "false")
     @Info(category = "auth", description = "Anonymous read access", availableSince = "2.1.0.Final")
     Supplier<Boolean> anonymousReadAccessEnabled;
 
     @Dynamic(label = "Authenticated read access", description = "When selected, requests from any authenticated user are granted at least read-only access.", requires = {
-            "registry.auth.enabled=true",
+            "apicurio.auth.enabled=true",
             "apicurio.auth.role-based-authorization=true"
     })
     @ConfigProperty(name = "apicurio.auth.authenticated-read-access.enabled", defaultValue = "false")

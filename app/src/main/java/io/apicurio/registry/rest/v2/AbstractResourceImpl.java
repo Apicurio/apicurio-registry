@@ -42,7 +42,7 @@ public abstract class AbstractResourceImpl {
     @Context
     HttpServletRequest request;
 
-    @ConfigProperty(name = "registry.apis.v2.base-href", defaultValue = "_")
+    @ConfigProperty(name = "apicurio.apis.v2.base-href", defaultValue = "_")
     @Info(category = "api", description = "API base href (URI)", availableSince = "2.5.0.Final")
     String apiBaseHref;
 

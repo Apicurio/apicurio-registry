@@ -8,13 +8,13 @@ import jakarta.inject.Singleton;
 @Singleton
 public class UserInterfaceConfigProperties {
 
-    @ConfigProperty(name = "registry.ui.contextPath", defaultValue = "/")
+    @ConfigProperty(name = "apicurio.ui.contextPath", defaultValue = "/")
     @Info(category = "ui", description = "Context path of the UI", availableSince = "3.0.0")
     public String contextPath;
-    @ConfigProperty(name = "registry.ui.navPrefixPath", defaultValue = "/")
+    @ConfigProperty(name = "apicurio.ui.navPrefixPath", defaultValue = "/")
     @Info(category = "ui", description = "Navigation prefix for all UI paths", availableSince = "3.0.0")
     public String navPrefixPath;
-    @ConfigProperty(name = "registry.ui.docsUrl", defaultValue = "/docs/")
+    @ConfigProperty(name = "apicurio.ui.docsUrl", defaultValue = "/docs/")
     @Info(category = "ui", description = "URL of the Documentation component", availableSince = "3.0.0")
     public String docsUrl;
     
@@ -29,13 +29,13 @@ public class UserInterfaceConfigProperties {
     public String authOidcClientId;
 
     
-    @ConfigProperty(name = "registry.ui.features.readOnly", defaultValue = "false")
+    @ConfigProperty(name = "apicurio.ui.features.readOnly", defaultValue = "false")
     @Info(category = "ui", description = "Enabled to set the UI to read-only mode", availableSince = "3.0.0")
     public String featureReadOnly;
-    @ConfigProperty(name = "registry.ui.features.breadcrumbs", defaultValue = "true")
+    @ConfigProperty(name = "apicurio.ui.features.breadcrumbs", defaultValue = "true")
     @Info(category = "ui", description = "Enabled to show breadcrumbs in the UI", availableSince = "3.0.0")
     public String featureBreadcrumbs;
-    @ConfigProperty(name = "registry.ui.features.settings", defaultValue = "true")
+    @ConfigProperty(name = "apicurio.ui.features.settings", defaultValue = "true")
     @Info(category = "ui", description = "Enabled to show the Settings tab in the UI", availableSince = "3.0.0")
     public String featureSettings;
 

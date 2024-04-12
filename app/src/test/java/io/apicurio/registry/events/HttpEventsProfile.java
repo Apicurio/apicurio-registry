@@ -9,7 +9,7 @@ public class HttpEventsProfile implements QuarkusTestProfile {
 
     @Override
     public Map<String, String> getConfigOverrides() {
-        return Collections.singletonMap("registry.events.sink.testsink", "http://localhost:8976/");
+        return Collections.singletonMap("apicurio.events.sink.testsink", "http://localhost:8976/");
     }
 
 }

@@ -945,18 +945,18 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         Assertions.assertNotNull(properties);
         Assertions.assertTrue(properties.isEmpty());
 
-        storage().setConfigProperty(new DynamicConfigPropertyDto("registry.test.property-string", "test-value"));
-        storage().setConfigProperty(new DynamicConfigPropertyDto("registry.test.property-boolean", "true"));
-        storage().setConfigProperty(new DynamicConfigPropertyDto("registry.test.property-long", "12345"));
+        storage().setConfigProperty(new DynamicConfigPropertyDto("apicurio.test.property-string", "test-value"));
+        storage().setConfigProperty(new DynamicConfigPropertyDto("apicurio.test.property-boolean", "true"));
+        storage().setConfigProperty(new DynamicConfigPropertyDto("apicurio.test.property-long", "12345"));
 
         properties = storage().getConfigProperties();
         Assertions.assertNotNull(properties);
         Assertions.assertFalse(properties.isEmpty());
         Assertions.assertEquals(3, properties.size());
 
-        DynamicConfigPropertyDto stringProp = getProperty(properties, "registry.test.property-string");
-        DynamicConfigPropertyDto boolProp = getProperty(properties, "registry.test.property-boolean");
-        DynamicConfigPropertyDto longProp = getProperty(properties, "registry.test.property-long");
+        DynamicConfigPropertyDto stringProp = getProperty(properties, "apicurio.test.property-string");
+        DynamicConfigPropertyDto boolProp = getProperty(properties, "apicurio.test.property-boolean");
+        DynamicConfigPropertyDto longProp = getProperty(properties, "apicurio.test.property-long");
 
         Assertions.assertNotNull(stringProp);
         Assertions.assertNotNull(boolProp);

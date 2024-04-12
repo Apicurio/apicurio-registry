@@ -15,58 +15,58 @@ public class RegistryLimitsConfigurationProducer {
     //All limits to -1 , which means by default all limits are disabled
 
     @Inject
-    @ConfigProperty(defaultValue = "-1", name = "registry.limits.config.max-total-schemas")
+    @ConfigProperty(defaultValue = "-1", name = "apicurio.limits.config.max-total-schemas")
     @Info(category = "limits", description = "Max total schemas", availableSince = "2.1.0.Final")
     Long defaultMaxTotalSchemas;
 
     @Inject
-    @ConfigProperty(defaultValue = "-1", name = "registry.limits.config.max-schema-size-bytes")
+    @ConfigProperty(defaultValue = "-1", name = "apicurio.limits.config.max-schema-size-bytes")
     @Info(category = "limits", description = "Max schema size (bytes)", availableSince = "2.2.3.Final")
     Long defaultMaxSchemaSizeBytes;
 
     @Inject
-    @ConfigProperty(defaultValue = "-1", name = "registry.limits.config.max-artifacts")
+    @ConfigProperty(defaultValue = "-1", name = "apicurio.limits.config.max-artifacts")
     @Info(category = "limits", description = "Max artifacts", availableSince = "2.1.0.Final")
     Long defaultMaxArtifacts;
     @Inject
-    @ConfigProperty(defaultValue = "-1", name = "registry.limits.config.max-versions-per-artifact")
+    @ConfigProperty(defaultValue = "-1", name = "apicurio.limits.config.max-versions-per-artifact")
     @Info(category = "limits", description = "Max versions per artifacts", availableSince = "2.1.0.Final")
     Long defaultMaxVersionsPerArtifact;
 
     //TODO content size
     @Inject
-    @ConfigProperty(defaultValue = "-1", name = "registry.limits.config.max-artifact-properties")
+    @ConfigProperty(defaultValue = "-1", name = "apicurio.limits.config.max-artifact-properties")
     @Info(category = "limits", description = "Max artifact properties", availableSince = "2.1.0.Final")
     Long defaultMaxArtifactProperties;
     @Inject
-    @ConfigProperty(defaultValue = "-1", name = "registry.limits.config.max-property-key-size")
+    @ConfigProperty(defaultValue = "-1", name = "apicurio.limits.config.max-property-key-size")
     @Info(category = "limits", description = "Max artifact property key size", availableSince = "2.1.0.Final")
     Long defaultMaxPropertyKeyBytesSize;
     @Inject
-    @ConfigProperty(defaultValue = "-1", name = "registry.limits.config.max-property-value-size")
+    @ConfigProperty(defaultValue = "-1", name = "apicurio.limits.config.max-property-value-size")
     @Info(category = "limits", description = "Max artifact property value size", availableSince = "2.1.0.Final")
     Long defaultMaxPropertyValueBytesSize;
 
     @Inject
-    @ConfigProperty(defaultValue = "-1", name = "registry.limits.config.max-artifact-labels")
+    @ConfigProperty(defaultValue = "-1", name = "apicurio.limits.config.max-artifact-labels")
     @Info(category = "limits", description = "Max artifact labels", availableSince = "2.2.3.Final")
     Long defaultMaxArtifactLabels;
     @Inject
-    @ConfigProperty(defaultValue = "-1", name = "registry.limits.config.max-label-size")
+    @ConfigProperty(defaultValue = "-1", name = "apicurio.limits.config.max-label-size")
     @Info(category = "limits", description = "Max artifact label size", availableSince = "2.1.0.Final")
     Long defaultMaxLabelBytesSize;
 
     @Inject
-    @ConfigProperty(defaultValue = "-1", name = "registry.limits.config.max-name-length")
+    @ConfigProperty(defaultValue = "-1", name = "apicurio.limits.config.max-name-length")
     @Info(category = "limits", description = "Max artifact name length", availableSince = "2.1.0.Final")
     Long defaultMaxNameLength;
     @Inject
-    @ConfigProperty(defaultValue = "-1", name = "registry.limits.config.max-description-length")
+    @ConfigProperty(defaultValue = "-1", name = "apicurio.limits.config.max-description-length")
     @Info(category = "limits", description = "Max artifact description length", availableSince = "2.1.0.Final")
     Long defaultMaxDescriptionLength;
 
     @Inject
-    @ConfigProperty(defaultValue = "-1", name = "registry.limits.config.max-requests-per-second")
+    @ConfigProperty(defaultValue = "-1", name = "apicurio.limits.config.max-requests-per-second")
     @Info(category = "limits", description = "Max artifact requests per second", availableSince = "2.2.3.Final")
     Long defaultMaxRequestsPerSecond;
 

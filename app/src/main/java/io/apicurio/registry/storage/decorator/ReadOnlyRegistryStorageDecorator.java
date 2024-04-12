@@ -47,7 +47,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 @ApplicationScoped
 public class ReadOnlyRegistryStorageDecorator extends RegistryStorageDecoratorReadOnlyBase implements RegistryStorageDecorator {
 
-    public static final String READ_ONLY_MODE_ENABLED_PROPERTY_NAME = "registry.storage.read-only";
+    public static final String READ_ONLY_MODE_ENABLED_PROPERTY_NAME = "apicurio.storage.read-only";
 
 
     @Dynamic(label = "Storage read-only mode", description = "When selected, " +

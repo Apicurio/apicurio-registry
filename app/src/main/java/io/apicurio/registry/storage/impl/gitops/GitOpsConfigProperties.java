@@ -14,7 +14,7 @@ public class GitOpsConfigProperties {
     @Getter
     String registryId;
 
-    @ConfigProperty(name = "registry.gitops.workdir", defaultValue = "/tmp/apicurio-registry-gitops")
+    @ConfigProperty(name = "apicurio.gitops.workdir", defaultValue = "/tmp/apicurio-registry-gitops")
     @Info(category = "gitops", description = "Path to GitOps working directory, which is used to store the local git repository.", availableSince = "3.0.0")
     @Getter
     String workDir;

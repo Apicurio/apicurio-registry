@@ -11,7 +11,7 @@ public class RulesConfiguration {
 
     @Produces
     @ApplicationScoped
-    public RulesProperties rulesProperties(@RegistryProperties(value = {"registry.rules.global"}) Properties properties) {
+    public RulesProperties rulesProperties(@RegistryProperties(value = {"apicurio.rules.global"}) Properties properties) {
         return new RulesPropertiesImpl(properties);
     }
 

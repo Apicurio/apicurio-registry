@@ -197,7 +197,7 @@ The `DefaultSchemaResolver` uses the following properties to configure how artif
 |`apicurio.registry.as-confluent`
 |Used by serializers and deserializers. Shortcut for enabling the legacy Confluent-compatible implementation of `IdHandler`. Only used if `apicurio.registry.headers.enabled` is set to `false`.
 |`boolean`
-|`true`
+|`false`
 |===
 
 [discrete]

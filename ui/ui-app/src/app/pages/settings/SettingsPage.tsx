@@ -29,7 +29,7 @@ const PROPERTY_GROUPS: PropertyGroup[] = [
         id: "authn",
         label: "Authentication settings",
         propertyNames: [
-            "registry.auth.basic-auth-client-credentials.enabled",
+            "apicurio.authn.basic-client-credentials.enabled",
         ]
     },
     {
@@ -55,8 +55,8 @@ const PROPERTY_GROUPS: PropertyGroup[] = [
         id: "console",
         label: "Web console settings",
         propertyNames: [
-            "registry.download.href.ttl",
-            "registry.ui.features.readOnly"
+            "apicurio.download.href.ttl",
+            "apicurio.ui.features.readOnly"
         ]
     },
 ];

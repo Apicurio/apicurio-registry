@@ -138,6 +138,7 @@
 
         <!-- Schema types -->
         <avro.version>1.11.3</avro.version>
+        <json-schema-validator.version>1.4.0</json-schema-validator.version>
         <wire-schema.version>4.9.9</wire-schema.version>
         <wire-compiler.version>4.9.9</wire-compiler.version>
         <okio-jvm.version>3.9.0</okio-jvm.version>
@@ -176,6 +177,7 @@
 
         <!-- JSON Schema Validator -->
         <org.everit.json.schema.version>1.14.4</org.everit.json.schema.version><!-- TODO unification -->
+        <org.json.version>20240303</org.json.version>
         <jackson-datatype-json-org.version>2.17.0</jackson-datatype-json-org.version>
         <jackson-dataformat-yaml.version>2.15.2</jackson-dataformat-yaml.version>
 
@@ -483,6 +485,11 @@
                 <version>${avro.version}</version>
             </dependency>
             <dependency>
+                <groupId>com.networknt</groupId>
+                <artifactId>json-schema-validator</artifactId>
+                <version>${json-schema-validator.version}</version>
+            </dependency>
+            <dependency>
                 <groupId>com.squareup.wire</groupId>
                 <artifactId>wire-schema</artifactId>
                 <version>${wire-schema.version}</version>
@@ -581,6 +588,11 @@
                 <groupId>com.github.everit-org.json-schema</groupId>
                 <artifactId>org.everit.json.schema</artifactId>
                 <version>${org.everit.json.schema.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.json</groupId>
+                <artifactId>json</artifactId>
+                <version>${org.json.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.fasterxml.jackson.datatype</groupId>

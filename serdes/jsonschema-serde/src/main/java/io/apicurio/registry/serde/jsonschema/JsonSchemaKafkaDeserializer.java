@@ -21,6 +21,7 @@ import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.networknt.schema.JsonSchema;
 import io.apicurio.registry.resolver.ParsedSchema;
 import io.apicurio.registry.resolver.SchemaParser;
 import io.apicurio.registry.resolver.SchemaResolver;

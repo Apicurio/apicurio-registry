@@ -1,5 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft/2019-09/schema",
+  "$id": "https://example.com/sample.address.json",
   "additionalProperties": false,
   "type": "object",
   "required": [

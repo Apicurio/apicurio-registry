@@ -1,6 +1,6 @@
 {
+  "$id": "https://example.com/sample.account.json",
   "$schema": "http://json-schema.org/draft/2019-09/schema",
-  "$meta-schema": "",
   "additionalProperties": false,
   "type": "object",
   "properties": {

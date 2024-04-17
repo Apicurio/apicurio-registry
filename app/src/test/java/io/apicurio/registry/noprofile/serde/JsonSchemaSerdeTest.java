@@ -26,6 +26,7 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import com.networknt.schema.JsonSchema;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.client.auth.VertXAuthFactory;
 import io.apicurio.registry.resolver.DefaultSchemaResolver;
@@ -40,7 +41,6 @@ import io.apicurio.registry.rest.client.models.VersionMetaData;
 import io.apicurio.registry.serde.SchemaResolverConfigurer;
 import io.apicurio.registry.serde.SerdeConfig;
 import io.apicurio.registry.serde.SerdeHeaders;
-import io.apicurio.registry.serde.jsonschema.JsonSchema;
 import io.apicurio.registry.serde.jsonschema.JsonSchemaKafkaDeserializer;
 import io.apicurio.registry.serde.jsonschema.JsonSchemaKafkaSerializer;
 import io.apicurio.registry.serde.jsonschema.JsonSchemaParser;

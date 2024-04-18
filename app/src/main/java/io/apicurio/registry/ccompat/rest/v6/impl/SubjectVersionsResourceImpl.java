@@ -174,7 +174,7 @@ public class SubjectVersionsResourceImpl extends AbstractResource implements Sub
                 ArtifactVersionMetaDataDto amd = getStorage().getArtifactVersionMetaData(groupId, subject, version);
                 if (amd.getState() != ArtifactState.DISABLED || deleted) {
                     StoredArtifactDto storedArtifact = getStorage().getArtifactVersion(groupId, subject, amd.getVersion());
-                    return getConverter().convert(subject, storedArtifact);
+                    return getConverter().convert(subject, storedArtifact, amd.getType());
                 } else {
                     throw new VersionNotFoundException(groupId, subject, version);
                 }

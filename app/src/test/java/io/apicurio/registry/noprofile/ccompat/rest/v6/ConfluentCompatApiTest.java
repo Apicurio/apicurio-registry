@@ -28,6 +28,7 @@ import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.path.json.JsonPath;
+import io.restassured.response.ResponseBody;
 import io.restassured.response.ResponseBodyExtractionOptions;
 import io.restassured.response.ValidatableResponse;
 import org.hamcrest.Matchers;
@@ -407,10 +408,14 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
         registerSchemaAndVerify(PROTOBUF_SCHEMA_SIMPLE_WRAPPED_WITH_TYPE, "subject_test_proto", "PROTOBUF");
     }
 
-    private void registerSchemaAndVerify(String schema, String subject, String schemaTye) throws Exception {
+    private void registerSchemaAndVerify(String schema, String subject, String expectedSchemaType) throws Exception {
         registerSchemaInSubject(schema, subject);
-        final Integer avroSchemaGlobalId = given().when().get(getBasePath() + "/subjects/{subject}/versions/latest", subject).body().jsonPath().get("id");
-        verifySchemaType(avroSchemaGlobalId, schemaTye);
+        ResponseBody body = given().when().get(getBasePath() + "/subjects/{subject}/versions/latest", subject).body();
+        Integer avroSchemaGlobalId = body.jsonPath().get("id");
+        String schemaType = body.jsonPath().get("schemaType");
+        //Here we verify that the latest version endpoint also returns the schema type as expected.
+        Assertions.assertEquals(expectedSchemaType, schemaType);
+        verifySchemaType(avroSchemaGlobalId, expectedSchemaType);
     }
 
     private void registerSchemaInSubject(String schema, String subject) {

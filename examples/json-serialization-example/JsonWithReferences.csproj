@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <AssemblyName>JsonSerialization</AssemblyName>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>netcoreapp8.0</TargetFramework>
+        <LangVersion>7.1</LangVersion>
+    </PropertyGroup>
+    
+    <ItemGroup>
+        <PackageReference Include="Confluent.Kafka" Version="2.3.0" />
+        <PackageReference Include="Confluent.SchemaRegistry.Serdes.Json" Version="2.3.0"/>
+        <PackageReference Include="Confluent.SchemaRegistry" Version="2.3.0"/>
+        <PackageReference Include="Microsoft.Extensions.Configuration" Version="8.0.0" />
+        <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="8.0.0" />
+        <PackageReference Include="Microsoft.Extensions.Configuration.Ini" Version="8.0.0" />
+    </ItemGroup>
+
+</Project>

@@ -15,7 +15,7 @@
     <properties>
         <protobuf.version>4.26.1</protobuf.version>
         <proto-plugin.version>0.6.1</proto-plugin.version>
-        <protobuf.googleapi.types.version>2.37.1</protobuf.googleapi.types.version>
+        <protobuf.googleapi.types.version>2.38.0</protobuf.googleapi.types.version>
     </properties>
 
     <dependencies>

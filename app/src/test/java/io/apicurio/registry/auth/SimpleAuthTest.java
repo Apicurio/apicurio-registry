@@ -137,7 +137,7 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
             });
             TestUtils.retry(() -> client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get());
 
-            assertTrue(client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").get().readAllBytes().length > 0);
+            assertTrue(client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").content().get().readAllBytes().length > 0);
 
             Rule ruleConfig = new Rule();
             ruleConfig.setType(RuleType.VALIDITY);
@@ -175,7 +175,7 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
             });
             TestUtils.retry(() -> client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get());
 
-            assertTrue(client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").get().readAllBytes().length > 0);
+            assertTrue(client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").content().get().readAllBytes().length > 0);
 
             Rule ruleConfig = new Rule();
             ruleConfig.setType(RuleType.VALIDITY);
@@ -210,7 +210,7 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
             });
             TestUtils.retry(() -> client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get());
 
-            assertTrue(client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").get().readAllBytes().length > 0);
+            assertTrue(client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").content().get().readAllBytes().length > 0);
 
             Rule ruleConfig = new Rule();
             ruleConfig.setType(RuleType.VALIDITY);

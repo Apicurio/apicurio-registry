@@ -568,7 +568,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
         assertNotNull(clientV3.ids().globalIds().byGlobalId(1005L).get());
 
         //this is the artifactId for the artifact with globalId 1005
-        var lastArtifactMeta = clientV3.groups().byGroupId("ImportTest").artifacts().byArtifactId("Artifact-3").versions().byVersionExpression("branch=latest").meta().get();
+        var lastArtifactMeta = clientV3.groups().byGroupId("ImportTest").artifacts().byArtifactId("Artifact-3").versions().byVersionExpression("branch=latest").get();
         assertEquals("1.0.2", lastArtifactMeta.getVersion());
         assertEquals(1005L, lastArtifactMeta.getGlobalId());
 

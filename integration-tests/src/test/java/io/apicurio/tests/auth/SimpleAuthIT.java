@@ -124,7 +124,7 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
             });
             TestUtils.retry(() -> client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get());
 
-            Assertions.assertTrue(client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").get().readAllBytes().length > 0);
+            Assertions.assertTrue(client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").content().get().readAllBytes().length > 0);
 
             Rule ruleConfig = new Rule();
             ruleConfig.setType(RuleType.VALIDITY);
@@ -162,7 +162,7 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
             });
             TestUtils.retry(() -> client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get());
 
-            Assertions.assertTrue(client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").get().readAllBytes().length > 0);
+            Assertions.assertTrue(client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").content().get().readAllBytes().length > 0);
 
             Rule ruleConfig = new Rule();
             ruleConfig.setType(RuleType.VALIDITY);

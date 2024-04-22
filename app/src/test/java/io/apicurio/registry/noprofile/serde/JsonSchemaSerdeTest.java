@@ -496,7 +496,7 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
         JsonNode validationFor = objectMapper.readTree(data);
 
         VersionMetaData global =
-            client.groups().byGroupId("GLOBAL").artifacts().byArtifactId("sample.account.json").versions().byVersionExpression("branch=latest").meta().get();
+            client.groups().byGroupId("GLOBAL").artifacts().byArtifactId("sample.account.json").versions().byVersionExpression("branch=latest").get();
                 // client.getArtifactMetaData("GLOBAL", "sample.account.json");
         io.apicurio.registry.resolver.strategy.ArtifactReference artifactReference = io.apicurio.registry.resolver.strategy.ArtifactReference.builder().globalId(global.getGlobalId())
                 .groupId("GLOBAL")//.version("4")

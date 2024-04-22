@@ -12,7 +12,6 @@ import static org.hamcrest.Matchers.endsWith;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.equalToObject;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
-import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.startsWith;
@@ -120,20 +119,11 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .when()
                 .pathParam("groupId", defaultGroup)
                 .pathParam("artifactId", "testDefaultGroup/EmptyAPI/1")
-                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest")
+                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest/content")
                 .then()
                 .statusCode(200)
                 .body("openapi", equalTo("3.0.2"))
                 .body("info.title", equalTo("Empty API"));
-        given()
-                .when()
-                .pathParam("groupId", group)
-                .pathParam("artifactId", "testDefaultGroup/EmptyAPI/1")
-                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest")
-                .then()
-                .statusCode(200)
-                .body("openapi", not(equalTo("3.0.2")))
-                .body("info.title", not(equalTo("Empty API")));
     }
 
     @Test
@@ -283,20 +273,11 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .when()
                 .pathParam("groupId", group1)
                 .pathParam("artifactId", "testMultipleGroups/EmptyAPI/1")
-                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest")
+                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest/content")
                 .then()
                 .statusCode(200)
                 .body("openapi", equalTo("3.0.2"))
                 .body("info.title", equalTo("Empty API"));
-        given()
-                .when()
-                .pathParam("groupId", group2)
-                .pathParam("artifactId", "testMultipleGroups/EmptyAPI/1")
-                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest")
-                .then()
-                .statusCode(200)
-                .body("openapi", not(equalTo("3.0.2")))
-                .body("info.title", not(equalTo("Empty API")));
 
         //Test delete group operations
         // Delete group 1 metadata
@@ -520,7 +501,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .when()
                 .pathParam("groupId", GROUP)
                 .pathParam("artifactId", "testGetArtifact/EmptyAPI")
-                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest")
+                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest/content")
                 .then()
                 .statusCode(200)
                 .body("openapi", equalTo("3.0.2"))
@@ -565,7 +546,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .when()
                 .pathParam("groupId", GROUP)
                 .pathParam("artifactId", "testUpdateArtifact/EmptyAPI")
-                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest")
+                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest/content")
                 .then()
                 .statusCode(200)
                 .body("openapi", equalTo("3.0.2"))
@@ -662,7 +643,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .pathParam("groupId", "testUpdateVersionState")
                 .pathParam("artifactId", "testUpdateVersionState/EmptyAPI/1")
                 .body(body)
-                .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest/meta")
+                .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest")
                 .then()
                 .statusCode(204);
 
@@ -673,7 +654,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .pathParam("groupId", "testUpdateVersionState")
                 .pathParam("artifactId", "testUpdateVersionState/EmptyAPI/1")
                 .body(body)
-                .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest/meta")
+                .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest")
                 .then()
                 .statusCode(204);
 
@@ -683,7 +664,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .contentType(CT_JSON)
                 .pathParam("groupId", "testUpdateVersionState")
                 .pathParam("artifactId", "testUpdateVersionState/EmptyAPI/1")
-                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest")
+                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest/content")
                 .then()
                 .statusCode(200)
                 .header("X-Registry-Deprecated", "true");
@@ -705,7 +686,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .pathParam("artifactId", "testUpdateArtifactVersionState/EmptyAPI")
                 .pathParam("versionId", "1")
                 .body(body)
-                .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/{versionId}/meta")
+                .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/{versionId}")
                 .then()
                 .statusCode(204);
 
@@ -717,7 +698,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .pathParam("artifactId", "testUpdateArtifactVersionState/EmptyAPI")
                 .pathParam("versionId", "1")
                 .body(body)
-                .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/{versionId}/meta")
+                .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/{versionId}")
                 .then()
                 .statusCode(204);
 
@@ -728,7 +709,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .pathParam("groupId", "testUpdateArtifactVersionState")
                 .pathParam("artifactId", "testUpdateArtifactVersionState/EmptyAPI")
                 .pathParam("versionId", "1")
-                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/{versionId}")
+                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/{versionId}/content")
                 .then()
                 .statusCode(200)
                 .header("X-Registry-Deprecated", "true");
@@ -806,7 +787,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .when()
                 .pathParam("groupId", GROUP)
                 .pathParam("artifactId", "testDeleteArtifact/EmptyAPI")
-                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest")
+                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest/content")
                 .then()
                 .statusCode(200)
                 .body("openapi", equalTo("3.0.2"))
@@ -857,7 +838,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .when()
                 .pathParam("groupId", GROUP)
                 .pathParam("artifactId", "testDeleteArtifactVersion/EmptyAPI")
-                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest")
+                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest/content")
                 .then()
                 .statusCode(200)
                 .body("openapi", equalTo("3.0.2"))
@@ -883,7 +864,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .pathParam("groupId", GROUP)
                 .pathParam("artifactId", "testDeleteArtifactVersion/EmptyAPI")
                 .pathParam("version", "1")
-                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/{version}")
+                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/{version}/content")
                 .then()
                 .statusCode(200)
                 .body("openapi", equalTo("3.0.2"))
@@ -919,7 +900,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .pathParam("groupId", GROUP)
                 .pathParam("artifactId", "testDeleteArtifactVersion/EmptyAPI")
                 .pathParam("version", "2")
-                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/{version}")
+                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/{version}/content")
                 .then()
                 .statusCode(200)
                 .body("openapi", equalTo("3.0.2"))
@@ -1153,7 +1134,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .when()
                 .pathParam("groupId", GROUP)
                 .pathParam("artifactId", "testCreateArtifactVersion/EmptyAPI")
-                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest")
+                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest/content")
                 .then()
                 .statusCode(200)
                 .body("openapi", equalTo("3.0.2"))
@@ -1263,7 +1244,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .contentType(CT_JSON)
                 .pathParam("groupId", GROUP)
                 .pathParam("artifactId", "testCreateArtifactVersionNoAscii/EmptyAPI")
-                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest/meta")
+                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest")
                 .then()
                 .statusCode(200)
                 .body("name", equalTo(customNameNoASCII))
@@ -1425,7 +1406,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                     .pathParam("groupId", GROUP)
                     .pathParam("artifactId", "testGetArtifactVersion/EmptyAPI")
                     .pathParam("version", version)
-                    .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/{version}")
+                    .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/{version}/content")
                     .then()
                     .statusCode(200)
                     .body("info.title", equalTo(expected));
@@ -2023,7 +2004,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .pathParam("groupId", GROUP)
                 .pathParam("artifactId", "testArtifactVersionMetaData/EmptyAPI")
                 .pathParam("version", version2)
-                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/{version}/meta")
+                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/{version}")
                 .then()
                 .statusCode(200)
                 .body("version", equalTo(version2))
@@ -2043,7 +2024,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .pathParam("artifactId", "testArtifactVersionMetaData/EmptyAPI")
                 .pathParam("version", version2)
                 .body(metaData)
-                .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/{version}/meta")
+                .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/{version}")
                 .then()
                 .statusCode(204);
 
@@ -2054,7 +2035,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                     .pathParam("groupId", GROUP)
                     .pathParam("artifactId", "testArtifactVersionMetaData/EmptyAPI")
                     .pathParam("version", version2)
-                    .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/{version}/meta")
+                    .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/{version}")
                     .then()
                     .statusCode(200)
                     .body("version", equalTo(version2))
@@ -2070,7 +2051,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .pathParam("groupId", GROUP)
                 .pathParam("artifactId", "testArtifactVersionMetaData/EmptyAPI")
                 .pathParam("version", version3)
-                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/{version}/meta")
+                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/{version}")
                 .then()
                 .statusCode(200)
                 .body("version", equalTo(version3))
@@ -2085,7 +2066,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .pathParam("groupId", GROUP)
                 .pathParam("artifactId", "testArtifactVersionMetaData/EmptyAPI")
                 .pathParam("version", 12345)
-                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/{version}/meta")
+                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/{version}")
                 .then()
                 .statusCode(404);
 
@@ -2119,7 +2100,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .when()
                 .pathParam("groupId", GROUP)
                 .pathParam("artifactId", "testYamlContentType")
-                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest")
+                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest/content")
                 .then()
                 .statusCode(200)
                 .header("Content-Type", Matchers.containsString(CT_JSON))
@@ -2154,7 +2135,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .when()
                 .pathParam("groupId", GROUP)
                 .pathParam("artifactId", "testWsdlArtifact")
-                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest")
+                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest/content")
                 .then()
                 .statusCode(200)
                 .header("Content-Type", Matchers.containsString(CT_XML));
@@ -2385,7 +2366,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .when()
                 .pathParam("groupId", groupId)
                 .pathParam("artifactId", artifactId)
-                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest")
+                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest/content")
                 .then()
                 .statusCode(200)
                 .body("openapi", equalTo("3.0.2"))
@@ -2396,7 +2377,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .when()
                 .pathParam("groupId", groupId)
                 .pathParam("artifactId", artifactId)
-                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest/meta")
+                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest")
                 .then()
                 .statusCode(200)
                 .body("groupId", equalTo(groupId))
@@ -2437,7 +2418,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .pathParam("groupId", groupId)
                 .pathParam("artifactId", artifactId)
                 .pathParam("version", "1.0.0")
-                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/{version}")
+                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/{version}/content")
                 .then()
                 .statusCode(200)
                 .body("openapi", equalTo("3.0.2"))
@@ -2449,7 +2430,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .pathParam("groupId", groupId)
                 .pathParam("artifactId", artifactId)
                 .pathParam("version", "1.0.0")
-                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/{version}/meta")
+                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/{version}")
                 .then()
                 .statusCode(200)
                 .body("artifactId", equalTo(artifactId))
@@ -3032,7 +3013,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .when()
                 .pathParam("groupId", GROUP)
                 .pathParam("artifactId", "testGetArtifactVersionWithReferences/WithExternalRef")
-                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest")
+                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest/content")
                 .then()
                 .statusCode(200)
                 .body("openapi", equalTo("3.0.2"))
@@ -3044,7 +3025,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .pathParam("groupId", GROUP)
                 .pathParam("artifactId", "testGetArtifactVersionWithReferences/WithExternalRef")
                 .queryParam("references", "REWRITE")
-                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest")
+                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest/content")
                 .then()
                 .statusCode(200)
                 .body("openapi", equalTo("3.0.2"))
@@ -3056,7 +3037,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .pathParam("groupId", GROUP)
                 .pathParam("artifactId", "testGetArtifactVersionWithReferences/WithExternalRef")
                 .queryParam("references", "DEREFERENCE")
-                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest")
+                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest/content")
                 .then()
                 .statusCode(200)
                 .body("openapi", equalTo("3.0.2"))
@@ -3364,7 +3345,6 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .byArtifactId(artifactId)
                 .versions()
                 .byVersionExpression("branch=latest")
-                .meta()
                 .get();
 
         assertNotNull(version);
@@ -3377,7 +3357,6 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .byArtifactId(artifactId)
                 .versions()
                 .byVersionExpression("branch=branch2")
-                .meta()
                 .get();
 
         assertNotNull(version);
@@ -3391,7 +3370,6 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                     .byArtifactId(artifactId)
                     .versions()
                     .byVersionExpression("branch=")
-                    .meta()
                     .get();
         });
 
@@ -3435,7 +3413,6 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                     .byArtifactId(artifactId)
                     .versions()
                     .byVersionExpression("branch=branch2")
-                    .meta()
                     .get();
         });
 
@@ -3495,7 +3472,6 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                         .byArtifactId(artifactId)
                         .versions()
                         .byVersionExpression("2")
-                        .meta()
                         .get();
                 return false;
             } catch (Exception ignored) {
@@ -3536,7 +3512,6 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                         .byArtifactId(artifactId)
                         .versions()
                         .byVersionExpression("branch=latest")
-                        .meta()
                         .get();
                 return false;
             } catch (Exception ignored) {

@@ -41,7 +41,7 @@ public class CustomizeDateFormatTest extends AbstractResourceTestBase {
                 .when()
                 .pathParam("groupId", GROUP)
                 .pathParam("artifactId", "testGetArtifactMetaData/EmptyAPI")
-                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest/meta")
+                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest")
                 .then()
                 .statusCode(200)
                 .body("createdOn", new BaseMatcher<Object>() {

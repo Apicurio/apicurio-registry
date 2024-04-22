@@ -76,7 +76,7 @@ class ArtifactsIT extends ApicurioRegistryBaseIT {
         VersionMetaData amd1 = createArtifact(groupId, artifactId, ArtifactType.AVRO, IoUtil.toStream(artifactData));
         LOGGER.info("Created artifact {} with metadata {}", artifactId, amd1.toString());
 
-        InputStream latest = registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").get();
+        InputStream latest = registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").content().get();
         JsonNode response = mapper.readTree(latest);
 
         LOGGER.info("Artifact with name:{} and content:{} was created", response.get("name").asText(), response);
@@ -101,7 +101,7 @@ class ArtifactsIT extends ApicurioRegistryBaseIT {
         // Make sure artifact is fully registered
         retryOp((rc) -> rc.ids().globalIds().byGlobalId(metaData.getGlobalId()).get());
 
-        latest = registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").get();
+        latest = registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").content().get();
         response = mapper.readTree(latest);
 
         LOGGER.info("Artifact with ID {} was updated: {}", artifactId, response);
@@ -111,7 +111,7 @@ class ArtifactsIT extends ApicurioRegistryBaseIT {
         LOGGER.info("Available versions of artifact with ID {} are: {}", artifactId, apicurioVersions.toString());
         assertThat(apicurioVersions, hasItems("1", "2"));
 
-        InputStream version1 = registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("1").get();
+        InputStream version1 = registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("1").content().get();
         response = mapper.readTree(version1);
 
         LOGGER.info("Artifact with ID {} and version {}: {}", artifactId, 1, response);
@@ -157,7 +157,7 @@ class ArtifactsIT extends ApicurioRegistryBaseIT {
 
         LOGGER.info("Created artifact {} with metadata {}", artifactId, amd);
 
-        InputStream latest = registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").get();
+        InputStream latest = registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").content().get();
         JsonNode response = mapper.readTree(latest);
 
         LOGGER.info("Got info about artifact with ID {}: {}", artifactId, response);
@@ -229,40 +229,40 @@ class ArtifactsIT extends ApicurioRegistryBaseIT {
         VersionMetaData v3MD = createArtifactVersion(groupId, artifactId, IoUtil.toStream(artifactDataV3));
 
         // Disable v3
-        registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression(String.valueOf(v3MD.getVersion())).meta().put(toEditableVersionMetaData(VersionState.DISABLED));
+        registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression(String.valueOf(v3MD.getVersion())).put(toEditableVersionMetaData(VersionState.DISABLED));
 
         // Verify artifact
         retryOp((rc) -> {
-            VersionMetaData actualMD = rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").meta().get();
+            VersionMetaData actualMD = rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").get();
             assertEquals("2", actualMD.getVersion());
 
             // Verify v1
-            VersionMetaData actualVMD = rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression(String.valueOf(v1MD.getVersion())).meta().get();
+            VersionMetaData actualVMD = rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression(String.valueOf(v1MD.getVersion())).get();
             assertEquals(VersionState.ENABLED, actualVMD.getState());
             // Verify v2
-            actualVMD = rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression(String.valueOf(v2MD.getVersion())).meta().get();
+            actualVMD = rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression(String.valueOf(v2MD.getVersion())).get();
             assertEquals(VersionState.ENABLED, actualVMD.getState());
             // Verify v3
-            actualVMD = rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression(String.valueOf(v3MD.getVersion())).meta().get();
+            actualVMD = rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression(String.valueOf(v3MD.getVersion())).get();
             assertEquals(VersionState.DISABLED, actualVMD.getState());
         });
 
         // Re-enable v3
-        registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression(String.valueOf(v3MD.getVersion())).meta().put(toEditableVersionMetaData(VersionState.ENABLED));
+        registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression(String.valueOf(v3MD.getVersion())).put(toEditableVersionMetaData(VersionState.ENABLED));
 
         retryOp((rc) -> {
             // Verify artifact (now v3)
-            VersionMetaData actualMD = rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").meta().get();
+            VersionMetaData actualMD = rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").get();
             assertEquals("3", actualMD.getVersion()); // version 2 is active (3 is disabled)
 
             // Verify v1
-            VersionMetaData actualVMD = rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression(String.valueOf(v1MD.getVersion())).meta().get();
+            VersionMetaData actualVMD = rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression(String.valueOf(v1MD.getVersion())).get();
             assertEquals(VersionState.ENABLED, actualVMD.getState());
             // Verify v2
-            actualVMD = rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression(String.valueOf(v2MD.getVersion())).meta().get();
+            actualVMD = rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression(String.valueOf(v2MD.getVersion())).get();
             assertEquals(VersionState.ENABLED, actualVMD.getState());
             // Verify v3
-            actualVMD = rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression(String.valueOf(v3MD.getVersion())).meta().get();
+            actualVMD = rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression(String.valueOf(v3MD.getVersion())).get();
             assertEquals(VersionState.ENABLED, actualVMD.getState());
         });
     }
@@ -286,17 +286,17 @@ class ArtifactsIT extends ApicurioRegistryBaseIT {
         VersionMetaData v3MD = createArtifactVersion(groupId, artifactId, IoUtil.toStream(artifactDataV3));
 
         // Deprecate v2
-        registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression(String.valueOf(v2MD.getVersion())).meta().put(toEditableVersionMetaData(VersionState.DEPRECATED));
+        registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression(String.valueOf(v2MD.getVersion())).put(toEditableVersionMetaData(VersionState.DEPRECATED));
 
         retryOp((rc) -> {
             // Verify v1
-            VersionMetaData actualVMD = rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression(String.valueOf(v1MD.getVersion())).meta().get();
+            VersionMetaData actualVMD = rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression(String.valueOf(v1MD.getVersion())).get();
             assertEquals(VersionState.ENABLED, actualVMD.getState());
             // Verify v2
-            actualVMD = rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression(String.valueOf(v2MD.getVersion())).meta().get();
+            actualVMD = rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression(String.valueOf(v2MD.getVersion())).get();
             assertEquals(VersionState.DEPRECATED, actualVMD.getState());
             // Verify v3
-            actualVMD = rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression(String.valueOf(v3MD.getVersion())).meta().get();
+            actualVMD = rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression(String.valueOf(v3MD.getVersion())).get();
             assertEquals(VersionState.ENABLED, actualVMD.getState());
         });
     }

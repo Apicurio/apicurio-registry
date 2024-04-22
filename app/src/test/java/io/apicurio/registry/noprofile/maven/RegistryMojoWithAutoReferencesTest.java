@@ -152,7 +152,7 @@ public class RegistryMojoWithAutoReferencesTest extends RegistryMojoTestBase {
     }
 
     private void validateStructure(String groupId, String artifactId, int expectedMainReferences, int expectedTotalArtifacts, Set<String> originalContents) throws Exception {
-        final VersionMetaData artifactWithReferences = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").meta().get();
+        final VersionMetaData artifactWithReferences = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").get();
         final String mainContent =
                 new String(
                         clientV3
@@ -162,6 +162,7 @@ public class RegistryMojoWithAutoReferencesTest extends RegistryMojoTestBase {
                                 .byArtifactId(artifactId)
                                 .versions()
                                 .byVersionExpression(artifactWithReferences.getVersion())
+                                .content()
                                 .get()
                                 .readAllBytes(), StandardCharsets.UTF_8);
 
@@ -189,6 +190,7 @@ public class RegistryMojoWithAutoReferencesTest extends RegistryMojoTestBase {
                             .byArtifactId(artifactReference.getArtifactId())
                             .versions()
                             .byVersionExpression(artifactReference.getVersion())
+                            .content()
                             .get()
                             .readAllBytes(), StandardCharsets.UTF_8);
             VersionMetaData referenceMetadata = clientV3
@@ -198,7 +200,6 @@ public class RegistryMojoWithAutoReferencesTest extends RegistryMojoTestBase {
                     .byArtifactId(artifactReference.getArtifactId())
                     .versions()
                     .byVersionExpression("branch=latest")
-                    .meta()
                     .get()
                     ;
             Assertions.assertTrue(loadedContents.contains(referenceContent.trim()));

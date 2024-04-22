@@ -159,7 +159,7 @@ const getArtifactVersionMetaData = async (config: ConfigService, auth: AuthServi
     const baseHref: string = config.artifactsUrl();
     const token: string | undefined = await auth.getToken();
     const versionExpression: string = (version == "latest") ? "branch=latest" : version;
-    const endpoint: string = createEndpoint(baseHref, "/groups/:groupId/artifacts/:artifactId/versions/:versionExpression/meta",
+    const endpoint: string = createEndpoint(baseHref, "/groups/:groupId/artifacts/:artifactId/versions/:versionExpression",
         { groupId, artifactId, versionExpression });
     const options = createOptions(createHeaders(token));
     return httpGet<VersionMetaData>(endpoint, options);
@@ -196,7 +196,7 @@ const updateArtifactVersionMetaData = async (config: ConfigService, auth: AuthSe
     const baseHref: string = config.artifactsUrl();
     const token: string | undefined = await auth.getToken();
     const versionExpression: string = (version == "latest") ? "branch=latest" : version;
-    const endpoint: string = createEndpoint(baseHref, "/groups/:groupId/artifacts/:artifactId/versions/:versionExpression/meta",
+    const endpoint: string = createEndpoint(baseHref, "/groups/:groupId/artifacts/:artifactId/versions/:versionExpression",
         { groupId, artifactId, versionExpression });
     const options = createOptions(createHeaders(token));
     return httpPut<EditableMetaData>(endpoint, metaData, options);
@@ -214,7 +214,7 @@ const getArtifactVersionContent = async (config: ConfigService, auth: AuthServic
     const baseHref: string = config.artifactsUrl();
     const token: string | undefined = await auth.getToken();
     const versionExpression: string = (version == "latest") ? "branch=latest" : version;
-    const endpoint: string = createEndpoint(baseHref, "/groups/:groupId/artifacts/:artifactId/versions/:versionExpression",
+    const endpoint: string = createEndpoint(baseHref, "/groups/:groupId/artifacts/:artifactId/versions/:versionExpression/content",
         { groupId, artifactId, versionExpression });
 
     const headers: any = createHeaders(token);

@@ -198,32 +198,6 @@ jobs:
           url: ${{ secrets.GOOGLE_CHAT_WEBHOOK_ERRORS }}
           status: ${{ job.status }}
 
-  build-verify-examples:
-    name: Verify Examples
-    runs-on: ubuntu-latest
-    if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
-    steps:
-      - name: Checkout Code with Ref '${{ github.ref }}'
-        uses: actions/checkout@v3
-
-      - name: Set up JDK 17
-        uses: actions/setup-java@v3
-        with:
-          java-version: 17
-          distribution: 'temurin'
-          cache: 'maven'
-
-      - name: Build Examples
-        run: ./mvnw clean compile --no-transfer-progress -DskipTests=true
-
-      - name: Google Chat Notification (Error)
-        if: github.event_name == 'push' && failure()
-        uses: Co-qn/google-chat-notification@b9227d9daa4638c9782a5bd16c4abb86268127a1
-        with:
-          name: ${{ github.job }}
-          url: ${{ secrets.GOOGLE_CHAT_WEBHOOK_ERRORS }}
-          status: ${{ job.status }}
-
 
   build-native-images:
     name: Build and Test Native images

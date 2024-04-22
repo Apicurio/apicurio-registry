@@ -139,7 +139,7 @@ public class ProtobufBeanExample {
         RegistryClient client = new RegistryClient(vertXRequestAdapter);
         System.out.println("The artifact created in Apicurio Registry is: ");
         //because the default ArtifactResolverStrategy is TopicIdStrategy the artifactId is in the form of topicName-value
-        System.out.println(IoUtil.toString(client.groups().byGroupId("default").artifacts().byArtifactId(topicName + "-value").versions().byVersionExpression("1").get()));
+        System.out.println(IoUtil.toString(client.groups().byGroupId("default").artifacts().byArtifactId(topicName + "-value").versions().byVersionExpression("1").content().get()));
         System.out.println();
         VertXAuthFactory.defaultVertx.close();
         System.out.println("Done (success).");

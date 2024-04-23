@@ -1,5 +1,5 @@
 ///usr/bin/env jbang "$0" "$@" ; exit $?
-//DEPS org.jboss:jandex:2.4.3.Final
+//DEPS org.jboss:jandex:3.1.7
 
 import org.jboss.jandex.AnnotationInstance;
 import org.jboss.jandex.DotName;

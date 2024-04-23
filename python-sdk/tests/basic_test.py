@@ -94,7 +94,7 @@ async def test_basic_upload_download():
         await client.groups.by_group_id("default")
         .artifacts.by_artifact_id(meta_data.artifact_id)
         .versions.by_version_expression("branch=latest")
-        .get()
+        .content.get()
     )
     print(str(return_artifact, "utf-8"))
     assert json.loads(return_artifact) == json.loads(payload.content)

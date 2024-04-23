@@ -73,7 +73,6 @@ public class LimitsTest extends AbstractResourceTestBase {
             .byArtifactId(artifactId)
             .versions()
             .byVersionExpression("1")
-            .meta()
             .put(meta)
             ;
 
@@ -95,7 +94,6 @@ public class LimitsTest extends AbstractResourceTestBase {
                 .byArtifactId(artifactId)
                 .versions()
                 .byVersionExpression("1")
-                .meta()
                 .put(invalidmeta)
                 ;
         });

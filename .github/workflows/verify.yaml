@@ -27,7 +27,7 @@ env:
 jobs:
   build-verify:
     name: Verify Application Build
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
     steps:
       - name: Checkout Code with Ref '${{ github.ref }}'
@@ -109,7 +109,7 @@ jobs:
 
   build-verify-ui:
     name: Verify UI Build
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
     steps:
       - name: Checkout Code with Ref '${{ github.ref }}'
@@ -201,7 +201,7 @@ jobs:
 
   build-native-images:
     name: Build and Test Native images
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
     steps:
       - name: Checkout Code with Ref '${{ github.ref }}'
@@ -305,7 +305,7 @@ jobs:
 
   build-verify-python-sdk:
     name: Verify Python SDK
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     # if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
     steps:
       - name: Checkout Code with Ref '${{ github.ref }}'
@@ -342,7 +342,7 @@ jobs:
 
   build-verify-go-sdk:
     name: Verify Go SDK
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     # if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
     steps:
       - name: Checkout Code with Ref '${{ github.ref }}'
@@ -369,7 +369,7 @@ jobs:
 
   notify-sdk:
     if: github.repository_owner == 'Apicurio' && github.event_name == 'push' && github.ref == 'refs/heads/main' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         language: [ js ]

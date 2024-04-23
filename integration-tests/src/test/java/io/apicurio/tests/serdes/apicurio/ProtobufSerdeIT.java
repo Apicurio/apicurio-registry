@@ -407,7 +407,7 @@ public class ProtobufSerdeIT extends ApicurioRegistryBaseIT {
             .withProducerProperty(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true")
             .withAfterProduceValidator(() -> {
                 return TestUtils.retry(() -> {
-                    VersionMetaData meta = registryClient.groups().byGroupId("default").artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").meta().get();
+                    VersionMetaData meta = registryClient.groups().byGroupId("default").artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").get();
                     registryClient.ids().globalIds().byGlobalId(meta.getGlobalId()).get();
                     return true;
                 });
@@ -443,7 +443,7 @@ public class ProtobufSerdeIT extends ApicurioRegistryBaseIT {
             .withConsumerProperty(SerdeConfig.DESERIALIZER_SPECIFIC_VALUE_RETURN_CLASS, DynamicMessage.class.getName())
             .withAfterProduceValidator(() -> {
                 return TestUtils.retry(() -> {
-                    VersionMetaData meta = registryClient.groups().byGroupId("default").artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").meta().get();
+                    VersionMetaData meta = registryClient.groups().byGroupId("default").artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").get();
                     registryClient.ids().globalIds().byGlobalId(meta.getGlobalId()).get();
                     return true;
                 });
@@ -478,7 +478,7 @@ public class ProtobufSerdeIT extends ApicurioRegistryBaseIT {
             .withConsumerProperty(ProtobufKafkaDeserializerConfig.DERIVE_CLASS_FROM_SCHEMA, "true")
             .withAfterProduceValidator(() -> {
                 return TestUtils.retry(() -> {
-                    VersionMetaData meta = registryClient.groups().byGroupId("default").artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").meta().get();
+                    VersionMetaData meta = registryClient.groups().byGroupId("default").artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").get();
                     registryClient.ids().globalIds().byGlobalId(meta.getGlobalId()).get();
                     return true;
                 });
@@ -514,7 +514,7 @@ public class ProtobufSerdeIT extends ApicurioRegistryBaseIT {
                 .withConsumerProperty(ProtobufKafkaDeserializerConfig.DERIVE_CLASS_FROM_SCHEMA, "true")
                 .withAfterProduceValidator(() -> {
                     return TestUtils.retry(() -> {
-                        VersionMetaData meta = registryClient.groups().byGroupId("default").artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").meta().get();
+                        VersionMetaData meta = registryClient.groups().byGroupId("default").artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").get();
                         registryClient.ids().globalIds().byGlobalId(meta.getGlobalId()).get();
                         return true;
                     });

@@ -154,7 +154,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         assertEquals(version, created.getVersion());
         assertEquals(name, created.getName());
         assertEquals(description, created.getDescription());
-        assertEquals(ARTIFACT_CONTENT, new String(clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").get().readAllBytes(), StandardCharsets.UTF_8));
+        assertEquals(ARTIFACT_CONTENT, new String(clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").content().get().readAllBytes(), StandardCharsets.UTF_8));
     }
 
     @Test
@@ -238,7 +238,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         assertEquals(version, created.getVersion());
         assertEquals(name, created.getName());
         assertEquals(description, created.getDescription());
-        assertMultilineTextEquals(ARTIFACT_OPENAPI_JSON_CONTENT, IoUtil.toString(clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").get()));
+        assertMultilineTextEquals(ARTIFACT_OPENAPI_JSON_CONTENT, IoUtil.toString(clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").content().get()));
     }
 
     @Test
@@ -276,7 +276,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         assertEquals(artifactId, amd.getName());
         assertNull(amd.getDescription());
 
-        assertEquals(UPDATED_CONTENT, IoUtil.toString(clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").get()));
+        assertEquals(UPDATED_CONTENT, IoUtil.toString(clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").content().get()));
     }
 
     @Test
@@ -306,7 +306,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         postReq.headers.replace("Content-Type", Set.of(ContentTypes.APPLICATION_YAML));
         VersionMetaData versionMetaData = anonymousAdapter.send(postReq, new HashMap<>(), VersionMetaData::createFromDiscriminatorValue);
 
-        VersionMetaData amd = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").meta().get();
+        VersionMetaData amd = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").get();
 
         //Assertions
         assertNotNull(versionMetaData);
@@ -319,7 +319,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         assertEquals(name, amd.getName());
         assertEquals(description, amd.getDescription());
 
-        assertMultilineTextEquals(UPDATED_OPENAPI_JSON_CONTENT, IoUtil.toString(clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").get()));
+        assertMultilineTextEquals(UPDATED_OPENAPI_JSON_CONTENT, IoUtil.toString(clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").content().get()));
     }
 
     @Test
@@ -360,7 +360,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
             clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().post(content);
 
             //Assertions
-            assertEquals(UPDATED_CONTENT, IoUtil.toString(clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").get()));
+            assertEquals(UPDATED_CONTENT, IoUtil.toString(clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").content().get()));
 
             List<Map<String, String>> auditLogs = auditLogService.getAuditLogs();
             assertFalse(auditLogs.isEmpty());
@@ -654,8 +654,8 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         // Put 2 of the 5 artifacts in DISABLED state
         EditableVersionMetaData eamd = new EditableVersionMetaData();
         eamd.setState(VersionState.DISABLED);
-        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactIds.get(0)).versions().byVersionExpression("1").meta().put(eamd);
-        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactIds.get(3)).versions().byVersionExpression("1").meta().put(eamd);
+        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactIds.get(0)).versions().byVersionExpression("1").put(eamd);
+        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactIds.get(3)).versions().byVersionExpression("1").put(eamd);
 
         //Execution
         // Check the search results still include the DISABLED artifacts
@@ -719,8 +719,8 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         // Put 2 of the 3 versions in DISABLED state
         EditableVersionMetaData evmd = new EditableVersionMetaData();
         evmd.setState(VersionState.DISABLED);
-        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("1").meta().put(evmd);
-        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("3").meta().put(evmd);
+        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("1").put(evmd);
+        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("3").put(evmd);
 
         //Execution
         // Check that the search results still include the DISABLED versions
@@ -888,7 +888,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         createArtifact(groupId, artifactId);
 
         //Execution
-        InputStream amd = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").get();
+        InputStream amd = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").content().get();
 
         //Assertions
         assertNotNull(amd);
@@ -1188,9 +1188,9 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         });
 
         //Assertions
-        assertEquals(updatedContent, IoUtil.toString(clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").get()));
+        assertEquals(updatedContent, IoUtil.toString(clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").content().get()));
 
-        VersionMetaData artifactMetaData = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").meta().get();
+        VersionMetaData artifactMetaData = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").get();
         assertNotNull(artifactMetaData);
         assertEquals(version, artifactMetaData.getVersion());
         assertEquals(name, artifactMetaData.getName());
@@ -1226,9 +1226,9 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         anonymousAdapter.send(request, new HashMap<>(), VersionMetaData::createFromDiscriminatorValue);
 
         //Assertions
-        assertMultilineTextEquals(UPDATED_OPENAPI_JSON_CONTENT, IoUtil.toString(clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").get()));
+        assertMultilineTextEquals(UPDATED_OPENAPI_JSON_CONTENT, IoUtil.toString(clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").content().get()));
 
-        VersionMetaData artifactMetaData = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").meta().get();
+        VersionMetaData artifactMetaData = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").get();
         assertNotNull(artifactMetaData);
         assertEquals(version, artifactMetaData.getVersion());
         assertEquals(name, artifactMetaData.getName());
@@ -1397,10 +1397,10 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         ArtifactMetaData meta = clientV3.groups().byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString()).artifacts().byArtifactId(artifactId).get();
         assertTrue(new GroupId(meta.getGroupId()).isDefaultGroup());
 
-        VersionMetaData vmeta = clientV3.groups().byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString()).artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").meta().get();
+        VersionMetaData vmeta = clientV3.groups().byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString()).artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").get();
         assertTrue(new GroupId(vmeta.getGroupId()).isDefaultGroup());
 
-        vmeta = clientV3.groups().byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString()).artifacts().byArtifactId(artifactId).versions().byVersionExpression(vmeta.getVersion()).meta().get();
+        vmeta = clientV3.groups().byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString()).artifacts().byArtifactId(artifactId).versions().byVersionExpression(vmeta.getVersion()).get();
         assertTrue(new GroupId(vmeta.getGroupId()).isDefaultGroup());
 
         ArtifactContent artifactContent = new ArtifactContent();
@@ -1660,7 +1660,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
 
         assertEquals(ArtifactType.AVRO, meta.getType());
 
-        assertTrue(clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").get().readAllBytes().length > 0);
+        assertTrue(clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").content().get().readAllBytes().length > 0);
     }
 
     @Test

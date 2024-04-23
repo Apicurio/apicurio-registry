@@ -339,7 +339,7 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
             for (ExistingReference ref : existingReferences) {
                 VersionMetaData vmd;
                 if (ref.getVersion() == null || "LATEST".equalsIgnoreCase(ref.getVersion())) {
-                    vmd = getClient().groups().byGroupId(ref.getGroupId()).artifacts().byArtifactId(ref.getArtifactId()).versions().byVersionExpression("branch=latest").meta().get();
+                    vmd = getClient().groups().byGroupId(ref.getGroupId()).artifacts().byArtifactId(ref.getArtifactId()).versions().byVersionExpression("branch=latest").get();
                 } else {
                     vmd = new VersionMetaData();
                     vmd.setGroupId(ref.getGroupId());

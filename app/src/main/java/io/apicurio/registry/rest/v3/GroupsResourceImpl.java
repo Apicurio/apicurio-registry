@@ -453,11 +453,11 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     }
 
     /**
-     * @see io.apicurio.registry.rest.v3.GroupsResource#getArtifactVersion(java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.rest.v3.beans.HandleReferencesType)
+     * @see io.apicurio.registry.rest.v3.GroupsResource#getArtifactVersionContent(java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.rest.v3.beans.HandleReferencesType)
      */
     @Override
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
-    public Response getArtifactVersion(String groupId, String artifactId, String versionExpression, HandleReferencesType references) {
+    public Response getArtifactVersionContent(String groupId, String artifactId, String versionExpression, HandleReferencesType references) {
         requireParameter("groupId", groupId);
         requireParameter("artifactId", artifactId);
         requireParameter("versionExpression", versionExpression);

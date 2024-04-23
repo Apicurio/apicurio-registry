@@ -135,14 +135,14 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
     @Test
     public void testAvro() throws Exception {
         testAvroAutoRegisterIdInBody(RecordIdStrategy.class, () -> {
-            return restClient.groups().byGroupId("test-group-avro").artifacts().byArtifactId("myrecord3").versions().byVersionExpression("branch=latest").meta().get();
+            return restClient.groups().byGroupId("test-group-avro").artifacts().byArtifactId("myrecord3").versions().byVersionExpression("branch=latest").get();
         });
     }
 
     @Test
     public void testAvroQualifiedRecordIdStrategy() throws Exception {
         testAvroAutoRegisterIdInBody(QualifiedRecordIdStrategy.class, () -> {
-            return restClient.groups().byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString()).artifacts().byArtifactId("test-group-avro.myrecord3").versions().byVersionExpression("branch=latest").meta().get();
+            return restClient.groups().byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString()).artifacts().byArtifactId("test-group-avro.myrecord3").versions().byVersionExpression("branch=latest").get();
         });
     }
 

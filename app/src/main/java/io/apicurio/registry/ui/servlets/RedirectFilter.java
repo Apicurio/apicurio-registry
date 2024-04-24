@@ -18,7 +18,7 @@ import java.util.Map;
 @ApplicationScoped
 public class RedirectFilter implements Filter {
 
-    @ConfigProperty(name = "apicurio.enable-redirects")
+    @ConfigProperty(name = "apicurio.redirects.enabled")
     @Info(category = "redirects", description = "Enable redirects", availableSince = "2.1.2.Final")
     Boolean redirectsEnabled;
 

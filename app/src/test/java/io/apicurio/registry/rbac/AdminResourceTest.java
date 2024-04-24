@@ -926,7 +926,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
         given()
                 .when()
                 .contentType(CT_JSON).body(update)
-                .pathParam("propertyName", "apicurio.download.href.ttl")
+                .pathParam("propertyName", "apicurio.download.href.ttl.seconds")
                 .put("/registry/v3/admin/config/properties/{propertyName}")
                 .then()
                 .statusCode(400);

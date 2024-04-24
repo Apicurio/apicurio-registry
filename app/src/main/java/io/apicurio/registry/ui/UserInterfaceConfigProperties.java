@@ -29,7 +29,7 @@ public class UserInterfaceConfigProperties {
     public String authOidcClientId;
 
     
-    @ConfigProperty(name = "apicurio.ui.features.readOnly", defaultValue = "false")
+    @ConfigProperty(name = "apicurio.ui.features.read-only.enabled", defaultValue = "false")
     @Info(category = "ui", description = "Enabled to set the UI to read-only mode", availableSince = "3.0.0")
     public String featureReadOnly;
     @ConfigProperty(name = "apicurio.ui.features.breadcrumbs", defaultValue = "true")

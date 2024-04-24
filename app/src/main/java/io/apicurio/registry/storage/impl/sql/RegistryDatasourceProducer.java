@@ -19,7 +19,7 @@ public class RegistryDatasourceProducer {
     @Inject
     Logger log;
 
-    @ConfigProperty(name = "apicurio.storage.db-kind", defaultValue = "h2")
+    @ConfigProperty(name = "apicurio.storage.sql.kind", defaultValue = "h2")
     @Info(category = "storage", description = "Application datasource database type", availableSince = "3.0.0.Final")
     String databaseType;
 

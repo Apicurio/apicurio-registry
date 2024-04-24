@@ -20,7 +20,7 @@ public class RegistryLimitsConfigurationProducer {
     Long defaultMaxTotalSchemas;
 
     @Inject
-    @ConfigProperty(defaultValue = "-1", name = "apicurio.limits.config.max-schema-size-bytes")
+    @ConfigProperty(defaultValue = "-1", name = "apicurio.limits.config.max-schema-size.bytes")
     @Info(category = "limits", description = "Max schema size (bytes)", availableSince = "2.2.3.Final")
     Long defaultMaxSchemaSizeBytes;
 
@@ -39,11 +39,11 @@ public class RegistryLimitsConfigurationProducer {
     @Info(category = "limits", description = "Max artifact properties", availableSince = "2.1.0.Final")
     Long defaultMaxArtifactProperties;
     @Inject
-    @ConfigProperty(defaultValue = "-1", name = "apicurio.limits.config.max-property-key-size")
+    @ConfigProperty(defaultValue = "-1", name = "apicurio.limits.config.max-property-key-size.bytes")
     @Info(category = "limits", description = "Max artifact property key size", availableSince = "2.1.0.Final")
     Long defaultMaxPropertyKeyBytesSize;
     @Inject
-    @ConfigProperty(defaultValue = "-1", name = "apicurio.limits.config.max-property-value-size")
+    @ConfigProperty(defaultValue = "-1", name = "apicurio.limits.config.max-property-value-size.bytes")
     @Info(category = "limits", description = "Max artifact property value size", availableSince = "2.1.0.Final")
     Long defaultMaxPropertyValueBytesSize;
 
@@ -52,7 +52,7 @@ public class RegistryLimitsConfigurationProducer {
     @Info(category = "limits", description = "Max artifact labels", availableSince = "2.2.3.Final")
     Long defaultMaxArtifactLabels;
     @Inject
-    @ConfigProperty(defaultValue = "-1", name = "apicurio.limits.config.max-label-size")
+    @ConfigProperty(defaultValue = "-1", name = "apicurio.limits.config.max-label-size.bytes")
     @Info(category = "limits", description = "Max artifact label size", availableSince = "2.1.0.Final")
     Long defaultMaxLabelBytesSize;
 

@@ -1636,7 +1636,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         // Try to set a Long property to "foobar" (should be invalid type)
         var exception2 = Assertions.assertThrows(ApiException.class, () -> {
             updateProp.setValue("foobar");
-            clientV3.admin().config().properties().byPropertyName("apicurio.download.href.ttl").put(updateProp);
+            clientV3.admin().config().properties().byPropertyName("apicurio.download.href.ttl.seconds").put(updateProp);
         });
         // InvalidPropertyValueException
         Assertions.assertEquals(400, exception2.getResponseStatusCode());

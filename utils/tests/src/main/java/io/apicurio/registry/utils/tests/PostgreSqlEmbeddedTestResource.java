@@ -25,7 +25,7 @@ public class PostgreSqlEmbeddedTestResource implements QuarkusTestResourceLifecy
 
             if (currentEnv != null && "mas".equals(currentEnv)) {
                 Map<String, String> props = new HashMap<>();
-                props.put("apicurio.storage.db-kind", "postgresql");
+                props.put("apicurio.storage.sql.kind", "postgresql");
                 props.put("apicurio.datasource.url", "jdbc:postgresql://localhost:5432/test");
                 props.put("apicurio.datasource.username", "test");
                 props.put("apicurio.datasource.password", "test");
@@ -38,7 +38,7 @@ public class PostgreSqlEmbeddedTestResource implements QuarkusTestResourceLifecy
     }
 
     private static boolean isPostgresqlStorage() {
-        return ConfigProvider.getConfig().getValue("apicurio.storage.db-kind", String.class).equals("postgresql");
+        return ConfigProvider.getConfig().getValue("apicurio.storage.sql.kind", String.class).equals("postgresql");
     }
 
     private Map<String, String> startPostgresql() {
@@ -51,7 +51,7 @@ public class PostgreSqlEmbeddedTestResource implements QuarkusTestResourceLifecy
         String datasourceUrl = database.getJdbcUrl("postgres", "postgres");
 
         Map<String, String> props = new HashMap<>();
-        props.put("apicurio.storage.db-kind", "postgresql");
+        props.put("apicurio.storage.sql.kind", "postgresql");
         props.put("apicurio.datasource.url", datasourceUrl);
         props.put("apicurio.datasource.username", "postgres");
         props.put("apicurio.datasource.password", "postgres");

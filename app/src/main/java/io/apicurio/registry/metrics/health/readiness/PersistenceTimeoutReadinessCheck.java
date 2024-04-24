@@ -40,14 +40,14 @@ public class PersistenceTimeoutReadinessCheck extends AbstractErrorCounterHealth
      * to 60.
      * TODO report the absolute count as a metric?
      */
-    @ConfigProperty(name = "apicurio.metrics.PersistenceTimeoutReadinessCheck.counterResetWindowDurationSec", defaultValue = "60")
+    @ConfigProperty(name = "apicurio.metrics.PersistenceTimeoutReadinessCheck.counterResetWindowDuration.seconds", defaultValue = "60")
     @Info(category = "health", description = "Counter reset window duration of persistence readiness check", availableSince = "1.0.2.Final")
     Integer configCounterResetWindowDurationSec;
 
     /**
      * If set to a positive value, reset the readiness status after this time window passes without any further errors.
      */
-    @ConfigProperty(name = "apicurio.metrics.PersistenceTimeoutReadinessCheck.statusResetWindowDurationSec", defaultValue = "300")
+    @ConfigProperty(name = "apicurio.metrics.PersistenceTimeoutReadinessCheck.statusResetWindowDuration.seconds", defaultValue = "300")
     @Info(category = "health", description = "Status reset window duration of persistence readiness check", availableSince = "1.0.2.Final")
     Integer configStatusResetWindowDurationSec;
 

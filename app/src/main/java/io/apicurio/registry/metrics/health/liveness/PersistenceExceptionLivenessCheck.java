@@ -39,18 +39,18 @@ public class PersistenceExceptionLivenessCheck extends AbstractErrorCounterHealt
      * to 60.
      * TODO report the absolute count as a metric?
      */
-    @ConfigProperty(name = "apicurio.metrics.PersistenceExceptionLivenessCheck.counterResetWindowDurationSec", defaultValue = "60")
+    @ConfigProperty(name = "apicurio.metrics.PersistenceExceptionLivenessCheck.counterResetWindowDuration.seconds", defaultValue = "60")
     @Info(category = "health", description = "Counter reset window duration of persistence liveness check", availableSince = "1.0.2.Final")
     Integer configCounterResetWindowDurationSec;
 
     /**
      * If set to a positive value, reset the liveness status after this time window passes without any further errors.
      */
-    @ConfigProperty(name = "apicurio.metrics.PersistenceExceptionLivenessCheck.statusResetWindowDurationSec", defaultValue = "300")
+    @ConfigProperty(name = "apicurio.metrics.PersistenceExceptionLivenessCheck.statusResetWindowDuration.seconds", defaultValue = "300")
     @Info(category = "health", description = "Status reset window duration of persistence liveness check", availableSince = "1.0.2.Final")
     Integer configStatusResetWindowDurationSec;
 
-    @ConfigProperty(name = "apicurio.metrics.PersistenceExceptionLivenessCheck.disableLogging", defaultValue = "false")
+    @ConfigProperty(name = "apicurio.metrics.PersistenceExceptionLivenessCheck.logging.disabled", defaultValue = "false")
     @Info(category = "health", description = "Disable logging of persistence liveness check", availableSince = "2.0.0.Final")
     Boolean disableLogging;
 

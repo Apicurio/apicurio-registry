@@ -37,7 +37,7 @@ public class StorageMetricsStore {
     Logger log;
 
     @Inject
-    @ConfigProperty(defaultValue = "30000", name = "apicurio.storage.metrics.cache.check-period")
+    @ConfigProperty(defaultValue = "30000", name = "apicurio.storage.metrics.cache.check-period.ms")
     @Info(category = "health", description = "Storage metrics cache check period", availableSince = "2.1.0.Final")
     Long limitsCheckPeriod;
 

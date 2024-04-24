@@ -76,7 +76,7 @@ IMPORTANT: You must register your {registry} application host as a *Redirect URI
 |`REGISTRY_OIDC_UI_REDIRECT_URL`
 |The host for your {registry} web console.
 |For example: `\https://test-registry.com/ui`
-|`ROLE_BASED_AUTHZ_ENABLED`
+|`APICURIO_AUTH_ROLE_BASED_AUTHORIZATION`
 |Enables role-based authorization in {registry}.
 |`true`
 |`QUARKUS_OIDC_ROLES_ROLE_CLAIM_PATH`

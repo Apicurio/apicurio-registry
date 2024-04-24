@@ -226,7 +226,7 @@ The following {registry} configuration options are available for each component 
 |Default
 |Available from
 |Description
-|`apicurio.download.href.ttl`
+|`apicurio.download.href.ttl.seconds`
 |`long [dynamic]`
 |`30`
 |`2.1.2.Final`
@@ -374,7 +374,7 @@ The following {registry} configuration options are available for each component 
 |`10`
 |`1.0.2.Final`
 |Timeout of response readiness check
-|`apicurio.storage.metrics.cache.check-period`
+|`apicurio.storage.metrics.cache.check-period.ms`
 |`long`
 |`30000`
 |`2.1.0.Final`
@@ -503,7 +503,7 @@ The following {registry} configuration options are available for each component 
 |Default
 |Available from
 |Description
-|`apicurio.enable-redirects`
+|`apicurio.redirects.enabled`
 |`boolean`
 |
 |`2.1.2.Final`
@@ -539,12 +539,12 @@ The following {registry} configuration options are available for each component 
 |`false`
 |`2.4.2-SNAPSHOT`
 |Enables artifact version deletion
-|`apicurio.rest.artifact.download.maxSize`
+|`apicurio.rest.artifact.download.maxSize.bytes`
 |`int`
 |`1000000`
 |`2.2.6-SNAPSHOT`
 |Max size of the artifact allowed to be downloaded from URL
-|`apicurio.rest.artifact.download.skipSSLValidation`
+|`apicurio.rest.artifact.download.sslValidation.disabled`
 |`boolean`
 |`false`
 |`2.2.6-SNAPSHOT`
@@ -760,7 +760,7 @@ The following {registry} configuration options are available for each component 
 |`true`
 |`2.0.0.Final`
 |SQL init
-|`apicurio.storage.db-kind`
+|`apicurio.storage.sql.kind`
 |`string`
 |`h2`
 |`3.0.0.Final`
@@ -816,7 +816,7 @@ The following {registry} configuration options are available for each component 
 |`true`
 |`3.0.0`
 |Enabled to show breadcrumbs in the UI
-|`apicurio.ui.features.readOnly`
+|`apicurio.ui.features.read-only.enabled`
 |`string`
 |`false`
 |`3.0.0`

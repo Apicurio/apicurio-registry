@@ -102,7 +102,7 @@ TIP: For an example of setting environment variables on OpenShift, see xref:conf
 |Java system property
 |Type
 |Default value
-|`ROLE_BASED_AUTHZ_ENABLED`
+|`APICURIO_AUTH_ROLE_BASED_AUTHORIZATION`
 |`apicurio.auth.role-based-authorization`
 |Boolean
 |`false`

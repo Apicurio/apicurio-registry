@@ -55,8 +55,8 @@ const PROPERTY_GROUPS: PropertyGroup[] = [
         id: "console",
         label: "Web console settings",
         propertyNames: [
-            "apicurio.download.href.ttl",
-            "apicurio.ui.features.readOnly"
+            "apicurio.download.href.ttl.seconds",
+            "apicurio.ui.features.read-only.enabled"
         ]
     },
 ];

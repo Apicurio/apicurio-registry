@@ -17,17 +17,17 @@ The following {registry} configuration options are available for each component 
 |`false`
 |`2.1.4.Final`
 |Include stack trace in errors responses
-|`registry.apis.v2.base-href`
+|`apicurio.apis.v2.base-href`
 |`string`
 |`_`
 |`2.5.0.Final`
 |API base href (URI)
-|`registry.apis.v3.base-href`
+|`apicurio.apis.v3.base-href`
 |`string`
 |`_`
 |`2.5.0.Final`
 |API base href (URI)
-|`registry.disable.apis`
+|`apicurio.disable.apis`
 |`optional<list<string>>`
 |
 |`2.0.0.Final`
@@ -43,51 +43,6 @@ The following {registry} configuration options are available for each component 
 |Default
 |Available from
 |Description
-|`apicurio.authn.audit.log.prefix`
-|`string`
-|`audit`
-|`2.2.6`
-|Prefix used for application audit logging.
-|`apicurio.authn.basic-client-credentials.cache-expiration`
-|`integer`
-|`10`
-|`2.2.6.Final`
-|Default client credentials token expiration time.
-|`apicurio.authn.basic-client-credentials.cache-expiration-offset`
-|`integer`
-|`10`
-|`2.5.9.Final`
-|Client credentials token expiration offset from JWT expiration.
-|`apicurio.authn.basic-client-credentials.enabled`
-|`boolean [dynamic]`
-|`false`
-|`2.1.0.Final`
-|Enable basic auth client credentials
-|`apicurio.authn.basic.scope`
-|`optional<string>`
-|
-|`2.5.0.Final`
-|Client credentials scope.
-|`quarkus.oidc.client-id`
-|`string`
-|
-|`2.0.0.Final`
-|Client identifier used by the server for authentication.
-|`quarkus.oidc.client-secret`
-|`optional<string>`
-|
-|`2.1.0.Final`
-|Client secret used by the server for authentication.
-|`quarkus.oidc.tenant-enabled`
-|`boolean`
-|`false`
-|`2.0.0.Final`
-|Enable auth
-|`quarkus.oidc.token-path`
-|`string`
-|
-|`2.1.0.Final`
-|Authentication server token endpoint.
 |`apicurio.auth.admin-override.claim`
 |`string`
 |`org-admin`
@@ -173,6 +128,51 @@ The following {registry} configuration options are available for each component 
 |`sr-readonly`
 |`2.1.0.Final`
 |Auth roles readonly
+|`apicurio.authn.audit.log.prefix`
+|`string`
+|`audit`
+|`2.2.6`
+|Prefix used for application audit logging.
+|`apicurio.authn.basic-client-credentials.cache-expiration`
+|`integer`
+|`10`
+|`2.2.6.Final`
+|Default client credentials token expiration time.
+|`apicurio.authn.basic-client-credentials.cache-expiration-offset`
+|`integer`
+|`10`
+|`2.5.9.Final`
+|Client credentials token expiration offset from JWT expiration.
+|`apicurio.authn.basic-client-credentials.enabled`
+|`boolean [dynamic]`
+|`false`
+|`2.1.0.Final`
+|Enable basic auth client credentials
+|`apicurio.authn.basic.scope`
+|`optional<string>`
+|
+|`2.5.0.Final`
+|Client credentials scope.
+|`quarkus.oidc.client-id`
+|`string`
+|
+|`2.0.0.Final`
+|Client identifier used by the server for authentication.
+|`quarkus.oidc.client-secret`
+|`optional<string>`
+|
+|`2.1.0.Final`
+|Client secret used by the server for authentication.
+|`quarkus.oidc.tenant-enabled`
+|`boolean`
+|`false`
+|`2.0.0.Final`
+|Enable auth
+|`quarkus.oidc.token-path`
+|`string`
+|
+|`2.1.0.Final`
+|Authentication server token endpoint.
 |===
 
 == cache
@@ -226,7 +226,7 @@ The following {registry} configuration options are available for each component 
 |Default
 |Available from
 |Description
-|`registry.download.href.ttl`
+|`apicurio.download.href.ttl`
 |`long [dynamic]`
 |`30`
 |`2.1.2.Final`
@@ -273,7 +273,7 @@ The following {registry} configuration options are available for each component 
 |
 |`3.0.0`
 |URI of the remote git repository containing data to be loaded.
-|`registry.gitops.workdir`
+|`apicurio.gitops.workdir`
 |`string`
 |`/tmp/apicurio-registry-gitops`
 |`3.0.0`
@@ -390,7 +390,7 @@ The following {registry} configuration options are available for each component 
 |Default
 |Available from
 |Description
-|`registry.import.url`
+|`apicurio.import.url`
 |`optional<url>`
 |
 |`2.1.0.Final`
@@ -406,12 +406,12 @@ The following {registry} configuration options are available for each component 
 |Default
 |Available from
 |Description
-|`registry.events.kafka.topic`
+|`apicurio.events.kafka.topic`
 |`optional<string>`
 |
 |`2.0.0.Final`
 |Events Kafka topic
-|`registry.events.kafka.topic-partition`
+|`apicurio.events.kafka.topic-partition`
 |`optional<integer>`
 |
 |`2.0.0.Final`
@@ -427,62 +427,62 @@ The following {registry} configuration options are available for each component 
 |Default
 |Available from
 |Description
-|`registry.limits.config.max-artifact-labels`
+|`apicurio.limits.config.max-artifact-labels`
 |`long`
 |`-1`
 |`2.2.3.Final`
 |Max artifact labels
-|`registry.limits.config.max-artifact-properties`
+|`apicurio.limits.config.max-artifact-properties`
 |`long`
 |`-1`
 |`2.1.0.Final`
 |Max artifact properties
-|`registry.limits.config.max-artifacts`
+|`apicurio.limits.config.max-artifacts`
 |`long`
 |`-1`
 |`2.1.0.Final`
 |Max artifacts
-|`registry.limits.config.max-description-length`
+|`apicurio.limits.config.max-description-length`
 |`long`
 |`-1`
 |`2.1.0.Final`
 |Max artifact description length
-|`registry.limits.config.max-label-size`
+|`apicurio.limits.config.max-label-size`
 |`long`
 |`-1`
 |`2.1.0.Final`
 |Max artifact label size
-|`registry.limits.config.max-name-length`
+|`apicurio.limits.config.max-name-length`
 |`long`
 |`-1`
 |`2.1.0.Final`
 |Max artifact name length
-|`registry.limits.config.max-property-key-size`
+|`apicurio.limits.config.max-property-key-size`
 |`long`
 |`-1`
 |`2.1.0.Final`
 |Max artifact property key size
-|`registry.limits.config.max-property-value-size`
+|`apicurio.limits.config.max-property-value-size`
 |`long`
 |`-1`
 |`2.1.0.Final`
 |Max artifact property value size
-|`registry.limits.config.max-requests-per-second`
+|`apicurio.limits.config.max-requests-per-second`
 |`long`
 |`-1`
 |`2.2.3.Final`
 |Max artifact requests per second
-|`registry.limits.config.max-schema-size-bytes`
+|`apicurio.limits.config.max-schema-size-bytes`
 |`long`
 |`-1`
 |`2.2.3.Final`
 |Max schema size (bytes)
-|`registry.limits.config.max-total-schemas`
+|`apicurio.limits.config.max-total-schemas`
 |`long`
 |`-1`
 |`2.1.0.Final`
 |Max total schemas
-|`registry.limits.config.max-versions-per-artifact`
+|`apicurio.limits.config.max-versions-per-artifact`
 |`long`
 |`-1`
 |`2.1.0.Final`
@@ -513,12 +513,12 @@ The following {registry} configuration options are available for each component 
 |
 |`2.1.2.Final`
 |Registry redirects
-|`registry.url.override.host`
+|`apicurio.url.override.host`
 |`optional<string>`
 |
 |`2.5.0.Final`
 |Override the hostname used for generating externally-accessible URLs. The host and port overrides are useful when deploying Registry with HTTPS passthrough Ingress or Route. In cases like these, the request URL (and port) that is then re-used for redirection does not belong to actual external URL used by the client, because the request is proxied. The redirection then fails because the target URL is not reachable.
-|`registry.url.override.port`
+|`apicurio.url.override.port`
 |`optional<integer>`
 |
 |`2.5.0.Final`
@@ -560,11 +560,6 @@ The following {registry} configuration options are available for each component 
 |Default
 |Available from
 |Description
-|`artifacts.skip.disabled.latest`
-|`boolean`
-|`true`
-|`2.4.2-SNAPSHOT`
-|Skip artifact versions with DISABLED state when retrieving latest artifact version
 |`apicurio.datasource.blue.db-kind`
 |`string`
 |`h2`
@@ -675,12 +670,12 @@ The following {registry} configuration options are available for each component 
 |`1000`
 |
 |Kafka sql storage consumer poll timeout
-|`registry.kafkasql.coordinator.response-timeout`
+|`apicurio.kafkasql.coordinator.response-timeout`
 |`integer`
 |`30000`
 |
 |Kafka sql storage coordinator response timeout
-|`registry.kafkasql.security.protocol`
+|`apicurio.kafkasql.security.protocol`
 |`optional<string>`
 |
 |
@@ -715,37 +710,37 @@ The following {registry} configuration options are available for each component 
 |
 |
 |Kafka sql storage sasl token endpoint
-|`registry.kafkasql.security.ssl.truststore.location`
+|`apicurio.kafkasql.security.ssl.truststore.location`
 |`optional<string>`
 |
 |
 |Kafka sql storage ssl truststore location
-|`registry.kafkasql.security.ssl.truststore.type`
+|`apicurio.kafkasql.security.ssl.truststore.type`
 |`optional<string>`
 |
 |
 |Kafka sql storage ssl truststore type
-|`registry.kafkasql.ssl.key.password`
+|`apicurio.kafkasql.ssl.key.password`
 |`optional<string>`
 |
 |
 |Kafka sql storage ssl key password
-|`registry.kafkasql.ssl.keystore.location`
+|`apicurio.kafkasql.ssl.keystore.location`
 |`optional<string>`
 |
 |
 |Kafka sql storage ssl keystore location
-|`registry.kafkasql.ssl.keystore.password`
+|`apicurio.kafkasql.ssl.keystore.password`
 |`optional<string>`
 |
 |
 |Kafka sql storage ssl keystore password
-|`registry.kafkasql.ssl.keystore.type`
+|`apicurio.kafkasql.ssl.keystore.type`
 |`optional<string>`
 |
 |
 |Kafka sql storage ssl keystore type
-|`registry.kafkasql.ssl.truststore.password`
+|`apicurio.kafkasql.ssl.truststore.password`
 |`optional<string>`
 |
 |
@@ -775,11 +770,16 @@ The following {registry} configuration options are available for each component 
 |
 |`3.0.0.Final`
 |Application storage variant, for example, sql, kafkasql, or gitops
-|`registry.storage.read-only`
+|`apicurio.storage.read-only`
 |`boolean [dynamic]`
 |`false`
 |`2.5.0.Final`
 |Enable Registry storage read-only mode
+|`artifacts.skip.disabled.latest`
+|`boolean`
+|`true`
+|`2.4.2-SNAPSHOT`
+|Skip artifact versions with DISABLED state when retrieving latest artifact version
 |===
 
 == ui
@@ -801,32 +801,32 @@ The following {registry} configuration options are available for each component 
 |`/`
 |`3.0.0`
 |The OIDC redirectUri
-|`registry.ui.contextPath`
+|`apicurio.ui.contextPath`
 |`string`
 |`/`
 |`3.0.0`
 |Context path of the UI
-|`registry.ui.docsUrl`
+|`apicurio.ui.docsUrl`
 |`string`
 |`/docs/`
 |`3.0.0`
 |URL of the Documentation component
-|`registry.ui.features.breadcrumbs`
+|`apicurio.ui.features.breadcrumbs`
 |`string`
 |`true`
 |`3.0.0`
 |Enabled to show breadcrumbs in the UI
-|`registry.ui.features.readOnly`
+|`apicurio.ui.features.readOnly`
 |`string`
 |`false`
 |`3.0.0`
 |Enabled to set the UI to read-only mode
-|`registry.ui.features.settings`
+|`apicurio.ui.features.settings`
 |`string`
 |`true`
 |`3.0.0`
 |Enabled to show the Settings tab in the UI
-|`registry.ui.navPrefixPath`
+|`apicurio.ui.navPrefixPath`
 |`string`
 |`/`
 |`3.0.0`

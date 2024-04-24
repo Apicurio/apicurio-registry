@@ -51,9 +51,17 @@ updates:
     schedule:
       interval: daily
     groups:
-      ui-dependencies:
+      ui-app-dependencies:
         patterns:
           - "*"
+        exclude-patterns:
+          - "eslint"
+      eslint:
+        patterns:
+          - "eslint"
+        update-types:
+          - "patch"
+          - "minor"
     open-pull-requests-limit: 10
     versioning-strategy: increase
 
@@ -62,9 +70,17 @@ updates:
     schedule:
       interval: daily
     groups:
-      ui-dependencies:
+      ui-docs-dependencies:
         patterns:
           - "*"
+        exclude-patterns:
+          - "eslint"
+      eslint:
+        patterns:
+          - "eslint"
+        update-types:
+          - "patch"
+          - "minor"
     open-pull-requests-limit: 10
     versioning-strategy: increase
 
@@ -73,8 +89,16 @@ updates:
     schedule:
       interval: daily
     groups:
-      ui-dependencies:
+      ui-test-dependencies:
         patterns:
           - "*"
+        exclude-patterns:
+          - "eslint"
+      eslint:
+        patterns:
+          - "eslint"
+        update-types:
+          - "patch"
+          - "minor"
     open-pull-requests-limit: 10
     versioning-strategy: increase

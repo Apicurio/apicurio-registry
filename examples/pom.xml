@@ -77,7 +77,7 @@
         <resteasy.version>4.5.8.Final</resteasy.version>
 
         <!-- Slf4j -->
-        <slf4j.version>2.0.12</slf4j.version>
+        <slf4j.version>2.0.13</slf4j.version>
 
         <!-- Vert.x version -->
         <vertx.version>3.9.5</vertx.version>
@@ -86,7 +86,7 @@
         <apicurio-common-rest-client.version>0.1.18.Final</apicurio-common-rest-client.version>
 
         <!-- Apicurio schema validation library -->
-        <apicurio-registry-schema-validation.version>0.0.4.Final</apicurio-registry-schema-validation.version>
+        <apicurio-registry-schema-validation.version>0.0.6</apicurio-registry-schema-validation.version>
 
         <!-- Plugin Versions -->
         <version.compiler.plugin>3.13.0</version.compiler.plugin>
@@ -95,7 +95,7 @@
         <version.javadoc.plugin>3.6.3</version.javadoc.plugin>
         <version.source.plugin>3.3.1</version.source.plugin>
         <version.surefire.plugin>3.2.5</version.surefire.plugin>
-        <version.jar.plugin>3.3.0</version.jar.plugin>
+        <version.jar.plugin>3.4.1</version.jar.plugin>
         <version.properties.plugin>1.2.1</version.properties.plugin>
         <version.dependency.plugin>3.6.1</version.dependency.plugin>
         <version.assembly.plugin>3.7.1</version.assembly.plugin>

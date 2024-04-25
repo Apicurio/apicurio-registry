@@ -26,7 +26,13 @@ import com.fasterxml.jackson.datatype.jsonorg.JsonOrgModule;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fasterxml.jackson.module.paramnames.ParameterNamesModule;
 import io.apicurio.registry.content.ContentHandle;
+import io.vertx.core.json.JsonObject;
+import io.vertx.json.schema.JsonSchema;
+import io.vertx.json.schema.JsonSchemaOptions;
+import io.vertx.json.schema.SchemaRepository;
+import io.vertx.json.schema.impl.JsonRef;
 
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
@@ -52,7 +58,18 @@ public class JsonSchemaDereferencer implements ContentDereferencer {
 
     @Override
     public ContentHandle dereference(ContentHandle content, Map<String, ContentHandle> resolvedReferences) {
-        throw new DereferencingNotSupportedException("Content dereferencing is not supported for JSON Schema");
+        SchemaRepository schemaRepository = SchemaRepository.create(new JsonSchemaOptions().setBaseUri("https://test.com"));
+        Map<String, JsonSchema> lookups = new HashMap<>();
+        resolveReferences(resolvedReferences, lookups);
+        JsonObject resolvedSchema = JsonRef.resolve(new JsonObject(content.content()), lookups);
+        return ContentHandle.create(JsonSchema.of(schemaRepository.resolve(resolvedSchema)).toString());
+    }
+
+    private void resolveReferences(Map<String, ContentHandle> resolvedReferences, Map<String, JsonSchema> lookups) {
+        resolvedReferences.forEach((referenceName, schema) -> {
+            JsonObject resolvedSchema = JsonRef.resolve(new JsonObject(schema.content()), lookups);
+            lookups.put(referenceName, JsonSchema.of(resolvedSchema));
+        });
     }
 
     /**
@@ -65,7 +82,8 @@ public class JsonSchemaDereferencer implements ContentDereferencer {
             rewriteIn(tree, resolvedReferenceUrls);
             String converted = objectMapper.writeValueAsString(objectMapper.treeToValue(tree, Object.class));
             return ContentHandle.create(converted);
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             return content;
         }
     }

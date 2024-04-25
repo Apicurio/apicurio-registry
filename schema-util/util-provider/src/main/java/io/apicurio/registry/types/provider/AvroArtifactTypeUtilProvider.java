@@ -22,7 +22,7 @@ import io.apicurio.registry.content.dereference.AvroDereferencer;
 import io.apicurio.registry.content.dereference.ContentDereferencer;
 import io.apicurio.registry.content.extract.AvroContentExtractor;
 import io.apicurio.registry.content.extract.ContentExtractor;
-import io.apicurio.registry.content.refs.JsonSchemaReferenceFinder;
+import io.apicurio.registry.content.refs.AvroReferenceFinder;
 import io.apicurio.registry.content.refs.ReferenceFinder;
 import io.apicurio.registry.rules.compatibility.AvroCompatibilityChecker;
 import io.apicurio.registry.rules.compatibility.CompatibilityChecker;
@@ -67,6 +67,6 @@ public class AvroArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvid
     
     @Override
     public ReferenceFinder getReferenceFinder() {
-        return new JsonSchemaReferenceFinder();
+        return new AvroReferenceFinder();
     }
 }

@@ -159,6 +159,7 @@
         <!-- Schema types -->
         <avro.version>1.11.3</avro.version>
         <json-schema-validator.version>1.4.0</json-schema-validator.version>
+        <vertx-json-schema.version>4.5.7</vertx-json-schema.version>
         <wire-schema.version>4.9.9</wire-schema.version>
         <wire-compiler.version>4.9.9</wire-compiler.version>
         <okio-jvm.version>3.9.0</okio-jvm.version>
@@ -561,6 +562,11 @@
                 <groupId>com.networknt</groupId>
                 <artifactId>json-schema-validator</artifactId>
                 <version>${json-schema-validator.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.vertx</groupId>
+                <artifactId>vertx-json-schema</artifactId>
+                <version>${vertx-json-schema.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.squareup.wire</groupId>

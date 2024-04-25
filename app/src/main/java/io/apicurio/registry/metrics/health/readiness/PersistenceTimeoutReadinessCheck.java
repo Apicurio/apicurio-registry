@@ -54,7 +54,7 @@ public class PersistenceTimeoutReadinessCheck extends AbstractErrorCounterHealth
     /**
      * Set the operation duration in seconds, after which it's considered an error.
      */
-    @ConfigProperty(name = "apicurio.metrics.PersistenceTimeoutReadinessCheck.timeoutSec", defaultValue = "15")
+    @ConfigProperty(name = "apicurio.metrics.PersistenceTimeoutReadinessCheck.timeout.seconds", defaultValue = "15")
     @Info(category = "health", description = "Timeout of persistence readiness check", availableSince = "1.0.2.Final")
     Integer configTimeoutSec;
 

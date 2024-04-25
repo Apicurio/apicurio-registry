@@ -329,7 +329,7 @@ The following {registry} configuration options are available for each component 
 |`300`
 |`1.0.2.Final`
 |Status reset window duration of persistence readiness check
-|`apicurio.metrics.PersistenceTimeoutReadinessCheck.timeoutSec`
+|`apicurio.metrics.PersistenceTimeoutReadinessCheck.timeout.seconds`
 |`integer`
 |`15`
 |`1.0.2.Final`
@@ -369,7 +369,7 @@ The following {registry} configuration options are available for each component 
 |`300`
 |`1.0.2.Final`
 |Status reset window duration of response readiness check
-|`apicurio.metrics.ResponseTimeoutReadinessCheck.timeoutSec`
+|`apicurio.metrics.ResponseTimeoutReadinessCheck.timeout.seconds`
 |`instance<integer>`
 |`10`
 |`1.0.2.Final`
@@ -770,7 +770,7 @@ The following {registry} configuration options are available for each component 
 |
 |`3.0.0.Final`
 |Application storage variant, for example, sql, kafkasql, or gitops
-|`apicurio.storage.read-only`
+|`apicurio.storage.read-only.enabled`
 |`boolean [dynamic]`
 |`false`
 |`2.5.0.Final`

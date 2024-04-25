@@ -22,9 +22,9 @@ Starting with Apicurio Registry 3.0, we now produce a single artifact suitable f
 
 Which storage variant will be used is determined by the following configuration:
 
-|Option|Command argument|Env. variable|
-|---|---|---|
-|Registry Storage Variant|`-Dapicurio.storage.kind`|`REGISTRY_STORAGE_KIND`|
+|Option|Command argument| Env. variable           |
+|---|---|-------------------------|
+|Registry Storage Variant|`-Dapicurio.storage.kind`| `APICURIO_STORAGE_KIND` |
 
 For this property, there are three possible values:
 - *sql* - for the SQL storage variant.

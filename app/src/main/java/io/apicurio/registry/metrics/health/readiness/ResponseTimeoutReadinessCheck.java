@@ -63,7 +63,7 @@ public class ResponseTimeoutReadinessCheck extends AbstractErrorCounterHealthChe
      * Set the request duration in seconds, after which it's considered an error.
      * TODO This may be expected on some endpoints. Add a way to ignore those.
      */
-    @ConfigProperty(name = "apicurio.metrics.ResponseTimeoutReadinessCheck.timeoutSec", defaultValue = "10")
+    @ConfigProperty(name = "apicurio.metrics.ResponseTimeoutReadinessCheck.timeout.seconds", defaultValue = "10")
     @Info(category = "health", description = "Timeout of response readiness check", availableSince = "1.0.2.Final")
     Instance<Integer> configTimeoutSec;
 

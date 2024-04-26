@@ -16,7 +16,6 @@
 
 package io.apicurio.registry.ccompat.rest.v7.impl;
 
-
 import io.apicurio.registry.ccompat.dto.SchemaReference;
 import io.apicurio.registry.ccompat.rest.error.ConflictException;
 import io.apicurio.registry.ccompat.rest.error.UnprocessableEntityException;
@@ -25,14 +24,14 @@ import io.apicurio.registry.rest.v2.beans.ArtifactReference;
 import io.apicurio.registry.rules.RuleApplicationType;
 import io.apicurio.registry.rules.RuleViolationException;
 import io.apicurio.registry.rules.RulesService;
+import io.apicurio.registry.storage.ArtifactNotFoundException;
 import io.apicurio.registry.storage.RegistryStorage;
+import io.apicurio.registry.storage.RuleNotFoundException;
+import io.apicurio.registry.storage.VersionNotFoundException;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.StoredArtifactDto;
-import io.apicurio.registry.storage.ArtifactNotFoundException;
-import io.apicurio.registry.storage.RuleNotFoundException;
-import io.apicurio.registry.storage.VersionNotFoundException;
 import io.apicurio.registry.storage.impl.sql.RegistryContentUtils;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
@@ -40,12 +39,11 @@ import io.apicurio.registry.types.Current;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
+import jakarta.inject.Inject;
 import org.apache.avro.AvroTypeException;
 import org.apache.avro.SchemaParseException;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.slf4j.Logger;
-
-import jakarta.inject.Inject;
 
 import java.util.Collections;
 import java.util.List;
@@ -148,8 +146,8 @@ public abstract class AbstractResource {
                         amd = storage.getArtifactVersions(groupId, subject)
                                 .stream().filter(version -> {
                                     StoredArtifactDto artifactVersion = storage.getArtifactVersion(groupId, subject, version);
-                                    RegistryContentUtils.RewrittenContentHolder rewrittenContent = RegistryContentUtils.recursivelyResolveReferencesWithContext(artifactVersion.getContent(), type, artifactVersion.getReferences(), storage::getContentByReference);
-                                    String dereferencedExistingContentSha = DigestUtils.sha256Hex(artifactTypeProvider.getContentDereferencer().dereference(rewrittenContent.getRewrittenContent(), rewrittenContent.getResolvedReferences()).content());
+                                    Map<String, ContentHandle> artifactVersionReferences = RegistryContentUtils.recursivelyResolveReferences(artifactVersion.getReferences(), storage::getContentByReference);
+                                    String dereferencedExistingContentSha = DigestUtils.sha256Hex(artifactTypeProvider.getContentDereferencer().dereference(artifactVersion.getContent(), artifactVersionReferences).content());
                                     return dereferencedExistingContentSha.equals(DigestUtils.sha256Hex(schema));
                                 })
                                 .findAny()

@@ -106,8 +106,19 @@ public class IdsResourceImpl implements IdsResource {
         ArtifactTypeUtilProvider artifactTypeProvider = factory.getArtifactTypeProvider(metaData.getType());
 
         if (dereference && !artifact.getReferences().isEmpty()) {
-            contentToReturn = artifactTypeProvider.getContentDereferencer().dereference(artifact.getContent(), RegistryContentUtils.recursivelyResolveReferences(artifact.getReferences(), storage::getContentByReference));
-        }
+            if (metaData.getType().equals("JSON")) {
+                RegistryContentUtils.RewrittenContentHolder rewrittenContent = RegistryContentUtils.recursivelyResolveReferencesWithContext(contentToReturn,
+                        metaData.getType(),
+                        artifact.getReferences(), storage::getContentByReference);
+
+                contentToReturn = artifactTypeProvider.getContentDereferencer()
+                        .dereference(rewrittenContent.getRewrittenContent(), rewrittenContent.getResolvedReferences());
+            }
+            else {
+                contentToReturn = artifactTypeProvider.getContentDereferencer()
+                        .dereference(artifact.getContent(), RegistryContentUtils.recursivelyResolveReferences(artifact.getReferences(), storage::getContentByReference));
+            }
+            }
 
         Response.ResponseBuilder builder = Response.ok(contentToReturn, contentType);
         checkIfDeprecated(metaData::getState, metaData.getId(), metaData.getVersion(), builder);

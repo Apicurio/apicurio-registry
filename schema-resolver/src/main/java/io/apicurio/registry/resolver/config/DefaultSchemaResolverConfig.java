@@ -42,7 +42,8 @@ public class DefaultSchemaResolverConfig {
             entry(RETRY_COUNT, RETRY_COUNT_DEFAULT),
             entry(RETRY_BACKOFF_MS, RETRY_BACKOFF_MS_DEFAULT),
             entry(DEREFERENCE_SCHEMA, DEREFERENCE_SCHEMA_DEFAULT),
-            entry(DESERIALIZER_DEREFERENCE_SCHEMA, DESERIALIZER_DEREFERENCE_SCHEMA_DEFAULT)
+            entry(DESERIALIZER_DEREFERENCE_SCHEMA, DESERIALIZER_DEREFERENCE_SCHEMA_DEFAULT),
+            entry(SERIALIZER_DEREFERENCE_SCHEMA, SERIALIZER_DEREFERENCE_SCHEMA_DEFAULT)
     );
 
     private Map<String, ?> originals;
@@ -155,12 +156,16 @@ public class DefaultSchemaResolverConfig {
         return originals.get(key);
     }
 
-    public boolean serializerDereference() {
+    public boolean registerDereferenced() {
         return getBooleanOrFalse(DEREFERENCE_SCHEMA);
     }
 
     public boolean deserializerDereference() {
         return getBooleanOrFalse(DESERIALIZER_DEREFERENCE_SCHEMA);
+    }
+
+    public boolean serializerDereference() {
+        return getBooleanOrFalse(SERIALIZER_DEREFERENCE_SCHEMA);
     }
 
     private Duration getDurationNonNegativeMillis(String key) {

@@ -58,6 +58,8 @@ public class JsonSchemaDereferencer implements ContentDereferencer {
 
     @Override
     public ContentHandle dereference(ContentHandle content, Map<String, ContentHandle> resolvedReferences) {
+        //Here, when using rewrite, I need the new reference coordinates, using the full artifact coordinates
+        // and not just the reference name and the old name, to be able to do the re-write.
         SchemaRepository schemaRepository = SchemaRepository.create(new JsonSchemaOptions().setBaseUri("https://test.com"));
         Map<String, JsonSchema> lookups = new HashMap<>();
         resolveReferences(resolvedReferences, lookups);

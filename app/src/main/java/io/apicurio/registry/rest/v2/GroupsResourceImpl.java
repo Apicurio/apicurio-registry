@@ -185,8 +185,11 @@ public class GroupsResourceImpl implements GroupsResource {
 
         ArtifactTypeUtilProvider artifactTypeProvider = factory.getArtifactTypeProvider(metaData.getType());
 
-        if (dereference && !artifact.getReferences().isEmpty() && artifactTypeProvider.getContentDereferencer() != null) {
-            contentToReturn = artifactTypeProvider.getContentDereferencer().dereference(artifact.getContent(), RegistryContentUtils.recursivelyResolveReferences(artifact.getReferences(), storage::getContentByReference));
+        if (dereference && !artifact.getReferences().isEmpty()) {
+            RegistryContentUtils.RewrittenContentHolder rewrittenContent = RegistryContentUtils.recursivelyResolveReferencesWithContext(contentToReturn, metaData.getType(),
+                    artifact.getReferences(), storage::getContentByReference);
+
+            contentToReturn = artifactTypeProvider.getContentDereferencer().dereference(rewrittenContent.getRewrittenContent(), rewrittenContent.getResolvedReferences());
         }
 
         Response.ResponseBuilder builder = Response.ok(contentToReturn, contentType);
@@ -574,7 +577,10 @@ public class GroupsResourceImpl implements GroupsResource {
         ArtifactTypeUtilProvider artifactTypeProvider = factory.getArtifactTypeProvider(metaData.getType());
 
         if (dereference && !artifact.getReferences().isEmpty()) {
-            contentToReturn = artifactTypeProvider.getContentDereferencer().dereference(artifact.getContent(), RegistryContentUtils.recursivelyResolveReferences(artifact.getReferences(), storage::getContentByReference));
+            RegistryContentUtils.RewrittenContentHolder rewrittenContent = RegistryContentUtils.recursivelyResolveReferencesWithContext(contentToReturn, metaData.getType(),
+                    artifact.getReferences(), storage::getContentByReference);
+
+            contentToReturn = artifactTypeProvider.getContentDereferencer().dereference(rewrittenContent.getRewrittenContent(), rewrittenContent.getResolvedReferences());
         }
 
         Response.ResponseBuilder builder = Response.ok(contentToReturn, contentType);

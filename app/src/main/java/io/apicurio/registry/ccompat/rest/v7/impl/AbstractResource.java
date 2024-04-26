@@ -148,8 +148,8 @@ public abstract class AbstractResource {
                         amd = storage.getArtifactVersions(groupId, subject)
                                 .stream().filter(version -> {
                                     StoredArtifactDto artifactVersion = storage.getArtifactVersion(groupId, subject, version);
-                                    Map<String, ContentHandle> artifactVersionReferences = RegistryContentUtils.recursivelyResolveReferences(artifactVersion.getReferences(), storage::getContentByReference);
-                                    String dereferencedExistingContentSha = DigestUtils.sha256Hex(artifactTypeProvider.getContentDereferencer().dereference(artifactVersion.getContent(), artifactVersionReferences).content());
+                                    RegistryContentUtils.RewrittenContentHolder rewrittenContent = RegistryContentUtils.recursivelyResolveReferencesWithContext(artifactVersion.getContent(), type, artifactVersion.getReferences(), storage::getContentByReference);
+                                    String dereferencedExistingContentSha = DigestUtils.sha256Hex(artifactTypeProvider.getContentDereferencer().dereference(rewrittenContent.getRewrittenContent(), rewrittenContent.getResolvedReferences()).content());
                                     return dereferencedExistingContentSha.equals(DigestUtils.sha256Hex(schema));
                                 })
                                 .findAny()

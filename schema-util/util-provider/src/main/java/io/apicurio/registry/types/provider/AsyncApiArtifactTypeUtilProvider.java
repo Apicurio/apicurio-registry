@@ -69,4 +69,7 @@ public class AsyncApiArtifactTypeUtilProvider extends AbstractArtifactTypeUtilPr
     public ReferenceFinder getReferenceFinder() {
         return new AsyncApiReferenceFinder();
     }
+
+    @Override
+    public boolean supportsReferencesWithContext() { return true; }
 }

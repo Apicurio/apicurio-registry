@@ -69,4 +69,8 @@ public class OpenApiArtifactTypeUtilProvider extends AbstractArtifactTypeUtilPro
     public ReferenceFinder getReferenceFinder() {
         return new OpenApiReferenceFinder();
     }
+
+    @Override
+    public boolean supportsReferencesWithContext() { return true; }
+
 }

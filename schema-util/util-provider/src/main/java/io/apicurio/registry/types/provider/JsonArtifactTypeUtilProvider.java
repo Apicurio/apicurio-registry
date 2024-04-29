@@ -69,4 +69,8 @@ public class JsonArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvid
     public ReferenceFinder getReferenceFinder() {
         return new JsonSchemaReferenceFinder();
     }
+
+    @Override
+    public boolean supportsReferencesWithContext() { return true; }
+
 }

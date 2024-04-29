@@ -86,4 +86,8 @@ public class WsdlArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvid
     public ReferenceFinder getReferenceFinder() {
         return NoOpReferenceFinder.INSTANCE;
     }
+
+    @Override
+    public boolean supportsReferencesWithContext() { return false; }
+
 }

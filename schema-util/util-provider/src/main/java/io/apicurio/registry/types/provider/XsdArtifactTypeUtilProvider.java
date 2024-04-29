@@ -86,4 +86,8 @@ public class XsdArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvide
     public ReferenceFinder getReferenceFinder() {
         return NoOpReferenceFinder.INSTANCE;
     }
+
+    @Override
+    public boolean supportsReferencesWithContext() { return false; }
+
 }

@@ -70,4 +70,8 @@ public class KConnectArtifactTypeUtilProvider extends AbstractArtifactTypeUtilPr
     public ReferenceFinder getReferenceFinder() {
         return NoOpReferenceFinder.INSTANCE;
     }
+
+    @Override
+    public boolean supportsReferencesWithContext() { return false; }
+
 }

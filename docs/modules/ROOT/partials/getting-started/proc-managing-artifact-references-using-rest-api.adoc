@@ -150,9 +150,11 @@ $ curl -H "Authorization: Bearer $ACCESS_TOKEN" MY-REGISTRY-URL/apis/registry/v2
 
 There are some cases where returning artifact content with referenced content inline might be helpful. For these cases, the Core Registry API v2 supports the `dereference` query parameter in certain operations. 
 
-This support is currently implemented only for Avro and Protobuf artifacts when the `dereference` parameter is specified in the API operation. This parameter is not supported for any other artifact types.
+This support is currently implemented only for Avro, Protobuf, and JSON Schema artifacts when the `dereference` parameter is specified in the API operation. This parameter is not supported for any other artifact types.
 
-NOTE: For Protobuf artifacts, dereferencing content is supported only when all of the schemas belong to the same package.
+NOTE: For Protobuf artifacts, dereferencing content is supported only when all the schemas belong to the same package.
+
+NOTE: For JSON Schema artifacts, dereferencing content is supported only for artifacts that reference the full content of a separate artifact. Dereferencing when an artifact references a part of a second artifact is *not* supported
 
 
 [role="_additional-resources"]

@@ -11,7 +11,7 @@ public class KafkasqlTestProfile implements QuarkusTestProfile {
 
     @Override
     public Map<String, String> getConfigOverrides() {
-        return Collections.singletonMap("registry.storage.kind", "kafkasql");
+        return Collections.singletonMap("apicurio.storage.kind", "kafkasql");
     }
 
     @Override

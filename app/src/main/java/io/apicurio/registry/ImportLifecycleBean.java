@@ -33,7 +33,7 @@ public class ImportLifecycleBean {
     @Current
     RegistryStorage storage;
 
-    @ConfigProperty(name = "registry.import.url")
+    @ConfigProperty(name = "apicurio.import.url")
     @Info(category = "import", description = "The import URL", availableSince = "2.1.0.Final")
     Optional<URL> registryImportUrlProp;
 

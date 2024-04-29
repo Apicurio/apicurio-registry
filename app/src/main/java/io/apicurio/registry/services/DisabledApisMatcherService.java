@@ -25,7 +25,7 @@ public class DisabledApisMatcherService {
     private final List<Pattern> disabledPatternsList = new ArrayList<>();
 
     @Inject
-    @ConfigProperty(name = "registry.disable.apis")
+    @ConfigProperty(name = "apicurio.disable.apis")
     @Info(category = "api", description = "Disable APIs", availableSince = "2.0.0.Final")
     Optional<List<String>> disableRegexps;
 

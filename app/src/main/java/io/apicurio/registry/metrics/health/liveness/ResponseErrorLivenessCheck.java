@@ -25,7 +25,7 @@ public class ResponseErrorLivenessCheck extends AbstractErrorCounterHealthCheck 
      * as captured by {@link io.apicurio.registry.rest.RegistryExceptionMapper}
      * before the liveness check fails.
      */
-    @ConfigProperty(name = "registry.metrics.ResponseErrorLivenessCheck.errorThreshold", defaultValue = "1")
+    @ConfigProperty(name = "apicurio.metrics.ResponseErrorLivenessCheck.errorThreshold", defaultValue = "1")
     @Info(category = "health", description = "Error threshold of response liveness check", availableSince = "1.0.2.Final")
     Integer configErrorThreshold;
 
@@ -35,18 +35,18 @@ public class ResponseErrorLivenessCheck extends AbstractErrorCounterHealthCheck 
      * to 60.
      * TODO report the absolute count as a metric?
      */
-    @ConfigProperty(name = "registry.metrics.ResponseErrorLivenessCheck.counterResetWindowDurationSec", defaultValue = "60")
+    @ConfigProperty(name = "apicurio.metrics.ResponseErrorLivenessCheck.counterResetWindowDuration.seconds", defaultValue = "60")
     @Info(category = "health", description = "Counter reset window duration of response liveness check", availableSince = "1.0.2.Final")
     Integer configCounterResetWindowDurationSec;
 
     /**
      * If set to a positive value, reset the liveness status after this time window passes without any further errors.
      */
-    @ConfigProperty(name = "registry.metrics.ResponseErrorLivenessCheck.statusResetWindowDurationSec", defaultValue = "300")
+    @ConfigProperty(name = "apicurio.metrics.ResponseErrorLivenessCheck.statusResetWindowDuration.seconds", defaultValue = "300")
     @Info(category = "health", description = "Status reset window duration of response liveness check", availableSince = "1.0.2.Final")
     Integer configStatusResetWindowDurationSec;
 
-    @ConfigProperty(name = "registry.metrics.ResponseErrorLivenessCheck.disableLogging", defaultValue = "false")
+    @ConfigProperty(name = "apicurio.metrics.ResponseErrorLivenessCheck.logging.disabled", defaultValue = "false")
     @Info(category = "health", description = "Disable logging of response liveness check", availableSince = "2.0.0.Final")
     Boolean disableLogging;
 

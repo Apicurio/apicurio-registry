@@ -1558,8 +1558,8 @@ public class RegistryClientTest extends AbstractResourceTestBase {
 
     @Test
     public void testConfigProperties() throws Exception {
-        String property1Name = "registry.ccompat.legacy-id-mode.enabled";
-        String property2Name = "registry.rest.artifact.deletion.enabled";
+        String property1Name = "apicurio.ccompat.legacy-id-mode.enabled";
+        String property2Name = "apicurio.rest.artifact.deletion.enabled";
 
         // Start with all default values
         List<ConfigurationProperty> configProperties = clientV3.admin().config().properties().get();
@@ -1636,7 +1636,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         // Try to set a Long property to "foobar" (should be invalid type)
         var exception2 = Assertions.assertThrows(ApiException.class, () -> {
             updateProp.setValue("foobar");
-            clientV3.admin().config().properties().byPropertyName("registry.download.href.ttl").put(updateProp);
+            clientV3.admin().config().properties().byPropertyName("apicurio.download.href.ttl.seconds").put(updateProp);
         });
         // InvalidPropertyValueException
         Assertions.assertEquals(400, exception2.getResponseStatusCode());

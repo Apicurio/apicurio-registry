@@ -99,20 +99,20 @@ public class JWKSMockServer implements QuarkusTestResourceLifecycleManager {
         stubForBasicUser(BASIC_USER_B, BASIC_PASSWORD);
         stubForClientWithWrongCreds(WRONG_CREDS_CLIENT_ID, "test55");
 
-        this.authServerUrl = server.baseUrl() + "/auth";
+        this.authServerUrl = server.baseUrl() + "/auth" + "/realms/" + realm;
         LOGGER.info("Keycloak started in mock mode: {}", authServerUrl);
-        this.tokenEndpoint = authServerUrl + "/realms/" + realm + "/protocol/openid-connect/token/";
+        this.tokenEndpoint = server.baseUrl() + "/auth" + "/realms/" + realm + "/protocol/openid-connect/token/";
 
         Map<String, String> props = new HashMap<>();
 
         //Set registry properties
-        props.put("registry.keycloak.url", authServerUrl);
-        props.put("registry.keycloak.realm", realm);
-        props.put("registry.auth.enabled", "true");
-        props.put("registry.auth.role-based-authorization", "true");
-        props.put("registry.auth.owner-only-authorization", "true");
-        props.put("registry.auth.admin-override.enabled", "true");
-        props.put("registry.auth.basic-auth-client-credentials.enabled", "true");
+        props.put("quarkus.oidc.auth-server-url", authServerUrl);
+        props.put("quarkus.oidc.token-path", tokenEndpoint);
+        props.put("quarkus.oidc.tenant-enabled", "true");
+        props.put("apicurio.auth.role-based-authorization", "true");
+        props.put("apicurio.auth.owner-only-authorization", "true");
+        props.put("apicurio.auth.admin-override.enabled", "true");
+        props.put("apicurio.authn.basic-client-credentials.enabled", "true");
 
         return props;
     }

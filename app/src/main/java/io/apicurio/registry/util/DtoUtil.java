@@ -26,11 +26,11 @@ public final class DtoUtil {
     }
 
     public static String registryAuthPropertyToApp(String propertyName) {
-        return propertyName.replace("registry.auth.", "app.authn.");
+        return propertyName.replace("apicurio.auth.", "app.authn.");
     }
 
     public static String appAuthPropertyToRegistry(String propertyName) {
-        return propertyName.replace("app.authn.", "registry.auth.");
+        return propertyName.replace("app.authn.", "apicurio.auth.");
     }
 
 }

@@ -21,13 +21,13 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.namespace
-            - name: REGISTRY_STORAGE_DB_KIND
+            - name: APICURIO_STORAGE_SQL_KIND
               value: "postgresql"
-            - name: REGISTRY_DATASOURCE_URL
+            - name: APICURIO_DATASOURCE_URL
               value: jdbc:postgresql://postgresql-service:5432/registry
-            - name: REGISTRY_DATASOURCE_USERNAME
+            - name: APICURIO_DATASOURCE_USERNAME
               value: "apicurio"
-            - name: REGISTRY_DATASOURCE_PASSWORD
+            - name: APICURIO_DATASOURCE_PASSWORD
               value: "registry"
           image: registry-image
           imagePullPolicy: Always

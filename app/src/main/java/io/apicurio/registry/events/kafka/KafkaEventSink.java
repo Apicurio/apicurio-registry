@@ -30,7 +30,7 @@ public class KafkaEventSink implements EventSink {
 
     @Inject
     @RegistryProperties(
-            value = {"registry.events.kafka.config"},
+            value = {"apicurio.events.kafka.config"},
             empties = {"ssl.endpoint.identification.algorithm="}
     )
     Properties producerProperties;
@@ -38,11 +38,11 @@ public class KafkaEventSink implements EventSink {
     private ProducerActions<String, byte[]> producer;
     private Integer partition;
 
-    @ConfigProperty(name = "registry.events.kafka.topic")
+    @ConfigProperty(name = "apicurio.events.kafka.topic")
     @Info(category = "kafka", description = "Events Kafka topic", availableSince = "2.0.0.Final")
     Optional<String> eventsTopic;
 
-    @ConfigProperty(name = "registry.events.kafka.topic-partition")
+    @ConfigProperty(name = "apicurio.events.kafka.topic-partition")
     @Info(category = "kafka", description = "Events Kafka topic partition", availableSince = "2.0.0.Final")
     Optional<Integer> eventsTopicPartition;
 

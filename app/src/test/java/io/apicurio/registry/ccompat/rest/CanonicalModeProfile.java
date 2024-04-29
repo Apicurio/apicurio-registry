@@ -8,6 +8,6 @@ public class CanonicalModeProfile implements QuarkusTestProfile {
 
     @Override
     public Map<String, String> getConfigOverrides() {
-        return Map.of("registry.ccompat.use-canonical-hash", "true");
+        return Map.of("apicurio.ccompat.use-canonical-hash", "true");
     }
 }

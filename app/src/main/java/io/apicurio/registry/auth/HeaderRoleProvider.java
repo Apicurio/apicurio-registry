@@ -12,7 +12,7 @@ import java.util.Objects;
 @RequestScoped
 public class HeaderRoleProvider implements RoleProvider {
 
-    @ConfigProperty(name = "registry.auth.role-source.header.name")
+    @ConfigProperty(name = "apicurio.auth.role-source.header.name")
     @Info(category = "auth", description = "Header authorization name", availableSince = "2.4.3.Final")
     String roleHeader;
 

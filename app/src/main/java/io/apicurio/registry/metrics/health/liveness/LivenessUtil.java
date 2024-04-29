@@ -20,7 +20,7 @@ public class LivenessUtil {
     Logger log;
 
     @Inject
-    @ConfigProperty(name = "registry.liveness.errors.ignored")
+    @ConfigProperty(name = "apicurio.liveness.errors.ignored")
     @Info(category = "health", description = "Ignored liveness errors", availableSince = "1.2.3.Final")
     Optional<List<String>> ignored;
 

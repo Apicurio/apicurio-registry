@@ -28,7 +28,7 @@ public abstract class AbstractRegistryMojo extends AbstractMojo {
      * The registry's url.
      * e.g. http://localhost:8080/api/v3
      */
-    @Parameter(required = true, property = "registry.url")
+    @Parameter(required = true, property = "apicurio.url")
     String registryUrl;
 
     @Parameter(property = "auth.server.url")

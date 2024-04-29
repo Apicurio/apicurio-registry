@@ -140,6 +140,7 @@
         <avro.version>1.11.3</avro.version>
         <json-schema-validator.version>1.4.0</json-schema-validator.version>
         <wire-schema.version>4.9.9</wire-schema.version>
+        <okhttp.version>4.12.0</okhttp.version>
         <wire-compiler.version>4.9.9</wire-compiler.version>
         <okio-jvm.version>3.9.0</okio-jvm.version>
         <okio.version>3.9.0</okio.version>
@@ -188,7 +189,7 @@
         <jboss-slf4j.version>1.2.1.Final</jboss-slf4j.version>
         <httpclient.version>4.5.14</httpclient.version>
         <apicurio-common-rest-client.version>0.1.18.Final</apicurio-common-rest-client.version>
-        <apicurio-common-app-components.version>0.2.7.Final</apicurio-common-app-components.version>
+        <apicurio-common-app-components.version>1.1.0.CR2</apicurio-common-app-components.version>
         <kafka-oauth-client.version>0.15.0</kafka-oauth-client.version>
         <kafka-clients.version>3.6.0</kafka-clients.version>
         <snakeyaml.version>2.2</snakeyaml.version>
@@ -528,6 +529,11 @@
             </dependency>
             <dependency>
                 <groupId>com.squareup.okio</groupId>
+                <artifactId>okhttp</artifactId>
+                <version>${okhttp.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.squareup.okio</groupId>
                 <artifactId>okio-fakefilesystem</artifactId>
                 <version>${okio-fake-file-system.version}</version>
             </dependency>
@@ -629,6 +635,7 @@
                 <groupId>io.confluent</groupId>
                 <artifactId>kafka-avro-serializer</artifactId>
                 <version>${confluent.version}</version>
+                <scope>test</scope>
                 <exclusions>
                     <exclusion>
                         <groupId>org.glassfish.jersey.ext</groupId>

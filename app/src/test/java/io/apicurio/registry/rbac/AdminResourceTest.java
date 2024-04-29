@@ -788,8 +788,8 @@ public class AdminResourceTest extends AbstractResourceTestBase {
     
     @Test
     public void testConfigProperties() throws Exception {
-        String property1Name = "registry.ccompat.legacy-id-mode.enabled";
-        String property2Name = "registry.rest.artifact.deletion.enabled";
+        String property1Name = "apicurio.ccompat.legacy-id-mode.enabled";
+        String property2Name = "apicurio.rest.artifact.deletion.enabled";
 
         // Start with default mappings
         given()
@@ -926,7 +926,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
         given()
                 .when()
                 .contentType(CT_JSON).body(update)
-                .pathParam("propertyName", "registry.download.href.ttl")
+                .pathParam("propertyName", "apicurio.download.href.ttl.seconds")
                 .put("/registry/v3/admin/config/properties/{propertyName}")
                 .then()
                 .statusCode(400);

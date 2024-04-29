@@ -28,7 +28,7 @@ public class RegistryStorageProducer {
     @Inject
     Instance<RegistryStorageDecorator> decorators;
 
-    @ConfigProperty(name = "registry.storage.kind")
+    @ConfigProperty(name = "apicurio.storage.kind")
     @Info(category = "storage", description = "Application storage variant, for example, sql, kafkasql, or gitops", availableSince = "3.0.0.Final")
     String registryStorageType;
 

@@ -90,7 +90,7 @@ func TestAccessSystemInfo(t *testing.T) {
 	info, err := client.System().Info().Get(context.Background(), nil)
 	assert.Nil(t, err)
 
-	assert.Equal(t, "apicurio-registry", *info.GetName())
+	assert.Equal(t, "Apicurio Registry (In Memory)", *info.GetName())
 }
 
 func TestCreateAnArtifact(t *testing.T) {

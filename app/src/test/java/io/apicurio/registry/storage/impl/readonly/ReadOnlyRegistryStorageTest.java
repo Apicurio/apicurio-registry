@@ -159,7 +159,7 @@ public class ReadOnlyRegistryStorageTest {
     void readOnlyTest() {
         notEnabled();
         var dto = new DynamicConfigPropertyDto();
-        dto.setName("registry.storage.read-only");
+        dto.setName("apicurio.storage.read-only.enabled");
         dto.setValue("true");
         storage.setConfigProperty(dto);
         enabled();

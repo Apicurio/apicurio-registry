@@ -95,7 +95,7 @@ endif::[]
 
 [source,java,subs="+quotes,attributes"]
 ----
-String registryUrl_node1 = PropertiesUtil.property(clientProperties, "registry.url.node1", 
+String registryUrl_node1 = PropertiesUtil.property(clientProperties, "apicurio.url.node1",
     "https://my-cluster-service-registry-myproject.example.com/apis/registry/v2"); <1>
 try (RegistryService service = RegistryClient.create(registryUrl_node1)) {
     String artifactId = ApplicationImpl.INPUT_TOPIC + "-value";

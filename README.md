@@ -22,9 +22,9 @@ Starting with Apicurio Registry 3.0, we now produce a single artifact suitable f
 
 Which storage variant will be used is determined by the following configuration:
 
-|Option|Command argument|Env. variable|
-|---|---|---|
-|Registry Storage Variant|`-Dregistry.storage.kind`|`REGISTRY_STORAGE_KIND`|
+|Option|Command argument| Env. variable           |
+|---|---|-------------------------|
+|Registry Storage Variant|`-Dapicurio.storage.kind`| `APICURIO_STORAGE_KIND` |
 
 For this property, there are three possible values:
 - *sql* - for the SQL storage variant.
@@ -79,12 +79,12 @@ The following parameters are available for executable files:
  - By default, the application expects an H2 server running at `jdbc:h2:tcp://localhost:9123/mem:registry`.
  - For configuring the database kind and the datasource values, the following configuration options are available:
   
-| Option                    |Command argument| Env. variable                  |
-|---------------------------|---|--------------------------------|
-| Registry SQL storage kind |`-Dregistry.storage.db-kind`| `REGISTRY_STORAGE_DB_KIND`     |
-| Data Source URL           |`-Dregistry.datasource.url`| `REGISTRY_DATASOURCE_URL`      |
-| DS Username               |`-Dregistry.datasource.username`| `REGISTRY_DATASOURCE_USERNAME` |
-| DS Password               |`-Dregistry.datasource.password`| `REGISTRY_DATASOURCE_PASSWORD` |
+| Option                    | Command argument                | Env. variable                  |
+|---------------------------|---------------------------------|--------------------------------|
+| Registry SQL storage kind | `-Dapicurio.storage.sql.kind`   | `APICURIO_STORAGE_SQL_KIND`    |
+| Data Source URL           | `-Dapicurio.datasource.url`     | `APICURIO_DATASOURCE_URL`      |
+| DS Username               | `-Dapicurio.datasource.username` | `APICURIO_DATASOURCE_USERNAME` |
+| DS Password               | `-Dapicurio.datasource.password` | `APICURIO_DATASOURCE_PASSWORD` |
 
 To see additional options, visit:
  - [Data Source config](https://quarkus.io/guides/datasource) 
@@ -94,9 +94,9 @@ To see additional options, visit:
 `./mvnw clean install -Pprod -DskipTests` builds the application artifact.
 The newly built runner can be found in `/app/target`
 ```
-java Dregistry.storage.kind=kafkasql -jar apicurio-registry-app-<version>-SNAPSHOT-runner.jar
+java Dapicurio.storage.kind=kafkasql -jar apicurio-registry-app-<version>-SNAPSHOT-runner.jar
 ```
-For using Kafka as the persistent storage for the server information the only required configuration is to set the property *registry.storage.kind*.
+For using Kafka as the persistent storage for the server information the only required configuration is to set the property *apicurio.storage.kind*.
 
 Should result in Quarkus and the registry starting up, with the ui and APIs available on localhost port 8080.
 By default, this will look for a kafka instance on `localhost:9092`, see [kafka-quickstart](https://kafka.apache.org/quickstart).
@@ -106,14 +106,14 @@ with the necessary details to connect to a kafka instance using a PKCS12 certifi
 scram-sha-512 credentials for user authorisation.
 ```
 java \
--Dregistry.storage.kind=kafkasql \
--Dregistry.kafka.common.bootstrap.servers=<kafka_bootstrap_server_address> \
--Dregistry.kafka.common.ssl.truststore.location=<truststore_file_location>\
--Dregistry.kafka.common.ssl.truststore.password=<truststore_file_password> \
--Dregistry.kafka.common.ssl.truststore.type=PKCS12 \
--Dregistry.kafka.common.security.protocol=SASL_SSL \
--Dregistry.kafka.common.sasl.mechanism=SCRAM-SHA-512 \
--Dregistry.kafka.common.sasl.jaas.config='org.apache.kafka.common.security.scram.ScramLoginModule required username="<username>" password="<password>";' \
+-Dapicurio.storage.kind=kafkasql \
+-Dapicurio.kafka.common.bootstrap.servers=<kafka_bootstrap_server_address> \
+-Dapicurio.kafka.common.ssl.truststore.location=<truststore_file_location>\
+-Dapicurio.kafka.common.ssl.truststore.password=<truststore_file_password> \
+-Dapicurio.kafka.common.ssl.truststore.type=PKCS12 \
+-Dapicurio.kafka.common.security.protocol=SASL_SSL \
+-Dapicurio.kafka.common.sasl.mechanism=SCRAM-SHA-512 \
+-Dapicurio.kafka.common.sasl.jaas.config='org.apache.kafka.common.security.scram.ScramLoginModule required username="<username>" password="<password>";' \
 -jar app/target/apicurio-registry-app-3.0.0-SNAPSHOT-runner.jar
 ```
 This will start up the registry with the persistence managed by the external kafka cluster.
@@ -176,11 +176,11 @@ services:
     ports:
       - 8080:8080
     environment:
-      REGISTRY_STORAGE_KIND: 'sql'
-      REGISTRY_STORAGE_DB_KIND: 'postgresql'
-      REGISTRY_DATASOURCE_URL: 'jdbc:postgresql://postgres/apicurio-registry'
-      REGISTRY_DATASOURCE_USERNAME: apicurio-registry
-      REGISTRY_DATASOURCE_PASSWORD: password
+      APICURIO_STORAGE_KIND: 'sql'
+      APICURIO_STORAGE_DB_KIND: 'postgresql'
+      APICURIO_DATASOURCE_URL: 'jdbc:postgresql://postgres/apicurio-registry'
+      APICURIO_DATASOURCE_USERNAME: apicurio-registry
+      APICURIO_DATASOURCE_PASSWORD: password
 ```
   - Run `docker-compose -f test.yml up`
 
@@ -205,10 +205,10 @@ In order no enable this integration, you will need to set the following environm
 
 |Option|Env. variable|
 |---|---|
-|`REGISTRY_AUTH_TYPE`|Set to `oidc` (default is `none`)|
-|`REGISTRY_AUTH_URL`|OIDC auth URL|
-|`REGISTRY_AUTH_REDIRECT_URL`|OIDC redirect URL|
-|`REGISTRY_AUTH_CLIENT_ID`|The client for the UI|
+|`APICURIO_AUTH_TYPE`|Set to `oidc` (default is `none`)|
+|`APICURIO_AUTH_URL`|OIDC auth URL|
+|`APICURIO_AUTH_REDIRECT_URL`|OIDC redirect URL|
+|`APICURIO_AUTH_CLIENT_ID`|The client for the UI|
 
 Note that you will need to have everything configured in your OIDC provider, before starting the application
 (the realm and the two clients).

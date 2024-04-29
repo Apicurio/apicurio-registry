@@ -16,12 +16,12 @@ import io.apicurio.registry.utils.RegistryProperties;
 @ApplicationScoped
 public class HttpEventSinkConfiguration {
 
-    @ConfigProperty(name = "registry.events.ksink")
+    @ConfigProperty(name = "apicurio.events.ksink")
     @Info(category = "events", description = "Events Kafka sink enabled", availableSince = "2.0.0.Final")
     Optional<String> ksink;
 
     @Produces
-    public HttpSinksConfiguration sinkConfig(@RegistryProperties(value = {"registry.events.sink"}) Properties properties) {
+    public HttpSinksConfiguration sinkConfig(@RegistryProperties(value = {"apicurio.events.sink"}) Properties properties) {
         List<HttpSinkConfiguration> httpSinks = properties.stringPropertyNames().stream()
             .map(key -> new HttpSinkConfiguration(key, properties.getProperty(key)))
             .collect(Collectors.toList());

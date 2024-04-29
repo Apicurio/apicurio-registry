@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# DB_VERSION_BUILD=$(yq .project.properties."registry.sql.storage.db-version" app/pom.xml -r)
+# DB_VERSION_BUILD=$(yq .project.properties."apicurio.sql.storage.db-version" app/pom.xml -r)
 DB_VERSION_BUILD=$(cat app/src/main/resources/io/apicurio/registry/storage/impl/sql/db-version)
 echo "Build's DB version is $DB_VERSION_BUILD"
 

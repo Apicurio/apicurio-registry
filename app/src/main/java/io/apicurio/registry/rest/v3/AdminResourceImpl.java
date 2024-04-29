@@ -105,7 +105,7 @@ public class AdminResourceImpl implements AdminResource {
     HttpServletRequest request;
 
     @Dynamic(label = "Download link expiry", description = "The number of seconds that a generated link to a .zip download file is active before expiring.")
-    @ConfigProperty(name = "registry.download.href.ttl", defaultValue = "30")
+    @ConfigProperty(name = "apicurio.download.href.ttl.seconds", defaultValue = "30")
     @Info(category = "download", description = "Download link expiry", availableSince = "2.1.2.Final")
     Supplier<Long> downloadHrefTtl;
 

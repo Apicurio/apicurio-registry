@@ -9,7 +9,7 @@ public class ImportLifecycleBeanTestProfile implements QuarkusTestProfile {
 
     @Override
     public Map<String, String> getConfigOverrides() {
-        return Collections.singletonMap("registry.import.url", getClass().getResource("rest/v3/export.zip").toExternalForm());
+        return Collections.singletonMap("apicurio.import.url", getClass().getResource("rest/v3/export.zip").toExternalForm());
     }
 
 }

@@ -29,34 +29,34 @@ const PROPERTY_GROUPS: PropertyGroup[] = [
         id: "authn",
         label: "Authentication settings",
         propertyNames: [
-            "registry.auth.basic-auth-client-credentials.enabled",
+            "apicurio.authn.basic-client-credentials.enabled",
         ]
     },
     {
         id: "authz",
         label: "Authorization settings",
         propertyNames: [
-            "registry.auth.owner-only-authorization",
-            "registry.auth.owner-only-authorization.limit-group-access",
-            "registry.auth.anonymous-read-access.enabled",
-            "registry.auth.authenticated-read-access.enabled",
+            "apicurio.auth.owner-only-authorization",
+            "apicurio.auth.owner-only-authorization.limit-group-access",
+            "apicurio.auth.anonymous-read-access.enabled",
+            "apicurio.auth.authenticated-read-access.enabled",
         ]
     },
     {
         id: "compatibility",
         label: "Compatibility settings",
         propertyNames: [
-            "registry.ccompat.legacy-id-mode.enabled",
-            "registry.ccompat.use-canonical-hash",
-            "registry.ccompat.max-subjects",
+            "apicurio.ccompat.legacy-id-mode.enabled",
+            "apicurio.ccompat.use-canonical-hash",
+            "apicurio.ccompat.max-subjects",
         ]
     },
     {
         id: "console",
         label: "Web console settings",
         propertyNames: [
-            "registry.download.href.ttl",
-            "registry.ui.features.readOnly"
+            "apicurio.download.href.ttl.seconds",
+            "apicurio.ui.features.read-only.enabled"
         ]
     },
 ];

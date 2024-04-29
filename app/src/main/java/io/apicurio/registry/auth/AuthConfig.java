@@ -17,80 +17,80 @@ public class AuthConfig {
     @Inject
     Logger log;
 
-    @ConfigProperty(name = "registry.auth.enabled", defaultValue = "false")
+    @ConfigProperty(name = "quarkus.oidc.tenant-enabled", defaultValue = "false")
     boolean authenticationEnabled;
 
-    @ConfigProperty(name = "registry.auth.role-based-authorization", defaultValue = "false")
+    @ConfigProperty(name = "apicurio.auth.role-based-authorization", defaultValue = "false")
     @Info(category = "auth", description = "Enable role based authorization", availableSince = "2.1.0.Final")
     boolean roleBasedAuthorizationEnabled;
 
-    @Dynamic(label = "Artifact owner-only authorization", description = "When selected, Service Registry allows only the artifact owner (creator) to modify an artifact.", requires = "registry.auth.enabled=true")
-    @ConfigProperty(name = "registry.auth.owner-only-authorization", defaultValue = "false")
+    @Dynamic(label = "Artifact owner-only authorization", description = "When selected, Service Registry allows only the artifact owner (creator) to modify an artifact.", requires = "apicurio.auth.enabled=true")
+    @ConfigProperty(name = "apicurio.auth.owner-only-authorization", defaultValue = "false")
     @Info(category = "auth", description = "Artifact owner-only authorization", availableSince = "2.0.0.Final")
     Supplier<Boolean> ownerOnlyAuthorizationEnabled;
 
     @Dynamic(label = "Artifact group owner-only authorization", description = "When selected, Service Registry allows only the artifact group owner (creator) to modify an artifact group.", requires = {
-            "registry.auth.enabled=true",
-            "registry.auth.owner-only-authorization=true"
+            "apicurio.auth.enabled=true",
+            "apicurio.auth.owner-only-authorization=true"
     })
-    @ConfigProperty(name = "registry.auth.owner-only-authorization.limit-group-access", defaultValue = "false")
+    @ConfigProperty(name = "apicurio.auth.owner-only-authorization.limit-group-access", defaultValue = "false")
     @Info(category = "auth", description = "Artifact group owner-only authorization", availableSince = "2.1.0.Final")
     Supplier<Boolean> ownerOnlyAuthorizationLimitGroupAccess;
 
-    @Dynamic(label = "Anonymous read access", description = "When selected, requests from anonymous users (requests without any credentials) are granted read-only access.", requires = "registry.auth.enabled=true")
-    @ConfigProperty(name = "registry.auth.anonymous-read-access.enabled", defaultValue = "false")
+    @Dynamic(label = "Anonymous read access", description = "When selected, requests from anonymous users (requests without any credentials) are granted read-only access.", requires = "apicurio.auth.enabled=true")
+    @ConfigProperty(name = "apicurio.auth.anonymous-read-access.enabled", defaultValue = "false")
     @Info(category = "auth", description = "Anonymous read access", availableSince = "2.1.0.Final")
     Supplier<Boolean> anonymousReadAccessEnabled;
 
     @Dynamic(label = "Authenticated read access", description = "When selected, requests from any authenticated user are granted at least read-only access.", requires = {
-            "registry.auth.enabled=true",
-            "registry.auth.role-based-authorization=true"
+            "apicurio.auth.enabled=true",
+            "apicurio.auth.role-based-authorization=true"
     })
-    @ConfigProperty(name = "registry.auth.authenticated-read-access.enabled", defaultValue = "false")
+    @ConfigProperty(name = "apicurio.auth.authenticated-read-access.enabled", defaultValue = "false")
     @Info(category = "auth", description = "Authenticated read access", availableSince = "2.1.4.Final")
     Supplier<Boolean> authenticatedReadAccessEnabled;
 
-    @ConfigProperty(name = "registry.auth.roles.readonly", defaultValue = "sr-readonly")
+    @ConfigProperty(name = "apicurio.auth.roles.readonly", defaultValue = "sr-readonly")
     @Info(category = "auth", description = "Auth roles readonly", availableSince = "2.1.0.Final")
     String readOnlyRole;
 
-    @ConfigProperty(name = "registry.auth.roles.developer", defaultValue = "sr-developer")
+    @ConfigProperty(name = "apicurio.auth.roles.developer", defaultValue = "sr-developer")
     @Info(category = "auth", description = "Auth roles developer", availableSince = "2.1.0.Final")
     String developerRole;
 
-    @ConfigProperty(name = "registry.auth.roles.admin", defaultValue = "sr-admin")
+    @ConfigProperty(name = "apicurio.auth.roles.admin", defaultValue = "sr-admin")
     @Info(category = "auth", description = "Auth roles admin", availableSince = "2.0.0.Final")
     String adminRole;
 
-    @ConfigProperty(name = "registry.auth.role-source", defaultValue = "token")
+    @ConfigProperty(name = "apicurio.auth.role-source", defaultValue = "token")
     @Info(category = "auth", description = "Auth roles source", availableSince = "2.1.0.Final")
     String roleSource;
 
-    @ConfigProperty(name = "registry.auth.admin-override.enabled", defaultValue = "false")
+    @ConfigProperty(name = "apicurio.auth.admin-override.enabled", defaultValue = "false")
     @Info(category = "auth", description = "Auth admin override enabled", availableSince = "2.1.0.Final")
     boolean adminOverrideEnabled;
 
-    @ConfigProperty(name = "registry.auth.admin-override.from", defaultValue = "token")
+    @ConfigProperty(name = "apicurio.auth.admin-override.from", defaultValue = "token")
     @Info(category = "auth", description = "Auth admin override from", availableSince = "2.1.0.Final")
     String adminOverrideFrom;
 
-    @ConfigProperty(name = "registry.auth.admin-override.type", defaultValue = "role")
+    @ConfigProperty(name = "apicurio.auth.admin-override.type", defaultValue = "role")
     @Info(category = "auth", description = "Auth admin override type", availableSince = "2.1.0.Final")
     String adminOverrideType;
 
-    @ConfigProperty(name = "registry.auth.admin-override.role", defaultValue = "sr-admin")
+    @ConfigProperty(name = "apicurio.auth.admin-override.role", defaultValue = "sr-admin")
     @Info(category = "auth", description = "Auth admin override role", availableSince = "2.1.0.Final")
     String adminOverrideRole;
 
-    @ConfigProperty(name = "registry.auth.admin-override.claim", defaultValue = "org-admin")
+    @ConfigProperty(name = "apicurio.auth.admin-override.claim", defaultValue = "org-admin")
     @Info(category = "auth", description = "Auth admin override claim", availableSince = "2.1.0.Final")
     String adminOverrideClaim;
 
-    @ConfigProperty(name = "registry.auth.admin-override.claim-value", defaultValue = "true")
+    @ConfigProperty(name = "apicurio.auth.admin-override.claim-value", defaultValue = "true")
     @Info(category = "auth", description = "Auth admin override claim value", availableSince = "2.1.0.Final")
     String adminOverrideClaimValue;
 
-    @ConfigProperty(name = "registry.auth.admin-override.user", defaultValue = "admin")
+    @ConfigProperty(name = "apicurio.auth.admin-override.user", defaultValue = "admin")
     @Info(category = "auth", description = "Auth admin override user name", availableSince = "3.0.0.Final")
     String adminOverrideUser;
 

@@ -12,7 +12,7 @@ public class KafkaEventsTestResource implements QuarkusTestResourceLifecycleMana
      */
     @Override
     public Map<String, String> start() {
-        return Collections.singletonMap("registry.events.kafka.topic", KafkaEventsProfile.EVENTS_TOPIC);
+        return Collections.singletonMap("apicurio.events.kafka.topic", KafkaEventsProfile.EVENTS_TOPIC);
     }
 
     /**

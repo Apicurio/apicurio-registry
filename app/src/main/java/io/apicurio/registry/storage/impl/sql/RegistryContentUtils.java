@@ -59,7 +59,7 @@ public class RegistryContentUtils {
      * @return the main content rewritten to use the full coordinates of the artifact version and the full tree of dependencies, also rewritten to use coordinates instead of the reference name.
      */
     public static RewrittenContentHolder recursivelyResolveReferencesWithContext(ContentHandle mainContent, String mainContentType, List<ArtifactReferenceDto> references,
-                                                                                     Function<ArtifactReferenceDto, ContentAndReferencesDto> loader) {
+                                                                                 Function<ArtifactReferenceDto, ContentAndReferencesDto> loader) {
         if (references == null || references.isEmpty()) {
             return new RewrittenContentHolder(mainContent, Collections.emptyMap());
         }
@@ -75,8 +75,10 @@ public class RegistryContentUtils {
      * Re-writes each schema node content to use the full coordinates of the artifact version instead of just using the original reference name.
      * This allows to dereference json schema artifacts where there might be duplicate file names in a single hierarchy.
      */
-    private static RewrittenContentHolder resolveReferencesWithContext(ContentHandle mainContent, String schemaType, Map<String, ContentHandle> partialRecursivelyResolvedReferences,
-                                                     List<ArtifactReferenceDto> references, Function<ArtifactReferenceDto, ContentAndReferencesDto> loader) {
+    private static RewrittenContentHolder resolveReferencesWithContext(ContentHandle mainContent, String schemaType,
+                                                                       Map<String, ContentHandle> partialRecursivelyResolvedReferences,
+                                                                       List<ArtifactReferenceDto> references,
+                                                                       Function<ArtifactReferenceDto, ContentAndReferencesDto> loader) {
         Map<String, String> referencesRewrites = new HashMap<>();
         if (references != null && !references.isEmpty()) {
             for (ArtifactReferenceDto reference : references) {
@@ -91,9 +93,11 @@ public class RegistryContentUtils {
                                 ArtifactTypeUtilProvider typeUtilProvider = ARTIFACT_TYPE_UTIL.getArtifactTypeProvider(nested.getArtifactType());
                                 RewrittenContentHolder rewrittenContentHolder = resolveReferencesWithContext(nested.getContent(), nested.getArtifactType(),
                                         partialRecursivelyResolvedReferences, nested.getReferences(), loader);
-                                String referenceCoordinates = concatArtifactVersionCoordinates(reference.getGroupId(), reference.getArtifactId(), reference.getVersion());
+                                String referenceCoordinates = concatArtifactVersionCoordinatesWithRefName(reference.getGroupId(), reference.getArtifactId(),
+                                        reference.getVersion(), reference.getName());
                                 referencesRewrites.put(reference.getName(), referenceCoordinates);
-                                ContentHandle rewrittenContent = typeUtilProvider.getContentDereferencer().rewriteReferences(rewrittenContentHolder.getRewrittenContent(), referencesRewrites);
+                                ContentHandle rewrittenContent = typeUtilProvider.getContentDereferencer()
+                                        .rewriteReferences(rewrittenContentHolder.getRewrittenContent(), referencesRewrites);
                                 partialRecursivelyResolvedReferences.put(referenceCoordinates, rewrittenContent);
                             }
                         }
@@ -347,8 +351,8 @@ public class RegistryContentUtils {
         return collection != null && !collection.isEmpty();
     }
 
-    public static String concatArtifactVersionCoordinates(String groupId, String artifactId, String version) {
-        return groupId + ":" + artifactId + ":" + version;
+    public static String concatArtifactVersionCoordinatesWithRefName(String groupId, String artifactId, String version, String referenceName) {
+        return groupId + ":" + artifactId + ":" + version + ":" + referenceName;
     }
 
     public static class RewrittenContentHolder {

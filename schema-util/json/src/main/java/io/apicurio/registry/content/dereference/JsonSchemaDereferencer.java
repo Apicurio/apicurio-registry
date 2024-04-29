@@ -16,6 +16,7 @@
 
 package io.apicurio.registry.content.dereference;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -27,10 +28,12 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fasterxml.jackson.module.paramnames.ParameterNamesModule;
 import io.apicurio.registry.content.ContentHandle;
 import io.vertx.core.json.JsonObject;
+import io.vertx.json.schema.Draft;
 import io.vertx.json.schema.JsonSchema;
 import io.vertx.json.schema.JsonSchemaOptions;
-import io.vertx.json.schema.SchemaRepository;
 import io.vertx.json.schema.impl.JsonRef;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.Iterator;
@@ -44,6 +47,9 @@ import static com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKN
 public class JsonSchemaDereferencer implements ContentDereferencer {
 
     private static final ObjectMapper objectMapper;
+    private static final Logger log = LoggerFactory.getLogger(JsonSchemaDereferencer.class);
+    private static final String idKey = "$id";
+    private static final String schemaKey = "$schema";
 
     static {
         objectMapper = new ObjectMapper();
@@ -60,11 +66,38 @@ public class JsonSchemaDereferencer implements ContentDereferencer {
     public ContentHandle dereference(ContentHandle content, Map<String, ContentHandle> resolvedReferences) {
         //Here, when using rewrite, I need the new reference coordinates, using the full artifact coordinates
         // and not just the reference name and the old name, to be able to do the re-write.
-        SchemaRepository schemaRepository = SchemaRepository.create(new JsonSchemaOptions().setBaseUri("https://test.com"));
+        String id = null;
+        String schema = null;
+
+        try {
+            JsonNode contentNode = objectMapper.readTree(content.content());
+            id = contentNode.get(idKey).asText();
+            schema = contentNode.get(schemaKey).asText();
+        }
+        catch (JsonProcessingException e) {
+            log.warn("No schema or id provided for schema");
+        }
+
+        JsonSchemaOptions jsonSchemaOptions = new JsonSchemaOptions()
+                .setBaseUri("http://localhost");
+
+        if (null != schema) {
+            jsonSchemaOptions.setDraft(Draft.fromIdentifier(schema));
+        }
+
         Map<String, JsonSchema> lookups = new HashMap<>();
         resolveReferences(resolvedReferences, lookups);
         JsonObject resolvedSchema = JsonRef.resolve(new JsonObject(content.content()), lookups);
-        return ContentHandle.create(JsonSchema.of(schemaRepository.resolve(resolvedSchema)).toString());
+
+        if (null != id) {
+            resolvedSchema.put(idKey, id);
+        }
+
+        if (schema != null) {
+            resolvedSchema.put(schemaKey, schema);
+        }
+
+        return ContentHandle.create(resolvedSchema.encodePrettily());
     }
 
     private void resolveReferences(Map<String, ContentHandle> resolvedReferences, Map<String, JsonSchema> lookups) {

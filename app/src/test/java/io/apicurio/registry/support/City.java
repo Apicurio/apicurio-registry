@@ -26,12 +26,21 @@ public class City {
     @JsonProperty("zipCode")
     private Integer zipCode;
 
+    @JsonProperty("qualification")
+    private CityQualification qualification;
+
     public City() {
     }
 
     public City(String name, Integer zipCode) {
         this.name = name;
         this.zipCode = zipCode;
+    }
+
+    public City(String name, Integer zipCode, CityQualification cityQualification) {
+        this.name = name;
+        this.zipCode = zipCode;
+        this.qualification = cityQualification;
     }
 
     public String getName() {
@@ -48,5 +57,13 @@ public class City {
 
     public void setZipCode(Integer zipCode) {
         this.zipCode = zipCode;
+    }
+
+    public CityQualification getQualification() {
+        return qualification;
+    }
+
+    public void setQualification(CityQualification qualification) {
+        this.qualification = qualification;
     }
 }

@@ -73,6 +73,7 @@ import io.apicurio.registry.storage.dto.StoredArtifactDto;
 import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
 import io.apicurio.registry.storage.impl.sql.RegistryContentUtils;
 import io.apicurio.registry.types.ArtifactState;
+import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.types.ReferenceType;
 import io.apicurio.registry.types.RuleType;
@@ -185,8 +186,17 @@ public class GroupsResourceImpl implements GroupsResource {
 
         ArtifactTypeUtilProvider artifactTypeProvider = factory.getArtifactTypeProvider(metaData.getType());
 
-        if (dereference && !artifact.getReferences().isEmpty() && artifactTypeProvider.getContentDereferencer() != null) {
-            contentToReturn = artifactTypeProvider.getContentDereferencer().dereference(artifact.getContent(), RegistryContentUtils.recursivelyResolveReferences(artifact.getReferences(), storage::getContentByReference));
+        if (dereference && !artifact.getReferences().isEmpty()) {
+            if (ArtifactType.JSON.equals(metaData.getType())) {
+                RegistryContentUtils.RewrittenContentHolder rewrittenContent = RegistryContentUtils.recursivelyResolveReferencesWithContext(contentToReturn,
+                        metaData.getType(),
+                        artifact.getReferences(), storage::getContentByReference);
+
+                contentToReturn = artifactTypeProvider.getContentDereferencer()
+                        .dereference(rewrittenContent.getRewrittenContent(), rewrittenContent.getResolvedReferences());
+            } else {
+                contentToReturn = artifactTypeProvider.getContentDereferencer().dereference(artifact.getContent(), RegistryContentUtils.recursivelyResolveReferences(artifact.getReferences(), storage::getContentByReference));
+            }
         }
 
         Response.ResponseBuilder builder = Response.ok(contentToReturn, contentType);
@@ -574,7 +584,16 @@ public class GroupsResourceImpl implements GroupsResource {
         ArtifactTypeUtilProvider artifactTypeProvider = factory.getArtifactTypeProvider(metaData.getType());
 
         if (dereference && !artifact.getReferences().isEmpty()) {
-            contentToReturn = artifactTypeProvider.getContentDereferencer().dereference(artifact.getContent(), RegistryContentUtils.recursivelyResolveReferences(artifact.getReferences(), storage::getContentByReference));
+            if (ArtifactType.JSON.equals(metaData.getType())) {
+                RegistryContentUtils.RewrittenContentHolder rewrittenContent = RegistryContentUtils.recursivelyResolveReferencesWithContext(contentToReturn,
+                        metaData.getType(),
+                        artifact.getReferences(), storage::getContentByReference);
+
+                contentToReturn = artifactTypeProvider.getContentDereferencer()
+                        .dereference(rewrittenContent.getRewrittenContent(), rewrittenContent.getResolvedReferences());
+            } else {
+                contentToReturn = artifactTypeProvider.getContentDereferencer().dereference(artifact.getContent(), RegistryContentUtils.recursivelyResolveReferences(artifact.getReferences(), storage::getContentByReference));
+            }
         }
 
         Response.ResponseBuilder builder = Response.ok(contentToReturn, contentType);

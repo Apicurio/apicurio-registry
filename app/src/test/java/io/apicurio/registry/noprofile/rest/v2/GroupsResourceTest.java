@@ -47,10 +47,16 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 import static io.restassured.RestAssured.given;
-import static java.net.HttpURLConnection.*;
+import static java.net.HttpURLConnection.HTTP_NO_CONTENT;
+import static java.net.HttpURLConnection.HTTP_OK;
 import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.CoreMatchers.anything;
 import static org.hamcrest.Matchers.*;
@@ -157,7 +163,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
     @Test
     public void testUpdateArtifactOwner() throws Exception {
         String oaiArtifactContent = resourceToString("openapi-empty.json");
-        createArtifact("testUpdateArtifactOwner", "testUpdateArtifactOwner/EmptyAPI/1",ArtifactType.OPENAPI, oaiArtifactContent);
+        createArtifact("testUpdateArtifactOwner", "testUpdateArtifactOwner/EmptyAPI/1", ArtifactType.OPENAPI, oaiArtifactContent);
 
         ArtifactOwner artifactOwner = new ArtifactOwner("newOwner");
 
@@ -175,7 +181,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
     @Test
     public void testUpdateEmptyArtifactOwner() throws Exception {
         String oaiArtifactContent = resourceToString("openapi-empty.json");
-        createArtifact("testUpdateEmptyArtifactOwner", "testUpdateEmptyArtifactOwner/EmptyAPI/1",ArtifactType.OPENAPI, oaiArtifactContent);
+        createArtifact("testUpdateEmptyArtifactOwner", "testUpdateEmptyArtifactOwner/EmptyAPI/1", ArtifactType.OPENAPI, oaiArtifactContent);
 
         ArtifactOwner artifactOwner = new ArtifactOwner("");
 
@@ -615,7 +621,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
     @Test
     public void testUpdateArtifactState() throws Exception {
         String oaiArtifactContent = resourceToString("openapi-empty.json");
-        createArtifact("testUpdateArtifactState", "testUpdateArtifactState/EmptyAPI/1",ArtifactType.OPENAPI, oaiArtifactContent);
+        createArtifact("testUpdateArtifactState", "testUpdateArtifactState/EmptyAPI/1", ArtifactType.OPENAPI, oaiArtifactContent);
 
         UpdateState updateState = new UpdateState();
         updateState.setState(ArtifactState.DEPRECATED);
@@ -652,17 +658,17 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .then()
                 .statusCode(200)
                 .header("X-Registry-Deprecated", "true");
-        }
+    }
 
     @Test
     public void testUpdateArtifactVersionState() throws Exception {
         String oaiArtifactContent = resourceToString("openapi-empty.json");
-        createArtifact("testUpdateArtifactVersionState", "testUpdateArtifactVersionState/EmptyAPI",ArtifactType.OPENAPI, oaiArtifactContent);
+        createArtifact("testUpdateArtifactVersionState", "testUpdateArtifactVersionState/EmptyAPI", ArtifactType.OPENAPI, oaiArtifactContent);
 
         UpdateState updateState = new UpdateState();
         updateState.setState(ArtifactState.DEPRECATED);
 
-         // Update the artifact state to DEPRECATED.
+        // Update the artifact state to DEPRECATED.
         given()
                 .when()
                 .contentType(CT_JSON)
@@ -697,7 +703,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .then()
                 .statusCode(200)
                 .header("X-Registry-Deprecated", "true");
-        }
+    }
 
     @Test
     @DisabledIfEnvironmentVariable(named = CURRENT_ENV, matches = CURRENT_ENV_MAS_REGEX)
@@ -1040,7 +1046,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .pathParam("artifactId", artifactId)
                 .get("/registry/v2/groups/{groupId}/artifacts/{artifactId}/versions")
                 .then()
-//                .log().all()
+                //                .log().all()
                 .statusCode(200)
                 .body("count", equalTo(6))
                 .body("versions[0].version", notNullValue());
@@ -1619,7 +1625,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .pathParam("artifactId", artifactId)
                 .get("/registry/v2/groups/{groupId}/artifacts/{artifactId}/rules")
                 .then()
-//                .log().all()
+                //                .log().all()
                 .statusCode(200)
                 .contentType(ContentType.JSON)
                 .body("[0]", anyOf(equalTo("VALIDITY"), equalTo("COMPATIBILITY")))
@@ -1709,7 +1715,6 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .put("/registry/v2/groups/{groupId}/artifacts/{artifactId}/meta")
                 .then()
                 .statusCode(204);
-
 
         // Get the (updated) artifact meta-data
         TestUtils.retry(() -> {
@@ -1958,7 +1963,6 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .body("openapi", equalTo("3.0.2"))
                 .body("info.title", equalTo("Empty API"));
     }
-
 
     @Test
     public void testWsdlArtifact() throws Exception {
@@ -2491,7 +2495,6 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         var referencingMD = metadata;
         assertEquals(references, metadata.getReferences());
 
-
         // Trying to use different references with the same content is ok, but the contentId and contentHash is different.
         List<ArtifactReference> references2 = List.of(ArtifactReference.builder()
                 .groupId(metadata.getGroupId())
@@ -2539,7 +2542,8 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         final String referencesSerialized = RegistryContentUtils.serializeReferences(toReferenceDtos(references));
 
         //We calculate the hash using the content itself and the references
-        String contentHash = DigestUtils.sha256Hex(concatContentAndReferences(artifactContent.getBytes(StandardCharsets.UTF_8), referencesSerialized.getBytes(StandardCharsets.UTF_8)));
+        String contentHash = DigestUtils.sha256Hex(
+                concatContentAndReferences(artifactContent.getBytes(StandardCharsets.UTF_8), referencesSerialized.getBytes(StandardCharsets.UTF_8)));
 
         assertEquals(references, referenceResponse);
 
@@ -2604,15 +2608,14 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         assertEquals(referencingMD.getId(), referenceResponse.get(0).getArtifactId());
         assertEquals(referencingMD.getVersion(), referenceResponse.get(0).getVersion());
 
-
-        // Dereferencing JSON Schema fails with 400 as it's not implemented.
+        // Dereferencing JSON Schema works
         given()
                 .when()
                 .pathParam("globalId", metadata.getGlobalId())
                 .queryParam("dereference", true)
                 .get("/registry/v2/ids/globalIds/{globalId}")
                 .then()
-                .statusCode(HTTP_BAD_REQUEST);
+                .statusCode(HTTP_OK);
     }
 
     private byte[] concatContentAndReferences(byte[] contentBytes, byte[] referencesBytes) throws IOException {
@@ -2621,7 +2624,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         outputStream.write(referencesBytes);
         return outputStream.toByteArray();
     }
-    
+
     @Test
     public void testArtifactComments() throws Exception {
         String artifactId = "testArtifactComments/EmptyAPI";
@@ -2641,7 +2644,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .extract().as(new TypeRef<List<Comment>>() {
                 });
         assertEquals(0, comments.size());
-        
+
         // Create a new comment
         NewComment nc = NewComment.builder().value("COMMENT_1").build();
         Comment comment1 = given()
@@ -2659,7 +2662,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         assertNotNull(comment1.getValue());
         assertNotNull(comment1.getCreatedOn());
         assertEquals("COMMENT_1", comment1.getValue());
-        
+
         // Create another new comment
         nc = NewComment.builder().value("COMMENT_2").build();
         Comment comment2 = given()
@@ -2677,7 +2680,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         assertNotNull(comment2.getValue());
         assertNotNull(comment2.getCreatedOn());
         assertEquals("COMMENT_2", comment2.getValue());
-        
+
         // Get the list of comments (should have 2)
         comments = given()
                 .when()

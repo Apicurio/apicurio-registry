@@ -27,6 +27,7 @@ import io.apicurio.registry.utils.IoUtil;
 
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -43,7 +44,7 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
     private boolean autoCreateArtifact;
     private IfExists autoCreateBehavior;
     private boolean findLatest;
-    private boolean dereference;
+    private boolean registerDereferenced;
 
     /**
      * @see io.apicurio.registry.resolver.AbstractSchemaResolver#reset()
@@ -65,7 +66,7 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
         }
 
         this.autoCreateArtifact = config.autoRegisterArtifact();
-        this.dereference = config.serializerDereference();
+        this.registerDereferenced = config.registerDereferenced();
         this.autoCreateBehavior = IfExists.fromValue(config.autoRegisterArtifactIfExists());
         this.findLatest = config.findLatest();
     }
@@ -81,7 +82,7 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
 
         ParsedSchema<S> parsedSchema = null;
         if (artifactResolverStrategy.loadSchema() && schemaParser.supportsExtractSchemaFromData()) {
-            parsedSchema = schemaParser.getSchemaFromData(data, dereference);
+            parsedSchema = schemaParser.getSchemaFromData(data, registerDereferenced);
         }
 
         final ArtifactReference artifactReference = resolveArtifactReference(data, parsedSchema, false, null);
@@ -111,7 +112,7 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
             if (schemaParser.supportsExtractSchemaFromData()) {
 
                 if (parsedSchema == null) {
-                    parsedSchema = schemaParser.getSchemaFromData(data, dereference);
+                    parsedSchema = schemaParser.getSchemaFromData(data, registerDereferenced);
                 }
 
                 if (parsedSchema.hasReferences()) {
@@ -355,13 +356,17 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
             loadFromArtifactMetaData(metadata, result);
             gid = metadata.getGlobalId();
         }
-
-        InputStream rawSchema = client.getContentByGlobalId(gid);
-
-        //Get the artifact references
-        final List<io.apicurio.registry.rest.v2.beans.ArtifactReference> artifactReferences = client.getArtifactReferencesByGlobalId(gid);
-        //If there are any references for the schema being parsed, resolve them before parsing the schema
-        final Map<String, ParsedSchema<S>> resolvedReferences = resolveReferences(artifactReferences);
+        InputStream rawSchema;
+        Map<String, ParsedSchema<S>> resolvedReferences = new HashMap<>();
+        if (dereference) {
+             rawSchema = client.getContentByGlobalId(gid, false, true);
+        } else {
+            rawSchema = client.getContentByGlobalId(gid);
+            //Get the artifact references
+            final List<io.apicurio.registry.rest.v2.beans.ArtifactReference> artifactReferences = client.getArtifactReferencesByGlobalId(gid);
+            //If there are any references for the schema being parsed, resolve them before parsing the schema
+            resolvedReferences = resolveReferences(artifactReferences);
+        }
 
         byte[] schema = IoUtil.toBytes(rawSchema);
         S parsed = schemaParser.parseSchema(schema, resolvedReferences);

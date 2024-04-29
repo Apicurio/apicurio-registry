@@ -34,6 +34,7 @@ import io.apicurio.registry.storage.dto.StoredArtifactDto;
 import io.apicurio.registry.storage.impl.sql.RegistryContentUtils;
 import io.apicurio.registry.types.ArtifactMediaTypes;
 import io.apicurio.registry.types.ArtifactState;
+import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.types.ReferenceType;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
@@ -53,7 +54,7 @@ import jakarta.ws.rs.core.Response;
  * @author eric.wittmann@gmail.com
  */
 @ApplicationScoped
-@Interceptors({ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class})
+@Interceptors({ ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class })
 @Logged
 public class IdsResourceImpl implements IdsResource {
 
@@ -106,7 +107,16 @@ public class IdsResourceImpl implements IdsResource {
         ArtifactTypeUtilProvider artifactTypeProvider = factory.getArtifactTypeProvider(metaData.getType());
 
         if (dereference && !artifact.getReferences().isEmpty()) {
-            contentToReturn = artifactTypeProvider.getContentDereferencer().dereference(artifact.getContent(), RegistryContentUtils.recursivelyResolveReferences(artifact.getReferences(), storage::getContentByReference));
+            if (ArtifactType.JSON.equals(metaData.getType())) {
+                RegistryContentUtils.RewrittenContentHolder rewrittenContent = RegistryContentUtils.recursivelyResolveReferencesWithContext(contentToReturn,
+                        metaData.getType(),
+                        artifact.getReferences(), storage::getContentByReference);
+
+                contentToReturn = artifactTypeProvider.getContentDereferencer()
+                        .dereference(rewrittenContent.getRewrittenContent(), rewrittenContent.getResolvedReferences());
+            } else {
+                contentToReturn = artifactTypeProvider.getContentDereferencer().dereference(artifact.getContent(), RegistryContentUtils.recursivelyResolveReferences(artifact.getReferences(), storage::getContentByReference));
+            }
         }
 
         Response.ResponseBuilder builder = Response.ok(contentToReturn, contentType);
@@ -154,7 +164,8 @@ public class IdsResourceImpl implements IdsResource {
             return artifact.getReferences().stream()
                     .map(V2ApiUtil::referenceDtoToReference)
                     .collect(Collectors.toList());
-        } else {
+        }
+        else {
             ArtifactMetaDataDto amd = storage.getArtifactMetaData(globalId);
             return storage.getInboundArtifactReferences(amd.getGroupId(), amd.getId(), amd.getVersion()).stream()
                     .map(V2ApiUtil::referenceDtoToReference)

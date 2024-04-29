@@ -40,6 +40,8 @@ import io.apicurio.registry.serde.strategy.SimpleTopicIdStrategy;
 import io.apicurio.registry.support.Citizen;
 import io.apicurio.registry.support.CitizenIdentifier;
 import io.apicurio.registry.support.City;
+import io.apicurio.registry.support.CityQualification;
+import io.apicurio.registry.support.IdentifierQualification;
 import io.apicurio.registry.support.Person;
 import io.apicurio.registry.support.Qualification;
 import io.apicurio.registry.types.ArtifactType;
@@ -96,7 +98,7 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
         Person person = new Person("Ales", "Justin", 23);
 
         try (JsonSchemaKafkaSerializer<Person> serializer = new JsonSchemaKafkaSerializer<>(restClient, true);
-             Deserializer<Person> deserializer = new JsonSchemaKafkaDeserializer<>(restClient, true)) {
+                Deserializer<Person> deserializer = new JsonSchemaKafkaDeserializer<>(restClient, true)) {
 
             Map<String, Object> config = new HashMap<>();
             config.put(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, groupId);
@@ -119,7 +121,8 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
             try {
                 serializer.serialize(artifactId, new RecordHeaders(), person);
                 Assertions.fail();
-            } catch (Exception ignored) {
+            }
+            catch (Exception ignored) {
             }
 
             serializer.setValidationEnabled(false); // disable validation
@@ -129,7 +132,8 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
             try {
                 deserializer.deserialize(artifactId, headers, bytes);
                 Assertions.fail();
-            } catch (Exception ignored) {
+            }
+            catch (Exception ignored) {
             }
         }
     }
@@ -142,7 +146,7 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
         Person person = new Person("Carles", "Arnal", 30);
 
         try (JsonSchemaKafkaSerializer<Person> serializer = new JsonSchemaKafkaSerializer<>(restClient, true);
-             Deserializer<Person> deserializer = new JsonSchemaKafkaDeserializer<>(restClient, true)) {
+                Deserializer<Person> deserializer = new JsonSchemaKafkaDeserializer<>(restClient, true)) {
 
             Map<String, Object> config = new HashMap<>();
             config.put(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, groupId);
@@ -167,7 +171,8 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
             try {
                 serializer.serialize(artifactId, new RecordHeaders(), person);
                 Assertions.fail();
-            } catch (Exception ignored) {
+            }
+            catch (Exception ignored) {
             }
 
             serializer.setValidationEnabled(false); // disable validation
@@ -177,7 +182,8 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
             try {
                 deserializer.deserialize(artifactId, headers, bytes);
                 Assertions.fail();
-            } catch (Exception ignored) {
+            }
+            catch (Exception ignored) {
             }
         }
     }
@@ -197,7 +203,7 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
         Person person = new Person("Ales", "Justin", 23);
 
         try (JsonSchemaKafkaSerializer<Person> serializer = new JsonSchemaKafkaSerializer<>(restClient, true);
-             Deserializer<Person> deserializer = new JsonSchemaKafkaDeserializer<>(restClient, true)) {
+                Deserializer<Person> deserializer = new JsonSchemaKafkaDeserializer<>(restClient, true)) {
 
             Map<String, Object> config = new HashMap<>();
             config.put(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, groupId);
@@ -243,7 +249,7 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
         Person person = new Person("Ales", "Justin", 23);
 
         try (JsonSchemaKafkaSerializer<Person> serializer = new JsonSchemaKafkaSerializer<>(restClient, true);
-             Deserializer<Person> deserializer = new JsonSchemaKafkaDeserializer<>(restClient, true)) {
+                Deserializer<Person> deserializer = new JsonSchemaKafkaDeserializer<>(restClient, true)) {
 
             Map<String, Object> config = new HashMap<>();
             config.put(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, groupId);
@@ -269,9 +275,9 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
 
     @Test
     public void testJsonSchemaSerdeWithReferences() throws Exception {
-        InputStream citySchema = getClass().getResourceAsStream("/io/apicurio/registry/util/city.json");
-        InputStream citizenSchema = getClass().getResourceAsStream("/io/apicurio/registry/util/citizen.json");
-        InputStream citizenIdentifier = getClass().getResourceAsStream("/io/apicurio/registry/util/citizenIdentifier.json");
+        InputStream citySchema = getClass().getResourceAsStream("/io/apicurio/registry/util/city1.json");
+        InputStream citizenSchema = getClass().getResourceAsStream("/io/apicurio/registry/util/citizen1.json");
+        InputStream citizenIdentifier = getClass().getResourceAsStream("/io/apicurio/registry/util/citizenIdentifier1.json");
         InputStream qualificationSchema = getClass().getResourceAsStream("/io/apicurio/registry/util/qualification.json");
 
         InputStream addressSchema = getClass().getResourceAsStream("/io/apicurio/registry/util/sample.address.json");
@@ -282,13 +288,11 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
         Assertions.assertNotNull(qualificationSchema);
         Assertions.assertNotNull(addressSchema);
 
-
         String groupId = TestUtils.generateGroupId();
         String cityArtifactId = generateArtifactId();
         String qualificationsId = generateArtifactId();
         String identifierArtifactId = generateArtifactId();
         String addressId = generateArtifactId();
-
 
         final Integer cityDependencyGlobalId = createArtifact(groupId, cityArtifactId, ArtifactType.JSON, IoUtil.toString(citySchema));
         this.waitForGlobalId(cityDependencyGlobalId);
@@ -315,7 +319,7 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
         cityReference.setVersion("1");
         cityReference.setGroupId(groupId);
         cityReference.setArtifactId(cityArtifactId);
-        cityReference.setName("city.json");
+        cityReference.setName("city1.json");
 
         final Integer identifierDependencyGlobalId = createArtifact(groupId, identifierArtifactId, ArtifactType.JSON, IoUtil.toString(citizenIdentifier));
         this.waitForGlobalId(identifierDependencyGlobalId);
@@ -324,11 +328,12 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
         identifierReference.setVersion("1");
         identifierReference.setGroupId(groupId);
         identifierReference.setArtifactId(identifierArtifactId);
-        identifierReference.setName("citizenIdentifier.json");
+        identifierReference.setName("citizenIdentifier1.json");
 
         String artifactId = generateArtifactId();
 
-        final Integer globalId = createArtifactWithReferences(groupId, artifactId, ArtifactType.JSON, IoUtil.toString(citizenSchema), List.of(qualificationsReference, cityReference, identifierReference, addressReference));
+        final Integer globalId = createArtifactWithReferences(groupId, artifactId, ArtifactType.JSON, IoUtil.toString(citizenSchema),
+                List.of(qualificationsReference, cityReference, identifierReference, addressReference));
         this.waitForGlobalId(globalId);
 
         City city = new City("New York", 10001);
@@ -336,7 +341,7 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
         Citizen citizen = new Citizen("Carles", "Arnal", 23, city, identifier, Collections.emptyList());
 
         try (JsonSchemaKafkaSerializer<Citizen> serializer = new JsonSchemaKafkaSerializer<>(restClient, true);
-             Deserializer<Citizen> deserializer = new JsonSchemaKafkaDeserializer<>(restClient, true)) {
+                Deserializer<Citizen> deserializer = new JsonSchemaKafkaDeserializer<>(restClient, true)) {
 
             Map<String, Object> config = new HashMap<>();
             config.put(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, groupId);
@@ -360,7 +365,8 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
             try {
                 serializer.serialize(artifactId, new RecordHeaders(), citizen);
                 Assertions.fail();
-            } catch (Exception ignored) {
+            }
+            catch (Exception ignored) {
             }
 
             citizen.setAge(23);
@@ -370,9 +376,9 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
             try {
                 serializer.serialize(artifactId, new RecordHeaders(), citizen);
                 Assertions.fail();
-            } catch (Exception ignored) {
             }
-
+            catch (Exception ignored) {
+            }
 
             //invalid identifier present, should fail
             identifier = new CitizenIdentifier(-1234356);
@@ -384,7 +390,8 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
             try {
                 serializer.serialize(artifactId, new RecordHeaders(), citizen);
                 Assertions.fail();
-            } catch (Exception ignored) {
+            }
+            catch (Exception ignored) {
             }
 
             //no identifier present, should pass
@@ -392,16 +399,323 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
             serializer.serialize(artifactId, new RecordHeaders(), citizen);
 
             //valid qualification, should pass
-            citizen.setQualifications(List.of(new Qualification(UUID.randomUUID().toString(), 6), new Qualification(UUID.randomUUID().toString(), 7), new Qualification(UUID.randomUUID().toString(), 8)));
+            citizen.setQualifications(List.of(new Qualification(UUID.randomUUID().toString(), 6), new Qualification(UUID.randomUUID().toString(), 7),
+                    new Qualification(UUID.randomUUID().toString(), 8)));
             serializer.serialize(artifactId, new RecordHeaders(), citizen);
 
             //invalid qualification, should fail
-            citizen.setQualifications(List.of(new Qualification(UUID.randomUUID().toString(), 6), new Qualification(UUID.randomUUID().toString(), -7), new Qualification(UUID.randomUUID().toString(), 8)));
+            citizen.setQualifications(List.of(new Qualification(UUID.randomUUID().toString(), 6), new Qualification(UUID.randomUUID().toString(), -7),
+                    new Qualification(UUID.randomUUID().toString(), 8)));
             try {
                 serializer.serialize(artifactId, new RecordHeaders(), citizen);
                 Assertions.fail();
-            } catch (Exception ignored) {
             }
+            catch (Exception ignored) {
+            }
+        }
+    }
+
+    @Test
+    public void testJsonSchemaSerdeWithReferencesDeserializerDereferenced() throws Exception {
+        InputStream citySchema = getClass().getResourceAsStream("/io/apicurio/registry/util/city1.json");
+        InputStream citizenSchema = getClass().getResourceAsStream("/io/apicurio/registry/util/citizen1.json");
+        InputStream citizenIdentifier = getClass().getResourceAsStream("/io/apicurio/registry/util/citizenIdentifier1.json");
+        InputStream qualificationSchema = getClass().getResourceAsStream("/io/apicurio/registry/util/qualification.json");
+
+        InputStream addressSchema = getClass().getResourceAsStream("/io/apicurio/registry/util/sample.address.json");
+
+        Assertions.assertNotNull(citizenSchema);
+        Assertions.assertNotNull(citySchema);
+        Assertions.assertNotNull(citizenIdentifier);
+        Assertions.assertNotNull(qualificationSchema);
+        Assertions.assertNotNull(addressSchema);
+
+        String groupId = TestUtils.generateGroupId();
+        String cityArtifactId = generateArtifactId();
+        String qualificationsId = generateArtifactId();
+        String identifierArtifactId = generateArtifactId();
+        String addressId = generateArtifactId();
+
+        final Integer cityDependencyGlobalId = createArtifact(groupId, cityArtifactId, ArtifactType.JSON, IoUtil.toString(citySchema));
+        this.waitForGlobalId(cityDependencyGlobalId);
+
+        final Integer qualificationsGlobalId = createArtifact(groupId, qualificationsId, ArtifactType.JSON, IoUtil.toString(qualificationSchema));
+        this.waitForGlobalId(qualificationsGlobalId);
+
+        final ArtifactReference qualificationsReference = new ArtifactReference();
+        qualificationsReference.setVersion("1");
+        qualificationsReference.setGroupId(groupId);
+        qualificationsReference.setArtifactId(qualificationsId);
+        qualificationsReference.setName("qualification.json");
+
+        final Integer addressGlobalID = createArtifact(groupId, addressId, ArtifactType.JSON, IoUtil.toString(addressSchema));
+        this.waitForGlobalId(addressGlobalID);
+
+        final ArtifactReference addressReference = new ArtifactReference();
+        addressReference.setVersion("1");
+        addressReference.setGroupId(groupId);
+        addressReference.setArtifactId(addressId);
+        addressReference.setName("sample.address.json");
+
+        final ArtifactReference cityReference = new ArtifactReference();
+        cityReference.setVersion("1");
+        cityReference.setGroupId(groupId);
+        cityReference.setArtifactId(cityArtifactId);
+        cityReference.setName("city1.json");
+
+        final Integer identifierDependencyGlobalId = createArtifact(groupId, identifierArtifactId, ArtifactType.JSON, IoUtil.toString(citizenIdentifier));
+        this.waitForGlobalId(identifierDependencyGlobalId);
+
+        final ArtifactReference identifierReference = new ArtifactReference();
+        identifierReference.setVersion("1");
+        identifierReference.setGroupId(groupId);
+        identifierReference.setArtifactId(identifierArtifactId);
+        identifierReference.setName("citizenIdentifier1.json");
+
+        String artifactId = generateArtifactId();
+
+        final Integer globalId = createArtifactWithReferences(groupId, artifactId, ArtifactType.JSON, IoUtil.toString(citizenSchema),
+                List.of(qualificationsReference, cityReference, identifierReference, addressReference));
+        this.waitForGlobalId(globalId);
+
+        City city = new City("New York", 10001);
+        CitizenIdentifier identifier = new CitizenIdentifier(123456789);
+        Citizen citizen = new Citizen("Carles", "Arnal", 23, city, identifier, Collections.emptyList());
+
+        try (JsonSchemaKafkaSerializer<Citizen> serializer = new JsonSchemaKafkaSerializer<>(restClient, true);
+                Deserializer<Citizen> deserializer = new JsonSchemaKafkaDeserializer<>(restClient, true)) {
+
+            Map<String, Object> config = new HashMap<>();
+            config.put(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, groupId);
+            config.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, SimpleTopicIdStrategy.class.getName());
+            serializer.configure(config, false);
+
+            deserializer.configure(Map.of(SchemaResolverConfig.DESERIALIZER_DEREFERENCE_SCHEMA, "true"), false);
+
+            Headers headers = new RecordHeaders();
+            byte[] bytes = serializer.serialize(artifactId, headers, citizen);
+
+            citizen = deserializer.deserialize(artifactId, headers, bytes);
+
+            Assertions.assertEquals("Carles", citizen.getFirstName());
+            Assertions.assertEquals("Arnal", citizen.getLastName());
+            Assertions.assertEquals(23, citizen.getAge());
+            Assertions.assertEquals("New York", citizen.getCity().getName());
+
+            citizen.setAge(-1);
+
+            try {
+                serializer.serialize(artifactId, new RecordHeaders(), citizen);
+                Assertions.fail();
+            }
+            catch (Exception ignored) {
+            }
+
+            citizen.setAge(23);
+            city = new City("Kansas CIty", -31);
+            citizen.setCity(city);
+
+            try {
+                serializer.serialize(artifactId, new RecordHeaders(), citizen);
+                Assertions.fail();
+            }
+            catch (Exception ignored) {
+            }
+
+            //invalid identifier present, should fail
+            identifier = new CitizenIdentifier(-1234356);
+            citizen.setIdentifier(identifier);
+
+            city = new City("Kansas CIty", 22222);
+            citizen.setCity(city);
+
+            try {
+                serializer.serialize(artifactId, new RecordHeaders(), citizen);
+                Assertions.fail();
+            }
+            catch (Exception ignored) {
+            }
+
+            //no identifier present, should pass
+            citizen.setIdentifier(null);
+            serializer.serialize(artifactId, new RecordHeaders(), citizen);
+
+            //valid qualification, should pass
+            citizen.setQualifications(List.of(new Qualification(UUID.randomUUID().toString(), 6), new Qualification(UUID.randomUUID().toString(), 7),
+                    new Qualification(UUID.randomUUID().toString(), 8)));
+            serializer.serialize(artifactId, new RecordHeaders(), citizen);
+
+            //invalid qualification, should fail
+            citizen.setQualifications(List.of(new Qualification(UUID.randomUUID().toString(), 6), new Qualification(UUID.randomUUID().toString(), -7),
+                    new Qualification(UUID.randomUUID().toString(), 8)));
+            try {
+                serializer.serialize(artifactId, new RecordHeaders(), citizen);
+                Assertions.fail();
+            }
+            catch (Exception ignored) {
+            }
+        }
+    }
+
+    @Test
+    public void testWithReferencesDeserializerDereferencedComplexUsecase() throws Exception {
+        InputStream citySchema = getClass().getResourceAsStream("/io/apicurio/registry/util/types/city/city.json");
+        InputStream citizenSchema = getClass().getResourceAsStream("/io/apicurio/registry/util/citizen.json");
+        InputStream citizenIdentifier = getClass().getResourceAsStream("/io/apicurio/registry/util/types/identifier/citizenIdentifier.json");
+        InputStream qualificationSchema = getClass().getResourceAsStream("/io/apicurio/registry/util/qualification.json");
+        InputStream addressSchema = getClass().getResourceAsStream("/io/apicurio/registry/util/sample.address.json");
+
+        InputStream identifierQuarlification = getClass().getResourceAsStream("/io/apicurio/registry/util/types/identifier/qualification.json");
+        InputStream cityQualification = getClass().getResourceAsStream("/io/apicurio/registry/util/types/city/qualification.json");
+
+        Assertions.assertNotNull(citizenSchema);
+        Assertions.assertNotNull(citySchema);
+        Assertions.assertNotNull(citizenIdentifier);
+        Assertions.assertNotNull(qualificationSchema);
+        Assertions.assertNotNull(addressSchema);
+        Assertions.assertNotNull(identifierQuarlification);
+        Assertions.assertNotNull(cityQualification);
+
+        String groupId = TestUtils.generateGroupId();
+        String cityArtifactId = generateArtifactId();
+        String qualificationsId = generateArtifactId();
+        String identifierArtifactId = generateArtifactId();
+        String addressId = generateArtifactId();
+        String identifierQualificationId = generateArtifactId();
+        String cityQualificationId = generateArtifactId();
+
+        //Create the two nested qualification schemas, one for the city, and one for the identifier
+        final Integer identifierQualificationDependencyGlobalId = createArtifact(groupId, identifierQualificationId, ArtifactType.JSON, IoUtil.toString(identifierQuarlification));
+        this.waitForGlobalId(identifierQualificationDependencyGlobalId);
+        final Integer cityQualificationDependencyGlobalId = createArtifact(groupId, cityQualificationId, ArtifactType.JSON, IoUtil.toString(cityQualification));
+        this.waitForGlobalId(cityQualificationDependencyGlobalId);
+
+        final ArtifactReference cityQualificationReference = new ArtifactReference();
+        cityQualificationReference.setVersion("1");
+        cityQualificationReference.setGroupId(groupId);
+        cityQualificationReference.setArtifactId(cityQualificationId);
+        cityQualificationReference.setName("qualification.json");
+
+        //create the city schema with the reference to its qualification
+        final Integer cityDependencyGlobalId = createArtifactWithReferences(groupId, cityArtifactId, ArtifactType.JSON, IoUtil.toString(citySchema),
+                List.of(cityQualificationReference));
+        this.waitForGlobalId(cityDependencyGlobalId);
+
+        final ArtifactReference identifierQualificationReference = new ArtifactReference();
+        identifierQualificationReference.setVersion("1");
+        identifierQualificationReference.setGroupId(groupId);
+        identifierQualificationReference.setArtifactId(identifierQualificationId);
+        identifierQualificationReference.setName("qualification.json");
+
+        //create the identifier schema with the reference to its qualification
+        final Integer identifierDependencyGlobalId = createArtifactWithReferences(groupId, identifierArtifactId, ArtifactType.JSON, IoUtil.toString(citizenIdentifier),
+                List.of(identifierQualificationReference));
+        this.waitForGlobalId(identifierDependencyGlobalId);
+
+        //create the main qualification schema, used for the citizen
+        final Integer qualificationsGlobalId = createArtifact(groupId, qualificationsId, ArtifactType.JSON, IoUtil.toString(qualificationSchema));
+        this.waitForGlobalId(qualificationsGlobalId);
+
+        final ArtifactReference qualificationsReference = new ArtifactReference();
+        qualificationsReference.setVersion("1");
+        qualificationsReference.setGroupId(groupId);
+        qualificationsReference.setArtifactId(qualificationsId);
+        qualificationsReference.setName("qualification.json");
+
+        final Integer addressGlobalID = createArtifact(groupId, addressId, ArtifactType.JSON, IoUtil.toString(addressSchema));
+        this.waitForGlobalId(addressGlobalID);
+
+        final ArtifactReference addressReference = new ArtifactReference();
+        addressReference.setVersion("1");
+        addressReference.setGroupId(groupId);
+        addressReference.setArtifactId(addressId);
+        addressReference.setName("sample.address.json");
+
+        final ArtifactReference cityReference = new ArtifactReference();
+        cityReference.setVersion("1");
+        cityReference.setGroupId(groupId);
+        cityReference.setArtifactId(cityArtifactId);
+        cityReference.setName("types/city/city.json");
+
+        final ArtifactReference identifierReference = new ArtifactReference();
+        identifierReference.setVersion("1");
+        identifierReference.setGroupId(groupId);
+        identifierReference.setArtifactId(identifierArtifactId);
+        identifierReference.setName("types/identifier/citizenIdentifier.json");
+
+        String artifactId = generateArtifactId();
+
+        //create the citizen schema, with references to qualifications, city, identifier and address
+        final Integer globalId = createArtifactWithReferences(groupId, artifactId, ArtifactType.JSON, IoUtil.toString(citizenSchema),
+                List.of(qualificationsReference, cityReference, identifierReference, addressReference));
+        this.waitForGlobalId(globalId);
+
+        City city = new City("New York", 10001);
+        CitizenIdentifier identifier = new CitizenIdentifier(123456789);
+        Citizen citizen = new Citizen("Carles", "Arnal", 23, city, identifier, Collections.emptyList());
+
+        try (JsonSchemaKafkaSerializer<Citizen> serializer = new JsonSchemaKafkaSerializer<>(restClient, true);
+                Deserializer<Citizen> deserializer = new JsonSchemaKafkaDeserializer<>(restClient, true)) {
+
+            Map<String, Object> config = new HashMap<>();
+            config.put(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, groupId);
+            config.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, SimpleTopicIdStrategy.class.getName());
+            config.put(SchemaResolverConfig.SERIALIZER_DEREFERENCE_SCHEMA, "true");
+            serializer.configure(config, false);
+
+            deserializer.configure(Map.of(SchemaResolverConfig.DESERIALIZER_DEREFERENCE_SCHEMA, "true"), false);
+
+            Headers headers = new RecordHeaders();
+            byte[] bytes = serializer.serialize(artifactId, headers, citizen);
+
+            citizen = deserializer.deserialize(artifactId, headers, bytes);
+
+            Assertions.assertEquals("Carles", citizen.getFirstName());
+            Assertions.assertEquals("Arnal", citizen.getLastName());
+            Assertions.assertEquals(23, citizen.getAge());
+            Assertions.assertEquals("New York", citizen.getCity().getName());
+
+            //invalid qualification, should fail
+            citizen.setQualifications(List.of(new Qualification(UUID.randomUUID().toString(), 6), new Qualification(UUID.randomUUID().toString(), -7),
+                    new Qualification(UUID.randomUUID().toString(), 8)));
+            try {
+                serializer.serialize(artifactId, new RecordHeaders(), citizen);
+                Assertions.fail();
+            }
+            catch (Exception ignored) {
+            }
+
+            //invalid city qualification, minimum is 10 should fail
+            city.setQualification(new CityQualification("city_qualification", 9));
+            citizen.setCity(city);
+            citizen.setQualifications(Collections.emptyList());
+            try {
+                serializer.serialize(artifactId, new RecordHeaders(), citizen);
+                Assertions.fail();
+            }
+            catch (Exception ignored) {
+            }
+
+            //valid city qualification, should pass
+            city.setQualification(new CityQualification("city_qualification", 11));
+            citizen.setCity(city);
+            citizen.setQualifications(Collections.emptyList());
+            serializer.serialize(artifactId, new RecordHeaders(), citizen);
+
+            //invalid identifier qualification, minimum is 20, should fail
+            identifier.setIdentifierQualification(new IdentifierQualification("test_subject", 19));
+            citizen.setIdentifier(identifier);
+            try {
+                serializer.serialize(artifactId, new RecordHeaders(), citizen);
+                Assertions.fail();
+            }
+            catch (Exception ignored) {
+            }
+
+            //valid identifier qualification
+            identifier.setIdentifierQualification(new IdentifierQualification("test_subject", 20));
+            citizen.setIdentifier(identifier);
+                serializer.serialize(artifactId, new RecordHeaders(), citizen);
         }
     }
 
@@ -441,7 +755,6 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
                         ArtifactType.JSON, IfExists.UPDATE, false, null, null,
                         ContentTypes.APPLICATION_CREATE_EXTENDED, null, null, phone,
                         null);
-
 
         final ArtifactReference addressReference = new ArtifactReference();
         addressReference.setVersion(amdAddress.getVersion());

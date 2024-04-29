@@ -1,5 +1,5 @@
 {
-  "$id": "https://example.com/citizen.json",
+  "$id": "https://example.com/citizen1.json",
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Citizen",
   "type": "object",
@@ -18,10 +18,10 @@
       "minimum": 0
     },
     "city": {
-      "$ref": "types/city/city.json"
+      "$ref": "city1.json"
     },
     "identifier": {
-      "$ref": "types/identifier/citizenIdentifier.json"
+      "$ref": "citizenIdentifier1.json"
     },
     "qualifications": {
       "type": "array",

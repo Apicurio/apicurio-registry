@@ -3510,7 +3510,9 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     public ContentAndReferencesDto getContentByReference(ArtifactReferenceDto reference) {
         try {
             var meta = getArtifactVersionMetaDataInternal(reference.getGroupId(), reference.getArtifactId(), reference.getVersion());
-            return getArtifactByContentId(meta.getContentId());
+            ContentAndReferencesDto artifactByContentId = getArtifactByContentId(meta.getContentId());
+            artifactByContentId.setArtifactType(meta.getType());
+            return artifactByContentId;
         } catch (VersionNotFoundException e) {
             return null;
         }

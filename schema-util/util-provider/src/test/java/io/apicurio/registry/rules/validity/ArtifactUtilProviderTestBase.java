@@ -16,10 +16,7 @@
 
 package io.apicurio.registry.rules.validity;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.stream.Collectors;
 
@@ -41,9 +38,24 @@ public class ArtifactUtilProviderTestBase {
         }
     }
 
-
     protected final ContentHandle resourceToContentHandle(String resourceName) {
         return ContentHandle.create(resourceToString(resourceName));
+    }
+
+    protected final String normalizeMultiLineString(String value) {
+        try {
+            StringBuilder builder = new StringBuilder();
+            BufferedReader reader = new BufferedReader(new StringReader(value));
+            String line = reader.readLine();
+            while (line != null) {
+                builder.append(line);
+                builder.append("\n");
+                line = reader.readLine();
+            }
+            return builder.toString();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
 }

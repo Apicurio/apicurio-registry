@@ -70,4 +70,8 @@ public class GraphQLArtifactTypeUtilProvider extends AbstractArtifactTypeUtilPro
     public ReferenceFinder getReferenceFinder() {
         return NoOpReferenceFinder.INSTANCE;
     }
+
+    @Override
+    public boolean supportsReferencesWithContext() { return false; }
+
 }

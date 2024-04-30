@@ -1,0 +1,38 @@
+{
+  "$id": "https://example.com/types/all-types.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "City": {
+      "title": "City",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The city's name."
+        },
+        "zipCode": {
+          "type": "integer",
+          "description": "The zip code.",
+          "minimum": 0
+        },
+        "qualification": {
+          "$ref": "city/qualification.json"
+        }
+      }
+    },
+    "Identifier": {
+      "title": "Identifier",
+      "type": "object",
+      "properties": {
+        "identifier": {
+          "type": "integer",
+          "description": "The citizen identifier.",
+          "minimum": 0
+        },
+        "qualification": {
+          "$ref": "identifier/qualification.json"
+        }
+      }
+    }
+  }
+}

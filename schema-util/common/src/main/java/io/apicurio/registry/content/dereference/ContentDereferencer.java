@@ -39,7 +39,7 @@ public interface ContentDereferencer {
      * a value of <code>./common-types.json#/defs/FooType</code> this method will rewrite that property
      * to something like <code>https://registry.example.com/apis/registry/v2/groups/Example/artifacts/CommonTypes/versions/1.0</code>.
      * @param content
-     * @param resolvedReferences
+     * @param resolvedReferenceUrls
      */
     ContentHandle rewriteReferences(ContentHandle content, Map<String, String> resolvedReferenceUrls);
 }

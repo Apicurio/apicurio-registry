@@ -36,7 +36,7 @@ public class ReferenceRewriter extends AllNodeVisitor {
 
     /**
      * Constructor.
-     * @param resolvedReferenceUrls
+     * @param referenceUrls
      */
     public ReferenceRewriter(Map<String, String> referenceUrls) {
         this.referenceUrls = referenceUrls;

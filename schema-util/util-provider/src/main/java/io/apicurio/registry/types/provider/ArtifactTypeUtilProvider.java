@@ -45,6 +45,8 @@ public interface ArtifactTypeUtilProvider {
     ContentExtractor getContentExtractor();
 
     ContentDereferencer getContentDereferencer();
-    
+
     ReferenceFinder getReferenceFinder();
+
+    boolean supportsReferencesWithContext();
 }

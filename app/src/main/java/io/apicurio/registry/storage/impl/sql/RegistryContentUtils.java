@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.content.refs.JsonPointerExternalReference;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.dto.ContentAndReferencesDto;
 import io.apicurio.registry.types.RegistryException;
@@ -65,7 +66,7 @@ public class RegistryContentUtils {
         }
         else {
             Map<String, ContentHandle> resolvedReferences = new LinkedHashMap<>();
-            //First we resolve all the references tree, re-writing the nested contents tu use the artifact version coordinates instead of the version name.
+            //First we resolve all the references tree, re-writing the nested contents to use the artifact version coordinates instead of the reference name.
             return resolveReferencesWithContext(mainContent, mainContentType, resolvedReferences, references, loader);
         }
     }
@@ -86,19 +87,26 @@ public class RegistryContentUtils {
                     throw new IllegalStateException("Invalid reference: " + reference);
                 }
                 else {
-                    if (!partialRecursivelyResolvedReferences.containsKey(reference.getName())) {
+                    String refName = reference.getName();
+                    String referenceCoordinates = concatArtifactVersionCoordinatesWithRefName(reference.getGroupId(), reference.getArtifactId(),
+                            reference.getVersion(), refName);
+
+                    JsonPointerExternalReference refPointer = new JsonPointerExternalReference(refName);
+                    JsonPointerExternalReference coordinatePointer = new JsonPointerExternalReference(referenceCoordinates, refPointer.getComponent());
+
+                    String newRefName = coordinatePointer.toString();
+
+                    if (!partialRecursivelyResolvedReferences.containsKey(newRefName)) {
                         try {
                             var nested = loader.apply(reference);
                             if (nested != null) {
                                 ArtifactTypeUtilProvider typeUtilProvider = ARTIFACT_TYPE_UTIL.getArtifactTypeProvider(nested.getArtifactType());
                                 RewrittenContentHolder rewrittenContentHolder = resolveReferencesWithContext(nested.getContent(), nested.getArtifactType(),
                                         partialRecursivelyResolvedReferences, nested.getReferences(), loader);
-                                String referenceCoordinates = concatArtifactVersionCoordinatesWithRefName(reference.getGroupId(), reference.getArtifactId(),
-                                        reference.getVersion(), reference.getName());
-                                referencesRewrites.put(reference.getName(), referenceCoordinates);
+                                referencesRewrites.put(refName, referenceCoordinates);
                                 ContentHandle rewrittenContent = typeUtilProvider.getContentDereferencer()
                                         .rewriteReferences(rewrittenContentHolder.getRewrittenContent(), referencesRewrites);
-                                partialRecursivelyResolvedReferences.put(referenceCoordinates, rewrittenContent);
+                                partialRecursivelyResolvedReferences.put(newRefName, rewrittenContent);
                             }
                         }
                         catch (Exception ex) {

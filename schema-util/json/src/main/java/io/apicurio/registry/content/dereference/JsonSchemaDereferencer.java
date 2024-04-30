@@ -27,6 +27,7 @@ import com.fasterxml.jackson.datatype.jsonorg.JsonOrgModule;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fasterxml.jackson.module.paramnames.ParameterNamesModule;
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.content.refs.JsonPointerExternalReference;
 import io.vertx.core.json.JsonObject;
 import io.vertx.json.schema.Draft;
 import io.vertx.json.schema.JsonSchema;
@@ -102,8 +103,13 @@ public class JsonSchemaDereferencer implements ContentDereferencer {
 
     private void resolveReferences(Map<String, ContentHandle> resolvedReferences, Map<String, JsonSchema> lookups) {
         resolvedReferences.forEach((referenceName, schema) -> {
-            JsonObject resolvedSchema = JsonRef.resolve(new JsonObject(schema.content()), lookups);
-            lookups.put(referenceName, JsonSchema.of(resolvedSchema));
+            JsonPointerExternalReference externalRef = new JsonPointerExternalReference(referenceName);
+            // Note: when adding to 'lookups', strip away the "component" part of the reference, because the
+            // vertx library is going to do the lookup ONLY by the resource name, excluding the component
+            lookups.computeIfAbsent(externalRef.getResource(), (key) -> {
+                JsonObject resolvedSchema = JsonRef.resolve(new JsonObject(schema.content()), lookups);
+                return JsonSchema.of(resolvedSchema);
+            });
         });
     }
 

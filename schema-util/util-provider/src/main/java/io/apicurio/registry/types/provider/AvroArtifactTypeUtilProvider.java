@@ -69,4 +69,8 @@ public class AvroArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvid
     public ReferenceFinder getReferenceFinder() {
         return new AvroReferenceFinder();
     }
+
+    @Override
+    public boolean supportsReferencesWithContext() { return false; }
+
 }

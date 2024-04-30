@@ -48,4 +48,18 @@ public class OpenApiContentDereferencerTest extends ArtifactUtilProviderTestBase
         Assertions.assertTrue(externalReferences.contains(new JsonPointerExternalReference("https://www.example.org/schemas/foo-types.json#/components/schemas/Foo")));
     }
 
+    @Test
+    public void testDereference() {
+        ContentHandle content = resourceToContentHandle("openapi-to-deref.json");
+        OpenApiDereferencer dereferencer = new OpenApiDereferencer();
+        Map<String, ContentHandle> resolvedReferences = Map.of(
+                "http://types.example.org/all-types.json#/components/schemas/Foo", resourceToContentHandle("all-types.json"),
+                "http://types.example.org/all-types.json#/components/schemas/Bar", resourceToContentHandle("all-types.json"),
+                "http://types.example.org/address.json#/components/schemas/Address", resourceToContentHandle("address.json")
+        );
+        ContentHandle modifiedContent = dereferencer.dereference(content, resolvedReferences);
+        String expectedContent = resourceToString("expected-testDereference-openapi.json");
+        Assertions.assertEquals(normalizeMultiLineString(expectedContent), normalizeMultiLineString(modifiedContent.content()));
+    }
+
 }

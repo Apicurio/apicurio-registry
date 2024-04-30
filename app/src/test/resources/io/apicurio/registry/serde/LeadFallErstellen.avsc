@@ -1,0 +1,71 @@
+{
+  "type": "record",
+  "name": "LeadFallErstellen",
+  "namespace": "ch.mobi.lead.leadfall",
+  "doc": "Schema for the fall erstellen topic",
+  "fields": [
+    {
+      "name": "fall",
+      "type": {
+        "type": "record",
+        "name": "Fall",
+        "fields": [
+          {
+            "name": "verantwortlichkeitForFall",
+            "type": [
+              "null",
+              {
+                "type": "record",
+                "name": "Verantwortlichkeit",
+                "fields": [
+                  {
+                    "name": "benoetigteStellen",
+                    "type": {
+                      "type": "array",
+                      "items": {
+                        "type": "record",
+                        "name": "FdtCodeArt",
+                        "fields": [
+                          {
+                            "name": "art",
+                            "type": "int"
+                          },
+                          {
+                            "name": "code",
+                            "type": "int"
+                          }
+                        ]
+                      }
+                    },
+                    "default": []
+                  }
+                ]
+              }
+            ],
+            "default": null
+          }
+        ]
+      }
+    },
+    {
+      "name": "aufgaben",
+      "type": [
+        "null",
+        {
+          "type": "array",
+          "items": {
+            "type": "record",
+            "name": "Aufgabe",
+            "fields": [
+              {
+                "name": "aufgabeTyp",
+                "type": "FdtCodeArt"
+              }
+            ]
+          }
+        }
+      ],
+      "default": null
+    }
+  ]
+}

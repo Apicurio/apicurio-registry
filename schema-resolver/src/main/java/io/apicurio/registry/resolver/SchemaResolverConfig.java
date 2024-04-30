@@ -155,11 +155,11 @@ public class SchemaResolverConfig {
     public static final long RETRY_BACKOFF_MS_DEFAULT = 300;
 
     /**
-     * Used to indicate the auto-register feature to try to dereference the schema before registering it in Registry.
+     * Used to indicate the auto-register feature to try to dereference the schema before registering it in Registry. Only supported for Avro.
      * Only applicable when {@link SchemaResolverConfig#AUTO_REGISTER_ARTIFACT} is enabled.
      */
     public static final String DEREFERENCE_SCHEMA = "apicurio.registry.dereference-schema";
-    public static final boolean DEREFERENCE_SCHEMA_DEFAULT = false;
+    public static final boolean DEREFERENCE_SCHEMA_DEFAULT = true;
 
     /**
      * Used to indicate the deserializer to ask Registry to return the schema dereferenced. This is useful to reduce the number of http requests to the server.

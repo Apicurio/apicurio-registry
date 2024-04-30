@@ -517,6 +517,7 @@
                                 <import>${project.basedir}/src/test/resources/io/apicurio/registry/serde/AvroSchemaD.avsc</import>
                                 <import>${project.basedir}/src/test/resources/io/apicurio/registry/serde/AvroSchemaC.avsc</import>
                                 <import>${project.basedir}/src/test/resources/io/apicurio/registry/serde/AvroSchemaB.avsc</import>
+                                <import>${project.basedir}/src/test/resources/io/apicurio/registry/serde/LeadFallErstellen.avsc</import>
                                 <import>${project.basedir}/src/test/resources/io/apicurio/registry/ccompat/rest/subrecord.avsc</import>
                                 <import>${project.basedir}/src/test/resources/io/apicurio/registry/ccompat/rest/record.avsc</import>
                             </imports>

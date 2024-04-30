@@ -16,6 +16,7 @@
 
 package io.apicurio.registry.content.dereference;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 
@@ -46,6 +47,23 @@ public class JsonSchemaContentDereferencerTest extends ArtifactUtilProviderTestB
         Set<ExternalReference> externalReferences = finder.findExternalReferences(modifiedContent);
         Assertions.assertTrue(externalReferences.contains(new JsonPointerExternalReference("https://www.example.org/schemas/address.json")));
         Assertions.assertTrue(externalReferences.contains(new JsonPointerExternalReference("https://www.example.org/schemas/ssn.json")));
+    }
+
+    @Test
+    public void testDereference() {
+        ContentHandle content = resourceToContentHandle("json-schema-to-deref.json");
+        JsonSchemaDereferencer dereferencer = new JsonSchemaDereferencer();
+        // Note: order is important.  The JSON schema dereferencer needs to convert the ContentHandle Map
+        // to a JSONSchema map.  So it *must* resolve the leaves of the dependency tree before the branches.
+        Map<String, ContentHandle> resolvedReferences = new LinkedHashMap<>();
+        resolvedReferences.put("types/city/qualification.json", resourceToContentHandle("types/city/qualification.json"));
+        resolvedReferences.put("city/qualification.json", resourceToContentHandle("types/city/qualification.json"));
+        resolvedReferences.put("identifier/qualification.json", resourceToContentHandle("types/identifier/qualification.json"));
+        resolvedReferences.put("types/all-types.json#/definitions/City", resourceToContentHandle("types/all-types.json"));
+        resolvedReferences.put("types/all-types.json#/definitions/Identifier", resourceToContentHandle("types/all-types.json"));
+        ContentHandle modifiedContent = dereferencer.dereference(content, resolvedReferences);
+        String expectedContent = resourceToString("expected-testDereference-json.json");
+        Assertions.assertEquals(normalizeMultiLineString(expectedContent), normalizeMultiLineString(modifiedContent.content()));
     }
 
 }

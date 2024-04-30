@@ -34,7 +34,6 @@ public class ApicurioDataModelsContentDereferencer implements ContentDereference
         ReferenceInliner inliner = new ReferenceInliner(resolvedReferences);
         Library.visitTree(doc, inliner, TraverserDirection.down);
         String dereferencedContent = Library.writeDocumentToJSONString(doc);
-        System.out.println(dereferencedContent);
         return ContentHandle.create(dereferencedContent);
     }
     

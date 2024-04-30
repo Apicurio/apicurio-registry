@@ -58,10 +58,8 @@ public class OpenApiContentDereferencerTest extends ArtifactUtilProviderTestBase
                 "http://types.example.org/address.json#/components/schemas/Address", resourceToContentHandle("address.json")
         );
         ContentHandle modifiedContent = dereferencer.dereference(content, resolvedReferences);
-
-        ReferenceFinder finder = new OpenApiReferenceFinder();
-        Set<ExternalReference> externalReferences = finder.findExternalReferences(modifiedContent);
-        Assertions.assertTrue(externalReferences.isEmpty());
+        String expectedContent = resourceToString("expected-testDereference-openapi.json");
+        Assertions.assertEquals(normalizeMultiLineString(expectedContent), normalizeMultiLineString(modifiedContent.content()));
     }
 
 }

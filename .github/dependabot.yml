@@ -28,6 +28,7 @@ updates:
 
   - package-ecosystem: maven
     directory: "/"
+    target-branch: 2.5.x
     schedule:
       interval: daily
     groups:

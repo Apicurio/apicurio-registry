@@ -15,6 +15,7 @@ public class BasicAuthWithPropertiesTestProfile implements QuarkusTestProfile {
         map.put("quarkus.oidc.tenant-enabled", "false");
         map.put("quarkus.http.auth.basic", "true");
         map.put("apicurio.auth.role-based-authorization", "true");
+        map.put("apicurio.auth.owner-only-authorization", "true");
         map.put("quarkus.security.users.embedded.enabled", "true");
         map.put("quarkus.security.users.embedded.plain-text", "true");
         map.put("quarkus.security.users.embedded.users.alice", "alice");

@@ -1,5 +1,6 @@
 package io.apicurio.registry.auth;
 
+import com.microsoft.kiota.ApiException;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.*;
@@ -8,7 +9,6 @@ import io.apicurio.registry.rules.validity.ValidityLevel;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.tests.*;
 import io.kiota.http.vertx.VertXRequestAdapter;
-import io.quarkus.security.AuthenticationFailedException;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import org.junit.jupiter.api.Assertions;
@@ -63,9 +63,10 @@ public class BasicAuthWithPropertiesTest extends AbstractResourceTestBase {
         var adapter = new VertXRequestAdapter(buildSimpleAuthWebClient(UUID.randomUUID().toString(), UUID.randomUUID().toString()));
         adapter.setBaseUrl(registryV3ApiUrl);
         RegistryClient client = new RegistryClient(adapter);
-        Assertions.assertThrows(AuthenticationFailedException.class, () -> {
+        var exception = Assertions.assertThrows(ApiException.class, () -> {
             client.groups().byGroupId(groupId).artifacts().get();
         });
+        assertEquals(401, exception.getResponseStatusCode());
     }
 
     @Test
@@ -106,7 +107,7 @@ public class BasicAuthWithPropertiesTest extends AbstractResourceTestBase {
 
         UserInfo userInfo = client.users().me().get();
         assertNotNull(userInfo);
-        Assertions.assertEquals("readonly-client", userInfo.getUsername());
+        Assertions.assertEquals(READONLY_USERNAME, userInfo.getUsername());
         Assertions.assertFalse(userInfo.getAdmin());
         Assertions.assertFalse(userInfo.getDeveloper());
         Assertions.assertTrue(userInfo.getViewer());
@@ -141,7 +142,7 @@ public class BasicAuthWithPropertiesTest extends AbstractResourceTestBase {
 
             UserInfo userInfo = client.users().me().get();
             assertNotNull(userInfo);
-            Assertions.assertEquals("developer-client", userInfo.getUsername());
+            Assertions.assertEquals(DEVELOPER_USERNAME, userInfo.getUsername());
             Assertions.assertFalse(userInfo.getAdmin());
             Assertions.assertTrue(userInfo.getDeveloper());
             Assertions.assertFalse(userInfo.getViewer());
@@ -176,7 +177,7 @@ public class BasicAuthWithPropertiesTest extends AbstractResourceTestBase {
 
             UserInfo userInfo = client.users().me().get();
             assertNotNull(userInfo);
-            Assertions.assertEquals("admin-client", userInfo.getUsername());
+            Assertions.assertEquals(ADMIN_USERNAME, userInfo.getUsername());
             Assertions.assertTrue(userInfo.getAdmin());
             Assertions.assertFalse(userInfo.getDeveloper());
             Assertions.assertFalse(userInfo.getViewer());
@@ -187,7 +188,7 @@ public class BasicAuthWithPropertiesTest extends AbstractResourceTestBase {
 
     @Test
     public void testOwnerOnlyAuthorization() throws Exception {
-        var devAdapter = new VertXRequestAdapter(buildSimpleAuthWebClient(DEVELOPER_USERNAME, DEVELOPER_PASSWORD));
+        var devAdapter = new VertXRequestAdapter(buildSimpleAuthWebClient(DEVELOPER_2_USERNAME, DEVELOPER_2_PASSWORD));
         devAdapter.setBaseUrl(registryV3ApiUrl);
         RegistryClient clientDev = new RegistryClient(devAdapter);
 
@@ -341,23 +342,23 @@ public class BasicAuthWithPropertiesTest extends AbstractResourceTestBase {
         assertEquals(groupId, created.getGroupId());
         assertEquals(artifactId, created.getArtifactId());
         assertEquals(version, created.getVersion());
-        assertEquals("developer-client", created.getOwner());
+        assertEquals(DEVELOPER_USERNAME, created.getOwner());
 
         //Get the artifact owner via the REST API and verify it
         ArtifactMetaData amd = client_dev1.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get();
-        assertEquals("developer-client", amd.getOwner());
+        assertEquals(DEVELOPER_USERNAME, amd.getOwner());
 
         //Try to update the owner by dev2 (should fail)
         var exception1 = assertThrows(Exception.class, () -> {
             EditableArtifactMetaData eamd = new EditableArtifactMetaData();
-            eamd.setOwner("developer-2-client");
+            eamd.setOwner(DEVELOPER_2_USERNAME);
             client_dev2.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).put(eamd);
         });
         assertForbidden(exception1);
 
         //Should still be the original owner
         amd = client_dev1.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get();
-        assertEquals("developer-client", amd.getOwner());
+        assertEquals(DEVELOPER_USERNAME, amd.getOwner());
     }
 
 }

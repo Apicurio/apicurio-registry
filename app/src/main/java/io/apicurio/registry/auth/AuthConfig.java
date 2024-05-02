@@ -23,7 +23,11 @@ public class AuthConfig {
     @Dynamic(label = "HTTP basic authentication", description = "When selected, users are permitted to authenticate using HTTP basic authentication (in addition to OAuth).", requires = "apicurio.authn.enabled=true")
     @ConfigProperty(name = "apicurio.authn.basic-client-credentials.enabled", defaultValue = "false")
     @Info(category = "auth", description = "Enable basic auth client credentials", availableSince = "0.1.18-SNAPSHOT", registryAvailableSince = "2.1.0.Final", studioAvailableSince = "1.0.0")
-    Supplier<Boolean> basicAuthEnabled;
+    Supplier<Boolean> basicClientCredentialsAuthEnabled;
+
+    @ConfigProperty(name = "quarkus.http.auth.basic", defaultValue = "false")
+    @Info(category = "auth", description = "Enable basic auth", availableSince = "1.1.X-SNAPSHOT", registryAvailableSince = "3.X.X.Final", studioAvailableSince = "1.0.0")
+    boolean basicAuthEnabled;
 
     @ConfigProperty(name = "apicurio.auth.role-based-authorization", defaultValue = "false")
     @Info(category = "auth", description = "Enable role based authorization", availableSince = "2.1.0.Final")
@@ -128,7 +132,7 @@ public class AuthConfig {
     }
 
     public boolean isBasicAuthEnabled() {
-        return this.basicAuthEnabled.get();
+        return this.basicAuthEnabled;
     }
 
     public boolean isRbacEnabled() {

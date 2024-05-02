@@ -60,7 +60,7 @@ public class AuthorizedInterceptor {
         }
 
         // If authentication is not enabled, just do it.
-        if (!authConfig.oidcAuthEnabled && !authConfig.basicAuthEnabled.get()) {
+        if (!authConfig.oidcAuthEnabled && !authConfig.basicAuthEnabled) {
             return context.proceed();
         }
 

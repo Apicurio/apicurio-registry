@@ -77,6 +77,10 @@ public class AppAuthenticationMechanism implements HttpAuthenticationMechanism {
     @Info(category = "auth", description = "Enable basic auth client credentials", availableSince = "0.1.18-SNAPSHOT", registryAvailableSince = "2.1.0.Final", studioAvailableSince = "1.0.0")
     Supplier<Boolean> basicClientCredentialsAuthEnabled;
 
+    @ConfigProperty(name = "quarkus.http.auth.basic", defaultValue = "false")
+    @Info(category = "auth", description = "Enable basic auth", availableSince = "1.1.X-SNAPSHOT", registryAvailableSince = "3.X.X.Final", studioAvailableSince = "1.0.0")
+    boolean basicAuthEnabled;
+
     @ConfigProperty(name = "apicurio.authn.basic-client-credentials.cache-expiration", defaultValue = "10")
     @Info(category = "auth", description = "Default client credentials token expiration time.", availableSince = "0.1.18-SNAPSHOT", registryAvailableSince = "2.2.6.Final", studioAvailableSince = "1.0.0")
     Integer accessTokenExpiration;
@@ -139,10 +143,10 @@ public class AppAuthenticationMechanism implements HttpAuthenticationMechanism {
     }
 
     private HttpAuthenticationMechanism selectEnabledAuth() {
-        if (oidcAuthEnabled) {
-            return oidcAuthenticationMechanism;
-        } else if (basicClientCredentialsAuthEnabled.get()) {
+        if (basicAuthEnabled) {
             return basicAuthenticationMechanism;
+        } else if (oidcAuthEnabled) {
+            return oidcAuthenticationMechanism;
         } else {
             return null;
         }
@@ -150,7 +154,10 @@ public class AppAuthenticationMechanism implements HttpAuthenticationMechanism {
 
     @Override
     public Uni<SecurityIdentity> authenticate(RoutingContext context, IdentityProviderManager identityProviderManager) {
-        if (oidcAuthEnabled) {
+        if (basicAuthEnabled) {
+            setAuditLogger(context);
+            return basicAuthenticationMechanism.authenticate(context, identityProviderManager);
+        } else if (oidcAuthEnabled) {
             setAuditLogger(context);
             if (basicClientCredentialsAuthEnabled.get()) {
                 final Pair<String, String> clientCredentials = CredentialsHelper.extractCredentialsFromContext(context);
@@ -168,9 +175,6 @@ public class AppAuthenticationMechanism implements HttpAuthenticationMechanism {
                 //Once we're done with it in the auth layer, the context must be cleared.
                 return customAuthentication(context, identityProviderManager);
             }
-        } else if (basicClientCredentialsAuthEnabled.get()) {
-            setAuditLogger(context);
-            return basicAuthenticationMechanism.authenticate(context, identityProviderManager);
         } else {
             return Uni.createFrom().nullItem();
         }

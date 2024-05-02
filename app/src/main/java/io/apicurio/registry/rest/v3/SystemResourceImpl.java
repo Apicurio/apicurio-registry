@@ -103,7 +103,8 @@ public class SystemResourceImpl implements SystemResource {
         UserInterfaceConfigAuth rval = new UserInterfaceConfigAuth();
         rval.setObacEnabled(authConfig.isObacEnabled());
         rval.setRbacEnabled(authConfig.isRbacEnabled());
-        rval.setType(authConfig.isOidcAuthEnabled() ? UserInterfaceConfigAuth.Type.oidc : UserInterfaceConfigAuth.Type.none);
+        rval.setType(authConfig.isOidcAuthEnabled() ? UserInterfaceConfigAuth.Type.oidc :
+                authConfig.isBasicAuthEnabled() ? UserInterfaceConfigAuth.Type.basic : UserInterfaceConfigAuth.Type.none);
         if (authConfig.isOidcAuthEnabled()) {
             Map<String, String> options = new HashMap<>();
             options.put("url", uiConfig.authOidcUrl);

@@ -18,6 +18,7 @@ public class AuthConfig {
     Logger log;
 
     @ConfigProperty(name = "quarkus.oidc.tenant-enabled", defaultValue = "false")
+    @Info(category = "auth", description = "Enable auth", availableSince = "0.1.18-SNAPSHOT", registryAvailableSince = "2.0.0.Final", studioAvailableSince = "1.0.0")
     boolean oidcAuthEnabled;
 
     @Dynamic(label = "HTTP basic authentication", description = "When selected, users are permitted to authenticate using HTTP basic authentication (in addition to OAuth).", requires = "apicurio.authn.enabled=true")

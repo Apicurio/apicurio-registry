@@ -145,41 +145,4 @@
             </plugin>
         </plugins>
     </build>
-
-    <profiles>
-        <profile>
-            <id>go-sdk-generate-docker</id>
-            <activation>
-                <property>
-                    <name>!skipNonJavaGen</name>
-                </property>
-            </activation>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.codehaus.mojo</groupId>
-                        <artifactId>exec-maven-plugin</artifactId>
-                        <version>3.2.0</version>
-                        <executions>
-                            <execution>
-                                <goals>
-                                    <goal>exec</goal>
-                                </goals>
-                                <phase>generate-sources</phase>
-                            </execution>
-                        </executions>
-                        <configuration>
-                            <executable>/usr/bin/env</executable>
-                            <workingDirectory>${project.basedir}/../go-sdk</workingDirectory>
-                            <arguments>
-                                <argument>bash</argument>
-                                <argument>generate-docker.sh</argument>
-                            </arguments>
-                        </configuration>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-    </profiles>
-
 </project>

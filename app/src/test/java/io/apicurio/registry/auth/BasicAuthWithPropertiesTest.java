@@ -8,6 +8,7 @@ import io.apicurio.registry.rules.validity.ValidityLevel;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.tests.*;
 import io.kiota.http.vertx.VertXRequestAdapter;
+import io.quarkus.security.AuthenticationFailedException;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import org.junit.jupiter.api.Assertions;
@@ -62,10 +63,9 @@ public class BasicAuthWithPropertiesTest extends AbstractResourceTestBase {
         var adapter = new VertXRequestAdapter(buildSimpleAuthWebClient(UUID.randomUUID().toString(), UUID.randomUUID().toString()));
         adapter.setBaseUrl(registryV3ApiUrl);
         RegistryClient client = new RegistryClient(adapter);
-        var exception = Assertions.assertThrows(Exception.class, () -> {
+        Assertions.assertThrows(AuthenticationFailedException.class, () -> {
             client.groups().byGroupId(groupId).artifacts().get();
         });
-        assertTrue(exception.getMessage().contains("Unauthorized"));
     }
 
     @Test
@@ -253,11 +253,11 @@ public class BasicAuthWithPropertiesTest extends AbstractResourceTestBase {
         assertEquals(groupId, created.getGroupId());
         assertEquals(artifactId, created.getArtifactId());
         assertEquals(version, created.getVersion());
-        assertEquals("developer-client", created.getOwner());
+        assertEquals(DEVELOPER_USERNAME, created.getOwner());
 
         //Get the artifact owner via the REST API and verify it
         ArtifactMetaData amd = client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get();
-        assertEquals("developer-client", amd.getOwner());
+        assertEquals(DEVELOPER_USERNAME, amd.getOwner());
     }
 
     @Test
@@ -291,20 +291,20 @@ public class BasicAuthWithPropertiesTest extends AbstractResourceTestBase {
         assertEquals(groupId, created.getGroupId());
         assertEquals(artifactId, created.getArtifactId());
         assertEquals(version, created.getVersion());
-        assertEquals("developer-client", created.getOwner());
+        assertEquals(DEVELOPER_USERNAME, created.getOwner());
 
         //Get the artifact owner via the REST API and verify it
         ArtifactMetaData amd = client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get();
-        assertEquals("developer-client", amd.getOwner());
+        assertEquals(DEVELOPER_USERNAME, amd.getOwner());
 
         //Update the owner
         EditableArtifactMetaData eamd = new EditableArtifactMetaData();
-        eamd.setOwner("developer-2-client");
+        eamd.setOwner(DEVELOPER_2_USERNAME);
         client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).put(eamd);
 
         //Check that the update worked
         amd = client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get();
-        assertEquals("developer-2-client", amd.getOwner());
+        assertEquals(DEVELOPER_2_USERNAME, amd.getOwner());
     }
 
     @Test

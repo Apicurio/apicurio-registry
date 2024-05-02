@@ -30,11 +30,6 @@ public class BasicAuthWithPropertiesTestProfile implements QuarkusTestProfile {
 
     @Override
     public List<TestResourceEntry> testResources() {
-        if (!Boolean.parseBoolean(System.getProperty("cluster.tests"))) {
-            return List.of(
-                    new TestResourceEntry(JWKSMockServer.class));
-        } else {
-            return Collections.emptyList();
-        }
+        return Collections.emptyList();
     }
 }

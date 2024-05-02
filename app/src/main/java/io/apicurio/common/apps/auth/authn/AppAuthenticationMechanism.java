@@ -155,7 +155,6 @@ public class AppAuthenticationMechanism implements HttpAuthenticationMechanism {
     @Override
     public Uni<SecurityIdentity> authenticate(RoutingContext context, IdentityProviderManager identityProviderManager) {
         if (basicAuthEnabled) {
-            setAuditLogger(context);
             return basicAuthenticationMechanism.authenticate(context, identityProviderManager);
         } else if (oidcAuthEnabled) {
             setAuditLogger(context);

@@ -18,7 +18,12 @@ public class AuthConfig {
     Logger log;
 
     @ConfigProperty(name = "quarkus.oidc.tenant-enabled", defaultValue = "false")
-    boolean authenticationEnabled;
+    boolean oidcAuthEnabled;
+
+    @Dynamic(label = "HTTP basic authentication", description = "When selected, users are permitted to authenticate using HTTP basic authentication (in addition to OAuth).", requires = "apicurio.authn.enabled=true")
+    @ConfigProperty(name = "apicurio.authn.basic-client-credentials.enabled", defaultValue = "false")
+    @Info(category = "auth", description = "Enable basic auth client credentials", availableSince = "0.1.18-SNAPSHOT", registryAvailableSince = "2.1.0.Final", studioAvailableSince = "1.0.0")
+    Supplier<Boolean> basicAuthEnabled;
 
     @ConfigProperty(name = "apicurio.auth.role-based-authorization", defaultValue = "false")
     @Info(category = "auth", description = "Enable role based authorization", availableSince = "2.1.0.Final")
@@ -97,7 +102,8 @@ public class AuthConfig {
     @PostConstruct
     void onConstruct() {
         log.debug("===============================");
-        log.debug("Auth Enabled: " + authenticationEnabled);
+        log.debug("OIDC Auth Enabled: " + oidcAuthEnabled);
+        log.debug("Basic Auth Enabled: " + basicAuthEnabled);
         log.debug("Anonymous Read Access Enabled: " + anonymousReadAccessEnabled);
         log.debug("Authenticated Read Access Enabled: " + authenticatedReadAccessEnabled);
         log.debug("RBAC Enabled: " + roleBasedAuthorizationEnabled);
@@ -117,8 +123,12 @@ public class AuthConfig {
         log.debug("===============================");
     }
 
-    public boolean isAuthEnabled() {
-        return this.authenticationEnabled;
+    public boolean isOidcAuthEnabled() {
+        return this.oidcAuthEnabled;
+    }
+
+    public boolean isBasicAuthEnabled() {
+        return this.basicAuthEnabled.get();
     }
 
     public boolean isRbacEnabled() {

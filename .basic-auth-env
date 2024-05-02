@@ -3,13 +3,13 @@ quarkus.oidc.tenant-enabled=false
 
 # Enable Basic Auth
 quarkus.http.auth.basic=true
-apicurio.authn.basic-client-credentials.enabled=true
 
 # Enable Role Based Auth
 apicurio.auth.role-based-authorization=true
 
 # Enable Testing Embedded Users
-quarkus.security.users.embedded.enabled=true
+# TODO: check but should be redundant
+# quarkus.security.users.embedded.enabled=true
 quarkus.security.users.embedded.plain-text=true
 
 # Users configuration

@@ -98,7 +98,6 @@
         <module>distro</module>
         <module>docs</module>
         <module>java-sdk</module>
-        <module>go-sdk</module>
 
         <!-- modules for implementing ArtifactTypeUtilProvider -->
         <module>schema-util/common</module>
@@ -123,10 +122,10 @@
         <maven.build.timestamp.format>yyyy-MM-dd HH:mm:ss</maven.build.timestamp.format>
         <timestamp>${maven.build.timestamp}</timestamp>
 
-        <maven.compiler.source>17</maven.compiler.source>
-        <maven.compiler.target>17</maven.compiler.target>
+        <maven.compiler.source>11</maven.compiler.source>
+        <maven.compiler.target>11</maven.compiler.target>
 
-        <tar.long.file.mode>posix</tar.long.file.mode>
+        <tar.long.file.mode>gnu</tar.long.file.mode>
 
         <!-- UI Build Tools -->
         <node.version>16.17.0</node.version>
@@ -146,7 +145,7 @@
         <okio-jvm.version>3.9.0</okio-jvm.version>
         <okio.version>3.9.0</okio.version>
         <okio-fake-file-system.version>3.9.0</okio-fake-file-system.version>
-        <icu4j.version>75.1</icu4j.version>
+        <icu4j.version>74.2</icu4j.version>
         <protobuf.version>3.19.6</protobuf.version>
         <xmlsec.version>4.0.2</xmlsec.version>
         <protobuf.googleapi.types.version>2.39.0</protobuf.googleapi.types.version>
@@ -175,7 +174,7 @@
         <apicurio-data-models.version>2.0.4</apicurio-data-models.version>
 
         <!-- GraphQL -->
-        <graphql.version>22.0</graphql.version>
+        <graphql.version>21.5</graphql.version>
 
         <!-- JSON Schema Validator -->
         <org.everit.json.schema.version>1.14.4</org.everit.json.schema.version><!-- TODO unification -->
@@ -196,7 +195,7 @@
         <snakeyaml.version>2.2</snakeyaml.version>
         <guava.version>33.2.0-jre</guava.version>
         <woodstox-core.version>6.6.2</woodstox-core.version>
-        <jgit.version>6.9.0.202403050737-r</jgit.version>
+        <jgit.version>6.6.1.202309021850-r</jgit.version>
         <awaitility.version>4.2.1</awaitility.version>
 
         <!-- Kafka Connect -->
@@ -207,16 +206,16 @@
 
         <!-- Scala -->
         <version.scala-maven.plugin>4.4.0</version.scala-maven.plugin>
-        <scala.version>2.13.14</scala.version>
+        <scala.version>2.13.13</scala.version>
 
         <!-- Plugin Versions -->
         <version.compiler.plugin>3.13.0</version.compiler.plugin>
-        <version.deploy.plugin>3.1.2</version.deploy.plugin>
+        <version.deploy.plugin>3.1.1</version.deploy.plugin>
         <version.failsafe.plugin>3.2.5</version.failsafe.plugin>
         <version.javadoc.plugin>3.6.3</version.javadoc.plugin>
         <version.source.plugin>3.3.1</version.source.plugin>
         <version.surefire.plugin>3.2.5</version.surefire.plugin>
-        <version.jar.plugin>3.4.1</version.jar.plugin>
+        <version.jar.plugin>3.3.0</version.jar.plugin>
         <version.checkstyle.plugin>3.3.1</version.checkstyle.plugin>
         <version.properties.plugin>1.2.1</version.properties.plugin>
         <version.dependency.plugin>3.6.1</version.dependency.plugin>
@@ -1083,7 +1082,7 @@
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-gpg-plugin</artifactId>
-                        <version>3.2.4</version>
+                        <version>3.2.2</version>
                         <executions>
                             <execution>
                                 <id>sign-artifacts</id>

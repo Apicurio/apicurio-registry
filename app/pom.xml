@@ -55,23 +55,9 @@
             <artifactId>apicurio-common-app-components-config-index</artifactId>
         </dependency>
 
-        <!-- TO BE RESTORED -->
-        <!-- <dependency>
+        <dependency>
             <groupId>io.apicurio</groupId>
             <artifactId>apicurio-common-app-components-auth</artifactId>
-        </dependency> -->
-        <dependency>
-            <groupId>io.apicurio</groupId>
-            <artifactId>apicurio-common-app-components-util</artifactId>
-            <version>${apicurio-common-app-components.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>io.apicurio</groupId>
-            <artifactId>apicurio-common-app-components-config-definitions</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.quarkus</groupId>
-            <artifactId>quarkus-elytron-security-properties-file</artifactId>
         </dependency>
         <dependency>
             <groupId>io.apicurio</groupId>

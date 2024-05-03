@@ -1,21 +1,20 @@
 name: Integration Tests Workflow
 on:
   push:
-  # TEST IN CI
-  #   paths-ignore:
-  #     - '.gitignore'
-  #     - 'LICENSE'
-  #     - 'README*'
-  #     - 'docs/**'
-  #     - '.github/workflows/**'
-  #   branches: [main, '[1-9].[1-9].x']
-  # pull_request:
-  #   paths-ignore:
-  #     - '.gitignore'
-  #     - 'LICENSE'
-  #     - 'README*'
-  #     - 'docs/**'
-  #   branches: [main]
+    paths-ignore:
+      - '.gitignore'
+      - 'LICENSE'
+      - 'README*'
+      - 'docs/**'
+      - '.github/workflows/**'
+    branches: [main, '[1-9].[1-9].x']
+  pull_request:
+    paths-ignore:
+      - '.gitignore'
+      - 'LICENSE'
+      - 'README*'
+      - 'docs/**'
+    branches: [main]
 
 concurrency:
   # Only run once for latest commit per ref and cancel other (previous) runs.
@@ -26,8 +25,7 @@ jobs:
   prepare-integration-tests:
     name: Prepare for Integration Tests
     runs-on: ubuntu-20.04
-    # TEST IN CI
-    # if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
+    if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
     steps:
       - name: Show Actor
         run: echo ${{github.actor}}
@@ -70,8 +68,7 @@ jobs:
   prepare-ui-tests:
     name: Prepare for UI Integration Tests
     runs-on: ubuntu-20.04
-    # TEST IN CI
-    # if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
+    if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
     steps:
       - name: Show Actor
         run: echo ${{github.actor}}

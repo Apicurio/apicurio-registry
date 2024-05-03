@@ -8,7 +8,12 @@ export default defineConfig({
     plugins: [react(), tsconfigPaths()],
     server: {
         port: PORT
-    }
+    },
+    // START: To use npm link
+    // optimizeDeps: {
+    //     exclude: ['@apicurio/common-ui-components'],
+    // },
+    // END: To use npm link
     // define: {
     //     "process.platform": {}
     // }

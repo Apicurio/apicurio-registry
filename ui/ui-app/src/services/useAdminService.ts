@@ -148,7 +148,7 @@ const exportAs = async (config: ConfigService, auth: AuthService, filename: stri
     options.headers = {
         ...options.headers,
         "Accept": "application/zip"
-    }
+    };
 
     const endpoint: string = createEndpoint(baseHref, "/admin/export", {}, {
         forBrowser: true
@@ -172,7 +172,7 @@ const importFrom = async (config: ConfigService, auth: AuthService, file: string
     options.headers = {
         ...options.headers,
         "Accept": "application/zip"
-    }
+    };
     const endpoint: string = createEndpoint(baseHref, "/admin/import");
     return httpPost(endpoint, file, options,undefined, progressFunction);
 };

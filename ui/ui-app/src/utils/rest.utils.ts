@@ -1,6 +1,7 @@
 import axios, { AxiosRequestConfig } from "axios";
 import { ContentTypes } from "@models/contentTypes.model.ts";
 import { AuthService } from "@apicurio/common-ui-components";
+import { Buffer } from "buffer";
 
 const AXIOS = axios.create();
 
@@ -113,7 +114,8 @@ export async function createAuthOptions(auth: AuthService): Promise<AxiosRequest
         return createOptions(createHeaders(token));
     } else if (auth.isBasicAuthEnabled()) {
         const creds = auth.getUsernameAndPassword();
-        const headers = { "Authorization": `Basic ${Buffer.from(`${creds?.username}:${creds?.password}`, 'base64')}`};
+        const base64Credentials = Buffer.from(`${creds?.username}:${creds?.password}`, "ascii").toString("base64");
+        const headers = { "Authorization": `Basic ${base64Credentials}` };
         return createOptions(headers);
     } else {
         return Promise.resolve({});

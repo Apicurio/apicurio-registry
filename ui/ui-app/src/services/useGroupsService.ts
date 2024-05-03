@@ -2,8 +2,6 @@ import { ConfigService, useConfigService } from "@services/useConfigService.ts";
 import {
     createAuthOptions,
     createEndpoint,
-    createHeaders,
-    createOptions,
     httpDelete,
     httpGet,
     httpPostWithReturn,
@@ -71,42 +69,40 @@ export interface ClientGeneration {
 
 const createArtifact = async (config: ConfigService, auth: AuthService, data: CreateArtifactData): Promise<ArtifactMetaData> => {
     const baseHref: string = config.artifactsUrl();
-    const token: string | undefined = await auth.getToken();
     const endpoint: string = createEndpoint(baseHref, "/groups/:groupId/artifacts", { groupId: data.groupId });
     const options = await createAuthOptions(auth);
 
-    const headers: any = createHeaders(token);
     if (data.id) {
         options.headers = {
             ...options.headers,
             "X-Registry-ArtifactId": data.id
-        }
+        };
     }
     if (data.type) {
         options.headers = {
             ...options.headers,
             "X-Registry-ArtifactType": data.type
-        }
+        };
     }
     if (data.sha) {
         options.headers = {
             ...options.headers,
             "X-Registry-Hash-Algorithm": "SHA256",
             "X-Registry-Content-Hash": data.sha
-        }
+        };
     }
 
     if (data.fromURL) {
         options.headers = {
             ...options.headers,
             "Content-Type": "application/create.extended+json"
-        }
+        };
         data.content = `{ "content": "${data.fromURL}" }`;
     } else {
         options.headers = {
             ...options.headers,
             "Content-Type": contentType(data.type, data.content ? data.content : "")
-        }
+        };
     }
 
     return httpPostWithReturn<any, ArtifactMetaData>(endpoint, data.content, options);
@@ -122,12 +118,12 @@ const createArtifactVersion = async (config: ConfigService, auth: AuthService, g
         options.headers = {
             ...options.headers,
             "X-Registry-ArtifactType": data.type
-        }
+        };
     }
     options.headers = {
         ...options.headers,
         "Content-Type": contentType(data.type, data.content)
-    }
+    };
     return httpPostWithReturn<any, VersionMetaData>(endpoint, data.content, options);
 };
 
@@ -236,7 +232,7 @@ const getArtifactVersionContent = async (config: ConfigService, auth: AuthServic
     options.headers = {
         ...options.headers,
         "Accept": "*"
-    }
+    };
     options.maxContentLength = 5242880; // TODO 5MB hard-coded, make this configurable?
     options.responseType = "text";
     options.transformResponse = (data: any) => data;
@@ -263,9 +259,8 @@ const getArtifactRules = async (config: ConfigService, auth: AuthService, groupI
 
     console.info("[GroupsService] Getting the list of rules for artifact: ", groupId, artifactId);
     const baseHref: string = config.artifactsUrl();
-    const token: string | undefined = await auth.getToken();
     const endpoint: string = createEndpoint(baseHref, "/groups/:groupId/artifacts/:artifactId/rules", { groupId, artifactId });
-    const options = createOptions(createHeaders(token));
+    const options = await createAuthOptions(auth);
     return httpGet<string[]>(endpoint, options).then( ruleTypes => {
         return Promise.all(ruleTypes.map(rt => getArtifactRule(config, auth, groupId, artifactId, rt)));
     });
@@ -275,13 +270,12 @@ const getArtifactRule = async (config: ConfigService, auth: AuthService, groupId
     groupId = normalizeGroupId(groupId);
 
     const baseHref: string = config.artifactsUrl();
-    const token: string | undefined = await auth.getToken();
     const endpoint: string = createEndpoint(baseHref, "/groups/:groupId/artifacts/:artifactId/rules/:rule", {
         groupId,
         artifactId,
         rule: type
     });
-    const options = createOptions(createHeaders(token));
+    const options = await createAuthOptions(auth);
     return httpGet<Rule>(endpoint, options);
 };
 
@@ -291,13 +285,12 @@ const createArtifactRule = async (config: ConfigService, auth: AuthService, grou
     console.info("[GroupsService] Creating rule:", type);
 
     const baseHref: string = config.artifactsUrl();
-    const token: string | undefined = await auth.getToken();
     const endpoint: string = createEndpoint(baseHref, "/groups/:groupId/artifacts/:artifactId/rules", { groupId, artifactId });
     const body: Rule = {
         config: configValue,
         type
     };
-    const options = createOptions(createHeaders(token));
+    const options = await createAuthOptions(auth);
     return httpPostWithReturn(endpoint, body, options);
 };
 
@@ -306,14 +299,13 @@ const updateArtifactRule = async (config: ConfigService, auth: AuthService, grou
 
     console.info("[GroupsService] Updating rule:", type);
     const baseHref: string = config.artifactsUrl();
-    const token: string | undefined = await auth.getToken();
     const endpoint: string = createEndpoint(baseHref, "/groups/:groupId/artifacts/:artifactId/rules/:rule", {
         groupId,
         artifactId,
         "rule": type
     });
     const body: Rule = { config: configValue, type };
-    const options = createOptions(createHeaders(token));
+    const options = await createAuthOptions(auth);
     return httpPutWithReturn<Rule, Rule>(endpoint, body, options);
 };
 
@@ -322,13 +314,12 @@ const deleteArtifactRule = async (config: ConfigService, auth: AuthService, grou
 
     console.info("[GroupsService] Deleting rule:", type);
     const baseHref: string = config.artifactsUrl();
-    const token: string | undefined = await auth.getToken();
     const endpoint: string = createEndpoint(baseHref, "/groups/:groupId/artifacts/:artifactId/rules/:rule", {
         groupId,
         artifactId,
         "rule": type
     });
-    const options = createOptions(createHeaders(token));
+    const options = await createAuthOptions(auth);
     return httpDelete(endpoint, options);
 };
 
@@ -337,9 +328,8 @@ const deleteArtifact = async (config: ConfigService, auth: AuthService, groupId:
 
     console.info("[GroupsService] Deleting artifact:", groupId, artifactId);
     const baseHref: string = config.artifactsUrl();
-    const token: string | undefined = await auth.getToken();
     const endpoint: string = createEndpoint(baseHref, "/groups/:groupId/artifacts/:artifactId", { groupId, artifactId });
-    const options = createOptions(createHeaders(token));
+    const options = await createAuthOptions(auth);
     return httpDelete(endpoint, options);
 };
 

@@ -294,27 +294,27 @@ The following {registry} configuration options are available for each component 
 |
 |`1.2.3.Final`
 |Ignored liveness errors
-|`apicurio.metrics.PersistenceExceptionLivenessCheck.counterResetWindowDurationSec`
+|`apicurio.metrics.PersistenceExceptionLivenessCheck.counterResetWindowDuration.seconds`
 |`integer`
 |`60`
 |`1.0.2.Final`
 |Counter reset window duration of persistence liveness check
-|`apicurio.metrics.PersistenceExceptionLivenessCheck.disableLogging`
-|`boolean`
-|`false`
-|`2.0.0.Final`
-|Disable logging of persistence liveness check
 |`apicurio.metrics.PersistenceExceptionLivenessCheck.errorThreshold`
 |`integer`
 |`1`
 |`1.0.2.Final`
 |Error threshold of persistence liveness check
-|`apicurio.metrics.PersistenceExceptionLivenessCheck.statusResetWindowDurationSec`
+|`apicurio.metrics.PersistenceExceptionLivenessCheck.logging.disabled`
+|`boolean`
+|`false`
+|`2.0.0.Final`
+|Disable logging of persistence liveness check
+|`apicurio.metrics.PersistenceExceptionLivenessCheck.statusResetWindowDuration.seconds`
 |`integer`
 |`300`
 |`1.0.2.Final`
 |Status reset window duration of persistence liveness check
-|`apicurio.metrics.PersistenceTimeoutReadinessCheck.counterResetWindowDurationSec`
+|`apicurio.metrics.PersistenceTimeoutReadinessCheck.counterResetWindowDuration.seconds`
 |`integer`
 |`60`
 |`1.0.2.Final`
@@ -324,7 +324,7 @@ The following {registry} configuration options are available for each component 
 |`5`
 |`1.0.2.Final`
 |Error threshold of persistence readiness check
-|`apicurio.metrics.PersistenceTimeoutReadinessCheck.statusResetWindowDurationSec`
+|`apicurio.metrics.PersistenceTimeoutReadinessCheck.statusResetWindowDuration.seconds`
 |`integer`
 |`300`
 |`1.0.2.Final`
@@ -334,27 +334,27 @@ The following {registry} configuration options are available for each component 
 |`15`
 |`1.0.2.Final`
 |Timeout of persistence readiness check
-|`apicurio.metrics.ResponseErrorLivenessCheck.counterResetWindowDurationSec`
+|`apicurio.metrics.ResponseErrorLivenessCheck.counterResetWindowDuration.seconds`
 |`integer`
 |`60`
 |`1.0.2.Final`
 |Counter reset window duration of response liveness check
-|`apicurio.metrics.ResponseErrorLivenessCheck.disableLogging`
-|`boolean`
-|`false`
-|`2.0.0.Final`
-|Disable logging of response liveness check
 |`apicurio.metrics.ResponseErrorLivenessCheck.errorThreshold`
 |`integer`
 |`1`
 |`1.0.2.Final`
 |Error threshold of response liveness check
-|`apicurio.metrics.ResponseErrorLivenessCheck.statusResetWindowDurationSec`
+|`apicurio.metrics.ResponseErrorLivenessCheck.logging.disabled`
+|`boolean`
+|`false`
+|`2.0.0.Final`
+|Disable logging of response liveness check
+|`apicurio.metrics.ResponseErrorLivenessCheck.statusResetWindowDuration.seconds`
 |`integer`
 |`300`
 |`1.0.2.Final`
 |Status reset window duration of response liveness check
-|`apicurio.metrics.ResponseTimeoutReadinessCheck.counterResetWindowDurationSec`
+|`apicurio.metrics.ResponseTimeoutReadinessCheck.counterResetWindowDuration.seconds`
 |`instance<integer>`
 |`60`
 |`1.0.2.Final`
@@ -364,7 +364,7 @@ The following {registry} configuration options are available for each component 
 |`1`
 |`1.0.2.Final`
 |Error threshold of response readiness check
-|`apicurio.metrics.ResponseTimeoutReadinessCheck.statusResetWindowDurationSec`
+|`apicurio.metrics.ResponseTimeoutReadinessCheck.statusResetWindowDuration.seconds`
 |`instance<integer>`
 |`300`
 |`1.0.2.Final`
@@ -447,7 +447,7 @@ The following {registry} configuration options are available for each component 
 |`-1`
 |`2.1.0.Final`
 |Max artifact description length
-|`apicurio.limits.config.max-label-size`
+|`apicurio.limits.config.max-label-size.bytes`
 |`long`
 |`-1`
 |`2.1.0.Final`
@@ -457,12 +457,12 @@ The following {registry} configuration options are available for each component 
 |`-1`
 |`2.1.0.Final`
 |Max artifact name length
-|`apicurio.limits.config.max-property-key-size`
+|`apicurio.limits.config.max-property-key-size.bytes`
 |`long`
 |`-1`
 |`2.1.0.Final`
 |Max artifact property key size
-|`apicurio.limits.config.max-property-value-size`
+|`apicurio.limits.config.max-property-value-size.bytes`
 |`long`
 |`-1`
 |`2.1.0.Final`
@@ -472,7 +472,7 @@ The following {registry} configuration options are available for each component 
 |`-1`
 |`2.2.3.Final`
 |Max artifact requests per second
-|`apicurio.limits.config.max-schema-size-bytes`
+|`apicurio.limits.config.max-schema-size.bytes`
 |`long`
 |`-1`
 |`2.2.3.Final`
@@ -503,16 +503,16 @@ The following {registry} configuration options are available for each component 
 |Default
 |Available from
 |Description
-|`apicurio.redirects.enabled`
-|`boolean`
-|
-|`2.1.2.Final`
-|Enable redirects
 |`apicurio.redirects`
 |`map<string, string>`
 |
 |`2.1.2.Final`
 |Registry redirects
+|`apicurio.redirects.enabled`
+|`boolean`
+|
+|`2.1.2.Final`
+|Enable redirects
 |`apicurio.url.override.host`
 |`optional<string>`
 |
@@ -760,11 +760,6 @@ The following {registry} configuration options are available for each component 
 |`true`
 |`2.0.0.Final`
 |SQL init
-|`apicurio.storage.sql.kind`
-|`string`
-|`h2`
-|`3.0.0.Final`
-|Application datasource database type
 |`apicurio.storage.kind`
 |`string`
 |
@@ -775,6 +770,11 @@ The following {registry} configuration options are available for each component 
 |`false`
 |`2.5.0.Final`
 |Enable Registry storage read-only mode
+|`apicurio.storage.sql.kind`
+|`string`
+|`h2`
+|`3.0.0.Final`
+|Application datasource database type
 |`artifacts.skip.disabled.latest`
 |`boolean`
 |`true`

@@ -226,8 +226,7 @@ public class BasicAuthWithPropertiesTest extends AbstractResourceTestBase {
         Rule rule = new Rule();
         rule.setType(RuleType.COMPATIBILITY);
         rule.setConfig(CompatibilityLevel.BACKWARD.name());
-        // TODO: this returns 403 verify
-        // clientAdmin.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId2).rules().post(rule);
+        clientAdmin.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId2).rules().post(rule);
     }
 
     @Test
@@ -363,4 +362,3 @@ public class BasicAuthWithPropertiesTest extends AbstractResourceTestBase {
     }
 
 }
-

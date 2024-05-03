@@ -1,5 +1,6 @@
 import axios, { AxiosRequestConfig } from "axios";
 import { ContentTypes } from "@models/contentTypes.model.ts";
+import { AuthService } from "@apicurio/common-ui-components";
 
 const AXIOS = axios.create();
 
@@ -100,6 +101,23 @@ export function createHeaders(token: string | undefined): any {
  */
 export function createOptions(headers: { [header: string]: string }): AxiosRequestConfig {
     return { headers };
+}
+
+/**
+ * Creates the request Auth options used by the HTTP service when making API calls.
+ * @param auth
+ */
+export async function createAuthOptions(auth: AuthService): Promise<AxiosRequestConfig> {
+    if (auth.isOidcAuthEnabled()) {
+        const token: string | undefined = await auth.getToken();
+        return createOptions(createHeaders(token));
+    } else if (auth.isBasicAuthEnabled()) {
+        const creds = auth.getUsernameAndPassword();
+        const headers = { "Authorization": `Basic ${Buffer.from(`${creds?.username}:${creds?.password}`, 'base64')}`};
+        return createOptions(headers);
+    } else {
+        return Promise.resolve({});
+    }
 }
 
 

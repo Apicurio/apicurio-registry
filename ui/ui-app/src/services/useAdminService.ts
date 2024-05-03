@@ -7,9 +7,9 @@ import { DownloadRef } from "@models/downloadRef.model.ts";
 import { ConfigurationProperty } from "@models/configurationProperty.model.ts";
 import { UpdateConfigurationProperty } from "@models/updateConfigurationProperty.model.ts";
 import {
+    createAuthOptions,
     createEndpoint,
-    createHeaders,
-    createOptions, httpDelete,
+    httpDelete,
     httpGet, httpPost,
     httpPostWithReturn, httpPut,
     httpPutWithReturn
@@ -21,8 +21,7 @@ import { RoleMappingSearchResults } from "@models/roleMappingSearchResults.model
 const getArtifactTypes = async (config: ConfigService, auth: AuthService): Promise<ArtifactTypeInfo[]> => {
     console.info("[AdminService] Getting the global list of artifactTypes.");
     const baseHref: string = config.artifactsUrl();
-    const token: string | undefined = await auth.getToken();
-    const options = createOptions(createHeaders(token));
+    const options = await createAuthOptions(auth);
     const endpoint: string = createEndpoint(baseHref, "/admin/config/artifactTypes");
     return httpGet<ArtifactTypeInfo[]>(endpoint, options);
 };
@@ -30,8 +29,7 @@ const getArtifactTypes = async (config: ConfigService, auth: AuthService): Promi
 const getRules = async (config: ConfigService, auth: AuthService): Promise<Rule[]> => {
     console.info("[AdminService] Getting the global list of rules.");
     const baseHref: string = config.artifactsUrl();
-    const token: string | undefined = await auth.getToken();
-    const options = createOptions(createHeaders(token));
+    const options = await createAuthOptions(auth);
     const endpoint: string = createEndpoint(baseHref, "/admin/rules");
     return httpGet<string[]>(endpoint, options).then( ruleTypes => {
         return Promise.all(ruleTypes.map(rt => getRule(config, auth, rt)));
@@ -40,8 +38,7 @@ const getRules = async (config: ConfigService, auth: AuthService): Promise<Rule[
 
 const getRule = async (config: ConfigService, auth: AuthService, type: string): Promise<Rule> => {
     const baseHref: string = config.artifactsUrl();
-    const token: string | undefined = await auth.getToken();
-    const options = createOptions(createHeaders(token));
+    const options = await createAuthOptions(auth);
     const endpoint: string = createEndpoint(baseHref, "/admin/rules/:rule", {
         rule: type
     });
@@ -52,8 +49,7 @@ const createRule = async (config: ConfigService, auth: AuthService, type: string
     console.info("[AdminService] Creating global rule:", type);
 
     const baseHref: string = config.artifactsUrl();
-    const token: string | undefined = await auth.getToken();
-    const options = createOptions(createHeaders(token));
+    const options = await createAuthOptions(auth);
     const endpoint: string = createEndpoint(baseHref, "/admin/rules");
     const body: Rule = {
         config: configValue,
@@ -66,8 +62,7 @@ const updateRule = async (config: ConfigService, auth: AuthService, type: string
     console.info("[AdminService] Updating global rule:", type);
 
     const baseHref: string = config.artifactsUrl();
-    const token: string | undefined = await auth.getToken();
-    const options = createOptions(createHeaders(token));
+    const options = await createAuthOptions(auth);
     const endpoint: string = createEndpoint(baseHref, "/admin/rules/:rule", {
         "rule": type
     });
@@ -79,8 +74,7 @@ const deleteRule = async (config: ConfigService, auth: AuthService, type: string
     console.info("[AdminService] Deleting global rule:", type);
 
     const baseHref: string = config.artifactsUrl();
-    const token: string | undefined = await auth.getToken();
-    const options = createOptions(createHeaders(token));
+    const options = await createAuthOptions(auth);
     const endpoint: string = createEndpoint(baseHref, "/admin/rules/:rule", {
         "rule": type
     });
@@ -97,16 +91,14 @@ const getRoleMappings = async (config: ConfigService, auth: AuthService, paging:
     };
 
     const baseHref: string = config.artifactsUrl();
-    const token: string | undefined = await auth.getToken();
-    const options = createOptions(createHeaders(token));
+    const options = await createAuthOptions(auth);
     const endpoint: string = createEndpoint(baseHref, "/admin/roleMappings", {}, queryParams);
     return httpGet<RoleMappingSearchResults>(endpoint, options);
 };
 
 const getRoleMapping = async (config: ConfigService, auth: AuthService, principalId: string): Promise<RoleMapping> => {
     const baseHref: string = config.artifactsUrl();
-    const token: string | undefined = await auth.getToken();
-    const options = createOptions(createHeaders(token));
+    const options = await createAuthOptions(auth);
     const endpoint: string = createEndpoint(baseHref, "/admin/roleMappings/:principalId", {
         principalId
     });
@@ -117,8 +109,7 @@ const createRoleMapping = async (config: ConfigService, auth: AuthService, princ
     console.info("[AdminService] Creating a role mapping:", principalId, role, principalName);
 
     const baseHref: string = config.artifactsUrl();
-    const token: string | undefined = await auth.getToken();
-    const options = createOptions(createHeaders(token));
+    const options = await createAuthOptions(auth);
     const endpoint: string = createEndpoint(baseHref, "/admin/roleMappings");
     const body: RoleMapping = { principalId, role, principalName };
     return httpPost(endpoint, body, options).then(() => {
@@ -130,8 +121,7 @@ const updateRoleMapping = async (config: ConfigService, auth: AuthService, princ
     console.info("[AdminService] Updating role mapping:", principalId, role);
 
     const baseHref: string = config.artifactsUrl();
-    const token: string | undefined = await auth.getToken();
-    const options = createOptions(createHeaders(token));
+    const options = await createAuthOptions(auth);
     const endpoint: string = createEndpoint(baseHref, "/admin/roleMappings/:principalId", {
         principalId
     });
@@ -145,8 +135,7 @@ const deleteRoleMapping = async (config: ConfigService, auth: AuthService, princ
     console.info("[AdminService] Deleting role mapping for:", principalId);
 
     const baseHref: string = config.artifactsUrl();
-    const token: string | undefined = await auth.getToken();
-    const options = createOptions(createHeaders(token));
+    const options = await createAuthOptions(auth);
     const endpoint: string = createEndpoint(baseHref, "/admin/roleMappings/:principalId", {
         principalId
     });
@@ -155,10 +144,12 @@ const deleteRoleMapping = async (config: ConfigService, auth: AuthService, princ
 
 const exportAs = async (config: ConfigService, auth: AuthService, filename: string): Promise<DownloadRef> => {
     const baseHref: string = config.artifactsUrl();
-    const token: string | undefined = await auth.getToken();
-    const headers: any = createHeaders(token);
-    headers["Accept"] = "application/zip";
-    const options = createOptions(createHeaders(token));
+    const options = await createAuthOptions(auth);
+    options.headers = {
+        ...options.headers,
+        "Accept": "application/zip"
+    }
+
     const endpoint: string = createEndpoint(baseHref, "/admin/export", {}, {
         forBrowser: true
     });
@@ -177,10 +168,11 @@ const exportAs = async (config: ConfigService, auth: AuthService, filename: stri
 
 const importFrom = async (config: ConfigService, auth: AuthService, file: string | File, progressFunction: (progressEvent: any) => void): Promise<void> => {
     const baseHref: string = config.artifactsUrl();
-    const token: string | undefined = await auth.getToken();
-    const headers: any = createHeaders(token);
-    headers["Content-Type"] = "application/zip";
-    const options = createOptions(headers);
+    const options = await createAuthOptions(auth);
+    options.headers = {
+        ...options.headers,
+        "Accept": "application/zip"
+    }
     const endpoint: string = createEndpoint(baseHref, "/admin/import");
     return httpPost(endpoint, file, options,undefined, progressFunction);
 };
@@ -188,8 +180,7 @@ const importFrom = async (config: ConfigService, auth: AuthService, file: string
 const listConfigurationProperties = async (config: ConfigService, auth: AuthService): Promise<ConfigurationProperty[]> => {
     console.info("[AdminService] Getting the dynamic config properties.");
     const baseHref: string = config.artifactsUrl();
-    const token: string | undefined = await auth.getToken();
-    const options = createOptions(createHeaders(token));
+    const options = await createAuthOptions(auth);
     const endpoint: string = createEndpoint(baseHref, "/admin/config/properties");
     return httpGet<ConfigurationProperty[]>(endpoint, options);
 };
@@ -197,8 +188,7 @@ const listConfigurationProperties = async (config: ConfigService, auth: AuthServ
 const setConfigurationProperty = async (config: ConfigService, auth: AuthService, propertyName: string, newValue: string): Promise<void> => {
     console.info("[AdminService] Setting a config property: ", propertyName);
     const baseHref: string = config.artifactsUrl();
-    const token: string | undefined = await auth.getToken();
-    const options = createOptions(createHeaders(token));
+    const options = await createAuthOptions(auth);
     const endpoint: string = createEndpoint(baseHref, "/admin/config/properties/:propertyName", {
         propertyName
     });
@@ -211,8 +201,7 @@ const setConfigurationProperty = async (config: ConfigService, auth: AuthService
 const resetConfigurationProperty = async (config: ConfigService, auth: AuthService, propertyName: string): Promise<void> => {
     console.info("[AdminService] Resetting a config property: ", propertyName);
     const baseHref: string = config.artifactsUrl();
-    const token: string | undefined = await auth.getToken();
-    const options = createOptions(createHeaders(token));
+    const options = await createAuthOptions(auth);
     const endpoint: string = createEndpoint(baseHref, "/admin/config/properties/:propertyName", {
         propertyName
     });

@@ -33,7 +33,7 @@ export const IfAuth: FunctionComponent<IfAuthProps> = (props: IfAuthProps) => {
     const accept = () => {
         let rval: boolean = true;
         if (props.enabled !== undefined) {
-            rval = rval && (auth.isAuthEnabled() === props.enabled);
+            rval = rval && (auth.isOidcAuthEnabled() === props.enabled || auth.isBasicAuthEnabled() === props.enabled);
         }
         if (props.isAuthenticated !== undefined) {
             rval = rval && (isAuthenticated === props.isAuthenticated);

@@ -436,8 +436,13 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
             JSONObject msgAsJson = new JSONObject(new String(Arrays.copyOfRange(bytes, 9, bytes.length)));
             Assertions.assertEquals("CSymbol", msgAsJson.getJSONObject("schemaC").getString("symbol"));
 
-            // some impl details ...
-            waitForSchema(globalId -> restClient.getContentByGlobalId(globalId) != null, bytes);
+            waitForSchema(globalId -> {
+                try {
+                    return restClient.ids().globalIds().byGlobalId(globalId).get().readAllBytes().length > 0;
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }, bytes);
 
             AvroSchemaB ir = deserializer.deserialize(artifactId, bytes);
 

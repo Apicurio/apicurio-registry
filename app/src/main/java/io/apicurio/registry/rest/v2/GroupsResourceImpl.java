@@ -67,7 +67,6 @@ import io.apicurio.registry.rest.v2.beans.CreateGroupMetaData;
 import io.apicurio.registry.rest.v2.beans.EditableMetaData;
 import io.apicurio.registry.rest.v2.beans.GroupMetaData;
 import io.apicurio.registry.rest.v2.beans.GroupSearchResults;
-import io.apicurio.registry.rest.v2.beans.HandleReferencesType;
 import io.apicurio.registry.rest.v2.beans.IfExists;
 import io.apicurio.registry.rest.v2.beans.NewComment;
 import io.apicurio.registry.rest.v2.beans.Rule;
@@ -104,8 +103,6 @@ import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ReferenceType;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.types.VersionState;
-import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
-import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 import io.apicurio.registry.util.ArtifactIdGenerator;
 import io.apicurio.registry.util.ArtifactTypeUtil;
 import io.apicurio.registry.util.ContentTypeUtil;
@@ -155,16 +152,16 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     io.apicurio.registry.rest.v3.GroupsResourceImpl v3;
 
     /**
-     * @see io.apicurio.registry.rest.v2.GroupsResource#getLatestArtifact(java.lang.String, java.lang.String, io.apicurio.registry.rest.v2.beans.HandleReferencesType)
+     * @see io.apicurio.registry.rest.v2.GroupsResource#getLatestArtifact(java.lang.String, java.lang.String, boolean)
      */
     @Override
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
-    public Response getLatestArtifact(String groupId, String artifactId, HandleReferencesType references) {
+    public Response getLatestArtifact(String groupId, String artifactId, Boolean dereference) {
         requireParameter("groupId", groupId);
         requireParameter("artifactId", artifactId);
 
-        if (references == null) {
-            references = HandleReferencesType.PRESERVE;
+        if (dereference == null) {
+            dereference = Boolean.FALSE;
         }
 
         try {
@@ -175,7 +172,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
             MediaType contentType = factory.getArtifactMediaType(metaData.getType());
 
             ContentHandle contentToReturn = artifact.getContent();
-            contentToReturn = handleContentReferences(references, metaData.getType(), contentToReturn, artifact.getReferences());  
+            contentToReturn = handleContentReferences(dereference, metaData.getType(), contentToReturn, artifact.getReferences());
             
             Response.ResponseBuilder builder = Response.ok(contentToReturn, contentType);
             checkIfDeprecated(metaData::getState, groupId, artifactId, metaData.getVersion(), builder);
@@ -563,13 +560,13 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
      */
     @Override
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
-    public Response getArtifactVersion(String groupId, String artifactId, String version, HandleReferencesType references) {
+    public Response getArtifactVersion(String groupId, String artifactId, String version, Boolean dereference) {
         requireParameter("groupId", groupId);
         requireParameter("artifactId", artifactId);
         requireParameter("version", version);
 
-        if (references == null) {
-            references = HandleReferencesType.PRESERVE;
+        if (dereference == null) {
+            dereference = Boolean.FALSE;
         }
 
         ArtifactVersionMetaDataDto metaData = storage.getArtifactVersionMetaData(defaultGroupIdToNull(groupId), artifactId, version);
@@ -581,7 +578,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         MediaType contentType = factory.getArtifactMediaType(metaData.getType());
 
         ContentHandle contentToReturn = artifact.getContent();
-        contentToReturn = handleContentReferences(references, metaData.getType(), contentToReturn, artifact.getReferences());  
+        contentToReturn = handleContentReferences(dereference, metaData.getType(), contentToReturn, artifact.getReferences());
 
         Response.ResponseBuilder builder = Response.ok(contentToReturn, contentType);
         checkIfDeprecated(metaData::getState, groupId, artifactId, version, builder);

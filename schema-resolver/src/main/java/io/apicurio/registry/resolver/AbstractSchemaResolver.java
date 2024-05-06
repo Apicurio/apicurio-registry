@@ -20,6 +20,7 @@ import io.apicurio.registry.resolver.strategy.ArtifactReference;
 import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
 import io.apicurio.registry.resolver.utils.Utils;
 import io.apicurio.registry.rest.client.RegistryClient;
+import io.apicurio.registry.rest.client.models.HandleReferencesType;
 import io.apicurio.registry.rest.client.models.VersionMetaData;
 import io.apicurio.registry.utils.IoUtil;
 import io.kiota.http.vertx.VertXRequestAdapter;
@@ -185,7 +186,8 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
 
         InputStream rawSchema = client.ids().globalIds().byGlobalId(globalId).get(config -> {
             config.headers.add("CANONICAL", "false");
-            config.headers.add("DEREFERENCE", "true");
+            assert config.queryParameters != null;
+            config.queryParameters.references = HandleReferencesType.DEREFERENCE;
         });
 
 

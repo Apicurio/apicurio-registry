@@ -71,7 +71,7 @@ public class IdsResourceImpl extends AbstractResourceImpl implements IdsResource
         MediaType contentType = factory.getArtifactMediaType(metaData.getType());
 
         ContentHandle contentToReturn = artifact.getContent();
-        handleContentReferences(references, metaData.getType(), contentToReturn, artifact.getReferences());
+        contentToReturn = handleContentReferences(references, metaData.getType(), contentToReturn, artifact.getReferences());
 
         Response.ResponseBuilder builder = Response.ok(contentToReturn, contentType);
         checkIfDeprecated(metaData::getState, metaData.getArtifactId(), metaData.getVersion(), builder);

@@ -66,6 +66,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.Response;
+import org.slf4j.Logger;
 
 import static io.apicurio.registry.cncf.schemaregistry.impl.CNCFApiUtil.dtoToSchemaGroup;
 import static io.apicurio.registry.storage.RegistryStorage.ArtifactRetrievalBehavior.DEFAULT;
@@ -97,15 +98,20 @@ public class SchemagroupsResourceImpl implements SchemagroupsResource {
     @Inject
     ArtifactTypeUtilProviderFactory factory;
 
+    @Inject
+    Logger logger;
+
     @Override
     @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Read)
     public List<String> getGroups() {
+        logger.warn("The CNCF Schema Registry API is deprecated and will be removed in future versions");
         return storage.getGroupIds(GET_GROUPS_LIMIT);
     }
 
     @Override
     @Authorized(style=AuthorizedStyle.GroupAndArtifact, level=AuthorizedLevel.Read)
     public SchemaGroup getGroup(String groupId) {
+        logger.warn("The CNCF Schema Registry API is deprecated and will be removed in future versions");
         GroupMetaDataDto group = storage.getGroupMetaData(groupId);
         return dtoToSchemaGroup(group);
     }
@@ -113,6 +119,7 @@ public class SchemagroupsResourceImpl implements SchemagroupsResource {
     @Override
     @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Write)
     public void createGroup(String groupId, SchemaGroup data) {
+        logger.warn("The CNCF Schema Registry API is deprecated and will be removed in future versions");
         //createdOn and modifiedOn are set by the storage
         GroupMetaDataDto.GroupMetaDataDtoBuilder group = GroupMetaDataDto.builder()
                 .groupId(groupId)
@@ -142,12 +149,14 @@ public class SchemagroupsResourceImpl implements SchemagroupsResource {
     @Override
     @Authorized(style=AuthorizedStyle.GroupOnly, level=AuthorizedLevel.Write)
     public void deleteGroup(String groupId) {
+        logger.warn("The CNCF Schema Registry API is deprecated and will be removed in future versions");
         storage.deleteGroup(groupId);
     }
 
     @Override
     @Authorized(style=AuthorizedStyle.GroupOnly, level=AuthorizedLevel.Read)
     public List<String> getSchemasByGroup(String groupId) {
+        logger.warn("The CNCF Schema Registry API is deprecated and will be removed in future versions");
         verifyGroupExists(groupId);
         Set<SearchFilter> filters = new HashSet<>();
         filters.add(SearchFilter.ofGroup(groupId));
@@ -163,6 +172,7 @@ public class SchemagroupsResourceImpl implements SchemagroupsResource {
     @Override
     @Authorized(style=AuthorizedStyle.GroupOnly, level=AuthorizedLevel.Write)
     public void deleteSchemasByGroup(String groupId) {
+        logger.warn("The CNCF Schema Registry API is deprecated and will be removed in future versions");
         verifyGroupExists(groupId);
         storage.deleteArtifacts(groupId);
     }
@@ -170,6 +180,7 @@ public class SchemagroupsResourceImpl implements SchemagroupsResource {
     @Override
     @Authorized(style=AuthorizedStyle.GroupAndArtifact, level=AuthorizedLevel.Read)
     public Response getLatestSchema(String groupId, String schemaId) {
+        logger.warn("The CNCF Schema Registry API is deprecated and will be removed in future versions");
         verifyGroupExists(groupId);
         StoredArtifactDto artifact = storage.getArtifact(groupId, schemaId);
 
@@ -183,7 +194,7 @@ public class SchemagroupsResourceImpl implements SchemagroupsResource {
     @Override
     @Authorized(style=AuthorizedStyle.GroupAndArtifact, level=AuthorizedLevel.Write)
     public SchemaId createSchema(String groupId, String schemaId, InputStream data) {
-
+        logger.warn("The CNCF Schema Registry API is deprecated and will be removed in future versions");
         ContentHandle content = ContentHandle.create(data);
         if (content.bytes().length == 0) {
             throw new BadRequestException("Error: Empty content");
@@ -244,6 +255,7 @@ public class SchemagroupsResourceImpl implements SchemagroupsResource {
     @Override
     @Authorized(style=AuthorizedStyle.GroupAndArtifact, level=AuthorizedLevel.Write)
     public void deleteSchema(String groupId, String schemaId) {
+        logger.warn("The CNCF Schema Registry API is deprecated and will be removed in future versions");
         verifyGroupExists(groupId);
         storage.deleteArtifact(groupId, schemaId);
     }
@@ -251,6 +263,7 @@ public class SchemagroupsResourceImpl implements SchemagroupsResource {
     @Override
     @Authorized(style=AuthorizedStyle.GroupAndArtifact, level=AuthorizedLevel.Read)
     public List<Integer> getSchemaVersions(String groupId, String schemaId) {
+        logger.warn("The CNCF Schema Registry API is deprecated and will be removed in future versions");
         verifyGroupExists(groupId);
         return storage.getArtifactVersions(groupId, schemaId).stream()
                 .map(v -> Long.valueOf(v).intValue())
@@ -260,6 +273,7 @@ public class SchemagroupsResourceImpl implements SchemagroupsResource {
     @Override
     @Authorized(style=AuthorizedStyle.GroupAndArtifact, level=AuthorizedLevel.Read)
     public Response getSchemaVersion(String groupId, String schemaId, Integer versionNumber) {
+        logger.warn("The CNCF Schema Registry API is deprecated and will be removed in future versions");
         verifyGroupExists(groupId);
         StoredArtifactDto artifact = storage.getArtifactVersion(groupId, schemaId, VersionUtil.toString(versionNumber));
 
@@ -272,6 +286,7 @@ public class SchemagroupsResourceImpl implements SchemagroupsResource {
     @Override
     @Authorized(style=AuthorizedStyle.GroupAndArtifact, level=AuthorizedLevel.Write)
     public void deleteSchemaVersion(String groupId, String schemaId, Integer versionNumber) {
+        logger.warn("The CNCF Schema Registry API is deprecated and will be removed in future versions");
         verifyGroupExists(groupId);
         storage.deleteArtifactVersion(groupId, schemaId, VersionUtil.toString(versionNumber));
     }

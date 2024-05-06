@@ -2,6 +2,7 @@ package io.apicurio.registry.services.http;
 
 import io.apicurio.common.apps.config.Info;
 import io.apicurio.registry.ccompat.rest.error.*;
+import io.apicurio.registry.content.dereference.DereferencingNotSupportedException;
 import io.apicurio.registry.limits.LimitExceededException;
 import io.apicurio.registry.metrics.health.liveness.LivenessUtil;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
@@ -89,6 +90,7 @@ public class RegistryExceptionMapperService {
         map.put(ParametersConflictException.class, HTTP_CONFLICT);
         map.put(ReadOnlyStorageException.class, HTTP_CONFLICT);
         map.put(ReferenceExistsException.class, HTTP_UNPROCESSABLE_ENTITY);
+        map.put(DereferencingNotSupportedException.class, HTTP_BAD_REQUEST);
         map.put(RoleMappingAlreadyExistsException.class, HTTP_CONFLICT);
         map.put(RoleMappingNotFoundException.class, HTTP_NOT_FOUND);
         map.put(RuleAlreadyExistsException.class, HTTP_CONFLICT);

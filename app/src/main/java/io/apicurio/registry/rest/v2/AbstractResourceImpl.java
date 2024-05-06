@@ -19,7 +19,6 @@ import io.apicurio.common.apps.config.Info;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.dereference.ContentDereferencer;
 import io.apicurio.registry.content.refs.JsonPointerExternalReference;
-import io.apicurio.registry.rest.v2.beans.HandleReferencesType;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.types.Current;
@@ -47,28 +46,19 @@ public abstract class AbstractResourceImpl {
     String apiBaseHref;
 
     /**
-     * Handle the content references based on the value of "HandleReferencesType" - this can either mean
-     * we need to fully dereference the content, or we need to rewrite the references, or we do nothing.
-     * @param referencesType
-     * @param metaData
-     * @param artifact
+     * Handle the content references based on the value of "dereference" - this can mean
+     * we need to fully dereference the content.
+     * @param dereference
      * @param content
      */
-    protected ContentHandle handleContentReferences(HandleReferencesType referencesType, String artifactType, 
+    protected ContentHandle handleContentReferences(boolean dereference, String artifactType,
             ContentHandle content, List<ArtifactReferenceDto> references) {
         // Dereference or rewrite references
-        if (!references.isEmpty()) {
-            if (referencesType == HandleReferencesType.DEREFERENCE) {
+        if (!references.isEmpty() && dereference) {
                 ArtifactTypeUtilProvider artifactTypeProvider = factory.getArtifactTypeProvider(artifactType);
                 ContentDereferencer contentDereferencer = artifactTypeProvider.getContentDereferencer();
                 Map<String, ContentHandle> resolvedReferences = storage.resolveReferences(references);
                 content = contentDereferencer.dereference(content, resolvedReferences);
-            } else if (referencesType == HandleReferencesType.REWRITE) {
-                ArtifactTypeUtilProvider artifactTypeProvider = factory.getArtifactTypeProvider(artifactType);
-                ContentDereferencer contentDereferencer = artifactTypeProvider.getContentDereferencer();
-                Map<String, String> resolvedReferenceUrls = resolveReferenceUrls(references);
-                content = contentDereferencer.rewriteReferences(content, resolvedReferenceUrls);
-            }
         }
         return content;
     }

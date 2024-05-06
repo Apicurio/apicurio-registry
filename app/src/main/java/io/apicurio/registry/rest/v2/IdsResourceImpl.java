@@ -13,7 +13,6 @@ import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.rest.HeadersHack;
 import io.apicurio.registry.rest.v2.beans.ArtifactReference;
-import io.apicurio.registry.rest.v2.beans.HandleReferencesType;
 import io.apicurio.registry.rest.v2.shared.CommonResourceOperations;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.ContentWrapperDto;
@@ -57,14 +56,14 @@ public class IdsResourceImpl extends AbstractResourceImpl implements IdsResource
      */
     @Override
     @Authorized(style = AuthorizedStyle.GlobalId, level = AuthorizedLevel.Read)
-    public Response getContentByGlobalId(long globalId, HandleReferencesType references) {
+    public Response getContentByGlobalId(long globalId, Boolean dereference) {
         ArtifactVersionMetaDataDto metaData = storage.getArtifactVersionMetaData(globalId);
         if (ArtifactState.DISABLED.equals(metaData.getState())) {
             throw new ArtifactNotFoundException(null, String.valueOf(globalId));
         }
 
-        if (references == null) {
-            references = HandleReferencesType.PRESERVE;
+        if (dereference == null) {
+            dereference = Boolean.FALSE;
         }
 
         StoredArtifactVersionDto artifact = storage.getArtifactVersionContent(globalId);
@@ -72,7 +71,7 @@ public class IdsResourceImpl extends AbstractResourceImpl implements IdsResource
         MediaType contentType = factory.getArtifactMediaType(metaData.getType());
 
         ContentHandle contentToReturn = artifact.getContent();
-        handleContentReferences(references, metaData.getType(), contentToReturn, artifact.getReferences());
+        handleContentReferences(dereference, metaData.getType(), contentToReturn, artifact.getReferences());
 
         Response.ResponseBuilder builder = Response.ok(contentToReturn, contentType);
         checkIfDeprecated(metaData::getState, metaData.getArtifactId(), metaData.getVersion(), builder);

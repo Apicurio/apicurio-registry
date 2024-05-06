@@ -20,6 +20,7 @@ import io.apicurio.registry.resolver.strategy.ArtifactReference;
 import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
 import io.apicurio.registry.resolver.utils.Utils;
 import io.apicurio.registry.rest.client.RegistryClient;
+import io.apicurio.registry.rest.client.models.HandleReferencesType;
 import io.apicurio.registry.rest.client.models.VersionMetaData;
 import io.apicurio.registry.utils.IoUtil;
 import io.kiota.http.vertx.VertXRequestAdapter;
@@ -40,6 +41,7 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
     protected String explicitArtifactGroupId;
     protected String explicitArtifactId;
     protected String explicitArtifactVersion;
+    protected boolean deserializerDereference;
 
     protected Vertx vertx;
 
@@ -64,18 +66,21 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
             try {
                 if (authServerURL != null || tokenEndpoint != null) {
                     client = configureClientWithBearerAuthentication(config, baseUrl, authServerURL, tokenEndpoint);
-                } else {
+                }
+                else {
                     String username = config.getAuthUsername();
 
                     if (username != null) {
                         client = configureClientWithBasicAuth(config, baseUrl, username);
-                    } else {
+                    }
+                    else {
                         var adapter = new VertXRequestAdapter(this.vertx);
                         adapter.setBaseUrl(baseUrl);
                         client = new RegistryClient(adapter);
                     }
                 }
-            } catch (Exception e) {
+            }
+            catch (Exception e) {
                 throw new IllegalStateException(e);
             }
         }
@@ -108,6 +113,8 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
         if (artifactVersionOverride != null) {
             this.explicitArtifactVersion = artifactVersionOverride;
         }
+
+        this.deserializerDereference = config.deserializerDereference();
     }
 
     /**
@@ -152,62 +159,90 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
                 .version(this.explicitArtifactVersion == null ? artifactReference.getVersion() : this.explicitArtifactVersion)
                 .build();
 
-
         return artifactReference;
     }
 
     protected String resolveArtifactId(String artifactId, boolean isReference, String referenceArtifactId) {
         if (isReference) {
             return referenceArtifactId;
-        } else {
+        }
+        else {
             return this.explicitArtifactId == null ? artifactId : this.explicitArtifactId;
         }
     }
 
     protected SchemaLookupResult<S> resolveSchemaByGlobalId(long globalId) {
         return schemaCache.getByGlobalId(globalId, globalIdKey -> {
-            //TODO getContentByGlobalId have to return some minumum metadata (groupId, artifactId and version)
-            //TODO or at least add some method to the api to return the version metadata by globalId
-//            ArtifactMetaData artifactMetadata = client.getArtifactMetaData("TODO", artifactId);
-
-            InputStream rawSchema = client.ids().globalIds().byGlobalId(globalId).get(config -> {
-                config.headers.add("CANONICAL", "false");
-                config.headers.add("DEREFERENCE", "true");
-            });
-
-            //Get the artifact references
-            final List<io.apicurio.registry.rest.client.models.ArtifactReference> artifactReferences = client.ids().globalIds().byGlobalId(globalId).references().get();
-            //If there are any references for the schema being parsed, resolve them before parsing the schema
-            final Map<String, ParsedSchema<S>> resolvedReferences = resolveReferences(artifactReferences);
-
-            byte[] schema = IoUtil.toBytes(rawSchema);
-            S parsed = schemaParser.parseSchema(schema, resolvedReferences);
-
-            ParsedSchemaImpl<S> ps = new ParsedSchemaImpl<S>()
-                    .setParsedSchema(parsed)
-                    .setSchemaReferences(new ArrayList<>(resolvedReferences.values()))
-                    .setRawSchema(schema);
-
-            SchemaLookupResult.SchemaLookupResultBuilder<S> result = SchemaLookupResult.builder();
-
-            return result
-                    //FIXME it's impossible to retrieve this info with only the globalId
-//                  .groupId(null)
-//                  .artifactId(null)
-//                  .version(0)
-                    .globalId(globalIdKey)
-                    .parsedSchema(ps)
-                    .build();
+            if (deserializerDereference) {
+                return resolveSchemaDereferenced(globalIdKey);
+            }
+            else {
+                return resolveSchemaWithReferences(globalIdKey);
+            }
         });
+    }
+
+    private SchemaLookupResult<S> resolveSchemaDereferenced(long globalId) {
+
+        InputStream rawSchema = client.ids().globalIds().byGlobalId(globalId).get(config -> {
+            config.headers.add("CANONICAL", "false");
+            assert config.queryParameters != null;
+            config.queryParameters.references = HandleReferencesType.DEREFERENCE;
+        });
+
+
+        byte[] schema = IoUtil.toBytes(rawSchema);
+        S parsed = schemaParser.parseSchema(schema, Collections.emptyMap());
+
+        ParsedSchemaImpl<S> ps = new ParsedSchemaImpl<S>()
+                .setParsedSchema(parsed)
+                .setRawSchema(schema);
+
+        SchemaLookupResult.SchemaLookupResultBuilder<S> result = SchemaLookupResult.builder();
+
+        return result
+                .globalId(globalId)
+                .parsedSchema(ps)
+                .build();
+    }
+
+    private SchemaLookupResult<S> resolveSchemaWithReferences(long globalId) {
+
+        InputStream rawSchema = client.ids().globalIds().byGlobalId(globalId).get(config -> {
+            config.headers.add("CANONICAL", "false");
+        });
+
+        //Get the artifact references
+        final List<io.apicurio.registry.rest.client.models.ArtifactReference> artifactReferences = client.ids().globalIds().byGlobalId(globalId).references().get();
+        //If there are any references for the schema being parsed, resolve them before parsing the schema
+        final Map<String, ParsedSchema<S>> resolvedReferences = resolveReferences(artifactReferences);
+
+        byte[] schema = IoUtil.toBytes(rawSchema);
+        S parsed = schemaParser.parseSchema(schema, resolvedReferences);
+
+        ParsedSchemaImpl<S> ps = new ParsedSchemaImpl<S>()
+                .setParsedSchema(parsed)
+                .setSchemaReferences(new ArrayList<>(resolvedReferences.values()))
+                .setRawSchema(schema);
+
+        SchemaLookupResult.SchemaLookupResultBuilder<S> result = SchemaLookupResult.builder();
+
+        return result
+                .globalId(globalId)
+                .parsedSchema(ps)
+                .build();
     }
 
     protected Map<String, ParsedSchema<S>> resolveReferences(List<io.apicurio.registry.rest.client.models.ArtifactReference> artifactReferences) {
         Map<String, ParsedSchema<S>> resolvedReferences = new HashMap<>();
         artifactReferences.forEach(reference -> {
-            final InputStream referenceContent = client.groups().byGroupId(reference.getGroupId() == null ? "default" : reference.getGroupId()).artifacts().byArtifactId(reference.getArtifactId()).versions().byVersionExpression(reference.getVersion()).content().get();
+            final InputStream referenceContent = client.groups().byGroupId(reference.getGroupId() == null ? "default" : reference.getGroupId()).artifacts()
+                    .byArtifactId(reference.getArtifactId()).versions().byVersionExpression(reference.getVersion()).content().get();
             final List<io.apicurio.registry.rest.client.models.ArtifactReference> referenceReferences = client
                     .groups()
-                    .byGroupId(reference.getGroupId() == null ? "default" : reference.getGroupId()) // TODO verify the old logic: .pathParams(List.of(groupId == null ? "null" : groupId, artifactId, version)) GroupRequestsProvider.java
+                    .byGroupId(reference.getGroupId() == null
+                            ? "default"
+                            : reference.getGroupId()) // TODO verify the old logic: .pathParams(List.of(groupId == null ? "null" : groupId, artifactId, version)) GroupRequestsProvider.java
                     .artifacts()
                     .byArtifactId(reference.getArtifactId())
                     .versions()
@@ -219,7 +254,8 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
                 final Map<String, ParsedSchema<S>> nestedReferences = resolveReferences(referenceReferences);
                 resolvedReferences.putAll(nestedReferences);
                 resolvedReferences.put(reference.getName(), parseSchemaFromStream(reference.getName(), referenceContent, resolveReferences(referenceReferences)));
-            } else {
+            }
+            else {
                 resolvedReferences.put(reference.getName(), parseSchemaFromStream(reference.getName(), referenceContent, Collections.emptyMap()));
             }
         });
@@ -258,7 +294,8 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
         RequestAdapter auth;
         if (authServerUrl != null) {
             auth = configureAuthWithRealm(config, authServerUrl);
-        } else {
+        }
+        else {
             auth = configureAuthWithUrl(config, tokenEndpoint);
         }
         auth.setBaseUrl(registryUrl);

@@ -37,6 +37,7 @@ import io.apicurio.registry.storage.dto.StoredArtifactDto;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.util.ArtifactTypeUtil;
 import io.apicurio.registry.util.VersionUtil;
+import jakarta.inject.Inject;
 import jakarta.interceptor.Interceptors;
 import jakarta.ws.rs.BadRequestException;
 
@@ -51,6 +52,7 @@ import io.apicurio.common.apps.logging.Logged;
 import io.apicurio.common.apps.logging.audit.Audited;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
+import org.slf4j.Logger;
 
 /**
  * @author Ales Justin
@@ -60,17 +62,21 @@ import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessChe
 @Logged
 public class SubjectVersionsResourceImpl extends AbstractResource implements SubjectVersionsResource {
 
+    @Inject
+    Logger logger;
 
     @Override
     @Authorized(style=AuthorizedStyle.ArtifactOnly, level=AuthorizedLevel.Read)
     public List<Integer> listVersions(String subject) throws Exception {
-            return getStorage().getArtifactVersions(null, subject).stream().map(VersionUtil::toLong).map(getConverter()::convertUnsigned).sorted().collect(Collectors.toList());
+        logger.warn("The Confluent V6 compatibility API is deprecated and will be removed in future versions");
+        return getStorage().getArtifactVersions(null, subject).stream().map(VersionUtil::toLong).map(getConverter()::convertUnsigned).sorted().collect(Collectors.toList());
         }
 
     @Override
     @Audited(extractParameters = {"0", KEY_ARTIFACT_ID})
     @Authorized(style=AuthorizedStyle.ArtifactOnly, level=AuthorizedLevel.Write)
     public SchemaId register(String subject, SchemaInfo request) throws Exception {
+        logger.warn("The Confluent V6 compatibility API is deprecated and will be removed in future versions");
         // Check to see if this content is already registered - return the global ID of that content
         // if it exists.  If not, then register the new content.
         long sid = -1;
@@ -117,6 +123,7 @@ public class SubjectVersionsResourceImpl extends AbstractResource implements Sub
     public Schema getSchemaByVersion(
             String subject,
             String version) throws Exception {
+        logger.warn("The Confluent V6 compatibility API is deprecated and will be removed in future versions");
         return getSchema(null, subject, version, false);
     }
 
@@ -126,6 +133,7 @@ public class SubjectVersionsResourceImpl extends AbstractResource implements Sub
     public int deleteSchemaVersion(
             String subject,
             String versionString) throws Exception {
+        logger.warn("The Confluent V6 compatibility API is deprecated and will be removed in future versions");
         try {
             if (doesArtifactExist(subject, null)) {
 
@@ -154,12 +162,14 @@ public class SubjectVersionsResourceImpl extends AbstractResource implements Sub
     public String getSchemaOnly(
             String subject,
             String version) throws Exception {
+        logger.warn("The Confluent V6 compatibility API is deprecated and will be removed in future versions");
         return getSchema(null, subject, version, false).getSchema();
     }
 
     @Override
     @Authorized(style=AuthorizedStyle.ArtifactOnly, level=AuthorizedLevel.Read)
     public List<Long> getSchemasReferencedBy(String subject, String versionString) throws Exception {
+        logger.warn("The Confluent V6 compatibility API is deprecated and will be removed in future versions");
         if (getCconfig().getLegacyIdModeEnabled().get()) {
             return parseVersionString(subject, versionString, null, version -> getStorage().getGlobalIdsReferencingArtifact(null, subject, version));
         }

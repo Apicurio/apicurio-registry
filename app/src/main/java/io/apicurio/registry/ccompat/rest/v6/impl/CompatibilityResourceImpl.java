@@ -32,7 +32,9 @@ import io.apicurio.registry.rules.RuleViolationException;
 import io.apicurio.registry.rules.UnprocessableSchemaException;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 import jakarta.interceptor.Interceptors;
+import org.slf4j.Logger;
 
 import java.util.Collections;
 import java.util.List;
@@ -47,13 +49,16 @@ import java.util.List;
 @Logged
 public class CompatibilityResourceImpl extends AbstractResource implements CompatibilityResource {
 
+    @Inject
+    Logger logger;
+
     @Override
     @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Write)
     public CompatibilityCheckResponse testCompatibilityBySubjectName(
             String subject,
             String versionString,
             SchemaContent request) throws Exception {
-
+        logger.warn("The Confluent V6 compatibility API is deprecated and will be removed in future versions");
         try {
             final List<String> versions = getStorage().getArtifactVersions(null, subject);
             for (String version : versions) {

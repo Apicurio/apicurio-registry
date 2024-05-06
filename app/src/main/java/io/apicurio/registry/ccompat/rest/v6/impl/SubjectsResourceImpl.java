@@ -37,7 +37,9 @@ import io.apicurio.registry.storage.dto.SearchedArtifactDto;
 import io.apicurio.registry.storage.dto.StoredArtifactDto;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.util.VersionUtil;
+import jakarta.inject.Inject;
 import jakarta.interceptor.Interceptors;
+import org.slf4j.Logger;
 
 import java.util.List;
 import java.util.Set;
@@ -53,15 +55,20 @@ import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_ARTIFA
 @Logged
 public class SubjectsResourceImpl extends AbstractResource implements SubjectsResource {
 
+    @Inject
+    Logger logger;
+
     @Override
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
     public List<String> listSubjects() {
+        logger.warn("The Confluent V6 compatibility API is deprecated and will be removed in future versions");
         return getStorage().searchArtifacts(Set.of(SearchFilter.ofGroup(null)), OrderBy.createdOn, OrderDirection.asc, 0, getCconfig().getMaxSubjects().get()).getArtifacts().stream().filter(searchedArtifactDto -> isCcompatManagedType(searchedArtifactDto.getType()) && shouldFilterState(false, searchedArtifactDto.getState())).map(SearchedArtifactDto::getId).collect(Collectors.toList());
     }
 
     @Override
     @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Read)
     public Schema findSchemaByContent(String subject, SchemaInfo request) throws Exception {
+        logger.warn("The Confluent V6 compatibility API is deprecated and will be removed in future versions");
         if (doesArtifactExist(subject, null)) {
             try {
                 ArtifactVersionMetaDataDto amd;
@@ -85,6 +92,7 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
     @Audited(extractParameters = {"0", KEY_ARTIFACT_ID})
     @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Write)
     public List<Integer> deleteSubject(String subject) throws Exception {
+        logger.warn("The Confluent V6 compatibility API is deprecated and will be removed in future versions");
         return deleteSubjectPermanent(null, subject);
     }
 

@@ -35,7 +35,9 @@ import io.apicurio.registry.storage.dto.StoredArtifactDto;
 import io.apicurio.registry.storage.impl.sql.RegistryContentUtils;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.util.ArtifactTypeUtil;
+import jakarta.inject.Inject;
 import jakarta.interceptor.Interceptors;
+import org.slf4j.Logger;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -52,9 +54,13 @@ import static io.apicurio.registry.storage.RegistryStorage.ArtifactRetrievalBeha
 @Logged
 public class SchemasResourceImpl extends AbstractResource implements SchemasResource {
 
+    @Inject
+    Logger logger;
+
     @Override
     @Authorized(style = AuthorizedStyle.GlobalId, level = AuthorizedLevel.Read)
     public SchemaInfo getSchema(int id) {
+        logger.warn("The Confluent V6 compatibility API is deprecated and will be removed in future versions");
         ContentHandle contentHandle;
         List<ArtifactReferenceDto> references;
         if (getCconfig().getLegacyIdModeEnabled().get()) {
@@ -85,6 +91,7 @@ public class SchemasResourceImpl extends AbstractResource implements SchemasReso
     @Override
     @Authorized(style = AuthorizedStyle.GlobalId, level = AuthorizedLevel.Read)
     public List<SubjectVersion> getSubjectVersions(int id) {
+        logger.warn("The Confluent V6 compatibility API is deprecated and will be removed in future versions");
         if (getCconfig().getLegacyIdModeEnabled().get()) {
             ArtifactMetaDataDto artifactMetaData = getStorage().getArtifactMetaData(id);
             return Collections.singletonList(getConverter().convert(artifactMetaData.getId(), artifactMetaData.getVersionId()));
@@ -100,6 +107,7 @@ public class SchemasResourceImpl extends AbstractResource implements SchemasReso
     @Override
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
     public List<String> getRegisteredTypes() {
+        logger.warn("The Confluent V6 compatibility API is deprecated and will be removed in future versions");
         return Arrays.asList(ArtifactType.JSON, ArtifactType.PROTOBUF, ArtifactType.AVRO);
     }
 }

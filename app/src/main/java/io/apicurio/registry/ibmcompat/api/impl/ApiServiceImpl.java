@@ -63,6 +63,7 @@ import jakarta.inject.Inject;
 import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.container.AsyncResponse;
 import jakarta.ws.rs.core.Response;
+import org.slf4j.Logger;
 
 import static io.apicurio.registry.storage.RegistryStorage.ArtifactRetrievalBehavior.DEFAULT;
 
@@ -83,6 +84,9 @@ public class ApiServiceImpl implements ApiService {
 
     @Inject
     ArtifactIdGenerator idGenerator;
+
+    @Inject
+    Logger logger;
 
     private static final String SCHEMA_NAME_ADDITIONAL_PROPERTY = "ibmcompat-schema-name";
     private static final String SCHEMA_STATE_COMMENT_ADDITIONAL_PROPERTY = "ibmcompat-schema-state-comment";
@@ -283,6 +287,7 @@ public class ApiServiceImpl implements ApiService {
     @Override
     public List<SchemaListItem> apiSchemasGet(int page, int perPage)
     throws ArtifactNotFoundException {
+        logger.warn("The IBM Schema Registry API is deprecated and will be removed in future versions");
         // best guess ... order set, and then limit things via stream
         Set<String> ids = new TreeSet<>(storage.getArtifactIds(null));
         return ids.stream()
@@ -307,6 +312,7 @@ public class ApiServiceImpl implements ApiService {
     @Override
     public void apiSchemasPost(AsyncResponse response, NewSchema schema, boolean verify)
     throws ArtifactNotFoundException, ArtifactAlreadyExistsException {
+        logger.warn("The IBM Schema Registry API is deprecated and will be removed in future versions");
         String schemaName = schema.getName();
         final String artifactId;
         if (schemaName == null) {
@@ -338,6 +344,7 @@ public class ApiServiceImpl implements ApiService {
     @Override
     public Response apiSchemasSchemaidDelete(String schemaid)
     throws ArtifactNotFoundException {
+        logger.warn("The IBM Schema Registry API is deprecated and will be removed in future versions");
         List<String> ids = storage.deleteArtifact(null, schemaid);
         return Response.status(Response.Status.NO_CONTENT).entity(ids).build();
     }
@@ -345,6 +352,7 @@ public class ApiServiceImpl implements ApiService {
     @Override
     public SchemaInfo apiSchemasSchemaidGet(String schemaid)
     throws ArtifactNotFoundException {
+        logger.warn("The IBM Schema Registry API is deprecated and will be removed in future versions");
         SchemaInfo info = new SchemaInfo();
         populateSchemaSummary(schemaid, info);
         info.setVersions(getSchemaVersions(schemaid));
@@ -354,7 +362,7 @@ public class ApiServiceImpl implements ApiService {
     @Override
     public Response apiSchemasSchemaidPatch(String schemaid, List<SchemaModificationPatch> schemaModificationPatches)
     throws ArtifactNotFoundException {
-
+        logger.warn("The IBM Schema Registry API is deprecated and will be removed in future versions");
         ArtifactState artifactState = getPatchedArtifactState(schemaModificationPatches);
         if(artifactState != null) {
             // Modify all the artifact version states
@@ -417,6 +425,7 @@ public class ApiServiceImpl implements ApiService {
     @Override
     public void apiSchemasSchemaidVersionsPost(AsyncResponse response, String schemaid, NewSchemaVersion newSchemaVersion, boolean verify)
     throws ArtifactNotFoundException, ArtifactAlreadyExistsException {
+        logger.warn("The IBM Schema Registry API is deprecated and will be removed in future versions");
         ContentHandle body = ContentHandle.create(newSchemaVersion.getDefinition());
         rulesService.applyRules(null, schemaid, ArtifactType.AVRO, body, RuleApplicationType.UPDATE, Collections.emptyList(), Collections.emptyMap()); //FIXME:references handle artifact references
         if (verify) {
@@ -436,6 +445,7 @@ public class ApiServiceImpl implements ApiService {
     @Override
     public Response apiSchemasSchemaidVersionsVersionnumDelete(String schemaid, int versionnum)
     throws ArtifactNotFoundException {
+        logger.warn("The IBM Schema Registry API is deprecated and will be removed in future versions");
         storage.deleteArtifactVersion(null, schemaid, VersionUtil.toString(versionnum));
         return Response.status(Response.Status.NO_CONTENT).build();
     }
@@ -443,6 +453,7 @@ public class ApiServiceImpl implements ApiService {
     @Override
     public Schema apiSchemasSchemaidVersionsVersionnumGet(String schemaid, int versionnum)
     throws ArtifactNotFoundException {
+        logger.warn("The IBM Schema Registry API is deprecated and will be removed in future versions");
         Schema schema = new Schema();
         populateSchemaSummary(schemaid, schema);
         StoredArtifactDto artifact = storage.getArtifactVersion(null, schemaid, VersionUtil.toString(versionnum));
@@ -454,7 +465,7 @@ public class ApiServiceImpl implements ApiService {
     @Override
     public Response apiSchemasSchemaidVersionsVersionnumPatch(String schemaid, int versionnum, List<SchemaModificationPatch> schemaModificationPatches)
     throws ArtifactNotFoundException {
-
+        logger.warn("The IBM Schema Registry API is deprecated and will be removed in future versions");
         ArtifactState artifactState = getPatchedArtifactState(schemaModificationPatches);
         updateArtifactVersionState(schemaid, versionnum, artifactState);
 

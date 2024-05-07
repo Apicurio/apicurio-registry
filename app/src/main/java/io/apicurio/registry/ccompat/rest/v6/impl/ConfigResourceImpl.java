@@ -33,7 +33,9 @@ import io.apicurio.registry.storage.RuleNotFoundException;
 import io.apicurio.registry.storage.dto.RuleConfigurationDto;
 import io.apicurio.registry.types.RuleType;
 
+import jakarta.inject.Inject;
 import jakarta.interceptor.Interceptors;
+import org.slf4j.Logger;
 
 import java.util.Optional;
 import java.util.function.Consumer;
@@ -47,6 +49,8 @@ import java.util.function.Supplier;
 @Logged
 public class ConfigResourceImpl extends AbstractResource implements ConfigResource {
 
+    @Inject
+    Logger logger;
 
     private CompatibilityLevelParamDto getCompatibilityLevel(Supplier<String> supplyLevel) {
         try {
@@ -85,6 +89,7 @@ public class ConfigResourceImpl extends AbstractResource implements ConfigResour
     @Override
     @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
     public CompatibilityLevelParamDto getGlobalCompatibilityLevel() {
+        logger.warn("The Confluent V6 compatibility API is deprecated and will be removed in future versions");
         return getCompatibilityLevel(() -> getStorage().getGlobalRule(RuleType.COMPATIBILITY).getConfiguration());
     }
 
@@ -94,6 +99,7 @@ public class ConfigResourceImpl extends AbstractResource implements ConfigResour
     @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
     public CompatibilityLevelDto updateGlobalCompatibilityLevel(
             CompatibilityLevelDto request) {
+        logger.warn("The Confluent V6 compatibility API is deprecated and will be removed in future versions");
         updateCompatibilityLevel(request.getCompatibility(),
                 dto -> {
                     if (!doesGlobalRuleExist(RuleType.COMPATIBILITY)) {
@@ -113,6 +119,7 @@ public class ConfigResourceImpl extends AbstractResource implements ConfigResour
     public CompatibilityLevelDto updateSubjectCompatibilityLevel(
             String subject,
             CompatibilityLevelDto request) {
+        logger.warn("The Confluent V6 compatibility API is deprecated and will be removed in future versions");
         updateCompatibilityLevel(request.getCompatibility(),
                 dto -> {
                     if (!doesArtifactRuleExist(subject, RuleType.COMPATIBILITY, null)) {
@@ -134,6 +141,7 @@ public class ConfigResourceImpl extends AbstractResource implements ConfigResour
     @Override
     @Authorized(style=AuthorizedStyle.ArtifactOnly, level=AuthorizedLevel.Read)
     public CompatibilityLevelParamDto getSubjectCompatibilityLevel(String subject) {
+        logger.warn("The Confluent V6 compatibility API is deprecated and will be removed in future versions");
         return getCompatibilityLevel(() -> getStorage().getArtifactRule(null, subject, RuleType.COMPATIBILITY).getConfiguration());
     }
 }

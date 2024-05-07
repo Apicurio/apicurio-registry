@@ -695,19 +695,16 @@
                 <groupId>org.testcontainers</groupId>
                 <artifactId>redpanda</artifactId>
                 <version>${test-containers.version}</version>
-                <scope>test</scope>
             </dependency>
             <dependency>
                 <groupId>io.zonky.test</groupId>
                 <artifactId>embedded-postgres</artifactId>
                 <version>${embedded-postgres.version}</version>
-                <scope>test</scope>
             </dependency>
             <dependency>
                 <groupId>io.quarkus</groupId>
                 <artifactId>quarkus-test-common</artifactId>
                 <version>${quarkus.version}</version>
-                <scope>test</scope>
             </dependency>
             <dependency>
                 <groupId>com.github.dasniko</groupId>

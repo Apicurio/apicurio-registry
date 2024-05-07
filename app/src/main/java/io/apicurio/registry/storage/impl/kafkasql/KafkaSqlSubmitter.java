@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
+import jakarta.inject.Named;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.header.internals.RecordHeader;
 
@@ -26,6 +27,7 @@ public class KafkaSqlSubmitter {
     KafkaSqlCoordinator coordinator;
 
     @Inject
+    @Named("KafkaSqlJournalProducer")
     ProducerActions<KafkaSqlMessageKey, KafkaSqlMessage> producer;
 
     /**

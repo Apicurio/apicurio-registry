@@ -601,4 +601,6 @@ public interface SqlStatements {
 
     public String selectVersionsWithoutArtifactBranch();
 
+    public String createDataSnapshot();
+
 }

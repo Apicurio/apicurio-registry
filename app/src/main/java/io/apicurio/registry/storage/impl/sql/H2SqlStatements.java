@@ -75,4 +75,9 @@ public class H2SqlStatements extends CommonSqlStatements {
     public String upsertContentReference() {
         return "INSERT INTO content_references (contentId, groupId, artifactId, version, name) VALUES (?, ?, ?, ?, ?)";
     }
+
+    @Override
+    public String createDataSnapshot() {
+        return "BACKUP TO ?";
+    }
 }

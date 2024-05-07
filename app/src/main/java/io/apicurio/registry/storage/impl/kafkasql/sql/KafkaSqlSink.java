@@ -1,23 +1,21 @@
 package io.apicurio.registry.storage.impl.kafkasql.sql;
 
-import java.util.Optional;
-import java.util.UUID;
-
-import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.kafka.common.header.Header;
-import org.slf4j.Logger;
-
 import io.apicurio.common.apps.logging.Logged;
 import io.apicurio.registry.storage.impl.kafkasql.KafkaSqlCoordinator;
 import io.apicurio.registry.storage.impl.kafkasql.KafkaSqlMessage;
 import io.apicurio.registry.storage.impl.kafkasql.KafkaSqlMessageKey;
 import io.apicurio.registry.storage.impl.kafkasql.KafkaSqlRegistryStorage;
-import io.apicurio.registry.storage.impl.kafkasql.KafkaSqlSubmitter;
 import io.apicurio.registry.storage.impl.sql.SqlRegistryStorage;
 import io.apicurio.registry.types.RegistryException;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.context.control.ActivateRequestContext;
 import jakarta.inject.Inject;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.common.header.Header;
+import org.slf4j.Logger;
+
+import java.util.Optional;
+import java.util.UUID;
 
 @ApplicationScoped
 @Logged
@@ -31,9 +29,6 @@ public class KafkaSqlSink {
 
     @Inject
     SqlRegistryStorage sqlStore;
-
-    @Inject
-    KafkaSqlSubmitter submitter;
 
     /**
      * Called by the {@link KafkaSqlRegistryStorage} main Kafka consumer loop to process a single

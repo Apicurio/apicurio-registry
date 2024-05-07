@@ -1,6 +1,5 @@
-package io.apicurio.registry.storage.util;
+package io.apicurio.registry.utils.tests;
 
-import io.apicurio.registry.test.utils.KafkaTestContainerManager;
 import io.quarkus.test.junit.QuarkusTestProfile;
 
 import java.util.Collections;
@@ -19,7 +18,8 @@ public class KafkasqlTestProfile implements QuarkusTestProfile {
         if (!Boolean.parseBoolean(System.getProperty("cluster.tests"))) {
             return List.of(
                     new TestResourceEntry(KafkaTestContainerManager.class));
-        } else {
+        }
+        else {
             return Collections.emptyList();
         }
     }

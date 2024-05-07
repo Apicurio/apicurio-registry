@@ -864,6 +864,21 @@ public interface RegistryStorage extends DynamicConfigStorage {
      */
     void deleteArtifactBranch(GA ga, BranchId branchId);
 
+    /**
+     *  Triggers a snapshot creation of the internal database.
+     *
+     * @param snapshotLocation
+     * @throws RegistryStorageException
+     */
+    String triggerSnapshotCreation(String snapshotLocation) throws RegistryStorageException;
+
+    /**
+     *  Creates the snapshot of the internal database based on configuration.
+     *
+     * @param snapshotLocation
+     * @throws RegistryStorageException
+     */
+    String createSnapshot(String snapshotLocation) throws RegistryStorageException;
 
     enum ArtifactRetrievalBehavior {
         DEFAULT,

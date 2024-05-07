@@ -155,4 +155,9 @@ public class SQLServerSqlStatements extends CommonSqlStatements {
     public String deleteAllOrphanedContent() {
         return "DELETE FROM content WHERE NOT EXISTS (SELECT 1 FROM versions v WHERE v.contentId = contentId )";
     }
+
+    @Override
+    public String createDataSnapshot() {
+        throw new IllegalStateException("Snapshot creation is not supported for Sqlserver storage");
+    }
 }

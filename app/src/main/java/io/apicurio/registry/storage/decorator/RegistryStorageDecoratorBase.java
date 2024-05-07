@@ -326,4 +326,14 @@ public class RegistryStorageDecoratorBase extends RegistryStorageDecoratorReadOn
     public void deleteArtifactBranch(GA ga, BranchId branchId) {
         delegate.deleteArtifactBranch(ga, branchId);
     }
+
+    @Override
+    public String triggerSnapshotCreation(String snapshotLocation) throws RegistryStorageException {
+        return delegate.triggerSnapshotCreation(snapshotLocation);
+    }
+
+    @Override
+    public String createSnapshot(String snapshotLocation) throws RegistryStorageException {
+        return delegate.createSnapshot(snapshotLocation);
+    }
 }

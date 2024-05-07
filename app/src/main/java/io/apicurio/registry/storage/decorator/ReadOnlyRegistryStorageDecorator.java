@@ -414,4 +414,16 @@ public class ReadOnlyRegistryStorageDecorator extends RegistryStorageDecoratorRe
         checkReadOnly();
         delegate.deleteArtifactBranch(ga, branchId);
     }
+
+    @Override
+    public String triggerSnapshotCreation(String snapshotLocation) throws RegistryStorageException {
+        checkReadOnly();
+        return delegate.triggerSnapshotCreation(snapshotLocation);
+    }
+
+    @Override
+    public String createSnapshot(String snapshotLocation) throws RegistryStorageException {
+        checkReadOnly();
+        return delegate.createSnapshot(snapshotLocation);
+    }
 }

@@ -12,6 +12,7 @@ import io.apicurio.registry.utils.kafka.ProducerActions;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Produces;
 import jakarta.inject.Inject;
+import jakarta.inject.Named;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.ProducerConfig;
@@ -37,6 +38,21 @@ public class KafkaSqlFactory {
     String topic;
 
     @Inject
+    @ConfigProperty(name = "apicurio.kafkasql.snapshots.topic", defaultValue = "kafkasql-snapshots")
+    @Info(category = "storage", description = "Kafka sql storage topic name")
+    String snapshotsTopic;
+
+    @Inject
+    @ConfigProperty(name = "apicurio.kafkasql.snapshot.every.seconds", defaultValue = "86400s")
+    @Info(category = "storage", description = "Kafka sql journal topic snapshot every")
+    String snapshotEvery;
+
+    @Inject
+    @ConfigProperty(name = "apicurio.storage.snapshot.location", defaultValue = "86400s")
+    @Info(category = "storage", description = "Kafka sql snapshots store location")
+    String snapshotStoreLocation;
+
+    @Inject
     @RegistryProperties(value = "apicurio.kafkasql.topic")
     @Info(category = "storage", description = "Kafka sql storage topic properties")
     Properties topicProperties;
@@ -58,22 +74,22 @@ public class KafkaSqlFactory {
 
     @Inject
     @RegistryProperties(
-            value = {"apicurio.kafka.common", "apicurio.kafkasql.producer"},
-            empties = {"ssl.endpoint.identification.algorithm="}
+            value = { "apicurio.kafka.common", "apicurio.kafkasql.producer" },
+            empties = { "ssl.endpoint.identification.algorithm=" }
     )
     Properties producerProperties;
 
     @Inject
     @RegistryProperties(
-            value = {"apicurio.kafka.common", "apicurio.kafkasql.consumer"},
-            empties = {"ssl.endpoint.identification.algorithm="}
+            value = { "apicurio.kafka.common", "apicurio.kafkasql.consumer" },
+            empties = { "ssl.endpoint.identification.algorithm=" }
     )
     Properties consumerProperties;
 
     @Inject
     @RegistryProperties(
-            value = {"apicurio.kafka.common", "apicurio.kafkasql.admin"},
-            empties = {"ssl.endpoint.identification.algorithm="}
+            value = { "apicurio.kafka.common", "apicurio.kafkasql.admin" },
+            empties = { "ssl.endpoint.identification.algorithm=" }
     )
     Properties adminProperties;
 
@@ -133,6 +149,7 @@ public class KafkaSqlFactory {
     @Info(category = "storage", description = "Kafka sql storage ssl key password")
     Optional<String> keyPassword;
 
+
     @ApplicationScoped
     @Produces
     public KafkaSqlConfiguration createConfiguration() {
@@ -142,49 +159,72 @@ public class KafkaSqlFactory {
             public String bootstrapServers() {
                 return bootstrapServers;
             }
+
             @Override
             public String topic() {
                 return topic;
             }
+
+            @Override
+            public String snapshotsTopic() {
+                return snapshotsTopic;
+            }
+
+            @Override
+            public String snapshotEvery() {
+                return snapshotEvery;
+            }
+
+            @Override
+            public String snapshotLocation() {
+                return snapshotStoreLocation;
+            }
+
             @Override
             public Properties topicProperties() {
                 return topicProperties;
             }
+
             @Override
             public boolean isTopicAutoCreate() {
                 return topicAutoCreate;
             }
+
             @Override
             public Integer pollTimeout() {
                 return pollTimeout;
             }
+
             @Override
             public Integer responseTimeout() {
                 return responseTimeout;
             }
+
             @Override
             public Properties producerProperties() {
                 return producerProperties;
             }
+
             @Override
             public Properties consumerProperties() {
                 return consumerProperties;
             }
+
             @Override
             public Properties adminProperties() {
                 tryToConfigureSecurity(adminProperties);
                 return adminProperties;
             }
-
         };
     }
 
     /**
-     * Creates the Kafka producer.
+     * Creates the Kafka journal producer.
      */
     @ApplicationScoped
     @Produces
-    public ProducerActions<KafkaSqlMessageKey, KafkaSqlMessage> createKafkaProducer() {
+    @Named("KafkaSqlJournalProducer")
+    public ProducerActions<KafkaSqlMessageKey, KafkaSqlMessage> createKafkaJournalProducer() {
         Properties props = (Properties) producerProperties.clone();
 
         // Configure kafka settings
@@ -199,15 +239,16 @@ public class KafkaSqlFactory {
         // Create the Kafka producer
         KafkaSqlKeySerializer keySerializer = new KafkaSqlKeySerializer();
         KafkaSqlValueSerializer valueSerializer = new KafkaSqlValueSerializer();
-        return new AsyncProducer<KafkaSqlMessageKey, KafkaSqlMessage>(props, keySerializer, valueSerializer);
+        return new AsyncProducer<>(props, keySerializer, valueSerializer);
     }
 
     /**
-     * Creates the Kafka consumer.
+     * Creates the Kafka journal consumer.
      */
     @ApplicationScoped
     @Produces
-    public KafkaConsumer<KafkaSqlMessageKey, KafkaSqlMessage> createKafkaConsumer() {
+    @Named("KafkaSqlJournalConsumer")
+    public KafkaConsumer<KafkaSqlMessageKey, KafkaSqlMessage> createKafkaJournalConsumer() {
         Properties props = (Properties) consumerProperties.clone();
 
         props.putIfAbsent(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
@@ -221,20 +262,64 @@ public class KafkaSqlFactory {
         // Create the Kafka Consumer
         KafkaSqlKeyDeserializer keyDeserializer = new KafkaSqlKeyDeserializer();
         KafkaSqlValueDeserializer valueDeserializer = new KafkaSqlValueDeserializer();
-        KafkaConsumer<KafkaSqlMessageKey, KafkaSqlMessage> consumer = new KafkaConsumer<>(props, keyDeserializer, valueDeserializer);
-        return consumer;
+        return new KafkaConsumer<>(props, keyDeserializer, valueDeserializer);
+    }
+
+    /**
+     * Creates the Kafka data producer.
+     */
+    @ApplicationScoped
+    @Produces
+    @Named("KafkaSqlSnapshotsProducer")
+    public ProducerActions<KafkaSqlMessageKey, KafkaSqlMessage> createKafkaSnapshotsProducer() {
+        Properties props = (Properties) producerProperties.clone();
+
+        // Configure kafka settings
+        props.putIfAbsent(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
+        props.putIfAbsent(ProducerConfig.CLIENT_ID_CONFIG, "Producer-" + UUID.randomUUID().toString());
+        props.putIfAbsent(ProducerConfig.ACKS_CONFIG, "all");
+        props.putIfAbsent(ProducerConfig.LINGER_MS_CONFIG, 10);
+        props.putIfAbsent(ProducerConfig.PARTITIONER_CLASS_CONFIG, KafkaSqlPartitioner.class);
+
+        tryToConfigureSecurity(props);
+
+        // Create the Kafka producer
+        KafkaSqlKeySerializer keySerializer = new KafkaSqlKeySerializer();
+        KafkaSqlValueSerializer valueSerializer = new KafkaSqlValueSerializer();
+        return new AsyncProducer<>(props, keySerializer, valueSerializer);
+    }
+
+    /**
+     * Creates the Kafka journal consumer.
+     */
+    @ApplicationScoped
+    @Produces
+    @Named("KafkaSqlSnapshotsConsumer")
+    public KafkaConsumer<KafkaSqlMessageKey, KafkaSqlMessage> createKafkaSnapshotsConsumer() {
+        Properties props = (Properties) consumerProperties.clone();
+
+        props.putIfAbsent(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
+        props.putIfAbsent(ConsumerConfig.GROUP_ID_CONFIG, UUID.randomUUID().toString());
+        props.putIfAbsent(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "true");
+        props.putIfAbsent(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, "1000");
+        props.putIfAbsent(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+
+        tryToConfigureSecurity(props);
+
+        // Create the Kafka Consumer
+        KafkaSqlKeyDeserializer keyDeserializer = new KafkaSqlKeyDeserializer();
+        KafkaSqlValueDeserializer valueDeserializer = new KafkaSqlValueDeserializer();
+        return new KafkaConsumer<>(props, keyDeserializer, valueDeserializer);
     }
 
     private void tryToConfigureSecurity(Properties props) {
-        if (protocol.isPresent()) {
-            props.putIfAbsent("security.protocol", protocol.get());
-        }
+        protocol.ifPresent(s -> props.putIfAbsent("security.protocol", s));
 
         //Try to configure sasl for authentication
         if (saslEnabled) {
             props.putIfAbsent(SaslConfigs.SASL_JAAS_CONFIG, String.format("org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required " +
-                    "  oauth.client.id=\"%s\" "+
-                    "  oauth.client.secret=\"%s\" "+
+                    "  oauth.client.id=\"%s\" " +
+                    "  oauth.client.secret=\"%s\" " +
                     "  oauth.token.endpoint.uri=\"%s\" ;", clientId, clientSecret, tokenEndpoint));
             props.putIfAbsent(SaslConfigs.SASL_MECHANISM, saslMechanism);
             props.putIfAbsent(SaslConfigs.SASL_LOGIN_CALLBACK_HANDLER_CLASS, loginCallbackHandler);

@@ -498,4 +498,14 @@ public class GitOpsRegistryStorage extends AbstractReadOnlyRegistryStorage {
     public List<GAV> getArtifactBranch(GA ga, BranchId branchId, ArtifactRetrievalBehavior behavior) {
         return proxy(storage -> storage.getArtifactBranch(ga, branchId, behavior));
     }
+
+    @Override
+    public String triggerSnapshotCreation(String snapshotLocation) throws RegistryStorageException {
+        return proxy((storage -> storage.triggerSnapshotCreation(snapshotLocation)));
+    }
+
+    @Override
+    public String createSnapshot(String snapshotLocation) throws RegistryStorageException {
+        return proxy((storage -> storage.createSnapshot(snapshotLocation)));
+    }
 }

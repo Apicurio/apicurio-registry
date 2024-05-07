@@ -13,10 +13,15 @@ import io.apicurio.registry.model.VersionId;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.StorageEvent;
 import io.apicurio.registry.storage.StorageEventType;
-import io.apicurio.registry.storage.VersionStateExt;
 import io.apicurio.registry.storage.decorator.RegistryStorageDecoratorReadOnlyBase;
 import io.apicurio.registry.storage.dto.*;
-import io.apicurio.registry.storage.error.*;
+import io.apicurio.registry.storage.error.ArtifactNotFoundException;
+import io.apicurio.registry.storage.error.GroupAlreadyExistsException;
+import io.apicurio.registry.storage.error.GroupNotFoundException;
+import io.apicurio.registry.storage.error.RegistryStorageException;
+import io.apicurio.registry.storage.error.RuleAlreadyExistsException;
+import io.apicurio.registry.storage.error.RuleNotFoundException;
+import io.apicurio.registry.storage.error.VersionNotFoundException;
 import io.apicurio.registry.storage.impexp.EntityInputStream;
 import io.apicurio.registry.storage.impl.kafkasql.messages.*;
 import io.apicurio.registry.storage.impl.kafkasql.sql.KafkaSqlSink;
@@ -26,13 +31,19 @@ import io.apicurio.registry.storage.importing.DataImporter;
 import io.apicurio.registry.storage.importing.SqlDataImporter;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.ConcurrentUtil;
-import io.apicurio.registry.utils.impexp.*;
+import io.apicurio.registry.utils.impexp.ArtifactBranchEntity;
+import io.apicurio.registry.utils.impexp.ArtifactRuleEntity;
+import io.apicurio.registry.utils.impexp.ArtifactVersionEntity;
+import io.apicurio.registry.utils.impexp.CommentEntity;
+import io.apicurio.registry.utils.impexp.ContentEntity;
+import io.apicurio.registry.utils.impexp.GlobalRuleEntity;
+import io.apicurio.registry.utils.impexp.GroupEntity;
 import io.apicurio.registry.utils.kafka.KafkaUtil;
-import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.annotation.PreDestroy;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Event;
 import jakarta.inject.Inject;
+import jakarta.inject.Named;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -41,7 +52,15 @@ import org.apache.kafka.common.errors.TopicExistsException;
 import org.slf4j.Logger;
 
 import java.time.Duration;
-import java.util.*;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
@@ -75,16 +94,11 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
     RegistryStorageContentUtils utils;
 
     @Inject
+    @Named("KafkaSqlJournalConsumer")
     KafkaConsumer<KafkaSqlMessageKey, KafkaSqlMessage> consumer;
 
     @Inject
     KafkaSqlSubmitter submitter;
-
-    @Inject
-    SecurityIdentity securityIdentity;
-
-    @Inject
-    VersionStateExt versionStateEx;
 
     @Inject
     Event<StorageEvent> storageEvent;
@@ -721,5 +735,16 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
         var uuid = ConcurrentUtil.get(submitter.submitMessage(message));
         coordinator.waitForResponse(uuid);
     }
-    
+
+    @Override
+    public String triggerSnapshotCreation(String snapshotLocation) throws RegistryStorageException {
+        var message = new CreateSnapshot1Message(snapshotLocation);
+        var uuid = ConcurrentUtil.get(submitter.submitMessage(message));
+        return (String) coordinator.waitForResponse(uuid);
+    }
+
+    @Override
+    public String createSnapshot(String snapshotLocation) throws RegistryStorageException {
+        throw new IllegalStateException("Directly creation a snapshot is not supported in Kafkasql");
+    }
 }

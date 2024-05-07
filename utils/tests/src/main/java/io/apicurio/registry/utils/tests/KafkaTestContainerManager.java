@@ -1,4 +1,4 @@
-package io.apicurio.registry.test.utils;
+package io.apicurio.registry.utils.tests;
 
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
 import org.slf4j.Logger;

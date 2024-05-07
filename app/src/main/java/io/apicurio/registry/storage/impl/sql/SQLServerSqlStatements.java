@@ -55,8 +55,8 @@ public class SQLServerSqlStatements extends CommonSqlStatements {
                 "USING (VALUES (?, ?, ?, ?, ?)) AS source (contentId, canonicalHash, contentHash, content, refs)",
                 "ON (target.contentHash = source.contentHash)",
                 "WHEN NOT MATCHED THEN",
-                    "INSERT (contentId, canonicalHash, contentHash, content, refs)",
-                    "VALUES (source.contentId, source.canonicalHash, source.contentHash, source.content, source.refs);");
+                "INSERT (contentId, canonicalHash, contentHash, content, refs)",
+                "VALUES (source.contentId, source.canonicalHash, source.contentHash, source.content, source.refs);");
     }
 
     /**
@@ -69,10 +69,10 @@ public class SQLServerSqlStatements extends CommonSqlStatements {
                 "USING (VALUES  (?)) AS source (seqName)",
                 "ON (target.seqName = source.seqName)",
                 "WHEN MATCHED THEN",
-                    "UPDATE SET seqValue = target.seqValue + 1",
+                "UPDATE SET seqValue = target.seqValue + 1",
                 "WHEN NOT MATCHED THEN",
-                    "INSERT (seqName, seqValue)",
-                    "VALUES (source.seqName, 1)",
+                "INSERT (seqName, seqValue)",
+                "VALUES (source.seqName, 1)",
                 "OUTPUT INSERTED.seqValue;");
     }
 
@@ -86,10 +86,10 @@ public class SQLServerSqlStatements extends CommonSqlStatements {
                 "USING (VALUES (?, ?)) AS source (seqName, seqValue)",
                 "ON (target.seqName = source.seqName)",
                 "WHEN MATCHED THEN",
-                    "UPDATE SET seqValue = ?",
+                "UPDATE SET seqValue = ?",
                 "WHEN NOT MATCHED THEN",
-                    "INSERT (seqName, seqValue)",
-                    "VALUES (source.seqName, source.seqValue)",
+                "INSERT (seqName, seqValue)",
+                "VALUES (source.seqName, source.seqValue)",
                 "OUTPUT INSERTED.seqValue;");
     }
 
@@ -136,7 +136,6 @@ public class SQLServerSqlStatements extends CommonSqlStatements {
                 + "ORDER BY groupId ASC";
     }
 
-
     @Override
     public String selectArtifactBranchTip() {
         return "SELECT ab.groupId, ab.artifactId, ab.version FROM artifact_branches ab " +
@@ -144,12 +143,16 @@ public class SQLServerSqlStatements extends CommonSqlStatements {
                 "ORDER BY ab.branchOrder DESC OFFSET 0 ROWS FETCH NEXT 1 ROWS ONLY";
     }
 
-
     @Override
     public String selectArtifactBranchTipNotDisabled() {
         return "SELECT ab.groupId, ab.artifactId, ab.version FROM artifact_branches ab " +
                 "JOIN versions v ON ab.groupId = v.groupId AND ab.artifactId = v.artifactId AND ab.version = v.version " +
                 "WHERE ab.groupId = ? AND ab.artifactId = ? AND ab.branchId = ? AND v.state != 'DISABLED' " +
                 "ORDER BY ab.branchOrder DESC OFFSET 0 ROWS FETCH NEXT 1 ROWS ONLY";
+    }
+
+    @Override
+    public String deleteAllOrphanedContent() {
+        return "DELETE FROM content WHERE NOT EXISTS (SELECT 1 FROM versions v WHERE v.contentId = contentId )";
     }
 }

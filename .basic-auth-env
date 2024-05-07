@@ -13,15 +13,11 @@ apicurio.auth.role-based-authorization=true
 quarkus.security.users.embedded.plain-text=true
 
 # Users configuration
-# Alice: "Authorization: Basic YWxpY2U6YWxpY2U="
-quarkus.security.users.embedded.users.alice=alice
-# Bob: "Authorization: Basic Ym9iOmJvYg=="
-# example:
-# curl -H "Authorization: Basic $(echo -n "alice:alice" | base64)" http://localhost:8080/apis/registry/v2/admin/rules -v
-quarkus.security.users.embedded.users.bob=bob
+quarkus.security.users.embedded.users.admin=admin
 quarkus.security.users.embedded.roles.alice=sr-admin
-quarkus.security.users.embedded.roles.bob=user
-
-
-# Debugging
-quarkus.log.level=DEBUG
+# example:
+# curl -H "Authorization: Basic $(echo -n "admin:admin" | base64)" http://localhost:8080/apis/registry/v2/admin/rules -v
+quarkus.security.users.embedded.users.developer=developer
+quarkus.security.users.embedded.roles.bob=sr-developer
+quarkus.security.users.embedded.users.readonly=readonly
+quarkus.security.users.embedded.roles.readonly=sr-readonly

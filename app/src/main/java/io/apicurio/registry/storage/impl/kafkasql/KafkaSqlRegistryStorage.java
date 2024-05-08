@@ -46,21 +46,16 @@ import jakarta.inject.Inject;
 import jakarta.inject.Named;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.kafka.clients.CommonClientConfigs;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.errors.TopicExistsException;
 import org.slf4j.Logger;
 
+import java.net.URI;
+import java.nio.file.Path;
 import java.time.Duration;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -95,7 +90,11 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
 
     @Inject
     @Named("KafkaSqlJournalConsumer")
-    KafkaConsumer<KafkaSqlMessageKey, KafkaSqlMessage> consumer;
+    KafkaConsumer<KafkaSqlMessageKey, KafkaSqlMessage> journalConsumer;
+
+    @Inject
+    @Named("KafkaSqlSnapshotsConsumer")
+    KafkaConsumer<String, String> snapshotsConsumer;
 
     @Inject
     KafkaSqlSubmitter submitter;
@@ -105,7 +104,6 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
 
     private volatile boolean bootstrapped = false;
     private volatile boolean stopped = true;
-
 
     @Override
     public String storageName() {
@@ -127,7 +125,8 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
 
         //Once the SQL storage has been initialized, start the Kafka consumer thread.
         log.info("SQL store initialized, starting consumer thread.");
-        startConsumerThread(consumer);
+        consumeSnapshotsTopic(snapshotsConsumer);
+        startConsumerThread(journalConsumer);
     }
 
     @Override
@@ -135,37 +134,58 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
         return bootstrapped;
     }
 
-
     @Override
     public boolean isAlive() {
         // TODO: Include readiness of Kafka consumers and producers? What happens if Kafka stops responding?
         return bootstrapped && !stopped;
     }
 
-
     @PreDestroy
     void onDestroy() {
         stopped = true;
     }
 
-
     /**
      * Automatically create the Kafka topics.
      */
     private void autoCreateTopics() {
-        Set<String> topicNames = new LinkedHashSet<>();
-        topicNames.add(configuration.topic());
+        Set<String> topicNames = Set.of(configuration.topic(), configuration.snapshotsTopic());
         Map<String, String> topicProperties = new HashMap<>();
         configuration.topicProperties().forEach((key, value) -> topicProperties.put(key.toString(), value.toString()));
         Properties adminProperties = configuration.adminProperties();
         adminProperties.putIfAbsent(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, configuration.bootstrapServers());
         try {
             KafkaUtil.createTopics(adminProperties, topicNames, topicProperties);
-        } catch (TopicExistsException e) {
+        }
+        catch (TopicExistsException e) {
             log.info("Topic {} already exists, skipping.", configuration.topic());
         }
     }
 
+    /**
+     * Start the KSQL Kafka consumer thread which is responsible for subscribing to the kafka topic,
+     * consuming JournalRecord entries found on that topic, and applying those journal entries to
+     * the internal data model.
+     */
+    private void consumeSnapshotsTopic(KafkaConsumer<String, String> snapshotsConsumer) {
+        // Subscribe to the snapshots topic
+        Collection<String> topics = Collections.singleton(configuration.snapshotsTopic());
+        snapshotsConsumer.subscribe(topics);
+        final ConsumerRecords<String, String> records = snapshotsConsumer.poll(Duration.ofMillis(configuration.pollTimeout()));
+        final List<ConsumerRecord<String, String>> snapshots = new ArrayList<>();
+        if (records != null && !records.isEmpty()) {
+            //collect all snapshots into a list
+            records.forEach(snapshots::add);
+
+            //sort snapshots by timestamp
+            snapshots.sort(Comparator.comparingLong(ConsumerRecord::timestamp));
+
+            for (ConsumerRecord<String, String> snapshotRecord: snapshots) {
+                //Restore database from snapshot
+                Path path = Path.of(URI.create(snapshotRecord.value()));
+            }
+        }
+    }
 
     /**
      * Start the KSQL Kafka consumer thread which is responsible for subscribing to the kafka topic,

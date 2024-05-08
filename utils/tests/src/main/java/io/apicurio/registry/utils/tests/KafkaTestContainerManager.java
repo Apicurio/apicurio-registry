@@ -16,6 +16,11 @@ public class KafkaTestContainerManager implements QuarkusTestResourceLifecycleMa
     private StrimziKafkaContainer kafka;
 
     @Override
+    public int order() {
+        return 10000;
+    }
+
+    @Override
     public Map<String, String> start() {
         if (!Boolean.parseBoolean(System.getProperty("cluster.tests"))) {
 
@@ -30,6 +35,7 @@ public class KafkaTestContainerManager implements QuarkusTestResourceLifecycleMa
 
             String externalBootstrapServers = kafka.getBootstrapServers();
 
+            System.setProperty("bootstrap.servers.external", externalBootstrapServers);
 
             return Map.of(
                     "bootstrap.servers", externalBootstrapServers,

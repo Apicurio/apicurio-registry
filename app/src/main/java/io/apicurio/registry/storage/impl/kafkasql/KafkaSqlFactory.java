@@ -18,6 +18,8 @@ import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.config.SaslConfigs;
 import org.apache.kafka.common.config.SslConfigs;
+import org.apache.kafka.common.serialization.StringDeserializer;
+import org.apache.kafka.common.serialization.StringSerializer;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import java.util.Optional;
@@ -149,7 +151,6 @@ public class KafkaSqlFactory {
     @Info(category = "storage", description = "Kafka sql storage ssl key password")
     Optional<String> keyPassword;
 
-
     @ApplicationScoped
     @Produces
     public KafkaSqlConfiguration createConfiguration() {
@@ -271,7 +272,7 @@ public class KafkaSqlFactory {
     @ApplicationScoped
     @Produces
     @Named("KafkaSqlSnapshotsProducer")
-    public ProducerActions<KafkaSqlMessageKey, KafkaSqlMessage> createKafkaSnapshotsProducer() {
+    public ProducerActions<String, String> createKafkaSnapshotsProducer() {
         Properties props = (Properties) producerProperties.clone();
 
         // Configure kafka settings
@@ -284,8 +285,10 @@ public class KafkaSqlFactory {
         tryToConfigureSecurity(props);
 
         // Create the Kafka producer
-        KafkaSqlKeySerializer keySerializer = new KafkaSqlKeySerializer();
-        KafkaSqlValueSerializer valueSerializer = new KafkaSqlValueSerializer();
+        StringSerializer keySerializer = new StringSerializer();
+        StringSerializer valueSerializer = new StringSerializer();
+
+        // Create the Kafka Consumer
         return new AsyncProducer<>(props, keySerializer, valueSerializer);
     }
 
@@ -295,7 +298,7 @@ public class KafkaSqlFactory {
     @ApplicationScoped
     @Produces
     @Named("KafkaSqlSnapshotsConsumer")
-    public KafkaConsumer<KafkaSqlMessageKey, KafkaSqlMessage> createKafkaSnapshotsConsumer() {
+    public KafkaConsumer<String, String> createKafkaSnapshotsConsumer() {
         Properties props = (Properties) consumerProperties.clone();
 
         props.putIfAbsent(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
@@ -306,10 +309,11 @@ public class KafkaSqlFactory {
 
         tryToConfigureSecurity(props);
 
+        StringDeserializer keySerializer = new StringDeserializer();
+        StringDeserializer valueSerializer = new StringDeserializer();
+
         // Create the Kafka Consumer
-        KafkaSqlKeyDeserializer keyDeserializer = new KafkaSqlKeyDeserializer();
-        KafkaSqlValueDeserializer valueDeserializer = new KafkaSqlValueDeserializer();
-        return new KafkaConsumer<>(props, keyDeserializer, valueDeserializer);
+        return new KafkaConsumer<>(props, keySerializer, valueSerializer);
     }
 
     private void tryToConfigureSecurity(Properties props) {

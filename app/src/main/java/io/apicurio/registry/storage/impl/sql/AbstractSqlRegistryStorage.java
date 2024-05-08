@@ -3401,9 +3401,8 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     public String createSnapshot(String location) throws RegistryStorageException {
         handles.withHandleNoException(handle -> {
             try {
-                handle.createUpdate(sqlStatements.createDataSnapshot())
-                        .bind(0, location)
-                        .execute();
+                handle.createQuery(sqlStatements.createDataSnapshot())
+                        .bind(0, location).mapTo(Integer.class);
             }
             catch (Exception ex) {
                 throw ex;

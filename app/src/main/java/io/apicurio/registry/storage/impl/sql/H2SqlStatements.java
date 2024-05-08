@@ -78,6 +78,6 @@ public class H2SqlStatements extends CommonSqlStatements {
 
     @Override
     public String createDataSnapshot() {
-        return "BACKUP TO ?";
+        return "SCRIPT TO ?";
     }
 }

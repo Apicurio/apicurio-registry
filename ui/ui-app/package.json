@@ -30,7 +30,7 @@
     "vite-tsconfig-paths": "4.3.2"
   },
   "dependencies": {
-    "@apicurio/common-ui-components": "2.0.0",
+    "@apicurio/common-ui-components": "2.0.1",
     "@apicurio/data-models": "1.1.27",
     "@patternfly/patternfly": "5.3.1",
     "@patternfly/react-code-editor": "5.3.3",

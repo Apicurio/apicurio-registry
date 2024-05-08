@@ -192,7 +192,7 @@
         <apicurio-common-rest-client.version>0.1.18.Final</apicurio-common-rest-client.version>
         <apicurio-common-app-components.version>1.1.0</apicurio-common-app-components.version>
         <kafka-oauth-client.version>0.15.0</kafka-oauth-client.version>
-        <kafka-clients.version>3.6.0</kafka-clients.version>
+        <kafka-clients.version>7.6.1-ce</kafka-clients.version>
         <snakeyaml.version>2.2</snakeyaml.version>
         <guava.version>33.2.0-jre</guava.version>
         <woodstox-core.version>6.6.2</woodstox-core.version>

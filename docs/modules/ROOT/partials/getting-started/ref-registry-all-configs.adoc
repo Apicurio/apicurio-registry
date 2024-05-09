@@ -635,7 +635,7 @@ The following {registry} configuration options are available for each component 
 |Kafka sql storage bootstrap servers
 |`apicurio.kafkasql.consumer.poll.timeout`
 |`integer`
-|`1000`
+|`5000`
 |
 |Kafka sql storage consumer poll timeout
 |`apicurio.kafkasql.coordinator.response-timeout`
@@ -750,7 +750,7 @@ The following {registry} configuration options are available for each component 
 |Enable Registry storage read-only mode
 |`apicurio.storage.snapshot.location`
 |`string`
-|`86400s`
+|`./`
 |
 |Kafka sql snapshots store location
 |`apicurio.storage.sql.kind`

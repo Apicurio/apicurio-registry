@@ -603,4 +603,6 @@ public interface SqlStatements {
 
     public String createDataSnapshot();
 
+    public String restoreFromSnapshot();
+
 }

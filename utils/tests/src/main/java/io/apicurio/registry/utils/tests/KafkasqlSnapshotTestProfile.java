@@ -1,7 +1,6 @@
 package io.apicurio.registry.utils.tests;
 
 import io.quarkus.test.junit.QuarkusTestProfile;
-import org.eclipse.microprofile.config.spi.ConfigSource;
 
 import java.util.Collections;
 import java.util.List;

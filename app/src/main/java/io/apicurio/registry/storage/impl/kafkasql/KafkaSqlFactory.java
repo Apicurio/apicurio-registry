@@ -50,7 +50,7 @@ public class KafkaSqlFactory {
     String snapshotEvery;
 
     @Inject
-    @ConfigProperty(name = "apicurio.storage.snapshot.location", defaultValue = "86400s")
+    @ConfigProperty(name = "apicurio.storage.snapshot.location", defaultValue = "./")
     @Info(category = "storage", description = "Kafka sql snapshots store location")
     String snapshotStoreLocation;
 
@@ -65,7 +65,7 @@ public class KafkaSqlFactory {
     Boolean topicAutoCreate;
 
     @Inject
-    @ConfigProperty(name = "apicurio.kafkasql.consumer.poll.timeout", defaultValue = "1000")
+    @ConfigProperty(name = "apicurio.kafkasql.consumer.poll.timeout", defaultValue = "5000")
     @Info(category = "storage", description = "Kafka sql storage consumer poll timeout")
     Integer pollTimeout;
 

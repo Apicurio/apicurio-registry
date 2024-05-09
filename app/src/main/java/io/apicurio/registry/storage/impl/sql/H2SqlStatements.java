@@ -80,4 +80,9 @@ public class H2SqlStatements extends CommonSqlStatements {
     public String createDataSnapshot() {
         return "SCRIPT TO ?";
     }
+
+    @Override
+    public String restoreFromSnapshot() {
+        return "RUNSCRIPT FROM ?";
+    }
 }

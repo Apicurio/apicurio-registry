@@ -52,7 +52,7 @@ import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.errors.TopicExistsException;
 import org.slf4j.Logger;
 
-import java.net.URI;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.*;
@@ -104,6 +104,8 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
 
     private volatile boolean bootstrapped = false;
     private volatile boolean stopped = true;
+    private volatile boolean snapshotProcessed = false;
+
 
     @Override
     public String storageName() {
@@ -119,14 +121,16 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
             autoCreateTopics();
         }
 
-        //Once the topics are created, initialize the internal SQL Storage.
+        //Try to restore the internal database from a snapshot
+        String snapshotMessageKey = consumeSnapshotsTopic(snapshotsConsumer);
+
+        //Once the topics are created, and the snapshots processed, initialize the internal SQL Storage.
         sqlStore.initialize();
         setDelegate(sqlStore);
 
         //Once the SQL storage has been initialized, start the Kafka consumer thread.
         log.info("SQL store initialized, starting consumer thread.");
-        consumeSnapshotsTopic(snapshotsConsumer);
-        startConsumerThread(journalConsumer);
+        startConsumerThread(journalConsumer, snapshotMessageKey);
     }
 
     @Override
@@ -167,12 +171,13 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
      * consuming JournalRecord entries found on that topic, and applying those journal entries to
      * the internal data model.
      */
-    private void consumeSnapshotsTopic(KafkaConsumer<String, String> snapshotsConsumer) {
+    private String consumeSnapshotsTopic(KafkaConsumer<String, String> snapshotsConsumer) {
         // Subscribe to the snapshots topic
         Collection<String> topics = Collections.singleton(configuration.snapshotsTopic());
         snapshotsConsumer.subscribe(topics);
-        final ConsumerRecords<String, String> records = snapshotsConsumer.poll(Duration.ofMillis(configuration.pollTimeout()));
-        final List<ConsumerRecord<String, String>> snapshots = new ArrayList<>();
+        ConsumerRecords<String, String> records = snapshotsConsumer.poll(Duration.ofMillis(configuration.pollTimeout()));
+        List<ConsumerRecord<String, String>> snapshots = new ArrayList<>();
+        String snapshotRecordKey = null;
         if (records != null && !records.isEmpty()) {
             //collect all snapshots into a list
             records.forEach(snapshots::add);
@@ -180,11 +185,30 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
             //sort snapshots by timestamp
             snapshots.sort(Comparator.comparingLong(ConsumerRecord::timestamp));
 
-            for (ConsumerRecord<String, String> snapshotRecord: snapshots) {
+            Path mostRecentSnapshotPath = null;
+            for (ConsumerRecord<String, String> snapshotFound : snapshots) {
                 //Restore database from snapshot
-                Path path = Path.of(URI.create(snapshotRecord.value()));
+                try {
+                    String path = snapshotFound.value();
+                    if (null != path && !path.isBlank() && Files.exists(Path.of(snapshotFound.value()))) {
+                        snapshotRecordKey = snapshotFound.key();
+                        mostRecentSnapshotPath = Path.of(snapshotFound.value());
+                    }
+                }
+                catch (IllegalArgumentException ex) {
+                    log.warn("Snapshot with path {} ignored, the snapshot is likely invalid or cannot be found", snapshotFound.value());
+                }
+            }
+
+            //Here we have the most recent snapshot that we can find, try to restore the internal database from it.
+            if (null != mostRecentSnapshotPath) {
+                sqlStore.restoreFromSnapshot(mostRecentSnapshotPath.toString());
             }
         }
+
+        snapshotsConsumer.commitSync();
+
+        return snapshotRecordKey;
     }
 
     /**
@@ -192,7 +216,7 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
      * consuming JournalRecord entries found on that topic, and applying those journal entries to
      * the internal data model.
      */
-    private void startConsumerThread(final KafkaConsumer<KafkaSqlMessageKey, KafkaSqlMessage> consumer) {
+    private void startConsumerThread(final KafkaConsumer<KafkaSqlMessageKey, KafkaSqlMessage> consumer, String snapshotMessageKey) {
         log.info("Starting KSQL consumer thread on topic: {}", configuration.topic());
         log.info("Bootstrap servers: {}", configuration.bootstrapServers());
 
@@ -204,6 +228,8 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
             try (consumer) {
                 log.info("Subscribing to {}", configuration.topic());
 
+                //TODO use the snapshot record metadata to put the journal consumer into the appropiate offset so it does not consume unneeded messages
+
                 // Subscribe to the journal topic
                 Collection<String> topics = Collections.singleton(configuration.topic());
                 consumer.subscribe(topics);
@@ -213,37 +239,29 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
                     final ConsumerRecords<KafkaSqlMessageKey, KafkaSqlMessage> records = consumer.poll(Duration.ofMillis(configuration.pollTimeout()));
                     if (records != null && !records.isEmpty()) {
                         log.debug("Consuming {} journal records.", records.count());
-                        records.forEach(record -> {
 
-                            // If the key is null, we couldn't deserialize the message
-                            if (record.key() == null) {
-                                log.warn("Discarded an unreadable/unrecognized Kafka message.");
-                                return;
-                            }
-
-                            // If the key is a Bootstrap key, then we have processed all messages and can set bootstrapped to 'true'
-                            if ("Bootstrap".equals(record.key().getMessageType())) {
-                                KafkaSqlMessageKey bkey = (KafkaSqlMessageKey) record.key();
-                                if (bkey.getUuid().equals(bootstrapId)) {
-                                    this.bootstrapped = true;
-                                    storageEvent.fireAsync(StorageEvent.builder()
-                                            .type(StorageEventType.READY)
-                                            .build());
-                                    log.info("KafkaSQL storage bootstrapped in {} ms.", System.currentTimeMillis() - bootstrapStart);
+                        if (null != snapshotMessageKey && !snapshotProcessed) {
+                            //If there is a snapshot key present, we process (and discard) all the messages until we found the snapshot marker that corresponds to the snapshot key.
+                            Iterator<ConsumerRecord<KafkaSqlMessageKey, KafkaSqlMessage>> it = records.iterator();
+                            while (it.hasNext() && !snapshotProcessed) {
+                                ConsumerRecord<KafkaSqlMessageKey, KafkaSqlMessage> record = it.next();
+                                if (processSnapshot(snapshotMessageKey, record)) {
+                                    log.info("Subscribing to {}", configuration.topic());
+                                    snapshotProcessed = true;
+                                    break;
                                 }
-                                return;
                             }
 
-                            // If the value is null, then this is a tombstone (or unrecognized) message and should not
-                            // be processed.
-                            if (record.value() == null) {
-                                log.info("Discarded a (presumed) tombstone message with key: {}", record.key());
-                                return;
+                            //Once the snapshot marker message has been found, we can process the rest of the messages as usual, applying the new changes on top of the existing ones in the snapshot.
+                            while (it.hasNext()) {
+                                ConsumerRecord<KafkaSqlMessageKey, KafkaSqlMessage> record = it.next();
+                                processRecord(record, bootstrapId, bootstrapStart);
                             }
-
-                            // TODO instead of processing the journal record directly on the consumer thread, instead queue them and have *another* thread process the queue
-                            kafkaSqlSink.processMessage(record);
-                        });
+                        }
+                        else {
+                            //If there is no snapshot, simply process the existing messages in the kafka topic as usual.
+                            records.forEach(record -> processRecord(record, bootstrapId, bootstrapStart));
+                        }
                     }
                 }
             }
@@ -253,6 +271,41 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
         thread.setDaemon(true);
         thread.setName("KSQL Kafka Consumer Thread");
         thread.start();
+    }
+
+    private boolean processSnapshot(String snapshotKey, ConsumerRecord<KafkaSqlMessageKey, KafkaSqlMessage> record) {
+        return record.key() != null && snapshotKey.equals(record.key().getUuid());
+    }
+
+    private void processRecord(ConsumerRecord<KafkaSqlMessageKey, KafkaSqlMessage> record, String bootstrapId, long bootstrapStart) {
+        // If the key is null, we couldn't deserialize the message
+        if (record.key() == null) {
+            log.warn("Discarded an unreadable/unrecognized Kafka message.");
+            return;
+        }
+
+        // If the key is a Bootstrap key, then we have processed all messages and can set bootstrapped to 'true'
+        if ("Bootstrap".equals(record.key().getMessageType())) {
+            KafkaSqlMessageKey bkey = (KafkaSqlMessageKey) record.key();
+            if (bkey.getUuid().equals(bootstrapId)) {
+                this.bootstrapped = true;
+                storageEvent.fireAsync(StorageEvent.builder()
+                        .type(StorageEventType.READY)
+                        .build());
+                log.info("KafkaSQL storage bootstrapped in {} ms.", System.currentTimeMillis() - bootstrapStart);
+            }
+            return;
+        }
+
+        // If the value is null, then this is a tombstone (or unrecognized) message and should not
+        // be processed.
+        if (record.value() == null) {
+            log.info("Discarded a (presumed) tombstone message with key: {}", record.key());
+            return;
+        }
+
+        // TODO instead of processing the journal record directly on the consumer thread, instead queue them and have *another* thread process the queue
+        kafkaSqlSink.processMessage(record);
     }
 
     /**
@@ -475,7 +528,8 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
             // or create a new message type for this purpose (a sync message).
             try {
                 Thread.sleep(2000);
-            } catch (Exception e) {
+            }
+            catch (Exception e) {
                 // Noop
             }
         });
@@ -728,7 +782,7 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
      */
     @Override
     public void createOrUpdateArtifactBranch(GAV gav, BranchId branchId) {
-        var message = new CreateOrUpdateArtifactBranch2Message(gav.getRawGroupIdWithNull(), gav.getRawArtifactId(), 
+        var message = new CreateOrUpdateArtifactBranch2Message(gav.getRawGroupIdWithNull(), gav.getRawArtifactId(),
                 gav.getRawVersionId(), branchId.getRawBranchId());
         var uuid = ConcurrentUtil.get(submitter.submitMessage(message));
         coordinator.waitForResponse(uuid);
@@ -740,7 +794,7 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
     @Override
     public void createOrReplaceArtifactBranch(GA ga, BranchId branchId, List<VersionId> versions) {
         List<String> rawVersions = versions == null ? List.of() : versions.stream().map(v -> v.getRawVersionId()).collect(Collectors.toList());
-        var message = new CreateOrReplaceArtifactBranch3Message(ga.getRawGroupIdWithNull(), ga.getRawArtifactId(), 
+        var message = new CreateOrReplaceArtifactBranch3Message(ga.getRawGroupIdWithNull(), ga.getRawArtifactId(),
                 branchId.getRawBranchId(), rawVersions);
         var uuid = ConcurrentUtil.get(submitter.submitMessage(message));
         coordinator.waitForResponse(uuid);
@@ -765,6 +819,6 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
 
     @Override
     public String createSnapshot(String snapshotLocation) throws RegistryStorageException {
-        throw new IllegalStateException("Directly creation a snapshot is not supported in Kafkasql");
+        throw new IllegalStateException("Directly creating a snapshot is not supported in Kafkasql");
     }
 }

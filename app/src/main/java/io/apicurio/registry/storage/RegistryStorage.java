@@ -839,10 +839,9 @@ public interface RegistryStorage extends DynamicConfigStorage {
     /**
      *  Triggers a snapshot creation of the internal database.
      *
-     * @param snapshotLocation
      * @throws RegistryStorageException
      */
-    String triggerSnapshotCreation(String snapshotLocation) throws RegistryStorageException;
+    String triggerSnapshotCreation() throws RegistryStorageException;
 
     /**
      *  Creates the snapshot of the internal database based on configuration.

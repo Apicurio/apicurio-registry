@@ -2,6 +2,8 @@ package io.apicurio.registry.storage.impl.kafkasql;
 
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.rest.client.models.ArtifactContent;
+import io.apicurio.registry.rest.client.models.Rule;
+import io.apicurio.registry.rest.client.models.RuleType;
 import io.apicurio.registry.utils.kafka.KafkaUtil;
 import io.apicurio.registry.utils.tests.KafkasqlSnapshotTestProfile;
 import io.quarkus.test.common.QuarkusTestResource;
@@ -10,9 +12,9 @@ import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import lombok.SneakyThrows;
 import org.apache.kafka.clients.CommonClientConfigs;
-import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.header.internals.RecordHeader;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -20,8 +22,10 @@ import org.junit.jupiter.api.Test;
 
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
@@ -37,9 +41,9 @@ public class KafkaSqlSnapshotTest extends AbstractResourceTestBase {
 
     @BeforeAll
     public void init() {
-        //Create a bunch of artifacts so they're added on top of the snapshot
+        //Create a bunch of artifacts and rules, so they're added on top of the snapshot.
         String simpleAvro = resourceToString("avro.json");
-/*
+
         for (int idx = 0; idx < 1000; idx++) {
             System.out.println("Iteration: " + idx);
             String artifactId = UUID.randomUUID().toString();
@@ -48,15 +52,18 @@ public class KafkaSqlSnapshotTest extends AbstractResourceTestBase {
             clientV3.groups().byGroupId(NEW_ARTIFACTS_SNAPSHOT_TEST_GROUP_ID).artifacts().post(content, config -> {
                 config.headers.add("X-Registry-ArtifactId", artifactId);
             });
-            clientV3.groups().byGroupId(NEW_ARTIFACTS_SNAPSHOT_TEST_GROUP_ID).artifacts().byArtifactId(artifactId).delete();
-        }
-        */
-
+            Rule rule = new Rule();
+            rule.setType(RuleType.VALIDITY);
+            rule.setConfig("SYNTAX_ONLY");
+            clientV3.groups().byGroupId(NEW_ARTIFACTS_SNAPSHOT_TEST_GROUP_ID).artifacts().byArtifactId(artifactId).rules().post(rule);        }
     }
 
     @Test
     public void testRecoverFromSnapshot() throws InterruptedException {
+        //We expect 4001 artifacts coming from the snapshot
         Assertions.assertEquals(4001, clientV3.groups().byGroupId("default").artifacts().get().getCount());
+        //We expect another 1000 artifacts coming added on top of the snapshot
+        Assertions.assertEquals(1000, clientV3.groups().byGroupId(NEW_ARTIFACTS_SNAPSHOT_TEST_GROUP_ID).artifacts().get().getCount());
     }
 
     protected static class KafkaSqlSnapshotTestInitializer implements QuarkusTestResourceLifecycleManager {
@@ -73,7 +80,6 @@ public class KafkaSqlSnapshotTest extends AbstractResourceTestBase {
         @SneakyThrows
         public Map<String, String> start() {
             Properties props = connectionProperties();
-            props.putIfAbsent(ConsumerConfig.GROUP_ID_CONFIG, UUID.randomUUID().toString());
 
             KafkaUtil.createTopics(props, Set.of("kafkasql-snapshots", "kafkasql-journal"), Collections.emptyMap());
 
@@ -89,6 +95,7 @@ public class KafkaSqlSnapshotTest extends AbstractResourceTestBase {
 
             //Create the data producer to send a snapshot marker
             KafkaProducer<String, String> dataProducer = new KafkaProducer<>(props, keySerializer, valueSerializer);
+            RecordHeader messageTypeHeader = new RecordHeader("mt", "CreateSnapshot1Message".getBytes(StandardCharsets.UTF_8));
             ProducerRecord<String, String> snapshotMarkerRecord = new ProducerRecord<>("kafkasql-journal", 0,
                     "{\"uuid\":\"1302b402-c707-457e-af76-10c1045e68e8\",\"messageType\":\"CreateSnapshot1Message\",\"partitionKey\":\"__GLOBAL_PARTITION__\"}", "{\n"
                     + "                \"snapshotLocation\": \"/io/apicurio/registry/storage/impl/kafkasql/1302b402-c707-457e-af76-10c1045e68e8.sql\",\n"
@@ -97,9 +104,10 @@ public class KafkaSqlSnapshotTest extends AbstractResourceTestBase {
                     + "                        \"messageType\": \"CreateSnapshot1Message\",\n"
                     + "                        \"partitionKey\": \"__GLOBAL_PARTITION__\"\n"
                     + "            }\n"
-                    + "            }", Collections.emptyList());
+                    + "            }", List.of(messageTypeHeader));
 
             //Send snapshot marker
+
             dataProducer.send(snapshotMarkerRecord).get();
         }
 
@@ -129,7 +137,7 @@ public class KafkaSqlSnapshotTest extends AbstractResourceTestBase {
 
         public Properties connectionProperties() {
             Properties properties = new Properties();
-            properties.put(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, System.getProperty("bootstrap.servers.external"));
+            properties.put(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
             properties.put(CommonClientConfigs.CONNECTIONS_MAX_IDLE_MS_CONFIG, 10000);
             properties.put(CommonClientConfigs.REQUEST_TIMEOUT_MS_CONFIG, 5000);
             return properties;

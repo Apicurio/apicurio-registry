@@ -328,8 +328,8 @@ public class RegistryStorageDecoratorBase extends RegistryStorageDecoratorReadOn
     }
 
     @Override
-    public String triggerSnapshotCreation(String snapshotLocation) throws RegistryStorageException {
-        return delegate.triggerSnapshotCreation(snapshotLocation);
+    public String triggerSnapshotCreation() throws RegistryStorageException {
+        return delegate.triggerSnapshotCreation();
     }
 
     @Override

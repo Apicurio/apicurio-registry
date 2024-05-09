@@ -144,7 +144,7 @@ public class ReadOnlyRegistryStorageTest {
                 entry("updateGlobalRule2", new State(true, s -> s.updateGlobalRule(null, null))),
                 entry("updateGroupMetaData2", new State(true, s -> s.updateGroupMetaData(null, null))),
                 entry("updateRoleMapping2", new State(true, s -> s.updateRoleMapping(null, null))),
-                entry("triggerSnapshotCreation1", new State(true, s -> s.triggerSnapshotCreation(null))),
+                entry("triggerSnapshotCreation1", new State(true, s -> s.triggerSnapshotCreation())),
                 entry("createSnapshot1", new State(true, s -> s.createSnapshot(null)))
         );
 

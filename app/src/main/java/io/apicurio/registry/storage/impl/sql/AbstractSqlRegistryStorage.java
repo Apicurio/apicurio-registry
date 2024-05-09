@@ -3387,14 +3387,8 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     }
 
     @Override
-    public String triggerSnapshotCreation(String location) throws RegistryStorageException {
-        //Snapshot creation is only supported in h2 and kafkasql. In this case, when this is invoked directly, it just creates the snapshot.
-        if ("h2".equals(sqlStatements.dbType())) {
-            return createSnapshot(location);
-        }
-        else {
-            return null;
-        }
+    public String triggerSnapshotCreation() throws RegistryStorageException {
+        throw new RegistryStorageException("Directly triggering the snapshot creation is not supported for sql storages.");
     }
 
     @Override

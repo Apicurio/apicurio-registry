@@ -39,6 +39,7 @@ import io.apicurio.registry.utils.impexp.ContentEntity;
 import io.apicurio.registry.utils.impexp.GlobalRuleEntity;
 import io.apicurio.registry.utils.impexp.GroupEntity;
 import io.apicurio.registry.utils.kafka.KafkaUtil;
+import io.apicurio.registry.utils.kafka.ProducerActions;
 import jakarta.annotation.PreDestroy;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Event;
@@ -49,6 +50,8 @@ import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.errors.TopicExistsException;
 import org.slf4j.Logger;
 
@@ -95,6 +98,10 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
     @Inject
     @Named("KafkaSqlSnapshotsConsumer")
     KafkaConsumer<String, String> snapshotsConsumer;
+
+    @Inject
+    @Named("KafkaSqlSnapshotsProducer")
+    ProducerActions<String, String> snapshotsProducer;
 
     @Inject
     KafkaSqlSubmitter submitter;
@@ -241,14 +248,15 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
                         log.debug("Consuming {} journal records.", records.count());
 
                         if (null != snapshotMessageKey && !snapshotProcessed) {
-                            //If there is a snapshot key present, we process (and discard) all the messages until we found the snapshot marker that corresponds to the snapshot key.
+                            //If there is a snapshot key present, we process (and discard) all the messages until we find the snapshot marker that corresponds to the snapshot key.
                             Iterator<ConsumerRecord<KafkaSqlMessageKey, KafkaSqlMessage>> it = records.iterator();
                             while (it.hasNext() && !snapshotProcessed) {
                                 ConsumerRecord<KafkaSqlMessageKey, KafkaSqlMessage> record = it.next();
                                 if (processSnapshot(snapshotMessageKey, record)) {
-                                    log.info("Subscribing to {}", configuration.topic());
                                     snapshotProcessed = true;
                                     break;
+                                } else {
+                                    log.info("Discarding message with key {} as it was sent before a snapshot was created", record.key());
                                 }
                             }
 
@@ -811,10 +819,21 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
     }
 
     @Override
-    public String triggerSnapshotCreation(String snapshotLocation) throws RegistryStorageException {
-        var message = new CreateSnapshot1Message(snapshotLocation);
+    public String triggerSnapshotCreation() throws RegistryStorageException {
+        //First we generate an identifier for the snapshot, then we send a snapshot marker to the journal topic.
+        String snapshotId = UUID.randomUUID().toString();
+        Path path = Path.of(configuration.snapshotLocation(), snapshotId + ".sql");
+        var message = new CreateSnapshot1Message(path.toString());
         var uuid = ConcurrentUtil.get(submitter.submitMessage(message));
-        return (String) coordinator.waitForResponse(uuid);
+        String snapshotLocation = (String) coordinator.waitForResponse(uuid);
+
+        //Then we send a new message to the snapshots topic, using the marker uuid as the keyof the snapshot message.
+        ProducerRecord<String, String> record = new ProducerRecord<>(configuration.snapshotsTopic(), 0, uuid.toString(), snapshotLocation,
+                Collections.emptyList());
+
+        RecordMetadata recordMetadata = ConcurrentUtil.get(snapshotsProducer.apply(record));
+
+        return recordMetadata.toString();
     }
 
     @Override

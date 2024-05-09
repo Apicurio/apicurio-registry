@@ -2476,6 +2476,28 @@
                 "description": "Gets a list of all the configured artifact types.\n\nThis operation can fail for the following reasons:\n\n* A server error occurred (HTTP error `500`)\n"
             }
         },
+        "/admin/config/triggerSnapshot": {
+            "summary": "Triggers a snapshot of the Registry storage. Only supported in KafkaSQL storage",
+            "get": {
+                "tags": [
+                    "KafkaSQL",
+                    "Admin",
+                    "Snapshot"
+                ],
+                "responses": {
+                    "200": {
+                        "content": {},
+                        "description": "Empty content. A 200 means that the snapshot has been successfully triggered."
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "triggerSnapshot",
+                "summary": "Trigger storage snapshot",
+                "description": "Triggers the creation of a snapshot of the internal database for compatible storages.\n\nThis operation can fail for the following reasons:\n\n* A server error occurred (HTTP error `500`)\n"
+            }
+        },
         "/groups/{groupId}/artifacts/{artifactId}": {
             "summary": "Manage a single artifact.",
             "get": {

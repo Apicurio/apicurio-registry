@@ -416,9 +416,9 @@ public class ReadOnlyRegistryStorageDecorator extends RegistryStorageDecoratorRe
     }
 
     @Override
-    public String triggerSnapshotCreation(String snapshotLocation) throws RegistryStorageException {
+    public String triggerSnapshotCreation() throws RegistryStorageException {
         checkReadOnly();
-        return delegate.triggerSnapshotCreation(snapshotLocation);
+        return delegate.triggerSnapshotCreation();
     }
 
     @Override

@@ -500,8 +500,8 @@ public class GitOpsRegistryStorage extends AbstractReadOnlyRegistryStorage {
     }
 
     @Override
-    public String triggerSnapshotCreation(String snapshotLocation) throws RegistryStorageException {
-        return proxy((storage -> storage.triggerSnapshotCreation(snapshotLocation)));
+    public String triggerSnapshotCreation() throws RegistryStorageException {
+        return proxy((RegistryStorage::triggerSnapshotCreation));
     }
 
     @Override

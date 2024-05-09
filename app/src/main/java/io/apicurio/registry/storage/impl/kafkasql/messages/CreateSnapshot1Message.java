@@ -20,6 +20,7 @@ import lombok.ToString;
 public class CreateSnapshot1Message extends AbstractMessage {
 
     private String snapshotLocation;
+    private String snapshotId;
 
     /**
      * @see io.apicurio.registry.storage.impl.kafkasql.KafkaSqlMessage#dispatchTo(io.apicurio.registry.storage.RegistryStorage)

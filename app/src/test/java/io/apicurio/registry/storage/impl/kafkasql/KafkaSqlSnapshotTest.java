@@ -10,6 +10,7 @@ import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
+import jakarta.inject.Inject;
 import lombok.SneakyThrows;
 import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.clients.producer.KafkaProducer;
@@ -20,9 +21,12 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.io.IOException;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.List;
@@ -38,6 +42,9 @@ import java.util.concurrent.ExecutionException;
 public class KafkaSqlSnapshotTest extends AbstractResourceTestBase {
 
     private static final String NEW_ARTIFACTS_SNAPSHOT_TEST_GROUP_ID = "SNAPSHOT_TEST_GROUP_ID";
+
+    @Inject
+    KafkaSqlRegistryStorage kafkaSqlRegistryStorage;
 
     @BeforeAll
     public void init() {
@@ -57,6 +64,15 @@ public class KafkaSqlSnapshotTest extends AbstractResourceTestBase {
             rule.setConfig("SYNTAX_ONLY");
             clientV3.groups().byGroupId(NEW_ARTIFACTS_SNAPSHOT_TEST_GROUP_ID).artifacts().byArtifactId(artifactId).rules().post(rule);        }
     }
+
+    @Test
+    public void testSnapshotCreation() throws IOException {
+        String snapshotLocation = kafkaSqlRegistryStorage.triggerSnapshotCreation();
+        Path path = Path.of(snapshotLocation);
+        Assertions.assertTrue(Files.exists(path));
+        Files.delete(path);
+    }
+
 
     @Test
     public void testRecoverFromSnapshot() throws InterruptedException {
@@ -97,8 +113,9 @@ public class KafkaSqlSnapshotTest extends AbstractResourceTestBase {
             KafkaProducer<String, String> dataProducer = new KafkaProducer<>(props, keySerializer, valueSerializer);
             RecordHeader messageTypeHeader = new RecordHeader("mt", "CreateSnapshot1Message".getBytes(StandardCharsets.UTF_8));
             ProducerRecord<String, String> snapshotMarkerRecord = new ProducerRecord<>("kafkasql-journal", 0,
-                    "{\"uuid\":\"1302b402-c707-457e-af76-10c1045e68e8\",\"messageType\":\"CreateSnapshot1Message\",\"partitionKey\":\"__GLOBAL_PARTITION__\"}", "{\n"
+                    "{\"uuid\":\"1345b402-c707-457e-af76-10c1045e68e8\",\"messageType\":\"CreateSnapshot1Message\",\"partitionKey\":\"__GLOBAL_PARTITION__\"}", "{\n"
                     + "                \"snapshotLocation\": \"/io/apicurio/registry/storage/impl/kafkasql/1302b402-c707-457e-af76-10c1045e68e8.sql\",\n"
+                    + "                \"snapshotId\": \"1302b402-c707-457e-af76-10c1045e68e8\",\n"
                     + "                    \"key\": {\n"
                     + "                \"uuid\": \"1302b402-c707-457e-af76-10c1045e68e8\",\n"
                     + "                        \"messageType\": \"CreateSnapshot1Message\",\n"
@@ -107,7 +124,6 @@ public class KafkaSqlSnapshotTest extends AbstractResourceTestBase {
                     + "            }", List.of(messageTypeHeader));
 
             //Send snapshot marker
-
             dataProducer.send(snapshotMarkerRecord).get();
         }
 
@@ -137,7 +153,7 @@ public class KafkaSqlSnapshotTest extends AbstractResourceTestBase {
 
         public Properties connectionProperties() {
             Properties properties = new Properties();
-            properties.put(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
+            properties.put(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, System.getProperty("bootstrap.servers.external"));
             properties.put(CommonClientConfigs.CONNECTIONS_MAX_IDLE_MS_CONFIG, 10000);
             properties.put(CommonClientConfigs.REQUEST_TIMEOUT_MS_CONFIG, 5000);
             return properties;

@@ -129,7 +129,7 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
         }
 
         //Try to restore the internal database from a snapshot
-        String snapshotMessageKey = consumeSnapshotsTopic(snapshotsConsumer);
+        String snapshotId = consumeSnapshotsTopic(snapshotsConsumer);
 
         //Once the topics are created, and the snapshots processed, initialize the internal SQL Storage.
         sqlStore.initialize();
@@ -137,7 +137,7 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
 
         //Once the SQL storage has been initialized, start the Kafka consumer thread.
         log.info("SQL store initialized, starting consumer thread.");
-        startConsumerThread(journalConsumer, snapshotMessageKey);
+        startConsumerThread(journalConsumer, snapshotId);
     }
 
     @Override
@@ -223,7 +223,7 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
      * consuming JournalRecord entries found on that topic, and applying those journal entries to
      * the internal data model.
      */
-    private void startConsumerThread(final KafkaConsumer<KafkaSqlMessageKey, KafkaSqlMessage> consumer, String snapshotMessageKey) {
+    private void startConsumerThread(final KafkaConsumer<KafkaSqlMessageKey, KafkaSqlMessage> consumer, String snapshotId) {
         log.info("Starting KSQL consumer thread on topic: {}", configuration.topic());
         log.info("Bootstrap servers: {}", configuration.bootstrapServers());
 
@@ -247,23 +247,26 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
                     if (records != null && !records.isEmpty()) {
                         log.debug("Consuming {} journal records.", records.count());
 
-                        if (null != snapshotMessageKey && !snapshotProcessed) {
+                        if (null != snapshotId && !snapshotProcessed) {
                             //If there is a snapshot key present, we process (and discard) all the messages until we find the snapshot marker that corresponds to the snapshot key.
                             Iterator<ConsumerRecord<KafkaSqlMessageKey, KafkaSqlMessage>> it = records.iterator();
                             while (it.hasNext() && !snapshotProcessed) {
                                 ConsumerRecord<KafkaSqlMessageKey, KafkaSqlMessage> record = it.next();
-                                if (processSnapshot(snapshotMessageKey, record)) {
+                                if (processSnapshot(snapshotId, record)) {
                                     snapshotProcessed = true;
                                     break;
                                 } else {
-                                    log.info("Discarding message with key {} as it was sent before a snapshot was created", record.key());
+                                    log.debug("Discarding message with key {} as it was sent before a newer snapshot was created", record.key());
                                 }
                             }
 
-                            //Once the snapshot marker message has been found, we can process the rest of the messages as usual, applying the new changes on top of the existing ones in the snapshot.
-                            while (it.hasNext()) {
-                                ConsumerRecord<KafkaSqlMessageKey, KafkaSqlMessage> record = it.next();
-                                processRecord(record, bootstrapId, bootstrapStart);
+                            //If the snapshot marker has not been found, continue with message skipping until we find it.
+                            if (snapshotProcessed) {
+                                //Once the snapshot marker message has been found, we can process the rest of the messages as usual, applying the new changes on top of the existing ones in the snapshot.
+                                while (it.hasNext()) {
+                                    ConsumerRecord<KafkaSqlMessageKey, KafkaSqlMessage> record = it.next();
+                                    processRecord(record, bootstrapId, bootstrapStart);
+                                }
                             }
                         }
                         else {
@@ -281,8 +284,8 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
         thread.start();
     }
 
-    private boolean processSnapshot(String snapshotKey, ConsumerRecord<KafkaSqlMessageKey, KafkaSqlMessage> record) {
-        return record.key() != null && snapshotKey.equals(record.key().getUuid());
+    private boolean processSnapshot(String snapshotId, ConsumerRecord<KafkaSqlMessageKey, KafkaSqlMessage> record) {
+        return record.value() instanceof CreateSnapshot1Message && snapshotId.equals(((CreateSnapshot1Message) record.value()).getSnapshotId());
     }
 
     private void processRecord(ConsumerRecord<KafkaSqlMessageKey, KafkaSqlMessage> record, String bootstrapId, long bootstrapStart) {
@@ -823,17 +826,17 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
         //First we generate an identifier for the snapshot, then we send a snapshot marker to the journal topic.
         String snapshotId = UUID.randomUUID().toString();
         Path path = Path.of(configuration.snapshotLocation(), snapshotId + ".sql");
-        var message = new CreateSnapshot1Message(path.toString());
+        var message = new CreateSnapshot1Message(path.toString(), snapshotId);
         var uuid = ConcurrentUtil.get(submitter.submitMessage(message));
         String snapshotLocation = (String) coordinator.waitForResponse(uuid);
 
-        //Then we send a new message to the snapshots topic, using the marker uuid as the keyof the snapshot message.
-        ProducerRecord<String, String> record = new ProducerRecord<>(configuration.snapshotsTopic(), 0, uuid.toString(), snapshotLocation,
+        //Then we send a new message to the snapshots topic, using the snapshot id as the key of the snapshot message.
+        ProducerRecord<String, String> record = new ProducerRecord<>(configuration.snapshotsTopic(), 0, snapshotId, snapshotLocation,
                 Collections.emptyList());
 
         RecordMetadata recordMetadata = ConcurrentUtil.get(snapshotsProducer.apply(record));
 
-        return recordMetadata.toString();
+        return snapshotLocation;
     }
 
     @Override

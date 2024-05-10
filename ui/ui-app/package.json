@@ -23,7 +23,7 @@
     "@vitejs/plugin-react-swc": "3.6.0",
     "eslint": "8.57.0",
     "eslint-plugin-react-hooks": "4.6.2",
-    "eslint-plugin-react-refresh": "0.4.6",
+    "eslint-plugin-react-refresh": "0.4.7",
     "rimraf": "5.0.5",
     "typescript": "5.4.5",
     "vite": "5.2.11",
@@ -31,7 +31,7 @@
   },
   "dependencies": {
     "@apicurio/data-models": "1.1.27",
-    "@apicurio/common-ui-components": "2.0.0",
+    "@apicurio/common-ui-components": "2.0.1",
     "@patternfly/patternfly": "5.3.1",
     "@patternfly/react-code-editor": "5.3.3",
     "@patternfly/react-core": "5.3.3",

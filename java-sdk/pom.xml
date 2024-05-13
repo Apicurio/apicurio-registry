@@ -26,7 +26,7 @@
     <modelVersion>4.0.0</modelVersion>
     <artifactId>apicurio-registry-java-sdk</artifactId>
     <properties>
-        <kiota.libs.version>1.1.10</kiota.libs.version>
+        <kiota.libs.version>1.1.11</kiota.libs.version>
         <kiota.community.version>0.0.16</kiota.community.version>
         <kiota.base.url>https://github.com/microsoft/kiota/releases/download</kiota.base.url>
     </properties>

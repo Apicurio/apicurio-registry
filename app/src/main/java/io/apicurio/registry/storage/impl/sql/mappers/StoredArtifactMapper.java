@@ -25,6 +25,7 @@ public class StoredArtifactMapper implements RowMapper<StoredArtifactVersionDto>
     public StoredArtifactVersionDto map(ResultSet rs) throws SQLException {
         return StoredArtifactVersionDto.builder()
                 .content(ContentHandle.create(rs.getBytes("content")))
+                .contentType(rs.getString("contentType"))
                 .contentId(rs.getLong("contentId"))
                 .globalId(rs.getLong("globalId"))
                 .version(rs.getString("version"))

@@ -1,17 +1,16 @@
 package io.apicurio.registry.noprofile.rest.v3;
 
-import java.util.Map;
-import java.util.UUID;
-
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Test;
-
 import io.apicurio.registry.AbstractResourceTestBase;
-import io.apicurio.registry.rest.client.models.CreateGroupMetaData;
+import io.apicurio.registry.rest.client.models.CreateGroup;
 import io.apicurio.registry.rest.client.models.EditableGroupMetaData;
 import io.apicurio.registry.rest.client.models.GroupMetaData;
 import io.apicurio.registry.rest.client.models.Labels;
 import io.quarkus.test.junit.QuarkusTest;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+
+import java.util.Map;
+import java.util.UUID;
 
 @QuarkusTest
 public class GroupMetaDataTest extends AbstractResourceTestBase {
@@ -24,7 +23,7 @@ public class GroupMetaDataTest extends AbstractResourceTestBase {
         Labels l = new Labels();
         l.setAdditionalData(labels);
 
-        CreateGroupMetaData body = new CreateGroupMetaData();
+        CreateGroup body = new CreateGroup();
         body.setId(groupId);
         body.setDescription("My favorite test group.");
         body.setLabels(l);
@@ -43,7 +42,7 @@ public class GroupMetaDataTest extends AbstractResourceTestBase {
         Labels l = new Labels();
         l.setAdditionalData(labels);
 
-        CreateGroupMetaData body = new CreateGroupMetaData();
+        CreateGroup body = new CreateGroup();
         body.setId(groupId);
         body.setDescription("My favorite test group.");
         body.setLabels(l);
@@ -66,7 +65,7 @@ public class GroupMetaDataTest extends AbstractResourceTestBase {
         Labels l = new Labels();
         l.setAdditionalData(labels1);
 
-        CreateGroupMetaData body = new CreateGroupMetaData();
+        CreateGroup body = new CreateGroup();
         body.setId(groupId);
         body.setDescription("My favorite test group.");
         body.setLabels(l);

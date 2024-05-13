@@ -3,15 +3,18 @@ package io.apicurio.registry.auth;
 import com.microsoft.kiota.ApiException;
 import io.apicurio.common.apps.config.Info;
 import io.apicurio.registry.AbstractResourceTestBase;
+import io.apicurio.registry.client.auth.VertXAuthFactory;
 import io.apicurio.registry.rest.client.RegistryClient;
+import io.apicurio.registry.rest.client.models.CreateArtifact;
 import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.utils.tests.ApicurioTestTags;
 import io.apicurio.registry.utils.tests.AuthTestProfileAnonymousCredentials;
 import io.apicurio.registry.utils.tests.JWKSMockServer;
+import io.apicurio.registry.utils.tests.TestUtils;
 import io.kiota.http.vertx.VertXRequestAdapter;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
-import io.apicurio.registry.client.auth.VertXAuthFactory;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Tag;
@@ -61,16 +64,12 @@ public class AuthTestAnonymousCredentials extends AbstractResourceTestBase {
                 "    \"fields\" : [{\"name\" : \"age\", \"type\" : \"int\"}]\r\n" +
                 "}";
         var exception = Assertions.assertThrows(ApiException.class, () -> {
-            var content = new io.apicurio.registry.rest.client.models.ArtifactContent();
-            content.setContent(data);
+            CreateArtifact createArtifact = TestUtils.clientCreateArtifact("testNoCredentials", ArtifactType.AVRO, data, ContentTypes.APPLICATION_JSON);
             client
                 .groups()
                 .byGroupId(groupId)
                 .artifacts()
-                .post(content, config -> {
-                    config.headers.add("X-Registry-ArtifactType", ArtifactType.AVRO);
-                    config.headers.add("X-Registry-ArtifactId", "testNoCredentials");
-                });
+                .post(createArtifact);
         });
         Assertions.assertEquals(401, exception.getResponseStatusCode());
     }

@@ -5,7 +5,14 @@ import io.apicurio.deployment.PortForwardManager;
 import io.apicurio.registry.client.auth.VertXAuthFactory;
 import io.apicurio.registry.model.GroupId;
 import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.rest.client.models.*;
+import io.apicurio.registry.rest.client.models.ArtifactSearchResults;
+import io.apicurio.registry.rest.client.models.CreateArtifact;
+import io.apicurio.registry.rest.client.models.CreateArtifactResponse;
+import io.apicurio.registry.rest.client.models.CreateVersion;
+import io.apicurio.registry.rest.client.models.IfArtifactExists;
+import io.apicurio.registry.rest.client.models.SearchedArtifact;
+import io.apicurio.registry.rest.client.models.SearchedVersion;
+import io.apicurio.registry.rest.client.models.VersionMetaData;
 import io.apicurio.registry.utils.tests.SimpleDisplayName;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.tests.utils.Constants;
@@ -18,13 +25,24 @@ import io.restassured.RestAssured;
 import io.restassured.parsing.Parser;
 import io.restassured.response.Response;
 import org.eclipse.microprofile.config.ConfigProvider;
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.DisplayNameGeneration;
+import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.StringReader;
+import java.io.UncheckedIOException;
+import java.io.UnsupportedEncodingException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.URL;
@@ -116,47 +134,33 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
         return groupId != null ? groupId : "default"; // TODO
     }
 
-    protected VersionMetaData createArtifact(String groupId, String artifactId, String artifactType, InputStream artifact) throws Exception {
-        ArtifactContent content = new ArtifactContent();
-        content.setContent(new String(artifact.readAllBytes(), StandardCharsets.UTF_8));
-        VersionMetaData vmd = registryClient.groups().byGroupId(groupId).artifacts().post(content, config -> {
+    protected CreateArtifactResponse createArtifact(String groupId, String artifactId, String artifactType, String content,
+                                                    String contentType, IfArtifactExists ifExists, Function<CreateArtifact, Void> customizer) throws Exception {
+        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, artifactType, content, contentType);
+        if (customizer != null) {
+            customizer.apply(createArtifact);
+        }
+        var response = registryClient.groups().byGroupId(groupId).artifacts().post(createArtifact, config -> {
             config.queryParameters.canonical = false;
-            config.queryParameters.ifExists = IfExists.FAIL;
-            config.headers.add("X-Registry-ArtifactId", artifactId);
-            config.headers.add("X-Registry-ArtifactType", artifactType);
+            if (ifExists != null) {
+                config.queryParameters.ifExists = ifExists;
+            }
         });
 
         // make sure we have schema registered
-        ensureClusterSync(vmd.getGlobalId());
-        ensureClusterSync(normalizeGroupId(vmd.getGroupId()), vmd.getArtifactId(), String.valueOf(vmd.getVersion()));
+        ensureClusterSync(response.getVersion().getGlobalId());
+        ensureClusterSync(normalizeGroupId(response.getArtifact().getGroupId()), response.getArtifact().getArtifactId(),
+                String.valueOf(response.getVersion().getVersion()));
 
-        return vmd;
+        return response;
     }
 
-    protected VersionMetaData createArtifact(String groupId, String artifactId, String version, String ifExists, String artifactType, InputStream artifact) throws Exception {
-        ArtifactContent content = new ArtifactContent();
-        content.setContent(new String(artifact.readAllBytes(), StandardCharsets.UTF_8));
-        VersionMetaData vmd = registryClient.groups().byGroupId(groupId).artifacts().post(content, config -> {
-            config.queryParameters.canonical = false;
-            config.queryParameters.ifExists = IfExists.forValue(ifExists);
-            config.headers.add("X-Registry-ArtifactId", artifactId);
-            config.headers.add("X-Registry-ArtifactType", artifactType);
-            config.headers.add("X-Registry-Version", version);
-        });
-
-        // make sure we have schema registered
-        ensureClusterSync(vmd.getGlobalId());
-        ensureClusterSync(vmd.getGroupId(), vmd.getArtifactId(), String.valueOf(vmd.getVersion()));
-
-        return vmd;
-    }
-
-    protected VersionMetaData createArtifactVersion(String groupId, String artifactId, InputStream artifact) throws Exception {
-        ArtifactContent content = new ArtifactContent();
-        content.setContent(new String(artifact.readAllBytes(), StandardCharsets.UTF_8));
-        VersionMetaData meta = registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().post(content, config -> {
-            config.headers.add("X-Registry-ArtifactId", artifactId);
-        });
+    protected VersionMetaData createArtifactVersion(String groupId, String artifactId, String content, String contentType, Function<CreateVersion, Void> customizer) throws Exception {
+        CreateVersion createVersion = TestUtils.clientCreateVersion(content, contentType);
+        if (customizer != null) {
+            customizer.apply(createVersion);
+        }
+        VersionMetaData meta = registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().post(createVersion);
 
         //wait for storage
         ensureClusterSync(meta.getGlobalId());
@@ -501,10 +505,6 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
     public Response getArtifact(String groupId, String artifactId, String version, int returnCode) {
         return
                 getRequest(RestConstants.JSON, "/groups/" + encodeURIComponent(groupId) + "/artifacts/" + encodeURIComponent(artifactId) + "/" + version, returnCode);
-    }
-
-    public Response createArtifact(String groupId, String artifactId, String artifact, int returnCode) {
-        return artifactPostRequest(artifactId, RestConstants.JSON, artifact, "/groups/" + encodeURIComponent(groupId) + "/artifacts", returnCode);
     }
 
     private String encodeURIComponent(String value) {

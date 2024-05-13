@@ -1,24 +1,5 @@
 package io.apicurio.registry.storage.impl.kafkasql;
 
-import java.time.Duration;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
-import java.util.UUID;
-import java.util.stream.Collectors;
-
-import org.apache.kafka.clients.CommonClientConfigs;
-import org.apache.kafka.clients.consumer.ConsumerRecords;
-import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.apache.kafka.common.errors.TopicExistsException;
-import org.slf4j.Logger;
-
 import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
 import io.apicurio.common.apps.logging.Logged;
 import io.apicurio.registry.content.ContentHandle;
@@ -34,93 +15,34 @@ import io.apicurio.registry.storage.StorageEvent;
 import io.apicurio.registry.storage.StorageEventType;
 import io.apicurio.registry.storage.VersionStateExt;
 import io.apicurio.registry.storage.decorator.RegistryStorageDecoratorReadOnlyBase;
-import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
-import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
-import io.apicurio.registry.storage.dto.CommentDto;
-import io.apicurio.registry.storage.dto.DownloadContextDto;
-import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
-import io.apicurio.registry.storage.dto.EditableGroupMetaDataDto;
-import io.apicurio.registry.storage.dto.EditableVersionMetaDataDto;
-import io.apicurio.registry.storage.dto.GroupMetaDataDto;
-import io.apicurio.registry.storage.dto.RuleConfigurationDto;
-import io.apicurio.registry.storage.error.ArtifactAlreadyExistsException;
-import io.apicurio.registry.storage.error.ArtifactNotFoundException;
-import io.apicurio.registry.storage.error.GroupAlreadyExistsException;
-import io.apicurio.registry.storage.error.GroupNotFoundException;
-import io.apicurio.registry.storage.error.RegistryStorageException;
-import io.apicurio.registry.storage.error.RuleAlreadyExistsException;
-import io.apicurio.registry.storage.error.RuleNotFoundException;
-import io.apicurio.registry.storage.error.VersionNotFoundException;
+import io.apicurio.registry.storage.dto.*;
+import io.apicurio.registry.storage.error.*;
 import io.apicurio.registry.storage.impexp.EntityInputStream;
-import io.apicurio.registry.storage.impl.kafkasql.messages.ConsumeDownload1Message;
-import io.apicurio.registry.storage.impl.kafkasql.messages.CreateArtifact6Message;
-import io.apicurio.registry.storage.impl.kafkasql.messages.CreateArtifactVersion6Message;
-import io.apicurio.registry.storage.impl.kafkasql.messages.CreateArtifactVersionComment4Message;
-import io.apicurio.registry.storage.impl.kafkasql.messages.CreateArtifactVersionWithMetadata7Message;
-import io.apicurio.registry.storage.impl.kafkasql.messages.CreateArtifactWithMetadata7Message;
-import io.apicurio.registry.storage.impl.kafkasql.messages.CreateDownload1Message;
-import io.apicurio.registry.storage.impl.kafkasql.messages.CreateGlobalRule2Message;
-import io.apicurio.registry.storage.impl.kafkasql.messages.CreateGroup1Message;
-import io.apicurio.registry.storage.impl.kafkasql.messages.CreateOrReplaceArtifactBranch3Message;
-import io.apicurio.registry.storage.impl.kafkasql.messages.CreateOrUpdateArtifactBranch2Message;
-import io.apicurio.registry.storage.impl.kafkasql.messages.CreateRoleMapping3Message;
-import io.apicurio.registry.storage.impl.kafkasql.messages.DeleteAllExpiredDownloads0Message;
-import io.apicurio.registry.storage.impl.kafkasql.messages.DeleteAllUserData0Message;
-import io.apicurio.registry.storage.impl.kafkasql.messages.DeleteArtifact2Message;
-import io.apicurio.registry.storage.impl.kafkasql.messages.DeleteArtifactBranch2Message;
-import io.apicurio.registry.storage.impl.kafkasql.messages.DeleteArtifactRule3Message;
-import io.apicurio.registry.storage.impl.kafkasql.messages.DeleteArtifactRules2Message;
-import io.apicurio.registry.storage.impl.kafkasql.messages.DeleteArtifactVersion3Message;
-import io.apicurio.registry.storage.impl.kafkasql.messages.DeleteArtifactVersionComment4Message;
-import io.apicurio.registry.storage.impl.kafkasql.messages.DeleteArtifacts1Message;
-import io.apicurio.registry.storage.impl.kafkasql.messages.DeleteConfigProperty1Message;
-import io.apicurio.registry.storage.impl.kafkasql.messages.DeleteGlobalRule1Message;
-import io.apicurio.registry.storage.impl.kafkasql.messages.DeleteGlobalRules0Message;
-import io.apicurio.registry.storage.impl.kafkasql.messages.DeleteGroup1Message;
-import io.apicurio.registry.storage.impl.kafkasql.messages.DeleteRoleMapping1Message;
-import io.apicurio.registry.storage.impl.kafkasql.messages.ImportArtifactBranch1Message;
-import io.apicurio.registry.storage.impl.kafkasql.messages.ImportArtifactRule1Message;
-import io.apicurio.registry.storage.impl.kafkasql.messages.ImportArtifactVersion1Message;
-import io.apicurio.registry.storage.impl.kafkasql.messages.ImportComment1Message;
-import io.apicurio.registry.storage.impl.kafkasql.messages.ImportContent1Message;
-import io.apicurio.registry.storage.impl.kafkasql.messages.ImportGlobalRule1Message;
-import io.apicurio.registry.storage.impl.kafkasql.messages.ImportGroup1Message;
-import io.apicurio.registry.storage.impl.kafkasql.messages.NextCommentId0Message;
-import io.apicurio.registry.storage.impl.kafkasql.messages.NextContentId0Message;
-import io.apicurio.registry.storage.impl.kafkasql.messages.NextGlobalId0Message;
-import io.apicurio.registry.storage.impl.kafkasql.messages.ResetCommentId0Message;
-import io.apicurio.registry.storage.impl.kafkasql.messages.ResetContentId0Message;
-import io.apicurio.registry.storage.impl.kafkasql.messages.ResetGlobalId0Message;
-import io.apicurio.registry.storage.impl.kafkasql.messages.SetConfigProperty1Message;
-import io.apicurio.registry.storage.impl.kafkasql.messages.UpdateArtifactMetaData3Message;
-import io.apicurio.registry.storage.impl.kafkasql.messages.UpdateArtifactRule4Message;
-import io.apicurio.registry.storage.impl.kafkasql.messages.UpdateArtifactVersionComment5Message;
-import io.apicurio.registry.storage.impl.kafkasql.messages.UpdateArtifactVersionMetaData4Message;
-import io.apicurio.registry.storage.impl.kafkasql.messages.UpdateContentCanonicalHash3Message;
-import io.apicurio.registry.storage.impl.kafkasql.messages.UpdateGlobalRule2Message;
-import io.apicurio.registry.storage.impl.kafkasql.messages.UpdateGroupMetaData2Message;
-import io.apicurio.registry.storage.impl.kafkasql.messages.UpdateRoleMapping2Message;
+import io.apicurio.registry.storage.impl.kafkasql.messages.*;
 import io.apicurio.registry.storage.impl.kafkasql.sql.KafkaSqlSink;
-import io.apicurio.registry.storage.impl.sql.IdGenerator;
 import io.apicurio.registry.storage.impl.sql.RegistryStorageContentUtils;
 import io.apicurio.registry.storage.impl.sql.SqlRegistryStorage;
 import io.apicurio.registry.storage.importing.DataImporter;
 import io.apicurio.registry.storage.importing.SqlDataImporter;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.ConcurrentUtil;
-import io.apicurio.registry.utils.impexp.ArtifactBranchEntity;
-import io.apicurio.registry.utils.impexp.ArtifactRuleEntity;
-import io.apicurio.registry.utils.impexp.ArtifactVersionEntity;
-import io.apicurio.registry.utils.impexp.CommentEntity;
-import io.apicurio.registry.utils.impexp.ContentEntity;
-import io.apicurio.registry.utils.impexp.GlobalRuleEntity;
-import io.apicurio.registry.utils.impexp.GroupEntity;
+import io.apicurio.registry.utils.impexp.*;
 import io.apicurio.registry.utils.kafka.KafkaUtil;
 import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.annotation.PreDestroy;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Event;
 import jakarta.inject.Inject;
+import org.apache.commons.lang3.tuple.Pair;
+import org.apache.kafka.clients.CommonClientConfigs;
+import org.apache.kafka.clients.consumer.ConsumerRecords;
+import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.common.errors.TopicExistsException;
+import org.slf4j.Logger;
+
+import java.time.Duration;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * An implementation of a registry artifactStore that extends the basic SQL artifactStore but federates 'write' operations
@@ -319,29 +241,17 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
         coordinator.waitForResponse(uuid);
     }
 
-    /**
-     * @see io.apicurio.registry.storage.RegistryStorage#createArtifact(java.lang.String, java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.content.ContentHandle, java.util.List)
-     */
     @Override
-    public ArtifactVersionMetaDataDto createArtifact(String groupId, String artifactId, String version,
-            String artifactType, ContentHandle content, List<ArtifactReferenceDto> references)
-            throws ArtifactAlreadyExistsException, RegistryStorageException {
-        var message = new CreateArtifact6Message(groupId, artifactId, version, artifactType, content.content(), references);
+    public Pair<ArtifactMetaDataDto, ArtifactVersionMetaDataDto> createArtifact(String groupId, String artifactId,
+            String artifactType, EditableArtifactMetaDataDto artifactMetaData, String version, ContentWrapperDto versionContent,
+            EditableVersionMetaDataDto versionMetaData, List<String> versionBranches) throws RegistryStorageException {
+        String content = versionContent != null ? versionContent.getContent().content() : null;
+        String contentType = versionContent != null ? versionContent.getContentType() : null;
+        List<ArtifactReferenceDto> references = versionContent != null ? versionContent.getReferences() : null;
+        var message = new CreateArtifact8Message(groupId, artifactId, artifactType, artifactMetaData, version,
+                contentType, content, references, versionMetaData, versionBranches);
         var uuid = ConcurrentUtil.get(submitter.submitMessage(message));
-        return (ArtifactVersionMetaDataDto) coordinator.waitForResponse(uuid);
-    }
-
-    /**
-     * @see io.apicurio.registry.storage.RegistryStorage#createArtifactWithMetadata(java.lang.String, java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.content.ContentHandle, io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto, java.util.List)
-     */
-    @Override
-    public ArtifactVersionMetaDataDto createArtifactWithMetadata(String groupId, String artifactId,
-            String version, String artifactType, ContentHandle content, EditableArtifactMetaDataDto metaData,
-            List<ArtifactReferenceDto> references)
-            throws ArtifactAlreadyExistsException, RegistryStorageException {
-        var message = new CreateArtifactWithMetadata7Message(groupId, artifactId, version, artifactType, content.content(), metaData, references);
-        var uuid = ConcurrentUtil.get(submitter.submitMessage(message));
-        return (ArtifactVersionMetaDataDto) coordinator.waitForResponse(uuid);
+        return (Pair<ArtifactMetaDataDto, ArtifactVersionMetaDataDto>) coordinator.waitForResponse(uuid);
     }
 
     /**
@@ -365,27 +275,14 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
         coordinator.waitForResponse(uuid);
     }
 
-    /**
-     * @see io.apicurio.registry.storage.RegistryStorage#createArtifactVersion(java.lang.String, java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.content.ContentHandle, java.util.List)
-     */
     @Override
     public ArtifactVersionMetaDataDto createArtifactVersion(String groupId, String artifactId, String version,
-            String artifactType, ContentHandle content, List<ArtifactReferenceDto> references)
-            throws ArtifactNotFoundException, RegistryStorageException {
-        var message = new CreateArtifactVersion6Message(groupId, artifactId, version, artifactType, content.content(), references);
-        var uuid = ConcurrentUtil.get(submitter.submitMessage(message));
-        return (ArtifactVersionMetaDataDto) coordinator.waitForResponse(uuid);
-    }
-
-    /**
-     * @see io.apicurio.registry.storage.RegistryStorage#createArtifactVersionWithMetadata(java.lang.String, java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.content.ContentHandle, io.apicurio.registry.storage.dto.EditableVersionMetaDataDto, java.util.List)
-     */
-    @Override
-    public ArtifactVersionMetaDataDto createArtifactVersionWithMetadata(String groupId, String artifactId,
-            String version, String artifactType, ContentHandle content, EditableVersionMetaDataDto metaData,
-            List<ArtifactReferenceDto> references)
-            throws ArtifactNotFoundException, RegistryStorageException {
-        var message = new CreateArtifactVersionWithMetadata7Message(groupId, artifactId, version, artifactType, content.content(), metaData, references);
+            String artifactType, ContentWrapperDto contentDto, EditableVersionMetaDataDto metaData, List<String> branches) throws RegistryStorageException {
+        String content = contentDto != null ? contentDto.getContent().content() : null;
+        String contentType = contentDto != null ? contentDto.getContentType() : null;
+        List<ArtifactReferenceDto> references = contentDto != null ? contentDto.getReferences() : null;
+        var message = new CreateArtifactVersion7Message(groupId, artifactId, version, artifactType, contentType,
+                content, references, metaData, branches);
         var uuid = ConcurrentUtil.get(submitter.submitMessage(message));
         return (ArtifactVersionMetaDataDto) coordinator.waitForResponse(uuid);
     }
@@ -790,17 +687,6 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
         var message = new UpdateContentCanonicalHash3Message(newCanonicalHash, contentId, contentHash);
         var uuid = ConcurrentUtil.get(submitter.submitMessage(message));
         coordinator.waitForResponse(uuid);
-    }
-
-    /**
-     * @see io.apicurio.registry.storage.RegistryStorage#createArtifactWithMetadata(java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.util.Date, io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto, io.apicurio.registry.storage.impl.sql.IdGenerator)
-     */
-    @Override
-    public ArtifactVersionMetaDataDto createArtifactWithMetadata(String groupId, String artifactId,
-            String version, String artifactType, String contentHash, String owner, Date createdOn,
-            EditableArtifactMetaDataDto metaData, IdGenerator globalIdGenerator)
-            throws ArtifactNotFoundException, RegistryStorageException {
-        throw new RuntimeException("Not implemented.  I think this is not needed any longer!");
     }
 
     /**

@@ -2,11 +2,11 @@ package io.apicurio.registry.noprofile.validity;
 
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.model.GroupId;
-import io.apicurio.registry.rest.client.models.ArtifactContent;
 import io.apicurio.registry.rest.client.models.Rule;
 import io.apicurio.registry.rest.client.models.RuleType;
 import io.apicurio.registry.rules.validity.ValidityLevel;
 import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.ContentTypes;
 import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -62,16 +62,14 @@ public class ValidityRuleApplicationTest extends AbstractResourceTestBase {
     @Test
     public void testValidityRuleApplication() throws Exception {
         String artifactId = "ValidityRuleApplicationTest";
-        createArtifact(artifactId, ArtifactType.AVRO, SCHEMA_SIMPLE);
+        createArtifact(artifactId, ArtifactType.AVRO, SCHEMA_SIMPLE, ContentTypes.APPLICATION_JSON);
         Rule rule = new Rule();
         rule.setType(RuleType.VALIDITY);
         rule.setConfig(ValidityLevel.FULL.name());
         clientV3.groups().byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString()).artifacts().byArtifactId(artifactId).rules().post(rule);
 
         var exception = Assertions.assertThrows(io.apicurio.registry.rest.client.models.Error.class, () -> {
-            ArtifactContent content = new ArtifactContent();
-            content.setContent(INVALID_SCHEMA);
-            clientV3.groups().byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString()).artifacts().byArtifactId(artifactId).versions().post(content);
+            createArtifactVersion(artifactId, INVALID_SCHEMA, ContentTypes.APPLICATION_JSON);
         });
         assertEquals("RuleViolationException", exception.getName());
         assertEquals(409, exception.getErrorCode());
@@ -80,16 +78,14 @@ public class ValidityRuleApplicationTest extends AbstractResourceTestBase {
     @Test
     public void testValidityRuleApplication_Map() throws Exception {
         String artifactId = "testValidityRuleApplication_Map";
-        createArtifact(artifactId, ArtifactType.AVRO, SCHEMA_WITH_MAP);
+        createArtifact(artifactId, ArtifactType.AVRO, SCHEMA_WITH_MAP, ContentTypes.APPLICATION_JSON);
         Rule rule = new Rule();
         rule.setType(RuleType.VALIDITY);
         rule.setConfig(ValidityLevel.FULL.name());
         clientV3.groups().byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString()).artifacts().byArtifactId(artifactId).rules().post(rule);
 
         var exception = Assertions.assertThrows(io.apicurio.registry.rest.client.models.Error.class, () -> {
-            ArtifactContent content = new ArtifactContent();
-            content.setContent(INVALID_SCHEMA_WITH_MAP);
-            clientV3.groups().byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString()).artifacts().byArtifactId(artifactId).versions().post(content);
+            createArtifactVersion(artifactId, INVALID_SCHEMA_WITH_MAP, ContentTypes.APPLICATION_JSON);
         });
         assertEquals("RuleViolationException", exception.getName());
         assertEquals(409, exception.getErrorCode());

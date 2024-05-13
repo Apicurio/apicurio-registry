@@ -1,33 +1,29 @@
 package io.apicurio.tests.smokeTests.apicurio;
 
-import static org.hamcrest.CoreMatchers.hasItems;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-
-import java.io.ByteArrayInputStream;
-import java.nio.charset.StandardCharsets;
-import java.util.List;
-
+import io.apicurio.registry.rest.client.models.Rule;
+import io.apicurio.registry.rest.client.models.RuleType;
+import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
+import io.apicurio.registry.rules.integrity.IntegrityLevel;
+import io.apicurio.registry.rules.validity.ValidityLevel;
+import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.ContentTypes;
+import io.apicurio.registry.utils.tests.TestUtils;
+import io.apicurio.tests.ApicurioRegistryBaseIT;
+import io.apicurio.tests.utils.Constants;
+import io.quarkus.test.junit.QuarkusIntegrationTest;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.apicurio.registry.rest.client.models.Rule;
-import io.apicurio.registry.rest.client.models.RuleType;
-import io.apicurio.registry.rest.client.models.VersionMetaData;
-import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
-import io.apicurio.registry.rules.integrity.IntegrityLevel;
-import io.apicurio.registry.rules.validity.ValidityLevel;
-import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.utils.IoUtil;
-import io.apicurio.registry.utils.tests.TestUtils;
-import io.apicurio.tests.ApicurioRegistryBaseIT;
-import io.apicurio.tests.utils.Constants;
-import io.quarkus.test.junit.QuarkusIntegrationTest;
+import java.util.List;
+
+import static org.hamcrest.CoreMatchers.hasItems;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @Tag(Constants.SMOKE)
 @QuarkusIntegrationTest
@@ -107,16 +103,18 @@ class RulesResourceIT extends ApicurioRegistryBaseIT {
         String artifactId = TestUtils.generateArtifactId();
 
         LOGGER.info("Invalid artifact sent {}", invalidArtifactDefinition);
-        TestUtils.assertClientError("RuleViolationException", 409, () -> createArtifact(groupId, artifactId, ArtifactType.AVRO, IoUtil.toStream(invalidArtifactDefinition)), errorCodeExtractor);
-        TestUtils.assertClientError("ArtifactNotFoundException", 404, () -> createArtifactVersion(groupId, artifactId, IoUtil.toStream(invalidArtifactDefinition)), errorCodeExtractor);
+        TestUtils.assertClientError("RuleViolationException", 409, () ->
+                createArtifact(groupId, artifactId, ArtifactType.AVRO, invalidArtifactDefinition, ContentTypes.APPLICATION_JSON, null, null), errorCodeExtractor);
+        TestUtils.assertClientError("ArtifactNotFoundException", 404, () ->
+                createArtifactVersion(groupId, artifactId, invalidArtifactDefinition, ContentTypes.APPLICATION_JSON, null), errorCodeExtractor);
 
-        ByteArrayInputStream artifactData = new ByteArrayInputStream("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"long\"}]}".getBytes(StandardCharsets.UTF_8));
+        String artifactData = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"long\"}]}";
 
-        VersionMetaData metaData = createArtifact(groupId, artifactId, ArtifactType.AVRO, artifactData);
-        LOGGER.info("Created artifact {} with metadata {}", artifactId, metaData.toString());
+        var caResponse = createArtifact(groupId, artifactId, ArtifactType.AVRO, artifactData, ContentTypes.APPLICATION_JSON, null, null);
+        LOGGER.info("Created artifact {} with metadata {}", artifactId, caResponse.getArtifact().toString());
 
-        artifactData = new ByteArrayInputStream("{\"type\":\"record\",\"name\":\"myrecord2\",\"fields\":[{\"name\":\"bar\",\"type\":\"long\"}]}".getBytes(StandardCharsets.UTF_8));
-        metaData = createArtifactVersion(groupId, artifactId, artifactData);
+        artifactData = "{\"type\":\"record\",\"name\":\"myrecord2\",\"fields\":[{\"name\":\"bar\",\"type\":\"long\"}]}";
+        var metaData = createArtifactVersion(groupId, artifactId, artifactData, ContentTypes.APPLICATION_JSON, null);
         LOGGER.info("Artifact with Id:{} was updated:{}", artifactId, metaData.toString());
 
         retryOp((rc) -> {
@@ -133,16 +131,15 @@ class RulesResourceIT extends ApicurioRegistryBaseIT {
         String artifactId1 = TestUtils.generateArtifactId();
         String artifactDefinition = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
 
-        ByteArrayInputStream artifactData = new ByteArrayInputStream(artifactDefinition.getBytes(StandardCharsets.UTF_8));
-        VersionMetaData metaData = createArtifact(groupId, artifactId1, ArtifactType.AVRO, artifactData);
-        LOGGER.info("Created artifact {} with metadata {}", artifactId1, metaData);
+        String artifactData = artifactDefinition;
+        var caResponse =  createArtifact(groupId, artifactId1, ArtifactType.AVRO, artifactData, ContentTypes.APPLICATION_JSON, null, null);
+        LOGGER.info("Created artifact {} with metadata {}", artifactId1, caResponse.getArtifact());
 
         String artifactId2 = TestUtils.generateArtifactId();
         artifactDefinition = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
-        artifactData = new ByteArrayInputStream(artifactDefinition.getBytes(StandardCharsets.UTF_8));
 
-        metaData = createArtifact(groupId, artifactId2, ArtifactType.AVRO, artifactData);
-        LOGGER.info("Created artifact {} with metadata {}", artifactId2, metaData);
+        caResponse = createArtifact(groupId, artifactId2, ArtifactType.AVRO, artifactDefinition, ContentTypes.APPLICATION_JSON, null, null);
+        LOGGER.info("Created artifact {} with metadata {}", artifactId2, caResponse.getArtifact());
 
         Rule rule = new Rule();
         rule.setType(RuleType.VALIDITY);
@@ -151,22 +148,21 @@ class RulesResourceIT extends ApicurioRegistryBaseIT {
         registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId1).rules().post(rule);
         LOGGER.info("Created rule: {} - {} for artifact {}", rule.getType(), rule.getConfig(), artifactId1);
 
-        TestUtils.assertClientError("RuleAlreadyExistsException", 409, () -> registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId1).rules().post(rule), true, errorCodeExtractor);
+        TestUtils.assertClientError("RuleAlreadyExistsException", 409, () ->
+                registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId1).rules().post(rule), true, errorCodeExtractor);
 
         String invalidArtifactDefinition = "<type>record</type>\n<name>test</name>";
-        artifactData = new ByteArrayInputStream(invalidArtifactDefinition.getBytes(StandardCharsets.UTF_8));
-
-        ByteArrayInputStream iad = artifactData;
-        TestUtils.assertClientError("RuleViolationException", 409, () -> createArtifactVersion(groupId, artifactId1, iad), errorCodeExtractor);
+        TestUtils.assertClientError("RuleViolationException", 409, () ->
+                createArtifactVersion(groupId, artifactId1, invalidArtifactDefinition, ContentTypes.APPLICATION_JSON, null), errorCodeExtractor);
 
         String updatedArtifactData = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"bar\",\"type\":\"long\"}]}";
 
-        artifactData = new ByteArrayInputStream(updatedArtifactData.getBytes(StandardCharsets.UTF_8));
-        metaData = createArtifactVersion(groupId, artifactId2, artifactData);
+        artifactData = updatedArtifactData;
+        var metaData = createArtifactVersion(groupId, artifactId2, artifactData, ContentTypes.APPLICATION_JSON, null);
         LOGGER.info("Artifact with ID {} was updated: {}", artifactId2, metaData.toString());
 
-        artifactData = new ByteArrayInputStream(updatedArtifactData.getBytes(StandardCharsets.UTF_8));
-        metaData = createArtifactVersion(groupId, artifactId1, artifactData);
+        artifactData = updatedArtifactData;
+        metaData = createArtifactVersion(groupId, artifactId1, artifactData, ContentTypes.APPLICATION_JSON, null);
         LOGGER.info("Artifact with ID {} was updated: {}", artifactId1, metaData.toString());
 
         retryOp((rc) -> {
@@ -187,9 +183,8 @@ class RulesResourceIT extends ApicurioRegistryBaseIT {
         String artifactId1 = TestUtils.generateArtifactId();
         String artifactDefinition = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
 
-        ByteArrayInputStream artifactData = new ByteArrayInputStream(artifactDefinition.getBytes(StandardCharsets.UTF_8));
-        VersionMetaData metaData = createArtifact(groupId, artifactId1, ArtifactType.AVRO, artifactData);
-        LOGGER.info("Created artifact {} with metadata {}", artifactId1, metaData);
+        var caResponse = createArtifact(groupId, artifactId1, ArtifactType.AVRO, artifactDefinition, ContentTypes.APPLICATION_JSON, null, null);
+        LOGGER.info("Created artifact {} with metadata {}", artifactId1, caResponse.getArtifact());
 
         // Validity rule
         Rule rule = new Rule();
@@ -240,9 +235,8 @@ class RulesResourceIT extends ApicurioRegistryBaseIT {
         String artifactId1 = TestUtils.generateArtifactId();
         String artifactDefinition = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
 
-        ByteArrayInputStream artifactData = new ByteArrayInputStream(artifactDefinition.getBytes(StandardCharsets.UTF_8));
-        VersionMetaData metaData = createArtifact(groupId, artifactId1, ArtifactType.AVRO, artifactData);
-        LOGGER.info("Created artifact {} with metadata {}", artifactId1, metaData);
+        var caResponse = createArtifact(groupId, artifactId1, ArtifactType.AVRO, artifactDefinition, ContentTypes.APPLICATION_JSON, null, null);
+        LOGGER.info("Created artifact {} with metadata {}", artifactId1, caResponse.getArtifact());
 
         Rule rule = new Rule();
         rule.setType(RuleType.VALIDITY);

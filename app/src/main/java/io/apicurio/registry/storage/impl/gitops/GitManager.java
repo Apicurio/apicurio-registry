@@ -1,24 +1,6 @@
 package io.apicurio.registry.storage.impl.gitops;
 
 
-import static org.apache.commons.io.FilenameUtils.concat;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.URISyntaxException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.util.List;
-import java.util.UUID;
-import java.util.stream.Collectors;
-
-import org.eclipse.jgit.api.Git;
-import org.eclipse.jgit.api.errors.GitAPIException;
-import org.eclipse.jgit.revwalk.RevCommit;
-import org.eclipse.jgit.transport.URIish;
-import org.eclipse.jgit.treewalk.TreeWalk;
-import org.slf4j.Logger;
-
 import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
 import io.apicurio.registry.storage.impl.gitops.model.GitFile;
 import io.apicurio.registry.storage.impl.gitops.model.Type;
@@ -30,6 +12,7 @@ import io.apicurio.registry.storage.impl.gitops.model.v0.Rule;
 import io.apicurio.registry.storage.impl.gitops.model.v0.Setting;
 import io.apicurio.registry.storage.impl.gitops.model.v0.Version;
 import io.apicurio.registry.storage.impl.sql.RegistryStorageContentUtils;
+import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.types.VersionState;
 import io.apicurio.registry.util.ContentTypeUtil;
@@ -42,6 +25,23 @@ import jakarta.annotation.PreDestroy;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import lombok.Getter;
+import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.api.errors.GitAPIException;
+import org.eclipse.jgit.revwalk.RevCommit;
+import org.eclipse.jgit.transport.URIish;
+import org.eclipse.jgit.treewalk.TreeWalk;
+import org.slf4j.Logger;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URISyntaxException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.List;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
+import static org.apache.commons.io.FilenameUtils.concat;
 
 @ApplicationScoped
 public class GitManager {
@@ -381,6 +381,15 @@ public class GitManager {
                                 content.setArtifactType(utils.determineArtifactType(data, content.getArtifactType()));
                                 e.canonicalHash = utils.getCanonicalContentHash(data, content.getArtifactType(), null, null);
                                 e.artifactType = content.getArtifactType();
+                                // FIXME need to better determine the content type?
+                                e.contentType = ContentTypes.APPLICATION_JSON;
+                                if (contentFile.getPath().toLowerCase().endsWith(".yaml") || contentFile.getPath().toLowerCase().endsWith(".yml")) {
+                                    e.contentType = ContentTypes.APPLICATION_YAML;
+                                } else if (contentFile.getPath().toLowerCase().endsWith(".xml") || contentFile.getPath().toLowerCase().endsWith(".wsdl") || contentFile.getPath().toLowerCase().endsWith(".xsd")) {
+                                    e.contentType = ContentTypes.APPLICATION_XML;
+                                } else if (contentFile.getPath().toLowerCase().endsWith(".proto")) {
+                                    e.contentType = ContentTypes.APPLICATION_PROTOBUF;
+                                }
                                 log.debug("Importing {}", e);
                                 state.getStorage().importContent(e);
                                 contentFile.setProcessed(true);

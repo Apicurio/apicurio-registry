@@ -1,24 +1,22 @@
 package io.apicurio.registry.noprofile;
 
-import static io.apicurio.registry.utils.tests.TestUtils.retry;
-
-import java.nio.charset.StandardCharsets;
-import java.util.Map;
-
-import org.apache.kafka.common.header.Headers;
-import org.apache.kafka.common.header.internals.RecordHeaders;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Test;
-
 import io.apicurio.registry.AbstractResourceTestBase;
-import io.apicurio.registry.rest.client.models.ArtifactContent;
-import io.apicurio.registry.rest.client.models.VersionMetaData;
 import io.apicurio.registry.serde.SerdeConfig;
 import io.apicurio.registry.serde.jsonschema.JsonSchemaKafkaDeserializer;
 import io.apicurio.registry.serde.jsonschema.JsonSchemaKafkaSerializer;
 import io.apicurio.registry.support.Person;
 import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.ContentTypes;
 import io.quarkus.test.junit.QuarkusTest;
+import org.apache.kafka.common.header.Headers;
+import org.apache.kafka.common.header.internals.RecordHeaders;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+
+import java.nio.charset.StandardCharsets;
+import java.util.Map;
+
+import static io.apicurio.registry.utils.tests.TestUtils.retry;
 
 @QuarkusTest
 public class JsonSerdeTest extends AbstractResourceTestBase {
@@ -31,15 +29,11 @@ public class JsonSerdeTest extends AbstractResourceTestBase {
 
         String artifactId = generateArtifactId();
 
-        ArtifactContent content = new ArtifactContent();
-        content.setContent(jsonSchema);
-        VersionMetaData amd = clientV3.groups().byGroupId(groupId).artifacts().post(content, config -> {
-            config.headers.add("X-Registry-ArtifactId", artifactId + "-value");
-            config.headers.add("X-Registry-ArtifactType", ArtifactType.JSON);
-        });
+        long globalId = createArtifact(groupId, artifactId + "-value", ArtifactType.JSON, jsonSchema, ContentTypes.APPLICATION_JSON)
+                .getVersion().getGlobalId();
 
         // make sure we have schema registered
-        retry(() -> clientV3.ids().globalIds().byGlobalId(amd.getGlobalId()).get());
+        retry(() -> clientV3.ids().globalIds().byGlobalId(globalId).get());
 
         Person person = new Person("Ales", "Justin", 23);
 

@@ -1,25 +1,17 @@
 package io.apicurio.registry.limits;
 
-import java.io.InputStream;
-import java.util.Map;
-
-import org.apache.commons.lang3.StringUtils;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Tag;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
-
 import com.microsoft.kiota.ApiException;
-
 import io.apicurio.registry.AbstractRegistryTestBase;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.model.GroupId;
-import io.apicurio.registry.rest.client.models.ArtifactContent;
+import io.apicurio.registry.rest.client.models.CreateArtifact;
+import io.apicurio.registry.rest.client.models.CreateVersion;
 import io.apicurio.registry.rest.client.models.EditableVersionMetaData;
 import io.apicurio.registry.rest.client.models.Labels;
+import io.apicurio.registry.rest.client.models.VersionContent;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.tests.ApicurioTestTags;
@@ -27,6 +19,15 @@ import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import jakarta.inject.Inject;
+import org.apache.commons.lang3.StringUtils;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
+
+import java.io.InputStream;
+import java.util.Map;
 
 @QuarkusTest
 @TestProfile(LimitsTestProfile.class)
@@ -52,8 +53,8 @@ public class LimitsTest extends AbstractResourceTestBase {
 
         String artifactId = TestUtils.generateArtifactId();
 
-        createArtifact(artifactId, ArtifactType.JSON, content);
-        createArtifactVersion(artifactId, ArtifactType.JSON, content);
+        createArtifact(artifactId, ArtifactType.JSON, content, ContentTypes.APPLICATION_JSON);
+        createArtifactVersion(artifactId, content, ContentTypes.APPLICATION_JSON);
 
         //valid metadata
         EditableVersionMetaData meta = new EditableVersionMetaData();
@@ -101,16 +102,21 @@ public class LimitsTest extends AbstractResourceTestBase {
 
         //schema number 3 , exceeds the max number of schemas
         var exception2 = Assertions.assertThrows(io.apicurio.registry.rest.client.models.Error.class, () -> {
-            ArtifactContent data = new ArtifactContent();
-            data.setContent("{}");
+            CreateArtifact createArtifact = new CreateArtifact();
+            createArtifact.setArtifactId(artifactId);
+            createArtifact.setType(ArtifactType.JSON);
+            CreateVersion createVersion = new CreateVersion();
+            createArtifact.setFirstVersion(createVersion);
+            VersionContent versionContent = new VersionContent();
+            createVersion.setContent(versionContent);
+            versionContent.setContent("{}");
+            versionContent.setContentType(ContentTypes.APPLICATION_JSON);
+
             clientV3
                 .groups()
                 .byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString())
                 .artifacts()
-                .post(data, config -> {
-                    config.headers.add("X-Registry-ArtifactType", ArtifactType.JSON);
-                    config.headers.add("X-Registry-ArtifactId", artifactId);
-                });
+                .post(createArtifact);
         });
         Assertions.assertEquals(409, exception2.getErrorCode());
     }

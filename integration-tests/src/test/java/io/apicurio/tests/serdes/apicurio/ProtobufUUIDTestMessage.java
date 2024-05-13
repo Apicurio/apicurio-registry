@@ -41,4 +41,8 @@ public class ProtobufUUIDTestMessage {
         return IoUtil.toBytes(generateSchema().toSchema());
     }
 
+    public String generateSchemaString() {
+        return IoUtil.toString(generateSchemaBytes());
+    }
+
 }

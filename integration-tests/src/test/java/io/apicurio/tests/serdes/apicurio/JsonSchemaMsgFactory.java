@@ -64,4 +64,8 @@ public class JsonSchemaMsgFactory {
         return IoUtil.toBytes(jsonSchema);
     }
 
+    public String getSchemaString() {
+        return jsonSchema;
+    }
+
 }

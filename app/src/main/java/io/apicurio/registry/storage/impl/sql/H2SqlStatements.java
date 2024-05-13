@@ -49,7 +49,7 @@ public class H2SqlStatements extends CommonSqlStatements {
      */
     @Override
     public String upsertContent() {
-        return "INSERT INTO content (contentId, canonicalHash, contentHash, content, refs) VALUES (?, ?, ?, ?, ?)";
+        return "INSERT INTO content (contentId, canonicalHash, contentHash, contentType, content, refs) VALUES (?, ?, ?, ?, ?, ?)";
     }
 
     /**

@@ -14,6 +14,7 @@ import java.util.List;
 @ToString
 public class ContentWrapperDto {
 
+    private String contentType;
     private ContentHandle content;
     private List<ArtifactReferenceDto> references;
 }

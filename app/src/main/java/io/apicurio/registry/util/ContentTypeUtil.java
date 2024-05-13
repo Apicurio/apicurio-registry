@@ -66,7 +66,6 @@ public final class ContentTypeUtil {
 
     /**
      * Returns true if the content can be parsed as yaml.
-     *
      */
     public static boolean isParsableYaml(ContentHandle yaml) {
         try {
@@ -77,6 +76,18 @@ public final class ContentTypeUtil {
             }
             JsonNode root = yamlMapper.readTree(yaml.stream());
             return root != null && root.elements().hasNext();
+        } catch (Throwable t) {
+            return false;
+        }
+    }
+
+    /**
+     * Returns true if the content can be parsed as yaml.
+     */
+    public static boolean isParsableJson(ContentHandle content) {
+        try {
+            JsonNode root = jsonMapper.readTree(content.stream());
+            return root != null && (root.isObject() || root.isArray());
         } catch (Throwable t) {
             return false;
         }

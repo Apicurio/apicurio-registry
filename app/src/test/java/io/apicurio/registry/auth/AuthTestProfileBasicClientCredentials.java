@@ -5,11 +5,14 @@ import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.client.auth.VertXAuthFactory;
 import io.apicurio.registry.model.GroupId;
 import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.rest.client.models.ArtifactContent;
+import io.apicurio.registry.rest.client.models.CreateArtifact;
+import io.apicurio.registry.rest.client.models.CreateVersion;
 import io.apicurio.registry.rest.client.models.Rule;
 import io.apicurio.registry.rest.client.models.RuleType;
+import io.apicurio.registry.rest.client.models.VersionContent;
 import io.apicurio.registry.rules.validity.ValidityLevel;
 import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.utils.tests.ApicurioTestTags;
 import io.apicurio.registry.utils.tests.AuthTestProfile;
 import io.apicurio.registry.utils.tests.JWKSMockServer;
@@ -62,16 +65,22 @@ public class AuthTestProfileBasicClientCredentials extends AbstractResourceTestB
         String artifactId = TestUtils.generateArtifactId();
         try {
             client.groups().byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString()).artifacts().get();
-            ArtifactContent content = new ArtifactContent();
-            content.setContent("{}");
-            var res = client
+
+            CreateArtifact createArtifact = new CreateArtifact();
+            createArtifact.setType(ArtifactType.JSON);
+            createArtifact.setArtifactId(artifactId);
+            CreateVersion createVersion = new CreateVersion();
+            createArtifact.setFirstVersion(createVersion);
+            VersionContent versionContent = new VersionContent();
+            createVersion.setContent(versionContent);
+            versionContent.setContent("{}");
+            versionContent.setContentType(ContentTypes.APPLICATION_JSON);
+
+            client
                     .groups()
                     .byGroupId(groupId)
                     .artifacts()
-                    .post(content, config -> {
-                        config.headers.add("X-Registry-ArtifactType", ArtifactType.JSON);
-                        config.headers.add("X-Registry-ArtifactId", artifactId);
-                    });
+                    .post(createArtifact);
 
             TestUtils.retry(() ->
                     client

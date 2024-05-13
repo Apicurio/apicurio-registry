@@ -1,5 +1,19 @@
 package io.apicurio.registry.noprofile.maven;
 
+import io.apicurio.registry.maven.DownloadRegistryMojo;
+import io.apicurio.registry.maven.RegisterArtifact;
+import io.apicurio.registry.maven.RegisterRegistryMojo;
+import io.apicurio.registry.rest.client.models.ArtifactReference;
+import io.apicurio.registry.rest.client.models.VersionMetaData;
+import io.apicurio.registry.rest.v3.beans.IfArtifactExists;
+import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.utils.IoUtil;
+import io.apicurio.registry.utils.tests.TestUtils;
+import io.quarkus.test.junit.QuarkusTest;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -10,21 +24,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
-
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
-import io.apicurio.registry.maven.DownloadRegistryMojo;
-import io.apicurio.registry.maven.RegisterArtifact;
-import io.apicurio.registry.maven.RegisterRegistryMojo;
-import io.apicurio.registry.rest.client.models.ArtifactReference;
-import io.apicurio.registry.rest.client.models.VersionMetaData;
-import io.apicurio.registry.rest.v3.beans.IfExists;
-import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.utils.IoUtil;
-import io.apicurio.registry.utils.tests.TestUtils;
-import io.quarkus.test.junit.QuarkusTest;
 
 @QuarkusTest
 public class RegistryMojoWithAutoReferencesTest extends RegistryMojoTestBase {
@@ -70,7 +69,7 @@ public class RegistryMojoWithAutoReferencesTest extends RegistryMojoTestBase {
         tradeRawArtifact.setType(ArtifactType.AVRO);
         tradeRawArtifact.setFile(tradeRawFile);
         tradeRawArtifact.setAnalyzeDirectory(true);
-        tradeRawArtifact.setIfExists(IfExists.FAIL);
+        tradeRawArtifact.setIfExists(IfArtifactExists.FAIL);
 
         registerMojo.setArtifacts(Collections.singletonList(tradeRawArtifact));
         registerMojo.execute();
@@ -104,7 +103,7 @@ public class RegistryMojoWithAutoReferencesTest extends RegistryMojoTestBase {
         tableNotification.setType(ArtifactType.PROTOBUF);
         tableNotification.setFile(tableNotificationFile);
         tableNotification.setAnalyzeDirectory(true);
-        tableNotification.setIfExists(IfExists.FAIL);
+        tableNotification.setIfExists(IfArtifactExists.FAIL);
 
         registerMojo.setArtifacts(Collections.singletonList(tableNotification));
 
@@ -140,7 +139,7 @@ public class RegistryMojoWithAutoReferencesTest extends RegistryMojoTestBase {
         citizen.setType(ArtifactType.JSON);
         citizen.setFile(citizenFile);
         citizen.setAnalyzeDirectory(true);
-        citizen.setIfExists(IfExists.FAIL);
+        citizen.setIfExists(IfArtifactExists.FAIL);
 
         registerMojo.setArtifacts(Collections.singletonList(citizen));
 

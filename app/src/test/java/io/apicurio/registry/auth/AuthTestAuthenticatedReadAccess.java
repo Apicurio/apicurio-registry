@@ -5,10 +5,13 @@ package io.apicurio.registry.auth;
 import io.apicurio.common.apps.config.Info;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.rest.client.RegistryClient;
+import io.apicurio.registry.rest.client.models.CreateArtifact;
 import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.utils.tests.ApicurioTestTags;
 import io.apicurio.registry.utils.tests.AuthTestProfileAuthenticatedReadAccess;
 import io.apicurio.registry.utils.tests.JWKSMockServer;
+import io.apicurio.registry.utils.tests.TestUtils;
 import io.kiota.http.vertx.VertXRequestAdapter;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
@@ -54,16 +57,12 @@ public class AuthTestAuthenticatedReadAccess extends AbstractResourceTestBase {
                 "    \"fields\" : [{\"name\" : \"age\", \"type\" : \"int\"}]\r\n" +
                 "}";
         var exception = Assertions.assertThrows(Exception.class, () -> {
-            var content = new io.apicurio.registry.rest.client.models.ArtifactContent();
-            content.setContent(data);
+            CreateArtifact createArtifact = TestUtils.clientCreateArtifact("testReadOperationWithNoRole", ArtifactType.AVRO, data, ContentTypes.APPLICATION_JSON);
             client
                     .groups()
                     .byGroupId(groupId)
                     .artifacts()
-                    .post(content, config -> {
-                        config.headers.add("X-Registry-ArtifactType", ArtifactType.AVRO);
-                        config.headers.add("X-Registry-ArtifactId", "testReadOperationWithNoRole");
-                    });
+                    .post(createArtifact);
         });
         assertForbidden(exception);
     }

@@ -1,19 +1,6 @@
 package io.apicurio.registry.resolver;
 
-import static io.apicurio.registry.client.auth.VertXAuthFactory.buildOIDCWebClient;
-import static io.apicurio.registry.client.auth.VertXAuthFactory.buildSimpleAuthWebClient;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-
 import com.microsoft.kiota.RequestAdapter;
-
 import io.apicurio.registry.resolver.config.DefaultSchemaResolverConfig;
 import io.apicurio.registry.resolver.data.Record;
 import io.apicurio.registry.resolver.strategy.ArtifactReference;
@@ -24,6 +11,18 @@ import io.apicurio.registry.rest.client.models.VersionMetaData;
 import io.apicurio.registry.utils.IoUtil;
 import io.kiota.http.vertx.VertXRequestAdapter;
 import io.vertx.core.Vertx;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+
+import static io.apicurio.registry.client.auth.VertXAuthFactory.buildOIDCWebClient;
+import static io.apicurio.registry.client.auth.VertXAuthFactory.buildSimpleAuthWebClient;
 
 /**
  * Base implementation of {@link SchemaResolver}
@@ -166,7 +165,7 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
 
     protected SchemaLookupResult<S> resolveSchemaByGlobalId(long globalId) {
         return schemaCache.getByGlobalId(globalId, globalIdKey -> {
-            //TODO getContentByGlobalId have to return some minumum metadata (groupId, artifactId and version)
+            //TODO getContentByGlobalId have to return some minimum metadata (groupId, artifactId and version)
             //TODO or at least add some method to the api to return the version metadata by globalId
 //            ArtifactMetaData artifactMetadata = client.getArtifactMetaData("TODO", artifactId);
 
@@ -176,7 +175,8 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
             });
 
             //Get the artifact references
-            final List<io.apicurio.registry.rest.client.models.ArtifactReference> artifactReferences = client.ids().globalIds().byGlobalId(globalId).references().get();
+            final List<io.apicurio.registry.rest.client.models.ArtifactReference> artifactReferences =
+                    client.ids().globalIds().byGlobalId(globalId).references().get();
             //If there are any references for the schema being parsed, resolve them before parsing the schema
             final Map<String, ParsedSchema<S>> resolvedReferences = resolveReferences(artifactReferences);
 
@@ -309,7 +309,7 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
         return new RegistryClient(adapter);
     }
 
-    protected void loadFromArtifactMetaData(VersionMetaData artifactMetadata, SchemaLookupResult.SchemaLookupResultBuilder<S> resultBuilder) {
+    protected void loadFromMetaData(VersionMetaData artifactMetadata, SchemaLookupResult.SchemaLookupResultBuilder<S> resultBuilder) {
         resultBuilder.globalId(artifactMetadata.getGlobalId());
         resultBuilder.contentId(artifactMetadata.getContentId());
         resultBuilder.groupId(artifactMetadata.getGroupId());

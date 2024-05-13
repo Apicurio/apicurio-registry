@@ -4,11 +4,11 @@ import com.google.protobuf.Descriptors;
 import com.google.protobuf.DynamicMessage;
 import com.google.protobuf.Timestamp;
 import com.squareup.wire.schema.internal.parser.ProtoFileElement;
+import io.apicurio.registry.utils.IoUtil;
+import io.apicurio.registry.utils.protobuf.schema.FileDescriptorUtils;
 import io.apicurio.tests.protobuf.Header;
 import io.apicurio.tests.protobuf.Point;
 import io.apicurio.tests.protobuf.ProtobufTestMessage;
-import io.apicurio.registry.utils.IoUtil;
-import io.apicurio.registry.utils.protobuf.schema.FileDescriptorUtils;
 
 import java.io.InputStream;
 import java.util.Date;
@@ -43,6 +43,10 @@ public class ProtobufTestMessageFactory {
         return Thread.currentThread().getContextClassLoader().getResourceAsStream("serdes/testmessage.proto");
     }
 
+    public String generateSchemaString() {
+        return IoUtil.toString(generateSchemaStream());
+    }
+
     public byte[] generateSchemaBytes() {
         return IoUtil.toBytes(generateSchemaStream());
     }
@@ -50,6 +54,10 @@ public class ProtobufTestMessageFactory {
     public InputStream generateArtificialSchemaStream() {
         ProtoFileElement element = FileDescriptorUtils.fileDescriptorToProtoFile(ProtobufTestMessage.newBuilder().build().getDescriptorForType().getFile().toProto());
         return IoUtil.toStream(element.toSchema());
+    }
+
+    public String generateArtificialSchemaString() {
+        return IoUtil.toString(generateArtificialSchemaStream());
     }
 
 }

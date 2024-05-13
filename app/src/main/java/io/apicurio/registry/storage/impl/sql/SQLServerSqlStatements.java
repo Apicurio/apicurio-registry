@@ -52,11 +52,11 @@ public class SQLServerSqlStatements extends CommonSqlStatements {
     public String upsertContent() {
         return String.join(" ",
                 "MERGE INTO content AS target",
-                "USING (VALUES (?, ?, ?, ?, ?)) AS source (contentId, canonicalHash, contentHash, content, refs)",
+                "USING (VALUES (?, ?, ?, ?, ?, ?)) AS source (contentId, canonicalHash, contentHash, contentType, content, refs)",
                 "ON (target.contentHash = source.contentHash)",
                 "WHEN NOT MATCHED THEN",
-                    "INSERT (contentId, canonicalHash, contentHash, content, refs)",
-                    "VALUES (source.contentId, source.canonicalHash, source.contentHash, source.content, source.refs);");
+                    "INSERT (contentId, canonicalHash, contentHash, contentType, content, refs)",
+                    "VALUES (source.contentId, source.canonicalHash, source.contentHash, source.contentType, source.content, source.refs);");
     }
 
     /**

@@ -118,6 +118,10 @@ public class SqlDataImporter extends AbstractDataImporter {
         try {
             List<ArtifactReferenceDto> references = SqlUtil.deserializeReferences(entity.serializedReferences);
 
+            if (entity.contentType == null) {
+                throw new RuntimeException("ContentEntity is missing required field: contentType");
+            }
+
             // We do not need canonicalHash if we have artifactType
             if (entity.canonicalHash == null && entity.artifactType != null) {
                 ContentHandle canonicalContent = utils.canonicalizeContent(

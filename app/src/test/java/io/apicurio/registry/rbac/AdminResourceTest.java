@@ -1,10 +1,20 @@
 package io.apicurio.registry.rbac;
 
 import io.apicurio.registry.AbstractResourceTestBase;
-import io.apicurio.registry.rest.client.models.*;
+import io.apicurio.registry.rest.client.models.ArtifactReference;
+import io.apicurio.registry.rest.client.models.Comment;
+import io.apicurio.registry.rest.client.models.CreateArtifact;
+import io.apicurio.registry.rest.client.models.RoleMapping;
+import io.apicurio.registry.rest.client.models.RoleMappingSearchResults;
+import io.apicurio.registry.rest.client.models.RoleType;
+import io.apicurio.registry.rest.client.models.Rule;
+import io.apicurio.registry.rest.client.models.RuleType;
+import io.apicurio.registry.rest.client.models.UpdateConfigurationProperty;
+import io.apicurio.registry.rest.client.models.UpdateRole;
 import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
 import io.apicurio.registry.rules.integrity.IntegrityLevel;
 import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.utils.tests.ApicurioTestTags;
 import io.apicurio.registry.utils.tests.ApplicationRbacEnabledProfile;
 import io.apicurio.registry.utils.tests.TestUtils;
@@ -28,7 +38,9 @@ import java.util.zip.ZipInputStream;
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.CoreMatchers.anything;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -401,7 +413,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
         for (int idx = 0; idx < 5; idx++) {
             String title = "Empty API " + idx;
             String artifactId = "Empty-" + idx;
-            this.createArtifact(group, artifactId, ArtifactType.OPENAPI, artifactContent.replaceAll("Empty API", title));
+            this.createArtifact(group, artifactId, ArtifactType.OPENAPI, artifactContent.replaceAll("Empty API", title), ContentTypes.APPLICATION_JSON);
         }
 
         ValidatableResponse response = given()
@@ -444,14 +456,13 @@ public class AdminResourceTest extends AbstractResourceTestBase {
         for (int idx = 0; idx < 5; idx++) {
             String title = "Empty API " + idx + " " + suffix;
             String artifactId = "Empty-" + idx;
+            String emptyApiContent = artifactContent.replaceAll("Empty API", title);
             List<ArtifactReference> refs = idx > 0 ? getSingletonRefList(group, "Empty-" + (idx - 1), "1", "ref") : Collections.emptyList();
-            ArtifactContent content = new ArtifactContent();
-            content.setContent(artifactContent.replaceAll("Empty API", title));
-            content.setReferences(refs);
-            clientV3.groups().byGroupId(group).artifacts().post(content, config -> {
-                config.headers.add("X-Registry-ArtifactId", artifactId);
-                config.headers.add("X-Registry-ArtifactType", ArtifactType.OPENAPI);
-            });
+
+            CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.OPENAPI, emptyApiContent, ContentTypes.APPLICATION_JSON);
+            createArtifact.getFirstVersion().getContent().setReferences(refs);
+
+            clientV3.groups().byGroupId(group).artifacts().post(createArtifact);
         }
 
         // Export data (browser flow).

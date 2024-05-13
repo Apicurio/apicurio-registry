@@ -1,19 +1,18 @@
 package io.apicurio.registry.noprofile;
 
-import static org.junit.jupiter.api.Assertions.assertThrows;
-
-import java.io.InputStream;
-
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Test;
-
 import io.apicurio.registry.AbstractResourceTestBase;
-import io.apicurio.registry.rest.client.models.ArtifactContent;
 import io.apicurio.registry.rest.client.models.EditableVersionMetaData;
 import io.apicurio.registry.rest.client.models.VersionMetaData;
 import io.apicurio.registry.rest.client.models.VersionState;
 import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.ContentTypes;
 import io.quarkus.test.junit.QuarkusTest;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+
+import java.io.InputStream;
+
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @QuarkusTest
 public class VersionStateTest extends AbstractResourceTestBase {
@@ -29,18 +28,9 @@ public class VersionStateTest extends AbstractResourceTestBase {
         String groupId = "VersionStateTest_testSmoke";
         String artifactId = generateArtifactId();
 
-        ArtifactContent content = new ArtifactContent();
-        content.setContent("{\"type\": \"string\"}");
-        clientV3.groups().byGroupId(groupId).artifacts().post(content, config -> {
-            config.headers.add("X-Registry-ArtifactId", artifactId);
-            config.headers.add("X-Registry-ArtifactType", ArtifactType.JSON);
-        });
-
-        content.setContent("{\"type\": \"int\"}");
-        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().post(content);
-
-        content.setContent("{\"type\": \"float\"}");
-        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().post(content);
+        createArtifact(groupId, artifactId, ArtifactType.JSON, "{\"type\": \"string\"}", ContentTypes.APPLICATION_JSON);
+        createArtifactVersion(groupId, artifactId, "{\"type\": \"int\"}", ContentTypes.APPLICATION_JSON);
+        createArtifactVersion(groupId, artifactId, "{\"type\": \"float\"}", ContentTypes.APPLICATION_JSON);
 
         VersionMetaData amd = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").get();
         Assertions.assertEquals("3", amd.getVersion());

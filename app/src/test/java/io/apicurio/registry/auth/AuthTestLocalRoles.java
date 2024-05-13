@@ -4,12 +4,19 @@ import io.apicurio.common.apps.config.Info;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.model.GroupId;
 import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.rest.client.models.*;
+import io.apicurio.registry.rest.client.models.CreateArtifact;
+import io.apicurio.registry.rest.client.models.RoleMapping;
+import io.apicurio.registry.rest.client.models.RoleType;
+import io.apicurio.registry.rest.client.models.Rule;
+import io.apicurio.registry.rest.client.models.RuleType;
+import io.apicurio.registry.rest.client.models.UpdateRole;
 import io.apicurio.registry.rules.validity.ValidityLevel;
 import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.utils.tests.ApicurioTestTags;
 import io.apicurio.registry.utils.tests.AuthTestProfileWithLocalRoles;
 import io.apicurio.registry.utils.tests.JWKSMockServer;
+import io.apicurio.registry.utils.tests.TestUtils;
 import io.kiota.http.vertx.VertXRequestAdapter;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
@@ -49,14 +56,13 @@ public class AuthTestLocalRoles extends AbstractResourceTestBase {
         return new RegistryClient(adapter);
     }
 
-    private static final ArtifactContent content = new ArtifactContent();
     private static final Rule rule = new Rule();
+    private static final CreateArtifact createArtifact;
 
     static {
-        content.setContent(TEST_CONTENT);
-
         rule.setConfig(ValidityLevel.FULL.name());
         rule.setType(RuleType.VALIDITY);
+        createArtifact = TestUtils.clientCreateArtifact(AuthTestLocalRoles.class.getSimpleName(), ArtifactType.AVRO, TEST_CONTENT, ContentTypes.APPLICATION_JSON);
     }
 
     @Test
@@ -80,7 +86,7 @@ public class AuthTestLocalRoles extends AbstractResourceTestBase {
                 .groups()
                 .byGroupId(UUID.randomUUID().toString())
                 .artifacts()
-                .post(content, config -> config.headers.add("X-Registry-ArtifactId", getClass().getSimpleName()))
+                .post(createArtifact)
                 ;
         });
         assertForbidden(exception2);
@@ -105,10 +111,7 @@ public class AuthTestLocalRoles extends AbstractResourceTestBase {
                     .groups()
                     .byGroupId(UUID.randomUUID().toString())
                     .artifacts()
-                    .post(content, config -> {
-                        config.headers.add("X-Registry-ArtifactType", ArtifactType.AVRO);
-                        config.headers.add("X-Registry-ArtifactId", getClass().getSimpleName());
-                    });
+                    .post(createArtifact);
         });
         assertForbidden(exception4);
         var exception5 = Assertions.assertThrows(Exception.class, () -> {
@@ -133,7 +136,7 @@ public class AuthTestLocalRoles extends AbstractResourceTestBase {
                 .groups()
                 .byGroupId(UUID.randomUUID().toString())
                 .artifacts()
-                .post(content, config -> {
+                .post(createArtifact, config -> {
                     config.headers.add("X-Registry-ArtifactId", getClass().getSimpleName());
                 });
         var exception6 = Assertions.assertThrows(Exception.class, () -> {
@@ -158,9 +161,7 @@ public class AuthTestLocalRoles extends AbstractResourceTestBase {
                 .groups()
                 .byGroupId(UUID.randomUUID().toString())
                 .artifacts()
-                .post(content, config -> {
-                    config.headers.add("X-Registry-ArtifactId", getClass().getSimpleName());
-                });
+                .post(createArtifact);
         client.admin().rules().post(rule);
         
         // Now delete the role mapping

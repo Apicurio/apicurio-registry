@@ -10,8 +10,6 @@ import io.apicurio.registry.storage.error.InvalidArtifactTypeException;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.protobuf.schema.FileDescriptorUtils;
 import io.apicurio.registry.utils.protobuf.schema.ProtobufFile;
-import jakarta.ws.rs.BadRequestException;
-import jakarta.ws.rs.core.MediaType;
 import org.apache.avro.Schema;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -40,58 +38,24 @@ public final class ArtifactTypeUtil {
      * 3) Determined from the content itself
      *
      * @param content       the content
-     * @param xString the artifact type
+     * @param artifactType  the artifact type
      * @param contentType   content type from request API
      */
     //FIXME:references artifact must be dereferenced here otherwise this will fail to discover the type
-    public static String determineArtifactType(ContentHandle content, String xArtifactType, String contentType, List<String> availableTypes) {
-       return determineArtifactType(content, xArtifactType, contentType, Collections.emptyMap(), availableTypes);
+    public static String determineArtifactType(ContentHandle content, String artifactType, String contentType, List<String> availableTypes) {
+       return determineArtifactType(content, artifactType, contentType, Collections.emptyMap(), availableTypes);
     }
 
-    public static String determineArtifactType(ContentHandle content, String xArtifactType, String contentType, Map<String, ContentHandle> resolvedReferences, List<String> availableTypes) {
-        String artifactType = xArtifactType;
-        if (artifactType == null) {
-            artifactType = getArtifactTypeFromContentType(contentType, availableTypes);
-            if (artifactType == null) {
-                artifactType = ArtifactTypeUtil.discoverType(content, contentType, resolvedReferences);
-            }
+    public static String determineArtifactType(ContentHandle content, String artifactType, String contentType,
+                                               Map<String, ContentHandle> resolvedReferences, List<String> availableTypes) {
+        if (artifactType == null && content != null) {
+            artifactType = ArtifactTypeUtil.discoverType(content, contentType, resolvedReferences);
         }
         return artifactType;
     }
 
-    /**
-     * Tries to figure out the artifact type by analyzing the content-type.
-     *
-     * @param contentType the content type header
-     */
-    private static String getArtifactTypeFromContentType(String contentType, List<String> availableTypes) {
-        if (contentType != null && contentType.contains(MediaType.APPLICATION_JSON) && contentType.indexOf(';') != -1) {
-            String[] split = contentType.split(";");
-            if (split.length > 1) {
-                for (String s : split) {
-                    if (s.contains("artifactType=")) {
-                        String at = s.split("=")[1];
-                        for (String t: availableTypes) {
-                            if (t.equals(at)) {
-                                return at;
-                            }
-                        }
-                        throw new BadRequestException("Unsupported artifact type: " + at);
-                    }
-                }
-            }
-        }
-        if (contentType != null && contentType.contains("x-proto")) {
-            return ArtifactType.PROTOBUF;
-        }
-        if (contentType != null && contentType.contains("graphql")) {
-            return ArtifactType.GRAPHQL;
-        }
-        return null;
-    }
-
     // TODO: should we move this to ArtifactTypeUtilProvider and make this logic injectable? yes!
-    // as a first implementation forcing users to specify the type if it's custom sounds like a reasonable tradeoff
+    // as a first implementation forcing users to specify the type if its custom sounds like a reasonable tradeoff
     /**
      * Method that discovers the artifact type from the raw content of an artifact. This will attempt to parse
      * the content (with the optional provided Content Type as a hint) and figure out what type of artifact it
@@ -117,6 +81,7 @@ public final class ArtifactTypeUtil {
         }
 
         // Try the various JSON formatted types
+        // TODO handle both JSON and YAML
         try {
             JsonNode tree = mapper.readTree(content.content());
 

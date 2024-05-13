@@ -11,9 +11,7 @@ import java.util.Optional;
 import io.apicurio.registry.resolver.data.Record;
 import io.apicurio.registry.resolver.strategy.ArtifactCoordinates;
 import io.apicurio.registry.resolver.strategy.ArtifactReference;
-import io.apicurio.registry.rest.client.models.ArtifactContent;
-import io.apicurio.registry.rest.client.models.IfExists;
-import io.apicurio.registry.rest.client.models.VersionMetaData;
+import io.apicurio.registry.rest.client.models.*;
 import io.apicurio.registry.utils.IoUtil;
 
 /**
@@ -248,7 +246,7 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
         String rawSchemaString = IoUtil.toString(parsedSchema.getRawSchema());
 
         return schemaCache.getByContent(rawSchemaString, contentKey -> {
-            ArtifactContent content = new ArtifactContent();
+            VersionContent content = new VersionContent();
             content.setContent(contentKey);
             VersionMetaData artifactMetadata = client
                     .groups()
@@ -262,7 +260,7 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
 
             SchemaLookupResult.SchemaLookupResultBuilder<S> result = SchemaLookupResult.builder();
 
-            loadFromArtifactMetaData(artifactMetadata, result);
+            loadFromMetaData(artifactMetadata, result);
 
             result.parsedSchema(parsedSchema);
 
@@ -275,27 +273,30 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
         String rawSchemaString = IoUtil.toString(parsedSchema.getRawSchema());
 
         return schemaCache.getByContent(rawSchemaString, contentKey -> {
+            CreateArtifact createArtifact = new CreateArtifact();
+            createArtifact.setArtifactId(artifactReference.getArtifactId());
+            createArtifact.setType(schemaParser.artifactType());
 
-            ArtifactContent content = new ArtifactContent();
+            CreateVersion version = new CreateVersion();
+            version.setVersion(artifactReference.getVersion());
+            createArtifact.setFirstVersion(version);
+
+            VersionContent content = new VersionContent();
             content.setContent(rawSchemaString);
-            VersionMetaData artifactMetadata = client
+            version.setContent(content);
+
+            CreateArtifactResponse car = client
                         .groups()
                         .byGroupId(artifactReference.getGroupId() == null ? "default" : artifactReference.getGroupId())
                         .artifacts()
-                        .post(content, config -> {
-                            config.queryParameters.ifExists = IfExists.forValue(this.autoCreateBehavior);
+                        .post(createArtifact, config -> {
+                            config.queryParameters.ifExists = IfArtifactExists.forValue(this.autoCreateBehavior);
                             config.queryParameters.canonical = false;
-                            if (artifactReference.getArtifactId() != null)
-                                config.headers.add("X-Registry-ArtifactId", artifactReference.getArtifactId());
-                            if (schemaParser.artifactType() != null)
-                                config.headers.add("X-Registry-ArtifactType", schemaParser.artifactType());
-                            if (artifactReference.getVersion() != null)
-                                config.headers.add("X-Registry-Version", artifactReference.getVersion());
                         });
 
             SchemaLookupResult.SchemaLookupResultBuilder<S> result = SchemaLookupResult.builder();
 
-            loadFromArtifactMetaData(artifactMetadata, result);
+            loadFromMetaData(car.getVersion(), result);
 
             result.parsedSchema(parsedSchema);
 
@@ -311,29 +312,31 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
         final List<io.apicurio.registry.rest.client.models.ArtifactReference> artifactReferences = parseReferences(referenceLookups);
 
         return schemaCache.getByContent(rawSchemaString, contentKey -> {
+            CreateArtifact createArtifact = new CreateArtifact();
+            createArtifact.setArtifactId(artifactReference.getArtifactId());
+            createArtifact.setType(schemaParser.artifactType());
 
-            ArtifactContent content = new ArtifactContent();
+            CreateVersion version = new CreateVersion();
+            version.setVersion(artifactReference.getVersion());
+            createArtifact.setFirstVersion(version);
+
+            VersionContent content = new VersionContent();
             content.setContent(rawSchemaString);
             content.setReferences(artifactReferences);
-            VersionMetaData artifactMetadata = client
+            version.setContent(content);
+
+            CreateArtifactResponse car = client
                         .groups()
                         .byGroupId(artifactReference.getGroupId() == null ? "default" : artifactReference.getGroupId())
                         .artifacts()
-                        .post(content, config -> {
-                            config.queryParameters.ifExists = IfExists.forValue(this.autoCreateBehavior);
+                        .post(createArtifact, config -> {
+                            config.queryParameters.ifExists = IfArtifactExists.forValue(this.autoCreateBehavior);
                             config.queryParameters.canonical = false;
-                            if (artifactReference.getArtifactId() != null)
-                                config.headers.add("X-Registry-ArtifactId", artifactReference.getArtifactId());
-                            if (schemaParser.artifactType() != null)
-                                config.headers.add("X-Registry-ArtifactType", schemaParser.artifactType());
-                            if (artifactReference.getVersion() != null)
-                                config.headers.add("X-Registry-Version", artifactReference.getVersion());
-                            config.headers.add("Content-Type", "application/create.extended+json");
                         });
 
             SchemaLookupResult.SchemaLookupResultBuilder<S> result = SchemaLookupResult.builder();
 
-            loadFromArtifactMetaData(artifactMetadata, result);
+            loadFromMetaData(car.getVersion(), result);
 
             result.parsedSchema(parsedSchema);
 
@@ -385,7 +388,7 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
         byte[] schema = null;
         Long gid;
         VersionMetaData metadata = client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression(version).get();
-        loadFromArtifactMetaData(metadata, result);
+        loadFromMetaData(metadata, result);
         gid = metadata.getGlobalId();
 
         InputStream rawSchema = client.ids().globalIds().byGlobalId(gid).get();

@@ -6,10 +6,14 @@ import io.apicurio.common.apps.config.Info;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.model.GroupId;
 import io.apicurio.registry.rest.client.RegistryClient;
+import io.apicurio.registry.rest.client.models.CreateArtifact;
 import io.apicurio.registry.rules.validity.ValidityLevel;
+import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.utils.tests.ApicurioTestTags;
 import io.apicurio.registry.utils.tests.AuthTestProfileWithHeaderRoles;
 import io.apicurio.registry.utils.tests.JWKSMockServer;
+import io.apicurio.registry.utils.tests.TestUtils;
 import io.kiota.http.vertx.VertXRequestAdapter;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
@@ -48,8 +52,7 @@ public class HeaderRoleSourceTest extends AbstractResourceTestBase {
 
     @Test
     public void testLocalRoles() throws Exception {
-        var content = new io.apicurio.registry.rest.client.models.ArtifactContent();
-        content.setContent(TEST_CONTENT);
+        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(getClass().getSimpleName(), ArtifactType.AVRO, TEST_CONTENT, ContentTypes.APPLICATION_JSON);
 
         var rule = new io.apicurio.registry.rest.client.models.Rule();
         rule.setConfig(ValidityLevel.FULL.name());
@@ -83,9 +86,7 @@ public class HeaderRoleSourceTest extends AbstractResourceTestBase {
                 .groups()
                 .byGroupId(UUID.randomUUID().toString())
                 .artifacts()
-                .post(content, config -> {
-                    config.headers.add("X-Registry-ArtifactId", getClass().getSimpleName());
-                });
+                .post(createArtifact);
         });
         assertForbidden(exception2);
 
@@ -104,8 +105,7 @@ public class HeaderRoleSourceTest extends AbstractResourceTestBase {
                     .groups()
                     .byGroupId(UUID.randomUUID().toString())
                     .artifacts()
-                    .post(content, config -> {
-                        config.headers.add("X-Registry-ArtifactId", getClass().getSimpleName());
+                    .post(createArtifact, config -> {
                         config.headers.add("X-Registry-Role", "sr-readonly");
                     });
         });
@@ -126,8 +126,7 @@ public class HeaderRoleSourceTest extends AbstractResourceTestBase {
             .groups()
             .byGroupId(UUID.randomUUID().toString())
             .artifacts()
-            .post(content, config -> {
-                config.headers.add("X-Registry-ArtifactId", getClass().getSimpleName());
+            .post(createArtifact, config -> {
                 config.headers.add("X-Registry-Role", "sr-developer");
             });
         var exception6 = Assertions.assertThrows(Exception.class, () -> {
@@ -145,8 +144,7 @@ public class HeaderRoleSourceTest extends AbstractResourceTestBase {
                 .groups()
                 .byGroupId(UUID.randomUUID().toString())
                 .artifacts()
-                .post(content, config -> {
-                    config.headers.add("X-Registry-ArtifactId", getClass().getSimpleName());
+                .post(createArtifact, config -> {
                     config.headers.add("X-Registry-Role", "sr-admin");
                 });
         adminClient.admin().rules().post(rule, config -> {

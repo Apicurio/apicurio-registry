@@ -20,6 +20,7 @@ public class ContentEntity extends Entity {
     public String canonicalHash;
     public String contentHash;
     public String artifactType;
+    public String contentType;
 
     @JsonIgnore
     @ToString.Exclude

@@ -186,9 +186,6 @@ public class SpecUrlFilter implements Filter {
         if (servletPath.contains("ccompat")) {
             return "Confluent Schema Registry API";
         }
-        if (servletPath.contains("cncf")) {
-            return "CNCF Schema Registry API";
-        }
 
         return "";
     }

@@ -9,6 +9,7 @@ import io.apicurio.registry.resolver.data.Record;
 import io.apicurio.registry.resolver.strategy.ArtifactReference;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.kiota.http.vertx.VertXRequestAdapter;
 import io.quarkus.test.junit.QuarkusTest;
@@ -77,7 +78,7 @@ public class SchemaResolverTest extends AbstractResourceTestBase {
 
         Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord3\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");
         String artifactId = TestUtils.generateArtifactId();
-        createArtifact(artifactId, ArtifactType.AVRO, schema.toString());
+        createArtifact(artifactId, ArtifactType.AVRO, schema.toString(), ContentTypes.APPLICATION_JSON);
 
         GenericRecord avroRecord = new GenericData.Record(schema);
         avroRecord.put("bar", "somebar");

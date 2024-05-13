@@ -23,7 +23,7 @@ CREATE INDEX IDX_down_1 ON downloads USING HASH (expires);
 CREATE TABLE global_rules (type VARCHAR(32) NOT NULL, configuration TEXT NOT NULL);
 ALTER TABLE global_rules ADD PRIMARY KEY (type);
 
-CREATE TABLE content (contentId BIGINT NOT NULL, canonicalHash VARCHAR(64) NOT NULL, contentHash VARCHAR(64) NOT NULL, content BYTEA NOT NULL, refs TEXT);
+CREATE TABLE content (contentId BIGINT NOT NULL, canonicalHash VARCHAR(64) NOT NULL, contentHash VARCHAR(64) NOT NULL, contentType VARCHAR(64) NOT NULL, content BYTEA NOT NULL, refs TEXT);
 ALTER TABLE content ADD PRIMARY KEY (contentId);
 ALTER TABLE content ADD CONSTRAINT UQ_content_1 UNIQUE (contentHash);
 CREATE INDEX IDX_content_1 ON content USING HASH (canonicalHash);

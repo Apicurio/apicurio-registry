@@ -1,6 +1,19 @@
 package io.apicurio.registry.utils.tests;
 
 
+import com.microsoft.kiota.ApiException;
+import io.apicurio.registry.rest.client.models.CreateArtifact;
+import io.apicurio.registry.rest.client.models.CreateVersion;
+import io.apicurio.registry.rest.client.models.VersionContent;
+import io.apicurio.registry.utils.IoUtil;
+import org.apache.http.HttpStatus;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.impl.client.HttpClients;
+import org.junit.jupiter.api.Assertions;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
@@ -17,17 +30,6 @@ import java.util.concurrent.TimeoutException;
 import java.util.function.BooleanSupplier;
 import java.util.function.Function;
 import java.util.function.Predicate;
-
-import com.microsoft.kiota.ApiException;
-import org.apache.http.HttpStatus;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.client.HttpClients;
-import org.junit.jupiter.api.Assertions;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import io.apicurio.registry.utils.IoUtil;
 
 public class TestUtils {
     private static final Logger log = LoggerFactory.getLogger(TestUtils.class);
@@ -257,6 +259,53 @@ public class TestUtils {
 
     public static String generateGroupId() {
         return UUID.randomUUID().toString();
+    }
+
+    public static CreateArtifact clientCreateArtifact(String artifactId, String artifactType, String content, String contentType) {
+        CreateArtifact createArtifact = new CreateArtifact();
+        createArtifact.setArtifactId(artifactId);
+        createArtifact.setType(artifactType);
+        createArtifact.setFirstVersion(new CreateVersion());
+        createArtifact.getFirstVersion().setContent(new VersionContent());
+        createArtifact.getFirstVersion().getContent().setContent(content);
+        createArtifact.getFirstVersion().getContent().setContentType(contentType);
+        return createArtifact;
+    }
+
+    public static io.apicurio.registry.rest.v3.beans.CreateArtifact serverCreateArtifact(String artifactId, String artifactType, String content, String contentType) {
+        return io.apicurio.registry.rest.v3.beans.CreateArtifact.builder()
+                .artifactId(artifactId)
+                .type(artifactType)
+                .firstVersion(
+                        io.apicurio.registry.rest.v3.beans.CreateVersion.builder()
+                                .content(
+                                        io.apicurio.registry.rest.v3.beans.VersionContent.builder()
+                                                .contentType(contentType)
+                                                .content(content)
+                                                .build()
+                                )
+                                .build()
+                )
+                .build();
+    }
+
+    public static CreateVersion clientCreateVersion(String content, String contentType) {
+        CreateVersion createVersion = new CreateVersion();
+        createVersion.setContent(new VersionContent());
+        createVersion.getContent().setContent(content);
+        createVersion.getContent().setContentType(contentType);
+        return createVersion;
+    }
+
+    public static io.apicurio.registry.rest.v3.beans.CreateVersion serverCreateVersion(String content, String contentType) {
+        return io.apicurio.registry.rest.v3.beans.CreateVersion.builder()
+                .content(
+                        io.apicurio.registry.rest.v3.beans.VersionContent.builder()
+                                .contentType(contentType)
+                                .content(content)
+                                .build()
+                )
+                .build();
     }
 
     @FunctionalInterface

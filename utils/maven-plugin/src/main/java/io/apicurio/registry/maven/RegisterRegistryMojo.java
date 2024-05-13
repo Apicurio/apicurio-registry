@@ -1,5 +1,30 @@
 package io.apicurio.registry.maven;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.protobuf.Descriptors.FileDescriptor;
+import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.content.refs.ExternalReference;
+import io.apicurio.registry.content.refs.ReferenceFinder;
+import io.apicurio.registry.maven.refs.IndexedResource;
+import io.apicurio.registry.maven.refs.ReferenceIndex;
+import io.apicurio.registry.rest.client.models.ArtifactReference;
+import io.apicurio.registry.rest.client.models.CreateArtifact;
+import io.apicurio.registry.rest.client.models.CreateArtifactResponse;
+import io.apicurio.registry.rest.client.models.CreateVersion;
+import io.apicurio.registry.rest.client.models.IfArtifactExists;
+import io.apicurio.registry.rest.client.models.VersionContent;
+import io.apicurio.registry.rest.client.models.VersionMetaData;
+import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.ContentTypes;
+import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
+import io.apicurio.registry.types.provider.DefaultArtifactTypeUtilProviderImpl;
+import org.apache.avro.Schema;
+import org.apache.commons.io.FileUtils;
+import org.apache.maven.plugin.MojoExecutionException;
+import org.apache.maven.plugins.annotations.Mojo;
+import org.apache.maven.plugins.annotations.Parameter;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -16,30 +41,6 @@ import java.util.Set;
 import java.util.Stack;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
-
-import org.apache.avro.Schema;
-import org.apache.commons.io.FileUtils;
-import org.apache.maven.plugin.MojoExecutionException;
-import org.apache.maven.plugins.annotations.Mojo;
-import org.apache.maven.plugins.annotations.Parameter;
-
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.protobuf.Descriptors.FileDescriptor;
-
-import io.apicurio.registry.content.ContentHandle;
-import io.apicurio.registry.content.refs.ExternalReference;
-import io.apicurio.registry.content.refs.ReferenceFinder;
-import io.apicurio.registry.maven.refs.IndexedResource;
-import io.apicurio.registry.maven.refs.ReferenceIndex;
-import io.apicurio.registry.rest.client.models.ArtifactContent;
-import io.apicurio.registry.rest.client.models.ArtifactReference;
-import io.apicurio.registry.rest.client.models.IfExists;
-import io.apicurio.registry.rest.client.models.VersionMetaData;
-import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.types.ContentTypes;
-import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
-import io.apicurio.registry.types.provider.DefaultArtifactTypeUtilProviderImpl;
 
 /**
  * Register artifacts against registry.
@@ -150,7 +151,7 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
         }
     }
 
-    private VersionMetaData registerWithAutoRefs(RegisterArtifact artifact, ReferenceIndex index, Stack<RegisterArtifact> registrationStack) throws IOException, ExecutionException, InterruptedException {
+    private CreateArtifactResponse registerWithAutoRefs(RegisterArtifact artifact, ReferenceIndex index, Stack<RegisterArtifact> registrationStack) throws IOException, ExecutionException, InterruptedException {
         if (loopDetected(artifact, registrationStack)) {
             throw new RuntimeException("Artifact reference loop detected (not supported): " + printLoop(registrationStack));
         }
@@ -184,7 +185,8 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
                 refArtifact.setFile(localFile);
                 refArtifact.setContentType(getContentTypeByExtension(localFile.getName()));
                 try {
-                    VersionMetaData amd = registerWithAutoRefs(refArtifact, index, registrationStack);
+                    var car = registerWithAutoRefs(refArtifact, index, registrationStack);
+                    VersionMetaData amd = car.getVersion();
                     iresource.setRegistration(amd);
                 } catch (IOException | ExecutionException | InterruptedException e) {
                     throw new RuntimeException(e);
@@ -226,17 +228,19 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
         }
     }
 
-    private VersionMetaData registerArtifact(RegisterArtifact artifact, List<ArtifactReference> references) throws
+    private CreateArtifactResponse registerArtifact(RegisterArtifact artifact, List<ArtifactReference> references) throws
             FileNotFoundException, ExecutionException, InterruptedException {
         return registerArtifact(artifact, new FileInputStream(artifact.getFile()), references);
     }
 
-    private VersionMetaData registerArtifact(RegisterArtifact artifact, InputStream artifactContent, List<ArtifactReference> references) throws ExecutionException, InterruptedException {
+    private CreateArtifactResponse registerArtifact(RegisterArtifact artifact, InputStream artifactContent,
+                List<ArtifactReference> references) throws ExecutionException, InterruptedException {
         String groupId = artifact.getGroupId();
         String artifactId = artifact.getArtifactId();
         String version = artifact.getVersion();
         String type = artifact.getType();
         Boolean canonicalize = artifact.getCanonicalize();
+        String ct = artifact.getContentType() == null ? ContentTypes.APPLICATION_JSON : artifact.getContentType();
         String data = null;
         try {
             if (artifact.getMinify() != null && artifact.getMinify()) {
@@ -249,8 +253,18 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-        ArtifactContent content = new ArtifactContent();
+
+        CreateArtifact createArtifact = new CreateArtifact();
+        createArtifact.setArtifactId(artifactId);
+        createArtifact.setType(type);
+
+        CreateVersion createVersion = new CreateVersion();
+        createVersion.setVersion(version);
+        createArtifact.setFirstVersion(createVersion);
+
+        VersionContent content = new VersionContent();
         content.setContent(data);
+        content.setContentType(ct);
         content.setReferences(references.stream().map(r -> {
             ArtifactReference ref = new ArtifactReference();
             ref.setArtifactId(r.getArtifactId());
@@ -259,28 +273,20 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
             ref.setName(r.getName());
             return ref;
         }).collect(Collectors.toList()));
-        VersionMetaData vmd = getClient()
+        createVersion.setContent(content);
+
+        var vmd = getClient()
                 .groups()
                 .byGroupId(groupId)
                 .artifacts()
-                .post(content, config -> {
+                .post(createArtifact, config -> {
                     if (artifact.getIfExists() != null) {
-                        config.queryParameters.ifExists = IfExists.forValue(artifact.getIfExists().value());
+                        config.queryParameters.ifExists = IfArtifactExists.forValue(artifact.getIfExists().value());
                     }
                     config.queryParameters.canonical = canonicalize;
-                    config.headers.add("Content-Type", ContentTypes.APPLICATION_CREATE_EXTENDED);
-                    if (artifactId != null) {
-                        config.headers.add("X-Registry-ArtifactId", artifactId);
-                    }
-                    if (type != null) {
-                        config.headers.add("X-Registry-ArtifactType", type);
-                    }
-                    if (version != null) {
-                        config.headers.add("X-Registry-Version", version);
-                    }
                 });
 
-        getLog().info(String.format("Successfully registered artifact [%s] / [%s].  GlobalId is [%d]", groupId, artifactId, vmd.getGlobalId()));
+        getLog().info(String.format("Successfully registered artifact [%s] / [%s].  GlobalId is [%d]", groupId, artifactId, vmd.getVersion().getGlobalId()));
 
         return vmd;
     }
@@ -298,7 +304,8 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
             if (hasReferences(artifact)) {
                 nestedReferences = registerArtifactReferences(artifact.getReferences());
             }
-            final VersionMetaData metaData = registerArtifact(artifact, nestedReferences);
+            CreateArtifactResponse car = registerArtifact(artifact, nestedReferences);
+            final VersionMetaData metaData = car.getVersion();
             references.add(buildReferenceFromMetadata(metaData, artifact.getName()));
         }
         return references;

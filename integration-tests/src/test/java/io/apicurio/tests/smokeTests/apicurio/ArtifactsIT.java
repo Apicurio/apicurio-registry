@@ -3,6 +3,7 @@ package io.apicurio.tests.smokeTests.apicurio;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.rest.client.models.ArtifactSearchResults;
+import io.apicurio.registry.rest.client.models.CreateArtifact;
 import io.apicurio.registry.rest.client.models.CreateArtifactResponse;
 import io.apicurio.registry.rest.client.models.CreateVersion;
 import io.apicurio.registry.rest.client.models.EditableVersionMetaData;
@@ -41,6 +42,8 @@ import static org.hamcrest.CoreMatchers.hasItems;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 @Tag(Constants.SMOKE)
 @QuarkusIntegrationTest
@@ -57,6 +60,39 @@ class ArtifactsIT extends ApicurioRegistryBaseIT {
     }
 
     @Test
+    @Tag(ACCEPTANCE)
+    void createEmptyArtifact() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        String artifactId = TestUtils.generateArtifactId();
+        String name = "Empty API";
+
+        // Create an empty artifact
+        CreateArtifact createArtifact = new CreateArtifact();
+        createArtifact.setArtifactId(artifactId);
+        createArtifact.setType(ArtifactType.OPENAPI);
+        createArtifact.setName(name);
+        var response = registryClient.groups().byGroupId(groupId).artifacts().post(createArtifact);
+        assertNotNull(response);
+        assertNotNull(response.getArtifact());
+        assertNull(response.getVersion());
+        assertEquals(artifactId, response.getArtifact().getArtifactId());
+        assertEquals(name, response.getArtifact().getName());
+
+        // Get the metadata and verify
+        var amd = registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get();
+        assertNotNull(amd);
+        assertEquals(artifactId, amd.getArtifactId());
+        assertEquals(name, amd.getName());
+
+        // Get the list of versions for the artifact:  should be 0 versions
+        var results = registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().get();
+        assertNotNull(results);
+        assertEquals(0, results.getCount());
+        assertNotNull(results.getVersions());
+        assertEquals(0, results.getVersions().size());
+    }
+
+        @Test
     @Tag(ACCEPTANCE)
     void createAndUpdateArtifact() throws Exception {
         Rule rule = new Rule();

@@ -1,7 +1,5 @@
 package io.apicurio.registry.storage.impl.kafkasql.messages;
 
-import java.util.List;
-
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
@@ -16,6 +14,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
+
+import java.util.List;
 
 @NoArgsConstructor
 @AllArgsConstructor
@@ -48,7 +48,7 @@ public class CreateArtifact8Message extends AbstractMessage {
                 .content(handle)
                 .references(references)
                 .build() : null;
-        return storage.createArtifact(groupId, artifactId, version, artifactMetaDataDto, version, versionContent, versionMetaData, versionBranches);
+        return storage.createArtifact(groupId, artifactId, artifactType, artifactMetaDataDto, version, versionContent, versionMetaData, versionBranches);
     }
 
 }

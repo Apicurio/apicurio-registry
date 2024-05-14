@@ -48,8 +48,14 @@ public final class ArtifactTypeUtil {
 
     public static String determineArtifactType(ContentHandle content, String artifactType, String contentType,
                                                Map<String, ContentHandle> resolvedReferences, List<String> availableTypes) {
+        if ("".equals(artifactType)) {
+            artifactType = null;
+        }
         if (artifactType == null && content != null) {
             artifactType = ArtifactTypeUtil.discoverType(content, contentType, resolvedReferences);
+        }
+        if (!availableTypes.contains(artifactType)) {
+            throw new InvalidArtifactTypeException("Invalid or unknown artifact type: " + artifactType);
         }
         return artifactType;
     }

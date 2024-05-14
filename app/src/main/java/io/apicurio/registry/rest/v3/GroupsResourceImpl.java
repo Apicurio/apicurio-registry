@@ -66,7 +66,6 @@ import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
 import io.apicurio.registry.storage.error.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.error.ArtifactNotFoundException;
 import io.apicurio.registry.storage.error.InvalidArtifactIdException;
-import io.apicurio.registry.storage.error.InvalidArtifactTypeException;
 import io.apicurio.registry.storage.error.InvalidGroupIdException;
 import io.apicurio.registry.storage.error.VersionNotFoundException;
 import io.apicurio.registry.types.ReferenceType;
@@ -708,9 +707,6 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
             }
 
             String artifactType = ArtifactTypeUtil.determineArtifactType(content, data.getType(), contentType, factory.getAllArtifactTypes());
-            if (artifactType == null) {
-                throw new InvalidArtifactTypeException("Invalid or unknown artifact type: " + artifactType);
-            }
 
             // Convert references to DTOs
             final List<ArtifactReferenceDto> referencesAsDtos = toReferenceDtos(references);

@@ -1,7 +1,24 @@
 package io.apicurio.tests.migration;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import io.apicurio.registry.client.auth.VertXAuthFactory;
+import io.apicurio.registry.model.BranchId;
+import io.apicurio.registry.rest.client.RegistryClient;
+import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.ContentTypes;
+import io.apicurio.registry.types.VersionState;
+import io.apicurio.registry.utils.IoUtil;
+import io.apicurio.registry.utils.impexp.ArtifactBranchEntity;
+import io.apicurio.registry.utils.impexp.ArtifactVersionEntity;
+import io.apicurio.registry.utils.impexp.ContentEntity;
+import io.apicurio.registry.utils.impexp.EntityWriter;
+import io.apicurio.tests.ApicurioRegistryBaseIT;
+import io.apicurio.tests.serdes.apicurio.JsonSchemaMsgFactory;
+import io.apicurio.tests.utils.Constants;
+import io.kiota.http.vertx.VertXRequestAdapter;
+import io.quarkus.test.junit.QuarkusIntegrationTest;
+import org.apache.commons.codec.digest.DigestUtils;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -15,25 +32,8 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.zip.ZipOutputStream;
 
-import org.apache.commons.codec.digest.DigestUtils;
-import org.junit.jupiter.api.Tag;
-import org.junit.jupiter.api.Test;
-
-import io.apicurio.registry.client.auth.VertXAuthFactory;
-import io.apicurio.registry.model.BranchId;
-import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.types.VersionState;
-import io.apicurio.registry.utils.IoUtil;
-import io.apicurio.registry.utils.impexp.ArtifactBranchEntity;
-import io.apicurio.registry.utils.impexp.ArtifactVersionEntity;
-import io.apicurio.registry.utils.impexp.ContentEntity;
-import io.apicurio.registry.utils.impexp.EntityWriter;
-import io.apicurio.tests.ApicurioRegistryBaseIT;
-import io.apicurio.tests.serdes.apicurio.JsonSchemaMsgFactory;
-import io.apicurio.tests.utils.Constants;
-import io.kiota.http.vertx.VertXRequestAdapter;
-import io.quarkus.test.junit.QuarkusIntegrationTest;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @QuarkusIntegrationTest
 @Tag(Constants.MIGRATION)
@@ -95,6 +95,7 @@ public class GenerateCanonicalHashImportIT extends ApicurioRegistryBaseIT {
                 Long contentId = contentIndex.computeIfAbsent(contentHash, k -> {
                     ContentEntity contentEntity = new ContentEntity();
                     contentEntity.contentId = contentIdSeq.getAndIncrement();
+                    contentEntity.contentType = ContentTypes.APPLICATION_JSON;
                     contentEntity.contentHash = contentHash;
                     contentEntity.canonicalHash = null;
                     contentEntity.contentBytes = contentBytes;

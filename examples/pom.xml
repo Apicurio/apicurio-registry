@@ -47,13 +47,13 @@
         <module>mix-avro</module>
         <module>jsonschema-validation</module>
         <module>simple-validation</module>
-        <module>quarkus-auth</module>
-        <module>simple-avro-downstream</module>
-        <module>rest-client-downstream</module>
         <module>serdes-with-references</module>
+        <module>avro-maven-with-references</module>
+        <module>avro-maven-with-references-auto</module>
         <module>protobuf-validation</module>
-        <module>tools/kafkasql-topic-import</module>
-        <!--<module>camel-quarkus-kafka</module>-->
+        <module>simple-protobuf</module>
+        <module>protobuf-find-latest</module>
+        <module>protobuf-bean</module>
     </modules>
 
     <properties>

@@ -75,7 +75,7 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
         String groupId = TestUtils.generateGroupId();
         String artifactId = generateArtifactId();
 
-        createArtifact(groupId, artifactId, ArtifactType.JSON, IoUtil.toString(jsonSchema));
+        createArtifact(groupId, artifactId, ArtifactType.JSON, IoUtil.toString(jsonSchema), ContentTypes.APPLICATION_JSON);
 
         Person person = new Person("Ales", "Justin", 23);
 
@@ -272,9 +272,9 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
         String addressId = generateArtifactId();
 
 
-        createArtifact(groupId, cityArtifactId, ArtifactType.JSON, IoUtil.toString(citySchema));
+        createArtifact(groupId, cityArtifactId, ArtifactType.JSON, IoUtil.toString(citySchema), ContentTypes.APPLICATION_JSON);
 
-        createArtifact(groupId, qualificationsId, ArtifactType.JSON, IoUtil.toString(qualificationSchema));
+        createArtifact(groupId, qualificationsId, ArtifactType.JSON, IoUtil.toString(qualificationSchema), ContentTypes.APPLICATION_JSON);
 
         final  io.apicurio.registry.rest.v3.beans.ArtifactReference qualificationsReference = new  io.apicurio.registry.rest.v3.beans.ArtifactReference();
         qualificationsReference.setVersion("1");
@@ -282,7 +282,7 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
         qualificationsReference.setArtifactId(qualificationsId);
         qualificationsReference.setName("qualification.json");
 
-        createArtifact(groupId, addressId, ArtifactType.JSON, IoUtil.toString(addressSchema));
+        createArtifact(groupId, addressId, ArtifactType.JSON, IoUtil.toString(addressSchema), ContentTypes.APPLICATION_JSON);
 
         final  io.apicurio.registry.rest.v3.beans.ArtifactReference addressReference = new  io.apicurio.registry.rest.v3.beans.ArtifactReference();
         addressReference.setVersion("1");
@@ -296,7 +296,7 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
         cityReference.setArtifactId(cityArtifactId);
         cityReference.setName("city.json");
 
-        createArtifact(groupId, identifierArtifactId, ArtifactType.JSON, IoUtil.toString(citizenIdentifier));
+        createArtifact(groupId, identifierArtifactId, ArtifactType.JSON, IoUtil.toString(citizenIdentifier), ContentTypes.APPLICATION_JSON);
 
         final  io.apicurio.registry.rest.v3.beans.ArtifactReference identifierReference = new  io.apicurio.registry.rest.v3.beans.ArtifactReference();
         identifierReference.setVersion("1");

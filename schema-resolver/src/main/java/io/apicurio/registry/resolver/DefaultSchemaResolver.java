@@ -1,5 +1,18 @@
 package io.apicurio.registry.resolver;
 
+import io.apicurio.registry.resolver.data.Record;
+import io.apicurio.registry.resolver.strategy.ArtifactCoordinates;
+import io.apicurio.registry.resolver.strategy.ArtifactReference;
+import io.apicurio.registry.rest.client.models.CreateArtifact;
+import io.apicurio.registry.rest.client.models.CreateArtifactResponse;
+import io.apicurio.registry.rest.client.models.CreateVersion;
+import io.apicurio.registry.rest.client.models.IfArtifactExists;
+import io.apicurio.registry.rest.client.models.VersionContent;
+import io.apicurio.registry.rest.client.models.VersionMetaData;
+import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.ContentTypes;
+import io.apicurio.registry.utils.IoUtil;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -7,12 +20,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-
-import io.apicurio.registry.resolver.data.Record;
-import io.apicurio.registry.resolver.strategy.ArtifactCoordinates;
-import io.apicurio.registry.resolver.strategy.ArtifactReference;
-import io.apicurio.registry.rest.client.models.*;
-import io.apicurio.registry.utils.IoUtil;
 
 /**
  * Default implementation of {@link SchemaResolver}
@@ -281,9 +288,10 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
             version.setVersion(artifactReference.getVersion());
             createArtifact.setFirstVersion(version);
 
-            VersionContent content = new VersionContent();
-            content.setContent(rawSchemaString);
-            version.setContent(content);
+            VersionContent vc = new VersionContent();
+            vc.setContent(rawSchemaString);
+            vc.setContentType(toContentType(schemaParser.artifactType()));
+            version.setContent(vc);
 
             CreateArtifactResponse car = client
                         .groups()
@@ -320,10 +328,11 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
             version.setVersion(artifactReference.getVersion());
             createArtifact.setFirstVersion(version);
 
-            VersionContent content = new VersionContent();
-            content.setContent(rawSchemaString);
-            content.setReferences(artifactReferences);
-            version.setContent(content);
+            VersionContent vc = new VersionContent();
+            vc.setContent(rawSchemaString);
+            vc.setContentType(toContentType(schemaParser.artifactType()));
+            vc.setReferences(artifactReferences);
+            version.setContent(vc);
 
             CreateArtifactResponse car = client
                         .groups()
@@ -342,6 +351,17 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
 
             return result.build();
         });
+    }
+
+    private String toContentType(String artifactType) {
+        if (ArtifactType.AVRO.equals(artifactType)) {
+            return ContentTypes.APPLICATION_JSON;
+        } else if (ArtifactType.JSON.equals(artifactType)) {
+            return ContentTypes.APPLICATION_JSON;
+        } else if (ArtifactType.PROTOBUF.equals(artifactType)) {
+            return ContentTypes.APPLICATION_PROTOBUF;
+        }
+        throw new IllegalArgumentException("Artifact type not supported: " + artifactType);
     }
 
     private List<io.apicurio.registry.rest.client.models.ArtifactReference> parseReferences(List<SchemaLookupResult<S>> referenceLookups) {

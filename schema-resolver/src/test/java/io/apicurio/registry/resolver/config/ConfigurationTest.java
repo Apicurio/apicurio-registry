@@ -20,8 +20,8 @@ class ConfigurationTest {
         var config = new DefaultSchemaResolverConfig(originals);
 
         var key = "apicurio.registry.auto-register.if-exists";
-        assertEquals("RETURN_OR_UPDATE", config.autoRegisterArtifactIfExists());
-        assertEquals("RETURN_OR_UPDATE", config.getObject(key));
+        assertEquals("FIND_OR_CREATE_VERSION", config.autoRegisterArtifactIfExists());
+        assertEquals("FIND_OR_CREATE_VERSION", config.getObject(key));
 
         originals.put(key, "foo");
         try {

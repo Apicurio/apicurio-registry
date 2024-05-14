@@ -76,7 +76,7 @@ public class DefaultSchemaResolverConfig {
     }
 
     public String autoRegisterArtifactIfExists() {
-        return getStringOneOf(AUTO_REGISTER_ARTIFACT_IF_EXISTS, "FAIL", "UPDATE", "RETURN", "RETURN_OR_UPDATE");
+        return getStringOneOf(AUTO_REGISTER_ARTIFACT_IF_EXISTS, "FAIL", "CREATE_VERSION", "FIND_OR_CREATE_VERSION");
     }
 
     public boolean getCacheLatest() {

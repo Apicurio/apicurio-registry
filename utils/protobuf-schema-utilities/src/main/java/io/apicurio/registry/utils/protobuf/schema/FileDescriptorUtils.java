@@ -1,80 +1,34 @@
 package io.apicurio.registry.utils.protobuf.schema;
 
+import additionalTypes.Decimals;
 import com.google.common.collect.ImmutableList;
 import com.google.protobuf.*;
 import com.google.protobuf.Descriptors.DescriptorValidationException;
 import com.google.protobuf.Descriptors.FieldDescriptor;
 import com.google.protobuf.Descriptors.FileDescriptor;
-import com.google.type.CalendarPeriodProto;
-import com.google.type.ColorProto;
-import com.google.type.DateProto;
-import com.google.type.DayOfWeek;
-import com.google.type.ExprProto;
-import com.google.type.FractionProto;
-import com.google.type.IntervalProto;
-import com.google.type.LatLng;
-import com.google.type.LocalizedTextProto;
-import com.google.type.MoneyProto;
-import com.google.type.MonthProto;
-import com.google.type.PhoneNumberProto;
-import com.google.type.PostalAddressProto;
-import com.google.type.QuaternionProto;
-import com.google.type.TimeOfDayProto;
+import com.google.type.*;
 import com.squareup.wire.Syntax;
-import com.squareup.wire.schema.EnumConstant;
-import com.squareup.wire.schema.EnumType;
 import com.squareup.wire.schema.Field;
-import com.squareup.wire.schema.Location;
-import com.squareup.wire.schema.MessageType;
-import com.squareup.wire.schema.OneOf;
-import com.squareup.wire.schema.Options;
-import com.squareup.wire.schema.ProtoFile;
-import com.squareup.wire.schema.ProtoType;
-import com.squareup.wire.schema.Rpc;
 import com.squareup.wire.schema.Schema;
 import com.squareup.wire.schema.Service;
 import com.squareup.wire.schema.Type;
+import com.squareup.wire.schema.*;
 import com.squareup.wire.schema.internal.parser.*;
 import kotlin.ranges.IntRange;
 import metadata.ProtobufSchemaMetadata;
-import additionalTypes.Decimals;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
-import java.util.TreeMap;
+import java.util.*;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import static com.google.common.base.CaseFormat.LOWER_UNDERSCORE;
 import static com.google.common.base.CaseFormat.UPPER_CAMEL;
-import static com.google.protobuf.DescriptorProtos.DescriptorProto;
-import static com.google.protobuf.DescriptorProtos.EnumDescriptorProto;
-import static com.google.protobuf.DescriptorProtos.EnumValueDescriptorProto;
-import static com.google.protobuf.DescriptorProtos.FieldDescriptorProto;
-import static com.google.protobuf.DescriptorProtos.FileDescriptorProto;
-import static com.google.protobuf.DescriptorProtos.FileOptions;
-import static com.google.protobuf.DescriptorProtos.MethodDescriptorProto;
-import static com.google.protobuf.DescriptorProtos.MethodOptions;
-import static com.google.protobuf.DescriptorProtos.OneofDescriptorProto;
-import static com.google.protobuf.DescriptorProtos.ServiceDescriptorProto;
+import static com.google.protobuf.DescriptorProtos.*;
 
 public class FileDescriptorUtils {
 
@@ -119,9 +73,9 @@ public class FileDescriptorUtils {
     // rpc options
     private static final String IDEMPOTENCY_LEVEL_OPTION = "idempotency_level";
 
-    private static final OptionElement.Kind booleanKind =  OptionElement.Kind.BOOLEAN;
-    private static final OptionElement.Kind stringKind =  OptionElement.Kind.STRING;
-    private static final OptionElement.Kind enumKind =  OptionElement.Kind.ENUM;
+    private static final OptionElement.Kind booleanKind = OptionElement.Kind.BOOLEAN;
+    private static final OptionElement.Kind stringKind = OptionElement.Kind.STRING;
+    private static final OptionElement.Kind enumKind = OptionElement.Kind.ENUM;
     private static final FileDescriptor[] WELL_KNOWN_DEPENDENCIES;
 
     static {
@@ -162,6 +116,14 @@ public class FileDescriptorUtils {
 
     public static FileDescriptor[] baseDependencies() {
         return WELL_KNOWN_DEPENDENCIES.clone();
+    }
+
+    //Parse a self-contained descriptor proto just with the base dependencies.
+    public static FileDescriptor protoFileToFileDescriptor(FileDescriptorProto descriptorProto)
+            throws DescriptorValidationException {
+        Objects.requireNonNull(descriptorProto);
+
+        return FileDescriptor.buildFrom(descriptorProto, baseDependencies());
     }
 
     private static Map<String, FileDescriptor> mutableBaseDependenciesByName(int ensureCapacity) {
@@ -505,7 +467,7 @@ public class FileDescriptorUtils {
     }
 
 
-    private static FileDescriptorProto toFileDescriptorProto(String schemaDefinition, String protoFileName, Optional<String> optionalPackageName, Map<String, String> deps) {
+    public static FileDescriptorProto toFileDescriptorProto(String schemaDefinition, String protoFileName, Optional<String> optionalPackageName, Map<String, String> deps) {
         final ProtobufSchemaLoader.ProtobufSchemaLoaderContext protobufSchemaLoaderContext;
         try {
             protobufSchemaLoaderContext =

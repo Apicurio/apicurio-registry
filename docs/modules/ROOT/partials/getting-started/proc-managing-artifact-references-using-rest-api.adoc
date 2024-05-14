@@ -146,6 +146,15 @@ $ curl -H "Authorization: Bearer $ACCESS_TOKEN" MY-REGISTRY-URL/apis/registry/v2
 [{"groupId":"my-group","artifactId":"ItemId","version":"1","name":"com.example.common.ItemId"}]
 ----
 
+**Dereference**
+
+There are some situations where having an artifact's content with the referenced content inlined might be helpful. For those situations, the Core Registry API v2 supports the _dereference parameter_ in certain operations.
+
+This support is currently implemented for Avro and Protobuf when the parameter is present in a particular API operation. The parameter is not supported in any other schema type.
+
+#In Protobuf dereferencing content is only supported when all the schemas in the try belong to the same package.#
+
+
 [role="_additional-resources"]
 .Additional resources
 * For more details, see the {registry-rest-api}.

@@ -1,8 +1,10 @@
 package io.apicurio.registry.serde.protobuf;
 
+import com.google.protobuf.DescriptorProtos;
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.Descriptors.DescriptorValidationException;
 import com.google.protobuf.Descriptors.FileDescriptor;
+import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.Message;
 import com.squareup.wire.schema.internal.parser.MessageElement;
 import com.squareup.wire.schema.internal.parser.ProtoFileElement;
@@ -61,6 +63,20 @@ public class ProtobufSchemaParser<U extends Message> implements SchemaParser<Pro
             }
         } catch (DescriptorValidationException pe) {
             throw new SerializationException("Error parsing protobuf schema ", pe);
+        } catch (IllegalStateException illegalStateException) {
+            //If qe get here the server likely returned the full descriptor, try to parse it.
+            return parseDescriptor(rawSchema);
+        }
+    }
+
+    private ProtobufSchema parseDescriptor(byte[] rawSchema) {
+        //Try to parse the binary format, in case the server has returned the descriptor format.
+        try {
+            DescriptorProtos.FileDescriptorProto fileDescriptorProto = DescriptorProtos.FileDescriptorProto.parseFrom(rawSchema);
+            ProtoFileElement protoFileElement = FileDescriptorUtils.fileDescriptorToProtoFile(fileDescriptorProto);
+            return new ProtobufSchema(FileDescriptorUtils.protoFileToFileDescriptor(fileDescriptorProto), protoFileElement);
+        } catch (InvalidProtocolBufferException | DescriptorValidationException e) {
+            throw new RuntimeException(e);
         }
     }
 
@@ -99,7 +115,6 @@ public class ProtobufSchemaParser<U extends Message> implements SchemaParser<Pro
 
     @Override
     public ParsedSchema<ProtobufSchema> getSchemaFromData(Record<U> data, boolean dereference) {
-        //dereferencing not supported, just extract with references
         return getSchemaFromData(data);
     }
 

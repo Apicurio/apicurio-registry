@@ -107,6 +107,36 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
     }
 
     @Test
+    public void testOrphanedContent() throws Exception {
+        SchemaRegistryClient client = buildClient();
+        final String subject = generateArtifactId();
+
+        String orphanedContentSchema = "{\"type\":\"record\",\"name\":\"testOrphanedContent\",\"fields\":[{\"name\":\"f1\",\"type\":\"string\"}]}";
+
+        //Create schema with the first id
+        ParsedSchema schema = new AvroSchema(orphanedContentSchema);
+        int id1 = client.register(subject, schema);
+
+        // Reset the client cache so that the next line actually does what we want.
+        client.reset();
+
+        //The schema can be fetched with this particular id
+        TestUtils.retry(() -> client.getSchemaById(id1));
+
+        //First sotft delete subject, then hard delete, the content must be claimed as orphaned
+        client.deleteSubject(subject);
+        client.deleteSubject(subject, true);
+
+        //Register schema again, the id must be different
+        int id2 = client.register(subject, schema);
+
+        Assertions.assertNotEquals(id1, id2);
+
+        //The schema must be retrievable using the new id
+        TestUtils.retry(() -> client.getSchemaById(id2));
+    }
+
+    @Test
     public void testSimpleOps() throws Exception {
         SchemaRegistryClient client = buildClient();
         final String subject = generateArtifactId();
@@ -657,7 +687,7 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
     @Test
     public void testGetSchemaNonExistingId() throws Exception {
         try {
-            confluentClient.getId(100);
+            confluentClient.getId(Integer.MAX_VALUE);
             fail("Schema lookup by missing id should fail with " + ErrorCode.SCHEMA_NOT_FOUND.value() + " (schema not found)");
         } catch (RestClientException rce) {
             // this is expected.

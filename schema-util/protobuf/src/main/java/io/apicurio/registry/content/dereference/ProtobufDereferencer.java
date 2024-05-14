@@ -1,35 +1,43 @@
 package io.apicurio.registry.content.dereference;
 
-import com.google.protobuf.Descriptors;
+import com.google.protobuf.DescriptorProtos;
 import com.squareup.wire.schema.internal.parser.ProtoFileElement;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.utils.protobuf.schema.FileDescriptorUtils;
 import io.apicurio.registry.utils.protobuf.schema.ProtobufFile;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.util.Collections;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class ProtobufDereferencer implements ContentDereferencer {
 
     @Override
     public ContentHandle dereference(ContentHandle content, Map<String, ContentHandle> resolvedReferences) {
-        //FIXME this code is not dereferencing references, only validating that all that references are resolvable
-        //FIXME CAN this even be done in Proto? Can multiple types in different namespaces be defined in the same .proto file?  Does it matter?  Needs investigation.
         final ProtoFileElement protoFileElement = ProtobufFile.toProtoFileElement(content.content());
-        final Map<String, ProtoFileElement> dependencies = Collections.unmodifiableMap(resolvedReferences.entrySet()
+        final Map<String, String> schemaDefs = Collections.unmodifiableMap(resolvedReferences.entrySet()
                 .stream()
                 .collect(Collectors.toMap(
                         Map.Entry::getKey,
-                        e -> ProtobufFile.toProtoFileElement(e.getValue().content())
+                        e -> e.getValue().content()
                 )));
+
+        DescriptorProtos.FileDescriptorProto fileDescriptorProto = FileDescriptorUtils.toFileDescriptorProto(content.content(), FileDescriptorUtils.firstMessage(protoFileElement).getName(), Optional.ofNullable(protoFileElement.getPackageName()), schemaDefs);
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+
         try {
-            return ContentHandle.create(FileDescriptorUtils.fileDescriptorWithDepsToProtoFile(FileDescriptorUtils.protoFileToFileDescriptor(protoFileElement), dependencies).toString());
-        } catch (Descriptors.DescriptorValidationException e) {
-            throw new IllegalArgumentException(e);
+            fileDescriptorProto.writeTo(outputStream);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
+
+        //Dereference returns the whole file descriptor bytes representing the main protobuf schema with the required dependencies.
+        return ContentHandle.create(outputStream.toByteArray());
     }
-    
+
     /**
      * @see io.apicurio.registry.content.dereference.ContentDereferencer#rewriteReferences(io.apicurio.registry.content.ContentHandle, java.util.Map)
      */

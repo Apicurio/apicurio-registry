@@ -67,8 +67,8 @@
         <maven.build.timestamp.format>yyyy-MM-dd HH:mm:ss</maven.build.timestamp.format>
         <timestamp>${maven.build.timestamp}</timestamp>
 
-        <maven.compiler.source>11</maven.compiler.source>
-        <maven.compiler.target>11</maven.compiler.target>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
 
         <!-- Kafka -->
         <kafka.version>3.5.0</kafka.version>
@@ -86,7 +86,7 @@
         <apicurio-common-rest-client.version>0.1.18.Final</apicurio-common-rest-client.version>
 
         <!-- Apicurio schema validation library -->
-        <apicurio-registry-schema-validation.version>0.0.4.Final</apicurio-registry-schema-validation.version>
+        <apicurio-registry-schema-validation.version>0.0.6</apicurio-registry-schema-validation.version>
 
         <!-- Plugin Versions -->
         <version.compiler.plugin>3.13.0</version.compiler.plugin>

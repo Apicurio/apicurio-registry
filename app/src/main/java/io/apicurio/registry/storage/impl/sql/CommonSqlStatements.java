@@ -281,7 +281,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
     public String updateArtifactModifiedByOn() {
         return "UPDATE artifacts SET modifiedBy = ?, modifiedOn = ? WHERE groupId = ? AND artifactId = ?";
     }
-    
+
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#updateArtifactOwner()
      */
@@ -289,7 +289,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
     public String updateArtifactOwner() {
         return "UPDATE artifacts SET owner = ? WHERE groupId = ? AND artifactId = ?";
     }
-    
+
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#updateArtifactName()
      */
@@ -297,7 +297,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
     public String updateArtifactName() {
         return "UPDATE artifacts SET name = ? WHERE groupId = ? AND artifactId = ?";
     }
-    
+
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#updateArtifactDescription()
      */
@@ -305,7 +305,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
     public String updateArtifactDescription() {
         return "UPDATE artifacts SET description = ? WHERE groupId = ? AND artifactId = ?";
     }
-    
+
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#updateArtifactLabels()
      */
@@ -353,7 +353,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
     public String updateArtifactVersionMetaData() {
         return "UPDATE versions SET name = ?, description = ?, labels = ? WHERE groupId = ? AND artifactId = ? AND version = ?";
     }
-    
+
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#updateArtifactVersionNameByGAV()
      */
@@ -361,7 +361,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
     public String updateArtifactVersionNameByGAV() {
         return "UPDATE versions SET name = ? WHERE groupId = ? AND artifactId = ? AND version = ?";
     }
-    
+
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#updateArtifactVersionDescriptionByGAV()
      */
@@ -369,7 +369,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
     public String updateArtifactVersionDescriptionByGAV() {
         return "UPDATE versions SET description = ? WHERE groupId = ? AND artifactId = ? AND version = ?";
     }
-    
+
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#updateArtifactVersionOwnerByGAV()
      */
@@ -377,7 +377,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
     public String updateArtifactVersionOwnerByGAV() {
         return "UPDATE versions SET owner = ? WHERE groupId = ? AND artifactId = ? AND version = ?";
     }
-    
+
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#updateArtifactVersionStateByGAV()
      */
@@ -385,7 +385,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
     public String updateArtifactVersionStateByGAV() {
         return "UPDATE versions SET state = ? WHERE groupId = ? AND artifactId = ? AND version = ?";
     }
-    
+
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#updateArtifactVersionLabelsByGAV()
      */
@@ -393,7 +393,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
     public String updateArtifactVersionLabelsByGAV() {
         return "UPDATE versions SET labels = ? WHERE groupId = ? AND artifactId = ? AND version = ?";
     }
-    
+
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#updateArtifactVersionState()
      */
@@ -401,7 +401,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
     public String updateArtifactVersionState() {
         return "UPDATE versions SET state = ? WHERE globalId = ?";
     }
-    
+
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#deleteGroupLabelsByGroupId()
      */
@@ -409,7 +409,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
     public String deleteGroupLabelsByGroupId() {
         return "DELETE FROM group_labels WHERE groupId = ?";
     }
-    
+
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#deleteArtifactLabels()
      */
@@ -509,7 +509,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
     public String insertArtifactLabel() {
         return "INSERT INTO artifact_labels (groupId, artifactId, labelKey, labelValue) VALUES (?, ?, ?, ?)";
     }
-    
+
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#insertGroupLabel()
      */
@@ -627,8 +627,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
     @Override
     public String deleteAllOrphanedContent() {
         // TODO This may be too slow
-
-        return "DELETE FROM content WHERE NOT EXISTS (SELECT 1 FROM versions v WHERE v.contentId = contentId )";
+        return "DELETE FROM content c WHERE NOT EXISTS (SELECT 1 FROM versions v WHERE v.contentId = c.contentId)";
     }
 
     /**
@@ -883,7 +882,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
     public String selectRoleMappings() {
         return "SELECT a.* FROM acls a ";
     }
-    
+
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#countRoleMappings()
      */

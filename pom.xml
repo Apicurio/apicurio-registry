@@ -98,6 +98,7 @@
         <module>distro</module>
         <module>docs</module>
         <module>java-sdk</module>
+        <module>go-sdk</module>
 
         <!-- modules for implementing ArtifactTypeUtilProvider -->
         <module>schema-util/common</module>
@@ -122,10 +123,10 @@
         <maven.build.timestamp.format>yyyy-MM-dd HH:mm:ss</maven.build.timestamp.format>
         <timestamp>${maven.build.timestamp}</timestamp>
 
-        <maven.compiler.source>11</maven.compiler.source>
-        <maven.compiler.target>11</maven.compiler.target>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
 
-        <tar.long.file.mode>gnu</tar.long.file.mode>
+        <tar.long.file.mode>posix</tar.long.file.mode>
 
         <!-- UI Build Tools -->
         <node.version>16.17.0</node.version>
@@ -134,7 +135,7 @@
         <quarkus.version>3.9.3</quarkus.version>
 
         <!-- Jandex -->
-        <jandex.version>3.1.7</jandex.version>
+        <jandex.version>3.1.8</jandex.version>
 
         <!-- Schema types -->
         <avro.version>1.11.3</avro.version>
@@ -148,7 +149,7 @@
         <icu4j.version>75.1</icu4j.version>
         <protobuf.version>3.19.6</protobuf.version>
         <xmlsec.version>4.0.2</xmlsec.version>
-        <protobuf.googleapi.types.version>2.37.1</protobuf.googleapi.types.version>
+        <protobuf.googleapi.types.version>2.39.0</protobuf.googleapi.types.version>
         <wsdl4j.version>1.6.3</wsdl4j.version>
         <google.truth.extension.version>1.4.2</google.truth.extension.version>
 
@@ -179,13 +180,13 @@
         <!-- JSON Schema Validator -->
         <org.everit.json.schema.version>1.14.4</org.everit.json.schema.version><!-- TODO unification -->
         <org.json.version>20240303</org.json.version>
-        <jackson-datatype-json-org.version>2.17.0</jackson-datatype-json-org.version>
+        <jackson-datatype-json-org.version>2.17.1</jackson-datatype-json-org.version>
         <jackson-dataformat-yaml.version>2.15.2</jackson-dataformat-yaml.version>
 
         <!-- Dependency versions -->
         <lombok.version>1.18.32</lombok.version>
         <h2.version>1.4.199</h2.version>
-        <commons-codec.version>1.16.1</commons-codec.version>
+        <commons-codec.version>1.17.0</commons-codec.version>
         <jboss-slf4j.version>1.2.1.Final</jboss-slf4j.version>
         <httpclient.version>4.5.14</httpclient.version>
         <apicurio-common-rest-client.version>0.1.18.Final</apicurio-common-rest-client.version>
@@ -193,7 +194,7 @@
         <kafka-oauth-client.version>0.15.0</kafka-oauth-client.version>
         <kafka-clients.version>3.6.0</kafka-clients.version>
         <snakeyaml.version>2.2</snakeyaml.version>
-        <guava.version>33.1.0-jre</guava.version>
+        <guava.version>33.2.0-jre</guava.version>
         <woodstox-core.version>6.6.2</woodstox-core.version>
         <jgit.version>6.9.0.202403050737-r</jgit.version>
         <awaitility.version>4.2.1</awaitility.version>
@@ -824,7 +825,7 @@
                 <plugin>
                     <groupId>net.alchim31.maven</groupId>
                     <artifactId>scala-maven-plugin</artifactId>
-                    <version>4.8.1</version>
+                    <version>4.9.1</version>
                     <configuration>
                         <recompileMode>incremental</recompileMode>
                         <args>

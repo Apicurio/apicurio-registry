@@ -52,7 +52,7 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
         }
 
         this.autoCreateArtifact = config.autoRegisterArtifact();
-        this.dereference = config.dereference();
+        this.dereference = config.serializerDereference();
         this.autoCreateBehavior = config.autoRegisterArtifactIfExists();
         this.findLatest = config.findLatest();
     }

@@ -103,3 +103,15 @@ updates:
           - "minor"
     open-pull-requests-limit: 10
     versioning-strategy: increase
+
+- package-ecosystem: npm
+  directory: "/docs-playbook"
+  schedule:
+    interval: weekly
+  versioning-strategy: increase
+  groups:
+    docs-playbook-dependencies:
+      patterns:
+        - "*"
+      update-types:
+        - "patch"

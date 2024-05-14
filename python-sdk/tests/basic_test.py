@@ -102,7 +102,9 @@ async def test_basic_upload_download():
         .content.get()
     )
     print(str(return_artifact, "utf-8"))
-    assert json.loads(return_artifact) == json.loads(payload.first_version.content.content)
+    assert json.loads(return_artifact) == json.loads(
+        payload.first_version.content.content
+    )
 
 
 @pytest.mark.asyncio
@@ -116,7 +118,7 @@ async def test_issue_3465():
     payload.artifact_id = "foo"
     payload.first_version = CreateVersion()
     payload.first_version.content = VersionContent()
-    payload.first_version.content.content_type = "application/json";
+    payload.first_version.content.content_type = "application/json"
     payload.first_version.content.content = """{
         "openapi": "3.0.0",
         "info": {

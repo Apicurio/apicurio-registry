@@ -7,6 +7,8 @@ import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.content.extract.ContentExtractor;
+import io.apicurio.registry.content.extract.ExtractedMetaData;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.model.BranchId;
@@ -64,6 +66,7 @@ import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.types.ReferenceType;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.types.VersionState;
+import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.util.ArtifactIdGenerator;
 import io.apicurio.registry.util.ArtifactTypeUtil;
 import io.apicurio.registry.util.ContentTypeUtil;
@@ -557,7 +560,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     }
 
     /**
-     * @see io.apicurio.registry.rest.v2.GroupsResource#getArtifactVersion(java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.rest.v2.beans.HandleReferencesType)
+     * @see io.apicurio.registry.rest.v2.GroupsResource#getArtifactVersion(String, String, String, Boolean)
      */
     @Override
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
@@ -949,6 +952,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
             if (ContentTypeUtil.isApplicationYaml(ct) ||
                     (ContentTypeUtil.isApplicationCreateExtended(ct) && ContentTypeUtil.isParsableYaml(content))) {
                 content = ContentTypeUtil.yamlToJson(content);
+                ct = ContentTypes.APPLICATION_JSON;
             }
 
             String artifactType = ArtifactTypeUtil.determineArtifactType(content, xRegistryArtifactType, ct, factory.getAllArtifactTypes());
@@ -961,8 +965,15 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
             rulesService.applyRules(defaultGroupIdToNull(groupId), artifactId, artifactType, content, 
                     RuleApplicationType.CREATE, toV3Refs(references), resolvedReferences);
 
-            final String finalArtifactId = artifactId;
-            EditableArtifactMetaDataDto metaData = getEditableArtifactMetaData(artifactName, artifactDescription);
+            
+            // Extract metadata from content
+            EditableArtifactMetaDataDto metaData = extractMetaData(artifactType, content);
+            if (artifactName != null && artifactName.trim().isEmpty()) {
+                metaData.setName(artifactName);
+            }
+            if (artifactDescription != null && artifactDescription.trim().isEmpty()) {
+                metaData.setDescription(artifactDescription);
+            }
 
             ContentWrapperDto contentDto = ContentWrapperDto.builder()
                     .contentType(ct)
@@ -970,8 +981,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                     .references(referencesAsDtos)
                     .build();
             EditableVersionMetaDataDto versionMetaData = EditableVersionMetaDataDto.builder()
-                    .name(artifactName)
-                    .description(artifactDescription)
+                    .name(metaData.getName())
+                    .description(metaData.getDescription())
                     .labels(Map.of())
                     .build();
 
@@ -979,8 +990,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                     defaultGroupIdToNull(groupId), artifactId, artifactType, metaData, xRegistryVersion,
                     contentDto, versionMetaData, List.of());
 
-            ArtifactMetaDataDto amdDto = createResult.getKey();
-            return V2ApiUtil.dtoToMetaData(amdDto.getArtifactId(), amdDto.getGroupId(), artifactType, amdDto);
+            return V2ApiUtil.dtoToMetaData(groupId, artifactId, artifactType, createResult.getRight());
         } catch (ArtifactAlreadyExistsException ex) {
             return handleIfExists(groupId, xRegistryArtifactId, xRegistryVersion, ifExists, artifactName, artifactDescription, content, ct, fcanonical, references);
         }
@@ -1247,4 +1257,16 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                 .build();
     }
 
+    protected EditableArtifactMetaDataDto extractMetaData(String artifactType, ContentHandle content) {
+        ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(artifactType);
+        ContentExtractor extractor = provider.getContentExtractor();
+        ExtractedMetaData emd = extractor.extract(content);
+        EditableArtifactMetaDataDto metaData;
+        if (emd != null) {
+            metaData = new EditableArtifactMetaDataDto(emd.getName(), emd.getDescription(), null, emd.getLabels());
+        } else {
+            metaData = new EditableArtifactMetaDataDto();
+        }
+        return metaData;
+    }
 }

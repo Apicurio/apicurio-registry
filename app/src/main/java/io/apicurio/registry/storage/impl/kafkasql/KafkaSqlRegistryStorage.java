@@ -177,9 +177,8 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
     }
 
     /**
-     * Start the KSQL Kafka consumer thread which is responsible for subscribing to the kafka topic,
-     * consuming JournalRecord entries found on that topic, and applying those journal entries to
-     * the internal data model.
+     * Consume the snapshots topic, looking for the most recent snapshots in the topic. Once found, it restores the internal h2 database using the snapshot's content.
+     * WARNING: This has the limitation of processing the first 500 snapshots, which should be enough for most deployments.
      */
     private String consumeSnapshotsTopic(KafkaConsumer<String, String> snapshotsConsumer) {
         // Subscribe to the snapshots topic
@@ -201,7 +200,7 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
                 try {
                     String path = snapshotFound.value();
                     if (null != path && !path.isBlank() && Files.exists(Path.of(snapshotFound.value()))) {
-                        log.info("Snapshot with path {} found.", snapshotFound.value());
+                        log.debug("Snapshot with path {} found.", snapshotFound.value());
                         snapshotRecordKey = snapshotFound.key();
                         mostRecentSnapshotPath = Path.of(snapshotFound.value());
                     }
@@ -219,7 +218,6 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
         }
 
         snapshotsConsumer.commitSync();
-
         return snapshotRecordKey;
     }
 
@@ -238,9 +236,6 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
         Runnable runner = () -> {
             try (consumer) {
                 log.info("Subscribing to {}", configuration.topic());
-
-                //TODO use the snapshot record metadata to put the journal consumer into the appropiate offset so it does not consume unneeded messages
-
                 // Subscribe to the journal topic
                 Collection<String> topics = Collections.singleton(configuration.topic());
                 consumer.subscribe(topics);
@@ -842,15 +837,13 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
         Path path = Path.of(configuration.snapshotLocation(), snapshotId + ".sql");
         var message = new CreateSnapshot1Message(path.toString(), snapshotId);
         this.lastTriggeredSnapshot = snapshotId;
+        log.debug("Snapshot with id {} triggered.", snapshotId);
         var uuid = ConcurrentUtil.get(submitter.submitMessage(message));
         String snapshotLocation = (String) coordinator.waitForResponse(uuid);
-
         //Then we send a new message to the snapshots topic, using the snapshot id as the key of the snapshot message.
         ProducerRecord<String, String> record = new ProducerRecord<>(configuration.snapshotsTopic(), 0, snapshotId, snapshotLocation,
                 Collections.emptyList());
-
         RecordMetadata recordMetadata = ConcurrentUtil.get(snapshotsProducer.apply(record));
-
         return snapshotLocation;
     }
 

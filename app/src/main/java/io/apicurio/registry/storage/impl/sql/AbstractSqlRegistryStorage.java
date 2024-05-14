@@ -3393,6 +3393,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
     @Override
     public String createSnapshot(String location) throws RegistryStorageException {
+        log.debug("Creating internal database snapshot to location {}.", location);
         handles.withHandleNoException(handle -> {
             handle.createQuery(sqlStatements.createDataSnapshot())
                     .bind(0, location).mapTo(Integer.class);

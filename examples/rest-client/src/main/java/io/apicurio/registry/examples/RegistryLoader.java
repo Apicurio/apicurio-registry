@@ -18,18 +18,12 @@ package io.apicurio.registry.examples;
 
 import io.apicurio.registry.client.auth.VertXAuthFactory;
 import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.rest.client.models.CreateArtifact;
-import io.apicurio.registry.rest.client.models.CreateVersion;
-import io.apicurio.registry.rest.client.models.IfArtifactExists;
-import io.apicurio.registry.rest.client.models.VersionContent;
-import io.apicurio.rest.client.util.IoUtil;
+import io.apicurio.registry.rest.client.models.ArtifactContent;
+import io.apicurio.registry.rest.client.models.Rule;
+import io.apicurio.registry.rest.client.models.RuleType;
 import io.kiota.http.vertx.VertXRequestAdapter;
 
-import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
+import java.util.UUID;
 
 /**
  * @author eric.wittmann@gmail.com
@@ -43,29 +37,49 @@ public class RegistryLoader {
         vertXRequestAdapter.setBaseUrl(registryUrl);
         RegistryClient client = new RegistryClient(vertXRequestAdapter);
 
-        File templateFile = new File("C:\\Temp\\registry.json");
-        String template;
-        try (InputStream templateIS = new FileInputStream(templateFile)) {
-            template = IoUtil.toString(templateIS);
-        }
+        String simpleAvro = """
+                {
+                    "type" : "record",
+                    "name" : "userInfo",
+                    "namespace" : "my.example",
+                    "fields" : [{"name" : "age", "type" : "int"}]
+                }""";
 
-        for (int idx = 1; idx <= 1000; idx++) {
-            System.out.println("Creating artifact #" + idx);
-            String content = template.replaceFirst("Apicurio Registry API", "Apicurio Registry API :: Copy #" + idx);
-            InputStream contentIS = new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8));
-
-            CreateArtifact createArtifact = new CreateArtifact();
-            createArtifact.setArtifactId("city");
-            createArtifact.setType("JSON");
-            createArtifact.setFirstVersion(new CreateVersion());
-            createArtifact.getFirstVersion().setContent(new VersionContent());
-            createArtifact.getFirstVersion().getContent().setContent(IoUtil.toString(contentIS));
-            createArtifact.getFirstVersion().getContent().setContentType("application/json");
-
-            client.groups().byGroupId("default").artifacts().post(createArtifact, config -> {
-                config.queryParameters.ifExists = IfArtifactExists.FIND_OR_CREATE_VERSION;
-            });
+        for (int i = 0; i < 600; i++) {
+            Task task = new Task(simpleAvro, client, 1000, i + 800000);
+            task.start();
         }
     }
 
+    protected static class Task extends Thread {
+
+        private final RegistryClient client;
+        private final String simpleAvro;
+        private final int numArtifacts;
+        private final int threadId;
+
+        public Task(String artifactContent, RegistryClient client, int numArtifacts, int threadId) {
+            this.client = client;
+            this.simpleAvro = artifactContent;
+            this.numArtifacts = numArtifacts;
+            this.threadId = threadId;
+        }
+
+        @Override
+        public void run() {
+            for (int idx = 0; idx < numArtifacts; idx++) {
+                System.out.println("Iteration: " + idx);
+                String artifactId = UUID.randomUUID().toString();
+                ArtifactContent content = new ArtifactContent();
+                content.setContent(simpleAvro.replace("userInfo", "userInfo" + threadId + numArtifacts));
+                client.groups().byGroupId("default").artifacts().post(content, config -> {
+                    config.headers.add("X-Registry-ArtifactId", artifactId);
+                });
+                Rule rule = new Rule();
+                rule.setType(RuleType.VALIDITY);
+                rule.setConfig("SYNTAX_ONLY");
+                client.groups().byGroupId("default").artifacts().byArtifactId(artifactId).rules().post(rule);
+            }
+        }
+    }
 }

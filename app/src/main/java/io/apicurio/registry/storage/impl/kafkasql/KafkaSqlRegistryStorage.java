@@ -113,6 +113,8 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
     private volatile boolean stopped = true;
     private volatile boolean snapshotProcessed = false;
 
+    //The snapshot id used to determine if this replica must process a snapshot message
+    private volatile String lastTriggeredSnapshot = null;
 
     @Override
     public String storageName() {
@@ -129,6 +131,7 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
         }
 
         //Try to restore the internal database from a snapshot
+        final long bootstrapStart = System.currentTimeMillis();
         String snapshotId = consumeSnapshotsTopic(snapshotsConsumer);
 
         //Once the topics are created, and the snapshots processed, initialize the internal SQL Storage.
@@ -137,7 +140,7 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
 
         //Once the SQL storage has been initialized, start the Kafka consumer thread.
         log.info("SQL store initialized, starting consumer thread.");
-        startConsumerThread(journalConsumer, snapshotId);
+        startConsumerThread(journalConsumer, snapshotId, bootstrapStart);
     }
 
     @Override
@@ -198,6 +201,7 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
                 try {
                     String path = snapshotFound.value();
                     if (null != path && !path.isBlank() && Files.exists(Path.of(snapshotFound.value()))) {
+                        log.info("Snapshot with path {} found.", snapshotFound.value());
                         snapshotRecordKey = snapshotFound.key();
                         mostRecentSnapshotPath = Path.of(snapshotFound.value());
                     }
@@ -209,6 +213,7 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
 
             //Here we have the most recent snapshot that we can find, try to restore the internal database from it.
             if (null != mostRecentSnapshotPath) {
+                log.info("Restoring snapshot {} to the internal database...", mostRecentSnapshotPath);
                 sqlStore.restoreFromSnapshot(mostRecentSnapshotPath.toString());
             }
         }
@@ -223,13 +228,12 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
      * consuming JournalRecord entries found on that topic, and applying those journal entries to
      * the internal data model.
      */
-    private void startConsumerThread(final KafkaConsumer<KafkaSqlMessageKey, KafkaSqlMessage> consumer, String snapshotId) {
+    private void startConsumerThread(final KafkaConsumer<KafkaSqlMessageKey, KafkaSqlMessage> consumer, String snapshotId, long bootstrapStart) {
         log.info("Starting KSQL consumer thread on topic: {}", configuration.topic());
         log.info("Bootstrap servers: {}", configuration.bootstrapServers());
 
         final String bootstrapId = UUID.randomUUID().toString();
         submitter.submitBootstrap(bootstrapId);
-        final long bootstrapStart = System.currentTimeMillis();
 
         Runnable runner = () -> {
             try (consumer) {
@@ -244,6 +248,7 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
                 // Main consumer loop
                 while (!stopped) {
                     final ConsumerRecords<KafkaSqlMessageKey, KafkaSqlMessage> records = consumer.poll(Duration.ofMillis(configuration.pollTimeout()));
+
                     if (records != null && !records.isEmpty()) {
                         log.debug("Consuming {} journal records.", records.count());
 
@@ -253,10 +258,12 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
                             while (it.hasNext() && !snapshotProcessed) {
                                 ConsumerRecord<KafkaSqlMessageKey, KafkaSqlMessage> record = it.next();
                                 if (processSnapshot(snapshotId, record)) {
+                                    log.debug("Snapshot marker found {} the new messages will be applied on top of the snapshot data.", record.key());
                                     snapshotProcessed = true;
                                     break;
-                                } else {
-                                    log.debug("Discarding message with key {} as it was sent before a newer snapshot was created", record.key());
+                                }
+                                else {
+                                    log.debug("Discarding message with key {} as it was sent before a newer snapshot was created.", record.key());
                                 }
                             }
 
@@ -305,6 +312,13 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
                         .build());
                 log.info("KafkaSQL storage bootstrapped in {} ms.", System.currentTimeMillis() - bootstrapStart);
             }
+            return;
+        }
+
+        // If the key is a CreateSnapshotMessage key, but this replica does not have the snapshotId, it means that it wasn't triggered here, so just skip the message.
+        if (record.value() instanceof CreateSnapshot1Message && !((CreateSnapshot1Message) record.value()).getSnapshotId().equals(lastTriggeredSnapshot)) {
+            log.debug("Snapshot trigger message with id {} being skipped since this replica did not trigger the creation.",
+                    ((CreateSnapshot1Message) record.value()).getSnapshotId());
             return;
         }
 
@@ -827,6 +841,7 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
         String snapshotId = UUID.randomUUID().toString();
         Path path = Path.of(configuration.snapshotLocation(), snapshotId + ".sql");
         var message = new CreateSnapshot1Message(path.toString(), snapshotId);
+        this.lastTriggeredSnapshot = snapshotId;
         var uuid = ConcurrentUtil.get(submitter.submitMessage(message));
         String snapshotLocation = (String) coordinator.waitForResponse(uuid);
 

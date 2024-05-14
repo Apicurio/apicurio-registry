@@ -19,7 +19,6 @@ package io.apicurio.registry.examples.simple.avro.maven;
 import com.microsoft.kiota.ApiException;
 import io.apicurio.registry.client.auth.VertXAuthFactory;
 import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.rest.client.models.ArtifactContent;
 import io.apicurio.registry.rest.v2.beans.IfExists;
 import io.apicurio.registry.serde.SerdeConfig;
 import io.apicurio.registry.serde.avro.AvroKafkaDeserializer;
@@ -92,8 +91,6 @@ public class SimpleAvroMavenExample {
         vertXRequestAdapter.setBaseUrl(REGISTRY_URL);
 
         RegistryClient client = new RegistryClient(vertXRequestAdapter);
-        ArtifactContent content = new ArtifactContent();
-
 
         String schemaData = null;
         try (InputStream latestArtifact = client.groups().byGroupId("default").artifacts().byArtifactId(artifactId).versions().byVersionExpression("1").content().get()) {
@@ -102,7 +99,6 @@ public class SimpleAvroMavenExample {
             System.err.println("Schema not registered in registry.  Before running this example, please do:");
             System.err.println("  mvn io.apicurio:apicurio-registry-maven-plugin:register@register-artifact");
             System.exit(1);
-
         }
 
         // Create the producer.

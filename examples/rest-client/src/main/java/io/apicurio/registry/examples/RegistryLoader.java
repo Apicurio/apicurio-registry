@@ -16,17 +16,20 @@
 
 package io.apicurio.registry.examples;
 
+import io.apicurio.registry.client.auth.VertXAuthFactory;
+import io.apicurio.registry.rest.client.RegistryClient;
+import io.apicurio.registry.rest.client.models.CreateArtifact;
+import io.apicurio.registry.rest.client.models.CreateVersion;
+import io.apicurio.registry.rest.client.models.IfArtifactExists;
+import io.apicurio.registry.rest.client.models.VersionContent;
+import io.apicurio.rest.client.util.IoUtil;
+import io.kiota.http.vertx.VertXRequestAdapter;
+
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-
-import io.apicurio.registry.client.auth.VertXAuthFactory;
-import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.rest.client.models.ArtifactContent;
-import io.apicurio.rest.client.util.IoUtil;
-import io.kiota.http.vertx.VertXRequestAdapter;
 
 /**
  * @author eric.wittmann@gmail.com
@@ -51,13 +54,16 @@ public class RegistryLoader {
             String content = template.replaceFirst("Apicurio Registry API", "Apicurio Registry API :: Copy #" + idx);
             InputStream contentIS = new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8));
 
-            ArtifactContent artifactContent = new ArtifactContent();
-            artifactContent.setContent(IoUtil.toString(contentIS));
+            CreateArtifact createArtifact = new CreateArtifact();
+            createArtifact.setArtifactId("city");
+            createArtifact.setType("JSON");
+            createArtifact.setFirstVersion(new CreateVersion());
+            createArtifact.getFirstVersion().setContent(new VersionContent());
+            createArtifact.getFirstVersion().getContent().setContent(IoUtil.toString(contentIS));
+            createArtifact.getFirstVersion().getContent().setContentType("application/json");
 
-            final io.apicurio.registry.rest.client.models.VersionMetaData amdCity = client.groups().byGroupId("default").artifacts().post(artifactContent, config -> {
-                config.queryParameters.ifExists = io.apicurio.registry.rest.client.models.IfExists.RETURN_OR_UPDATE;
-                config.headers.add("X-Registry-ArtifactId", "city");
-                config.headers.add("X-Registry-ArtifactType", "JSON");
+            client.groups().byGroupId("default").artifacts().post(createArtifact, config -> {
+                config.queryParameters.ifExists = IfArtifactExists.FIND_OR_CREATE_VERSION;
             });
         }
     }

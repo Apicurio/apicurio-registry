@@ -1,9 +1,11 @@
 package io.apicurio.registry.examples.util;
 
 import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.rest.client.models.ArtifactContent;
 import io.apicurio.registry.rest.client.models.ArtifactMetaData;
-import io.apicurio.registry.rest.client.models.IfExists;
+import io.apicurio.registry.rest.client.models.CreateArtifact;
+import io.apicurio.registry.rest.client.models.CreateVersion;
+import io.apicurio.registry.rest.client.models.IfArtifactExists;
+import io.apicurio.registry.rest.client.models.VersionContent;
 import io.apicurio.rest.client.util.IoUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,14 +30,17 @@ public class RegistryDemoUtil {
         try {
             final ByteArrayInputStream content = new ByteArrayInputStream(schema.getBytes(StandardCharsets.UTF_8));
 
-            ArtifactContent artifactContent = new ArtifactContent();
-            artifactContent.setContent(IoUtil.toString(content));
+            CreateArtifact createArtifact = new CreateArtifact();
+            createArtifact.setArtifactId(artifactId);
+            createArtifact.setType("JSON");
+            createArtifact.setFirstVersion(new CreateVersion());
+            createArtifact.getFirstVersion().setContent(new VersionContent());
+            createArtifact.getFirstVersion().getContent().setContent(IoUtil.toString(content));
+            createArtifact.getFirstVersion().getContent().setContentType("application/json");
 
-            final io.apicurio.registry.rest.client.models.VersionMetaData metaData = service.groups().byGroupId("default").artifacts().post(artifactContent, config -> {
-                config.queryParameters.ifExists = IfExists.RETURN;
-                config.headers.add("X-Registry-ArtifactId", artifactId);
-                config.headers.add("X-Registry-ArtifactType", "JSON");
-            });
+            final io.apicurio.registry.rest.client.models.VersionMetaData metaData = service.groups().byGroupId("default").artifacts().post(createArtifact, config -> {
+                config.queryParameters.ifExists = IfArtifactExists.FIND_OR_CREATE_VERSION;
+            }).getVersion();
 
             assert metaData != null;
             LOGGER.info("=====> Successfully created JSON Schema artifact in Service Registry: {}", metaData);

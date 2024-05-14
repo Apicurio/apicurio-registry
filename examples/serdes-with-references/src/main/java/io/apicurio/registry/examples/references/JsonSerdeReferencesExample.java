@@ -5,8 +5,11 @@ import io.apicurio.registry.examples.references.model.Citizen;
 import io.apicurio.registry.examples.references.model.City;
 import io.apicurio.registry.resolver.SchemaResolverConfig;
 import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.rest.client.models.ArtifactContent;
 import io.apicurio.registry.rest.client.models.ArtifactReference;
+import io.apicurio.registry.rest.client.models.CreateArtifact;
+import io.apicurio.registry.rest.client.models.CreateVersion;
+import io.apicurio.registry.rest.client.models.IfArtifactExists;
+import io.apicurio.registry.rest.client.models.VersionContent;
 import io.apicurio.registry.serde.SerdeConfig;
 import io.apicurio.registry.serde.jsonschema.JsonSchemaKafkaDeserializer;
 import io.apicurio.registry.serde.jsonschema.JsonSchemaKafkaSerializer;
@@ -54,14 +57,17 @@ public class JsonSerdeReferencesExample {
         InputStream citizenSchema = JsonSerdeReferencesExample.class.getClassLoader()
                 .getResourceAsStream("citizen.json");
 
-        ArtifactContent content = new ArtifactContent();
-        content.setContent(IoUtil.toString(citySchema));
+        CreateArtifact createArtifact = new CreateArtifact();
+        createArtifact.setArtifactId("city");
+        createArtifact.setType(ArtifactType.JSON);
+        createArtifact.setFirstVersion(new CreateVersion());
+        createArtifact.getFirstVersion().setContent(new VersionContent());
+        createArtifact.getFirstVersion().getContent().setContent(IoUtil.toString(citySchema));
+        createArtifact.getFirstVersion().getContent().setContentType("application/json");
 
-        final io.apicurio.registry.rest.client.models.VersionMetaData amdCity = client.groups().byGroupId("default").artifacts().post(content, config -> {
-            config.queryParameters.ifExists = io.apicurio.registry.rest.client.models.IfExists.RETURN_OR_UPDATE;
-            config.headers.add("X-Registry-ArtifactId", "city");
-            config.headers.add("X-Registry-ArtifactType", ArtifactType.JSON);
-        });
+        final io.apicurio.registry.rest.client.models.VersionMetaData amdCity = client.groups().byGroupId("default").artifacts().post(createArtifact, config -> {
+            config.queryParameters.ifExists = IfArtifactExists.FIND_OR_CREATE_VERSION;
+        }).getVersion();
 
         final ArtifactReference reference = new ArtifactReference();
         reference.setVersion(amdCity.getVersion());
@@ -73,14 +79,17 @@ public class JsonSerdeReferencesExample {
         String artifactId = TOPIC_NAME;
         // use the topic name as the artifactId because we're going to map topic name to artifactId later on.
 
-        ArtifactContent citizenContent = new ArtifactContent();
-        content.setContent(IoUtil.toString(citizenSchema));
-        content.setReferences(Collections.singletonList(reference));
+        CreateArtifact citizenCreateArtifact = new CreateArtifact();
+        citizenCreateArtifact.setArtifactId(artifactId);
+        citizenCreateArtifact.setType(ArtifactType.JSON);
+        citizenCreateArtifact.setFirstVersion(new CreateVersion());
+        citizenCreateArtifact.getFirstVersion().setContent(new VersionContent());
+        citizenCreateArtifact.getFirstVersion().getContent().setContent(IoUtil.toString(citizenSchema));
+        citizenCreateArtifact.getFirstVersion().getContent().setContentType("application/json");
+        citizenCreateArtifact.getFirstVersion().getContent().setReferences(Collections.singletonList(reference));
 
-        final io.apicurio.registry.rest.client.models.VersionMetaData amdCitizen = client.groups().byGroupId("default").artifacts().post(content, config -> {
-            config.queryParameters.ifExists = io.apicurio.registry.rest.client.models.IfExists.RETURN;
-            config.headers.add("X-Registry-ArtifactId", artifactId);
-            config.headers.add("X-Registry-ArtifactType", ArtifactType.JSON);
+        client.groups().byGroupId("default").artifacts().post(citizenCreateArtifact, config -> {
+            config.queryParameters.ifExists = io.apicurio.registry.rest.client.models.IfArtifactExists.FIND_OR_CREATE_VERSION;
         });
 
 

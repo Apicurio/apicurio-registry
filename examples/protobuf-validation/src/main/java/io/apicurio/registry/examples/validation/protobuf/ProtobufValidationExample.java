@@ -19,8 +19,12 @@ package io.apicurio.registry.examples.validation.protobuf;
 import io.apicurio.registry.resolver.SchemaResolverConfig;
 import io.apicurio.registry.resolver.strategy.ArtifactReference;
 import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.rest.client.models.ArtifactContent;
+import io.apicurio.registry.rest.client.models.CreateArtifact;
+import io.apicurio.registry.rest.client.models.CreateVersion;
+import io.apicurio.registry.rest.client.models.IfArtifactExists;
+import io.apicurio.registry.rest.client.models.VersionContent;
 import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.schema.validation.protobuf.ProtobufMetadata;
 import io.apicurio.schema.validation.protobuf.ProtobufRecord;
@@ -81,13 +85,16 @@ public class ProtobufValidationExample {
         String artifactId = ProtobufValidationExample.class.getSimpleName();
         RegistryClient client = createRegistryClient(REGISTRY_URL);
 
-        ArtifactContent artifactContent = new ArtifactContent();
-        artifactContent.setContent(IoUtil.toString(SCHEMA.getBytes(StandardCharsets.UTF_8)));
+        CreateArtifact createArtifact = new CreateArtifact();
+        createArtifact.setArtifactId(artifactId);
+        createArtifact.setType(ArtifactType.PROTOBUF);
+        createArtifact.setFirstVersion(new CreateVersion());
+        createArtifact.getFirstVersion().setContent(new VersionContent());
+        createArtifact.getFirstVersion().getContent().setContent(IoUtil.toString(SCHEMA.getBytes(StandardCharsets.UTF_8)));
+        createArtifact.getFirstVersion().getContent().setContentType(ContentTypes.APPLICATION_PROTOBUF);
 
-        final io.apicurio.registry.rest.client.models.VersionMetaData metaData = client.groups().byGroupId("default").artifacts().post(artifactContent, config -> {
-            config.queryParameters.ifExists = io.apicurio.registry.rest.client.models.IfExists.RETURN_OR_UPDATE;
-            config.headers.add("X-Registry-ArtifactId", artifactId);
-            config.headers.add("X-Registry-ArtifactType", ArtifactType.PROTOBUF);
+        client.groups().byGroupId("default").artifacts().post(createArtifact, config -> {
+            config.queryParameters.ifExists = IfArtifactExists.FIND_OR_CREATE_VERSION;
         });
 
 

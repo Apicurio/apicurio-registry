@@ -1,0 +1,278 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>io.apicurio</groupId>
+    <artifactId>apicurio-registry-examples</artifactId>
+    <version>2.6.0-SNAPSHOT</version>
+    <packaging>pom</packaging>
+
+    <url>https://www.apicur.io/</url>
+    <description>Open Source API &amp; Schema Registry</description>
+
+    <organization>
+        <name>Red Hat</name>
+        <url>https://www.redhat.com</url>
+    </organization>
+
+    <licenses>
+        <license>
+            <name>Apache License Version 2.0</name>
+            <url>https://repository.jboss.org/licenses/apache-2.0.txt</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
+    <issueManagement>
+        <system>GitHub</system>
+        <url>https://github.com/apicurio/apicurio-registry-examples/issues</url>
+    </issueManagement>
+
+    <scm>
+        <connection>scm:git:git@github.com:apicurio/apicurio-registry-examples.git</connection>
+        <developerConnection>scm:git:git@github.com:apicurio/apicurio-registry-examples.git</developerConnection>
+        <url>scm:git:git@github.com:apicurio/apicurio-registry-examples.git</url>
+    </scm>
+
+    <modules>
+        <module>simple-avro</module>
+        <module>simple-json</module>
+        <module>confluent-serdes</module>
+        <module>avro-bean</module>
+        <module>custom-resolver</module>
+        <module>custom-strategy</module>
+        <module>simple-avro-maven</module>
+        <module>rest-client</module>
+        <module>mix-avro</module>
+        <module>jsonschema-validation</module>
+        <module>simple-validation</module>
+        <module>quarkus-auth</module>
+        <module>simple-avro-downstream</module>
+        <module>rest-client-downstream</module>
+        <module>serdes-with-references</module>
+        <module>protobuf-validation</module>
+        <module>tools/kafkasql-topic-import</module>
+        <!--<module>camel-quarkus-kafka</module>-->
+    </modules>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+        <maven.build.timestamp.format>yyyy-MM-dd HH:mm:ss</maven.build.timestamp.format>
+        <timestamp>${maven.build.timestamp}</timestamp>
+
+        <maven.compiler.source>11</maven.compiler.source>
+        <maven.compiler.target>11</maven.compiler.target>
+
+        <!-- Apicurio Registry Version -->
+        <apicurio-registry.version>${project.version}</apicurio-registry.version>
+
+        <!-- Quarkus -->
+        <quarkus.platform.group-id>io.quarkus</quarkus.platform.group-id>
+        <quarkus.platform.artifact-id>quarkus-universe-bom</quarkus.platform.artifact-id>
+        <quarkus.platform.version>2.7.5.Final</quarkus.platform.version>
+        <quarkus-plugin.version>${quarkus.platform.version}</quarkus-plugin.version>
+
+        <!-- Kafka -->
+        <kafka.version>2.8.1</kafka.version>
+
+        <!-- Confluent API / client -->
+        <confluent.version>5.5.1</confluent.version>
+
+        <!-- RestEasy -->
+        <resteasy.version>4.5.8.Final</resteasy.version>
+
+        <!-- Slf4j -->
+        <slf4j.version>1.7.25</slf4j.version>
+
+        <!-- Vert.x version -->
+        <vertx.version>3.9.5</vertx.version>
+
+        <!-- Apicurio REST client-->
+        <apicurio-common-rest-client.version>0.1.14.Final</apicurio-common-rest-client.version>
+
+        <!-- Apicurio schema validation library -->
+        <apicurio-registry-schema-validation.version>0.0.4.Final</apicurio-registry-schema-validation.version>
+
+        <!-- Plugin Versions -->
+        <quarkus-plugin.version>${quarkus.platform.version}</quarkus-plugin.version>
+
+        <version.compiler.plugin>3.8.1</version.compiler.plugin>
+        <version.deploy.plugin>2.8.2</version.deploy.plugin>
+        <version.failsafe.plugin>2.22.2</version.failsafe.plugin>
+        <version.javadoc.plugin>3.2.0</version.javadoc.plugin>
+        <version.source.plugin>3.2.1</version.source.plugin>
+        <version.surefire.plugin>2.22.2</version.surefire.plugin>
+        <version.jar.plugin>3.2.0</version.jar.plugin>
+        <version.properties.plugin>1.0.0</version.properties.plugin>
+        <version.dependency.plugin>3.1.2</version.dependency.plugin>
+        <version.assembly.plugin>3.3.0</version.assembly.plugin>
+        <version.resources.plugin>3.2.0</version.resources.plugin>
+        <version.clean.plugin>3.1.0</version.clean.plugin>
+        <version.avro>1.11.0</version.avro>
+        <protobuf.version>3.21.6</protobuf.version>
+        <!-- Proto -->
+        <proto-plugin.version>0.6.1</proto-plugin.version>
+        <os-maven-plugin.version>1.7.0</os-maven-plugin.version>
+    </properties>
+
+
+    <dependencyManagement>
+        <dependencies>
+
+            <dependency>
+                <groupId>${quarkus.platform.group-id}</groupId>
+                <artifactId>${quarkus.platform.artifact-id}</artifactId>
+                <version>${quarkus.platform.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+        </dependencies>
+    </dependencyManagement>
+
+
+    <build>
+        <pluginManagement>
+            <plugins>
+
+                <plugin>
+                    <groupId>io.quarkus</groupId>
+                    <artifactId>quarkus-maven-plugin</artifactId>
+                    <version>${quarkus-plugin.version}</version>
+                </plugin>
+
+                <!-- Maven -->
+                <plugin>
+                    <groupId>org.codehaus.mojo</groupId>
+                    <artifactId>properties-maven-plugin</artifactId>
+                    <version>${version.properties.plugin}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-compiler-plugin</artifactId>
+                    <version>${version.compiler.plugin}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-source-plugin</artifactId>
+                    <version>${version.source.plugin}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-javadoc-plugin</artifactId>
+                    <version>${version.javadoc.plugin}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-failsafe-plugin</artifactId>
+                    <version>${version.failsafe.plugin}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-surefire-plugin</artifactId>
+                    <version>${version.surefire.plugin}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-deploy-plugin</artifactId>
+                    <version>${version.deploy.plugin}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-jar-plugin</artifactId>
+                    <version>${version.jar.plugin}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-dependency-plugin</artifactId>
+                    <version>${version.dependency.plugin}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-assembly-plugin</artifactId>
+                    <version>${version.assembly.plugin}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-resources-plugin</artifactId>
+                    <version>${version.resources.plugin}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-clean-plugin</artifactId>
+                    <version>${version.clean.plugin}</version>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <source>${maven.compiler.target}</source>
+                    <target>${maven.compiler.target}</target>
+                    <showDeprecation>false</showDeprecation>
+                    <showWarnings>false</showWarnings>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>attach-sources</id>
+                        <goals>
+                            <goal>jar-no-fork</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>attach-javadocs</id>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <additionalDependencies>
+                        <additionalDependency>
+                            <groupId>org.jboss.spec.javax.annotation</groupId>
+                            <artifactId>jboss-annotations-api_1.2_spec</artifactId>
+                            <version>1.0.1.Final</version>
+                        </additionalDependency>
+                    </additionalDependencies>
+                    <failOnError>false</failOnError>
+                    <failOnWarnings>false</failOnWarnings>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+    <profiles>
+        <profile>
+            <id>java8</id>
+            <activation>
+                <jdk>[1.8,)</jdk>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-javadoc-plugin</artifactId>
+                        <configuration>
+                            <additionalJOption>-Xdoclint:none</additionalJOption>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+</project>

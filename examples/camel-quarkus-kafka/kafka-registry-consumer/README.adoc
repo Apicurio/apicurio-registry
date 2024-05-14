@@ -1,0 +1,228 @@
+= Kafka example : A Camel Quarkus example
+:cq-example-description: An example that shows how to produce and consume messages in a Kafka topic, using Strimzi Operator
+
+{cq-description}
+
+TIP: Check the https://camel.apache.org/camel-quarkus/latest/first-steps.html[Camel Quarkus User guide] for prerequisites
+and other general information.
+
+
+== Prerequisites
+
+The example application requires a Kafka instance.
+
+You do not need to provide the Kafka instance yourself
+as long as you play with the example code in dev mode (a.k.a. `mvn quarkus:dev` - read more [here](https://quarkus.io/guides/getting-started#development-mode))
+or as long as you only run the supplied tests (`mvn test`).
+In those situations, Quarkus tooling starts a Redpanda image for you via [Quarkus Dev Services](https://quarkus.io/guides/kafka-dev-services)
+and it also configures the application so that you do not need touch anything in `application.properties`.
+
+== Start in Development mode
+
+Run the application in development mode.
+
+TIP: If you want to use another running instance, in dev mode. Uncomment the corresponding Kafka configuration section in `src/main/resources/application.properties` and change `%prod` profile to `%dev`.
+
+[source,shell]
+----
+$ mvn clean compile quarkus:dev
+----
+
+The above command compiles the project, starts the application and lets the Quarkus tooling watch for changes in your
+workspace. Any modifications in your project will automatically take effect in the running application.
+
+TIP: Please refer to the Development mode section of
+https://camel.apache.org/camel-quarkus/latest/first-steps.html#_development_mode[Camel Quarkus User guide] for more details.
+
+You should start to see some log messages appearing on the console.
+
+Every 10 seconds the timer component triggers the generation of random Message and send it to the Kafka topic `Test`.
+
+[source,shell]
+----
+[FromTimer2Kafka] (Camel (camel-1) thread #2 - KafkaProducer[test]) Message sent correctly sent to the topic! : "Message #1"
+----
+
+Next a Kafka consumer reads the messages and put them in a seda queue.
+
+[source,shell]
+----
+[FromKafka2Seda] (Camel (camel-1) thread #0 - KafkaConsumer[test]) Received : "Message #1"
+----
+
+Next pull a message from the queue :
+[source,shell]
+----
+$ curl -X GET http://0.0.0.0:8080/example
+----
+
+
+=== Configure Kafka client, package and run the application
+
+Once you are done with developing you may want to configure your kafka client, package and run the application.
+
+TIP: Find more details about the JVM mode and Native mode in the Package and run section of
+https://camel.apache.org/camel-quarkus/latest/first-steps.html#_package_and_run_the_application[Camel Quarkus User guide]
+
+==== Configure kafka client
+Uncomment the corresponding commented section in `src/main/resources/application.properties`.
+
+- The section Kafka instance without Authentication if no Authentication required.
+- The section Kafka instance with SASL Plain if using SASL.
+- The section Kafka instance with SASL Oauth Bearer if using Oauth Bearer.
+
+You need to set the corresponding environment variables:
+- Without Authentication
+[source,shell]
+----
+$ export brokers=<YOUR_KAFKA_BROKERS_URL>
+----
+- SASL Plain
+[source,shell]
+----
+$ export brokers=<YOUR_KAFKA_BROKERS_URL>
+$ export id=<YOUR_KAFKA_SASL_CLIENT_ID>
+$ export secret=<YOUR_KAFKA_SASL_CLIENT_SECRET>
+----
+-SASL Oauth Bearer
+[source,shell]
+----
+$ export brokers=<YOUR_KAFKA_BROKERS_URL>
+$ export id=<YOUR_KAFKA_SASL_CLIENT_ID>
+$ export secret=<YOUR_KAFKA_SASL_CLIENT_SECRET>
+$ export token=<YOUR_KAFKA_SASL_OAUTHBEARER_TOKEN_URL>
+----
+
+If you want to deploy on Kubernetes or Openshift, you'd need to define those in a secret named `camel-kafka`. Set the needed values in the `kubefiles/secret-example.yml`, then add the secret :
+[source,shell]
+----
+$ kubectl apply -f kubefiles/secret-example.yml
+----
+
+==== JVM mode
+
+[source,shell]
+----
+$ mvn clean package -DskipTests
+$ java -jar target/quarkus-app/quarkus-run.jar
+----
+
+==== Native mode
+
+IMPORTANT: Native mode requires having GraalVM and other tools installed. Please check the Prerequisites section
+of https://camel.apache.org/camel-quarkus/latest/first-steps.html#_prerequisites[Camel Quarkus User guide].
+
+To prepare a native executable using GraalVM, run the following command:
+
+[source,shell]
+----
+$ mvn clean package -DskipTests -Pnative
+$ ./target/*-runner
+----
+
+==== Deploying to Kubernetes
+
+You can build a container image for the application like this. Refer to the https://quarkus.io/guides/deploying-to-kubernetes[Quarkus Kubernetes guide] for options around customizing image names, registries etc.
+
+This example uses Jib to create the container image for Kubernetes deployment.
+
+Uncomment the creating container with jib and secrets, in the Kubernetes specific section in  `src/main/resources/application.properties`. Set image group and image registry.
+
+Build the application using the `kubernetes` profile.
+
+[source,shell]
+----
+$ mvn clean package -DskipTests -Dkubernetes
+----
+
+The `kubernetes` profile uses quarkus kubernetes and jib container extensions, as described in the `pom.xml`.
+
+[source,shell]
+----
+<dependencies>
+    <dependency>
+        <groupId>io.quarkus</groupId>
+        <artifactId>quarkus-kubernetes</artifactId>
+    </dependency>
+    <dependency>
+        <groupId>io.quarkus</groupId>
+        <artifactId>quarkus-container-image-jib</artifactId>
+    </dependency>
+</dependencies>
+----
+
+If you are using a local development cluster like Kind or k3s, you can use host the container image on your local host. Or, with minikube, use the Docker daemon from the cluster virtual machine `eval $(minikube docker-env)`. Otherwise, you'll need to push the image to a registry of your choosing.
+
+TIP: You can build & deploy in one single step by doing `mvn clean package -DskipTests -Dkubernetes -Dquarkus.kubernetes.deploy=true`
+
+Check that the pods are running.
+
+Example when using Strimzi operator, with a Kafka instance named `Test` :
+
+[source,shell]
+----
+$ kubectl get pods
+NAME                                           READY   STATUS    RESTARTS   AGE
+camel-quarkus-examples-kafka-dbc56974b-ph29m   1/1     Running   0          2m34s
+test-entity-operator-7cccff5899-dlfx8          3/3     Running   0          48m
+test-kafka-0                                   1/1     Running   0          49m
+test-kafka-1                                   1/1     Running   0          49m
+test-kafka-2                                   1/1     Running   0          49m
+test-zookeeper-0                               1/1     Running   0          50m
+test-zookeeper-1                               1/1     Running   0          50m
+test-zookeeper-2                               1/1     Running   0          50m
+
+----
+
+Tail the application logs.
+
+[source,shell]
+----
+$ kubectl logs -f camel-quarkus-examples-kafka-dbc56974b-ph29m
+----
+
+To clean up do.
+
+[source,shell]
+----
+$ kubectl delete all -l app.kubernetes.io/name=camel-quarkus-examples-kafka
+$ kubectl delete secret camel-kafka
+----
+
+[NOTE]
+====
+If you need to configure container resource limits & requests, or enable the Quarkus Kubernetes client to trust self signed certificates, you can find these configuration options in `src/main/resources/application.properties`. Simply uncomment them and set your desired values.
+====
+
+
+==== Deploying to OpenShift
+
+Uncomment the creating container with openshift and secrets, in the Openshift specific section in  `src/main/resources/application.properties`.
+
+
+[source,shell]
+----
+$ mvn clean package -DskipTests -Dquarkus.kubernetes.deploy=true -Dopenshift
+----
+
+The `openshift` profile uses quarkus openshift and openshift-container extensions, as described in the `pom.xml`.
+
+[source,shell]
+----
+<dependencies>
+    <dependency>
+        <groupId>io.quarkus</groupId>
+        <artifactId>quarkus-openshift</artifactId>
+    </dependency>
+    <dependency>
+        <groupId>io.quarkus</groupId>
+        <artifactId>quarkus-container-image-openshift</artifactId>
+    </dependency>
+</dependencies>
+----
+
+You can check the pod status and tail logs using the commands mentioned above in the Kubernetes section. Use the `oc` binary instead of `kubectl` if preferred.
+
+== Feedback
+
+Please report bugs and propose improvements via https://github.com/apache/camel-quarkus/issues[GitHub issues of Camel Quarkus] project.

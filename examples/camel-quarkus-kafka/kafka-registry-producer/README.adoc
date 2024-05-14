@@ -1,0 +1,10 @@
+== Camel Quarkus Kafka with Service Registry
+
+1. Populate correctly the credentials in application.properties after creating kafka instance and registry instance
+2. mvn clean package
+3. java -jar target/quarkus-app/quarkus-run.jar
+
+Error:
+
+2021-10-11 16:50:21,197 WARN  [org.apa.cam.com.tim.TimerConsumer] (Camel (camel-1) thread #0 - timer://foo) Error processing exchange. Exchange[57AD50F0C45CD89-0000000000000000]. Caused by: [io.apicurio.registry.rest.client.exception.ArtifactNotFoundException - No artifact with ID 'test-value' in group 'null' was found.]: io.apicurio.registry.rest.client.exception.ArtifactNotFoundException: No artifact with ID 'test-value' in group 'null' was found.
+

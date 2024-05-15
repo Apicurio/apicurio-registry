@@ -7,7 +7,7 @@ on:
       - 'README*'
       - 'docs/**'
       - '.github/workflows/**'
-    branches: [main, '[1-9].[1-9].x', 2.4.x, 2.5.x]
+    branches: [main, '[1-9].[1-9].x', 2.4.x, 2.5.x, 2.6.x]
   pull_request:
     paths-ignore:
       - '.gitignore'

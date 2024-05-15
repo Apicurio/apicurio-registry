@@ -24,7 +24,6 @@
 
         <avro.version>1.10.0</avro.version>
 
-        <apicurio-registry.version>2.4.1.Final</apicurio-registry.version>
     </properties>
 
     <dependencyManagement>
@@ -48,7 +47,7 @@
         <dependency>
             <groupId>io.apicurio</groupId>
             <artifactId>apicurio-registry-maven-plugin</artifactId>
-            <version>${apicurio-registry.version}</version>
+            <version>${project.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -158,7 +157,7 @@
                     <plugin>
                         <groupId>io.apicurio</groupId>
                         <artifactId>apicurio-registry-maven-plugin</artifactId>
-                        <version>${apicurio-registry.version}</version>
+                        <version>${project.version}</version>
                         <executions>
                             <execution>
                                 <phase>generate-sources</phase>
@@ -185,7 +184,7 @@
                     <plugin>
                         <groupId>io.apicurio</groupId>
                         <artifactId>apicurio-registry-maven-plugin</artifactId>
-                        <version>${apicurio-registry.version}</version>
+                        <version>${project.version}</version>
                         <executions>
                             <execution>
                                 <phase>generate-sources</phase>
@@ -212,7 +211,7 @@
                     <plugin>
                         <groupId>io.apicurio</groupId>
                         <artifactId>apicurio-registry-maven-plugin</artifactId>
-                        <version>${apicurio-registry.version}</version>
+                        <version>${project.version}</version>
                         <executions>
                             <execution>
                                 <phase>generate-sources</phase>

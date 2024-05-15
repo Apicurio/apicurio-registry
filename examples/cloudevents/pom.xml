@@ -40,7 +40,7 @@
         <dependency>
             <groupId>io.apicurio</groupId>
             <artifactId>apicurio-registry-utils-cloud-events-provider</artifactId>
-            <version>${apicurio-registry.version}</version>
+            <version>${project.version}</version>
         </dependency>
 
         <dependency>

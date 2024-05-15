@@ -6,11 +6,9 @@ import io.apicurio.registry.rest.client.RegistryClientFactory;
 import io.apicurio.rest.client.JdkHttpClient;
 import io.apicurio.rest.client.auth.Auth;
 import io.apicurio.rest.client.auth.BasicAuth;
-import io.apicurio.rest.client.auth.OidcAuth;
 import io.apicurio.rest.client.auth.exception.AuthErrorHandler;
 
 import java.util.Collections;
-import java.util.Optional;
 import java.util.UUID;
 
 /**

@@ -111,7 +111,7 @@
         <dependency>
 	    <groupId>io.apicurio</groupId>
 	    <artifactId>apicurio-registry-serdes-avro-serde</artifactId>
-            <version>${apicurio-registry.version}</version>
+            <version>${project.version}</version>
         </dependency>
 
         <!-- For oauth use case -->

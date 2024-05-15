@@ -68,7 +68,7 @@ public class ProtobufBeanExample {
     private static final String SCHEMA_NAME = "AddressBook";
 
 
-    public static final void main(String [] args) throws Exception {
+    public static final void main(String[] args) throws Exception {
         System.out.println("Starting example " + ProtobufBeanExample.class.getSimpleName());
         String topicName = TOPIC_NAME;
         String key = SCHEMA_NAME;

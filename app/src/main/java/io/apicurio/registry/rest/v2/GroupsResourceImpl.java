@@ -966,7 +966,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                     RuleApplicationType.CREATE, toV3Refs(references), resolvedReferences);
 
             
-            // Extract metadata from content
+            // Extract metadata from content, then override extracted values with provided values.
             EditableArtifactMetaDataDto metaData = extractMetaData(artifactType, content);
             if (artifactName != null && artifactName.trim().isEmpty()) {
                 metaData.setName(artifactName);
@@ -1182,8 +1182,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         return updateArtifactInternal(groupId, artifactId, version, artifactName, artifactDescription, content, contentType, references);
     }
 
-    private ArtifactMetaData updateArtifactInternal(String groupId, String artifactId, String version,
-                                                    String name, String description,
+    private ArtifactMetaData updateArtifactInternal(String groupId, String artifactId, String version, String name, String description,
                                                     ContentHandle content, String contentType, List<ArtifactReference> references) {
 
         if (ContentTypeUtil.isApplicationYaml(contentType)) {
@@ -1200,7 +1199,21 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
         rulesService.applyRules(defaultGroupIdToNull(groupId), artifactId, artifactType, content,
                 RuleApplicationType.UPDATE, toV3Refs(references), resolvedReferences);
-        EditableVersionMetaDataDto metaData = getEditableVersionMetaData(name, description);
+
+        // Extract metadata from content, then override extracted values with provided values.
+        EditableArtifactMetaDataDto artifactMD = extractMetaData(artifactType, content);
+        if (name != null && name.trim().isEmpty()) {
+            artifactMD.setName(name);
+        }
+        if (description != null && description.trim().isEmpty()) {
+            artifactMD.setDescription(description);
+        }
+        EditableVersionMetaDataDto metaData = EditableVersionMetaDataDto.builder()
+                .name(artifactMD.getName())
+                .description(artifactMD.getDescription())
+                .labels(artifactMD.getLabels())
+                .build();
+
         ContentWrapperDto contentDto = ContentWrapperDto.builder()
                 .content(content)
                 .contentType(contentType)
@@ -1208,6 +1221,11 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                 .build();
         ArtifactVersionMetaDataDto dto = storage.createArtifactVersion(defaultGroupIdToNull(groupId), artifactId,
                 version, artifactType, contentDto, metaData, List.of());
+
+        // Note: if the version was created, we need to update the artifact metadata as well, because
+        // those are the semantics of the v2 API. :(
+        storage.updateArtifactMetaData(defaultGroupIdToNull(groupId), artifactId, artifactMD);
+
         return V2ApiUtil.dtoToMetaData(defaultGroupIdToNull(groupId), artifactId, artifactType, dto);
     }
 

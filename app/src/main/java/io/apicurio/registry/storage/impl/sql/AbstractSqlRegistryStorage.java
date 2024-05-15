@@ -1149,6 +1149,8 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
         handles.withHandle(handle -> {
             boolean modified = false;
+
+            // Update name
             if (metaData.getName() != null) {
                 int rowCount = handle.createUpdate(sqlStatements.updateArtifactName())
                         .bind(0, limitStr(metaData.getName(), 512))
@@ -1161,6 +1163,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                 }
             }
 
+            // Update description
             if (metaData.getDescription() != null) {
                 int rowCount = handle.createUpdate(sqlStatements.updateArtifactDescription())
                         .bind(0, limitStr(metaData.getDescription(), 1024))
@@ -1186,6 +1189,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                 }
             }
 
+            // Update labels
             if (metaData.getLabels() != null) {
                 int rowCount = handle.createUpdate(sqlStatements.updateArtifactLabels())
                         .bind(0, SqlUtil.serializeLabels(metaData.getLabels()))

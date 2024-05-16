@@ -8,7 +8,6 @@ import {
     httpPut,
     httpPutWithReturn
 } from "@utils/rest.utils.ts";
-import { SearchedArtifact } from "@models/searchedArtifact.model.ts";
 import { ArtifactMetaData } from "@models/artifactMetaData.model.ts";
 import { VersionMetaData } from "@models/versionMetaData.model.ts";
 import { ReferenceType } from "@models/referenceType.ts";
@@ -20,6 +19,8 @@ import { contentType } from "@utils/content.utils.ts";
 import { CreateArtifact } from "@models/createArtifact.model.ts";
 import { CreateArtifactResponse } from "@models/createArtifactResponse.model.ts";
 import { CreateVersion } from "@models/createVersion.model.ts";
+import { EditableMetaData } from "@models/editableMetaData.model.ts";
+import { ArtifactSearchResults } from "@models/artifactSearchResults.model.ts";
 
 
 export interface CreateArtifactData {
@@ -46,19 +47,6 @@ export interface GetArtifactsCriteria {
 export interface Paging {
     page: number;
     pageSize: number;
-}
-
-export interface ArtifactsSearchResults {
-    artifacts: SearchedArtifact[];
-    count: number;
-    page: number;
-    pageSize: number;
-}
-
-export interface EditableMetaData {
-    name: string;
-    description: string;
-    labels: { [key: string]: string|undefined };
 }
 
 export interface ClientGeneration {
@@ -107,7 +95,7 @@ const createArtifactVersion = async (config: ConfigService, auth: AuthService, g
     return httpPostWithReturn<CreateVersion, VersionMetaData>(endpoint, createVersion, options);
 };
 
-const getArtifacts = async (config: ConfigService, auth: AuthService, criteria: GetArtifactsCriteria, paging: Paging): Promise<ArtifactsSearchResults> => {
+const getArtifacts = async (config: ConfigService, auth: AuthService, criteria: GetArtifactsCriteria, paging: Paging): Promise<ArtifactSearchResults> => {
     console.debug("[GroupsService] Getting artifacts: ", criteria, paging);
     const start: number = (paging.page - 1) * paging.pageSize;
     const end: number = start + paging.pageSize;
@@ -129,15 +117,8 @@ const getArtifacts = async (config: ConfigService, auth: AuthService, criteria: 
     const baseHref: string = config.artifactsUrl();
     const endpoint: string = createEndpoint(baseHref, "/search/artifacts", {}, queryParams);
     const options = await createAuthOptions(auth);
-    return httpGet<ArtifactsSearchResults>(endpoint, options, (data) => {
-        const results: ArtifactsSearchResults = {
-            artifacts: data.artifacts,
-            count: data.count,
-            page: paging.page,
-            pageSize: paging.pageSize
-        };
-        return results;
-    });
+    const options = createOptions(createHeaders(token));
+    return httpGet<ArtifactSearchResults>(endpoint, options);
 };
 
 const getArtifactMetaData = async (config: ConfigService, auth: AuthService, groupId: string|null, artifactId: string): Promise<ArtifactMetaData> => {
@@ -321,7 +302,7 @@ const normalizeGroupId = (groupId: string|null): string => {
 export interface GroupsService {
     createArtifact(data: CreateArtifactData): Promise<CreateArtifactResponse>;
     createArtifactVersion(groupId: string|null, artifactId: string, data: CreateVersionData): Promise<VersionMetaData>;
-    getArtifacts(criteria: GetArtifactsCriteria, paging: Paging): Promise<ArtifactsSearchResults>;
+    getArtifacts(criteria: GetArtifactsCriteria, paging: Paging): Promise<ArtifactSearchResults>;
     getArtifactMetaData(groupId: string|null, artifactId: string): Promise<ArtifactMetaData>;
     getArtifactVersionMetaData(groupId: string|null, artifactId: string, version: string): Promise<VersionMetaData>;
     getArtifactReferences(globalId: number, refType: ReferenceType): Promise<ArtifactReference[]>;
@@ -351,7 +332,7 @@ export const useGroupsService: () => GroupsService = (): GroupsService => {
         createArtifactVersion(groupId: string|null, artifactId: string, data: CreateVersionData): Promise<VersionMetaData> {
             return createArtifactVersion(config, auth, groupId, artifactId, data);
         },
-        getArtifacts(criteria: GetArtifactsCriteria, paging: Paging): Promise<ArtifactsSearchResults> {
+        getArtifacts(criteria: GetArtifactsCriteria, paging: Paging): Promise<ArtifactSearchResults> {
             return getArtifacts(config, auth, criteria, paging);
         },
         getArtifactMetaData(groupId: string|null, artifactId: string): Promise<ArtifactMetaData> {

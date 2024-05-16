@@ -258,7 +258,7 @@ export const ArtifactVersionPage: FunctionComponent<ArtifactVersionPageProps> = 
             };
             groups.createArtifactVersion(groupId as string, artifactId as string, data).then(versionMetaData => {
                 const groupId: string = versionMetaData.groupId ? versionMetaData.groupId : "default";
-                const artifactVersionLocation: string = `/artifacts/${ encodeURIComponent(groupId) }/${ encodeURIComponent(versionMetaData.artifactId) }/versions/${versionMetaData.version}`;
+                const artifactVersionLocation: string = `/explore/${ encodeURIComponent(groupId) }/${ encodeURIComponent(versionMetaData.artifactId) }/versions/${versionMetaData.version}`;
                 logger.info("[ArtifactVersionPage] Artifact version successfully uploaded.  Redirecting to details: ", artifactVersionLocation);
                 pleaseWait(false, "");
                 appNavigation.navigateTo(artifactVersionLocation);
@@ -280,7 +280,7 @@ export const ArtifactVersionPage: FunctionComponent<ArtifactVersionPageProps> = 
         pleaseWait(true, "Deleting artifact, please wait...");
         groups.deleteArtifact(groupId as string, artifactId as string).then( () => {
             pleaseWait(false, "");
-            appNavigation.navigateTo("/artifacts");
+            appNavigation.navigateTo("/explore");
         });
     };
 
@@ -380,8 +380,8 @@ export const ArtifactVersionPage: FunctionComponent<ArtifactVersionPageProps> = 
     const hasGroup: boolean = gid != "default";
     let breadcrumbs = (
         <Breadcrumb>
-            <BreadcrumbItem><Link to={appNavigation.createLink("/artifacts")} data-testid="breadcrumb-lnk-artifacts">Artifacts</Link></BreadcrumbItem>
-            <BreadcrumbItem><Link to={appNavigation.createLink(`/artifacts?group=${ encodeURIComponent(gid) }`)}
+            <BreadcrumbItem><Link to={appNavigation.createLink("/explore")} data-testid="breadcrumb-lnk-artifacts">Artifacts</Link></BreadcrumbItem>
+            <BreadcrumbItem><Link to={appNavigation.createLink(`/explore?group=${ encodeURIComponent(gid) }`)}
                 data-testid="breadcrumb-lnk-group">{ gid }</Link></BreadcrumbItem>
             <BreadcrumbItem isActive={true}>{ artifactId as string }</BreadcrumbItem>
         </Breadcrumb>
@@ -389,7 +389,7 @@ export const ArtifactVersionPage: FunctionComponent<ArtifactVersionPageProps> = 
     if (!hasGroup) {
         breadcrumbs = (
             <Breadcrumb>
-                <BreadcrumbItem><Link to="/artifacts" data-testid="breadcrumb-lnk-artifacts">Artifacts</Link></BreadcrumbItem>
+                <BreadcrumbItem><Link to="/explore" data-testid="breadcrumb-lnk-artifacts">Artifacts</Link></BreadcrumbItem>
                 <BreadcrumbItem isActive={true}>{ artifactId as string }</BreadcrumbItem>
             </Breadcrumb>
         );

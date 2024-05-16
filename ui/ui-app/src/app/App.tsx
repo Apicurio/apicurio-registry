@@ -7,9 +7,7 @@ import { Page } from "@patternfly/react-core";
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 import { AppHeader } from "@app/components";
 import {
-    ArtifactRedirectPage,
-    ArtifactsPage,
-    ArtifactVersionPage,
+    ExplorePage,
     NotFoundPage,
     RootRedirectPage,
     RulesPage
@@ -55,15 +53,7 @@ export const App: FunctionComponent<AppProps> = () => {
                             <Route path="/rules" element={ <RulesPage /> } />
                             <Route path="/roles" element={ <RolesPage /> } />
                             <Route path="/settings" element={ <SettingsPage /> } />
-                            <Route path="/artifacts" element={ <ArtifactsPage /> } />
-                            <Route
-                                path="/artifacts/:groupId/:artifactId"
-                                element={ <ArtifactRedirectPage /> }
-                            />
-                            <Route
-                                path="/artifacts/:groupId/:artifactId/versions/:version"
-                                element={ <ArtifactVersionPage /> }
-                            />
+                            <Route path="/explore" element={ <ExplorePage /> } />
                             <Route element={ <NotFoundPage /> } />
                         </Routes>
                     </Page>

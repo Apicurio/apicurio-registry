@@ -1,6 +1,5 @@
 export * from "./404";
-export * from "./artifact";
-export * from "./artifacts";
+export * from "./explore";
 export * from "./artifactVersion";
 export * from "./settings";
 export * from "./roles";

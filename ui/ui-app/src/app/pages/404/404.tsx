@@ -39,7 +39,7 @@ export const NotFoundPage: FunctionComponent<NotFoundPageProps> = () => {
                     <EmptyStateActions>
                         <Button variant="primary"
                             data-testid="error-btn-artifacts"
-                            onClick={() => appNavigation.navigateTo("/artifacts")}>Show all artifacts</Button>
+                            onClick={() => appNavigation.navigateTo("/explore")}>Show all artifacts</Button>
                     </EmptyStateActions>
                 </EmptyStateFooter>
             </EmptyState>

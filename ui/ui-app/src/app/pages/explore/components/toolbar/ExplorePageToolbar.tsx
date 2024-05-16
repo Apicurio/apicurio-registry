@@ -1,8 +1,8 @@
-import  { FunctionComponent, useEffect, useState } from "react";
-import "./ArtifactsPageToolbar.css";
+import { FunctionComponent, useEffect, useState } from "react";
+import "./ExplorePageToolbar.css";
 import {
     Button,
-    ButtonVariant,
+    ButtonVariant, capitalize,
     Form,
     InputGroup,
     Pagination,
@@ -15,10 +15,14 @@ import { SearchIcon, SortAlphaDownAltIcon, SortAlphaDownIcon } from "@patternfly
 import { IfAuth, IfFeature } from "@app/components";
 import { OnPerPageSelect, OnSetPage } from "@patternfly/react-core/dist/js/components/Pagination/Pagination";
 import { ObjectDropdown, ObjectSelect } from "@apicurio/common-ui-components";
-import { ArtifactsSearchResults, Paging } from "@services/useGroupsService.ts";
 import { useLoggerService } from "@services/useLoggerService.ts";
+import { ExploreType } from "@app/pages/explore/ExploreType.ts";
+import { Paging } from "@services/useGroupsService.ts";
+import { ArtifactSearchResults } from "@models/artifactSearchResults.model.ts";
+import { GroupSearchResults } from "@models/groupSearchResults.model.ts";
+import { plural } from "pluralize";
 
-export type ArtifactsPageToolbarFilterCriteria = {
+export type ExplorePageToolbarFilterCriteria = {
     filterSelection: string;
     filterValue: string;
     ascending: boolean;
@@ -26,10 +30,12 @@ export type ArtifactsPageToolbarFilterCriteria = {
 
 export type FilterByGroupFunction = (groupId: string) => void;
 
-export type ArtifactsPageToolbarProps = {
-    artifacts: ArtifactsSearchResults;
-    onCriteriaChange: (criteria: ArtifactsPageToolbarFilterCriteria) => void;
-    criteria: ArtifactsPageToolbarFilterCriteria;
+export type ExplorePageToolbarProps = {
+    exploreType: ExploreType;
+    results: ArtifactSearchResults | GroupSearchResults;
+    onExploreTypeChange: (exploreType: ExploreType) => void;
+    onCriteriaChange: (criteria: ExplorePageToolbarFilterCriteria) => void;
+    criteria: ExplorePageToolbarFilterCriteria;
     paging: Paging;
     onPerPageSelect: OnPerPageSelect;
     onSetPage: OnSetPage;
@@ -61,18 +67,18 @@ type ActionType = {
 };
 
 /**
- * Models the toolbar for the Artifacts page.
+ * Models the toolbar for the Explore page.
  */
-export const ArtifactsPageToolbar: FunctionComponent<ArtifactsPageToolbarProps> = (props: ArtifactsPageToolbarProps) => {
+export const ExplorePageToolbar: FunctionComponent<ExplorePageToolbarProps> = (props: ExplorePageToolbarProps) => {
     const [filterType, setFilterType] = useState(DEFAULT_FILTER_TYPE);
     const [filterValue, setFilterValue] = useState("");
     const [filterAscending, setFilterAscending] = useState(true);
     const [kebabActions, setKebabActions] = useState<ActionType[]>([]);
-    
+
     const logger = useLoggerService();
 
     const totalArtifactsCount = (): number => {
-        return props.artifacts ? props.artifacts.count : 0;
+        return props.results.count;
     };
 
     const onFilterSubmit = (event: any|undefined): void => {
@@ -88,14 +94,14 @@ export const ArtifactsPageToolbar: FunctionComponent<ArtifactsPageToolbarProps> 
     };
 
     const onToggleAscending = (): void => {
-        logger.debug("[ArtifactsPageToolbar] Toggle the ascending flag.");
+        logger.debug("[ExplorePageToolbar] Toggle the ascending flag.");
         const newAscending: boolean = !filterAscending;
         setFilterAscending(newAscending);
         fireChangeEvent(newAscending, filterType.value, filterValue);
     };
 
     const fireChangeEvent = (ascending: boolean, filterSelection: string, filterValue: string): void => {
-        const criteria: ArtifactsPageToolbarFilterCriteria = {
+        const criteria: ExplorePageToolbarFilterCriteria = {
             ascending,
             filterSelection,
             filterValue
@@ -104,7 +110,7 @@ export const ArtifactsPageToolbar: FunctionComponent<ArtifactsPageToolbarProps> 
     };
 
     const filterByGroup = (groupId: string): void => {
-        logger.info("[ArtifactsPageToolbar] Filtering by group: ", groupId);
+        logger.info("[ExplorePageToolbar] Filtering by group: ", groupId);
         if (groupId) {
             const newFilterType: FilterType = FILTER_TYPES[1]; // Filter by group
             const newFilterValue: string = groupId;
@@ -116,7 +122,7 @@ export const ArtifactsPageToolbar: FunctionComponent<ArtifactsPageToolbarProps> 
 
     useEffect(() => {
         if (props.filterByGroupHook) {
-            logger.info("[ArtifactsPageToolbar] Setting change criteria hook");
+            logger.info("[ExplorePageToolbar] Setting change criteria hook");
             props.filterByGroupHook(filterByGroup);
         }
     }, []);
@@ -132,6 +138,22 @@ export const ArtifactsPageToolbar: FunctionComponent<ArtifactsPageToolbarProps> 
     return (
         <Toolbar id="artifacts-toolbar-1" className="artifacts-toolbar">
             <ToolbarContent>
+                <ToolbarItem variant="label">
+                    Search for
+                </ToolbarItem>
+                <ToolbarItem className="filter-item">
+                    <ObjectSelect
+                        value={props.exploreType}
+                        items={[ExploreType.ARTIFACT, ExploreType.GROUP]}
+                        testId="explore-type-select"
+                        toggleClassname="explore-type-toggle"
+                        onSelect={props.onExploreTypeChange}
+                        itemToTestId={(item) => `explore-type-${plural(item.toString().toLowerCase())}`}
+                        itemToString={(item) => capitalize(plural(item.toString().toLowerCase()))} />
+                </ToolbarItem>
+                <ToolbarItem variant="label">
+                    filter by
+                </ToolbarItem>
                 <ToolbarItem className="filter-item">
                     <Form onSubmit={onFilterSubmit}>
                         <InputGroup>

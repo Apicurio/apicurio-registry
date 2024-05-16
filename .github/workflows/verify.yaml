@@ -306,7 +306,7 @@ jobs:
   build-verify-python-sdk:
     name: Verify Python SDK
     runs-on: ubuntu-latest
-    # if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
+    if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
     steps:
       - name: Checkout Code with Ref '${{ github.ref }}'
         uses: actions/checkout@v3
@@ -343,7 +343,7 @@ jobs:
   build-verify-go-sdk:
     name: Verify Go SDK
     runs-on: ubuntu-latest
-    # if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
+    if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
     steps:
       - name: Checkout Code with Ref '${{ github.ref }}'
         uses: actions/checkout@v3

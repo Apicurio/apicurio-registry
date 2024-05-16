@@ -1,6 +1,6 @@
 import { UserInfo } from "@models/userInfo.model.ts";
 import { AuthService, useAuth } from "@apicurio/common-ui-components";
-import { createEndpoint, createHeaders, createOptions, httpGet } from "@utils/rest.utils.ts";
+import { createAuthOptions, createEndpoint, httpGet } from "@utils/rest.utils.ts";
 import { ConfigService, useConfigService } from "@services/useConfigService.ts";
 
 let currentUserInfo: UserInfo = {
@@ -21,8 +21,7 @@ const updateCurrentUser = async (config: ConfigService, auth: AuthService): Prom
     if (isAuthenticated) {
         // TODO cache the response for a few minutes to limit the # of times this is called per minute??
         const endpoint: string = createEndpoint(config.artifactsUrl(), "/users/me");
-        const token: string | undefined = await auth.getToken();
-        const options = createOptions(createHeaders(token));
+        const options = await createAuthOptions(auth);
         return httpGet<UserInfo>(endpoint, options).then(userInfo => {
             currentUserInfo = userInfo;
             return userInfo;
@@ -41,7 +40,7 @@ const isObacEnabled = (config: ConfigService): boolean => {
 };
 
 const isUserAdmin = (config: ConfigService, auth: AuthService): boolean => {
-    if (!auth.isAuthEnabled()) {
+    if (!auth.isOidcAuthEnabled() && !auth.isBasicAuthEnabled()) {
         return true;
     }
     if (!isRbacEnabled(config) && !isObacEnabled(config)) {
@@ -51,7 +50,7 @@ const isUserAdmin = (config: ConfigService, auth: AuthService): boolean => {
 };
 
 const isUserDeveloper = (config: ConfigService, auth: AuthService, resourceOwner?: string): boolean => {
-    if (!auth.isAuthEnabled()) {
+    if (!auth.isOidcAuthEnabled() && !auth.isBasicAuthEnabled()) {
         return true;
     }
     if (!isRbacEnabled(config) && !isObacEnabled(config)) {

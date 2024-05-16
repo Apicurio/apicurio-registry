@@ -32,4 +32,4 @@ python-sdk/apicurioregistrysdk/client
 python-sdk/openapi.json
 __pycache__
 
-
+.env

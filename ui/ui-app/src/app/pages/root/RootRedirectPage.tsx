@@ -9,7 +9,7 @@ import { AppNavigation, useAppNavigation } from "@services/useAppNavigation.ts";
 export const RootRedirectPage: FunctionComponent<any> = () => {
     const appNav: AppNavigation = useAppNavigation();
 
-    const redirect: string = appNav.createLink("/artifacts");
+    const redirect: string = appNav.createLink("/explore");
     return (
         <Navigate to={redirect} replace />
     );

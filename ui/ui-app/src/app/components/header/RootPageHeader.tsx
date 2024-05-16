@@ -22,7 +22,7 @@ export const RootPageHeader: FunctionComponent<RootPageHeaderProps> = (props: Ro
         if (eventKey !== props.tabKey) {
             if (eventKey === 0) {
                 // navigate to artifacts
-                appNavigation.navigateTo("/artifacts");
+                appNavigation.navigateTo("/explore");
             }
             if (eventKey === 1) {
                 // navigate to global rules
@@ -40,7 +40,7 @@ export const RootPageHeader: FunctionComponent<RootPageHeaderProps> = (props: Ro
     };
 
     const tabs: any[] = [
-        <Tab data-testid="artifacts-tab" key={0} eventKey={0} title={<TabTitleText>Artifacts</TabTitleText>} />,
+        <Tab data-testid="explore-tab" key={0} eventKey={0} title={<TabTitleText>Explore</TabTitleText>} />,
         <Tab data-testid="rules-tab" key={1} eventKey={1} title={<TabTitleText>Global rules</TabTitleText>} />
     ];
     if (config.featureRoleManagement()) {

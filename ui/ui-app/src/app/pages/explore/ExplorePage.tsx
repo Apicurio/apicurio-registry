@@ -1,5 +1,5 @@
 import { FunctionComponent, useEffect, useState } from "react";
-import "./ArtifactsPage.css";
+import "./ExplorePage.css";
 import {
     Button,
     FileUpload,
@@ -17,9 +17,8 @@ import {
 } from "@patternfly/react-core";
 import {
     ArtifactList,
-    ArtifactsPageEmptyState,
-    ArtifactsPageToolbar,
-    ArtifactsPageToolbarFilterCriteria,
+    ExplorePageEmptyState,
+    ExplorePageToolbar, ExplorePageToolbarFilterCriteria,
     PageDataLoader,
     PageError,
     PageErrorHandler,
@@ -32,7 +31,6 @@ import { SearchedArtifact } from "@models/searchedArtifact.model.ts";
 import { useSearchParams } from "react-router-dom";
 import { If, PleaseWaitModal, ProgressModal } from "@apicurio/common-ui-components";
 import {
-    ArtifactsSearchResults,
     CreateArtifactData,
     GetArtifactsCriteria,
     Paging,
@@ -41,22 +39,22 @@ import {
 import { AppNavigation, useAppNavigation } from "@services/useAppNavigation.ts";
 import { useAdminService } from "@services/useAdminService.ts";
 import { useLoggerService } from "@services/useLoggerService.ts";
+import { ExploreType } from "@app/pages/explore/ExploreType.ts";
+import { ArtifactSearchResults } from "@models/artifactSearchResults.model.ts";
 
 /**
  * Properties
  */
-export type ArtifactsPageProps = {
+export type ExplorePageProps = {
     // No properties.
 }
 
 const EMPTY_UPLOAD_FORM_DATA: CreateArtifactData = {
     content: undefined, fromURL: undefined, groupId: "", id: null, sha: undefined, type: ""
 };
-const EMPTY_RESULTS: ArtifactsSearchResults = {
+const EMPTY_RESULTS: ArtifactSearchResults = {
     artifacts: [],
-    count: 0,
-    page: 1,
-    pageSize: 10
+    count: 0
 };
 
 type HookFunctionWrapper = {
@@ -69,18 +67,19 @@ const DEFAULT_PAGING: Paging = {
 };
 
 /**
- * The artifacts page.
+ * The Explore page.
  */
-//class ArtifactsPageInternal extends PageComponent<ArtifactsPageInternalProps, ArtifactsPageState> {
-export const ArtifactsPage: FunctionComponent<ArtifactsPageProps> = () => {
+export const ExplorePage: FunctionComponent<ExplorePageProps> = () => {
     const [pageError, setPageError] = useState<PageError>();
     const [loaders, setLoaders] = useState<Promise<any> | Promise<any>[] | undefined>();
-    const [criteria, setCriteria] = useState<ArtifactsPageToolbarFilterCriteria>({
+    const [exploreType, setExploreType] = useState(ExploreType.ARTIFACT);
+    const [criteria, setCriteria] = useState<ExplorePageToolbarFilterCriteria>({
         filterSelection: "name",
         filterValue: "",
         ascending: true
     });
-    const [isUploadModalOpen, setUploadModalOpen] = useState<boolean>(false);
+    const [isCreateArtifactModalOpen, setCreateArtifactModalOpen] = useState<boolean>(false);
+    const [isCreateGroupModalOpen, setCreateGroupModalOpen] = useState<boolean>(false);
     const [isImportModalOpen, setImportModalOpen] = useState<boolean>(false);
     const [isUploadFormValid, setUploadFormValid] = useState<boolean>(false);
     const [isImportFormValid, setImportFormValid] = useState<boolean>(false);
@@ -88,7 +87,7 @@ export const ArtifactsPage: FunctionComponent<ArtifactsPageProps> = () => {
     const [isPleaseWaitModalOpen, setPleaseWaitModalOpen] = useState<boolean>(false);
     const [isSearching, setSearching] = useState<boolean>(false);
     const [paging, setPaging] = useState<Paging>(DEFAULT_PAGING);
-    const [results, setResults] = useState<ArtifactsSearchResults>(EMPTY_RESULTS);
+    const [results, setResults] = useState<ArtifactSearchResults>(EMPTY_RESULTS);
     const [uploadFormData, setUploadFormData] = useState<CreateArtifactData>(EMPTY_UPLOAD_FORM_DATA);
     const [invalidContentError, setInvalidContentError] = useState<ApiError>();
     const [importFilename, setImportFilename] = useState<string>("");
@@ -113,8 +112,12 @@ export const ArtifactsPage: FunctionComponent<ArtifactsPageProps> = () => {
         return search(criteria, paging);
     };
 
-    const onUploadArtifact = (): void => {
-        setUploadModalOpen(true);
+    const onCreateGroup = (): void => {
+        setCreateGroupModalOpen(true);
+    };
+
+    const onCreateArtifact = (): void => {
+        setCreateArtifactModalOpen(true);
     };
 
     const onImportArtifacts = (): void => {
@@ -132,15 +135,15 @@ export const ArtifactsPage: FunctionComponent<ArtifactsPageProps> = () => {
         });
     };
 
-    const onUploadModalClose = (): void => {
-        setUploadModalOpen(false);
+    const onCreateArtifactModalClose = (): void => {
+        setCreateArtifactModalOpen(false);
     };
 
     const onImportModalClose = (): void => {
         setImportModalOpen(false);
     };
 
-    const onArtifactsLoaded = (results: ArtifactsSearchResults): void => {
+    const onArtifactsLoaded = (results: ArtifactSearchResults): void => {
         setSearching(false);
         setResults(results);
     };
@@ -175,8 +178,8 @@ export const ArtifactsPage: FunctionComponent<ArtifactsPageProps> = () => {
         }
     };
 
-    const doUploadArtifact = (): void => {
-        onUploadModalClose();
+    const doCreateArtifact = (): void => {
+        onCreateArtifactModalClose();
         pleaseWait(true);
 
         if (uploadFormData !== null) {
@@ -189,8 +192,8 @@ export const ArtifactsPage: FunctionComponent<ArtifactsPageProps> = () => {
             }
             groups.createArtifact(data).then(response => {
                 const groupId: string = response.artifact.groupId ? response.artifact.groupId : "default";
-                const artifactLocation: string = `/artifacts/${ encodeURIComponent(groupId) }/${ encodeURIComponent(response.artifact.artifactId) }`;
-                logger.info("[ArtifactsPage] Artifact successfully uploaded.  Redirecting to details: ", artifactLocation);
+                const artifactLocation: string = `/explore/${ encodeURIComponent(groupId) }/${ encodeURIComponent(response.artifact.artifactId) }`;
+                logger.info("[ExplorePage] Artifact successfully uploaded.  Redirecting to details: ", artifactLocation);
                 appNavigation.navigateTo(artifactLocation);
             }).catch( error => {
                 pleaseWait(false);
@@ -213,7 +216,7 @@ export const ArtifactsPage: FunctionComponent<ArtifactsPageProps> = () => {
         return results ? results.artifacts.length : 0;
     };
 
-    const onFilterCriteriaChange = (newCriteria: ArtifactsPageToolbarFilterCriteria): void => {
+    const onFilterCriteriaChange = (newCriteria: ExplorePageToolbarFilterCriteria): void => {
         setCriteria(newCriteria);
         search(newCriteria, paging);
     };
@@ -222,7 +225,7 @@ export const ArtifactsPage: FunctionComponent<ArtifactsPageProps> = () => {
         return !!criteria.filterValue;
     };
 
-    const search = async (criteria: ArtifactsPageToolbarFilterCriteria, paging: Paging): Promise<any> => {
+    const search = async (criteria: ExplorePageToolbarFilterCriteria, paging: Paging): Promise<any> => {
         setSearching(true);
         const gac: GetArtifactsCriteria = {
             sortAscending: criteria.ascending,
@@ -279,13 +282,13 @@ export const ArtifactsPage: FunctionComponent<ArtifactsPageProps> = () => {
     };
 
     const handleInvalidContentError = (error: any): void => {
-        logger.info("[ArtifactsPage] Invalid content error:", error);
+        logger.info("[ExplorePage] Invalid content error:", error);
         setInvalidContentError(error);
         setInvalidContentModalOpen(true);
     };
 
     const onGroupClick = (groupId: string): void => {
-        logger.info("[ArtifactsPage] Filtering by group: ", groupId);
+        logger.info("[ExplorePage] Filtering by group: ", groupId);
         // Hack Alert:  when clicking on a Group in the artifact list, push a new filter state into
         // the toolbar.  This is done via a change-criteria hook function that we set up earlier.
         if (filterByGroupHook) {
@@ -317,14 +320,16 @@ export const ArtifactsPage: FunctionComponent<ArtifactsPageProps> = () => {
                 </PageSection>
                 <If condition={showToolbar}>
                     <PageSection variant={PageSectionVariants.light} padding={{ default: "noPadding" }}>
-                        <ArtifactsPageToolbar
-                            artifacts={results}
+                        <ExplorePageToolbar
+                            exploreType={exploreType}
+                            results={results}
                             criteria={criteria}
                             filterByGroupHook={(hook: any) => setFilterByGroupHook({ hook })}
                             paging={paging}
                             onPerPageSelect={onPerPageSelect}
                             onSetPage={onSetPage}
-                            onUploadArtifact={onUploadArtifact}
+                            onExploreTypeChange={setExploreType}
+                            onUploadArtifact={onCreateArtifact}
                             onExportArtifacts={onExportArtifacts}
                             onImportArtifacts={onImportArtifacts}
                             onCriteriaChange={onFilterCriteriaChange} />
@@ -339,8 +344,11 @@ export const ArtifactsPage: FunctionComponent<ArtifactsPageProps> = () => {
                             </Flex>
                             :
                             artifactsCount() === 0 ?
-                                <ArtifactsPageEmptyState onUploadArtifact={onUploadArtifact}
-                                    onImportArtifacts={onImportArtifacts}
+                                <ExplorePageEmptyState
+                                    exploreType={exploreType}
+                                    onCreateArtifact={onCreateArtifact}
+                                    onCreateGroup={onCreateGroup}
+                                    onImport={onImportArtifacts}
                                     isFiltered={isFiltered()}/>
                                 :
                                 <ArtifactList artifacts={artifacts()} onGroupClick={onGroupClick} />
@@ -350,12 +358,12 @@ export const ArtifactsPage: FunctionComponent<ArtifactsPageProps> = () => {
             <Modal
                 title="Upload Artifact"
                 variant="large"
-                isOpen={isUploadModalOpen}
-                onClose={onUploadModalClose}
+                isOpen={isCreateArtifactModalOpen}
+                onClose={onCreateArtifactModalClose}
                 className="upload-artifact-modal pf-m-redhat-font"
                 actions={[
-                    <Button key="upload" variant="primary" data-testid="upload-artifact-modal-btn-upload" onClick={doUploadArtifact} isDisabled={!isUploadFormValid}>Upload</Button>,
-                    <Button key="cancel" variant="link" data-testid="upload-artifact-modal-btn-cancel" onClick={onUploadModalClose}>Cancel</Button>
+                    <Button key="upload" variant="primary" data-testid="upload-artifact-modal-btn-upload" onClick={doCreateArtifact} isDisabled={!isUploadFormValid}>Upload</Button>,
+                    <Button key="cancel" variant="link" data-testid="upload-artifact-modal-btn-cancel" onClick={onCreateArtifactModalClose}>Cancel</Button>
                 ]}
             >
                 <UploadArtifactForm onChange={onUploadFormChange} onValid={onUploadFormValid} />

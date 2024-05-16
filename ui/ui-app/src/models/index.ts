@@ -17,3 +17,7 @@ export * from "./rule.model";
 export * from "./artifactMetaData.model";
 export * from "./artifactReference.model";
 export * from "./userInfo.model";
+export * from "./editableMetaData.model";
+export * from "./groupSearchResults.model";
+export * from "./artifactSearchResults.model";
+export * from "./searchedGroup.model";

@@ -3994,6 +3994,7 @@
                     "type": {
                         "enum": [
                             "none",
+                            "basic",
                             "oidc"
                         ],
                         "type": "string"

@@ -153,6 +153,11 @@ The following {registry} configuration options are available for each component 
 |
 |`2.5.0.Final`
 |Client credentials scope.
+|`quarkus.http.auth.basic`
+|`boolean`
+|`false`
+|`3.X.X.Final`
+|Enable basic auth
 |`quarkus.oidc.client-id`
 |`string`
 |

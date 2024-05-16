@@ -238,22 +238,6 @@ The following {registry} configuration options are available for each component 
 |Download link expiry
 |===
 
-== events
-.events configuration options
-[.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]
-|===
-|Name
-|Type
-|Default
-|Available from
-|Description
-|`apicurio.events.ksink`
-|`optional<string>`
-|
-|`2.0.0.Final`
-|Events Kafka sink enabled
-|===
-
 == gitops
 .gitops configuration options
 [.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]
@@ -400,27 +384,6 @@ The following {registry} configuration options are available for each component 
 |
 |`2.1.0.Final`
 |The import URL
-|===
-
-== kafka
-.kafka configuration options
-[.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]
-|===
-|Name
-|Type
-|Default
-|Available from
-|Description
-|`apicurio.events.kafka.topic`
-|`optional<string>`
-|
-|`2.0.0.Final`
-|Events Kafka topic
-|`apicurio.events.kafka.topic-partition`
-|`optional<integer>`
-|
-|`2.0.0.Final`
-|Events Kafka topic partition
 |===
 
 == limits

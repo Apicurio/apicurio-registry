@@ -655,7 +655,7 @@
                 },
                 "operationId": "deleteArtifactVersion",
                 "summary": "Delete artifact version",
-                "description": "Deletes a single version of the artifact. Parameters `groupId`, `artifactId` and the unique `version`\nare needed. If this is the only version of the artifact, this operation is the same as \ndeleting the entire artifact.\n\nThis feature is disabled by default and it's discouraged for normal usage. To enable it, set the `apicurio.rest.artifact.deletion.enabled` property to true. This operation can fail for the following reasons:\n\n* No artifact with this `artifactId` exists (HTTP error `404`)\n* No version with this `version` exists (HTTP error `404`)\n * Feature is disabled (HTTP error `405`)\n * A server error occurred (HTTP error `500`)\n"
+                "description": "Deletes a single version of the artifact. Parameters `groupId`, `artifactId` and the unique `version`\nare needed. If this is the only version of the artifact, this operation is the same as \ndeleting the entire artifact.\n\nThis feature is disabled by default and it's discouraged for normal usage. To enable it, set the `registry.rest.artifact.deletion.enabled` property to true. This operation can fail for the following reasons:\n\n* No artifact with this `artifactId` exists (HTTP error `404`)\n* No version with this `version` exists (HTTP error `404`)\n * Feature is disabled (HTTP error `405`)\n * A server error occurred (HTTP error `500`)\n"
             },
             "parameters": [
                 {
@@ -1381,76 +1381,11 @@
             },
             "post": {
                 "requestBody": {
-                    "description": "The content of the artifact being created. This is often, but not always, JSON data\nrepresenting one of the supported artifact types:\n\n* Avro (`AVRO`)\n* Protobuf (`PROTOBUF`)\n* JSON Schema (`JSON`)\n* Kafka Connect (`KCONNECT`)\n* OpenAPI (`OPENAPI`)\n* AsyncAPI (`ASYNCAPI`)\n* GraphQL (`GRAPHQL`)\n* Web Services Description Language (`WSDL`)\n* XML Schema (`XSD`)\n",
+                    "description": "The artifact being created.",
                     "content": {
-                        "*/*": {
+                        "application/json": {
                             "schema": {
-                                "$ref": "#/components/schemas/FileContent"
-                            },
-                            "examples": {
-                                "OpenAPI Example": {
-                                    "value": {
-                                        "openapi": "3.0.2",
-                                        "info": {
-                                            "title": "Empty API",
-                                            "version": "1.0.7",
-                                            "description": "An example API design using OpenAPI."
-                                        },
-                                        "paths": {
-                                            "/widgets": {
-                                                "get": {
-                                                    "responses": {
-                                                        "200": {
-                                                            "content": {
-                                                                "application/json": {
-                                                                    "schema": {
-                                                                        "type": "array",
-                                                                        "items": {
-                                                                            "type": "string"
-                                                                        }
-                                                                    }
-                                                                }
-                                                            },
-                                                            "description": "All widgets"
-                                                        }
-                                                    },
-                                                    "summary": "Get widgets"
-                                                }
-                                            }
-                                        },
-                                        "components": {
-                                            "schemas": {
-                                                "Widget": {
-                                                    "title": "Root Type for Widget",
-                                                    "description": "A sample data type.",
-                                                    "type": "object",
-                                                    "properties": {
-                                                        "property-1": {
-                                                            "type": "string"
-                                                        },
-                                                        "property-2": {
-                                                            "type": "boolean"
-                                                        }
-                                                    },
-                                                    "example": {
-                                                        "property-1": "value1",
-                                                        "property-2": true
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        },
-                        "application/create.extended+json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/ArtifactContent"
-                            }
-                        },
-                        "application/vnd.create.extended+json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/ArtifactContent"
+                                "$ref": "#/components/schemas/CreateArtifact"
                             }
                         }
                     },
@@ -1461,34 +1396,10 @@
                 ],
                 "parameters": [
                     {
-                        "name": "X-Registry-ArtifactType",
-                        "description": "Specifies the type of the artifact being added. Possible values include:\n\n* Avro (`AVRO`)\n* Protobuf (`PROTOBUF`)\n* JSON Schema (`JSON`)\n* Kafka Connect (`KCONNECT`)\n* OpenAPI (`OPENAPI`)\n* AsyncAPI (`ASYNCAPI`)\n* GraphQL (`GRAPHQL`)\n* Web Services Description Language (`WSDL`)\n* XML Schema (`XSD`)",
-                        "schema": {
-                            "$ref": "#/components/schemas/ArtifactType"
-                        },
-                        "in": "header"
-                    },
-                    {
-                        "name": "X-Registry-ArtifactId",
-                        "description": "A client-provided, globally unique identifier for the new artifact.",
-                        "schema": {
-                            "type": "string"
-                        },
-                        "in": "header"
-                    },
-                    {
-                        "name": "X-Registry-Version",
-                        "description": "Specifies the version number of this initial version of the artifact content.  This would typically\nbe a simple integer or a SemVer value.  If not provided, the server will assign a version number\nautomatically (starting with version `1`).",
-                        "schema": {
-                            "$ref": "#/components/schemas/Version"
-                        },
-                        "in": "header"
-                    },
-                    {
                         "name": "ifExists",
                         "description": "Set this option to instruct the server on what to do if the artifact already exists.",
                         "schema": {
-                            "$ref": "#/components/schemas/IfExists"
+                            "$ref": "#/components/schemas/IfArtifactExists"
                         },
                         "in": "query"
                     },
@@ -1499,70 +1410,6 @@
                             "type": "boolean"
                         },
                         "in": "query"
-                    },
-                    {
-                        "name": "X-Registry-Description",
-                        "description": "Specifies the description of artifact being added. Description must be ASCII-only string. If this is not provided, the server will extract the description from the artifact content.",
-                        "schema": {
-                            "$ref": "#/components/schemas/ArtifactDescription"
-                        },
-                        "in": "header",
-                        "required": false
-                    },
-                    {
-                        "name": "X-Registry-Description-Encoded",
-                        "description": "Specifies the description of artifact being added. Value of this must be Base64 encoded string. If this is not provided, the server will extract the description from the artifact content.",
-                        "schema": {
-                            "$ref": "#/components/schemas/EncodedArtifactDescription"
-                        },
-                        "in": "header"
-                    },
-                    {
-                        "name": "X-Registry-Name",
-                        "description": "Specifies the name of artifact being added. Name must be ASCII-only string. If this is not provided, the server will extract the name from the artifact content.",
-                        "schema": {
-                            "$ref": "#/components/schemas/ArtifactName"
-                        },
-                        "in": "header"
-                    },
-                    {
-                        "name": "X-Registry-Name-Encoded",
-                        "description": "Specifies the name of artifact being added. Value of this must be Base64 encoded string. If this is not provided, the server will extract the name from the artifact content.",
-                        "schema": {
-                            "$ref": "#/components/schemas/EncodedArtifactName"
-                        },
-                        "in": "header"
-                    },
-                    {
-                        "name": "X-Registry-Content-Hash",
-                        "description": "Specifies the (optional) hash of the artifact to be verified.",
-                        "schema": {
-                            "type": "string"
-                        },
-                        "in": "header"
-                    },
-                    {
-                        "name": "X-Registry-Hash-Algorithm",
-                        "description": "The algorithm to use when checking the content validity. (available: SHA256, MD5; default: SHA256)",
-                        "schema": {
-                            "enum": [
-                                "SHA256",
-                                "MD5"
-                            ],
-                            "type": "string"
-                        },
-                        "in": "header"
-                    },
-                    {
-                        "name": "X-Registry-Artifact-Branches",
-                        "description": "An optional, comma-separated list of artifact branch IDs, that specify branches into which the newly created version will be added. The list may contain a single branch ID, but may not be empty. A new version is always automatically inserted into the \"latest\" branch. If any of the branches do not already exist, they will be created.",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "type": "string"
-                            }
-                        },
-                        "in": "header"
                     }
                 ],
                 "responses": {
@@ -1570,7 +1417,7 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/VersionMetaData"
+                                    "$ref": "#/components/schemas/CreateArtifactResponse"
                                 }
                             }
                         },
@@ -1588,7 +1435,7 @@
                 },
                 "operationId": "createArtifact",
                 "summary": "Create artifact",
-                "description": "Creates a new artifact by posting the artifact content.  The body of the request should\nbe the raw content of the artifact.  This is typically in JSON format for *most* of the \nsupported types, but may be in another format for a few (for example, `PROTOBUF`).\n\nThe registry attempts to figure out what kind of artifact is being added from the\nfollowing supported list:\n\n* Avro (`AVRO`)\n* Protobuf (`PROTOBUF`)\n* JSON Schema (`JSON`)\n* Kafka Connect (`KCONNECT`)\n* OpenAPI (`OPENAPI`)\n* AsyncAPI (`ASYNCAPI`)\n* GraphQL (`GRAPHQL`)\n* Web Services Description Language (`WSDL`)\n* XML Schema (`XSD`)\n\nAlternatively, you can specify the artifact type using the `X-Registry-ArtifactType` \nHTTP request header, or include a hint in the request's `Content-Type`.  For example:\n\n```\nContent-Type: application/json; artifactType=AVRO\n```\n\nAn artifact is created using the content provided in the body of the request.  This\ncontent is created under a unique artifact ID that can be provided in the request\nusing the `X-Registry-ArtifactId` request header.  If not provided in the request,\nthe server generates a unique ID for the artifact.  It is typically recommended\nthat callers provide the ID, because this is typically a meaningful identifier, \nand for most use cases should be supplied by the caller.\n\nIf an artifact with the provided artifact ID already exists, the default behavior\nis for the server to reject the content with a 409 error.  However, the caller can\nsupply the `ifExists` query parameter to alter this default behavior. The `ifExists`\nquery parameter can have one of the following values:\n\n* `FAIL` (*default*) - server rejects the content with a 409 error\n* `UPDATE` - server updates the existing artifact and returns the new metadata\n* `RETURN` - server does not create or add content to the server, but instead \nreturns the metadata for the existing artifact\n* `RETURN_OR_UPDATE` - server returns an existing **version** that matches the \nprovided content if such a version exists, otherwise a new version is created\n\nThis operation may fail for one of the following reasons:\n\n* An invalid `ArtifactType` was indicated (HTTP error `400`)\n* No `ArtifactType` was indicated and the server could not determine one from the content (HTTP error `400`)\n* Provided content (request body) was empty (HTTP error `400`)\n* An artifact with the provided ID already exists (HTTP error `409`)\n* The content violates one of the configured global rules (HTTP error `409`)\n* A server error occurred (HTTP error `500`)\n"
+                "description": "Creates a new artifact.  The body of the request should be a `CreateArtifact` \nobject, which includes the metadata of the new artifact and, optionally, the \nmetadata and content of the first version.\n\nIf the artifact type is not provided, the registry attempts to figure out what \nkind of artifact is being added from the\nfollowing supported list:\n\n* Avro (`AVRO`)\n* Protobuf (`PROTOBUF`)\n* JSON Schema (`JSON`)\n* Kafka Connect (`KCONNECT`)\n* OpenAPI (`OPENAPI`)\n* AsyncAPI (`ASYNCAPI`)\n* GraphQL (`GRAPHQL`)\n* Web Services Description Language (`WSDL`)\n* XML Schema (`XSD`)\n\nAn artifact will be created using the unique artifact ID that can optionally be \nprovided in the request body.  If not provided in the request, the server will\ngenerate a unique ID for the artifact.  It is typically recommended that callers\nprovide the ID, because it is typically a meaningful identifier, and as such\nfor most use cases should be supplied by the caller.\n\nIf an artifact with the provided artifact ID already exists, the default behavior\nis for the server to reject the content with a 409 error.  However, the caller can\nsupply the `ifExists` query parameter to alter this default behavior. The `ifExists`\nquery parameter can have one of the following values:\n\n* `FAIL` (*default*) - server rejects the content with a 409 error\n* `UPDATE` - server updates the existing artifact and returns the new metadata\n* `RETURN` - server does not create or add content to the server, but instead \nreturns the metadata for the existing artifact\n* `RETURN_OR_UPDATE` - server returns an existing **version** that matches the \nprovided content if such a version exists, otherwise a new version is created\n\nThis operation may fail for one of the following reasons:\n\n* An invalid `ArtifactType` was indicated (HTTP error `400`)\n* No `ArtifactType` was indicated and the server could not determine one from the content (HTTP error `400`)\n* Provided content (request body) was empty (HTTP error `400`)\n* An artifact with the provided ID already exists (HTTP error `409`)\n* The content violates one of the configured global rules (HTTP error `409`)\n* A server error occurred (HTTP error `500`)\n"
             },
             "delete": {
                 "tags": [
@@ -1738,7 +1585,7 @@
                     "content": {
                         "application/json": {
                             "schema": {
-                                "$ref": "#/components/schemas/CreateGroupMetaData"
+                                "$ref": "#/components/schemas/CreateGroup"
                             }
                         }
                     },
@@ -2080,76 +1927,11 @@
             },
             "post": {
                 "requestBody": {
-                    "description": "The content of the artifact version being created or the content and a set of references to other artifacts. This is often, but not always, JSON data\nrepresenting one of the supported artifact types:\n\n* Avro (`AVRO`)\n* Protobuf (`PROTOBUF`)\n* JSON Schema (`JSON`)\n* Kafka Connect (`KCONNECT`)\n* OpenAPI (`OPENAPI`)\n* AsyncAPI (`ASYNCAPI`)\n* GraphQL (`GRAPHQL`)\n* Web Services Description Language (`WSDL`)\n* XML Schema (`XSD`)\n",
+                    "description": "The version to be created.",
                     "content": {
-                        "*/*": {
+                        "application/json": {
                             "schema": {
-                                "$ref": "#/components/schemas/FileContent"
-                            },
-                            "examples": {
-                                "OpenAPI Example": {
-                                    "value": {
-                                        "openapi": "3.0.2",
-                                        "info": {
-                                            "title": "Empty API",
-                                            "version": "1.0.7",
-                                            "description": "An example API design using OpenAPI."
-                                        },
-                                        "paths": {
-                                            "/widgets": {
-                                                "get": {
-                                                    "responses": {
-                                                        "200": {
-                                                            "content": {
-                                                                "application/json": {
-                                                                    "schema": {
-                                                                        "type": "array",
-                                                                        "items": {
-                                                                            "type": "string"
-                                                                        }
-                                                                    }
-                                                                }
-                                                            },
-                                                            "description": "All widgets"
-                                                        }
-                                                    },
-                                                    "summary": "Get widgets"
-                                                }
-                                            }
-                                        },
-                                        "components": {
-                                            "schemas": {
-                                                "Widget": {
-                                                    "title": "Root Type for Widget",
-                                                    "description": "A sample data type.",
-                                                    "type": "object",
-                                                    "properties": {
-                                                        "property-1": {
-                                                            "type": "string"
-                                                        },
-                                                        "property-2": {
-                                                            "type": "boolean"
-                                                        }
-                                                    },
-                                                    "example": {
-                                                        "property-1": "value1",
-                                                        "property-2": true
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        },
-                        "application/create.extended+json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/ArtifactContent"
-                            }
-                        },
-                        "application/vnd.create.extended+json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/ArtifactContent"
+                                "$ref": "#/components/schemas/CreateVersion"
                             }
                         }
                     },
@@ -2160,55 +1942,12 @@
                 ],
                 "parameters": [
                     {
-                        "name": "X-Registry-Version",
-                        "description": "Specifies the version number of this new version of the artifact content.  This would typically\nbe a simple integer or a SemVer value.  It must be unique within the artifact.  If this is not\nprovided, the server will generate a new, unique version number for this new updated content.",
+                        "name": "ifExists",
+                        "description": "",
                         "schema": {
-                            "$ref": "#/components/schemas/Version"
+                            "$ref": "#/components/schemas/IfVersionExists"
                         },
-                        "in": "header"
-                    },
-                    {
-                        "name": "X-Registry-Name",
-                        "description": "Specifies the artifact name of this new version of the artifact content. Name must be ASCII-only string. If this is not\nprovided, the server will extract the name from the artifact content.",
-                        "schema": {
-                            "$ref": "#/components/schemas/ArtifactName"
-                        },
-                        "in": "header"
-                    },
-                    {
-                        "name": "X-Registry-Description",
-                        "description": "Specifies the artifact description of this new version of the artifact content. Description must be ASCII-only string. If this is not provided, the server will extract the description from the artifact content.",
-                        "schema": {
-                            "$ref": "#/components/schemas/ArtifactDescription"
-                        },
-                        "in": "header"
-                    },
-                    {
-                        "name": "X-Registry-Description-Encoded",
-                        "description": "Specifies the artifact description of this new version of the artifact content. Value of this must be Base64 encoded string. If this is not provided, the server will extract the description from the artifact content.",
-                        "schema": {
-                            "$ref": "#/components/schemas/EncodedArtifactDescription"
-                        },
-                        "in": "header"
-                    },
-                    {
-                        "name": "X-Registry-Name-Encoded",
-                        "description": "Specifies the artifact name of this new version of the artifact content. Value of this must be Base64 encoded string. If this is not provided, the server will extract the name from the artifact content.",
-                        "schema": {
-                            "$ref": "#/components/schemas/EncodedArtifactName"
-                        },
-                        "in": "header"
-                    },
-                    {
-                        "name": "X-Registry-Artifact-Branches",
-                        "description": "An optional, comma-separated list of artifact branch IDs, that specify branches into which the newly created version will be added. The list may contain a single branch ID, but may not be empty. A new version is always automatically inserted into the \"latest\" branch. If any of the branches do not already exist, they will be created.",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "type": "string"
-                            }
-                        },
-                        "in": "header"
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -2861,12 +2600,12 @@
                         },
                         "application/get.extended+json": {
                             "schema": {
-                                "$ref": "#/components/schemas/ArtifactContent"
+                                "$ref": "#/components/schemas/VersionContent"
                             }
                         },
                         "application/vnd.get.extended+json": {
                             "schema": {
-                                "$ref": "#/components/schemas/ArtifactContent"
+                                "$ref": "#/components/schemas/VersionContent"
                             }
                         }
                     },
@@ -3159,13 +2898,12 @@
                     "context": "/info/externalDocs[url]"
                 }
             },
-            "IfExists": {
+            "IfArtifactExists": {
                 "description": "",
                 "enum": [
                     "FAIL",
-                    "UPDATE",
-                    "RETURN",
-                    "RETURN_OR_UPDATE"
+                    "CREATE_VERSION",
+                    "FIND_OR_CREATE_VERSION"
                 ],
                 "type": "string"
             },
@@ -3289,30 +3027,6 @@
                     "developer": false,
                     "viewer": false
                 }
-            },
-            "EncodedArtifactName": {
-                "description": "Base64 encoded name of the artifact.",
-                "type": "string",
-                "example": "\"QXJ0aWZhY3QgbmFtZQo=\"",
-                "x-codegen-inline": true
-            },
-            "EncodedArtifactDescription": {
-                "description": "Base64 encoded description of the artifact.",
-                "type": "string",
-                "example": "\"QXJ0aWZhY3QgZGVzY3JpcHRpb24K\"",
-                "x-codegen-inline": true
-            },
-            "ArtifactName": {
-                "description": "Name of the artifact.",
-                "type": "string",
-                "example": "\"Artifact name\"",
-                "x-codegen-inline": true
-            },
-            "ArtifactDescription": {
-                "description": "Description of the artifact.",
-                "type": "string",
-                "example": "\"Artifact description\"",
-                "x-codegen-inline": true
             },
             "DownloadRef": {
                 "title": "Root Type for Download",
@@ -3731,7 +3445,7 @@
                     }
                 },
                 "example": {
-                    "name": "apicurio.auth.owner-only-authorization",
+                    "name": "registry.auth.owner-only-authorization",
                     "value": "true",
                     "type": "boolean",
                     "label": "Owner Only Authorization",
@@ -3821,19 +3535,6 @@
                     "maxArtifactNameLengthChars": -1,
                     "maxArtifactDescriptionLengthChars": -1,
                     "maxRequestsPerSecondCount": -1
-                }
-            },
-            "ArtifactOwner": {
-                "title": "Root Type for ArtifactOwner",
-                "description": "Describes the ownership of an artifact.",
-                "type": "object",
-                "properties": {
-                    "owner": {
-                        "type": "string"
-                    }
-                },
-                "example": {
-                    "owner": "bwayne"
                 }
             },
             "SearchedGroup": {
@@ -3960,7 +3661,7 @@
                     }
                 }
             },
-            "CreateGroupMetaData": {
+            "CreateGroup": {
                 "title": "Root Type for CreateGroupMetaData",
                 "description": "",
                 "required": [
@@ -3989,16 +3690,16 @@
                     }
                 }
             },
-            "ArtifactContent": {
+            "VersionContent": {
                 "description": "",
                 "required": [
                     "content",
-                    "references"
+                    "contentType"
                 ],
                 "type": "object",
                 "properties": {
                     "content": {
-                        "description": "Raw content of the artifact or a valid (and accessible) URL where the content can be found.",
+                        "description": "Raw content of the artifact version or a valid (and accessible) URL where the content can be found.",
                         "type": "string",
                         "example": ""
                     },
@@ -4008,6 +3709,10 @@
                         "items": {
                             "$ref": "#/components/schemas/ArtifactReference"
                         }
+                    },
+                    "contentType": {
+                        "description": "The content-type, such as `application/json` or `text/xml`.",
+                        "type": "string"
                     }
                 }
             },
@@ -4493,6 +4198,121 @@
                 ],
                 "type": "string",
                 "x-codegen-package": "io.apicurio.registry.types"
+            },
+            "CreateArtifact": {
+                "description": "Data sent when creating a new artifact.",
+                "required": [
+                    "artifactId"
+                ],
+                "type": "object",
+                "properties": {
+                    "artifactId": {
+                        "$ref": "#/components/schemas/ArtifactId",
+                        "description": ""
+                    },
+                    "type": {
+                        "$ref": "#/components/schemas/ArtifactType",
+                        "description": ""
+                    },
+                    "name": {
+                        "description": "",
+                        "type": "string"
+                    },
+                    "description": {
+                        "description": "",
+                        "type": "string"
+                    },
+                    "labels": {
+                        "$ref": "#/components/schemas/Labels",
+                        "description": ""
+                    },
+                    "firstVersion": {
+                        "$ref": "#/components/schemas/CreateVersion",
+                        "description": ""
+                    }
+                },
+                "example": {
+                    "artifactId": "mytopic-value",
+                    "type": "AVRO",
+                    "name": "Invoice",
+                    "description": "A standard Acme invoice payload.",
+                    "labels": {
+                        "label-1": "value-1",
+                        "label-2": "value-2"
+                    },
+                    "firstVersion": {
+                        "version": "1.0.0",
+                        "content": {
+                            "content": "{\"type\":\"record\",\"name\":\"ExampleType\",\"fields\":[{\"name\":\"sdfgfsdgsdg\",\"type\":\"string\"}]}",
+                            "references": []
+                        },
+                        "name": "ExampleType",
+                        "description": "A simple example of an Avro type.",
+                        "labels": {}
+                    }
+                }
+            },
+            "CreateVersion": {
+                "description": "",
+                "required": [
+                    "content"
+                ],
+                "type": "object",
+                "properties": {
+                    "version": {
+                        "$ref": "#/components/schemas/Version",
+                        "description": ""
+                    },
+                    "content": {
+                        "$ref": "#/components/schemas/VersionContent",
+                        "description": ""
+                    },
+                    "name": {
+                        "description": "",
+                        "type": "string"
+                    },
+                    "description": {
+                        "description": "",
+                        "type": "string"
+                    },
+                    "labels": {
+                        "$ref": "#/components/schemas/Labels",
+                        "description": ""
+                    },
+                    "branches": {
+                        "description": "",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "CreateArtifactResponse": {
+                "description": "",
+                "required": [
+                    "artifact"
+                ],
+                "type": "object",
+                "properties": {
+                    "artifact": {
+                        "$ref": "#/components/schemas/ArtifactMetaData",
+                        "description": ""
+                    },
+                    "version": {
+                        "$ref": "#/components/schemas/VersionMetaData",
+                        "description": ""
+                    }
+                }
+            },
+            "IfVersionExists": {
+                "description": "",
+                "enum": [
+                    "FAIL",
+                    "CREATE",
+                    "FIND_OR_CREATE"
+                ],
+                "type": "string"
             }
         },
         "responses": {

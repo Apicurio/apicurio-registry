@@ -16,7 +16,10 @@
 
 package io.apicurio.registry.examples.custom.resolver;
 
-import io.apicurio.registry.rest.client.models.ArtifactContent;
+import io.apicurio.registry.rest.client.models.CreateArtifact;
+import io.apicurio.registry.rest.client.models.CreateVersion;
+import io.apicurio.registry.rest.client.models.IfArtifactExists;
+import io.apicurio.registry.rest.client.models.VersionContent;
 import io.apicurio.registry.serde.AbstractSchemaResolver;
 import io.apicurio.registry.serde.ParsedSchema;
 import io.apicurio.registry.serde.SchemaLookupResult;
@@ -69,15 +72,17 @@ public class CustomSchemaResolver<D> extends AbstractSchemaResolver<Schema, D> {
             ByteArrayInputStream schemaContent = new ByteArrayInputStream(schema.getBytes(StandardCharsets.UTF_8));
             // Ensure the schema exists in the schema registry.
 
-            ArtifactContent content = new ArtifactContent();
+            CreateArtifact createArtifact = new CreateArtifact();
+            createArtifact.setArtifactId(artifactId);
+            createArtifact.setType(ArtifactType.AVRO);
+            createArtifact.setFirstVersion(new CreateVersion());
+            createArtifact.getFirstVersion().setContent(new VersionContent());
+            createArtifact.getFirstVersion().getContent().setContent(IoUtil.toString(schemaContent));
+            createArtifact.getFirstVersion().getContent().setContentType("application/json");
 
-            content.setContent(IoUtil.toString(schemaContent));
-
-            final io.apicurio.registry.rest.client.models.VersionMetaData metaData = client.groups().byGroupId("default").artifacts().post(content, config -> {
-                config.queryParameters.ifExists = io.apicurio.registry.rest.client.models.IfExists.RETURN_OR_UPDATE;
-                config.headers.add("X-Registry-ArtifactId", artifactId);
-                config.headers.add("X-Registry-ArtifactType", ArtifactType.AVRO);
-            });
+            final io.apicurio.registry.rest.client.models.VersionMetaData metaData = client.groups().byGroupId("default").artifacts().post(createArtifact, config -> {
+                config.queryParameters.ifExists = IfArtifactExists.FIND_OR_CREATE_VERSION;
+            }).getVersion();
 
             SchemaLookupResult result = SchemaLookupResult.builder()
                     .groupId(groupId)
@@ -102,9 +107,6 @@ public class CustomSchemaResolver<D> extends AbstractSchemaResolver<Schema, D> {
         throw new UnsupportedOperationException("resolveSchemaByArtifactReference() is not supported by this implementation.");
     }
 
-    /**
-     * @see io.apicurio.registry.serde.SchemaResolver#resolveSchemaByGlobalId(long)
-     */
     @Override
     public SchemaLookupResult<Schema> resolveSchemaByGlobalId(long globalId) {
         return super.resolveSchemaByGlobalId(globalId);

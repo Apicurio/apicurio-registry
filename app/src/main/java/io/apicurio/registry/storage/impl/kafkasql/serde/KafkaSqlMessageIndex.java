@@ -1,58 +1,11 @@
 package io.apicurio.registry.storage.impl.kafkasql.serde;
 
+import io.apicurio.registry.storage.impl.kafkasql.KafkaSqlMessage;
+import io.apicurio.registry.storage.impl.kafkasql.messages.*;
+import jakarta.enterprise.context.ApplicationScoped;
+
 import java.util.HashMap;
 import java.util.Map;
-
-import io.apicurio.registry.storage.impl.kafkasql.KafkaSqlMessage;
-import io.apicurio.registry.storage.impl.kafkasql.messages.ConsumeDownload1Message;
-import io.apicurio.registry.storage.impl.kafkasql.messages.CreateArtifact6Message;
-import io.apicurio.registry.storage.impl.kafkasql.messages.CreateArtifactVersion6Message;
-import io.apicurio.registry.storage.impl.kafkasql.messages.CreateArtifactVersionComment4Message;
-import io.apicurio.registry.storage.impl.kafkasql.messages.CreateArtifactVersionWithMetadata7Message;
-import io.apicurio.registry.storage.impl.kafkasql.messages.CreateArtifactWithMetadata7Message;
-import io.apicurio.registry.storage.impl.kafkasql.messages.CreateDownload1Message;
-import io.apicurio.registry.storage.impl.kafkasql.messages.CreateGlobalRule2Message;
-import io.apicurio.registry.storage.impl.kafkasql.messages.CreateGroup1Message;
-import io.apicurio.registry.storage.impl.kafkasql.messages.CreateOrReplaceArtifactBranch3Message;
-import io.apicurio.registry.storage.impl.kafkasql.messages.CreateOrUpdateArtifactBranch2Message;
-import io.apicurio.registry.storage.impl.kafkasql.messages.CreateRoleMapping3Message;
-import io.apicurio.registry.storage.impl.kafkasql.messages.DeleteAllExpiredDownloads0Message;
-import io.apicurio.registry.storage.impl.kafkasql.messages.DeleteAllUserData0Message;
-import io.apicurio.registry.storage.impl.kafkasql.messages.DeleteArtifact2Message;
-import io.apicurio.registry.storage.impl.kafkasql.messages.DeleteArtifactBranch2Message;
-import io.apicurio.registry.storage.impl.kafkasql.messages.DeleteArtifactRule3Message;
-import io.apicurio.registry.storage.impl.kafkasql.messages.DeleteArtifactRules2Message;
-import io.apicurio.registry.storage.impl.kafkasql.messages.DeleteArtifactVersion3Message;
-import io.apicurio.registry.storage.impl.kafkasql.messages.DeleteArtifactVersionComment4Message;
-import io.apicurio.registry.storage.impl.kafkasql.messages.DeleteArtifacts1Message;
-import io.apicurio.registry.storage.impl.kafkasql.messages.DeleteConfigProperty1Message;
-import io.apicurio.registry.storage.impl.kafkasql.messages.DeleteGlobalRule1Message;
-import io.apicurio.registry.storage.impl.kafkasql.messages.DeleteGlobalRules0Message;
-import io.apicurio.registry.storage.impl.kafkasql.messages.DeleteGroup1Message;
-import io.apicurio.registry.storage.impl.kafkasql.messages.DeleteRoleMapping1Message;
-import io.apicurio.registry.storage.impl.kafkasql.messages.ImportArtifactBranch1Message;
-import io.apicurio.registry.storage.impl.kafkasql.messages.ImportArtifactRule1Message;
-import io.apicurio.registry.storage.impl.kafkasql.messages.ImportArtifactVersion1Message;
-import io.apicurio.registry.storage.impl.kafkasql.messages.ImportComment1Message;
-import io.apicurio.registry.storage.impl.kafkasql.messages.ImportContent1Message;
-import io.apicurio.registry.storage.impl.kafkasql.messages.ImportGlobalRule1Message;
-import io.apicurio.registry.storage.impl.kafkasql.messages.ImportGroup1Message;
-import io.apicurio.registry.storage.impl.kafkasql.messages.NextCommentId0Message;
-import io.apicurio.registry.storage.impl.kafkasql.messages.NextContentId0Message;
-import io.apicurio.registry.storage.impl.kafkasql.messages.NextGlobalId0Message;
-import io.apicurio.registry.storage.impl.kafkasql.messages.ResetCommentId0Message;
-import io.apicurio.registry.storage.impl.kafkasql.messages.ResetContentId0Message;
-import io.apicurio.registry.storage.impl.kafkasql.messages.ResetGlobalId0Message;
-import io.apicurio.registry.storage.impl.kafkasql.messages.SetConfigProperty1Message;
-import io.apicurio.registry.storage.impl.kafkasql.messages.UpdateArtifactMetaData3Message;
-import io.apicurio.registry.storage.impl.kafkasql.messages.UpdateArtifactRule4Message;
-import io.apicurio.registry.storage.impl.kafkasql.messages.UpdateArtifactVersionComment5Message;
-import io.apicurio.registry.storage.impl.kafkasql.messages.UpdateArtifactVersionMetaData4Message;
-import io.apicurio.registry.storage.impl.kafkasql.messages.UpdateContentCanonicalHash3Message;
-import io.apicurio.registry.storage.impl.kafkasql.messages.UpdateGlobalRule2Message;
-import io.apicurio.registry.storage.impl.kafkasql.messages.UpdateGroupMetaData2Message;
-import io.apicurio.registry.storage.impl.kafkasql.messages.UpdateRoleMapping2Message;
-import jakarta.enterprise.context.ApplicationScoped;
 
 @ApplicationScoped
 public class KafkaSqlMessageIndex {
@@ -70,11 +23,10 @@ public class KafkaSqlMessageIndex {
     static {
         indexMessageClasses(
                 ConsumeDownload1Message.class,
-                CreateArtifact6Message.class,
-                CreateArtifactVersion6Message.class,
+                CreateArtifact8Message.class,
+                CreateArtifactVersion7Message.class,
                 CreateArtifactVersionComment4Message.class,
-                CreateArtifactVersionWithMetadata7Message.class,
-                CreateArtifactWithMetadata7Message.class,
+                CreateArtifact8Message.class,
                 CreateDownload1Message.class,
                 CreateGlobalRule2Message.class,
                 CreateGroup1Message.class,

@@ -9,17 +9,20 @@ type UserInterfaceConfigAuth_type int
 
 const (
 	NONE_USERINTERFACECONFIGAUTH_TYPE UserInterfaceConfigAuth_type = iota
+	BASIC_USERINTERFACECONFIGAUTH_TYPE
 	OIDC_USERINTERFACECONFIGAUTH_TYPE
 )
 
 func (i UserInterfaceConfigAuth_type) String() string {
-	return []string{"none", "oidc"}[i]
+	return []string{"none", "basic", "oidc"}[i]
 }
 func ParseUserInterfaceConfigAuth_type(v string) (any, error) {
 	result := NONE_USERINTERFACECONFIGAUTH_TYPE
 	switch v {
 	case "none":
 		result = NONE_USERINTERFACECONFIGAUTH_TYPE
+	case "basic":
+		result = BASIC_USERINTERFACECONFIGAUTH_TYPE
 	case "oidc":
 		result = OIDC_USERINTERFACECONFIGAUTH_TYPE
 	default:

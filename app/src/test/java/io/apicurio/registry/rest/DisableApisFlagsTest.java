@@ -4,16 +4,17 @@ import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.ccompat.rest.ContentTypes;
 import io.apicurio.registry.model.GroupId;
 import io.apicurio.registry.noprofile.ccompat.rest.CCompatTestConstants;
+import io.apicurio.registry.rest.v3.beans.CreateArtifact;
 import io.apicurio.registry.services.DisabledApisMatcherService;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.tests.ApicurioTestTags;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
+import jakarta.inject.Inject;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
-import jakarta.inject.Inject;
 import java.util.UUID;
 
 import static io.restassured.RestAssured.given;
@@ -59,7 +60,7 @@ public class DisableApisFlagsTest extends AbstractResourceTestBase {
         String artifactContent = resourceToString("openapi-empty.json");
 
         // Create OpenAPI artifact
-        createArtifact(GROUP, "testDeleteArtifactVersion/EmptyAPI", ArtifactType.OPENAPI, artifactContent);
+        createArtifact(GROUP, "testDeleteArtifactVersion/EmptyAPI", ArtifactType.OPENAPI, artifactContent, io.apicurio.registry.types.ContentTypes.APPLICATION_JSON);
 
         // Make sure we can get the artifact content
         given()
@@ -131,12 +132,12 @@ public class DisableApisFlagsTest extends AbstractResourceTestBase {
         String artifactContent = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"f1\",\"type\":\"string\"}]}";
         String schemaId = TestUtils.generateArtifactId();
 
+        CreateArtifact createArtifact = TestUtils.serverCreateArtifact(schemaId, ArtifactType.AVRO, artifactContent, io.apicurio.registry.types.ContentTypes.APPLICATION_JSON);
         var req = given()
             .when()
-                .contentType(CT_JSON + "; artifactType=AVRO")
+                .contentType(CT_JSON)
                 .pathParam("groupId", GroupId.DEFAULT.getRawGroupIdWithDefaultString())
-                .header("X-Registry-ArtifactId", schemaId)
-                .body(artifactContent)
+                .body(createArtifact)
                 .post("/registry/v3/groups/{groupId}/artifacts")
             .then();
 

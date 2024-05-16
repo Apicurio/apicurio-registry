@@ -1,19 +1,19 @@
 package io.apicurio.registry.noprofile.rest.v2;
 
-import static io.restassured.RestAssured.given;
-import static org.hamcrest.CoreMatchers.anything;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.equalToObject;
+import io.apicurio.registry.AbstractResourceTestBase;
+import io.apicurio.registry.rest.v2.beans.EditableMetaData;
+import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.ContentTypes;
+import io.quarkus.test.junit.QuarkusTest;
+import org.junit.jupiter.api.Test;
 
 import java.util.List;
 import java.util.Map;
 
-import org.junit.jupiter.api.Test;
-
-import io.apicurio.registry.AbstractResourceTestBase;
-import io.apicurio.registry.rest.v2.beans.EditableMetaData;
-import io.apicurio.registry.types.ArtifactType;
-import io.quarkus.test.junit.QuarkusTest;
+import static io.restassured.RestAssured.given;
+import static org.hamcrest.CoreMatchers.anything;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.equalToObject;
 
 @QuarkusTest
 public class LegacyV2ApiTest extends AbstractResourceTestBase {
@@ -25,7 +25,7 @@ public class LegacyV2ApiTest extends AbstractResourceTestBase {
         String artifactContent = resourceToString("openapi-empty.json");
 
         String artifactId = "testLegacyLabels";
-        this.createArtifact(GROUP, artifactId, ArtifactType.OPENAPI, artifactContent);
+        this.createArtifact(GROUP, artifactId, ArtifactType.OPENAPI, artifactContent, ContentTypes.APPLICATION_JSON);
 
         // Update the artifact meta-data
         List<String> labels = List.of("one", "two", "three");
@@ -60,7 +60,7 @@ public class LegacyV2ApiTest extends AbstractResourceTestBase {
         String artifactContent = resourceToString("openapi-empty.json");
 
         String artifactId = "testLegacyProperties";
-        this.createArtifact(GROUP, artifactId, ArtifactType.OPENAPI, artifactContent);
+        this.createArtifact(GROUP, artifactId, ArtifactType.OPENAPI, artifactContent, ContentTypes.APPLICATION_JSON);
 
         // Update the artifact meta-data
         Map<String, String> properties = Map.of("one", "one-value", "two", "two-value");
@@ -95,7 +95,7 @@ public class LegacyV2ApiTest extends AbstractResourceTestBase {
         String artifactContent = resourceToString("openapi-empty.json");
 
         String artifactId = "testLegacyPropertiesWithLabels";
-        this.createArtifact(GROUP, artifactId, ArtifactType.OPENAPI, artifactContent);
+        this.createArtifact(GROUP, artifactId, ArtifactType.OPENAPI, artifactContent, ContentTypes.APPLICATION_JSON);
 
         List<String> labels = List.of("label-one", "label-two");
         Map<String, String> properties = Map.of("property-one", "property-one-value", "property-two", "property-two-value");

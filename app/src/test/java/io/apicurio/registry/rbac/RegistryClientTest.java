@@ -1,54 +1,22 @@
 package io.apicurio.registry.rbac;
 
-import static io.apicurio.registry.utils.tests.TestUtils.retry;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
-import java.io.ByteArrayInputStream;
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ThreadLocalRandom;
-import java.util.stream.Collectors;
-
-import org.apache.commons.codec.digest.DigestUtils;
-import org.apache.commons.io.IOUtils;
-import org.jetbrains.annotations.NotNull;
-import org.junit.Assert;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Tag;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.microsoft.kiota.ApiException;
-
 import io.apicurio.registry.AbstractRegistryTestBase;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.client.auth.VertXAuthFactory;
 import io.apicurio.registry.model.GroupId;
-import io.apicurio.registry.rest.client.models.ArtifactContent;
 import io.apicurio.registry.rest.client.models.ArtifactMetaData;
 import io.apicurio.registry.rest.client.models.ArtifactReference;
 import io.apicurio.registry.rest.client.models.ArtifactSearchResults;
 import io.apicurio.registry.rest.client.models.ConfigurationProperty;
-import io.apicurio.registry.rest.client.models.CreateGroupMetaData;
+import io.apicurio.registry.rest.client.models.CreateArtifact;
+import io.apicurio.registry.rest.client.models.CreateArtifactResponse;
+import io.apicurio.registry.rest.client.models.CreateGroup;
+import io.apicurio.registry.rest.client.models.CreateVersion;
 import io.apicurio.registry.rest.client.models.EditableArtifactMetaData;
 import io.apicurio.registry.rest.client.models.EditableVersionMetaData;
 import io.apicurio.registry.rest.client.models.GroupMetaData;
 import io.apicurio.registry.rest.client.models.GroupSearchResults;
-import io.apicurio.registry.rest.client.models.IfExists;
 import io.apicurio.registry.rest.client.models.Labels;
 import io.apicurio.registry.rest.client.models.RoleMapping;
 import io.apicurio.registry.rest.client.models.RoleType;
@@ -60,9 +28,11 @@ import io.apicurio.registry.rest.client.models.SortBy;
 import io.apicurio.registry.rest.client.models.SortOrder;
 import io.apicurio.registry.rest.client.models.UpdateConfigurationProperty;
 import io.apicurio.registry.rest.client.models.UpdateRole;
+import io.apicurio.registry.rest.client.models.VersionContent;
 import io.apicurio.registry.rest.client.models.VersionMetaData;
 import io.apicurio.registry.rest.client.models.VersionSearchResults;
 import io.apicurio.registry.rest.client.models.VersionState;
+import io.apicurio.registry.rest.v2.beans.ArtifactContent;
 import io.apicurio.registry.storage.impl.sql.SqlUtil;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
@@ -75,6 +45,34 @@ import io.kiota.http.vertx.VertXRequestAdapter;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import jakarta.inject.Inject;
+import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.commons.io.IOUtils;
+import org.jetbrains.annotations.NotNull;
+import org.junit.Assert;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.stream.Collectors;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @QuarkusTest
 @TestProfile(ApplicationRbacEnabledProfile.class)
@@ -137,23 +135,20 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         final String description = "testCreateArtifactDescription";
 
         //Execution
-        ArtifactContent content = new ArtifactContent();
-        content.setContent(ARTIFACT_CONTENT);
-        final VersionMetaData created = clientV3.groups().byGroupId(groupId).artifacts().post(content, config -> {
-            config.queryParameters.ifExists = IfExists.FAIL;
-            config.headers.add("X-Registry-ArtifactId", artifactId);
-            config.headers.add("X-Registry-ArtifactType", ArtifactType.JSON);
-            config.headers.add("X-Registry-Name", name);
-            config.headers.add("X-Registry-Description", description);
-        });
+        CreateArtifactResponse created = createArtifact(groupId, artifactId, ArtifactType.JSON, ARTIFACT_CONTENT, ContentTypes.APPLICATION_JSON, (createArtifact -> {
+            createArtifact.setName(name);
+            createArtifact.setDescription(description);
+            createArtifact.getFirstVersion().setVersion(version);
+            return null;
+        }));
 
         //Assertions
         assertNotNull(created);
-        assertEquals(groupId, created.getGroupId());
-        assertEquals(artifactId, created.getArtifactId());
-        assertEquals(version, created.getVersion());
-        assertEquals(name, created.getName());
-        assertEquals(description, created.getDescription());
+        assertEquals(groupId, created.getArtifact().getGroupId());
+        assertEquals(artifactId, created.getArtifact().getArtifactId());
+        assertEquals(version, created.getVersion().getVersion());
+        assertEquals(name, created.getArtifact().getName());
+        assertEquals(description, created.getArtifact().getDescription());
         assertEquals(ARTIFACT_CONTENT, new String(clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").content().get().readAllBytes(), StandardCharsets.UTF_8));
     }
 
@@ -161,7 +156,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
     public void groupsCrud() throws Exception {
         //Preparation
         final String groupId = UUID.randomUUID().toString();
-        CreateGroupMetaData groupMetaData = new CreateGroupMetaData();
+        CreateGroup groupMetaData = new CreateGroup();
         groupMetaData.setId(groupId);
         groupMetaData.setDescription("Groups test crud");
         Labels labels = new Labels();
@@ -218,18 +213,14 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         final String description = "testCreateYamlArtifactDescription";
 
         //Execution
-        ArtifactContent content = new ArtifactContent();
-        content.setContent(ARTIFACT_OPENAPI_YAML_CONTENT);
-        final VersionMetaData created = clientV3.groups().byGroupId(groupId).artifacts().post(content, config -> {
-            config.queryParameters.canonical = false;
-            config.queryParameters.ifExists = IfExists.FAIL;
-            config.headers.add("X-Registry-ArtifactId", artifactId);
-            config.headers.add("X-Registry-ArtifactType", ArtifactType.OPENAPI);
-            config.headers.add("X-Registry-Name", name);
-            config.headers.add("X-Registry-Description", description);
-            config.headers.add("X-Registry-Version", version);
-            config.headers.add("Content-Type", "application/create.extended+json");
-        });
+        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.OPENAPI, ARTIFACT_OPENAPI_YAML_CONTENT, ContentTypes.APPLICATION_JSON);
+        createArtifact.setName(name);
+        createArtifact.setDescription(description);
+        createArtifact.getFirstVersion().setVersion(version);
+        createArtifact.getFirstVersion().setName(name);
+        createArtifact.getFirstVersion().setDescription(description);
+
+        final VersionMetaData created = clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact).getVersion();
 
         //Assertions
         assertNotNull(created);
@@ -238,7 +229,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         assertEquals(version, created.getVersion());
         assertEquals(name, created.getName());
         assertEquals(description, created.getDescription());
-        assertMultilineTextEquals(ARTIFACT_OPENAPI_JSON_CONTENT, IoUtil.toString(clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").content().get()));
+        assertMultilineTextEquals(ARTIFACT_OPENAPI_YAML_CONTENT, IoUtil.toString(clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").content().get()));
     }
 
     @Test
@@ -254,15 +245,11 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         createArtifact(groupId, artifactId);
 
         //Execution
-        ArtifactContent content = new ArtifactContent();
-        content.setContent(UPDATED_CONTENT);
-        VersionMetaData versionMetaData = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().post(content, config -> {
-            config.headers.add("X-Registry-Name", name);
-            config.headers.add("X-Registry-Description", description);
-            config.headers.add("X-Registry-Version", version);
-            config.headers.add("X-Registry-ArtifactType", ArtifactType.OPENAPI);
-            config.headers.add("Content-Type", "application/create.extended+json");
-        });
+        CreateVersion createVersion = TestUtils.clientCreateVersion(UPDATED_CONTENT, ContentTypes.APPLICATION_JSON);
+        createVersion.setName(name);
+        createVersion.setDescription(description);
+        createVersion.setVersion(version);
+        VersionMetaData versionMetaData = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().post(createVersion);
 
         ArtifactMetaData amd = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get();
 
@@ -292,20 +279,14 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         createOpenAPIArtifact(groupId, artifactId); // Create first version of the openapi artifact using JSON
 
         //Execution
+        CreateVersion createVersion = TestUtils.clientCreateVersion(UPDATED_OPENAPI_YAML_CONTENT, ContentTypes.APPLICATION_JSON);
+        createVersion.setName(name);
+        createVersion.setDescription(description);
+        createVersion.setVersion(version);
+
         ArtifactContent content = new ArtifactContent();
         content.setContent(UPDATED_OPENAPI_YAML_CONTENT);
-        var postReq = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().toPostRequestInformation(content, config -> {
-            config.headers.add("X-Registry-Name", name);
-            config.headers.add("X-Registry-Description", description);
-            config.headers.add("X-Registry-Version", version);
-            config.headers.add("X-Registry-ArtifactType", ArtifactType.OPENAPI);
-        });
-        // HACK to set the correct body content
-        postReq.setStreamContent(new ByteArrayInputStream(UPDATED_OPENAPI_YAML_CONTENT.getBytes()));
-        // HACK to set the correct header
-        postReq.headers.replace("Content-Type", Set.of(ContentTypes.APPLICATION_YAML));
-        VersionMetaData versionMetaData = anonymousAdapter.send(postReq, new HashMap<>(), VersionMetaData::createFromDiscriminatorValue);
-
+        VersionMetaData versionMetaData = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().post(createVersion);
         VersionMetaData amd = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").get();
 
         //Assertions
@@ -319,7 +300,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         assertEquals(name, amd.getName());
         assertEquals(description, amd.getDescription());
 
-        assertMultilineTextEquals(UPDATED_OPENAPI_JSON_CONTENT, IoUtil.toString(clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").content().get()));
+        assertMultilineTextEquals(UPDATED_OPENAPI_YAML_CONTENT, IoUtil.toString(clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").content().get()));
     }
 
     @Test
@@ -331,13 +312,8 @@ public class RegistryClientTest extends AbstractResourceTestBase {
 
         //Execution
         try {
-            ArtifactContent content = new ArtifactContent();
-            content.setContent(ARTIFACT_CONTENT);
-            VersionMetaData amd = clientV3.groups().byGroupId(groupId).artifacts().post(content, config -> {
-                config.headers.add("X-Registry-ArtifactId", artifactId);
-                config.headers.add("X-Registry-ArtifactType", ArtifactType.JSON);
-                config.headers.add("Content-Type", "application/create.extended+json");
-            });
+            CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.JSON, ARTIFACT_CONTENT, ContentTypes.APPLICATION_JSON);
+            VersionMetaData amd = clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact).getVersion();
             Assertions.assertNotNull(amd);
 
             Thread.sleep(2000);
@@ -347,17 +323,16 @@ public class RegistryClientTest extends AbstractResourceTestBase {
             clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).put(emd);
 
             //Assertions
-            retry(() -> {
+            {
                 ArtifactMetaData artifactMetaData = clientV3
                         .groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get();
                 Assertions.assertNotNull(artifactMetaData);
                 Assertions.assertEquals("testAsyncCRUD", artifactMetaData.getName());
-            });
+            }
 
-            content.setContent(UPDATED_CONTENT);
-
+            CreateVersion createVersion = TestUtils.clientCreateVersion(UPDATED_CONTENT, ContentTypes.APPLICATION_JSON);
             //Execution
-            clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().post(content);
+            clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().post(createVersion);
 
             //Assertions
             assertEquals(UPDATED_CONTENT, IoUtil.toString(clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").content().get()));
@@ -399,7 +374,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId1).delete();
         clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId2).delete();
 
-        TestUtils.retry(() -> {
+        {
             //Execution
             final ArtifactSearchResults deletedResults = clientV3.search().artifacts().get(config -> {
                 config.queryParameters.group = groupId;
@@ -410,7 +385,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
             });
             //Assertion
             assertEquals(0, deletedResults.getCount());
-        });
+        }
     }
 
     @Test
@@ -424,13 +399,10 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         String artifactData = "{\"type\":\"record\",\"title\":\"" + name
                         + "\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
 
-        ArtifactContent content = new ArtifactContent();
-        content.setContent(artifactData);
-        clientV3.groups().byGroupId(groupId).artifacts().post(content, config -> {
-            config.headers.add("X-Registry-ArtifactId", artifactId);
-            config.headers.add("X-Registry-ArtifactType", ArtifactType.JSON);
-            config.headers.add("Content-Type", "application/create.extended+json");
-        });
+        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.JSON, artifactData, ContentTypes.APPLICATION_JSON);
+        createArtifact.setName(name);
+        createArtifact.getFirstVersion().setName(name);
+        clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact);
 
         //Execution
         ArtifactSearchResults results = clientV3.search().artifacts().get(config -> {
@@ -455,7 +427,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
 
     @Test
     void testSearchArtifactSortByCreatedOn() throws Exception {
-        //PReparation
+        //Preparation
         final String groupId = "testSearchArtifactSortByCreatedOn";
         clientV3.groups().byGroupId(groupId).artifacts().get();
 
@@ -463,23 +435,21 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         String name = "n" + ThreadLocalRandom.current().nextInt(1000000);
         String data = ("{\"type\":\"record\",\"title\":\"" + name + "\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}");
 
+        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.JSON, data, ContentTypes.APPLICATION_JSON);
+        createArtifact.setName(name);
+        createArtifact.getFirstVersion().setName(name);
+
         ArtifactContent content = new ArtifactContent();
         content.setContent(data);
-        VersionMetaData amd = clientV3.groups().byGroupId(groupId).artifacts().post(content, config -> {
-            config.headers.add("X-Registry-ArtifactId", artifactId);
-            config.headers.add("X-Registry-ArtifactType", ArtifactType.JSON);
-            config.headers.add("Content-Type", "application/create.extended+json");
-        });
+        VersionMetaData amd = clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact).getVersion();
         LOGGER.info("created " + amd.getArtifactId() + " - " + amd.getCreatedOn());
 
         Thread.sleep(1500);
 
         String artifactId2 = UUID.randomUUID().toString();
-        VersionMetaData amd2 = clientV3.groups().byGroupId(groupId).artifacts().post(content, config -> {
-            config.headers.add("X-Registry-ArtifactId", artifactId2);
-            config.headers.add("X-Registry-ArtifactType", ArtifactType.JSON);
-            config.headers.add("Content-Type", "application/create.extended+json");
-        });
+        CreateArtifact createArtifact2 = TestUtils.clientCreateArtifact(artifactId2, ArtifactType.JSON, data, ContentTypes.APPLICATION_JSON);
+        createArtifact2.setName(name);
+        VersionMetaData amd2 = clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact2).getVersion();
         LOGGER.info("created " + amd2.getArtifactId() + " - " + amd2.getCreatedOn());
 
         //Execution
@@ -519,23 +489,15 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         String name = "n" + ThreadLocalRandom.current().nextInt(1000000);
         String data = "{\"type\":\"record\",\"title\":\"" + name + "\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
 
-        ArtifactContent content = new ArtifactContent();
-        content.setContent(data);
-        VersionMetaData amd = clientV3.groups().byGroupId(groupId).artifacts().post(content, config -> {
-            config.headers.add("X-Registry-ArtifactId", artifactId);
-            config.headers.add("X-Registry-ArtifactType", ArtifactType.JSON);
-            config.headers.add("Content-Type", "application/create.extended+json");
-        });
+        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.JSON, data, ContentTypes.APPLICATION_JSON);
+        VersionMetaData amd = clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact).getVersion();
         LOGGER.info("created " + amd.getArtifactId() + " - " + amd.getCreatedOn());
 
         Thread.sleep(1500);
 
         String artifactId2 = UUID.randomUUID().toString();
-        VersionMetaData amd2 = clientV3.groups().byGroupId(groupId).artifacts().post(content, config -> {
-            config.headers.add("X-Registry-ArtifactId", artifactId2);
-            config.headers.add("X-Registry-ArtifactType", ArtifactType.JSON);
-            config.headers.add("Content-Type", "application/create.extended+json");
-        });
+        CreateArtifact createArtifact2 = TestUtils.clientCreateArtifact(artifactId2, ArtifactType.JSON, data, ContentTypes.APPLICATION_JSON);
+        VersionMetaData amd2 = clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact2).getVersion();
         LOGGER.info("created " + amd2.getArtifactId() + " - " + amd2.getCreatedOn());
 
         ArtifactSearchResults results = clientV3.search().artifacts().get(config -> {
@@ -579,18 +541,12 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         String name = "n" + ThreadLocalRandom.current().nextInt(1000000);
         String artifactData = "{\"type\":\"record\",\"title\":\"" + name + "\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
 
-        ArtifactContent content = new ArtifactContent();
-        content.setContent(artifactData);
-        clientV3.groups().byGroupId(groupId).artifacts().post(content, config -> {
-            config.headers.add("X-Registry-ArtifactId", artifactId);
-            config.headers.add("X-Registry-ArtifactType", ArtifactType.JSON);
-            config.headers.add("Content-Type", "application/create.extended+json");
-        });
+        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.JSON, artifactData, ContentTypes.APPLICATION_JSON);
+        createArtifact.getFirstVersion().setName(name);
+        clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact);
 
-        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().post(content, config -> {
-            config.headers.add("X-Registry-ArtifactId", artifactId);
-            config.headers.add("Content-Type", "application/create.extended+json");
-        });
+        CreateVersion createVersion = TestUtils.clientCreateVersion(artifactData, ContentTypes.APPLICATION_JSON);
+        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().post(createVersion);
 
         //Execution
         VersionSearchResults results = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().get(config -> {
@@ -619,13 +575,8 @@ public class RegistryClientTest extends AbstractResourceTestBase {
             String name = root + i;
             String artifactData = "{\"type\":\"record\",\"title\":\"" + name + "\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
 
-            ArtifactContent content = new ArtifactContent();
-            content.setContent(artifactData);
-            VersionMetaData md = clientV3.groups().byGroupId(groupId).artifacts().post(content, config -> {
-                config.headers.add("X-Registry-ArtifactId", artifactId);
-                config.headers.add("X-Registry-ArtifactType", ArtifactType.JSON);
-                config.headers.add("Content-Type", "application/create.extended+json");
-            });
+            CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.JSON, artifactData, ContentTypes.APPLICATION_JSON);
+            VersionMetaData md = clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact).getVersion();
 
             artifactIds.add(artifactId);
             versions.add(md.getVersion());
@@ -686,21 +637,14 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         String name = "testSearchDisabledVersions" + ThreadLocalRandom.current().nextInt(1000000);
         String artifactData = "{\"type\":\"record\",\"title\":\"" + name + "\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
 
-        ArtifactContent content = new ArtifactContent();
-        content.setContent(artifactData);
-        clientV3.groups().byGroupId(groupId).artifacts().post(content, config -> {
-            config.headers.add("X-Registry-ArtifactId", artifactId);
-            config.headers.add("X-Registry-ArtifactType", ArtifactType.JSON);
-            config.headers.add("Content-Type", "application/create.extended+json");
-        });
+        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.JSON, artifactData, ContentTypes.APPLICATION_JSON);
+        createArtifact.getFirstVersion().setName(name);
+        clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact);
 
-        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().post(content, config -> {
-            config.headers.add("X-Registry-ArtifactId", artifactId);
-        });
-
-        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().post(content, config -> {
-            config.headers.add("X-Registry-ArtifactId", artifactId);
-        });
+        CreateVersion createVersion = TestUtils.clientCreateVersion(artifactData, ContentTypes.APPLICATION_JSON);
+        createVersion.setName(name);
+        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().post(createVersion);
+        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().post(createVersion);
 
         //Execution
         VersionSearchResults results = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().get(config -> {
@@ -729,7 +673,6 @@ public class RegistryClientTest extends AbstractResourceTestBase {
             config.queryParameters.limit = 5;
         });
 
-
         //Assertions
         Assertions.assertNotNull(results);
         Assertions.assertEquals(3, results.getCount());
@@ -750,13 +693,9 @@ public class RegistryClientTest extends AbstractResourceTestBase {
        final String groupId = "testLabels";
        String artifactId = generateArtifactId();
        try {
-            ArtifactContent content = new ArtifactContent();
-            content.setContent("{\"name\":\"redhat\"}");
-            clientV3.groups().byGroupId(groupId).artifacts().post(content, config -> {
-                config.headers.add("X-Registry-ArtifactId", artifactId);
-                config.headers.add("X-Registry-ArtifactType", ArtifactType.JSON);
-                config.headers.add("Content-Type", "application/create.extended+json");
-            });
+
+           CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.JSON, "{\"name\":\"redhat\"}", ContentTypes.APPLICATION_JSON);
+           clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact);
 
            EditableArtifactMetaData emd = new EditableArtifactMetaData();
            emd.setName("testProperties");
@@ -773,7 +712,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
            clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).put(emd);
 
            //Assertions
-           retry(() -> {
+           {
                ArtifactMetaData artifactMetaData = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get();
                Assertions.assertNotNull(artifactMetaData);
                Assertions.assertEquals("testProperties", artifactMetaData.getName());
@@ -782,7 +721,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
                for (String key : artifactMetaData.getLabels().getAdditionalData().keySet()) {
                    assertEquals(artifactMetaData.getLabels().getAdditionalData().get(key), artifactLabels.get(key));
                }
-           });
+           }
        } finally {
            clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).delete();
        }
@@ -802,39 +741,28 @@ public class RegistryClientTest extends AbstractResourceTestBase {
             // Create artifact 1
             String firstName = "aaaTestorder" + ThreadLocalRandom.current().nextInt(1000000);
             String artifactData = "{\"type\":\"record\",\"title\":\"" + firstName + "\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
+            CreateArtifact createArtifact1 = TestUtils.clientCreateArtifact(firstArtifactId, ArtifactType.JSON, artifactData, ContentTypes.APPLICATION_JSON);
+            createArtifact1.setName(firstName);
+            clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact1);
 
-            ArtifactContent content = new ArtifactContent();
-            content.setContent(artifactData);
-            clientV3.groups().byGroupId(groupId).artifacts().post(content, config -> {
-                config.headers.add("X-Registry-ArtifactId", firstArtifactId);
-                config.headers.add("X-Registry-ArtifactType", ArtifactType.JSON);
-                config.headers.add("Content-Type", "application/create.extended+json");
-            });
             // Create artifact 2
             String secondName = "bbbTestorder" + ThreadLocalRandom.current().nextInt(1000000);
             String secondData = "{\"type\":\"record\",\"title\":\"" + secondName + "\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
+            CreateArtifact createArtifact2 = TestUtils.clientCreateArtifact(secondArtifactId, ArtifactType.JSON, secondData, ContentTypes.APPLICATION_JSON);
+            createArtifact2.setName(secondName);
+            clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact2);
 
-            content.setContent(secondData);
-            clientV3.groups().byGroupId(groupId).artifacts().post(content, config -> {
-                config.headers.add("X-Registry-ArtifactId", secondArtifactId);
-                config.headers.add("X-Registry-ArtifactType", ArtifactType.JSON);
-                config.headers.add("Content-Type", "application/create.extended+json");
-            });
             // Create artifact 3
             String thirdData = "{\"openapi\":\"3.0.2\",\"info\":{\"description\":\"testorder\"}}";
+            CreateArtifact createArtifact3 = TestUtils.clientCreateArtifact(thirdArtifactId, ArtifactType.JSON, thirdData, ContentTypes.APPLICATION_JSON);
+            createArtifact3.setDescription("testorder");
+            clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact3);
 
-            content.setContent(thirdData);
-            clientV3.groups().byGroupId(groupId).artifacts().post(content, config -> {
-                config.headers.add("X-Registry-ArtifactId", thirdArtifactId);
-                config.headers.add("X-Registry-ArtifactType", ArtifactType.OPENAPI);
-                config.headers.add("Content-Type", "application/create.extended+json");
-            });
-
-            retry(() -> {
+            {
                 ArtifactMetaData artifactMetaData = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(thirdArtifactId).get();
                 Assertions.assertNotNull(artifactMetaData);
                 Assertions.assertEquals("testorder", artifactMetaData.getDescription());
-            });
+            }
 
             //Execution
             ArtifactSearchResults ascResults = clientV3.search().artifacts().get(config -> {
@@ -928,9 +856,10 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         createArtifact(groupId, artifactId);
 
         //Execution
-        ArtifactContent content = new ArtifactContent();
-        content.setContent(ARTIFACT_CONTENT);
-        final VersionMetaData versionMetaData = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).post(content);
+        VersionContent vc = new VersionContent();
+        vc.setContent(ARTIFACT_CONTENT);
+        vc.setContentType(ContentTypes.APPLICATION_JSON);
+        final VersionMetaData versionMetaData = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).post(vc);
 
         assertNotNull(versionMetaData);
 
@@ -947,11 +876,12 @@ public class RegistryClientTest extends AbstractResourceTestBase {
 
         createArtifactWithReferences(groupId, secondArtifactId, artifactReferences);
 
-        ArtifactContent artifactContent = new ArtifactContent();
-        artifactContent.setContent(ARTIFACT_CONTENT);
-        artifactContent.setReferences(artifactReferences);
+        VersionContent vc2 = new VersionContent();
+        vc2.setContent(ARTIFACT_CONTENT);
+        vc2.setContentType(ContentTypes.APPLICATION_JSON);
+        vc2.setReferences(artifactReferences);
 
-        final VersionMetaData secondVersionMetadata = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(secondArtifactId).post(artifactContent);
+        final VersionMetaData secondVersionMetadata = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(secondArtifactId).post(vc2);
 
         assertNotEquals(secondVersionMetadata.getContentId(), versionMetaData.getContentId());
     }
@@ -1017,33 +947,14 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         VersionMetaData amd = createArtifact(groupId, artifactId);
 
         //Execution
-        TestUtils.retry(() -> {
+        {
             InputStream content = clientV3.ids().globalIds().byGlobalId(amd.getGlobalId()).get();
             assertNotNull(content);
 
             //Assertions
             String artifactContent = IOUtils.toString(content, StandardCharsets.UTF_8);
             assertEquals(ARTIFACT_CONTENT, artifactContent);
-        });
-    }
-
-    @Test
-    public void getArtifactVersionMetaDataByContent() throws Exception {
-        //Preparation
-        final String groupId = "getArtifactVersionMetaDataByContent";
-        final String artifactId = generateArtifactId();
-
-        //Create first artifact, without references
-        final VersionMetaData amd = createArtifact(groupId, artifactId);
-        //Execution
-        ArtifactContent content = new ArtifactContent();
-        content.setContent(ARTIFACT_CONTENT);
-        final VersionMetaData vmd = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).post(content);
-
-        //Assertions
-        assertEquals(amd.getGlobalId(), vmd.getGlobalId());
-        assertEquals(amd.getArtifactId(), vmd.getArtifactId());
-        assertEquals(amd.getContentId(), vmd.getContentId());
+        }
     }
 
     @Test
@@ -1054,24 +965,20 @@ public class RegistryClientTest extends AbstractResourceTestBase {
 
         createArtifact(groupId, artifactId);
 
-        TestUtils.retry(() -> {
-            final List<RuleType> emptyRules = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).rules().get();
+        final List<RuleType> emptyRules = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).rules().get();
 
-            //Assertions
-            assertNotNull(emptyRules);
-            assertTrue(emptyRules.isEmpty());
-        });
+        //Assertions
+        assertNotNull(emptyRules);
+        assertTrue(emptyRules.isEmpty());
 
         //Execution
         createArtifactRule(groupId, artifactId, io.apicurio.registry.types.RuleType.COMPATIBILITY, "BACKWARD");
 
-        TestUtils.retry(() -> {
-            final List<RuleType> ruleTypes = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).rules().get();
+        final List<RuleType> ruleTypes = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).rules().get();
 
-            //Assertions
-            assertNotNull(ruleTypes);
-            assertFalse(ruleTypes.isEmpty());
-        });
+        //Assertions
+        assertNotNull(ruleTypes);
+        assertFalse(ruleTypes.isEmpty());
     }
 
     @Test
@@ -1081,7 +988,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         final String artifactId = generateArtifactId();
 
         //First create the references schema
-        createArtifact(groupId, artifactId, ArtifactType.AVRO, REFERENCED_SCHEMA);
+        createArtifact(groupId, artifactId, ArtifactType.AVRO, REFERENCED_SCHEMA, ContentTypes.APPLICATION_JSON);
 
         io.apicurio.registry.rest.v3.beans.ArtifactReference artifactReference = new io.apicurio.registry.rest.v3.beans.ArtifactReference();
         artifactReference.setArtifactId(artifactId);
@@ -1090,12 +997,12 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         artifactReference.setName("com.example.common.ItemId");
 
         final String secondArtifactId = generateArtifactId();
-        createArtifactWithReferences(groupId, secondArtifactId, ArtifactType.AVRO, SCHEMA_WITH_REFERENCE, List.of(artifactReference));
+        createArtifactWithReferences(groupId, secondArtifactId, ArtifactType.AVRO, SCHEMA_WITH_REFERENCE, ContentTypes.APPLICATION_JSON, List.of(artifactReference));
 
         //Create rule
         createArtifactRule(groupId, secondArtifactId, io.apicurio.registry.types.RuleType.COMPATIBILITY, "BACKWARD");
 
-        updateArtifactWithReferences(groupId, secondArtifactId, ArtifactType.AVRO, SCHEMA_WITH_REFERENCE, List.of(artifactReference));
+        createArtifactVersionExtendedRaw(groupId, secondArtifactId, SCHEMA_WITH_REFERENCE, ContentTypes.APPLICATION_JSON, List.of(artifactReference));
 
         clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).delete();
         clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(secondArtifactId).delete();
@@ -1113,11 +1020,9 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).rules().delete();
 
         //Assertions
-        TestUtils.retry(() -> {
-            final List<RuleType> emptyRules = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).rules().get();
-            assertNotNull(emptyRules);
-            assertTrue(emptyRules.isEmpty());
-        });
+        final List<RuleType> emptyRules = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).rules().get();
+        assertNotNull(emptyRules);
+        assertTrue(emptyRules.isEmpty());
     }
 
     @Test
@@ -1128,13 +1033,11 @@ public class RegistryClientTest extends AbstractResourceTestBase {
 
         prepareRuleTest(groupId, artifactId, io.apicurio.registry.types.RuleType.COMPATIBILITY, "BACKWARD");
 
-        TestUtils.retry(() -> {
-            //Execution
-            final Rule rule = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).rules().byRule(RuleType.COMPATIBILITY.name()).get();
-            //Assertions
-            assertNotNull(rule);
-            assertEquals("BACKWARD", rule.getConfig());
-        });
+        //Execution
+        final Rule rule = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).rules().byRule(RuleType.COMPATIBILITY.name()).get();
+        //Assertions
+        assertNotNull(rule);
+        assertEquals("BACKWARD", rule.getConfig());
     }
 
     @Test
@@ -1145,11 +1048,9 @@ public class RegistryClientTest extends AbstractResourceTestBase {
 
         prepareRuleTest(groupId, artifactId, io.apicurio.registry.types.RuleType.COMPATIBILITY, "BACKWARD");
 
-        TestUtils.retry(() -> {
-            final Rule rule = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).rules().byRule(RuleType.COMPATIBILITY.name()).get();
-            assertNotNull(rule);
-            assertEquals("BACKWARD", rule.getConfig());
-        });
+        final Rule rule = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).rules().byRule(RuleType.COMPATIBILITY.name()).get();
+        assertNotNull(rule);
+        assertEquals("BACKWARD", rule.getConfig());
 
         final Rule toUpdate = new Rule();
         toUpdate.setType(RuleType.COMPATIBILITY);
@@ -1177,15 +1078,11 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         final String description = "testUpdateArtifactDescription";
 
         //Execution
-        ArtifactContent content = new ArtifactContent();
-        content.setContent(updatedContent);
-        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().post(content, config -> {
-            config.headers.add("X-Registry-ArtifactId", artifactId);
-            config.headers.add("X-Registry-Name", name);
-            config.headers.add("X-Registry-Description", description);
-            config.headers.add("X-Registry-Version", version);
-            config.headers.add("Content-Type", "application/create.extended+json");
-        });
+        CreateVersion createVersion = TestUtils.clientCreateVersion(updatedContent, ContentTypes.APPLICATION_JSON);
+        createVersion.setName(name);
+        createVersion.setDescription(description);
+        createVersion.setVersion(version);
+        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().post(createVersion);
 
         //Assertions
         assertEquals(updatedContent, IoUtil.toString(clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").content().get()));
@@ -1199,7 +1096,6 @@ public class RegistryClientTest extends AbstractResourceTestBase {
 
     @Test
     public void testUpdateYamlArtifact() throws Exception {
-
         //Preparation
         final String groupId = "testUpdateYamlArtifact";
         final String artifactId = generateArtifactId();
@@ -1210,29 +1106,20 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         final String description = "testUpdateYamlArtifactDescription";
 
         //Execution
-        ArtifactContent content = new ArtifactContent();
-        content.setContent(UPDATED_OPENAPI_YAML_CONTENT);
-        var request = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().toPostRequestInformation(content, config -> {
-            config.headers.add("X-Registry-ArtifactId", artifactId);
-            config.headers.add("X-Registry-ArtifactType", ArtifactType.OPENAPI);
-            config.headers.add("X-Registry-Name", name);
-            config.headers.add("X-Registry-Description", description);
-            config.headers.add("X-Registry-Version", version);
-        });
-        // HACK to set the correct body content
-        request.setStreamContent(new ByteArrayInputStream(UPDATED_OPENAPI_YAML_CONTENT.getBytes()));
-        // HACK to set the correct header
-        request.headers.replace("Content-Type", Set.of(ContentTypes.APPLICATION_YAML));
-        anonymousAdapter.send(request, new HashMap<>(), VersionMetaData::createFromDiscriminatorValue);
+        CreateVersion createVersion = TestUtils.clientCreateVersion(UPDATED_OPENAPI_YAML_CONTENT, ContentTypes.APPLICATION_YAML);
+        createVersion.setName(name);
+        createVersion.setDescription(description);
+        createVersion.setVersion(version);
+        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().post(createVersion);
 
         //Assertions
-        assertMultilineTextEquals(UPDATED_OPENAPI_JSON_CONTENT, IoUtil.toString(clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").content().get()));
+        assertMultilineTextEquals(UPDATED_OPENAPI_YAML_CONTENT, IoUtil.toString(clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").content().get()));
 
-        VersionMetaData artifactMetaData = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").get();
-        assertNotNull(artifactMetaData);
-        assertEquals(version, artifactMetaData.getVersion());
-        assertEquals(name, artifactMetaData.getName());
-        assertEquals(description, artifactMetaData.getDescription());
+        VersionMetaData vmd = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").get();
+        assertNotNull(vmd);
+        assertEquals(version, vmd.getVersion());
+        assertEquals(name, vmd.getName());
+        assertEquals(description, vmd.getDescription());
     }
 
     @Test
@@ -1251,13 +1138,11 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         //Execution
         clientV3.groups().byGroupId(groupId).artifacts().delete();
 
-        TestUtils.retry(() -> {
-            final ArtifactSearchResults deleted = clientV3.groups().byGroupId(groupId).artifacts().get();
+        final ArtifactSearchResults deleted = clientV3.groups().byGroupId(groupId).artifacts().get();
 
-            //Assertions
-            assertTrue(deleted.getArtifacts().isEmpty());
-            assertEquals(0, (int) deleted.getCount());
-        });
+        //Assertions
+        assertTrue(deleted.getArtifacts().isEmpty());
+        assertEquals(0, (int) deleted.getCount());
     }
 
     @Test
@@ -1268,8 +1153,8 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         final String secondArtifactId = generateArtifactId();
 
         String content = "{\"name\":\"" + TestUtils.generateSubject() + "\"}";
-        createArtifact(groupId, firstArtifactId, "AVRO", content);
-        createArtifact(groupId, secondArtifactId, "AVRO", content);
+        createArtifact(groupId, firstArtifactId, ArtifactType.AVRO, content, ContentTypes.APPLICATION_JSON);
+        createArtifact(groupId, secondArtifactId, ArtifactType.AVRO, content, ContentTypes.APPLICATION_JSON);
 
         //Execution
         final ArtifactSearchResults searchResults = clientV3.search().artifacts().post(IoUtil.toStream(content), "application/create.extended+json");
@@ -1283,17 +1168,14 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         createGlobalRule(io.apicurio.registry.types.RuleType.COMPATIBILITY, "BACKWARD");
         createGlobalRule(io.apicurio.registry.types.RuleType.VALIDITY, "FORWARD");
 
-        TestUtils.retry(() -> {
-            final List<RuleType> globalRules = clientV3.admin().rules().get();
-            assertEquals(2, globalRules.size());
-            assertTrue(globalRules.contains(RuleType.COMPATIBILITY));
-            assertTrue(globalRules.contains(RuleType.VALIDITY));
-        });
+        final List<RuleType> globalRules = clientV3.admin().rules().get();
+        assertEquals(2, globalRules.size());
+        assertTrue(globalRules.contains(RuleType.COMPATIBILITY));
+        assertTrue(globalRules.contains(RuleType.VALIDITY));
         clientV3.admin().rules().delete();
-        TestUtils.retry(() -> {
-            final List<RuleType> updatedRules = clientV3.admin().rules().get();
-            assertEquals(0, updatedRules.size());
-        });
+
+        final List<RuleType> updatedRules = clientV3.admin().rules().get();
+        assertEquals(0, updatedRules.size());
     }
 
     @Test
@@ -1301,12 +1183,10 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         //Preparation
         createGlobalRule(io.apicurio.registry.types.RuleType.COMPATIBILITY, "BACKWARD");
 
-        TestUtils.retry(() -> {
-            //Execution
-            final Rule globalRuleConfig = clientV3.admin().rules().byRule(RuleType.COMPATIBILITY.name()).get();
-            //Assertions
-            assertEquals(globalRuleConfig.getConfig(), "BACKWARD");
-        });
+        //Execution
+        final Rule globalRuleConfig = clientV3.admin().rules().byRule(RuleType.COMPATIBILITY.name()).get();
+        //Assertions
+        assertEquals(globalRuleConfig.getConfig(), "BACKWARD");
     }
 
     @Test
@@ -1314,10 +1194,8 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         //Preparation
         createGlobalRule(io.apicurio.registry.types.RuleType.COMPATIBILITY, "BACKWARD");
 
-        TestUtils.retry(() -> {
-            final Rule globalRuleConfig = clientV3.admin().rules().byRule(RuleType.COMPATIBILITY.name()).get();
-            assertEquals(globalRuleConfig.getConfig(), "BACKWARD");
-        });
+        final Rule globalRuleConfig = clientV3.admin().rules().byRule(RuleType.COMPATIBILITY.name()).get();
+        assertEquals(globalRuleConfig.getConfig(), "BACKWARD");
 
         final Rule toUpdate = new Rule();
         toUpdate.setType(RuleType.COMPATIBILITY);
@@ -1335,20 +1213,16 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         //Preparation
         createGlobalRule(io.apicurio.registry.types.RuleType.COMPATIBILITY, "BACKWARD");
 
-        TestUtils.retry(() -> {
-            final Rule globalRuleConfig = clientV3.admin().rules().byRule(RuleType.COMPATIBILITY.name()).get();
-            assertEquals(globalRuleConfig.getConfig(), "BACKWARD");
-        });
+        final Rule globalRuleConfig = clientV3.admin().rules().byRule(RuleType.COMPATIBILITY.name()).get();
+        assertEquals(globalRuleConfig.getConfig(), "BACKWARD");
 
         //Execution
         clientV3.admin().rules().byRule(RuleType.COMPATIBILITY.name()).delete();
 
-        TestUtils.retry(() -> {
-            final List<RuleType> ruleTypes = clientV3.admin().rules().get();
+        final List<RuleType> ruleTypes = clientV3.admin().rules().get();
 
-            //Assertions
-            assertEquals(0, ruleTypes.size());
-        });
+        //Assertions
+        assertEquals(0, ruleTypes.size());
     }
 
     @Test
@@ -1403,9 +1277,8 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         vmeta = clientV3.groups().byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString()).artifacts().byArtifactId(artifactId).versions().byVersionExpression(vmeta.getVersion()).get();
         assertTrue(new GroupId(vmeta.getGroupId()).isDefaultGroup());
 
-        ArtifactContent artifactContent = new ArtifactContent();
-        artifactContent.setContent(content);
-        vmeta = clientV3.groups().byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString()).artifacts().byArtifactId(artifactId).versions().post(artifactContent);
+        CreateVersion createVersion = TestUtils.clientCreateVersion(content, ContentTypes.APPLICATION_JSON);
+        vmeta = clientV3.groups().byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString()).artifacts().byArtifactId(artifactId).versions().post(createVersion);
         assertTrue(new GroupId(vmeta.getGroupId()).isDefaultGroup());
 
         clientV3.groups().byGroupId("default").artifacts().get().getArtifacts()
@@ -1415,29 +1288,17 @@ public class RegistryClientTest extends AbstractResourceTestBase {
     }
 
     private VersionMetaData createArtifact(String groupId, String artifactId) throws Exception {
-        ArtifactContent content = new ArtifactContent();
-        content.setContent(ARTIFACT_CONTENT);
-        final VersionMetaData created = clientV3.groups().byGroupId(groupId).artifacts().post(content, config -> {
-            config.queryParameters.canonical = false;
-            config.queryParameters.ifExists = IfExists.FAIL;
-            config.headers.add("X-Registry-ArtifactId", artifactId);
-            config.headers.add("X-Registry-ArtifactType", ArtifactType.JSON);
-            config.headers.add("X-Registry-Name", artifactId);
-        });
+        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.JSON, ARTIFACT_CONTENT, ContentTypes.APPLICATION_JSON);
+        createArtifact.setName(artifactId);
+        final VersionMetaData created = clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact).getVersion();
         return checkArtifact(groupId, artifactId, created);
     }
 
     private VersionMetaData createArtifactWithReferences(String groupId, String artifactId, List<ArtifactReference> artifactReferences) throws Exception {
-        ArtifactContent content = new ArtifactContent();
-        content.setContent(ARTIFACT_CONTENT);
-        content.setReferences(artifactReferences);
-        final VersionMetaData created = clientV3.groups().byGroupId(groupId).artifacts().post(content, config -> {
-            config.queryParameters.canonical = false;
-            config.queryParameters.ifExists = IfExists.FAIL;
-            config.headers.add("X-Registry-ArtifactId", artifactId);
-            config.headers.add("X-Registry-ArtifactType", ArtifactType.JSON);
-            config.headers.add("X-Registry-Name", artifactId);
-        });
+        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.JSON, ARTIFACT_CONTENT, ContentTypes.APPLICATION_JSON);
+        createArtifact.getFirstVersion().getContent().setReferences(artifactReferences);
+        createArtifact.setName(artifactId);
+        final VersionMetaData created = clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact).getVersion();
 
         return checkArtifact(groupId, artifactId, created);
     }
@@ -1455,16 +1316,8 @@ public class RegistryClientTest extends AbstractResourceTestBase {
     }
 
     private @NotNull VersionMetaData createOpenAPIArtifact(String groupId, String artifactId) throws Exception {
-        ArtifactContent content = new ArtifactContent();
-        content.setContent(ARTIFACT_OPENAPI_JSON_CONTENT);
-
-        final VersionMetaData created = clientV3.groups().byGroupId(groupId).artifacts().post(content, config -> {
-            config.queryParameters.canonical = false;
-            config.queryParameters.ifExists = IfExists.FAIL;
-            config.headers.add("X-Registry-ArtifactId", artifactId);
-            config.headers.add("X-Registry-ArtifactType", ArtifactType.OPENAPI);
-            config.headers.add("Content-Type", "application/create.extended+json");
-        });
+        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.OPENAPI, ARTIFACT_OPENAPI_JSON_CONTENT, ContentTypes.APPLICATION_JSON);
+        final VersionMetaData created = clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact).getVersion();
         return checkArtifact(groupId, artifactId, created);
     }
 
@@ -1644,17 +1497,13 @@ public class RegistryClientTest extends AbstractResourceTestBase {
 
     @Test
     public void testForceArtifactType() throws Exception {
-        var artifactContent = resourceToInputStream("sample.wsdl");
+        var artifactContent = resourceToString("sample.wsdl");
 
         String groupId = TestUtils.generateGroupId();
         String artifactId = TestUtils.generateArtifactId();
 
-        ArtifactContent content = new ArtifactContent();
-        content.setContent(IOUtils.toString(artifactContent));
-        /*var postReq = */clientV3.groups().byGroupId(groupId).artifacts().post(content, config -> {
-            config.headers.add("X-Registry-ArtifactId", artifactId);
-            config.headers.add("X-Registry-ArtifactType", ArtifactType.AVRO);
-        });
+        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO, artifactContent, ContentTypes.APPLICATION_JSON);
+        /*var postReq = */clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact);
 
         var meta = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get();
 
@@ -1675,11 +1524,8 @@ public class RegistryClientTest extends AbstractResourceTestBase {
             var execution1 = Assertions.assertThrows(ApiException.class, () -> client.groups().byGroupId("test").artifacts().byArtifactId("test").get());
             Assertions.assertEquals(429, execution1.getResponseStatusCode());
 
-            ArtifactContent content = new ArtifactContent();
-            content.setContent("{}");
-            var exception2 = Assertions.assertThrows(ApiException.class, () -> client.groups().byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString()).artifacts().post(content, config -> {
-                config.headers.add("X-Registry-ArtifactId", "aaa");
-            }));
+            CreateArtifact createArtifact = TestUtils.clientCreateArtifact("aaa", ArtifactType.JSON, "{}", ContentTypes.APPLICATION_JSON);
+            var exception2 = Assertions.assertThrows(ApiException.class, () -> client.groups().byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString()).artifacts().post(createArtifact));
             Assertions.assertEquals(429, exception2.getResponseStatusCode());
 
             var exception3 = Assertions.assertThrows(ApiException.class, () -> client.ids().globalIds().byGlobalId(5L).get());
@@ -1697,15 +1543,11 @@ public class RegistryClientTest extends AbstractResourceTestBase {
 
         final VersionMetaData v1md = createArtifact(groupId, artifactId);
 
-        ArtifactContent content = new ArtifactContent();
-        content.setContent(ARTIFACT_CONTENT);
-
-        final VersionMetaData v2md = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().post(content, config -> {
-            config.headers.add("X-Registry-ArtifactId", artifactId);
-        });
+        CreateVersion createVersion = TestUtils.clientCreateVersion(ARTIFACT_CONTENT, ContentTypes.APPLICATION_JSON);
+        final VersionMetaData v2md = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().post(createVersion);
 
         //Execution
-        final VersionMetaData vmd = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).post(content);
+        final VersionMetaData vmd = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).post(createVersion.getContent());
 
         //Assertions
         assertNotEquals(v1md.getGlobalId(), v2md.getGlobalId());

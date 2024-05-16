@@ -1,20 +1,19 @@
 package io.apicurio.registry.noprofile;
 
-import java.util.Collections;
-import java.util.UUID;
-
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Test;
-
 import io.apicurio.registry.AbstractResourceTestBase;
-import io.apicurio.registry.rest.client.models.ArtifactContent;
 import io.apicurio.registry.rest.client.models.ArtifactSearchResults;
 import io.apicurio.registry.rest.client.models.EditableArtifactMetaData;
 import io.apicurio.registry.rest.client.models.Labels;
 import io.apicurio.registry.rest.client.models.SortBy;
 import io.apicurio.registry.rest.client.models.SortOrder;
 import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.ContentTypes;
 import io.quarkus.test.junit.QuarkusTest;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+
+import java.util.Collections;
+import java.util.UUID;
 
 @QuarkusTest
 public class ArtifactSearchTest extends AbstractResourceTestBase {
@@ -39,11 +38,12 @@ public class ArtifactSearchTest extends AbstractResourceTestBase {
         String description = "The quick brown FOX jumped over the Lazy dog.";
         String content = OPENAPI_CONTENT_TEMPLATE.replace("TITLE", title).replace("DESCRIPTION", description);
 
-        ArtifactContent data = new ArtifactContent();
-        data.setContent(content);
-        clientV3.groups().byGroupId(groupId).artifacts().post(data, config -> {
-            config.headers.add("X-Registry-ArtifactId", artifactId);
-            config.headers.add("X-Registry-ArtifactType", ArtifactType.OPENAPI);
+        createArtifact(groupId, artifactId, ArtifactType.OPENAPI, content, ContentTypes.APPLICATION_JSON, (createArtifact) -> {
+            createArtifact.setName(title);
+            createArtifact.setDescription(description);
+            createArtifact.getFirstVersion().setName(title);
+            createArtifact.getFirstVersion().setDescription(description);
+            return null;
         });
 
         // Search against the name, with the exact name of the artifact

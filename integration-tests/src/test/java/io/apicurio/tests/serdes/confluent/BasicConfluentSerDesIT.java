@@ -1,5 +1,6 @@
 package io.apicurio.tests.serdes.confluent;
 
+import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.tests.ConfluentBaseIT;
 import io.apicurio.tests.serdes.apicurio.SerdesTester;
 import io.apicurio.tests.serdes.apicurio.SimpleSerdesTesterBuilder;
@@ -111,7 +112,7 @@ public class BasicConfluentSerDesIT extends ConfluentBaseIT {
 
         AvroGenericRecordSchemaFactory avroSchema = new AvroGenericRecordSchemaFactory("myrecordconfluent1", List.of("key1"));
 
-        createArtifact("default", subjectName, ArtifactType.AVRO, avroSchema.generateSchemaStream());
+        createArtifact("default", subjectName, ArtifactType.AVRO, avroSchema.generateSchema().toString(), ContentTypes.APPLICATION_JSON, null, null);
 
         new SimpleSerdesTesterBuilder<GenericRecord, GenericRecord>()
             .withTopic(topicName)
@@ -226,7 +227,7 @@ public class BasicConfluentSerDesIT extends ConfluentBaseIT {
 
         String schemaKey2 = "key2";
         AvroGenericRecordSchemaFactory avroSchema2 = new AvroGenericRecordSchemaFactory(recordName, List.of(schemaKey, schemaKey2));
-        createArtifactVersion("default", subjectName, avroSchema2.generateSchemaStream());
+        createArtifactVersion("default", subjectName, avroSchema2.generateSchema().toString(), ContentTypes.APPLICATION_JSON, null);
 
         producer = tester.createProducer(StringSerializer.class, KafkaAvroSerializer.class, topicName, strategy);
         tester.produceMessages(producer, topicName, avroSchema2::generateRecord, messageCount);
@@ -254,7 +255,7 @@ public class BasicConfluentSerDesIT extends ConfluentBaseIT {
 
         String schemaKey3 = "key3";
         AvroGenericRecordSchemaFactory avroSchema3 = new AvroGenericRecordSchemaFactory(recordName, List.of(schemaKey, schemaKey2, schemaKey3));
-        createArtifactVersion("default", subjectName, avroSchema3.generateSchemaStream());
+        createArtifactVersion("default", subjectName, avroSchema3.generateSchema().toString(), ContentTypes.APPLICATION_JSON, null);
 
         producer = tester.createProducer(StringSerializer.class, KafkaAvroSerializer.class, topicName, strategy);
         tester.produceMessages(producer, topicName, avroSchema3::generateRecord, messageCount);

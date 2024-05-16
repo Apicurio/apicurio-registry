@@ -1,10 +1,26 @@
 package io.apicurio.tests.serdes.apicurio;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-
-import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
-
+import io.apicurio.registry.rest.client.models.VersionMetaData;
+import io.apicurio.registry.serde.SerdeConfig;
+import io.apicurio.registry.serde.avro.AvroKafkaDeserializer;
+import io.apicurio.registry.serde.avro.AvroKafkaSerdeConfig;
+import io.apicurio.registry.serde.avro.AvroKafkaSerializer;
+import io.apicurio.registry.serde.avro.ReflectAvroDatumProvider;
+import io.apicurio.registry.serde.avro.strategy.RecordIdStrategy;
+import io.apicurio.registry.serde.avro.strategy.TopicRecordIdStrategy;
+import io.apicurio.registry.serde.config.IdOption;
+import io.apicurio.registry.serde.strategy.SimpleTopicIdStrategy;
+import io.apicurio.registry.serde.strategy.TopicIdStrategy;
+import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.ContentTypes;
+import io.apicurio.registry.utils.IoUtil;
+import io.apicurio.registry.utils.tests.TestUtils;
+import io.apicurio.registry.utils.tests.TooManyRequestsMock;
+import io.apicurio.tests.ApicurioRegistryBaseIT;
+import io.apicurio.tests.common.serdes.TestObject;
+import io.apicurio.tests.utils.Constants;
+import io.apicurio.tests.utils.KafkaFacade;
+import io.quarkus.test.junit.QuarkusIntegrationTest;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
@@ -18,26 +34,10 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
-import io.apicurio.registry.rest.client.models.VersionMetaData;
-import io.apicurio.registry.serde.SerdeConfig;
-import io.apicurio.registry.serde.avro.AvroKafkaDeserializer;
-import io.apicurio.registry.serde.avro.AvroKafkaSerdeConfig;
-import io.apicurio.registry.serde.avro.AvroKafkaSerializer;
-import io.apicurio.registry.serde.avro.ReflectAvroDatumProvider;
-import io.apicurio.registry.serde.avro.strategy.RecordIdStrategy;
-import io.apicurio.registry.serde.avro.strategy.TopicRecordIdStrategy;
-import io.apicurio.registry.serde.config.IdOption;
-import io.apicurio.registry.serde.strategy.SimpleTopicIdStrategy;
-import io.apicurio.registry.serde.strategy.TopicIdStrategy;
-import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.utils.IoUtil;
-import io.apicurio.registry.utils.tests.TestUtils;
-import io.apicurio.registry.utils.tests.TooManyRequestsMock;
-import io.apicurio.tests.ApicurioRegistryBaseIT;
-import io.apicurio.tests.common.serdes.TestObject;
-import io.apicurio.tests.utils.Constants;
-import io.apicurio.tests.utils.KafkaFacade;
-import io.quarkus.test.junit.QuarkusIntegrationTest;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @Tag(Constants.SERDES)
 @QuarkusIntegrationTest
@@ -72,7 +72,7 @@ public class AvroSerdeIT extends ApicurioRegistryBaseIT {
 
         AvroGenericRecordSchemaFactory avroSchema = new AvroGenericRecordSchemaFactory("myrecordapicurio1", List.of("key1"));
 
-        createArtifact("default", artifactId, ArtifactType.AVRO, avroSchema.generateSchemaStream());
+        createArtifact("default", artifactId, ArtifactType.AVRO, avroSchema.generateSchema().toString(), ContentTypes.APPLICATION_JSON, null, null);
 
         new SimpleSerdesTesterBuilder<GenericRecord, GenericRecord>()
             .withTopic(topicName)
@@ -94,7 +94,7 @@ public class AvroSerdeIT extends ApicurioRegistryBaseIT {
 
         AvroGenericRecordSchemaFactory avroSchema = new AvroGenericRecordSchemaFactory("myrecordapicurio1", List.of("key1"));
 
-        createArtifact(topicName, artifactId, ArtifactType.AVRO, avroSchema.generateSchemaStream());
+        createArtifact(topicName, artifactId, ArtifactType.AVRO, avroSchema.generateSchema().toString(), ContentTypes.APPLICATION_JSON, null, null);
 
         new SimpleSerdesTesterBuilder<GenericRecord, GenericRecord>()
             .withTopic(topicName)
@@ -117,7 +117,7 @@ public class AvroSerdeIT extends ApicurioRegistryBaseIT {
         String artifactId = TestUtils.generateSubject();
         AvroGenericRecordSchemaFactory avroSchema = new AvroGenericRecordSchemaFactory(groupId, artifactId, List.of("key1"));
 
-        createArtifact(groupId, artifactId, ArtifactType.AVRO, avroSchema.generateSchemaStream());
+        createArtifact(groupId, artifactId, ArtifactType.AVRO, avroSchema.generateSchema().toString(), ContentTypes.APPLICATION_JSON, null, null);
 
         new SimpleSerdesTesterBuilder<GenericRecord, GenericRecord>()
             .withTopic(topicName)
@@ -140,7 +140,7 @@ public class AvroSerdeIT extends ApicurioRegistryBaseIT {
         AvroGenericRecordSchemaFactory avroSchema = new AvroGenericRecordSchemaFactory(groupId, recordName, List.of("key1"));
 
         String artifactId = topicName + "-" + recordName;
-        createArtifact(groupId, artifactId, ArtifactType.AVRO, avroSchema.generateSchemaStream());
+        createArtifact(groupId, artifactId, ArtifactType.AVRO, avroSchema.generateSchema().toString(), ContentTypes.APPLICATION_JSON, null, null);
 
         new SimpleSerdesTesterBuilder<GenericRecord, GenericRecord>()
             .withTopic(topicName)
@@ -199,7 +199,7 @@ public class AvroSerdeIT extends ApicurioRegistryBaseIT {
         AvroGenericRecordSchemaFactory avroSchemaA = new AvroGenericRecordSchemaFactory(groupId, artifactId, List.of("keyA"));
         AvroGenericRecordSchemaFactory avroSchemaB = new AvroGenericRecordSchemaFactory(groupId, artifactId, List.of("keyB"));
 
-        createArtifact(groupId, artifactId, ArtifactType.AVRO, avroSchemaA.generateSchemaStream());
+        createArtifact(groupId, artifactId, ArtifactType.AVRO, avroSchemaA.generateSchema().toString(), ContentTypes.APPLICATION_JSON, null, null);
 
         new WrongConfiguredSerdesTesterBuilder<GenericRecord>()
             .withTopic(topicName)
@@ -221,7 +221,7 @@ public class AvroSerdeIT extends ApicurioRegistryBaseIT {
         AvroGenericRecordSchemaFactory avroSchemaA = new AvroGenericRecordSchemaFactory(groupId, artifactId, List.of("keyA"));
         AvroGenericRecordSchemaFactory avroSchemaB = new AvroGenericRecordSchemaFactory(groupId, "notexistent", List.of("keyB"));
 
-        createArtifact(groupId, artifactId, ArtifactType.AVRO, avroSchemaA.generateSchemaStream());
+        createArtifact(groupId, artifactId, ArtifactType.AVRO, avroSchemaA.generateSchema().toString(), ContentTypes.APPLICATION_JSON, null, null);
 
         new WrongConfiguredSerdesTesterBuilder<GenericRecord>()
             .withTopic(topicName)
@@ -244,7 +244,7 @@ public class AvroSerdeIT extends ApicurioRegistryBaseIT {
         AvroGenericRecordSchemaFactory avroSchemaA = new AvroGenericRecordSchemaFactory(groupId, "myrecord", List.of("keyA"));
         AvroGenericRecordSchemaFactory avroSchemaB = new AvroGenericRecordSchemaFactory(groupId, "myrecord", List.of("keyB"));
 
-        createArtifact(groupId, artifactId, ArtifactType.AVRO, avroSchemaA.generateSchemaStream());
+        createArtifact(groupId, artifactId, ArtifactType.AVRO, avroSchemaA.generateSchema().toString(), ContentTypes.APPLICATION_JSON, null, null);
 
         new WrongConfiguredSerdesTesterBuilder<GenericRecord>()
             .withTopic(topicName)
@@ -299,7 +299,7 @@ public class AvroSerdeIT extends ApicurioRegistryBaseIT {
         AvroGenericRecordSchemaFactory avroSchema = new AvroGenericRecordSchemaFactory(recordNamespace, recordName, List.of(schemaKey));
 
         String artifactId = topicName + "-" + recordName;
-        createArtifact(recordNamespace, artifactId, ArtifactType.AVRO, avroSchema.generateSchemaStream());
+        createArtifact(recordNamespace, artifactId, ArtifactType.AVRO, avroSchema.generateSchema().toString(), ContentTypes.APPLICATION_JSON, null, null);
 
         SerdesTester<String, GenericRecord, GenericRecord> tester = new SerdesTester<>();
         if (reuseClients) {
@@ -316,7 +316,7 @@ public class AvroSerdeIT extends ApicurioRegistryBaseIT {
 
         String schemaKey2 = "key2";
         AvroGenericRecordSchemaFactory avroSchema2 = new AvroGenericRecordSchemaFactory(recordNamespace, recordName, List.of(schemaKey, schemaKey2));
-        createArtifactVersion(recordNamespace, artifactId, avroSchema2.generateSchemaStream());
+        createArtifactVersion(recordNamespace, artifactId, avroSchema2.generateSchema().toString(), ContentTypes.APPLICATION_JSON, null);
 
         if (!reuseClients) {
             producer = tester.createProducer(StringSerializer.class, AvroKafkaSerializer.class, topicName, strategy);
@@ -350,7 +350,7 @@ public class AvroSerdeIT extends ApicurioRegistryBaseIT {
 
         String schemaKey3 = "key3";
         AvroGenericRecordSchemaFactory avroSchema3 = new AvroGenericRecordSchemaFactory(recordNamespace, recordName, List.of(schemaKey, schemaKey2, schemaKey3));
-        createArtifactVersion(recordNamespace, artifactId, avroSchema3.generateSchemaStream());
+        createArtifactVersion(recordNamespace, artifactId, avroSchema3.generateSchema().toString(), ContentTypes.APPLICATION_JSON, null);
 
         if (!reuseClients) {
             producer = tester.createProducer(StringSerializer.class, AvroKafkaSerializer.class, topicName, strategy);
@@ -413,7 +413,7 @@ public class AvroSerdeIT extends ApicurioRegistryBaseIT {
         kafkaCluster.createTopic(topicName3, 1, 1);
 
         AvroGenericRecordSchemaFactory avroSchema = new AvroGenericRecordSchemaFactory(subjectName, List.of(schemaKey));
-        createArtifact("default", subjectName, ArtifactType.AVRO, avroSchema.generateSchemaStream());
+        createArtifact("default", subjectName, ArtifactType.AVRO, avroSchema.generateSchema().toString(), ContentTypes.APPLICATION_JSON, null, null);
 
         SerdesTester<String, GenericRecord, GenericRecord> tester = new SerdesTester<>();
 
@@ -579,7 +579,7 @@ public class AvroSerdeIT extends ApicurioRegistryBaseIT {
         //create several artifacts before to ensure the globalId and contentId are not the same
         AvroGenericRecordSchemaFactory avroSchema = new AvroGenericRecordSchemaFactory("myrecordapicurioz", List.of("keyz"));
         //create a duplicated artifact beforehand with the same content to force the contentId and globalId sequences to return different ids
-        createArtifact("default", TestUtils.generateArtifactId(), ArtifactType.AVRO, avroSchema.generateSchemaStream());
+        createArtifact("default", TestUtils.generateArtifactId(), ArtifactType.AVRO, avroSchema.generateSchema().toString(), ContentTypes.APPLICATION_JSON, null, null);
 
         new WrongConfiguredConsumerTesterBuilder<GenericRecord, GenericRecord>()
                 .withTopic(topicName)
@@ -616,7 +616,7 @@ public class AvroSerdeIT extends ApicurioRegistryBaseIT {
         //create artifact before to ensure the globalId and contentId are not the same
         AvroGenericRecordSchemaFactory avroSchema = new AvroGenericRecordSchemaFactory("myrecordapicurioz", List.of("keyz"));
         //create a duplicated artifact beforehand with the same content to force the contentId and globalId sequences to return different ids
-        createArtifact("default", TestUtils.generateArtifactId(), ArtifactType.AVRO, avroSchema.generateSchemaStream());
+        createArtifact("default", TestUtils.generateArtifactId(), ArtifactType.AVRO, avroSchema.generateSchema().toString(), ContentTypes.APPLICATION_JSON, null, null);
 
         new WrongConfiguredConsumerTesterBuilder<GenericRecord, GenericRecord>()
                 .withTopic(topicName)

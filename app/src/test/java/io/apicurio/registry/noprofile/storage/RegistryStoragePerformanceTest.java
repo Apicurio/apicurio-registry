@@ -2,15 +2,28 @@ package io.apicurio.registry.noprofile.storage;
 
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.storage.RegistryStorage;
-import io.apicurio.registry.storage.dto.*;
+import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
+import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
+import io.apicurio.registry.storage.dto.ContentWrapperDto;
+import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
+import io.apicurio.registry.storage.dto.EditableVersionMetaDataDto;
+import io.apicurio.registry.storage.dto.OrderBy;
+import io.apicurio.registry.storage.dto.OrderDirection;
+import io.apicurio.registry.storage.dto.SearchFilter;
+import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
 import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.types.Current;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-import java.util.*;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 @QuarkusTest
 public class RegistryStoragePerformanceTest {
@@ -32,10 +45,6 @@ public class RegistryStoragePerformanceTest {
     @Inject
     @Current
     RegistryStorage storage;
-
-    protected RegistryStorage getStorage() {
-        return storage;
-    }
 
     private boolean isTestEnabled() {
         return "enabled".equals(System.getProperty(RegistryStoragePerformanceTest.class.getSimpleName()));
@@ -66,8 +75,17 @@ public class RegistryStoragePerformanceTest {
                         .replaceAll("TITLE", title)
                         .replaceAll("DESCRIPTION", description)
                         .replaceAll("VERSION", String.valueOf(idx)));
+            ContentWrapperDto versionContent = ContentWrapperDto.builder()
+                    .content(content)
+                    .contentType(ContentTypes.APPLICATION_JSON)
+                    .build();
             EditableArtifactMetaDataDto metaData = new EditableArtifactMetaDataDto(title, description, null, labels);
-            storage.createArtifactWithMetadata(GROUP_ID, artifactId, null, ArtifactType.OPENAPI, content, metaData, null);
+            EditableVersionMetaDataDto versionMetaData = EditableVersionMetaDataDto.builder()
+                    .name(title)
+                    .description(description)
+                    .build();
+            storage.createArtifact(GROUP_ID, artifactId, ArtifactType.OPENAPI, metaData, null, versionContent,
+                    versionMetaData, List.of());
 
             System.out.print(".");
             if (idx % 100 == 0) {

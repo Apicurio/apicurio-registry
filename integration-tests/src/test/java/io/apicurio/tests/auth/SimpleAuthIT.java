@@ -1,20 +1,16 @@
 package io.apicurio.tests.auth;
 
-import static io.apicurio.registry.client.auth.VertXAuthFactory.buildOIDCWebClient;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Tag;
-import org.junit.jupiter.api.Test;
-
 import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.rest.client.models.ArtifactContent;
+import io.apicurio.registry.rest.client.models.CreateArtifact;
+import io.apicurio.registry.rest.client.models.CreateVersion;
 import io.apicurio.registry.rest.client.models.Rule;
 import io.apicurio.registry.rest.client.models.RuleType;
 import io.apicurio.registry.rest.client.models.UserInfo;
+import io.apicurio.registry.rest.client.models.VersionContent;
 import io.apicurio.registry.rest.client.models.VersionMetaData;
 import io.apicurio.registry.rules.validity.ValidityLevel;
 import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.utils.tests.AuthTestProfile;
 import io.apicurio.registry.utils.tests.JWKSMockServer;
 import io.apicurio.registry.utils.tests.TestUtils;
@@ -24,6 +20,12 @@ import io.kiota.http.vertx.VertXRequestAdapter;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.quarkus.test.junit.TestProfile;
 import io.vertx.ext.web.client.WebClient;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+
+import static io.apicurio.registry.client.auth.VertXAuthFactory.buildOIDCWebClient;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @Tag(Constants.AUTH)
 @TestProfile(AuthTestProfile.class)
@@ -32,10 +34,14 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
 
     final String groupId = "authTestGroupId";
 
-    private static final ArtifactContent content = new ArtifactContent();
+    private static final CreateArtifact createArtifact = new CreateArtifact();
 
     static {
-        content.setContent("{}");
+        createArtifact.setType(ArtifactType.JSON);
+        createArtifact.setFirstVersion(new CreateVersion());
+        createArtifact.getFirstVersion().setContent(new VersionContent());
+        createArtifact.getFirstVersion().getContent().setContentType(ContentTypes.APPLICATION_JSON);
+        createArtifact.getFirstVersion().getContent().setContent("{}");
     }
 
     @Override
@@ -80,11 +86,9 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
             client.groups().byGroupId("abc").artifacts().byArtifactId(artifactId).get();
         });
         assertArtifactNotFound(exception2);
+        createArtifact.setArtifactId(artifactId);
         var exception3 = Assertions.assertThrows(Exception.class, () -> {
-            client.groups().byGroupId("testReadOnly").artifacts().post(content, config -> {
-                config.headers.add("X-Registry-ArtifactId", artifactId);
-                config.headers.add("X-Registry-ArtifactType", ArtifactType.JSON);
-            });
+            client.groups().byGroupId("testReadOnly").artifacts().post(createArtifact);
         });
         assertForbidden(exception3);
 
@@ -92,10 +96,7 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
         devAdapter.setBaseUrl(getRegistryV3ApiUrl());
         RegistryClient devClient = new RegistryClient(devAdapter);
 
-        VersionMetaData meta = devClient.groups().byGroupId(groupId).artifacts().post(content, config -> {
-            config.headers.add("X-Registry-ArtifactId", artifactId);
-            config.headers.add("X-Registry-ArtifactType", ArtifactType.JSON);
-        });
+        VersionMetaData meta = devClient.groups().byGroupId(groupId).artifacts().post(createArtifact).getVersion();
 
         TestUtils.retry(() -> devClient.groups().byGroupId(groupId).artifacts().byArtifactId(meta.getArtifactId()).get());
 
@@ -118,10 +119,8 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
         try {
             client.groups().byGroupId(groupId).artifacts().get();
 
-            client.groups().byGroupId(groupId).artifacts().post(content, config -> {
-                config.headers.add("X-Registry-ArtifactId", artifactId);
-                config.headers.add("X-Registry-ArtifactType", ArtifactType.JSON);
-            });
+            createArtifact.setArtifactId(artifactId);
+            client.groups().byGroupId(groupId).artifacts().post(createArtifact);
             TestUtils.retry(() -> client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get());
 
             Assertions.assertTrue(client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").content().get().readAllBytes().length > 0);
@@ -156,10 +155,8 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
         try {
             client.groups().byGroupId(groupId).artifacts().get();
 
-            client.groups().byGroupId(groupId).artifacts().post(content, config -> {
-                config.headers.add("X-Registry-ArtifactId", artifactId);
-                config.headers.add("X-Registry-ArtifactType", ArtifactType.JSON);
-            });
+            createArtifact.setArtifactId(artifactId);
+            client.groups().byGroupId(groupId).artifacts().post(createArtifact);
             TestUtils.retry(() -> client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get());
 
             Assertions.assertTrue(client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").content().get().readAllBytes().length > 0);

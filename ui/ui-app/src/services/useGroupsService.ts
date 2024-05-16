@@ -17,6 +17,9 @@ import { SearchedVersion } from "@models/searchedVersion.model.ts";
 import { Rule } from "@models/rule.model.ts";
 import { AuthService, useAuth } from "@apicurio/common-ui-components";
 import { contentType } from "@utils/content.utils.ts";
+import { CreateArtifact } from "@models/createArtifact.model.ts";
+import { CreateArtifactResponse } from "@models/createArtifactResponse.model.ts";
+import { CreateVersion } from "@models/createVersion.model.ts";
 
 
 export interface CreateArtifactData {
@@ -26,6 +29,7 @@ export interface CreateArtifactData {
     fromURL?: string|null;
     sha?: string|null;
     content?: string|null;
+    contentType?: string|null;
 }
 
 export interface CreateVersionData {
@@ -67,45 +71,23 @@ export interface ClientGeneration {
 }
 
 
-const createArtifact = async (config: ConfigService, auth: AuthService, data: CreateArtifactData): Promise<ArtifactMetaData> => {
+const createArtifact = async (config: ConfigService, auth: AuthService, data: CreateArtifactData): Promise<CreateArtifactResponse> => {
     const baseHref: string = config.artifactsUrl();
     const endpoint: string = createEndpoint(baseHref, "/groups/:groupId/artifacts", { groupId: data.groupId });
     const options = await createAuthOptions(auth);
 
-    if (data.id) {
-        options.headers = {
-            ...options.headers,
-            "X-Registry-ArtifactId": data.id
-        };
-    }
-    if (data.type) {
-        options.headers = {
-            ...options.headers,
-            "X-Registry-ArtifactType": data.type
-        };
-    }
-    if (data.sha) {
-        options.headers = {
-            ...options.headers,
-            "X-Registry-Hash-Algorithm": "SHA256",
-            "X-Registry-Content-Hash": data.sha
-        };
-    }
+    const body: CreateArtifact = {
+        artifactId: data.id ? data.id : undefined,
+        type: data.type,
+        firstVersion: {
+            content: {
+                content: data.content as string,
+                contentType: data.contentType ? data.contentType : "application/json",
+            }
+        }
+    };
 
-    if (data.fromURL) {
-        options.headers = {
-            ...options.headers,
-            "Content-Type": "application/create.extended+json"
-        };
-        data.content = `{ "content": "${data.fromURL}" }`;
-    } else {
-        options.headers = {
-            ...options.headers,
-            "Content-Type": contentType(data.type, data.content ? data.content : "")
-        };
-    }
-
-    return httpPostWithReturn<any, ArtifactMetaData>(endpoint, data.content, options);
+    return httpPostWithReturn<CreateArtifact, CreateArtifactResponse>(endpoint, body, options);
 };
 
 const createArtifactVersion = async (config: ConfigService, auth: AuthService, groupId: string|null, artifactId: string, data: CreateVersionData): Promise<VersionMetaData> => {
@@ -114,17 +96,15 @@ const createArtifactVersion = async (config: ConfigService, auth: AuthService, g
     const baseHref: string = config.artifactsUrl();
     const options = await createAuthOptions(auth);
     const endpoint: string = createEndpoint(baseHref, "/groups/:groupId/artifacts/:artifactId/versions", { groupId, artifactId });
-    if (data.type) {
-        options.headers = {
-            ...options.headers,
-            "X-Registry-ArtifactType": data.type
-        };
-    }
-    options.headers = {
-        ...options.headers,
-        "Content-Type": contentType(data.type, data.content)
+    const ct: string = contentType(data.type, data.content);
+    const createVersion: CreateVersion = {
+        content: {
+            content: data.content,
+            contentType: ct
+        }
     };
-    return httpPostWithReturn<any, VersionMetaData>(endpoint, data.content, options);
+
+    return httpPostWithReturn<CreateVersion, VersionMetaData>(endpoint, createVersion, options);
 };
 
 const getArtifacts = async (config: ConfigService, auth: AuthService, criteria: GetArtifactsCriteria, paging: Paging): Promise<ArtifactsSearchResults> => {
@@ -339,7 +319,7 @@ const normalizeGroupId = (groupId: string|null): string => {
 
 
 export interface GroupsService {
-    createArtifact(data: CreateArtifactData): Promise<ArtifactMetaData>;
+    createArtifact(data: CreateArtifactData): Promise<CreateArtifactResponse>;
     createArtifactVersion(groupId: string|null, artifactId: string, data: CreateVersionData): Promise<VersionMetaData>;
     getArtifacts(criteria: GetArtifactsCriteria, paging: Paging): Promise<ArtifactsSearchResults>;
     getArtifactMetaData(groupId: string|null, artifactId: string): Promise<ArtifactMetaData>;
@@ -365,7 +345,7 @@ export const useGroupsService: () => GroupsService = (): GroupsService => {
     const auth = useAuth();
 
     return {
-        createArtifact(data: CreateArtifactData): Promise<ArtifactMetaData> {
+        createArtifact(data: CreateArtifactData): Promise<CreateArtifactResponse> {
             return createArtifact(config, auth, data);
         },
         createArtifactVersion(groupId: string|null, artifactId: string, data: CreateVersionData): Promise<VersionMetaData> {

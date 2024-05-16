@@ -31,6 +31,7 @@ import io.apicurio.registry.serde.avro.strategy.TopicRecordIdStrategy;
 import io.apicurio.registry.serde.config.IdOption;
 import io.apicurio.registry.support.Tester;
 import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.avro.AvroSchema;
@@ -86,7 +87,7 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
         String topic = generateArtifactId();
 
         /*final Integer globalId = */
-        createArtifact(groupId, topic + "-" + recordName, ArtifactType.AVRO, schema.toString());
+        createArtifact(groupId, topic + "-" + recordName, ArtifactType.AVRO, schema.toString(), ContentTypes.APPLICATION_JSON);
 
         Map<String, Object> config = new HashMap<>();
         config.put(SerdeConfig.REGISTRY_URL, TestUtils.getRegistryV3ApiUrl(testPort));

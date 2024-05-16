@@ -24,8 +24,9 @@ public class StoredArtifactVersionDto {
 
     private Long contentId;
 
-    // TODO Can the CH be used multiple times?
     private ContentHandle content;
 
-    private List<ArtifactReferenceDto> references; //TODO create a new class StoredArtifactReference?
+    private String contentType;
+
+    private List<ArtifactReferenceDto> references;
 }

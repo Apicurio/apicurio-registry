@@ -145,7 +145,7 @@ jobs:
 
       - name: Collect logs
         if: failure()
-        run: ./.github/scripts/collect_logs.sh
+        run: sh ./.github/scripts/collect_logs.sh
 
       - name: Upload tests logs artifacts
         if: failure()
@@ -190,7 +190,7 @@ jobs:
 
       - name: Collect logs
         if: failure()
-        run: ./.github/scripts/collect_logs.sh
+        run: sh ./.github/scripts/collect_logs.sh
 
       - name: Upload tests logs artifacts
         if: failure()
@@ -236,7 +236,7 @@ jobs:
 
       - name: Collect logs
         if: failure()
-        run: ./.github/scripts/collect_logs.sh
+        run: sh ./.github/scripts/collect_logs.sh
 
       - name: Upload tests logs artifacts
         if: failure()
@@ -309,7 +309,7 @@ jobs:
 
       - name: Collect logs
         if: failure()
-        run: ./.github/scripts/collect_logs.sh
+        run: sh ./.github/scripts/collect_logs.sh
 
       - name: Upload tests logs artifacts
         if: failure()
@@ -347,7 +347,7 @@ jobs:
 
       - name: Collect logs
         if: failure()
-        run: ./.github/scripts/collect_logs.sh
+        run: sh ./.github/scripts/collect_logs.sh
 
       - name: Upload tests logs artifacts
         if: failure()

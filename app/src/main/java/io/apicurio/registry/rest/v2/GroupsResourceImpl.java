@@ -1,53 +1,14 @@
 package io.apicurio.registry.rest.v2;
 
-import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_ARTIFACT_ID;
-import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_ARTIFACT_TYPE;
-import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_CANONICAL;
-import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_DESCRIPTION;
-import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_DESCRIPTION_ENCODED;
-import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_EDITABLE_METADATA;
-import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_FROM_URL;
-import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_GROUP_ID;
-import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_IF_EXISTS;
-import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_NAME;
-import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_NAME_ENCODED;
-import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_RULE;
-import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_RULE_TYPE;
-import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_SHA;
-import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_UPDATE_STATE;
-import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_VERSION;
-import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_OWNER;
-import static io.apicurio.registry.rest.v2.V2ApiUtil.defaultGroupIdToNull;
-
-import java.io.BufferedInputStream;
-import java.io.InputStream;
-import java.math.BigInteger;
-import java.net.MalformedURLException;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.URL;
-import java.nio.charset.StandardCharsets;
-import java.security.KeyManagementException;
-import java.security.NoSuchAlgorithmException;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
-
-import org.jose4j.base64url.Base64;
-
 import com.google.common.hash.Hashing;
-
 import io.apicurio.common.apps.logging.Logged;
 import io.apicurio.common.apps.logging.audit.Audited;
 import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.content.extract.ContentExtractor;
+import io.apicurio.registry.content.extract.ExtractedMetaData;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.model.BranchId;
@@ -84,6 +45,7 @@ import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.CommentDto;
+import io.apicurio.registry.storage.dto.ContentWrapperDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.EditableVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.GroupMetaDataDto;
@@ -100,9 +62,11 @@ import io.apicurio.registry.storage.error.InvalidArtifactIdException;
 import io.apicurio.registry.storage.error.InvalidGroupIdException;
 import io.apicurio.registry.storage.error.VersionNotFoundException;
 import io.apicurio.registry.types.ArtifactState;
+import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.types.ReferenceType;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.types.VersionState;
+import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.util.ArtifactIdGenerator;
 import io.apicurio.registry.util.ArtifactTypeUtil;
 import io.apicurio.registry.util.ContentTypeUtil;
@@ -119,6 +83,46 @@ import jakarta.ws.rs.NotAllowedException;
 import jakarta.ws.rs.client.Client;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import org.apache.commons.lang3.tuple.Pair;
+import org.jose4j.base64url.Base64;
+
+import java.io.BufferedInputStream;
+import java.io.InputStream;
+import java.math.BigInteger;
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.security.KeyManagementException;
+import java.security.NoSuchAlgorithmException;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+
+import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_ARTIFACT_ID;
+import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_ARTIFACT_TYPE;
+import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_CANONICAL;
+import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_DESCRIPTION;
+import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_DESCRIPTION_ENCODED;
+import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_EDITABLE_METADATA;
+import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_FROM_URL;
+import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_GROUP_ID;
+import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_IF_EXISTS;
+import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_NAME;
+import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_NAME_ENCODED;
+import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_RULE;
+import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_RULE_TYPE;
+import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_SHA;
+import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_UPDATE_STATE;
+import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_VERSION;
+import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_OWNER;
+import static io.apicurio.registry.rest.v2.V2ApiUtil.defaultGroupIdToNull;
 
 /**
  * Implements the {@link GroupsResource} JAX-RS interface.
@@ -556,7 +560,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     }
 
     /**
-     * @see io.apicurio.registry.rest.v2.GroupsResource#getArtifactVersion(java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.rest.v2.beans.HandleReferencesType)
+     * @see io.apicurio.registry.rest.v2.GroupsResource#getArtifactVersion(String, String, String, Boolean)
      */
     @Override
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
@@ -728,7 +732,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     }
 
     /**
-     * @see io.apicurio.registry.rest.v2.GroupsResource#listArtifactsInGroup(java.lang.String, java.lang.Integer, java.lang.Integer, io.apicurio.registry.rest.v2.beans.SortOrder, io.apicurio.registry.rest.v2.beans.SortBy)
+     * @see io.apicurio.registry.rest.v2.GroupsResource#listArtifactsInGroup(String, BigInteger, BigInteger, SortOrder, SortBy) 
      */
     @Override
     @Authorized(style = AuthorizedStyle.GroupOnly, level = AuthorizedLevel.Read)
@@ -948,6 +952,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
             if (ContentTypeUtil.isApplicationYaml(ct) ||
                     (ContentTypeUtil.isApplicationCreateExtended(ct) && ContentTypeUtil.isParsableYaml(content))) {
                 content = ContentTypeUtil.yamlToJson(content);
+                ct = ContentTypes.APPLICATION_JSON;
             }
 
             String artifactType = ArtifactTypeUtil.determineArtifactType(content, xRegistryArtifactType, ct, factory.getAllArtifactTypes());
@@ -960,19 +965,39 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
             rulesService.applyRules(defaultGroupIdToNull(groupId), artifactId, artifactType, content, 
                     RuleApplicationType.CREATE, toV3Refs(references), resolvedReferences);
 
-            final String finalArtifactId = artifactId;
-            EditableArtifactMetaDataDto metaData = getEditableArtifactMetaData(artifactName, artifactDescription);
+            
+            // Extract metadata from content, then override extracted values with provided values.
+            EditableArtifactMetaDataDto metaData = extractMetaData(artifactType, content);
+            if (artifactName != null && artifactName.trim().isEmpty()) {
+                metaData.setName(artifactName);
+            }
+            if (artifactDescription != null && artifactDescription.trim().isEmpty()) {
+                metaData.setDescription(artifactDescription);
+            }
 
-            ArtifactVersionMetaDataDto vmd = storage.createArtifactWithMetadata(defaultGroupIdToNull(groupId), artifactId, 
-                    xRegistryVersion, artifactType, content, metaData, referencesAsDtos);
-            return V2ApiUtil.dtoToMetaData(defaultGroupIdToNull(groupId), finalArtifactId, artifactType, vmd);
+            ContentWrapperDto contentDto = ContentWrapperDto.builder()
+                    .contentType(ct)
+                    .content(content)
+                    .references(referencesAsDtos)
+                    .build();
+            EditableVersionMetaDataDto versionMetaData = EditableVersionMetaDataDto.builder()
+                    .name(metaData.getName())
+                    .description(metaData.getDescription())
+                    .labels(Map.of())
+                    .build();
+
+            Pair<ArtifactMetaDataDto, ArtifactVersionMetaDataDto> createResult = storage.createArtifact(
+                    defaultGroupIdToNull(groupId), artifactId, artifactType, metaData, xRegistryVersion,
+                    contentDto, versionMetaData, List.of());
+
+            return V2ApiUtil.dtoToMetaData(groupId, artifactId, artifactType, createResult.getRight());
         } catch (ArtifactAlreadyExistsException ex) {
             return handleIfExists(groupId, xRegistryArtifactId, xRegistryVersion, ifExists, artifactName, artifactDescription, content, ct, fcanonical, references);
         }
     }
 
     /**
-     * @see io.apicurio.registry.rest.v2.GroupsResource#listArtifactVersions(java.lang.String, java.lang.String, java.lang.Integer, java.lang.Integer)
+     * @see io.apicurio.registry.rest.v2.GroupsResource#listArtifactVersions(String, String, BigInteger, BigInteger)
      */
     @Override
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
@@ -1050,19 +1075,24 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
             content = ContentTypeUtil.yamlToJson(content);
         }
 
-        //Transform the given references into dtos and set the contentId, this will also detect if any of the passed references does not exist.
+        // Transform the given references into dtos and set the contentId, this will also detect if any of the passed references does not exist.
         final List<ArtifactReferenceDto> referencesAsDtos = toReferenceDtos(references);
 
-        //Try to resolve the new artifact references and the nested ones (if any)
+        // Try to resolve the new artifact references and the nested ones (if any)
         final Map<String, ContentHandle> resolvedReferences = storage.resolveReferences(referencesAsDtos);
 
         String artifactType = lookupArtifactType(groupId, artifactId);
         rulesService.applyRules(defaultGroupIdToNull(groupId), artifactId, artifactType, content, 
                 RuleApplicationType.UPDATE, toV3Refs(references), resolvedReferences);
         EditableVersionMetaDataDto metaData = getEditableVersionMetaData(artifactName, artifactDescription);
-        ArtifactVersionMetaDataDto vmd = storage.createArtifactVersionWithMetadata(defaultGroupIdToNull(groupId), artifactId, 
-                xRegistryVersion, artifactType, content, metaData, referencesAsDtos);
-        return V2ApiUtil.dtoToVersionMetaData(defaultGroupIdToNull(groupId), artifactId, artifactType, vmd);
+        ContentWrapperDto contentDto = ContentWrapperDto.builder()
+                .content(content)
+                .contentType(ct)
+                .references(referencesAsDtos)
+                .build();
+        ArtifactVersionMetaDataDto vmdDto = storage.createArtifactVersion(defaultGroupIdToNull(groupId), artifactId,
+                xRegistryVersion, artifactType, contentDto, metaData, List.of());
+        return V2ApiUtil.dtoToVersionMetaData(defaultGroupIdToNull(groupId), artifactId, artifactType, vmdDto);
     }
 
     /**
@@ -1152,12 +1182,12 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         return updateArtifactInternal(groupId, artifactId, version, artifactName, artifactDescription, content, contentType, references);
     }
 
-    private ArtifactMetaData updateArtifactInternal(String groupId, String artifactId, String version,
-                                                    String name, String description,
+    private ArtifactMetaData updateArtifactInternal(String groupId, String artifactId, String version, String name, String description,
                                                     ContentHandle content, String contentType, List<ArtifactReference> references) {
 
         if (ContentTypeUtil.isApplicationYaml(contentType)) {
             content = ContentTypeUtil.yamlToJson(content);
+            contentType = ContentTypes.APPLICATION_JSON;
         }
 
         String artifactType = lookupArtifactType(groupId, artifactId);
@@ -1169,9 +1199,33 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
         rulesService.applyRules(defaultGroupIdToNull(groupId), artifactId, artifactType, content,
                 RuleApplicationType.UPDATE, toV3Refs(references), resolvedReferences);
-        EditableVersionMetaDataDto metaData = getEditableVersionMetaData(name, description);
-        ArtifactVersionMetaDataDto dto = storage.createArtifactVersionWithMetadata(defaultGroupIdToNull(groupId), artifactId, 
-                version, artifactType, content, metaData, referencesAsDtos);
+
+        // Extract metadata from content, then override extracted values with provided values.
+        EditableArtifactMetaDataDto artifactMD = extractMetaData(artifactType, content);
+        if (name != null && name.trim().isEmpty()) {
+            artifactMD.setName(name);
+        }
+        if (description != null && description.trim().isEmpty()) {
+            artifactMD.setDescription(description);
+        }
+        EditableVersionMetaDataDto metaData = EditableVersionMetaDataDto.builder()
+                .name(artifactMD.getName())
+                .description(artifactMD.getDescription())
+                .labels(artifactMD.getLabels())
+                .build();
+
+        ContentWrapperDto contentDto = ContentWrapperDto.builder()
+                .content(content)
+                .contentType(contentType)
+                .references(referencesAsDtos)
+                .build();
+        ArtifactVersionMetaDataDto dto = storage.createArtifactVersion(defaultGroupIdToNull(groupId), artifactId,
+                version, artifactType, contentDto, metaData, List.of());
+
+        // Note: if the version was created, we need to update the artifact metadata as well, because
+        // those are the semantics of the v2 API. :(
+        storage.updateArtifactMetaData(defaultGroupIdToNull(groupId), artifactId, artifactMD);
+
         return V2ApiUtil.dtoToMetaData(defaultGroupIdToNull(groupId), artifactId, artifactType, dto);
     }
 
@@ -1221,4 +1275,16 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                 .build();
     }
 
+    protected EditableArtifactMetaDataDto extractMetaData(String artifactType, ContentHandle content) {
+        ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(artifactType);
+        ContentExtractor extractor = provider.getContentExtractor();
+        ExtractedMetaData emd = extractor.extract(content);
+        EditableArtifactMetaDataDto metaData;
+        if (emd != null) {
+            metaData = new EditableArtifactMetaDataDto(emd.getName(), emd.getDescription(), null, emd.getLabels());
+        } else {
+            metaData = new EditableArtifactMetaDataDto();
+        }
+        return metaData;
+    }
 }

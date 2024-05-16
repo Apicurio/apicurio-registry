@@ -4,40 +4,47 @@ import (
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91 "github.com/microsoft/kiota-abstractions-go/serialization"
 )
 
-// ArtifactContent
-type ArtifactContent struct {
+// VersionContent
+type VersionContent struct {
 	// Stores additional data not described in the OpenAPI description found when deserializing. Can be used for serialization as well.
 	additionalData map[string]any
-	// Raw content of the artifact or a valid (and accessible) URL where the content can be found.
+	// Raw content of the artifact version or a valid (and accessible) URL where the content can be found.
 	content *string
+	// The content-type, such as `application/json` or `text/xml`.
+	contentType *string
 	// Collection of references to other artifacts.
 	references []ArtifactReferenceable
 }
 
-// NewArtifactContent instantiates a new ArtifactContent and sets the default values.
-func NewArtifactContent() *ArtifactContent {
-	m := &ArtifactContent{}
+// NewVersionContent instantiates a new VersionContent and sets the default values.
+func NewVersionContent() *VersionContent {
+	m := &VersionContent{}
 	m.SetAdditionalData(make(map[string]any))
 	return m
 }
 
-// CreateArtifactContentFromDiscriminatorValue creates a new instance of the appropriate class based on discriminator value
-func CreateArtifactContentFromDiscriminatorValue(parseNode i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) (i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.Parsable, error) {
-	return NewArtifactContent(), nil
+// CreateVersionContentFromDiscriminatorValue creates a new instance of the appropriate class based on discriminator value
+func CreateVersionContentFromDiscriminatorValue(parseNode i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) (i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.Parsable, error) {
+	return NewVersionContent(), nil
 }
 
 // GetAdditionalData gets the AdditionalData property value. Stores additional data not described in the OpenAPI description found when deserializing. Can be used for serialization as well.
-func (m *ArtifactContent) GetAdditionalData() map[string]any {
+func (m *VersionContent) GetAdditionalData() map[string]any {
 	return m.additionalData
 }
 
-// GetContent gets the content property value. Raw content of the artifact or a valid (and accessible) URL where the content can be found.
-func (m *ArtifactContent) GetContent() *string {
+// GetContent gets the content property value. Raw content of the artifact version or a valid (and accessible) URL where the content can be found.
+func (m *VersionContent) GetContent() *string {
 	return m.content
 }
 
+// GetContentType gets the contentType property value. The content-type, such as `application/json` or `text/xml`.
+func (m *VersionContent) GetContentType() *string {
+	return m.contentType
+}
+
 // GetFieldDeserializers the deserialization information for the current model
-func (m *ArtifactContent) GetFieldDeserializers() map[string]func(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
+func (m *VersionContent) GetFieldDeserializers() map[string]func(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
 	res := make(map[string]func(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error)
 	res["content"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
 		val, err := n.GetStringValue()
@@ -46,6 +53,16 @@ func (m *ArtifactContent) GetFieldDeserializers() map[string]func(i878a80d2330e8
 		}
 		if val != nil {
 			m.SetContent(val)
+		}
+		return nil
+	}
+	res["contentType"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
+		val, err := n.GetStringValue()
+		if err != nil {
+			return err
+		}
+		if val != nil {
+			m.SetContentType(val)
 		}
 		return nil
 	}
@@ -69,14 +86,20 @@ func (m *ArtifactContent) GetFieldDeserializers() map[string]func(i878a80d2330e8
 }
 
 // GetReferences gets the references property value. Collection of references to other artifacts.
-func (m *ArtifactContent) GetReferences() []ArtifactReferenceable {
+func (m *VersionContent) GetReferences() []ArtifactReferenceable {
 	return m.references
 }
 
 // Serialize serializes information the current object
-func (m *ArtifactContent) Serialize(writer i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.SerializationWriter) error {
+func (m *VersionContent) Serialize(writer i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.SerializationWriter) error {
 	{
 		err := writer.WriteStringValue("content", m.GetContent())
+		if err != nil {
+			return err
+		}
+	}
+	{
+		err := writer.WriteStringValue("contentType", m.GetContentType())
 		if err != nil {
 			return err
 		}
@@ -103,26 +126,33 @@ func (m *ArtifactContent) Serialize(writer i878a80d2330e89d26896388a3f487eef27b0
 }
 
 // SetAdditionalData sets the AdditionalData property value. Stores additional data not described in the OpenAPI description found when deserializing. Can be used for serialization as well.
-func (m *ArtifactContent) SetAdditionalData(value map[string]any) {
+func (m *VersionContent) SetAdditionalData(value map[string]any) {
 	m.additionalData = value
 }
 
-// SetContent sets the content property value. Raw content of the artifact or a valid (and accessible) URL where the content can be found.
-func (m *ArtifactContent) SetContent(value *string) {
+// SetContent sets the content property value. Raw content of the artifact version or a valid (and accessible) URL where the content can be found.
+func (m *VersionContent) SetContent(value *string) {
 	m.content = value
 }
 
+// SetContentType sets the contentType property value. The content-type, such as `application/json` or `text/xml`.
+func (m *VersionContent) SetContentType(value *string) {
+	m.contentType = value
+}
+
 // SetReferences sets the references property value. Collection of references to other artifacts.
-func (m *ArtifactContent) SetReferences(value []ArtifactReferenceable) {
+func (m *VersionContent) SetReferences(value []ArtifactReferenceable) {
 	m.references = value
 }
 
-// ArtifactContentable
-type ArtifactContentable interface {
+// VersionContentable
+type VersionContentable interface {
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.AdditionalDataHolder
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.Parsable
 	GetContent() *string
+	GetContentType() *string
 	GetReferences() []ArtifactReferenceable
 	SetContent(value *string)
+	SetContentType(value *string)
 	SetReferences(value []ArtifactReferenceable)
 }

@@ -18,7 +18,10 @@ package io.apicurio.registry.examples.custom.strategy;
 
 import io.apicurio.registry.client.auth.VertXAuthFactory;
 import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.rest.client.models.ArtifactContent;
+import io.apicurio.registry.rest.client.models.CreateArtifact;
+import io.apicurio.registry.rest.client.models.CreateVersion;
+import io.apicurio.registry.rest.client.models.IfArtifactExists;
+import io.apicurio.registry.rest.client.models.VersionContent;
 import io.apicurio.registry.serde.SerdeConfig;
 import io.apicurio.registry.serde.avro.AvroKafkaDeserializer;
 import io.apicurio.registry.serde.avro.AvroKafkaSerializer;
@@ -79,14 +82,16 @@ public class CustomStrategyExample {
 
         String artifactId = "my-artifact-" + topicName + "-value";
 
-        ArtifactContent content = new ArtifactContent();
+        CreateArtifact createArtifact = new CreateArtifact();
+        createArtifact.setArtifactId(artifactId);
+        createArtifact.setType(ArtifactType.AVRO);
+        createArtifact.setFirstVersion(new CreateVersion());
+        createArtifact.getFirstVersion().setContent(new VersionContent());
+        createArtifact.getFirstVersion().getContent().setContent(Config.SCHEMA);
+        createArtifact.getFirstVersion().getContent().setContentType("application/json");
 
-        content.setContent(Config.SCHEMA);
-
-        final io.apicurio.registry.rest.client.models.VersionMetaData metaData = client.groups().byGroupId("default").artifacts().post(content, config -> {
-            config.queryParameters.ifExists = io.apicurio.registry.rest.client.models.IfExists.RETURN;
-            config.headers.add("X-Registry-ArtifactId", artifactId);
-            config.headers.add("X-Registry-ArtifactType", ArtifactType.AVRO);
+        client.groups().byGroupId("default").artifacts().post(createArtifact, config -> {
+            config.queryParameters.ifExists = IfArtifactExists.FIND_OR_CREATE_VERSION;
         });
 
         System.out.println("Created artifact " + artifactId);

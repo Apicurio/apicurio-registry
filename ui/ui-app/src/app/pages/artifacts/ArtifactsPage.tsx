@@ -187,9 +187,9 @@ export const ArtifactsPage: FunctionComponent<ArtifactsPageProps> = () => {
             if (!uploadFormData.groupId) {
                 data.groupId = "default";
             }
-            groups.createArtifact(data).then(metaData => {
-                const groupId: string = metaData.groupId ? metaData.groupId : "default";
-                const artifactLocation: string = `/artifacts/${ encodeURIComponent(groupId) }/${ encodeURIComponent(metaData.artifactId) }`;
+            groups.createArtifact(data).then(response => {
+                const groupId: string = response.artifact.groupId ? response.artifact.groupId : "default";
+                const artifactLocation: string = `/artifacts/${ encodeURIComponent(groupId) }/${ encodeURIComponent(response.artifact.artifactId) }`;
                 logger.info("[ArtifactsPage] Artifact successfully uploaded.  Redirecting to details: ", artifactLocation);
                 appNavigation.navigateTo(artifactLocation);
             }).catch( error => {

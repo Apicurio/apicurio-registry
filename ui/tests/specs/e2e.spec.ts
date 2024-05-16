@@ -29,7 +29,7 @@ test("End to End - Upload artifact", async ({ page }) => {
     await expect(page).toHaveURL(/.+\/artifacts\/e2e\/MyArtifact\/versions\/latest/);
 
     // Assert the meta-data is as expected
-    await expect(page.getByTestId("artifact-details-name")).toHaveText("Empty API Spec");
+    await expect(page.getByTestId("artifact-details-name")).toHaveText("No name");
     await expect(page.getByTestId("artifact-details-id")).toHaveText("MyArtifact");
     await expect(page.getByTestId("artifact-details-state")).toHaveText("ENABLED");
     await expect(page.getByTestId("artifact-details-labels")).toHaveText("No labels");
@@ -42,7 +42,7 @@ test("End to End - Edit metadata", async ({ page }) => {
 
     // Click the "Edit" button to show the modal
     await page.getByTestId("artifact-btn-edit").click();
-    await expect(page.getByTestId("edit-metadata-modal-name")).toHaveValue("Empty API Spec");
+    await expect(page.getByTestId("edit-metadata-modal-name")).toBeEmpty();
 
     // Change/add some values
     await page.getByTestId("edit-metadata-modal-name").fill("Empty API Spec UPDATED");

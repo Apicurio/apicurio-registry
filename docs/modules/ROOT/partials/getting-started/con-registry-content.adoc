@@ -20,7 +20,7 @@ endif::[]
 == Core Registry API
 Using the Core Registry API, client applications can manage the schema and API artifacts in {registry}. This API provides create, read, update, and delete operations for artifacts, versions, metadata, and rules. It also provides search and admin operations, such as managing global rules or importing and exporting {registry} data.
 
-{registry} provides compatibility with other schema registry APIs, such as Confluent Schema Registry and CNCF CloudEvents Schema Registry.
+{registry} provides compatibility with other schema registry APIs, such as Confluent Schema Registry.
 
 == OpenShift Application Services CLI
 You can use the Red Hat OpenShift Application Services (`rhoas`) command line interface to create, read, and delete {registry} instances, and to manage schema and API artifacts stored in {registry}. The `rhoas` CLI provides create, read, update, and delete operations for {registry} artifacts, versions, and metadata.

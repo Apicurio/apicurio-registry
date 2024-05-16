@@ -24,6 +24,7 @@ import io.apicurio.registry.storage.error.InvalidArtifactTypeException;
 import io.apicurio.registry.storage.error.VersionNotFoundException;
 import io.apicurio.registry.types.VersionState;
 import io.apicurio.registry.util.ArtifactTypeUtil;
+import io.apicurio.registry.util.ContentTypeUtil;
 import io.apicurio.registry.util.VersionUtil;
 import jakarta.inject.Inject;
 import jakarta.interceptor.Interceptors;
@@ -85,8 +86,12 @@ public class SubjectVersionsResourceImpl extends AbstractResource implements Sub
 
         if (!idFound) {
             try {
+                ContentHandle schemaContent = ContentHandle.create(request.getSchema());
+                String contentType = ContentTypeUtil.determineContentType(schemaContent);
+
                 // We validate the schema at creation time by inferring the type from the content
-                final String artifactType = ArtifactTypeUtil.determineArtifactType(ContentHandle.create(request.getSchema()), null, null, resolvedReferences, factory.getAllArtifactTypes());
+                final String artifactType = ArtifactTypeUtil.determineArtifactType(ContentHandle.create(request.getSchema()),
+                        null, contentType, resolvedReferences, factory.getAllArtifactTypes());
                 if (request.getSchemaType() != null && !artifactType.equals(request.getSchemaType())) {
                     throw new UnprocessableEntityException(String.format("Given schema is not from type: %s", request.getSchemaType()));
                 }

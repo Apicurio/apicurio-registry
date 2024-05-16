@@ -1,17 +1,6 @@
 package io.apicurio.registry.ccompat.rest.v7.impl;
 
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-
-import org.apache.avro.AvroTypeException;
-import org.apache.avro.SchemaParseException;
-import org.apache.commons.codec.digest.DigestUtils;
-import org.slf4j.Logger;
-
 import io.apicurio.registry.ccompat.dto.SchemaReference;
 import io.apicurio.registry.ccompat.rest.error.ConflictException;
 import io.apicurio.registry.ccompat.rest.error.UnprocessableEntityException;
@@ -27,17 +16,32 @@ import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.RegistryStorage.ArtifactRetrievalBehavior;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
+import io.apicurio.registry.storage.dto.ContentWrapperDto;
+import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
+import io.apicurio.registry.storage.dto.EditableVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
 import io.apicurio.registry.storage.error.ArtifactNotFoundException;
 import io.apicurio.registry.storage.error.RuleNotFoundException;
 import io.apicurio.registry.storage.error.VersionNotFoundException;
 import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.types.VersionState;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
+import io.apicurio.registry.util.ContentTypeUtil;
 import jakarta.inject.Inject;
+import org.apache.avro.AvroTypeException;
+import org.apache.avro.SchemaParseException;
+import org.apache.commons.codec.digest.DigestUtils;
+import org.slf4j.Logger;
+
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 public abstract class AbstractResource {
 
@@ -68,13 +72,35 @@ public abstract class AbstractResource {
         try {
             ContentHandle schemaContent;
             schemaContent = ContentHandle.create(schema);
+            String contentType = ContentTypes.APPLICATION_JSON;
+            if (artifactType.equals(ArtifactType.PROTOBUF)) {
+                contentType = ContentTypes.APPLICATION_PROTOBUF;
+            } else if (ContentTypeUtil.isParsableYaml(schemaContent)) {
+                contentType = ContentTypes.APPLICATION_YAML;
+            }
 
             if (!doesArtifactExist(subject, groupId)) {
                 rulesService.applyRules(groupId, subject, artifactType, schemaContent, RuleApplicationType.CREATE, artifactReferences, resolvedReferences);
-                res = storage.createArtifact(groupId, subject, null, artifactType, schemaContent, parsedReferences);
+
+                EditableArtifactMetaDataDto artifactMetaData = EditableArtifactMetaDataDto.builder().build();
+                EditableVersionMetaDataDto firstVersionMetaData = EditableVersionMetaDataDto.builder().build();
+                ContentWrapperDto firstVersionContent = ContentWrapperDto.builder()
+                        .content(schemaContent)
+                        .contentType(contentType)
+                        .references(parsedReferences)
+                        .build();
+
+                res = storage.createArtifact(groupId, subject, artifactType, artifactMetaData, null,
+                        firstVersionContent, firstVersionMetaData, null).getValue();
             } else {
                 rulesService.applyRules(groupId, subject, artifactType, schemaContent, RuleApplicationType.UPDATE, artifactReferences, resolvedReferences);
-                res = storage.createArtifactVersion(groupId, subject, null, artifactType, schemaContent, parsedReferences);
+                ContentWrapperDto versionContent = ContentWrapperDto.builder()
+                        .content(schemaContent)
+                        .contentType(contentType)
+                        .references(parsedReferences)
+                        .build();
+                res = storage.createArtifactVersion(groupId, subject, null, artifactType, versionContent,
+                        EditableVersionMetaDataDto.builder().build(), List.of());
             }
         } catch (RuleViolationException ex) {
             if (ex.getRuleType() == RuleType.VALIDITY) {

@@ -1,18 +1,18 @@
 package io.apicurio.registry.limits;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.function.Function;
-
-import org.slf4j.Logger;
-
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.storage.dto.ContentWrapperDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.EditableVersionMetaDataDto;
 import io.apicurio.registry.storage.metrics.StorageMetricsStore;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import org.slf4j.Logger;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
 
 /**
  * Component that provides the logic to enforce the limits in the usage of the registry
@@ -58,7 +58,7 @@ public class RegistryLimitsService {
         }
     }
 
-    public LimitsCheckResult canCreateArtifact(EditableArtifactMetaDataDto meta, ContentHandle content) {
+    public LimitsCheckResult canCreateArtifact(EditableArtifactMetaDataDto meta, ContentWrapperDto versionContent, EditableVersionMetaDataDto versionMetaData) {
 
         LimitsCheckResult mr = checkMetaData(meta);
         if (!mr.isAllowed()) {
@@ -70,9 +70,18 @@ public class RegistryLimitsService {
             return tsr;
         }
 
-        LimitsCheckResult ssr = checkSchemaSize(content);
-        if (!ssr.isAllowed()) {
-            return ssr;
+        if (versionContent != null) {
+            LimitsCheckResult ssr = checkSchemaSize(versionContent.getContent());
+            if (!ssr.isAllowed()) {
+                return ssr;
+            }
+        }
+
+        if (versionMetaData != null) {
+            LimitsCheckResult vmr = checkMetaData(versionMetaData);
+            if (!vmr.isAllowed()) {
+                return vmr;
+            }
         }
 
         if (isLimitDisabled(RegistryLimitsConfiguration::getMaxArtifactsCount)) {

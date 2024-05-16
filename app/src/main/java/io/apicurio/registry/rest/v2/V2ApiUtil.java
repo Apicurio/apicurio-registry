@@ -1,13 +1,5 @@
 package io.apicurio.registry.rest.v2;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Comparator;
-import java.util.Date;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v2.beans.ArtifactReference;
 import io.apicurio.registry.rest.v2.beans.ArtifactSearchResults;
@@ -30,6 +22,14 @@ import io.apicurio.registry.storage.dto.GroupMetaDataDto;
 import io.apicurio.registry.storage.dto.GroupSearchResultsDto;
 import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
 import io.apicurio.registry.types.ArtifactState;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 public final class V2ApiUtil {
 
@@ -138,7 +138,7 @@ public final class V2ApiUtil {
      * @param artifactType
      * @param dto
      */
-    public static final ArtifactMetaData dtoToMetaData(String groupId, String artifactId, String artifactType,
+    public static ArtifactMetaData dtoToMetaData(String groupId, String artifactId, String artifactType,
                                                        ArtifactVersionMetaDataDto dto) {
         ArtifactMetaData metaData = new ArtifactMetaData();
         metaData.setCreatedBy(dto.getOwner());
@@ -172,7 +172,7 @@ public final class V2ApiUtil {
      * @param artifactType
      * @param dto
      */
-    public static final VersionMetaData dtoToVersionMetaData(String groupId, String artifactId,
+    public static VersionMetaData dtoToVersionMetaData(String groupId, String artifactId,
                                                              String artifactType, ArtifactMetaDataDto dto) {
         VersionMetaData metaData = new VersionMetaData();
         metaData.setGroupId(groupId);
@@ -195,7 +195,7 @@ public final class V2ApiUtil {
      * @param artifactType
      * @param dto
      */
-    public static final VersionMetaData dtoToVersionMetaData(String groupId, String artifactId, String artifactType,
+    public static VersionMetaData dtoToVersionMetaData(String groupId, String artifactId, String artifactType,
                                                              ArtifactVersionMetaDataDto dto) {
         VersionMetaData metaData = new VersionMetaData();
         metaData.setGroupId(groupId);
@@ -221,7 +221,7 @@ public final class V2ApiUtil {
      * @param editableArtifactMetaData
      * @return the updated ArtifactMetaDataDto object
      */
-    public static final ArtifactMetaDataDto setEditableMetaDataInArtifact(ArtifactMetaDataDto amdd, EditableArtifactMetaDataDto editableArtifactMetaData) {
+    public static ArtifactMetaDataDto setEditableMetaDataInArtifact(ArtifactMetaDataDto amdd, EditableArtifactMetaDataDto editableArtifactMetaData) {
         if (editableArtifactMetaData.getName() != null) {
             amdd.setName(editableArtifactMetaData.getName());
         }

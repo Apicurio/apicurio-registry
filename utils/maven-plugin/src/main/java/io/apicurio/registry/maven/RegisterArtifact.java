@@ -1,9 +1,9 @@
 package io.apicurio.registry.maven;
 
+import io.apicurio.registry.rest.v3.beans.IfArtifactExists;
+
 import java.io.File;
 import java.util.List;
-
-import io.apicurio.registry.rest.v3.beans.IfExists;
 
 public class RegisterArtifact {
 
@@ -12,7 +12,7 @@ public class RegisterArtifact {
     private String version;
     private String type;
     private File file;
-    private IfExists ifExists;
+    private IfArtifactExists ifExists;
     private Boolean canonicalize;
     private Boolean minify;
     private Boolean analyzeDirectory;
@@ -72,14 +72,14 @@ public class RegisterArtifact {
     /**
      * @return the ifExists
      */
-    public IfExists getIfExists() {
+    public IfArtifactExists getIfExists() {
         return ifExists;
     }
 
     /**
      * @param ifExists the ifExists to set
      */
-    public void setIfExists(IfExists ifExists) {
+    public void setIfExists(IfArtifactExists ifExists) {
         this.ifExists = ifExists;
     }
 

@@ -3,17 +3,19 @@ package io.apicurio.registry.auth;
 import io.apicurio.common.apps.config.Info;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.rest.client.models.ArtifactContent;
 import io.apicurio.registry.rest.client.models.ArtifactMetaData;
+import io.apicurio.registry.rest.client.models.CreateArtifact;
+import io.apicurio.registry.rest.client.models.CreateVersion;
 import io.apicurio.registry.rest.client.models.EditableArtifactMetaData;
-import io.apicurio.registry.rest.client.models.IfExists;
 import io.apicurio.registry.rest.client.models.Rule;
 import io.apicurio.registry.rest.client.models.RuleType;
 import io.apicurio.registry.rest.client.models.UserInfo;
+import io.apicurio.registry.rest.client.models.VersionContent;
 import io.apicurio.registry.rest.client.models.VersionMetaData;
 import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
 import io.apicurio.registry.rules.validity.ValidityLevel;
 import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.utils.tests.ApicurioTestTags;
 import io.apicurio.registry.utils.tests.AuthTestProfile;
 import io.apicurio.registry.utils.tests.JWKSMockServer;
@@ -26,15 +28,14 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
-import java.util.Base64;
 import java.util.UUID;
 
 import static io.apicurio.registry.client.auth.VertXAuthFactory.buildOIDCWebClient;
 import static io.apicurio.registry.client.auth.VertXAuthFactory.buildSimpleAuthWebClient;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @QuarkusTest
 @TestProfile(AuthTestProfile.class)
@@ -56,9 +57,15 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
         return new RegistryClient(adapter);
     }
 
-    private static final ArtifactContent content = new ArtifactContent();
+    private static final CreateArtifact createArtifact = new CreateArtifact();
     static {
-        content.setContent("{}");
+        createArtifact.setType(ArtifactType.JSON);
+        CreateVersion createVersion = new CreateVersion();
+        createArtifact.setFirstVersion(createVersion);
+        VersionContent versionContent = new VersionContent();
+        createVersion.setContent(versionContent);
+        versionContent.setContent(ARTIFACT_CONTENT);
+        versionContent.setContentType(ContentTypes.APPLICATION_JSON);
     }
 
     protected void assertArtifactNotFound(Exception exception) {
@@ -94,10 +101,8 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
         });
         assertArtifactNotFound(exception2);
         var exception3 = Assertions.assertThrows(Exception.class, () -> {
-            client.groups().byGroupId("testReadOnly").artifacts().post(content, config -> {
-                config.headers.add("X-Registry-ArtifactId", artifactId);
-                config.headers.add("X-Registry-ArtifactType", ArtifactType.JSON);
-            });
+            createArtifact.setArtifactId(artifactId);
+            client.groups().byGroupId("testReadOnly").artifacts().post(createArtifact);
         });
         assertForbidden(exception3);
 
@@ -105,10 +110,8 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
         devAdapter.setBaseUrl(registryV3ApiUrl);
         RegistryClient devClient = new RegistryClient(devAdapter);
 
-        VersionMetaData meta = devClient.groups().byGroupId(groupId).artifacts().post(content, config -> {
-            config.headers.add("X-Registry-ArtifactId", artifactId);
-            config.headers.add("X-Registry-ArtifactType", ArtifactType.JSON);
-        });
+        createArtifact.setArtifactId(artifactId);
+        VersionMetaData meta = devClient.groups().byGroupId(groupId).artifacts().post(createArtifact).getVersion();
 
         TestUtils.retry(() -> devClient.groups().byGroupId(groupId).artifacts().byArtifactId(meta.getArtifactId()).get());
 
@@ -131,10 +134,8 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
         try {
             client.groups().byGroupId(groupId).artifacts().get();
 
-            client.groups().byGroupId(groupId).artifacts().post(content, config -> {
-                config.headers.add("X-Registry-ArtifactId", artifactId);
-                config.headers.add("X-Registry-ArtifactType", ArtifactType.JSON);
-            });
+            createArtifact.setArtifactId(artifactId);
+            client.groups().byGroupId(groupId).artifacts().post(createArtifact);
             TestUtils.retry(() -> client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get());
 
             assertTrue(client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").content().get().readAllBytes().length > 0);
@@ -169,10 +170,8 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
         try {
             client.groups().byGroupId(groupId).artifacts().get();
 
-            client.groups().byGroupId(groupId).artifacts().post(content, config -> {
-                config.headers.add("X-Registry-ArtifactId", artifactId);
-                config.headers.add("X-Registry-ArtifactType", ArtifactType.JSON);
-            });
+            createArtifact.setArtifactId(artifactId);
+            client.groups().byGroupId(groupId).artifacts().post(createArtifact);
             TestUtils.retry(() -> client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get());
 
             assertTrue(client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").content().get().readAllBytes().length > 0);
@@ -204,10 +203,8 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
         try {
             client.groups().byGroupId(groupId).artifacts().get();
 
-            client.groups().byGroupId(groupId).artifacts().post(content, config -> {
-                config.headers.add("X-Registry-ArtifactId", artifactId);
-                config.headers.add("X-Registry-ArtifactType", ArtifactType.JSON);
-            });
+            createArtifact.setArtifactId(artifactId);
+            client.groups().byGroupId(groupId).artifacts().post(createArtifact);
             TestUtils.retry(() -> client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get());
 
             assertTrue(client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").content().get().readAllBytes().length > 0);
@@ -235,10 +232,8 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
         });
         assertNotAuthorized(exception1);
         var exception2 = Assertions.assertThrows(Exception.class, () -> {
-            client.groups().byGroupId(groupId).artifacts().post(content, config -> {
-                config.headers.add("X-Registry-ArtifactId", artifactId);
-                config.headers.add("X-Registry-ArtifactType", ArtifactType.JSON);
-            });
+            createArtifact.setArtifactId(artifactId);
+            client.groups().byGroupId(groupId).artifacts().post(createArtifact);
         });
         assertNotAuthorized(exception2);
     }
@@ -255,10 +250,8 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
 
         // Admin user will create an artifact
         String artifactId = TestUtils.generateArtifactId();
-        clientAdmin.groups().byGroupId(groupId).artifacts().post(content, config -> {
-            config.headers.add("X-Registry-ArtifactId", artifactId);
-            config.headers.add("X-Registry-ArtifactType", ArtifactType.JSON);
-        });
+        createArtifact.setArtifactId(artifactId);
+        clientAdmin.groups().byGroupId(groupId).artifacts().post(createArtifact);
 
         EditableArtifactMetaData updatedMetaData = new EditableArtifactMetaData();
         updatedMetaData.setName("Updated Name");
@@ -274,10 +267,8 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
 
         // Now the Dev user will create an artifact
         String artifactId2 = TestUtils.generateArtifactId();
-        clientDev.groups().byGroupId(groupId).artifacts().post(content, config -> {
-            config.headers.add("X-Registry-ArtifactId", artifactId2);
-            config.headers.add("X-Registry-ArtifactType", ArtifactType.JSON);
-        });
+        createArtifact.setArtifactId(artifactId2);
+        clientDev.groups().byGroupId(groupId).artifacts().post(createArtifact);
 
         // And the Admin user will modify it (allowed because it's the Admin user)
         Rule rule = new Rule();
@@ -298,13 +289,8 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
         final String version = "1";
 
         //Execution
-        var artifactContent = new ArtifactContent();
-        artifactContent.setContent(ARTIFACT_CONTENT);
-        final VersionMetaData created = client.groups().byGroupId(groupId).artifacts().post(content, config -> {
-            config.queryParameters.ifExists = IfExists.FAIL;
-            config.headers.add("X-Registry-ArtifactId", artifactId);
-            config.headers.add("X-Registry-ArtifactType", ArtifactType.JSON);
-        });
+        createArtifact.setArtifactId(artifactId);
+        final VersionMetaData created = client.groups().byGroupId(groupId).artifacts().post(createArtifact).getVersion();
 
         //Assertions
         assertNotNull(created);
@@ -333,16 +319,11 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
         final String description = "testUpdateArtifactOwnerDescription";
 
         //Execution
-        var artifactContent = new ArtifactContent();
-        artifactContent.setContent(ARTIFACT_CONTENT);
-        final VersionMetaData created = client.groups().byGroupId(groupId).artifacts().post(content, config -> {
-            config.queryParameters.ifExists = IfExists.FAIL;
-            config.headers.add("X-Registry-ArtifactId", artifactId);
-            config.headers.add("X-Registry-ArtifactType", ArtifactType.JSON);
-            config.headers.add("X-Registry-Version", version);
-            config.headers.add("X-Registry-Name-Encoded", Base64.getEncoder().encodeToString(name.getBytes()));
-            config.headers.add("X-Registry-Description-Encoded", Base64.getEncoder().encodeToString(description.getBytes()));
-        });
+        createArtifact.setArtifactId(artifactId);
+        createArtifact.getFirstVersion().setVersion(version);
+        createArtifact.getFirstVersion().setName(name);
+        createArtifact.getFirstVersion().setDescription(description);
+        final VersionMetaData created = client.groups().byGroupId(groupId).artifacts().post(createArtifact).getVersion();
 
         //Assertions
         assertNotNull(created);
@@ -383,16 +364,11 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
         final String description = "testUpdateArtifactOwnerOnlyByOwnerDescription";
 
         //Execution
-        var artifactContent = new ArtifactContent();
-        artifactContent.setContent(ARTIFACT_CONTENT);
-        final VersionMetaData created = client_dev1.groups().byGroupId(groupId).artifacts().post(content, config -> {
-            config.queryParameters.ifExists = IfExists.FAIL;
-            config.headers.add("X-Registry-ArtifactId", artifactId);
-            config.headers.add("X-Registry-ArtifactType", ArtifactType.JSON);
-            config.headers.add("X-Registry-Version", version);
-            config.headers.add("X-Registry-Name-Encoded", Base64.getEncoder().encodeToString(name.getBytes()));
-            config.headers.add("X-Registry-Description-Encoded", Base64.getEncoder().encodeToString(description.getBytes()));
-        });
+        createArtifact.setArtifactId(artifactId);
+        createArtifact.getFirstVersion().setVersion(version);
+        createArtifact.getFirstVersion().setName(name);
+        createArtifact.getFirstVersion().setDescription(description);
+        final VersionMetaData created = client_dev1.groups().byGroupId(groupId).artifacts().post(createArtifact).getVersion();
 
         //Assertions
         assertNotNull(created);

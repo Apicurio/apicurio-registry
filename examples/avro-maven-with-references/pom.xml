@@ -36,7 +36,7 @@
                                     <file>
                                         ${project.basedir}/src/main/resources/schemas/TradeKey.avsc
                                     </file>
-                                    <ifExists>RETURN_OR_UPDATE</ifExists>
+                                    <ifExists>FIND_OR_CREATE_VERSION</ifExists>
                                     <canonicalize>true</canonicalize>
                                     <references>
                                         <reference>
@@ -48,7 +48,7 @@
                                             <file>
                                                 ${project.basedir}/src/main/resources/schemas/Exchange.avsc
                                             </file>
-                                            <ifExists>RETURN_OR_UPDATE</ifExists>
+                                            <ifExists>FIND_OR_CREATE_VERSION</ifExists>
                                             <canonicalize>true</canonicalize>
                                         </reference>
                                     </references>

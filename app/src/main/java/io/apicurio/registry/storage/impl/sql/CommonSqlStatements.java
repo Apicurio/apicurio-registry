@@ -205,7 +205,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String selectArtifactVersionContentByGlobalId() {
-        return "SELECT v.globalId, v.version, v.versionOrder, v.contentId, c.content, c.refs FROM versions v "
+        return "SELECT v.globalId, v.version, v.versionOrder, v.contentId, c.content, c.contentType, c.refs FROM versions v "
                 + "JOIN content c ON v.contentId = c.contentId "
                 + "WHERE v.globalId = ?";
     }
@@ -215,7 +215,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String selectArtifactVersionContent() {
-        return "SELECT v.globalId, v.version, v.versionOrder, c.contentId, c.content, c.refs FROM versions v "
+        return "SELECT v.globalId, v.version, v.versionOrder, c.contentId, c.content, c.contentType, c.refs FROM versions v "
                 + "JOIN content c ON v.contentId = c.contentId "
                 + "WHERE v.groupId = ? AND v.artifactId = ? AND v.version = ?";
     }
@@ -233,7 +233,6 @@ public abstract class CommonSqlStatements implements SqlStatements {
     public String selectArtifactMetaData() {
         return "SELECT a.* FROM artifacts a WHERE a.groupId = ? AND a.artifactId = ?";
     }
-
 
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectContentIdByHash()
@@ -612,7 +611,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String selectContentById() {
-        return "SELECT c.content, c.refs FROM content c "
+        return "SELECT c.content, c.contentType, c.refs FROM content c "
                 + "WHERE c.contentId = ?";
     }
 
@@ -621,7 +620,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String selectContentByContentHash() {
-        return "SELECT c.content, c.refs FROM content c "
+        return "SELECT c.content, c.contentType, c.refs FROM content c "
                 + "WHERE c.contentHash = ?";
     }
 
@@ -776,7 +775,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String importContent() {
-        return "INSERT INTO content (contentId, canonicalHash, contentHash, content, refs) VALUES (?, ?, ?, ?, ?)";
+        return "INSERT INTO content (contentId, canonicalHash, contentHash, contentType, content, refs) VALUES (?, ?, ?, ?, ?, ?)";
     }
 
     /**

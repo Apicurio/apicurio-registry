@@ -1,9 +1,11 @@
 package io.apicurio.tests.migration;
 
 
-
+import io.apicurio.registry.client.auth.VertXAuthFactory;
 import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.rest.client.models.ArtifactContent;
+import io.apicurio.registry.rest.client.models.CreateArtifact;
+import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.tests.ApicurioRegistryBaseIT;
@@ -14,8 +16,6 @@ import io.apicurio.tests.utils.Constants;
 import io.kiota.http.vertx.VertXRequestAdapter;
 import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
-
-import io.apicurio.registry.client.auth.VertXAuthFactory;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -60,24 +60,21 @@ public class DoNotPreserveIdsImportIT extends ApicurioRegistryBaseIT {
             AvroGenericRecordSchemaFactory avroSchema = new AvroGenericRecordSchemaFactory(List.of("a" + idx));
             String artifactId = "avro-" + idx + "-" + UUID.randomUUID().toString(); // Artifact ids need to be different we do not support identical artifact ids
             String content = IoUtil.toString(avroSchema.generateSchemaStream());
-            ArtifactContent artifactContent = new ArtifactContent();
-            artifactContent.setContent(content);
-            var amd = dest.groups().byGroupId("testDoNotPreserveIdsImport").artifacts().post(artifactContent, config -> {
-                        config.headers.add("X-Registry-ArtifactId", artifactId);
-                    });
-            retry(() -> dest.ids().globalIds().byGlobalId(amd.getGlobalId()));
+
+            CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO, content, ContentTypes.APPLICATION_JSON);
+            var response = dest.groups().byGroupId("testDoNotPreserveIdsImport").artifacts().post(createArtifact);
+            retry(() -> dest.ids().globalIds().byGlobalId(response.getVersion().getGlobalId()));
             doNotPreserveIdsImportArtifacts.put("testDoNotPreserveIdsImport:" + artifactId, content);
         }
 
         for (int idx = 0; idx < 50; idx++) {
             String artifactId = idx + "-" + UUID.randomUUID().toString(); // Artifact ids need to be different we do not support identical artifact ids
             String content = IoUtil.toString(jsonSchema.getSchemaStream());
-            ArtifactContent artifactContent = new ArtifactContent();
-            artifactContent.setContent(content);
-            var amd = dest.groups().byGroupId("testDoNotPreserveIdsImport").artifacts().post(artifactContent, config -> {
+            CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.JSON, content, ContentTypes.APPLICATION_JSON);
+            var response = dest.groups().byGroupId("testDoNotPreserveIdsImport").artifacts().post(createArtifact, config -> {
                 config.headers.add("X-Registry-ArtifactId", artifactId);
             });
-            retry(() -> dest.ids().globalIds().byGlobalId(amd.getGlobalId()));
+            retry(() -> dest.ids().globalIds().byGlobalId(response.getVersion().getGlobalId()));
             doNotPreserveIdsImportArtifacts.put("testDoNotPreserveIdsImport:" + artifactId, content);
         }
 

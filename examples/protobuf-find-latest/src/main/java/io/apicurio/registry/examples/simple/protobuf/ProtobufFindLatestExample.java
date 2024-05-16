@@ -21,11 +21,15 @@ import io.apicurio.registry.examples.AddressBookProtos;
 import io.apicurio.registry.examples.AddressBookProtos.AddressBook;
 import io.apicurio.registry.examples.AddressBookProtos.Person;
 import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.rest.client.models.ArtifactContent;
+import io.apicurio.registry.rest.client.models.CreateArtifact;
+import io.apicurio.registry.rest.client.models.CreateVersion;
+import io.apicurio.registry.rest.client.models.IfArtifactExists;
+import io.apicurio.registry.rest.client.models.VersionContent;
 import io.apicurio.registry.serde.SerdeConfig;
 import io.apicurio.registry.serde.protobuf.ProtobufKafkaDeserializer;
 import io.apicurio.registry.serde.protobuf.ProtobufKafkaSerializer;
 import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.utils.IoUtil;
 import io.kiota.http.vertx.VertXRequestAdapter;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -85,16 +89,19 @@ public class ProtobufFindLatestExample {
         System.out.println("Manually creating the artifact in Apicurio Registry");
         //because the default ArtifactResolverStrategy is TopicIdStrategy the artifactId is in the form of topicName-value
 
-
+        String artifactId = topicName + "-value";
         InputStream protofile = Thread.currentThread().getContextClassLoader().getResourceAsStream("person.proto");
 
-        ArtifactContent content = new ArtifactContent();
-        content.setContent(IoUtil.toString(protofile));
+        CreateArtifact createArtifact = new CreateArtifact();
+        createArtifact.setArtifactId(artifactId);
+        createArtifact.setType(ArtifactType.PROTOBUF);
+        createArtifact.setFirstVersion(new CreateVersion());
+        createArtifact.getFirstVersion().setContent(new VersionContent());
+        createArtifact.getFirstVersion().getContent().setContent(IoUtil.toString(protofile));
+        createArtifact.getFirstVersion().getContent().setContentType(ContentTypes.APPLICATION_PROTOBUF);
 
-        final io.apicurio.registry.rest.client.models.VersionMetaData personAmd = client.groups().byGroupId("default").artifacts().post(content, config -> {
-            config.queryParameters.ifExists = io.apicurio.registry.rest.client.models.IfExists.RETURN_OR_UPDATE;
-            config.headers.add("X-Registry-ArtifactId", topicName + "-value");
-            config.headers.add("X-Registry-ArtifactType", ArtifactType.PROTOBUF);
+        client.groups().byGroupId("default").artifacts().post(createArtifact, config -> {
+            config.queryParameters.ifExists = IfArtifactExists.FIND_OR_CREATE_VERSION;
         });
 
         System.out.println();

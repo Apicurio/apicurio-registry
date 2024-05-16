@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.types.ContentTypes;
 
 public final class ContentTypeUtil {
     
@@ -66,7 +67,6 @@ public final class ContentTypeUtil {
 
     /**
      * Returns true if the content can be parsed as yaml.
-     *
      */
     public static boolean isParsableYaml(ContentHandle yaml) {
         try {
@@ -82,6 +82,18 @@ public final class ContentTypeUtil {
         }
     }
 
+    /**
+     * Returns true if the content can be parsed as yaml.
+     */
+    public static boolean isParsableJson(ContentHandle content) {
+        try {
+            JsonNode root = jsonMapper.readTree(content.stream());
+            return root != null && (root.isObject() || root.isArray());
+        } catch (Throwable t) {
+            return false;
+        }
+    }
+
     public static ContentHandle yamlToJson(ContentHandle yaml) {
         try {
             JsonNode root = yamlMapper.readTree(yaml.stream());
@@ -91,4 +103,14 @@ public final class ContentTypeUtil {
         }
     }
 
+    // FIXME this doesn't work for XML types!
+    public static String determineContentType(ContentHandle content) {
+        if (isParsableJson(content)) {
+            return CT_APPLICATION_JSON;
+        }
+        if (isParsableYaml(content)) {
+            return CT_APPLICATION_YAML;
+        }
+        return ContentTypes.APPLICATION_PROTOBUF;
+    }
 }

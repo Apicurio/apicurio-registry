@@ -1,27 +1,24 @@
 package io.apicurio.tests.smokeTests.apicurio;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.nullValue;
-import static org.hamcrest.MatcherAssert.assertThat;
-
-import java.io.ByteArrayInputStream;
-import java.nio.charset.StandardCharsets;
-
+import io.apicurio.registry.rest.client.models.ArtifactMetaData;
+import io.apicurio.registry.rest.client.models.EditableArtifactMetaData;
+import io.apicurio.registry.rest.client.models.EditableVersionMetaData;
+import io.apicurio.registry.rest.client.models.VersionMetaData;
+import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.ContentTypes;
+import io.apicurio.registry.utils.tests.TestUtils;
+import io.apicurio.tests.ApicurioRegistryBaseIT;
+import io.apicurio.tests.utils.Constants;
+import io.quarkus.test.junit.QuarkusIntegrationTest;
 import org.hamcrest.number.OrderingComparison;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.apicurio.registry.rest.client.models.ArtifactMetaData;
-import io.apicurio.registry.rest.client.models.EditableArtifactMetaData;
-import io.apicurio.registry.rest.client.models.EditableVersionMetaData;
-import io.apicurio.registry.rest.client.models.VersionMetaData;
-import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.utils.tests.TestUtils;
-import io.apicurio.tests.ApicurioRegistryBaseIT;
-import io.apicurio.tests.utils.Constants;
-import io.quarkus.test.junit.QuarkusIntegrationTest;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 @Tag(Constants.SMOKE)
 @QuarkusIntegrationTest
@@ -36,9 +33,8 @@ class MetadataIT extends ApicurioRegistryBaseIT {
         String artifactId = TestUtils.generateArtifactId();
         String artifactDefinition = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
 
-        ByteArrayInputStream artifactData = new ByteArrayInputStream(artifactDefinition.getBytes(StandardCharsets.UTF_8));
-        VersionMetaData metaData = createArtifact(groupId, artifactId, ArtifactType.AVRO, artifactData);
-        LOGGER.info("Created artifact {} with metadata {}", artifactId, metaData);
+        var caResponse = createArtifact(groupId, artifactId, ArtifactType.AVRO, artifactDefinition, ContentTypes.APPLICATION_JSON, null, null);
+        LOGGER.info("Created artifact {} with metadata {}", artifactId, caResponse.getArtifact());
 
         ArtifactMetaData artifactMetaData = registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get();
         LOGGER.info("Got metadata of artifact with ID {}: {}", artifactId, artifactMetaData);
@@ -72,14 +68,15 @@ class MetadataIT extends ApicurioRegistryBaseIT {
         String artifactId = TestUtils.generateArtifactId();
         String artifactDefinition = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
 
-        ByteArrayInputStream artifactData = new ByteArrayInputStream(artifactDefinition.getBytes(StandardCharsets.UTF_8));
-        VersionMetaData metaData = createArtifact(groupId, artifactId, ArtifactType.AVRO, artifactData);
-        LOGGER.info("Created artifact {} with metadata {}", artifactId, metaData);
+        var caResponse = createArtifact(groupId, artifactId, ArtifactType.AVRO, artifactDefinition, ContentTypes.APPLICATION_JSON, null, (ca) -> {
+            ca.getFirstVersion().setName("Version 1 Name");
+            return null;
+        });
+        LOGGER.info("Created artifact {} with metadata {}", artifactId, caResponse.getArtifact());
 
         String artifactUpdateDefinition = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}";
-        ByteArrayInputStream artifactUpdateData = new ByteArrayInputStream(artifactUpdateDefinition.getBytes(StandardCharsets.UTF_8));
 
-        metaData = createArtifactVersion(groupId, artifactId, artifactUpdateData);
+        var metaData = createArtifactVersion(groupId, artifactId, artifactUpdateDefinition, ContentTypes.APPLICATION_JSON, null);
         LOGGER.info("Artifact with ID {} was updated: {}", artifactId, metaData);
 
         retryOp((rc) -> rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("2").get());
@@ -92,7 +89,7 @@ class MetadataIT extends ApicurioRegistryBaseIT {
         assertThat(versionMetaData.getType(), is("AVRO"));
 
         EditableVersionMetaData emd = new EditableVersionMetaData();
-        emd.setName("Artifact Updated Name");
+        emd.setName("Version 2 Name");
         emd.setDescription("The description of the artifact.");
 
         registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("2").put(emd);
@@ -102,7 +99,7 @@ class MetadataIT extends ApicurioRegistryBaseIT {
         LOGGER.info("Got metadata of artifact with ID {} version 1: {}", artifactId, versionMetaData);
         assertThat(versionMetaData.getVersion(), is("1"));
         assertThat(versionMetaData.getType(), is("AVRO"));
-        assertThat(versionMetaData.getName(), is("myrecord1"));
+        assertThat(versionMetaData.getName(), is("Version 1 Name"));
         assertThat(versionMetaData.getDescription(),  nullValue());
     }
 }

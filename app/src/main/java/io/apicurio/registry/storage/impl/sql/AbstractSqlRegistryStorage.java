@@ -1,42 +1,7 @@
 package io.apicurio.registry.storage.impl.sql;
 
-import static io.apicurio.registry.storage.RegistryStorage.ArtifactRetrievalBehavior.DEFAULT;
-import static io.apicurio.registry.storage.impl.sql.RegistryStorageContentUtils.notEmpty;
-import static io.apicurio.registry.storage.impl.sql.SqlUtil.normalizeGroupId;
-import static io.apicurio.registry.utils.StringUtil.asLowerCase;
-import static io.apicurio.registry.utils.StringUtil.limitStr;
-import static java.util.stream.Collectors.toList;
-
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.time.Duration;
-import java.time.Instant;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
-import java.util.function.Function;
-import java.util.stream.Stream;
-
-import org.apache.commons.lang3.tuple.Pair;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
-import org.slf4j.Logger;
-
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
 import io.apicurio.common.apps.config.Info;
 import io.apicurio.common.apps.core.System;
@@ -138,6 +103,40 @@ import jakarta.enterprise.event.Event;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import jakarta.validation.ValidationException;
+import org.apache.commons.lang3.tuple.ImmutablePair;
+import org.apache.commons.lang3.tuple.Pair;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.slf4j.Logger;
+
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Stream;
+
+import static io.apicurio.registry.storage.RegistryStorage.ArtifactRetrievalBehavior.DEFAULT;
+import static io.apicurio.registry.storage.impl.sql.RegistryStorageContentUtils.notEmpty;
+import static io.apicurio.registry.storage.impl.sql.SqlUtil.normalizeGroupId;
+import static io.apicurio.registry.utils.StringUtil.asLowerCase;
+import static io.apicurio.registry.utils.StringUtil.limitStr;
+import static java.util.stream.Collectors.toList;
 
 
 /**
@@ -462,237 +461,20 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         });
     }
 
-    @Override
-    @Transactional
-    public ArtifactVersionMetaDataDto createArtifact(String groupId, String artifactId, String version, String artifactType,
-                                              ContentHandle content, List<ArtifactReferenceDto> references) throws ArtifactAlreadyExistsException, ArtifactNotFoundException, RegistryStorageException {
-        return createArtifactWithMetadata(groupId, artifactId, version, artifactType, content, null, references);
-    }
-
-
-    /**
-     * IMPORTANT: Private methods can't be @Transactional. Callers MUST have started a transaction.
-     */
-    private ArtifactVersionMetaDataDto createArtifactVersionRaw(boolean firstVersion, String groupId, String artifactId, 
-            String version, String name, String description, Map<String, String> labels, String owner, Date createdOn,
-            Long contentId, IdGenerator globalIdGenerator) {
-
-        ArtifactState state = ArtifactState.ENABLED;
-        String labelsStr = SqlUtil.serializeLabels(labels);
-
-        if (globalIdGenerator == null) {
-            globalIdGenerator = this::nextGlobalId;
-        }
-
-        Long globalId = globalIdGenerator.generate();
-
-        // Create a row in the "versions" table
-
-        if (firstVersion) {
-            if (version == null) {
-                version = "1";
-            }
-            final String finalVersion1 = version; // Lambda requirement
-            handles.withHandleNoException(handle -> {
-                handle.createUpdate(sqlStatements.insertVersion(true))
-                        .bind(0, globalId)
-                        .bind(1, normalizeGroupId(groupId))
-                        .bind(2, artifactId)
-                        .bind(3, finalVersion1)
-                        .bind(4, state)
-                        .bind(5, limitStr(name, 512))
-                        .bind(6, limitStr(description, 1024, true))
-                        .bind(7, owner)
-                        .bind(8, createdOn)
-                        .bind(9, labelsStr)
-                        .bind(10, contentId)
-                        .execute();
-
-                createOrUpdateArtifactBranchRaw(new GAV(groupId, artifactId, finalVersion1), BranchId.LATEST);
-
-                return null;
-            });
-        } else {
-            final String finalVersion2 = version; // Lambda requirement
-            handles.withHandleNoException(handle -> {
-                handle.createUpdate(sqlStatements.insertVersion(false))
-                        .bind(0, globalId)
-                        .bind(1, normalizeGroupId(groupId))
-                        .bind(2, artifactId)
-                        .bind(3, finalVersion2)
-                        .bind(4, normalizeGroupId(groupId))
-                        .bind(5, artifactId)
-                        .bind(6, state)
-                        .bind(7, limitStr(name, 512))
-                        .bind(8, limitStr(description, 1024, true))
-                        .bind(9, owner)
-                        .bind(10, createdOn)
-                        .bind(11, labelsStr)
-                        .bind(12, contentId)
-                        .execute();
-
-                // If version is null, update the row we just inserted to set the version to the generated versionOrder
-                if (finalVersion2 == null) {
-
-                    handle.createUpdate(sqlStatements.autoUpdateVersionForGlobalId())
-                            .bind(0, globalId)
-                            .execute();
-                }
-
-                var gav = getGAVByGlobalId(globalId);
-                createOrUpdateArtifactBranchRaw(gav, BranchId.LATEST);
-
-                return null;
-            });
-        }
-
-        return handles.withHandleNoException(handle -> {
-
-            // Insert labels into the "version_labels" table
-            if (labels != null && !labels.isEmpty()) {
-                labels.forEach((k, v) -> {
-
-                    handle.createUpdate(sqlStatements.insertVersionLabel())
-                            .bind(0, globalId)
-                            .bind(1, limitStr(k.toLowerCase(), 256))
-                            .bind(2, limitStr(v.toLowerCase(), 512))
-                            .execute();
-                });
-            }
-
-            return handle.createQuery(sqlStatements.selectArtifactVersionMetaDataByGlobalId())
-                    .bind(0, globalId)
-                    .map(ArtifactVersionMetaDataDtoMapper.instance)
-                    .one();
-
-        });
-    }
-
-
-    /**
-     * Store the content in the database and return the content ID of the new row.
-     * If the content already exists, just return the content ID of the existing row.
-     * <p>
-     * IMPORTANT: Private methods can't be @Transactional. Callers MUST have started a transaction.
-     *
-     * @param references may be null
-     */
-    private Long getOrCreateContent(String artifactType, ContentHandle content, List<ArtifactReferenceDto> references) {
-        if (notEmpty(references)) {
-            return getOrCreateContentRaw(content,
-                    utils.getContentHash(content, references),
-                    utils.getCanonicalContentHash(content, artifactType, references, this::resolveReferences),
-                    references, SqlUtil.serializeReferences(references));
-        } else {
-            return getOrCreateContentRaw(content,
-                    utils.getContentHash(content, null),
-                    utils.getCanonicalContentHash(content, artifactType, null, null),
-                    null, null);
-        }
-    }
-
-
-    /**
-     * Store the content in the database and return the content ID of the new row.
-     * If the content already exists, just return the content ID of the existing row.
-     * <p>
-     * IMPORTANT: Private methods can't be @Transactional. Callers MUST have started a transaction.
-     */
-    private Long getOrCreateContentRaw(ContentHandle content, String contentHash, String canonicalContentHash, List<ArtifactReferenceDto> references, String referencesSerialized) {
-        return handles.withHandleNoException(handle -> {
-            byte[] contentBytes = content.bytes();
-
-            // Upsert a row in the "content" table.  This will insert a row for the content
-            // if a row doesn't already exist.  We use the content hash to determine whether
-            // a row for this content already exists.  If we find a row we return its content ID.
-            // If we don't find a row, we insert one and then return its content ID.
-            Long contentId;
-            boolean insertReferences = true;
-            if (Set.of("mssql", "postgresql").contains(sqlStatements.dbType())) {
-
-                handle.createUpdate(sqlStatements.upsertContent())
-                        .bind(0, nextContentId())
-                        .bind(1, canonicalContentHash)
-                        .bind(2, contentHash)
-                        .bind(3, contentBytes)
-                        .bind(4, referencesSerialized)
-                        .execute();
-
-                contentId = contentIdFromHash(contentHash)
-                        .orElseThrow(() -> new RegistryStorageException("Content hash not found."));
-
-            } else if ("h2".equals(sqlStatements.dbType())) {
-
-                Optional<Long> contentIdOptional = contentIdFromHash(contentHash);
-
-                if (contentIdOptional.isPresent()) {
-                    contentId = contentIdOptional.get();
-                    //If the content is already present there's no need to create the references.
-                    insertReferences = false;
-                } else {
-
-                    handle.createUpdate(sqlStatements.upsertContent())
-                            .bind(0, nextContentId())
-                            .bind(1, canonicalContentHash)
-                            .bind(2, contentHash)
-                            .bind(3, contentBytes)
-                            .bind(4, referencesSerialized)
-                            .execute();
-
-                    contentId = contentIdFromHash(contentHash)
-                            .orElseThrow(() -> new RegistryStorageException("Content hash not found."));
-                }
-            } else {
-                throw new UnsupportedOperationException("Unsupported database type: " + sqlStatements.dbType());
-            }
-
-            if (insertReferences) {
-                //Finally, insert references into the "content_references" table if the content wasn't present yet.
-                insertReferences(contentId, references);
-            }
-            return contentId;
-        });
-    }
-
-
-    /**
-     * IMPORTANT: Private methods can't be @Transactional. Callers MUST have started a transaction.
-     */
-    private void insertReferences(Long contentId, List<ArtifactReferenceDto> references) {
-        if (references != null && !references.isEmpty()) {
-            references.forEach(reference -> {
-                handles.withHandleNoException(handle -> {
-                    try {
-                        handle.createUpdate(sqlStatements.upsertContentReference())
-                                .bind(0, contentId)
-                                .bind(1, normalizeGroupId(reference.getGroupId()))
-                                .bind(2, reference.getArtifactId())
-                                .bind(3, reference.getVersion())
-                                .bind(4, reference.getName())
-                                .execute();
-                    } catch (Exception e) {
-                        if (sqlStatements.isPrimaryKeyViolation(e)) {
-                            //Do nothing, the reference already exist, only needed for H2
-                        } else {
-                            throw e;
-                        }
-                    }
-                    return null;
-                });
-            });
-        }
-    }
-
 
     @Override
     @Transactional
-    public ArtifactVersionMetaDataDto createArtifactWithMetadata(String groupId, String artifactId, String version,
-            String artifactType, ContentHandle content, EditableArtifactMetaDataDto metaData, List<ArtifactReferenceDto> references)
-            throws ArtifactNotFoundException, ArtifactAlreadyExistsException, RegistryStorageException {
+    public Pair<ArtifactMetaDataDto, ArtifactVersionMetaDataDto> createArtifact(String groupId, String artifactId, String artifactType,
+            EditableArtifactMetaDataDto artifactMetaData, String version, ContentWrapperDto versionContent,
+            EditableVersionMetaDataDto versionMetaData, List<String> versionBranches) throws RegistryStorageException {
+        log.debug("Inserting an artifact row for: {} {}", groupId, artifactId);
 
         String owner = securityIdentity.getPrincipal().getName();
         Date createdOn = new Date();
 
+        EditableArtifactMetaDataDto amd = artifactMetaData == null ? EditableArtifactMetaDataDto.builder().build() : artifactMetaData;
+
+        // Create the group if it doesn't exist yet.
         if (groupId != null && !isGroupExists(groupId)) {
             //Only create group metadata for non-default groups.
             createGroup(GroupMetaDataDto.builder()
@@ -704,35 +486,9 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                     .build());
         }
 
-        // Put the content in the DB and get the unique content ID back.
-        long contentId = getOrCreateContent(artifactType, content, references);
-
-        // If the metaData provided is null, try to figure it out from the content.
-        EditableArtifactMetaDataDto md = metaData;
-        if (md == null) {
-            EditableVersionMetaDataDto vmd = utils.extractEditableArtifactMetadata(artifactType, content);
-            md = EditableArtifactMetaDataDto.builder()
-                    .name(vmd.getName())
-                    .description(vmd.getDescription())
-                    .labels(vmd.getLabels())
-                    .build();
-        }
-        // This current method is skipped in KafkaSQL, and the one below is called directly,
-        // so references must be added to the metadata there.
-        return createArtifactWithMetadataRaw(groupId, artifactId, version, artifactType, contentId, owner, createdOn, md, null);
-    }
-
-
-    /**
-     * IMPORTANT: Private methods can't be @Transactional. Callers MUST have started a transaction.
-     */
-    private ArtifactVersionMetaDataDto createArtifactWithMetadataRaw(String groupId, String artifactId, String version,
-            String artifactType, long contentId, String owner, Date createdOn, EditableArtifactMetaDataDto metaData,
-            IdGenerator globalIdGenerator) {
-        log.debug("Inserting an artifact row for: {} {}", groupId, artifactId);
         try {
             return handles.withHandle(handle -> {
-                Map<String, String> labels = metaData.getLabels();
+                Map<String, String> labels = amd.getLabels();
                 String labelsStr = SqlUtil.serializeLabels(labels);
 
                 // Create a row in the artifacts table.
@@ -744,8 +500,8 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                         .bind(4, createdOn)
                         .bind(5, owner) // modifiedBy
                         .bind(6, createdOn) // modifiedOn
-                        .bind(7, limitStr(metaData.getName(), 512))
-                        .bind(8, limitStr(metaData.getDescription(), 1024, true))
+                        .bind(7, limitStr(amd.getName(), 512))
+                        .bind(8, limitStr(amd.getDescription(), 1024, true))
                         .bind(9, labelsStr)
                         .execute();
 
@@ -760,22 +516,241 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                                 .execute();
                     });
                 }
-                
-                // Then create a row in the content and versions tables (for the content and version meta-data)
-                ArtifactVersionMetaDataDto vmdd = createArtifactVersionRaw(true, groupId, artifactId, version,
-                        metaData.getName(), metaData.getDescription(), metaData.getLabels(), owner, createdOn,
-                        contentId, globalIdGenerator);
 
-                // Get the content, so we can return references in the metadata
-                //ContentWrapperDto contentDto = getContentById(contentId);
-                
-                return vmdd;
+                // Return an artifact metadata dto
+                ArtifactMetaDataDto amdDto = ArtifactMetaDataDto.builder()
+                        .groupId(groupId)
+                        .artifactId(artifactId)
+                        .name(amd.getName())
+                        .description(amd.getDescription())
+                        .createdOn(createdOn.getTime())
+                        .owner(owner)
+                        .modifiedOn(createdOn.getTime())
+                        .modifiedBy(owner)
+                        .type(artifactType)
+                        .labels(labels)
+                        .build();
+
+                // The artifact was successfully created!  Create the version as well, if one was included.
+                if (versionContent != null) {
+                    // Put the content in the DB and get the unique content ID back.
+                    long contentId = getOrCreateContent(handle, artifactType, versionContent);
+
+                    ArtifactVersionMetaDataDto vmdDto = createArtifactVersionRaw(handle, true, groupId, artifactId, version,
+                            versionMetaData, owner, createdOn, contentId, versionBranches);
+
+                    return ImmutablePair.of(amdDto, vmdDto);
+                } else {
+                    return ImmutablePair.left(amdDto);
+                }
             });
         } catch (Exception ex) {
             if (sqlStatements.isPrimaryKeyViolation(ex)) {
                 throw new ArtifactAlreadyExistsException(groupId, artifactId);
             }
             throw ex;
+        }
+    }
+
+
+    /**
+     * IMPORTANT: Private methods can't be @Transactional. Callers MUST have started a transaction.
+     */
+    private ArtifactVersionMetaDataDto createArtifactVersionRaw(Handle handle, boolean firstVersion, String groupId,
+            String artifactId, String version, EditableVersionMetaDataDto metaData, String owner, Date createdOn, Long contentId,
+            List<String> branches) {
+        if (metaData == null) {
+            metaData = EditableVersionMetaDataDto.builder().build();
+        }
+
+        ArtifactState state = ArtifactState.ENABLED;
+        String labelsStr = SqlUtil.serializeLabels(metaData.getLabels());
+
+        Long globalId = nextGlobalId();
+        GAV gav;
+
+        // Create a row in the "versions" table
+        if (firstVersion) {
+            if (version == null) {
+                version = "1";
+            }
+            final String finalVersion1 = version; // Lambda requirement
+            handle.createUpdate(sqlStatements.insertVersion(true))
+                    .bind(0, globalId)
+                    .bind(1, normalizeGroupId(groupId))
+                    .bind(2, artifactId)
+                    .bind(3, finalVersion1)
+                    .bind(4, state)
+                    .bind(5, limitStr(metaData.getName(), 512))
+                    .bind(6, limitStr(metaData.getDescription(), 1024, true))
+                    .bind(7, owner)
+                    .bind(8, createdOn)
+                    .bind(9, labelsStr)
+                    .bind(10, contentId)
+                    .execute();
+
+            gav = new GAV(groupId, artifactId, finalVersion1);
+            createOrUpdateArtifactBranchRaw(handle, gav, BranchId.LATEST);
+        } else {
+            handle.createUpdate(sqlStatements.insertVersion(false))
+                    .bind(0, globalId)
+                    .bind(1, normalizeGroupId(groupId))
+                    .bind(2, artifactId)
+                    .bind(3, version)
+                    .bind(4, normalizeGroupId(groupId))
+                    .bind(5, artifactId)
+                    .bind(6, state)
+                    .bind(7, limitStr(metaData.getName(), 512))
+                    .bind(8, limitStr(metaData.getDescription(), 1024, true))
+                    .bind(9, owner)
+                    .bind(10, createdOn)
+                    .bind(11, labelsStr)
+                    .bind(12, contentId)
+                    .execute();
+
+            // If version is null, update the row we just inserted to set the version to the generated versionOrder
+            if (version == null) {
+                handle.createUpdate(sqlStatements.autoUpdateVersionForGlobalId())
+                        .bind(0, globalId)
+                        .execute();
+            }
+
+            gav = getGAVByGlobalId(globalId);
+            createOrUpdateArtifactBranchRaw(handle, gav, BranchId.LATEST);
+        }
+
+        // Insert labels into the "version_labels" table
+        if (metaData.getLabels() != null && !metaData.getLabels().isEmpty()) {
+            metaData.getLabels().forEach((k, v) -> {
+                handle.createUpdate(sqlStatements.insertVersionLabel())
+                        .bind(0, globalId)
+                        .bind(1, limitStr(k.toLowerCase(), 256))
+                        .bind(2, limitStr(v.toLowerCase(), 512))
+                        .execute();
+            });
+        }
+
+        // Create any user defined branches
+        if (branches != null && !branches.isEmpty()) {
+            branches.forEach(branch -> {
+                BranchId branchId = new BranchId(branch);
+                createOrUpdateArtifactBranchRaw(handle, gav, branchId);
+            });
+        }
+
+        return handle.createQuery(sqlStatements.selectArtifactVersionMetaDataByGlobalId())
+                .bind(0, globalId)
+                .map(ArtifactVersionMetaDataDtoMapper.instance)
+                .one();
+    }
+
+
+    /**
+     * Store the content in the database and return the content ID of the new row.
+     * If the content already exists, just return the content ID of the existing row.
+     * <p>
+     * IMPORTANT: Private methods can't be @Transactional. Callers MUST have started a transaction.
+     */
+    private Long getOrCreateContent(Handle handle, String artifactType, ContentWrapperDto contentDto) {
+        List<ArtifactReferenceDto> references = contentDto.getReferences();
+        ContentHandle content = contentDto.getContent();
+        String contentType = contentDto.getContentType();
+
+        if (notEmpty(references)) {
+            return getOrCreateContentRaw(handle, content, contentType,
+                    utils.getContentHash(content, references),
+                    utils.getCanonicalContentHash(content, artifactType, references, this::resolveReferences),
+                    references, SqlUtil.serializeReferences(references));
+        } else {
+            return getOrCreateContentRaw(handle, content, contentType,
+                    utils.getContentHash(content, null),
+                    utils.getCanonicalContentHash(content, artifactType, null, null),
+                    null, null);
+        }
+    }
+
+    /**
+     * Store the content in the database and return the content ID of the new row.
+     * If the content already exists, just return the content ID of the existing row.
+     * <p>
+     * IMPORTANT: Private methods can't be @Transactional. Callers MUST have started a transaction.
+     */
+    private Long getOrCreateContentRaw(Handle handle, ContentHandle content, String contentType, String contentHash,
+            String canonicalContentHash, List<ArtifactReferenceDto> references, String referencesSerialized) {
+        byte[] contentBytes = content.bytes();
+
+        // Upsert a row in the "content" table.  This will insert a row for the content
+        // if a row doesn't already exist.  We use the content hash to determine whether
+        // a row for this content already exists.  If we find a row we return its content ID.
+        // If we don't find a row, we insert one and then return its content ID.
+        Long contentId;
+        boolean insertReferences = true;
+        if (Set.of("mssql", "postgresql").contains(sqlStatements.dbType())) {
+            handle.createUpdate(sqlStatements.upsertContent())
+                    .bind(0, nextContentId())
+                    .bind(1, canonicalContentHash)
+                    .bind(2, contentHash)
+                    .bind(3, contentType)
+                    .bind(4, contentBytes)
+                    .bind(5, referencesSerialized)
+                    .execute();
+
+            contentId = contentIdFromHash(contentHash)
+                    .orElseThrow(() -> new RegistryStorageException("Content hash not found."));
+        } else if ("h2".equals(sqlStatements.dbType())) {
+            Optional<Long> contentIdOptional = contentIdFromHash(contentHash);
+
+            if (contentIdOptional.isPresent()) {
+                contentId = contentIdOptional.get();
+                //If the content is already present there's no need to create the references.
+                insertReferences = false;
+            } else {
+                handle.createUpdate(sqlStatements.upsertContent())
+                        .bind(0, nextContentId())
+                        .bind(1, canonicalContentHash)
+                        .bind(2, contentHash)
+                        .bind(3, contentType)
+                        .bind(4, contentBytes)
+                        .bind(5, referencesSerialized)
+                        .execute();
+
+                contentId = contentIdFromHash(contentHash)
+                        .orElseThrow(() -> new RegistryStorageException("Content hash not found."));
+            }
+        } else {
+            throw new UnsupportedOperationException("Unsupported database type: " + sqlStatements.dbType());
+        }
+
+        if (insertReferences) {
+            //Finally, insert references into the "content_references" table if the content wasn't present yet.
+            insertReferences(handle, contentId, references);
+        }
+        return contentId;
+    }
+
+
+    /**
+     * IMPORTANT: Private methods can't be @Transactional. Callers MUST have started a transaction.
+     */
+    private void insertReferences(Handle handle, Long contentId, List<ArtifactReferenceDto> references) {
+        if (references != null && !references.isEmpty()) {
+            references.forEach(reference -> {
+                try {
+                    handle.createUpdate(sqlStatements.upsertContentReference())
+                            .bind(0, contentId)
+                            .bind(1, normalizeGroupId(reference.getGroupId()))
+                            .bind(2, reference.getArtifactId())
+                            .bind(3, reference.getVersion())
+                            .bind(4, reference.getName())
+                            .execute();
+                } catch (Exception e) {
+                    if (sqlStatements.isPrimaryKeyViolation(e)) {
+                        //Do nothing, the reference already exist, only needed for H2
+                    } else {
+                        throw e;
+                    }
+                }
+            });
         }
     }
 
@@ -844,73 +819,25 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     }
 
     @Override
-    public ArtifactVersionMetaDataDto createArtifactVersion(String groupId, String artifactId, String version, String artifactType,
-            ContentHandle content, List<ArtifactReferenceDto> references) throws ArtifactNotFoundException, RegistryStorageException {
-        return createArtifactVersionWithMetadata(groupId, artifactId, version, artifactType, content, 
-                EditableVersionMetaDataDto.builder().build(), references);
-    }
-
-    @Override
     @Transactional
-    public ArtifactVersionMetaDataDto createArtifactVersionWithMetadata(String groupId, String artifactId, String version,
-            String artifactType, ContentHandle content, EditableVersionMetaDataDto metaData, List<ArtifactReferenceDto> references)
-            throws ArtifactNotFoundException, RegistryStorageException
+    public ArtifactVersionMetaDataDto createArtifactVersion(String groupId, String artifactId, String version,
+            String artifactType, ContentWrapperDto content, EditableVersionMetaDataDto metaData,
+            List<String> branches) throws VersionAlreadyExistsException, RegistryStorageException
     {
-        return createArtifactVersionWithMetadata(groupId, artifactId, version, artifactType, content, metaData, references, null);
-    }
+        log.debug("Creating new artifact version for {} {} (version {}).", groupId, artifactId, version);
 
-    private ArtifactVersionMetaDataDto createArtifactVersionWithMetadata(String groupId, String artifactId, String version,
-            String artifactType, ContentHandle content, EditableVersionMetaDataDto metaData, List<ArtifactReferenceDto> references,
-            IdGenerator globalIdGenerator) throws ArtifactNotFoundException, RegistryStorageException
-    {
         String owner = securityIdentity.getPrincipal().getName();
         Date createdOn = new Date();
-
-        // Put the content in the DB and get the unique content ID back.
-        long contentId = handles.withHandleNoException(handle -> {
-            return getOrCreateContent(artifactType, content, references);
-        });
-
-        // Extract meta-data from the content if no metadata is provided
-        if (metaData == null) {
-            metaData = utils.extractEditableArtifactMetadata(artifactType, content);
-        }
-
-        return createArtifactVersionWithMetadata(groupId, artifactId, version, contentId, owner, createdOn,
-                metaData, null);
-    }
-
-
-    /**
-     * IMPORTANT: Private methods can't be @Transactional. Callers MUST have started a transaction.
-     */
-    private ArtifactVersionMetaDataDto createArtifactVersionWithMetadata(String groupId, String artifactId, String version,
-            long contentId, String owner, Date createdOn, EditableVersionMetaDataDto metaData, IdGenerator globalIdGenerator)
-            throws ArtifactNotFoundException, RegistryStorageException {
-        log.debug("Creating new artifact version for {} {} (version {}).", groupId, artifactId, version);
 
         try {
             // Create version and return
             return handles.withHandle(handle -> {
-                // Metadata comes from the latest version
-                String name = null;
-                String description = null;
-                Map<String, String> labels = null;
-
-                // Provided metadata will override inherited values from latest version
-                if (metaData.getName() != null) {
-                    name = metaData.getName();
-                }
-                if (metaData.getDescription() != null) {
-                    description = metaData.getDescription();
-                }
-                if (metaData.getLabels() != null) {
-                    labels = metaData.getLabels();
-                }
+                // Put the content in the DB and get the unique content ID back.
+                long contentId = getOrCreateContent(handle, artifactType, content);
 
                 // Now create the version and return the new version metadata.
-                ArtifactVersionMetaDataDto versionDto = createArtifactVersionRaw(false, groupId, artifactId, version,
-                        name, description, labels, owner, createdOn, contentId, globalIdGenerator);
+                ArtifactVersionMetaDataDto versionDto = createArtifactVersionRaw(handle, false, groupId, artifactId, version,
+                        metaData == null ? EditableVersionMetaDataDto.builder().build() : metaData, owner, createdOn, contentId, branches);
                 return versionDto;
             });
         } catch (Exception ex) {
@@ -1222,6 +1149,8 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
         handles.withHandle(handle -> {
             boolean modified = false;
+
+            // Update name
             if (metaData.getName() != null) {
                 int rowCount = handle.createUpdate(sqlStatements.updateArtifactName())
                         .bind(0, limitStr(metaData.getName(), 512))
@@ -1234,6 +1163,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                 }
             }
 
+            // Update description
             if (metaData.getDescription() != null) {
                 int rowCount = handle.createUpdate(sqlStatements.updateArtifactDescription())
                         .bind(0, limitStr(metaData.getDescription(), 1024))
@@ -1259,6 +1189,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                 }
             }
 
+            // Update labels
             if (metaData.getLabels() != null) {
                 int rowCount = handle.createUpdate(sqlStatements.updateArtifactLabels())
                         .bind(0, SqlUtil.serializeLabels(metaData.getLabels()))
@@ -1709,17 +1640,11 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         String owner = securityIdentity.getPrincipal().getName();
         Date createdOn = new Date();
 
-        return createArtifactVersionCommentRaw(groupId, artifactId, version, this::nextCommentId, owner, createdOn, value);
-    }
-
-
-    private CommentDto createArtifactVersionCommentRaw(String groupId, String artifactId, String version, IdGenerator commentId,
-                                                      String owner, Date createdOn, String value) {
         try {
             var metadata = getArtifactVersionMetaData(groupId, artifactId, version);
 
             var entity = CommentEntity.builder()
-                    .commentId(String.valueOf(commentId.generate()))
+                    .commentId(String.valueOf(nextCommentId()))
                     .globalId(metadata.getGlobalId())
                     .owner(owner)
                     .createdOn(createdOn.getTime())
@@ -2645,7 +2570,6 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     @Override
     @Transactional
     public GroupSearchResultsDto searchGroups(Set<SearchFilter> filters, OrderBy orderBy, OrderDirection orderDirection, Integer offset, Integer limit) {
-
         return handles.withHandleNoException(handle -> {
             List<SqlStatementVariableBinder> binders = new LinkedList<>();
 
@@ -2945,20 +2869,18 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     @Override
     @Transactional
     public void importContent(ContentEntity entity) {
-
         handles.withHandleNoException(handle -> {
-
-            if (!isContentExists(entity.contentId)) {
-
+            if (!isContentExists(handle, entity.contentId)) {
                 handle.createUpdate(sqlStatements.importContent())
                         .bind(0, entity.contentId)
                         .bind(1, entity.canonicalHash)
                         .bind(2, entity.contentHash)
-                        .bind(3, entity.contentBytes)
-                        .bind(4, entity.serializedReferences)
+                        .bind(3, entity.contentType)
+                        .bind(4, entity.contentBytes)
+                        .bind(5, entity.serializedReferences)
                         .execute();
 
-                insertReferences(entity.contentId, SqlUtil.deserializeReferences(entity.serializedReferences));
+                insertReferences(handle, entity.contentId, SqlUtil.deserializeReferences(entity.serializedReferences));
             } else {
                 throw new ContentAlreadyExistsException(entity.contentId);
             }
@@ -3022,13 +2944,11 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     /**
      * IMPORTANT: Private methods can't be @Transactional. Callers MUST have started a transaction.
      */
-    private boolean isContentExists(long contentId) {
-        return handles.withHandleNoException(handle -> {
-            return handle.createQuery(sqlStatements().selectContentExists())
-                    .bind(0, contentId)
-                    .mapTo(Integer.class)
-                    .one() > 0;
-        });
+    private boolean isContentExists(Handle handle, long contentId) {
+        return handle.createQuery(sqlStatements().selectContentExists())
+                .bind(0, contentId)
+                .mapTo(Integer.class)
+                .one() > 0;
     }
 
 
@@ -3191,25 +3111,6 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
     @Override
     @Transactional
-    public ArtifactVersionMetaDataDto createArtifactWithMetadata(String groupId, String artifactId, String version,
-                                                          String artifactType, String contentHash, String owner,
-                                                          Date createdOn, EditableArtifactMetaDataDto metaData, IdGenerator globalIdGenerator)
-            throws ArtifactNotFoundException, RegistryStorageException {
-
-        long contentId = contentIdFromHash(contentHash)
-                .orElseThrow(() -> new RegistryStorageException("Content hash not found."));
-
-        if (metaData == null) {
-            metaData = new EditableArtifactMetaDataDto();
-        }
-
-        return createArtifactWithMetadataRaw(groupId, artifactId, version, artifactType, contentId, owner, createdOn,
-                metaData, globalIdGenerator);
-    }
-
-
-    @Override
-    @Transactional
     public Map<BranchId, List<GAV>> getArtifactBranches(GA ga) {
 
         var data1 = handles.withHandleNoException(handle -> {
@@ -3295,32 +3196,32 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         if (BranchId.LATEST.equals(branchId)) {
             throw new NotAllowedException("Artifact branch 'latest' cannot be updated.");
         }
-        createOrUpdateArtifactBranchRaw(gav, branchId);
+        handles.withHandleNoException(handle -> {
+            createOrUpdateArtifactBranchRaw(handle, gav, branchId);
+        });
     }
 
 
     /**
      * IMPORTANT: Private methods can't be @Transactional. Callers MUST have started a transaction.
      */
-    private void createOrUpdateArtifactBranchRaw(GAV gav, BranchId branchId) {
-        handles.withHandleNoException(handle -> {
-            try {
-                handle.createUpdate(sqlStatements.insertArtifactBranch())
-                        .bind(0, gav.getRawGroupId())
-                        .bind(1, gav.getRawArtifactId())
-                        .bind(2, branchId.getRawBranchId())
-                        .bind(3, gav.getRawVersionId())
-                        .bind(4, gav.getRawGroupId())
-                        .bind(5, gav.getRawArtifactId())
-                        .bind(6, branchId.getRawBranchId())
-                        .execute();
-            } catch (Exception ex) {
-                if (sqlStatements.isForeignKeyViolation(ex)) {
-                    throw new VersionNotFoundException(gav, ex);
-                }
-                throw ex;
+    private void createOrUpdateArtifactBranchRaw(Handle handle, GAV gav, BranchId branchId) {
+        try {
+            handle.createUpdate(sqlStatements.insertArtifactBranch())
+                    .bind(0, gav.getRawGroupId())
+                    .bind(1, gav.getRawArtifactId())
+                    .bind(2, branchId.getRawBranchId())
+                    .bind(3, gav.getRawVersionId())
+                    .bind(4, gav.getRawGroupId())
+                    .bind(5, gav.getRawArtifactId())
+                    .bind(6, branchId.getRawBranchId())
+                    .execute();
+        } catch (Exception ex) {
+            if (sqlStatements.isForeignKeyViolation(ex)) {
+                throw new VersionNotFoundException(gav, ex);
             }
-        });
+            throw ex;
+        }
     }
 
 

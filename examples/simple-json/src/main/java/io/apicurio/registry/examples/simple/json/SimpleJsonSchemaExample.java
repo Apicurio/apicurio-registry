@@ -18,7 +18,10 @@ package io.apicurio.registry.examples.simple.json;
 
 import io.apicurio.registry.client.auth.VertXAuthFactory;
 import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.rest.client.models.ArtifactContent;
+import io.apicurio.registry.rest.client.models.CreateArtifact;
+import io.apicurio.registry.rest.client.models.CreateVersion;
+import io.apicurio.registry.rest.client.models.IfArtifactExists;
+import io.apicurio.registry.rest.client.models.VersionContent;
 import io.apicurio.registry.rest.client.models.VersionMetaData;
 import io.apicurio.registry.serde.SerdeConfig;
 import io.apicurio.registry.serde.jsonschema.JsonSchemaKafkaDeserializer;
@@ -106,15 +109,20 @@ public class SimpleJsonSchemaExample {
         vertXRequestAdapter.setBaseUrl(REGISTRY_URL);
 
         RegistryClient client = new RegistryClient(vertXRequestAdapter);
-        ArtifactContent content = new ArtifactContent();
 
-        content.setContent(IoUtil.toString(SCHEMA.getBytes(StandardCharsets.UTF_8)));
+        CreateArtifact createArtifact = new CreateArtifact();
+        createArtifact.setArtifactId(artifactId);
+        createArtifact.setType(ArtifactType.JSON);
+        createArtifact.setFirstVersion(new CreateVersion());
+        createArtifact.getFirstVersion().setContent(new VersionContent());
+        createArtifact.getFirstVersion().getContent().setContent(
+                IoUtil.toString(SCHEMA.getBytes(StandardCharsets.UTF_8))
+        );
+        createArtifact.getFirstVersion().getContent().setContentType("application/json");
 
-        final VersionMetaData created = client.groups().byGroupId("default").artifacts().post(content, config -> {
-            config.queryParameters.ifExists = io.apicurio.registry.rest.client.models.IfExists.RETURN_OR_UPDATE;
-            config.headers.add("X-Registry-ArtifactId", artifactId);
-            config.headers.add("X-Registry-ArtifactType", ArtifactType.JSON);
-        });
+        final VersionMetaData created = client.groups().byGroupId("default").artifacts().post(createArtifact, config -> {
+            config.queryParameters.ifExists = IfArtifactExists.FIND_OR_CREATE_VERSION;
+        }).getVersion();
 
         // Create the producer.
         Producer<Object, Object> producer = createKafkaProducer();

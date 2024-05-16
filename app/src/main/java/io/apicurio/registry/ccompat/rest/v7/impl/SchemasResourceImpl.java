@@ -1,10 +1,5 @@
 package io.apicurio.registry.ccompat.rest.v7.impl;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.stream.Collectors;
-
 import io.apicurio.common.apps.logging.Logged;
 import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
@@ -24,6 +19,11 @@ import io.apicurio.registry.types.VersionState;
 import io.apicurio.registry.util.ArtifactTypeUtil;
 import jakarta.interceptor.Interceptors;
 
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.stream.Collectors;
+
 @Interceptors({ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class})
 @Logged
 public class SchemasResourceImpl extends AbstractResource implements SchemasResource {
@@ -32,17 +32,20 @@ public class SchemasResourceImpl extends AbstractResource implements SchemasReso
     @Authorized(style = AuthorizedStyle.GlobalId, level = AuthorizedLevel.Read)
     public SchemaInfo getSchema(int id, String subject, String groupId) {
         ContentHandle contentHandle;
+        String contentType;
         List<ArtifactReferenceDto> references;
         if (cconfig.legacyIdModeEnabled.get()) {
             StoredArtifactVersionDto artifactVersion = storage.getArtifactVersionContent(id);
             contentHandle = artifactVersion.getContent();
+            contentType = artifactVersion.getContentType();
             references = artifactVersion.getReferences();
         } else {
             ContentWrapperDto contentWrapper = storage.getContentById(id);
             contentHandle = contentWrapper.getContent();
+            contentType = contentWrapper.getContentType();
             references = contentWrapper.getReferences();
         }
-        return converter.convert(contentHandle, ArtifactTypeUtil.determineArtifactType(contentHandle, null, null,
+        return converter.convert(contentHandle, ArtifactTypeUtil.determineArtifactType(contentHandle, null, contentType,
                 storage.resolveReferences(references), factory.getAllArtifactTypes()), references);
     }
 

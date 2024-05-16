@@ -13,11 +13,8 @@ type GlobalIdsWithGlobalItemRequestBuilder struct {
 
 // GlobalIdsWithGlobalItemRequestBuilderGetQueryParameters gets the content for an artifact version in the registry using its globally uniqueidentifier.This operation may fail for one of the following reasons:* No artifact version with this `globalId` exists (HTTP error `404`)* A server error occurred (HTTP error `500`)
 type GlobalIdsWithGlobalItemRequestBuilderGetQueryParameters struct {
-	// Allows the user to specify how references in the content should be treated.
-	// Deprecated: This property is deprecated, use referencesAsHandleReferencesType instead
-	References *string `uriparametername:"references"`
-	// Allows the user to specify how references in the content should be treated.
-	ReferencesAsHandleReferencesType *i80228d093fd3b582ec81b86f113cc707692a60cdd08bae7a390086a8438c7543.HandleReferencesType `uriparametername:"references"`
+	// Allows the user to specify if the content should be dereferenced when being returned
+	Dereference *bool `uriparametername:"dereference"`
 }
 
 // GlobalIdsWithGlobalItemRequestBuilderGetRequestConfiguration configuration for the request such as headers, query parameters, and middleware options.
@@ -33,7 +30,7 @@ type GlobalIdsWithGlobalItemRequestBuilderGetRequestConfiguration struct {
 // NewGlobalIdsWithGlobalItemRequestBuilderInternal instantiates a new WithGlobalItemRequestBuilder and sets the default values.
 func NewGlobalIdsWithGlobalItemRequestBuilderInternal(pathParameters map[string]string, requestAdapter i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestAdapter) *GlobalIdsWithGlobalItemRequestBuilder {
 	m := &GlobalIdsWithGlobalItemRequestBuilder{
-		BaseRequestBuilder: *i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewBaseRequestBuilder(requestAdapter, "{+baseurl}/ids/globalIds/{globalId}{?references*}", pathParameters),
+		BaseRequestBuilder: *i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewBaseRequestBuilder(requestAdapter, "{+baseurl}/ids/globalIds/{globalId}{?dereference*}", pathParameters),
 	}
 	return m
 }

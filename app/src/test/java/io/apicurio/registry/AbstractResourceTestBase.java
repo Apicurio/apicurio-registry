@@ -1,6 +1,36 @@
 package io.apicurio.registry;
 
-import static org.hamcrest.Matchers.equalTo;
+import com.microsoft.kiota.ApiException;
+import com.microsoft.kiota.RequestAdapter;
+import io.apicurio.registry.client.auth.VertXAuthFactory;
+import io.apicurio.registry.model.GroupId;
+import io.apicurio.registry.rest.client.RegistryClient;
+import io.apicurio.registry.rest.client.models.CreateArtifact;
+import io.apicurio.registry.rest.client.models.CreateArtifactResponse;
+import io.apicurio.registry.rest.client.models.CreateVersion;
+import io.apicurio.registry.rest.client.models.VersionContent;
+import io.apicurio.registry.rest.client.models.VersionMetaData;
+import io.apicurio.registry.rest.v3.V3ApiUtil;
+import io.apicurio.registry.rest.v3.beans.ArtifactReference;
+import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
+import io.apicurio.registry.types.ArtifactMediaTypes;
+import io.apicurio.registry.types.ArtifactState;
+import io.apicurio.registry.types.ContentTypes;
+import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.utils.ConcurrentUtil;
+import io.apicurio.registry.utils.tests.TestUtils;
+import io.apicurio.rest.client.auth.exception.NotAuthorizedException;
+import io.confluent.kafka.schemaregistry.client.rest.RestService;
+import io.kiota.http.vertx.VertXRequestAdapter;
+import io.restassured.RestAssured;
+import io.restassured.parsing.Parser;
+import io.restassured.response.ValidatableResponse;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.TestInstance.Lifecycle;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -10,33 +40,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.TestInstance;
-import org.junit.jupiter.api.TestInstance.Lifecycle;
-
-import com.microsoft.kiota.ApiException;
-import com.microsoft.kiota.RequestAdapter;
-
-import io.apicurio.registry.client.auth.VertXAuthFactory;
-import io.apicurio.registry.model.GroupId;
-import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.rest.client.models.VersionMetaData;
-import io.apicurio.registry.rest.v3.V3ApiUtil;
-import io.apicurio.registry.rest.v3.beans.ArtifactReference;
-import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
-import io.apicurio.registry.types.ArtifactMediaTypes;
-import io.apicurio.registry.types.ArtifactState;
-import io.apicurio.registry.types.RuleType;
-import io.apicurio.registry.utils.tests.TestUtils;
-import io.apicurio.rest.client.auth.exception.NotAuthorizedException;
-import io.confluent.kafka.schemaregistry.client.rest.RestService;
-import io.kiota.http.vertx.VertXRequestAdapter;
-import io.restassured.RestAssured;
-import io.restassured.parsing.Parser;
-import io.restassured.response.ValidatableResponse;
+import static org.hamcrest.Matchers.equalTo;
 
 /**
  * Abstract base class for all tests that test via the jax-rs layer.
@@ -107,56 +111,67 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
         });
     }
 
-    protected Long createArtifact(String artifactId, String artifactType, String artifactContent) throws Exception {
-        return createArtifact(GroupId.DEFAULT.getRawGroupIdWithDefaultString(), artifactId, artifactType, artifactContent);
+    protected CreateArtifactResponse createArtifact(String artifactId, String artifactType, String content, String contentType) throws Exception {
+        return createArtifact(GroupId.DEFAULT.getRawGroupIdWithDefaultString(), artifactId, artifactType, content, contentType);
     }
 
+    protected CreateArtifactResponse createArtifact(String groupId, String artifactId, String artifactType, String content, String contentType) throws Exception {
+        return createArtifact(groupId, artifactId, artifactType, content, contentType, null);
+    }
 
-    protected Long createArtifact(String groupId, String artifactId, String artifactType, String artifactContent) throws Exception {
-        var content = new io.apicurio.registry.rest.client.models.ArtifactContent();
-        content.setContent(artifactContent);
+    protected CreateArtifactResponse createArtifact(String groupId, String artifactId, String artifactType, String content,
+                                                    String contentType, ConcurrentUtil.Function<CreateArtifact, Void> requestCustomizer) throws Exception {
+        CreateArtifact createArtifact = new CreateArtifact();
+        createArtifact.setArtifactId(artifactId);
+        createArtifact.setType(artifactType);
+        CreateVersion createVersion = new CreateVersion();
+        createArtifact.setFirstVersion(createVersion);
+        VersionContent versionContent = new VersionContent();
+        createVersion.setContent(versionContent);
+        versionContent.setContent(content);
+        versionContent.setContentType(contentType);
+
+        if (requestCustomizer != null) {
+            requestCustomizer.apply(createArtifact);
+        }
+
         var result = clientV3
                 .groups()
                 .byGroupId(groupId)
                 .artifacts()
-                .post(content, config -> {
-                    config.headers.add("X-Registry-ArtifactId", artifactId);
-                    config.headers.add("X-Registry-ArtifactType", artifactType);
-                })
+                .post(createArtifact)
                 ;
 
-        assert( result.getArtifactId().equals(artifactId) );
-        assert( result.getType().equals(artifactType) );
+        assert( result.getArtifact().getArtifactId().equals(artifactId) );
+        assert( result.getArtifact().getType().equals(artifactType) );
 
-        return result.getGlobalId();
+        return result;
     }
 
-    protected Long createArtifactWithReferences(String groupId, String artifactId, String artifactType, String artifactContent, List<ArtifactReference> artifactReferences) throws Exception {
+    protected CreateArtifactResponse createArtifactWithReferences(String groupId, String artifactId, String artifactType, String content,
+                                                String contentType, List<ArtifactReference> artifactReferences) throws Exception {
+        var response = createArtifactExtendedRaw(groupId, artifactId, artifactType, content, contentType, artifactReferences);
 
-        var response = createArtifactExtendedRaw(groupId, artifactId, artifactType, artifactContent, artifactReferences);
+        assert( response.getArtifact().getType().equals(artifactType) );
+        assert( response.getArtifact().getArtifactId().equals(artifactId) );
 
-        assert( response.getType().equals(artifactType) );
-        assert( response.getArtifactId().equals(artifactId) );
-
-        return response.getGlobalId();
+        return response;
     }
 
-    protected Long updateArtifactWithReferences(String groupId, String artifactId, String artifactType, String artifactContent, List<ArtifactReference> artifactReferences) throws Exception {
+    protected CreateArtifactResponse createArtifactExtendedRaw(String groupId, String artifactId, String artifactType,
+            String content, String contentType, List<ArtifactReference> versionReferences) throws Exception {
+        CreateArtifact createArtifact = new CreateArtifact();
+        createArtifact.setArtifactId(artifactId);
+        createArtifact.setType(artifactType);
+        CreateVersion createVersion = new CreateVersion();
+        createArtifact.setFirstVersion(createVersion);
+        VersionContent versionContent = new VersionContent();
+        createVersion.setContent(versionContent);
+        versionContent.setContent(content);
+        versionContent.setContentType(ContentTypes.APPLICATION_JSON);
 
-        var response = createArtifactVersionExtendedRaw(groupId, artifactId, artifactType, artifactContent, artifactReferences);
-
-        assert( response.getType().equals(artifactType) );
-        assert( response.getArtifactId().equals(artifactId) );
-
-        return response.getGlobalId();
-    }
-
-    protected VersionMetaData createArtifactExtendedRaw(String groupId, String artifactId, String artifactType, String artifactContent, List<ArtifactReference> artifactReferences) throws Exception {
-
-        var content = new io.apicurio.registry.rest.client.models.ArtifactContent();
-        content.setContent(artifactContent);
-        if (artifactReferences != null) {
-            var references = artifactReferences.stream().map(r -> {
+        if (versionReferences != null) {
+            var references = versionReferences.stream().map(r -> {
                 var ref = new io.apicurio.registry.rest.client.models.ArtifactReference();
                 ref.setArtifactId(r.getArtifactId());
                 ref.setGroupId(r.getGroupId());
@@ -164,30 +179,26 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
                 ref.setName(r.getName());
                 return ref;
             }).collect(Collectors.toList());
-            content.setReferences(references);
+            versionContent.setReferences(references);
         }
 
         return clientV3
                 .groups()
                 .byGroupId(groupId)
                 .artifacts()
-                .post(content, config -> {
-                    if (artifactId != null) {
-                        config.headers.add("X-Registry-ArtifactId", artifactId);
-                    }
-                    if (artifactType != null) {
-                        config.headers.add("X-Registry-ArtifactType", artifactType);
-                    }
-                })
+                .post(createArtifact)
                 ;
     }
 
-    protected VersionMetaData createArtifactVersionExtendedRaw(String groupId, String artifactId, String artifactType, 
-            String artifactContent, List<ArtifactReference> artifactReferences) throws Exception {
+    protected VersionMetaData createArtifactVersionExtendedRaw(String groupId, String artifactId,
+            String content, String contentType, List<ArtifactReference> versionReferences) throws Exception {
+        CreateVersion createVersion = new CreateVersion();
+        VersionContent versionContent = new VersionContent();
+        createVersion.setContent(versionContent);
+        versionContent.setContent(content);
+        versionContent.setContentType(contentType);
 
-        var contentCreateRequest = new io.apicurio.registry.rest.client.models.ArtifactContent();
-        contentCreateRequest.setContent(artifactContent);
-        var references = artifactReferences.stream().map(r -> {
+        var references = versionReferences.stream().map(r -> {
             var ref = new io.apicurio.registry.rest.client.models.ArtifactReference();
             ref.setArtifactId(r.getArtifactId());
             ref.setGroupId(r.getGroupId());
@@ -195,7 +206,7 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
             ref.setName(r.getName());
             return ref;
         }).collect(Collectors.toList());
-        contentCreateRequest.setReferences(references);
+        versionContent.setReferences(references);
 
         return clientV3
                 .groups()
@@ -203,20 +214,20 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
                 .artifacts()
                 .byArtifactId(artifactId)
                 .versions()
-                .post(contentCreateRequest, config -> {
-                    config.headers.add("X-Registry-ArtifactId", artifactId);
-                    config.headers.add("X-Registry-ArtifactType", artifactType);
-                })
+                .post(createVersion)
                 ;
     }
 
-    protected Long createArtifactVersion(String artifactId, String artifactType, String artifactContent) throws Exception {
-        return createArtifactVersion(GroupId.DEFAULT.getRawGroupIdWithDefaultString(), artifactId, artifactType, artifactContent);
+    protected Long createArtifactVersion(String artifactId, String content, String contentType) throws Exception {
+        return createArtifactVersion(GroupId.DEFAULT.getRawGroupIdWithDefaultString(), artifactId, content, contentType);
     }
 
-    protected Long createArtifactVersion(String groupId, String artifactId, String artifactType, String artifactContent) throws Exception {
-        var content = new io.apicurio.registry.rest.client.models.ArtifactContent();
-        content.setContent(artifactContent);
+    protected Long createArtifactVersion(String groupId, String artifactId, String content, String contentType) throws Exception {
+        CreateVersion createVersion = new CreateVersion();
+        VersionContent versionContent = new VersionContent();
+        createVersion.setContent(versionContent);
+        versionContent.setContent(content);
+        versionContent.setContentType(contentType);
 
         var version = clientV3
                 .groups()
@@ -224,11 +235,10 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
                 .artifacts()
                 .byArtifactId(artifactId)
                 .versions()
-                .post(content, config -> {config.headers.add("X-Registry-ArtifactType", artifactType); })
+                .post(createVersion)
                 ;
 
         assert( version.getArtifactId().equals(artifactId) );
-        assert( version.getType().equals(artifactType) );
 
         return version.getGlobalId();
     }

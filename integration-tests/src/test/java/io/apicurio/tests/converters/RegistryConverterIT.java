@@ -11,6 +11,7 @@ import io.apicurio.registry.serde.avro.AvroKafkaSerializer;
 import io.apicurio.registry.serde.avro.DefaultAvroDatumProvider;
 import io.apicurio.registry.serde.avro.strategy.TopicRecordIdStrategy;
 import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.utils.converter.AvroConverter;
 import io.apicurio.registry.utils.converter.ExtJsonConverter;
 import io.apicurio.registry.utils.converter.SerdeBasedConverter;
@@ -31,11 +32,9 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -59,7 +58,7 @@ public class RegistryConverterIT extends ApicurioRegistryBaseIT {
         AvroGenericRecordSchemaFactory schemaFactory = new AvroGenericRecordSchemaFactory(groupId, recordName, List.of("bar"));
         Schema schema = schemaFactory.generateSchema();
 
-        createArtifact(groupId, topic + "-" + recordName, ArtifactType.AVRO, new ByteArrayInputStream(schema.toString().getBytes(StandardCharsets.UTF_8)));
+        createArtifact(groupId, topic + "-" + recordName, ArtifactType.AVRO, schema.toString(), ContentTypes.APPLICATION_JSON, null, null);
 
         Record record = new Record(schema);
         record.put("bar", "somebar");

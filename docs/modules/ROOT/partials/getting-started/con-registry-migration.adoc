@@ -25,7 +25,7 @@ see link:{LinkServiceRegistryInstall}[{NameServiceRegistryInstall}].
 endif::[]
 
 == New v2 REST API
-{registry} 2.x includes a new REST API with support for artifact groups and improved long term maintainability. {registry} still supports the original registry v1 REST API and compatibility APIs, for example, Confluent and IBM schema registry APIs. {registry} now also implements the Schema Registry specification provided in the CNCF Cloud Events specification.
+{registry} 2.x includes a new REST API with support for artifact groups and improved long term maintainability. {registry} still supports the version 2 of the core REST API as well as various compatibility APIs, for example, the Confluent schema registry API.
 
 == Refactored Java client libraries
 * The {registry} Java client classes are available in version 2.x in a different Maven module named `apicurio-registry-client`.

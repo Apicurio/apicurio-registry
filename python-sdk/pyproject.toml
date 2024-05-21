@@ -27,7 +27,7 @@ microsoft-kiota-serialization-text = "^1.0.0"
 [tool.poetry.group.test.dependencies]
 pytest = "^7.3.1"
 pytest-asyncio = "^0.21.0"
-requests = "2.31.0"
+requests = "2.32.0"
 
 
 [tool.poetry.group.dev.dependencies]

@@ -6,11 +6,11 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-public class KafkasqlSnapshotTestProfile implements QuarkusTestProfile {
+public class KafkasqlRecoverFromSnapshotTestProfile implements QuarkusTestProfile {
 
     @Override
     public Map<String, String> getConfigOverrides() {
-        return Map.of("apicurio.storage.kind", "kafkasql", "apicurio.kafkasql.snapshot.every.seconds", "2s");
+        return Map.of("apicurio.storage.kind", "kafkasql");
     }
 
     @Override

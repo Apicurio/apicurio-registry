@@ -50,6 +50,7 @@ public class KafkaTestContainerManager implements QuarkusTestResourceLifecycleMa
     public void stop() {
         if (kafka != null) {
             log.info("Stopping the Kafka Test Container");
+            kafka.close();
             kafka.stop();
         }
     }

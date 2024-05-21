@@ -157,6 +157,8 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
     @PreDestroy
     void onDestroy() {
         stopped = true;
+        journalConsumer.close();
+        snapshotsConsumer.close();
     }
 
     /**
@@ -217,7 +219,6 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
             }
         }
 
-        snapshotsConsumer.commitSync();
         return snapshotRecordKey;
     }
 
@@ -350,8 +351,10 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
 
     @Override
     public Pair<ArtifactMetaDataDto, ArtifactVersionMetaDataDto> createArtifact(String groupId, String artifactId,
-            String artifactType, EditableArtifactMetaDataDto artifactMetaData, String version, ContentWrapperDto versionContent,
-            EditableVersionMetaDataDto versionMetaData, List<String> versionBranches) throws RegistryStorageException {
+                                                                                String artifactType, EditableArtifactMetaDataDto artifactMetaData, String version,
+                                                                                ContentWrapperDto versionContent,
+                                                                                EditableVersionMetaDataDto versionMetaData, List<String> versionBranches)
+            throws RegistryStorageException {
         String content = versionContent != null ? versionContent.getContent().content() : null;
         String contentType = versionContent != null ? versionContent.getContentType() : null;
         List<ArtifactReferenceDto> references = versionContent != null ? versionContent.getReferences() : null;
@@ -384,7 +387,8 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
 
     @Override
     public ArtifactVersionMetaDataDto createArtifactVersion(String groupId, String artifactId, String version,
-            String artifactType, ContentWrapperDto contentDto, EditableVersionMetaDataDto metaData, List<String> branches) throws RegistryStorageException {
+                                                            String artifactType, ContentWrapperDto contentDto, EditableVersionMetaDataDto metaData, List<String> branches)
+            throws RegistryStorageException {
         String content = contentDto != null ? contentDto.getContent().content() : null;
         String contentType = contentDto != null ? contentDto.getContentType() : null;
         List<ArtifactReferenceDto> references = contentDto != null ? contentDto.getReferences() : null;
@@ -399,7 +403,7 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
      */
     @Override
     public void updateArtifactMetaData(String groupId, String artifactId,
-            EditableArtifactMetaDataDto metaData) throws ArtifactNotFoundException, RegistryStorageException {
+                                       EditableArtifactMetaDataDto metaData) throws ArtifactNotFoundException, RegistryStorageException {
         var message = new UpdateArtifactMetaData3Message(groupId, artifactId, metaData);
         var uuid = ConcurrentUtil.get(submitter.submitMessage(message));
         coordinator.waitForResponse(uuid);

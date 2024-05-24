@@ -3,6 +3,7 @@ package io.apicurio.tests.smokeTests.apicurio;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.rest.client.models.ArtifactSearchResults;
+import io.apicurio.registry.rest.client.models.ArtifactSortBy;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
 import io.apicurio.registry.rest.client.models.CreateArtifactResponse;
 import io.apicurio.registry.rest.client.models.CreateVersion;
@@ -10,7 +11,6 @@ import io.apicurio.registry.rest.client.models.EditableVersionMetaData;
 import io.apicurio.registry.rest.client.models.IfArtifactExists;
 import io.apicurio.registry.rest.client.models.Rule;
 import io.apicurio.registry.rest.client.models.RuleType;
-import io.apicurio.registry.rest.client.models.SortBy;
 import io.apicurio.registry.rest.client.models.SortOrder;
 import io.apicurio.registry.rest.client.models.VersionContent;
 import io.apicurio.registry.rest.client.models.VersionMetaData;
@@ -242,7 +242,6 @@ class ArtifactsIT extends ApicurioRegistryBaseIT {
 
         var caResponse = createArtifact(groupId, artifactId, ArtifactType.AVRO, artifactData, ContentTypes.APPLICATION_JSON, null, (ca) -> {
             ca.getFirstVersion().setVersion("1.1");
-            return null;
         });
 
         LOGGER.info("Created artifact {} with metadata {}", artifactId, caResponse.getArtifact().toString());
@@ -251,7 +250,6 @@ class ArtifactsIT extends ApicurioRegistryBaseIT {
         assertClientError("VersionAlreadyExistsException", 409, () ->
                 createArtifact(groupId, artifactId, ArtifactType.AVRO, sameArtifactData, ContentTypes.APPLICATION_JSON, IfArtifactExists.CREATE_VERSION, (ca) -> {
                     ca.getFirstVersion().setVersion("1.1");
-                    return null;
                 }), true, errorCodeExtractor);
     }
 
@@ -368,7 +366,7 @@ class ArtifactsIT extends ApicurioRegistryBaseIT {
         retryOp((rc) -> rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).post(vc));
 
         registryClient.search().artifacts().get(config -> {
-            config.queryParameters.group = groupId;
+            config.queryParameters.groupId = groupId;
             config.queryParameters.name = artifactId;
             config.queryParameters.offset = 0;
             config.queryParameters.limit = 10;
@@ -406,7 +404,7 @@ class ArtifactsIT extends ApicurioRegistryBaseIT {
         retryOp((rc) -> rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).post(vc));
 
         registryClient.search().artifacts().get(config -> {
-            config.queryParameters.group = groupId;
+            config.queryParameters.groupId = groupId;
             config.queryParameters.name = artifactId;
             config.queryParameters.offset = 0;
             config.queryParameters.limit = 100;
@@ -436,9 +434,9 @@ class ArtifactsIT extends ApicurioRegistryBaseIT {
         }
 
         ArtifactSearchResults results = registryClient.search().artifacts().get(config -> {
-            config.queryParameters.group = group;
+            config.queryParameters.groupId = group;
             config.queryParameters.order = SortOrder.Asc;
-            config.queryParameters.orderby = SortBy.CreatedOn;
+            config.queryParameters.orderby = ArtifactSortBy.CreatedOn;
             config.queryParameters.offset = 0;
             config.queryParameters.limit = 10;
         });

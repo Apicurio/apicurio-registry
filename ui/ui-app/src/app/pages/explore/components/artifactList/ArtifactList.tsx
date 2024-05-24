@@ -10,7 +10,6 @@ import { SearchedArtifact } from "@models/searchedArtifact.model.ts";
  */
 export type ArtifactListProps = {
     artifacts: SearchedArtifact[];
-    onGroupClick: (groupId: string) => void;
 };
 
 
@@ -53,7 +52,7 @@ export const ArtifactList: FunctionComponent<ArtifactListProps> = (props: Artifa
                                 </DataListCell>,
                                 <DataListCell key="main content" className="content-cell">
                                     <div className="artifact-title">
-                                        <ArtifactGroup groupId={artifact.groupId} onClick={props.onGroupClick} />
+                                        <ArtifactGroup groupId={artifact.groupId} />
                                         <ArtifactName groupId={artifact.groupId} id={artifact.artifactId} name={artifact.name} />
                                         {
                                             statuses(artifact).map( status =>

@@ -99,7 +99,7 @@ export function contentToString(content: any): string {
 }
 
 
-export function contentType(type: string, content: string): string {
+export function detectContentType(type: string, content: string): string {
     switch (type) {
         case "PROTOBUF":
             return ContentTypes.APPLICATION_PROTOBUF;
@@ -117,6 +117,6 @@ export function contentType(type: string, content: string): string {
     } else if (isYaml(content)) {
         return ContentTypes.APPLICATION_YAML;
     } else {
-        return "application/octet-stream";
+        return ContentTypes.APPLICATION_OCTET_STREAM;
     }
 }

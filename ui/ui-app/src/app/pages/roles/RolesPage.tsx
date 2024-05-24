@@ -17,7 +17,7 @@ import { GrantAccessModal } from "@app/pages/roles/components/modals/GrantAccess
 import { If, PleaseWaitModal } from "@apicurio/common-ui-components";
 import { AdminService, useAdminService } from "@services/useAdminService.ts";
 import { Principal } from "@services/useConfigService.ts";
-import { Paging } from "@services/useGroupsService.ts";
+import { Paging } from "@models/paging.model.ts";
 
 
 export type RolesPageProps = {

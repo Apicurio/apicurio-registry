@@ -14,8 +14,8 @@ import {
     ToolbarItem
 } from "@patternfly/react-core";
 import { SearchIcon, SortAlphaDownAltIcon, SortAlphaDownIcon } from "@patternfly/react-icons";
-import { Paging } from "@services/useGroupsService.ts";
 import { LoggerService, useLoggerService } from "@services/useLoggerService.ts";
+import { Paging } from "@models/paging.model.ts";
 
 
 type FilterType = {

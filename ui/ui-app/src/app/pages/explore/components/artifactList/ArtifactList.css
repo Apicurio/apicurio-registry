@@ -40,21 +40,21 @@
     display: none;
 }
 
-.artifact-list .artifact-list-item .content-cell .artifact-title .name {
+.artifact-list .artifact-list-item .content-cell .artifact-title .id {
     color: #2b9af3;
     font-weight: bold;
     font-size: 18px;
     margin-right: 10px;
 }
-.artifact-list .artifact-list-item .content-cell .artifact-title .id::before {
+.artifact-list .artifact-list-item .content-cell .artifact-title .name::before {
     content: '(';
 }
-.artifact-list .artifact-list-item .content-cell .artifact-title .id {
+.artifact-list .artifact-list-item .content-cell .artifact-title .name {
     color: #2b9af3;
     font-weight: bold;
     font-size: 16px;
 }
-.artifact-list .artifact-list-item .content-cell .artifact-title .id::after {
+.artifact-list .artifact-list-item .content-cell .artifact-title .name::after {
     content: ')';
 }
 

@@ -347,14 +347,6 @@ public abstract class CommonSqlStatements implements SqlStatements {
     }
 
     /**
-     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#updateArtifactVersionMetaData()
-     */
-    @Override
-    public String updateArtifactVersionMetaData() {
-        return "UPDATE versions SET name = ?, description = ?, labels = ? WHERE groupId = ? AND artifactId = ? AND version = ?";
-    }
-
-    /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#updateArtifactVersionNameByGAV()
      */
     @Override
@@ -468,17 +460,6 @@ public abstract class CommonSqlStatements implements SqlStatements {
     }
 
     /**
-     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectArtifactMetaDataByGlobalId()
-     */
-    @Override
-    public String selectArtifactMetaDataByGlobalId() {
-        return "SELECT a.groupId, a.artifactId, a.type, a.owner, a.createdOn, v.contentId, v.globalId, v.version, v.versionOrder, v.state, v.name, v.description, v.labels, v.owner AS modifiedBy, v.createdOn AS modifiedOn "
-                + "FROM artifacts a "
-                + "JOIN versions v ON a.groupId = v.groupId AND a.artifactId = v.artifactId "
-                + "WHERE v.globalId = ?";
-    }
-
-    /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#deleteVersion()
      */
     @Override
@@ -525,8 +506,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
     public String selectAllArtifactVersions() {
         return "SELECT v.*, a.type FROM versions v "
                 + "JOIN artifacts a ON a.groupId = v.groupId AND a.artifactId = v.artifactId "
-                + "WHERE a.groupId = ? AND a.artifactId = ? "
-                + "ORDER BY v.globalId ASC LIMIT ? OFFSET ?";
+                + "WHERE a.groupId = ? AND a.artifactId = ?";
     }
 
     /**
@@ -542,9 +522,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String selectAllArtifactVersionsCount() {
-        return "SELECT COUNT(v.globalId) FROM versions v "
-                + "JOIN artifacts a ON a.groupId = v.groupId AND a.artifactId = v.artifactId "
-                + "WHERE a.groupId = ? AND a.artifactId = ? ";
+        return "SELECT COUNT(v.globalId) FROM versions v WHERE v.groupId = ? AND v.artifactId = ? ";
     }
 
     /**
@@ -552,9 +530,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String selectActiveArtifactVersionsCount() {
-        return "SELECT COUNT(v.globalId) FROM versions v "
-                + "JOIN artifacts a ON a.groupId = v.groupId AND a.artifactId = v.artifactId "
-                + "WHERE a.groupId = ? AND a.artifactId = ? AND v.state != 'DISABLED'";
+        return "SELECT COUNT(v.globalId) FROM versions v WHERE v.groupId = ? AND v.artifactId = ? AND v.state != 'DISABLED'";
     }
 
     /**
@@ -562,8 +538,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String selectTotalArtifactVersionsCount() {
-        return "SELECT COUNT(v.globalId) FROM versions v "
-                + "JOIN artifacts a ON a.groupId = v.groupId AND a.artifactId = v.artifactId ";
+        return "SELECT COUNT(v.globalId) FROM versions v";
     }
 
     /**
@@ -727,7 +702,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String exportContent() {
-        return "SELECT c.contentId, c.canonicalHash, c.contentHash, c.content, c.refs FROM content c ";
+        return "SELECT c.contentId, c.canonicalHash, c.contentHash, c.contentType, c.content, c.refs FROM content c ";
     }
 
     /**

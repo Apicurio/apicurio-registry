@@ -2,12 +2,11 @@ export interface SearchedVersion {
 
     globalId: number;
     contentId: number|null;
-    version: number;
+    version: string;
     type: string;
     state: string;
     name: string;
     description: string;
-    labels: string[];
     createdOn: string;
     owner: string;
 

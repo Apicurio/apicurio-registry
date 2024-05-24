@@ -17,7 +17,6 @@ import io.apicurio.registry.types.ArtifactMediaTypes;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.types.RuleType;
-import io.apicurio.registry.utils.ConcurrentUtil;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.rest.client.auth.exception.NotAuthorizedException;
 import io.confluent.kafka.schemaregistry.client.rest.RestService;
@@ -38,6 +37,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import static org.hamcrest.Matchers.equalTo;
@@ -120,7 +120,7 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
     }
 
     protected CreateArtifactResponse createArtifact(String groupId, String artifactId, String artifactType, String content,
-                                                    String contentType, ConcurrentUtil.Function<CreateArtifact, Void> requestCustomizer) throws Exception {
+                                                    String contentType, Consumer<CreateArtifact> requestCustomizer) throws Exception {
         CreateArtifact createArtifact = new CreateArtifact();
         createArtifact.setArtifactId(artifactId);
         createArtifact.setType(artifactType);
@@ -132,7 +132,7 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
         versionContent.setContentType(contentType);
 
         if (requestCustomizer != null) {
-            requestCustomizer.apply(createArtifact);
+            requestCustomizer.accept(createArtifact);
         }
 
         var result = clientV3

@@ -24,7 +24,7 @@ public class GroupMetaDataTest extends AbstractResourceTestBase {
         l.setAdditionalData(labels);
 
         CreateGroup body = new CreateGroup();
-        body.setId(groupId);
+        body.setGroupId(groupId);
         body.setDescription("My favorite test group.");
         body.setLabels(l);
         GroupMetaData gmd = clientV3.groups().post(body);
@@ -43,7 +43,7 @@ public class GroupMetaDataTest extends AbstractResourceTestBase {
         l.setAdditionalData(labels);
 
         CreateGroup body = new CreateGroup();
-        body.setId(groupId);
+        body.setGroupId(groupId);
         body.setDescription("My favorite test group.");
         body.setLabels(l);
         clientV3.groups().post(body);
@@ -66,7 +66,7 @@ public class GroupMetaDataTest extends AbstractResourceTestBase {
         l.setAdditionalData(labels1);
 
         CreateGroup body = new CreateGroup();
-        body.setId(groupId);
+        body.setGroupId(groupId);
         body.setDescription("My favorite test group.");
         body.setLabels(l);
         clientV3.groups().post(body);

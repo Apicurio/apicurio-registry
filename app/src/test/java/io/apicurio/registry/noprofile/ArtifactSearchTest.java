@@ -2,9 +2,9 @@ package io.apicurio.registry.noprofile;
 
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.rest.client.models.ArtifactSearchResults;
+import io.apicurio.registry.rest.client.models.ArtifactSortBy;
 import io.apicurio.registry.rest.client.models.EditableArtifactMetaData;
 import io.apicurio.registry.rest.client.models.Labels;
-import io.apicurio.registry.rest.client.models.SortBy;
 import io.apicurio.registry.rest.client.models.SortOrder;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
@@ -43,15 +43,14 @@ public class ArtifactSearchTest extends AbstractResourceTestBase {
             createArtifact.setDescription(description);
             createArtifact.getFirstVersion().setName(title);
             createArtifact.getFirstVersion().setDescription(description);
-            return null;
         });
 
         // Search against the name, with the exact name of the artifact
         ArtifactSearchResults results = clientV3.search().artifacts().get(config -> {
-            config.queryParameters.group = groupId;
+            config.queryParameters.groupId = groupId;
             config.queryParameters.name = title;
             config.queryParameters.order = SortOrder.Asc;
-            config.queryParameters.orderby = SortBy.Name;
+            config.queryParameters.orderby = ArtifactSortBy.Name;
             config.queryParameters.offset = 0;
             config.queryParameters.limit = 10;
         });
@@ -69,9 +68,9 @@ public class ArtifactSearchTest extends AbstractResourceTestBase {
 
         // Now try various cases when searching by labels
         ArtifactSearchResults ires = clientV3.search().artifacts().get(config -> {
-            config.queryParameters.group = groupId;
+            config.queryParameters.groupId = groupId;
             config.queryParameters.order = SortOrder.Asc;
-            config.queryParameters.orderby = SortBy.Name;
+            config.queryParameters.orderby = ArtifactSortBy.Name;
             config.queryParameters.offset = 0;
             config.queryParameters.limit = 10;
             config.queryParameters.labels = new String[]{"testCaseInsensitiveSearchKey"};
@@ -79,9 +78,9 @@ public class ArtifactSearchTest extends AbstractResourceTestBase {
         Assertions.assertNotNull(ires);
         Assertions.assertEquals(1, ires.getCount());
         ires = clientV3.search().artifacts().get(config -> {
-            config.queryParameters.group = groupId;
+            config.queryParameters.groupId = groupId;
             config.queryParameters.order = SortOrder.Asc;
-            config.queryParameters.orderby = SortBy.Name;
+            config.queryParameters.orderby = ArtifactSortBy.Name;
             config.queryParameters.offset = 0;
             config.queryParameters.limit = 10;
             config.queryParameters.labels = new String[]{"testCaseInsensitiveSearchKey".toLowerCase()};
@@ -89,9 +88,9 @@ public class ArtifactSearchTest extends AbstractResourceTestBase {
         Assertions.assertNotNull(ires);
         Assertions.assertEquals(1, ires.getCount());
         ires = clientV3.search().artifacts().get(config -> {
-            config.queryParameters.group = groupId;
+            config.queryParameters.groupId = groupId;
             config.queryParameters.order = SortOrder.Asc;
-            config.queryParameters.orderby = SortBy.Name;
+            config.queryParameters.orderby = ArtifactSortBy.Name;
             config.queryParameters.offset = 0;
             config.queryParameters.limit = 10;
             config.queryParameters.labels = new String[]{"testCaseInsensitiveSearchKey".toUpperCase()};
@@ -99,9 +98,9 @@ public class ArtifactSearchTest extends AbstractResourceTestBase {
         Assertions.assertNotNull(ires);
         Assertions.assertEquals(1, ires.getCount());
         ires = clientV3.search().artifacts().get(config -> {
-            config.queryParameters.group = groupId;
+            config.queryParameters.groupId = groupId;
             config.queryParameters.order = SortOrder.Asc;
-            config.queryParameters.orderby = SortBy.Name;
+            config.queryParameters.orderby = ArtifactSortBy.Name;
             config.queryParameters.offset = 0;
             config.queryParameters.limit = 10;
             config.queryParameters.labels = new String[]{"TESTCaseInsensitiveSEARCHKey"};
@@ -111,9 +110,9 @@ public class ArtifactSearchTest extends AbstractResourceTestBase {
 
         // Now try various cases when searching by properties and values
         ArtifactSearchResults propertiesSearch = clientV3.search().artifacts().get(config -> {
-            config.queryParameters.group = groupId;
+            config.queryParameters.groupId = groupId;
             config.queryParameters.order = SortOrder.Asc;
-            config.queryParameters.orderby = SortBy.Name;
+            config.queryParameters.orderby = ArtifactSortBy.Name;
             config.queryParameters.offset = 0;
             config.queryParameters.limit = 10;
             config.queryParameters.labels = new String[]{"testCaseInsensitiveSearchKey:testCaseInsensitiveSearchValue"};
@@ -121,9 +120,9 @@ public class ArtifactSearchTest extends AbstractResourceTestBase {
         Assertions.assertNotNull(propertiesSearch);
         Assertions.assertEquals(1, propertiesSearch.getCount());
         propertiesSearch = clientV3.search().artifacts().get(config -> {
-            config.queryParameters.group = groupId;
+            config.queryParameters.groupId = groupId;
             config.queryParameters.order = SortOrder.Asc;
-            config.queryParameters.orderby = SortBy.Name;
+            config.queryParameters.orderby = ArtifactSortBy.Name;
             config.queryParameters.offset = 0;
             config.queryParameters.limit = 10;
             config.queryParameters.labels = new String[]{"testCaseInsensitiveSearchKey:testCaseInsensitiveSearchValue".toLowerCase()};
@@ -131,9 +130,9 @@ public class ArtifactSearchTest extends AbstractResourceTestBase {
         Assertions.assertNotNull(propertiesSearch);
         Assertions.assertEquals(1, propertiesSearch.getCount());
         propertiesSearch = clientV3.search().artifacts().get(config -> {
-            config.queryParameters.group = groupId;
+            config.queryParameters.groupId = groupId;
             config.queryParameters.order = SortOrder.Asc;
-            config.queryParameters.orderby = SortBy.Name;
+            config.queryParameters.orderby = ArtifactSortBy.Name;
             config.queryParameters.offset = 0;
             config.queryParameters.limit = 10;
             config.queryParameters.labels = new String[]{"testCaseInsensitiveSearchKey:testCaseInsensitiveSearchValue".toUpperCase()};
@@ -141,9 +140,9 @@ public class ArtifactSearchTest extends AbstractResourceTestBase {
         Assertions.assertNotNull(propertiesSearch);
         Assertions.assertEquals(1, propertiesSearch.getCount());
         propertiesSearch = clientV3.search().artifacts().get(config -> {
-            config.queryParameters.group = groupId;
+            config.queryParameters.groupId = groupId;
             config.queryParameters.order = SortOrder.Asc;
-            config.queryParameters.orderby = SortBy.Name;
+            config.queryParameters.orderby = ArtifactSortBy.Name;
             config.queryParameters.offset = 0;
             config.queryParameters.limit = 10;
             config.queryParameters.labels = new String[]{"TESTCaseInsensitiveSEARCHKey:TESTCaseInsensitiveSearchVALUE".toUpperCase()};
@@ -153,9 +152,9 @@ public class ArtifactSearchTest extends AbstractResourceTestBase {
 
         // Now try various cases when searching by properties
         ArtifactSearchResults propertiesKeySearch = clientV3.search().artifacts().get(config -> {
-            config.queryParameters.group = groupId;
+            config.queryParameters.groupId = groupId;
             config.queryParameters.order = SortOrder.Asc;
-            config.queryParameters.orderby = SortBy.Name;
+            config.queryParameters.orderby = ArtifactSortBy.Name;
             config.queryParameters.offset = 0;
             config.queryParameters.limit = 10;
             config.queryParameters.labels = new String[]{"testCaseInsensitiveSearchKey"};
@@ -163,9 +162,9 @@ public class ArtifactSearchTest extends AbstractResourceTestBase {
         Assertions.assertNotNull(propertiesKeySearch);
         Assertions.assertEquals(1, propertiesKeySearch.getCount());
         propertiesKeySearch = clientV3.search().artifacts().get(config -> {
-            config.queryParameters.group = groupId;
+            config.queryParameters.groupId = groupId;
             config.queryParameters.order = SortOrder.Asc;
-            config.queryParameters.orderby = SortBy.Name;
+            config.queryParameters.orderby = ArtifactSortBy.Name;
             config.queryParameters.offset = 0;
             config.queryParameters.limit = 10;
             config.queryParameters.labels = new String[]{"testCaseInsensitiveSearchKey".toLowerCase()};
@@ -173,9 +172,9 @@ public class ArtifactSearchTest extends AbstractResourceTestBase {
         Assertions.assertNotNull(propertiesKeySearch);
         Assertions.assertEquals(1, propertiesKeySearch.getCount());
         propertiesKeySearch = clientV3.search().artifacts().get(config -> {
-            config.queryParameters.group = groupId;
+            config.queryParameters.groupId = groupId;
             config.queryParameters.order = SortOrder.Asc;
-            config.queryParameters.orderby = SortBy.Name;
+            config.queryParameters.orderby = ArtifactSortBy.Name;
             config.queryParameters.offset = 0;
             config.queryParameters.limit = 10;
             config.queryParameters.labels = new String[]{"testCaseInsensitiveSearchKey".toUpperCase()};
@@ -183,9 +182,9 @@ public class ArtifactSearchTest extends AbstractResourceTestBase {
         Assertions.assertNotNull(propertiesKeySearch);
         Assertions.assertEquals(1, propertiesKeySearch.getCount());
         propertiesKeySearch = clientV3.search().artifacts().get(config -> {
-            config.queryParameters.group = groupId;
+            config.queryParameters.groupId = groupId;
             config.queryParameters.order = SortOrder.Asc;
-            config.queryParameters.orderby = SortBy.Name;
+            config.queryParameters.orderby = ArtifactSortBy.Name;
             config.queryParameters.offset = 0;
             config.queryParameters.limit = 10;
             config.queryParameters.labels = new String[]{"TESTCaseInsensitiveSEARCHKey"};

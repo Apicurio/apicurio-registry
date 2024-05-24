@@ -6,16 +6,12 @@ import { FunctionComponent } from "react";
 import { Page } from "@patternfly/react-core";
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 import { AppHeader } from "@app/components";
-import {
-    ExplorePage,
-    NotFoundPage,
-    RootRedirectPage,
-    RulesPage
-} from "@app/pages";
+import { ExplorePage, GroupPage, NotFoundPage, RootRedirectPage, RulesPage, VersionPage } from "@app/pages";
 import { RolesPage, SettingsPage } from "./pages";
 import { ConfigService, useConfigService } from "@services/useConfigService.ts";
 import { LoggerService, useLoggerService } from "@services/useLoggerService.ts";
 import { ApplicationAuth, AuthConfig, AuthConfigContext } from "@apicurio/common-ui-components";
+import { ArtifactPage } from "@app/pages/artifact";
 
 export type AppProps = {
     // No props
@@ -54,6 +50,18 @@ export const App: FunctionComponent<AppProps> = () => {
                             <Route path="/roles" element={ <RolesPage /> } />
                             <Route path="/settings" element={ <SettingsPage /> } />
                             <Route path="/explore" element={ <ExplorePage /> } />
+                            <Route
+                                path="/explore/:groupId"
+                                element={ <GroupPage /> }
+                            />
+                            <Route
+                                path="/explore/:groupId/:artifactId"
+                                element={ <ArtifactPage /> }
+                            />
+                            <Route
+                                path="/explore/:groupId/:artifactId/:version"
+                                element={ <VersionPage /> }
+                            />
                             <Route element={ <NotFoundPage /> } />
                         </Routes>
                     </Page>

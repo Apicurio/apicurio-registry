@@ -98,14 +98,14 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         // Search each group to ensure the correct # of artifacts.
         given()
                 .when()
-                .queryParam("group", defaultGroup)
+                .queryParam("groupId", defaultGroup)
                 .get("/registry/v3/search/artifacts")
                 .then()
                 .statusCode(200)
                 .body("count", greaterThanOrEqualTo(5));
         given()
                 .when()
-                .queryParam("group", group)
+                .queryParam("groupId", group)
                 .get("/registry/v3/search/artifacts")
                 .then()
                 .statusCode(200)
@@ -252,14 +252,14 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         // Search each group to ensure the correct # of artifacts.
         given()
                 .when()
-                .queryParam("group", group1)
+                .queryParam("groupId", group1)
                 .get("/registry/v3/search/artifacts")
                 .then()
                 .statusCode(200)
                 .body("count", equalTo(5));
         given()
                 .when()
-                .queryParam("group", group2)
+                .queryParam("groupId", group2)
                 .get("/registry/v3/search/artifacts")
                 .then()
                 .statusCode(200)
@@ -917,7 +917,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         // Make sure we can search for all three artifacts in the group.
         given()
                 .when()
-                .queryParam("group", group)
+                .queryParam("groupId", group)
                 .get("/registry/v3/search/artifacts")
                 .then()
                 .statusCode(200)
@@ -934,7 +934,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         // Verify that all 3 artifacts were deleted
         given()
                 .when()
-                .queryParam("group", group)
+                .queryParam("groupId", group)
                 .get("/registry/v3/search/artifacts")
                 .then()
                 .statusCode(200)
@@ -954,7 +954,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         // Make sure we can search for all three artifacts in the group.
         given()
                 .when()
-                .queryParam("group", group)
+                .queryParam("groupId", group)
                 .get("/registry/v3/search/artifacts")
                 .then()
                 .statusCode(200)
@@ -971,7 +971,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         // Verify that all 3 artifacts were deleted
         given()
                 .when()
-                .queryParam("group", group)
+                .queryParam("groupId", group)
                 .get("/registry/v3/search/artifacts")
                 .then()
                 .statusCode(200)
@@ -1777,7 +1777,6 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         createArtifact(GROUP, "testGetArtifactMetaData/EmptyAPI", ArtifactType.OPENAPI, artifactContent, ContentTypes.APPLICATION_JSON, (ca) -> {
             ca.setName("Empty API");
             ca.setDescription("An example API design using OpenAPI.");
-            return null;
         });
 
         // Get the artifact meta-data

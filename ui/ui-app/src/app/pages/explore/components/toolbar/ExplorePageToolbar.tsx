@@ -2,7 +2,8 @@ import { FunctionComponent, useEffect, useState } from "react";
 import "./ExplorePageToolbar.css";
 import {
     Button,
-    ButtonVariant, capitalize,
+    ButtonVariant,
+    capitalize,
     Form,
     InputGroup,
     Pagination,
@@ -14,21 +15,20 @@ import {
 import { SearchIcon, SortAlphaDownAltIcon, SortAlphaDownIcon } from "@patternfly/react-icons";
 import { IfAuth, IfFeature } from "@app/components";
 import { OnPerPageSelect, OnSetPage } from "@patternfly/react-core/dist/js/components/Pagination/Pagination";
-import { ObjectDropdown, ObjectSelect } from "@apicurio/common-ui-components";
+import { If, ObjectDropdown, ObjectSelect } from "@apicurio/common-ui-components";
 import { useLoggerService } from "@services/useLoggerService.ts";
 import { ExploreType } from "@app/pages/explore/ExploreType.ts";
-import { Paging } from "@services/useGroupsService.ts";
 import { ArtifactSearchResults } from "@models/artifactSearchResults.model.ts";
 import { GroupSearchResults } from "@models/groupSearchResults.model.ts";
 import { plural } from "pluralize";
+import { Paging } from "@models/paging.model.ts";
+import { FilterBy } from "@services/useSearchService.ts";
 
 export type ExplorePageToolbarFilterCriteria = {
-    filterSelection: string;
+    filterBy: FilterBy;
     filterValue: string;
     ascending: boolean;
 };
-
-export type FilterByGroupFunction = (groupId: string) => void;
 
 export type ExplorePageToolbarProps = {
     exploreType: ExploreType;
@@ -39,26 +39,30 @@ export type ExplorePageToolbarProps = {
     paging: Paging;
     onPerPageSelect: OnPerPageSelect;
     onSetPage: OnSetPage;
-    onUploadArtifact: () => void;
-    onImportArtifacts: () => void;
-    onExportArtifacts: () => void;
-    filterByGroupHook: (hook: FilterByGroupFunction) => void;
+    onCreateArtifact: () => void;
+    onCreateGroup: () => void;
+    onImport: () => void;
+    onExport: () => void;
 };
 
 type FilterType = {
-    value: string;
+    value: FilterBy;
     label: string;
     testId: string;
 };
-const FILTER_TYPES: FilterType[] = [
-    { value: "name", label: "Name", testId: "artifact-filter-typename" },
-    { value: "group", label: "Group", testId: "artifact-filter-typegroup" },
-    { value: "description", label: "Description", testId: "artifact-filter-typedescription" },
-    { value: "labels", label: "Labels", testId: "artifact-filter-typelabels" },
-    { value: "globalId", label: "Global Id", testId: "artifact-filter-typeglobal-id" },
-    { value: "contentId", label: "Content Id", testId: "artifact-filter-typecontent-id" },
+const ARTIFACT_FILTER_TYPES: FilterType[] = [
+    { value: FilterBy.name, label: "Name", testId: "artifact-filter-typename" },
+    { value: FilterBy.groupId, label: "Group", testId: "artifact-filter-typegroup" },
+    { value: FilterBy.description, label: "Description", testId: "artifact-filter-typedescription" },
+    { value: FilterBy.labels, label: "Labels", testId: "artifact-filter-typelabels" },
+    { value: FilterBy.globalId, label: "Global Id", testId: "artifact-filter-typeglobal-id" },
+    { value: FilterBy.contentId, label: "Content Id", testId: "artifact-filter-typecontent-id" },
 ];
-const DEFAULT_FILTER_TYPE = FILTER_TYPES[0];
+const GROUP_FILTER_TYPES: FilterType[] = [
+    { value: FilterBy.groupId, label: "Group", testId: "group-filter-typegroup" },
+    { value: FilterBy.description, label: "Description", testId: "group-filter-typedescription" },
+    { value: FilterBy.labels, label: "Labels", testId: "group-filter-typelabels" },
+];
 
 
 type ActionType = {
@@ -70,7 +74,8 @@ type ActionType = {
  * Models the toolbar for the Explore page.
  */
 export const ExplorePageToolbar: FunctionComponent<ExplorePageToolbarProps> = (props: ExplorePageToolbarProps) => {
-    const [filterType, setFilterType] = useState(DEFAULT_FILTER_TYPE);
+    const [artifactFilterType, setArtifactFilterType] = useState(ARTIFACT_FILTER_TYPES[0]);
+    const [groupFilterType, setGroupFilterType] = useState(GROUP_FILTER_TYPES[0]);
     const [filterValue, setFilterValue] = useState("");
     const [filterAscending, setFilterAscending] = useState(true);
     const [kebabActions, setKebabActions] = useState<ActionType[]>([]);
@@ -82,58 +87,58 @@ export const ExplorePageToolbar: FunctionComponent<ExplorePageToolbarProps> = (p
     };
 
     const onFilterSubmit = (event: any|undefined): void => {
-        fireChangeEvent(filterAscending, filterType.value, filterValue);
+        const filterTypeValue: FilterBy = (props.exploreType === ExploreType.ARTIFACT) ? artifactFilterType.value : groupFilterType.value;
+        fireChangeEvent(filterAscending, filterTypeValue, filterValue);
         if (event) {
             event.preventDefault();
         }
     };
 
-    const onFilterTypeChange = (newType: FilterType): void => {
-        setFilterType(newType);
+    const onArtifactFilterTypeChange = (newType: FilterType): void => {
+        setArtifactFilterType(newType);
+        fireChangeEvent(filterAscending, newType.value, filterValue);
+    };
+
+    const onGroupFilterTypeChange = (newType: FilterType): void => {
+        setGroupFilterType(newType);
         fireChangeEvent(filterAscending, newType.value, filterValue);
     };
 
     const onToggleAscending = (): void => {
         logger.debug("[ExplorePageToolbar] Toggle the ascending flag.");
+        const filterTypeValue: FilterBy = (props.exploreType === ExploreType.ARTIFACT) ? artifactFilterType.value : groupFilterType.value;
         const newAscending: boolean = !filterAscending;
         setFilterAscending(newAscending);
-        fireChangeEvent(newAscending, filterType.value, filterValue);
+        fireChangeEvent(newAscending, filterTypeValue, filterValue);
     };
 
-    const fireChangeEvent = (ascending: boolean, filterSelection: string, filterValue: string): void => {
+    const fireChangeEvent = (ascending: boolean, filterBy: FilterBy, filterValue: string): void => {
         const criteria: ExplorePageToolbarFilterCriteria = {
             ascending,
-            filterSelection,
+            filterBy,
             filterValue
         };
         props.onCriteriaChange(criteria);
     };
 
-    const filterByGroup = (groupId: string): void => {
-        logger.info("[ExplorePageToolbar] Filtering by group: ", groupId);
-        if (groupId) {
-            const newFilterType: FilterType = FILTER_TYPES[1]; // Filter by group
-            const newFilterValue: string = groupId;
-            setFilterType(newFilterType);
-            setFilterValue(newFilterValue);
-            fireChangeEvent(filterAscending, newFilterType.value, newFilterValue);
+    const onExploreTypeChange = (newExploreType: ExploreType): void => {
+        setFilterAscending(true);
+        setFilterValue("");
+        if (newExploreType === ExploreType.ARTIFACT) {
+            setArtifactFilterType(ARTIFACT_FILTER_TYPES[0]);
+        } else if (newExploreType === ExploreType.GROUP) {
+            setGroupFilterType(GROUP_FILTER_TYPES[0]);
         }
+        props.onExploreTypeChange(newExploreType);
     };
 
     useEffect(() => {
-        if (props.filterByGroupHook) {
-            logger.info("[ExplorePageToolbar] Setting change criteria hook");
-            props.filterByGroupHook(filterByGroup);
-        }
-    }, []);
-
-    useEffect(() => {
         const adminActions: ActionType[] = [
-            { label: "Upload multiple artifacts", callback: props.onImportArtifacts },
-            { label: "Download all artifacts (.zip file)", callback: props.onExportArtifacts }
+            { label: "Import from .ZIP", callback: props.onImport },
+            { label: "Export all (as .ZIP)", callback: props.onExport }
         ];
         setKebabActions(adminActions);
-    }, [props.onExportArtifacts, props.onImportArtifacts]);
+    }, [props.onExport, props.onImport]);
 
     return (
         <Toolbar id="artifacts-toolbar-1" className="artifacts-toolbar">
@@ -147,7 +152,7 @@ export const ExplorePageToolbar: FunctionComponent<ExplorePageToolbarProps> = (p
                         items={[ExploreType.ARTIFACT, ExploreType.GROUP]}
                         testId="explore-type-select"
                         toggleClassname="explore-type-toggle"
-                        onSelect={props.onExploreTypeChange}
+                        onSelect={onExploreTypeChange}
                         itemToTestId={(item) => `explore-type-${plural(item.toString().toLowerCase())}`}
                         itemToString={(item) => capitalize(plural(item.toString().toLowerCase()))} />
                 </ToolbarItem>
@@ -157,14 +162,26 @@ export const ExplorePageToolbar: FunctionComponent<ExplorePageToolbarProps> = (p
                 <ToolbarItem className="filter-item">
                     <Form onSubmit={onFilterSubmit}>
                         <InputGroup>
-                            <ObjectSelect
-                                value={filterType}
-                                items={FILTER_TYPES}
-                                testId="artifact-filter-type-select"
-                                toggleClassname="filter-types-toggle"
-                                onSelect={onFilterTypeChange}
-                                itemToTestId={(item) => item.testId}
-                                itemToString={(item) => item.label} />
+                            <If condition={props.exploreType === ExploreType.ARTIFACT}>
+                                <ObjectSelect
+                                    value={artifactFilterType}
+                                    items={ARTIFACT_FILTER_TYPES}
+                                    testId="artifact-filter-type-select"
+                                    toggleClassname="artifact-filter-type-toggle"
+                                    onSelect={onArtifactFilterTypeChange}
+                                    itemToTestId={(item) => item.testId}
+                                    itemToString={(item) => item.label} />
+                            </If>
+                            <If condition={props.exploreType === ExploreType.GROUP}>
+                                <ObjectSelect
+                                    value={groupFilterType}
+                                    items={GROUP_FILTER_TYPES}
+                                    testId="group-filter-type-select"
+                                    toggleClassname="group-filter-type-toggle"
+                                    onSelect={onGroupFilterTypeChange}
+                                    itemToTestId={(item) => item.testId}
+                                    itemToString={(item) => item.label} />
+                            </If>
                             <TextInput name="filterValue" id="filterValue" type="search"
                                 value={filterValue}
                                 onChange={(_evt, value) => setFilterValue(value)}
@@ -186,11 +203,17 @@ export const ExplorePageToolbar: FunctionComponent<ExplorePageToolbarProps> = (p
                         }
                     </Button>
                 </ToolbarItem>
-                <ToolbarItem className="upload-artifact-item">
+                <ToolbarItem className="create-artifact-item">
                     <IfAuth isDeveloper={true}>
                         <IfFeature feature="readOnly" isNot={true}>
-                            <Button className="btn-header-upload-artifact" data-testid="btn-toolbar-upload-artifact"
-                                variant="primary" onClick={props.onUploadArtifact}>Upload artifact</Button>
+                            <If condition={props.exploreType === ExploreType.ARTIFACT}>
+                                <Button className="btn-header-create-artifact" data-testid="btn-toolbar-create-artifact"
+                                    variant="primary" onClick={props.onCreateArtifact}>Create artifact</Button>
+                            </If>
+                            <If condition={props.exploreType === ExploreType.GROUP}>
+                                <Button className="btn-header-create-group" data-testid="btn-toolbar-create-group"
+                                    variant="primary" onClick={props.onCreateGroup}>Create group</Button>
+                            </If>
                         </IfFeature>
                     </IfAuth>
                 </ToolbarItem>

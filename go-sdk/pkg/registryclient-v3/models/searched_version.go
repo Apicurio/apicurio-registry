@@ -21,8 +21,6 @@ type SearchedVersion struct {
 	name *string
 	// The owner property
 	owner *string
-	// User-defined name-value pairs. Name and value must be strings.
-	properties Labelsable
 	// The references property
 	references []ArtifactReferenceable
 	// Describes the state of an artifact or artifact version.  The following statesare possible:* ENABLED* DISABLED* DEPRECATED
@@ -128,16 +126,6 @@ func (m *SearchedVersion) GetFieldDeserializers() map[string]func(i878a80d2330e8
 		}
 		return nil
 	}
-	res["properties"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
-		val, err := n.GetObjectValue(CreateLabelsFromDiscriminatorValue)
-		if err != nil {
-			return err
-		}
-		if val != nil {
-			m.SetProperties(val.(Labelsable))
-		}
-		return nil
-	}
 	res["references"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
 		val, err := n.GetCollectionOfObjectValues(CreateArtifactReferenceFromDiscriminatorValue)
 		if err != nil {
@@ -202,11 +190,6 @@ func (m *SearchedVersion) GetOwner() *string {
 	return m.owner
 }
 
-// GetProperties gets the properties property value. User-defined name-value pairs. Name and value must be strings.
-func (m *SearchedVersion) GetProperties() Labelsable {
-	return m.properties
-}
-
 // GetReferences gets the references property value. The references property
 func (m *SearchedVersion) GetReferences() []ArtifactReferenceable {
 	return m.references
@@ -261,12 +244,6 @@ func (m *SearchedVersion) Serialize(writer i878a80d2330e89d26896388a3f487eef27b0
 	}
 	{
 		err := writer.WriteStringValue("owner", m.GetOwner())
-		if err != nil {
-			return err
-		}
-	}
-	{
-		err := writer.WriteObjectValue("properties", m.GetProperties())
 		if err != nil {
 			return err
 		}
@@ -346,11 +323,6 @@ func (m *SearchedVersion) SetOwner(value *string) {
 	m.owner = value
 }
 
-// SetProperties sets the properties property value. User-defined name-value pairs. Name and value must be strings.
-func (m *SearchedVersion) SetProperties(value Labelsable) {
-	m.properties = value
-}
-
 // SetReferences sets the references property value. The references property
 func (m *SearchedVersion) SetReferences(value []ArtifactReferenceable) {
 	m.references = value
@@ -381,7 +353,6 @@ type SearchedVersionable interface {
 	GetGlobalId() *int64
 	GetName() *string
 	GetOwner() *string
-	GetProperties() Labelsable
 	GetReferences() []ArtifactReferenceable
 	GetState() *VersionState
 	GetTypeEscaped() *string
@@ -392,7 +363,6 @@ type SearchedVersionable interface {
 	SetGlobalId(value *int64)
 	SetName(value *string)
 	SetOwner(value *string)
-	SetProperties(value Labelsable)
 	SetReferences(value []ArtifactReferenceable)
 	SetState(value *VersionState)
 	SetTypeEscaped(value *string)

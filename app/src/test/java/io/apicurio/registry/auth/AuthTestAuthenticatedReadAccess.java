@@ -46,7 +46,7 @@ public class AuthTestAuthenticatedReadAccess extends AbstractResourceTestBase {
         var adapter = new VertXRequestAdapter(buildOIDCWebClient(authServerUrl, JWKSMockServer.NO_ROLE_CLIENT_ID, "test1"));
         adapter.setBaseUrl(registryV3ApiUrl);
         RegistryClient client = new RegistryClient(adapter);
-        var results = client.search().artifacts().get(config -> config.queryParameters.group = groupId);
+        var results = client.search().artifacts().get(config -> config.queryParameters.groupId = groupId);
         Assertions.assertTrue(results.getCount() >= 0);
 
         // Write operation should fail with credentials but not role.

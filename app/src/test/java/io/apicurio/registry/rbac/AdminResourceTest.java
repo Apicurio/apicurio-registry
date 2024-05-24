@@ -407,7 +407,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
     @Test
     void testExport() throws Exception {
         String artifactContent = resourceToString("openapi-empty.json");
-        String group = "testExport";
+        String group = TestUtils.generateGroupId();
 
         // Create 5 artifacts in the UUID group
         for (int idx = 0; idx < 5; idx++) {
@@ -423,6 +423,9 @@ public class AdminResourceTest extends AbstractResourceTestBase {
                 .statusCode(200);
         InputStream body = response.extract().asInputStream();
         ZipInputStream zip = new ZipInputStream(body);
+
+        int artifactCount = clientV3.groups().byGroupId(group).artifacts().get().getCount();
+        Assertions.assertEquals(5, artifactCount);
 
         AtomicInteger contentCounter = new AtomicInteger(0);
         AtomicInteger versionCounter = new AtomicInteger(0);

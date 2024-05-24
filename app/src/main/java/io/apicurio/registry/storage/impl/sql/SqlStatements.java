@@ -253,7 +253,6 @@ public interface SqlStatements {
      * Statements to update the meta-data of a specific artifact version.
      */
 
-    public String updateArtifactVersionMetaData();
     public String updateArtifactVersionNameByGAV();
     public String updateArtifactVersionDescriptionByGAV();
     public String updateArtifactVersionLabelsByGAV();
@@ -320,11 +319,6 @@ public interface SqlStatements {
      * A statement to get all artifacts IDs.
      */
     public String selectArtifactIds();
-
-    /**
-     * A statement to get an artifact's meta-data by version globalId.
-     */
-    public String selectArtifactMetaDataByGlobalId();
 
     /**
      * A statement to update the state of an artifact version (by globalId);

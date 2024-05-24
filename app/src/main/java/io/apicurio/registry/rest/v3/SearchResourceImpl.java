@@ -9,10 +9,13 @@ import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.model.GroupId;
 import io.apicurio.registry.rest.v3.beans.ArtifactSearchResults;
-import io.apicurio.registry.rest.v3.beans.SortBy;
+import io.apicurio.registry.rest.v3.beans.ArtifactSortBy;
+import io.apicurio.registry.rest.v3.beans.GroupSearchResults;
+import io.apicurio.registry.rest.v3.beans.GroupSortBy;
 import io.apicurio.registry.rest.v3.beans.SortOrder;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
+import io.apicurio.registry.storage.dto.GroupSearchResultsDto;
 import io.apicurio.registry.storage.dto.OrderBy;
 import io.apicurio.registry.storage.dto.OrderDirection;
 import io.apicurio.registry.storage.dto.SearchFilter;
@@ -51,15 +54,14 @@ public class SearchResourceImpl implements SearchResource {
     @Inject
     RegistryStorageContentUtils contentUtils;
 
-
     @Override
     @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Read)
     public ArtifactSearchResults searchArtifacts(String name, BigInteger offset, BigInteger limit, SortOrder order,
-            SortBy orderby, List<String> labels, String description, String group,
-            Long globalId, Long contentId)
+            ArtifactSortBy orderby, List<String> labels, String description, String groupId, Long globalId, Long contentId,
+            String artifactId)
     {
         if (orderby == null) {
-            orderby = SortBy.name;
+            orderby = ArtifactSortBy.name;
         }
         if (offset == null) {
             offset = BigInteger.valueOf(0);
@@ -69,7 +71,7 @@ public class SearchResourceImpl implements SearchResource {
         }
 
         final OrderBy oBy = OrderBy.valueOf(orderby.name());
-        final OrderDirection oDir = order == null || order == SortOrder.asc ? OrderDirection.asc : OrderDirection.desc;
+        final OrderDirection oDir = (order == null || order == SortOrder.asc) ? OrderDirection.asc : OrderDirection.desc;
 
         Set<SearchFilter> filters = new HashSet<SearchFilter>();
         if (!StringUtil.isEmpty(name)) {
@@ -78,8 +80,8 @@ public class SearchResourceImpl implements SearchResource {
         if (!StringUtil.isEmpty(description)) {
             filters.add(SearchFilter.ofDescription(description));
         }
-        if (!StringUtil.isEmpty(group)) {
-            filters.add(SearchFilter.ofGroup(new GroupId(group).getRawGroupIdWithNull()));
+        if (!StringUtil.isEmpty(groupId)) {
+            filters.add(SearchFilter.ofGroup(new GroupId(groupId).getRawGroupIdWithNull()));
         }
 
         if (labels != null && !labels.isEmpty()) {
@@ -116,13 +118,13 @@ public class SearchResourceImpl implements SearchResource {
         return V3ApiUtil.dtoToSearchResults(results);
     }
 
-
     @Override
     @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Read)
-    public ArtifactSearchResults searchArtifactsByContent(Boolean canonical, String artifactType, BigInteger offset, BigInteger limit, SortOrder order, SortBy orderby, InputStream data) {
+    public ArtifactSearchResults searchArtifactsByContent(Boolean canonical, String artifactType, BigInteger offset,
+            BigInteger limit, SortOrder order, ArtifactSortBy orderby, InputStream data) {
 
         if (orderby == null) {
-            orderby = SortBy.name;
+            orderby = ArtifactSortBy.name;
         }
         if (offset == null) {
             offset = BigInteger.valueOf(0);
@@ -155,6 +157,58 @@ public class SearchResourceImpl implements SearchResource {
             throw new BadRequestException(CANONICAL_QUERY_PARAM_ERROR_MESSAGE);
         }
         ArtifactSearchResultsDto results = storage.searchArtifacts(filters, oBy, oDir, offset.intValue(), limit.intValue());
+        return V3ApiUtil.dtoToSearchResults(results);
+    }
+
+    @Override
+    public GroupSearchResults searchGroups(BigInteger offset, BigInteger limit, SortOrder order, GroupSortBy orderby,
+                                           List<String> labels, String description, String groupId) {
+        if (orderby == null) {
+            orderby = GroupSortBy.groupId;
+        }
+        if (offset == null) {
+            offset = BigInteger.valueOf(0);
+        }
+        if (limit == null) {
+            limit = BigInteger.valueOf(20);
+        }
+
+        final OrderBy oBy = OrderBy.valueOf(orderby.name());
+        final OrderDirection oDir = order == null || order == SortOrder.asc ? OrderDirection.asc : OrderDirection.desc;
+
+        Set<SearchFilter> filters = new HashSet<SearchFilter>();
+        if (!StringUtil.isEmpty(groupId)) {
+            filters.add(SearchFilter.ofGroup(groupId));
+        }
+        if (!StringUtil.isEmpty(description)) {
+            filters.add(SearchFilter.ofDescription(description));
+        }
+
+        if (labels != null && !labels.isEmpty()) {
+            labels.stream()
+                    .map(prop -> {
+                        int delimiterIndex = prop.indexOf(":");
+                        String labelKey;
+                        String labelValue;
+                        if (delimiterIndex == 0) {
+                            throw new BadRequestException("label search filter wrong formatted, missing left side of ':' delimiter");
+                        }
+                        if (delimiterIndex == (prop.length() - 1)) {
+                            throw new BadRequestException("label search filter wrong formatted, missing right side of ':' delimiter");
+                        }
+                        if (delimiterIndex < 0) {
+                            labelKey = prop;
+                            labelValue = null;
+                        } else{
+                            labelKey = prop.substring(0, delimiterIndex);
+                            labelValue = prop.substring(delimiterIndex + 1);
+                        }
+                        return SearchFilter.ofLabel(labelKey, labelValue);
+                    })
+                    .forEach(filters::add);
+        }
+
+        GroupSearchResultsDto results = storage.searchGroups(filters, oBy, oDir, offset.intValue(), limit.intValue());
         return V3ApiUtil.dtoToSearchResults(results);
     }
 

@@ -28,3 +28,8 @@ func NewSearchRequestBuilder(rawUrl string, requestAdapter i2ae4187f7daee263371c
 	urlParams["request-raw-url"] = rawUrl
 	return NewSearchRequestBuilderInternal(urlParams, requestAdapter)
 }
+
+// Groups search for groups in the registry.
+func (m *SearchRequestBuilder) Groups() *GroupsRequestBuilder {
+	return NewGroupsRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
+}

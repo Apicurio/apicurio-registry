@@ -1012,7 +1012,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
             limit = BigInteger.valueOf(20);
         }
 
-        VersionSearchResultsDto resultsDto = storage.searchVersions(defaultGroupIdToNull(groupId), artifactId, offset.intValue(), limit.intValue());
+        VersionSearchResultsDto resultsDto = storage.searchVersions(defaultGroupIdToNull(groupId),
+                artifactId, OrderBy.createdOn, OrderDirection.asc, offset.intValue(), limit.intValue());
         return V2ApiUtil.dtoToSearchResults(resultsDto);
     }
 

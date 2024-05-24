@@ -53,8 +53,7 @@ export const ExplorePageEmptyState: FunctionComponent<ExplorePageEmptyStateProps
             <Title headingLevel="h5" size="lg">No { entityPlural } found</Title>
             <If condition={() => props.isFiltered}>
                 <EmptyStateBody>
-                    No {entityPlural} match your filter settings.  Change your filter or perhaps Create a new
-                    {entitySingular}.
+                    No {entityPlural} match your filter settings.  Change your filter or perhaps Create a new {entitySingular}.
                 </EmptyStateBody>
             </If>
             <If condition={() => !props.isFiltered}>

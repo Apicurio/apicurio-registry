@@ -1,5 +1,4 @@
 import React, { FunctionComponent } from "react";
-import "./ArtifactList.css";
 import { Link } from "react-router-dom";
 import { AppNavigation, useAppNavigation } from "@services/useAppNavigation.ts";
 
@@ -28,12 +27,12 @@ export const ArtifactName: FunctionComponent<ArtifactNameProps> = (props: Artifa
 
     return props.name ? (
         <React.Fragment>
-            <Link className="name" data-testid={testId("artifacts-lnk-view-")} to={artifactLink()}>{props.name}</Link>
             <Link className="id" data-testid={testId("artifacts-lnk-view-id-")} to={artifactLink()}>{props.id}</Link>
+            <Link className="name" data-testid={testId("artifacts-lnk-view-")} to={artifactLink()}>{props.name}</Link>
         </React.Fragment>
     ) : (
         <React.Fragment>
-            <Link className="name" data-testid={testId("artifacts-lnk-view-")} to={artifactLink()}>{props.id}</Link>
+            <Link className="id" data-testid={testId("artifacts-lnk-view-")} to={artifactLink()}>{props.id}</Link>
         </React.Fragment>
     );
 

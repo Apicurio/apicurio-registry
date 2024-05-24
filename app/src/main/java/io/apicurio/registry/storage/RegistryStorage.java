@@ -347,7 +347,8 @@ public interface RegistryStorage extends DynamicConfigStorage {
      * @throws ArtifactNotFoundException
      * @throws RegistryStorageException
      */
-    VersionSearchResultsDto searchVersions(String groupId, String artifactId, int offset, int limit) throws ArtifactNotFoundException, RegistryStorageException;
+    VersionSearchResultsDto searchVersions(String groupId, String artifactId, OrderBy orderBy,
+            OrderDirection orderDirection, int offset, int limit) throws ArtifactNotFoundException, RegistryStorageException;
 
     /**
      * Gets the stored artifact content for the artifact version with the given unique global ID.

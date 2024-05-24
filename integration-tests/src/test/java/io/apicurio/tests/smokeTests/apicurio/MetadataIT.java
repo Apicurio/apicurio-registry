@@ -70,7 +70,6 @@ class MetadataIT extends ApicurioRegistryBaseIT {
 
         var caResponse = createArtifact(groupId, artifactId, ArtifactType.AVRO, artifactDefinition, ContentTypes.APPLICATION_JSON, null, (ca) -> {
             ca.getFirstVersion().setName("Version 1 Name");
-            return null;
         });
         LOGGER.info("Created artifact {} with metadata {}", artifactId, caResponse.getArtifact());
 

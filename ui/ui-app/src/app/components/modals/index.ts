@@ -7,5 +7,3 @@ export * from "./CreateVersionModal";
 export * from "./EditMetaDataModal";
 export * from "./InvalidContentModal";
 export * from "./LabelsFormGroup";
-export * from "./labelsToList.function";
-export * from "./listToLabels.function";

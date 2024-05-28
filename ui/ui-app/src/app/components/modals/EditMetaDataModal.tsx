@@ -10,14 +10,36 @@ import {
     TextArea,
     TextInput
 } from "@patternfly/react-core";
-import { ArtifactLabel, LabelsFormGroup, labelsToList, listToLabels } from "@app/components";
 import { If } from "@apicurio/common-ui-components";
+import { ArtifactLabel, LabelsFormGroup } from "@app/components";
 
 
 export type MetaData = {
     name?: string;
     description: string;
     labels: { [key: string]: string|undefined };
+}
+
+
+function labelsToList(labels: { [key: string]: string|undefined }): ArtifactLabel[] {
+    return Object.keys(labels).filter((key) => key !== undefined).map(key => {
+        return {
+            name: key,
+            value: labels[key],
+            nameValidated: "default",
+            valueValidated: "default"
+        };
+    });
+}
+
+function listToLabels(labels: ArtifactLabel[]): { [key: string]: string|undefined } {
+    const rval: { [key: string]: string|undefined } = {};
+    labels.forEach(label => {
+        if (label.name) {
+            rval[label.name] = label.value;
+        }
+    });
+    return rval;
 }
 
 

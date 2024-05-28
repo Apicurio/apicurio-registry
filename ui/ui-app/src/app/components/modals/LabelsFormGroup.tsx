@@ -9,6 +9,7 @@ export type ArtifactLabel = {
     valueValidated: "success" | "warning" | "error" | "default";
 }
 
+
 /**
  * Labels
  */

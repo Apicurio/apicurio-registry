@@ -1,3 +1,4 @@
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -6,7 +7,7 @@ metadata:
     app: apicurio-registry-kafka
   name: apicurio-registry-deployment
 spec:
-  replicas: 1
+  replicas: 3
   selector:
     matchLabels:
       app: apicurio-registry-kafka
@@ -25,7 +26,7 @@ spec:
               value: kafka-service:9092
             - name: APICURIO_STORAGE_KIND
               value: "kafkasql"
-            - name: APICURIO_LOG_LEVEL
+            - name: QUARKUS_LOG_CATEGORY__IO_APICURIO__LEVEL
               value: "DEBUG"
           image: registry-image
           imagePullPolicy: Always
@@ -54,6 +55,13 @@ spec:
             periodSeconds: 10
             successThreshold: 1
             timeoutSeconds: 10
+          volumeMounts:
+            - mountPath: /tmp/
+              name: snapshots-volume
+      volumes:
+      - name: snapshots-volume
+        persistentVolumeClaim:
+          claimName: snapshots-volume
 ---
 apiVersion: v1
 kind: Service
@@ -78,3 +86,16 @@ spec:
   ipFamilyPolicy: SingleStack
   allocateLoadBalancerNodePorts: true
   internalTrafficPolicy: Cluster
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  namespace: "apicurio-registry-e2e"
+  name: snapshots-volume
+spec:
+  storageClassName: standard
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 1Gi

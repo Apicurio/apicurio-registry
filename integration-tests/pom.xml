@@ -91,6 +91,11 @@
             <artifactId>apicurio-registry-utils-converter</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>io.apicurio</groupId>
+            <artifactId>apicurio-registry-utils-kafka</artifactId>
+            <scope>test</scope>
+        </dependency>
         <!-- Test Only -->
         <dependency>
             <groupId>io.confluent</groupId>
@@ -422,6 +427,13 @@
             <id>auth</id>
             <properties>
                 <groups>auth</groups>
+                <skipTests>false</skipTests>
+            </properties>
+        </profile>
+        <profile>
+            <id>kafkasql-snapshotting</id>
+            <properties>
+                <groups>kafkasql-snapshotting</groups>
                 <skipTests>false</skipTests>
             </properties>
         </profile>

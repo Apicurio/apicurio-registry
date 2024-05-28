@@ -52,13 +52,11 @@ public class KafkasqlRecoverFromSnapshotTest extends AbstractResourceTestBase {
             String artifactId = UUID.randomUUID().toString();
             CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO, simpleAvro,
                     ContentTypes.APPLICATION_JSON);
-            clientV3.groups().byGroupId(NEW_ARTIFACTS_SNAPSHOT_TEST_GROUP_ID).artifacts()
-                    .post(createArtifact, config -> config.headers.add("X-Registry-ArtifactId", artifactId));
+            clientV3.groups().byGroupId(NEW_ARTIFACTS_SNAPSHOT_TEST_GROUP_ID).artifacts().post(createArtifact, config -> config.headers.add("X-Registry-ArtifactId", artifactId));
             Rule rule = new Rule();
             rule.setType(RuleType.VALIDITY);
             rule.setConfig("SYNTAX_ONLY");
-            clientV3.groups().byGroupId(NEW_ARTIFACTS_SNAPSHOT_TEST_GROUP_ID).artifacts().byArtifactId(artifactId).rules().post(rule);
-        }
+            clientV3.groups().byGroupId(NEW_ARTIFACTS_SNAPSHOT_TEST_GROUP_ID).artifacts().byArtifactId(artifactId).rules().post(rule);        }
     }
 
     @Test

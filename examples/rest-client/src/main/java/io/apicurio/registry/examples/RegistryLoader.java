@@ -33,7 +33,7 @@ import java.util.UUID;
 public class RegistryLoader {
 
     public static void main(String[] args) throws Exception {
-        String registryUrl = "http://localhost:8080/apis/registry/v2";
+        String registryUrl = "http://localhost:8080/apis/registry/v3";
 
         VertXRequestAdapter vertXRequestAdapter = new VertXRequestAdapter(VertXAuthFactory.defaultVertx);
         vertXRequestAdapter.setBaseUrl(registryUrl);
@@ -48,7 +48,7 @@ public class RegistryLoader {
                 }""";
 
         for (int i = 0; i < 600; i++) {
-            Task task = new Task(simpleAvro, client, 1000, i + 800000);
+            Task task = new Task(simpleAvro, client, 100, i + 100);
             task.start();
         }
     }
@@ -72,16 +72,20 @@ public class RegistryLoader {
             for (int idx = 0; idx < numArtifacts; idx++) {
                 System.out.println("Iteration: " + idx);
                 String artifactId = UUID.randomUUID().toString();
+
                 CreateArtifact createArtifact = new CreateArtifact();
-                createArtifact.setArtifactId("city");
-                createArtifact.setType("JSON");
-                createArtifact.setFirstVersion(new CreateVersion());
-                createArtifact.getFirstVersion().setContent(new VersionContent());
-                createArtifact.getFirstVersion().getContent().setContent(simpleAvro.replace("userInfo", "userInfo" + threadId + numArtifacts));
-                createArtifact.getFirstVersion().getContent().setContentType("application/json");
+                createArtifact.setType("AVRO");
+                createArtifact.setArtifactId(artifactId);
+                CreateVersion createVersion = new CreateVersion();
+                createArtifact.setFirstVersion(createVersion);
+                VersionContent versionContent = new VersionContent();
+                createVersion.setContent(versionContent);
+                versionContent.setContent(simpleAvro.replace("userInfo", "userInfo" + threadId + numArtifacts));
+                versionContent.setContentType("application/json");
+
                 client.groups().byGroupId("default").artifacts().post(createArtifact, config -> {
-                    config.headers.add("X-Registry-ArtifactId", artifactId);
                 });
+
                 Rule rule = new Rule();
                 rule.setType(RuleType.VALIDITY);
                 rule.setConfig("SYNTAX_ONLY");

@@ -18,9 +18,11 @@ package io.apicurio.registry.examples;
 
 import io.apicurio.registry.client.auth.VertXAuthFactory;
 import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.rest.client.models.ArtifactContent;
+import io.apicurio.registry.rest.client.models.CreateArtifact;
+import io.apicurio.registry.rest.client.models.CreateVersion;
 import io.apicurio.registry.rest.client.models.Rule;
 import io.apicurio.registry.rest.client.models.RuleType;
+import io.apicurio.registry.rest.client.models.VersionContent;
 import io.kiota.http.vertx.VertXRequestAdapter;
 
 import java.util.UUID;
@@ -70,9 +72,14 @@ public class RegistryLoader {
             for (int idx = 0; idx < numArtifacts; idx++) {
                 System.out.println("Iteration: " + idx);
                 String artifactId = UUID.randomUUID().toString();
-                ArtifactContent content = new ArtifactContent();
-                content.setContent(simpleAvro.replace("userInfo", "userInfo" + threadId + numArtifacts));
-                client.groups().byGroupId("default").artifacts().post(content, config -> {
+                CreateArtifact createArtifact = new CreateArtifact();
+                createArtifact.setArtifactId("city");
+                createArtifact.setType("JSON");
+                createArtifact.setFirstVersion(new CreateVersion());
+                createArtifact.getFirstVersion().setContent(new VersionContent());
+                createArtifact.getFirstVersion().getContent().setContent(simpleAvro.replace("userInfo", "userInfo" + threadId + numArtifacts));
+                createArtifact.getFirstVersion().getContent().setContentType("application/json");
+                client.groups().byGroupId("default").artifacts().post(createArtifact, config -> {
                     config.headers.add("X-Registry-ArtifactId", artifactId);
                 });
                 Rule rule = new Rule();

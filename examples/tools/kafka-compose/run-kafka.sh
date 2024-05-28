@@ -1,0 +1,1 @@
+docker-compose -f tools/kafka-compose/kafka-compose.yaml up

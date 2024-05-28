@@ -1,0 +1,35 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "type": "object",
+    "properties": {
+      "approved": {
+        "type": "boolean"
+      },
+      "error": {
+        "type": ["string", "null"]
+      },
+      "itemId": {
+        "type": "string"
+      },
+      "orderId": {
+        "type": "string"
+      },
+      "processedBy": {
+        "type": "string"
+      },
+      "processingTimestamp": {
+        "type": "string"
+      },
+      "quantity": {
+        "type": "integer"
+      }
+    },
+    "required": [
+      "approved",
+      "itemId",
+      "orderId",
+      "processedBy",
+      "processingTimestamp",
+      "quantity"
+    ]
+  }

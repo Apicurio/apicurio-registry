@@ -244,7 +244,7 @@ export const ArtifactPage: FunctionComponent<ArtifactPageProps> = () => {
     }, [groupId, artifactId]);
 
     const tabs: any[] = [
-        <Tab eventKey="overview" title="Overview" key="overview" tabContentId="tab-info">
+        <Tab data-testId="info-tab" eventKey="overview" title="Overview" key="overview" tabContentId="tab-info">
             <ArtifactInfoTabContent
                 artifact={artifact as ArtifactMetaData}
                 rules={rules}
@@ -255,7 +255,7 @@ export const ArtifactPage: FunctionComponent<ArtifactPageProps> = () => {
                 onChangeOwner={openChangeOwnerModal}
             />
         </Tab>,
-        <Tab eventKey="versions" title="Versions" key="versions" tabContentId="tab-versions">
+        <Tab data-testId="versions-tab" eventKey="versions" title="Versions" key="versions" tabContentId="tab-versions">
             <VersionsTabContent
                 artifact={artifact as ArtifactMetaData}
                 onCreateVersion={() => {setIsCreateVersionModalOpen(true);}}

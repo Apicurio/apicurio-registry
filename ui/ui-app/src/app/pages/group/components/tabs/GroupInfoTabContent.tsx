@@ -21,6 +21,7 @@ import {
 import { IndustryIcon, OutlinedFolderIcon, PencilAltIcon } from "@patternfly/react-icons";
 import { FromNow, If } from "@apicurio/common-ui-components";
 import { GroupMetaData } from "@models/groupMetaData.model.ts";
+import { isStringEmptyOrUndefined } from "@utils/string.utils.ts";
 
 /**
  * Properties
@@ -66,10 +67,6 @@ export const GroupInfoTabContent: FunctionComponent<GroupInfoTabContentProps> = 
                     <CardBody>
                         <DescriptionList className="metaData" isCompact={true}>
                             <DescriptionListGroup>
-                                <DescriptionListTerm>ID</DescriptionListTerm>
-                                <DescriptionListDescription data-testid="group-details-id">{props.group.groupId}</DescriptionListDescription>
-                            </DescriptionListGroup>
-                            <DescriptionListGroup>
                                 <DescriptionListTerm>Description</DescriptionListTerm>
                                 <DescriptionListDescription
                                     data-testid="group-details-description"
@@ -84,7 +81,7 @@ export const GroupInfoTabContent: FunctionComponent<GroupInfoTabContentProps> = 
                                     <FromNow date={props.group.createdOn} />
                                 </DescriptionListDescription>
                             </DescriptionListGroup>
-                            <If condition={props.group.owner !== undefined && props.group.owner !== ""}>
+                            <If condition={!isStringEmptyOrUndefined(props.group.owner)}>
                                 <DescriptionListGroup>
                                     <DescriptionListTerm>Owner</DescriptionListTerm>
                                     <DescriptionListDescription data-testid="group-details-created-by">
@@ -120,8 +117,6 @@ export const GroupInfoTabContent: FunctionComponent<GroupInfoTabContentProps> = 
                                 }
                             </DescriptionListGroup>
                         </DescriptionList>
-                        <div className="actions">
-                        </div>
                     </CardBody>
                 </Card>
             </div>

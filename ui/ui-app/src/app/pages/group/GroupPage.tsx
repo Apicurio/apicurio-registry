@@ -193,10 +193,10 @@ export const GroupPage: FunctionComponent<GroupPageProps> = () => {
     }, [groupId]);
 
     const tabs: any[] = [
-        <Tab eventKey="overview" title="Overview" key="overview" tabContentId="tab-info">
+        <Tab data-testId="info-tab" eventKey="overview" title="Overview" key="overview" tabContentId="tab-info">
             <GroupInfoTabContent group={group as GroupMetaData} onEditMetaData={() => setIsEditModalOpen(true)} onChangeOwner={() => {}} />
         </Tab>,
-        <Tab eventKey="artifacts" title="Artifacts" key="artifacts" tabContentId="tab-artifacts">
+        <Tab data-testId="artifacts-tab" eventKey="artifacts" title="Artifacts" key="artifacts" tabContentId="tab-artifacts">
             <ArtifactsTabContent
                 group={group as GroupMetaData}
                 onCreateArtifact={onCreateArtifact}

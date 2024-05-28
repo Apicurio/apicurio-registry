@@ -1,0 +1,16 @@
+{
+  "$id": "https://example.com/types/identifier/citizenIdentifier.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Identifier",
+  "type": "object",
+  "properties": {
+    "identifier": {
+      "type": "integer",
+      "description": "The citizen identifier.",
+      "minimum": 0
+    },
+    "qualification": {
+      "$ref": "qualification.json"
+    }
+  }
+}

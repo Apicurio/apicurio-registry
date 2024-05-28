@@ -1,0 +1,22 @@
+syntax = "proto3";
+package sample;
+option java_package = "io.api.sample";
+option java_multiple_files = true;
+
+import "google/protobuf/timestamp.proto";
+import "sample/table_info.proto";
+import "sample/table_notification_type.proto";
+
+message TableNotification {
+
+  google.protobuf.Timestamp timestamp = 1;
+
+  string user = 2;
+
+  string session_id = 3;
+
+  TableNotificationType table_notification_type = 4;
+
+  TableInfo table_info = 5;
+
+}

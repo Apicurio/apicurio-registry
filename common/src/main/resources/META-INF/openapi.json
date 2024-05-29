@@ -2482,9 +2482,19 @@
                 "description": "Gets a list of all the configured artifact types.\n\nThis operation can fail for the following reasons:\n\n* A server error occurred (HTTP error `500`)\n"
             }
         },
-        "/admin/config/triggerSnapshot": {
+        "/admin/snapshots": {
             "summary": "Triggers a snapshot of the Registry storage. Only supported in KafkaSQL storage",
-            "get": {
+            "post": {
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CreateSnapshot"
+                            }
+                        }
+                    },
+                    "required": true
+                },
                 "tags": [
                     "KafkaSQL",
                     "Admin",
@@ -2492,8 +2502,14 @@
                 ],
                 "responses": {
                     "200": {
-                        "content": {},
-                        "description": "Empty content. A 200 means that the snapshot has been successfully triggered."
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SnapshotMetaData"
+                                }
+                            }
+                        },
+                        "description": "The snapshot has been successfully triggered."
                     },
                     "500": {
                         "$ref": "#/components/responses/ServerError"
@@ -4442,6 +4458,18 @@
                     "createdOn"
                 ],
                 "type": "string"
+            },
+            "CreateSnapshot": {
+                "title": "Root Type for CreateSnapshot",
+                "description": "",
+                "type": "object",
+                "example": {}
+            },
+            "SnapshotMetaData": {
+                "title": "Root Type for SnapshotMetaData",
+                "description": "",
+                "type": "object",
+                "example": {}
             }
         },
         "responses": {

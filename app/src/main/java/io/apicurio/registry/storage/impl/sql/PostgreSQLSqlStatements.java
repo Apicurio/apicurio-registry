@@ -75,4 +75,14 @@ public class PostgreSQLSqlStatements extends CommonSqlStatements {
     public String upsertContentReference() {
         return "INSERT INTO content_references (contentId, groupId, artifactId, version, name) VALUES (?, ?, ?, ?, ?) ON CONFLICT (contentId, name) DO NOTHING";
     }
+
+    @Override
+    public String createDataSnapshot() {
+        throw new IllegalStateException("Snapshot creation is not supported for Postgresql storage");
+    }
+
+    @Override
+    public String restoreFromSnapshot() {
+        throw new IllegalStateException("Restoring from snapshot is not supported for Postgresql storage");
+    }
 }

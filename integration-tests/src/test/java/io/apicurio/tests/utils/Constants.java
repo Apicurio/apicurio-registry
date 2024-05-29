@@ -47,9 +47,9 @@ public interface Constants {
     String AUTH = "auth";
 
     /**
-     * Tag for kafkasql tests, the test will be executed only when the storage variant is kafkasql.
+     * Tag for kafkasql snapshotting tests, the test will be executed only when the storage variant is kafkasql.
      */
-    String KAFKA_SQL = "kafkasqlit";
+    String KAFKA_SQL_SNAPSHOTTING = "kafkasql-snapshotting";
 
     /**
      * Tag for sql tests, the test will be executed only when the storage variant is sql.

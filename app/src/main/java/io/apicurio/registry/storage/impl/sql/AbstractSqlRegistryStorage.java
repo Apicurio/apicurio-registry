@@ -767,14 +767,14 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                     .bind(1, artifactId)
                     .mapTo(String.class)
                     .list();
-            
+
             // Note: delete artifact rules as well.  Artifact rules are not set to cascade on delete
             // because the Confluent API allows users to configure rules for artifacts that don't exist. :(
             handle.createUpdate(sqlStatements.deleteArtifactRules())
                     .bind(0, normalizeGroupId(groupId))
                     .bind(1, artifactId)
                     .execute();
-            
+
             // Delete artifact row (should be just one)
             int rowCount = handle.createUpdate(sqlStatements.deleteArtifact())
                     .bind(0, normalizeGroupId(groupId))
@@ -802,7 +802,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             handle.createUpdate(sqlStatements.deleteArtifactRulesByGroupId())
                     .bind(0, normalizeGroupId(groupId))
                     .execute();
-            
+
             // Delete all artifacts in the group
             int rowCount = handle.createUpdate(sqlStatements.deleteArtifactsByGroupId())
                     .bind(0, normalizeGroupId(groupId))
@@ -862,7 +862,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                     .one();
             return count.longValue();
         });
-        
+
     }
 
     @Override
@@ -1081,7 +1081,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                     .findOne();
             return res.orElseThrow(() -> new ArtifactNotFoundException(groupId, artifactId));
         });
-        
+
     }
 
     /**
@@ -1223,14 +1223,14 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                 if (rowCount == 0) {
                     throw new ArtifactNotFoundException(groupId, artifactId);
                 }
-                
+
             }
 
             return null;
         });
     }
 
-    
+
     @Override
     @Transactional
     public List<RuleType> getArtifactRules(String groupId, String artifactId)
@@ -1633,7 +1633,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         });
     }
 
-    
+
     @Override
     @Transactional
     public CommentDto createArtifactVersionComment(String groupId, String artifactId, String version, String value) {
@@ -3405,4 +3405,18 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         });
     }
 
+    @Override
+    public String triggerSnapshotCreation() throws RegistryStorageException {
+        throw new RegistryStorageException("Directly triggering the snapshot creation is not supported for sql storages.");
+    }
+
+    @Override
+    public String createSnapshot(String location) throws RegistryStorageException {
+        log.debug("Creating internal database snapshot to location {}.", location);
+        handles.withHandleNoException(handle -> {
+            handle.createQuery(sqlStatements.createDataSnapshot())
+                    .bind(0, location).mapTo(Integer.class);
+        });
+        return location;
+    }
 }

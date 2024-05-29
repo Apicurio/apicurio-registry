@@ -133,6 +133,12 @@ public class AdminResourceImpl implements AdminResource {
 
     }
 
+    @Override
+    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
+    public void triggerSnapshot() {
+        storage.triggerSnapshotCreation();
+    }
+
     /**
      * @see io.apicurio.registry.rest.v3.AdminResource#listGlobalRules()
      */

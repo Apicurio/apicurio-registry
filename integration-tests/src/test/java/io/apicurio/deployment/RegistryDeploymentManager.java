@@ -4,7 +4,6 @@ import io.fabric8.kubernetes.api.model.Namespace;
 import io.fabric8.kubernetes.api.model.PodList;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientBuilder;
-import io.fabric8.kubernetes.client.LocalPortForward;
 import io.fabric8.kubernetes.client.dsl.LogWatch;
 import io.fabric8.kubernetes.client.dsl.Resource;
 import io.fabric8.openshift.api.model.Route;
@@ -31,7 +30,6 @@ public class RegistryDeploymentManager implements TestExecutionListener {
     private static final Logger LOGGER = LoggerFactory.getLogger(RegistryDeploymentManager.class);
 
     static KubernetesClient kubernetesClient;
-    static LocalPortForward registryPortForward;
 
     static List<LogWatch> logWatch;
 
@@ -130,7 +128,7 @@ public class RegistryDeploymentManager implements TestExecutionListener {
             kubernetesClient.load(IOUtils.toInputStream(registryLoadedResources, StandardCharsets.UTF_8.name()))
                     .create();
         } catch (Exception ex) {
-            LOGGER.warn("Error creating registry resources:", ex);
+            LOGGER.debug("Error creating registry resources:", ex);
         }
 
         //Wait for all the pods of the variant to be ready

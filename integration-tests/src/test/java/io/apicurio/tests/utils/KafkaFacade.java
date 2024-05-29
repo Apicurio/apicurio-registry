@@ -1,11 +1,11 @@
 package io.apicurio.tests.utils;
 
+import io.strimzi.test.container.StrimziKafkaContainer;
 import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.testcontainers.redpanda.RedpandaContainer;
 
 import java.util.Arrays;
 import java.util.Properties;
@@ -19,7 +19,7 @@ public class KafkaFacade implements AutoCloseable {
     private AdminClient client;
 
     private static KafkaFacade instance;
-    private RedpandaContainer kafkaContainer;
+    private StrimziKafkaContainer kafkaContainer;
 
     public static KafkaFacade getInstance() {
         if (instance == null) {
@@ -66,10 +66,10 @@ public class KafkaFacade implements AutoCloseable {
         }
 
         LOGGER.info("Starting kafka container");
-        this.kafkaContainer = new RedpandaContainer("docker.redpanda.com/vectorized/redpanda");
+        this.kafkaContainer = new StrimziKafkaContainer();
         kafkaContainer.addEnv("KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR", "1");
         kafkaContainer.addEnv("KAFKA_TRANSACTION_STATE_LOG_MIN_ISR", "1");
-        //kafkaContainer.addEnv("KAFKA_ADVERTISED_LISTENERS", "PLAINTEXT://broker:9092,PLAINTEXT_HOST://localhost:9092");
+        kafkaContainer.addEnv("KAFKA_ADVERTISED_LISTENERS", "PLAINTEXT://broker:9092,PLAINTEXT_HOST://localhost:9092");
         kafkaContainer.start();
 
     }

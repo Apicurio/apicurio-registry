@@ -95,7 +95,7 @@ public class RegistryStorageConfigCache extends RegistryStorageDecoratorBase imp
 
     private void refresh() {
         Instant now = Instant.now();
-        if (lastRefresh != null) {
+        if (lastRefresh != null && this.delegate != null && this.delegate.isReady()) {
             List<DynamicConfigPropertyDto> staleConfigProperties = this.getStaleConfigProperties(lastRefresh);
             if (!staleConfigProperties.isEmpty()) {
                 invalidateCache();

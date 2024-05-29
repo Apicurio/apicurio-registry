@@ -91,6 +91,11 @@
             <artifactId>apicurio-registry-utils-converter</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>io.apicurio</groupId>
+            <artifactId>apicurio-registry-utils-kafka</artifactId>
+            <scope>test</scope>
+        </dependency>
         <!-- Test Only -->
         <dependency>
             <groupId>io.confluent</groupId>
@@ -106,10 +111,6 @@
             <groupId>io.rest-assured</groupId>
             <artifactId>rest-assured</artifactId>
             <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.testcontainers</groupId>
-            <artifactId>redpanda</artifactId>
         </dependency>
         <dependency>
             <groupId>io.zonky.test</groupId>
@@ -426,6 +427,13 @@
             <id>auth</id>
             <properties>
                 <groups>auth</groups>
+                <skipTests>false</skipTests>
+            </properties>
+        </profile>
+        <profile>
+            <id>kafkasql-snapshotting</id>
+            <properties>
+                <groups>kafkasql-snapshotting</groups>
                 <skipTests>false</skipTests>
             </properties>
         </profile>

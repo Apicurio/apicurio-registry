@@ -21,9 +21,6 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-env:
-  TESTCONTAINERS_RYUK_DISABLED: true
-
 jobs:
   build-verify:
     name: Verify Application Build

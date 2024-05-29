@@ -595,4 +595,8 @@ public interface SqlStatements {
 
     public String selectVersionsWithoutArtifactBranch();
 
+    public String createDataSnapshot();
+
+    public String restoreFromSnapshot();
+
 }

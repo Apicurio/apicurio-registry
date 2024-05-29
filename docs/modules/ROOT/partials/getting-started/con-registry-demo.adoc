@@ -21,4 +21,4 @@ These applications demonstrate use cases such as the following examples:
 
 [role="_additional-resources"]
 .Additional resources
-* For more details, see link:https://github.com/Apicurio/apicurio-registry-examples[]
+* For more details, see link:https://github.com/Apicurio/apicurio-registry/tree/{registry-branch}/examples[]

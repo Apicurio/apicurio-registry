@@ -69,4 +69,4 @@ endif::[]
 [role="_additional-resources"]
 .Additional resources
  * For more details on using Apache Maven, see the https://maven.apache.org/index.html[Apache Maven documentation].
- * For open source examples of using the {registry} Maven plug-in, see the link:https://github.com/Apicurio/apicurio-registry-examples[Apicurio Registry demonstration examples].
+ * For open source examples of using the {registry} Maven plug-in, see the link:https://github.com/Apicurio/apicurio-registry/tree/{registry-branch}/examples[Apicurio Registry demonstration examples].

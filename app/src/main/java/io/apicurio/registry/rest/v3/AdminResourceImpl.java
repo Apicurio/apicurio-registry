@@ -1,31 +1,5 @@
 package io.apicurio.registry.rest.v3;
 
-import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_FOR_BROWSER;
-import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_NAME;
-import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_PRINCIPAL_ID;
-import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_ROLE_MAPPING;
-import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_RULE;
-import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_RULE_TYPE;
-import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_UPDATE_ROLE;
-import static io.apicurio.registry.util.DtoUtil.appAuthPropertyToRegistry;
-import static io.apicurio.registry.util.DtoUtil.registryAuthPropertyToApp;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.math.BigInteger;
-import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-import java.util.zip.ZipInputStream;
-
-import org.eclipse.microprofile.config.Config;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
-import org.slf4j.Logger;
-
 import io.apicurio.common.apps.config.Dynamic;
 import io.apicurio.common.apps.config.DynamicConfigPropertyDef;
 import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
@@ -46,6 +20,7 @@ import io.apicurio.registry.rest.v3.beans.DownloadRef;
 import io.apicurio.registry.rest.v3.beans.RoleMapping;
 import io.apicurio.registry.rest.v3.beans.RoleMappingSearchResults;
 import io.apicurio.registry.rest.v3.beans.Rule;
+import io.apicurio.registry.rest.v3.beans.SnapshotMetaData;
 import io.apicurio.registry.rest.v3.beans.UpdateConfigurationProperty;
 import io.apicurio.registry.rest.v3.beans.UpdateRole;
 import io.apicurio.registry.rest.v3.shared.DataExporter;
@@ -73,6 +48,31 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import org.eclipse.microprofile.config.Config;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.slf4j.Logger;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.math.BigInteger;
+import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import java.util.zip.ZipInputStream;
+
+import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_FOR_BROWSER;
+import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_NAME;
+import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_PRINCIPAL_ID;
+import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_ROLE_MAPPING;
+import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_RULE;
+import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_RULE_TYPE;
+import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_UPDATE_ROLE;
+import static io.apicurio.registry.util.DtoUtil.appAuthPropertyToRegistry;
+import static io.apicurio.registry.util.DtoUtil.registryAuthPropertyToApp;
 
 @ApplicationScoped
 @Interceptors({ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class})
@@ -109,7 +109,7 @@ public class AdminResourceImpl implements AdminResource {
     @Info(category = "download", description = "Download link expiry", availableSince = "2.1.2.Final")
     Supplier<Long> downloadHrefTtl;
 
-    private static final void requireParameter(String parameterName, Object parameterValue) {
+    private static void requireParameter(String parameterName, Object parameterValue) {
         if (parameterValue == null) {
             throw new MissingRequiredParameterException(parameterName);
         }
@@ -135,8 +135,9 @@ public class AdminResourceImpl implements AdminResource {
 
     @Override
     @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
-    public void triggerSnapshot() {
+    public SnapshotMetaData triggerSnapshot() {
         storage.triggerSnapshotCreation();
+        return SnapshotMetaData.builder().build();
     }
 
     /**
@@ -381,7 +382,7 @@ public class AdminResourceImpl implements AdminResource {
         // Return value is the set of all dynamic config properties, with either configured or default values (depending
         // on whether the value is actually configured and stored in the DB or not).
         return dynamicPropertyIndex.getAcceptedPropertyNames().stream()
-                .sorted((pname1, pname2) -> pname1.compareTo(pname2))
+                .sorted(String::compareTo)
                 .map(pname -> propsI.containsKey(pname) ? V3ApiUtil.dtoToConfigurationProperty(dynamicPropertyIndex.getProperty(pname), propsI.get(pname)) : defToConfigurationProperty(dynamicPropertyIndex.getProperty(pname)))
                 .collect(Collectors.toList());
     }
@@ -454,7 +455,7 @@ public class AdminResourceImpl implements AdminResource {
 
     /**
      * Lookup the dynamic configuration property being set.  Ensure that it exists (throws
-     * a {@link NotFoundException} if it does not.
+     * a {@link io.apicurio.registry.storage.error.NotFoundException} if it does not.
      * @param propertyName the name of the dynamic property
      * @return the dynamic config property definition
      */

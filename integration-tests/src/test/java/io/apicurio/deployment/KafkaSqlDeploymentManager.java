@@ -82,7 +82,7 @@ public class KafkaSqlDeploymentManager {
         }
 
         LOGGER.info("Creating kafkasql snapshot..");
-        client.admin().config().triggerSnapshot().get();
+        client.admin().snapshots().post();
 
         LOGGER.info("Adding new artifacts on top of the snapshot..");
         for (int idx = 0; idx < 1000; idx++) {

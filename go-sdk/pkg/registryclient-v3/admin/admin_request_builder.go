@@ -48,3 +48,8 @@ func (m *AdminRequestBuilder) RoleMappings() *RoleMappingsRequestBuilder {
 func (m *AdminRequestBuilder) Rules() *RulesRequestBuilder {
 	return NewRulesRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
 }
+
+// Snapshots triggers a snapshot of the Registry storage. Only supported in KafkaSQL storage
+func (m *AdminRequestBuilder) Snapshots() *SnapshotsRequestBuilder {
+	return NewSnapshotsRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
+}

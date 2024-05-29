@@ -2482,9 +2482,9 @@
                 "description": "Gets a list of all the configured artifact types.\n\nThis operation can fail for the following reasons:\n\n* A server error occurred (HTTP error `500`)\n"
             }
         },
-        "/admin/config/triggerSnapshot": {
+        "/admin/snapshots": {
             "summary": "Triggers a snapshot of the Registry storage. Only supported in KafkaSQL storage",
-            "get": {
+            "post": {
                 "tags": [
                     "KafkaSQL",
                     "Admin",
@@ -2492,8 +2492,14 @@
                 ],
                 "responses": {
                     "200": {
-                        "content": {},
-                        "description": "Empty content. A 200 means that the snapshot has been successfully triggered."
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SnapshotMetaData"
+                                }
+                            }
+                        },
+                        "description": "The snapshot has been successfully triggered."
                     },
                     "500": {
                         "$ref": "#/components/responses/ServerError"
@@ -4442,6 +4448,21 @@
                     "createdOn"
                 ],
                 "type": "string"
+            },
+            "SnapshotMetaData": {
+                "title": "Root Type for SnapshotMetaData",
+                "description": "",
+                "required": [
+                    "snapshotId"
+                ],
+                "type": "object",
+                "properties": {
+                    "snapshotId": {
+                        "description": "",
+                        "type": "string"
+                    }
+                },
+                "example": {}
             }
         },
         "responses": {

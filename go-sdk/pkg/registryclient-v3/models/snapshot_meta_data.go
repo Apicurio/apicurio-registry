@@ -8,6 +8,8 @@ import (
 type SnapshotMetaData struct {
 	// Stores additional data not described in the OpenAPI description found when deserializing. Can be used for serialization as well.
 	additionalData map[string]any
+	// The snapshotId property
+	snapshotId *string
 }
 
 // NewSnapshotMetaData instantiates a new SnapshotMetaData and sets the default values.
@@ -30,11 +32,32 @@ func (m *SnapshotMetaData) GetAdditionalData() map[string]any {
 // GetFieldDeserializers the deserialization information for the current model
 func (m *SnapshotMetaData) GetFieldDeserializers() map[string]func(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
 	res := make(map[string]func(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error)
+	res["snapshotId"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
+		val, err := n.GetStringValue()
+		if err != nil {
+			return err
+		}
+		if val != nil {
+			m.SetSnapshotId(val)
+		}
+		return nil
+	}
 	return res
+}
+
+// GetSnapshotId gets the snapshotId property value. The snapshotId property
+func (m *SnapshotMetaData) GetSnapshotId() *string {
+	return m.snapshotId
 }
 
 // Serialize serializes information the current object
 func (m *SnapshotMetaData) Serialize(writer i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.SerializationWriter) error {
+	{
+		err := writer.WriteStringValue("snapshotId", m.GetSnapshotId())
+		if err != nil {
+			return err
+		}
+	}
 	{
 		err := writer.WriteAdditionalData(m.GetAdditionalData())
 		if err != nil {
@@ -49,8 +72,15 @@ func (m *SnapshotMetaData) SetAdditionalData(value map[string]any) {
 	m.additionalData = value
 }
 
+// SetSnapshotId sets the snapshotId property value. The snapshotId property
+func (m *SnapshotMetaData) SetSnapshotId(value *string) {
+	m.snapshotId = value
+}
+
 // SnapshotMetaDataable
 type SnapshotMetaDataable interface {
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.AdditionalDataHolder
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.Parsable
+	GetSnapshotId() *string
+	SetSnapshotId(value *string)
 }

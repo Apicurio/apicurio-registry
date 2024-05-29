@@ -2485,16 +2485,6 @@
         "/admin/snapshots": {
             "summary": "Triggers a snapshot of the Registry storage. Only supported in KafkaSQL storage",
             "post": {
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/CreateSnapshot"
-                            }
-                        }
-                    },
-                    "required": true
-                },
                 "tags": [
                     "KafkaSQL",
                     "Admin",
@@ -4459,16 +4449,19 @@
                 ],
                 "type": "string"
             },
-            "CreateSnapshot": {
-                "title": "Root Type for CreateSnapshot",
-                "description": "",
-                "type": "object",
-                "example": {}
-            },
             "SnapshotMetaData": {
                 "title": "Root Type for SnapshotMetaData",
                 "description": "",
+                "required": [
+                    "snapshotId"
+                ],
                 "type": "object",
+                "properties": {
+                    "snapshotId": {
+                        "description": "",
+                        "type": "string"
+                    }
+                },
                 "example": {}
             }
         },

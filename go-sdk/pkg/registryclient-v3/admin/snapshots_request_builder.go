@@ -35,8 +35,8 @@ func NewSnapshotsRequestBuilder(rawUrl string, requestAdapter i2ae4187f7daee2633
 }
 
 // Post triggers the creation of a snapshot of the internal database for compatible storages.This operation can fail for the following reasons:* A server error occurred (HTTP error `500`)
-func (m *SnapshotsRequestBuilder) Post(ctx context.Context, body i00eb2e63d156923d00d8e86fe16b5d74daf30e363c9f185a8165cb42aa2f2c71.CreateSnapshotable, requestConfiguration *SnapshotsRequestBuilderPostRequestConfiguration) (i00eb2e63d156923d00d8e86fe16b5d74daf30e363c9f185a8165cb42aa2f2c71.SnapshotMetaDataable, error) {
-	requestInfo, err := m.ToPostRequestInformation(ctx, body, requestConfiguration)
+func (m *SnapshotsRequestBuilder) Post(ctx context.Context, requestConfiguration *SnapshotsRequestBuilderPostRequestConfiguration) (i00eb2e63d156923d00d8e86fe16b5d74daf30e363c9f185a8165cb42aa2f2c71.SnapshotMetaDataable, error) {
+	requestInfo, err := m.ToPostRequestInformation(ctx, requestConfiguration)
 	if err != nil {
 		return nil, err
 	}
@@ -54,17 +54,13 @@ func (m *SnapshotsRequestBuilder) Post(ctx context.Context, body i00eb2e63d15692
 }
 
 // ToPostRequestInformation triggers the creation of a snapshot of the internal database for compatible storages.This operation can fail for the following reasons:* A server error occurred (HTTP error `500`)
-func (m *SnapshotsRequestBuilder) ToPostRequestInformation(ctx context.Context, body i00eb2e63d156923d00d8e86fe16b5d74daf30e363c9f185a8165cb42aa2f2c71.CreateSnapshotable, requestConfiguration *SnapshotsRequestBuilderPostRequestConfiguration) (*i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestInformation, error) {
+func (m *SnapshotsRequestBuilder) ToPostRequestInformation(ctx context.Context, requestConfiguration *SnapshotsRequestBuilderPostRequestConfiguration) (*i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestInformation, error) {
 	requestInfo := i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewRequestInformationWithMethodAndUrlTemplateAndPathParameters(i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.POST, m.BaseRequestBuilder.UrlTemplate, m.BaseRequestBuilder.PathParameters)
 	if requestConfiguration != nil {
 		requestInfo.Headers.AddAll(requestConfiguration.Headers)
 		requestInfo.AddRequestOptions(requestConfiguration.Options)
 	}
 	requestInfo.Headers.TryAdd("Accept", "application/json")
-	err := requestInfo.SetContentFromParsable(ctx, m.BaseRequestBuilder.RequestAdapter, "application/json", body)
-	if err != nil {
-		return nil, err
-	}
 	return requestInfo, nil
 }
 

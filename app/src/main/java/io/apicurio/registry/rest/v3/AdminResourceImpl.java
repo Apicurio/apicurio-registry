@@ -16,7 +16,6 @@ import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessChe
 import io.apicurio.registry.rest.MissingRequiredParameterException;
 import io.apicurio.registry.rest.v3.beans.ArtifactTypeInfo;
 import io.apicurio.registry.rest.v3.beans.ConfigurationProperty;
-import io.apicurio.registry.rest.v3.beans.CreateSnapshot;
 import io.apicurio.registry.rest.v3.beans.DownloadRef;
 import io.apicurio.registry.rest.v3.beans.RoleMapping;
 import io.apicurio.registry.rest.v3.beans.RoleMappingSearchResults;
@@ -136,7 +135,7 @@ public class AdminResourceImpl implements AdminResource {
 
     @Override
     @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
-    public SnapshotMetaData triggerSnapshot(CreateSnapshot data) {
+    public SnapshotMetaData triggerSnapshot() {
         storage.triggerSnapshotCreation();
         return SnapshotMetaData.builder().build();
     }

@@ -835,8 +835,10 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                 // Put the content in the DB and get the unique content ID back.
                 long contentId = getOrCreateContent(handle, artifactType, content);
 
+                boolean isFirstVersion = countArtifactVersionsRaw(handle, groupId, artifactId) == 0;
+
                 // Now create the version and return the new version metadata.
-                ArtifactVersionMetaDataDto versionDto = createArtifactVersionRaw(handle, false, groupId, artifactId, version,
+                ArtifactVersionMetaDataDto versionDto = createArtifactVersionRaw(handle, isFirstVersion, groupId, artifactId, version,
                         metaData == null ? EditableVersionMetaDataDto.builder().build() : metaData, owner, createdOn, contentId, branches);
                 return versionDto;
             });
@@ -910,29 +912,6 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                         where.append(" ?");
                         binders.add((query, idx) -> {
                             query.bind(idx, "%" + filter.getStringValue() + "%");
-                        });
-                        break;
-                    case everything:
-                        where.append("a.name LIKE ? OR "
-                                + "a.groupId LIKE ? OR "
-                                + "a.artifactId LIKE ? OR "
-                                + "a.description LIKE ? OR "
-                                + "EXISTS(SELECT l.* FROM artifact_labels l WHERE l.labelKey = ? AND l.groupId = a.groupId AND l.artifactId = a.artifactId)");
-                        binders.add((query, idx) -> {
-                            query.bind(idx, "%" + filter.getStringValue() + "%");
-                        });
-                        binders.add((query, idx) -> {
-                            query.bind(idx, "%" + filter.getStringValue() + "%");
-                        });
-                        binders.add((query, idx) -> {
-                            query.bind(idx, "%" + filter.getStringValue() + "%");
-                        });
-                        binders.add((query, idx) -> {
-                            query.bind(idx, "%" + filter.getStringValue() + "%");
-                        });
-                        binders.add((query, idx) -> {
-                            //    Note: convert search to lowercase when searching for labels (case-insensitivity support).
-                            query.bind(idx, filter.getStringValue().toLowerCase());
                         });
                         break;
                     case name:
@@ -1024,11 +1003,20 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                 case name:
                     orderByQuery.append(" ORDER BY coalesce(a.name, a.artifactId)");
                     break;
+                case artifactId:
+                    orderByQuery.append(" ORDER BY a.artifactId");
+                    break;
                 case createdOn:
                     orderByQuery.append(" ORDER BY a.createdOn");
                     break;
-                case globalId:
-                    throw new RuntimeException("Sort by globalId no longer supported.");
+                case modifiedOn:
+                    orderByQuery.append(" ORDER BY a.modifiedOn");
+                    break;
+                case artifactType:
+                    orderByQuery.append(" ORDER BY a.type");
+                    break;
+                default:
+                    throw new RuntimeException("Sort by " + orderBy.name() + " not supported.");
             }
             orderByQuery.append(" ").append(orderDirection.name());
 
@@ -1407,10 +1395,9 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         }
     }
 
-
     @Override
     @Transactional
-    public VersionSearchResultsDto searchVersions(String groupId, String artifactId, int offset, int limit) { // TODO: Rename to differentiate from other search* methods.
+    public VersionSearchResultsDto searchVersions(String groupId, String artifactId, OrderBy orderBy, OrderDirection orderDirection, int offset, int limit) throws RegistryStorageException {  // TODO: Rename to differentiate from other search* methods.
         log.debug("Searching for versions of artifact {} {}", groupId, artifactId);
         return handles.withHandleNoException(handle -> {
             VersionSearchResultsDto rval = new VersionSearchResultsDto();
@@ -1426,18 +1413,40 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                 throw new ArtifactNotFoundException(groupId, artifactId);
             }
 
-            Query query = handle.createQuery(sqlStatements.selectAllArtifactVersions())
+            StringBuilder selectAllArtifactVersions = new StringBuilder();
+            selectAllArtifactVersions.append(sqlStatements.selectAllArtifactVersions());
+            selectAllArtifactVersions.append(" ORDER BY ");
+            switch (orderBy) {
+                case name:
+                    selectAllArtifactVersions.append("v.name");
+                    break;
+                case createdOn:
+                    selectAllArtifactVersions.append("v.createdOn");
+                    break;
+                case globalId:
+                    selectAllArtifactVersions.append("v.globalId");
+                    break;
+            }
+            selectAllArtifactVersions.append(orderDirection == OrderDirection.asc ? " ASC " : " DESC ");
+            if ("mssql".equals(sqlStatements.dbType())) {
+                // OFFSET ? ROWS FETCH NEXT ? ROWS ONLY
+                selectAllArtifactVersions.append("OFFSET ");
+                selectAllArtifactVersions.append(offset);
+                selectAllArtifactVersions.append(" ROWS FETCH NEXT ");
+                selectAllArtifactVersions.append(limit);
+                selectAllArtifactVersions.append("ROWS ONLY");
+            } else {
+                // LIMIT ? OFFSET ?
+                selectAllArtifactVersions.append("LIMIT ");
+                selectAllArtifactVersions.append(limit);
+                selectAllArtifactVersions.append(" OFFSET ");
+                selectAllArtifactVersions.append(offset);
+            }
+
+            Query query = handle.createQuery(selectAllArtifactVersions.toString())
                     .bind(0, normalizeGroupId(groupId))
                     .bind(1, artifactId);
-            if ("mssql".equals(sqlStatements.dbType())) {
-                query
-                        .bind(2, offset)
-                        .bind(3, limit);
-            } else {
-                query
-                        .bind(2, limit)
-                        .bind(3, offset);
-            }
+
             List<SearchedVersionDto> versions = query
                     .map(SearchedVersionMapper.instance)
                     .list();
@@ -1488,13 +1497,6 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
         //For deleting artifact versions we need to list always every single version, including disabled ones.
         List<String> versions = getArtifactVersions(groupId, artifactId, DEFAULT);
-
-        // If the version we're deleting is the *only* version, then just delete the
-        // entire artifact.
-        if (versions.size() == 1 && versions.iterator().next().equals(version)) {
-            deleteArtifact(groupId, artifactId);
-            return;
-        }
 
         // If there is only one version, but it's not the version being deleted, then
         // we can't find the version to delete!  This is an optimization.
@@ -1954,7 +1956,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                         // TODO io.apicurio.registry.storage.dto.GroupMetaDataDto should not use raw numeric timestamps
                         .bind(4, group.getCreatedOn() == 0 ? new Date() : new Date(group.getCreatedOn()))
                         .bind(5, group.getModifiedBy())
-                        .bind(6, group.getModifiedOn() == 0 ? null : new Date(group.getModifiedOn()))
+                        .bind(6, group.getModifiedOn() == 0 ? new Date() : new Date(group.getModifiedOn()))
                         .bind(7, SqlUtil.serializeLabels(group.getLabels()))
                         .execute();
                 
@@ -2224,15 +2226,16 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             throw new ArtifactNotFoundException(groupId, artifactId);
         }
 
-        return handles.withHandle(handle -> {
-            return handle.createQuery(sqlStatements.selectAllArtifactVersionsCount())
-                    .bind(0, normalizeGroupId(groupId))
-                    .bind(1, artifactId)
-                    .mapTo(Long.class)
-                    .one();
-        });
+        return handles.withHandle(handle -> countArtifactVersionsRaw(handle, groupId, artifactId));
     }
 
+    protected long countArtifactVersionsRaw(Handle handle, String groupId, String artifactId) throws RegistryStorageException {
+        return handle.createQuery(sqlStatements.selectAllArtifactVersionsCount())
+                .bind(0, normalizeGroupId(groupId))
+                .bind(1, artifactId)
+                .mapTo(Long.class)
+                .one();
+    }
 
     @Override
     @Transactional
@@ -2572,6 +2575,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     public GroupSearchResultsDto searchGroups(Set<SearchFilter> filters, OrderBy orderBy, OrderDirection orderDirection, Integer offset, Integer limit) {
         return handles.withHandleNoException(handle -> {
             List<SqlStatementVariableBinder> binders = new LinkedList<>();
+            String op;
 
             StringBuilder selectTemplate = new StringBuilder();
             StringBuilder where = new StringBuilder();
@@ -2587,25 +2591,40 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                 where.append(" AND (");
                 switch (filter.getType()) {
                     case description:
-                        where.append("g.description LIKE ?");
-                        binders.add((query, idx) -> {
-                            query.bind(idx, "%" + filter.getStringValue() + "%");
-                        });
-                        break;
-                    case everything:
-                        where.append("g.groupId LIKE ? OR g.description LIKE ?");
-                        binders.add((query, idx) -> {
-                            query.bind(idx, "%" + filter.getStringValue() + "%");
-                        });
+                        op = filter.isNot() ? "NOT LIKE" : "LIKE";
+                        where.append("g.description ");
+                        where.append(op);
+                        where.append(" ?");
                         binders.add((query, idx) -> {
                             query.bind(idx, "%" + filter.getStringValue() + "%");
                         });
                         break;
                     case group:
-                        where.append("g.groupId = ?");
+                        op = filter.isNot() ? "NOT LIKE" : "LIKE";
+                        where.append("g.groupId ");
+                        where.append(op);
+                        where.append(" ?");
                         binders.add((query, idx) -> {
-                            query.bind(idx, normalizeGroupId(filter.getStringValue()));
+                            query.bind(idx, "%" + filter.getStringValue() + "%");
                         });
+                        break;
+                    case labels:
+                        op = filter.isNot() ? "!=" : "=";
+                        Pair<String, String> label = filter.getLabelFilterValue();
+                        //    Note: convert search to lowercase when searching for labels (case-insensitivity support).
+                        String labelKey = label.getKey().toLowerCase();
+                        where.append("EXISTS(SELECT l.* FROM group_labels l WHERE l.labelKey " + op + " ?");
+                        binders.add((query, idx) -> {
+                            query.bind(idx, labelKey);
+                        });
+                        if (label.getValue() != null) {
+                            String labelValue = label.getValue().toLowerCase();
+                            where.append(" AND l.labelValue " + op + " ?");
+                            binders.add((query, idx) -> {
+                                query.bind(idx, labelValue);
+                            });
+                        }
+                        where.append(" AND l.groupId = g.groupId)");
                         break;
                     default:
                         break;
@@ -2615,7 +2634,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
             // Add order by to artifact query
             switch (orderBy) {
-                case name:
+                case groupId:
                     orderByQuery.append(" ORDER BY g.groupId");
                     break;
                 case createdOn:

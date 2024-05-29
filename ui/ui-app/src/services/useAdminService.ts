@@ -14,8 +14,8 @@ import {
     httpPostWithReturn, httpPut,
     httpPutWithReturn
 } from "@utils/rest.utils.ts";
-import { Paging } from "@services/useGroupsService.ts";
 import { RoleMappingSearchResults } from "@models/roleMappingSearchResults.model.ts";
+import { Paging } from "@models/paging.model.ts";
 
 
 const getArtifactTypes = async (config: ConfigService, auth: AuthService): Promise<ArtifactTypeInfo[]> => {
@@ -171,7 +171,7 @@ const importFrom = async (config: ConfigService, auth: AuthService, file: string
     const options = await createAuthOptions(auth);
     options.headers = {
         ...options.headers,
-        "Accept": "application/zip"
+        "Content-Type": "application/zip"
     };
     const endpoint: string = createEndpoint(baseHref, "/admin/import");
     return httpPost(endpoint, file, options,undefined, progressFunction);

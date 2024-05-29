@@ -1,12 +1,5 @@
 package io.apicurio.registry.storage.decorator;
 
-import java.time.Instant;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.function.Function;
-
 import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.model.BranchId;
@@ -38,6 +31,13 @@ import io.apicurio.registry.storage.error.RuleNotFoundException;
 import io.apicurio.registry.storage.error.VersionNotFoundException;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.impexp.Entity;
+
+import java.time.Instant;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.function.Function;
 
 /**
  * Forwards all read-only method calls to the delegate.
@@ -160,11 +160,9 @@ public abstract class RegistryStorageDecoratorReadOnlyBase implements RegistrySt
         return delegate.getArtifactVersions(groupId, artifactId);
     }
 
-
     @Override
-    public VersionSearchResultsDto searchVersions(String groupId, String artifactId, int offset, int limit)
-            throws ArtifactNotFoundException, RegistryStorageException {
-        return delegate.searchVersions(groupId, artifactId, offset, limit);
+    public VersionSearchResultsDto searchVersions(String groupId, String artifactId, OrderBy orderBy, OrderDirection orderDirection, int offset, int limit) throws RegistryStorageException {
+        return delegate.searchVersions(groupId, artifactId, orderBy, orderDirection, offset, limit);
     }
 
 

@@ -140,13 +140,6 @@ public class RegistryStoragePerformanceTest {
         Assertions.assertNotNull(results);
         Assertions.assertEquals(NUM_ARTIFACTS, results.getCount());
 
-        long startEverythingSearch = System.currentTimeMillis();
-        filters = Collections.singleton(SearchFilter.ofEverything("test"));
-        results = storage.searchArtifacts(filters, OrderBy.name, OrderDirection.asc, 0, 10);
-        long endEverythingSearch = System.currentTimeMillis();
-        Assertions.assertNotNull(results);
-        Assertions.assertEquals(NUM_ARTIFACTS, results.getCount());
-
         System.out.println("========================================================================");
         System.out.println("= Storage Performance Results                                          =");
         System.out.println("=----------------------------------------------------------------------=");
@@ -160,7 +153,6 @@ public class RegistryStoragePerformanceTest {
         System.out.println("| All Name Search:        " + (endAllNameSearch - startAllNameSearch) + "ms");
         System.out.println("| Label Search:           " + (endLabelSearch - startLabelSearch) + "ms");
         System.out.println("| All Label Search:       " + (endAllLabelSearch - startAllLabelSearch) + "ms");
-        System.out.println("| Everything Search:      " + (endEverythingSearch - startEverythingSearch) + "ms");
         System.out.println("========================================================================");
     }
 

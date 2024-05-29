@@ -22,7 +22,7 @@ export const AppHeader: FunctionComponent<AppHeaderProps> = () => {
     return (
         <Masthead id="icon-router-link">
             <MastheadMain>
-                <MastheadBrand component={props => <Link {...props} to={ appNavigation.createLink("/artifacts") } />}>
+                <MastheadBrand component={props => <Link {...props} to={ appNavigation.createLink("/explore") } />}>
                     <Brand src="/apicurio_registry_logo_reverse.svg" alt="Apicurio Registry" heights={{ default: "36px" }} />
                 </MastheadBrand>
             </MastheadMain>

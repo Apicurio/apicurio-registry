@@ -8,58 +8,27 @@ import {
     httpPut,
     httpPutWithReturn
 } from "@utils/rest.utils.ts";
-import { SearchedArtifact } from "@models/searchedArtifact.model.ts";
 import { ArtifactMetaData } from "@models/artifactMetaData.model.ts";
 import { VersionMetaData } from "@models/versionMetaData.model.ts";
 import { ReferenceType } from "@models/referenceType.ts";
 import { ArtifactReference } from "@models/artifactReference.model.ts";
-import { SearchedVersion } from "@models/searchedVersion.model.ts";
 import { Rule } from "@models/rule.model.ts";
 import { AuthService, useAuth } from "@apicurio/common-ui-components";
-import { contentType } from "@utils/content.utils.ts";
 import { CreateArtifact } from "@models/createArtifact.model.ts";
 import { CreateArtifactResponse } from "@models/createArtifactResponse.model.ts";
 import { CreateVersion } from "@models/createVersion.model.ts";
+import { EditableVersionMetaData } from "@models/editableVersionMetaData.model.ts";
+import { EditableArtifactMetaData } from "@models/editableArtifactMetaData.model.ts";
+import { GroupMetaData } from "@models/groupMetaData.model.ts";
+import { CreateGroup } from "@models/createGroup.model.ts";
+import { EditableGroupMetaData } from "@models/editableGroupMetaData.model.ts";
+import { ArtifactSearchResults } from "@models/artifactSearchResults.model.ts";
+import { Paging } from "@models/paging.model.ts";
+import { SortOrder } from "@models/sortOrder.model.ts";
+import { ArtifactSortBy } from "@models/artifactSortBy.model.ts";
+import { VersionSortBy } from "@models/versionSortBy.model.ts";
+import { VersionSearchResults } from "@models/versionSearchResults.model.ts";
 
-
-export interface CreateArtifactData {
-    groupId: string;
-    id: string|null;
-    type: string;
-    fromURL?: string|null;
-    sha?: string|null;
-    content?: string|null;
-    contentType?: string|null;
-}
-
-export interface CreateVersionData {
-    type: string;
-    content: string;
-}
-
-export interface GetArtifactsCriteria {
-    type: string;
-    value: string;
-    sortAscending: boolean;
-}
-
-export interface Paging {
-    page: number;
-    pageSize: number;
-}
-
-export interface ArtifactsSearchResults {
-    artifacts: SearchedArtifact[];
-    count: number;
-    page: number;
-    pageSize: number;
-}
-
-export interface EditableMetaData {
-    name: string;
-    description: string;
-    labels: { [key: string]: string|undefined };
-}
 
 export interface ClientGeneration {
     clientClassName: string;
@@ -70,74 +39,84 @@ export interface ClientGeneration {
     content: string;
 }
 
-
-const createArtifact = async (config: ConfigService, auth: AuthService, data: CreateArtifactData): Promise<CreateArtifactResponse> => {
+const createGroup = async (config: ConfigService, auth: AuthService, data: CreateGroup): Promise<GroupMetaData> => {
     const baseHref: string = config.artifactsUrl();
-    const endpoint: string = createEndpoint(baseHref, "/groups/:groupId/artifacts", { groupId: data.groupId });
+    const endpoint: string = createEndpoint(baseHref, "/groups", { groupId: data.groupId });
     const options = await createAuthOptions(auth);
 
-    const body: CreateArtifact = {
-        artifactId: data.id ? data.id : undefined,
-        type: data.type,
-        firstVersion: {
-            content: {
-                content: data.content as string,
-                contentType: data.contentType ? data.contentType : "application/json",
-            }
-        }
-    };
-
-    return httpPostWithReturn<CreateArtifact, CreateArtifactResponse>(endpoint, body, options);
+    return httpPostWithReturn<CreateGroup, GroupMetaData>(endpoint, data, options);
 };
 
-const createArtifactVersion = async (config: ConfigService, auth: AuthService, groupId: string|null, artifactId: string, data: CreateVersionData): Promise<VersionMetaData> => {
+const getGroupMetaData = async (config: ConfigService, auth: AuthService, groupId: string): Promise<GroupMetaData> => {
     groupId = normalizeGroupId(groupId);
 
     const baseHref: string = config.artifactsUrl();
+    const endpoint: string = createEndpoint(baseHref, "/groups/:groupId", { groupId });
     const options = await createAuthOptions(auth);
-    const endpoint: string = createEndpoint(baseHref, "/groups/:groupId/artifacts/:artifactId/versions", { groupId, artifactId });
-    const ct: string = contentType(data.type, data.content);
-    const createVersion: CreateVersion = {
-        content: {
-            content: data.content,
-            contentType: ct
-        }
-    };
-
-    return httpPostWithReturn<CreateVersion, VersionMetaData>(endpoint, createVersion, options);
+    return httpGet<GroupMetaData>(endpoint, options);
 };
 
-const getArtifacts = async (config: ConfigService, auth: AuthService, criteria: GetArtifactsCriteria, paging: Paging): Promise<ArtifactsSearchResults> => {
-    console.debug("[GroupsService] Getting artifacts: ", criteria, paging);
+const getGroupArtifacts = async (config: ConfigService, auth: AuthService, groupId: string, sortBy: ArtifactSortBy, sortOrder: SortOrder, paging: Paging): Promise<ArtifactSearchResults> => {
+    groupId = normalizeGroupId(groupId);
     const start: number = (paging.page - 1) * paging.pageSize;
     const end: number = start + paging.pageSize;
     const queryParams: any = {
         limit: end,
         offset: start,
-        order: criteria.sortAscending ? "asc" : "desc",
-        orderby: "name"
+        order: sortOrder,
+        orderby: sortBy
     };
-    if (criteria.value) {
-        if (criteria.type == "everything") {
-            queryParams["name"] = criteria.value;
-            queryParams["description"] = criteria.value;
-            queryParams["labels"] = criteria.value;
-        } else {
-            queryParams[criteria.type] = criteria.value;
-        }
-    }
+
     const baseHref: string = config.artifactsUrl();
-    const endpoint: string = createEndpoint(baseHref, "/search/artifacts", {}, queryParams);
+    const endpoint: string = createEndpoint(baseHref, "/groups/:groupId/artifacts", { groupId }, queryParams);
     const options = await createAuthOptions(auth);
-    return httpGet<ArtifactsSearchResults>(endpoint, options, (data) => {
-        const results: ArtifactsSearchResults = {
-            artifacts: data.artifacts,
-            count: data.count,
-            page: paging.page,
-            pageSize: paging.pageSize
-        };
-        return results;
-    });
+    return httpGet<ArtifactSearchResults>(endpoint, options);
+};
+
+const updateGroupMetaData = async (config: ConfigService, auth: AuthService, groupId: string, metaData: EditableGroupMetaData): Promise<void> => {
+    groupId = normalizeGroupId(groupId);
+
+    const baseHref: string = config.artifactsUrl();
+    const endpoint: string = createEndpoint(baseHref, "/groups/:groupId", { groupId });
+    const options = await createAuthOptions(auth);
+    return httpPut<EditableGroupMetaData>(endpoint, metaData, options);
+};
+
+const updateGroupOwner = async (config: ConfigService, auth: AuthService, groupId: string, newOwner: string): Promise<void> => {
+    return updateGroupMetaData(config, auth, groupId, {
+        owner: newOwner
+    } as any);
+};
+
+const deleteGroup = async (config: ConfigService, auth: AuthService, groupId: string): Promise<void> => {
+    groupId = normalizeGroupId(groupId);
+
+    console.info("[GroupsService] Deleting group:", groupId);
+    const baseHref: string = config.artifactsUrl();
+    const endpoint: string = createEndpoint(baseHref, "/groups/:groupId", { groupId });
+    const options = await createAuthOptions(auth);
+    return httpDelete(endpoint, options);
+};
+
+
+const createArtifact = async (config: ConfigService, auth: AuthService, groupId: string|null, data: CreateArtifact): Promise<CreateArtifactResponse> => {
+    groupId = normalizeGroupId(groupId);
+
+    const baseHref: string = config.artifactsUrl();
+    const endpoint: string = createEndpoint(baseHref, "/groups/:groupId/artifacts", { groupId });
+    const options = await createAuthOptions(auth);
+
+    return httpPostWithReturn<CreateArtifact, CreateArtifactResponse>(endpoint, data, options);
+};
+
+const createArtifactVersion = async (config: ConfigService, auth: AuthService, groupId: string|null, artifactId: string, data: CreateVersion): Promise<VersionMetaData> => {
+    groupId = normalizeGroupId(groupId);
+
+    const baseHref: string = config.artifactsUrl();
+    const options = await createAuthOptions(auth);
+    const endpoint: string = createEndpoint(baseHref, "/groups/:groupId/artifacts/:artifactId/versions", { groupId, artifactId });
+
+    return httpPostWithReturn<CreateVersion, VersionMetaData>(endpoint, data, options);
 };
 
 const getArtifactMetaData = async (config: ConfigService, auth: AuthService, groupId: string|null, artifactId: string): Promise<ArtifactMetaData> => {
@@ -174,16 +153,16 @@ const getLatestArtifact = async (config: ConfigService, auth: AuthService, group
     return getArtifactVersionContent(config, auth, groupId, artifactId, "latest");
 };
 
-const updateArtifactMetaData = async (config: ConfigService, auth: AuthService, groupId: string|null, artifactId: string, metaData: EditableMetaData): Promise<void> => {
+const updateArtifactMetaData = async (config: ConfigService, auth: AuthService, groupId: string|null, artifactId: string, metaData: EditableArtifactMetaData): Promise<void> => {
     groupId = normalizeGroupId(groupId);
 
     const baseHref: string = config.artifactsUrl();
     const endpoint: string = createEndpoint(baseHref, "/groups/:groupId/artifacts/:artifactId", { groupId, artifactId });
     const options = await createAuthOptions(auth);
-    return httpPut<EditableMetaData>(endpoint, metaData, options);
+    return httpPut<EditableArtifactMetaData>(endpoint, metaData, options);
 };
 
-const updateArtifactVersionMetaData = async (config: ConfigService, auth: AuthService, groupId: string|null, artifactId: string, version: string, metaData: EditableMetaData): Promise<void> => {
+const updateArtifactVersionMetaData = async (config: ConfigService, auth: AuthService, groupId: string|null, artifactId: string, version: string, metaData: EditableVersionMetaData): Promise<void> => {
     groupId = normalizeGroupId(groupId);
 
     const baseHref: string = config.artifactsUrl();
@@ -191,7 +170,7 @@ const updateArtifactVersionMetaData = async (config: ConfigService, auth: AuthSe
     const endpoint: string = createEndpoint(baseHref, "/groups/:groupId/artifacts/:artifactId/versions/:versionExpression",
         { groupId, artifactId, versionExpression });
     const options = await createAuthOptions(auth);
-    return httpPut<EditableMetaData>(endpoint, metaData, options);
+    return httpPut<EditableVersionMetaData>(endpoint, metaData, options);
 };
 
 const updateArtifactOwner = async (config: ConfigService, auth: AuthService, groupId: string|null, artifactId: string, newOwner: string): Promise<void> => {
@@ -219,19 +198,22 @@ const getArtifactVersionContent = async (config: ConfigService, auth: AuthServic
     return httpGet<string>(endpoint, options);
 };
 
-const getArtifactVersions = async (config: ConfigService, auth: AuthService, groupId: string|null, artifactId: string): Promise<SearchedVersion[]> => {
+const getArtifactVersions = async (config: ConfigService, auth: AuthService, groupId: string|null, artifactId: string, sortBy: VersionSortBy, sortOrder: SortOrder, paging: Paging): Promise<VersionSearchResults> => {
     groupId = normalizeGroupId(groupId);
+    const start: number = (paging.page - 1) * paging.pageSize;
+    const end: number = start + paging.pageSize;
+    const queryParams: any = {
+        limit: end,
+        offset: start,
+        order: sortOrder,
+        orderby: sortBy
+    };
 
     console.info("[GroupsService] Getting the list of versions for artifact: ", groupId, artifactId);
     const baseHref: string = config.artifactsUrl();
-    const endpoint: string = createEndpoint(baseHref, "/groups/:groupId/artifacts/:artifactId/versions", { groupId, artifactId }, {
-        limit: 500,
-        offset: 0
-    });
+    const endpoint: string = createEndpoint(baseHref, "/groups/:groupId/artifacts/:artifactId/versions", { groupId, artifactId }, queryParams);
     const options = await createAuthOptions(auth);
-    return httpGet<SearchedVersion[]>(endpoint, options, (data) => {
-        return data.versions;
-    });
+    return httpGet<VersionSearchResults>(endpoint, options);
 };
 
 const getArtifactRules = async (config: ConfigService, auth: AuthService, groupId: string|null, artifactId: string): Promise<Rule[]> => {
@@ -313,30 +295,54 @@ const deleteArtifact = async (config: ConfigService, auth: AuthService, groupId:
     return httpDelete(endpoint, options);
 };
 
+
+const deleteArtifactVersion = async (config: ConfigService, auth: AuthService, groupId: string|null, artifactId: string, version: string): Promise<void> => {
+    groupId = normalizeGroupId(groupId);
+
+    console.info("[GroupsService] Deleting version: ", groupId, artifactId, version);
+    const baseHref: string = config.artifactsUrl();
+    const endpoint: string = createEndpoint(baseHref, "/groups/:groupId/artifacts/:artifactId/versions/:version", {
+        groupId,
+        artifactId,
+        version
+    });
+    const options = await createAuthOptions(auth);
+    return httpDelete(endpoint, options);
+};
+
 const normalizeGroupId = (groupId: string|null): string => {
     return groupId || "default";
 };
 
 
 export interface GroupsService {
-    createArtifact(data: CreateArtifactData): Promise<CreateArtifactResponse>;
-    createArtifactVersion(groupId: string|null, artifactId: string, data: CreateVersionData): Promise<VersionMetaData>;
-    getArtifacts(criteria: GetArtifactsCriteria, paging: Paging): Promise<ArtifactsSearchResults>;
+    createGroup(data: CreateGroup): Promise<GroupMetaData>;
+    getGroupMetaData(groupId: string): Promise<GroupMetaData>;
+    getGroupArtifacts(groupId: string, sortBy: ArtifactSortBy, sortOrder: SortOrder, paging: Paging): Promise<ArtifactSearchResults>;
+    updateGroupMetaData(groupId: string, metaData: EditableGroupMetaData): Promise<void>;
+    updateGroupOwner(groupId: string, newOwner: string): Promise<void>;
+    deleteGroup(groupId: string): Promise<void>;
+
+    createArtifact(groupId: string|null, data: CreateArtifact): Promise<CreateArtifactResponse>;
     getArtifactMetaData(groupId: string|null, artifactId: string): Promise<ArtifactMetaData>;
-    getArtifactVersionMetaData(groupId: string|null, artifactId: string, version: string): Promise<VersionMetaData>;
     getArtifactReferences(globalId: number, refType: ReferenceType): Promise<ArtifactReference[]>;
-    getLatestArtifact(groupId: string|null, artifactId: string): Promise<string>;
-    updateArtifactMetaData(groupId: string|null, artifactId: string, metaData: EditableMetaData): Promise<void>;
-    updateArtifactVersionMetaData(groupId: string|null, artifactId: string, version: string, metaData: EditableMetaData): Promise<void>;
-    updateArtifactOwner(groupId: string|null, artifactId: string, newOwner: string): Promise<void>;
-    getArtifactVersionContent(groupId: string|null, artifactId: string, version: string): Promise<string>;
-    getArtifactVersions(groupId: string|null, artifactId: string): Promise<SearchedVersion[]>;
     getArtifactRules(groupId: string|null, artifactId: string): Promise<Rule[]>;
-    getArtifactRule(groupId: string|null, artifactId: string, type: string): Promise<Rule>;
+    getArtifactVersions(groupId: string|null, artifactId: string, sortBy: VersionSortBy, sortOrder: SortOrder, paging: Paging): Promise<VersionSearchResults>;
+    getLatestArtifact(groupId: string|null, artifactId: string): Promise<string>;
+    updateArtifactMetaData(groupId: string|null, artifactId: string, metaData: EditableArtifactMetaData): Promise<void>;
+    updateArtifactOwner(groupId: string|null, artifactId: string, newOwner: string): Promise<void>;
+    deleteArtifact(groupId: string|null, artifactId: string): Promise<void>;
+
     createArtifactRule(groupId: string|null, artifactId: string, type: string, configValue: string): Promise<Rule>;
+    getArtifactRule(groupId: string|null, artifactId: string, type: string): Promise<Rule>;
     updateArtifactRule(groupId: string|null, artifactId: string, type: string, configValue: string): Promise<Rule>;
     deleteArtifactRule(groupId: string|null, artifactId: string, type: string): Promise<void>;
-    deleteArtifact(groupId: string|null, artifactId: string): Promise<void>;
+
+    createArtifactVersion(groupId: string|null, artifactId: string, data: CreateVersion): Promise<VersionMetaData>;
+    getArtifactVersionMetaData(groupId: string|null, artifactId: string, version: string): Promise<VersionMetaData>;
+    getArtifactVersionContent(groupId: string|null, artifactId: string, version: string): Promise<string>;
+    updateArtifactVersionMetaData(groupId: string|null, artifactId: string, version: string, metaData: EditableVersionMetaData): Promise<void>;
+    deleteArtifactVersion(groupId: string|null, artifactId: string, version: string): Promise<void>;
 }
 
 
@@ -345,50 +351,58 @@ export const useGroupsService: () => GroupsService = (): GroupsService => {
     const auth = useAuth();
 
     return {
-        createArtifact(data: CreateArtifactData): Promise<CreateArtifactResponse> {
-            return createArtifact(config, auth, data);
+        createGroup(data: CreateGroup): Promise<GroupMetaData> {
+            return createGroup(config, auth, data);
         },
-        createArtifactVersion(groupId: string|null, artifactId: string, data: CreateVersionData): Promise<VersionMetaData> {
-            return createArtifactVersion(config, auth, groupId, artifactId, data);
+        getGroupMetaData(groupId: string): Promise<GroupMetaData> {
+            return getGroupMetaData(config, auth, groupId);
         },
-        getArtifacts(criteria: GetArtifactsCriteria, paging: Paging): Promise<ArtifactsSearchResults> {
-            return getArtifacts(config, auth, criteria, paging);
+        getGroupArtifacts(groupId: string, sortBy: ArtifactSortBy, sortOrder: SortOrder, paging: Paging): Promise<ArtifactSearchResults> {
+            return getGroupArtifacts(config, auth, groupId, sortBy, sortOrder, paging);
+        },
+        updateGroupMetaData(groupId: string, metaData: EditableGroupMetaData): Promise<void> {
+            return updateGroupMetaData(config, auth, groupId, metaData);
+        },
+        updateGroupOwner(groupId: string, newOwner: string): Promise<void> {
+            return updateGroupOwner(config, auth, groupId, newOwner);
+        },
+        deleteGroup(groupId: string): Promise<void> {
+            return deleteGroup(config, auth, groupId);
+        },
+
+        createArtifact(groupId: string|null, data: CreateArtifact): Promise<CreateArtifactResponse> {
+            return createArtifact(config, auth, groupId, data);
         },
         getArtifactMetaData(groupId: string|null, artifactId: string): Promise<ArtifactMetaData> {
             return getArtifactMetaData(config, auth, groupId, artifactId);
         },
-        getArtifactVersionMetaData(groupId: string|null, artifactId: string, version: string): Promise<VersionMetaData> {
-            return getArtifactVersionMetaData(config, auth, groupId, artifactId, version);
-        },
         getArtifactReferences(globalId: number, refType: ReferenceType): Promise<ArtifactReference[]> {
             return getArtifactReferences(config, auth, globalId, refType);
-        },
-        getLatestArtifact(groupId: string|null, artifactId: string): Promise<string> {
-            return getLatestArtifact(config, auth, groupId, artifactId);
-        },
-        updateArtifactMetaData(groupId: string|null, artifactId: string, metaData: EditableMetaData): Promise<void> {
-            return updateArtifactMetaData(config, auth, groupId, artifactId, metaData);
-        },
-        updateArtifactVersionMetaData(groupId: string|null, artifactId: string, version: string, metaData: EditableMetaData): Promise<void> {
-            return updateArtifactVersionMetaData(config, auth, groupId, artifactId, version, metaData);
-        },
-        updateArtifactOwner(groupId: string|null, artifactId: string, newOwner: string): Promise<void> {
-            return updateArtifactOwner(config, auth, groupId, artifactId, newOwner);
-        },
-        getArtifactVersionContent(groupId: string|null, artifactId: string, version: string): Promise<string> {
-            return getArtifactVersionContent(config, auth, groupId, artifactId, version);
-        },
-        getArtifactVersions(groupId: string|null, artifactId: string): Promise<SearchedVersion[]> {
-            return getArtifactVersions(config, auth, groupId, artifactId);
         },
         getArtifactRules(groupId: string|null, artifactId: string): Promise<Rule[]> {
             return getArtifactRules(config, auth, groupId, artifactId);
         },
-        getArtifactRule(groupId: string|null, artifactId: string, type: string): Promise<Rule> {
-            return getArtifactRule(config, auth, groupId, artifactId, type);
+        getArtifactVersions(groupId: string|null, artifactId: string, sortBy: VersionSortBy, sortOrder: SortOrder, paging: Paging): Promise<VersionSearchResults> {
+            return getArtifactVersions(config, auth, groupId, artifactId, sortBy, sortOrder, paging);
         },
+        getLatestArtifact(groupId: string|null, artifactId: string): Promise<string> {
+            return getLatestArtifact(config, auth, groupId, artifactId);
+        },
+        updateArtifactMetaData(groupId: string|null, artifactId: string, metaData: EditableArtifactMetaData): Promise<void> {
+            return updateArtifactMetaData(config, auth, groupId, artifactId, metaData);
+        },
+        updateArtifactOwner(groupId: string|null, artifactId: string, newOwner: string): Promise<void> {
+            return updateArtifactOwner(config, auth, groupId, artifactId, newOwner);
+        },
+        deleteArtifact(groupId: string|null, artifactId: string): Promise<void> {
+            return deleteArtifact(config, auth, groupId, artifactId);
+        },
+
         createArtifactRule(groupId: string|null, artifactId: string, type: string, configValue: string): Promise<Rule> {
             return createArtifactRule(config, auth, groupId, artifactId, type, configValue);
+        },
+        getArtifactRule(groupId: string|null, artifactId: string, type: string): Promise<Rule> {
+            return getArtifactRule(config, auth, groupId, artifactId, type);
         },
         updateArtifactRule(groupId: string|null, artifactId: string, type: string, configValue: string): Promise<Rule> {
             return updateArtifactRule(config, auth, groupId, artifactId, type, configValue);
@@ -396,8 +410,21 @@ export const useGroupsService: () => GroupsService = (): GroupsService => {
         deleteArtifactRule(groupId: string|null, artifactId: string, type: string): Promise<void> {
             return deleteArtifactRule(config, auth, groupId, artifactId, type);
         },
-        deleteArtifact(groupId: string|null, artifactId: string): Promise<void> {
-            return deleteArtifact(config, auth, groupId, artifactId);
-        }
+
+        createArtifactVersion(groupId: string|null, artifactId: string, data: CreateVersion): Promise<VersionMetaData> {
+            return createArtifactVersion(config, auth, groupId, artifactId, data);
+        },
+        getArtifactVersionMetaData(groupId: string|null, artifactId: string, version: string): Promise<VersionMetaData> {
+            return getArtifactVersionMetaData(config, auth, groupId, artifactId, version);
+        },
+        getArtifactVersionContent(groupId: string|null, artifactId: string, version: string): Promise<string> {
+            return getArtifactVersionContent(config, auth, groupId, artifactId, version);
+        },
+        updateArtifactVersionMetaData(groupId: string|null, artifactId: string, version: string, metaData: EditableVersionMetaData): Promise<void> {
+            return updateArtifactVersionMetaData(config, auth, groupId, artifactId, version, metaData);
+        },
+        deleteArtifactVersion(groupId: string|null, artifactId: string, version: string): Promise<void> {
+            return deleteArtifactVersion(config, auth, groupId, artifactId, version);
+        },
     };
 };

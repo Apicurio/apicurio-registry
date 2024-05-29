@@ -5,7 +5,7 @@ export interface ArtifactMetaData {
     artifactId: string;
     name: string|null;
     description: string|null;
-    labels: { [key: string]: string };
+    labels: { [key: string]: string | undefined };
     type: string;
     version: string;
     owner: string;

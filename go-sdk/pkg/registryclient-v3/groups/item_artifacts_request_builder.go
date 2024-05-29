@@ -31,10 +31,10 @@ type ItemArtifactsRequestBuilderGetQueryParameters struct {
 	// Sort order, ascending (`asc`) or descending (`desc`).
 	OrderAsSortOrder *i00eb2e63d156923d00d8e86fe16b5d74daf30e363c9f185a8165cb42aa2f2c71.SortOrder `uriparametername:"order"`
 	// The field to sort by.  Can be one of:* `name`* `createdOn`
-	// Deprecated: This property is deprecated, use orderbyAsSortBy instead
+	// Deprecated: This property is deprecated, use orderbyAsArtifactSortBy instead
 	Orderby *string `uriparametername:"orderby"`
 	// The field to sort by.  Can be one of:* `name`* `createdOn`
-	OrderbyAsSortBy *i00eb2e63d156923d00d8e86fe16b5d74daf30e363c9f185a8165cb42aa2f2c71.SortBy `uriparametername:"orderby"`
+	OrderbyAsArtifactSortBy *i00eb2e63d156923d00d8e86fe16b5d74daf30e363c9f185a8165cb42aa2f2c71.ArtifactSortBy `uriparametername:"orderby"`
 }
 
 // ItemArtifactsRequestBuilderGetRequestConfiguration configuration for the request such as headers, query parameters, and middleware options.

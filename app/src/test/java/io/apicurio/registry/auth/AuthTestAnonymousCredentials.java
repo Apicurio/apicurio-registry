@@ -53,7 +53,7 @@ public class AuthTestAnonymousCredentials extends AbstractResourceTestBase {
         adapter.setBaseUrl(registryV3ApiUrl);
         RegistryClient client = new RegistryClient(adapter);
         // Read-only operation should work without any credentials.
-        var results = client.search().artifacts().get(config -> config.queryParameters.group = groupId);
+        var results = client.search().artifacts().get(config -> config.queryParameters.groupId = groupId);
         Assertions.assertTrue(results.getCount() >= 0);
 
         // Write operation should fail without any credentials

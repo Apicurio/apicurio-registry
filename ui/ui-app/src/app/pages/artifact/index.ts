@@ -1,1 +1,2 @@
-export * from "./ArtifactRedirectPage.tsx";
+export * from "./components";
+export * from "./ArtifactPage.tsx";

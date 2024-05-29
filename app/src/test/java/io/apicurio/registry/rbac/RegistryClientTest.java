@@ -8,6 +8,7 @@ import io.apicurio.registry.model.GroupId;
 import io.apicurio.registry.rest.client.models.ArtifactMetaData;
 import io.apicurio.registry.rest.client.models.ArtifactReference;
 import io.apicurio.registry.rest.client.models.ArtifactSearchResults;
+import io.apicurio.registry.rest.client.models.ArtifactSortBy;
 import io.apicurio.registry.rest.client.models.ConfigurationProperty;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
 import io.apicurio.registry.rest.client.models.CreateArtifactResponse;
@@ -17,6 +18,7 @@ import io.apicurio.registry.rest.client.models.EditableArtifactMetaData;
 import io.apicurio.registry.rest.client.models.EditableVersionMetaData;
 import io.apicurio.registry.rest.client.models.GroupMetaData;
 import io.apicurio.registry.rest.client.models.GroupSearchResults;
+import io.apicurio.registry.rest.client.models.GroupSortBy;
 import io.apicurio.registry.rest.client.models.Labels;
 import io.apicurio.registry.rest.client.models.RoleMapping;
 import io.apicurio.registry.rest.client.models.RoleType;
@@ -24,7 +26,6 @@ import io.apicurio.registry.rest.client.models.Rule;
 import io.apicurio.registry.rest.client.models.RuleType;
 import io.apicurio.registry.rest.client.models.SearchedArtifact;
 import io.apicurio.registry.rest.client.models.SearchedGroup;
-import io.apicurio.registry.rest.client.models.SortBy;
 import io.apicurio.registry.rest.client.models.SortOrder;
 import io.apicurio.registry.rest.client.models.UpdateConfigurationProperty;
 import io.apicurio.registry.rest.client.models.UpdateRole;
@@ -139,7 +140,6 @@ public class RegistryClientTest extends AbstractResourceTestBase {
             createArtifact.setName(name);
             createArtifact.setDescription(description);
             createArtifact.getFirstVersion().setVersion(version);
-            return null;
         }));
 
         //Assertions
@@ -157,7 +157,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         //Preparation
         final String groupId = UUID.randomUUID().toString();
         CreateGroup groupMetaData = new CreateGroup();
-        groupMetaData.setId(groupId);
+        groupMetaData.setGroupId(groupId);
         groupMetaData.setDescription("Groups test crud");
         Labels labels = new Labels();
         labels.setAdditionalData(Map.of("p1", "v1", "p2", "v2"));
@@ -166,7 +166,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         clientV3.groups().post(groupMetaData);
 
         final GroupMetaData artifactGroup = clientV3.groups().byGroupId(groupId).get();
-        assertEquals(groupMetaData.getId(), artifactGroup.getGroupId());
+        assertEquals(groupMetaData.getGroupId(), artifactGroup.getGroupId());
         assertEquals(groupMetaData.getDescription(), artifactGroup.getDescription());
         assertEquals(groupMetaData.getLabels().getAdditionalData(), artifactGroup.getLabels().getAdditionalData());
 
@@ -175,11 +175,11 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         String group2Id = UUID.randomUUID().toString();
         String group3Id = UUID.randomUUID().toString();
 
-        groupMetaData.setId(group1Id);
+        groupMetaData.setGroupId(group1Id);
         clientV3.groups().post(groupMetaData);
-        groupMetaData.setId(group2Id);
+        groupMetaData.setGroupId(group2Id);
         clientV3.groups().post(groupMetaData);
-        groupMetaData.setId(group3Id);
+        groupMetaData.setGroupId(group3Id);
         clientV3.groups().post(groupMetaData);
 
 
@@ -187,7 +187,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
             config.queryParameters.offset = 0;
             config.queryParameters.limit = 100;
             config.queryParameters.order = SortOrder.Asc;
-            config.queryParameters.orderby = SortBy.Name;
+            config.queryParameters.orderby = GroupSortBy.GroupId;
         });
         assertTrue(groupSearchResults.getCount() >= 4);
 
@@ -358,10 +358,10 @@ public class RegistryClientTest extends AbstractResourceTestBase {
 
         //Execution
         final ArtifactSearchResults searchResults = clientV3.search().artifacts().get(config -> {
-            config.queryParameters.group = groupId;
+            config.queryParameters.groupId = groupId;
             config.queryParameters.offset = 0;
             config.queryParameters.limit = 2;
-            config.queryParameters.orderby = SortBy.Name;
+            config.queryParameters.orderby = ArtifactSortBy.Name;
             config.queryParameters.order = SortOrder.Asc;
         });
 
@@ -377,10 +377,10 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         {
             //Execution
             final ArtifactSearchResults deletedResults = clientV3.search().artifacts().get(config -> {
-                config.queryParameters.group = groupId;
+                config.queryParameters.groupId = groupId;
                 config.queryParameters.offset = 0;
                 config.queryParameters.limit = 2;
-                config.queryParameters.orderby = SortBy.Name;
+                config.queryParameters.orderby = ArtifactSortBy.Name;
                 config.queryParameters.order = SortOrder.Asc;
             });
             //Assertion
@@ -409,7 +409,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
             config.queryParameters.name = name;
             config.queryParameters.offset = 0;
             config.queryParameters.limit = 10;
-            config.queryParameters.orderby = SortBy.Name;
+            config.queryParameters.orderby = ArtifactSortBy.Name;
             config.queryParameters.order = SortOrder.Asc;
         });
 
@@ -457,7 +457,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
             config.queryParameters.name = name;
             config.queryParameters.offset = 0;
             config.queryParameters.limit = 10;
-            config.queryParameters.orderby = SortBy.CreatedOn;
+            config.queryParameters.orderby = ArtifactSortBy.CreatedOn;
             config.queryParameters.order = SortOrder.Asc;
         });
 
@@ -504,7 +504,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
             config.queryParameters.globalId = amd.getGlobalId();
             config.queryParameters.offset = 0;
             config.queryParameters.limit = 10;
-            config.queryParameters.orderby = SortBy.Name;
+            config.queryParameters.orderby = ArtifactSortBy.Name;
             config.queryParameters.order = SortOrder.Asc;
         });
 
@@ -518,7 +518,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
             config.queryParameters.contentId = amd.getContentId();
             config.queryParameters.offset = 0;
             config.queryParameters.limit = 10;
-            config.queryParameters.orderby = SortBy.Name;
+            config.queryParameters.orderby = ArtifactSortBy.Name;
             config.queryParameters.order = SortOrder.Asc;
         });
 
@@ -587,11 +587,11 @@ public class RegistryClientTest extends AbstractResourceTestBase {
             config.queryParameters.name = root;
             config.queryParameters.offset = 0;
             config.queryParameters.limit = 10;
-            config.queryParameters.orderby = SortBy.Name;
+            config.queryParameters.orderby = ArtifactSortBy.Name;
             config.queryParameters.order = SortOrder.Asc;
         });
 
-//                clientV2.searchArtifacts(null, root, null, null, null, SortBy.name, SortOrder.asc, 0, 10);
+//                clientV2.searchArtifacts(null, root, null, null, null, ArtifactSortBy.name, SortOrder.asc, 0, 10);
 
         //Assertions
         Assertions.assertNotNull(results);
@@ -614,7 +614,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
             config.queryParameters.name = root;
             config.queryParameters.offset = 0;
             config.queryParameters.limit = 10;
-            config.queryParameters.orderby = SortBy.Name;
+            config.queryParameters.orderby = ArtifactSortBy.Name;
             config.queryParameters.order = SortOrder.Asc;
         });
 
@@ -769,8 +769,8 @@ public class RegistryClientTest extends AbstractResourceTestBase {
                 config.queryParameters.offset = 0;
                 config.queryParameters.limit = 10;
                 config.queryParameters.name = "Testorder";
-                config.queryParameters.group = groupId;
-                config.queryParameters.orderby = SortBy.Name;
+                config.queryParameters.groupId = groupId;
+                config.queryParameters.orderby = ArtifactSortBy.Name;
                 config.queryParameters.order = SortOrder.Asc;
             });
 
@@ -787,8 +787,8 @@ public class RegistryClientTest extends AbstractResourceTestBase {
                 config.queryParameters.offset = 0;
                 config.queryParameters.limit = 10;
                 config.queryParameters.name = "Testorder";
-                config.queryParameters.group = groupId;
-                config.queryParameters.orderby = SortBy.Name;
+                config.queryParameters.groupId = groupId;
+                config.queryParameters.orderby = ArtifactSortBy.Name;
                 config.queryParameters.order = SortOrder.Desc;
             });
 

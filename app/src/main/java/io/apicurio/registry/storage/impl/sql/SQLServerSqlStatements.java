@@ -116,17 +116,6 @@ public class SQLServerSqlStatements extends CommonSqlStatements {
     }
 
     /**
-     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectAllArtifactVersions()
-     */
-    @Override
-    public String selectAllArtifactVersions() {
-        return "SELECT v.*, a.type FROM versions v "
-                + "JOIN artifacts a ON a.groupId = v.groupId AND a.artifactId = v.artifactId "
-                + "WHERE a.groupId = ? AND a.artifactId = ? "
-                + "ORDER BY v.globalId ASC OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
-    }
-
-    /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectGroups()
      */
     @Override

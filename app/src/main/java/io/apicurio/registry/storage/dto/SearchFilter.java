@@ -66,10 +66,6 @@ public class SearchFilter {
         return new SearchFilter(SearchFilterType.state, state.name());
     }
 
-    public static SearchFilter ofEverything(String value) {
-        return new SearchFilter(SearchFilterType.everything, value);
-    }
-
     @SuppressWarnings("unchecked")
     public Pair<String, String> getLabelFilterValue() {
         if (value == null) {

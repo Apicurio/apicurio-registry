@@ -22,6 +22,7 @@ import io.apicurio.registry.rest.v3.beans.ArtifactBranch;
 import io.apicurio.registry.rest.v3.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v3.beans.ArtifactReference;
 import io.apicurio.registry.rest.v3.beans.ArtifactSearchResults;
+import io.apicurio.registry.rest.v3.beans.ArtifactSortBy;
 import io.apicurio.registry.rest.v3.beans.Comment;
 import io.apicurio.registry.rest.v3.beans.CreateArtifact;
 import io.apicurio.registry.rest.v3.beans.CreateArtifactResponse;
@@ -32,16 +33,16 @@ import io.apicurio.registry.rest.v3.beans.EditableGroupMetaData;
 import io.apicurio.registry.rest.v3.beans.EditableVersionMetaData;
 import io.apicurio.registry.rest.v3.beans.GroupMetaData;
 import io.apicurio.registry.rest.v3.beans.GroupSearchResults;
+import io.apicurio.registry.rest.v3.beans.GroupSortBy;
 import io.apicurio.registry.rest.v3.beans.HandleReferencesType;
 import io.apicurio.registry.rest.v3.beans.IfArtifactExists;
-import io.apicurio.registry.rest.v3.beans.IfVersionExists;
 import io.apicurio.registry.rest.v3.beans.NewComment;
 import io.apicurio.registry.rest.v3.beans.Rule;
-import io.apicurio.registry.rest.v3.beans.SortBy;
 import io.apicurio.registry.rest.v3.beans.SortOrder;
 import io.apicurio.registry.rest.v3.beans.VersionContent;
 import io.apicurio.registry.rest.v3.beans.VersionMetaData;
 import io.apicurio.registry.rest.v3.beans.VersionSearchResults;
+import io.apicurio.registry.rest.v3.beans.VersionSortBy;
 import io.apicurio.registry.rest.v3.shared.CommonResourceOperations;
 import io.apicurio.registry.rules.RuleApplicationType;
 import io.apicurio.registry.rules.RulesService;
@@ -248,9 +249,9 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
     @Override
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
-    public GroupSearchResults listGroups(BigInteger limit, BigInteger offset, SortOrder order, SortBy orderby) {
+    public GroupSearchResults listGroups(BigInteger limit, BigInteger offset, SortOrder order, GroupSortBy orderby) {
         if (orderby == null) {
-            orderby = SortBy.name;
+            orderby = GroupSortBy.groupId;
         }
         if (offset == null) {
             offset = BigInteger.valueOf(0);
@@ -272,7 +273,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Write)
     public GroupMetaData createGroup(CreateGroup data) {
         GroupMetaDataDto.GroupMetaDataDtoBuilder group = GroupMetaDataDto.builder()
-                .groupId(data.getId())
+                .groupId(data.getGroupId())
                 .description(data.getDescription())
                 .labels(data.getLabels());
 
@@ -281,7 +282,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
         storage.createGroup(group.build());
 
-        return V3ApiUtil.groupDtoToGroup(storage.getGroupMetaData(data.getId()));
+        return V3ApiUtil.groupDtoToGroup(storage.getGroupMetaData(data.getGroupId()));
     }
 
     @Override
@@ -614,11 +615,11 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Override
     @Authorized(style = AuthorizedStyle.GroupOnly, level = AuthorizedLevel.Read)
     public ArtifactSearchResults listArtifactsInGroup(String groupId, BigInteger limit, BigInteger offset,
-                                                      SortOrder order, SortBy orderby) {
+                                                      SortOrder order, ArtifactSortBy orderby) {
         requireParameter("groupId", groupId);
 
         if (orderby == null) {
-            orderby = SortBy.name;
+            orderby = ArtifactSortBy.name;
         }
         if (offset == null) {
             offset = BigInteger.valueOf(0);
@@ -770,13 +771,15 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         }
     }
 
-
     @Override
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
-    public VersionSearchResults listArtifactVersions(String groupId, String artifactId, BigInteger offset, BigInteger limit) {
+    public VersionSearchResults listArtifactVersions(String groupId, String artifactId, BigInteger offset,
+            BigInteger limit, SortOrder order, VersionSortBy orderby) {
         requireParameter("groupId", groupId);
         requireParameter("artifactId", artifactId);
-
+        if (orderby == null) {
+            orderby = VersionSortBy.createdOn;
+        }
         if (offset == null) {
             offset = BigInteger.valueOf(0);
         }
@@ -784,14 +787,18 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
             limit = BigInteger.valueOf(20);
         }
 
-        VersionSearchResultsDto resultsDto = storage.searchVersions(new GroupId(groupId).getRawGroupIdWithNull(), artifactId, offset.intValue(), limit.intValue());
+        final OrderBy oBy = OrderBy.valueOf(orderby.name());
+        final OrderDirection oDir = order == null || order == SortOrder.desc ? OrderDirection.asc : OrderDirection.desc;
+
+        VersionSearchResultsDto resultsDto = storage.searchVersions(new GroupId(groupId).getRawGroupIdWithNull(),
+                artifactId, oBy, oDir, offset.intValue(), limit.intValue());
         return V3ApiUtil.dtoToSearchResults(resultsDto);
     }
 
     @Override
-    @Audited(extractParameters = {"0", KEY_GROUP_ID, "1", KEY_ARTIFACT_ID, "2", KEY_IF_EXISTS})
+    @Audited(extractParameters = {"0", KEY_GROUP_ID, "1", KEY_ARTIFACT_ID})
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
-    public VersionMetaData createArtifactVersion(String groupId, String artifactId, IfVersionExists ifExists, CreateVersion data) {
+    public VersionMetaData createArtifactVersion(String groupId, String artifactId, CreateVersion data) {
         requireParameter("content", data.getContent());
         requireParameter("groupId", groupId);
         requireParameter("artifactId", artifactId);

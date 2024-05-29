@@ -135,10 +135,10 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
     }
 
     protected CreateArtifactResponse createArtifact(String groupId, String artifactId, String artifactType, String content,
-                                                    String contentType, IfArtifactExists ifExists, Function<CreateArtifact, Void> customizer) throws Exception {
+                                                    String contentType, IfArtifactExists ifExists, Consumer<CreateArtifact> customizer) throws Exception {
         CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, artifactType, content, contentType);
         if (customizer != null) {
-            customizer.apply(createArtifact);
+            customizer.accept(createArtifact);
         }
         var response = registryClient.groups().byGroupId(groupId).artifacts().post(createArtifact, config -> {
             config.queryParameters.canonical = false;
@@ -155,10 +155,10 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
         return response;
     }
 
-    protected VersionMetaData createArtifactVersion(String groupId, String artifactId, String content, String contentType, Function<CreateVersion, Void> customizer) throws Exception {
+    protected VersionMetaData createArtifactVersion(String groupId, String artifactId, String content, String contentType, Consumer<CreateVersion> customizer) throws Exception {
         CreateVersion createVersion = TestUtils.clientCreateVersion(content, contentType);
         if (customizer != null) {
-            customizer.apply(createVersion);
+            customizer.accept(createVersion);
         }
         VersionMetaData meta = registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().post(createVersion);
 

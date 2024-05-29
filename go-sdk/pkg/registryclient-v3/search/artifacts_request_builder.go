@@ -3,7 +3,6 @@ package search
 import (
 	"context"
 	i00eb2e63d156923d00d8e86fe16b5d74daf30e363c9f185a8165cb42aa2f2c71 "github.com/apicurio/apicurio-registry/go-sdk/pkg/registryclient-v3/models"
-	i3e398dcce307917e6a6621007d111590e40d6b2dbc08b28d47e9323689debc39 "github.com/apicurio/apicurio-registry/go-sdk/pkg/registryclient-v3/search/artifacts"
 	i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f "github.com/microsoft/kiota-abstractions-go"
 )
 
@@ -14,6 +13,8 @@ type ArtifactsRequestBuilder struct {
 
 // ArtifactsRequestBuilderGetQueryParameters returns a paginated list of all artifacts that match the provided filter criteria.
 type ArtifactsRequestBuilderGetQueryParameters struct {
+	// Filter by artifactId.
+	ArtifactId *string `uriparametername:"artifactId"`
 	// Filter by contentId.
 	ContentId *int64 `uriparametername:"contentId"`
 	// Filter by description.
@@ -21,7 +22,7 @@ type ArtifactsRequestBuilderGetQueryParameters struct {
 	// Filter by globalId.
 	GlobalId *int64 `uriparametername:"globalId"`
 	// Filter by artifact group.
-	Group *string `uriparametername:"group"`
+	GroupId *string `uriparametername:"groupId"`
 	// Filter by one or more name/value label.  Separate each name/value pair using a colon.  Forexample `labels=foo:bar` will return only artifacts with a label named `foo`and value `bar`.
 	Labels []string `uriparametername:"labels"`
 	// The number of artifacts to return.  Defaults to 20.
@@ -36,10 +37,10 @@ type ArtifactsRequestBuilderGetQueryParameters struct {
 	// Sort order, ascending (`asc`) or descending (`desc`).
 	OrderAsSortOrder *i00eb2e63d156923d00d8e86fe16b5d74daf30e363c9f185a8165cb42aa2f2c71.SortOrder `uriparametername:"order"`
 	// The field to sort by.  Can be one of:* `name`* `createdOn`
-	// Deprecated: This property is deprecated, use orderbyAsSortBy instead
+	// Deprecated: This property is deprecated, use orderbyAsArtifactSortBy instead
 	Orderby *string `uriparametername:"orderby"`
 	// The field to sort by.  Can be one of:* `name`* `createdOn`
-	OrderbyAsSortBy *i00eb2e63d156923d00d8e86fe16b5d74daf30e363c9f185a8165cb42aa2f2c71.SortBy `uriparametername:"orderby"`
+	OrderbyAsArtifactSortBy *i00eb2e63d156923d00d8e86fe16b5d74daf30e363c9f185a8165cb42aa2f2c71.ArtifactSortBy `uriparametername:"orderby"`
 }
 
 // ArtifactsRequestBuilderGetRequestConfiguration configuration for the request such as headers, query parameters, and middleware options.
@@ -63,15 +64,15 @@ type ArtifactsRequestBuilderPostQueryParameters struct {
 	// The number of artifacts to skip before starting to collect the result set.  Defaults to 0.
 	Offset *int32 `uriparametername:"offset"`
 	// Sort order, ascending (`asc`) or descending (`desc`).
-	// Deprecated: This property is deprecated, use orderAsPostOrderQueryParameterType instead
+	// Deprecated: This property is deprecated, use orderAsSortOrder instead
 	Order *string `uriparametername:"order"`
 	// Sort order, ascending (`asc`) or descending (`desc`).
-	OrderAsPostOrderQueryParameterType *i3e398dcce307917e6a6621007d111590e40d6b2dbc08b28d47e9323689debc39.PostOrderQueryParameterType `uriparametername:"order"`
+	OrderAsSortOrder *i00eb2e63d156923d00d8e86fe16b5d74daf30e363c9f185a8165cb42aa2f2c71.SortOrder `uriparametername:"order"`
 	// The field to sort by.  Can be one of:* `name`* `createdOn`
-	// Deprecated: This property is deprecated, use orderbyAsPostOrderbyQueryParameterType instead
+	// Deprecated: This property is deprecated, use orderbyAsArtifactSortBy instead
 	Orderby *string `uriparametername:"orderby"`
 	// The field to sort by.  Can be one of:* `name`* `createdOn`
-	OrderbyAsPostOrderbyQueryParameterType *i3e398dcce307917e6a6621007d111590e40d6b2dbc08b28d47e9323689debc39.PostOrderbyQueryParameterType `uriparametername:"orderby"`
+	OrderbyAsArtifactSortBy *i00eb2e63d156923d00d8e86fe16b5d74daf30e363c9f185a8165cb42aa2f2c71.ArtifactSortBy `uriparametername:"orderby"`
 }
 
 // ArtifactsRequestBuilderPostRequestConfiguration configuration for the request such as headers, query parameters, and middleware options.
@@ -87,7 +88,7 @@ type ArtifactsRequestBuilderPostRequestConfiguration struct {
 // NewArtifactsRequestBuilderInternal instantiates a new ArtifactsRequestBuilder and sets the default values.
 func NewArtifactsRequestBuilderInternal(pathParameters map[string]string, requestAdapter i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestAdapter) *ArtifactsRequestBuilder {
 	m := &ArtifactsRequestBuilder{
-		BaseRequestBuilder: *i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewBaseRequestBuilder(requestAdapter, "{+baseurl}/search/artifacts{?name*,offset*,limit*,order*,orderby*,labels*,description*,group*,globalId*,contentId*,canonical*,artifactType*}", pathParameters),
+		BaseRequestBuilder: *i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewBaseRequestBuilder(requestAdapter, "{+baseurl}/search/artifacts{?name*,offset*,limit*,order*,orderby*,labels*,description*,groupId*,globalId*,contentId*,artifactId*,canonical*,artifactType*}", pathParameters),
 	}
 	return m
 }

@@ -121,5 +121,5 @@ When using these schemas with Avro SerDes, two artifacts are created in {registr
 
 * For more details on Avro configuration, see the link:https://github.com/Apicurio/apicurio-registry/blob/main/serdes/avro-serde/src/main/java/io/apicurio/registry/serde/avro/AvroKafkaSerdeConfig.java[AvroKafkaSerdeConfig Java class]
 * For Java example applications, see:
-** link:https://github.com/Apicurio/apicurio-registry-examples[Simple Avro example]
-** link:https://github.com/Apicurio/apicurio-registry-examples[SerDes with references example]
+** link:https://github.com/Apicurio/apicurio-registry/tree/{registry-branch}/examples[Simple Avro example]
+** link:https://github.com/Apicurio/apicurio-registry/tree/{registry-branch}/examples[SerDes with references example]

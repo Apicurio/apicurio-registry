@@ -73,6 +73,7 @@ endif::[]
 :registry-ocp-version: 4.15
 :registry-db-version: 15
 :registry-url: \http://MY_REGISTRY_URL/ui
+:registry-branch: {registry-version}.x
 
 //integration products
 :amq-version: 2.6

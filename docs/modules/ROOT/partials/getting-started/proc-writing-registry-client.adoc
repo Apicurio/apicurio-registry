@@ -49,6 +49,6 @@ When the client is created, you can use all of the operations available in the {
 
 [role="_additional-resources"]
 .Additional resources
-* For an open source example of how to use and customize the {registry} client, see the https://github.com/Apicurio/apicurio-registry-examples[Apicurio Registry REST client demonstration].
+* For an open source example of how to use and customize the {registry} client, see the https://github.com/Apicurio/apicurio-registry/tree/{registry-branch}/examples[Apicurio Registry REST client demonstration].
 
 * For details on how to use the {registry} Kafka client serializers/deserializers (SerDes) in producer and consumer applications, see {kafka-client-serdes}.

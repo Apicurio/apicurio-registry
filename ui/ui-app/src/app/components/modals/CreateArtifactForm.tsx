@@ -189,7 +189,7 @@ export const CreateArtifactForm: FunctionComponent<CreateArtifactFormProps> = (p
     return (
         <Form>
             <FormGroup
-                label="Group & ID"
+                label="Group Id / Artifact Id"
                 fieldId="form-id"
             >
                 <div className="group-and-id">

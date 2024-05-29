@@ -89,16 +89,16 @@ export const VersionsTabContent: FunctionComponent<VersionsTabContentProps> = (p
     const emptyState = (
         <EmptyState variant={EmptyStateVariant.sm}>
             <EmptyStateIcon icon={PlusCircleIcon}/>
-            <Title headingLevel="h5" size="lg">No artifacts found</Title>
+            <Title headingLevel="h5" size="lg">No versions found</Title>
             <EmptyStateBody>
-                There are currently no artifacts in this group.  Create some artifacts in the group to view them here.
+                There are currently no versions in this artifact.  Create some versions in the artifact to view them here.
             </EmptyStateBody>
             <EmptyStateFooter>
                 <EmptyStateActions>
                     <IfAuth isDeveloper={true}>
                         <IfFeature feature="readOnly" isNot={true}>
                             <Button className="empty-btn-create" variant="primary"
-                                data-testid="empty-btn-create" onClick={props.onCreateVersion}>Create artifact</Button>
+                                data-testid="empty-btn-create" onClick={props.onCreateVersion}>Create version</Button>
                         </IfFeature>
                     </IfAuth>
                 </EmptyStateActions>

@@ -79,10 +79,6 @@ export const InfoTabContent: FunctionComponent<InfoTabContentProps> = (props: In
                                 </DescriptionListDescription>
                             </DescriptionListGroup>
                             <DescriptionListGroup>
-                                <DescriptionListTerm>ID</DescriptionListTerm>
-                                <DescriptionListDescription data-testid="version-details-id">{props.version.artifactId}</DescriptionListDescription>
-                            </DescriptionListGroup>
-                            <DescriptionListGroup>
                                 <DescriptionListTerm>Description</DescriptionListTerm>
                                 <DescriptionListDescription
                                     data-testid="version-details-description"

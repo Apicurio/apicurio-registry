@@ -30,6 +30,19 @@ public class AuthConfig {
     @Info(category = "auth", description = "Enable basic auth", availableSince = "1.1.X-SNAPSHOT", registryAvailableSince = "3.X.X.Final", studioAvailableSince = "1.0.0")
     boolean basicAuthEnabled;
 
+    @Dynamic(label = "Basic Auth with Strimzi User", description = "When selected, users are permitted to authenticate using HTTP basic authentication using usernames and passwords of Strimzi's KafkaUser resources.", requires = {
+        "quarkus.http.auth.basic=true",
+        "apicurio.auth.enabled=true",
+        "apicurio.auth.owner-only-authorization=true"
+    })
+    @ConfigProperty(name = "apicurio.auth.basic-auth-with-strimzi-user.enabled", defaultValue = "false")
+    @Info(category = "auth", description = "Enable basic auth with Strimzi user")
+    Supplier<Boolean> basicAuthWithStrimziUserEnabled;
+
+    @ConfigProperty(name = "apicurio.auth.strimzi.kubernetes.namespace", defaultValue = "kafka")
+    @Info(category = "auth", description = "Kubernetes namespace to be queried for KafkaUser resources.")
+    String strimziKubernetesNamespace;
+
     @ConfigProperty(name = "apicurio.auth.role-based-authorization", defaultValue = "false")
     @Info(category = "auth", description = "Enable role based authorization", availableSince = "2.1.0.Final")
     boolean roleBasedAuthorizationEnabled;

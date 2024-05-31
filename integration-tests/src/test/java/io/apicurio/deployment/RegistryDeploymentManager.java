@@ -31,16 +31,10 @@ import org.testcontainers.shaded.org.apache.commons.io.IOUtils;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.Collection;
-import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 import static io.apicurio.deployment.Constants.REGISTRY_IMAGE;
 import static io.apicurio.deployment.KubernetesTestResources.*;
-import static io.apicurio.deployment.k8s.K8sClientManager.closeKubernetesClient;
 import static io.apicurio.deployment.k8s.K8sClientManager.kubernetesClient;
 import static io.apicurio.deployment.k8s.PortForwardManager.closePortForwards;
 import static io.apicurio.deployment.k8s.PortForwardManager.startPortForward;
@@ -49,7 +43,6 @@ public class RegistryDeploymentManager implements TestExecutionListener {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(RegistryDeploymentManager.class);
 
-
     @Override
     public void testPlanExecutionStarted(TestPlan testPlan) {
         TestConfiguration.print();
@@ -57,7 +50,8 @@ public class RegistryDeploymentManager implements TestExecutionListener {
 
             try {
                 handleInfraDeployment();
-            } catch (Exception e) {
+            }
+            catch (Exception e) {
                 LOGGER.error("Error starting registry deployment", e);
             }
 
@@ -69,29 +63,28 @@ public class RegistryDeploymentManager implements TestExecutionListener {
     public void testPlanExecutionFinished(TestPlan testPlan) {
         LOGGER.info("Test suite ended ##################################################");
 
-        if (TestConfiguration.isClusterTests()) {
-            if (!TestConfiguration.isPreserveNamespace()) {
-                LOGGER.info("Closing test resources ##################################################");
+        try {
 
-                closePortForwards();
+            if (TestConfiguration.isClusterTests()) {
+                if (!TestConfiguration.isPreserveNamespace()) {
+                    LOGGER.info("Closing test resources ##################################################");
 
-                final Resource<Namespace> namespaceResource = kubernetesClient().namespaces()
-                        .withName(TEST_NAMESPACE);
-                namespaceResource.delete();
+                    closePortForwards();
 
-                // wait the namespace to be deleted
-                CompletableFuture<List<Namespace>> namespace = namespaceResource
-                        .informOnCondition(Collection::isEmpty);
+                    final Resource<Namespace> namespaceResource = kubernetesClient().namespaces()
+                            .withName(TEST_NAMESPACE);
 
-                try {
-                    namespace.get(60, TimeUnit.SECONDS);
-                } catch (ExecutionException | InterruptedException | TimeoutException e) {
-                    LOGGER.warn("Error waiting for namespace deletion", e);
-                } finally {
-                    namespace.cancel(true);
+                    namespaceResource.delete();
+
                 }
-
-                closeKubernetesClient();
+            }
+        }
+        catch (Exception e) {
+            LOGGER.error("Exception closing test resources", e);
+        }
+        finally {
+            if (kubernetesClient() != null) {
+                kubernetesClient().close();
             }
         }
     }
@@ -101,19 +94,24 @@ public class RegistryDeploymentManager implements TestExecutionListener {
         try {
             kubernetesClient().load(getClass().getResourceAsStream(E2E_NAMESPACE_RESOURCE))
                     .create();
-        } catch (KubernetesClientException ex) {
+        }
+        catch (KubernetesClientException ex) {
             LOGGER.warn("Could not create namespace (it may already exist).", ex);
         }
 
         //Based on the configuration, deploy the appropriate variant
         if (Boolean.parseBoolean(System.getProperty("deployInMemory"))) {
-            LOGGER.info("Deploying In Memory Registry Variant with image: {} ##################################################", System.getProperty("registry-in-memory-image"));
+            LOGGER.info("Deploying In Memory Registry Variant with image: {} ##################################################",
+                    System.getProperty("registry-in-memory-image"));
             InMemoryDeploymentManager.deployInMemoryApp(System.getProperty("registry-in-memory-image"));
-        } else if (Boolean.parseBoolean(System.getProperty("deploySql"))) {
+        }
+        else if (Boolean.parseBoolean(System.getProperty("deploySql"))) {
             LOGGER.info("Deploying SQL Registry Variant with image: {} ##################################################", System.getProperty("registry-sql-image"));
             SqlDeploymentManager.deploySqlApp(System.getProperty("registry-sql-image"));
-        } else if (Boolean.parseBoolean(System.getProperty("deployKafka"))) {
-            LOGGER.info("Deploying Kafka SQL Registry Variant with image: {} ##################################################", System.getProperty("registry-kafkasql-image"));
+        }
+        else if (Boolean.parseBoolean(System.getProperty("deployKafka"))) {
+            LOGGER.info("Deploying Kafka SQL Registry Variant with image: {} ##################################################",
+                    System.getProperty("registry-kafkasql-image"));
             KafkaSqlDeploymentManager.deployKafkaApp(System.getProperty("registry-kafkasql-image"));
         }
     }
@@ -150,7 +148,8 @@ public class RegistryDeploymentManager implements TestExecutionListener {
             //Deploy all the resources associated to the registry variant
             kubernetesClient().load(IOUtils.toInputStream(registryLoadedResources, StandardCharsets.UTF_8.name()))
                     .create();
-        } catch (Exception ex) {
+        }
+        catch (Exception ex) {
             LOGGER.warn("Error creating registry resources:", ex);
         }
 
@@ -165,7 +164,8 @@ public class RegistryDeploymentManager implements TestExecutionListener {
         if (Constants.TEST_PROFILE.equals(Constants.UI)) {
             //In the UI tests we use a port forward to make the application available to the testsuite.
             startPortForward(APPLICATION_SERVICE, 8080);
-        } else {
+        }
+        else {
 
             //For openshift, a route to the application is created we use it to set up the networking needs.
             if (Boolean.parseBoolean(System.getProperty("openshift.resources"))) {
@@ -179,7 +179,8 @@ public class RegistryDeploymentManager implements TestExecutionListener {
                         System.setProperty("quarkus.http.test-host", registryRoute.getSpec().getHost());
                         System.setProperty("quarkus.http.test-port", "80");
 
-                    } catch (Exception ex) {
+                    }
+                    catch (Exception ex) {
                         LOGGER.warn("The registry route already exists: ", ex);
                     }
 
@@ -189,20 +190,24 @@ public class RegistryDeploymentManager implements TestExecutionListener {
                                 .create();
 
                         System.setProperty("tenant.manager.external.endpoint", tenantManagerRoute.getSpec().getHost());
-                    } catch (Exception ex) {
+                    }
+                    catch (Exception ex) {
                         LOGGER.warn("The tenant manger route already exists: ", ex);
                     }
                 }
 
-            } else {
+            }
+            else {
                 //If we're running the cluster tests but no external endpoint has been provided, set the value of the load balancer.
                 if (System.getProperty("quarkus.http.test-host").equals("localhost") && !System.getProperty("os.name").contains("Mac OS")) {
-                    System.setProperty("quarkus.http.test-host", kubernetesClient().services().inNamespace(TEST_NAMESPACE).withName(APPLICATION_SERVICE).get().getSpec().getClusterIP());
+                    System.setProperty("quarkus.http.test-host",
+                            kubernetesClient().services().inNamespace(TEST_NAMESPACE).withName(APPLICATION_SERVICE).get().getSpec().getClusterIP());
                 }
 
                 //If we're running the cluster tests but no external endpoint has been provided, set the value of the load balancer.
                 if (startTenantManager && System.getProperty("tenant.manager.external.endpoint") == null) {
-                    System.setProperty("tenant.manager.external.endpoint", kubernetesClient().services().inNamespace(TEST_NAMESPACE).withName(TENANT_MANAGER_SERVICE).get().getSpec().getClusterIP());
+                    System.setProperty("tenant.manager.external.endpoint",
+                            kubernetesClient().services().inNamespace(TEST_NAMESPACE).withName(TENANT_MANAGER_SERVICE).get().getSpec().getClusterIP());
                 }
             }
         }

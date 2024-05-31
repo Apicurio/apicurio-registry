@@ -424,29 +424,6 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     }
 
     /**
-     * @see io.apicurio.registry.rest.v3.GroupsResource#testUpdateArtifact(java.lang.String, java.lang.String, java.io.InputStream)
-     */
-    @Override
-    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
-    public void testUpdateArtifact(String groupId, String artifactId, InputStream data) {
-        requireParameter("groupId", groupId);
-        requireParameter("artifactId", artifactId);
-        ContentHandle content = ContentHandle.create(data);
-        if (content.bytes().length == 0) {
-            throw new BadRequestException(EMPTY_CONTENT_ERROR_MESSAGE);
-        }
-
-        String ct = getContentType();
-        if (ContentTypeUtil.isApplicationYaml(ct)) {
-            content = ContentTypeUtil.yamlToJson(content);
-        }
-
-        String artifactType = lookupArtifactType(groupId, artifactId);
-        rulesService.applyRules(new GroupId(groupId).getRawGroupIdWithNull(), artifactId, artifactType, content,
-                RuleApplicationType.UPDATE, Collections.emptyList(), Collections.emptyMap()); //TODO:references not supported for testing update
-    }
-
-    /**
      * @see io.apicurio.registry.rest.v3.GroupsResource#getArtifactVersionContent(java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.rest.v3.beans.HandleReferencesType)
      */
     @Override
@@ -651,9 +628,9 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     }
 
     @Override
-    @Audited(extractParameters = {"0", KEY_GROUP_ID, "1", KEY_IF_EXISTS, "2", KEY_CANONICAL})
+    @Audited(extractParameters = {"0", KEY_GROUP_ID, "1", KEY_IF_EXISTS, "2", KEY_CANONICAL, "3", "dryRun"})
     @Authorized(style = AuthorizedStyle.GroupOnly, level = AuthorizedLevel.Write)
-    public CreateArtifactResponse createArtifact(String groupId, IfArtifactExists ifExists, Boolean canonical, CreateArtifact data) {
+    public CreateArtifactResponse createArtifact(String groupId, IfArtifactExists ifExists, Boolean canonical, Boolean dryRun, CreateArtifact data) {
         requireParameter("groupId", groupId);
         if (data.getFirstVersion() != null) {
             requireParameter("body.firstVersion.content", data.getFirstVersion().getContent());
@@ -723,7 +700,6 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 //            ArtifactVersionMetaDataDto vmd = storage.createArtifactWithMetadata(new GroupId(groupId).getRawGroupIdWithNull(), artifactId,
 //                    xRegistryVersion, artifactType, content, metaData, referencesAsDtos);
 
-
             // Create the artifact (with optional first version)
             EditableArtifactMetaDataDto artifactMetaData = EditableArtifactMetaDataDto.builder()
                     .description(data.getDescription())
@@ -748,6 +724,25 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                         .build();
                 firstVersionBranches = data.getFirstVersion().getBranches();
             }
+
+            // Don't actually do anything if "dryRun" is 'true'
+            if (dryRun != null && dryRun) {
+                return CreateArtifactResponse.builder()
+                        .artifact(ArtifactMetaData.builder()
+                                .groupId(groupId)
+                                .artifactId(artifactId)
+                                .createdOn(new Date())
+                                .owner(securityIdentity.getPrincipal().getName())
+                                .modifiedBy(securityIdentity.getPrincipal().getName())
+                                .modifiedOn(new Date())
+                                .name(artifactMetaData.getName())
+                                .description(artifactMetaData.getDescription())
+                                .labels(artifactMetaData.getLabels())
+                                .type(artifactType)
+                                .build())
+                        .build();
+            }
+
             Pair<ArtifactMetaDataDto, ArtifactVersionMetaDataDto> storageResult = storage.createArtifact(
                     new GroupId(groupId).getRawGroupIdWithNull(),
                     artifactId, artifactType, artifactMetaData, firstVersion, firstVersionContent,
@@ -796,17 +791,15 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     }
 
     @Override
-    @Audited(extractParameters = {"0", KEY_GROUP_ID, "1", KEY_ARTIFACT_ID})
+    @Audited(extractParameters = {"0", KEY_GROUP_ID, "1", KEY_ARTIFACT_ID, "2", "dryRun"})
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
-    public VersionMetaData createArtifactVersion(String groupId, String artifactId, CreateVersion data) {
+    public VersionMetaData createArtifactVersion(String groupId, String artifactId, Boolean dryRun, CreateVersion data) {
         requireParameter("content", data.getContent());
         requireParameter("groupId", groupId);
         requireParameter("artifactId", artifactId);
         requireParameter("body.content", data.getContent());
         requireParameter("body.content.content", data.getContent().getContent());
         requireParameter("body.content.contentType", data.getContent().getContentType());
-
-        // TODO deal with ifExists!
 
         ContentHandle content = ContentHandle.create(data.getContent().getContent());
         if (content.bytes().length == 0) {
@@ -833,6 +826,25 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                 .content(content)
                 .references(referencesAsDtos)
                 .build();
+
+        // Don't actually do anything if "dryRun" is 'true'
+        if (dryRun != null && dryRun) {
+            return VersionMetaData.builder()
+                    .groupId(groupId)
+                    .artifactId(artifactId)
+                    .version(data.getVersion() == null ? "0" : data.getVersion())
+                    .createdOn(new Date())
+                    .owner(securityIdentity.getPrincipal().getName())
+                    .contentId(-1L)
+                    .name(metaDataDto.getName())
+                    .description(metaDataDto.getDescription())
+                    .labels(metaDataDto.getLabels())
+                    .state(VersionState.ENABLED)
+                    .globalId(-1L)
+                    .type(artifactType)
+                    .build();
+        }
+
         ArtifactVersionMetaDataDto vmd = storage.createArtifactVersion(new GroupId(groupId).getRawGroupIdWithNull(), artifactId, data.getVersion(),
                 artifactType, contentDto, metaDataDto, data.getBranches());
 

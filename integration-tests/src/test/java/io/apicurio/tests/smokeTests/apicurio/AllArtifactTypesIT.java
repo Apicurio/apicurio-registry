@@ -8,7 +8,6 @@ import io.apicurio.registry.rest.client.models.VersionContent;
 import io.apicurio.registry.rest.client.models.VersionMetaData;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
-import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.tests.ApicurioRegistryBaseIT;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
@@ -45,11 +44,20 @@ class AllArtifactTypesIT extends ApicurioRegistryBaseIT {
         // Create artifact
         createArtifact(groupId, artifactId, atype, v1Content, contentType, IfArtifactExists.FAIL, null);
 
-        // Test update (valid content)
-        retryOp((rc) -> rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).test().put(IoUtil.toStream(v2Content), "application/create.extended+json"));
+        // Test create new version (valid content)
+        CreateVersion testCV = TestUtils.clientCreateVersion(v2Content, contentType);
+        retryOp((rc) -> rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().post(testCV, config -> {
+            config.queryParameters.dryRun = true;
+        }));
 
-        // Test update (invalid content)
-        retryAssertClientError("RuleViolationException", 409, (rc) -> rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).test().put(IoUtil.toStream("{\"This is not a valid content."), "application/create.extended+json"), errorCodeExtractor);
+        // Test create new version (invalid content)
+        retryAssertClientError("RuleViolationException", 409, (rc) -> {
+            String invalidContent = "{\"This is not a valid content.";
+            CreateVersion tcv = TestUtils.clientCreateVersion(invalidContent, contentType);
+            rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().post(tcv, config -> {
+                config.queryParameters.dryRun = true;
+            });
+        }, errorCodeExtractor);
 
         // Update artifact (valid v2 content)
         createArtifactVersion(groupId, artifactId, v2Content, contentType, null);

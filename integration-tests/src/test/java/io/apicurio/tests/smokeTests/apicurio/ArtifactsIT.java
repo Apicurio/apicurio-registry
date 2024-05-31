@@ -30,9 +30,7 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.ByteArrayInputStream;
 import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -372,7 +370,10 @@ class ArtifactsIT extends ApicurioRegistryBaseIT {
             config.queryParameters.limit = 10;
         });
 
-        registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).test().put(new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8)), "application/create.extended+json");
+        CreateVersion testCV = TestUtils.clientCreateVersion(content, ContentTypes.APPLICATION_JSON);
+        registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().post(testCV, config -> {
+            config.queryParameters.dryRun = true;
+        });
 
         registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().post(
                 TestUtils.clientCreateVersion(content, ContentTypes.APPLICATION_JSON)
@@ -410,7 +411,10 @@ class ArtifactsIT extends ApicurioRegistryBaseIT {
             config.queryParameters.limit = 100;
         });
 
-        registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).test().put(new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8)), "application/create.extended+json");
+        CreateVersion testCV = TestUtils.clientCreateVersion(content, ContentTypes.APPLICATION_JSON);
+        registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().post(testCV, config -> {
+            config.queryParameters.dryRun = true;
+        });
 
         registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().post(
                 TestUtils.clientCreateVersion(content, ContentTypes.APPLICATION_JSON)

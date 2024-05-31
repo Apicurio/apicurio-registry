@@ -198,6 +198,8 @@
     <woodstox-core.version>7.0.0</woodstox-core.version>
     <jgit.version>6.10.0.202406032230-r</jgit.version>
     <awaitility.version>4.2.1</awaitility.version>
+    <bouncycastle.version>1.78.1</bouncycastle.version>
+    <mockwebserver.version>4.12.0</mockwebserver.version>
 
     <!-- Kafka Connect -->
     <connect.version>3.7.0</connect.version>
@@ -562,6 +564,16 @@
         <version>${lombok.version}</version>
       </dependency>
       <dependency>
+        <groupId>org.bouncycastle</groupId>
+        <artifactId>bcpkix-jdk18on</artifactId>
+        <version>${bouncycastle.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.bouncycastle</groupId>
+        <artifactId>bcprov-jdk18on</artifactId>
+        <version>${bouncycastle.version}</version>
+      </dependency>
+      <dependency>
         <groupId>org.apache.santuario</groupId>
         <artifactId>xmlsec</artifactId>
         <version>${xmlsec.version}</version>
@@ -727,6 +739,12 @@
         <groupId>org.awaitility</groupId>
         <artifactId>awaitility</artifactId>
         <version>${awaitility.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.squareup.okhttp3</groupId>
+        <artifactId>mockwebserver</artifactId>
+        <version>${mockwebserver.version}</version>
+        <scope>test</scope>
       </dependency>
 
     </dependencies>

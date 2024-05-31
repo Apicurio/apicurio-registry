@@ -15,6 +15,7 @@ public class BasicAuthWithStrimziUsersTestProfile implements QuarkusTestProfile 
         map.put("apicurio.auth.enabled", "true");
         map.put("apicurio.auth.owner-only-authorization", "true");
         map.put("apicurio.auth.basic-auth-with-strimzi-user.enabled", "true");
+        map.put("quarkus.kubernetes-client.api-server-url", "http://localhost:64444");
         return map;
     }
 

@@ -25,7 +25,7 @@ import java.util.Map;
 import static io.apicurio.registry.client.auth.VertXAuthFactory.buildSimpleAuthWebClient;
 
 @QuarkusTest
-@WithKubernetesTestServer
+@WithKubernetesTestServer(port = 64444)
 @TestProfile(BasicAuthWithStrimziUsersTestProfile.class)
 @Tag(ApicurioTestTags.SLOW)
 public class StrimziAuthTest extends AbstractResourceTestBase {
@@ -41,17 +41,17 @@ public class StrimziAuthTest extends AbstractResourceTestBase {
 
     @BeforeEach
     public void setupKubernetesResources() {
-        NamespaceBuilder namespaceBuilder = new NamespaceBuilder().withNewMetadata().withName(authConfig.strimziKubernetesNamespace).endMetadata();
+        NamespaceBuilder namespaceBuilder = new NamespaceBuilder().withNewMetadata()
+                .withName(authConfig.strimziKubernetesNamespace).endMetadata();
+        //var client = server.getClient();
         client.namespaces().resource(namespaceBuilder.build()).createOr(NonDeletingOperation::update);
         // Create secret for user alice
-        SecretBuilder secretBuilder = new SecretBuilder()
-            .withNewMetadata()
-            .withName(USERNAME)
-            .withNamespace(authConfig.strimziKubernetesNamespace)
-            .withLabels(Map.of("strimzi.io/kind", "KafkaUser"))
-            .endMetadata()
-            .addToData("password", Base64.getEncoder().encodeToString(PASSWORD.getBytes(StandardCharsets.UTF_8)));
-        client.secrets().inNamespace(authConfig.strimziKubernetesNamespace).resource(secretBuilder.build()).createOr(NonDeletingOperation::update);
+        SecretBuilder secretBuilder = new SecretBuilder().withNewMetadata().withName(USERNAME)
+                .withNamespace(authConfig.strimziKubernetesNamespace)
+                .withLabels(Map.of("strimzi.io/kind", "KafkaUser")).endMetadata().addToData("password",
+                        Base64.getEncoder().encodeToString(PASSWORD.getBytes(StandardCharsets.UTF_8)));
+        client.secrets().inNamespace(authConfig.strimziKubernetesNamespace).resource(secretBuilder.build())
+                .createOr(NonDeletingOperation::update);
     }
 
     @Test

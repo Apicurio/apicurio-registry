@@ -161,6 +161,7 @@
         <json-schema-validator.version>1.4.0</json-schema-validator.version>
         <vertx-json-schema.version>4.5.7</vertx-json-schema.version>
         <wire-schema.version>4.9.9</wire-schema.version>
+        <okhttp.version>4.12.0</okhttp.version>
         <wire-compiler.version>4.9.9</wire-compiler.version>
         <okio-jvm.version>3.9.0</okio-jvm.version>
         <okio.version>3.9.0</okio.version>
@@ -604,6 +605,11 @@
                 <groupId>com.squareup.okio</groupId>
                 <artifactId>okio-jvm</artifactId>
                 <version>${okio-jvm.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.squareup.okio</groupId>
+                <artifactId>okhttp</artifactId>
+                <version>${okhttp.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.squareup.okio</groupId>

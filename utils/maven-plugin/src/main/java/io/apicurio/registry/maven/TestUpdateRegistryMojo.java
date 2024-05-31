@@ -1,11 +1,15 @@
 package io.apicurio.registry.maven;
 
-import java.io.FileInputStream;
-import java.io.InputStream;
-import java.util.List;
+import io.apicurio.registry.rest.client.models.CreateVersion;
+import io.apicurio.registry.rest.client.models.VersionContent;
+import io.apicurio.registry.utils.IoUtil;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
+
+import java.io.FileInputStream;
+import java.io.InputStream;
+import java.util.List;
 
 /**
  * Test artifact against current artifact rules,
@@ -67,7 +71,14 @@ public class TestUpdateRegistryMojo extends AbstractRegistryMojo {
                 String artifactId = artifact.getArtifactId();
                 String contentType = contentType(artifact);
                 try (InputStream data = new FileInputStream(artifact.getFile())) {
-                    getClient().groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).test().put(data, contentType);
+                    String content = IoUtil.toString(data);
+                    CreateVersion cv = new CreateVersion();
+                    cv.setContent(new VersionContent());
+                    cv.getContent().setContentType(contentType);
+                    cv.getContent().setContent(content);
+                    getClient().groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().post(cv, config -> {
+                        config.queryParameters.dryRun = true;
+                    });
                     getLog().info(String.format("[%s] / [%s] :: Artifact successfully tested (updating is allowed for the given content).", groupId, artifactId));
                 } catch (Exception e) {
                     errorCount++;
@@ -83,7 +94,7 @@ public class TestUpdateRegistryMojo extends AbstractRegistryMojo {
 
     private String contentType(TestArtifact testArtifact) {
         String contentType = testArtifact.getContentType();
-        if(contentType != null) {
+        if (contentType != null) {
             return contentType;
         }
         return getContentTypeByExtension(testArtifact.getFile().getName());

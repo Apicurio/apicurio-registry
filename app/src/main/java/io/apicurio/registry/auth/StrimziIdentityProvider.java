@@ -1,7 +1,6 @@
 package io.apicurio.registry.auth;
 
 import io.fabric8.kubernetes.client.KubernetesClient;
-import io.fabric8.kubernetes.client.KubernetesClientBuilder;
 import io.quarkus.security.AuthenticationFailedException;
 import io.quarkus.security.identity.AuthenticationRequestContext;
 import io.quarkus.security.identity.IdentityProvider;
@@ -26,6 +25,9 @@ public class StrimziIdentityProvider implements IdentityProvider<UsernamePasswor
 
     @Inject
     AuthConfig authConfig;
+
+    @Inject
+    KubernetesClient client;
 
     public StrimziIdentityProvider() {
     }
@@ -61,18 +63,16 @@ public class StrimziIdentityProvider implements IdentityProvider<UsernamePasswor
         if (username == null) {
             return null;
         }
-        try (KubernetesClient client = new KubernetesClientBuilder().build()) {
-            // get the password from the Kubernetes secret managed by the Strimzi User Operator
-            return client.secrets()
-                .inNamespace(authConfig.strimziKubernetesNamespace)
-                .withLabel("strimzi.io/kind", "KafkaUser")
-                .resources()
-                .filter(secret -> secret.item().getMetadata().getName().equals(username))
-                .findFirst()
-                .map(secret -> secret.item().getData().get("password"))
-                .map(Base64.getDecoder()::decode)
-                .map(String::new)
-                .orElse(null);
-        }
+        // get the password from the Kubernetes secret managed by the Strimzi User Operator
+        return client.secrets()
+            .inNamespace(authConfig.strimziKubernetesNamespace)
+            .withLabel("strimzi.io/kind", "KafkaUser")
+            .resources()
+            .filter(secret -> secret.item().getMetadata().getName().equals(username))
+            .findFirst()
+            .map(secret -> secret.item().getData().get("password"))
+            .map(Base64.getDecoder()::decode)
+            .map(String::new)
+            .orElse(null);
     }
 }

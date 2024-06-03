@@ -59,7 +59,7 @@
                                 <artifact>
                                     <groupId>default</groupId>
                                     <artifactId>SimpleAvroMavenExample-value</artifactId>
-                                    <type>AVRO</type>
+                                    <artifactType>AVRO</artifactType>
                                     <file>${project.basedir}/src/main/resources/schemas/greeting.avsc</file>
                                 </artifact>
                             </artifacts>

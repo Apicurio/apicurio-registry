@@ -7,6 +7,7 @@ import io.apicurio.registry.utils.tests.TestUtils;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.junit.jupiter.api.Assertions;
 import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -60,4 +61,9 @@ public abstract class AbstractRegistryTestBase {
     public static void assertMultilineTextEquals(String expected, String actual) throws Exception {
         Assertions.assertEquals(TestUtils.normalizeMultiLineString(expected), TestUtils.normalizeMultiLineString(actual));
     }
+
+    public static InputStream asInputStream(String value) {
+        return new ByteArrayInputStream(value.getBytes(StandardCharsets.UTF_8));
+    }
+
 }

@@ -311,15 +311,14 @@ public interface RegistryStorage extends DynamicConfigStorage {
     /**
      * Fetch the versions of the given artifact
      *
-     * @param groupId    (optional)
-     * @param artifactId the artifact used to fetch versions
+     * @param filters    the search filters
      * @param limit      the result size limit
      * @param offset     the number of versions to skip
      * @return the artifact versions, limited
      * @throws ArtifactNotFoundException
      * @throws RegistryStorageException
      */
-    VersionSearchResultsDto searchVersions(String groupId, String artifactId, OrderBy orderBy,
+    VersionSearchResultsDto searchVersions(Set<SearchFilter> filters, OrderBy orderBy,
             OrderDirection orderDirection, int offset, int limit) throws ArtifactNotFoundException, RegistryStorageException;
 
     /**

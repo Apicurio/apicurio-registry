@@ -10,7 +10,7 @@ public class RegisterArtifact {
     private String groupId;
     private String artifactId;
     private String version;
-    private String type;
+    private String artifactType;
     private File file;
     private IfArtifactExists ifExists;
     private Boolean canonicalize;
@@ -112,17 +112,17 @@ public class RegisterArtifact {
     }
 
     /**
-     * @return the type
+     * @return the artifactType
      */
-    public String getType() {
-        return type;
+    public String getArtifactType() {
+        return artifactType;
     }
 
     /**
-     * @param type the type to set
+     * @param artifactType the artifact type to set
      */
-    public void setType(String type) {
-        this.type = type;
+    public void setArtifactType(String artifactType) {
+        this.artifactType = artifactType;
     }
 
     /**

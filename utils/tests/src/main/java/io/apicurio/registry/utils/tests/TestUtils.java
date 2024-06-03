@@ -264,7 +264,7 @@ public class TestUtils {
     public static CreateArtifact clientCreateArtifact(String artifactId, String artifactType, String content, String contentType) {
         CreateArtifact createArtifact = new CreateArtifact();
         createArtifact.setArtifactId(artifactId);
-        createArtifact.setType(artifactType);
+        createArtifact.setArtifactType(artifactType);
         createArtifact.setFirstVersion(new CreateVersion());
         createArtifact.getFirstVersion().setContent(new VersionContent());
         createArtifact.getFirstVersion().getContent().setContent(content);
@@ -275,7 +275,7 @@ public class TestUtils {
     public static io.apicurio.registry.rest.v3.beans.CreateArtifact serverCreateArtifact(String artifactId, String artifactType, String content, String contentType) {
         return io.apicurio.registry.rest.v3.beans.CreateArtifact.builder()
                 .artifactId(artifactId)
-                .type(artifactType)
+                .artifactType(artifactType)
                 .firstVersion(
                         io.apicurio.registry.rest.v3.beans.CreateVersion.builder()
                                 .content(

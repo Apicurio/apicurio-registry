@@ -31,7 +31,7 @@ public class CompatibilityResourceImpl extends AbstractResource implements Compa
             final List<String> versions = storage.getArtifactVersions(groupId, subject);
             for (String version : versions) {
                 final ArtifactVersionMetaDataDto artifactVersionMetaData = storage.getArtifactVersionMetaData(groupId, subject, version);
-                rulesService.applyRules(groupId, subject, version, artifactVersionMetaData.getType(), ContentHandle.create(request.getSchema()), Collections.emptyList(), Collections.emptyMap());
+                rulesService.applyRules(groupId, subject, version, artifactVersionMetaData.getArtifactType(), ContentHandle.create(request.getSchema()), Collections.emptyList(), Collections.emptyMap());
             }
             return CompatibilityCheckResponse.IS_COMPATIBLE;
         } catch (RuleViolationException ex) {
@@ -53,7 +53,7 @@ public class CompatibilityResourceImpl extends AbstractResource implements Compa
         return parseVersionString(subject, versionString, groupId, v -> {
             try {
                 final ArtifactVersionMetaDataDto artifact = storage.getArtifactVersionMetaData(groupId, subject, v);
-                rulesService.applyRules(groupId, subject, v, artifact.getType(), ContentHandle.create(request.getSchema()), Collections.emptyList(), Collections.emptyMap());
+                rulesService.applyRules(groupId, subject, v, artifact.getArtifactType(), ContentHandle.create(request.getSchema()), Collections.emptyList(), Collections.emptyMap());
                 return CompatibilityCheckResponse.IS_COMPATIBLE;
             } catch (RuleViolationException ex) {
                 if (fverbose) {

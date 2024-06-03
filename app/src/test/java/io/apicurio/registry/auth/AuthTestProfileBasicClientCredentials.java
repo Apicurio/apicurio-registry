@@ -67,7 +67,7 @@ public class AuthTestProfileBasicClientCredentials extends AbstractResourceTestB
             client.groups().byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString()).artifacts().get();
 
             CreateArtifact createArtifact = new CreateArtifact();
-            createArtifact.setType(ArtifactType.JSON);
+            createArtifact.setArtifactType(ArtifactType.JSON);
             createArtifact.setArtifactId(artifactId);
             CreateVersion createVersion = new CreateVersion();
             createArtifact.setFirstVersion(createVersion);

@@ -74,7 +74,7 @@ public class RegistryLoader {
                 String artifactId = UUID.randomUUID().toString();
 
                 CreateArtifact createArtifact = new CreateArtifact();
-                createArtifact.setType("AVRO");
+                createArtifact.setArtifactType("AVRO");
                 createArtifact.setArtifactId(artifactId);
                 CreateVersion createVersion = new CreateVersion();
                 createArtifact.setFirstVersion(createVersion);

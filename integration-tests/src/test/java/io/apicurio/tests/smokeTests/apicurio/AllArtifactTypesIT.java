@@ -4,8 +4,10 @@ import io.apicurio.registry.rest.client.models.CreateVersion;
 import io.apicurio.registry.rest.client.models.IfArtifactExists;
 import io.apicurio.registry.rest.client.models.Rule;
 import io.apicurio.registry.rest.client.models.RuleType;
-import io.apicurio.registry.rest.client.models.VersionContent;
+import io.apicurio.registry.rest.client.models.SortOrder;
 import io.apicurio.registry.rest.client.models.VersionMetaData;
+import io.apicurio.registry.rest.client.models.VersionSearchResults;
+import io.apicurio.registry.rest.client.models.VersionSortBy;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.utils.tests.TestUtils;
@@ -15,11 +17,15 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 import static io.apicurio.tests.utils.Constants.SMOKE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Tag(SMOKE)
 @QuarkusIntegrationTest
@@ -63,14 +69,18 @@ class AllArtifactTypesIT extends ApicurioRegistryBaseIT {
         createArtifactVersion(groupId, artifactId, v2Content, contentType, null);
 
         // Find artifact by content
-        VersionContent vc = new VersionContent();
-        vc.setContentType(contentType);
-        vc.setContent(v1Content);
-        VersionMetaData byContent = registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).post(vc);
-        assertNotNull(byContent);
-        assertNotNull(byContent.getGlobalId());
-        assertEquals(artifactId, byContent.getArtifactId());
-        assertNotNull(byContent.getVersion());
+        InputStream contentIS = new ByteArrayInputStream(v1Content.getBytes(StandardCharsets.UTF_8));
+        VersionSearchResults results = registryClient.search().versions().post(contentIS, contentType, config -> {
+            config.queryParameters.groupId = groupId;
+            config.queryParameters.artifactId = artifactId;
+            config.queryParameters.orderby = VersionSortBy.GlobalId;
+            config.queryParameters.order = SortOrder.Desc;
+        });
+        assertNotNull(results);
+        assertTrue(results.getCount() > 0);
+        assertNotNull(results.getVersions().get(0).getGlobalId());
+        assertEquals(artifactId, results.getVersions().get(0).getArtifactId());
+        assertNotNull(results.getVersions().get(0).getVersion());
 
         // Update artifact (invalid content)
         CreateVersion createVersion = TestUtils.clientCreateVersion("{\"This is not a valid content.", contentType);

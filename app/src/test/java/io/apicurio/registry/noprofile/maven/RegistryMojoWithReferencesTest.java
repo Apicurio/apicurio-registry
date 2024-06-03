@@ -44,20 +44,20 @@ public class RegistryMojoWithReferencesTest extends RegistryMojoTestBase {
         RegisterArtifact tradeRawArtifact = new RegisterArtifact();
         tradeRawArtifact.setGroupId(groupId);
         tradeRawArtifact.setArtifactId("tradeRaw");
-        tradeRawArtifact.setType(ArtifactType.AVRO);
+        tradeRawArtifact.setArtifactType(ArtifactType.AVRO);
         tradeRawArtifact.setFile(tradeRawFile);
 
         RegisterArtifactReference tradeKeyArtifact = new RegisterArtifactReference();
         tradeKeyArtifact.setGroupId(groupId);
         tradeKeyArtifact.setArtifactId("tradeKey");
-        tradeKeyArtifact.setType(ArtifactType.AVRO);
+        tradeKeyArtifact.setArtifactType(ArtifactType.AVRO);
         tradeKeyArtifact.setFile(tradeKeyFile);
         tradeKeyArtifact.setName("tradeKey");
 
         RegisterArtifactReference exchangeArtifact = new RegisterArtifactReference();
         exchangeArtifact.setGroupId(groupId);
         exchangeArtifact.setArtifactId("exchange");
-        exchangeArtifact.setType(ArtifactType.AVRO);
+        exchangeArtifact.setArtifactType(ArtifactType.AVRO);
         exchangeArtifact.setFile(exchangeFile);
         exchangeArtifact.setName("exchange");
 

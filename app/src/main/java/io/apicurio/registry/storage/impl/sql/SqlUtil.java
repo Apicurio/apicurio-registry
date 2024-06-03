@@ -3,10 +3,8 @@ package io.apicurio.registry.storage.impl.sql;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
-import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
-import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.model.GroupId;
+import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.utils.StringUtil;
 
 import java.util.Collections;
@@ -94,16 +92,4 @@ public class SqlUtil {
         return new GroupId(groupId).getRawGroupIdWithNull();
     }
 
-    public static ArtifactMetaDataDto asArtifactMetaData(ArtifactVersionMetaDataDto versionMeta) {
-        ArtifactMetaDataDto artifactMeta = new ArtifactMetaDataDto();
-        artifactMeta.setGroupId(versionMeta.getGroupId());
-        artifactMeta.setArtifactId(versionMeta.getArtifactId());
-        artifactMeta.setModifiedBy(versionMeta.getOwner());
-        artifactMeta.setModifiedOn(versionMeta.getCreatedOn());
-        artifactMeta.setName(versionMeta.getName());
-        artifactMeta.setDescription(versionMeta.getDescription());
-        artifactMeta.setLabels(versionMeta.getLabels());
-        artifactMeta.setType(versionMeta.getType());
-        return artifactMeta;
-    }
 }

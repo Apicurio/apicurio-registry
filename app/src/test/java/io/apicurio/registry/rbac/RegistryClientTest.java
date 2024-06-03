@@ -29,7 +29,6 @@ import io.apicurio.registry.rest.client.models.SearchedGroup;
 import io.apicurio.registry.rest.client.models.SortOrder;
 import io.apicurio.registry.rest.client.models.UpdateConfigurationProperty;
 import io.apicurio.registry.rest.client.models.UpdateRole;
-import io.apicurio.registry.rest.client.models.VersionContent;
 import io.apicurio.registry.rest.client.models.VersionMetaData;
 import io.apicurio.registry.rest.client.models.VersionSearchResults;
 import io.apicurio.registry.rest.client.models.VersionState;
@@ -70,7 +69,6 @@ import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -848,45 +846,6 @@ public class RegistryClientTest extends AbstractResourceTestBase {
     }
 
     @Test
-    public void getArtifactVersionMetadataByContent() throws Exception {
-        //Preparation
-        final String groupId = "getArtifactVersionMetadataByContent";
-        final String artifactId = generateArtifactId();
-
-        createArtifact(groupId, artifactId);
-
-        //Execution
-        VersionContent vc = new VersionContent();
-        vc.setContent(ARTIFACT_CONTENT);
-        vc.setContentType(ContentTypes.APPLICATION_JSON);
-        final VersionMetaData versionMetaData = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).post(vc);
-
-        assertNotNull(versionMetaData);
-
-        //Create a second artifact using the same content but with a reference, since this version has references, a new artifact version must be created.
-        var secondArtifactId = generateArtifactId();
-        var artifactReference = new ArtifactReference();
-
-        artifactReference.setName("testReference");
-        artifactReference.setArtifactId(artifactId);
-        artifactReference.setGroupId(groupId);
-        artifactReference.setVersion("1");
-
-        var artifactReferences = List.of(artifactReference);
-
-        createArtifactWithReferences(groupId, secondArtifactId, artifactReferences);
-
-        VersionContent vc2 = new VersionContent();
-        vc2.setContent(ARTIFACT_CONTENT);
-        vc2.setContentType(ContentTypes.APPLICATION_JSON);
-        vc2.setReferences(artifactReferences);
-
-        final VersionMetaData secondVersionMetadata = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(secondArtifactId).post(vc2);
-
-        assertNotEquals(secondVersionMetadata.getContentId(), versionMetaData.getContentId());
-    }
-
-    @Test
     public void getContentByHash() throws Exception {
         //Preparation
         final String groupId = "getContentByHash";
@@ -1507,7 +1466,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
 
         var meta = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get();
 
-        assertEquals(ArtifactType.AVRO, meta.getType());
+        assertEquals(ArtifactType.AVRO, meta.getArtifactType());
 
         assertTrue(clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").content().get().readAllBytes().length > 0);
     }
@@ -1533,28 +1492,5 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         } finally {
             mock.stop();
         }
-    }
-
-    @Test
-    public void testGetArtifactVersionByContent_DuplicateContent() throws Exception {
-        //Preparation
-        final String groupId = "testGetArtifactVersionByContent_DuplicateContent";
-        final String artifactId = generateArtifactId();
-
-        final VersionMetaData v1md = createArtifact(groupId, artifactId);
-
-        CreateVersion createVersion = TestUtils.clientCreateVersion(ARTIFACT_CONTENT, ContentTypes.APPLICATION_JSON);
-        final VersionMetaData v2md = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().post(createVersion);
-
-        //Execution
-        final VersionMetaData vmd = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).post(createVersion.getContent());
-
-        //Assertions
-        assertNotEquals(v1md.getGlobalId(), v2md.getGlobalId());
-        assertEquals(v1md.getContentId(), v2md.getContentId());
-
-        assertEquals(v2md.getGlobalId(), vmd.getGlobalId());
-        assertEquals(v2md.getArtifactId(), vmd.getArtifactId());
-        assertEquals(v2md.getContentId(), vmd.getContentId());
     }
 }

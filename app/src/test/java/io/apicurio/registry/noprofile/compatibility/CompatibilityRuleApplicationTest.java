@@ -126,7 +126,7 @@ public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {
 
     private static final CreateArtifact createArtifact = new CreateArtifact();
     static {
-        createArtifact.setType(ArtifactType.JSON);
+        createArtifact.setArtifactType(ArtifactType.JSON);
         CreateVersion createVersion = new CreateVersion();
         createArtifact.setFirstVersion(createVersion);
         VersionContent versionContent = new VersionContent();

@@ -128,7 +128,7 @@ public class ReadOnlyRegistryStorageTest {
                 entry("resolveReferences1", new State(false, s -> s.resolveReferences(null))),
                 entry("searchArtifacts5", new State(false, s -> s.searchArtifacts(null, null, null, 0, 0))),
                 entry("searchGroups5", new State(false, s -> s.searchGroups(null, null, null, null, null))),
-                entry("searchVersions6", new State(false, s -> s.searchVersions(null, null, null, null, 0, 0))),
+                entry("searchVersions5", new State(false, s -> s.searchVersions(null, null, null, 0, 0))),
                 entry("setConfigProperty1", new State(true, s -> {
                     var dto = new DynamicConfigPropertyDto();
                     dto.setName("test");

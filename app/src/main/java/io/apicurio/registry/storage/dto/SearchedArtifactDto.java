@@ -1,7 +1,5 @@
 package io.apicurio.registry.storage.dto;
 
-import java.util.Date;
-
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
@@ -9,6 +7,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
+
+import java.util.Date;
 
 @NoArgsConstructor
 @AllArgsConstructor
@@ -25,7 +25,7 @@ public class SearchedArtifactDto {
     private String description;
     private Date createdOn;
     private String owner;
-    private String type;
+    private String artifactType;
     private Date modifiedOn;
     private String modifiedBy;
 }

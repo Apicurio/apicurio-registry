@@ -1,7 +1,5 @@
 package io.apicurio.registry.storage.dto;
 
-import java.util.Map;
-
 import io.apicurio.registry.types.VersionState;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -10,6 +8,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
+
+import java.util.Map;
 
 @NoArgsConstructor
 @AllArgsConstructor
@@ -30,7 +30,7 @@ public class ArtifactVersionMetaDataDto {
     private String description;
     private String owner;
     private long createdOn;
-    private String type;
+    private String artifactType;
     private VersionState state;
     private Map<String, String> labels;
 }

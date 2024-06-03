@@ -1,9 +1,5 @@
 package io.apicurio.registry.rest.v2;
 
-import java.util.List;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
-
 import io.apicurio.common.apps.logging.Logged;
 import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
@@ -27,6 +23,10 @@ import jakarta.inject.Inject;
 import jakarta.interceptor.Interceptors;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+
+import java.util.List;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 @ApplicationScoped
 @Interceptors({ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class})
@@ -52,7 +52,7 @@ public class IdsResourceImpl extends AbstractResourceImpl implements IdsResource
     }
 
     /**
-     * @see io.apicurio.registry.rest.v2.IdsResource#getContentByGlobalId(long, io.apicurio.registry.rest.v2.beans.HandleReferencesType)
+     * @see io.apicurio.registry.rest.v2.IdsResource#getContentByGlobalId(long, Boolean)
      */
     @Override
     @Authorized(style = AuthorizedStyle.GlobalId, level = AuthorizedLevel.Read)
@@ -68,10 +68,10 @@ public class IdsResourceImpl extends AbstractResourceImpl implements IdsResource
 
         StoredArtifactVersionDto artifact = storage.getArtifactVersionContent(globalId);
 
-        MediaType contentType = factory.getArtifactMediaType(metaData.getType());
+        MediaType contentType = factory.getArtifactMediaType(metaData.getArtifactType());
 
         ContentHandle contentToReturn = artifact.getContent();
-        handleContentReferences(dereference, metaData.getType(), contentToReturn, artifact.getReferences());
+        handleContentReferences(dereference, metaData.getArtifactType(), contentToReturn, artifact.getReferences());
 
         Response.ResponseBuilder builder = Response.ok(contentToReturn, contentType);
         checkIfDeprecated(metaData::getState, metaData.getArtifactId(), metaData.getVersion(), builder);

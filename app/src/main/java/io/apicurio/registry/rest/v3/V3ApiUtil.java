@@ -1,10 +1,5 @@
 package io.apicurio.registry.rest.v3;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.Date;
-import java.util.stream.Collectors;
-
 import io.apicurio.common.apps.config.DynamicConfigPropertyDef;
 import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
 import io.apicurio.registry.rest.v3.beans.ArtifactMetaData;
@@ -34,7 +29,11 @@ import io.apicurio.registry.storage.dto.RoleMappingDto;
 import io.apicurio.registry.storage.dto.RoleMappingSearchResultsDto;
 import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
 import io.apicurio.registry.types.RoleType;
-import io.apicurio.registry.types.VersionState;
+
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.stream.Collectors;
 
 public final class V3ApiUtil {
 
@@ -43,10 +42,6 @@ public final class V3ApiUtil {
 
     /**
      * Creates a jax-rs meta-data entity from the id, type, and artifactStore meta-data.
-     *
-     * @param groupId
-     * @param artifactId
-     * @param artifactType
      * @param dto
      */
     public static ArtifactMetaData dtoToArtifactMetaData(ArtifactMetaDataDto dto) {
@@ -59,39 +54,16 @@ public final class V3ApiUtil {
         metaData.setModifiedBy(dto.getModifiedBy());
         metaData.setModifiedOn(new Date(dto.getModifiedOn()));
         metaData.setName(dto.getName());
-        metaData.setType(dto.getType());
+        metaData.setArtifactType(dto.getArtifactType());
         metaData.setLabels(dto.getLabels());
         return metaData;
     }
-
-    /**
-     * @param dto
-     */
-    public static final ArtifactMetaData dtoToArtifactMetaData(ArtifactVersionMetaDataDto dto) {
-        ArtifactMetaData metaData = new ArtifactMetaData();
-        metaData.setOwner(dto.getOwner());
-        metaData.setCreatedOn(new Date(dto.getCreatedOn()));
-        metaData.setDescription(dto.getDescription());
-        metaData.setGroupId(dto.getGroupId());
-        metaData.setArtifactId(dto.getArtifactId());
-        metaData.setModifiedBy(dto.getOwner());
-        metaData.setModifiedOn(new Date(dto.getCreatedOn()));
-        metaData.setName(dto.getName());
-        metaData.setType(dto.getType());
-        metaData.setLabels(dto.getLabels());
-        return metaData;
-    }
-
 
     /**
      * Creates a jax-rs version meta-data entity from the id, type, and artifactStore meta-data.
-     *
-     * @param groupId
-     * @param artifactId
-     * @param artifactType
      * @param dto
      */
-    public static final VersionMetaData dtoToVersionMetaData(ArtifactMetaDataDto dto) {
+    public static VersionMetaData dtoToVersionMetaData(ArtifactVersionMetaDataDto dto) {
         VersionMetaData metaData = new VersionMetaData();
         metaData.setGroupId(dto.getGroupId());
         metaData.setArtifactId(dto.getArtifactId());
@@ -99,28 +71,7 @@ public final class V3ApiUtil {
         metaData.setCreatedOn(new Date(dto.getCreatedOn()));
         metaData.setDescription(dto.getDescription());
         metaData.setName(dto.getName());
-        metaData.setType(dto.getType());
-        metaData.setState(VersionState.ENABLED);
-        metaData.setLabels(dto.getLabels());
-        return metaData;
-    }
-
-    /**
-     * Creates a jax-rs version meta-data entity from the id, type, and artifactStore meta-data.
-     *
-     * @param artifactId
-     * @param artifactType
-     * @param dto
-     */
-    public static final VersionMetaData dtoToVersionMetaData(ArtifactVersionMetaDataDto dto) {
-        VersionMetaData metaData = new VersionMetaData();
-        metaData.setGroupId(dto.getGroupId());
-        metaData.setArtifactId(dto.getArtifactId());
-        metaData.setOwner(dto.getOwner());
-        metaData.setCreatedOn(new Date(dto.getCreatedOn()));
-        metaData.setDescription(dto.getDescription());
-        metaData.setName(dto.getName());
-        metaData.setType(dto.getType());
+        metaData.setArtifactType(dto.getArtifactType());
         metaData.setVersion(dto.getVersion());
         metaData.setGlobalId(dto.getGlobalId());
         metaData.setContentId(dto.getContentId());
@@ -136,7 +87,7 @@ public final class V3ApiUtil {
      * @param editableArtifactMetaData
      * @return the updated ArtifactMetaDataDto object
      */
-    public static final ArtifactMetaDataDto setEditableMetaDataInArtifact(ArtifactMetaDataDto dto, EditableArtifactMetaDataDto editableArtifactMetaData) {
+    public static ArtifactMetaDataDto setEditableMetaDataInArtifact(ArtifactMetaDataDto dto, EditableArtifactMetaDataDto editableArtifactMetaData) {
         if (editableArtifactMetaData.getName() != null) {
             dto.setName(editableArtifactMetaData.getName());
         }
@@ -179,7 +130,7 @@ public final class V3ApiUtil {
             sa.setModifiedBy(artifact.getModifiedBy());
             sa.setModifiedOn(artifact.getModifiedOn());
             sa.setName(artifact.getName());
-            sa.setType(artifact.getType());
+            sa.setArtifactType(artifact.getArtifactType());
             results.getArtifacts().add(sa);
         });
         return results;
@@ -208,6 +159,9 @@ public final class V3ApiUtil {
         results.setVersions(new ArrayList<>(dto.getVersions().size()));
         dto.getVersions().forEach(version -> {
             SearchedVersion sv = new SearchedVersion();
+            sv.setGroupId(version.getGroupId());
+            sv.setArtifactId(version.getArtifactId());
+            sv.setVersion(version.getVersion());
             sv.setOwner(version.getOwner());
             sv.setCreatedOn(version.getCreatedOn());
             sv.setDescription(version.getDescription());
@@ -215,8 +169,7 @@ public final class V3ApiUtil {
             sv.setContentId(version.getContentId());
             sv.setName(version.getName());
             sv.setState(version.getState());
-            sv.setType(version.getType());
-            sv.setVersion(version.getVersion());
+            sv.setArtifactType(version.getArtifactType());
             results.getVersions().add(sv);
         });
         return results;

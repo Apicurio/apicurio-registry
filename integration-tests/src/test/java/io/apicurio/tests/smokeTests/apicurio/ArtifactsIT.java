@@ -12,7 +12,6 @@ import io.apicurio.registry.rest.client.models.IfArtifactExists;
 import io.apicurio.registry.rest.client.models.Rule;
 import io.apicurio.registry.rest.client.models.RuleType;
 import io.apicurio.registry.rest.client.models.SortOrder;
-import io.apicurio.registry.rest.client.models.VersionContent;
 import io.apicurio.registry.rest.client.models.VersionMetaData;
 import io.apicurio.registry.rest.client.models.VersionState;
 import io.apicurio.registry.rest.v2.beans.ArtifactContent;
@@ -30,7 +29,9 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -67,7 +68,7 @@ class ArtifactsIT extends ApicurioRegistryBaseIT {
         // Create an empty artifact
         CreateArtifact createArtifact = new CreateArtifact();
         createArtifact.setArtifactId(artifactId);
-        createArtifact.setType(ArtifactType.OPENAPI);
+        createArtifact.setArtifactType(ArtifactType.OPENAPI);
         createArtifact.setName(name);
         var response = registryClient.groups().byGroupId(groupId).artifacts().post(createArtifact);
         assertNotNull(response);
@@ -358,14 +359,17 @@ class ArtifactsIT extends ApicurioRegistryBaseIT {
 
         registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get();
 
-        VersionContent vc = new VersionContent();
-        vc.setContent(content);
-        vc.setContentType(ContentTypes.APPLICATION_JSON);
-        retryOp((rc) -> rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).post(vc));
+        InputStream contentIS = new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8));
+        registryClient.search().versions().post(contentIS, ContentTypes.APPLICATION_JSON, config -> {
+            config.queryParameters.groupId = groupId;
+            config.queryParameters.artifactId = artifactId;
+            config.queryParameters.offset = 0;
+            config.queryParameters.limit = 10;
+        });
 
         registryClient.search().artifacts().get(config -> {
             config.queryParameters.groupId = groupId;
-            config.queryParameters.name = artifactId;
+            config.queryParameters.artifactId = artifactId;
             config.queryParameters.offset = 0;
             config.queryParameters.limit = 10;
         });
@@ -399,10 +403,13 @@ class ArtifactsIT extends ApicurioRegistryBaseIT {
 
         registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get();
 
-        VersionContent vc = new VersionContent();
-        vc.setContent(content);
-        vc.setContentType(ContentTypes.APPLICATION_JSON);
-        retryOp((rc) -> rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).post(vc));
+        InputStream contentIS = new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8));
+        registryClient.search().versions().post(contentIS, ContentTypes.APPLICATION_JSON, config -> {
+            config.queryParameters.groupId = groupId;
+            config.queryParameters.artifactId = artifactId;
+            config.queryParameters.offset = 0;
+            config.queryParameters.limit = 10;
+        });
 
         registryClient.search().artifacts().get(config -> {
             config.queryParameters.groupId = groupId;

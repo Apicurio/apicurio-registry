@@ -66,7 +66,7 @@ public class RegistryMojoWithAutoReferencesTest extends RegistryMojoTestBase {
         RegisterArtifact tradeRawArtifact = new RegisterArtifact();
         tradeRawArtifact.setGroupId(groupId);
         tradeRawArtifact.setArtifactId(artifactId);
-        tradeRawArtifact.setType(ArtifactType.AVRO);
+        tradeRawArtifact.setArtifactType(ArtifactType.AVRO);
         tradeRawArtifact.setFile(tradeRawFile);
         tradeRawArtifact.setAnalyzeDirectory(true);
         tradeRawArtifact.setIfExists(IfArtifactExists.FAIL);
@@ -100,7 +100,7 @@ public class RegistryMojoWithAutoReferencesTest extends RegistryMojoTestBase {
         RegisterArtifact tableNotification = new RegisterArtifact();
         tableNotification.setGroupId(groupId);
         tableNotification.setArtifactId(artifactId);
-        tableNotification.setType(ArtifactType.PROTOBUF);
+        tableNotification.setArtifactType(ArtifactType.PROTOBUF);
         tableNotification.setFile(tableNotificationFile);
         tableNotification.setAnalyzeDirectory(true);
         tableNotification.setIfExists(IfArtifactExists.FAIL);
@@ -136,7 +136,7 @@ public class RegistryMojoWithAutoReferencesTest extends RegistryMojoTestBase {
         RegisterArtifact citizen = new RegisterArtifact();
         citizen.setGroupId(groupId);
         citizen.setArtifactId(artifactId);
-        citizen.setType(ArtifactType.JSON);
+        citizen.setArtifactType(ArtifactType.JSON);
         citizen.setFile(citizenFile);
         citizen.setAnalyzeDirectory(true);
         citizen.setIfExists(IfArtifactExists.FAIL);

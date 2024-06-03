@@ -73,7 +73,7 @@ public class IdsResourceTest extends AbstractResourceTestBase {
                 .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest")
             .then()
                 .statusCode(200)
-                .body("type", equalTo(ArtifactType.OPENAPI))
+                .body("artifactType", equalTo(ArtifactType.OPENAPI))
                 .body("groupId", equalTo(GROUP))
                 .body("contentId", equalTo(createArtifactResponse1.getVersion().getContentId().intValue()));
 
@@ -87,7 +87,7 @@ public class IdsResourceTest extends AbstractResourceTestBase {
                 .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest")
             .then()
                 .statusCode(200)
-                .body("type", equalTo(ArtifactType.OPENAPI))
+                .body("artifactType", equalTo(ArtifactType.OPENAPI))
                 .body("groupId", equalTo(GROUP))
                 .body("contentId", equalTo(createArtifactResponse2.getVersion().getContentId().intValue()));
 

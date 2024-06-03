@@ -160,9 +160,10 @@ public abstract class RegistryStorageDecoratorReadOnlyBase implements RegistrySt
         return delegate.getArtifactVersions(groupId, artifactId);
     }
 
+
     @Override
-    public VersionSearchResultsDto searchVersions(String groupId, String artifactId, OrderBy orderBy, OrderDirection orderDirection, int offset, int limit) throws RegistryStorageException {
-        return delegate.searchVersions(groupId, artifactId, orderBy, orderDirection, offset, limit);
+    public VersionSearchResultsDto searchVersions(Set<SearchFilter> filters, OrderBy orderBy, OrderDirection orderDirection, int offset, int limit) throws RegistryStorageException {
+        return delegate.searchVersions(filters, orderBy, orderDirection, offset, limit);
     }
 
 

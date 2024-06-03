@@ -71,14 +71,14 @@ public class RegistryMojoTestBase extends AbstractResourceTestBase {
         RegisterArtifact keySchemaArtifact = new RegisterArtifact();
         keySchemaArtifact.setGroupId(groupId);
         keySchemaArtifact.setArtifactId(KEY_SUBJECT);
-        keySchemaArtifact.setType(ArtifactType.AVRO);
+        keySchemaArtifact.setArtifactType(ArtifactType.AVRO);
         keySchemaArtifact.setFile(keySchemaFile);
         artifacts.add(keySchemaArtifact);
 
         RegisterArtifact valueSchemaArtifact = new RegisterArtifact();
         valueSchemaArtifact.setGroupId(groupId);
         valueSchemaArtifact.setArtifactId(VALUE_SUBJECT);
-        valueSchemaArtifact.setType(ArtifactType.AVRO);
+        valueSchemaArtifact.setArtifactType(ArtifactType.AVRO);
         valueSchemaArtifact.setFile(valueSchemaFile);
         artifacts.add(valueSchemaArtifact);
         return artifacts;

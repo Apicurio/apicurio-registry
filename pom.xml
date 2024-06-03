@@ -194,7 +194,7 @@
         <kafka-oauth-client.version>0.15.0</kafka-oauth-client.version>
         <kafka-clients.version>3.6.0</kafka-clients.version>
         <snakeyaml.version>2.2</snakeyaml.version>
-        <guava.version>33.2.0-jre</guava.version>
+        <guava.version>33.2.1-jre</guava.version>
         <woodstox-core.version>6.6.2</woodstox-core.version>
         <jgit.version>6.9.0.202403050737-r</jgit.version>
         <awaitility.version>4.2.1</awaitility.version>

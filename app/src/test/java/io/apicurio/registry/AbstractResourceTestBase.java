@@ -123,7 +123,7 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
                                                     String contentType, Consumer<CreateArtifact> requestCustomizer) throws Exception {
         CreateArtifact createArtifact = new CreateArtifact();
         createArtifact.setArtifactId(artifactId);
-        createArtifact.setType(artifactType);
+        createArtifact.setArtifactType(artifactType);
         CreateVersion createVersion = new CreateVersion();
         createArtifact.setFirstVersion(createVersion);
         VersionContent versionContent = new VersionContent();
@@ -143,7 +143,7 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
                 ;
 
         assert( result.getArtifact().getArtifactId().equals(artifactId) );
-        assert( result.getArtifact().getType().equals(artifactType) );
+        assert( result.getArtifact().getArtifactType().equals(artifactType) );
 
         return result;
     }
@@ -152,7 +152,7 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
                                                 String contentType, List<ArtifactReference> artifactReferences) throws Exception {
         var response = createArtifactExtendedRaw(groupId, artifactId, artifactType, content, contentType, artifactReferences);
 
-        assert( response.getArtifact().getType().equals(artifactType) );
+        assert( response.getArtifact().getArtifactType().equals(artifactType) );
         assert( response.getArtifact().getArtifactId().equals(artifactId) );
 
         return response;
@@ -162,7 +162,7 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
             String content, String contentType, List<ArtifactReference> versionReferences) throws Exception {
         CreateArtifact createArtifact = new CreateArtifact();
         createArtifact.setArtifactId(artifactId);
-        createArtifact.setType(artifactType);
+        createArtifact.setArtifactType(artifactType);
         CreateVersion createVersion = new CreateVersion();
         createArtifact.setFirstVersion(createVersion);
         VersionContent versionContent = new VersionContent();

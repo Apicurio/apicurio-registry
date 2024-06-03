@@ -50,8 +50,16 @@ public class SearchFilter {
         return new SearchFilter(SearchFilterType.description, value);
     }
 
-    public static SearchFilter ofGroup(String value) {
-        return new SearchFilter(SearchFilterType.group, value);
+    public static SearchFilter ofGroupId(String value) {
+        return new SearchFilter(SearchFilterType.groupId, value);
+    }
+
+    public static SearchFilter ofArtifactId(String value) {
+        return new SearchFilter(SearchFilterType.artifactId, value);
+    }
+
+    public static SearchFilter ofVersion(String value) {
+        return new SearchFilter(SearchFilterType.version, value);
     }
 
     public static SearchFilter ofCanonicalHash(String value) {

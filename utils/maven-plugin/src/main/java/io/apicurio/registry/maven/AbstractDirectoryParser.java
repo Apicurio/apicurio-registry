@@ -54,7 +54,7 @@ public abstract class AbstractDirectoryParser<Schema> {
         nestedSchema.setArtifactId(artifactId);
         nestedSchema.setGroupId(rootArtifact.getGroupId());
         nestedSchema.setContentType(rootArtifact.getContentType());
-        nestedSchema.setType(rootArtifact.getType());
+        nestedSchema.setArtifactType(rootArtifact.getArtifactType());
         nestedSchema.setMinify(rootArtifact.getMinify());
         nestedSchema.setContentType(rootArtifact.getContentType());
         nestedSchema.setIfExists(rootArtifact.getIfExists());
@@ -77,7 +77,7 @@ public abstract class AbstractDirectoryParser<Schema> {
         String groupId = artifact.getGroupId();
         String artifactId = artifact.getArtifactId();
         String version = artifact.getVersion();
-        String type = artifact.getType();
+        String type = artifact.getArtifactType();
         Boolean canonicalize = artifact.getCanonicalize();
         String ct = artifact.getContentType() == null ? ContentTypes.APPLICATION_JSON : artifact.getContentType();
         String data = null;
@@ -95,7 +95,7 @@ public abstract class AbstractDirectoryParser<Schema> {
 
         CreateArtifact createArtifact = new CreateArtifact();
         createArtifact.setArtifactId(artifactId);
-        createArtifact.setType(type);
+        createArtifact.setArtifactType(type);
 
         CreateVersion createVersion = new CreateVersion();
         createVersion.setVersion(version);

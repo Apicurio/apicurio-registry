@@ -330,7 +330,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .body("artifact.groupId", equalTo(GROUP))
                 .body("version.version", equalTo("1"))
                 .body("artifact.artifactId", equalTo("testCreateArtifact/EmptyAPI/2"))
-                .body("artifact.type", equalTo(ArtifactType.OPENAPI));
+                .body("artifact.artifactType", equalTo(ArtifactType.OPENAPI));
 
         // Try to create a duplicate artifact ID (should fail)
         given()
@@ -366,7 +366,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .then()
                 .statusCode(200)
                 .body("artifact.artifactId", equalTo("testCreateArtifact/EmptyAPI/detect"))
-                .body("artifact.type", equalTo(ArtifactType.OPENAPI));
+                .body("artifact.artifactType", equalTo(ArtifactType.OPENAPI));
 
         // Create artifact with empty content (should fail)
         createArtifact = TestUtils.serverCreateArtifact("testCreateArtifact/EmptyContent", null, "", ContentTypes.APPLICATION_JSON);
@@ -393,7 +393,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .body("artifact.groupId", equalTo(GROUP))
                 .body("version.version", equalTo("1.0.2"))
                 .body("artifact.artifactId", equalTo("testCreateArtifact/EmptyAPI-customVersion"))
-                .body("artifact.type", equalTo(ArtifactType.OPENAPI));
+                .body("artifact.artifactType", equalTo(ArtifactType.OPENAPI));
 
         // Create OpenAPI artifact - provide a custom name
         String customName = "CUSTOM NAME";
@@ -410,7 +410,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .body("artifact.groupId", equalTo(GROUP))
                 .body("artifact.name", equalTo(customName))
                 .body("artifact.artifactId", equalTo("testCreateArtifact/EmptyAPI-customName"))
-                .body("artifact.type", equalTo(ArtifactType.OPENAPI));
+                .body("artifact.artifactType", equalTo(ArtifactType.OPENAPI));
 
         // Create OpenAPI artifact - provide a custom description
         String customDescription = "CUSTOM DESCRIPTION";
@@ -427,7 +427,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .body("artifact.groupId", equalTo(GROUP))
                 .body("artifact.description", equalTo(customDescription))
                 .body("artifact.artifactId", equalTo("testCreateArtifact/EmptyAPI-customDescription"))
-                .body("artifact.type", equalTo(ArtifactType.OPENAPI));
+                .body("artifact.artifactType", equalTo(ArtifactType.OPENAPI));
     }
 
     @Test
@@ -450,7 +450,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .statusCode(200)
                 .body("artifact.groupId", equalTo(GROUP))
                 .body("artifact.artifactId", equalTo("testCreateArtifact/EmptyAPI-customNameEncoded"))
-                .body("artifact.type", equalTo(ArtifactType.OPENAPI))
+                .body("artifact.artifactType", equalTo(ArtifactType.OPENAPI))
                 .body("artifact.name", equalTo(customNoASCIIName));
 
         // Create OpenAPI artifact - provide a custom No-ASCII description
@@ -467,7 +467,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .statusCode(200)
                 .body("artifact.groupId", equalTo(GROUP))
                 .body("artifact.artifactId", equalTo("testCreateArtifact/EmptyAPI-customDescriptionEncoded"))
-                .body("artifact.type", equalTo(ArtifactType.OPENAPI))
+                .body("artifact.artifactType", equalTo(ArtifactType.OPENAPI))
                 .body("artifact.description", equalTo(customNoASCIIDescription));
     }
 
@@ -521,7 +521,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .then()
                 .statusCode(200)
                 .body("artifactId", equalTo("testUpdateArtifact/EmptyAPI"))
-                .body("type", equalTo(ArtifactType.OPENAPI));
+                .body("artifactType", equalTo(ArtifactType.OPENAPI));
 
         // Get the artifact content (should be the updated content)
         given()
@@ -572,7 +572,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .statusCode(200)
                 .body("version", equalTo("3.0.0.Final"))
                 .body("artifactId", equalTo("testUpdateArtifact/EmptyAPI"))
-                .body("type", equalTo(ArtifactType.OPENAPI));
+                .body("artifactType", equalTo(ArtifactType.OPENAPI));
 
         // Update OpenAPI artifact with a custom name
         String customName = "CUSTOM NAME";
@@ -589,7 +589,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .statusCode(200)
                 .body("name", equalTo(customName))
                 .body("artifactId", equalTo("testUpdateArtifact/EmptyAPI"))
-                .body("type", equalTo(ArtifactType.OPENAPI));
+                .body("artifactType", equalTo(ArtifactType.OPENAPI));
 
         // Update OpenAPI artifact with a custom description
         String customDescription = "CUSTOM DESCRIPTION";
@@ -606,7 +606,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .statusCode(200)
                 .body("description", equalTo(customDescription))
                 .body("artifactId", equalTo("testUpdateArtifact/EmptyAPI"))
-                .body("type", equalTo(ArtifactType.OPENAPI));
+                .body("artifactType", equalTo(ArtifactType.OPENAPI));
 
     }
 
@@ -722,7 +722,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .statusCode(200)
                 .body("name", equalTo(customNoASCIIName))
                 .body("artifactId", equalTo("testUpdateArtifactNoAscii/EmptyAPI"))
-                .body("type", equalTo(ArtifactType.OPENAPI));
+                .body("artifactType", equalTo(ArtifactType.OPENAPI));
 
         // Update OpenAPI artifact with a custom no-ascii description
         String customNoASCIIDescription = "CUSTOM DESCRIPTION with NO-ASCII char ě";
@@ -741,7 +741,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .statusCode(200)
                 .body("description", equalTo(customNoASCIIDescription))
                 .body("artifactId", equalTo("testUpdateArtifactNoAscii/EmptyAPI"))
-                .body("type", equalTo(ArtifactType.OPENAPI));
+                .body("artifactType", equalTo(ArtifactType.OPENAPI));
     }
 
     @Test
@@ -823,7 +823,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .then()
                 .statusCode(200)
                 .body("version", equalTo("2"))
-                .body("type", equalTo(ArtifactType.OPENAPI));
+                .body("artifactType", equalTo(ArtifactType.OPENAPI));
 
         //Get the artifact version 1
         given()
@@ -1045,7 +1045,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                     .then()
                     .statusCode(200)
                     .body("artifactId", equalTo(artifactId))
-                    .body("type", equalTo(ArtifactType.OPENAPI));
+                    .body("artifactType", equalTo(ArtifactType.OPENAPI));
         }
 
         // List the artifact versions
@@ -1091,7 +1091,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .then()
                 .statusCode(200)
                 .body("version", equalTo("2"))
-                .body("type", equalTo(ArtifactType.OPENAPI));
+                .body("artifactType", equalTo(ArtifactType.OPENAPI));
 
         // Get the artifact content (should be the updated content)
         given()
@@ -1141,7 +1141,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .then()
                 .statusCode(200)
                 .body("version", equalTo("3.0.0.Final"))
-                .body("type", equalTo(ArtifactType.OPENAPI));
+                .body("artifactType", equalTo(ArtifactType.OPENAPI));
 
         // Create another new version of the artifact with a custom name
         String customName = "CUSTOM NAME";
@@ -1342,7 +1342,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                     .then()
                     .statusCode(200)
                     .body("artifactId", equalTo("testGetArtifactVersion/EmptyAPI"))
-                    .body("type", equalTo(ArtifactType.OPENAPI))
+                    .body("artifactType", equalTo(ArtifactType.OPENAPI))
                     .extract().body().path("version");
             versions.add(version);
         }
@@ -1381,89 +1381,6 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/{version}")
                 .then()
                 .statusCode(404);
-    }
-
-    @Test
-    public void testGetArtifactMetaDataByContent() throws Exception {
-        String artifactContent = resourceToString("openapi-empty.json");
-
-        // Create an artifact
-        createArtifact(GROUP, "testGetArtifactMetaDataByContent/EmptyAPI", ArtifactType.OPENAPI, artifactContent, ContentTypes.APPLICATION_JSON);
-
-        // Update the artifact 5 times
-        for (int idx = 0; idx < 5; idx++) {
-            String versionContent = artifactContent.replace("Empty API", "Empty API (Update " + idx + ")");
-            io.apicurio.registry.rest.v3.beans.CreateVersion createVersion = TestUtils.serverCreateVersion(versionContent, ContentTypes.APPLICATION_JSON);
-            given()
-                    .when()
-                    .contentType(CT_JSON)
-                    .pathParam("groupId", GROUP)
-                    .pathParam("artifactId", "testGetArtifactMetaDataByContent/EmptyAPI")
-                    .body(createVersion)
-                    .post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions")
-                    .then()
-                    .statusCode(200)
-                    .body("artifactId", equalTo("testGetArtifactMetaDataByContent/EmptyAPI"))
-                    .body("groupId", equalTo(GROUP))
-                    .body("type", equalTo(ArtifactType.OPENAPI))
-                    .extract().body().path("version");
-        }
-
-        // Get meta-data by content
-        String searchContent = artifactContent.replace("Empty API", "Empty API (Update 2)");
-        Integer globalId1 = given()
-                .when()
-                .contentType(CT_JSON)
-                .pathParam("groupId", GROUP)
-                .pathParam("artifactId", "testGetArtifactMetaDataByContent/EmptyAPI")
-                .body(searchContent)
-                .post("/registry/v3/groups/{groupId}/artifacts/{artifactId}")
-                .then()
-                .statusCode(200)
-                .body("type", equalTo(ArtifactType.OPENAPI))
-                .extract().body().path("globalId");
-
-        // Now add some extra whitespace/formatting to the content and try again
-        searchContent = searchContent.replace("{", "{\n").replace("}", "\n}");
-        Integer globalId2 = given()
-                .when()
-                .contentType(CT_JSON)
-                .pathParam("groupId", GROUP)
-                .pathParam("artifactId", "testGetArtifactMetaDataByContent/EmptyAPI")
-                .queryParam("canonical", "true")
-                .body(searchContent)
-                .post("/registry/v3/groups/{groupId}/artifacts/{artifactId}")
-                .then()
-                .statusCode(200)
-                .body("type", equalTo(ArtifactType.OPENAPI))
-                .extract().body().path("globalId");
-
-        // Should return the same meta-data
-        assertEquals(globalId1, globalId2);
-
-        // Try the same (extra whitespace) content but without the "canonical=true" param (should fail with 404)
-        searchContent = searchContent.replace("{", "{\n").replace("}", "\n}");
-        given()
-                .when()
-                .contentType(CT_JSON)
-                .pathParam("groupId", GROUP)
-                .pathParam("artifactId", "testGetArtifactMetaDataByContent/EmptyAPI")
-                .body(searchContent)
-                .post("/registry/v3/groups/{groupId}/artifacts/{artifactId}")
-                .then()
-                .statusCode(404);
-
-        // Get meta-data by empty content (400 error)
-        given()
-                .when()
-                .contentType(CT_JSON)
-                .pathParam("groupId", GROUP)
-                .pathParam("artifactId", "testGetArtifactMetaDataByContent/EmptyAPI")
-                .body("")
-                .post("/registry/v3/groups/{groupId}/artifacts/{artifactId}")
-                .then()
-                .statusCode(400);
-
     }
 
     @Test
@@ -1789,7 +1706,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .statusCode(200)
                 .body("artifactId", equalTo("testGetArtifactMetaData/EmptyAPI"))
                 .body("version", anything())
-                .body("type", equalTo(ArtifactType.OPENAPI))
+                .body("artifactType", equalTo(ArtifactType.OPENAPI))
                 .body("createdOn", anything())
                 .body("name", equalTo("Empty API"))
                 .body("description", equalTo("An example API design using OpenAPI."))
@@ -1854,7 +1771,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .then()
                 .statusCode(200)
                 .body("artifactId", equalTo("testGetArtifactMetaData/EmptyAPI"))
-                .body("type", equalTo(ArtifactType.OPENAPI));
+                .body("artifactType", equalTo(ArtifactType.OPENAPI));
 
         // Verify the artifact meta-data name and description are still set.
         given()
@@ -1937,7 +1854,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .then()
                 .statusCode(200)
                 .body("version", notNullValue())
-                .body("type", equalTo(ArtifactType.OPENAPI))
+                .body("artifactType", equalTo(ArtifactType.OPENAPI))
                 .extract().body().path("version");
 
         // Create another new version of the artifact
@@ -1954,7 +1871,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .then()
                 .statusCode(200)
                 .body("version", notNullValue())
-                .body("type", equalTo(ArtifactType.OPENAPI))
+                .body("artifactType", equalTo(ArtifactType.OPENAPI))
                 .extract().body().path("version");
 
         // Get meta-data for v2
@@ -1967,7 +1884,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .then()
                 .statusCode(200)
                 .body("version", equalTo(version2))
-                .body("type", equalTo(ArtifactType.OPENAPI))
+                .body("artifactType", equalTo(ArtifactType.OPENAPI))
                 .body("createdOn", anything())
                 .body("name", equalTo("Empty API (VERSION 2)"))
                 .body("description", equalTo("An example API design using OpenAPI."))
@@ -1997,7 +1914,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .then()
                 .statusCode(200)
                 .body("version", equalTo(version2))
-                .body("type", equalTo(ArtifactType.OPENAPI))
+                .body("artifactType", equalTo(ArtifactType.OPENAPI))
                 .body("createdOn", anything())
                 .body("name", equalTo("Updated Name"))
                 .body("description", equalTo("Updated description."));
@@ -2012,7 +1929,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .then()
                 .statusCode(200)
                 .body("version", equalTo(version3))
-                .body("type", equalTo(ArtifactType.OPENAPI))
+                .body("artifactType", equalTo(ArtifactType.OPENAPI))
                 .body("createdOn", anything())
                 .body("name", equalTo("Empty API (VERSION 3)"))
                 .body("description", equalTo("An example API design using OpenAPI."));
@@ -2050,7 +1967,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .body("artifact.artifactId", equalTo(artifactId))
                 .body("artifact.name", equalTo("Empty API"))
                 .body("artifact.description", equalTo("An example API design using OpenAPI."))
-                .body("artifact.type", equalTo(artifactType));
+                .body("artifact.artifactType", equalTo(artifactType));
 
         // Get the artifact content (should still be YAML)
         RestAssured.registerParser("application/x-yaml", Parser.JSON);
@@ -2082,7 +1999,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .then()
                 .statusCode(200)
                 .body("artifact.artifactId", equalTo(artifactId))
-                .body("artifact.type", equalTo(artifactType));
+                .body("artifact.artifactType", equalTo(artifactType));
 
         // Get the artifact content (should be XML)
         given()
@@ -2131,7 +2048,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .post("/registry/v3/groups/{groupId}/artifacts")
                 .then()
                 .statusCode(200)
-                .body("artifact.type", equalTo(ArtifactType.OPENAPI))
+                .body("artifact.artifactType", equalTo(ArtifactType.OPENAPI))
                 .body("version.version", equalTo("1"))
                 .body("artifact.createdOn", anything());
 
@@ -2146,7 +2063,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .post("/registry/v3/groups/{groupId}/artifacts")
                 .then()
                 .statusCode(200)
-                .body("artifact.type", equalTo(ArtifactType.OPENAPI))
+                .body("artifact.artifactType", equalTo(ArtifactType.OPENAPI))
                 .body("artifact.createdOn", anything())
                 .body("version.version", equalTo("2"));
         /*Integer globalId2 = */
@@ -2163,7 +2080,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .post("/registry/v3/groups/{groupId}/artifacts")
                 .then()
                 .statusCode(200)
-                .body("artifact.type", equalTo(ArtifactType.OPENAPI));
+                .body("artifact.artifactType", equalTo(ArtifactType.OPENAPI));
 
         Integer globalId3 = resp.extract().body().path("version.globalId");
 
@@ -2186,7 +2103,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .body("version.version", equalTo("3"))
                 .body("version.name", equalTo(artifactName))
                 .body("version.description", equalTo(artifactDescription))
-                .body("artifact.type", equalTo(ArtifactType.OPENAPI));
+                .body("artifact.artifactType", equalTo(ArtifactType.OPENAPI));
     }
 
     @Test
@@ -2340,7 +2257,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .statusCode(200)
                 .body("artifactId", equalTo(artifactId))
                 .body("version", equalTo("1.0.1"))
-                .body("type", equalTo(ArtifactType.OPENAPI));
+                .body("artifactType", equalTo(ArtifactType.OPENAPI));
 
         // List the artifact versions
         given()
@@ -2369,7 +2286,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .statusCode(200)
                 .body("artifactId", equalTo(artifactId))
                 .body("version", equalTo("1.0.2"))
-                .body("type", equalTo(ArtifactType.OPENAPI));
+                .body("artifactType", equalTo(ArtifactType.OPENAPI));
 
         // List the artifact versions
         given()

@@ -7,14 +7,19 @@ import io.apicurio.registry.rest.client.models.CreateArtifact;
 import io.apicurio.registry.rest.client.models.CreateArtifactResponse;
 import io.apicurio.registry.rest.client.models.CreateVersion;
 import io.apicurio.registry.rest.client.models.IfArtifactExists;
+import io.apicurio.registry.rest.client.models.SortOrder;
 import io.apicurio.registry.rest.client.models.VersionContent;
 import io.apicurio.registry.rest.client.models.VersionMetaData;
+import io.apicurio.registry.rest.client.models.VersionSearchResults;
+import io.apicurio.registry.rest.client.models.VersionSortBy;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.utils.IoUtil;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -196,8 +201,6 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
                 byte[] schema = rawSchema.readAllBytes();
                 S parsed = schemaParser.parseSchema(schema, resolvedReferences);
 
-
-
                 ps = new ParsedSchemaImpl<S>()
                         .setParsedSchema(parsed)
                         .setRawSchema(schema);
@@ -253,21 +256,25 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
         String rawSchemaString = IoUtil.toString(parsedSchema.getRawSchema());
 
         return schemaCache.getByContent(rawSchemaString, contentKey -> {
-            VersionContent content = new VersionContent();
-            content.setContent(contentKey);
-            VersionMetaData artifactMetadata = client
-                    .groups()
-                    .byGroupId(artifactReference.getGroupId() == null ? "default" : artifactReference.getGroupId())
-                    .artifacts()
-                    .byArtifactId(artifactReference.getArtifactId())
-                    .post(content, config -> {
-                        config.queryParameters.canonical = true;
-                        config.headers.add("Content-Type", "application/get.extended+json");
-                    });
+            InputStream is = new ByteArrayInputStream(contentKey.getBytes(StandardCharsets.UTF_8));
+            String at = schemaParser.artifactType();
+            String ct = toContentType(at);
+            VersionSearchResults results = client.search().versions().post(is, ct, config -> {
+                config.queryParameters.groupId = artifactReference.getGroupId() == null ? "default" : artifactReference.getGroupId();
+                config.queryParameters.artifactId = artifactReference.getArtifactId();
+                config.queryParameters.canonical = true;
+                config.queryParameters.artifactType = at;
+                config.queryParameters.orderby = VersionSortBy.GlobalId;
+                config.queryParameters.order = SortOrder.Desc;
+            });
+
+            if (results.getCount() == 0) {
+                throw new RuntimeException("Could not resolve artifact reference by content: " + artifactReference);
+            }
 
             SchemaLookupResult.SchemaLookupResultBuilder<S> result = SchemaLookupResult.builder();
 
-            loadFromMetaData(artifactMetadata, result);
+            loadFromSearchedVersion(results.getVersions().get(0), result);
 
             result.parsedSchema(parsedSchema);
 
@@ -282,7 +289,7 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
         return schemaCache.getByContent(rawSchemaString, contentKey -> {
             CreateArtifact createArtifact = new CreateArtifact();
             createArtifact.setArtifactId(artifactReference.getArtifactId());
-            createArtifact.setType(schemaParser.artifactType());
+            createArtifact.setArtifactType(schemaParser.artifactType());
 
             CreateVersion version = new CreateVersion();
             version.setVersion(artifactReference.getVersion());
@@ -322,7 +329,7 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
         return schemaCache.getByContent(rawSchemaString, contentKey -> {
             CreateArtifact createArtifact = new CreateArtifact();
             createArtifact.setArtifactId(artifactReference.getArtifactId());
-            createArtifact.setType(schemaParser.artifactType());
+            createArtifact.setArtifactType(schemaParser.artifactType());
 
             CreateVersion version = new CreateVersion();
             version.setVersion(artifactReference.getVersion());

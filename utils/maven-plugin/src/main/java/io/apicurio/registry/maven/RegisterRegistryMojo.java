@@ -161,7 +161,7 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
         ContentHandle artifactContent = readContent(artifact.getFile());
 
         // Find all references in the content
-        ArtifactTypeUtilProvider provider = this.utilProviderFactory.getArtifactTypeProvider(artifact.getType());
+        ArtifactTypeUtilProvider provider = this.utilProviderFactory.getArtifactTypeProvider(artifact.getArtifactType());
         ReferenceFinder referenceFinder = provider.getReferenceFinder();
         Set<ExternalReference> externalReferences = referenceFinder.findExternalReferences(artifactContent);
 
@@ -180,7 +180,7 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
                 String artifactId = externalRef.getResource();
                 File localFile = getLocalFile(iresource.getPath());
                 RegisterArtifact refArtifact = buildFromRoot(artifact, artifactId);
-                refArtifact.setType(iresource.getType());
+                refArtifact.setArtifactType(iresource.getType());
                 refArtifact.setVersion(null);
                 refArtifact.setFile(localFile);
                 refArtifact.setContentType(getContentTypeByExtension(localFile.getName()));
@@ -207,7 +207,7 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
     }
 
     private void registerDirectory(RegisterArtifact artifact) throws IOException, ExecutionException, InterruptedException {
-        switch (artifact.getType()) {
+        switch (artifact.getArtifactType()) {
             case ArtifactType.AVRO:
                 final AvroDirectoryParser avroDirectoryParser = new AvroDirectoryParser(getClient());
                 final ParsedDirectoryWrapper<Schema> schema = avroDirectoryParser.parse(artifact.getFile());
@@ -224,7 +224,7 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
                 registerArtifact(artifact, jsonSchemaDirectoryParser.handleSchemaReferences(artifact, jsonSchema.getSchema(), jsonSchema.getSchemaContents()));
                 break;
             default:
-                throw new IllegalArgumentException(String.format("Artifact type not recognized for analyzing a directory structure %s", artifact.getType()));
+                throw new IllegalArgumentException(String.format("Artifact type not recognized for analyzing a directory structure %s", artifact.getArtifactType()));
         }
     }
 
@@ -238,7 +238,7 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
         String groupId = artifact.getGroupId();
         String artifactId = artifact.getArtifactId();
         String version = artifact.getVersion();
-        String type = artifact.getType();
+        String type = artifact.getArtifactType();
         Boolean canonicalize = artifact.getCanonicalize();
         String ct = artifact.getContentType() == null ? ContentTypes.APPLICATION_JSON : artifact.getContentType();
         String data = null;
@@ -256,7 +256,7 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
 
         CreateArtifact createArtifact = new CreateArtifact();
         createArtifact.setArtifactId(artifactId);
-        createArtifact.setType(type);
+        createArtifact.setArtifactType(type);
 
         CreateVersion createVersion = new CreateVersion();
         createVersion.setVersion(version);
@@ -372,7 +372,7 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
         nestedSchema.setArtifactId(artifactId);
         nestedSchema.setGroupId(rootArtifact.getGroupId());
         nestedSchema.setContentType(rootArtifact.getContentType());
-        nestedSchema.setType(rootArtifact.getType());
+        nestedSchema.setArtifactType(rootArtifact.getArtifactType());
         nestedSchema.setMinify(rootArtifact.getMinify());
         nestedSchema.setContentType(rootArtifact.getContentType());
         nestedSchema.setIfExists(rootArtifact.getIfExists());

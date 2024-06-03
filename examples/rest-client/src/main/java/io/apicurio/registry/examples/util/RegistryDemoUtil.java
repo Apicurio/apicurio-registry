@@ -32,7 +32,7 @@ public class RegistryDemoUtil {
 
             CreateArtifact createArtifact = new CreateArtifact();
             createArtifact.setArtifactId(artifactId);
-            createArtifact.setType("JSON");
+            createArtifact.setArtifactType("JSON");
             createArtifact.setFirstVersion(new CreateVersion());
             createArtifact.getFirstVersion().setContent(new VersionContent());
             createArtifact.getFirstVersion().getContent().setContent(IoUtil.toString(content));

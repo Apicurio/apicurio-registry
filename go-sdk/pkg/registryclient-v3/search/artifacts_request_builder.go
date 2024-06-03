@@ -11,7 +11,7 @@ type ArtifactsRequestBuilder struct {
 	i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.BaseRequestBuilder
 }
 
-// ArtifactsRequestBuilderGetQueryParameters returns a paginated list of all artifacts that match the provided filter criteria.
+// ArtifactsRequestBuilderGetQueryParameters returns a paginated list of all artifacts that match the provided filter criteria.This operation can fail for the following reasons:* A server error occurred (HTTP error `500`)
 type ArtifactsRequestBuilderGetQueryParameters struct {
 	// Filter by artifactId.
 	ArtifactId *string `uriparametername:"artifactId"`
@@ -53,12 +53,14 @@ type ArtifactsRequestBuilderGetRequestConfiguration struct {
 	QueryParameters *ArtifactsRequestBuilderGetQueryParameters
 }
 
-// ArtifactsRequestBuilderPostQueryParameters returns a paginated list of all artifacts with at least one version that matches theposted content.
+// ArtifactsRequestBuilderPostQueryParameters returns a paginated list of all artifacts with at least one version that matches theposted content.This operation can fail for the following reasons:* Provided content (request body) was empty (HTTP error `400`)* A server error occurred (HTTP error `500`)
 type ArtifactsRequestBuilderPostQueryParameters struct {
 	// Indicates the type of artifact represented by the content being used for the search.  This is only needed when using the `canonical` query parameter, so that the server knows how to canonicalize the content prior to searching for matching artifacts.
 	ArtifactType *string `uriparametername:"artifactType"`
 	// Parameter that can be set to `true` to indicate that the server should "canonicalize" the content when searching for matching artifacts.  Canonicalization is unique to each artifact type, but typically involves removing any extra whitespace and formatting the content in a consistent manner.  Must be used along with the `artifactType` query parameter.
 	Canonical *bool `uriparametername:"canonical"`
+	// Filter by artifact group.
+	GroupId *string `uriparametername:"groupId"`
 	// The number of artifacts to return.  Defaults to 20.
 	Limit *int32 `uriparametername:"limit"`
 	// The number of artifacts to skip before starting to collect the result set.  Defaults to 0.
@@ -100,7 +102,7 @@ func NewArtifactsRequestBuilder(rawUrl string, requestAdapter i2ae4187f7daee2633
 	return NewArtifactsRequestBuilderInternal(urlParams, requestAdapter)
 }
 
-// Get returns a paginated list of all artifacts that match the provided filter criteria.
+// Get returns a paginated list of all artifacts that match the provided filter criteria.This operation can fail for the following reasons:* A server error occurred (HTTP error `500`)
 func (m *ArtifactsRequestBuilder) Get(ctx context.Context, requestConfiguration *ArtifactsRequestBuilderGetRequestConfiguration) (i00eb2e63d156923d00d8e86fe16b5d74daf30e363c9f185a8165cb42aa2f2c71.ArtifactSearchResultsable, error) {
 	requestInfo, err := m.ToGetRequestInformation(ctx, requestConfiguration)
 	if err != nil {
@@ -119,13 +121,14 @@ func (m *ArtifactsRequestBuilder) Get(ctx context.Context, requestConfiguration 
 	return res.(i00eb2e63d156923d00d8e86fe16b5d74daf30e363c9f185a8165cb42aa2f2c71.ArtifactSearchResultsable), nil
 }
 
-// Post returns a paginated list of all artifacts with at least one version that matches theposted content.
+// Post returns a paginated list of all artifacts with at least one version that matches theposted content.This operation can fail for the following reasons:* Provided content (request body) was empty (HTTP error `400`)* A server error occurred (HTTP error `500`)
 func (m *ArtifactsRequestBuilder) Post(ctx context.Context, body []byte, contentType *string, requestConfiguration *ArtifactsRequestBuilderPostRequestConfiguration) (i00eb2e63d156923d00d8e86fe16b5d74daf30e363c9f185a8165cb42aa2f2c71.ArtifactSearchResultsable, error) {
 	requestInfo, err := m.ToPostRequestInformation(ctx, body, contentType, requestConfiguration)
 	if err != nil {
 		return nil, err
 	}
 	errorMapping := i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.ErrorMappings{
+		"400": i00eb2e63d156923d00d8e86fe16b5d74daf30e363c9f185a8165cb42aa2f2c71.CreateErrorFromDiscriminatorValue,
 		"500": i00eb2e63d156923d00d8e86fe16b5d74daf30e363c9f185a8165cb42aa2f2c71.CreateErrorFromDiscriminatorValue,
 	}
 	res, err := m.BaseRequestBuilder.RequestAdapter.Send(ctx, requestInfo, i00eb2e63d156923d00d8e86fe16b5d74daf30e363c9f185a8165cb42aa2f2c71.CreateArtifactSearchResultsFromDiscriminatorValue, errorMapping)
@@ -138,7 +141,7 @@ func (m *ArtifactsRequestBuilder) Post(ctx context.Context, body []byte, content
 	return res.(i00eb2e63d156923d00d8e86fe16b5d74daf30e363c9f185a8165cb42aa2f2c71.ArtifactSearchResultsable), nil
 }
 
-// ToGetRequestInformation returns a paginated list of all artifacts that match the provided filter criteria.
+// ToGetRequestInformation returns a paginated list of all artifacts that match the provided filter criteria.This operation can fail for the following reasons:* A server error occurred (HTTP error `500`)
 func (m *ArtifactsRequestBuilder) ToGetRequestInformation(ctx context.Context, requestConfiguration *ArtifactsRequestBuilderGetRequestConfiguration) (*i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestInformation, error) {
 	requestInfo := i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewRequestInformationWithMethodAndUrlTemplateAndPathParameters(i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.GET, m.BaseRequestBuilder.UrlTemplate, m.BaseRequestBuilder.PathParameters)
 	if requestConfiguration != nil {
@@ -152,7 +155,7 @@ func (m *ArtifactsRequestBuilder) ToGetRequestInformation(ctx context.Context, r
 	return requestInfo, nil
 }
 
-// ToPostRequestInformation returns a paginated list of all artifacts with at least one version that matches theposted content.
+// ToPostRequestInformation returns a paginated list of all artifacts with at least one version that matches theposted content.This operation can fail for the following reasons:* Provided content (request body) was empty (HTTP error `400`)* A server error occurred (HTTP error `500`)
 func (m *ArtifactsRequestBuilder) ToPostRequestInformation(ctx context.Context, body []byte, contentType *string, requestConfiguration *ArtifactsRequestBuilderPostRequestConfiguration) (*i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestInformation, error) {
 	requestInfo := i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewRequestInformationWithMethodAndUrlTemplateAndPathParameters(i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.POST, m.BaseRequestBuilder.UrlTemplate, m.BaseRequestBuilder.PathParameters)
 	if requestConfiguration != nil {

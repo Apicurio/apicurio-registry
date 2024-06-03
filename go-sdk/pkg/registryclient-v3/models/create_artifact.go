@@ -10,6 +10,8 @@ type CreateArtifact struct {
 	additionalData map[string]any
 	// The ID of a single artifact.
 	artifactId *string
+	// The artifactType property
+	artifactType *string
 	// The description property
 	description *string
 	// The firstVersion property
@@ -18,8 +20,6 @@ type CreateArtifact struct {
 	labels Labelsable
 	// The name property
 	name *string
-	// The type property
-	typeEscaped *string
 }
 
 // NewCreateArtifact instantiates a new CreateArtifact and sets the default values.
@@ -44,6 +44,11 @@ func (m *CreateArtifact) GetArtifactId() *string {
 	return m.artifactId
 }
 
+// GetArtifactType gets the artifactType property value. The artifactType property
+func (m *CreateArtifact) GetArtifactType() *string {
+	return m.artifactType
+}
+
 // GetDescription gets the description property value. The description property
 func (m *CreateArtifact) GetDescription() *string {
 	return m.description
@@ -59,6 +64,16 @@ func (m *CreateArtifact) GetFieldDeserializers() map[string]func(i878a80d2330e89
 		}
 		if val != nil {
 			m.SetArtifactId(val)
+		}
+		return nil
+	}
+	res["artifactType"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
+		val, err := n.GetStringValue()
+		if err != nil {
+			return err
+		}
+		if val != nil {
+			m.SetArtifactType(val)
 		}
 		return nil
 	}
@@ -102,16 +117,6 @@ func (m *CreateArtifact) GetFieldDeserializers() map[string]func(i878a80d2330e89
 		}
 		return nil
 	}
-	res["type"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
-		val, err := n.GetStringValue()
-		if err != nil {
-			return err
-		}
-		if val != nil {
-			m.SetTypeEscaped(val)
-		}
-		return nil
-	}
 	return res
 }
 
@@ -130,15 +135,16 @@ func (m *CreateArtifact) GetName() *string {
 	return m.name
 }
 
-// GetTypeEscaped gets the type property value. The type property
-func (m *CreateArtifact) GetTypeEscaped() *string {
-	return m.typeEscaped
-}
-
 // Serialize serializes information the current object
 func (m *CreateArtifact) Serialize(writer i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.SerializationWriter) error {
 	{
 		err := writer.WriteStringValue("artifactId", m.GetArtifactId())
+		if err != nil {
+			return err
+		}
+	}
+	{
+		err := writer.WriteStringValue("artifactType", m.GetArtifactType())
 		if err != nil {
 			return err
 		}
@@ -168,12 +174,6 @@ func (m *CreateArtifact) Serialize(writer i878a80d2330e89d26896388a3f487eef27b0a
 		}
 	}
 	{
-		err := writer.WriteStringValue("type", m.GetTypeEscaped())
-		if err != nil {
-			return err
-		}
-	}
-	{
 		err := writer.WriteAdditionalData(m.GetAdditionalData())
 		if err != nil {
 			return err
@@ -190,6 +190,11 @@ func (m *CreateArtifact) SetAdditionalData(value map[string]any) {
 // SetArtifactId sets the artifactId property value. The ID of a single artifact.
 func (m *CreateArtifact) SetArtifactId(value *string) {
 	m.artifactId = value
+}
+
+// SetArtifactType sets the artifactType property value. The artifactType property
+func (m *CreateArtifact) SetArtifactType(value *string) {
+	m.artifactType = value
 }
 
 // SetDescription sets the description property value. The description property
@@ -212,25 +217,20 @@ func (m *CreateArtifact) SetName(value *string) {
 	m.name = value
 }
 
-// SetTypeEscaped sets the type property value. The type property
-func (m *CreateArtifact) SetTypeEscaped(value *string) {
-	m.typeEscaped = value
-}
-
 // CreateArtifactable
 type CreateArtifactable interface {
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.AdditionalDataHolder
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.Parsable
 	GetArtifactId() *string
+	GetArtifactType() *string
 	GetDescription() *string
 	GetFirstVersion() CreateVersionable
 	GetLabels() Labelsable
 	GetName() *string
-	GetTypeEscaped() *string
 	SetArtifactId(value *string)
+	SetArtifactType(value *string)
 	SetDescription(value *string)
 	SetFirstVersion(value CreateVersionable)
 	SetLabels(value Labelsable)
 	SetName(value *string)
-	SetTypeEscaped(value *string)
 }

@@ -11,6 +11,8 @@ type SearchedArtifact struct {
 	additionalData map[string]any
 	// The ID of a single artifact.
 	artifactId *string
+	// The artifactType property
+	artifactType *string
 	// The createdOn property
 	createdOn *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time
 	// The description property
@@ -25,8 +27,6 @@ type SearchedArtifact struct {
 	name *string
 	// The owner property
 	owner *string
-	// The type property
-	typeEscaped *string
 }
 
 // NewSearchedArtifact instantiates a new SearchedArtifact and sets the default values.
@@ -51,6 +51,11 @@ func (m *SearchedArtifact) GetArtifactId() *string {
 	return m.artifactId
 }
 
+// GetArtifactType gets the artifactType property value. The artifactType property
+func (m *SearchedArtifact) GetArtifactType() *string {
+	return m.artifactType
+}
+
 // GetCreatedOn gets the createdOn property value. The createdOn property
 func (m *SearchedArtifact) GetCreatedOn() *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time {
 	return m.createdOn
@@ -71,6 +76,16 @@ func (m *SearchedArtifact) GetFieldDeserializers() map[string]func(i878a80d2330e
 		}
 		if val != nil {
 			m.SetArtifactId(val)
+		}
+		return nil
+	}
+	res["artifactType"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
+		val, err := n.GetStringValue()
+		if err != nil {
+			return err
+		}
+		if val != nil {
+			m.SetArtifactType(val)
 		}
 		return nil
 	}
@@ -144,16 +159,6 @@ func (m *SearchedArtifact) GetFieldDeserializers() map[string]func(i878a80d2330e
 		}
 		return nil
 	}
-	res["type"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
-		val, err := n.GetStringValue()
-		if err != nil {
-			return err
-		}
-		if val != nil {
-			m.SetTypeEscaped(val)
-		}
-		return nil
-	}
 	return res
 }
 
@@ -182,15 +187,16 @@ func (m *SearchedArtifact) GetOwner() *string {
 	return m.owner
 }
 
-// GetTypeEscaped gets the type property value. The type property
-func (m *SearchedArtifact) GetTypeEscaped() *string {
-	return m.typeEscaped
-}
-
 // Serialize serializes information the current object
 func (m *SearchedArtifact) Serialize(writer i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.SerializationWriter) error {
 	{
 		err := writer.WriteStringValue("artifactId", m.GetArtifactId())
+		if err != nil {
+			return err
+		}
+	}
+	{
+		err := writer.WriteStringValue("artifactType", m.GetArtifactType())
 		if err != nil {
 			return err
 		}
@@ -238,12 +244,6 @@ func (m *SearchedArtifact) Serialize(writer i878a80d2330e89d26896388a3f487eef27b
 		}
 	}
 	{
-		err := writer.WriteStringValue("type", m.GetTypeEscaped())
-		if err != nil {
-			return err
-		}
-	}
-	{
 		err := writer.WriteAdditionalData(m.GetAdditionalData())
 		if err != nil {
 			return err
@@ -260,6 +260,11 @@ func (m *SearchedArtifact) SetAdditionalData(value map[string]any) {
 // SetArtifactId sets the artifactId property value. The ID of a single artifact.
 func (m *SearchedArtifact) SetArtifactId(value *string) {
 	m.artifactId = value
+}
+
+// SetArtifactType sets the artifactType property value. The artifactType property
+func (m *SearchedArtifact) SetArtifactType(value *string) {
+	m.artifactType = value
 }
 
 // SetCreatedOn sets the createdOn property value. The createdOn property
@@ -297,16 +302,12 @@ func (m *SearchedArtifact) SetOwner(value *string) {
 	m.owner = value
 }
 
-// SetTypeEscaped sets the type property value. The type property
-func (m *SearchedArtifact) SetTypeEscaped(value *string) {
-	m.typeEscaped = value
-}
-
 // SearchedArtifactable
 type SearchedArtifactable interface {
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.AdditionalDataHolder
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.Parsable
 	GetArtifactId() *string
+	GetArtifactType() *string
 	GetCreatedOn() *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time
 	GetDescription() *string
 	GetGroupId() *string
@@ -314,8 +315,8 @@ type SearchedArtifactable interface {
 	GetModifiedOn() *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time
 	GetName() *string
 	GetOwner() *string
-	GetTypeEscaped() *string
 	SetArtifactId(value *string)
+	SetArtifactType(value *string)
 	SetCreatedOn(value *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time)
 	SetDescription(value *string)
 	SetGroupId(value *string)
@@ -323,5 +324,4 @@ type SearchedArtifactable interface {
 	SetModifiedOn(value *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time)
 	SetName(value *string)
 	SetOwner(value *string)
-	SetTypeEscaped(value *string)
 }

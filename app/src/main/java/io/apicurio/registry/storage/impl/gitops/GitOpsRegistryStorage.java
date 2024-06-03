@@ -247,6 +247,10 @@ public class GitOpsRegistryStorage extends AbstractReadOnlyRegistryStorage {
         return proxy(storage -> storage.searchArtifacts(filters, orderBy, orderDirection, offset, limit));
     }
 
+    @Override
+    public VersionSearchResultsDto searchVersions(Set<SearchFilter> filters, OrderBy orderBy, OrderDirection orderDirection, int offset, int limit) throws RegistryStorageException {
+        return proxy(storage -> storage.searchVersions(filters, orderBy, orderDirection, offset, limit));
+    }
 
     @Override
     public ArtifactMetaDataDto getArtifactMetaData(String groupId, String artifactId) {
@@ -280,11 +284,6 @@ public class GitOpsRegistryStorage extends AbstractReadOnlyRegistryStorage {
     @Override
     public List<String> getArtifactVersions(String groupId, String artifactId, ArtifactRetrievalBehavior behavior) {
         return proxy(storage -> storage.getArtifactVersions(groupId, artifactId, behavior));
-    }
-
-    @Override
-    public VersionSearchResultsDto searchVersions(String groupId, String artifactId, OrderBy orderBy, OrderDirection orderDirection, int offset, int limit) throws RegistryStorageException {
-        return proxy(storage -> storage.searchVersions(groupId, artifactId, orderBy, orderDirection, offset, limit));
     }
 
 

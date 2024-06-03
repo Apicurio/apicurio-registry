@@ -33,3 +33,8 @@ func NewSearchRequestBuilder(rawUrl string, requestAdapter i2ae4187f7daee263371c
 func (m *SearchRequestBuilder) Groups() *GroupsRequestBuilder {
 	return NewGroupsRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
 }
+
+// Versions search for versions in the registry.
+func (m *SearchRequestBuilder) Versions() *VersionsRequestBuilder {
+	return NewVersionsRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
+}

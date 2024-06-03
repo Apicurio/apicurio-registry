@@ -528,7 +528,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                         .owner(owner)
                         .modifiedOn(createdOn.getTime())
                         .modifiedBy(owner)
-                        .type(artifactType)
+                        .artifactType(artifactType)
                         .labels(labels)
                         .build();
 
@@ -925,7 +925,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                             query.bind(idx, "%" + filter.getStringValue() + "%");
                         });
                         break;
-                    case group:
+                    case groupId:
                         op = filter.isNot() ? "!=" : "=";
                         where.append("a.groupId " + op + " ?");
                         binders.add((query, idx) -> {
@@ -1094,7 +1094,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                                   ContentHandle content, List<ArtifactReferenceDto> references) {
         if (canonical) {
             var artifactMetaData = getArtifactMetaData(groupId, artifactId);
-            return utils.getCanonicalContentHash(content, artifactMetaData.getType(),
+            return utils.getCanonicalContentHash(content, artifactMetaData.getArtifactType(),
                     references, this::resolveReferences);
         } else {
             return utils.getContentHash(content, references);
@@ -1398,62 +1398,165 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
     @Override
     @Transactional
-    public VersionSearchResultsDto searchVersions(String groupId, String artifactId, OrderBy orderBy, OrderDirection orderDirection, int offset, int limit) throws RegistryStorageException {  // TODO: Rename to differentiate from other search* methods.
-        log.debug("Searching for versions of artifact {} {}", groupId, artifactId);
+    public VersionSearchResultsDto searchVersions(Set<SearchFilter> filters, OrderBy orderBy,
+            OrderDirection orderDirection, int offset, int limit) throws RegistryStorageException {
+
+        log.debug("Searching for versions");
         return handles.withHandleNoException(handle -> {
-            VersionSearchResultsDto rval = new VersionSearchResultsDto();
+            List<SqlStatementVariableBinder> binders = new LinkedList<>();
+            String op;
 
-            Integer count = handle.createQuery(sqlStatements.selectAllArtifactVersionsCount())
-                    .bind(0, normalizeGroupId(groupId))
-                    .bind(1, artifactId)
-                    .mapTo(Integer.class)
-                    .one();
-            rval.setCount(count);
+            StringBuilder selectTemplate = new StringBuilder();
+            StringBuilder where = new StringBuilder();
+            StringBuilder orderByQuery = new StringBuilder();
+            StringBuilder limitOffset = new StringBuilder();
 
-            if (!isArtifactExists(groupId, artifactId)) {
-                throw new ArtifactNotFoundException(groupId, artifactId);
+            // Formulate the SELECT clause for the query
+            selectTemplate.append("SELECT {{selectColumns}} FROM versions v JOIN artifacts a ON v.groupId = a.groupId AND v.artifactId = a.artifactId");
+
+            // Formulate the WHERE clause for both queries
+            where.append(" WHERE (1 = 1)");
+            for (SearchFilter filter : filters) {
+                where.append(" AND (");
+                switch (filter.getType()) {
+                    case groupId:
+                        op = filter.isNot() ? "!=" : "=";
+                        where.append("a.groupId " + op + " ?");
+                        binders.add((query, idx) -> {
+                            query.bind(idx, normalizeGroupId(filter.getStringValue()));
+                        });
+                        break;
+                    case artifactId:
+                    case contentId:
+                    case globalId:
+                    case version:
+                        op = filter.isNot() ? "!=" : "=";
+                        where.append("v.");
+                        where.append(filter.getType().name());
+                        where.append(" ");
+                        where.append(op);
+                        where.append(" ?");
+                        binders.add((query, idx) -> {
+                            query.bind(idx, filter.getStringValue());
+                        });
+                        break;
+                    case name:
+                    case description:
+                        op = filter.isNot() ? "NOT LIKE" : "LIKE";
+                        where.append("v.");
+                        where.append(filter.getType().name());
+                        where.append(" ");
+                        where.append(op);
+                        where.append(" ?");
+                        binders.add((query, idx) -> {
+                            query.bind(idx, "%" + filter.getStringValue() + "%");
+                        });
+                        break;
+                    case labels:
+                        op = filter.isNot() ? "!=" : "=";
+                        Pair<String, String> label = filter.getLabelFilterValue();
+                        //    Note: convert search to lowercase when searching for labels (case-insensitivity support).
+                        String labelKey = label.getKey().toLowerCase();
+                        where.append("EXISTS(SELECT l.* FROM version_labels l WHERE l.labelKey " + op + " ?");
+                        binders.add((query, idx) -> {
+                            query.bind(idx, labelKey);
+                        });
+                        if (label.getValue() != null) {
+                            String labelValue = label.getValue().toLowerCase();
+                            where.append(" AND l.labelValue " + op + " ?");
+                            binders.add((query, idx) -> {
+                                query.bind(idx, labelValue);
+                            });
+                        }
+                        where.append(" AND l.globalId = v.globalId)");
+                        break;
+                    case contentHash:
+                        op = filter.isNot() ? "!=" : "=";
+                        where.append("EXISTS(SELECT c.* FROM content c WHERE c.contentId = v.contentId AND ");
+                        where.append("c.contentHash " + op + " ?");
+                        binders.add((query, idx) -> {
+                            query.bind(idx, filter.getStringValue());
+                        });
+                        where.append(")");
+                        break;
+                    case canonicalHash:
+                        op = filter.isNot() ? "!=" : "=";
+                        where.append("EXISTS(SELECT c.* FROM content c WHERE c.contentId = v.contentId AND ");
+                        where.append("c.canonicalHash " + op + " ?");
+                        binders.add((query, idx) -> {
+                            query.bind(idx, filter.getStringValue());
+                        });
+                        where.append(")");
+                        break;
+                    default:
+                        break;
+                }
+                where.append(")");
             }
 
-            StringBuilder selectAllArtifactVersions = new StringBuilder();
-            selectAllArtifactVersions.append(sqlStatements.selectAllArtifactVersions());
-            selectAllArtifactVersions.append(" ORDER BY ");
+            // Add order by to artifact query
             switch (orderBy) {
+                case globalId:
+                    orderByQuery.append(" ORDER BY v.globalId");
+                    break;
+                case version:
+                    orderByQuery.append(" ORDER BY v.version");
+                    break;
                 case name:
-                    selectAllArtifactVersions.append("v.name");
+                    orderByQuery.append(" ORDER BY v.name");
                     break;
                 case createdOn:
-                    selectAllArtifactVersions.append("v.createdOn");
+                    orderByQuery.append(" ORDER BY v.createdOn");
                     break;
-                case globalId:
-                    selectAllArtifactVersions.append("v.globalId");
+                case modifiedOn:
+                    orderByQuery.append(" ORDER BY v.modifiedOn");
+                    break;
+                default:
                     break;
             }
-            selectAllArtifactVersions.append(orderDirection == OrderDirection.asc ? " ASC " : " DESC ");
+            orderByQuery.append(" ").append(orderDirection.name());
+
+            // Add limit and offset to artifact query
             if ("mssql".equals(sqlStatements.dbType())) {
-                // OFFSET ? ROWS FETCH NEXT ? ROWS ONLY
-                selectAllArtifactVersions.append("OFFSET ");
-                selectAllArtifactVersions.append(offset);
-                selectAllArtifactVersions.append(" ROWS FETCH NEXT ");
-                selectAllArtifactVersions.append(limit);
-                selectAllArtifactVersions.append("ROWS ONLY");
+                limitOffset.append(" OFFSET ? ROWS FETCH NEXT ? ROWS ONLY");
             } else {
-                // LIMIT ? OFFSET ?
-                selectAllArtifactVersions.append("LIMIT ");
-                selectAllArtifactVersions.append(limit);
-                selectAllArtifactVersions.append(" OFFSET ");
-                selectAllArtifactVersions.append(offset);
+                limitOffset.append(" LIMIT ? OFFSET ?");
             }
 
-            Query query = handle.createQuery(selectAllArtifactVersions.toString())
-                    .bind(0, normalizeGroupId(groupId))
-                    .bind(1, artifactId);
+            // Query for the group
+            String groupsQuerySql = new StringBuilder(selectTemplate)
+                    .append(where)
+                    .append(orderByQuery)
+                    .append(limitOffset)
+                    .toString()
+                    .replace("{{selectColumns}}", "v.*, a.type");
+            Query groupsQuery = handle.createQuery(groupsQuerySql);
+            // Query for the total row count
+            String countQuerySql = new StringBuilder(selectTemplate)
+                    .append(where)
+                    .toString()
+                    .replace("{{selectColumns}}", "count(v.globalId)");
+            Query countQuery = handle.createQuery(countQuerySql);
 
-            List<SearchedVersionDto> versions = query
-                    .map(SearchedVersionMapper.instance)
-                    .list();
-            rval.setVersions(versions);
+            // Bind all query parameters
+            int idx = 0;
+            for (SqlStatementVariableBinder binder : binders) {
+                binder.bind(groupsQuery, idx);
+                binder.bind(countQuery, idx);
+                idx++;
+            }
+            groupsQuery.bind(idx++, limit);
+            groupsQuery.bind(idx++, offset);
 
-            return rval;
+            // Execute query
+            List<SearchedVersionDto> versions = groupsQuery.map(SearchedVersionMapper.instance).list();
+            // Execute count query
+            Integer count = countQuery.mapTo(Integer.class).one();
+
+            VersionSearchResultsDto results = new VersionSearchResultsDto();
+            results.setVersions(versions);
+            results.setCount(count);
+            return results;
         });
     }
 
@@ -2600,13 +2703,13 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                             query.bind(idx, "%" + filter.getStringValue() + "%");
                         });
                         break;
-                    case group:
-                        op = filter.isNot() ? "NOT LIKE" : "LIKE";
+                    case groupId:
+                        op = filter.isNot() ? "!=" : "=";
                         where.append("g.groupId ");
                         where.append(op);
                         where.append(" ?");
                         binders.add((query, idx) -> {
-                            query.bind(idx, "%" + filter.getStringValue() + "%");
+                            query.bind(idx, filter.getStringValue());
                         });
                         break;
                     case labels:
@@ -2646,8 +2749,12 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             }
             orderByQuery.append(" ").append(orderDirection.name());
 
-            // Add limit and offset to artifact query
-            limitOffset.append(" LIMIT ? OFFSET ?");
+            // Add limit and offset to query
+            if ("mssql".equals(sqlStatements.dbType())) {
+                limitOffset.append(" OFFSET ? ROWS FETCH NEXT ? ROWS ONLY");
+            } else {
+                limitOffset.append(" LIMIT ? OFFSET ?");
+            }
 
             // Query for the group
             String groupsQuerySql = new StringBuilder(selectTemplate)
@@ -2674,7 +2781,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             groupsQuery.bind(idx++, limit);
             groupsQuery.bind(idx++, offset);
 
-            // Execute artifact query
+            // Execute query
             List<SearchedGroupDto> groups = groupsQuery.map(SearchedGroupMapper.instance).list();
             // Execute count query
             Integer count = countQuery.mapTo(Integer.class).one();

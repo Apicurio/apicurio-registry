@@ -42,7 +42,7 @@ class MetadataIT extends ApicurioRegistryBaseIT {
         assertThat(artifactMetaData.getCreatedOn().toInstant().toEpochMilli(), OrderingComparison.greaterThan(0L));
         assertThat(artifactMetaData.getModifiedOn().toInstant().toEpochMilli(), OrderingComparison.greaterThan(0L));
         assertThat(artifactMetaData.getArtifactId(), is(artifactId));
-        assertThat(artifactMetaData.getType(), is("AVRO"));
+        assertThat(artifactMetaData.getArtifactType(), is("AVRO"));
 
         EditableArtifactMetaData emd = new EditableArtifactMetaData();
 
@@ -56,7 +56,7 @@ class MetadataIT extends ApicurioRegistryBaseIT {
             LOGGER.info("Got metadata of artifact with ID {}: {}", artifactId, amd);
 
             assertThat(amd.getArtifactId(), is(artifactId));
-            assertThat(amd.getType(), is("AVRO"));
+            assertThat(amd.getArtifactType(), is("AVRO"));
             assertThat(amd.getDescription(), is("The description of the artifact."));
             assertThat(amd.getName(), is("Artifact Updated Name"));
         });
@@ -85,7 +85,7 @@ class MetadataIT extends ApicurioRegistryBaseIT {
         LOGGER.info("Got metadata of artifact with ID {}: {}", artifactId, versionMetaData);
 
         assertThat(versionMetaData.getVersion(), is("2"));
-        assertThat(versionMetaData.getType(), is("AVRO"));
+        assertThat(versionMetaData.getArtifactType(), is("AVRO"));
 
         EditableVersionMetaData emd = new EditableVersionMetaData();
         emd.setName("Version 2 Name");
@@ -97,7 +97,7 @@ class MetadataIT extends ApicurioRegistryBaseIT {
 
         LOGGER.info("Got metadata of artifact with ID {} version 1: {}", artifactId, versionMetaData);
         assertThat(versionMetaData.getVersion(), is("1"));
-        assertThat(versionMetaData.getType(), is("AVRO"));
+        assertThat(versionMetaData.getArtifactType(), is("AVRO"));
         assertThat(versionMetaData.getName(), is("Version 1 Name"));
         assertThat(versionMetaData.getDescription(),  nullValue());
     }

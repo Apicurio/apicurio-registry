@@ -104,7 +104,7 @@ public class LimitsTest extends AbstractResourceTestBase {
         var exception2 = Assertions.assertThrows(io.apicurio.registry.rest.client.models.Error.class, () -> {
             CreateArtifact createArtifact = new CreateArtifact();
             createArtifact.setArtifactId(artifactId);
-            createArtifact.setType(ArtifactType.JSON);
+            createArtifact.setArtifactType(ArtifactType.JSON);
             CreateVersion createVersion = new CreateVersion();
             createArtifact.setFirstVersion(createVersion);
             VersionContent versionContent = new VersionContent();

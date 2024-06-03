@@ -32,7 +32,7 @@
                                     <groupId>avro-maven-with-references</groupId>
                                     <artifactId>TradeKey</artifactId>
                                     <version>2.0</version>
-                                    <type>AVRO</type>
+                                    <artifactType>AVRO</artifactType>
                                     <file>
                                         ${project.basedir}/src/main/resources/schemas/TradeKey.avsc
                                     </file>
@@ -44,7 +44,7 @@
                                             <groupId>test-group</groupId>
                                             <artifactId>Exchange</artifactId>
                                             <version>2.0</version>
-                                            <type>AVRO</type>
+                                            <artifactType>AVRO</artifactType>
                                             <file>
                                                 ${project.basedir}/src/main/resources/schemas/Exchange.avsc
                                             </file>

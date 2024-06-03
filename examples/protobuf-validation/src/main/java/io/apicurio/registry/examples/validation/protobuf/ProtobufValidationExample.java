@@ -87,7 +87,7 @@ public class ProtobufValidationExample {
 
         CreateArtifact createArtifact = new CreateArtifact();
         createArtifact.setArtifactId(artifactId);
-        createArtifact.setType(ArtifactType.PROTOBUF);
+        createArtifact.setArtifactType(ArtifactType.PROTOBUF);
         createArtifact.setFirstVersion(new CreateVersion());
         createArtifact.getFirstVersion().setContent(new VersionContent());
         createArtifact.getFirstVersion().getContent().setContent(IoUtil.toString(SCHEMA.getBytes(StandardCharsets.UTF_8)));

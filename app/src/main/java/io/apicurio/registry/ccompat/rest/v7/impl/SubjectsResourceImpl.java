@@ -44,14 +44,14 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
     public List<String> listSubjects(String subjectPrefix, Boolean deleted, String groupId) {
         //Since contexts are not supported, subjectPrefix is not used
         final boolean fdeleted = deleted == null ? Boolean.FALSE : deleted;
-        Set<SearchFilter> filters = new HashSet<>(Set.of(SearchFilter.ofGroup(groupId)));
+        Set<SearchFilter> filters = new HashSet<>(Set.of(SearchFilter.ofGroupId(groupId)));
         if (!fdeleted) {
             filters.add(SearchFilter.ofState(VersionState.DISABLED).negated());
         }
         ArtifactSearchResultsDto searchResults = storage.searchArtifacts(filters, 
                 OrderBy.createdOn, OrderDirection.asc, 0, cconfig.maxSubjects.get());
         return searchResults.getArtifacts().stream()
-                .filter(searchedArtifactDto -> isCcompatManagedType(searchedArtifactDto.getType()) /* && shouldFilterState(fdeleted, searchedArtifactDto.getState())*/)
+                .filter(searchedArtifactDto -> isCcompatManagedType(searchedArtifactDto.getArtifactType()) /* && shouldFilterState(fdeleted, searchedArtifactDto.getState())*/)
                 .map(SearchedArtifactDto::getArtifactId)
                 .collect(Collectors.toList());
     }

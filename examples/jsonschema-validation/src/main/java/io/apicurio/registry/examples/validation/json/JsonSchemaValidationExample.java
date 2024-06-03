@@ -95,7 +95,7 @@ public class JsonSchemaValidationExample {
 
         CreateArtifact createArtifact = new CreateArtifact();
         createArtifact.setArtifactId(artifactId);
-        createArtifact.setType(ArtifactType.JSON);
+        createArtifact.setArtifactType(ArtifactType.JSON);
         createArtifact.setFirstVersion(new CreateVersion());
         createArtifact.getFirstVersion().setContent(new VersionContent());
         createArtifact.getFirstVersion().getContent().setContent(

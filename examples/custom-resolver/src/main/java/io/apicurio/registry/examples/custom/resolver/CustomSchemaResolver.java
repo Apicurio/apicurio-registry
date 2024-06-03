@@ -74,7 +74,7 @@ public class CustomSchemaResolver<D> extends AbstractSchemaResolver<Schema, D> {
 
             CreateArtifact createArtifact = new CreateArtifact();
             createArtifact.setArtifactId(artifactId);
-            createArtifact.setType(ArtifactType.AVRO);
+            createArtifact.setArtifactType(ArtifactType.AVRO);
             createArtifact.setFirstVersion(new CreateVersion());
             createArtifact.getFirstVersion().setContent(new VersionContent());
             createArtifact.getFirstVersion().getContent().setContent(IoUtil.toString(schemaContent));

@@ -89,6 +89,7 @@ import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.util.DtoUtil;
 import io.apicurio.registry.utils.IoUtil;
+import io.apicurio.registry.utils.StringUtil;
 import io.apicurio.registry.utils.impexp.ArtifactBranchEntity;
 import io.apicurio.registry.utils.impexp.ArtifactRuleEntity;
 import io.apicurio.registry.utils.impexp.ArtifactVersionEntity;
@@ -3412,11 +3413,17 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
     @Override
     public String createSnapshot(String location) throws RegistryStorageException {
-        log.debug("Creating internal database snapshot to location {}.", location);
-        handles.withHandleNoException(handle -> {
-            handle.createQuery(sqlStatements.createDataSnapshot())
-                    .bind(0, location).mapTo(Integer.class);
-        });
-        return location;
+        if (!StringUtil.isEmpty(location)) {
+            log.debug("Creating internal database snapshot to location {}.", location);
+            handles.withHandleNoException(handle -> {
+                handle.createQuery(sqlStatements.createDataSnapshot())
+                        .bind(0, location).mapTo(Integer.class);
+            });
+            return location;
+        }
+        else {
+            log.warn("Skipping database snapshot because no location has been provided");
+        }
+        return null;
     }
 }

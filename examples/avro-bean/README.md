@@ -1,4 +1,4 @@
-# simple-avro-downstream
+# avro-bean
 
 This is an Apicurio Registry example. For more information about Apicurio Registry see https://www.apicur.io/registry/
 
@@ -12,9 +12,9 @@ scenario with Avro as the serialization type.  The following aspects are demonst
 <li>Configuring a Kafka Serializer for use with Apicurio Registry</li>
 <li>Configuring a Kafka Deserializer for use with Apicurio Registry</li>
 <li>Auto-register the Avro schema in the registry (registered by the producer)</li>
-<li>Data sent as a simple GenericRecord, no java beans needed</li>
+<li>Data sent as a {@link GreetingBean}</li>
 </ol>
-<p>
+
 Pre-requisites:
 
 <ul>
@@ -23,4 +23,5 @@ Pre-requisites:
 </ul>
 
 @author eric.wittmann@gmail.com
+@author carles.arnal@redhat.com
 

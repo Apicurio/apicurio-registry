@@ -1,4 +1,4 @@
-# simple-avro-downstream
+# simple-json
 
 This is an Apicurio Registry example. For more information about Apicurio Registry see https://www.apicur.io/registry/
 
@@ -6,15 +6,20 @@ This is an Apicurio Registry example. For more information about Apicurio Regist
 
 
 This example demonstrates how to use the Apicurio Registry in a very simple publish/subscribe
-scenario with Avro as the serialization type.  The following aspects are demonstrated:
+scenario with JSON as the serialization type (and JSON Schema for validation).  Because JSON
+Schema is only used for validation (not actual serialization), it can be enabled and disabled
+without affecting the functionality of the serializers and deserializers.  However, if
+validation is disabled, then incorrect data could be consumed incorrectly.
+
+The following aspects are demonstrated:
 
 <ol>
+<li>Register the JSON Schema in the registry</li>
 <li>Configuring a Kafka Serializer for use with Apicurio Registry</li>
 <li>Configuring a Kafka Deserializer for use with Apicurio Registry</li>
-<li>Auto-register the Avro schema in the registry (registered by the producer)</li>
-<li>Data sent as a simple GenericRecord, no java beans needed</li>
+<li>Data sent as a MessageBean</li>
 </ol>
-<p>
+
 Pre-requisites:
 
 <ul>

@@ -104,7 +104,7 @@ export const VersionPage: FunctionComponent<ArtifactVersionPageProps> = () => {
     };
 
     const showDocumentationTab = (): boolean => {
-        return artifact?.type === "OPENAPI" && artifactVersion?.state !== "DISABLED";
+        return artifact?.artifactType === "OPENAPI" && artifactVersion?.state !== "DISABLED";
     };
 
     const doDownloadVersion = (): void => {
@@ -112,23 +112,23 @@ export const VersionPage: FunctionComponent<ArtifactVersionPageProps> = () => {
 
         let contentType: string = ContentTypes.APPLICATION_JSON;
         let fext: string = "json";
-        if (artifact?.type === ArtifactTypes.PROTOBUF) {
+        if (artifact?.artifactType === ArtifactTypes.PROTOBUF) {
             contentType = ContentTypes.APPLICATION_PROTOBUF;
             fext = "proto";
         }
-        if (artifact?.type === ArtifactTypes.WSDL) {
+        if (artifact?.artifactType === ArtifactTypes.WSDL) {
             contentType = ContentTypes.APPLICATION_XML;
             fext = "wsdl";
         }
-        if (artifact?.type === ArtifactTypes.XSD) {
+        if (artifact?.artifactType === ArtifactTypes.XSD) {
             contentType = ContentTypes.APPLICATION_XML;
             fext = "xsd";
         }
-        if (artifact?.type === ArtifactTypes.XML) {
+        if (artifact?.artifactType === ArtifactTypes.XML) {
             contentType = ContentTypes.APPLICATION_XML;
             fext = "xml";
         }
-        if (artifact?.type === ArtifactTypes.GRAPHQL) {
+        if (artifact?.artifactType === ArtifactTypes.GRAPHQL) {
             contentType = ContentTypes.APPLICATION_JSON;
             fext = "graphql";
         }
@@ -212,10 +212,10 @@ export const VersionPage: FunctionComponent<ArtifactVersionPageProps> = () => {
             />
         </Tab>,
         <Tab data-testid="documentation-tab" eventKey="documentation" title="Documentation" key="documentation" className="documentation-tab">
-            <DocumentationTabContent versionContent={versionContent} artifactType={artifact?.type as string} />
+            <DocumentationTabContent versionContent={versionContent} artifactType={artifact?.artifactType as string} />
         </Tab>,
         <Tab data-testid="content-tab" eventKey="content" title="Content" key="content">
-            <ContentTabContent versionContent={versionContent} artifactType={artifact?.type as string} />
+            <ContentTabContent versionContent={versionContent} artifactType={artifact?.artifactType as string} />
         </Tab>,
         <Tab data-testid="references-tab" eventKey="references" title="References" key="references">
             <ReferencesTabContent version={artifactVersion as VersionMetaData} />

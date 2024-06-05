@@ -328,7 +328,7 @@ export const ArtifactPage: FunctionComponent<ArtifactPageProps> = () => {
                 onEditMetaData={doEditMetaData}
             />
             <CreateVersionModal
-                artifactType={artifact?.type || ""}
+                artifactType={artifact?.artifactType || ""}
                 isOpen={isCreateVersionModalOpen}
                 onClose={() => setIsCreateVersionModalOpen(false)}
                 onCreate={doCreateArtifactVersion}

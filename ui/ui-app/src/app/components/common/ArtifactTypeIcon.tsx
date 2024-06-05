@@ -6,7 +6,7 @@ import { ArtifactTypes } from "@services/useArtifactTypesService.ts";
  * Properties
  */
 export type ArtifactTypeIconProps = {
-    type: string;
+    artifactType: string;
 };
 
 /**
@@ -15,7 +15,7 @@ export type ArtifactTypeIconProps = {
 export const ArtifactTypeIcon: FunctionComponent<ArtifactTypeIconProps> = (props: ArtifactTypeIconProps) => {
 
     return (
-        <div className={ArtifactTypes.getClassNames(props.type)} title={ArtifactTypes.getTitle(props.type)} />
+        <div className={ArtifactTypes.getClassNames(props.artifactType)} title={ArtifactTypes.getTitle(props.artifactType)} />
     );
 
 };

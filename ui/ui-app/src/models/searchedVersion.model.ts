@@ -3,7 +3,7 @@ export interface SearchedVersion {
     globalId: number;
     contentId: number|null;
     version: string;
-    type: string;
+    artifactType: string;
     state: string;
     name: string;
     description: string;

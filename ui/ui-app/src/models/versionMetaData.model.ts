@@ -11,6 +11,6 @@ export interface VersionMetaData {
     contentId: number;
     globalId: number;
     state: string;
-    type: string;
+    artifactType: string;
 
 }

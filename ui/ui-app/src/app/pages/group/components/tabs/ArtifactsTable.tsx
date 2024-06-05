@@ -64,7 +64,7 @@ export const ArtifactsTable: FunctionComponent<ArtifactsTableProps> = (props: Ar
         // Type.
         if (colIndex === 1) {
             return (
-                <ArtifactTypeIcon type={column.type} />
+                <ArtifactTypeIcon artifactType={column.artifactType} />
             );
         }
         // Created on.

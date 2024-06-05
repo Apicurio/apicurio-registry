@@ -56,7 +56,7 @@ export const ArtifactInfoTabContent: FunctionComponent<ArtifactInfoTabContentPro
                     <CardTitle>
                         <div className="title-and-type">
                             <Flex>
-                                <FlexItem className="type"><ArtifactTypeIcon type={props.artifact.type} /></FlexItem>
+                                <FlexItem className="type"><ArtifactTypeIcon artifactType={props.artifact.artifactType} /></FlexItem>
                                 <FlexItem className="title">Artifact metadata</FlexItem>
                                 <FlexItem className="actions" align={{ default: "alignRight" }}>
                                     <IfAuth isDeveloper={true}>

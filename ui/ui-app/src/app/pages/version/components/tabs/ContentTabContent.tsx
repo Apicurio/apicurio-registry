@@ -19,18 +19,18 @@ const getEditorMode = (artifactType: string, content: string): string => {
     const ct: string = detectContentType(artifactType, content);
     return TYPE_MAP[ct];
 };
-//
-// const formatContent = (artifactContent: string): string => {
-//     try {
-//         const pval: any = JSON.parse(artifactContent);
-//         if (pval) {
-//             return JSON.stringify(pval, null, 2);
-//         }
-//     } catch (e) {
-//         // Do nothing
-//     }
-//     return artifactContent;
-// };
+
+const formatJsonContent = (artifactContent: string): string => {
+    try {
+        const pval: any = JSON.parse(artifactContent);
+        if (pval) {
+            return JSON.stringify(pval, null, 2);
+        }
+    } catch (e) {
+        // Do nothing
+    }
+    return artifactContent;
+};
 
 
 /**
@@ -46,8 +46,11 @@ export type ContentTabContentProps = {
  * Models the content of the Artifact Content tab.
  */
 export const ContentTabContent: FunctionComponent<ContentTabContentProps> = (props: ContentTabContentProps) => {
-    const [content, setContent] = useState(props.versionContent);
-    const [editorMode, setEditorMode] = useState(getEditorMode(props.artifactType, props.versionContent));
+    const em: string = getEditorMode(props.artifactType, props.versionContent);
+    const fc: string = em === "json" ? formatJsonContent(props.versionContent) : props.versionContent;
+
+    const [content, setContent] = useState(fc);
+    const [editorMode, setEditorMode] = useState(em);
     const [compactButtons, setCompactButtons] = useState(false);
 
     const { ref, width = 0, height = 0 } = useResizeObserver<HTMLDivElement>();
@@ -61,18 +64,20 @@ export const ContentTabContent: FunctionComponent<ContentTabContentProps> = (pro
         if (mode === editorMode) {
             return;
         } else {
-            let content: string = `Error formatting code to: ${mode}`;
+            let newContent: string = `Error formatting code to: ${mode}`;
             try {
                 if (mode === "yaml") {
-                    content = YAML.stringify(JSON.parse(content), null, 4);
+                    newContent = YAML.stringify(JSON.parse(content), null, 4);
+                    console.info("NEW CONTENT (yaml): ", newContent);
                 } else {
-                    content = JSON.stringify(YAML.parse(content), null, 2);
+                    newContent = JSON.stringify(YAML.parse(content), null, 2);
+                    console.info("NEW CONTENT (json): ", newContent);
                 }
             } catch (e) {
                 handleInvalidContentError(e);
             }
             setEditorMode(mode);
-            setContent(content);
+            setContent(newContent);
         }
     };
 

@@ -37,7 +37,7 @@ export const ArtifactList: FunctionComponent<ArtifactListProps> = (props: Artifa
         if (artifact.description) {
             return artifact.description;
         }
-        return `An artifact of type ${artifact.type} with no description.`;
+        return `An artifact of type ${artifact.artifactType} with no description.`;
     };
 
     return (
@@ -48,7 +48,7 @@ export const ArtifactList: FunctionComponent<ArtifactListProps> = (props: Artifa
                         <DataListItemCells
                             dataListCells={[
                                 <DataListCell key="type icon" className="type-icon-cell">
-                                    <ArtifactTypeIcon type={artifact.type}/>
+                                    <ArtifactTypeIcon artifactType={artifact.artifactType}/>
                                 </DataListCell>,
                                 <DataListCell key="main content" className="content-cell">
                                     <div className="artifact-title">

@@ -2,7 +2,7 @@ export interface SearchedArtifact {
 
     groupId: string|null;
     artifactId: string;
-    type: string;
+    artifactType: string;
     state: string;
     name: string;
     description: string;

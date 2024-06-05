@@ -51,7 +51,7 @@ export const InfoTabContent: FunctionComponent<InfoTabContentProps> = (props: In
                     <CardTitle>
                         <div className="title-and-type">
                             <Flex>
-                                <FlexItem className="type"><ArtifactTypeIcon type={props.artifact.type} /></FlexItem>
+                                <FlexItem className="type"><ArtifactTypeIcon artifactType={props.artifact.artifactType} /></FlexItem>
                                 <FlexItem className="title">Version metadata</FlexItem>
                                 <FlexItem className="actions" align={{ default: "alignRight" }}>
                                     <IfAuth isDeveloper={true}>

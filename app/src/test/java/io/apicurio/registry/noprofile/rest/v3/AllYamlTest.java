@@ -92,7 +92,6 @@ public class AllYamlTest extends AbstractResourceTestBase {
 
     @Test
     public void testCreateYamlArtifact() throws Exception {
-        System.out.println(YAML_CONTENT);
         String groupId = TestUtils.generateGroupId();
         String artifactId = TestUtils.generateArtifactId();
 

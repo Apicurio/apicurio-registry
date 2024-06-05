@@ -5,6 +5,7 @@ import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.model.GroupId;
@@ -24,7 +25,6 @@ import io.apicurio.registry.storage.dto.SearchFilter;
 import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
 import io.apicurio.registry.storage.impl.sql.RegistryStorageContentUtils;
 import io.apicurio.registry.types.Current;
-import io.apicurio.registry.util.ContentTypeUtil;
 import io.apicurio.registry.utils.StringUtil;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -145,13 +145,12 @@ public class SearchResourceImpl implements SearchResource {
         if (content.bytes().length == 0) {
             throw new BadRequestException(EMPTY_CONTENT_ERROR_MESSAGE);
         }
-        if (ContentTypeUtil.isApplicationYaml(getContentType())) {
-            content = ContentTypeUtil.yamlToJson(content);
-        }
+        String ct = getContentType();
+        TypedContent typedContent = TypedContent.create(content, ct);
 
         Set<SearchFilter> filters = new HashSet<SearchFilter>();
         if (canonical && artifactType != null) {
-            String canonicalHash = contentUtils.getCanonicalContentHash(content, artifactType, null, null);
+            String canonicalHash = contentUtils.getCanonicalContentHash(typedContent, artifactType, null, null);
             filters.add(SearchFilter.ofCanonicalHash(canonicalHash));
         } else if (!canonical) {
             String contentHash = content.getSha256Hash();
@@ -319,8 +318,11 @@ public class SearchResourceImpl implements SearchResource {
         if (content.bytes().length == 0) {
             throw new BadRequestException(EMPTY_CONTENT_ERROR_MESSAGE);
         }
+        String ct = getContentType();
+        TypedContent typedContent = TypedContent.create(content, ct);
+
         if (canonical && artifactType != null) {
-            String canonicalHash = contentUtils.getCanonicalContentHash(content, artifactType, null, null);
+            String canonicalHash = contentUtils.getCanonicalContentHash(typedContent, artifactType, null, null);
             filters.add(SearchFilter.ofCanonicalHash(canonicalHash));
         } else if (!canonical) {
             String contentHash = content.getSha256Hash();

@@ -1,28 +1,14 @@
 package io.apicurio.registry.util;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.protobuf.DescriptorProtos;
-import graphql.schema.idl.SchemaParser;
-import graphql.schema.idl.TypeDefinitionRegistry;
-import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.storage.error.InvalidArtifactTypeException;
-import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.utils.protobuf.schema.FileDescriptorUtils;
-import io.apicurio.registry.utils.protobuf.schema.ProtobufFile;
-import org.apache.avro.Schema;
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
+import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
+import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 
-import java.io.InputStream;
-import java.util.*;
-import java.util.regex.Pattern;
+import java.util.Collections;
+import java.util.Map;
 
 public final class ArtifactTypeUtil {
-
-    private static final Pattern QUOTED_BRACKETS = Pattern.compile(": *\"\\{}\"");
-
-    private static final ObjectMapper mapper = new ObjectMapper();
 
     /**
      * Constructor.
@@ -33,28 +19,26 @@ public final class ArtifactTypeUtil {
     /**
      * Figures out the artifact type in the following order of precedent:
      * <p>
-     * 1) The provided X-Registry-String header
-     * 2) A hint provided in the Content-Type header
-     * 3) Determined from the content itself
+     * 1) The type provided in the request
+     * 2) Determined from the content itself
      *
      * @param content       the content
      * @param artifactType  the artifact type
-     * @param contentType   content type from request API
      */
-    //FIXME:references artifact must be dereferenced here otherwise this will fail to discover the type
-    public static String determineArtifactType(ContentHandle content, String artifactType, String contentType, List<String> availableTypes) {
-       return determineArtifactType(content, artifactType, contentType, Collections.emptyMap(), availableTypes);
+    public static String determineArtifactType(TypedContent content, String artifactType,
+                                               ArtifactTypeUtilProviderFactory artifactTypeProviderFactory) {
+       return determineArtifactType(content, artifactType, Collections.emptyMap(), artifactTypeProviderFactory);
     }
 
-    public static String determineArtifactType(ContentHandle content, String artifactType, String contentType,
-                                               Map<String, ContentHandle> resolvedReferences, List<String> availableTypes) {
+    public static String determineArtifactType(TypedContent content, String artifactType,
+                                               Map<String, TypedContent> resolvedReferences, ArtifactTypeUtilProviderFactory artifactTypeProviderFactory) {
         if ("".equals(artifactType)) {
             artifactType = null;
         }
         if (artifactType == null && content != null) {
-            artifactType = ArtifactTypeUtil.discoverType(content, contentType, resolvedReferences);
+            artifactType = ArtifactTypeUtil.discoverType(content, resolvedReferences, artifactTypeProviderFactory);
         }
-        if (!availableTypes.contains(artifactType)) {
+        if (!artifactTypeProviderFactory.getAllArtifactTypes().contains(artifactType)) {
             throw new InvalidArtifactTypeException("Invalid or unknown artifact type: " + artifactType);
         }
         return artifactType;
@@ -68,153 +52,20 @@ public final class ArtifactTypeUtil {
      * is. Examples include Avro, Protobuf, OpenAPI, etc. Most of the supported artifact types are JSON
      * formatted. So in these cases we will need to look for some sort of type-specific marker in the content
      * of the artifact. The method does its best to figure out the type, but will default to Avro if all else
-     * fails. TODO This default behavior does not sound right
-     *  @param content
-     * @param contentType
+     * fails.
+     * @param content
      * @param resolvedReferences
      */
     @SuppressWarnings("deprecation")
-    private static String discoverType(ContentHandle content, String contentType, Map<String, ContentHandle> resolvedReferences) throws InvalidArtifactTypeException {
-        boolean triedProto = false;
-
-        // If the content-type suggests it's protobuf, try that first.
-        if (contentType == null || contentType.toLowerCase().contains("proto")) {
-            triedProto = true;
-            String type = tryProto(content);
-            if (type != null) {
-                return type;
+    private static String discoverType(TypedContent content, Map<String, TypedContent> resolvedReferences,
+                                       ArtifactTypeUtilProviderFactory artifactTypeProviderFactory) throws InvalidArtifactTypeException {
+        for (ArtifactTypeUtilProvider provider : artifactTypeProviderFactory.getAllArtifactTypeProviders()) {
+            if (provider.acceptsContent(content, resolvedReferences)) {
+                return provider.getArtifactType();
             }
-        }
-
-        // Try the various JSON formatted types
-        // TODO handle both JSON and YAML
-        try {
-            JsonNode tree = mapper.readTree(content.content());
-
-            // OpenAPI
-            if (tree.has("openapi") || tree.has("swagger")) {
-                return ArtifactType.OPENAPI;
-            }
-            // AsyncAPI
-            if (tree.has("asyncapi")) {
-                return ArtifactType.ASYNCAPI;
-            }
-            // JSON Schema
-            if (tree.has("$schema") && tree.get("$schema").asText().contains("json-schema.org") || tree.has("properties")) {
-                return ArtifactType.JSON;
-            }
-            // Kafka Connect??
-            // TODO detect Kafka Connect schemas
-
-            throw new InvalidArtifactTypeException("Failed to discover artifact type from JSON content.");
-        } catch (Exception e) {
-            // Apparently it's not JSON.
-        }
-
-        try {
-            // Avro without quote
-            final Schema.Parser parser = new Schema.Parser();
-            final List<Schema> schemaRefs = new ArrayList<>();
-            for (Map.Entry<String, ContentHandle> referencedContent : resolvedReferences.entrySet()) {
-                if (!parser.getTypes().containsKey(referencedContent.getKey())) {
-                    Schema schemaRef = parser.parse(referencedContent.getValue().content());
-                    schemaRefs.add(schemaRef);
-                }
-            }
-            final Schema schema = parser.parse(removeQuotedBrackets(content.content()));
-            schema.toString(schemaRefs, false);
-            return ArtifactType.AVRO;
-        } catch (Exception e) {
-            //ignored
-        }
-
-        try {
-            // Avro with original input
-            final Schema.Parser parser = new Schema.Parser();
-            final List<Schema> schemaRefs = new ArrayList<>();
-            for (Map.Entry<String, ContentHandle> referencedContent : resolvedReferences.entrySet()) {
-                if (!parser.getTypes().containsKey(referencedContent.getKey())) {
-                    Schema schemaRef = parser.parse(referencedContent.getValue().content());
-                    schemaRefs.add(schemaRef);
-                }
-            }
-            final Schema schema = parser.parse(content.content());
-            schema.toString(schemaRefs, false);
-            return ArtifactType.AVRO;
-        } catch (Exception e) {
-            //ignored
-        }
-
-        // Try protobuf (only if we haven't already)
-        if (!triedProto) {
-            String type = tryProto(content);
-            if (type != null) {
-                return type;
-            }
-        }
-
-        // Try GraphQL (SDL)
-        if (tryGraphQL(content)) {
-            return ArtifactType.GRAPHQL;
-        }
-
-        // Try the various XML formatted types
-        try (InputStream stream = content.stream()) {
-            Document xmlDocument = DocumentBuilderAccessor.getDocumentBuilder().parse(stream);
-            Element root = xmlDocument.getDocumentElement();
-            String ns = root.getNamespaceURI();
-
-            // XSD
-            if (ns != null && ns.equals("http://www.w3.org/2001/XMLSchema")) {
-                return ArtifactType.XSD;
-            } // WSDL
-            else if (ns != null && (ns.equals("http://schemas.xmlsoap.org/wsdl/")
-                    || ns.equals("http://www.w3.org/ns/wsdl/"))) {
-                return ArtifactType.WSDL;
-            } else {
-                // default to XML since its been parsed
-                return ArtifactType.XML;
-            }
-        } catch (Exception e) {
-            // It's not XML.
         }
 
         throw new InvalidArtifactTypeException("Failed to discover artifact type from content.");
     }
-
-    private static String tryProto(ContentHandle content) {
-        try {
-            ProtobufFile.toProtoFileElement(content.content());
-            return ArtifactType.PROTOBUF;
-        } catch (Exception e) {
-            try {
-                // Attempt to parse binary FileDescriptorProto
-                byte[] bytes = Base64.getDecoder().decode(content.content());
-                FileDescriptorUtils.fileDescriptorToProtoFile(DescriptorProtos.FileDescriptorProto.parseFrom(bytes));
-                return ArtifactType.PROTOBUF;
-            } catch (Exception pe) {
-                // Doesn't seem to be protobuf
-            }
-        }
-        return null;
-    }
-
-    /**
-     * Given a content removes any quoted brackets. This is useful for some validation corner cases in avro where some libraries detects quoted brackets as valid and others as invalid
-     */
-    private static String removeQuotedBrackets(String content) {
-        return QUOTED_BRACKETS.matcher(content).replaceAll(":{}");
-    }
-
-    private static boolean tryGraphQL(ContentHandle content) {
-        try {
-            TypeDefinitionRegistry typeRegistry = new SchemaParser().parse(content.content());
-            if (typeRegistry != null) {
-                return true;
-            }
-        } catch (Exception e) {
-            // Must not be a GraphQL file
-        }
-        return false;
-    }
 }
+

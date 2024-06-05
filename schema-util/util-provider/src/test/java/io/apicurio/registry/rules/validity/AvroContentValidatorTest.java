@@ -1,9 +1,8 @@
 package io.apicurio.registry.rules.validity;
 
-import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.rest.v3.beans.ArtifactReference;
 import io.apicurio.registry.rules.RuleViolationException;
-
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -18,14 +17,14 @@ public class AvroContentValidatorTest extends ArtifactUtilProviderTestBase {
 
     @Test
     public void testValidAvroSchema() throws Exception {
-        ContentHandle content = resourceToContentHandle("avro-valid.json");
+        TypedContent content = resourceToTypedContentHandle("avro-valid.json");
         AvroContentValidator validator = new AvroContentValidator();
         validator.validate(ValidityLevel.SYNTAX_ONLY, content, Collections.emptyMap());
     }
 
     @Test
     public void testInvalidAvroSchema() throws Exception {
-        ContentHandle content = resourceToContentHandle("avro-invalid.json");
+        TypedContent content = resourceToTypedContentHandle("avro-invalid.json");
         AvroContentValidator validator = new AvroContentValidator();
         Assertions.assertThrows(RuleViolationException.class, () -> {
             validator.validate(ValidityLevel.SYNTAX_ONLY, content, Collections.emptyMap());
@@ -34,7 +33,7 @@ public class AvroContentValidatorTest extends ArtifactUtilProviderTestBase {
 
     @Test
     public void testValidateReferences() throws Exception {
-        ContentHandle content = resourceToContentHandle("avro-valid-with-refs.json");
+        TypedContent content = resourceToTypedContentHandle("avro-valid-with-refs.json");
         AvroContentValidator validator = new AvroContentValidator();
 
         // Properly map both required references - success.

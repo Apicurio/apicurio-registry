@@ -1,11 +1,10 @@
 package io.apicurio.registry.rules.validity;
 
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Test;
-
-import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.rest.v3.beans.ArtifactReference;
 import io.apicurio.registry.rules.RuleViolationException;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -18,14 +17,14 @@ public class ProtobufContentValidatorTest extends ArtifactUtilProviderTestBase {
 
     @Test
     public void testValidProtobufSchema() throws Exception {
-        ContentHandle content = resourceToContentHandle("protobuf-valid.proto");
+        TypedContent content = resourceToTypedContentHandle("protobuf-valid.proto");
         ProtobufContentValidator validator = new ProtobufContentValidator();
         validator.validate(ValidityLevel.SYNTAX_ONLY, content, Collections.emptyMap());
     }
 
     @Test
     public void testInvalidProtobufSchema() throws Exception {
-        ContentHandle content = resourceToContentHandle("protobuf-invalid.proto");
+        TypedContent content = resourceToTypedContentHandle("protobuf-invalid.proto");
         ProtobufContentValidator validator = new ProtobufContentValidator();
         Assertions.assertThrows(RuleViolationException.class, () -> {
             validator.validate(ValidityLevel.SYNTAX_ONLY, content, Collections.emptyMap());
@@ -34,15 +33,15 @@ public class ProtobufContentValidatorTest extends ArtifactUtilProviderTestBase {
 
     @Test
     public void testValidateProtobufWithImports() throws Exception {
-        ContentHandle mode = resourceToContentHandle("mode.proto");
-        ContentHandle tableInfo = resourceToContentHandle("table_info.proto");
+        TypedContent mode = resourceToTypedContentHandle("mode.proto");
+        TypedContent tableInfo = resourceToTypedContentHandle("table_info.proto");
         ProtobufContentValidator validator = new ProtobufContentValidator();
         validator.validate(ValidityLevel.SYNTAX_ONLY, tableInfo, Collections.singletonMap("mode.proto", mode));
     }
 
     @Test
     public void testValidateReferences() throws Exception {
-        ContentHandle content = resourceToContentHandle("protobuf-valid-with-refs.proto");
+        TypedContent content = resourceToTypedContentHandle("protobuf-valid-with-refs.proto");
         ProtobufContentValidator validator = new ProtobufContentValidator();
 
         // Properly map both required references - success.

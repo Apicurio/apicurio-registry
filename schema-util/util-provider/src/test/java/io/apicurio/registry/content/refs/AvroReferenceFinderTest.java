@@ -1,12 +1,11 @@
 package io.apicurio.registry.content.refs;
 
-import java.util.Set;
-
+import io.apicurio.registry.content.TypedContent;
+import io.apicurio.registry.rules.validity.ArtifactUtilProviderTestBase;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-import io.apicurio.registry.content.ContentHandle;
-import io.apicurio.registry.rules.validity.ArtifactUtilProviderTestBase;
+import java.util.Set;
 
 public class AvroReferenceFinderTest extends ArtifactUtilProviderTestBase {
 
@@ -15,7 +14,7 @@ public class AvroReferenceFinderTest extends ArtifactUtilProviderTestBase {
      */
     @Test
     public void testFindExternalReferences() {
-        ContentHandle content = resourceToContentHandle("avro-with-refs.avsc");
+        TypedContent content = resourceToTypedContentHandle("avro-with-refs.avsc");
         AvroReferenceFinder finder = new AvroReferenceFinder();
         Set<ExternalReference> foundReferences = finder.findExternalReferences(content);
         Assertions.assertNotNull(foundReferences);

@@ -1,5 +1,8 @@
 package io.apicurio.registry.content.canon;
 
+import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.content.TypedContent;
+import io.apicurio.registry.types.ContentTypes;
 import org.apache.avro.Schema;
 import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.Test;
@@ -11,13 +14,15 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
-import io.apicurio.registry.content.ContentHandle;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 class SchemaNormalizerTest {
+
+    private TypedContent toTypedContent(String content) {
+        return TypedContent.create(ContentHandle.create(content), ContentTypes.APPLICATION_JSON);
+    }
 
     @Test
     void parseSchema_SchemasWithOptionalAttributesInRoot_Equal() {
@@ -38,12 +43,12 @@ class SchemaNormalizerTest {
 
         // act
         EnhancedAvroContentCanonicalizer canonicalizer = new EnhancedAvroContentCanonicalizer();
-        ContentHandle schema = canonicalizer.canonicalize(ContentHandle.create(schemaStr), new HashMap<>());
-        ContentHandle schemaWithOptional = canonicalizer.canonicalize(ContentHandle.create(schemaWithOptionalStr), new HashMap<>());
+        TypedContent schema = canonicalizer.canonicalize(toTypedContent(schemaStr), new HashMap<>());
+        TypedContent schemaWithOptional = canonicalizer.canonicalize(toTypedContent(schemaWithOptionalStr), new HashMap<>());
 
         // assert
-        assertEquals(schema.content(), schemaWithOptional.content());
-        assertEquals(Schema.parseJsonToObject(schema.content()), Schema.parseJsonToObject(schemaWithOptional.content()));
+        assertEquals(schema.getContent().content(), schemaWithOptional.getContent().content());
+        assertEquals(Schema.parseJsonToObject(schema.getContent().content()), Schema.parseJsonToObject(schemaWithOptional.getContent().content()));
     }
 
     @Test
@@ -65,12 +70,12 @@ class SchemaNormalizerTest {
 
         // act
         EnhancedAvroContentCanonicalizer canonicalizer = new EnhancedAvroContentCanonicalizer();
-        ContentHandle schema = canonicalizer.canonicalize(ContentHandle.create(schemaStr), new HashMap<>());
-        ContentHandle schemaWithNamespaceField = canonicalizer.canonicalize(ContentHandle.create(schemaWithNamespaceFieldStr), new HashMap<>());
+        TypedContent schema = canonicalizer.canonicalize(toTypedContent(schemaStr), new HashMap<>());
+        TypedContent schemaWithNamespaceField = canonicalizer.canonicalize(toTypedContent(schemaWithNamespaceFieldStr), new HashMap<>());
 
         // assert
-        assertEquals(schema.content(), schemaWithNamespaceField.content());
-        assertEquals(Schema.parseJsonToObject(schema.content()), Schema.parseJsonToObject(schemaWithNamespaceField.content()));
+        assertEquals(schema.getContent().content(), schemaWithNamespaceField.getContent().content());
+        assertEquals(Schema.parseJsonToObject(schema.getContent().content()), Schema.parseJsonToObject(schemaWithNamespaceField.getContent().content()));
     }
 
     @Test
@@ -92,12 +97,12 @@ class SchemaNormalizerTest {
 
         // act
         EnhancedAvroContentCanonicalizer canonicalizer = new EnhancedAvroContentCanonicalizer();
-        ContentHandle schema = canonicalizer.canonicalize(ContentHandle.create(schemaStr), new HashMap<>());
-        ContentHandle schemaWithNamespaceField = canonicalizer.canonicalize(ContentHandle.create(schemaWithNamespaceFieldStr), new HashMap<>());
+        TypedContent schema = canonicalizer.canonicalize(toTypedContent(schemaStr), new HashMap<>());
+        TypedContent schemaWithNamespaceField = canonicalizer.canonicalize(toTypedContent(schemaWithNamespaceFieldStr), new HashMap<>());
 
         // assert
-        assertNotEquals(schema.content(), schemaWithNamespaceField.content());
-        assertNotEquals(Schema.parseJsonToObject(schema.content()), Schema.parseJsonToObject(schemaWithNamespaceField.content()));
+        assertNotEquals(schema.getContent().content(), schemaWithNamespaceField.getContent().content());
+        assertNotEquals(Schema.parseJsonToObject(schema.getContent().content()), Schema.parseJsonToObject(schemaWithNamespaceField.getContent().content()));
     }
     
     @Test
@@ -120,12 +125,12 @@ class SchemaNormalizerTest {
 
         // act
         EnhancedAvroContentCanonicalizer canonicalizer = new EnhancedAvroContentCanonicalizer();
-        ContentHandle schema = canonicalizer.canonicalize(ContentHandle.create(schemaStr), new HashMap<>());
-        ContentHandle schemaWithDifferenceAttributesOrder = canonicalizer.canonicalize(ContentHandle.create(schemaWithDifferenceAttributesOrderStr), new HashMap<>());
+        TypedContent schema = canonicalizer.canonicalize(toTypedContent(schemaStr), new HashMap<>());
+        TypedContent schemaWithDifferenceAttributesOrder = canonicalizer.canonicalize(toTypedContent(schemaWithDifferenceAttributesOrderStr), new HashMap<>());
 
         // assert
-        assertEquals(schema.content(), schemaWithDifferenceAttributesOrder.content());
-        assertEquals(Schema.parseJsonToObject(schema.content()), Schema.parseJsonToObject(schemaWithDifferenceAttributesOrder.content()));
+        assertEquals(schema.getContent().content(), schemaWithDifferenceAttributesOrder.getContent().content());
+        assertEquals(Schema.parseJsonToObject(schema.getContent().content()), Schema.parseJsonToObject(schemaWithDifferenceAttributesOrder.getContent().content()));
     }
 
     @Test
@@ -156,12 +161,12 @@ class SchemaNormalizerTest {
 
         // act
         EnhancedAvroContentCanonicalizer canonicalizer = new EnhancedAvroContentCanonicalizer();
-        ContentHandle schema = canonicalizer.canonicalize(ContentHandle.create(schemaStr), new HashMap<>());
-        ContentHandle schemaWithOptionalAttributesInField = canonicalizer.canonicalize(ContentHandle.create(schemaWithOptionalAttributesInFieldStr), new HashMap<>());
+        TypedContent schema = canonicalizer.canonicalize(toTypedContent(schemaStr), new HashMap<>());
+        TypedContent schemaWithOptionalAttributesInField = canonicalizer.canonicalize(toTypedContent(schemaWithOptionalAttributesInFieldStr), new HashMap<>());
 
         // assert
-        assertEquals(schema.content(), schemaWithOptionalAttributesInField.content());
-        assertEquals(Schema.parseJsonToObject(schema.content()), Schema.parseJsonToObject(schemaWithOptionalAttributesInField.content()));
+        assertEquals(schema.getContent().content(), schemaWithOptionalAttributesInField.getContent().content());
+        assertEquals(Schema.parseJsonToObject(schema.getContent().content()), Schema.parseJsonToObject(schemaWithOptionalAttributesInField.getContent().content()));
     }
 
     @Test
@@ -191,12 +196,12 @@ class SchemaNormalizerTest {
 
         // Act
         EnhancedAvroContentCanonicalizer canonicalizer = new EnhancedAvroContentCanonicalizer();
-        ContentHandle schema = canonicalizer.canonicalize(ContentHandle.create(schemaStr), new HashMap<>());
-        ContentHandle schemasWithDifferenceAttributesOrderInField = canonicalizer.canonicalize(ContentHandle.create(schemasWithDifferenceAttributesOrderInFieldStr), new HashMap<>());
+        TypedContent schema = canonicalizer.canonicalize(toTypedContent(schemaStr), new HashMap<>());
+        TypedContent schemasWithDifferenceAttributesOrderInField = canonicalizer.canonicalize(toTypedContent(schemasWithDifferenceAttributesOrderInFieldStr), new HashMap<>());
 
         // Assert
-        assertEquals(schema.content(), schemasWithDifferenceAttributesOrderInField.content());
-        assertEquals(Schema.parseJsonToObject(schema.content()), Schema.parseJsonToObject(schemasWithDifferenceAttributesOrderInField.content()));
+        assertEquals(schema.getContent().content(), schemasWithDifferenceAttributesOrderInField.getContent().content());
+        assertEquals(Schema.parseJsonToObject(schema.getContent().content()), Schema.parseJsonToObject(schemasWithDifferenceAttributesOrderInField.getContent().content()));
     }
 
     @Test
@@ -234,12 +239,12 @@ class SchemaNormalizerTest {
 
         // Act
         EnhancedAvroContentCanonicalizer canonicalizer = new EnhancedAvroContentCanonicalizer();
-        ContentHandle schema = canonicalizer.canonicalize(ContentHandle.create(schemaStr), new HashMap<>());
-        ContentHandle schemaWithFieldsInDifferentOrder = canonicalizer.canonicalize(ContentHandle.create(schemaWithFieldsInDifferentOrderStr), new HashMap<>());
+        TypedContent schema = canonicalizer.canonicalize(toTypedContent(schemaStr), new HashMap<>());
+        TypedContent schemaWithFieldsInDifferentOrder = canonicalizer.canonicalize(toTypedContent(schemaWithFieldsInDifferentOrderStr), new HashMap<>());
 
         // Assert
-        assertNotEquals(schema.content(), schemaWithFieldsInDifferentOrder.content());
-        assertNotEquals(Schema.parseJsonToObject(schema.content()), Schema.parseJsonToObject(schemaWithFieldsInDifferentOrder.content()));
+        assertNotEquals(schema.getContent().content(), schemaWithFieldsInDifferentOrder.getContent().content());
+        assertNotEquals(Schema.parseJsonToObject(schema.getContent().content()), Schema.parseJsonToObject(schemaWithFieldsInDifferentOrder.getContent().content()));
     }
 
     @Test
@@ -301,18 +306,18 @@ class SchemaNormalizerTest {
 
         // Act
         EnhancedAvroContentCanonicalizer canonicalizer = new EnhancedAvroContentCanonicalizer();
-        ContentHandle nestedSchema = canonicalizer.canonicalize(ContentHandle.create(nestedSchemaStr), new HashMap<>());
-        ContentHandle schemaWithDifferenceAttributesOrderInNestedSchema = canonicalizer.canonicalize(ContentHandle.create(schemaWithDifferenceAttributesOrderInNestedSchemaStr), new HashMap<>());
+        TypedContent nestedSchema = canonicalizer.canonicalize(toTypedContent(nestedSchemaStr), new HashMap<>());
+        TypedContent schemaWithDifferenceAttributesOrderInNestedSchema = canonicalizer.canonicalize(toTypedContent(schemaWithDifferenceAttributesOrderInNestedSchemaStr), new HashMap<>());
 
         // Assert
-        assertEquals(nestedSchema.content(), schemaWithDifferenceAttributesOrderInNestedSchema.content());
-        assertEquals(Schema.parseJsonToObject(nestedSchema.content()), Schema.parseJsonToObject(schemaWithDifferenceAttributesOrderInNestedSchema.content()));
+        assertEquals(nestedSchema.getContent().content(), schemaWithDifferenceAttributesOrderInNestedSchema.getContent().content());
+        assertEquals(Schema.parseJsonToObject(nestedSchema.getContent().content()), Schema.parseJsonToObject(schemaWithDifferenceAttributesOrderInNestedSchema.getContent().content()));
     }
 
     @Test
     void parseSchema_NestedSchemasOfSameType() throws Exception {
         final List<String> schemas = new ArrayList<>();
-        final List<ContentHandle> normalizedSchemas = new ArrayList<>();
+        final List<TypedContent> normalizedSchemas = new ArrayList<>();
         // given a schema that has a field referencing its own type
         schemas.add(getSchemaFromResource("avro/simple/schema-with-same-nested-schema.avsc"));
         schemas.add(getSchemaFromResource("avro/simple/schema-with-same-nested-schema2.avsc"));
@@ -322,15 +327,15 @@ class SchemaNormalizerTest {
         EnhancedAvroContentCanonicalizer canonicalizer = new EnhancedAvroContentCanonicalizer();
 
         schemas.forEach(schema -> {
-            ContentHandle avroSchema = canonicalizer.canonicalize(ContentHandle.create(schema), new HashMap<>());
+            TypedContent avroSchema = canonicalizer.canonicalize(toTypedContent(schema), new HashMap<>());
             // the schema should be parsed without infinite recursion
             assertNotNull(avroSchema);
             normalizedSchemas.add(avroSchema);
         });
 
         // and the parsed schema should still be the same
-        assertEquals(normalizedSchemas.get(0).content(), normalizedSchemas.get(1).content());
-        assertEquals(Schema.parseJsonToObject(normalizedSchemas.get(0).content()), Schema.parseJsonToObject(normalizedSchemas.get(1).content()));
+        assertEquals(normalizedSchemas.get(0).getContent().content(), normalizedSchemas.get(1).getContent().content());
+        assertEquals(Schema.parseJsonToObject(normalizedSchemas.get(0).getContent().content()), Schema.parseJsonToObject(normalizedSchemas.get(1).getContent().content()));
     }
 
     @Test
@@ -341,7 +346,7 @@ class SchemaNormalizerTest {
 
         // the schema should be parsed with a non-null result
         EnhancedAvroContentCanonicalizer canonicalizer = new EnhancedAvroContentCanonicalizer();
-        final ContentHandle parsed = canonicalizer.canonicalize(ContentHandle.create(schemaWithNullUnion), new HashMap<>());
+        final TypedContent parsed = canonicalizer.canonicalize(toTypedContent(schemaWithNullUnion), new HashMap<>());
 
         assertNotNull(parsed);
     }
@@ -354,7 +359,7 @@ class SchemaNormalizerTest {
 
         // the schema should be parsed with a non-null result
         EnhancedAvroContentCanonicalizer canonicalizer = new EnhancedAvroContentCanonicalizer();
-        final ContentHandle parsed = canonicalizer.canonicalize(ContentHandle.create(schemaWithJavaType), new HashMap<>());
+        final TypedContent parsed = canonicalizer.canonicalize(toTypedContent(schemaWithJavaType), new HashMap<>());
 
         assertNotNull(parsed);
     }
@@ -367,7 +372,7 @@ class SchemaNormalizerTest {
 
         // the schema should be parsed with a non-null result
         EnhancedAvroContentCanonicalizer canonicalizer = new EnhancedAvroContentCanonicalizer();
-        final ContentHandle parsed = canonicalizer.canonicalize(ContentHandle.create(schemaWithCustomType), new HashMap<>());
+        final TypedContent parsed = canonicalizer.canonicalize(toTypedContent(schemaWithCustomType), new HashMap<>());
 
         assertNotNull(parsed);
     }
@@ -380,7 +385,7 @@ class SchemaNormalizerTest {
 
         // the schema should be parsed with a non-null result
         EnhancedAvroContentCanonicalizer canonicalizer = new EnhancedAvroContentCanonicalizer();
-        final ContentHandle parsed = canonicalizer.canonicalize(ContentHandle.create(schemaWithCustomType), new HashMap<>());
+        final TypedContent parsed = canonicalizer.canonicalize(toTypedContent(schemaWithCustomType), new HashMap<>());
 
         assertNotNull(parsed);
     }

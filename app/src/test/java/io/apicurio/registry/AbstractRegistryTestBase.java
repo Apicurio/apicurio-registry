@@ -1,6 +1,8 @@
 package io.apicurio.registry;
 
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.content.TypedContent;
+import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.utils.tests.ParallelizableTest;
 import io.apicurio.registry.utils.tests.TestUtils;
 
@@ -58,12 +60,37 @@ public abstract class AbstractRegistryTestBase {
         return ContentHandle.create(resourceToString(resourceName));
     }
 
+    protected final TypedContent resourceToTypedContentHandle(String resourceName) {
+        String ct = ContentTypes.APPLICATION_JSON;
+        if (resourceName.toLowerCase().endsWith("yaml") || resourceName.toLowerCase().endsWith("yml")) {
+            ct = ContentTypes.APPLICATION_YAML;
+        }
+        if (resourceName.toLowerCase().endsWith("xml")  || resourceName.toLowerCase().endsWith("wsdl") || resourceName.toLowerCase().endsWith("xsd") ) {
+            ct = ContentTypes.APPLICATION_XML;
+        }
+        if (resourceName.toLowerCase().endsWith("proto")) {
+            ct = ContentTypes.APPLICATION_PROTOBUF;
+        }
+        if (resourceName.toLowerCase().endsWith("graphql")) {
+            ct = ContentTypes.APPLICATION_GRAPHQL;
+        }
+        return TypedContent.create(resourceToContentHandle(resourceName), ct);
+    }
+
     public static void assertMultilineTextEquals(String expected, String actual) throws Exception {
         Assertions.assertEquals(TestUtils.normalizeMultiLineString(expected), TestUtils.normalizeMultiLineString(actual));
     }
 
     public static InputStream asInputStream(String value) {
         return new ByteArrayInputStream(value.getBytes(StandardCharsets.UTF_8));
+    }
+
+    public static TypedContent asTypedContent(String schema) {
+        return asTypedContent(schema, ContentTypes.APPLICATION_JSON);
+    }
+
+    public static TypedContent asTypedContent(String schema, String contentType) {
+        return TypedContent.create(ContentHandle.create(schema), contentType);
     }
 
 }

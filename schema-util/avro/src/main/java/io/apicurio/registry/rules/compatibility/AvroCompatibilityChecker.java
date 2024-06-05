@@ -1,7 +1,7 @@
 package io.apicurio.registry.rules.compatibility;
 
 import com.google.common.collect.ImmutableSet;
-import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.rules.UnprocessableSchemaException;
 import org.apache.avro.AvroRuntimeException;
 import org.apache.avro.Schema;
@@ -15,17 +15,17 @@ import java.util.Set;
 public class AvroCompatibilityChecker extends AbstractCompatibilityChecker<Incompatibility> {
 
     @Override
-    protected Set<Incompatibility> isBackwardsCompatibleWith(String existing, String proposed, Map<String, ContentHandle> resolvedReferences) {
+    protected Set<Incompatibility> isBackwardsCompatibleWith(String existing, String proposed, Map<String, TypedContent> resolvedReferences) {
         try {
             Schema.Parser existingParser = new Schema.Parser();
-            for (ContentHandle schema : resolvedReferences.values()) {
-                existingParser.parse(schema.content());
+            for (TypedContent schema : resolvedReferences.values()) {
+                existingParser.parse(schema.getContent().content());
             }
             final Schema existingSchema = existingParser.parse(existing);
 
             Schema.Parser proposingParser = new Schema.Parser();
-            for (ContentHandle schema : resolvedReferences.values()) {
-                proposingParser.parse(schema.content());
+            for (TypedContent schema : resolvedReferences.values()) {
+                proposingParser.parse(schema.getContent().content());
             }
             final Schema proposedSchema = proposingParser.parse(proposed);
 

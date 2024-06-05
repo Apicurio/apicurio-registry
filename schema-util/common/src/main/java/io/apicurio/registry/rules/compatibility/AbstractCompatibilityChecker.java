@@ -1,7 +1,7 @@
 package io.apicurio.registry.rules.compatibility;
 
 import com.google.common.collect.ImmutableSet;
-import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.content.TypedContent;
 
 import java.util.HashSet;
 import java.util.List;
@@ -15,7 +15,8 @@ import static java.util.Objects.requireNonNull;
 public abstract class AbstractCompatibilityChecker<D> implements CompatibilityChecker {
 
     @Override
-    public CompatibilityExecutionResult testCompatibility(CompatibilityLevel compatibilityLevel, List<ContentHandle> existingArtifacts, ContentHandle proposedArtifact, Map<String, ContentHandle> resolvedReferences) {
+    public CompatibilityExecutionResult testCompatibility(CompatibilityLevel compatibilityLevel, List<TypedContent> existingArtifacts,
+                                                          TypedContent proposedArtifact, Map<String, TypedContent> resolvedReferences) {
         requireNonNull(compatibilityLevel, "compatibilityLevel MUST NOT be null");
         requireNonNull(existingArtifacts, "existingSchemas MUST NOT be null");
         requireNonNull(proposedArtifact, "proposedSchema MUST NOT be null");
@@ -24,10 +25,10 @@ public abstract class AbstractCompatibilityChecker<D> implements CompatibilityCh
             return CompatibilityExecutionResult.compatible();
         }
 
-        final String proposedArtifactContent = proposedArtifact.content();
+        final String proposedArtifactContent = proposedArtifact.getContent().content();
 
         Set<D> incompatibleDiffs = new HashSet<>();
-        String lastExistingSchema = existingArtifacts.get(existingArtifacts.size() - 1).content();
+        String lastExistingSchema = existingArtifacts.get(existingArtifacts.size() - 1).getContent().content();
 
         switch (compatibilityLevel) {
             case BACKWARD:
@@ -71,17 +72,17 @@ public abstract class AbstractCompatibilityChecker<D> implements CompatibilityCh
      *
      * @return The collected set of differences.
      */
-    private Set<D> transitively(List<ContentHandle> existingSchemas, String proposedSchema,
+    private Set<D> transitively(List<TypedContent> existingSchemas, String proposedSchema,
                                 BiFunction<String, String, Set<D>> checkExistingProposed) {
         Set<D> result = new HashSet<>();
         for (int i = existingSchemas.size() - 1; i >= 0; i--) { // TODO This may become too slow, more wide refactoring needed.
-            Set<D> current = checkExistingProposed.apply(existingSchemas.get(i).content(), proposedSchema);
+            Set<D> current = checkExistingProposed.apply(existingSchemas.get(i).getContent().content(), proposedSchema);
             result.addAll(current);
         }
         return result;
     }
 
-    protected abstract Set<D> isBackwardsCompatibleWith(String existing, String proposed, Map<String, ContentHandle> resolvedReferences);
+    protected abstract Set<D> isBackwardsCompatibleWith(String existing, String proposed, Map<String, TypedContent> resolvedReferences);
 
     protected abstract CompatibilityDifference transform(D original);
 }

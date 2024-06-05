@@ -52,8 +52,8 @@ import java.util.stream.Stream;
 import java.util.zip.ZipInputStream;
 
 import static io.apicurio.common.apps.logging.audit.AuditingConstants.*;
-import static io.apicurio.registry.util.DtoUtil.appAuthPropertyToRegistry;
-import static io.apicurio.registry.util.DtoUtil.registryAuthPropertyToApp;
+import static io.apicurio.registry.utils.DtoUtil.appAuthPropertyToRegistry;
+import static io.apicurio.registry.utils.DtoUtil.registryAuthPropertyToApp;
 
 @ApplicationScoped
 @Interceptors({ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class})

@@ -9,11 +9,14 @@ import io.apicurio.registry.ccompat.dto.SchemaContent;
 import io.apicurio.registry.ccompat.rest.error.UnprocessableEntityException;
 import io.apicurio.registry.ccompat.rest.v7.CompatibilityResource;
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.rules.RuleViolationException;
 import io.apicurio.registry.rules.UnprocessableSchemaException;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
+import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.ContentTypes;
 import jakarta.interceptor.Interceptors;
 
 import java.util.Collections;
@@ -31,7 +34,14 @@ public class CompatibilityResourceImpl extends AbstractResource implements Compa
             final List<String> versions = storage.getArtifactVersions(groupId, subject);
             for (String version : versions) {
                 final ArtifactVersionMetaDataDto artifactVersionMetaData = storage.getArtifactVersionMetaData(groupId, subject, version);
-                rulesService.applyRules(groupId, subject, version, artifactVersionMetaData.getArtifactType(), ContentHandle.create(request.getSchema()), Collections.emptyList(), Collections.emptyMap());
+                // Assume the content type of the SchemaContent is the same as the previous version.
+                String contentType = ContentTypes.APPLICATION_JSON;
+                if (artifactVersionMetaData.getArtifactType().equals(ArtifactType.PROTOBUF)) {
+                    contentType = ContentTypes.APPLICATION_PROTOBUF;
+                }
+                TypedContent typedContent = TypedContent.create(ContentHandle.create(request.getSchema()), contentType);
+                rulesService.applyRules(groupId, subject, version, artifactVersionMetaData.getArtifactType(),
+                        typedContent, Collections.emptyList(), Collections.emptyMap());
             }
             return CompatibilityCheckResponse.IS_COMPATIBLE;
         } catch (RuleViolationException ex) {
@@ -53,7 +63,14 @@ public class CompatibilityResourceImpl extends AbstractResource implements Compa
         return parseVersionString(subject, versionString, groupId, v -> {
             try {
                 final ArtifactVersionMetaDataDto artifact = storage.getArtifactVersionMetaData(groupId, subject, v);
-                rulesService.applyRules(groupId, subject, v, artifact.getArtifactType(), ContentHandle.create(request.getSchema()), Collections.emptyList(), Collections.emptyMap());
+                // Assume the content type of the SchemaContent is correct based on the artifact type.
+                String contentType = ContentTypes.APPLICATION_JSON;
+                if (artifact.getArtifactType().equals(ArtifactType.PROTOBUF)) {
+                    contentType = ContentTypes.APPLICATION_PROTOBUF;
+                }
+                TypedContent typedContent = TypedContent.create(ContentHandle.create(request.getSchema()), contentType);
+                rulesService.applyRules(groupId, subject, v, artifact.getArtifactType(),
+                        typedContent, Collections.emptyList(), Collections.emptyMap());
                 return CompatibilityCheckResponse.IS_COMPATIBLE;
             } catch (RuleViolationException ex) {
                 if (fverbose) {

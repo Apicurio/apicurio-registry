@@ -2,8 +2,10 @@ package io.apicurio.registry.noprofile.content;
 
 import io.apicurio.registry.AbstractRegistryTestBase;
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.canon.ContentCanonicalizer;
 import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 import io.quarkus.test.junit.QuarkusTest;
@@ -17,6 +19,14 @@ public class ContentCanonicalizerTest extends AbstractRegistryTestBase {
 
     @Inject
     ArtifactTypeUtilProviderFactory factory;
+
+    private static TypedContent toTypedContent(String content) {
+        return toTypedContent(content, ContentTypes.APPLICATION_JSON);
+    }
+
+    private static TypedContent toTypedContent(String content, String ct) {
+        return TypedContent.create(ContentHandle.create(content), ct);
+    }
 
     private ContentCanonicalizer getContentCanonicalizer(String type) {
         ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(type);
@@ -40,8 +50,8 @@ public class ContentCanonicalizerTest extends AbstractRegistryTestBase {
                 "}";
         String expected = "{\"components\":{},\"info\":{\"title\":\"Empty 3.0 API\",\"version\":\"1.0.0\"},\"openapi\":\"3.0.2\",\"paths\":{\"/\":{}}}";
         
-        ContentHandle content = ContentHandle.create(before);
-        String actual = canonicalizer.canonicalize(content, Collections.emptyMap()).content();
+        TypedContent content = toTypedContent(before);
+        String actual = canonicalizer.canonicalize(content, Collections.emptyMap()).getContent().content();
         Assertions.assertEquals(expected, actual);
     }
 
@@ -60,9 +70,9 @@ public class ContentCanonicalizerTest extends AbstractRegistryTestBase {
                 "     ]\r\n" + 
                 "} ";
         String expected = "{\"type\":\"record\",\"name\":\"FullName\",\"namespace\":\"com.example\",\"doc\":\"\",\"fields\":[{\"name\":\"first\",\"type\":\"string\",\"doc\":\"\"},{\"name\":\"middle\",\"type\":\"string\",\"doc\":\"\"},{\"name\":\"last\",\"type\":\"string\",\"doc\":\"\"}]}";
-        
-        ContentHandle content = ContentHandle.create(before);
-        String actual = canonicalizer.canonicalize(content, Collections.emptyMap()).content();
+
+        TypedContent content = toTypedContent(before);
+        String actual = canonicalizer.canonicalize(content, Collections.emptyMap()).getContent().content();
         Assertions.assertEquals(expected, actual);
     }
 
@@ -86,8 +96,8 @@ public class ContentCanonicalizerTest extends AbstractRegistryTestBase {
                 + "  optional int32 result_per_page = 3;\n"
                 + "}\n";
 
-        ContentHandle content = ContentHandle.create(before);
-        String actual = canonicalizer.canonicalize(content, Collections.emptyMap()).content();
+        TypedContent content = toTypedContent(before, ContentTypes.APPLICATION_PROTOBUF);
+        String actual = canonicalizer.canonicalize(content, Collections.emptyMap()).getContent().content();
         Assertions.assertEquals(expected, actual);
     }
 
@@ -129,8 +139,8 @@ public class ContentCanonicalizerTest extends AbstractRegistryTestBase {
                 "}\n" + 
                 "";
         
-        ContentHandle content = ContentHandle.create(before);
-        String actual = canonicalizer.canonicalize(content, Collections.emptyMap()).content();
+        TypedContent content = toTypedContent(before, ContentTypes.APPLICATION_GRAPHQL);
+        String actual = canonicalizer.canonicalize(content, Collections.emptyMap()).getContent().content();
         Assertions.assertEquals(expected, actual);
     }
     
@@ -151,50 +161,41 @@ public class ContentCanonicalizerTest extends AbstractRegistryTestBase {
                 "}";
         String expected = "{\"fields\":[{\"field\":\"bar\",\"optional\":false,\"type\":\"string\"}],\"optional\":false,\"type\":\"struct\"}";
         
-        ContentHandle content = ContentHandle.create(before);
-        String actual = canonicalizer.canonicalize(content, Collections.emptyMap()).content();
+        TypedContent content = toTypedContent(before);
+        String actual = canonicalizer.canonicalize(content, Collections.emptyMap()).getContent().content();
         Assertions.assertEquals(expected, actual);
     }
 
-    /**
-    * Test method for {@link io.apicurio.registry.content.ContentCanonicalizerFactory#create(io.apicurio.registry.types.ArtifactType)}.
-    */
     @Test
     void testXsd() {
        ContentCanonicalizer canonicalizer = getContentCanonicalizer(ArtifactType.XSD);
 
-       ContentHandle content = resourceToContentHandle("xml-schema-before.xsd");
+       TypedContent content = resourceToTypedContentHandle("xml-schema-before.xsd");
        String expected = resourceToString("xml-schema-expected.xsd");
        
-       String actual = canonicalizer.canonicalize(content, Collections.emptyMap()).content();
+       String actual = canonicalizer.canonicalize(content, Collections.emptyMap()).getContent().content();
        Assertions.assertEquals(expected, actual);
     }
     
-    /**
-     * Test method for {@link io.apicurio.registry.content.ContentCanonicalizerFactory#create(io.apicurio.registry.types.ArtifactType)}.
-     */
      @Test
      void testWsdl() {
         ContentCanonicalizer canonicalizer = getContentCanonicalizer(ArtifactType.WSDL);
 
-        ContentHandle content = resourceToContentHandle("wsdl-before.wsdl");
+        TypedContent content = resourceToTypedContentHandle("wsdl-before.wsdl");
         String expected = resourceToString("wsdl-expected.wsdl");
         
-        String actual = canonicalizer.canonicalize(content, Collections.emptyMap()).content();
+        String actual = canonicalizer.canonicalize(content, Collections.emptyMap()).getContent().content();
         Assertions.assertEquals(expected, actual);
      }
      
-     /**
-      * Test method for {@link io.apicurio.registry.content.ContentCanonicalizerFactory#create(io.apicurio.registry.types.ArtifactType)}.
-      */
       @Test
       void testXml() {
          ContentCanonicalizer canonicalizer = getContentCanonicalizer(ArtifactType.XML);
         
-         ContentHandle content = resourceToContentHandle("xml-before.xml");
+         TypedContent content = resourceToTypedContentHandle("xml-before.xml");
          String expected = resourceToString("xml-expected.xml");
          
-         String actual = canonicalizer.canonicalize(content, Collections.emptyMap()).content();
+         String actual = canonicalizer.canonicalize(content, Collections.emptyMap()).getContent().content();
          Assertions.assertEquals(expected, actual);
       }
 }

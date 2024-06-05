@@ -822,13 +822,53 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
 
     @Test
     public void testSchemaReferencesMultipleLevels() throws Exception {
-        String root = "[\"myavro.BudgetDecreased\",\"myavro.BudgetUpdated\"]";
+        String root = """
+                ["myavro.BudgetDecreased","myavro.BudgetUpdated"]""";
 
-        String ref1 = "{\n" + "  \"type\" : \"record\",\n" + "  \"name\" : \"BudgetDecreased\",\n" + "  \"namespace\" : \"myavro\",\n" + "  \"fields\" : [ {\n" + "    \"name\" : \"buyerId\",\n" + "    \"type\" : \"long\"\n" + "  }, {\n" + "    \"name\" : \"currency\",\n" + "    \"type\" : {\n" + "      \"type\" : \"myavro.currencies.Currency\"" + "    }\n" + "  }, {\n" + "    \"name\" : \"amount\",\n" + "    \"type\" : \"double\"\n" + "  } ]\n" + "}";
+        String ref1 = """
+                {
+                  "type" : "record",
+                  "name" : "BudgetDecreased",
+                  "namespace" : "myavro",
+                  "fields" : [ {
+                    "name" : "buyerId",
+                    "type" : "long"
+                  }, {
+                    "name" : "currency",
+                    "type" : {
+                      "type" : "myavro.currencies.Currency"    }
+                  }, {
+                    "name" : "amount",
+                    "type" : "double"
+                  } ]
+                }""";
 
-        String ref2 = "{\n" + "  \"type\" : \"record\",\n" + "  \"name\" : \"BudgetUpdated\",\n" + "  \"namespace\" : \"myavro\",\n" + "  \"fields\" : [ {\n" + "    \"name\" : \"buyerId\",\n" + "    \"type\" : \"long\"\n" + "  }, {\n" + "    \"name\" : \"currency\",\n" + "    \"type\" : {\n" + "      \"type\" : \"myavro.currencies.Currency\"" + "    }\n" + "  }, {\n" + "    \"name\" : \"updatedValue\",\n" + "    \"type\" : \"double\"\n" + "  } ]\n" + "}";
+        String ref2 = """
+                {
+                  "type" : "record",
+                  "name" : "BudgetUpdated",
+                  "namespace" : "myavro",
+                  "fields" : [ {
+                    "name" : "buyerId",
+                    "type" : "long"
+                  }, {
+                    "name" : "currency",
+                    "type" : {
+                      "type" : "myavro.currencies.Currency"    }
+                  }, {
+                    "name" : "updatedValue",
+                    "type" : "double"
+                  } ]
+                }""";
 
-        String sharedRef = "{\n" + "      \"type\" : \"enum\",\n" + "      \"name\" : \"Currency\",\n" + "      \"namespace\" : \"myavro.currencies\",\n" + "      \"symbols\" : [ \"EUR\", \"USD\" ]\n" + "    }\n";
+        String sharedRef = """
+                {
+                      "type" : "enum",
+                      "name" : "Currency",
+                      "namespace" : "myavro.currencies",
+                      "symbols" : [ "EUR", "USD" ]
+                    }
+                """;
 
         ConfluentTestUtils.registerAndVerifySchema(confluentClient, new AvroSchema(sharedRef).canonicalString(), "shared");
 

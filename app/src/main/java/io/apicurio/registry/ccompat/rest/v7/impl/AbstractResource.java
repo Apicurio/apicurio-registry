@@ -5,6 +5,7 @@ import io.apicurio.registry.ccompat.dto.SchemaReference;
 import io.apicurio.registry.ccompat.rest.error.ConflictException;
 import io.apicurio.registry.ccompat.rest.error.UnprocessableEntityException;
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.model.BranchId;
 import io.apicurio.registry.model.GA;
 import io.apicurio.registry.model.GAV;
@@ -30,7 +31,6 @@ import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.types.VersionState;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
-import io.apicurio.registry.util.ContentTypeUtil;
 import jakarta.inject.Inject;
 import org.apache.avro.AvroTypeException;
 import org.apache.avro.SchemaParseException;
@@ -68,19 +68,18 @@ public abstract class AbstractResource {
         ArtifactVersionMetaDataDto res;
         final List<ArtifactReferenceDto> parsedReferences = parseReferences(references, groupId);
         final List<ArtifactReference> artifactReferences = parsedReferences.stream().map(dto -> ArtifactReference.builder().name(dto.getName()).groupId(dto.getGroupId()).artifactId(dto.getArtifactId()).version(dto.getVersion()).build()).collect(Collectors.toList());
-        final Map<String, ContentHandle> resolvedReferences = storage.resolveReferences(parsedReferences);
+        final Map<String, TypedContent> resolvedReferences = storage.resolveReferences(parsedReferences);
         try {
             ContentHandle schemaContent;
             schemaContent = ContentHandle.create(schema);
             String contentType = ContentTypes.APPLICATION_JSON;
             if (artifactType.equals(ArtifactType.PROTOBUF)) {
                 contentType = ContentTypes.APPLICATION_PROTOBUF;
-            } else if (ContentTypeUtil.isParsableYaml(schemaContent)) {
-                contentType = ContentTypes.APPLICATION_YAML;
             }
 
             if (!doesArtifactExist(subject, groupId)) {
-                rulesService.applyRules(groupId, subject, artifactType, schemaContent, RuleApplicationType.CREATE, artifactReferences, resolvedReferences);
+                TypedContent typedSchemaContent = TypedContent.create(schemaContent, contentType);
+                rulesService.applyRules(groupId, subject, artifactType, typedSchemaContent, RuleApplicationType.CREATE, artifactReferences, resolvedReferences);
 
                 EditableArtifactMetaDataDto artifactMetaData = EditableArtifactMetaDataDto.builder().build();
                 EditableVersionMetaDataDto firstVersionMetaData = EditableVersionMetaDataDto.builder().build();
@@ -93,7 +92,8 @@ public abstract class AbstractResource {
                 res = storage.createArtifact(groupId, subject, artifactType, artifactMetaData, null,
                         firstVersionContent, firstVersionMetaData, null).getValue();
             } else {
-                rulesService.applyRules(groupId, subject, artifactType, schemaContent, RuleApplicationType.UPDATE, artifactReferences, resolvedReferences);
+                TypedContent typedSchemaContent = TypedContent.create(schemaContent, contentType);
+                rulesService.applyRules(groupId, subject, artifactType, typedSchemaContent, RuleApplicationType.UPDATE, artifactReferences, resolvedReferences);
                 ContentWrapperDto versionContent = ContentWrapperDto.builder()
                         .content(schemaContent)
                         .contentType(contentType)
@@ -116,13 +116,15 @@ public abstract class AbstractResource {
         //FIXME simplify logic
         try {
             final String type = schemaType == null ? ArtifactType.AVRO : schemaType;
+            final String contentType = type.equals(ArtifactType.PROTOBUF) ? ContentTypes.APPLICATION_PROTOBUF : ContentTypes.APPLICATION_JSON;
+            TypedContent typedSchemaContent = TypedContent.create(ContentHandle.create(schema), contentType);
             final List<ArtifactReferenceDto> artifactReferences = parseReferences(schemaReferences, groupId);
             ArtifactTypeUtilProvider artifactTypeProvider = factory.getArtifactTypeProvider(type);
             ArtifactVersionMetaDataDto amd;
 
             if (cconfig.canonicalHashModeEnabled.get() || normalize) {
                 try {
-                    amd = storage.getArtifactVersionMetaDataByContent(groupId, subject, true, ContentHandle.create(schema), artifactReferences);
+                    amd = storage.getArtifactVersionMetaDataByContent(groupId, subject, true, typedSchemaContent, artifactReferences);
                 } catch (ArtifactNotFoundException ex) {
                     if (type.equals(ArtifactType.AVRO)) {
                         //When comparing using content, sometimes the references might be inlined into the content, try to dereference the existing content and compare as a fallback. See https://github.com/Apicurio/apicurio-registry/issues/3588 for more information.
@@ -131,8 +133,13 @@ public abstract class AbstractResource {
                         amd = storage.getArtifactVersions(groupId, subject)
                                 .stream().filter(version -> {
                                     StoredArtifactVersionDto artifactVersion = storage.getArtifactVersionContent(groupId, subject, version);
-                                    Map<String, ContentHandle> artifactVersionReferences = storage.resolveReferences(artifactVersion.getReferences());
-                                    String dereferencedExistingContentSha = DigestUtils.sha256Hex(artifactTypeProvider.getContentDereferencer().dereference(artifactVersion.getContent(), artifactVersionReferences).content());
+                                    TypedContent typedArtifactVersion = TypedContent.create(artifactVersion.getContent(), artifactVersion.getContentType());
+                                    Map<String, TypedContent> artifactVersionReferences = storage.resolveReferences(artifactVersion.getReferences());
+                                    String dereferencedExistingContentSha = DigestUtils.sha256Hex(
+                                            artifactTypeProvider.getContentDereferencer().dereference(
+                                                    typedArtifactVersion, artifactVersionReferences
+                                            ).getContent().content()
+                                    );
                                     return dereferencedExistingContentSha.equals(DigestUtils.sha256Hex(schema));
                                 })
                                 .findAny()
@@ -144,7 +151,7 @@ public abstract class AbstractResource {
                 }
 
             } else {
-                amd = storage.getArtifactVersionMetaDataByContent(groupId, subject, false, ContentHandle.create(schema), artifactReferences);
+                amd = storage.getArtifactVersionMetaDataByContent(groupId, subject, false, typedSchemaContent, artifactReferences);
             }
 
             return amd;
@@ -153,8 +160,8 @@ public abstract class AbstractResource {
         }
     }
 
-    protected Map<String, ContentHandle> resolveReferences(List<SchemaReference> references) {
-        Map<String, ContentHandle> resolvedReferences = Collections.emptyMap();
+    protected Map<String, TypedContent> resolveReferences(List<SchemaReference> references) {
+        Map<String, TypedContent> resolvedReferences = Collections.emptyMap();
         if (references != null && !references.isEmpty()) {
             //Transform the given references into dtos and set the contentId, this will also detect if any of the passed references does not exist.
             final List<ArtifactReferenceDto> referencesAsDtos = references.stream().map(schemaReference -> {

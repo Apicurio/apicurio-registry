@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.protobuf.Descriptors.FileDescriptor;
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.refs.ExternalReference;
 import io.apicurio.registry.content.refs.ReferenceFinder;
 import io.apicurio.registry.maven.refs.IndexedResource;
@@ -159,11 +160,13 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
 
         // Read the artifact content.
         ContentHandle artifactContent = readContent(artifact.getFile());
+        String artifactContentType = getContentTypeByExtension(artifact.getFile().getName());
+        TypedContent typedArtifactContent = TypedContent.create(artifactContent, artifactContentType);
 
         // Find all references in the content
         ArtifactTypeUtilProvider provider = this.utilProviderFactory.getArtifactTypeProvider(artifact.getArtifactType());
         ReferenceFinder referenceFinder = provider.getReferenceFinder();
-        Set<ExternalReference> externalReferences = referenceFinder.findExternalReferences(artifactContent);
+        Set<ExternalReference> externalReferences = referenceFinder.findExternalReferences(typedArtifactContent);
 
         // Register all of the references first, then register the artifact.
         List<ArtifactReference> registeredReferences = externalReferences.stream().map(externalRef -> {

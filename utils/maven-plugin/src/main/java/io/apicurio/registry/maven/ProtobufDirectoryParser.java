@@ -3,8 +3,10 @@ package io.apicurio.registry.maven;
 import com.google.protobuf.Descriptors;
 import com.squareup.wire.schema.internal.parser.ProtoFileElement;
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.ArtifactReference;
+import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.utils.protobuf.schema.FileDescriptorUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,7 +44,7 @@ public class ProtobufDirectoryParser extends AbstractDirectoryParser<Descriptors
             final Map<String, String> requiredSchemaDefs = new HashMap<>();
             final Descriptors.FileDescriptor schemaDescriptor = FileDescriptorUtils.parseProtoFileWithDependencies(protoFile, protoFiles, requiredSchemaDefs);
             assert allDependenciesHaveSamePackageName(requiredSchemaDefs, schemaDescriptor.getPackage()) : "All dependencies must have the same package name as the main proto file";
-            Map<String, ContentHandle> schemaContents = convertSchemaDefs(requiredSchemaDefs, schemaDescriptor.getPackage());
+            Map<String, TypedContent> schemaContents = convertSchemaDefs(requiredSchemaDefs, schemaDescriptor.getPackage());
             return new DescriptorWrapper(schemaDescriptor, schemaContents);
         } catch (Descriptors.DescriptorValidationException e) {
             throw new RuntimeException("Failed to read schema file: " + protoFile, e);
@@ -64,14 +66,15 @@ public class ProtobufDirectoryParser extends AbstractDirectoryParser<Descriptors
      * which is not needed for the schema registry, given that the dependent schemas are *always* in the same package
      * of the main proto file.
      */
-    private Map<String, ContentHandle> convertSchemaDefs(Map<String, String> requiredSchemaDefs, String mainProtoPackageName) {
+    private Map<String, TypedContent> convertSchemaDefs(Map<String, String> requiredSchemaDefs, String mainProtoPackageName) {
         if (requiredSchemaDefs.isEmpty()) {
             return Map.of();
         }
-        Map<String, ContentHandle> schemaDefs = new HashMap<>(requiredSchemaDefs.size());
+        Map<String, TypedContent> schemaDefs = new HashMap<>(requiredSchemaDefs.size());
         for (Map.Entry<String, String> entry : requiredSchemaDefs.entrySet()) {
-            if (schemaDefs.put(FileDescriptorUtils.extractProtoFileName(entry.getKey()),
-                    ContentHandle.create(entry.getValue())) != null) {
+            String fileName = FileDescriptorUtils.extractProtoFileName(entry.getKey());
+            TypedContent content = TypedContent.create(ContentHandle.create(entry.getValue()), ContentTypes.APPLICATION_PROTOBUF);
+            if (schemaDefs.put(fileName, content) != null) {
                 log.warn("There's a clash of dependency name, likely due to stripping the expected package name ie {}: dependencies: {}",
                         mainProtoPackageName, Arrays.toString(requiredSchemaDefs.keySet().toArray(new Object[0])));
             }
@@ -80,7 +83,7 @@ public class ProtobufDirectoryParser extends AbstractDirectoryParser<Descriptors
     }
 
     @Override
-    public List<ArtifactReference> handleSchemaReferences(RegisterArtifact rootArtifact, Descriptors.FileDescriptor protoSchema, Map<String, ContentHandle> fileContents) throws FileNotFoundException, InterruptedException, ExecutionException {
+    public List<ArtifactReference> handleSchemaReferences(RegisterArtifact rootArtifact, Descriptors.FileDescriptor protoSchema, Map<String, TypedContent> fileContents) throws FileNotFoundException, InterruptedException, ExecutionException {
         Set<ArtifactReference> references = new HashSet<>();
         final Set<Descriptors.FileDescriptor> baseDeps = new HashSet<>(Arrays.asList(FileDescriptorUtils.baseDependencies()));
         final ProtoFileElement rootSchemaElement = FileDescriptorUtils.fileDescriptorToProtoFile(protoSchema.toProto());
@@ -97,7 +100,8 @@ public class ProtobufDirectoryParser extends AbstractDirectoryParser<Descriptors
                     nestedArtifactReferences = handleSchemaReferences(nestedArtifact, dependency, fileContents);
                 }
 
-                references.add(registerNestedSchema(dependencyFullName, nestedArtifactReferences, nestedArtifact, fileContents.get(dependency.getName()).content()));
+                references.add(registerNestedSchema(dependencyFullName, nestedArtifactReferences, nestedArtifact,
+                        fileContents.get(dependency.getName()).getContent().content()));
             }
         }
 
@@ -106,9 +110,9 @@ public class ProtobufDirectoryParser extends AbstractDirectoryParser<Descriptors
 
     public static class DescriptorWrapper implements ParsedDirectoryWrapper<Descriptors.FileDescriptor> {
         final Descriptors.FileDescriptor fileDescriptor;
-        final Map<String, ContentHandle> schemaContents; //used to store the original file content to register the content as-is.
+        final Map<String, TypedContent> schemaContents; //used to store the original file content to register the content as-is.
 
-        public DescriptorWrapper(Descriptors.FileDescriptor fileDescriptor, Map<String, ContentHandle> schemaContents) {
+        public DescriptorWrapper(Descriptors.FileDescriptor fileDescriptor, Map<String, TypedContent> schemaContents) {
             this.fileDescriptor = fileDescriptor;
             this.schemaContents = schemaContents;
         }
@@ -118,7 +122,7 @@ public class ProtobufDirectoryParser extends AbstractDirectoryParser<Descriptors
             return fileDescriptor;
         }
 
-        public Map<String, ContentHandle> getSchemaContents() {
+        public Map<String, TypedContent> getSchemaContents() {
             return schemaContents;
         }
     }

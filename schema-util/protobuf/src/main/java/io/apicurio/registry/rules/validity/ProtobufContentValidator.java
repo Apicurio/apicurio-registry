@@ -1,25 +1,26 @@
 package io.apicurio.registry.rules.validity;
 
+import com.google.protobuf.Descriptors;
+import com.squareup.wire.schema.internal.parser.MessageElement;
+import com.squareup.wire.schema.internal.parser.ProtoFileElement;
+import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.content.TypedContent;
+import io.apicurio.registry.rest.v3.beans.ArtifactReference;
+import io.apicurio.registry.rules.RuleViolation;
+import io.apicurio.registry.rules.RuleViolationException;
+import io.apicurio.registry.rules.integrity.IntegrityLevel;
+import io.apicurio.registry.types.ContentTypes;
+import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.utils.protobuf.schema.FileDescriptorUtils;
+import io.apicurio.registry.utils.protobuf.schema.ProtobufFile;
+import io.apicurio.registry.utils.protobuf.schema.ProtobufSchema;
+
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
-
-import com.google.protobuf.Descriptors;
-import com.squareup.wire.schema.internal.parser.MessageElement;
-import com.squareup.wire.schema.internal.parser.ProtoFileElement;
-
-import io.apicurio.registry.content.ContentHandle;
-import io.apicurio.registry.rest.v3.beans.ArtifactReference;
-import io.apicurio.registry.rules.RuleViolation;
-import io.apicurio.registry.rules.RuleViolationException;
-import io.apicurio.registry.rules.integrity.IntegrityLevel;
-import io.apicurio.registry.types.RuleType;
-import io.apicurio.registry.utils.protobuf.schema.FileDescriptorUtils;
-import io.apicurio.registry.utils.protobuf.schema.ProtobufFile;
-import io.apicurio.registry.utils.protobuf.schema.ProtobufSchema;
 
 /**
  * A content validator implementation for the Protobuf content type.
@@ -34,33 +35,33 @@ public class ProtobufContentValidator implements ContentValidator {
     }
 
     /**
-     * @see io.apicurio.registry.rules.validity.ContentValidator#validate(ValidityLevel, ContentHandle, Map)
+     * @see io.apicurio.registry.rules.validity.ContentValidator#validate(ValidityLevel, TypedContent, Map)
      */
     @Override
-    public void validate(ValidityLevel level, ContentHandle artifactContent, Map<String, ContentHandle> resolvedReferences) throws RuleViolationException {
+    public void validate(ValidityLevel level, TypedContent content, Map<String, TypedContent> resolvedReferences) throws RuleViolationException {
         if (level == ValidityLevel.SYNTAX_ONLY || level == ValidityLevel.FULL) {
             try {
                 if (resolvedReferences == null || resolvedReferences.isEmpty()) {
-                    ProtobufFile.toProtoFileElement(artifactContent.content());
+                    ProtobufFile.toProtoFileElement(content.getContent().content());
                 } else {
-                    final ProtoFileElement protoFileElement = ProtobufFile.toProtoFileElement(artifactContent.content());
+                    final ProtoFileElement protoFileElement = ProtobufFile.toProtoFileElement(content.getContent().content());
                     final Map<String, ProtoFileElement> dependencies = Collections.unmodifiableMap(resolvedReferences.entrySet()
                             .stream()
                             .collect(Collectors.toMap(
                                     Map.Entry::getKey,
-                                    e -> ProtobufFile.toProtoFileElement(e.getValue().content())
+                                    e -> ProtobufFile.toProtoFileElement(e.getValue().getContent().content())
                             )));
                     MessageElement firstMessage = FileDescriptorUtils.firstMessage(protoFileElement);
                     if (firstMessage != null) {
                         try {
                             final Descriptors.Descriptor fileDescriptor = FileDescriptorUtils.toDescriptor(firstMessage.getName(), protoFileElement, dependencies);
-                            ContentHandle.create(fileDescriptor.toString());
+                            TypedContent.create(ContentHandle.create(fileDescriptor.toString()), ContentTypes.APPLICATION_PROTOBUF);
                         } catch (IllegalStateException ise) {
                             //If we fail to init the dynamic schema, try to get the descriptor from the proto element
-                            ContentHandle.create(getFileDescriptorFromElement(protoFileElement).toString());
+                            TypedContent.create(ContentHandle.create(getFileDescriptorFromElement(protoFileElement).toString()), ContentTypes.APPLICATION_PROTOBUF);
                         }
                     } else {
-                        ContentHandle.create(getFileDescriptorFromElement(protoFileElement).toString());
+                        TypedContent.create(ContentHandle.create(getFileDescriptorFromElement(protoFileElement).toString()), ContentTypes.APPLICATION_PROTOBUF);
                     }
                 }
             } catch (Exception e) {
@@ -70,14 +71,14 @@ public class ProtobufContentValidator implements ContentValidator {
     }
 
     /**
-     * @see io.apicurio.registry.rules.validity.ContentValidator#validateReferences(io.apicurio.registry.content.ContentHandle, java.util.List)
+     * @see io.apicurio.registry.rules.validity.ContentValidator#validateReferences(TypedContent, List)
      */
     @Override
-    public void validateReferences(ContentHandle artifactContent, List<ArtifactReference> references) throws RuleViolationException {
+    public void validateReferences(TypedContent content, List<ArtifactReference> references) throws RuleViolationException {
         try {
             Set<String> mappedRefs = references.stream().map(ref -> ref.getName()).collect(Collectors.toSet());
 
-            ProtoFileElement protoFileElement = ProtobufFile.toProtoFileElement(artifactContent.content());
+            ProtoFileElement protoFileElement = ProtobufFile.toProtoFileElement(content.getContent().content());
             Set<String> allImports = new HashSet<>();
             allImports.addAll(protoFileElement.getImports());
             allImports.addAll(protoFileElement.getPublicImports());

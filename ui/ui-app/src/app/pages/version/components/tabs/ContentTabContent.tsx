@@ -4,32 +4,33 @@ import { ToggleGroup, ToggleGroupItem } from "@patternfly/react-core";
 import YAML from "yaml";
 import useResizeObserver from "use-resize-observer";
 import Editor from "@monaco-editor/react";
+import { detectContentType } from "@utils/content.utils.ts";
+import { ContentTypes } from "@models/contentTypes.model.ts";
+
+const TYPE_MAP: any = {};
+TYPE_MAP[ContentTypes.APPLICATION_PROTOBUF] = "protobuf";
+TYPE_MAP[ContentTypes.APPLICATION_XML] = "xml";
+TYPE_MAP[ContentTypes.APPLICATION_JSON] = "json";
+TYPE_MAP[ContentTypes.APPLICATION_YAML] = "yaml";
+TYPE_MAP[ContentTypes.APPLICATION_GRAPHQL] = "graphqlschema";
 
 
-const getEditorMode = (artifactType: string): string => {
-    if (artifactType === "PROTOBUF") {
-        return "protobuf";
-    }
-    if (artifactType === "WSDL" || artifactType === "XSD" || artifactType === "XML") {
-        return "xml";
-    }
-    if (artifactType === "GRAPHQL") {
-        return "graphqlschema";
-    }
-    return "json";
+const getEditorMode = (artifactType: string, content: string): string => {
+    const ct: string = detectContentType(artifactType, content);
+    return TYPE_MAP[ct];
 };
-
-const formatContent = (artifactContent: string): string => {
-    try {
-        const pval: any = JSON.parse(artifactContent);
-        if (pval) {
-            return JSON.stringify(pval, null, 2);
-        }
-    } catch (e) {
-        // Do nothing
-    }
-    return artifactContent;
-};
+//
+// const formatContent = (artifactContent: string): string => {
+//     try {
+//         const pval: any = JSON.parse(artifactContent);
+//         if (pval) {
+//             return JSON.stringify(pval, null, 2);
+//         }
+//     } catch (e) {
+//         // Do nothing
+//     }
+//     return artifactContent;
+// };
 
 
 /**
@@ -45,8 +46,8 @@ export type ContentTabContentProps = {
  * Models the content of the Artifact Content tab.
  */
 export const ContentTabContent: FunctionComponent<ContentTabContentProps> = (props: ContentTabContentProps) => {
-    const [content, setContent] = useState(formatContent(props.versionContent));
-    const [editorMode, setEditorMode] = useState(getEditorMode(props.artifactType));
+    const [content, setContent] = useState(props.versionContent);
+    const [editorMode, setEditorMode] = useState(getEditorMode(props.artifactType, props.versionContent));
     const [compactButtons, setCompactButtons] = useState(false);
 
     const { ref, width = 0, height = 0 } = useResizeObserver<HTMLDivElement>();
@@ -55,25 +56,24 @@ export const ContentTabContent: FunctionComponent<ContentTabContentProps> = (pro
         setCompactButtons(width < 500);
     }, [width, height]);
 
-    const switchJsonYaml = (mode: string): (() => void) => {
-        return () => {
-            if (mode === editorMode) {
-                return;
-            } else {
-                let content: string = `Error formatting code to: ${mode}`;
-                try {
-                    if (mode === "yaml") {
-                        content = YAML.stringify(JSON.parse(props.versionContent), null, 4);
-                    } else {
-                        content = JSON.stringify(YAML.parse(props.versionContent), null, 2);
-                    }
-                } catch (e) {
-                    handleInvalidContentError(e);
+    const switchJsonYaml = (mode: string): void => {
+        console.info("SWITCHING TO: ", mode);
+        if (mode === editorMode) {
+            return;
+        } else {
+            let content: string = `Error formatting code to: ${mode}`;
+            try {
+                if (mode === "yaml") {
+                    content = YAML.stringify(JSON.parse(content), null, 4);
+                } else {
+                    content = JSON.stringify(YAML.parse(content), null, 2);
                 }
-                setEditorMode(mode);
-                setContent(content);
+            } catch (e) {
+                handleInvalidContentError(e);
             }
-        };
+            setEditorMode(mode);
+            setContent(content);
+        }
     };
 
     const handleInvalidContentError = (error: any): void => {
@@ -88,14 +88,14 @@ export const ContentTabContent: FunctionComponent<ContentTabContentProps> = (pro
                         text="JSON"
                         buttonId="json"
                         isSelected={editorMode === "json"}
-                        onChange={switchJsonYaml("json")}
+                        onChange={() => switchJsonYaml("json")}
                         isDisabled={editorMode === "json"}
                     />
                     <ToggleGroupItem
                         text="YAML"
                         buttonId="yaml"
                         isSelected={editorMode === "yaml"}
-                        onChange={switchJsonYaml("yaml")}
+                        onChange={() => switchJsonYaml("yaml")}
                         isDisabled={editorMode === "yaml"}
                     />
                 </ToggleGroup>

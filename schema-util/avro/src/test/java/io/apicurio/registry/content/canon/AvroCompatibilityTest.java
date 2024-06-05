@@ -1,13 +1,14 @@
 package io.apicurio.registry.content.canon;
 
+import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.content.TypedContent;
+import io.apicurio.registry.types.ContentTypes;
 import org.apache.avro.Schema;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
-
-import io.apicurio.registry.content.ContentHandle;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -18,41 +19,41 @@ class AvroCompatibilityTest {
             + "\"name\":\"myrecord\","
             + "\"fields\":"
             + "[{\"type\":\"string\",\"name\":\"f1\"}]}";
-    private final Schema schema1 = new Schema.Parser().parse(avroCanonicalizer.canonicalize(ContentHandle.create(schemaString1), new HashMap<>()).content());
+    private final Schema schema1 = new Schema.Parser().parse(avroCanonicalizer.canonicalize(TypedContent.create(ContentHandle.create(schemaString1), ContentTypes.APPLICATION_JSON), new HashMap<>()).getContent().content());
 
     private final String schemaString2 = "{\"type\":\"record\","
             + "\"name\":\"myrecord\","
             + "\"fields\":"
             + "[{\"type\":\"string\",\"name\":\"f1\"},"
             + " {\"type\":\"string\",\"name\":\"f2\", \"default\": \"foo\"}]}";
-    private final Schema schema2 = new Schema.Parser().parse(avroCanonicalizer.canonicalize(ContentHandle.create(schemaString2), new HashMap<>()).content());
+    private final Schema schema2 = new Schema.Parser().parse(avroCanonicalizer.canonicalize(TypedContent.create(ContentHandle.create(schemaString2), ContentTypes.APPLICATION_JSON), new HashMap<>()).getContent().content());
 
     private final String schemaString3 = "{\"type\":\"record\","
             + "\"name\":\"myrecord\","
             + "\"fields\":"
             + "[{\"type\":\"string\",\"name\":\"f1\"},"
             + " {\"type\":\"string\",\"name\":\"f2\"}]}";
-    private final Schema schema3 = new Schema.Parser().parse(avroCanonicalizer.canonicalize(ContentHandle.create(schemaString3), new HashMap<>()).content());
+    private final Schema schema3 = new Schema.Parser().parse(avroCanonicalizer.canonicalize(TypedContent.create(ContentHandle.create(schemaString3), ContentTypes.APPLICATION_JSON), new HashMap<>()).getContent().content());
 
     private final String schemaString4 = "{\"type\":\"record\","
             + "\"name\":\"myrecord\","
             + "\"fields\":"
             + "[{\"type\":\"string\",\"name\":\"f1_new\", \"aliases\": [\"f1\"]}]}";
-    private final Schema schema4 = new Schema.Parser().parse(avroCanonicalizer.canonicalize(ContentHandle.create(schemaString4), new HashMap<>()).content());
+    private final Schema schema4 = new Schema.Parser().parse(avroCanonicalizer.canonicalize(TypedContent.create(ContentHandle.create(schemaString4), ContentTypes.APPLICATION_JSON), new HashMap<>()).getContent().content());
 
     private final String schemaString6 = "{\"type\":\"record\","
             + "\"name\":\"myrecord\","
             + "\"fields\":"
             + "[{\"type\":[\"null\", \"string\"],\"name\":\"f1\","
             + " \"doc\":\"doc of f1\"}]}";
-    private final Schema schema6 = new Schema.Parser().parse(avroCanonicalizer.canonicalize(ContentHandle.create(schemaString6), new HashMap<>()).content());
+    private final Schema schema6 = new Schema.Parser().parse(avroCanonicalizer.canonicalize(TypedContent.create(ContentHandle.create(schemaString6), ContentTypes.APPLICATION_JSON), new HashMap<>()).getContent().content());
 
     private final String schemaString7 = "{\"type\":\"record\","
             + "\"name\":\"myrecord\","
             + "\"fields\":"
             + "[{\"type\":[\"null\", \"string\", \"int\"],\"name\":\"f1\","
             + " \"doc\":\"doc of f1\"}]}";
-    private final Schema schema7 = new Schema.Parser().parse(avroCanonicalizer.canonicalize(ContentHandle.create(schemaString7), new HashMap<>()).content());
+    private final Schema schema7 = new Schema.Parser().parse(avroCanonicalizer.canonicalize(TypedContent.create(ContentHandle.create(schemaString7), ContentTypes.APPLICATION_JSON), new HashMap<>()).getContent().content());
 
     private final String schemaString8 = "{\"type\":\"record\","
             + "\"name\":\"myrecord\","
@@ -60,7 +61,7 @@ class AvroCompatibilityTest {
             + "[{\"type\":\"string\",\"name\":\"f1\"},"
             + " {\"type\":\"string\",\"name\":\"f2\", \"default\": \"foo\"},"
             + " {\"type\":\"string\",\"name\":\"f3\", \"default\": \"bar\"}]}";
-    private final Schema schema8 = new Schema.Parser().parse(avroCanonicalizer.canonicalize(ContentHandle.create(schemaString8), new HashMap<>()).content());
+    private final Schema schema8 = new Schema.Parser().parse(avroCanonicalizer.canonicalize(TypedContent.create(ContentHandle.create(schemaString8), ContentTypes.APPLICATION_JSON), new HashMap<>()).getContent().content());
 
     /*
      * Backward compatibility: A new schema is backward compatible if it can be used to read the data

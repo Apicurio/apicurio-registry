@@ -1,14 +1,13 @@
 package io.apicurio.registry.content.dereference;
 
-import java.util.Map;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-
 import io.apicurio.datamodels.models.Node;
 import io.apicurio.datamodels.models.Referenceable;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiMessage;
 import io.apicurio.datamodels.models.visitors.AllNodeVisitor;
+
+import java.util.Map;
 
 /**
  * Rewrites all references in a data model using a map of replacements provided.
@@ -19,7 +18,6 @@ public class ReferenceRewriter extends AllNodeVisitor {
 
     /**
      * Constructor.
-     * @param resolvedReferenceUrls
      */
     public ReferenceRewriter(Map<String, String> referenceUrls) {
         this.referenceUrls = referenceUrls;

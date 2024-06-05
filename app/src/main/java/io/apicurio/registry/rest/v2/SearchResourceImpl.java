@@ -5,6 +5,7 @@ import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.canon.ContentCanonicalizer;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
@@ -16,10 +17,11 @@ import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
 import io.apicurio.registry.storage.dto.OrderBy;
 import io.apicurio.registry.storage.dto.OrderDirection;
 import io.apicurio.registry.storage.dto.SearchFilter;
+import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
-import io.apicurio.registry.util.ContentTypeUtil;
+import io.apicurio.registry.content.util.ContentTypeUtil;
 import io.apicurio.registry.utils.StringUtil;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -148,16 +150,19 @@ public class SearchResourceImpl implements SearchResource {
             canonical = Boolean.FALSE;
         }
         ContentHandle content = ContentHandle.create(data);
+        String contentType = getContentType();
         if (content.bytes().length == 0) {
             throw new BadRequestException(EMPTY_CONTENT_ERROR_MESSAGE);
         }
-        if (ContentTypeUtil.isApplicationYaml(getContentType())) {
+        if (ContentTypeUtil.isApplicationYaml(contentType)) {
             content = ContentTypeUtil.yamlToJson(content);
+            contentType = ContentTypes.APPLICATION_JSON;
         }
+        TypedContent typedContent = TypedContent.create(content, contentType);
 
         Set<SearchFilter> filters = new HashSet<SearchFilter>();
         if (canonical && artifactType != null) {
-            String canonicalHash = sha256Hash(canonicalizeContent(artifactType, content));
+            String canonicalHash = sha256Hash(canonicalizeContent(artifactType, typedContent).getContent());
             filters.add(SearchFilter.ofCanonicalHash(canonicalHash));
         } else if (!canonical) {
             String contentHash = sha256Hash(content);
@@ -188,11 +193,11 @@ public class SearchResourceImpl implements SearchResource {
         return groupId;
     }
 
-    protected ContentHandle canonicalizeContent(String artifactType, ContentHandle content) {
+    protected TypedContent canonicalizeContent(String artifactType, TypedContent content) {
         try {
             ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(artifactType);
             ContentCanonicalizer canonicalizer = provider.getContentCanonicalizer();
-            ContentHandle canonicalContent = canonicalizer.canonicalize(content, Collections.emptyMap());
+            TypedContent canonicalContent = canonicalizer.canonicalize(content, Collections.emptyMap());
             return canonicalContent;
         } catch (Exception e) {
             log.debug("Failed to canonicalize content of type: {}", artifactType);

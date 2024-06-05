@@ -1,4 +1,4 @@
-package io.apicurio.registry.util;
+package io.apicurio.registry.utils;
 
 public class VersionUtil {
 

@@ -32,7 +32,7 @@ import io.apicurio.registry.storage.error.ArtifactNotFoundException;
 import io.apicurio.registry.storage.error.InvalidArtifactStateException;
 import io.apicurio.registry.storage.error.InvalidVersionStateException;
 import io.apicurio.registry.types.VersionState;
-import io.apicurio.registry.util.VersionUtil;
+import io.apicurio.registry.utils.VersionUtil;
 import jakarta.interceptor.Interceptors;
 
 @Interceptors({ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class})

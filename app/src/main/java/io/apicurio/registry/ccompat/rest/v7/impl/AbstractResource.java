@@ -31,7 +31,6 @@ import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.types.VersionState;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
-import io.apicurio.registry.content.util.ContentTypeUtil;
 import jakarta.inject.Inject;
 import org.apache.avro.AvroTypeException;
 import org.apache.avro.SchemaParseException;
@@ -76,8 +75,6 @@ public abstract class AbstractResource {
             String contentType = ContentTypes.APPLICATION_JSON;
             if (artifactType.equals(ArtifactType.PROTOBUF)) {
                 contentType = ContentTypes.APPLICATION_PROTOBUF;
-            } else if (ContentTypeUtil.isParsableYaml(schemaContent)) {
-                contentType = ContentTypes.APPLICATION_YAML;
             }
 
             if (!doesArtifactExist(subject, groupId)) {

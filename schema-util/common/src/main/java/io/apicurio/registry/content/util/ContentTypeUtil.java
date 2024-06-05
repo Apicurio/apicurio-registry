@@ -96,7 +96,7 @@ public final class ContentTypeUtil {
     public static boolean isParsableJson(ContentHandle content) {
         try {
             JsonNode root = jsonMapper.readTree(content.stream());
-            return root != null && (root.isObject() || root.isArray());
+            return root != null && !root.isNull() && !root.isMissingNode();
         } catch (Throwable t) {
             return false;
         }

@@ -377,13 +377,13 @@ public class GitManager {
                             try {
                                 // FIXME need to better determine the content type?
                                 String contentType = ContentTypes.APPLICATION_JSON;
-                                if (contentFile.getPath().toLowerCase().endsWith(".yaml") || contentFile.getPath().toLowerCase().endsWith(".yml")) {
+                                if (dataFile.getPath().toLowerCase().endsWith(".yaml") || dataFile.getPath().toLowerCase().endsWith(".yml")) {
                                     contentType = ContentTypes.APPLICATION_YAML;
-                                } else if (contentFile.getPath().toLowerCase().endsWith(".xml") || contentFile.getPath().toLowerCase().endsWith(".wsdl") || contentFile.getPath().toLowerCase().endsWith(".xsd")) {
+                                } else if (dataFile.getPath().toLowerCase().endsWith(".xml") || dataFile.getPath().toLowerCase().endsWith(".wsdl") || dataFile.getPath().toLowerCase().endsWith(".xsd")) {
                                     contentType = ContentTypes.APPLICATION_XML;
-                                } else if (contentFile.getPath().toLowerCase().endsWith(".proto")) {
+                                } else if (dataFile.getPath().toLowerCase().endsWith(".proto")) {
                                     contentType = ContentTypes.APPLICATION_PROTOBUF;
-                                } else if (contentFile.getPath().toLowerCase().endsWith(".graphql")) {
+                                } else if (dataFile.getPath().toLowerCase().endsWith(".graphql")) {
                                     contentType = ContentTypes.APPLICATION_GRAPHQL;
                                 }
                                 var typedContent = TypedContent.create(data, contentType);

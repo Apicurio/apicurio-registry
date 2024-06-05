@@ -8,6 +8,7 @@ import io.apicurio.registry.ccompat.dto.SchemaInfo;
 import io.apicurio.registry.ccompat.dto.SubjectVersion;
 import io.apicurio.registry.ccompat.rest.v7.SchemasResource;
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
@@ -45,8 +46,9 @@ public class SchemasResourceImpl extends AbstractResource implements SchemasReso
             contentType = contentWrapper.getContentType();
             references = contentWrapper.getReferences();
         }
-        return converter.convert(contentHandle, ArtifactTypeUtil.determineArtifactType(contentHandle, null, contentType,
-                storage.resolveReferences(references), factory.getAllArtifactTypes()), references);
+        TypedContent typedContent = TypedContent.create(contentHandle, contentType);
+        return converter.convert(contentHandle, ArtifactTypeUtil.determineArtifactType(typedContent, null,
+                storage.resolveReferences(references), factory), references);
     }
 
     @Override

@@ -4,6 +4,7 @@ import com.microsoft.kiota.ApiException;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.JsonSchemas;
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.model.GroupId;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
 import io.apicurio.registry.rest.client.models.CreateVersion;
@@ -37,6 +38,10 @@ import static org.hamcrest.Matchers.equalTo;
 
 @QuarkusTest
 public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {
+
+    private static TypedContent toTypedContent(String schema) {
+        return TypedContent.create(ContentHandle.create(schema), ContentTypes.APPLICATION_JSON);
+    }
 
     private static final String SCHEMA_SIMPLE = "{\"type\": \"string\"}";
     private static final String SCHEMA_WITH_MAP = "{\r\n" +
@@ -166,7 +171,7 @@ public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {
                     .body("config", equalTo("FULL"));
         });
 
-        rules.applyRules("no-group", "not-existent", ArtifactType.AVRO, ContentHandle.create(SCHEMA_SIMPLE),
+        rules.applyRules("no-group", "not-existent", ArtifactType.AVRO, toTypedContent(SCHEMA_SIMPLE),
                 RuleApplicationType.CREATE, Collections.emptyList(), Collections.emptyMap());
     }
 
@@ -177,7 +182,7 @@ public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {
 
         Assertions.assertThrows(RuleViolationException.class, () -> {
             RuleContext context = new RuleContext("TestGroup", "Test", "AVRO", "BACKWARD",
-                    Collections.singletonList(ContentHandle.create(v1Schema)), ContentHandle.create(v2Schema),
+                    Collections.singletonList(toTypedContent(v1Schema)), toTypedContent(v2Schema),
                     Collections.emptyList(), Collections.emptyMap());
             compatibility.execute(context);
         });
@@ -190,7 +195,7 @@ public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {
 
         RuleViolationException ruleViolationException = Assertions.assertThrows(RuleViolationException.class, () -> {
             RuleContext context = new RuleContext("TestGroup", "TestJson", ArtifactType.JSON, "FORWARD_TRANSITIVE",
-                    Collections.singletonList(ContentHandle.create(v1Schema)), ContentHandle.create(v2Schema),
+                    Collections.singletonList(toTypedContent(v1Schema)), toTypedContent(v2Schema),
                     Collections.emptyList(), Collections.emptyMap());
             compatibility.execute(context);
         });

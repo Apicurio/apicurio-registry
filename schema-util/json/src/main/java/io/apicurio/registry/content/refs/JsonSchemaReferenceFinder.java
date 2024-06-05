@@ -1,19 +1,17 @@
 package io.apicurio.registry.content.refs;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.apicurio.registry.content.TypedContent;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.stream.Collectors;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import io.apicurio.registry.content.ContentHandle;
 
 /**
  * A JSON Schema implementation of a reference finder.
@@ -24,12 +22,12 @@ public class JsonSchemaReferenceFinder implements ReferenceFinder {
     private static final Logger log = LoggerFactory.getLogger(JsonSchemaReferenceFinder.class);
 
     /**
-     * @see io.apicurio.registry.content.refs.ReferenceFinder#findExternalReferences(io.apicurio.registry.content.ContentHandle)
+     * @see io.apicurio.registry.content.refs.ReferenceFinder#findExternalReferences(TypedContent)
      */
     @Override
-    public Set<ExternalReference> findExternalReferences(ContentHandle content) {
+    public Set<ExternalReference> findExternalReferences(TypedContent content) {
         try {
-            JsonNode tree = mapper.readTree(content.content());
+            JsonNode tree = mapper.readTree(content.getContent().content());
             Set<String> externalTypes = new HashSet<>();
             findExternalTypesIn(tree, externalTypes);
 

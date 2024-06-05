@@ -5,7 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
 import io.apicurio.common.apps.config.Info;
 import io.apicurio.common.apps.core.System;
-import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.exception.UnreachableCodeException;
 import io.apicurio.registry.model.BranchId;
 import io.apicurio.registry.model.GA;
@@ -87,7 +87,7 @@ import io.apicurio.registry.storage.importing.DataImporter;
 import io.apicurio.registry.storage.importing.SqlDataImporter;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.RuleType;
-import io.apicurio.registry.util.DtoUtil;
+import io.apicurio.registry.utils.DtoUtil;
 import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.StringUtil;
 import io.apicurio.registry.utils.impexp.ArtifactBranchEntity;
@@ -654,16 +654,15 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
      */
     private Long getOrCreateContent(Handle handle, String artifactType, ContentWrapperDto contentDto) {
         List<ArtifactReferenceDto> references = contentDto.getReferences();
-        ContentHandle content = contentDto.getContent();
-        String contentType = contentDto.getContentType();
+        TypedContent content = TypedContent.create(contentDto.getContent(), contentDto.getContentType());
 
         if (notEmpty(references)) {
-            return getOrCreateContentRaw(handle, content, contentType,
+            return getOrCreateContentRaw(handle, content,
                     utils.getContentHash(content, references),
                     utils.getCanonicalContentHash(content, artifactType, references, this::resolveReferences),
                     references, SqlUtil.serializeReferences(references));
         } else {
-            return getOrCreateContentRaw(handle, content, contentType,
+            return getOrCreateContentRaw(handle, content,
                     utils.getContentHash(content, null),
                     utils.getCanonicalContentHash(content, artifactType, null, null),
                     null, null);
@@ -676,9 +675,9 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
      * <p>
      * IMPORTANT: Private methods can't be @Transactional. Callers MUST have started a transaction.
      */
-    private Long getOrCreateContentRaw(Handle handle, ContentHandle content, String contentType, String contentHash,
+    private Long getOrCreateContentRaw(Handle handle, TypedContent content, String contentHash,
             String canonicalContentHash, List<ArtifactReferenceDto> references, String referencesSerialized) {
-        byte[] contentBytes = content.bytes();
+        byte[] contentBytes = content.getContent().bytes();
 
         // Upsert a row in the "content" table.  This will insert a row for the content
         // if a row doesn't already exist.  We use the content hash to determine whether
@@ -691,7 +690,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                     .bind(0, nextContentId())
                     .bind(1, canonicalContentHash)
                     .bind(2, contentHash)
-                    .bind(3, contentType)
+                    .bind(3, content.getContentType())
                     .bind(4, contentBytes)
                     .bind(5, referencesSerialized)
                     .execute();
@@ -710,7 +709,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                         .bind(0, nextContentId())
                         .bind(1, canonicalContentHash)
                         .bind(2, contentHash)
-                        .bind(3, contentType)
+                        .bind(3, content.getContentType())
                         .bind(4, contentBytes)
                         .bind(5, referencesSerialized)
                         .execute();
@@ -1091,7 +1090,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
      * @param references may be null
      */
     private String getContentHash(String groupId, String artifactId, boolean canonical,
-                                  ContentHandle content, List<ArtifactReferenceDto> references) {
+                                  TypedContent content, List<ArtifactReferenceDto> references) {
         if (canonical) {
             var artifactMetaData = getArtifactMetaData(groupId, artifactId);
             return utils.getCanonicalContentHash(content, artifactMetaData.getArtifactType(),
@@ -1108,7 +1107,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     @Override
     @Transactional
     public ArtifactVersionMetaDataDto getArtifactVersionMetaDataByContent(String groupId, String artifactId, boolean canonical,
-                                                                 ContentHandle content, List<ArtifactReferenceDto> references)
+                                                                          TypedContent content, List<ArtifactReferenceDto> references)
             throws ArtifactNotFoundException, RegistryStorageException {
 
         String hash = getContentHash(groupId, artifactId, canonical, content, references);
@@ -2585,11 +2584,11 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
     @Override
     @Transactional
-    public Map<String, ContentHandle> resolveReferences(List<ArtifactReferenceDto> references) {
+    public Map<String, TypedContent> resolveReferences(List<ArtifactReferenceDto> references) {
         if (references == null || references.isEmpty()) {
             return Collections.emptyMap();
         } else {
-            Map<String, ContentHandle> result = new LinkedHashMap<>();
+            Map<String, TypedContent> result = new LinkedHashMap<>();
             resolveReferences(result, references);
             return result;
         }
@@ -2797,7 +2796,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     /**
      * IMPORTANT: Private methods can't be @Transactional. Callers MUST have started a transaction.
      */
-    private void resolveReferences(Map<String, ContentHandle> resolvedReferences, List<ArtifactReferenceDto> references) {
+    private void resolveReferences(Map<String, TypedContent> resolvedReferences, List<ArtifactReferenceDto> references) {
         if (references != null && !references.isEmpty()) {
             for (ArtifactReferenceDto reference : references) {
                 if (reference.getArtifactId() == null || reference.getName() == null || reference.getVersion() == null) {
@@ -2809,7 +2808,8 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                             final ArtifactVersionMetaDataDto referencedArtifactMetaData = getArtifactVersionMetaData(reference.getGroupId(), reference.getArtifactId(), reference.getVersion());
                             final ContentWrapperDto referencedContent = getContentById(referencedArtifactMetaData.getContentId());
                             resolveReferences(resolvedReferences, referencedContent.getReferences());
-                            resolvedReferences.put(reference.getName(), referencedContent.getContent());
+                            TypedContent typedContent = TypedContent.create(referencedContent.getContent(), referencedContent.getContentType());
+                            resolvedReferences.put(reference.getName(), typedContent);
                         } catch (VersionNotFoundException ex) {
                             // Ignored
                         }

@@ -10,7 +10,7 @@ import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsonorg.JsonOrgModule;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fasterxml.jackson.module.paramnames.ParameterNamesModule;
-import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.types.RegistryException;
 import org.everit.json.schema.Schema;
 import org.everit.json.schema.loader.SchemaLoader;
@@ -48,11 +48,11 @@ public class JsonUtil {
         return readSchema(content, Collections.emptyMap(), true);
     }
 
-    public static Schema readSchema(String content, Map<String, ContentHandle> resolvedReferences) throws JsonProcessingException {
+    public static Schema readSchema(String content, Map<String, TypedContent> resolvedReferences) throws JsonProcessingException {
         return readSchema(content, resolvedReferences, true);
     }
 
-    public static Schema readSchema(String content, Map<String, ContentHandle> resolvedReferences, boolean validateDangling) throws JsonProcessingException {
+    public static Schema readSchema(String content, Map<String, TypedContent> resolvedReferences, boolean validateDangling) throws JsonProcessingException {
         JsonNode jsonNode = MAPPER.readTree(content);
         Schema schemaObj;
         // Extract the $schema to use for determining the id keyword
@@ -90,7 +90,7 @@ public class JsonUtil {
             referenceURIs.add(referenceURI);
             var resolvedReference = resolvedReferencesCopy.remove(referenceURI.toString());
             if (resolvedReference != null) {
-                builder.registerSchemaByURI(referenceURI, new JSONObject(resolvedReference.content()));
+                builder.registerSchemaByURI(referenceURI, new JSONObject(resolvedReference.getContent().content()));
             } else {
                 /* Since we do not have the referenced content,
                  * we insert a placeholder schema, that will accept any JSON,

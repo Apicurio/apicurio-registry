@@ -1,12 +1,7 @@
 package io.apicurio.registry.rules.validity;
 
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
-
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.apicurio.datamodels.Library;
 import io.apicurio.datamodels.TraverserDirection;
 import io.apicurio.datamodels.models.Document;
@@ -14,12 +9,20 @@ import io.apicurio.datamodels.models.Node;
 import io.apicurio.datamodels.models.Referenceable;
 import io.apicurio.datamodels.models.visitors.AllNodeVisitor;
 import io.apicurio.datamodels.validation.ValidationProblem;
-import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.content.TypedContent;
+import io.apicurio.registry.content.util.ContentTypeUtil;
 import io.apicurio.registry.rest.v3.beans.ArtifactReference;
 import io.apicurio.registry.rules.RuleViolation;
 import io.apicurio.registry.rules.RuleViolationException;
 import io.apicurio.registry.rules.integrity.IntegrityLevel;
 import io.apicurio.registry.types.RuleType;
+
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * A content validator implementation for the OpenAPI and AsyncAPI content types.
@@ -27,14 +30,15 @@ import io.apicurio.registry.types.RuleType;
 public abstract class ApicurioDataModelContentValidator implements ContentValidator {
 
     /**
-     * @see io.apicurio.registry.rules.validity.ContentValidator#validate(ValidityLevel, ContentHandle, Map)
+     * @see io.apicurio.registry.rules.validity.ContentValidator#validate(ValidityLevel, TypedContent, Map)
      */
     @Override
-    public void validate(ValidityLevel level, ContentHandle artifactContent, Map<String, ContentHandle> resolvedReferences) throws RuleViolationException {
+    public void validate(ValidityLevel level, TypedContent content, Map<String, TypedContent> resolvedReferences) throws RuleViolationException {
         Document document = null;
         if (level == ValidityLevel.SYNTAX_ONLY || level == ValidityLevel.FULL) {
             try {
-                document = Library.readDocumentFromJSONString(artifactContent.content());
+                JsonNode node = ContentTypeUtil.parseJsonOrYaml(content);
+                document = Library.readDocument((ObjectNode) node);
             } catch (Exception e) {
                 throw new RuleViolationException("Syntax violation for " + getDataModelType() + " artifact.", RuleType.VALIDITY, level.name(), e);
             }
@@ -54,12 +58,12 @@ public abstract class ApicurioDataModelContentValidator implements ContentValida
     }
 
     /**
-     * @see io.apicurio.registry.rules.validity.ContentValidator#validateReferences(io.apicurio.registry.content.ContentHandle, java.util.List)
+     * @see io.apicurio.registry.rules.validity.ContentValidator#validateReferences(TypedContent, List)
      */
     @Override
-    public void validateReferences(ContentHandle artifactContent, List<ArtifactReference> references) throws RuleViolationException {
+    public void validateReferences(TypedContent content, List<ArtifactReference> references) throws RuleViolationException {
         Set<String> mappedRefs = references.stream().map(ref -> ref.getName()).collect(Collectors.toSet());
-        Set<String> all$refs = getAll$refs(artifactContent);
+        Set<String> all$refs = getAll$refs(content);
         Set<RuleViolation> violations = all$refs.stream().filter(ref -> !mappedRefs.contains(ref)).map(missingRef -> {
             return new RuleViolation("Unmapped reference detected.", missingRef);
         }).collect(Collectors.toSet());
@@ -68,10 +72,11 @@ public abstract class ApicurioDataModelContentValidator implements ContentValida
         }
     }
 
-    private Set<String> getAll$refs(ContentHandle artifactContent) {
+    private Set<String> getAll$refs(TypedContent content) {
         try {
             RefFinder refFinder = new RefFinder();
-            Document document = Library.readDocumentFromJSONString(artifactContent.content());
+            JsonNode node = ContentTypeUtil.parseJsonOrYaml(content);
+            Document document = Library.readDocument((ObjectNode) node);
             Library.visitTree(document, refFinder, TraverserDirection.down);
             return refFinder.references;
         } catch (Exception e) {

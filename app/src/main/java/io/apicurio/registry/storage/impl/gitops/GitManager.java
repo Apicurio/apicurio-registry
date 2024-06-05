@@ -2,6 +2,7 @@ package io.apicurio.registry.storage.impl.gitops;
 
 
 import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
+import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.storage.impl.gitops.model.GitFile;
 import io.apicurio.registry.storage.impl.gitops.model.Type;
 import io.apicurio.registry.storage.impl.gitops.model.v0.Artifact;
@@ -15,7 +16,7 @@ import io.apicurio.registry.storage.impl.sql.RegistryStorageContentUtils;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.types.VersionState;
-import io.apicurio.registry.util.ContentTypeUtil;
+import io.apicurio.registry.content.util.ContentTypeUtil;
 import io.apicurio.registry.utils.impexp.ArtifactRuleEntity;
 import io.apicurio.registry.utils.impexp.ArtifactVersionEntity;
 import io.apicurio.registry.utils.impexp.ContentEntity;
@@ -374,15 +375,27 @@ public class GitManager {
                                 data = ContentTypeUtil.yamlToJson(data);
                             }
                             try {
+                                // FIXME need to better determine the content type?
+                                String contentType = ContentTypes.APPLICATION_JSON;
+                                if (contentFile.getPath().toLowerCase().endsWith(".yaml") || contentFile.getPath().toLowerCase().endsWith(".yml")) {
+                                    contentType = ContentTypes.APPLICATION_YAML;
+                                } else if (contentFile.getPath().toLowerCase().endsWith(".xml") || contentFile.getPath().toLowerCase().endsWith(".wsdl") || contentFile.getPath().toLowerCase().endsWith(".xsd")) {
+                                    contentType = ContentTypes.APPLICATION_XML;
+                                } else if (contentFile.getPath().toLowerCase().endsWith(".proto")) {
+                                    contentType = ContentTypes.APPLICATION_PROTOBUF;
+                                } else if (contentFile.getPath().toLowerCase().endsWith(".graphql")) {
+                                    contentType = ContentTypes.APPLICATION_GRAPHQL;
+                                }
+                                var typedContent = TypedContent.create(data, contentType);
+
                                 var e = new ContentEntity();
                                 e.contentId = content.getId();
                                 e.contentHash = content.getContentHash();
                                 e.contentBytes = data.bytes();
-                                content.setArtifactType(utils.determineArtifactType(data, content.getArtifactType()));
-                                e.canonicalHash = utils.getCanonicalContentHash(data, content.getArtifactType(), null, null);
+                                content.setArtifactType(utils.determineArtifactType(typedContent, content.getArtifactType()));
+                                e.canonicalHash = utils.getCanonicalContentHash(typedContent, content.getArtifactType(), null, null);
                                 e.artifactType = content.getArtifactType();
-                                // FIXME need to better determine the content type?
-                                e.contentType = ContentTypes.APPLICATION_JSON;
+                                e.contentType = contentType;
                                 if (contentFile.getPath().toLowerCase().endsWith(".yaml") || contentFile.getPath().toLowerCase().endsWith(".yml")) {
                                     e.contentType = ContentTypes.APPLICATION_YAML;
                                 } else if (contentFile.getPath().toLowerCase().endsWith(".xml") || contentFile.getPath().toLowerCase().endsWith(".wsdl") || contentFile.getPath().toLowerCase().endsWith(".xsd")) {

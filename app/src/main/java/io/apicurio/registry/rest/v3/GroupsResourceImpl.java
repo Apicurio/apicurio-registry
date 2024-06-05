@@ -6,6 +6,7 @@ import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.model.BranchId;
@@ -71,6 +72,7 @@ import io.apicurio.registry.storage.error.VersionNotFoundException;
 import io.apicurio.registry.types.ReferenceType;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.types.VersionState;
+import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 import io.apicurio.registry.util.ArtifactIdGenerator;
 import io.apicurio.registry.util.ArtifactTypeUtil;
 import io.apicurio.registry.utils.ArtifactIdValidator;
@@ -123,6 +125,9 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
     @Inject
     RulesService rulesService;
+
+    @Inject
+    ArtifactTypeUtilProviderFactory factory;
 
     @Inject
     ArtifactIdGenerator idGenerator;
@@ -407,10 +412,10 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         }
         StoredArtifactVersionDto artifact = storage.getArtifactVersionContent(gav.getRawGroupIdWithNull(), gav.getRawArtifactId(), gav.getRawVersionId());
 
-        ContentHandle contentToReturn = artifact.getContent();
+        TypedContent contentToReturn = TypedContent.create(artifact.getContent(), artifact.getContentType());
         contentToReturn = handleContentReferences(references, metaData.getArtifactType(), contentToReturn, artifact.getReferences());
 
-        Response.ResponseBuilder builder = Response.ok(contentToReturn, artifact.getContentType());
+        Response.ResponseBuilder builder = Response.ok(contentToReturn.getContent(), artifact.getContentType());
         checkIfDeprecated(metaData::getState, groupId, artifactId, versionExpression, builder);
         return builder.build();
     }
@@ -644,17 +649,19 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
             } else if (!ArtifactIdValidator.isArtifactIdAllowed(artifactId)) {
                 throw new InvalidArtifactIdException(ArtifactIdValidator.ARTIFACT_ID_ERROR_MESSAGE);
             }
+            TypedContent typedContent = TypedContent.create(content, contentType);
 
-            String artifactType = ArtifactTypeUtil.determineArtifactType(content, data.getArtifactType(), contentType, factory.getAllArtifactTypes());
+            String artifactType = ArtifactTypeUtil.determineArtifactType(typedContent, data.getArtifactType(), factory);
 
             // Convert references to DTOs
             final List<ArtifactReferenceDto> referencesAsDtos = toReferenceDtos(references);
 
             // Try to resolve the references
-            final Map<String, ContentHandle> resolvedReferences = storage.resolveReferences(referencesAsDtos);
+            final Map<String, TypedContent> resolvedReferences = storage.resolveReferences(referencesAsDtos);
 
             // Apply any configured rules
-            rulesService.applyRules(new GroupId(groupId).getRawGroupIdWithNull(), artifactId, artifactType, content, RuleApplicationType.CREATE, references, resolvedReferences);
+            rulesService.applyRules(new GroupId(groupId).getRawGroupIdWithNull(), artifactId, artifactType, typedContent,
+                    RuleApplicationType.CREATE, references, resolvedReferences);
 
             // Create the artifact (with optional first version)
             EditableArtifactMetaDataDto artifactMetaData = EditableArtifactMetaDataDto.builder()
@@ -703,11 +710,6 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                     new GroupId(groupId).getRawGroupIdWithNull(),
                     artifactId, artifactType, artifactMetaData, firstVersion, firstVersionContent,
                     firstVersionMetaData, firstVersionBranches);
-
-            // TODO the branches should be created in the storage
-//            for (String rawBranchId : normalizeMultiValuedHeader(artifactBranches)) {
-//                storage.createOrUpdateArtifactBranch(new GAV(groupId, artifactId, vmd.getVersion()), new BranchId(rawBranchId));
-//            }
 
             // Now return both the artifact metadata and (if available) the version metadata
             CreateArtifactResponse rval = CreateArtifactResponse.builder()
@@ -775,10 +777,11 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         final List<ArtifactReferenceDto> referencesAsDtos = toReferenceDtos(data.getContent().getReferences());
 
         // Try to resolve the new artifact references and the nested ones (if any)
-        final Map<String, ContentHandle> resolvedReferences = storage.resolveReferences(referencesAsDtos);
+        final Map<String, TypedContent> resolvedReferences = storage.resolveReferences(referencesAsDtos);
 
         String artifactType = lookupArtifactType(groupId, artifactId);
-        rulesService.applyRules(new GroupId(groupId).getRawGroupIdWithNull(), artifactId, artifactType, content,
+        TypedContent typedContent = TypedContent.create(content, ct);
+        rulesService.applyRules(new GroupId(groupId).getRawGroupIdWithNull(), artifactId, artifactType, typedContent,
                 RuleApplicationType.UPDATE, data.getContent().getReferences(), resolvedReferences);
         EditableVersionMetaDataDto metaDataDto = EditableVersionMetaDataDto.builder()
                 .description(data.getDescription())
@@ -811,11 +814,6 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
         ArtifactVersionMetaDataDto vmd = storage.createArtifactVersion(new GroupId(groupId).getRawGroupIdWithNull(), artifactId, data.getVersion(),
                 artifactType, contentDto, metaDataDto, data.getBranches());
-
-        // TODO branches should be created in the storage (in the Tx)
-//        for (String rawBranchId : normalizeMultiValuedHeader(artifactBranches)) {
-//            storage.createOrUpdateArtifactBranch(new GAV(groupId, artifactId, vmd.getVersion()), new BranchId(rawBranchId));
-//        }
 
         return V3ApiUtil.dtoToVersionMetaData(vmd);
     }
@@ -1046,7 +1044,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     private CreateArtifactResponse handleIfExistsReturnOrUpdate(String groupId, String artifactId, CreateVersion theVersion, boolean canonical) {
         try {
             // Find the version
-            ContentHandle content = ContentHandle.create(theVersion.getContent().getContent());
+            TypedContent content = TypedContent.create(ContentHandle.create(theVersion.getContent().getContent()), theVersion.getContent().getContentType());
             List<ArtifactReferenceDto> referenceDtos = toReferenceDtos(theVersion.getContent().getReferences());
             ArtifactVersionMetaDataDto vmdDto = this.storage.getArtifactVersionMetaDataByContent(
                     new GroupId(groupId).getRawGroupIdWithNull(), artifactId, canonical, content, referenceDtos);
@@ -1082,9 +1080,9 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         //Transform the given references into dtos and set the contentId, this will also detect if any of the passed references does not exist.
         final List<ArtifactReferenceDto> referencesAsDtos = toReferenceDtos(references);
 
-        final Map<String, ContentHandle> resolvedReferences = storage.resolveReferences(referencesAsDtos);
-
-        rulesService.applyRules(new GroupId(groupId).getRawGroupIdWithNull(), artifactId, artifactType, content,
+        final Map<String, TypedContent> resolvedReferences = storage.resolveReferences(referencesAsDtos);
+        final TypedContent typedContent = TypedContent.create(content, contentType);
+        rulesService.applyRules(new GroupId(groupId).getRawGroupIdWithNull(), artifactId, artifactType, typedContent,
                 RuleApplicationType.UPDATE, references, resolvedReferences);
         EditableVersionMetaDataDto metaData = EditableVersionMetaDataDto.builder()
                 .name(name)
@@ -1103,11 +1101,6 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         // Need to also return the artifact metadata
         ArtifactMetaDataDto amdDto = this.storage.getArtifactMetaData(groupId, artifactId);
         ArtifactMetaData amd = V3ApiUtil.dtoToArtifactMetaData(amdDto);
-
-        // TODO branches should be created in the storage in a Tx
-//        for (String rawBranchId : normalizeMultiValuedHeader(branches)) {
-//            storage.createOrUpdateArtifactBranch(new GAV(groupId, artifactId, dto.getVersion()), new BranchId(rawBranchId));
-//        }
 
         return CreateArtifactResponse.builder()
                 .artifact(amd)

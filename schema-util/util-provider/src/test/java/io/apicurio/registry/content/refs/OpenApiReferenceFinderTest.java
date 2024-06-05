@@ -1,12 +1,11 @@
 package io.apicurio.registry.content.refs;
 
-import java.util.Set;
-
+import io.apicurio.registry.content.TypedContent;
+import io.apicurio.registry.rules.validity.ArtifactUtilProviderTestBase;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-import io.apicurio.registry.content.ContentHandle;
-import io.apicurio.registry.rules.validity.ArtifactUtilProviderTestBase;
+import java.util.Set;
 
 public class OpenApiReferenceFinderTest extends ArtifactUtilProviderTestBase {
 
@@ -15,7 +14,7 @@ public class OpenApiReferenceFinderTest extends ArtifactUtilProviderTestBase {
      */
     @Test
     public void testFindExternalReferences() {
-        ContentHandle content = resourceToContentHandle("openapi-with-refs.json");
+        TypedContent content = resourceToTypedContentHandle("openapi-with-refs.json");
         OpenApiReferenceFinder finder = new OpenApiReferenceFinder();
         Set<ExternalReference> foundReferences = finder.findExternalReferences(content);
         Assertions.assertNotNull(foundReferences);

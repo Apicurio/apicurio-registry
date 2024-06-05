@@ -5,6 +5,7 @@ import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.rest.HeadersHack;
@@ -21,7 +22,6 @@ import io.apicurio.registry.types.VersionState;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.interceptor.Interceptors;
-import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
 import java.util.List;
@@ -68,12 +68,10 @@ public class IdsResourceImpl extends AbstractResourceImpl implements IdsResource
 
         StoredArtifactVersionDto artifact = storage.getArtifactVersionContent(globalId);
 
-        MediaType contentType = factory.getArtifactMediaType(metaData.getArtifactType());
-
-        ContentHandle contentToReturn = artifact.getContent();
+        TypedContent contentToReturn = TypedContent.create(artifact.getContent(), artifact.getContentType());
         contentToReturn = handleContentReferences(references, metaData.getArtifactType(), contentToReturn, artifact.getReferences());
 
-        Response.ResponseBuilder builder = Response.ok(contentToReturn, contentType);
+        Response.ResponseBuilder builder = Response.ok(contentToReturn.getContent(), contentToReturn.getContentType());
         checkIfDeprecated(metaData::getState, metaData.getArtifactId(), metaData.getVersion(), builder);
         return builder.build();
     }

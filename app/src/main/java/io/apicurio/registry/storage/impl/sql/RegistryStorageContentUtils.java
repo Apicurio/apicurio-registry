@@ -1,23 +1,22 @@
 package io.apicurio.registry.storage.impl.sql;
 
+import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.content.TypedContent;
+import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
+import io.apicurio.registry.types.RegistryException;
+import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
+import io.apicurio.registry.util.ArtifactTypeUtil;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
+import org.apache.commons.codec.digest.DigestUtils;
+import org.slf4j.Logger;
+
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
-
-import org.apache.commons.codec.digest.DigestUtils;
-import org.slf4j.Logger;
-
-import io.apicurio.registry.content.ContentHandle;
-import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
-import io.apicurio.registry.storage.dto.EditableVersionMetaDataDto;
-import io.apicurio.registry.types.RegistryException;
-import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
-import io.apicurio.registry.util.ArtifactTypeUtil;
-import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
 
 /**
  * TODO Refactor
@@ -38,7 +37,7 @@ public class RegistryStorageContentUtils {
      *
      * @throws RegistryException in the case of an error.
      */
-    public ContentHandle canonicalizeContent(String artifactType, ContentHandle content, Map<String, ContentHandle> resolvedReferences) {
+    public TypedContent canonicalizeContent(String artifactType, TypedContent content, Map<String, TypedContent> resolvedReferences) {
         try {
             return factory.getArtifactTypeProvider(artifactType)
                     .getContentCanonicalizer()
@@ -46,7 +45,7 @@ public class RegistryStorageContentUtils {
         } catch (Exception ex) {
             // TODO: We should consider explicitly failing when a content could not be canonicalized.
             // throw new RegistryException("Failed to canonicalize content.", ex);
-            log.debug("Failed to canonicalize content: {}", content.content());
+            log.debug("Failed to canonicalize content: {}", artifactType);
             return content;
         }
     }
@@ -57,8 +56,8 @@ public class RegistryStorageContentUtils {
      *
      * @throws RegistryException in the case of an error.
      */
-    public ContentHandle canonicalizeContent(String artifactType, ContentHandle content, List<ArtifactReferenceDto> references,
-                                             Function<List<ArtifactReferenceDto>, Map<String, ContentHandle>> referenceResolver) {
+    public TypedContent canonicalizeContent(String artifactType, TypedContent content, List<ArtifactReferenceDto> references,
+                                             Function<List<ArtifactReferenceDto>, Map<String, TypedContent>> referenceResolver) {
         try {
             return canonicalizeContent(artifactType, content, referenceResolver.apply(references));
         } catch (Exception ex) {
@@ -71,16 +70,16 @@ public class RegistryStorageContentUtils {
      * @param references        may be null
      * @param referenceResolver may be null if references is null
      */
-    public String getCanonicalContentHash(ContentHandle content, String artifactType, List<ArtifactReferenceDto> references,
-                                          Function<List<ArtifactReferenceDto>, Map<String, ContentHandle>> referenceResolver) {
+    public String getCanonicalContentHash(TypedContent content, String artifactType, List<ArtifactReferenceDto> references,
+                                          Function<List<ArtifactReferenceDto>, Map<String, TypedContent>> referenceResolver) {
         try {
             if (notEmpty(references)) {
                 String referencesSerialized = SqlUtil.serializeReferences(references);
-                ContentHandle canonicalContent = canonicalizeContent(artifactType, content, referenceResolver.apply(references));
-                return DigestUtils.sha256Hex(concatContentAndReferences(canonicalContent.bytes(), referencesSerialized));
+                TypedContent canonicalContent = canonicalizeContent(artifactType, content, referenceResolver.apply(references));
+                return DigestUtils.sha256Hex(concatContentAndReferences(canonicalContent.getContent().bytes(), referencesSerialized));
             } else {
-                ContentHandle canonicalContent = canonicalizeContent(artifactType, content, Map.of());
-                return DigestUtils.sha256Hex(canonicalContent.bytes());
+                TypedContent canonicalContent = canonicalizeContent(artifactType, content, Map.of());
+                return DigestUtils.sha256Hex(canonicalContent.getContent().bytes());
             }
         } catch (IOException ex) {
             throw new RegistryException("Failed to compute canonical content hash.", ex);
@@ -91,13 +90,13 @@ public class RegistryStorageContentUtils {
     /**
      * @param references may be null
      */
-    public String getContentHash(ContentHandle content, List<ArtifactReferenceDto> references) {
+    public String getContentHash(TypedContent content, List<ArtifactReferenceDto> references) {
         try {
             if (notEmpty(references)) {
                 String referencesSerialized = SqlUtil.serializeReferences(references);
-                return DigestUtils.sha256Hex(concatContentAndReferences(content.bytes(), referencesSerialized));
+                return DigestUtils.sha256Hex(concatContentAndReferences(content.getContent().bytes(), referencesSerialized));
             } else {
-                return DigestUtils.sha256Hex(content.bytes());
+                return DigestUtils.sha256Hex(content.getContent().bytes());
             }
         } catch (IOException ex) {
             throw new RegistryException("Failed to compute content hash.", ex);
@@ -118,24 +117,8 @@ public class RegistryStorageContentUtils {
     }
 
 
-    public String determineArtifactType(ContentHandle content, String artifactTypeHint) {
-        return ArtifactTypeUtil.determineArtifactType(content, artifactTypeHint, null, factory.getAllArtifactTypes());
-    }
-
-
-    public EditableVersionMetaDataDto extractEditableArtifactMetadata(String artifactType, ContentHandle content) {
-        var provider = factory.getArtifactTypeProvider(artifactType);
-        var extractor = provider.getContentExtractor();
-        var extractedMetadata = extractor.extract(content);
-        if (extractedMetadata != null) {
-            return EditableVersionMetaDataDto.builder()
-                    .name(extractedMetadata.getName())
-                    .description(extractedMetadata.getDescription())
-                    .labels(extractedMetadata.getLabels())
-                    .build();
-        } else {
-            return EditableVersionMetaDataDto.builder().build();
-        }
+    public String determineArtifactType(TypedContent content, String artifactTypeHint) {
+        return ArtifactTypeUtil.determineArtifactType(content, artifactTypeHint, null, factory);
     }
 
 

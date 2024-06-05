@@ -1,12 +1,27 @@
 package io.apicurio.registry.storage.decorator;
 
 import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
-import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.model.BranchId;
 import io.apicurio.registry.model.GA;
 import io.apicurio.registry.model.GAV;
 import io.apicurio.registry.storage.RegistryStorage;
-import io.apicurio.registry.storage.dto.*;
+import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
+import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
+import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
+import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
+import io.apicurio.registry.storage.dto.CommentDto;
+import io.apicurio.registry.storage.dto.ContentWrapperDto;
+import io.apicurio.registry.storage.dto.GroupMetaDataDto;
+import io.apicurio.registry.storage.dto.GroupSearchResultsDto;
+import io.apicurio.registry.storage.dto.OrderBy;
+import io.apicurio.registry.storage.dto.OrderDirection;
+import io.apicurio.registry.storage.dto.RoleMappingDto;
+import io.apicurio.registry.storage.dto.RoleMappingSearchResultsDto;
+import io.apicurio.registry.storage.dto.RuleConfigurationDto;
+import io.apicurio.registry.storage.dto.SearchFilter;
+import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
+import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
 import io.apicurio.registry.storage.error.ArtifactNotFoundException;
 import io.apicurio.registry.storage.error.ContentNotFoundException;
 import io.apicurio.registry.storage.error.GroupNotFoundException;
@@ -100,7 +115,7 @@ public abstract class RegistryStorageDecoratorReadOnlyBase implements RegistrySt
 
     @Override
     public ArtifactVersionMetaDataDto getArtifactVersionMetaDataByContent(String groupId, String artifactId,
-                                                                          boolean canonical, ContentHandle content, List<ArtifactReferenceDto> artifactReferences)
+                                                                          boolean canonical, TypedContent content, List<ArtifactReferenceDto> artifactReferences)
             throws ArtifactNotFoundException, RegistryStorageException {
         return delegate.getArtifactVersionMetaDataByContent(groupId, artifactId, canonical, content, artifactReferences);
     }
@@ -249,7 +264,7 @@ public abstract class RegistryStorageDecoratorReadOnlyBase implements RegistrySt
     }
 
     @Override
-    public Map<String, ContentHandle> resolveReferences(List<ArtifactReferenceDto> references) {
+    public Map<String, TypedContent> resolveReferences(List<ArtifactReferenceDto> references) {
         return delegate.resolveReferences(references);
     }
 

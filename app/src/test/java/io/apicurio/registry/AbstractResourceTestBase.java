@@ -72,8 +72,6 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
 
     @AfterAll
     protected void afterAll() {
-        //delete data to
-        //storage.deleteAllUserData();
     }
 
     protected RestService buildConfluentClient() {

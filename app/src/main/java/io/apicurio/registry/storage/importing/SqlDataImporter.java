@@ -1,6 +1,7 @@
 package io.apicurio.registry.storage.importing;
 
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.model.GAV;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
@@ -122,12 +123,14 @@ public class SqlDataImporter extends AbstractDataImporter {
                 throw new RuntimeException("ContentEntity is missing required field: contentType");
             }
 
+            TypedContent typedContent = TypedContent.create(ContentHandle.create(entity.contentBytes), entity.contentType);
+
             // We do not need canonicalHash if we have artifactType
             if (entity.canonicalHash == null && entity.artifactType != null) {
-                ContentHandle canonicalContent = utils.canonicalizeContent(
-                        entity.artifactType, ContentHandle.create(entity.contentBytes),
+                TypedContent canonicalContent = utils.canonicalizeContent(
+                        entity.artifactType, typedContent,
                         storage.resolveReferences(references));
-                entity.canonicalHash = DigestUtils.sha256Hex(canonicalContent.bytes());
+                entity.canonicalHash = DigestUtils.sha256Hex(canonicalContent.getContent().bytes());
             }
 
 

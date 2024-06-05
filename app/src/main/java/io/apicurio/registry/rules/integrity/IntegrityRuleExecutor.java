@@ -1,15 +1,7 @@
 package io.apicurio.registry.rules.integrity;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
-
 import io.apicurio.common.apps.logging.Logged;
-import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.rest.v3.beans.ArtifactReference;
 import io.apicurio.registry.rules.RuleContext;
 import io.apicurio.registry.rules.RuleExecutor;
@@ -19,6 +11,13 @@ import io.apicurio.registry.rules.validity.ContentValidator;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
+
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 @ApplicationScoped
 @Logged
@@ -60,7 +59,7 @@ public class IntegrityRuleExecutor implements RuleExecutor {
 
     private void validateReferencesExist(RuleContext context) throws RuleViolationException {
         List<ArtifactReference> references = context.getReferences();
-        Map<String, ContentHandle> resolvedReferences = context.getResolvedReferences();
+        Map<String, TypedContent> resolvedReferences = context.getResolvedReferences();
         
         Set<RuleViolation> causes = new HashSet<>();
         references.forEach(ref -> {

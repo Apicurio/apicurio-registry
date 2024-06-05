@@ -1,11 +1,7 @@
 package io.apicurio.registry.content.refs;
 
-import java.util.HashSet;
-import java.util.Set;
-import java.util.stream.Collectors;
-
 import com.fasterxml.jackson.databind.JsonNode;
-
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.apicurio.datamodels.Library;
 import io.apicurio.datamodels.TraverserDirection;
 import io.apicurio.datamodels.models.Document;
@@ -13,7 +9,13 @@ import io.apicurio.datamodels.models.Node;
 import io.apicurio.datamodels.models.Referenceable;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiMessage;
 import io.apicurio.datamodels.models.visitors.AllNodeVisitor;
-import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.content.TypedContent;
+import io.apicurio.registry.content.util.ContentTypeUtil;
+
+import java.io.IOException;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Implementation of a reference finder that uses Apicurio Data Models and so supports any specification 
@@ -24,21 +26,26 @@ import io.apicurio.registry.content.ContentHandle;
 public abstract class AbstractDataModelsReferenceFinder implements ReferenceFinder {
 
     /**
-     * @see io.apicurio.registry.content.refs.ReferenceFinder#findExternalReferences(io.apicurio.registry.content.ContentHandle)
+     * @see io.apicurio.registry.content.refs.ReferenceFinder#findExternalReferences(TypedContent)
      */
     @Override
-    public Set<ExternalReference> findExternalReferences(ContentHandle content) {
-        Document doc = Library.readDocumentFromJSONString(content.content());
-        
-        // Find all the $refs
-        RefFinderVisitor visitor = new RefFinderVisitor();
-        Library.visitTree(doc, visitor, TraverserDirection.down);
-        
-        // Convert to ExternalReference and filter.
-        return visitor.allReferences.stream()
-                .map(ref -> new JsonPointerExternalReference(ref))
-                .filter(ref -> ref.getResource() != null)
-                .collect(Collectors.toSet());
+    public Set<ExternalReference> findExternalReferences(TypedContent content) {
+        try {
+            JsonNode node = ContentTypeUtil.parseJsonOrYaml(content);
+            Document doc = Library.readDocument((ObjectNode) node);
+
+            // Find all the $refs
+            RefFinderVisitor visitor = new RefFinderVisitor();
+            Library.visitTree(doc, visitor, TraverserDirection.down);
+
+            // Convert to ExternalReference and filter.
+            return visitor.allReferences.stream()
+                    .map(ref -> new JsonPointerExternalReference(ref))
+                    .filter(ref -> ref.getResource() != null)
+                    .collect(Collectors.toSet());
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
     
     /**

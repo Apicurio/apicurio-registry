@@ -2,8 +2,10 @@ package io.apicurio.registry.maven;
 
 
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.ArtifactReference;
+import io.apicurio.registry.types.ContentTypes;
 import org.apache.avro.Schema;
 import org.apache.avro.SchemaParseException;
 import org.slf4j.Logger;
@@ -37,7 +39,7 @@ public class AvroDirectoryParser extends AbstractDirectoryParser<Schema> {
     }
 
     @Override
-    public List<ArtifactReference> handleSchemaReferences(RegisterArtifact rootArtifact, Schema rootSchema, Map<String, ContentHandle> fileContents) throws FileNotFoundException, ExecutionException, InterruptedException {
+    public List<ArtifactReference> handleSchemaReferences(RegisterArtifact rootArtifact, Schema rootSchema, Map<String, TypedContent> fileContents) throws FileNotFoundException, ExecutionException, InterruptedException {
 
         Set<ArtifactReference> references = new HashSet<>();
 
@@ -52,11 +54,11 @@ public class AvroDirectoryParser extends AbstractDirectoryParser<Schema> {
                     nestedArtifactReferences = handleSchemaReferences(nestedSchema, field.schema(), fileContents);
                 }
 
-                references.add(registerNestedSchema(field.schema().getFullName(), nestedArtifactReferences, nestedSchema, fileContents.get(field.schema().getFullName()).content()));
+                references.add(registerNestedSchema(field.schema().getFullName(), nestedArtifactReferences, nestedSchema, fileContents.get(field.schema().getFullName()).getContent().content()));
             } else if (field.schema().getType() == Schema.Type.ENUM) { //If the nested schema is an enum, just register
 
                 RegisterArtifact nestedSchema = buildFromRoot(rootArtifact, field.schema().getFullName());
-                references.add(registerNestedSchema(field.schema().getFullName(), nestedArtifactReferences, nestedSchema, fileContents.get(field.schema().getFullName()).content()));
+                references.add(registerNestedSchema(field.schema().getFullName(), nestedArtifactReferences, nestedSchema, fileContents.get(field.schema().getFullName()).getContent().content()));
             } else if (isArrayWithSubschemaElement(field)) { //If the nested schema is an array and the element is a sub-schema, handle it
 
                 Schema elementSchema = field.schema().getElementType();
@@ -67,7 +69,7 @@ public class AvroDirectoryParser extends AbstractDirectoryParser<Schema> {
                     nestedArtifactReferences = handleSchemaReferences(nestedSchema, elementSchema, fileContents);
                 }
 
-                references.add(registerNestedSchema(elementSchema.getFullName(), nestedArtifactReferences, nestedSchema, fileContents.get(elementSchema.getFullName()).content()));
+                references.add(registerNestedSchema(elementSchema.getFullName(), nestedArtifactReferences, nestedSchema, fileContents.get(elementSchema.getFullName()).getContent().content()));
             }
         }
         return new ArrayList<>(references);
@@ -78,7 +80,7 @@ public class AvroDirectoryParser extends AbstractDirectoryParser<Schema> {
                 .filter(file -> !file.getName().equals(rootSchema.getName())).collect(Collectors.toSet());
 
         Map<String, Schema> processed = new HashMap<>();
-        Map<String, ContentHandle> schemaContents = new HashMap<>();
+        Map<String, TypedContent> schemaContents = new HashMap<>();
 
         Schema.Parser rootSchemaParser = new Schema.Parser();
         Schema.Parser partialParser = new Schema.Parser();
@@ -91,9 +93,11 @@ public class AvroDirectoryParser extends AbstractDirectoryParser<Schema> {
                 }
                 try {
                     final ContentHandle schemaContent = readSchemaContent(typeToAdd);
+                    final String contentType = ContentTypes.APPLICATION_JSON;
+                    final TypedContent typedSchemaContent = TypedContent.create(schemaContent, contentType);
                     final Schema schema = partialParser.parse(schemaContent.content());
                     processed.put(schema.getFullName(), schema);
-                    schemaContents.put(schema.getFullName(), schemaContent);
+                    schemaContents.put(schema.getFullName(), typedSchemaContent);
                     fileParsed = true;
                 } catch (SchemaParseException ex) {
                     log.warn("Error processing Avro schema with name {}. This usually means that the references are not ready yet to parse it", typeToAdd.getName());
@@ -120,9 +124,9 @@ public class AvroDirectoryParser extends AbstractDirectoryParser<Schema> {
 
     public static class AvroSchemaWrapper implements ParsedDirectoryWrapper<Schema> {
         final Schema schema;
-        final Map<String, ContentHandle> fileContents; //Original file contents from the file system.
+        final Map<String, TypedContent> fileContents; //Original file contents from the file system.
 
-        public AvroSchemaWrapper(Schema schema, Map<String, ContentHandle> fileContents) {
+        public AvroSchemaWrapper(Schema schema, Map<String, TypedContent> fileContents) {
             this.schema = schema;
             this.fileContents = fileContents;
         }
@@ -133,7 +137,7 @@ public class AvroDirectoryParser extends AbstractDirectoryParser<Schema> {
         }
 
         @Override
-        public Map<String, ContentHandle> getSchemaContents() {
+        public Map<String, TypedContent> getSchemaContents() {
             return fileContents;
         }
     }

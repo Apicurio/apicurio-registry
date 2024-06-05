@@ -71,8 +71,8 @@ import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_ROLE_M
 import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_RULE;
 import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_RULE_TYPE;
 import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_UPDATE_ROLE;
-import static io.apicurio.registry.util.DtoUtil.appAuthPropertyToRegistry;
-import static io.apicurio.registry.util.DtoUtil.registryAuthPropertyToApp;
+import static io.apicurio.registry.utils.DtoUtil.appAuthPropertyToRegistry;
+import static io.apicurio.registry.utils.DtoUtil.registryAuthPropertyToApp;
 
 @ApplicationScoped
 @Interceptors({ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class})

@@ -1,22 +1,7 @@
 package io.apicurio.registry.rest.v2;
 
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import jakarta.inject.Inject;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.ws.rs.core.Context;
-
-import org.eclipse.microprofile.config.inject.ConfigProperty;
-import org.slf4j.Logger;
-
 import io.apicurio.common.apps.config.Info;
-import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.dereference.ContentDereferencer;
 import io.apicurio.registry.content.refs.JsonPointerExternalReference;
 import io.apicurio.registry.storage.RegistryStorage;
@@ -25,6 +10,19 @@ import io.apicurio.registry.types.Current;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 import io.apicurio.registry.utils.StringUtil;
+import jakarta.inject.Inject;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.ws.rs.core.Context;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.slf4j.Logger;
+
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public abstract class AbstractResourceImpl {
     
@@ -51,13 +49,13 @@ public abstract class AbstractResourceImpl {
      * @param dereference
      * @param content
      */
-    protected ContentHandle handleContentReferences(boolean dereference, String artifactType,
-            ContentHandle content, List<ArtifactReferenceDto> references) {
+    protected TypedContent handleContentReferences(boolean dereference, String artifactType,
+            TypedContent content, List<ArtifactReferenceDto> references) {
         // Dereference or rewrite references
         if (!references.isEmpty() && dereference) {
                 ArtifactTypeUtilProvider artifactTypeProvider = factory.getArtifactTypeProvider(artifactType);
                 ContentDereferencer contentDereferencer = artifactTypeProvider.getContentDereferencer();
-                Map<String, ContentHandle> resolvedReferences = storage.resolveReferences(references);
+                Map<String, TypedContent> resolvedReferences = storage.resolveReferences(references);
                 content = contentDereferencer.dereference(content, resolvedReferences);
         }
         return content;
@@ -119,7 +117,6 @@ public abstract class AbstractResourceImpl {
 
     /**
      * Resolves a host name from the information found in X-Forwarded-Host and X-Forwarded-Proto.
-     * @param path
      */
     private static URI getApiBaseHrefFromXForwarded(HttpServletRequest request) throws URISyntaxException {
         String fproto = request.getHeader("X-Forwarded-Proto");
@@ -133,7 +130,6 @@ public abstract class AbstractResourceImpl {
 
     /**
      * Resolves a host name from the request information.
-     * @param path
      */
     private static URI getApiBaseHrefFromRequest(HttpServletRequest request) throws URISyntaxException {
         String requestUrl = request.getRequestURL().toString();

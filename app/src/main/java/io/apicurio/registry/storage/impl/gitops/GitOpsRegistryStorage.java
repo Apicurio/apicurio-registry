@@ -4,7 +4,7 @@ import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
 import io.apicurio.common.apps.config.DynamicConfigStorage;
 import io.apicurio.common.apps.config.Info;
 import io.apicurio.common.apps.logging.Logged;
-import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.metrics.StorageMetricsApply;
 import io.apicurio.registry.model.BranchId;
 import io.apicurio.registry.model.GA;
@@ -259,7 +259,7 @@ public class GitOpsRegistryStorage extends AbstractReadOnlyRegistryStorage {
 
 
     @Override
-    public ArtifactVersionMetaDataDto getArtifactVersionMetaDataByContent(String groupId, String artifactId, boolean canonical, ContentHandle content, List<ArtifactReferenceDto> artifactReferences) {
+    public ArtifactVersionMetaDataDto getArtifactVersionMetaDataByContent(String groupId, String artifactId, boolean canonical, TypedContent content, List<ArtifactReferenceDto> artifactReferences) {
         return proxy(storage -> storage.getArtifactVersionMetaDataByContent(groupId, artifactId, canonical, content, artifactReferences));
     }
 
@@ -424,7 +424,7 @@ public class GitOpsRegistryStorage extends AbstractReadOnlyRegistryStorage {
 
 
     @Override
-    public Map<String, ContentHandle> resolveReferences(List<ArtifactReferenceDto> references) {
+    public Map<String, TypedContent> resolveReferences(List<ArtifactReferenceDto> references) {
         return proxy(storage -> storage.resolveReferences(references));
     }
 

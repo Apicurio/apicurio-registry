@@ -1,5 +1,8 @@
 package io.apicurio.registry.content.canon;
 
+import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.content.TypedContent;
+import io.apicurio.registry.types.ContentTypes;
 import org.apache.avro.AvroRuntimeException;
 import org.apache.avro.Schema;
 
@@ -7,8 +10,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import io.apicurio.registry.content.ContentHandle;
 
 /**
  * An Avro implementation of a content Canonicalizer that handles avro references.
@@ -115,11 +116,11 @@ public class EnhancedAvroContentCanonicalizer implements ContentCanonicalizer {
     }
 
     /**
-     * @see ContentCanonicalizer#canonicalize(ContentHandle, Map)
+     * @see ContentCanonicalizer#canonicalize(TypedContent, Map)
      */
     @Override
-    public ContentHandle canonicalize(ContentHandle content, Map<String, ContentHandle> resolvedReferences) {
-        String normalisedSchema = normalizeSchema(content.content()).toString();
-        return ContentHandle.create(normalisedSchema);
+    public TypedContent canonicalize(TypedContent content, Map<String, TypedContent> resolvedReferences) {
+        String normalisedSchema = normalizeSchema(content.getContent().content()).toString();
+        return TypedContent.create(ContentHandle.create(normalisedSchema), ContentTypes.APPLICATION_JSON);
     }
 }

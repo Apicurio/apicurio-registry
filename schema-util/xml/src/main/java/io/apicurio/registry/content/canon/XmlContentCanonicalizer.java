@@ -1,6 +1,8 @@
 package io.apicurio.registry.content.canon;
 
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.content.TypedContent;
+import io.apicurio.registry.types.ContentTypes;
 import org.apache.xml.security.Init;
 import org.apache.xml.security.c14n.CanonicalizationException;
 import org.apache.xml.security.c14n.Canonicalizer;
@@ -32,16 +34,16 @@ public class XmlContentCanonicalizer implements ContentCanonicalizer {
     }
 
     /**
-     * @see ContentCanonicalizer#canonicalize(io.apicurio.registry.content.ContentHandle, Map)
+     * @see ContentCanonicalizer#canonicalize(TypedContent, Map) 
      */
-    @Override public ContentHandle canonicalize(ContentHandle content,
-            Map<String, ContentHandle> resolvedReferences) {
+    @Override public TypedContent canonicalize(TypedContent content,
+            Map<String, TypedContent> resolvedReferences) {
         try {
             Canonicalizer canon = xmlCanonicalizer.get();
-            var out = new ByteArrayOutputStream(content.getSizeBytes());
-            canon.canonicalize(content.bytes(), out, false); // TODO secureValidation?
+            var out = new ByteArrayOutputStream(content.getContent().getSizeBytes());
+            canon.canonicalize(content.getContent().bytes(), out, false); // TODO secureValidation?
             var canonicalized = out.toString(Canonicalizer.ENCODING);
-            return ContentHandle.create(canonicalized);
+            return TypedContent.create(ContentHandle.create(canonicalized), ContentTypes.APPLICATION_XML);
         } catch (CanonicalizationException | IOException | XMLParserException e) {
         }
         return content;

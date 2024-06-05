@@ -1,5 +1,6 @@
 package io.apicurio.registry.util;
 
+import io.apicurio.registry.content.util.ContentTypeUtil;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -52,7 +53,7 @@ class ContentTypeUtilTest {
             "}";
 
     /**
-     * Test method for {@link io.apicurio.registry.util.ContentTypeUtil#yamlToJson(io.apicurio.registry.content.ContentHandle)}.
+     * Test method for {@link ContentTypeUtil#yamlToJson(io.apicurio.registry.content.ContentHandle)}.
      */
     @Test
     void testYamlToJson() throws Exception {

@@ -1,6 +1,6 @@
 package io.apicurio.registry.content.canon;
 
-import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.content.TypedContent;
 
 import java.util.Map;
 
@@ -16,6 +16,6 @@ public interface ContentCanonicalizer {
      * Called to convert the given content to its canonical form.
      * @param content
      */
-    public ContentHandle canonicalize(ContentHandle content, Map<String, ContentHandle> resolvedReferences);
+    public TypedContent canonicalize(TypedContent content, Map<String, TypedContent> resolvedReferences);
 
 }

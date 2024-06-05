@@ -3,6 +3,7 @@ package io.apicurio.registry.maven;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.ArtifactReference;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
@@ -38,7 +39,7 @@ public abstract class AbstractDirectoryParser<Schema> {
 
     public abstract ParsedDirectoryWrapper<Schema> parse(File rootSchema);
 
-    public abstract List<ArtifactReference> handleSchemaReferences(RegisterArtifact rootArtifact, Schema schema, Map<String, ContentHandle> fileContents) throws FileNotFoundException, ExecutionException, InterruptedException;
+    public abstract List<ArtifactReference> handleSchemaReferences(RegisterArtifact rootArtifact, Schema schema, Map<String, TypedContent> fileContents) throws FileNotFoundException, ExecutionException, InterruptedException;
 
     protected ContentHandle readSchemaContent(File schemaFile) {
         try {

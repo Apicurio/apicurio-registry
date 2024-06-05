@@ -149,7 +149,7 @@
         <icu4j.version>75.1</icu4j.version>
         <protobuf.version>3.19.6</protobuf.version>
         <xmlsec.version>4.0.2</xmlsec.version>
-        <protobuf.googleapi.types.version>2.39.1</protobuf.googleapi.types.version>
+        <protobuf.googleapi.types.version>2.40.0</protobuf.googleapi.types.version>
         <wsdl4j.version>1.6.3</wsdl4j.version>
         <google.truth.extension.version>1.4.2</google.truth.extension.version>
 
@@ -194,7 +194,7 @@
         <kafka-oauth-client.version>0.15.0</kafka-oauth-client.version>
         <kafka-clients.version>3.6.0</kafka-clients.version>
         <snakeyaml.version>2.2</snakeyaml.version>
-        <guava.version>33.2.0-jre</guava.version>
+        <guava.version>33.2.1-jre</guava.version>
         <woodstox-core.version>6.6.2</woodstox-core.version>
         <jgit.version>6.9.0.202403050737-r</jgit.version>
         <awaitility.version>4.2.1</awaitility.version>
@@ -213,7 +213,7 @@
         <version.compiler.plugin>3.13.0</version.compiler.plugin>
         <version.deploy.plugin>3.1.2</version.deploy.plugin>
         <version.failsafe.plugin>3.2.5</version.failsafe.plugin>
-        <version.javadoc.plugin>3.6.3</version.javadoc.plugin>
+        <version.javadoc.plugin>3.7.0</version.javadoc.plugin>
         <version.source.plugin>3.3.1</version.source.plugin>
         <version.surefire.plugin>3.2.5</version.surefire.plugin>
         <version.jar.plugin>3.4.1</version.jar.plugin>

@@ -3,7 +3,7 @@ package io.apicurio.registry.types.provider;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.canon.ContentCanonicalizer;
-import io.apicurio.registry.content.canon.JsonContentCanonicalizer;
+import io.apicurio.registry.content.canon.OpenApiContentCanonicalizer;
 import io.apicurio.registry.content.dereference.AsyncApiDereferencer;
 import io.apicurio.registry.content.dereference.ContentDereferencer;
 import io.apicurio.registry.content.extract.ContentExtractor;
@@ -53,7 +53,7 @@ public class OpenApiArtifactTypeUtilProvider extends AbstractArtifactTypeUtilPro
 
     @Override
     protected ContentCanonicalizer createContentCanonicalizer() {
-        return new JsonContentCanonicalizer();
+        return new OpenApiContentCanonicalizer();
     }
 
     @Override

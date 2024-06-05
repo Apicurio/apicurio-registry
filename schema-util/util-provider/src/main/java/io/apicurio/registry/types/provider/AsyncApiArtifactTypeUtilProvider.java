@@ -2,8 +2,8 @@ package io.apicurio.registry.types.provider;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import io.apicurio.registry.content.TypedContent;
+import io.apicurio.registry.content.canon.AsyncApiContentCanonicalizer;
 import io.apicurio.registry.content.canon.ContentCanonicalizer;
-import io.apicurio.registry.content.canon.JsonContentCanonicalizer;
 import io.apicurio.registry.content.dereference.AsyncApiDereferencer;
 import io.apicurio.registry.content.dereference.ContentDereferencer;
 import io.apicurio.registry.content.extract.AsyncApiContentExtractor;
@@ -53,7 +53,7 @@ public class AsyncApiArtifactTypeUtilProvider extends AbstractArtifactTypeUtilPr
 
     @Override
     protected ContentCanonicalizer createContentCanonicalizer() {
-        return new JsonContentCanonicalizer();
+        return new AsyncApiContentCanonicalizer();
     }
 
     @Override

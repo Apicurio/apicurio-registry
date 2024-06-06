@@ -9,6 +9,7 @@ import io.apicurio.registry.rest.v3.beans.ArtifactBranch;
 import io.apicurio.registry.rest.v3.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v3.beans.ArtifactReference;
 import io.apicurio.registry.rest.v3.beans.Comment;
+import io.apicurio.registry.rest.v3.beans.CreateRule;
 import io.apicurio.registry.rest.v3.beans.EditableArtifactMetaData;
 import io.apicurio.registry.rest.v3.beans.EditableVersionMetaData;
 import io.apicurio.registry.rest.v3.beans.IfArtifactExists;
@@ -129,8 +130,8 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         createArtifact("testCreateArtifactRule", "testCreateArtifactRule/EmptyAPI/1", ArtifactType.OPENAPI, oaiArtifactContent, ContentTypes.APPLICATION_JSON);
 
         //Test Rule type null
-        Rule nullType = new Rule();
-        nullType.setType(null);
+        CreateRule nullType = new CreateRule();
+        nullType.setRuleType(null);
         nullType.setConfig("TestConfig");
         given()
                 .when()
@@ -143,8 +144,8 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .statusCode(400);
 
         //Test Rule config null
-        Rule nullConfig = new Rule();
-        nullConfig.setType(RuleType.VALIDITY);
+        CreateRule nullConfig = new CreateRule();
+        nullConfig.setRuleType(RuleType.VALIDITY);
         nullConfig.setConfig(null);
         given()
                 .when()
@@ -157,8 +158,8 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .statusCode(400);
 
         //Test Rule config empty
-        Rule emptyConfig = new Rule();
-        emptyConfig.setType(RuleType.VALIDITY);
+        CreateRule emptyConfig = new CreateRule();
+        emptyConfig.setRuleType(RuleType.VALIDITY);
         emptyConfig.setConfig("");
         given()
                 .when()
@@ -1227,14 +1228,14 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         createArtifact(GROUP, artifactId, ArtifactType.JSON, artifactContent, ContentTypes.APPLICATION_JSON);
 
         // Add a rule
-        Rule rule = new Rule();
-        rule.setType(RuleType.VALIDITY);
-        rule.setConfig("FULL");
+        CreateRule createRule = new CreateRule();
+        createRule.setRuleType(RuleType.VALIDITY);
+        createRule.setConfig("FULL");
         given()
                 .when()
                 .contentType(CT_JSON)
                 .pathParam("groupId", GROUP)
-                .body(rule)
+                .body(createRule)
                 .pathParam("artifactId", artifactId)
                 .post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/rules")
                 .then()
@@ -1250,7 +1251,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .then()
                 .statusCode(200)
                 .contentType(ContentType.JSON)
-                .body("type", equalTo("VALIDITY"))
+                .body("ruleType", equalTo("VALIDITY"))
                 .body("config", equalTo("FULL"));
 
         // Create a new version of the artifact with invalid syntax
@@ -1276,8 +1277,8 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         createArtifact(GROUP, artifactId, ArtifactType.JSON, artifactContent, ContentTypes.APPLICATION_JSON);
 
         // Add a rule
-        Rule rule = new Rule();
-        rule.setType(RuleType.COMPATIBILITY);
+        CreateRule rule = new CreateRule();
+        rule.setRuleType(RuleType.COMPATIBILITY);
         rule.setConfig("BACKWARD");
         given()
                 .when()
@@ -1299,7 +1300,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .then()
                 .statusCode(200)
                 .contentType(ContentType.JSON)
-                .body("type", equalTo("COMPATIBILITY"))
+                .body("ruleType", equalTo("COMPATIBILITY"))
                 .body("config", equalTo("BACKWARD"));
 
         // Create a new version of the artifact with invalid syntax
@@ -1392,14 +1393,14 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         createArtifact(GROUP, artifactId, ArtifactType.OPENAPI, artifactContent, ContentTypes.APPLICATION_JSON);
 
         // Add a rule
-        Rule rule = new Rule();
-        rule.setType(RuleType.VALIDITY);
-        rule.setConfig("FULL");
+        CreateRule createRule = new CreateRule();
+        createRule.setRuleType(RuleType.VALIDITY);
+        createRule.setConfig("FULL");
         given()
                 .when()
                 .contentType(CT_JSON)
                 .pathParam("groupId", GROUP)
-                .body(rule)
+                .body(createRule)
                 .pathParam("artifactId", artifactId)
                 .post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/rules")
                 .then()
@@ -1415,17 +1416,16 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .then()
                 .statusCode(200)
                 .contentType(ContentType.JSON)
-                .body("type", equalTo("VALIDITY"))
+                .body("ruleType", equalTo("VALIDITY"))
                 .body("config", equalTo("FULL"));
 
         // Try to add the rule again - should get a 409
-        final Rule finalRule = rule;
         given()
                 .when()
                 .contentType(CT_JSON)
                 .pathParam("groupId", GROUP)
                 .pathParam("artifactId", artifactId)
-                .body(finalRule)
+                .body(createRule)
                 .post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/rules")
                 .then()
                 .statusCode(409)
@@ -1433,14 +1433,14 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .body("message", equalTo("A rule named 'VALIDITY' already exists."));
 
         // Add another rule
-        rule.setType(RuleType.COMPATIBILITY);
-        rule.setConfig("BACKWARD");
+        createRule.setRuleType(RuleType.COMPATIBILITY);
+        createRule.setConfig("BACKWARD");
         given()
                 .when()
                 .contentType(CT_JSON)
                 .pathParam("groupId", GROUP)
                 .pathParam("artifactId", artifactId)
-                .body(rule)
+                .body(createRule)
                 .post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/rules")
                 .then()
                 .statusCode(204)
@@ -1455,7 +1455,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .then()
                 .statusCode(200)
                 .contentType(ContentType.JSON)
-                .body("type", equalTo("COMPATIBILITY"))
+                .body("ruleType", equalTo("COMPATIBILITY"))
                 .body("config", equalTo("BACKWARD"));
 
         // Get the list of rules (should be 2 of them)
@@ -1472,19 +1472,20 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .body("[2]", nullValue());
 
         // Update a rule's config
-        rule.setType(RuleType.COMPATIBILITY);
-        rule.setConfig("FULL");
+        Rule updateRule = new Rule();
+        updateRule.setRuleType(RuleType.COMPATIBILITY);
+        updateRule.setConfig("FULL");
         given()
                 .when()
                 .contentType(CT_JSON)
                 .pathParam("groupId", GROUP)
                 .pathParam("artifactId", artifactId)
-                .body(rule)
+                .body(updateRule)
                 .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/rules/COMPATIBILITY")
                 .then()
                 .statusCode(200)
                 .contentType(ContentType.JSON)
-                .body("type", equalTo("COMPATIBILITY"))
+                .body("ruleType", equalTo("COMPATIBILITY"))
                 .body("config", equalTo("FULL"));
 
         // Get a single (updated) rule by name
@@ -1496,7 +1497,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .then()
                 .statusCode(200)
                 .contentType(ContentType.JSON)
-                .body("type", equalTo("COMPATIBILITY"))
+                .body("ruleType", equalTo("COMPATIBILITY"))
                 .body("config", equalTo("FULL"));
 
         // Delete a rule
@@ -1555,15 +1556,15 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .body("[0]", nullValue());
 
         // Add a rule to an artifact that doesn't exist.
-        rule = new Rule();
-        rule.setType(RuleType.VALIDITY);
-        rule.setConfig("FULL");
+        createRule = new CreateRule();
+        createRule.setRuleType(RuleType.VALIDITY);
+        createRule.setConfig("FULL");
         given()
                 .when()
                 .contentType(CT_JSON)
                 .pathParam("groupId", GROUP)
                 .pathParam("artifactId", "MissingArtifact")
-                .body(rule)
+                .body(createRule)
                 .post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/rules")
                 .then()
                 .statusCode(404)
@@ -1579,14 +1580,14 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         createArtifact(GROUP, artifactId, ArtifactType.OPENAPI, artifactContent, ContentTypes.APPLICATION_JSON);
 
         // Add the Validity rule
-        Rule rule = new Rule();
-        rule.setType(RuleType.VALIDITY);
-        rule.setConfig("FULL");
+        CreateRule createRule = new CreateRule();
+        createRule.setRuleType(RuleType.VALIDITY);
+        createRule.setConfig("FULL");
         given()
                 .when()
                 .contentType(CT_JSON)
                 .pathParam("groupId", GROUP)
-                .body(rule)
+                .body(createRule)
                 .pathParam("artifactId", artifactId)
                 .post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/rules")
                 .then()
@@ -1594,14 +1595,13 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .body(anything());
 
         // Add the Integrity rule
-        rule = new Rule();
-        rule.setType(RuleType.INTEGRITY);
-        rule.setConfig(IntegrityLevel.NO_DUPLICATES.name());
+        createRule.setRuleType(RuleType.INTEGRITY);
+        createRule.setConfig(IntegrityLevel.NO_DUPLICATES.name());
         given()
                 .when()
                 .contentType(CT_JSON)
                 .pathParam("groupId", GROUP)
-                .body(rule)
+                .body(createRule)
                 .pathParam("artifactId", artifactId)
                 .post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/rules")
                 .then()
@@ -1617,7 +1617,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .then()
                 .statusCode(200)
                 .contentType(ContentType.JSON)
-                .body("type", equalTo("VALIDITY"))
+                .body("ruleType", equalTo("VALIDITY"))
                 .body("config", equalTo("FULL"));
         given()
                 .when()
@@ -1627,7 +1627,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .then()
                 .statusCode(200)
                 .contentType(ContentType.JSON)
-                .body("type", equalTo("INTEGRITY"))
+                .body("ruleType", equalTo("INTEGRITY"))
                 .body("config", equalTo("NO_DUPLICATES"));
 
         // Get the list of rules (should be 2 of them)
@@ -2115,15 +2115,15 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         createArtifact(GROUP, artifactId, ArtifactType.OPENAPI, artifactContent, ContentTypes.APPLICATION_JSON);
 
         // Add a rule
-        Rule rule = new Rule();
-        rule.setType(RuleType.VALIDITY);
-        rule.setConfig("FULL");
+        CreateRule createRule = new CreateRule();
+        createRule.setRuleType(RuleType.VALIDITY);
+        createRule.setConfig("FULL");
         given()
                 .when()
                 .contentType(CT_JSON)
                 .pathParam("groupId", GROUP)
                 .pathParam("artifactId", artifactId)
-                .body(rule)
+                .body(createRule)
                 .post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/rules")
                 .then()
                 .statusCode(204)
@@ -2138,7 +2138,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .then()
                 .statusCode(200)
                 .contentType(ContentType.JSON)
-                .body("type", equalTo("VALIDITY"))
+                .body("ruleType", equalTo("VALIDITY"))
                 .body("config", equalTo("FULL"));
 
         // Delete the artifact
@@ -2180,15 +2180,14 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .statusCode(404);
 
         // Add the same rule - should work because the old rule was deleted when the artifact was deleted.
-        rule = new Rule();
-        rule.setType(RuleType.VALIDITY);
-        rule.setConfig("FULL");
+        createRule.setRuleType(RuleType.VALIDITY);
+        createRule.setConfig("FULL");
         given()
                 .when()
                 .contentType(CT_JSON)
                 .pathParam("groupId", GROUP)
                 .pathParam("artifactId", artifactId)
-                .body(rule)
+                .body(createRule)
                 .post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/rules")
                 .then()
                 .statusCode(204)
@@ -2596,14 +2595,14 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         createArtifact(GROUP, artifactId, ArtifactType.JSON, artifactContent, ContentTypes.APPLICATION_JSON);
 
         // Enable the Integrity rule for the artifact
-        Rule rule = new Rule();
-        rule.setType(RuleType.INTEGRITY);
-        rule.setConfig("FULL");
+        CreateRule createRule = new CreateRule();
+        createRule.setRuleType(RuleType.INTEGRITY);
+        createRule.setConfig("FULL");
         given()
                 .when()
                 .contentType(CT_JSON)
                 .pathParam("groupId", GROUP)
-                .body(rule)
+                .body(createRule)
                 .pathParam("artifactId", artifactId)
                 .post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/rules")
                 .then()
@@ -2619,7 +2618,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .then()
                 .statusCode(200)
                 .contentType(ContentType.JSON)
-                .body("type", equalTo("INTEGRITY"))
+                .body("ruleType", equalTo("INTEGRITY"))
                 .body("config", equalTo("FULL"));
 
         // Now try registering an artifact with a valid reference

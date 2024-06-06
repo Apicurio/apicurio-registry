@@ -27,7 +27,7 @@ const NAME_COLUMN_WIDTH: string = "250px";
 export const RuleList: FunctionComponent<RuleListProps> = (props: RuleListProps) => {
 
     const isRuleEnabled = (ruleType: string): boolean => {
-        return props.rules.filter(rule => rule.type === ruleType).length > 0;
+        return props.rules.filter(rule => rule.ruleType === ruleType).length > 0;
     };
 
     const getRuleRowClasses = (ruleType: string): string => {
@@ -46,7 +46,7 @@ export const RuleList: FunctionComponent<RuleListProps> = (props: RuleListProps)
     };
 
     const getRuleConfig = (ruleType: string): string => {
-        const frules: Rule[] = props.rules.filter(r => r.type === ruleType);
+        const frules: Rule[] = props.rules.filter(r => r.ruleType === ruleType);
         if (frules.length === 1) {
             return frules[0].config;
         } else {

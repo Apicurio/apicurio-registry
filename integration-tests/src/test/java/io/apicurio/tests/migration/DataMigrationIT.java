@@ -70,8 +70,8 @@ public class DataMigrationIT extends ApicurioRegistryBaseIT {
                     assertTrue(matchesReferences(srcReferences, destReferences));
                 }
             }
-            assertEquals("SYNTAX_ONLY", dest.groups().byGroupId("migrateTest").artifacts().byArtifactId("avro-0").rules().byRule(RuleType.VALIDITY.name()).get().getConfig());
-            assertEquals("BACKWARD", dest.admin().rules().byRule(RuleType.COMPATIBILITY.name()).get().getConfig());
+            assertEquals("SYNTAX_ONLY", dest.groups().byGroupId("migrateTest").artifacts().byArtifactId("avro-0").rules().byRuleType(RuleType.VALIDITY.name()).get().getConfig());
+            assertEquals("BACKWARD", dest.admin().rules().byRuleType(RuleType.COMPATIBILITY.name()).get().getConfig());
         });
     }
 

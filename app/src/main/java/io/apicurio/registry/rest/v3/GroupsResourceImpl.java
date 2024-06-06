@@ -28,6 +28,7 @@ import io.apicurio.registry.rest.v3.beans.Comment;
 import io.apicurio.registry.rest.v3.beans.CreateArtifact;
 import io.apicurio.registry.rest.v3.beans.CreateArtifactResponse;
 import io.apicurio.registry.rest.v3.beans.CreateGroup;
+import io.apicurio.registry.rest.v3.beans.CreateRule;
 import io.apicurio.registry.rest.v3.beans.CreateVersion;
 import io.apicurio.registry.rest.v3.beans.EditableArtifactMetaData;
 import io.apicurio.registry.rest.v3.beans.EditableGroupMetaData;
@@ -300,17 +301,16 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     }
 
     /**
-     * @see io.apicurio.registry.rest.v3.GroupsResource#createArtifactRule(java.lang.String, java.lang.String, io.apicurio.registry.rest.v3.beans.Rule)
+     * @see io.apicurio.registry.rest.v3.GroupsResource#createArtifactRule(String, String, CreateRule)
      */
     @Override
     @Audited(extractParameters = {"0", KEY_GROUP_ID, "1", KEY_ARTIFACT_ID, "2", KEY_RULE})
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
-    public void createArtifactRule(String groupId, String artifactId, Rule data) {
+    public void createArtifactRule(String groupId, String artifactId, CreateRule data) {
         requireParameter("groupId", groupId);
         requireParameter("artifactId", artifactId);
-
-        RuleType type = data.getType();
-        requireParameter("type", type);
+        requireParameter("ruleType", data.getRuleType());
+        requireParameter("config", data.getConfig());
 
         if (data.getConfig() == null || data.getConfig().isEmpty()) {
             throw new MissingRequiredParameterException("Config");
@@ -323,7 +323,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
             throw new ArtifactNotFoundException(groupId, artifactId);
         }
 
-        storage.createArtifactRule(new GroupId(groupId).getRawGroupIdWithNull(), artifactId, data.getType(), config);
+        storage.createArtifactRule(new GroupId(groupId).getRawGroupIdWithNull(), artifactId, data.getRuleType(), config);
     }
 
     /**
@@ -344,33 +344,34 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
      */
     @Override
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
-    public Rule getArtifactRuleConfig(String groupId, String artifactId, RuleType rule) {
+    public Rule getArtifactRuleConfig(String groupId, String artifactId, RuleType ruleType) {
         requireParameter("groupId", groupId);
         requireParameter("artifactId", artifactId);
-        requireParameter("rule", rule);
+        requireParameter("ruleType", ruleType);
 
-        RuleConfigurationDto dto = storage.getArtifactRule(new GroupId(groupId).getRawGroupIdWithNull(), artifactId, rule);
+        RuleConfigurationDto dto = storage.getArtifactRule(new GroupId(groupId).getRawGroupIdWithNull(), artifactId, ruleType);
         Rule rval = new Rule();
         rval.setConfig(dto.getConfiguration());
-        rval.setType(rule);
+        rval.setRuleType(ruleType);
         return rval;
     }
 
     /**
-     * @see io.apicurio.registry.rest.v3.GroupsResource#updateArtifactRuleConfig(java.lang.String, java.lang.String, io.apicurio.registry.types.RuleType, io.apicurio.registry.rest.v3.beans.Rule)
+     * @see io.apicurio.registry.rest.v3.GroupsResource#updateArtifactRuleConfig(String, String, RuleType, Rule)
      */
     @Override
     @Audited(extractParameters = {"0", KEY_GROUP_ID, "1", KEY_ARTIFACT_ID, "2", KEY_RULE_TYPE, "3", KEY_RULE})
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
-    public Rule updateArtifactRuleConfig(String groupId, String artifactId, RuleType rule, Rule data) {
+    public Rule updateArtifactRuleConfig(String groupId, String artifactId, RuleType ruleType, Rule data) {
         requireParameter("groupId", groupId);
         requireParameter("artifactId", artifactId);
-        requireParameter("rule", rule);
+        requireParameter("ruleType", ruleType);
+        requireParameter("config", data.getConfig());
 
         RuleConfigurationDto dto = new RuleConfigurationDto(data.getConfig());
-        storage.updateArtifactRule(new GroupId(groupId).getRawGroupIdWithNull(), artifactId, rule, dto);
+        storage.updateArtifactRule(new GroupId(groupId).getRawGroupIdWithNull(), artifactId, ruleType, dto);
         Rule rval = new Rule();
-        rval.setType(rule);
+        rval.setRuleType(ruleType);
         rval.setConfig(data.getConfig());
         return rval;
     }

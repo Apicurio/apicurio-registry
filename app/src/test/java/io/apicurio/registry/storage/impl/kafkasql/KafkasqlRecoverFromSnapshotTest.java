@@ -2,7 +2,7 @@ package io.apicurio.registry.storage.impl.kafkasql;
 
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
-import io.apicurio.registry.rest.client.models.Rule;
+import io.apicurio.registry.rest.client.models.CreateRule;
 import io.apicurio.registry.rest.client.models.RuleType;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
@@ -53,10 +53,10 @@ public class KafkasqlRecoverFromSnapshotTest extends AbstractResourceTestBase {
             CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO, simpleAvro,
                     ContentTypes.APPLICATION_JSON);
             clientV3.groups().byGroupId(NEW_ARTIFACTS_SNAPSHOT_TEST_GROUP_ID).artifacts().post(createArtifact, config -> config.headers.add("X-Registry-ArtifactId", artifactId));
-            Rule rule = new Rule();
-            rule.setType(RuleType.VALIDITY);
-            rule.setConfig("SYNTAX_ONLY");
-            clientV3.groups().byGroupId(NEW_ARTIFACTS_SNAPSHOT_TEST_GROUP_ID).artifacts().byArtifactId(artifactId).rules().post(rule);        }
+            CreateRule createRule = new CreateRule();
+            createRule.setRuleType(RuleType.VALIDITY);
+            createRule.setConfig("SYNTAX_ONLY");
+            clientV3.groups().byGroupId(NEW_ARTIFACTS_SNAPSHOT_TEST_GROUP_ID).artifacts().byArtifactId(artifactId).rules().post(createRule);        }
     }
 
     @Test

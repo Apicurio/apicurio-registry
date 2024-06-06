@@ -993,7 +993,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         prepareRuleTest(groupId, artifactId, io.apicurio.registry.types.RuleType.COMPATIBILITY, "BACKWARD");
 
         //Execution
-        final Rule rule = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).rules().byRule(RuleType.COMPATIBILITY.name()).get();
+        final Rule rule = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).rules().byRuleType(RuleType.COMPATIBILITY.name()).get();
         //Assertions
         assertNotNull(rule);
         assertEquals("BACKWARD", rule.getConfig());
@@ -1007,16 +1007,16 @@ public class RegistryClientTest extends AbstractResourceTestBase {
 
         prepareRuleTest(groupId, artifactId, io.apicurio.registry.types.RuleType.COMPATIBILITY, "BACKWARD");
 
-        final Rule rule = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).rules().byRule(RuleType.COMPATIBILITY.name()).get();
+        final Rule rule = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).rules().byRuleType(RuleType.COMPATIBILITY.name()).get();
         assertNotNull(rule);
         assertEquals("BACKWARD", rule.getConfig());
 
         final Rule toUpdate = new Rule();
-        toUpdate.setType(RuleType.COMPATIBILITY);
+        toUpdate.setRuleType(RuleType.COMPATIBILITY);
         toUpdate.setConfig("FULL");
 
         //Execution
-        final Rule updated = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).rules().byRule(RuleType.COMPATIBILITY.name()).put(toUpdate);
+        final Rule updated = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).rules().byRuleType(RuleType.COMPATIBILITY.name()).put(toUpdate);
 
         //Assertions
         assertNotNull(updated);
@@ -1143,7 +1143,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         createGlobalRule(io.apicurio.registry.types.RuleType.COMPATIBILITY, "BACKWARD");
 
         //Execution
-        final Rule globalRuleConfig = clientV3.admin().rules().byRule(RuleType.COMPATIBILITY.name()).get();
+        final Rule globalRuleConfig = clientV3.admin().rules().byRuleType(RuleType.COMPATIBILITY.name()).get();
         //Assertions
         assertEquals(globalRuleConfig.getConfig(), "BACKWARD");
     }
@@ -1153,15 +1153,15 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         //Preparation
         createGlobalRule(io.apicurio.registry.types.RuleType.COMPATIBILITY, "BACKWARD");
 
-        final Rule globalRuleConfig = clientV3.admin().rules().byRule(RuleType.COMPATIBILITY.name()).get();
+        final Rule globalRuleConfig = clientV3.admin().rules().byRuleType(RuleType.COMPATIBILITY.name()).get();
         assertEquals(globalRuleConfig.getConfig(), "BACKWARD");
 
         final Rule toUpdate = new Rule();
-        toUpdate.setType(RuleType.COMPATIBILITY);
+        toUpdate.setRuleType(RuleType.COMPATIBILITY);
         toUpdate.setConfig("FORWARD");
 
         //Execution
-        final Rule updated = clientV3.admin().rules().byRule(RuleType.COMPATIBILITY.name()).put(toUpdate);
+        final Rule updated = clientV3.admin().rules().byRuleType(RuleType.COMPATIBILITY.name()).put(toUpdate);
 
         //Assertions
         assertEquals(updated.getConfig(), "FORWARD");
@@ -1172,11 +1172,11 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         //Preparation
         createGlobalRule(io.apicurio.registry.types.RuleType.COMPATIBILITY, "BACKWARD");
 
-        final Rule globalRuleConfig = clientV3.admin().rules().byRule(RuleType.COMPATIBILITY.name()).get();
+        final Rule globalRuleConfig = clientV3.admin().rules().byRuleType(RuleType.COMPATIBILITY.name()).get();
         assertEquals(globalRuleConfig.getConfig(), "BACKWARD");
 
         //Execution
-        clientV3.admin().rules().byRule(RuleType.COMPATIBILITY.name()).delete();
+        clientV3.admin().rules().byRuleType(RuleType.COMPATIBILITY.name()).delete();
 
         final List<RuleType> ruleTypes = clientV3.admin().rules().get();
 

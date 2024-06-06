@@ -35,16 +35,16 @@ type ItemArtifactsItemRulesRequestBuilderPostRequestConfiguration struct {
 	Options []i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestOption
 }
 
-// ByRule manage the configuration of a single artifact rule.
-func (m *ItemArtifactsItemRulesRequestBuilder) ByRule(rule string) *ItemArtifactsItemRulesWithRuleItemRequestBuilder {
+// ByRuleType manage the configuration of a single artifact rule.
+func (m *ItemArtifactsItemRulesRequestBuilder) ByRuleType(ruleType string) *ItemArtifactsItemRulesWithRuleTypeItemRequestBuilder {
 	urlTplParams := make(map[string]string)
 	for idx, item := range m.BaseRequestBuilder.PathParameters {
 		urlTplParams[idx] = item
 	}
-	if rule != "" {
-		urlTplParams["rule"] = rule
+	if ruleType != "" {
+		urlTplParams["ruleType"] = ruleType
 	}
-	return NewItemArtifactsItemRulesWithRuleItemRequestBuilderInternal(urlTplParams, m.BaseRequestBuilder.RequestAdapter)
+	return NewItemArtifactsItemRulesWithRuleTypeItemRequestBuilderInternal(urlTplParams, m.BaseRequestBuilder.RequestAdapter)
 }
 
 // NewItemArtifactsItemRulesRequestBuilderInternal instantiates a new RulesRequestBuilder and sets the default values.
@@ -103,7 +103,7 @@ func (m *ItemArtifactsItemRulesRequestBuilder) Get(ctx context.Context, requestC
 }
 
 // Post adds a rule to the list of rules that get applied to the artifact when adding newversions.  All configured rules must pass to successfully add a new artifact version.This operation can fail for the following reasons:* No artifact with this `artifactId` exists (HTTP error `404`)* Rule (named in the request body) is unknown (HTTP error `400`)* A server error occurred (HTTP error `500`)
-func (m *ItemArtifactsItemRulesRequestBuilder) Post(ctx context.Context, body i00eb2e63d156923d00d8e86fe16b5d74daf30e363c9f185a8165cb42aa2f2c71.Ruleable, requestConfiguration *ItemArtifactsItemRulesRequestBuilderPostRequestConfiguration) error {
+func (m *ItemArtifactsItemRulesRequestBuilder) Post(ctx context.Context, body i00eb2e63d156923d00d8e86fe16b5d74daf30e363c9f185a8165cb42aa2f2c71.CreateRuleable, requestConfiguration *ItemArtifactsItemRulesRequestBuilderPostRequestConfiguration) error {
 	requestInfo, err := m.ToPostRequestInformation(ctx, body, requestConfiguration)
 	if err != nil {
 		return err
@@ -143,7 +143,7 @@ func (m *ItemArtifactsItemRulesRequestBuilder) ToGetRequestInformation(ctx conte
 }
 
 // ToPostRequestInformation adds a rule to the list of rules that get applied to the artifact when adding newversions.  All configured rules must pass to successfully add a new artifact version.This operation can fail for the following reasons:* No artifact with this `artifactId` exists (HTTP error `404`)* Rule (named in the request body) is unknown (HTTP error `400`)* A server error occurred (HTTP error `500`)
-func (m *ItemArtifactsItemRulesRequestBuilder) ToPostRequestInformation(ctx context.Context, body i00eb2e63d156923d00d8e86fe16b5d74daf30e363c9f185a8165cb42aa2f2c71.Ruleable, requestConfiguration *ItemArtifactsItemRulesRequestBuilderPostRequestConfiguration) (*i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestInformation, error) {
+func (m *ItemArtifactsItemRulesRequestBuilder) ToPostRequestInformation(ctx context.Context, body i00eb2e63d156923d00d8e86fe16b5d74daf30e363c9f185a8165cb42aa2f2c71.CreateRuleable, requestConfiguration *ItemArtifactsItemRulesRequestBuilderPostRequestConfiguration) (*i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestInformation, error) {
 	requestInfo := i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewRequestInformationWithMethodAndUrlTemplateAndPathParameters(i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.POST, m.BaseRequestBuilder.UrlTemplate, m.BaseRequestBuilder.PathParameters)
 	if requestConfiguration != nil {
 		requestInfo.Headers.AddAll(requestConfiguration.Headers)

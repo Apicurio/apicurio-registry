@@ -28,6 +28,7 @@ import { SortOrder } from "@models/sortOrder.model.ts";
 import { ArtifactSortBy } from "@models/artifactSortBy.model.ts";
 import { VersionSortBy } from "@models/versionSortBy.model.ts";
 import { VersionSearchResults } from "@models/versionSearchResults.model.ts";
+import { CreateRule } from "@models/createRule.model.ts";
 
 
 export interface ClientGeneration {
@@ -228,58 +229,58 @@ const getArtifactRules = async (config: ConfigService, auth: AuthService, groupI
     });
 };
 
-const getArtifactRule = async (config: ConfigService, auth: AuthService, groupId: string|null, artifactId: string, type: string): Promise<Rule> => {
+const getArtifactRule = async (config: ConfigService, auth: AuthService, groupId: string|null, artifactId: string, ruleType: string): Promise<Rule> => {
     groupId = normalizeGroupId(groupId);
 
     const baseHref: string = config.artifactsUrl();
     const endpoint: string = createEndpoint(baseHref, "/groups/:groupId/artifacts/:artifactId/rules/:rule", {
         groupId,
         artifactId,
-        rule: type
+        rule: ruleType
     });
     const options = await createAuthOptions(auth);
     return httpGet<Rule>(endpoint, options);
 };
 
-const createArtifactRule = async (config: ConfigService, auth: AuthService, groupId: string|null, artifactId: string, type: string, configValue: string): Promise<Rule> => {
+const createArtifactRule = async (config: ConfigService, auth: AuthService, groupId: string|null, artifactId: string, ruleType: string, configValue: string): Promise<Rule> => {
     groupId = normalizeGroupId(groupId);
 
-    console.info("[GroupsService] Creating rule:", type);
+    console.info("[GroupsService] Creating rule:", ruleType);
 
     const baseHref: string = config.artifactsUrl();
     const endpoint: string = createEndpoint(baseHref, "/groups/:groupId/artifacts/:artifactId/rules", { groupId, artifactId });
-    const body: Rule = {
+    const body: CreateRule = {
         config: configValue,
-        type
+        ruleType
     };
     const options = await createAuthOptions(auth);
     return httpPostWithReturn(endpoint, body, options);
 };
 
-const updateArtifactRule = async (config: ConfigService, auth: AuthService, groupId: string|null, artifactId: string, type: string, configValue: string): Promise<Rule> => {
+const updateArtifactRule = async (config: ConfigService, auth: AuthService, groupId: string|null, artifactId: string, ruleType: string, configValue: string): Promise<Rule> => {
     groupId = normalizeGroupId(groupId);
 
-    console.info("[GroupsService] Updating rule:", type);
+    console.info("[GroupsService] Updating rule:", ruleType);
     const baseHref: string = config.artifactsUrl();
     const endpoint: string = createEndpoint(baseHref, "/groups/:groupId/artifacts/:artifactId/rules/:rule", {
         groupId,
         artifactId,
-        "rule": type
+        "rule": ruleType
     });
-    const body: Rule = { config: configValue, type };
+    const body: Rule = { config: configValue, ruleType };
     const options = await createAuthOptions(auth);
     return httpPutWithReturn<Rule, Rule>(endpoint, body, options);
 };
 
-const deleteArtifactRule = async (config: ConfigService, auth: AuthService, groupId: string|null, artifactId: string, type: string): Promise<void> => {
+const deleteArtifactRule = async (config: ConfigService, auth: AuthService, groupId: string|null, artifactId: string, ruleType: string): Promise<void> => {
     groupId = normalizeGroupId(groupId);
 
-    console.info("[GroupsService] Deleting rule:", type);
+    console.info("[GroupsService] Deleting rule:", ruleType);
     const baseHref: string = config.artifactsUrl();
     const endpoint: string = createEndpoint(baseHref, "/groups/:groupId/artifacts/:artifactId/rules/:rule", {
         groupId,
         artifactId,
-        "rule": type
+        "rule": ruleType
     });
     const options = await createAuthOptions(auth);
     return httpDelete(endpoint, options);
@@ -333,10 +334,10 @@ export interface GroupsService {
     updateArtifactOwner(groupId: string|null, artifactId: string, newOwner: string): Promise<void>;
     deleteArtifact(groupId: string|null, artifactId: string): Promise<void>;
 
-    createArtifactRule(groupId: string|null, artifactId: string, type: string, configValue: string): Promise<Rule>;
-    getArtifactRule(groupId: string|null, artifactId: string, type: string): Promise<Rule>;
-    updateArtifactRule(groupId: string|null, artifactId: string, type: string, configValue: string): Promise<Rule>;
-    deleteArtifactRule(groupId: string|null, artifactId: string, type: string): Promise<void>;
+    createArtifactRule(groupId: string|null, artifactId: string, ruleType: string, configValue: string): Promise<Rule>;
+    getArtifactRule(groupId: string|null, artifactId: string, ruleType: string): Promise<Rule>;
+    updateArtifactRule(groupId: string|null, artifactId: string, ruleType: string, configValue: string): Promise<Rule>;
+    deleteArtifactRule(groupId: string|null, artifactId: string, ruleType: string): Promise<void>;
 
     createArtifactVersion(groupId: string|null, artifactId: string, data: CreateVersion): Promise<VersionMetaData>;
     getArtifactVersionMetaData(groupId: string|null, artifactId: string, version: string): Promise<VersionMetaData>;
@@ -398,17 +399,17 @@ export const useGroupsService: () => GroupsService = (): GroupsService => {
             return deleteArtifact(config, auth, groupId, artifactId);
         },
 
-        createArtifactRule(groupId: string|null, artifactId: string, type: string, configValue: string): Promise<Rule> {
-            return createArtifactRule(config, auth, groupId, artifactId, type, configValue);
+        createArtifactRule(groupId: string|null, artifactId: string, ruleType: string, configValue: string): Promise<Rule> {
+            return createArtifactRule(config, auth, groupId, artifactId, ruleType, configValue);
         },
-        getArtifactRule(groupId: string|null, artifactId: string, type: string): Promise<Rule> {
-            return getArtifactRule(config, auth, groupId, artifactId, type);
+        getArtifactRule(groupId: string|null, artifactId: string, ruleType: string): Promise<Rule> {
+            return getArtifactRule(config, auth, groupId, artifactId, ruleType);
         },
-        updateArtifactRule(groupId: string|null, artifactId: string, type: string, configValue: string): Promise<Rule> {
-            return updateArtifactRule(config, auth, groupId, artifactId, type, configValue);
+        updateArtifactRule(groupId: string|null, artifactId: string, ruleType: string, configValue: string): Promise<Rule> {
+            return updateArtifactRule(config, auth, groupId, artifactId, ruleType, configValue);
         },
-        deleteArtifactRule(groupId: string|null, artifactId: string, type: string): Promise<void> {
-            return deleteArtifactRule(config, auth, groupId, artifactId, type);
+        deleteArtifactRule(groupId: string|null, artifactId: string, ruleType: string): Promise<void> {
+            return deleteArtifactRule(config, auth, groupId, artifactId, ruleType);
         },
 
         createArtifactVersion(groupId: string|null, artifactId: string, data: CreateVersion): Promise<VersionMetaData> {

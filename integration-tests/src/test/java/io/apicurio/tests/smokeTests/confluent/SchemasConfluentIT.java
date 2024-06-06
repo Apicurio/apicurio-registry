@@ -1,5 +1,6 @@
 package io.apicurio.tests.smokeTests.confluent;
 
+import io.apicurio.registry.rest.client.models.CreateRule;
 import io.apicurio.tests.ConfluentBaseIT;
 import io.apicurio.tests.utils.ArtifactUtils;
 import io.apicurio.tests.utils.Constants;
@@ -162,14 +163,14 @@ public class SchemasConfluentIT extends ConfluentBaseIT {
 
         String invalidSchema = "{\"schema\":\"{\\\"type\\\": \\\"bloop\\\"}\"}";
 
-        Rule rule = new Rule();
-        rule.setType(RuleType.COMPATIBILITY);
-        rule.setConfig("BACKWARD");
-        registryClient.groups().byGroupId("default").artifacts().byArtifactId(subjectName).rules().post(rule);
+        CreateRule createRule = new CreateRule();
+        createRule.setRuleType(RuleType.COMPATIBILITY);
+        createRule.setConfig("BACKWARD");
+        registryClient.groups().byGroupId("default").artifacts().byArtifactId(subjectName).rules().post(createRule);
 
         TestUtils.waitFor("artifact rule created", Constants.POLL_INTERVAL, Constants.TIMEOUT_GLOBAL, () -> {
             try {
-                Rule r = registryClient.groups().byGroupId("default").artifacts().byArtifactId(subjectName).rules().byRule(RuleType.COMPATIBILITY.name()).get();
+                Rule r = registryClient.groups().byGroupId("default").artifacts().byArtifactId(subjectName).rules().byRuleType(RuleType.COMPATIBILITY.name()).get();
                 return r != null && r.getConfig() != null && r.getConfig().equalsIgnoreCase("BACKWARD");
             } catch (WebApplicationException e) {
                 return false;
@@ -221,14 +222,14 @@ public class SchemasConfluentIT extends ConfluentBaseIT {
             }
         });
 
-        Rule rule = new Rule();
-        rule.setType(RuleType.VALIDITY);
-        rule.setConfig("FULL");
-        registryClient.groups().byGroupId("default").artifacts().byArtifactId(subjectName).rules().post(rule);
+        CreateRule createRule = new CreateRule();
+        createRule.setRuleType(RuleType.VALIDITY);
+        createRule.setConfig("FULL");
+        registryClient.groups().byGroupId("default").artifacts().byArtifactId(subjectName).rules().post(createRule);
 
         TestUtils.waitFor("artifact rule created", Constants.POLL_INTERVAL, Constants.TIMEOUT_GLOBAL, () -> {
             try {
-                Rule r = registryClient.groups().byGroupId("default").artifacts().byArtifactId(subjectName).rules().byRule(RuleType.VALIDITY.name()).get();
+                Rule r = registryClient.groups().byGroupId("default").artifacts().byArtifactId(subjectName).rules().byRuleType(RuleType.VALIDITY.name()).get();
                 return r != null && r.getConfig() != null && r.getConfig().equalsIgnoreCase("FULL");
             } catch (WebApplicationException e) {
                 return false;
@@ -253,7 +254,7 @@ public class SchemasConfluentIT extends ConfluentBaseIT {
         retryOp((rc) -> {
             TestUtils.assertClientError("ArtifactNotFoundException", 404, () -> rc.groups().byGroupId("default").artifacts().byArtifactId(subjectName).get(), errorCodeExtractor);
             TestUtils.assertClientError("ArtifactNotFoundException", 404, () -> rc.groups().byGroupId("default").artifacts().byArtifactId(subjectName).rules().get(), errorCodeExtractor);
-            TestUtils.assertClientError("ArtifactNotFoundException", 404, () -> rc.groups().byGroupId("default").artifacts().byArtifactId(subjectName).rules().byRule(rules.get(0).name()).get(), errorCodeExtractor);
+            TestUtils.assertClientError("ArtifactNotFoundException", 404, () -> rc.groups().byGroupId("default").artifacts().byArtifactId(subjectName).rules().byRuleType(rules.get(0).name()).get(), errorCodeExtractor);
         });
         //if rule was actually deleted creating same artifact again shouldn't fail
         createArtifactViaConfluentClient(schema, subjectName);

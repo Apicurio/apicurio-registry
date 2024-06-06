@@ -3,8 +3,8 @@ package io.apicurio.tests.migration;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.ArtifactReference;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
+import io.apicurio.registry.rest.client.models.CreateRule;
 import io.apicurio.registry.rest.client.models.CreateVersion;
-import io.apicurio.registry.rest.client.models.Rule;
 import io.apicurio.registry.rest.client.models.RuleType;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
@@ -83,15 +83,14 @@ public class MigrationTestsDataInitializer {
             migrateGlobalIds.add(vmd.getGlobalId());
         }
 
-        Rule rule = new Rule();
-        rule.setType(RuleType.VALIDITY);
-        rule.setConfig("SYNTAX_ONLY");
-        source.groups().byGroupId("migrateTest").artifacts().byArtifactId("avro-0").rules().post(rule);
+        CreateRule createRule = new CreateRule();
+        createRule.setRuleType(RuleType.VALIDITY);
+        createRule.setConfig("SYNTAX_ONLY");
+        source.groups().byGroupId("migrateTest").artifacts().byArtifactId("avro-0").rules().post(createRule);
 
-        rule = new Rule();
-        rule.setType(RuleType.COMPATIBILITY);
-        rule.setConfig("BACKWARD");
-        source.admin().rules().post(rule);
+        createRule.setRuleType(RuleType.COMPATIBILITY);
+        createRule.setConfig("BACKWARD");
+        source.admin().rules().post(createRule);
 
         var downloadHref = source.admin().export().get().getHref();
         OkHttpClient client = new OkHttpClient();

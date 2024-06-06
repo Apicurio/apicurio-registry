@@ -5,8 +5,8 @@ import io.apicurio.registry.model.GroupId;
 import io.apicurio.registry.rbac.AdminResourceTest;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
+import io.apicurio.registry.rest.client.models.CreateRule;
 import io.apicurio.registry.rest.client.models.CreateVersion;
-import io.apicurio.registry.rest.client.models.Rule;
 import io.apicurio.registry.rest.client.models.RuleType;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
@@ -50,15 +50,15 @@ public class ExportLoader {
         createVersion(client, "Artifact-2", "1.0.1");
         createVersion(client, "Artifact-3", "1.0.2");
 
-        Rule rule = new Rule();
-        rule.setType(RuleType.VALIDITY);
-        rule.setConfig("SYNTAX_ONLY");
-        client.groups().byGroupId("ImportTest").artifacts().byArtifactId("Artifact-1").rules().post(rule);
+        CreateRule createRule = new CreateRule();
+        createRule.setRuleType(RuleType.VALIDITY);
+        createRule.setConfig("SYNTAX_ONLY");
+        client.groups().byGroupId("ImportTest").artifacts().byArtifactId("Artifact-1").rules().post(createRule);
 
-        rule = new Rule();
-        rule.setType(RuleType.COMPATIBILITY);
-        rule.setConfig("BACKWARD");
-        client.admin().rules().post(rule);
+        createRule = new CreateRule();
+        createRule.setRuleType(RuleType.COMPATIBILITY);
+        createRule.setConfig("BACKWARD");
+        client.admin().rules().post(createRule);
     }
 
     private static void createVersion(RegistryClient client, String artifactId, String version) {

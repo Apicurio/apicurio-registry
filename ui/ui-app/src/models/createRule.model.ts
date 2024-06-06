@@ -1,4 +1,4 @@
-export interface Rule {
+export interface CreateRule {
 
     ruleType: string;
     config: string;

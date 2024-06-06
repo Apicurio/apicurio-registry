@@ -7,6 +7,7 @@ import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.model.GroupId;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
+import io.apicurio.registry.rest.client.models.CreateRule;
 import io.apicurio.registry.rest.client.models.CreateVersion;
 import io.apicurio.registry.rest.client.models.Rule;
 import io.apicurio.registry.rest.client.models.RuleType;
@@ -23,7 +24,6 @@ import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
-import io.restassured.http.ContentType;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -31,10 +31,6 @@ import org.junit.jupiter.api.Test;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
-
-import static io.restassured.RestAssured.given;
-import static org.hamcrest.CoreMatchers.anything;
-import static org.hamcrest.Matchers.equalTo;
 
 @QuarkusTest
 public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {
@@ -148,28 +144,16 @@ public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {
     @Test
     public void testGlobalCompatibilityRuleNoArtifact() throws Exception {
         // Add a global rule
-        Rule rule = new Rule();
-        rule.setType(RuleType.COMPATIBILITY);
-        rule.setConfig("FULL");
-        given()
-                .when()
-                .contentType(CT_JSON).body(rule)
-                .post("/registry/v3/admin/rules")
-                .then()
-                .statusCode(204)
-                .body(anything());
+        CreateRule createRule = new CreateRule();
+        createRule.setRuleType(RuleType.COMPATIBILITY);
+        createRule.setConfig("FULL");
+
+        clientV3.admin().rules().post(createRule);
 
         // Verify the rule was added.
-        TestUtils.retry(() -> {
-            given()
-                    .when()
-                    .get("/registry/v3/admin/rules/COMPATIBILITY")
-                    .then()
-                    .statusCode(200)
-                    .contentType(ContentType.JSON)
-                    .body("type", equalTo("COMPATIBILITY"))
-                    .body("config", equalTo("FULL"));
-        });
+        Rule rule = clientV3.admin().rules().byRuleType(RuleType.COMPATIBILITY.name()).get();
+        Assertions.assertEquals(RuleType.COMPATIBILITY, rule.getRuleType());
+        Assertions.assertEquals(CompatibilityLevel.FULL.name(), rule.getConfig());
 
         rules.applyRules("no-group", "not-existent", ArtifactType.AVRO, toTypedContent(SCHEMA_SIMPLE),
                 RuleApplicationType.CREATE, Collections.emptyList(), Collections.emptyMap());
@@ -281,10 +265,10 @@ public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {
     public void testCompatibilityRuleApplication_Map() throws Exception {
         String artifactId = "testCompatibilityRuleApplication_Map";
         createArtifact(artifactId, ArtifactType.AVRO, SCHEMA_WITH_MAP, ContentTypes.APPLICATION_JSON);
-        Rule rule = new Rule();
-        rule.setType(RuleType.COMPATIBILITY);
-        rule.setConfig(CompatibilityLevel.FULL.name());
-        clientV3.groups().byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString()).artifacts().byArtifactId(artifactId).rules().post(rule);
+        CreateRule createRule = new CreateRule();
+        createRule.setRuleType(RuleType.COMPATIBILITY);
+        createRule.setConfig(CompatibilityLevel.FULL.name());
+        clientV3.groups().byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString()).artifacts().byArtifactId(artifactId).rules().post(createRule);
 
         // This will result in org.apache.avro.AvroTypeException in the compatibility checker,
         // which is rethrown as UnprocessableSchemaException.
@@ -299,10 +283,10 @@ public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {
     public void testCompatibilityInvalidExitingContentRuleApplication_Map() throws Exception {
         String artifactId = "testCompatibilityInvalidExitingContentRuleApplication_Map";
         createArtifact(artifactId, ArtifactType.AVRO, INVALID_SCHEMA_WITH_MAP, ContentTypes.APPLICATION_JSON);
-        Rule rule = new Rule();
-        rule.setType(RuleType.COMPATIBILITY);
-        rule.setConfig(CompatibilityLevel.FULL.name());
-        clientV3.groups().byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString()).artifacts().byArtifactId(artifactId).rules().post(rule);
+        CreateRule createRule = new CreateRule();
+        createRule.setRuleType(RuleType.COMPATIBILITY);
+        createRule.setConfig(CompatibilityLevel.FULL.name());
+        clientV3.groups().byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString()).artifacts().byArtifactId(artifactId).rules().post(createRule);
 
         // This will result in org.apache.avro.AvroTypeException in the compatibility checker,
         // which is rethrown as UnprocessableSchemaException.
@@ -326,10 +310,10 @@ public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {
         createArtifactVersion(artifactId, SCHEMA_WITH_MAP, ContentTypes.APPLICATION_JSON);
 
         //Activate compatibility rules
-        Rule rule = new Rule();
-        rule.setType(RuleType.COMPATIBILITY);
-        rule.setConfig(CompatibilityLevel.BACKWARD_TRANSITIVE.name());
-        clientV3.groups().byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString()).artifacts().byArtifactId(artifactId).rules().post(rule);
+        CreateRule createRule = new CreateRule();
+        createRule.setRuleType(RuleType.COMPATIBILITY);
+        createRule.setConfig(CompatibilityLevel.BACKWARD_TRANSITIVE.name());
+        clientV3.groups().byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString()).artifacts().byArtifactId(artifactId).rules().post(createRule);
 
         //Should fail, the new version is not compatible with the first one
         Assertions.assertThrows(Exception.class, () -> {
@@ -337,10 +321,10 @@ public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {
         });
 
         //Change rule to backward, should pass since the new version is compatible with the latest one
-        rule = new Rule();
-        rule.setType(RuleType.COMPATIBILITY);
+        Rule rule = new Rule();
+        rule.setRuleType(RuleType.COMPATIBILITY);
         rule.setConfig(CompatibilityLevel.BACKWARD.name());
-        clientV3.groups().byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString()).artifacts().byArtifactId(artifactId).rules().byRule(RuleType.COMPATIBILITY.getValue()).put(rule);
+        clientV3.groups().byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString()).artifacts().byArtifactId(artifactId).rules().byRuleType(RuleType.COMPATIBILITY.getValue()).put(rule);
         createArtifactVersion(artifactId, SCHEMA_WITH_MAP, ContentTypes.APPLICATION_JSON);
     }
 }

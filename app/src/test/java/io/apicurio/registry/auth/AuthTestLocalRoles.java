@@ -5,9 +5,9 @@ import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.model.GroupId;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
+import io.apicurio.registry.rest.client.models.CreateRule;
 import io.apicurio.registry.rest.client.models.RoleMapping;
 import io.apicurio.registry.rest.client.models.RoleType;
-import io.apicurio.registry.rest.client.models.Rule;
 import io.apicurio.registry.rest.client.models.RuleType;
 import io.apicurio.registry.rest.client.models.UpdateRole;
 import io.apicurio.registry.rules.validity.ValidityLevel;
@@ -56,12 +56,12 @@ public class AuthTestLocalRoles extends AbstractResourceTestBase {
         return new RegistryClient(adapter);
     }
 
-    private static final Rule rule = new Rule();
+    private static final CreateRule createRule = new CreateRule();
     private static final CreateArtifact createArtifact;
 
     static {
-        rule.setConfig(ValidityLevel.FULL.name());
-        rule.setType(RuleType.VALIDITY);
+        createRule.setConfig(ValidityLevel.FULL.name());
+        createRule.setRuleType(RuleType.VALIDITY);
         createArtifact = TestUtils.clientCreateArtifact(AuthTestLocalRoles.class.getSimpleName(), ArtifactType.AVRO, TEST_CONTENT, ContentTypes.APPLICATION_JSON);
     }
 
@@ -92,7 +92,7 @@ public class AuthTestLocalRoles extends AbstractResourceTestBase {
         assertForbidden(exception2);
 
         var exception3 = Assertions.assertThrows(Exception.class, () -> {
-            client.admin().rules().post(rule);
+            client.admin().rules().post(createRule);
         });
         assertForbidden(exception3);
 
@@ -115,7 +115,7 @@ public class AuthTestLocalRoles extends AbstractResourceTestBase {
         });
         assertForbidden(exception4);
         var exception5 = Assertions.assertThrows(Exception.class, () -> {
-            client.admin().rules().post(rule);
+            client.admin().rules().post(createRule);
         });
         assertForbidden(exception5);
 
@@ -140,7 +140,7 @@ public class AuthTestLocalRoles extends AbstractResourceTestBase {
                     config.headers.add("X-Registry-ArtifactId", getClass().getSimpleName());
                 });
         var exception6 = Assertions.assertThrows(Exception.class, () -> {
-            client.admin().rules().post(rule);
+            client.admin().rules().post(createRule);
         });
         assertForbidden(exception6);
 
@@ -162,7 +162,7 @@ public class AuthTestLocalRoles extends AbstractResourceTestBase {
                 .byGroupId(UUID.randomUUID().toString())
                 .artifacts()
                 .post(createArtifact);
-        client.admin().rules().post(rule);
+        client.admin().rules().post(createRule);
         
         // Now delete the role mapping
         clientAdmin

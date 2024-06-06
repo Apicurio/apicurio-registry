@@ -94,7 +94,7 @@ export const ArtifactPage: FunctionComponent<ArtifactPageProps> = () => {
         groups.createArtifactRule(groupId as string, artifactId as string, ruleType, config).catch(error => {
             setPageError(toPageError(error, `Error enabling "${ ruleType }" artifact rule.`));
         });
-        setRules([...rules, { config, type: ruleType }]);
+        setRules([...rules, { config, ruleType: ruleType }]);
     };
 
     const doDisableRule = (ruleType: string): void => {
@@ -102,7 +102,7 @@ export const ArtifactPage: FunctionComponent<ArtifactPageProps> = () => {
         groups.deleteArtifactRule(groupId as string, artifactId as string, ruleType).catch(error => {
             setPageError(toPageError(error, `Error disabling "${ ruleType }" artifact rule.`));
         });
-        setRules(rules.filter(r => r.type !== ruleType));
+        setRules(rules.filter(r => r.ruleType !== ruleType));
     };
 
     const doConfigureRule = (ruleType: string, config: string): void => {
@@ -111,8 +111,8 @@ export const ArtifactPage: FunctionComponent<ArtifactPageProps> = () => {
             setPageError(toPageError(error, `Error configuring "${ ruleType }" artifact rule.`));
         });
         setRules(rules.map(r => {
-            if (r.type === ruleType) {
-                return { config, type: r.type };
+            if (r.ruleType === ruleType) {
+                return { config, ruleType: r.ruleType };
             } else {
                 return r;
             }

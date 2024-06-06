@@ -93,7 +93,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Rule"
+                "$ref": "#/components/schemas/CreateRule"
               }
             }
           },
@@ -139,7 +139,7 @@
         "description": "Deletes all globally configured rules.\n\nThis operation can fail for the following reasons:\n\n* A server error occurred (HTTP error `500`)\n"
       }
     },
-    "/admin/rules/{rule}": {
+    "/admin/rules/{ruleType}": {
       "summary": "Manage the configuration of a single global artifact rule.",
       "get": {
         "tags": [
@@ -227,7 +227,7 @@
       },
       "parameters": [
         {
-          "name": "rule",
+          "name": "ruleType",
           "description": "The unique name/type of a rule.",
           "schema": {
             "$ref": "#/components/schemas/RuleType"
@@ -734,7 +734,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Rule"
+                "$ref": "#/components/schemas/CreateRule"
               }
             }
           },
@@ -801,7 +801,7 @@
         }
       ]
     },
-    "/groups/{groupId}/artifacts/{artifactId}/rules/{rule}": {
+    "/groups/{groupId}/artifacts/{artifactId}/rules/{ruleType}": {
       "summary": "Manage the configuration of a single artifact rule.",
       "get": {
         "tags": [
@@ -904,7 +904,7 @@
           "required": true
         },
         {
-          "name": "rule",
+          "name": "ruleType",
           "description": "The unique name/type of a rule.",
           "schema": {
             "enum": [
@@ -2995,12 +2995,12 @@
           "config": {
             "type": "string"
           },
-          "type": {
+          "ruleType": {
             "$ref": "#/components/schemas/RuleType"
           }
         },
         "example": {
-          "type": "VALIDITY",
+          "ruleType": "VALIDITY",
           "config": "FULL"
         }
       },
@@ -4456,7 +4456,7 @@
         },
         "example": {
           "artifactId": "mytopic-value",
-          "type": "AVRO",
+          "artifactType": "AVRO",
           "name": "Invoice",
           "description": "A standard Acme invoice payload.",
           "labels": {
@@ -4562,6 +4562,26 @@
         },
         "example": {
           "snapshotId": "snp-1137292771"
+        }
+      },
+      "CreateRule": {
+        "title": "Root Type for Rule",
+        "description": "",
+        "required": [
+          "config"
+        ],
+        "type": "object",
+        "properties": {
+          "config": {
+            "type": "string"
+          },
+          "ruleType": {
+            "$ref": "#/components/schemas/RuleType"
+          }
+        },
+        "example": {
+          "ruleType": "VALIDITY",
+          "config": "FULL"
         }
       }
     },

@@ -6,10 +6,10 @@ import io.apicurio.registry.rest.client.models.ArtifactSearchResults;
 import io.apicurio.registry.rest.client.models.ArtifactSortBy;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
 import io.apicurio.registry.rest.client.models.CreateArtifactResponse;
+import io.apicurio.registry.rest.client.models.CreateRule;
 import io.apicurio.registry.rest.client.models.CreateVersion;
 import io.apicurio.registry.rest.client.models.EditableVersionMetaData;
 import io.apicurio.registry.rest.client.models.IfArtifactExists;
-import io.apicurio.registry.rest.client.models.Rule;
 import io.apicurio.registry.rest.client.models.RuleType;
 import io.apicurio.registry.rest.client.models.SortOrder;
 import io.apicurio.registry.rest.client.models.VersionMetaData;
@@ -94,15 +94,15 @@ class ArtifactsIT extends ApicurioRegistryBaseIT {
         @Test
     @Tag(ACCEPTANCE)
     void createAndUpdateArtifact() throws Exception {
-        Rule rule = new Rule();
-        rule.setType(RuleType.VALIDITY);
-        rule.setConfig("FULL");
+        CreateRule createRule = new CreateRule();
+        createRule.setRuleType(RuleType.VALIDITY);
+        createRule.setConfig("FULL");
 
-        LOGGER.info("Creating global rule:{}", rule.toString());
-        registryClient.admin().rules().post(rule);
+        LOGGER.info("Creating global rule:{}", createRule.toString());
+        registryClient.admin().rules().post(createRule);
 
         // Make sure we have rule
-        retryOp((rc) -> rc.admin().rules().byRule(rule.getType().name()).get());
+        retryOp((rc) -> rc.admin().rules().byRuleType(createRule.getRuleType().name()).get());
 
         String groupId = TestUtils.generateGroupId();
 

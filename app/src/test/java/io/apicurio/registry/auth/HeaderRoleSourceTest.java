@@ -54,9 +54,9 @@ public class HeaderRoleSourceTest extends AbstractResourceTestBase {
     public void testLocalRoles() throws Exception {
         CreateArtifact createArtifact = TestUtils.clientCreateArtifact(getClass().getSimpleName(), ArtifactType.AVRO, TEST_CONTENT, ContentTypes.APPLICATION_JSON);
 
-        var rule = new io.apicurio.registry.rest.client.models.Rule();
+        var rule = new io.apicurio.registry.rest.client.models.CreateRule();
         rule.setConfig(ValidityLevel.FULL.name());
-        rule.setType(io.apicurio.registry.rest.client.models.RuleType.VALIDITY);
+        rule.setRuleType(io.apicurio.registry.rest.client.models.RuleType.VALIDITY);
 
         var noRoleAdapter = new VertXRequestAdapter(buildOIDCWebClient(authServerUrlConfigured, JWKSMockServer.NO_ROLE_CLIENT_ID, "test1"));
         noRoleAdapter.setBaseUrl(registryV3ApiUrl);

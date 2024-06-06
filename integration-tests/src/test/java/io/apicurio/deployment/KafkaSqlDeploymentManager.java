@@ -3,7 +3,7 @@ package io.apicurio.deployment;
 import io.apicurio.registry.client.auth.VertXAuthFactory;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
-import io.apicurio.registry.rest.client.models.Rule;
+import io.apicurio.registry.rest.client.models.CreateRule;
 import io.apicurio.registry.rest.client.models.RuleType;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
@@ -23,7 +23,11 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import static io.apicurio.deployment.KubernetesTestResources.*;
+import static io.apicurio.deployment.KubernetesTestResources.APPLICATION_DEPLOYMENT;
+import static io.apicurio.deployment.KubernetesTestResources.APPLICATION_KAFKA_RESOURCES;
+import static io.apicurio.deployment.KubernetesTestResources.APPLICATION_KAFKA_SECURED_RESOURCES;
+import static io.apicurio.deployment.KubernetesTestResources.KAFKA_RESOURCES;
+import static io.apicurio.deployment.KubernetesTestResources.TEST_NAMESPACE;
 import static io.apicurio.deployment.RegistryDeploymentManager.kubernetesClient;
 import static io.apicurio.deployment.RegistryDeploymentManager.prepareTestsInfra;
 import static io.apicurio.tests.ApicurioRegistryBaseIT.resourceToString;
@@ -75,10 +79,10 @@ public class KafkaSqlDeploymentManager {
                     ContentTypes.APPLICATION_JSON);
             client.groups().byGroupId(NEW_ARTIFACTS_SNAPSHOT_TEST_GROUP_ID).artifacts()
                     .post(createArtifact, config -> config.headers.add("X-Registry-ArtifactId", artifactId));
-            Rule rule = new Rule();
-            rule.setType(RuleType.VALIDITY);
-            rule.setConfig("SYNTAX_ONLY");
-            client.groups().byGroupId(NEW_ARTIFACTS_SNAPSHOT_TEST_GROUP_ID).artifacts().byArtifactId(artifactId).rules().post(rule);
+            CreateRule createRule = new CreateRule();
+            createRule.setRuleType(RuleType.VALIDITY);
+            createRule.setConfig("SYNTAX_ONLY");
+            client.groups().byGroupId(NEW_ARTIFACTS_SNAPSHOT_TEST_GROUP_ID).artifacts().byArtifactId(artifactId).rules().post(createRule);
         }
 
         LOGGER.info("Creating kafkasql snapshot..");
@@ -91,10 +95,10 @@ public class KafkaSqlDeploymentManager {
                     ContentTypes.APPLICATION_JSON);
             client.groups().byGroupId("default").artifacts()
                     .post(createArtifact, config -> config.headers.add("X-Registry-ArtifactId", artifactId));
-            Rule rule = new Rule();
-            rule.setType(RuleType.VALIDITY);
-            rule.setConfig("SYNTAX_ONLY");
-            client.groups().byGroupId("default").artifacts().byArtifactId(artifactId).rules().post(rule);
+            CreateRule createRule = new CreateRule();
+            createRule.setRuleType(RuleType.VALIDITY);
+            createRule.setConfig("SYNTAX_ONLY");
+            client.groups().byGroupId("default").artifacts().byArtifactId(artifactId).rules().post(createRule);
         }
     }
 

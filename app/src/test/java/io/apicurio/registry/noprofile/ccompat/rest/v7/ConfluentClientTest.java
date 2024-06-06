@@ -5,7 +5,7 @@ import io.apicurio.registry.ccompat.dto.SchemaContent;
 import io.apicurio.registry.ccompat.rest.error.ErrorCode;
 import io.apicurio.registry.model.GroupId;
 import io.apicurio.registry.rest.Headers;
-import io.apicurio.registry.rest.client.models.Rule;
+import io.apicurio.registry.rest.client.models.CreateRule;
 import io.apicurio.registry.rest.client.models.RuleType;
 import io.apicurio.registry.support.HealthUtils;
 import io.apicurio.registry.support.TestCmmn;
@@ -46,15 +46,30 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.nio.ByteBuffer;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 import static io.apicurio.registry.utils.tests.TestUtils.retry;
-import static io.confluent.kafka.schemaregistry.CompatibilityLevel.*;
+import static io.confluent.kafka.schemaregistry.CompatibilityLevel.BACKWARD;
+import static io.confluent.kafka.schemaregistry.CompatibilityLevel.FORWARD;
+import static io.confluent.kafka.schemaregistry.CompatibilityLevel.FULL;
+import static io.confluent.kafka.schemaregistry.CompatibilityLevel.NONE;
 import static java.net.HttpURLConnection.HTTP_CONFLICT;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 
 @QuarkusTest
@@ -287,10 +302,10 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
     public void testGlobalRule() throws Exception {
         SchemaRegistryClient client = buildClient();
 
-        Rule rule = new Rule();
-        rule.setType(RuleType.COMPATIBILITY);
-        rule.setConfig("BACKWARD");
-        clientV3.admin().rules().post(rule);
+        CreateRule createRule = new CreateRule();
+        createRule.setRuleType(RuleType.COMPATIBILITY);
+        createRule.setConfig("BACKWARD");
+        clientV3.admin().rules().post(createRule);
 
         String subject = generateArtifactId();
         ParsedSchema schema = new AvroSchema("{\"type\":\"record\",\"name\":\"myrecord3\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");

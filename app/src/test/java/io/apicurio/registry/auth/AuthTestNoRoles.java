@@ -6,8 +6,8 @@ import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.model.GroupId;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
+import io.apicurio.registry.rest.client.models.CreateRule;
 import io.apicurio.registry.rest.client.models.CreateVersion;
-import io.apicurio.registry.rest.client.models.Rule;
 import io.apicurio.registry.rest.client.models.RuleType;
 import io.apicurio.registry.rest.client.models.VersionContent;
 import io.apicurio.registry.rules.validity.ValidityLevel;
@@ -91,12 +91,12 @@ public class AuthTestNoRoles extends AbstractResourceTestBase {
                         );
             assertNotNull(client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get());
 
-            Rule ruleConfig = new Rule();
-            ruleConfig.setType(RuleType.VALIDITY);
-            ruleConfig.setConfig(ValidityLevel.NONE.name());
+            CreateRule createRule = new CreateRule();
+            createRule.setRuleType(RuleType.VALIDITY);
+            createRule.setConfig(ValidityLevel.NONE.name());
 
-            client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).rules().post(ruleConfig);
-            client.admin().rules().post(ruleConfig);
+            client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).rules().post(createRule);
+            client.admin().rules().post(createRule);
         } finally {
             client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).delete();
         }

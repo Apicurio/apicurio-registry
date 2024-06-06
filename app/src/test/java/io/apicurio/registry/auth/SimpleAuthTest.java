@@ -5,9 +5,9 @@ import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.ArtifactMetaData;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
+import io.apicurio.registry.rest.client.models.CreateRule;
 import io.apicurio.registry.rest.client.models.CreateVersion;
 import io.apicurio.registry.rest.client.models.EditableArtifactMetaData;
-import io.apicurio.registry.rest.client.models.Rule;
 import io.apicurio.registry.rest.client.models.RuleType;
 import io.apicurio.registry.rest.client.models.UserInfo;
 import io.apicurio.registry.rest.client.models.VersionContent;
@@ -140,13 +140,13 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
 
             assertTrue(client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").content().get().readAllBytes().length > 0);
 
-            Rule ruleConfig = new Rule();
-            ruleConfig.setType(RuleType.VALIDITY);
-            ruleConfig.setConfig(ValidityLevel.NONE.name());
-            client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).rules().post(ruleConfig);
+            CreateRule createRule = new CreateRule();
+            createRule.setRuleType(RuleType.VALIDITY);
+            createRule.setConfig(ValidityLevel.NONE.name());
+            client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).rules().post(createRule);
 
             var exception = Assertions.assertThrows(Exception.class, () -> {
-                client.admin().rules().post(ruleConfig);
+                client.admin().rules().post(createRule);
             });
             assertForbidden(exception);
 
@@ -176,12 +176,12 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
 
             assertTrue(client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").content().get().readAllBytes().length > 0);
 
-            Rule ruleConfig = new Rule();
-            ruleConfig.setType(RuleType.VALIDITY);
-            ruleConfig.setConfig(ValidityLevel.NONE.name());
-            client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).rules().post(ruleConfig);
+            CreateRule createRule = new CreateRule();
+            createRule.setRuleType(RuleType.VALIDITY);
+            createRule.setConfig(ValidityLevel.NONE.name());
+            client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).rules().post(createRule);
 
-            client.admin().rules().post(ruleConfig);
+            client.admin().rules().post(createRule);
 
             UserInfo userInfo = client.users().me().get();
             assertNotNull(userInfo);
@@ -209,12 +209,12 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
 
             assertTrue(client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").content().get().readAllBytes().length > 0);
 
-            Rule ruleConfig = new Rule();
-            ruleConfig.setType(RuleType.VALIDITY);
-            ruleConfig.setConfig(ValidityLevel.NONE.name());
-            client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).rules().post(ruleConfig);
+            CreateRule createRule = new CreateRule();
+            createRule.setRuleType(RuleType.VALIDITY);
+            createRule.setConfig(ValidityLevel.NONE.name());
+            client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).rules().post(createRule);
 
-            client.admin().rules().post(ruleConfig);
+            client.admin().rules().post(createRule);
         } finally {
             client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).delete();
         }
@@ -271,10 +271,10 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
         clientDev.groups().byGroupId(groupId).artifacts().post(createArtifact);
 
         // And the Admin user will modify it (allowed because it's the Admin user)
-        Rule rule = new Rule();
-        rule.setType(RuleType.COMPATIBILITY);
-        rule.setConfig(CompatibilityLevel.BACKWARD.name());
-        clientAdmin.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId2).rules().post(rule);
+        CreateRule createRule = new CreateRule();
+        createRule.setRuleType(RuleType.COMPATIBILITY);
+        createRule.setConfig(CompatibilityLevel.BACKWARD.name());
+        clientAdmin.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId2).rules().post(createRule);
     }
 
     @Test

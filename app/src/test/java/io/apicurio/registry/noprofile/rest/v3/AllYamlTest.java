@@ -3,9 +3,9 @@ package io.apicurio.registry.noprofile.rest.v3;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
 import io.apicurio.registry.rest.client.models.CreateArtifactResponse;
+import io.apicurio.registry.rest.client.models.CreateRule;
 import io.apicurio.registry.rest.client.models.CreateVersion;
 import io.apicurio.registry.rest.client.models.Error;
-import io.apicurio.registry.rest.client.models.Rule;
 import io.apicurio.registry.rest.client.models.RuleType;
 import io.apicurio.registry.rest.client.models.VersionSearchResults;
 import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
@@ -113,8 +113,8 @@ public class AllYamlTest extends AbstractResourceTestBase {
         String groupId = TestUtils.generateGroupId();
         String artifactId = TestUtils.generateArtifactId();
 
-        Rule createRule = new Rule();
-        createRule.setType(RuleType.VALIDITY);
+        CreateRule createRule = new CreateRule();
+        createRule.setRuleType(RuleType.VALIDITY);
         createRule.setConfig(ValidityLevel.FULL.name());
         clientV3.admin().rules().post(createRule);
 
@@ -149,8 +149,8 @@ public class AllYamlTest extends AbstractResourceTestBase {
         clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact);
 
         // Enable the compatibility rule for the artifact
-        Rule createRule = new Rule();
-        createRule.setType(RuleType.COMPATIBILITY);
+        CreateRule createRule = new CreateRule();
+        createRule.setRuleType(RuleType.COMPATIBILITY);
         createRule.setConfig(CompatibilityLevel.FULL.name());
         clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).rules().post(createRule);
 
@@ -168,8 +168,8 @@ public class AllYamlTest extends AbstractResourceTestBase {
         clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact);
 
         // Enable the compatibility rule for the artifact
-        Rule createRule = new Rule();
-        createRule.setType(RuleType.INTEGRITY);
+        CreateRule createRule = new CreateRule();
+        createRule.setRuleType(RuleType.INTEGRITY);
         createRule.setConfig(IntegrityLevel.FULL.name());
         clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).rules().post(createRule);
 

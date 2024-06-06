@@ -16,6 +16,7 @@ import {
 } from "@utils/rest.utils.ts";
 import { RoleMappingSearchResults } from "@models/roleMappingSearchResults.model.ts";
 import { Paging } from "@models/paging.model.ts";
+import { CreateRule } from "@models/createRule.model.ts";
 
 
 const getArtifactTypes = async (config: ConfigService, auth: AuthService): Promise<ArtifactTypeInfo[]> => {
@@ -45,38 +46,38 @@ const getRule = async (config: ConfigService, auth: AuthService, type: string): 
     return httpGet<Rule>(endpoint, options);
 };
 
-const createRule = async (config: ConfigService, auth: AuthService, type: string, configValue: string): Promise<Rule> => {
-    console.info("[AdminService] Creating global rule:", type);
+const createRule = async (config: ConfigService, auth: AuthService, ruleType: string, configValue: string): Promise<Rule> => {
+    console.info("[AdminService] Creating global rule:", ruleType);
 
     const baseHref: string = config.artifactsUrl();
     const options = await createAuthOptions(auth);
     const endpoint: string = createEndpoint(baseHref, "/admin/rules");
-    const body: Rule = {
+    const body: CreateRule = {
         config: configValue,
-        type
+        ruleType
     };
     return httpPostWithReturn(endpoint, body, options);
 };
 
-const updateRule = async (config: ConfigService, auth: AuthService, type: string, configValue: string): Promise<Rule|null> => {
-    console.info("[AdminService] Updating global rule:", type);
+const updateRule = async (config: ConfigService, auth: AuthService, ruleType: string, configValue: string): Promise<Rule|null> => {
+    console.info("[AdminService] Updating global rule:", ruleType);
 
     const baseHref: string = config.artifactsUrl();
     const options = await createAuthOptions(auth);
     const endpoint: string = createEndpoint(baseHref, "/admin/rules/:rule", {
-        "rule": type
+        "rule": ruleType
     });
-    const body: Rule = { config: configValue, type };
+    const body: Rule = { config: configValue, ruleType };
     return httpPutWithReturn<Rule, Rule>(endpoint, body, options);
 };
 
-const deleteRule = async (config: ConfigService, auth: AuthService, type: string): Promise<null> => {
-    console.info("[AdminService] Deleting global rule:", type);
+const deleteRule = async (config: ConfigService, auth: AuthService, ruleType: string): Promise<null> => {
+    console.info("[AdminService] Deleting global rule:", ruleType);
 
     const baseHref: string = config.artifactsUrl();
     const options = await createAuthOptions(auth);
     const endpoint: string = createEndpoint(baseHref, "/admin/rules/:rule", {
-        "rule": type
+        "rule": ruleType
     });
     return httpDelete(endpoint, options);
 };
@@ -212,10 +213,10 @@ const resetConfigurationProperty = async (config: ConfigService, auth: AuthServi
 export interface AdminService {
     getArtifactTypes(): Promise<ArtifactTypeInfo[]>;
     getRules(): Promise<Rule[]>;
-    getRule(type: string): Promise<Rule>;
-    createRule(type: string, config: string): Promise<Rule>;
-    updateRule(type: string, config: string): Promise<Rule|null>;
-    deleteRule(type: string): Promise<null>;
+    getRule(ruleType: string): Promise<Rule>;
+    createRule(ruleType: string, config: string): Promise<Rule>;
+    updateRule(ruleType: string, config: string): Promise<Rule|null>;
+    deleteRule(ruleType: string): Promise<null>;
     getRoleMappings(paging: Paging): Promise<RoleMappingSearchResults>;
     getRoleMapping(principalId: string): Promise<RoleMapping>;
     createRoleMapping(principalId: string, role: string, principalName: string): Promise<RoleMapping>;
@@ -240,17 +241,17 @@ export const useAdminService: () => AdminService = (): AdminService => {
         getRules(): Promise<Rule[]> {
             return getRules(config, auth);
         },
-        getRule(type: string): Promise<Rule> {
-            return getRule(config, auth, type);
+        getRule(ruleType: string): Promise<Rule> {
+            return getRule(config, auth, ruleType);
         },
-        createRule(type: string, configValue: string): Promise<Rule> {
-            return createRule(config, auth, type, configValue);
+        createRule(ruleType: string, configValue: string): Promise<Rule> {
+            return createRule(config, auth, ruleType, configValue);
         },
-        updateRule(type: string, configValue: string): Promise<Rule|null> {
-            return updateRule(config, auth, type, configValue);
+        updateRule(ruleType: string, configValue: string): Promise<Rule|null> {
+            return updateRule(config, auth, ruleType, configValue);
         },
-        deleteRule(type: string): Promise<null> {
-            return deleteRule(config, auth, type);
+        deleteRule(ruleType: string): Promise<null> {
+            return deleteRule(config, auth, ruleType);
         },
         getRoleMappings(paging: Paging): Promise<RoleMappingSearchResults> {
             return getRoleMappings(config, auth, paging);

@@ -19,8 +19,8 @@ package io.apicurio.registry.examples;
 import io.apicurio.registry.client.auth.VertXAuthFactory;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
+import io.apicurio.registry.rest.client.models.CreateRule;
 import io.apicurio.registry.rest.client.models.CreateVersion;
-import io.apicurio.registry.rest.client.models.Rule;
 import io.apicurio.registry.rest.client.models.RuleType;
 import io.apicurio.registry.rest.client.models.VersionContent;
 import io.kiota.http.vertx.VertXRequestAdapter;
@@ -86,10 +86,10 @@ public class RegistryLoader {
                 client.groups().byGroupId("default").artifacts().post(createArtifact, config -> {
                 });
 
-                Rule rule = new Rule();
-                rule.setType(RuleType.VALIDITY);
-                rule.setConfig("SYNTAX_ONLY");
-                client.groups().byGroupId("default").artifacts().byArtifactId(artifactId).rules().post(rule);
+                CreateRule createRule = new CreateRule();
+                createRule.setRuleType(RuleType.VALIDITY);
+                createRule.setConfig("SYNTAX_ONLY");
+                client.groups().byGroupId("default").artifacts().byArtifactId(artifactId).rules().post(createRule);
             }
         }
     }

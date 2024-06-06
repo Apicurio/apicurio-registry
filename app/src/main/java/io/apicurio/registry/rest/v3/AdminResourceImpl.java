@@ -16,6 +16,7 @@ import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessChe
 import io.apicurio.registry.rest.MissingRequiredParameterException;
 import io.apicurio.registry.rest.v3.beans.ArtifactTypeInfo;
 import io.apicurio.registry.rest.v3.beans.ConfigurationProperty;
+import io.apicurio.registry.rest.v3.beans.CreateRule;
 import io.apicurio.registry.rest.v3.beans.DownloadRef;
 import io.apicurio.registry.rest.v3.beans.RoleMapping;
 import io.apicurio.registry.rest.v3.beans.RoleMappingSearchResults;
@@ -154,14 +155,14 @@ public class AdminResourceImpl implements AdminResource {
     }
 
     /**
-     * @see io.apicurio.registry.rest.v3.AdminResource#createGlobalRule(io.apicurio.registry.rest.v3.beans.Rule)
+     * @see io.apicurio.registry.rest.v3.AdminResource#createGlobalRule(CreateRule)
      */
     @Override
     @Audited(extractParameters = {"0", KEY_RULE})
     @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
-    public void createGlobalRule(Rule data) {
-        RuleType type = data.getType();
-        requireParameter("type", type);
+    public void createGlobalRule(CreateRule data) {
+        RuleType ruleType = data.getRuleType();
+        requireParameter("ruleType", ruleType);
 
         if (data.getConfig() == null || data.getConfig().isEmpty()) {
             throw new MissingRequiredParameterException("Config");
@@ -169,7 +170,7 @@ public class AdminResourceImpl implements AdminResource {
 
         RuleConfigurationDto configDto = new RuleConfigurationDto();
         configDto.setConfiguration(data.getConfig());
-        storage.createGlobalRule(data.getType(), configDto);
+        storage.createGlobalRule(data.getRuleType(), configDto);
     }
 
     /**
@@ -187,19 +188,19 @@ public class AdminResourceImpl implements AdminResource {
      */
     @Override
     @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Read)
-    public Rule getGlobalRuleConfig(RuleType rule) {
+    public Rule getGlobalRuleConfig(RuleType ruleType) {
         RuleConfigurationDto dto;
         try {
-            dto = storage.getGlobalRule(rule);
+            dto = storage.getGlobalRule(ruleType);
         } catch (RuleNotFoundException ruleNotFoundException) {
             // Check if the rule exists in the default global rules
-            dto = rulesProperties.getDefaultGlobalRuleConfiguration(rule);
+            dto = rulesProperties.getDefaultGlobalRuleConfiguration(ruleType);
             if (dto == null) {
                 throw ruleNotFoundException;
             }
         }
         Rule ruleBean = new Rule();
-        ruleBean.setType(rule);
+        ruleBean.setRuleType(ruleType);
         ruleBean.setConfig(dto.getConfiguration());
         return ruleBean;
     }
@@ -210,22 +211,22 @@ public class AdminResourceImpl implements AdminResource {
     @Override
     @Audited(extractParameters = {"0", KEY_RULE_TYPE, "1", KEY_RULE})
     @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
-    public Rule updateGlobalRuleConfig(RuleType rule, Rule data) {
+    public Rule updateGlobalRuleConfig(RuleType ruleType, Rule data) {
         RuleConfigurationDto configDto = new RuleConfigurationDto();
         configDto.setConfiguration(data.getConfig());
         try {
-            storage.updateGlobalRule(rule, configDto);
+            storage.updateGlobalRule(ruleType, configDto);
         } catch (RuleNotFoundException ruleNotFoundException) {
             // This global rule doesn't exist in artifactStore - if the rule exists in the default
             // global rules, override the default by creating a new global rule
-            if (rulesProperties.isDefaultGlobalRuleConfigured(rule)) {
-                storage.createGlobalRule(rule, configDto);
+            if (rulesProperties.isDefaultGlobalRuleConfigured(ruleType)) {
+                storage.createGlobalRule(ruleType, configDto);
             } else {
                 throw ruleNotFoundException;
             }
         }
         Rule ruleBean = new Rule();
-        ruleBean.setType(rule);
+        ruleBean.setRuleType(ruleType);
         ruleBean.setConfig(data.getConfig());
         return ruleBean;
     }

@@ -3,6 +3,7 @@ package io.apicurio.registry.noprofile.maven;
 import io.apicurio.registry.maven.TestArtifact;
 import io.apicurio.registry.maven.TestUpdateRegistryMojo;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
+import io.apicurio.registry.rest.client.models.CreateRule;
 import io.apicurio.registry.rest.client.models.Rule;
 import io.apicurio.registry.rest.client.models.RuleType;
 import io.apicurio.registry.types.ArtifactType;
@@ -46,14 +47,14 @@ public class TestUpdateRegistryMojoTest extends RegistryMojoTestBase {
         CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO, schema.toString(), ContentTypes.APPLICATION_JSON);
         clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact);
 
-        Rule rule = new Rule();
-        rule.setType(RuleType.COMPATIBILITY);
-        rule.setConfig("BACKWARD");
-        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).rules().post(rule);
+        CreateRule createRule = new CreateRule();
+        createRule.setRuleType(RuleType.COMPATIBILITY);
+        createRule.setConfig("BACKWARD");
+        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).rules().post(createRule);
 
         // Wait for the rule configuration to be set.
         TestUtils.retry(() -> {
-            Rule rconfig = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).rules().byRule(RuleType.COMPATIBILITY.getValue()).get();
+            Rule rconfig = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).rules().byRuleType(RuleType.COMPATIBILITY.getValue()).get();
             Assertions.assertEquals("BACKWARD", rconfig.getConfig());
         });
 

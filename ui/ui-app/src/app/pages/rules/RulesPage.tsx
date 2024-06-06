@@ -38,7 +38,7 @@ export const RulesPage: FunctionComponent<RulesPageProps> = () => {
         admin.createRule(ruleType, config).catch(error => {
             setPageError(toPageError(error, `Error enabling "${ ruleType }" global rule.`));
         });
-        setRules([...rules, { config, type: ruleType }]);
+        setRules([...rules, { config, ruleType: ruleType }]);
     };
 
     const doDisableRule = (ruleType: string): void => {
@@ -46,7 +46,7 @@ export const RulesPage: FunctionComponent<RulesPageProps> = () => {
         admin.deleteRule(ruleType).catch(error => {
             setPageError(toPageError(error, `Error disabling "${ ruleType }" global rule.`));
         });
-        setRules(rules.filter(r => r.type !== ruleType));
+        setRules(rules.filter(r => r.ruleType !== ruleType));
     };
 
     const doConfigureRule = (ruleType: string, config: string): void => {
@@ -55,8 +55,8 @@ export const RulesPage: FunctionComponent<RulesPageProps> = () => {
             setPageError(toPageError(error, `Error configuring "${ ruleType }" global rule.`));
         });
         setRules(rules.map(r => {
-            if (r.type === ruleType) {
-                return { config, type: r.type };
+            if (r.ruleType === ruleType) {
+                return { config, ruleType: r.ruleType };
             } else {
                 return r;
             }

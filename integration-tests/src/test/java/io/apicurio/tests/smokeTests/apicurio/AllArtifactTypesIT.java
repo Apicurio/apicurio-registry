@@ -1,8 +1,8 @@
 package io.apicurio.tests.smokeTests.apicurio;
 
+import io.apicurio.registry.rest.client.models.CreateRule;
 import io.apicurio.registry.rest.client.models.CreateVersion;
 import io.apicurio.registry.rest.client.models.IfArtifactExists;
-import io.apicurio.registry.rest.client.models.Rule;
 import io.apicurio.registry.rest.client.models.RuleType;
 import io.apicurio.registry.rest.client.models.SortOrder;
 import io.apicurio.registry.rest.client.models.VersionMetaData;
@@ -39,13 +39,13 @@ class AllArtifactTypesIT extends ApicurioRegistryBaseIT {
         String v2Content = resourceToString("artifactTypes/" + v2Resource);
 
         // Enable syntax validation global rule
-        Rule rule = new Rule();
-        rule.setType(RuleType.VALIDITY);
-        rule.setConfig("SYNTAX_ONLY");
-        registryClient.admin().rules().post(rule);
+        CreateRule createRule = new CreateRule();
+        createRule.setRuleType(RuleType.VALIDITY);
+        createRule.setConfig("SYNTAX_ONLY");
+        registryClient.admin().rules().post(createRule);
 
         // Make sure we have rule
-        retryOp((rc) -> rc.admin().rules().byRule(rule.getType().name()).get());
+        retryOp((rc) -> rc.admin().rules().byRuleType(createRule.getRuleType().name()).get());
 
         // Create artifact
         createArtifact(groupId, artifactId, atype, v1Content, contentType, IfArtifactExists.FAIL, null);
@@ -88,11 +88,11 @@ class AllArtifactTypesIT extends ApicurioRegistryBaseIT {
                 registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().post(createVersion), errorCodeExtractor);
 
         // Override Validation rule for the artifact
-        rule.setConfig("NONE");
-        registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).rules().post(rule);
+        createRule.setConfig("NONE");
+        registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).rules().post(createRule);
 
         // Make sure we have rule
-        retryOp((rc) -> rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).rules().byRule(rule.getType().name()).get());
+        retryOp((rc) -> rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).rules().byRuleType(createRule.getRuleType().name()).get());
 
         // Update artifact (invalid content) - should work now
         VersionMetaData amd2 = createArtifactVersion(groupId, artifactId,"{\"This is not a valid content.", ContentTypes.APPLICATION_JSON, null);

@@ -32,6 +32,6 @@
     "mobx": "6.12.3",
     "styled-components": "6.1.11",
     "core-js": "3.37.1",
-    "redoc": "2.1.4"
+    "redoc": "2.1.5"
   }
 }

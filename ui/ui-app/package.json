@@ -47,6 +47,13 @@
     "react-dom": "18.3.1",
     "react-router-dom": "6.23.1",
     "use-resize-observer": "9.1.0",
-    "yaml": "2.4.3"
+    "yaml": "2.4.3",
+    "@apicurio/apicurio-registry-client": "file:../typescript-sdk",
+    "@microsoft/kiota-abstractions": "^1.0.0-preview.56",
+    "@microsoft/kiota-http-fetchlibrary": "^1.0.0-preview.55",
+    "@microsoft/kiota-serialization-form": "^1.0.0-preview.45",
+    "@microsoft/kiota-serialization-json": "^1.0.0-preview.56",
+    "@microsoft/kiota-serialization-multipart": "^1.0.0-preview.34",
+    "@microsoft/kiota-serialization-text": "^1.0.0-preview.53"
   }
 }

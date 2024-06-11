@@ -1,7 +1,6 @@
 export * from "./searchedVersion.model";
 export * from "./downloadRef.model";
 export * from "./configurationProperty.model";
-export * from "./artifactTypeInfo.model";
 export * from "./updateConfigurationProperty.model";
 export * from "./apiError.model";
 export * from "./referenceType";

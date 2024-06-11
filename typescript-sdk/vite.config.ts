@@ -23,7 +23,6 @@ export default defineConfig({
                 "@microsoft/kiota-http-fetchlibrary",
                 "@microsoft/kiota-serialization-form",
                 "@microsoft/kiota-serialization-json",
-                "@microsoft/kiota-authentication-azure",
                 "@microsoft/kiota-serialization-text",
                 "@microsoft/kiota-serialization-multipart",
                 "react",

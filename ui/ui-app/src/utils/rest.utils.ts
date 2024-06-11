@@ -3,8 +3,62 @@ import { ContentTypes } from "@models/contentTypes.model.ts";
 import { AuthService } from "@apicurio/common-ui-components";
 import { Buffer } from "buffer";
 
-const AXIOS = axios.create();
+import { AnonymousAuthenticationProvider, AuthenticationProvider, Headers, RequestInformation } from "@microsoft/kiota-abstractions";
+import { ConfigService } from "@services/useConfigService";
+import { ApicurioRegistryClient, createApicurioRegistryClient } from "@apicurio/apicurio-registry-client/src-generated/registry-client/apicurioRegistryClient";
+import { FetchRequestAdapter } from "@microsoft/kiota-http-fetchlibrary";
 
+// START - Kiota Machinery
+export class TokenAuthenticationProvider implements AuthenticationProvider {
+    private readonly key: string;
+    private readonly accessTokenProvider: () => Promise<string>;
+    private static readonly authorizationHeaderKey = "Authorization";
+    public constructor(key: string, accessTokenProvider: () => Promise<string>) {
+        this.key = key;
+        this.accessTokenProvider = accessTokenProvider;
+    }
+
+    public authenticateRequest = async (request: RequestInformation, additionalAuthenticationContext?: Record<string, unknown>): Promise<void> => {
+        if (!request) {
+            throw new Error("request info cannot be null");
+        }
+        if (additionalAuthenticationContext?.claims && request.headers.has(TokenAuthenticationProvider.authorizationHeaderKey)) {
+            request.headers.delete(TokenAuthenticationProvider.authorizationHeaderKey);
+        }
+        if (!request.headers || !request.headers.has(TokenAuthenticationProvider.authorizationHeaderKey)) {
+            const token = await this.accessTokenProvider();
+            if (!request.headers) {
+                request.headers = new Headers();
+            }
+            if (token) {
+                request.headers.add(TokenAuthenticationProvider.authorizationHeaderKey, `${this.key} ${token}`);
+            }
+        }
+    };
+}
+
+export function createAuthProvider(auth: AuthService): AuthenticationProvider {
+    if (auth.isOidcAuthEnabled()) {
+        return new TokenAuthenticationProvider("Bearer", async () => auth.getToken().then(v => v!));
+    } else if (auth.isBasicAuthEnabled()) {
+        const creds = auth.getUsernameAndPassword();
+        const base64Credentials = Buffer.from(`${creds?.username}:${creds?.password}`, "ascii").toString("base64");
+        return new TokenAuthenticationProvider("Basic", async () => base64Credentials);
+    } else {
+        return new AnonymousAuthenticationProvider();
+    }
+}
+
+export function createRegistryClient(config: ConfigService, auth: AuthService): ApicurioRegistryClient {
+    const authProvider = createAuthProvider(auth);
+    const adapter = new FetchRequestAdapter(authProvider);
+    adapter.baseUrl = config.artifactsUrl();
+    return createApicurioRegistryClient(adapter);
+}
+// END - Kiota Machinery
+
+
+const AXIOS = axios.create();
 
 function createAxiosConfig(method: string, url: string, options: any, data?: any): AxiosRequestConfig {
     if (typeof data === "string") {

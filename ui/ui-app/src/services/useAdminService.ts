@@ -1,6 +1,5 @@
 import { AuthService, useAuth } from "@apicurio/common-ui-components";
 import { ConfigService, useConfigService } from "@services/useConfigService.ts";
-import { ArtifactTypeInfo } from "@models/artifactTypeInfo.model.ts";
 import { Rule } from "@models/rule.model.ts";
 import { RoleMapping } from "@models/roleMapping.model.ts";
 import { DownloadRef } from "@models/downloadRef.model.ts";
@@ -9,6 +8,7 @@ import { UpdateConfigurationProperty } from "@models/updateConfigurationProperty
 import {
     createAuthOptions,
     createEndpoint,
+    createRegistryClient,
     httpDelete,
     httpGet, httpPost,
     httpPostWithReturn, httpPut,
@@ -17,14 +17,21 @@ import {
 import { RoleMappingSearchResults } from "@models/roleMappingSearchResults.model.ts";
 import { Paging } from "@models/paging.model.ts";
 import { CreateRule } from "@models/createRule.model.ts";
+import { ApicurioRegistryClient } from "@apicurio/apicurio-registry-client/src-generated/registry-client/apicurioRegistryClient";
+import { ArtifactTypeInfo } from "@apicurio/apicurio-registry-client/src-generated/registry-client/models";
 
+let client: ApicurioRegistryClient;
+
+const getRegistryClient = (config: ConfigService, auth: AuthService): ApicurioRegistryClient => {
+    if (client === undefined) {
+        client = createRegistryClient(config, auth);
+    }
+    return client;
+};
 
 const getArtifactTypes = async (config: ConfigService, auth: AuthService): Promise<ArtifactTypeInfo[]> => {
     console.info("[AdminService] Getting the global list of artifactTypes.");
-    const baseHref: string = config.artifactsUrl();
-    const options = await createAuthOptions(auth);
-    const endpoint: string = createEndpoint(baseHref, "/admin/config/artifactTypes");
-    return httpGet<ArtifactTypeInfo[]>(endpoint, options);
+    return await getRegistryClient(config, auth).admin.config.artifactTypes.get().then(v => v!);
 };
 
 const getRules = async (config: ConfigService, auth: AuthService): Promise<Rule[]> => {

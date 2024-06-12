@@ -23,6 +23,7 @@ public class BranchEntityMapper implements RowMapper<BranchEntity> {
                 .artifactId(rs.getString("artifactId"))
                 .branchId(rs.getString("branchId"))
                 .description(rs.getString("description"))
+                .userDefined(rs.getBoolean("userDefined"))
                 .owner(rs.getString("owner"))
                 .createdOn(rs.getTimestamp("createdOn").getTime())
                 .modifiedBy(rs.getString("modifiedBy"))

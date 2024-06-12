@@ -1,5 +1,7 @@
 package io.apicurio.registry.utils.impexp;
 
+import io.apicurio.registry.model.BranchId;
+import io.apicurio.registry.model.GA;
 import io.quarkus.runtime.annotations.RegisterForReflection;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -21,12 +23,20 @@ public class BranchEntity extends Entity {
     public String artifactId;
     public String branchId;
     public String description;
+    public boolean userDefined;
     public String owner;
     public long createdOn;
     public String modifiedBy;
     public long modifiedOn;
     public List<String> versions;
 
+    public GA toGA() {
+        return new GA(groupId, artifactId);
+    }
+
+    public BranchId toBranchId() {
+        return new BranchId(branchId);
+    }
 
     @Override
     public EntityType getEntityType() {

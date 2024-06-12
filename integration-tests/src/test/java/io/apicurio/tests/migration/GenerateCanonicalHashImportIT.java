@@ -68,7 +68,7 @@ public class GenerateCanonicalHashImportIT extends ApicurioRegistryBaseIT {
                   The only way is to generate canonical hash and then search artifact by it. But that needs apicurio-registry-app module as dependency.
              */
 
-            var registryContent = client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").content().get();
+            var registryContent = client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("1").content().get();
             assertNotNull(registryContent);
             assertEquals(content, IoUtil.toString(registryContent));
         }

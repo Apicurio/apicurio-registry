@@ -729,7 +729,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
 
     @Override
     public String exportBranches() {
-        return "SELECT * FROM branches b";
+        return "SELECT * FROM branches";
     }
 
 
@@ -1049,6 +1049,11 @@ public abstract class CommonSqlStatements implements SqlStatements {
     }
 
     @Override
+    public String selectBranchVersionNumbers() {
+        return "SELECT bv.version FROM branch_versions bv WHERE bv.groupId = ? AND bv.artifactId = ? AND bv.branchId = ?";
+    }
+
+    @Override
     public String selectBranchTip() {
         return "SELECT bv.groupId, bv.artifactId, bv.version FROM branch_versions bv " +
                 "WHERE bv.groupId = ? AND bv.artifactId = ? AND bv.branchId = ? " +
@@ -1098,8 +1103,4 @@ public abstract class CommonSqlStatements implements SqlStatements {
         return "DELETE FROM branches";
     }
 
-    @Override
-    public String importBranch() {
-        return insertBranch();
-    }
 }

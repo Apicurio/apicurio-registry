@@ -123,7 +123,6 @@ public class EntityWriter {
                 path = String.format("groups/%s/artifacts/%s/rules/%s.%s.%s", groupOrDefault(groupId), artifactId, fileName, type.name(), fileExt);
                 break;
             case ArtifactVersion:
-            case Branch:
                 path = String.format("groups/%s/artifacts/%s/versions/%s.%s.%s", groupOrDefault(groupId), artifactId, fileName, type.name(), fileExt);
                 break;
             case Content:

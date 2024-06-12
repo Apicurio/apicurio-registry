@@ -2279,7 +2279,6 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
         // Export all branches
         /////////////////////////////////
-        // TODO add the list of versions to the BranchEntity when exporting
         handles.withHandle(handle -> {
             Stream<BranchEntity> stream = handle.createQuery(sqlStatements.exportBranches())
                     .setFetchSize(50)
@@ -2287,7 +2286,10 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                     .stream();
             // Process and then close the stream.
             try (stream) {
-                stream.forEach(handler::apply);
+                stream.forEach(branch -> {
+                    branch.versions = getBranchVersionNumbersRaw(handle, branch.toGA(), branch.toBranchId());
+                    handler.apply(branch);
+                });
             }
             return null;
         });
@@ -3426,6 +3428,15 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         });
     }
 
+    protected List<String> getBranchVersionNumbersRaw(Handle handle, GA ga, BranchId branchId) {
+        return handle.createQuery(sqlStatements.selectBranchVersionNumbers())
+                .bind(0, ga.getRawGroupId())
+                .bind(1, ga.getRawArtifactId())
+                .bind(2, branchId.getRawBranchId())
+                .map(StringMapper.instance)
+                .list();
+    }
+
     @Override
     public VersionSearchResultsDto getBranchVersions(GA ga, BranchId branchId, int offset, int limit) {
         return handles.withHandleNoException(handle -> {
@@ -3755,24 +3766,35 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     @Override
     @Transactional
     public void importBranch(BranchEntity entity) {
-//        var gav = entity.toGAV();
-//        var branchId = entity.toBranchId();
-//        handles.withHandleNoException(handle -> {
-//            try {
-//                handle.createUpdate(sqlStatements.importBranch())
-//                        .bind(0, gav.getRawGroupId())
-//                        .bind(1, gav.getRawArtifactId())
-//                        .bind(2, branchId.getRawBranchId())
-//                        .bind(3, entity.branchOrder)
-//                        .bind(4, gav.getRawVersionId())
-//                        .execute();
-//            } catch (Exception ex) {
-//                if (sqlStatements.isForeignKeyViolation(ex)) {
-//                    throw new VersionNotFoundException(gav, ex);
-//                }
-//                throw ex;
-//            }
-//        });
+        var ga = entity.toGA();
+        var branchId = entity.toBranchId();
+        handles.withHandleNoException(handle -> {
+            try {
+                handle.createUpdate(sqlStatements.insertBranch())
+                        .bind(0, ga.getRawGroupId())
+                        .bind(1, ga.getRawArtifactId())
+                        .bind(2, branchId.getRawBranchId())
+                        .bind(3, entity.description)
+                        .bind(4, entity.userDefined)
+                        .bind(5, entity.owner)
+                        .bind(6, entity.createdOn)
+                        .bind(7, entity.modifiedBy)
+                        .bind(8, entity.modifiedOn)
+                        .execute();
+            } catch (Exception ex) {
+                if (sqlStatements.isForeignKeyViolation(ex)) {
+                    throw new ArtifactNotFoundException(ga.getRawGroupIdWithDefaultString(), ga.getRawArtifactId());
+                }
+                throw ex;
+            }
+
+            // Append each of the versions onto the branch
+            if (entity.versions != null) {
+                entity.versions.forEach(version -> {
+                    appendVersionToBranchRaw(handle, ga, branchId, new VersionId(version));
+                });
+            }
+        });
     }
 
     @Override

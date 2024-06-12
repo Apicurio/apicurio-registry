@@ -544,7 +544,6 @@ public class BranchesTest extends AbstractResourceTestBase {
         Assertions.assertThrows(Exception.class, () -> {
             clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=invalid").get();
         });
-
     }
 
     private static AddVersionToBranch addVersion(String version) {

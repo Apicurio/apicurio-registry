@@ -481,8 +481,6 @@ public interface SqlStatements {
 
     public String importArtifactVersion();
 
-    public String importBranch();
-
     public String selectMaxContentId();
 
     public String selectMaxGlobalId();
@@ -573,6 +571,8 @@ public interface SqlStatements {
     public String updateBranch();
 
     public String selectBranch();
+
+    public String selectBranchVersionNumbers();
 
     public String selectBranchTip();
 

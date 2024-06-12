@@ -1,8 +1,10 @@
 package io.apicurio.registry.storage.impl.kafkasql.messages;
 
+import io.apicurio.registry.model.BranchId;
+import io.apicurio.registry.model.GA;
 import io.apicurio.registry.storage.RegistryStorage;
+import io.apicurio.registry.storage.dto.EditableBranchMetaDataDto;
 import io.apicurio.registry.storage.impl.kafkasql.AbstractMessage;
-import io.apicurio.registry.utils.impexp.ArtifactBranchEntity;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
@@ -18,16 +20,20 @@ import lombok.ToString;
 @Setter
 @EqualsAndHashCode(callSuper = false)
 @ToString
-public class ImportArtifactBranch1Message extends AbstractMessage {
+public class UpdateBranchMetaData3Message extends AbstractMessage {
 
-    private ArtifactBranchEntity entity;
+    private String groupId;
+    private String artifactId;
+    private String branchId;
+    private EditableBranchMetaDataDto dto;
 
     /**
-     * @see io.apicurio.registry.storage.impl.kafkasql.KafkaSqlMessage#dispatchTo(io.apicurio.registry.storage.RegistryStorage)
+     * @see io.apicurio.registry.storage.impl.kafkasql.KafkaSqlMessage#dispatchTo(RegistryStorage)
      */
     @Override
     public Object dispatchTo(RegistryStorage storage) {
-        storage.importArtifactBranch(entity);
+        GA ga = new GA(groupId, artifactId);
+        storage.updateBranchMetaData(ga, new BranchId(branchId), dto);
         return null;
     }
 

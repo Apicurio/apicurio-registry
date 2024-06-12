@@ -67,6 +67,9 @@ public class SqlParam {
                 case STRING:
                     statement.setString(position, (String) value);
                     break;
+                case BOOLEAN:
+                    statement.setBoolean(position, (Boolean) value);
+                    break;
                 default:
                     throw new RuntimeSqlException("bindTo not supported for SqlParamType: " + type);
             }

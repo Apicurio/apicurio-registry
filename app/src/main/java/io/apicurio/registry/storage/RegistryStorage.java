@@ -11,10 +11,13 @@ import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
+import io.apicurio.registry.storage.dto.BranchMetaDataDto;
+import io.apicurio.registry.storage.dto.BranchSearchResultsDto;
 import io.apicurio.registry.storage.dto.CommentDto;
 import io.apicurio.registry.storage.dto.ContentWrapperDto;
 import io.apicurio.registry.storage.dto.DownloadContextDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
+import io.apicurio.registry.storage.dto.EditableBranchMetaDataDto;
 import io.apicurio.registry.storage.dto.EditableGroupMetaDataDto;
 import io.apicurio.registry.storage.dto.EditableVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.GroupMetaDataDto;
@@ -39,9 +42,9 @@ import io.apicurio.registry.storage.error.VersionAlreadyExistsException;
 import io.apicurio.registry.storage.error.VersionNotFoundException;
 import io.apicurio.registry.storage.impexp.EntityInputStream;
 import io.apicurio.registry.types.RuleType;
-import io.apicurio.registry.utils.impexp.ArtifactBranchEntity;
 import io.apicurio.registry.utils.impexp.ArtifactRuleEntity;
 import io.apicurio.registry.utils.impexp.ArtifactVersionEntity;
+import io.apicurio.registry.utils.impexp.BranchEntity;
 import io.apicurio.registry.utils.impexp.CommentEntity;
 import io.apicurio.registry.utils.impexp.ContentEntity;
 import io.apicurio.registry.utils.impexp.Entity;
@@ -334,7 +337,7 @@ public interface RegistryStorage extends DynamicConfigStorage {
      * @throws ArtifactNotFoundException
      * @throws RegistryStorageException
      */
-    List<String> getArtifactVersions(String groupId, String artifactId, ArtifactRetrievalBehavior behavior) throws ArtifactNotFoundException, RegistryStorageException;
+    List<String> getArtifactVersions(String groupId, String artifactId, RetrievalBehavior behavior) throws ArtifactNotFoundException, RegistryStorageException;
 
     /**
      * Fetch the versions of the given artifact
@@ -805,64 +808,40 @@ public interface RegistryStorage extends DynamicConfigStorage {
     void importArtifactRule(ArtifactRuleEntity entity);
 
 
-    void importArtifactBranch(ArtifactBranchEntity entity);
+    void importBranch(BranchEntity entity);
 
 
     boolean isContentExists(String contentHash) throws RegistryStorageException;
 
-
     boolean isArtifactRuleExists(String groupId, String artifactId, RuleType rule) throws RegistryStorageException;
 
-
     boolean isGlobalRuleExists(RuleType rule) throws RegistryStorageException;
-
 
     boolean isRoleMappingExists(String principalId);
 
 
     void updateContentCanonicalHash(String newCanonicalHash, long contentId, String contentHash);
 
-
     Optional<Long> contentIdFromHash(String contentHash);
 
 
-    /**
-     * @return map from an artifact branch to a sorted list of GAVs, branch tip (latest) version first.
-     */
-    Map<BranchId, List<GAV>> getArtifactBranches(GA ga);
+    BranchSearchResultsDto getBranches(GA ga, int offset, int limit);
 
+    BranchMetaDataDto createBranch(GA ga, BranchId branchId, String description, List<String> versions);
 
-    /**
-     * @return sorted list of GAVs, branch tip (latest) version first.
-     */
-    List<GAV> getArtifactBranch(GA ga, BranchId branchId, ArtifactRetrievalBehavior behavior);
+    BranchMetaDataDto getBranchMetaData(GA ga, BranchId branchId);
 
+    void updateBranchMetaData(GA ga, BranchId branchId, EditableBranchMetaDataDto dto);
 
-    /**
-     * Add a version to the artifact branch. The branch is created if it does not exist. The version becomes a new branch tip (latest).
-     * Not supported for the "latest" branch.
-     */
-    void createOrUpdateArtifactBranch(GAV gav, BranchId branchId);
+    void deleteBranch(GA ga, BranchId branchId);
 
+    GAV getBranchTip(GA ga, BranchId branchId, RetrievalBehavior behavior);
 
-    /**
-     * Replace the content of the artifact branch with a new sequence of versions.
-     * Not supported for the "latest" branch.
-     */
-    void createOrReplaceArtifactBranch(GA ga, BranchId branchId, List<VersionId> versions);
+    VersionSearchResultsDto getBranchVersions(GA ga, BranchId branchId, int offset, int limit);
 
+    void replaceBranchVersions(GA ga, BranchId branchId, List<VersionId> versions);
 
-    /**
-     * @return GAV identifier of the branch tip (latest) version in the artifact branch.
-     */
-    GAV getArtifactBranchTip(GA ga, BranchId branchId, ArtifactRetrievalBehavior behavior);
-
-
-    /**
-     * Delete artifact branch.
-     * Not supported for the "latest" branch.
-     */
-    void deleteArtifactBranch(GA ga, BranchId branchId);
+    void appendVersionToBranch(GA ga, BranchId branchId, VersionId version);
 
     /**
      *  Triggers a snapshot creation of the internal database.
@@ -879,7 +858,7 @@ public interface RegistryStorage extends DynamicConfigStorage {
      */
     String createSnapshot(String snapshotLocation) throws RegistryStorageException;
 
-    enum ArtifactRetrievalBehavior {
+    enum RetrievalBehavior {
         DEFAULT,
         /**
          * Skip artifact versions with DISABLED state

@@ -41,7 +41,7 @@ public class SqlDataImporter extends AbstractDataImporter {
 
     // To keep track of which versions have been imported
     private final Set<GAV> gavDone = new HashSet<>();
-    private final Map<GAV, List<ArtifactBranchEntity>> artifactBranchesWaitingForVersion = new HashMap<>();
+    private final Map<GAV, List<BranchEntity>> artifactBranchesWaitingForVersion = new HashMap<>();
 
     public SqlDataImporter(Logger logger, RegistryStorageContentUtils utils, RegistryStorage storage,
                            boolean preserveGlobalId, boolean preserveContentId) {
@@ -202,20 +202,20 @@ public class SqlDataImporter extends AbstractDataImporter {
 
 
     @Override
-    protected void importArtifactBranch(ArtifactBranchEntity entity) {
-        try {
-            var gav = entity.toGAV();
-            if (!gavDone.contains(gav)) {
-                // The version hasn't been imported yet.  Need to wait for it.
-                artifactBranchesWaitingForVersion.computeIfAbsent(gav, _ignored -> new ArrayList<>())
-                        .add(entity);
-            } else {
-                storage.importArtifactBranch(entity);
-                log.debug("Artifact branch imported successfully: {}", entity);
-            }
-        } catch (Exception ex) {
-            log.warn("Failed to import artifact branch {}: {}", entity, ex.getMessage());
-        }
+    protected void importBranch(BranchEntity entity) {
+//        try {
+//            var gav = entity.toGAV();
+//            if (!gavDone.contains(gav)) {
+//                // The version hasn't been imported yet.  Need to wait for it.
+//                artifactBranchesWaitingForVersion.computeIfAbsent(gav, _ignored -> new ArrayList<>())
+//                        .add(entity);
+//            } else {
+//                storage.importBranch(entity);
+//                log.debug("Artifact branch imported successfully: {}", entity);
+//            }
+//        } catch (Exception ex) {
+//            log.warn("Failed to import artifact branch {}: {}", entity, ex.getMessage());
+//        }
     }
 
     /**

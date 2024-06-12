@@ -1,21 +1,34 @@
 package io.apicurio.registry.storage.decorator;
 
-import java.util.List;
-import java.util.function.Supplier;
-
-import io.apicurio.registry.model.*;
-import io.apicurio.registry.storage.dto.*;
-import io.apicurio.registry.storage.error.*;
-import org.apache.commons.lang3.tuple.Pair;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
-
 import io.apicurio.common.apps.config.Dynamic;
 import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
 import io.apicurio.common.apps.config.Info;
+import io.apicurio.registry.model.BranchId;
+import io.apicurio.registry.model.GA;
+import io.apicurio.registry.model.VersionId;
 import io.apicurio.registry.storage.RegistryStorage;
+import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
+import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
+import io.apicurio.registry.storage.dto.BranchMetaDataDto;
+import io.apicurio.registry.storage.dto.CommentDto;
+import io.apicurio.registry.storage.dto.ContentWrapperDto;
+import io.apicurio.registry.storage.dto.DownloadContextDto;
+import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
+import io.apicurio.registry.storage.dto.EditableBranchMetaDataDto;
+import io.apicurio.registry.storage.dto.EditableGroupMetaDataDto;
+import io.apicurio.registry.storage.dto.EditableVersionMetaDataDto;
+import io.apicurio.registry.storage.dto.GroupMetaDataDto;
+import io.apicurio.registry.storage.dto.RuleConfigurationDto;
+import io.apicurio.registry.storage.error.ArtifactNotFoundException;
+import io.apicurio.registry.storage.error.GroupAlreadyExistsException;
+import io.apicurio.registry.storage.error.GroupNotFoundException;
+import io.apicurio.registry.storage.error.ReadOnlyStorageException;
+import io.apicurio.registry.storage.error.RegistryStorageException;
+import io.apicurio.registry.storage.error.RuleAlreadyExistsException;
+import io.apicurio.registry.storage.error.RuleNotFoundException;
 import io.apicurio.registry.storage.impexp.EntityInputStream;
 import io.apicurio.registry.types.RuleType;
-import io.apicurio.registry.utils.impexp.ArtifactBranchEntity;
+import io.apicurio.registry.utils.impexp.BranchEntity;
 import io.apicurio.registry.utils.impexp.ArtifactRuleEntity;
 import io.apicurio.registry.utils.impexp.ArtifactVersionEntity;
 import io.apicurio.registry.utils.impexp.CommentEntity;
@@ -23,6 +36,11 @@ import io.apicurio.registry.utils.impexp.ContentEntity;
 import io.apicurio.registry.utils.impexp.GlobalRuleEntity;
 import io.apicurio.registry.utils.impexp.GroupEntity;
 import jakarta.enterprise.context.ApplicationScoped;
+import org.apache.commons.lang3.tuple.Pair;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
+
+import java.util.List;
+import java.util.function.Supplier;
 
 @ApplicationScoped
 public class ReadOnlyRegistryStorageDecorator extends RegistryStorageDecoratorReadOnlyBase implements RegistryStorageDecorator {
@@ -361,9 +379,9 @@ public class ReadOnlyRegistryStorageDecorator extends RegistryStorageDecoratorRe
 
 
     @Override
-    public void importArtifactBranch(ArtifactBranchEntity entity) {
+    public void importBranch(BranchEntity entity) {
         checkReadOnly();
-        delegate.importArtifactBranch(entity);
+        delegate.importBranch(entity);
     }
 
 
@@ -394,25 +412,34 @@ public class ReadOnlyRegistryStorageDecorator extends RegistryStorageDecoratorRe
         return delegate.nextCommentId();
     }
 
-
     @Override
-    public void createOrUpdateArtifactBranch(GAV gav, BranchId branchId) {
+    public BranchMetaDataDto createBranch(GA ga, BranchId branchId, String description, List<String> versions) {
         checkReadOnly();
-        delegate.createOrUpdateArtifactBranch(gav, branchId);
+        return delegate.createBranch(ga, branchId, description, versions);
     }
 
-
     @Override
-    public void createOrReplaceArtifactBranch(GA ga, BranchId branchId, List<VersionId> versions) {
+    public void updateBranchMetaData(GA ga, BranchId branchId, EditableBranchMetaDataDto dto) {
         checkReadOnly();
-        delegate.createOrReplaceArtifactBranch(ga, branchId, versions);
+        delegate.updateBranchMetaData(ga, branchId, dto);
     }
 
+    @Override
+    public void appendVersionToBranch(GA ga, BranchId branchId, VersionId version) {
+        checkReadOnly();
+        delegate.appendVersionToBranch(ga, branchId, version);
+    }
 
     @Override
-    public void deleteArtifactBranch(GA ga, BranchId branchId) {
+    public void replaceBranchVersions(GA ga, BranchId branchId, List<VersionId> versions) {
         checkReadOnly();
-        delegate.deleteArtifactBranch(ga, branchId);
+        delegate.replaceBranchVersions(ga, branchId, versions);
+    }
+
+    @Override
+    public void deleteBranch(GA ga, BranchId branchId) {
+        checkReadOnly();
+        delegate.deleteBranch(ga, branchId);
     }
 
     @Override

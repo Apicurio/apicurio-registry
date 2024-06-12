@@ -91,8 +91,14 @@ ALTER TABLE version_comments ADD CONSTRAINT FK_version_comments_1 FOREIGN KEY (g
 CREATE INDEX IDX_version_comments_1 ON version_comments(owner);
 
 -- This table is defined way down here because it has a FK to the artifacts table *and* the versions table
-CREATE TABLE artifact_branches (groupId NVARCHAR(512) NOT NULL, artifactId NVARCHAR(512) NOT NULL, branchId NVARCHAR(256) NOT NULL, branchOrder INT NOT NULL, version NVARCHAR(256) NOT NULL);
-ALTER TABLE artifact_branches ADD PRIMARY KEY (groupId, artifactId, branchId, branchOrder);
-ALTER TABLE artifact_branches ADD CONSTRAINT FK_artifact_branches_1 FOREIGN KEY (groupId, artifactId) REFERENCES artifacts(groupId, artifactId);
-ALTER TABLE artifact_branches ADD CONSTRAINT FK_artifact_branches_2 FOREIGN KEY (groupId, artifactId, version) REFERENCES versions(groupId, artifactId, version) ON DELETE CASCADE;
-CREATE INDEX IDX_artifact_branches_1 ON artifact_branches(groupId, artifactId, branchId, branchOrder);
+CREATE TABLE branches (groupId NVARCHAR(512) NOT NULL, artifactId NVARCHAR(512) NOT NULL, branchId NVARCHAR(256) NOT NULL, description NVARCHAR(1024), userDefined BIT NOT NULL, owner NVARCHAR(256), createdOn DATETIME2(6) NOT NULL, modifiedBy NVARCHAR(256), modifiedOn DATETIME2(6) NOT NULL);
+ALTER TABLE branches ADD PRIMARY KEY (groupId, artifactId, branchId);
+ALTER TABLE branches ADD CONSTRAINT FK_branches_1 FOREIGN KEY (groupId, artifactId) REFERENCES artifacts(groupId, artifactId) ON DELETE CASCADE;
+
+CREATE TABLE branch_versions (groupId NVARCHAR(512) NOT NULL, artifactId NVARCHAR(512) NOT NULL, branchId NVARCHAR(256) NOT NULL, branchOrder INT NOT NULL, version NVARCHAR(256) NOT NULL);
+ALTER TABLE branch_versions ADD PRIMARY KEY (groupId, artifactId, branchId, version);
+ALTER TABLE branch_versions ADD CONSTRAINT FK_branch_versions_1 FOREIGN KEY (groupId, artifactId, branchId) REFERENCES branches(groupId, artifactId, branchId) ON DELETE CASCADE;
+ALTER TABLE branch_versions ADD CONSTRAINT FK_branch_versions_2 FOREIGN KEY (groupId, artifactId, version) REFERENCES versions(groupId, artifactId, version) ON DELETE CASCADE;
+CREATE INDEX IDX_branch_versions_1 ON branch_versions(groupId, artifactId, branchId, branchOrder);
+CREATE INDEX IDX_branch_versions_2 ON branch_versions(branchId);
+CREATE INDEX IDX_branch_versions_3 ON branch_versions(branchOrder);

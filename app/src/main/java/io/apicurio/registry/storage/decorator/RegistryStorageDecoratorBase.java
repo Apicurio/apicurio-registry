@@ -1,14 +1,31 @@
 package io.apicurio.registry.storage.decorator;
 
-import java.util.List;
-
 import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
-import io.apicurio.registry.model.*;
-import io.apicurio.registry.storage.dto.*;
-import io.apicurio.registry.storage.error.*;
+import io.apicurio.registry.model.BranchId;
+import io.apicurio.registry.model.GA;
+import io.apicurio.registry.model.VersionId;
+import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
+import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
+import io.apicurio.registry.storage.dto.BranchMetaDataDto;
+import io.apicurio.registry.storage.dto.CommentDto;
+import io.apicurio.registry.storage.dto.ContentWrapperDto;
+import io.apicurio.registry.storage.dto.DownloadContextDto;
+import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
+import io.apicurio.registry.storage.dto.EditableBranchMetaDataDto;
+import io.apicurio.registry.storage.dto.EditableGroupMetaDataDto;
+import io.apicurio.registry.storage.dto.EditableVersionMetaDataDto;
+import io.apicurio.registry.storage.dto.GroupMetaDataDto;
+import io.apicurio.registry.storage.dto.RuleConfigurationDto;
+import io.apicurio.registry.storage.error.ArtifactNotFoundException;
+import io.apicurio.registry.storage.error.GroupAlreadyExistsException;
+import io.apicurio.registry.storage.error.GroupNotFoundException;
+import io.apicurio.registry.storage.error.RegistryStorageException;
+import io.apicurio.registry.storage.error.RuleAlreadyExistsException;
+import io.apicurio.registry.storage.error.RuleNotFoundException;
+import io.apicurio.registry.storage.error.VersionNotFoundException;
 import io.apicurio.registry.storage.impexp.EntityInputStream;
 import io.apicurio.registry.types.RuleType;
-import io.apicurio.registry.utils.impexp.ArtifactBranchEntity;
+import io.apicurio.registry.utils.impexp.BranchEntity;
 import io.apicurio.registry.utils.impexp.ArtifactRuleEntity;
 import io.apicurio.registry.utils.impexp.ArtifactVersionEntity;
 import io.apicurio.registry.utils.impexp.CommentEntity;
@@ -16,6 +33,8 @@ import io.apicurio.registry.utils.impexp.ContentEntity;
 import io.apicurio.registry.utils.impexp.GlobalRuleEntity;
 import io.apicurio.registry.utils.impexp.GroupEntity;
 import org.apache.commons.lang3.tuple.Pair;
+
+import java.util.List;
 
 /**
  * Forwards all method calls to the delegate, extends the read-only base.
@@ -281,8 +300,8 @@ public class RegistryStorageDecoratorBase extends RegistryStorageDecoratorReadOn
 
 
     @Override
-    public void importArtifactBranch(ArtifactBranchEntity entity) {
-        delegate.importArtifactBranch(entity);
+    public void importBranch(BranchEntity entity) {
+        delegate.importBranch(entity);
     }
 
 
@@ -311,20 +330,28 @@ public class RegistryStorageDecoratorBase extends RegistryStorageDecoratorReadOn
 
 
     @Override
-    public void createOrUpdateArtifactBranch(GAV gav, BranchId branchId) {
-        delegate.createOrUpdateArtifactBranch(gav, branchId);
+    public void deleteBranch(GA ga, BranchId branchId) {
+        delegate.deleteBranch(ga, branchId);
     }
 
-
     @Override
-    public void createOrReplaceArtifactBranch(GA ga, BranchId branchId, List<VersionId> versions) {
-        delegate.createOrReplaceArtifactBranch(ga, branchId, versions);
+    public void replaceBranchVersions(GA ga, BranchId branchId, List<VersionId> versions) {
+        delegate.replaceBranchVersions(ga, branchId, versions);
     }
 
+    @Override
+    public BranchMetaDataDto createBranch(GA ga, BranchId branchId, String description, List<String> versions) {
+        return delegate.createBranch(ga, branchId, description, versions);
+    }
 
     @Override
-    public void deleteArtifactBranch(GA ga, BranchId branchId) {
-        delegate.deleteArtifactBranch(ga, branchId);
+    public void appendVersionToBranch(GA ga, BranchId branchId, VersionId version) {
+        delegate.appendVersionToBranch(ga, branchId, version);
+    }
+
+    @Override
+    public void updateBranchMetaData(GA ga, BranchId branchId, EditableBranchMetaDataDto dto) {
+        delegate.updateBranchMetaData(ga, branchId, dto);
     }
 
     @Override

@@ -7,8 +7,8 @@ import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.types.VersionState;
 import io.apicurio.registry.utils.IoUtil;
-import io.apicurio.registry.utils.impexp.ArtifactBranchEntity;
 import io.apicurio.registry.utils.impexp.ArtifactVersionEntity;
+import io.apicurio.registry.utils.impexp.BranchEntity;
 import io.apicurio.registry.utils.impexp.ContentEntity;
 import io.apicurio.registry.utils.impexp.EntityWriter;
 import io.apicurio.tests.ApicurioRegistryBaseIT;
@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -128,11 +129,10 @@ public class GenerateCanonicalHashImportIT extends ApicurioRegistryBaseIT {
                 writer.writeEntity(versionEntity);
 
                 writer.writeEntity(
-                        ArtifactBranchEntity.builder()
+                        BranchEntity.builder()
                                 .artifactId(artifactId)
                                 .branchId(BranchId.LATEST.getRawBranchId())
-                                .branchOrder(1)
-                                .version("1")
+                                .versions(List.of("1"))
                                 .build()
                 );
             }

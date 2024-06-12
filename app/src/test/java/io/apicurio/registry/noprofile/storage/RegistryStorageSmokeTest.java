@@ -6,7 +6,7 @@ import io.apicurio.registry.model.BranchId;
 import io.apicurio.registry.model.GA;
 import io.apicurio.registry.model.GAV;
 import io.apicurio.registry.storage.RegistryStorage;
-import io.apicurio.registry.storage.RegistryStorage.ArtifactRetrievalBehavior;
+import io.apicurio.registry.storage.RegistryStorage.RetrievalBehavior;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.ContentWrapperDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
@@ -117,7 +117,7 @@ public class RegistryStorageSmokeTest extends AbstractResourceTestBase {
         assertNotNull(a1.getVersion());
         assertNotNull(a1.getContent());
 
-        GAV latestGAV = getStorage().getArtifactBranchTip(new GA(GROUP_ID, artifactId1), BranchId.LATEST, ArtifactRetrievalBehavior.DEFAULT);
+        GAV latestGAV = getStorage().getBranchTip(new GA(GROUP_ID, artifactId1), BranchId.LATEST, RetrievalBehavior.DEFAULT);
         ArtifactVersionMetaDataDto metaLatest = getStorage().getArtifactVersionMetaData(GROUP_ID, artifactId1, latestGAV.getRawVersionId());
         assertEquals(vmdDto1_2, metaLatest);
 

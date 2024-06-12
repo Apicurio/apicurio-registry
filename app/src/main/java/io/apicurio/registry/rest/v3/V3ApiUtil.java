@@ -5,6 +5,8 @@ import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
 import io.apicurio.registry.rest.v3.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v3.beans.ArtifactReference;
 import io.apicurio.registry.rest.v3.beans.ArtifactSearchResults;
+import io.apicurio.registry.rest.v3.beans.BranchMetaData;
+import io.apicurio.registry.rest.v3.beans.BranchSearchResults;
 import io.apicurio.registry.rest.v3.beans.Comment;
 import io.apicurio.registry.rest.v3.beans.ConfigurationProperty;
 import io.apicurio.registry.rest.v3.beans.GroupMetaData;
@@ -12,6 +14,7 @@ import io.apicurio.registry.rest.v3.beans.GroupSearchResults;
 import io.apicurio.registry.rest.v3.beans.RoleMapping;
 import io.apicurio.registry.rest.v3.beans.RoleMappingSearchResults;
 import io.apicurio.registry.rest.v3.beans.SearchedArtifact;
+import io.apicurio.registry.rest.v3.beans.SearchedBranch;
 import io.apicurio.registry.rest.v3.beans.SearchedGroup;
 import io.apicurio.registry.rest.v3.beans.SearchedVersion;
 import io.apicurio.registry.rest.v3.beans.SortOrder;
@@ -21,6 +24,8 @@ import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
+import io.apicurio.registry.storage.dto.BranchMetaDataDto;
+import io.apicurio.registry.storage.dto.BranchSearchResultsDto;
 import io.apicurio.registry.storage.dto.CommentDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.GroupMetaDataDto;
@@ -138,7 +143,7 @@ public final class V3ApiUtil {
 
     public static GroupSearchResults dtoToSearchResults(GroupSearchResultsDto dto) {
         GroupSearchResults results = new GroupSearchResults();
-        results.setCount((int) dto.getCount());
+        results.setCount(dto.getCount());
         results.setGroups(new ArrayList<>(dto.getGroups().size()));
         dto.getGroups().forEach(group -> {
             SearchedGroup sg = new SearchedGroup();
@@ -149,6 +154,23 @@ public final class V3ApiUtil {
             sg.setModifiedBy(group.getModifiedBy());
             sg.setModifiedOn(group.getModifiedOn());
             results.getGroups().add(sg);
+        });
+        return results;
+    }
+
+    public static BranchSearchResults dtoToSearchResults(BranchSearchResultsDto dto) {
+        BranchSearchResults results = new BranchSearchResults();
+        results.setCount(dto.getCount());
+        results.setBranches(new ArrayList<>(dto.getBranches().size()));
+        dto.getBranches().forEach(group -> {
+            SearchedBranch sg = new SearchedBranch();
+            sg.setOwner(group.getOwner());
+            sg.setCreatedOn(new Date(group.getCreatedOn()));
+            sg.setDescription(group.getDescription());
+            sg.setBranchId(group.getBranchId());
+            sg.setModifiedBy(group.getModifiedBy());
+            sg.setModifiedOn(new Date(group.getModifiedOn()));
+            results.getBranches().add(sg);
         });
         return results;
     }
@@ -241,4 +263,16 @@ public final class V3ApiUtil {
         return rval;
     }
 
+    public static BranchMetaData dtoToBranchMetaData(BranchMetaDataDto branch) {
+        return BranchMetaData.builder()
+                .groupId(branch.getGroupId())
+                .artifactId(branch.getArtifactId())
+                .branchId(branch.getBranchId())
+                .description(branch.getDescription())
+                .owner(branch.getOwner())
+                .createdOn(new Date(branch.getCreatedOn()))
+                .modifiedBy(branch.getModifiedBy())
+                .modifiedOn(new Date(branch.getModifiedOn()))
+                .build();
+    }
 }

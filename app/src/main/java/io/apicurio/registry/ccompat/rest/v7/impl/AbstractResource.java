@@ -14,7 +14,7 @@ import io.apicurio.registry.rules.RuleApplicationType;
 import io.apicurio.registry.rules.RuleViolationException;
 import io.apicurio.registry.rules.RulesService;
 import io.apicurio.registry.storage.RegistryStorage;
-import io.apicurio.registry.storage.RegistryStorage.ArtifactRetrievalBehavior;
+import io.apicurio.registry.storage.RegistryStorage.RetrievalBehavior;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.ContentWrapperDto;
@@ -191,7 +191,7 @@ public abstract class AbstractResource {
 
     protected String getLatestArtifactVersionForSubject(String subject, String groupId) {
         try {
-            GAV latestGAV = storage.getArtifactBranchTip(new GA(groupId, subject), BranchId.LATEST, ArtifactRetrievalBehavior.SKIP_DISABLED_LATEST);
+            GAV latestGAV = storage.getBranchTip(new GA(groupId, subject), BranchId.LATEST, RetrievalBehavior.SKIP_DISABLED_LATEST);
             return latestGAV.getRawVersionId();
         } catch (ArtifactNotFoundException ex) {
             throw new VersionNotFoundException(groupId, subject, "latest");

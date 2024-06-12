@@ -1,8 +1,5 @@
 package io.apicurio.registry.storage.impl.kafkasql.messages;
 
-import java.util.List;
-import java.util.stream.Collectors;
-
 import io.apicurio.registry.model.BranchId;
 import io.apicurio.registry.model.GA;
 import io.apicurio.registry.model.VersionId;
@@ -16,6 +13,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 
+import java.util.List;
+
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -23,7 +22,7 @@ import lombok.ToString;
 @Setter
 @EqualsAndHashCode(callSuper = false)
 @ToString
-public class CreateOrReplaceArtifactBranch3Message extends AbstractMessage {
+public class ReplaceBranchVersions3Message extends AbstractMessage {
 
     private String groupId;
     private String artifactId;
@@ -31,14 +30,12 @@ public class CreateOrReplaceArtifactBranch3Message extends AbstractMessage {
     private List<String> versions;
 
     /**
-     * @see io.apicurio.registry.storage.impl.kafkasql.KafkaSqlMessage#dispatchTo(io.apicurio.registry.storage.RegistryStorage)
+     * @see io.apicurio.registry.storage.impl.kafkasql.KafkaSqlMessage#dispatchTo(RegistryStorage)
      */
     @Override
     public Object dispatchTo(RegistryStorage storage) {
         GA ga = new GA(groupId, artifactId);
-        BranchId bid = new BranchId(branchId);
-        List<VersionId> versionIds = versions == null ? List.of() : versions.stream().map(v -> new VersionId(v)).collect(Collectors.toList());
-        storage.createOrReplaceArtifactBranch(ga, bid, versionIds);
+        storage.replaceBranchVersions(ga, new BranchId(branchId), versions.stream().map(VersionId::new).toList());
         return null;
     }
 

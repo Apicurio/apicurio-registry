@@ -1,7 +1,7 @@
 package io.apicurio.registry.storage.impl.kafkasql.messages;
 
 import io.apicurio.registry.model.BranchId;
-import io.apicurio.registry.model.GAV;
+import io.apicurio.registry.model.GA;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.impl.kafkasql.AbstractMessage;
 import lombok.AllArgsConstructor;
@@ -19,11 +19,10 @@ import lombok.ToString;
 @Setter
 @EqualsAndHashCode(callSuper = false)
 @ToString
-public class CreateOrUpdateArtifactBranch2Message extends AbstractMessage {
+public class DeleteBranch2Message extends AbstractMessage {
 
     private String groupId;
     private String artifactId;
-    private String version;
     private String branchId;
 
     /**
@@ -31,8 +30,8 @@ public class CreateOrUpdateArtifactBranch2Message extends AbstractMessage {
      */
     @Override
     public Object dispatchTo(RegistryStorage storage) {
-        GAV gav = new GAV(groupId, artifactId, version);
-        storage.createOrUpdateArtifactBranch(gav, new BranchId(branchId));
+        GA ga = new GA(groupId, artifactId);
+        storage.deleteBranch(ga, new BranchId(branchId));
         return null;
     }
 

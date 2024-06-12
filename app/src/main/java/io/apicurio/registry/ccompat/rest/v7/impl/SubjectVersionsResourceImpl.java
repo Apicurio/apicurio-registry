@@ -37,8 +37,8 @@ import java.util.stream.Collectors;
 
 import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_ARTIFACT_ID;
 import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_VERSION;
-import static io.apicurio.registry.storage.RegistryStorage.ArtifactRetrievalBehavior.DEFAULT;
-import static io.apicurio.registry.storage.RegistryStorage.ArtifactRetrievalBehavior.SKIP_DISABLED_LATEST;
+import static io.apicurio.registry.storage.RegistryStorage.RetrievalBehavior.DEFAULT;
+import static io.apicurio.registry.storage.RegistryStorage.RetrievalBehavior.SKIP_DISABLED_LATEST;
 
 @Interceptors({ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class})
 @Logged
@@ -51,11 +51,16 @@ public class SubjectVersionsResourceImpl extends AbstractResource implements Sub
     @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Read)
     public List<Integer> listVersions(String subject, String groupId, Boolean deleted) throws Exception {
         final boolean fdeleted = deleted == null ? Boolean.FALSE : deleted;
+        List<Integer> rval;
         if (fdeleted) {
-            return storage.getArtifactVersions(groupId, subject, DEFAULT).stream().map(VersionUtil::toLong).map(converter::convertUnsigned).sorted().collect(Collectors.toList());
+            rval = storage.getArtifactVersions(groupId, subject, DEFAULT).stream().map(VersionUtil::toLong).map(converter::convertUnsigned).sorted().collect(Collectors.toList());
         } else {
-            return storage.getArtifactVersions(groupId, subject, SKIP_DISABLED_LATEST).stream().map(VersionUtil::toLong).map(converter::convertUnsigned).sorted().collect(Collectors.toList());
+            rval = storage.getArtifactVersions(groupId, subject, SKIP_DISABLED_LATEST).stream().map(VersionUtil::toLong).map(converter::convertUnsigned).sorted().collect(Collectors.toList());
         }
+        if (rval.isEmpty()) {
+            throw new ArtifactNotFoundException(groupId, subject);
+        }
+        return rval;
     }
 
     @Override

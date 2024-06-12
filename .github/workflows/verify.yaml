@@ -139,10 +139,9 @@ jobs:
           echo "Flags:     ${{ steps.buildx.outputs.flags }}"
           echo "Platforms: ${{ steps.buildx.outputs.platforms }}"
 
-      # TODO: should we move this module to a separate repo?
-      - name: Build the typescript-sdk first
+      - name: Build and verify the typescript-sdk
+        working-directory: typescript-sdk
         run: |
-          cd typescript-sdk
           npm install
           npm run generate-registry-sdk
           npm run lint

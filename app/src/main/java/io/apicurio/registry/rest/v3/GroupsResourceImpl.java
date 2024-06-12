@@ -916,7 +916,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Override
     @Audited(extractParameters = {"0", KEY_GROUP_ID, "1", KEY_ARTIFACT_ID})
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
-    public List<String> replaceBranchVersions(String groupId, String artifactId, String branchId, ReplaceBranchVersions data) {
+    public void replaceBranchVersions(String groupId, String artifactId, String branchId, ReplaceBranchVersions data) {
         requireParameter("groupId", groupId);
         requireParameter("artifactId", artifactId);
         requireParameter("branchId", branchId);
@@ -929,7 +929,6 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         storage.getBranchMetaData(ga, bid);
 
         storage.replaceBranchVersions(ga, bid, data.getVersions().stream().map(VersionId::new).toList());
-        return data.getVersions();
     }
 
     @Override

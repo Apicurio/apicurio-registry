@@ -3048,17 +3048,7 @@
           "Branches"
         ],
         "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Version"
-                  }
-                }
-              }
-            },
+          "204": {
             "description": "The list of versions was replaced successfully."
           },
           "404": {

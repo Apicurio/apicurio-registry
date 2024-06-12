@@ -99,26 +99,20 @@ func (m *ItemArtifactsItemBranchesItemVersionsRequestBuilder) Post(ctx context.C
 }
 
 // Put add a new version to an artifact branch. Branch is created if it does not exist. Returns a list of version identifiers in the artifact branch, ordered from the latest (tip of the branch) to the oldest.This operation can fail for the following reasons:* No artifact with this `groupId` and `artifactId` exists (HTTP error `404`)* No branch with this `branchId` exists (HTTP error `404`)* A server error occurred (HTTP error `500`)
-func (m *ItemArtifactsItemBranchesItemVersionsRequestBuilder) Put(ctx context.Context, body i00eb2e63d156923d00d8e86fe16b5d74daf30e363c9f185a8165cb42aa2f2c71.ReplaceBranchVersionsable, requestConfiguration *ItemArtifactsItemBranchesItemVersionsRequestBuilderPutRequestConfiguration) ([]string, error) {
+func (m *ItemArtifactsItemBranchesItemVersionsRequestBuilder) Put(ctx context.Context, body i00eb2e63d156923d00d8e86fe16b5d74daf30e363c9f185a8165cb42aa2f2c71.ReplaceBranchVersionsable, requestConfiguration *ItemArtifactsItemBranchesItemVersionsRequestBuilderPutRequestConfiguration) error {
 	requestInfo, err := m.ToPutRequestInformation(ctx, body, requestConfiguration)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	errorMapping := i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.ErrorMappings{
 		"404": i00eb2e63d156923d00d8e86fe16b5d74daf30e363c9f185a8165cb42aa2f2c71.CreateErrorFromDiscriminatorValue,
 		"500": i00eb2e63d156923d00d8e86fe16b5d74daf30e363c9f185a8165cb42aa2f2c71.CreateErrorFromDiscriminatorValue,
 	}
-	res, err := m.BaseRequestBuilder.RequestAdapter.SendPrimitiveCollection(ctx, requestInfo, "string", errorMapping)
+	err = m.BaseRequestBuilder.RequestAdapter.SendNoContent(ctx, requestInfo, errorMapping)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	val := make([]string, len(res))
-	for i, v := range res {
-		if v != nil {
-			val[i] = *(v.(*string))
-		}
-	}
-	return val, nil
+	return nil
 }
 
 // ToGetRequestInformation get a list of all versions in the branch.  Returns a list of version identifiers in the branch, ordered from the latest (tip of the branch) to the oldest.This operation can fail for the following reasons:* No artifact with this `groupId` and `artifactId` exists (HTTP error `404`)* No branch with this `branchId` exists (HTTP error `404`)* A server error occurred (HTTP error `500`)

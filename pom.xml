@@ -224,6 +224,7 @@
         <version.resources.plugin>3.3.1</version.resources.plugin>
         <version.clean.plugin>3.3.2</version.clean.plugin>
         <version.maven-antrun.plugin>3.1.0</version.maven-antrun.plugin>
+        <version.spotless>2.43.0</version.spotless>
 
         <!-- Plugin Deps -->
         <version.puppycrawl>8.45.1</version.puppycrawl>
@@ -1009,6 +1010,57 @@
                         <includeOnlyProperty>^git.commit.id.(abbrev|full)$</includeOnlyProperty>
                     </includeOnlyProperties>
                 </configuration>
+            </plugin>
+            <plugin>
+                <groupId>com.diffplug.spotless</groupId>
+                <artifactId>spotless-maven-plugin</artifactId>
+                <version>${version.spotless}</version>
+                <configuration>
+                <formats>
+                    <format>
+                    <includes>
+                        <include>*.md</include>
+                        <include>.gitignore</include>
+                    </includes>
+                    <trimTrailingWhitespace/>
+                    <endWithNewline/>
+                    <indent>
+                        <spaces>true</spaces>
+                        <spacesPerTab>2</spacesPerTab>
+                    </indent>
+                    </format>
+                </formats>
+                <java>
+                    <includes>
+                        <include>**/src/main/java/**/*.java</include>
+                        <include>**/src/test/java/**/*.java</include>
+                    </includes>
+                    <eclipse>
+                        <file>ide-config/eclipse-format.xml</file>
+                    </eclipse>
+                    <importOrder>
+                        <file>ide-config/eclipse.importorder</file>
+                    </importOrder>
+                    <removeUnusedImports/>
+                </java>
+                <pom>
+                    <includes>
+                    <include>**/pom.xml</include>
+                    </includes>
+                    <sortPom>
+                    <expandEmptyElements>false</expandEmptyElements>
+                    </sortPom>
+                </pom>
+                </configuration>
+                <executions>
+                <execution>
+                    <id>format</id>
+                    <goals>
+                    <goal>check</goal>
+                    </goals>
+                    <phase>process-sources</phase>
+                </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>

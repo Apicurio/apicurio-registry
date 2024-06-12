@@ -41,6 +41,7 @@ import io.apicurio.registry.rest.v3.beans.GroupSortBy;
 import io.apicurio.registry.rest.v3.beans.HandleReferencesType;
 import io.apicurio.registry.rest.v3.beans.IfArtifactExists;
 import io.apicurio.registry.rest.v3.beans.NewComment;
+import io.apicurio.registry.rest.v3.beans.ReplaceBranchVersions;
 import io.apicurio.registry.rest.v3.beans.Rule;
 import io.apicurio.registry.rest.v3.beans.SortOrder;
 import io.apicurio.registry.rest.v3.beans.VersionMetaData;
@@ -915,10 +916,11 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Override
     @Audited(extractParameters = {"0", KEY_GROUP_ID, "1", KEY_ARTIFACT_ID})
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
-    public List<String> replaceBranchVersions(String groupId, String artifactId, String branchId, List<String> data) {
+    public List<String> replaceBranchVersions(String groupId, String artifactId, String branchId, ReplaceBranchVersions data) {
         requireParameter("groupId", groupId);
         requireParameter("artifactId", artifactId);
         requireParameter("branchId", branchId);
+        requireParameter("versions", data.getVersions());
 
         GA ga = new GA(groupId, artifactId);
         BranchId bid = new BranchId(branchId);
@@ -926,8 +928,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         // Throw 404 if the artifact or branch does not exist.
         storage.getBranchMetaData(ga, bid);
 
-        storage.replaceBranchVersions(ga, bid, data.stream().map(VersionId::new).toList());
-        return data;
+        storage.replaceBranchVersions(ga, bid, data.getVersions().stream().map(VersionId::new).toList());
+        return data.getVersions();
     }
 
     @Override

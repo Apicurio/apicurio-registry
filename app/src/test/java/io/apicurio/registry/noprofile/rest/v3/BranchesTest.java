@@ -7,6 +7,7 @@ import io.apicurio.registry.rest.client.models.BranchSearchResults;
 import io.apicurio.registry.rest.client.models.CreateBranch;
 import io.apicurio.registry.rest.client.models.CreateVersion;
 import io.apicurio.registry.rest.client.models.EditableBranchMetaData;
+import io.apicurio.registry.rest.client.models.ReplaceBranchVersions;
 import io.apicurio.registry.rest.client.models.VersionMetaData;
 import io.apicurio.registry.rest.client.models.VersionSearchResults;
 import io.apicurio.registry.types.ArtifactType;
@@ -372,7 +373,7 @@ public class BranchesTest extends AbstractResourceTestBase {
         Assertions.assertEquals("v2", results.getVersions().get(2).getName());
 
         // Now replace the versions on the branch
-        List<String> newVersions = List.of("1", "3", "5");
+        ReplaceBranchVersions newVersions = replaceVersions("1", "3", "5");
         clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).branches().byBranchId("test-branch").versions().put(newVersions);
 
         // Make sure the branch now has 1,3,5 on it.
@@ -549,6 +550,12 @@ public class BranchesTest extends AbstractResourceTestBase {
     private static AddVersionToBranch addVersion(String version) {
         AddVersionToBranch rval = new AddVersionToBranch();
         rval.setVersion(version);
+        return rval;
+    }
+
+    private static ReplaceBranchVersions replaceVersions(String ... versions) {
+        ReplaceBranchVersions rval = new ReplaceBranchVersions();
+        rval.setVersions(List.of(versions));
         return rval;
     }
 

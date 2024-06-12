@@ -3038,10 +3038,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/Version"
-                }
+                "$ref": "#/components/schemas/ReplaceBranchVersions"
               }
             }
           },
@@ -4863,6 +4860,22 @@
           "version": {
             "description": "",
             "type": "string"
+          }
+        }
+      },
+      "ReplaceBranchVersions": {
+        "description": "",
+        "required": [
+          "versions"
+        ],
+        "type": "object",
+        "properties": {
+          "versions": {
+            "description": "",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Version"
+            }
           }
         }
       }

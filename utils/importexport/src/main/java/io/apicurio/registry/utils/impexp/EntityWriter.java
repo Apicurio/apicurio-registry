@@ -107,7 +107,7 @@ public class EntityWriter {
     }
 
     private void writeEntity(BranchEntity entity) throws IOException {
-        ZipEntry mdEntry = createZipEntry(EntityType.Branch, entity.groupId, entity.artifactId, "branches/" + entity.branchId, "json");
+        ZipEntry mdEntry = createZipEntry(EntityType.Branch, entity.groupId, entity.artifactId, entity.branchId, "json");
         write(mdEntry, entity, BranchEntity.class);
     }
 
@@ -121,6 +121,12 @@ public class EntityWriter {
         switch (type) {
             case ArtifactRule:
                 path = String.format("groups/%s/artifacts/%s/rules/%s.%s.%s", groupOrDefault(groupId), artifactId, fileName, type.name(), fileExt);
+                break;
+            case Artifact:
+                path = String.format("groups/%s/artifacts/%s/%s.%s.%s", groupOrDefault(groupId), artifactId, fileName, type.name(), fileExt);
+                break;
+            case Branch:
+                path = String.format("groups/%s/artifacts/%s/branches/%s.%s.%s", groupOrDefault(groupId), artifactId, fileName, type.name(), fileExt);
                 break;
             case ArtifactVersion:
                 path = String.format("groups/%s/artifacts/%s/versions/%s.%s.%s", groupOrDefault(groupId), artifactId, fileName, type.name(), fileExt);

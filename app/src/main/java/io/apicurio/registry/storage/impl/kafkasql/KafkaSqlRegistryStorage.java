@@ -30,6 +30,7 @@ import io.apicurio.registry.storage.importing.DataImporter;
 import io.apicurio.registry.storage.importing.SqlDataImporter;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.ConcurrentUtil;
+import io.apicurio.registry.utils.impexp.ArtifactEntity;
 import io.apicurio.registry.utils.impexp.BranchEntity;
 import io.apicurio.registry.utils.impexp.ArtifactRuleEntity;
 import io.apicurio.registry.utils.impexp.ArtifactVersionEntity;
@@ -765,6 +766,13 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
     @Override
     public void importArtifactVersion(ArtifactVersionEntity entity) {
         var message = new ImportArtifactVersion1Message(entity);
+        var uuid = ConcurrentUtil.get(submitter.submitMessage(message));
+        coordinator.waitForResponse(uuid);
+    }
+
+    @Override
+    public void importArtifact(ArtifactEntity entity) {
+        var message = new ImportArtifact1Message(entity);
         var uuid = ConcurrentUtil.get(submitter.submitMessage(message));
         coordinator.waitForResponse(uuid);
     }

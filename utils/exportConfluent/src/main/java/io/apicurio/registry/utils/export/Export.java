@@ -1,5 +1,36 @@
 package io.apicurio.registry.utils.export;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.apicurio.registry.rest.v3.beans.ArtifactReference;
+import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.types.VersionState;
+import io.apicurio.registry.utils.IoUtil;
+import io.apicurio.registry.utils.export.mappers.ArtifactReferenceMapper;
+import io.apicurio.registry.utils.impexp.ArtifactEntity;
+import io.apicurio.registry.utils.impexp.ArtifactRuleEntity;
+import io.apicurio.registry.utils.impexp.ArtifactVersionEntity;
+import io.apicurio.registry.utils.impexp.ContentEntity;
+import io.apicurio.registry.utils.impexp.EntityWriter;
+import io.apicurio.registry.utils.impexp.GlobalRuleEntity;
+import io.apicurio.registry.utils.impexp.ManifestEntity;
+import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
+import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.kafka.schemaregistry.client.rest.RestService;
+import io.confluent.kafka.schemaregistry.client.rest.entities.Schema;
+import io.confluent.kafka.schemaregistry.client.rest.entities.SchemaReference;
+import io.confluent.kafka.schemaregistry.client.rest.entities.SchemaString;
+import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
+import io.quarkus.runtime.QuarkusApplication;
+import io.quarkus.runtime.annotations.QuarkusMain;
+import jakarta.inject.Inject;
+import org.apache.commons.codec.digest.DigestUtils;
+import org.jboss.logging.Logger;
+
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.TrustManager;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -12,38 +43,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.zip.ZipOutputStream;
-
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLSocketFactory;
-import javax.net.ssl.TrustManager;
-
-import org.apache.commons.codec.digest.DigestUtils;
-import org.jboss.logging.Logger;
-
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import io.apicurio.registry.rest.v3.beans.ArtifactReference;
-import io.apicurio.registry.types.RuleType;
-import io.apicurio.registry.types.VersionState;
-import io.apicurio.registry.utils.IoUtil;
-import io.apicurio.registry.utils.export.mappers.ArtifactReferenceMapper;
-import io.apicurio.registry.utils.impexp.ArtifactRuleEntity;
-import io.apicurio.registry.utils.impexp.ArtifactVersionEntity;
-import io.apicurio.registry.utils.impexp.ContentEntity;
-import io.apicurio.registry.utils.impexp.EntityWriter;
-import io.apicurio.registry.utils.impexp.GlobalRuleEntity;
-import io.apicurio.registry.utils.impexp.ManifestEntity;
-import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
-import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
-import io.confluent.kafka.schemaregistry.client.rest.RestService;
-import io.confluent.kafka.schemaregistry.client.rest.entities.Schema;
-import io.confluent.kafka.schemaregistry.client.rest.entities.SchemaReference;
-import io.confluent.kafka.schemaregistry.client.rest.entities.SchemaString;
-import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
-import io.quarkus.runtime.QuarkusApplication;
-import io.quarkus.runtime.annotations.QuarkusMain;
-import jakarta.inject.Inject;
 
 @QuarkusMain(name = "ConfluentExport")
 public class Export implements QuarkusApplication {
@@ -102,6 +101,8 @@ public class Export implements QuarkusApplication {
 
             // Export all subjects
             for (String subject : subjects) {
+                exportSubject(context, subject);
+
                 List<Integer> versions = context.getSchemaRegistryClient().getAllVersions(subject);
                 versions.sort(Comparator.naturalOrder());
 
@@ -165,6 +166,24 @@ public class Export implements QuarkusApplication {
         return null;
     }
 
+    public void exportSubject(ExportContext context, String subject) throws RestClientException, IOException {
+        SchemaMetadata metadata = context.getSchemaRegistryClient().getSchemaMetadata(subject, 1);
+
+        ArtifactEntity artifactEntity = new ArtifactEntity();
+        artifactEntity.artifactId = subject;
+        artifactEntity.artifactType = metadata.getSchemaType();
+        artifactEntity.owner = "export-confluent-utility";
+        artifactEntity.createdOn = System.currentTimeMillis();
+        artifactEntity.modifiedBy = "export-confluent-utility";
+        artifactEntity.modifiedOn = System.currentTimeMillis();
+        artifactEntity.description = null;
+        artifactEntity.groupId = null;
+        artifactEntity.labels = null;
+        artifactEntity.name = null;
+
+        context.getWriter().writeEntity(artifactEntity);
+    }
+
     public void exportSubjectVersionWithRefs(ExportContext context, String subject, Integer version) throws RestClientException, IOException {
         if (context.getExportedSubjectVersions().stream().anyMatch(subjectVersionPair -> subjectVersionPair.is(subject, version))) {
             return;
@@ -210,7 +229,6 @@ public class Export implements QuarkusApplication {
 
         ArtifactVersionEntity versionEntity = new ArtifactVersionEntity();
         versionEntity.artifactId = subject;
-        versionEntity.artifactType = artifactType;
         versionEntity.contentId = contentId;
         versionEntity.owner = "export-confluent-utility";
         versionEntity.createdOn = System.currentTimeMillis();
@@ -222,6 +240,8 @@ public class Export implements QuarkusApplication {
         versionEntity.state = VersionState.ENABLED;
         versionEntity.version = String.valueOf(metadata.getVersion());
         versionEntity.versionOrder = metadata.getVersion();
+        versionEntity.modifiedBy = "export-confluent-utility";
+        versionEntity.modifiedOn = System.currentTimeMillis();
 
         context.getWriter().writeEntity(versionEntity);
     }

@@ -104,6 +104,7 @@ public class ReadOnlyRegistryStorageTest {
                 entry("getStaleConfigProperties1", new State(false, s -> s.getStaleConfigProperties(null))),
                 entry("importBranch1", new State(true, s -> s.importBranch(null))),
                 entry("importArtifactRule1", new State(true, s -> s.importArtifactRule(null))),
+                entry("importArtifact1", new State(true, s -> s.importArtifact(null))),
                 entry("importArtifactVersion1", new State(true, s -> s.importArtifactVersion(null))),
                 entry("importComment1", new State(true, s -> s.importComment(null))),
                 entry("importContent1", new State(true, s -> s.importContent(null))),

@@ -63,6 +63,15 @@ public class SqlDataImporter extends AbstractDataImporter {
         }
     }
 
+    @Override
+    protected void importArtifact(ArtifactEntity entity) {
+        try {
+            storage.importArtifact(entity);
+            log.debug("Artifact imported successfully: {}", entity);
+        } catch (Exception ex) {
+            log.warn("Failed to import artifact {} / {}: {}", entity.groupId, entity.artifactId, ex.getMessage());
+        }
+    }
 
     @Override
     public void importArtifactVersion(ArtifactVersionEntity entity) {
@@ -203,19 +212,12 @@ public class SqlDataImporter extends AbstractDataImporter {
 
     @Override
     protected void importBranch(BranchEntity entity) {
-//        try {
-//            var gav = entity.toGAV();
-//            if (!gavDone.contains(gav)) {
-//                // The version hasn't been imported yet.  Need to wait for it.
-//                artifactBranchesWaitingForVersion.computeIfAbsent(gav, _ignored -> new ArrayList<>())
-//                        .add(entity);
-//            } else {
-//                storage.importBranch(entity);
-//                log.debug("Artifact branch imported successfully: {}", entity);
-//            }
-//        } catch (Exception ex) {
-//            log.warn("Failed to import artifact branch {}: {}", entity, ex.getMessage());
-//        }
+        try {
+            storage.importBranch(entity);
+            log.debug("Branch imported successfully: {}", entity);
+        } catch (Exception ex) {
+            log.warn("Failed to import branch {}: {}", entity, ex.getMessage());
+        }
     }
 
     /**

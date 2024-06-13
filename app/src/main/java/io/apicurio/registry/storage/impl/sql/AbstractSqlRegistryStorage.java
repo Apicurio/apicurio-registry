@@ -66,6 +66,7 @@ import io.apicurio.registry.storage.impexp.EntityInputStream;
 import io.apicurio.registry.storage.impl.sql.jdb.Handle;
 import io.apicurio.registry.storage.impl.sql.jdb.Query;
 import io.apicurio.registry.storage.impl.sql.jdb.RowMapper;
+import io.apicurio.registry.storage.impl.sql.mappers.ArtifactEntityMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.ArtifactMetaDataDtoMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.ArtifactReferenceDtoMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.ArtifactRuleEntityMapper;
@@ -97,6 +98,7 @@ import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.DtoUtil;
 import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.StringUtil;
+import io.apicurio.registry.utils.impexp.ArtifactEntity;
 import io.apicurio.registry.utils.impexp.ArtifactRuleEntity;
 import io.apicurio.registry.utils.impexp.ArtifactVersionEntity;
 import io.apicurio.registry.utils.impexp.BranchEntity;
@@ -586,8 +588,10 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                     .bind(6, limitStr(metaData.getDescription(), 1024, true))
                     .bind(7, owner)
                     .bind(8, createdOn)
-                    .bind(9, labelsStr)
-                    .bind(10, contentId)
+                    .bind(9, owner)
+                    .bind(10, createdOn)
+                    .bind(11, labelsStr)
+                    .bind(12, contentId)
                     .execute();
 
             gav = new GAV(groupId, artifactId, finalVersion1);
@@ -605,8 +609,10 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                     .bind(8, limitStr(metaData.getDescription(), 1024, true))
                     .bind(9, owner)
                     .bind(10, createdOn)
-                    .bind(11, labelsStr)
-                    .bind(12, contentId)
+                    .bind(11, owner)
+                    .bind(12, createdOn)
+                    .bind(13, labelsStr)
+                    .bind(14, contentId)
                     .execute();
 
             // If version is null, update the row we just inserted to set the version to the generated versionOrder
@@ -2249,6 +2255,20 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             return null;
         });
 
+        // Export all artifacts
+        /////////////////////////////////
+        handles.withHandle(handle -> {
+            Stream<ArtifactEntity> stream = handle.createQuery(sqlStatements.exportArtifacts())
+                    .setFetchSize(50)
+                    .map(ArtifactEntityMapper.instance)
+                    .stream();
+            // Process and then close the stream.
+            try (stream) {
+                stream.forEach(handler::apply);
+            }
+            return null;
+        });
+
         // Export all artifact versions
         /////////////////////////////////
         handles.withHandle(handle -> {
@@ -2943,10 +2963,8 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     @Override
     @Transactional
     public void importArtifactRule(ArtifactRuleEntity entity) {
-
         handles.withHandleNoException(handle -> {
             if (isArtifactExists(entity.groupId, entity.artifactId)) {
-
                 handle.createUpdate(sqlStatements.importArtifactRule())
                         .bind(0, normalizeGroupId(entity.groupId))
                         .bind(1, entity.artifactId)
@@ -2960,12 +2978,9 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         });
     }
 
-
     @Override
-    @Transactional
-    public void importArtifactVersion(ArtifactVersionEntity entity) {
+    public void importArtifact(ArtifactEntity entity) {
         handles.withHandleNoException(handle -> {
-
             if (!isArtifactExists(entity.groupId, entity.artifactId)) {
                 String labelsStr = SqlUtil.serializeLabels(entity.labels);
                 handle.createUpdate(sqlStatements.insertArtifact())
@@ -2974,16 +2989,42 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                         .bind(2, entity.artifactType)
                         .bind(3, entity.owner)
                         .bind(4, new Date(entity.createdOn))
-                        .bind(5, entity.owner) // modifiedBy
-                        .bind(6, new Date(entity.createdOn)) // modifiedOn
+                        .bind(5, entity.modifiedBy)
+                        .bind(6, new Date(entity.modifiedOn))
                         .bind(7, entity.name)
                         .bind(8, entity.description)
-                        .bind(9,  labelsStr)
+                        .bind(9, labelsStr)
                         .execute();
+
+                // Insert labels into the "artifact_labels" table
+                if (entity.labels != null && !entity.labels.isEmpty()) {
+                    entity.labels.forEach((k, v) -> {
+                        handle.createUpdate(sqlStatements.insertArtifactLabel())
+                                .bind(0, normalizeGroupId(entity.groupId))
+                                .bind(1, entity.artifactId)
+                                .bind(2, k.toLowerCase())
+                                .bind(3, v.toLowerCase())
+                                .execute();
+                    });
+                }
+            } else {
+                throw new ArtifactAlreadyExistsException(entity.groupId, entity.artifactId);
             }
+            return null;
+        });
+    }
 
+    @Override
+    @Transactional
+    public void importArtifactVersion(ArtifactVersionEntity entity) {
+        handles.withHandleNoException(handle -> {
+            if (!isArtifactExists(entity.groupId, entity.artifactId)) {
+                throw new ArtifactNotFoundException(entity.groupId, entity.artifactId);
+            }
+            if (isGlobalIdExists(entity.globalId)) {
+                throw new VersionAlreadyExistsException(entity.globalId);
+            }
             if (!isGlobalIdExists(entity.globalId)) {
-
                 handle.createUpdate(sqlStatements.importArtifactVersion())
                         .bind(0, entity.globalId)
                         .bind(1, normalizeGroupId(entity.groupId))
@@ -2995,8 +3036,10 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                         .bind(7, entity.description)
                         .bind(8, entity.owner)
                         .bind(9, new Date(entity.createdOn))
-                        .bind(10, SqlUtil.serializeLabels(entity.labels))
-                        .bind(11, entity.contentId)
+                        .bind(10, entity.modifiedBy)
+                        .bind(11, new Date(entity.modifiedOn))
+                        .bind(12, SqlUtil.serializeLabels(entity.labels))
+                        .bind(13, entity.contentId)
                         .execute();
 
                 // Insert labels into the "version_labels" table
@@ -3070,6 +3113,18 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                         .bind(6, new Date(entity.modifiedOn))
                         .bind(7, SqlUtil.serializeLabels(entity.labels))
                         .execute();
+
+                // Insert labels into the "group_labels" table
+                if (entity.labels != null && !entity.labels.isEmpty()) {
+                    entity.labels.forEach((k, v) -> {
+                        handle.createUpdate(sqlStatements.insertGroupLabel())
+                                .bind(0, normalizeGroupId(entity.groupId))
+                                .bind(1, k.toLowerCase())
+                                .bind(2, v.toLowerCase())
+                                .execute();
+                    });
+                }
+
                 return null;
             });
         } else {
@@ -3769,24 +3824,20 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         var ga = entity.toGA();
         var branchId = entity.toBranchId();
         handles.withHandleNoException(handle -> {
-            try {
-                handle.createUpdate(sqlStatements.insertBranch())
-                        .bind(0, ga.getRawGroupId())
-                        .bind(1, ga.getRawArtifactId())
-                        .bind(2, branchId.getRawBranchId())
-                        .bind(3, entity.description)
-                        .bind(4, entity.userDefined)
-                        .bind(5, entity.owner)
-                        .bind(6, entity.createdOn)
-                        .bind(7, entity.modifiedBy)
-                        .bind(8, entity.modifiedOn)
-                        .execute();
-            } catch (Exception ex) {
-                if (sqlStatements.isForeignKeyViolation(ex)) {
-                    throw new ArtifactNotFoundException(ga.getRawGroupIdWithDefaultString(), ga.getRawArtifactId());
-                }
-                throw ex;
+            if (!isArtifactExists(entity.groupId, entity.artifactId)) {
+                throw new ArtifactNotFoundException(ga.getRawGroupIdWithDefaultString(), ga.getRawArtifactId());
             }
+            handle.createUpdate(sqlStatements.insertBranch())
+                    .bind(0, ga.getRawGroupId())
+                    .bind(1, ga.getRawArtifactId())
+                    .bind(2, branchId.getRawBranchId())
+                    .bind(3, entity.description)
+                    .bind(4, entity.userDefined)
+                    .bind(5, entity.owner)
+                    .bind(6, new Date(entity.createdOn))
+                    .bind(7, entity.modifiedBy)
+                    .bind(8, new Date(entity.modifiedOn))
+                    .execute();
 
             // Append each of the versions onto the branch
             if (entity.versions != null) {

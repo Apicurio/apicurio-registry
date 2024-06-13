@@ -42,6 +42,7 @@ import io.apicurio.registry.storage.error.VersionAlreadyExistsException;
 import io.apicurio.registry.storage.error.VersionNotFoundException;
 import io.apicurio.registry.storage.impexp.EntityInputStream;
 import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.utils.impexp.ArtifactEntity;
 import io.apicurio.registry.utils.impexp.ArtifactRuleEntity;
 import io.apicurio.registry.utils.impexp.ArtifactVersionEntity;
 import io.apicurio.registry.utils.impexp.BranchEntity;
@@ -773,74 +774,39 @@ public interface RegistryStorage extends DynamicConfigStorage {
 
 
     void resetGlobalId();
-
-
     void resetContentId();
-
-
     void resetCommentId();
 
 
     long nextContentId();
-
-
     long nextGlobalId();
-
-
     long nextCommentId();
 
-
     void importComment(CommentEntity entity);
-
-
     void importGroup(GroupEntity entity);
-
-
     void importGlobalRule(GlobalRuleEntity entity);
-
-
     void importContent(ContentEntity entity);
-
-
+    void importArtifact(ArtifactEntity entity);
     void importArtifactVersion(ArtifactVersionEntity entity);
-
-
     void importArtifactRule(ArtifactRuleEntity entity);
-
-
     void importBranch(BranchEntity entity);
 
-
     boolean isContentExists(String contentHash) throws RegistryStorageException;
-
     boolean isArtifactRuleExists(String groupId, String artifactId, RuleType rule) throws RegistryStorageException;
-
     boolean isGlobalRuleExists(RuleType rule) throws RegistryStorageException;
-
     boolean isRoleMappingExists(String principalId);
 
-
     void updateContentCanonicalHash(String newCanonicalHash, long contentId, String contentHash);
-
     Optional<Long> contentIdFromHash(String contentHash);
 
-
     BranchSearchResultsDto getBranches(GA ga, int offset, int limit);
-
     BranchMetaDataDto createBranch(GA ga, BranchId branchId, String description, List<String> versions);
-
     BranchMetaDataDto getBranchMetaData(GA ga, BranchId branchId);
-
     void updateBranchMetaData(GA ga, BranchId branchId, EditableBranchMetaDataDto dto);
-
     void deleteBranch(GA ga, BranchId branchId);
-
     GAV getBranchTip(GA ga, BranchId branchId, RetrievalBehavior behavior);
-
     VersionSearchResultsDto getBranchVersions(GA ga, BranchId branchId, int offset, int limit);
-
     void replaceBranchVersions(GA ga, BranchId branchId, List<VersionId> versions);
-
     void appendVersionToBranch(GA ga, BranchId branchId, VersionId version);
 
     /**

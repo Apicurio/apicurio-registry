@@ -3,6 +3,7 @@ package io.apicurio.registry.storage.impl.gitops;
 
 import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
 import io.apicurio.registry.content.TypedContent;
+import io.apicurio.registry.content.util.ContentTypeUtil;
 import io.apicurio.registry.storage.impl.gitops.model.GitFile;
 import io.apicurio.registry.storage.impl.gitops.model.Type;
 import io.apicurio.registry.storage.impl.gitops.model.v0.Artifact;
@@ -16,7 +17,7 @@ import io.apicurio.registry.storage.impl.sql.RegistryStorageContentUtils;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.types.VersionState;
-import io.apicurio.registry.content.util.ContentTypeUtil;
+import io.apicurio.registry.utils.impexp.ArtifactEntity;
 import io.apicurio.registry.utils.impexp.ArtifactRuleEntity;
 import io.apicurio.registry.utils.impexp.ArtifactVersionEntity;
 import io.apicurio.registry.utils.impexp.ContentEntity;
@@ -261,9 +262,11 @@ public class GitManager {
 
 
     private void processArtifact(ProcessingState state, GitFile artifactFile, Artifact artifact) {
+        boolean artifactImported = false;
+        String artifactType;
+
         var group = processGroupRef(state, artifact.getGroupId());
         if (group != null) {
-
             List<Version> versions = artifact.getVersions();
             for (int i = 0; i < versions.size(); i++) {
                 Version version = versions.get(i);
@@ -275,17 +278,27 @@ public class GitManager {
                     e.globalId = version.getGlobalId();
                     e.state = VersionState.ENABLED;
                     e.createdOn = state.getUpdatedCommit().getCommitTime();
+                    e.modifiedOn = state.getUpdatedCommit().getCommitTime();
                     // TODO name, description, labels
 
                     var content = processContent(state, artifactFile, version.getContentFile());
                     if (content != null) {
-
-                        e.artifactType = content.getArtifactType();
+                        artifactType = content.getArtifactType();
                         e.contentId = content.getId();
+
+                        if (!artifactImported) {
+                            ArtifactEntity artifactEntity = new ArtifactEntity();
+                            artifactEntity.groupId = artifact.getGroupId();
+                            artifactEntity.artifactId = artifact.getId();
+                            artifactEntity.artifactType = artifactType;
+                            artifactEntity.createdOn = state.getUpdatedCommit().getCommitTime();
+                            artifactEntity.modifiedOn = state.getUpdatedCommit().getCommitTime();
+                            state.getStorage().importArtifact(artifactEntity);
+                            artifactImported = true;
+                        }
 
                         log.debug("Importing {}", e);
                         state.getStorage().importArtifactVersion(e);
-
                     } else {
                         state.recordError("Could not import content for artifact version %s.",
                                 artifact.getGroupId() + ":" + artifact.getId() + ":" + version.getId());

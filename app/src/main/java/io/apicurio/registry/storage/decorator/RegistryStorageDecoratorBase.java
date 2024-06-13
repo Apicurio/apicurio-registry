@@ -25,6 +25,7 @@ import io.apicurio.registry.storage.error.RuleNotFoundException;
 import io.apicurio.registry.storage.error.VersionNotFoundException;
 import io.apicurio.registry.storage.impexp.EntityInputStream;
 import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.utils.impexp.ArtifactEntity;
 import io.apicurio.registry.utils.impexp.BranchEntity;
 import io.apicurio.registry.utils.impexp.ArtifactRuleEntity;
 import io.apicurio.registry.utils.impexp.ArtifactVersionEntity;
@@ -292,6 +293,10 @@ public class RegistryStorageDecoratorBase extends RegistryStorageDecoratorReadOn
         delegate.importArtifactVersion(entity);
     }
 
+    @Override
+    public void importArtifact(ArtifactEntity entity) {
+        delegate.importArtifact(entity);
+    }
 
     @Override
     public void importArtifactRule(ArtifactRuleEntity entity) {

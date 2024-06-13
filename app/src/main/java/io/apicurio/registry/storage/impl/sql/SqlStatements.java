@@ -463,6 +463,8 @@ public interface SqlStatements {
 
     public String exportVersionComments();
 
+    public String exportArtifacts();
+
     public String exportArtifactVersions();
 
     public String exportBranches();
@@ -591,5 +593,4 @@ public interface SqlStatements {
     public String createDataSnapshot();
 
     public String restoreFromSnapshot();
-
 }

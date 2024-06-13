@@ -38,6 +38,8 @@ public class EntityReader {
             EntityType entityType = parseEntityType(path);
             if (entityType != null) {
                 switch (entityType) {
+                    case Artifact:
+                        return readArtifact(entry);
                     case ArtifactRule:
                         return readArtifactRule(entry);
                     case ArtifactVersion:
@@ -84,6 +86,10 @@ public class EntityReader {
 
     private GroupEntity readGroup(ZipEntry entry) throws IOException {
         return readEntry(entry, GroupEntity.class);
+    }
+
+    private ArtifactEntity readArtifact(ZipEntry entry) throws IOException {
+        return this.readEntry(entry, ArtifactEntity.class);
     }
 
     private ArtifactVersionEntity readArtifactVersion(ZipEntry entry) throws IOException {

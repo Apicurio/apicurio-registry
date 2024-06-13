@@ -28,6 +28,7 @@ import io.apicurio.registry.storage.error.RuleAlreadyExistsException;
 import io.apicurio.registry.storage.error.RuleNotFoundException;
 import io.apicurio.registry.storage.impexp.EntityInputStream;
 import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.utils.impexp.ArtifactEntity;
 import io.apicurio.registry.utils.impexp.BranchEntity;
 import io.apicurio.registry.utils.impexp.ArtifactRuleEntity;
 import io.apicurio.registry.utils.impexp.ArtifactVersionEntity;
@@ -368,6 +369,13 @@ public class ReadOnlyRegistryStorageDecorator extends RegistryStorageDecoratorRe
     public void importArtifactVersion(ArtifactVersionEntity entity) {
         checkReadOnly();
         delegate.importArtifactVersion(entity);
+    }
+
+
+    @Override
+    public void importArtifact(ArtifactEntity entity) {
+        checkReadOnly();
+        delegate.importArtifact(entity);
     }
 
 

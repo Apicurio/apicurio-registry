@@ -21,6 +21,9 @@ public abstract class AbstractDataImporter implements DataImporter {
             case ArtifactRule:
                 importArtifactRule((ArtifactRuleEntity) entity);
                 break;
+            case Artifact:
+                importArtifact((ArtifactEntity) entity);
+                break;
             case ArtifactVersion:
                 importArtifactVersion((ArtifactVersionEntity) entity);
                 break;
@@ -56,6 +59,8 @@ public abstract class AbstractDataImporter implements DataImporter {
 
 
     protected abstract void importArtifactRule(ArtifactRuleEntity entity);
+
+    protected abstract void importArtifact(ArtifactEntity entity);
 
     protected abstract void importArtifactVersion(ArtifactVersionEntity entity);
 

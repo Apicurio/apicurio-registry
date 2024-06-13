@@ -162,15 +162,16 @@ public final class V3ApiUtil {
         BranchSearchResults results = new BranchSearchResults();
         results.setCount(dto.getCount());
         results.setBranches(new ArrayList<>(dto.getBranches().size()));
-        dto.getBranches().forEach(group -> {
-            SearchedBranch sg = new SearchedBranch();
-            sg.setOwner(group.getOwner());
-            sg.setCreatedOn(new Date(group.getCreatedOn()));
-            sg.setDescription(group.getDescription());
-            sg.setBranchId(group.getBranchId());
-            sg.setModifiedBy(group.getModifiedBy());
-            sg.setModifiedOn(new Date(group.getModifiedOn()));
-            results.getBranches().add(sg);
+        dto.getBranches().forEach(branch -> {
+            SearchedBranch searchedBranch = new SearchedBranch();
+            searchedBranch.setOwner(branch.getOwner());
+            searchedBranch.setCreatedOn(new Date(branch.getCreatedOn()));
+            searchedBranch.setDescription(branch.getDescription());
+            searchedBranch.setUserDefined(branch.isUserDefined());
+            searchedBranch.setBranchId(branch.getBranchId());
+            searchedBranch.setModifiedBy(branch.getModifiedBy());
+            searchedBranch.setModifiedOn(new Date(branch.getModifiedOn()));
+            results.getBranches().add(searchedBranch);
         });
         return results;
     }
@@ -270,6 +271,7 @@ public final class V3ApiUtil {
                 .branchId(branch.getBranchId())
                 .description(branch.getDescription())
                 .owner(branch.getOwner())
+                .userDefined(branch.isUserDefined())
                 .createdOn(new Date(branch.getCreatedOn()))
                 .modifiedBy(branch.getModifiedBy())
                 .modifiedOn(new Date(branch.getModifiedOn()))

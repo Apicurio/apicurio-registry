@@ -40,6 +40,9 @@ public class EntityWriter {
             case Group:
                 writeEntity((GroupEntity) entity);
                 break;
+            case Artifact:
+                writeEntity((ArtifactEntity) entity);
+                break;
             case ArtifactVersion:
                 writeEntity((ArtifactVersionEntity) entity);
                 break;
@@ -84,6 +87,11 @@ public class EntityWriter {
     private void writeEntity(GroupEntity entity) throws IOException {
         ZipEntry mdEntry = createZipEntry(EntityType.Group, entity.groupId, "json");
         write(mdEntry, entity, GroupEntity.class);
+    }
+
+    private void writeEntity(ArtifactEntity entity) throws IOException {
+        ZipEntry mdEntry = createZipEntry(EntityType.Artifact, entity.groupId, entity.artifactId, "MetaData", "json");
+        write(mdEntry, entity, ArtifactEntity.class);
     }
 
     private void writeEntity(ArtifactVersionEntity entity) throws IOException {

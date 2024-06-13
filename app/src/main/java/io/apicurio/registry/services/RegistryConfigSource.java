@@ -22,7 +22,7 @@ public class RegistryConfigSource implements ConfigSource {
             properties = new HashMap<>();
             String prefix = System.getenv("REGISTRY_PROPERTIES_PREFIX");
             if (prefix != null) {
-                String profile = ProfileManager.getActiveProfile();
+                String profile = ProfileManager.getLaunchMode().getProfileKey();
                 String profilePrefix = "%" + profile + ".";
                 Map<String, String> envMap = System.getenv();
                 for (Map.Entry<String, String> entry : envMap.entrySet()) {

@@ -4189,7 +4189,7 @@
           "modifiedOn",
           "modifiedBy",
           "owner",
-          "userDefined"
+          "systemDefined"
         ],
         "type": "object",
         "properties": {
@@ -4224,7 +4224,7 @@
             "description": "",
             "type": "string"
           },
-          "userDefined": {
+          "systemDefined": {
             "description": "",
             "type": "boolean"
           }
@@ -4234,7 +4234,7 @@
           "artifactId": "ExampleArtifact",
           "branchId": "1.0.x",
           "description": "Just an example branch.",
-          "userDefined": true,
+          "systemDefined": false,
           "createdOn": "2018-02-10T09:30Z",
           "modifiedBy": "user1",
           "modifiedOn": "2020-02-10T09:30Z",
@@ -4744,7 +4744,7 @@
           "owner",
           "modifiedBy",
           "modifiedOn",
-          "userDefined"
+          "systemDefined"
         ],
         "type": "object",
         "properties": {
@@ -4782,7 +4782,7 @@
             "description": "",
             "type": "string"
           },
-          "userDefined": {
+          "systemDefined": {
             "description": "",
             "type": "boolean"
           }
@@ -4792,7 +4792,7 @@
           "artifactId": "ExampleArtifact",
           "branchId": "1.0.x",
           "description": "A really nice branch.",
-          "userDefined": true,
+          "systemDefined": false,
           "createdOn": "2018-02-10T09:30Z",
           "owner": "user1",
           "modifiedOn": "2019-03-11T09:30Z",

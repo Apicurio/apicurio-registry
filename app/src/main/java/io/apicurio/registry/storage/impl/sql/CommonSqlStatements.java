@@ -1039,7 +1039,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
 
     @Override
     public String insertBranch() {
-        return "INSERT INTO branches (groupId, artifactId, branchId, description, userDefined, owner, createdOn, modifiedBy, modifiedOn) " +
+        return "INSERT INTO branches (groupId, artifactId, branchId, description, systemDefined, owner, createdOn, modifiedBy, modifiedOn) " +
                 "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
     }
 

@@ -33,6 +33,7 @@ public class BranchesTest extends AbstractResourceTestBase {
         BranchMetaData latest = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).branches().byBranchId("latest").get();
         Assertions.assertNotNull(latest);
         Assertions.assertEquals("latest", latest.getBranchId());
+        Assertions.assertEquals(true, latest.getSystemDefined());
 
         VersionSearchResults versions = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).branches().byBranchId("latest").versions().get();
         Assertions.assertEquals(2, versions.getCount());
@@ -55,6 +56,7 @@ public class BranchesTest extends AbstractResourceTestBase {
         Assertions.assertEquals(artifactId, branch.getArtifactId());
         Assertions.assertEquals("1.x", branch.getBranchId());
         Assertions.assertEquals("Version 1.x", branch.getDescription());
+        Assertions.assertEquals(false, branch.getSystemDefined());
     }
 
     @Test

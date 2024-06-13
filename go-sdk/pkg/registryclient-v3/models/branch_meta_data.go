@@ -25,8 +25,8 @@ type BranchMetaData struct {
 	modifiedOn *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time
 	// The owner property
 	owner *string
-	// The userDefined property
-	userDefined *bool
+	// The systemDefined property
+	systemDefined *bool
 }
 
 // NewBranchMetaData instantiates a new BranchMetaData and sets the default values.
@@ -149,13 +149,13 @@ func (m *BranchMetaData) GetFieldDeserializers() map[string]func(i878a80d2330e89
 		}
 		return nil
 	}
-	res["userDefined"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
+	res["systemDefined"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
 		val, err := n.GetBoolValue()
 		if err != nil {
 			return err
 		}
 		if val != nil {
-			m.SetUserDefined(val)
+			m.SetSystemDefined(val)
 		}
 		return nil
 	}
@@ -182,9 +182,9 @@ func (m *BranchMetaData) GetOwner() *string {
 	return m.owner
 }
 
-// GetUserDefined gets the userDefined property value. The userDefined property
-func (m *BranchMetaData) GetUserDefined() *bool {
-	return m.userDefined
+// GetSystemDefined gets the systemDefined property value. The systemDefined property
+func (m *BranchMetaData) GetSystemDefined() *bool {
+	return m.systemDefined
 }
 
 // Serialize serializes information the current object
@@ -238,7 +238,7 @@ func (m *BranchMetaData) Serialize(writer i878a80d2330e89d26896388a3f487eef27b0a
 		}
 	}
 	{
-		err := writer.WriteBoolValue("userDefined", m.GetUserDefined())
+		err := writer.WriteBoolValue("systemDefined", m.GetSystemDefined())
 		if err != nil {
 			return err
 		}
@@ -297,9 +297,9 @@ func (m *BranchMetaData) SetOwner(value *string) {
 	m.owner = value
 }
 
-// SetUserDefined sets the userDefined property value. The userDefined property
-func (m *BranchMetaData) SetUserDefined(value *bool) {
-	m.userDefined = value
+// SetSystemDefined sets the systemDefined property value. The systemDefined property
+func (m *BranchMetaData) SetSystemDefined(value *bool) {
+	m.systemDefined = value
 }
 
 // BranchMetaDataable
@@ -314,7 +314,7 @@ type BranchMetaDataable interface {
 	GetModifiedBy() *string
 	GetModifiedOn() *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time
 	GetOwner() *string
-	GetUserDefined() *bool
+	GetSystemDefined() *bool
 	SetArtifactId(value *string)
 	SetBranchId(value *string)
 	SetCreatedOn(value *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time)
@@ -323,5 +323,5 @@ type BranchMetaDataable interface {
 	SetModifiedBy(value *string)
 	SetModifiedOn(value *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time)
 	SetOwner(value *string)
-	SetUserDefined(value *bool)
+	SetSystemDefined(value *bool)
 }

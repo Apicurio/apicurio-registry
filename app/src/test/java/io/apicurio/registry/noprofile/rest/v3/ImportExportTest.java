@@ -262,7 +262,9 @@ public class ImportExportTest extends AbstractResourceTestBase {
         BranchMetaData branch = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactIdWithBranches).branches().byBranchId("evens").get();
         Assertions.assertEquals("evens", branch.getBranchId());
         Assertions.assertEquals("Even numbered versions", branch.getDescription());
-        Assertions.assertEquals(true, branch.getUserDefined());
+        Assertions.assertEquals(false, branch.getSystemDefined());
+        branch = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactIdWithBranches).branches().byBranchId("latest").get();
+        Assertions.assertEquals(true, branch.getSystemDefined());
 
         VersionSearchResults versions = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactIdWithBranches).branches().byBranchId("evens").versions().get();
         Assertions.assertEquals(2, versions.getCount());

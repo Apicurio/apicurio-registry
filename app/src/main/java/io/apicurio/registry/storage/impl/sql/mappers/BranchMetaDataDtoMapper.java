@@ -27,7 +27,7 @@ public class BranchMetaDataDtoMapper implements RowMapper<BranchMetaDataDto> {
                 .artifactId(rs.getString("artifactId"))
                 .branchId(rs.getString("branchId"))
                 .description(rs.getString("description"))
-                .userDefined(rs.getBoolean("userDefined"))
+                .systemDefined(rs.getBoolean("systemDefined"))
                 .owner(rs.getString("owner"))
                 .createdOn(rs.getTimestamp("createdOn").getTime())
                 .modifiedBy(rs.getString("modifiedBy"))

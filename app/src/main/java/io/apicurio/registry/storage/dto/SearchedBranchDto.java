@@ -22,7 +22,7 @@ public class SearchedBranchDto {
     private String artifactId;
     private String branchId;
     private String description;
-    private boolean userDefined;
+    private boolean systemDefined;
     private String owner;
     private long createdOn;
     private String modifiedBy;

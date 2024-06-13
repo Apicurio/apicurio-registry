@@ -167,7 +167,7 @@ public final class V3ApiUtil {
             searchedBranch.setOwner(branch.getOwner());
             searchedBranch.setCreatedOn(new Date(branch.getCreatedOn()));
             searchedBranch.setDescription(branch.getDescription());
-            searchedBranch.setUserDefined(branch.isUserDefined());
+            searchedBranch.setSystemDefined(branch.isSystemDefined());
             searchedBranch.setBranchId(branch.getBranchId());
             searchedBranch.setModifiedBy(branch.getModifiedBy());
             searchedBranch.setModifiedOn(new Date(branch.getModifiedOn()));
@@ -271,7 +271,7 @@ public final class V3ApiUtil {
                 .branchId(branch.getBranchId())
                 .description(branch.getDescription())
                 .owner(branch.getOwner())
-                .userDefined(branch.isUserDefined())
+                .systemDefined(branch.isSystemDefined())
                 .createdOn(new Date(branch.getCreatedOn()))
                 .modifiedBy(branch.getModifiedBy())
                 .modifiedOn(new Date(branch.getModifiedOn()))

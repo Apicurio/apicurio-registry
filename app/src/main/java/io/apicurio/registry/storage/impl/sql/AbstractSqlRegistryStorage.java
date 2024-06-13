@@ -595,7 +595,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                     .execute();
 
             gav = new GAV(groupId, artifactId, finalVersion1);
-            createOrUpdateBranchRaw(handle, gav, BranchId.LATEST, false);
+            createOrUpdateBranchRaw(handle, gav, BranchId.LATEST, true);
         } else {
             handle.createUpdate(sqlStatements.insertVersion(false))
                     .bind(0, globalId)
@@ -623,7 +623,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             }
 
             gav = getGAVByGlobalId(globalId);
-            createOrUpdateBranchRaw(handle, gav, BranchId.LATEST, false);
+            createOrUpdateBranchRaw(handle, gav, BranchId.LATEST, true);
         }
 
         // Insert labels into the "version_labels" table
@@ -641,7 +641,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         if (branches != null && !branches.isEmpty()) {
             branches.forEach(branch -> {
                 BranchId branchId = new BranchId(branch);
-                createOrUpdateBranchRaw(handle, gav, branchId, true);
+                createOrUpdateBranchRaw(handle, gav, branchId, false);
             });
         }
 
@@ -3331,7 +3331,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                         .bind(1, ga.getRawArtifactId())
                         .bind(2, branchId.getRawBranchId())
                         .bind(3, description)
-                        .bind(4, true)
+                        .bind(4, false)
                         .bind(5, user)
                         .bind(6, now)
                         .bind(7, user)
@@ -3726,7 +3726,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
      *
      * IMPORTANT: Private methods can't be @Transactional. Callers MUST have started a transaction.
      */
-    private void createOrUpdateBranchRaw(Handle handle, GAV gav, BranchId branchId, boolean userDefined) {
+    private void createOrUpdateBranchRaw(Handle handle, GAV gav, BranchId branchId, boolean systemDefined) {
         // First make sure the branch exists.
         try {
             String user = securityIdentity.getPrincipal().getName();
@@ -3737,7 +3737,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                     .bind(1, gav.getRawArtifactId())
                     .bind(2, branchId.getRawBranchId())
                     .bind(3, (String) null)
-                    .bind(4, userDefined)
+                    .bind(4, systemDefined)
                     .bind(5, user)
                     .bind(6, now)
                     .bind(7, user)
@@ -3832,7 +3832,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                     .bind(1, ga.getRawArtifactId())
                     .bind(2, branchId.getRawBranchId())
                     .bind(3, entity.description)
-                    .bind(4, entity.userDefined)
+                    .bind(4, entity.systemDefined)
                     .bind(5, entity.owner)
                     .bind(6, new Date(entity.createdOn))
                     .bind(7, entity.modifiedBy)

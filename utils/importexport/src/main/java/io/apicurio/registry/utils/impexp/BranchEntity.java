@@ -23,7 +23,7 @@ public class BranchEntity extends Entity {
     public String artifactId;
     public String branchId;
     public String description;
-    public boolean userDefined;
+    public boolean systemDefined;
     public String owner;
     public long createdOn;
     public String modifiedBy;

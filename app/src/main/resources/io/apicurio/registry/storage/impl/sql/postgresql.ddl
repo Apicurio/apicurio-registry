@@ -91,7 +91,7 @@ ALTER TABLE version_comments ADD CONSTRAINT FK_version_comments_1 FOREIGN KEY (g
 CREATE INDEX IDX_version_comments_1 ON version_comments(owner);
 
 -- This table is defined way down here because it has a FK to the artifacts table *and* the versions table
-CREATE TABLE branches (groupId VARCHAR(512) NOT NULL, artifactId VARCHAR(512) NOT NULL, branchId VARCHAR(256) NOT NULL, description VARCHAR(1024), userDefined BOOLEAN NOT NULL, owner VARCHAR(256), createdOn TIMESTAMP WITHOUT TIME ZONE NOT NULL, modifiedBy VARCHAR(256), modifiedOn TIMESTAMP WITHOUT TIME ZONE NOT NULL);
+CREATE TABLE branches (groupId VARCHAR(512) NOT NULL, artifactId VARCHAR(512) NOT NULL, branchId VARCHAR(256) NOT NULL, description VARCHAR(1024), systemDefined BOOLEAN NOT NULL, owner VARCHAR(256), createdOn TIMESTAMP WITHOUT TIME ZONE NOT NULL, modifiedBy VARCHAR(256), modifiedOn TIMESTAMP WITHOUT TIME ZONE NOT NULL);
 ALTER TABLE branches ADD PRIMARY KEY (groupId, artifactId, branchId);
 ALTER TABLE branches ADD CONSTRAINT FK_branches_1 FOREIGN KEY (groupId, artifactId) REFERENCES artifacts(groupId, artifactId) ON DELETE CASCADE;
 

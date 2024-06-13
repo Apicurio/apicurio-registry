@@ -10,6 +10,7 @@ import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.types.VersionState;
 import io.apicurio.registry.utils.IoUtil;
+import io.apicurio.registry.utils.impexp.ArtifactEntity;
 import io.apicurio.registry.utils.impexp.ArtifactVersionEntity;
 import io.apicurio.registry.utils.impexp.ContentEntity;
 import io.apicurio.registry.utils.impexp.EntityWriter;
@@ -187,9 +188,22 @@ public class MigrationTestsDataInitializer {
                     return contentEntity.contentId;
                 });
 
+                ArtifactEntity artifactEntity = new ArtifactEntity();
+                artifactEntity.artifactId = artifactId;
+                artifactEntity.artifactType = artifactType;
+                artifactEntity.owner = "integration-tests";
+                artifactEntity.createdOn = System.currentTimeMillis();
+                artifactEntity.modifiedBy = "integration-tests";
+                artifactEntity.modifiedOn = System.currentTimeMillis();
+                artifactEntity.description = null;
+                artifactEntity.groupId = null;
+                artifactEntity.labels = null;
+                artifactEntity.name = null;
+
+                writer.writeEntity(artifactEntity);
+
                 ArtifactVersionEntity versionEntity = new ArtifactVersionEntity();
                 versionEntity.artifactId = artifactId;
-                versionEntity.artifactType = artifactType;
                 versionEntity.contentId = contentId;
                 versionEntity.owner = "integration-tests";
                 versionEntity.createdOn = System.currentTimeMillis();

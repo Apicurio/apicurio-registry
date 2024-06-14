@@ -53,7 +53,7 @@ public class GenerateCanonicalHashImportIT extends ApicurioRegistryBaseIT {
         JsonSchemaMsgFactory jsonSchema = new JsonSchemaMsgFactory();
         for (int i = 0; i < 20; i++) {
             String artifactId = i + "-" + UUID.randomUUID();
-            String content = IoUtil.toString(jsonSchema.getSchemaStream());
+            String content = jsonSchema.getSchemaString();
             artifacts.put(artifactId, content);
         }
         var importReq = client.admin().importEscaped().toPostRequestInformation(generateExportedZip(artifacts));

@@ -11,26 +11,28 @@ import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.model.BranchId;
 import io.apicurio.registry.model.GA;
-import io.apicurio.registry.model.GAV;
 import io.apicurio.registry.model.GroupId;
 import io.apicurio.registry.model.VersionExpressionParser;
 import io.apicurio.registry.model.VersionId;
 import io.apicurio.registry.rest.HeadersHack;
 import io.apicurio.registry.rest.MissingRequiredParameterException;
-import io.apicurio.registry.rest.ParametersConflictException;
 import io.apicurio.registry.rest.RestConfig;
-import io.apicurio.registry.rest.v3.beans.ArtifactBranch;
+import io.apicurio.registry.rest.v3.beans.AddVersionToBranch;
 import io.apicurio.registry.rest.v3.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v3.beans.ArtifactReference;
 import io.apicurio.registry.rest.v3.beans.ArtifactSearchResults;
 import io.apicurio.registry.rest.v3.beans.ArtifactSortBy;
+import io.apicurio.registry.rest.v3.beans.BranchMetaData;
+import io.apicurio.registry.rest.v3.beans.BranchSearchResults;
 import io.apicurio.registry.rest.v3.beans.Comment;
 import io.apicurio.registry.rest.v3.beans.CreateArtifact;
 import io.apicurio.registry.rest.v3.beans.CreateArtifactResponse;
+import io.apicurio.registry.rest.v3.beans.CreateBranch;
 import io.apicurio.registry.rest.v3.beans.CreateGroup;
 import io.apicurio.registry.rest.v3.beans.CreateRule;
 import io.apicurio.registry.rest.v3.beans.CreateVersion;
 import io.apicurio.registry.rest.v3.beans.EditableArtifactMetaData;
+import io.apicurio.registry.rest.v3.beans.EditableBranchMetaData;
 import io.apicurio.registry.rest.v3.beans.EditableGroupMetaData;
 import io.apicurio.registry.rest.v3.beans.EditableVersionMetaData;
 import io.apicurio.registry.rest.v3.beans.GroupMetaData;
@@ -39,6 +41,7 @@ import io.apicurio.registry.rest.v3.beans.GroupSortBy;
 import io.apicurio.registry.rest.v3.beans.HandleReferencesType;
 import io.apicurio.registry.rest.v3.beans.IfArtifactExists;
 import io.apicurio.registry.rest.v3.beans.NewComment;
+import io.apicurio.registry.rest.v3.beans.ReplaceBranchVersions;
 import io.apicurio.registry.rest.v3.beans.Rule;
 import io.apicurio.registry.rest.v3.beans.SortOrder;
 import io.apicurio.registry.rest.v3.beans.VersionMetaData;
@@ -47,14 +50,17 @@ import io.apicurio.registry.rest.v3.beans.VersionSortBy;
 import io.apicurio.registry.rest.v3.shared.CommonResourceOperations;
 import io.apicurio.registry.rules.RuleApplicationType;
 import io.apicurio.registry.rules.RulesService;
-import io.apicurio.registry.storage.RegistryStorage.ArtifactRetrievalBehavior;
+import io.apicurio.registry.storage.RegistryStorage.RetrievalBehavior;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
+import io.apicurio.registry.storage.dto.BranchMetaDataDto;
+import io.apicurio.registry.storage.dto.BranchSearchResultsDto;
 import io.apicurio.registry.storage.dto.CommentDto;
 import io.apicurio.registry.storage.dto.ContentWrapperDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
+import io.apicurio.registry.storage.dto.EditableBranchMetaDataDto;
 import io.apicurio.registry.storage.dto.EditableGroupMetaDataDto;
 import io.apicurio.registry.storage.dto.EditableVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.GroupMetaDataDto;
@@ -87,13 +93,11 @@ import jakarta.ws.rs.NotAllowedException;
 import jakarta.ws.rs.client.Client;
 import jakarta.ws.rs.core.Response;
 import org.apache.commons.lang3.tuple.Pair;
-import org.jose4j.base64url.Base64;
 
 import java.io.BufferedInputStream;
 import java.io.InputStream;
 import java.math.BigInteger;
 import java.net.URI;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
@@ -155,7 +159,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                                                                 String versionExpression, ReferenceType refType) {
 
         var gav = VersionExpressionParser.parse(new GA(groupId, artifactId), versionExpression,
-                (ga, branchId) -> storage.getArtifactBranchTip(ga, branchId, ArtifactRetrievalBehavior.DEFAULT));
+                (ga, branchId) -> storage.getBranchTip(ga, branchId, RetrievalBehavior.DEFAULT));
 
         if (refType == null || refType == ReferenceType.OUTBOUND) {
             return storage.getArtifactVersionContent(gav.getRawGroupIdWithNull(), gav.getRawArtifactId(), gav.getRawVersionId())
@@ -401,7 +405,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         requireParameter("versionExpression", versionExpression);
 
         var gav = VersionExpressionParser.parse(new GA(groupId, artifactId), versionExpression,
-                (ga, branchId) -> storage.getArtifactBranchTip(ga, branchId, ArtifactRetrievalBehavior.SKIP_DISABLED_LATEST));
+                (ga, branchId) -> storage.getBranchTip(ga, branchId, RetrievalBehavior.SKIP_DISABLED_LATEST));
 
         if (references == null) {
             references = HandleReferencesType.PRESERVE;
@@ -436,7 +440,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         requireParameter("version", version);
 
         var gav = VersionExpressionParser.parse(new GA(groupId, artifactId), version,
-                (ga, branchId) -> storage.getArtifactBranchTip(ga, branchId, ArtifactRetrievalBehavior.DEFAULT));
+                (ga, branchId) -> storage.getBranchTip(ga, branchId, RetrievalBehavior.DEFAULT));
 
         storage.deleteArtifactVersion(gav.getRawGroupIdWithNull(), gav.getRawArtifactId(), gav.getRawVersionId());
     }
@@ -452,7 +456,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         requireParameter("version", version);
 
         var gav = VersionExpressionParser.parse(new GA(groupId, artifactId), version,
-                (ga, branchId) -> storage.getArtifactBranchTip(ga, branchId, ArtifactRetrievalBehavior.SKIP_DISABLED_LATEST));
+                (ga, branchId) -> storage.getBranchTip(ga, branchId, RetrievalBehavior.SKIP_DISABLED_LATEST));
 
         ArtifactVersionMetaDataDto dto = storage.getArtifactVersionMetaData(gav.getRawGroupIdWithNull(), gav.getRawArtifactId(), gav.getRawVersionId());
         return V3ApiUtil.dtoToVersionMetaData(dto);
@@ -470,7 +474,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         requireParameter("versionExpression", versionExpression);
 
         var gav = VersionExpressionParser.parse(new GA(groupId, artifactId), versionExpression,
-                (ga, branchId) -> storage.getArtifactBranchTip(ga, branchId, ArtifactRetrievalBehavior.DEFAULT));
+                (ga, branchId) -> storage.getBranchTip(ga, branchId, RetrievalBehavior.DEFAULT));
 
         EditableVersionMetaDataDto dto = new EditableVersionMetaDataDto();
         dto.setName(data.getName());
@@ -492,7 +496,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         requireParameter("versionExpression", versionExpression);
 
         var gav = VersionExpressionParser.parse(new GA(groupId, artifactId), versionExpression,
-                (ga, branchId) -> storage.getArtifactBranchTip(ga, branchId, ArtifactRetrievalBehavior.DEFAULT));
+                (ga, branchId) -> storage.getBranchTip(ga, branchId, RetrievalBehavior.DEFAULT));
 
         CommentDto newComment = storage.createArtifactVersionComment(gav.getRawGroupIdWithNull(), gav.getRawArtifactId(),
                 gav.getRawVersionId(), data.getValue());
@@ -512,7 +516,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         requireParameter("commentId", commentId);
 
         var gav = VersionExpressionParser.parse(new GA(groupId, artifactId), versionExpression,
-                (ga, branchId) -> storage.getArtifactBranchTip(ga, branchId, ArtifactRetrievalBehavior.DEFAULT));
+                (ga, branchId) -> storage.getBranchTip(ga, branchId, RetrievalBehavior.DEFAULT));
 
         storage.deleteArtifactVersionComment(gav.getRawGroupIdWithNull(), gav.getRawArtifactId(), gav.getRawVersionId(), commentId);
     }
@@ -528,7 +532,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         requireParameter("version", version);
 
         var gav = VersionExpressionParser.parse(new GA(groupId, artifactId), version,
-                (ga, branchId) -> storage.getArtifactBranchTip(ga, branchId, ArtifactRetrievalBehavior.DEFAULT));
+                (ga, branchId) -> storage.getBranchTip(ga, branchId, RetrievalBehavior.DEFAULT));
 
         return storage.getArtifactVersionComments(gav.getRawGroupIdWithNull(), gav.getRawArtifactId(), gav.getRawVersionId())
                 .stream()
@@ -550,7 +554,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         requireParameter("value", data.getValue());
 
         var gav = VersionExpressionParser.parse(new GA(groupId, artifactId), versionExpression,
-                (ga, branchId) -> storage.getArtifactBranchTip(ga, branchId, ArtifactRetrievalBehavior.DEFAULT));
+                (ga, branchId) -> storage.getBranchTip(ga, branchId, RetrievalBehavior.DEFAULT));
 
         storage.updateArtifactVersionComment(gav.getRawGroupIdWithNull(), gav.getRawArtifactId(),
                 gav.getRawVersionId(), commentId, data.getValue());
@@ -819,131 +823,130 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         return V3ApiUtil.dtoToVersionMetaData(vmd);
     }
 
+    @Override
+    @Audited(extractParameters = {"0", KEY_GROUP_ID, "1", KEY_ARTIFACT_ID})
+    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
+    public BranchMetaData createBranch(String groupId, String artifactId, CreateBranch data) {
+        requireParameter("groupId", groupId);
+        requireParameter("artifactId", artifactId);
+        requireParameter("branchId", data.getBranchId());
+
+        GA ga = new GA(groupId, artifactId);
+        BranchId bid = new BranchId(data.getBranchId());
+        BranchMetaDataDto branchDto = storage.createBranch(ga, bid, data.getDescription(), data.getVersions());
+        return V3ApiUtil.dtoToBranchMetaData(branchDto);
+    }
+
+    @Override
+    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
+    public BranchSearchResults listBranches(String groupId, String artifactId, BigInteger offset, BigInteger limit) {
+        requireParameter("groupId", groupId);
+        requireParameter("artifactId", artifactId);
+
+        if (offset == null) {
+            offset = BigInteger.valueOf(0);
+        }
+        if (limit == null) {
+            limit = BigInteger.valueOf(20);
+        }
+
+        BranchSearchResultsDto dto = storage.getBranches(new GA(groupId, artifactId), offset.intValue(), limit.intValue());
+        return V3ApiUtil.dtoToSearchResults(dto);
+    }
+
+    @Override
+    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
+    public BranchMetaData getBranchMetaData(String groupId, String artifactId, String branchId) {
+        requireParameter("groupId", groupId);
+        requireParameter("artifactId", artifactId);
+
+        BranchMetaDataDto branch = storage.getBranchMetaData(new GA(groupId, artifactId), new BranchId(branchId));
+        return V3ApiUtil.dtoToBranchMetaData(branch);
+    }
 
     @Override
     @Audited(extractParameters = {"0", KEY_GROUP_ID, "1", KEY_ARTIFACT_ID})
+    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
+    public void updateBranchMetaData(String groupId, String artifactId, String branchId, EditableBranchMetaData data) {
+        requireParameter("groupId", groupId);
+        requireParameter("artifactId", artifactId);
+        requireParameter("branchId", branchId);
+
+        EditableBranchMetaDataDto dto = EditableBranchMetaDataDto.builder()
+                .description(data.getDescription())
+                .build();
+        storage.updateBranchMetaData(new GA(groupId, artifactId), new BranchId(branchId), dto);
+    }
+
+    @Override
+    @Audited(extractParameters = {"0", KEY_GROUP_ID, "1", KEY_ARTIFACT_ID})
+    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
+    public void deleteBranch(String groupId, String artifactId, String branchId) {
+        requireParameter("groupId", groupId);
+        requireParameter("artifactId", artifactId);
+        requireParameter("branchId", branchId);
+
+        storage.deleteBranch(new GA(groupId, artifactId), new BranchId(branchId));
+    }
+
+    @Override
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
-    public List<ArtifactBranch> listArtifactBranches(String groupId, String artifactId) {
+    public VersionSearchResults listBranchVersions(String groupId, String artifactId, String branchId, BigInteger offset, BigInteger limit) {
         requireParameter("groupId", groupId);
         requireParameter("artifactId", artifactId);
+        requireParameter("branchId", branchId);
 
-        return storage.getArtifactBranches(new GA(groupId, artifactId))
-                .entrySet()
-                .stream()
-                .map(e -> {
-                    return ArtifactBranch.builder()
-                            .groupId(groupId)
-                            .artifactId(artifactId)
-                            .branchId(e.getKey().getRawBranchId())
-                            .versions(
-                                    e.getValue()
-                                            .stream()
-                                            .map(GAV::getRawVersionId)
-                                            .collect(toList())
-                            )
-                            .build();
-                })
-                .collect(toList());
+        if (offset == null) {
+            offset = BigInteger.valueOf(0);
+        }
+        if (limit == null) {
+            limit = BigInteger.valueOf(20);
+        }
+
+        GA ga = new GA(groupId, artifactId);
+        BranchId bid = new BranchId(branchId);
+
+        // Throw 404 if the artifact or branch does not exist.
+        storage.getBranchMetaData(ga, bid);
+
+        VersionSearchResultsDto results = storage.getBranchVersions(ga, bid, offset.intValue(), limit.intValue());
+        return V3ApiUtil.dtoToSearchResults(results);
     }
 
-
     @Override
-    @Audited(extractParameters = {"0", KEY_GROUP_ID, "1", KEY_ARTIFACT_ID, "2", "branch_id"}) // TODO
-    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
-    public ArtifactBranch getArtifactBranch(String groupId, String artifactId, String rawBranchId) {
-        requireParameter("groupId", groupId);
-        requireParameter("artifactId", artifactId);
-        requireParameter("branchId", rawBranchId);
-
-        return ArtifactBranch.builder()
-                .groupId(groupId)
-                .artifactId(artifactId)
-                .branchId(rawBranchId)
-                .versions(
-                        storage.getArtifactBranch(new GA(groupId, artifactId), new BranchId(rawBranchId), ArtifactRetrievalBehavior.DEFAULT)
-                                .stream()
-                                .map(GAV::getRawVersionId)
-                                .collect(toList())
-                )
-                .build();
-
-    }
-
-
-    /**
-     * @see io.apicurio.registry.rest.v3.GroupsResource#createOrUpdateArtifactBranch(java.lang.String, java.lang.String, java.lang.String, java.lang.String)
-     */
-    @Override
-    @Audited(extractParameters = {"0", KEY_GROUP_ID, "1", KEY_ARTIFACT_ID, "2", "branch_id", "3", KEY_VERSION}) // TODO
+    @Audited(extractParameters = {"0", KEY_GROUP_ID, "1", KEY_ARTIFACT_ID})
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
-    public ArtifactBranch createOrUpdateArtifactBranch(String groupId, String artifactId, String rawBranchId, String version) {
+    public void replaceBranchVersions(String groupId, String artifactId, String branchId, ReplaceBranchVersions data) {
         requireParameter("groupId", groupId);
         requireParameter("artifactId", artifactId);
-        requireParameter("branchId", rawBranchId);
-        requireParameter("version", version);
+        requireParameter("branchId", branchId);
+        requireParameter("versions", data.getVersions());
 
-        var gav = new GAV(groupId, artifactId, version);
-        var branchId = new BranchId(rawBranchId);
+        GA ga = new GA(groupId, artifactId);
+        BranchId bid = new BranchId(branchId);
 
-        storage.createOrUpdateArtifactBranch(gav, branchId);
+        // Throw 404 if the artifact or branch does not exist.
+        storage.getBranchMetaData(ga, bid);
 
-        return ArtifactBranch.builder()
-                .groupId(gav.getRawGroupIdWithDefaultString())
-                .artifactId(gav.getRawArtifactId())
-                .branchId(branchId.getRawBranchId())
-                .versions(
-                        storage.getArtifactBranch(gav, branchId, ArtifactRetrievalBehavior.DEFAULT)
-                                .stream()
-                                .map(GAV::getRawVersionId)
-                                .collect(toList())
-                )
-                .build();
+        storage.replaceBranchVersions(ga, bid, data.getVersions().stream().map(VersionId::new).toList());
     }
-
 
     @Override
-    @Audited(extractParameters = {"0", KEY_GROUP_ID, "1", KEY_ARTIFACT_ID, "2", "branch_id", "3", "branch"}) // TODO
+    @Audited(extractParameters = {"0", KEY_GROUP_ID, "1", KEY_ARTIFACT_ID})
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
-    public ArtifactBranch createOrReplaceArtifactBranch(String groupId, String artifactId, String rawBranchId, ArtifactBranch branch) {
+    public void addVersionToBranch(String groupId, String artifactId, String branchId, AddVersionToBranch data) {
         requireParameter("groupId", groupId);
         requireParameter("artifactId", artifactId);
-        requireParameter("branchId", rawBranchId);
-        requireParameter("branch", branch);
+        requireParameter("branchId", branchId);
 
-        var ga = new GA(groupId, artifactId);
-        var branchId = new BranchId(rawBranchId);
-        var versions = branch.getVersions()
-                .stream()
-                .map(VersionId::new)
-                .collect(toList());
+        GA ga = new GA(groupId, artifactId);
+        BranchId bid = new BranchId(branchId);
 
-        storage.createOrReplaceArtifactBranch(ga, branchId, versions);
+        // Throw 404 if the artifact or branch does not exist.
+        storage.getBranchMetaData(ga, bid);
 
-        return ArtifactBranch.builder()
-                .groupId(ga.getRawGroupIdWithDefaultString())
-                .artifactId(ga.getRawArtifactId())
-                .branchId(branchId.getRawBranchId())
-                .versions(
-                        storage.getArtifactBranch(ga, branchId, ArtifactRetrievalBehavior.DEFAULT)
-                                .stream()
-                                .map(GAV::getRawVersionId)
-                                .collect(toList())
-                )
-                .build();
+        storage.appendVersionToBranch(ga, bid, new VersionId(data.getVersion()));
     }
-
-
-    @Override
-    @Audited(extractParameters = {"0", KEY_GROUP_ID, "1", KEY_ARTIFACT_ID, "2", "branch_id"}) // TODO
-    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
-    public void deleteArtifactBranch(String groupId, String artifactId, String rawBranchId) {
-        requireParameter("groupId", groupId);
-        requireParameter("artifactId", artifactId);
-        requireParameter("branchId", rawBranchId);
-
-        storage.deleteArtifactBranch(new GA(groupId, artifactId), new BranchId(rawBranchId));
-    }
-
 
     // ========== Not endpoints: ==========
 
@@ -968,14 +971,6 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
      */
     private String lookupArtifactType(String groupId, String artifactId) {
         return storage.getArtifactMetaData(new GroupId(groupId).getRawGroupIdWithNull(), artifactId).getArtifactType();
-    }
-
-    /**
-     * Make sure this is ONLY used when request instance is active.
-     * e.g. in actual http request
-     */
-    private String getContentType() {
-        return request.getContentType();
     }
 
     private String getContentType(CreateArtifact data) {
@@ -1005,23 +1000,6 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         }
     }
 
-    private static void maxOneOf(String parameterOneName, Object parameterOneValue, String parameterTwoName, Object parameterTwoValue) {
-        if (parameterOneValue != null && parameterTwoValue != null) {
-            throw new ParametersConflictException(parameterOneName, parameterTwoName);
-        }
-    }
-
-    private static <T> T getOneOf(T parameterOneValue, T parameterTwoValue) {
-        return parameterOneValue != null ? parameterOneValue : parameterTwoValue;
-    }
-
-    private static String decode(String encoded) {
-        if (encoded == null) {
-            return null;
-        }
-        return new String(Base64.decode(encoded));
-    }
-
     private CreateArtifactResponse handleIfExists(String groupId, String artifactId, IfArtifactExists ifExists, CreateVersion theVersion, boolean canonical) {
         if (ifExists == null || theVersion == null) {
             ifExists = IfArtifactExists.FAIL;
@@ -1031,7 +1009,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
             case CREATE_VERSION:
                 return updateArtifactInternal(groupId, artifactId, theVersion);
 //            case RETURN:
-//                GAV latestGAV = storage.getArtifactBranchTip(new GA(groupId, artifactId), BranchId.LATEST, ArtifactRetrievalBehavior.DEFAULT);
+//                GAV latestGAV = storage.getBranchTip(new GA(groupId, artifactId), BranchId.LATEST, ArtifactRetrievalBehavior.DEFAULT);
 //                ArtifactVersionMetaDataDto latestVersionMD = storage.getArtifactVersionMetaData(latestGAV.getRawGroupIdWithNull(),
 //                        latestGAV.getRawArtifactId(), latestGAV.getRawVersionId());
 //                return V3ApiUtil.dtoToVersionMetaData(latestVersionMD);
@@ -1064,7 +1042,6 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         }
         return updateArtifactInternal(groupId, artifactId, theVersion);
     }
-
 
     private CreateArtifactResponse updateArtifactInternal(String groupId, String artifactId, CreateVersion theVersion) {
         String version = theVersion.getVersion();
@@ -1117,10 +1094,6 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                 .peek(r -> r.setGroupId(new GroupId(r.getGroupId()).getRawGroupIdWithNull()))
                 .map(V3ApiUtil::referenceToDto)
                 .collect(toList());
-    }
-
-    private List<String> normalizeMultiValuedHeader(List<String> value) {
-        return value.stream().flatMap(v -> Arrays.stream(v.split(",")).map(String::strip)).collect(toList());
     }
 
     /**

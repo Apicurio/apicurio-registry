@@ -3,12 +3,14 @@ package io.apicurio.tests.migration;
 import io.apicurio.registry.client.auth.VertXAuthFactory;
 import io.apicurio.registry.model.BranchId;
 import io.apicurio.registry.rest.client.RegistryClient;
+import io.apicurio.registry.rest.client.models.Error;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.types.VersionState;
 import io.apicurio.registry.utils.IoUtil;
-import io.apicurio.registry.utils.impexp.ArtifactBranchEntity;
+import io.apicurio.registry.utils.impexp.ArtifactEntity;
 import io.apicurio.registry.utils.impexp.ArtifactVersionEntity;
+import io.apicurio.registry.utils.impexp.BranchEntity;
 import io.apicurio.registry.utils.impexp.ContentEntity;
 import io.apicurio.registry.utils.impexp.EntityWriter;
 import io.apicurio.tests.ApicurioRegistryBaseIT;
@@ -26,6 +28,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -50,7 +53,7 @@ public class GenerateCanonicalHashImportIT extends ApicurioRegistryBaseIT {
         JsonSchemaMsgFactory jsonSchema = new JsonSchemaMsgFactory();
         for (int i = 0; i < 20; i++) {
             String artifactId = i + "-" + UUID.randomUUID();
-            String content = IoUtil.toString(jsonSchema.getSchemaStream());
+            String content = jsonSchema.getSchemaString();
             artifacts.put(artifactId, content);
         }
         var importReq = client.admin().importEscaped().toPostRequestInformation(generateExportedZip(artifacts));
@@ -67,9 +70,16 @@ public class GenerateCanonicalHashImportIT extends ApicurioRegistryBaseIT {
                   The only way is to generate canonical hash and then search artifact by it. But that needs apicurio-registry-app module as dependency.
              */
 
-            var registryContent = client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").content().get();
-            assertNotNull(registryContent);
-            assertEquals(content, IoUtil.toString(registryContent));
+            try {
+                var registryContent = client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("1.0").content().get();
+                assertNotNull(registryContent);
+                assertEquals(content, IoUtil.toString(registryContent));
+            } catch (Error e) {
+                System.out.println("---");
+                System.out.println("REST CLIENT ERROR>> " + e.getDetail());
+                System.out.println("---");
+                throw e;
+            }
         }
 
     }
@@ -110,29 +120,43 @@ public class GenerateCanonicalHashImportIT extends ApicurioRegistryBaseIT {
                     return contentEntity.contentId;
                 });
 
+                ArtifactEntity artifactEntity = new ArtifactEntity();
+                artifactEntity.artifactId = artifactId;
+                artifactEntity.artifactType = artifactType;
+                artifactEntity.owner = "integration-tests";
+                artifactEntity.createdOn = System.currentTimeMillis();
+                artifactEntity.modifiedBy = "integration-tests";
+                artifactEntity.modifiedOn = System.currentTimeMillis();
+                artifactEntity.description = null;
+                artifactEntity.groupId = null;
+                artifactEntity.labels = null;
+                artifactEntity.name = null;
+
+                writer.writeEntity(artifactEntity);
+
                 ArtifactVersionEntity versionEntity = new ArtifactVersionEntity();
                 versionEntity.artifactId = artifactId;
-                versionEntity.artifactType = artifactType;
                 versionEntity.contentId = contentId;
                 versionEntity.owner = "integration-tests";
                 versionEntity.createdOn = System.currentTimeMillis();
+                versionEntity.modifiedBy = "integration-tests";
+                versionEntity.modifiedOn = System.currentTimeMillis();
                 versionEntity.description = null;
                 versionEntity.globalId = globalIdSeq.getAndIncrement();
                 versionEntity.groupId = null;
                 versionEntity.labels = null;
                 versionEntity.name = null;
                 versionEntity.state = VersionState.ENABLED;
-                versionEntity.version = "1";
+                versionEntity.version = "1.0";
                 versionEntity.versionOrder = 1;
 
                 writer.writeEntity(versionEntity);
 
                 writer.writeEntity(
-                        ArtifactBranchEntity.builder()
+                        BranchEntity.builder()
                                 .artifactId(artifactId)
                                 .branchId(BranchId.LATEST.getRawBranchId())
-                                .branchOrder(1)
-                                .version("1")
+                                .versions(List.of("1"))
                                 .build()
                 );
             }

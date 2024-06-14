@@ -10,6 +10,8 @@ import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
+import io.apicurio.registry.storage.dto.BranchMetaDataDto;
+import io.apicurio.registry.storage.dto.BranchSearchResultsDto;
 import io.apicurio.registry.storage.dto.CommentDto;
 import io.apicurio.registry.storage.dto.ContentWrapperDto;
 import io.apicurio.registry.storage.dto.GroupMetaDataDto;
@@ -339,24 +341,28 @@ public abstract class RegistryStorageDecoratorReadOnlyBase implements RegistrySt
     }
 
     @Override
-    public List<String> getArtifactVersions(String groupId, String artifactId, ArtifactRetrievalBehavior behavior)
+    public List<String> getArtifactVersions(String groupId, String artifactId, RetrievalBehavior behavior)
             throws ArtifactNotFoundException, RegistryStorageException {
         return delegate.getArtifactVersions(groupId, artifactId, behavior);
     }
 
     @Override
-    public GAV getArtifactBranchTip(GA ga, BranchId branchId, ArtifactRetrievalBehavior behavior) {
-        return delegate.getArtifactBranchTip(ga, branchId, behavior);
+    public GAV getBranchTip(GA ga, BranchId branchId, RetrievalBehavior behavior) {
+        return delegate.getBranchTip(ga, branchId, behavior);
     }
 
     @Override
-    public Map<BranchId, List<GAV>> getArtifactBranches(GA ga) {
-        return delegate.getArtifactBranches(ga);
+    public VersionSearchResultsDto getBranchVersions(GA ga, BranchId branchId, int offset, int limit) {
+        return delegate.getBranchVersions(ga, branchId, offset, limit);
     }
 
     @Override
-    public List<GAV> getArtifactBranch(GA ga, BranchId branchId, ArtifactRetrievalBehavior behavior) {
-        return delegate.getArtifactBranch(ga, branchId, behavior);
+    public BranchSearchResultsDto getBranches(GA ga, int offset, int limit) {
+        return delegate.getBranches(ga, offset, limit);
     }
 
+    @Override
+    public BranchMetaDataDto getBranchMetaData(GA ga, BranchId branchId) {
+        return delegate.getBranchMetaData(ga, branchId);
+    }
 }

@@ -8,7 +8,6 @@ import io.apicurio.registry.metrics.health.liveness.PersistenceExceptionLiveness
 import io.apicurio.registry.metrics.health.readiness.PersistenceTimeoutReadinessApply;
 import io.apicurio.registry.model.BranchId;
 import io.apicurio.registry.model.GA;
-import io.apicurio.registry.model.GAV;
 import io.apicurio.registry.model.VersionId;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.StorageEvent;
@@ -31,7 +30,8 @@ import io.apicurio.registry.storage.importing.DataImporter;
 import io.apicurio.registry.storage.importing.SqlDataImporter;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.ConcurrentUtil;
-import io.apicurio.registry.utils.impexp.ArtifactBranchEntity;
+import io.apicurio.registry.utils.impexp.ArtifactEntity;
+import io.apicurio.registry.utils.impexp.BranchEntity;
 import io.apicurio.registry.utils.impexp.ArtifactRuleEntity;
 import io.apicurio.registry.utils.impexp.ArtifactVersionEntity;
 import io.apicurio.registry.utils.impexp.CommentEntity;
@@ -59,7 +59,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * An implementation of a registry artifactStore that extends the basic SQL artifactStore but federates 'write' operations
@@ -771,6 +770,13 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
         coordinator.waitForResponse(uuid);
     }
 
+    @Override
+    public void importArtifact(ArtifactEntity entity) {
+        var message = new ImportArtifact1Message(entity);
+        var uuid = ConcurrentUtil.get(submitter.submitMessage(message));
+        coordinator.waitForResponse(uuid);
+    }
+
     /**
      * @see io.apicurio.registry.storage.RegistryStorage#importArtifactRule(io.apicurio.registry.utils.impexp.ArtifactRuleEntity)
      */
@@ -782,11 +788,11 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#importArtifactBranch(io.apicurio.registry.utils.impexp.ArtifactBranchEntity)
+     * @see io.apicurio.registry.storage.RegistryStorage#importBranch(BranchEntity)
      */
     @Override
-    public void importArtifactBranch(ArtifactBranchEntity entity) {
-        var message = new ImportArtifactBranch1Message(entity);
+    public void importBranch(BranchEntity entity) {
+        var message = new ImportBranch1Message(entity);
         var uuid = ConcurrentUtil.get(submitter.submitMessage(message));
         coordinator.waitForResponse(uuid);
     }
@@ -801,35 +807,41 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
         coordinator.waitForResponse(uuid);
     }
 
-    /**
-     * @see io.apicurio.registry.storage.RegistryStorage#createOrUpdateArtifactBranch(io.apicurio.registry.model.GAV, io.apicurio.registry.model.BranchId)
-     */
     @Override
-    public void createOrUpdateArtifactBranch(GAV gav, BranchId branchId) {
-        var message = new CreateOrUpdateArtifactBranch2Message(gav.getRawGroupIdWithNull(), gav.getRawArtifactId(),
-                gav.getRawVersionId(), branchId.getRawBranchId());
+    public void appendVersionToBranch(GA ga, BranchId branchId, VersionId version) {
+        var message = new AppendVersionToBranch3Message(ga.getRawGroupIdWithNull(), ga.getRawArtifactId(), branchId.getRawBranchId(), version.getRawVersionId());
         var uuid = ConcurrentUtil.get(submitter.submitMessage(message));
         coordinator.waitForResponse(uuid);
     }
 
-    /**
-     * @see io.apicurio.registry.storage.RegistryStorage#createOrReplaceArtifactBranch(io.apicurio.registry.model.GA, io.apicurio.registry.model.BranchId, java.util.List)
-     */
     @Override
-    public void createOrReplaceArtifactBranch(GA ga, BranchId branchId, List<VersionId> versions) {
-        List<String> rawVersions = versions == null ? List.of() : versions.stream().map(v -> v.getRawVersionId()).collect(Collectors.toList());
-        var message = new CreateOrReplaceArtifactBranch3Message(ga.getRawGroupIdWithNull(), ga.getRawArtifactId(),
-                branchId.getRawBranchId(), rawVersions);
+    public void updateBranchMetaData(GA ga, BranchId branchId, EditableBranchMetaDataDto dto) {
+        var message = new UpdateBranchMetaData3Message(ga.getRawGroupIdWithNull(), ga.getRawArtifactId(), branchId.getRawBranchId(), dto);
         var uuid = ConcurrentUtil.get(submitter.submitMessage(message));
         coordinator.waitForResponse(uuid);
     }
 
+    @Override
+    public void replaceBranchVersions(GA ga, BranchId branchId, List<VersionId> versions) {
+        var message = new ReplaceBranchVersions3Message(ga.getRawGroupIdWithNull(), ga.getRawArtifactId(), branchId.getRawBranchId(),
+                versions.stream().map(VersionId::getRawVersionId).toList());
+        var uuid = ConcurrentUtil.get(submitter.submitMessage(message));
+        coordinator.waitForResponse(uuid);
+    }
+
+    @Override
+    public BranchMetaDataDto createBranch(GA ga, BranchId branchId, String description, List<String> versions) {
+        var message = new CreateBranch4Message(ga.getRawGroupIdWithNull(), ga.getRawArtifactId(), branchId.getRawBranchId(), description, versions);
+        var uuid = ConcurrentUtil.get(submitter.submitMessage(message));
+        return (BranchMetaDataDto) coordinator.waitForResponse(uuid);
+    }
+
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#deleteArtifactBranch(io.apicurio.registry.model.GA, io.apicurio.registry.model.BranchId)
+     * @see io.apicurio.registry.storage.RegistryStorage#deleteBranch(io.apicurio.registry.model.GA, io.apicurio.registry.model.BranchId)
      */
     @Override
-    public void deleteArtifactBranch(GA ga, BranchId branchId) {
-        var message = new DeleteArtifactBranch2Message(ga.getRawGroupIdWithNull(), ga.getRawArtifactId(), branchId.getRawBranchId());
+    public void deleteBranch(GA ga, BranchId branchId) {
+        var message = new DeleteBranch2Message(ga.getRawGroupIdWithNull(), ga.getRawArtifactId(), branchId.getRawBranchId());
         var uuid = ConcurrentUtil.get(submitter.submitMessage(message));
         coordinator.waitForResponse(uuid);
     }

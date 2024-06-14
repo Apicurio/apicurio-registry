@@ -15,7 +15,6 @@ import io.apicurio.registry.rest.v3.beans.ArtifactReference;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.types.ArtifactMediaTypes;
 import io.apicurio.registry.types.ArtifactState;
-import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.rest.client.auth.exception.NotAuthorizedException;
@@ -166,7 +165,7 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
         VersionContent versionContent = new VersionContent();
         createVersion.setContent(versionContent);
         versionContent.setContent(content);
-        versionContent.setContentType(ContentTypes.APPLICATION_JSON);
+        versionContent.setContentType(contentType);
 
         if (versionReferences != null) {
             var references = versionReferences.stream().map(r -> {

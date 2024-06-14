@@ -12,6 +12,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 
+import java.util.List;
+
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -19,20 +21,21 @@ import lombok.ToString;
 @Setter
 @EqualsAndHashCode(callSuper = false)
 @ToString
-public class DeleteArtifactBranch2Message extends AbstractMessage {
+public class CreateBranch4Message extends AbstractMessage {
 
     private String groupId;
     private String artifactId;
     private String branchId;
+    private String description;
+    private List<String> versions;
 
     /**
-     * @see io.apicurio.registry.storage.impl.kafkasql.KafkaSqlMessage#dispatchTo(io.apicurio.registry.storage.RegistryStorage)
+     * @see io.apicurio.registry.storage.impl.kafkasql.KafkaSqlMessage#dispatchTo(RegistryStorage)
      */
     @Override
     public Object dispatchTo(RegistryStorage storage) {
         GA ga = new GA(groupId, artifactId);
-        storage.deleteArtifactBranch(ga, new BranchId(branchId));
-        return null;
+        return storage.createBranch(ga, new BranchId(branchId), description, versions);
     }
 
 }

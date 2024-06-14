@@ -1,14 +1,13 @@
 package io.apicurio.registry.utils.impexp;
 
-import java.io.IOException;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipInputStream;
-
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import io.apicurio.registry.utils.IoUtil;
+
+import java.io.IOException;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
 public class EntityReader {
 
@@ -39,6 +38,8 @@ public class EntityReader {
             EntityType entityType = parseEntityType(path);
             if (entityType != null) {
                 switch (entityType) {
+                    case Artifact:
+                        return readArtifact(entry);
                     case ArtifactRule:
                         return readArtifactRule(entry);
                     case ArtifactVersion:
@@ -51,8 +52,8 @@ public class EntityReader {
                         return readGroup(entry);
                     case Comment:
                         return readComment(entry);
-                    case ArtifactBranch:
-                        return readArtifactBranch(entry);
+                    case Branch:
+                        return readBranch(entry);
                     case Manifest:
                         return readManifest(entry);
                 }
@@ -87,6 +88,10 @@ public class EntityReader {
         return readEntry(entry, GroupEntity.class);
     }
 
+    private ArtifactEntity readArtifact(ZipEntry entry) throws IOException {
+        return this.readEntry(entry, ArtifactEntity.class);
+    }
+
     private ArtifactVersionEntity readArtifactVersion(ZipEntry entry) throws IOException {
         return this.readEntry(entry, ArtifactVersionEntity.class);
     }
@@ -99,8 +104,8 @@ public class EntityReader {
         return this.readEntry(entry, CommentEntity.class);
     }
 
-    private ArtifactBranchEntity readArtifactBranch(ZipEntry entry) throws IOException {
-        return this.readEntry(entry, ArtifactBranchEntity.class);
+    private BranchEntity readBranch(ZipEntry entry) throws IOException {
+        return this.readEntry(entry, BranchEntity.class);
     }
 
     private GlobalRuleEntity readGlobalRule(ZipEntry entry) throws IOException {

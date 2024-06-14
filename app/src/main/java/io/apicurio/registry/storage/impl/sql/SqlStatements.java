@@ -5,7 +5,6 @@ import java.util.List;
 /**
  * Returns SQL statements used by the JDB artifactStore implementation.  There are different
  * implementations of this interface depending on the database being used.
- *
  */
 public interface SqlStatements {
 
@@ -16,15 +15,11 @@ public interface SqlStatements {
 
     /**
      * Returns true if the given exception represents a primary key violation.
-     *
-     * @param error
      */
     public boolean isPrimaryKeyViolation(Exception error);
 
     /**
      * Returns true if the given exception represents a foreign key violation.
-     *
-     * @param error
      */
     public boolean isForeignKeyViolation(Exception error);
 
@@ -40,9 +35,6 @@ public interface SqlStatements {
 
     /**
      * A sequence of statements needed to upgrade the DB from one version to another.
-     *
-     * @param fromVersion
-     * @param toVersion
      */
     public List<String> databaseUpgrade(int fromVersion, int toVersion);
 
@@ -123,9 +115,14 @@ public interface SqlStatements {
     public String selectArtifactVersionContentByGlobalId();
 
     /**
-     * A statement used to select all version #s for a given artifactId.
+     * A statement used to select all version numbers (only) for a given artifactId.
      */
     public String selectArtifactVersions();
+
+    /**
+     * A statement used to select non-disabled version numbers (only) for a given artifactId.
+     */
+    public String selectArtifactVersionsNotDisabled();
 
     /**
      * A statement used to select all versions for a given artifactId.
@@ -466,9 +463,11 @@ public interface SqlStatements {
 
     public String exportVersionComments();
 
+    public String exportArtifacts();
+
     public String exportArtifactVersions();
 
-    public String exportArtifactBranches();
+    public String exportBranches();
 
     /*
      * The next few statements support importing data into the DB.
@@ -483,8 +482,6 @@ public interface SqlStatements {
     public String importArtifactRule();
 
     public String importArtifactVersion();
-
-    public String importArtifactBranch();
 
     public String selectMaxContentId();
 
@@ -571,32 +568,29 @@ public interface SqlStatements {
 
     public String selectGAVByGlobalId();
 
-    public String selectArtifactBranches();
+    public String insertBranch();
 
-    public String selectArtifactBranchOrdered();
+    public String updateBranch();
 
-    public String selectArtifactBranchOrderedNotDisabled();
+    public String selectBranch();
 
-    public String insertArtifactBranch();
+    public String selectBranchVersionNumbers();
 
-    public String selectArtifactBranchTip();
+    public String selectBranchTip();
 
-    public String selectArtifactBranchTipNotDisabled();
+    public String selectBranchTipNotDisabled();
 
-    public String deleteArtifactBranch();
+    public String insertBranchVersion();
 
-    public String deleteVersionInArtifactBranches();
+    public String appendBranchVersion();
 
-    public String deleteAllArtifactBranchesInArtifact();
+    public String deleteBranchVersions();
 
-    public String deleteAllArtifactBranchesInGroup();
+    public String deleteBranch();
 
-    public String deleteAllArtifactBranches();
-
-    public String selectVersionsWithoutArtifactBranch();
+    public String deleteAllBranches();
 
     public String createDataSnapshot();
 
     public String restoreFromSnapshot();
-
 }

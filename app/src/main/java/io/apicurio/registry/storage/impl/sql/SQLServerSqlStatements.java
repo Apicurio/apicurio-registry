@@ -8,7 +8,6 @@ public class SQLServerSqlStatements extends CommonSqlStatements {
 
     /**
      * Constructor.
-     * @param config
      */
     public SQLServerSqlStatements() {
     }
@@ -38,7 +37,7 @@ public class SQLServerSqlStatements extends CommonSqlStatements {
     }
 
     /**
-     * @see io.apicurio.registry.storage.impl.sql.SqlStatements.core.storage.jdbc.ISqlStatements#isDatabaseInitialized()
+     * @see SqlStatements#isDatabaseInitialized()
      */
     @Override
     public String isDatabaseInitialized() {
@@ -126,14 +125,14 @@ public class SQLServerSqlStatements extends CommonSqlStatements {
     }
 
     @Override
-    public String selectArtifactBranchTip() {
+    public String selectBranchTip() {
         return "SELECT ab.groupId, ab.artifactId, ab.version FROM artifact_branches ab " +
                 "WHERE ab.groupId = ? AND ab.artifactId = ? AND ab.branchId = ? " +
                 "ORDER BY ab.branchOrder DESC OFFSET 0 ROWS FETCH NEXT 1 ROWS ONLY";
     }
 
     @Override
-    public String selectArtifactBranchTipNotDisabled() {
+    public String selectBranchTipNotDisabled() {
         return "SELECT ab.groupId, ab.artifactId, ab.version FROM artifact_branches ab " +
                 "JOIN versions v ON ab.groupId = v.groupId AND ab.artifactId = v.artifactId AND ab.version = v.version " +
                 "WHERE ab.groupId = ? AND ab.artifactId = ? AND ab.branchId = ? AND v.state != 'DISABLED' " +

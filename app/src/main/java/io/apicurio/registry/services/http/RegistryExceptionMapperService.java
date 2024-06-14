@@ -65,8 +65,8 @@ public class RegistryExceptionMapperService {
         map.put(ArtifactAlreadyExistsException.class, HTTP_CONFLICT);
         map.put(ArtifactNotFoundException.class, HTTP_NOT_FOUND);
         map.put(BadRequestException.class, HTTP_BAD_REQUEST);
-        map.put(ArtifactBranchNotFoundException.class, HTTP_NOT_FOUND);
-        map.put(ArtifactBranchAlreadyContainsVersionException.class, HTTP_CONFLICT);
+        map.put(BranchAlreadyExistsException.class, HTTP_CONFLICT);
+        map.put(BranchNotFoundException.class, HTTP_NOT_FOUND);
         map.put(ConfigPropertyNotFoundException.class, HTTP_NOT_FOUND);
         map.put(ConflictException.class, HTTP_CONFLICT);
         map.put(ContentNotFoundException.class, HTTP_NOT_FOUND);
@@ -74,6 +74,7 @@ public class RegistryExceptionMapperService {
         map.put(DownloadNotFoundException.class, HTTP_NOT_FOUND);
         map.put(ForbiddenException.class, HTTP_FORBIDDEN);
         map.put(GroupNotFoundException.class, HTTP_NOT_FOUND);
+        map.put(GroupAlreadyExistsException.class, HTTP_CONFLICT);
         map.put(InvalidArtifactIdException.class, HTTP_BAD_REQUEST);
         map.put(InvalidArtifactStateException.class, HTTP_BAD_REQUEST);
         map.put(InvalidVersionStateException.class, HTTP_BAD_REQUEST);
@@ -106,6 +107,7 @@ public class RegistryExceptionMapperService {
         map.put(UnprocessableSchemaException.class, HTTP_UNPROCESSABLE_ENTITY);
         map.put(ValidationException.class, HTTP_BAD_REQUEST);
         map.put(VersionAlreadyExistsException.class, HTTP_CONFLICT);
+        map.put(VersionAlreadyExistsOnBranchException.class, HTTP_CONFLICT);
         map.put(VersionNotFoundException.class, HTTP_NOT_FOUND);
 
         CODE_MAP = Collections.unmodifiableMap(map);

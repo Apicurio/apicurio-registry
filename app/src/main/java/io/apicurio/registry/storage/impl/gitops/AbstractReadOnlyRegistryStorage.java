@@ -1,19 +1,28 @@
 package io.apicurio.registry.storage.impl.gitops;
 
-import java.util.List;
-
 import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
 import io.apicurio.registry.exception.UnreachableCodeException;
 import io.apicurio.registry.model.BranchId;
 import io.apicurio.registry.model.GA;
-import io.apicurio.registry.model.GAV;
 import io.apicurio.registry.model.VersionId;
 import io.apicurio.registry.storage.RegistryStorage;
-import io.apicurio.registry.storage.dto.*;
+import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
+import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
+import io.apicurio.registry.storage.dto.BranchMetaDataDto;
+import io.apicurio.registry.storage.dto.CommentDto;
+import io.apicurio.registry.storage.dto.ContentWrapperDto;
+import io.apicurio.registry.storage.dto.DownloadContextDto;
+import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
+import io.apicurio.registry.storage.dto.EditableBranchMetaDataDto;
+import io.apicurio.registry.storage.dto.EditableGroupMetaDataDto;
+import io.apicurio.registry.storage.dto.EditableVersionMetaDataDto;
+import io.apicurio.registry.storage.dto.GroupMetaDataDto;
+import io.apicurio.registry.storage.dto.RuleConfigurationDto;
 import io.apicurio.registry.storage.error.RegistryStorageException;
 import io.apicurio.registry.storage.impexp.EntityInputStream;
 import io.apicurio.registry.types.RuleType;
-import io.apicurio.registry.utils.impexp.ArtifactBranchEntity;
+import io.apicurio.registry.utils.impexp.ArtifactEntity;
+import io.apicurio.registry.utils.impexp.BranchEntity;
 import io.apicurio.registry.utils.impexp.ArtifactRuleEntity;
 import io.apicurio.registry.utils.impexp.ArtifactVersionEntity;
 import io.apicurio.registry.utils.impexp.CommentEntity;
@@ -21,6 +30,8 @@ import io.apicurio.registry.utils.impexp.ContentEntity;
 import io.apicurio.registry.utils.impexp.GlobalRuleEntity;
 import io.apicurio.registry.utils.impexp.GroupEntity;
 import org.apache.commons.lang3.tuple.Pair;
+
+import java.util.List;
 
 public abstract class AbstractReadOnlyRegistryStorage implements RegistryStorage {
 
@@ -283,6 +294,10 @@ public abstract class AbstractReadOnlyRegistryStorage implements RegistryStorage
         readOnlyViolation();
     }
 
+    @Override
+    public void importArtifact(ArtifactEntity entity) {
+        readOnlyViolation();
+    }
 
     @Override
     public void importArtifactRule(ArtifactRuleEntity entity) {
@@ -291,7 +306,7 @@ public abstract class AbstractReadOnlyRegistryStorage implements RegistryStorage
 
 
     @Override
-    public void importArtifactBranch(ArtifactBranchEntity entity) {
+    public void importBranch(BranchEntity entity) {
         readOnlyViolation();
     }
 
@@ -322,21 +337,29 @@ public abstract class AbstractReadOnlyRegistryStorage implements RegistryStorage
         return 0;
     }
 
-
     @Override
-    public void createOrUpdateArtifactBranch(GAV gav, BranchId branchId) {
+    public void deleteBranch(GA ga, BranchId branchId) {
         readOnlyViolation();
     }
 
+    @Override
+    public BranchMetaDataDto createBranch(GA ga, BranchId branchId, String description, List<String> versions) {
+        readOnlyViolation();
+        return null;
+    }
 
     @Override
-    public void createOrReplaceArtifactBranch(GA ga, BranchId branchId, List<VersionId> versions) {
+    public void appendVersionToBranch(GA ga, BranchId branchId, VersionId version) {
         readOnlyViolation();
     }
 
+    @Override
+    public void replaceBranchVersions(GA ga, BranchId branchId, List<VersionId> versions) {
+        readOnlyViolation();
+    }
 
     @Override
-    public void deleteArtifactBranch(GA ga, BranchId branchId) {
+    public void updateBranchMetaData(GA ga, BranchId branchId, EditableBranchMetaDataDto dto) {
         readOnlyViolation();
     }
 }

@@ -16,15 +16,17 @@ import io.apicurio.registry.storage.StorageBehaviorProperties;
 import io.apicurio.registry.storage.StorageEvent;
 import io.apicurio.registry.storage.StorageEventType;
 import io.apicurio.registry.storage.VersionStateExt;
-import io.apicurio.registry.storage.dto.ArtifactBranchDto;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
+import io.apicurio.registry.storage.dto.BranchMetaDataDto;
+import io.apicurio.registry.storage.dto.BranchSearchResultsDto;
 import io.apicurio.registry.storage.dto.CommentDto;
 import io.apicurio.registry.storage.dto.ContentWrapperDto;
 import io.apicurio.registry.storage.dto.DownloadContextDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
+import io.apicurio.registry.storage.dto.EditableBranchMetaDataDto;
 import io.apicurio.registry.storage.dto.EditableGroupMetaDataDto;
 import io.apicurio.registry.storage.dto.EditableVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.GroupMetaDataDto;
@@ -36,13 +38,15 @@ import io.apicurio.registry.storage.dto.RoleMappingSearchResultsDto;
 import io.apicurio.registry.storage.dto.RuleConfigurationDto;
 import io.apicurio.registry.storage.dto.SearchFilter;
 import io.apicurio.registry.storage.dto.SearchedArtifactDto;
+import io.apicurio.registry.storage.dto.SearchedBranchDto;
 import io.apicurio.registry.storage.dto.SearchedGroupDto;
 import io.apicurio.registry.storage.dto.SearchedVersionDto;
 import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
 import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
 import io.apicurio.registry.storage.error.ArtifactAlreadyExistsException;
-import io.apicurio.registry.storage.error.ArtifactBranchNotFoundException;
 import io.apicurio.registry.storage.error.ArtifactNotFoundException;
+import io.apicurio.registry.storage.error.BranchAlreadyExistsException;
+import io.apicurio.registry.storage.error.BranchNotFoundException;
 import io.apicurio.registry.storage.error.CommentNotFoundException;
 import io.apicurio.registry.storage.error.ContentAlreadyExistsException;
 import io.apicurio.registry.storage.error.ContentNotFoundException;
@@ -56,18 +60,20 @@ import io.apicurio.registry.storage.error.RoleMappingNotFoundException;
 import io.apicurio.registry.storage.error.RuleAlreadyExistsException;
 import io.apicurio.registry.storage.error.RuleNotFoundException;
 import io.apicurio.registry.storage.error.VersionAlreadyExistsException;
+import io.apicurio.registry.storage.error.VersionAlreadyExistsOnBranchException;
 import io.apicurio.registry.storage.error.VersionNotFoundException;
 import io.apicurio.registry.storage.impexp.EntityInputStream;
 import io.apicurio.registry.storage.impl.sql.jdb.Handle;
 import io.apicurio.registry.storage.impl.sql.jdb.Query;
 import io.apicurio.registry.storage.impl.sql.jdb.RowMapper;
-import io.apicurio.registry.storage.impl.sql.mappers.ArtifactBranchDtoMapper;
-import io.apicurio.registry.storage.impl.sql.mappers.ArtifactBranchEntityMapper;
+import io.apicurio.registry.storage.impl.sql.mappers.ArtifactEntityMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.ArtifactMetaDataDtoMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.ArtifactReferenceDtoMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.ArtifactRuleEntityMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.ArtifactVersionEntityMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.ArtifactVersionMetaDataDtoMapper;
+import io.apicurio.registry.storage.impl.sql.mappers.BranchEntityMapper;
+import io.apicurio.registry.storage.impl.sql.mappers.BranchMetaDataDtoMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.CommentDtoMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.CommentEntityMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.ContentEntityMapper;
@@ -80,9 +86,11 @@ import io.apicurio.registry.storage.impl.sql.mappers.GroupMetaDataDtoMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.RoleMappingDtoMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.RuleConfigurationDtoMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.SearchedArtifactMapper;
+import io.apicurio.registry.storage.impl.sql.mappers.SearchedBranchMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.SearchedGroupMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.SearchedVersionMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.StoredArtifactMapper;
+import io.apicurio.registry.storage.impl.sql.mappers.StringMapper;
 import io.apicurio.registry.storage.importing.DataImporter;
 import io.apicurio.registry.storage.importing.SqlDataImporter;
 import io.apicurio.registry.types.ArtifactState;
@@ -90,9 +98,10 @@ import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.DtoUtil;
 import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.StringUtil;
-import io.apicurio.registry.utils.impexp.ArtifactBranchEntity;
+import io.apicurio.registry.utils.impexp.ArtifactEntity;
 import io.apicurio.registry.utils.impexp.ArtifactRuleEntity;
 import io.apicurio.registry.utils.impexp.ArtifactVersionEntity;
+import io.apicurio.registry.utils.impexp.BranchEntity;
 import io.apicurio.registry.utils.impexp.CommentEntity;
 import io.apicurio.registry.utils.impexp.ContentEntity;
 import io.apicurio.registry.utils.impexp.Entity;
@@ -103,7 +112,6 @@ import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.enterprise.event.Event;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
-import jakarta.validation.ValidationException;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -113,18 +121,13 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -132,7 +135,6 @@ import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
-import static io.apicurio.registry.storage.RegistryStorage.ArtifactRetrievalBehavior.DEFAULT;
 import static io.apicurio.registry.storage.impl.sql.RegistryStorageContentUtils.notEmpty;
 import static io.apicurio.registry.storage.impl.sql.SqlUtil.normalizeGroupId;
 import static io.apicurio.registry.utils.StringUtil.asLowerCase;
@@ -586,12 +588,14 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                     .bind(6, limitStr(metaData.getDescription(), 1024, true))
                     .bind(7, owner)
                     .bind(8, createdOn)
-                    .bind(9, labelsStr)
-                    .bind(10, contentId)
+                    .bind(9, owner)
+                    .bind(10, createdOn)
+                    .bind(11, labelsStr)
+                    .bind(12, contentId)
                     .execute();
 
             gav = new GAV(groupId, artifactId, finalVersion1);
-            createOrUpdateArtifactBranchRaw(handle, gav, BranchId.LATEST);
+            createOrUpdateBranchRaw(handle, gav, BranchId.LATEST, true);
         } else {
             handle.createUpdate(sqlStatements.insertVersion(false))
                     .bind(0, globalId)
@@ -605,8 +609,10 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                     .bind(8, limitStr(metaData.getDescription(), 1024, true))
                     .bind(9, owner)
                     .bind(10, createdOn)
-                    .bind(11, labelsStr)
-                    .bind(12, contentId)
+                    .bind(11, owner)
+                    .bind(12, createdOn)
+                    .bind(13, labelsStr)
+                    .bind(14, contentId)
                     .execute();
 
             // If version is null, update the row we just inserted to set the version to the generated versionOrder
@@ -617,7 +623,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             }
 
             gav = getGAVByGlobalId(globalId);
-            createOrUpdateArtifactBranchRaw(handle, gav, BranchId.LATEST);
+            createOrUpdateBranchRaw(handle, gav, BranchId.LATEST, true);
         }
 
         // Insert labels into the "version_labels" table
@@ -635,7 +641,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         if (branches != null && !branches.isEmpty()) {
             branches.forEach(branch -> {
                 BranchId branchId = new BranchId(branch);
-                createOrUpdateArtifactBranchRaw(handle, gav, branchId);
+                createOrUpdateBranchRaw(handle, gav, branchId, false);
             });
         }
 
@@ -1073,15 +1079,16 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     public ArtifactMetaDataDto getArtifactMetaData(String groupId, String artifactId) throws ArtifactNotFoundException, RegistryStorageException {
         log.debug("Selecting artifact meta-data: {} {}", groupId, artifactId);
 
-        return handles.withHandle(handle -> {
-            Optional<ArtifactMetaDataDto> res = handle.createQuery(sqlStatements.selectArtifactMetaData())
-                    .bind(0, normalizeGroupId(groupId))
-                    .bind(1, artifactId)
-                    .map(ArtifactMetaDataDtoMapper.instance)
-                    .findOne();
-            return res.orElseThrow(() -> new ArtifactNotFoundException(groupId, artifactId));
-        });
+        return handles.withHandle(handle -> getArtifactMetaDataRaw(handle, groupId, artifactId));
+    }
 
+    protected ArtifactMetaDataDto getArtifactMetaDataRaw(Handle handle, String groupId, String artifactId) throws ArtifactNotFoundException, RegistryStorageException {
+        Optional<ArtifactMetaDataDto> res = handle.createQuery(sqlStatements.selectArtifactMetaData())
+                .bind(0, normalizeGroupId(groupId))
+                .bind(1, artifactId)
+                .map(ArtifactMetaDataDtoMapper.instance)
+                .findOne();
+        return res.orElseThrow(() -> new ArtifactNotFoundException(groupId, artifactId));
     }
 
     /**
@@ -1381,18 +1388,43 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
 
     @Override
-    public List<String> getArtifactVersions(String groupId, String artifactId, ArtifactRetrievalBehavior behavior)
+    public List<String> getArtifactVersions(String groupId, String artifactId, RetrievalBehavior behavior)
             throws ArtifactNotFoundException, RegistryStorageException {
         log.debug("Getting a list of versions for artifact: {} {}", groupId, artifactId);
 
         try {
-            return getArtifactBranch(new GA(groupId, artifactId), BranchId.LATEST, behavior)
-                    .stream()
-                    .map(GAV::getRawVersionId)
-                    .collect(toList());
-        } catch (ArtifactBranchNotFoundException ex) {
+            switch (behavior) {
+                case DEFAULT -> {
+                    return getArtifactVersions(groupId, artifactId, sqlStatements.selectArtifactVersions());
+                }
+                case SKIP_DISABLED_LATEST -> {
+                    return getArtifactVersions(groupId, artifactId, sqlStatements.selectArtifactVersionsNotDisabled());
+                }
+            }
+        } catch (BranchNotFoundException ex) {
             throw new ArtifactNotFoundException(groupId, artifactId);
         }
+        throw new UnsupportedOperationException("Retrieval behavior not implemented: " + behavior.name());
+    }
+
+    public List<String> getArtifactVersions(String groupId, String artifactId, String sqlStatement)
+            throws ArtifactNotFoundException, RegistryStorageException {
+        log.debug("Getting a list of versions for artifact: {} {}", groupId, artifactId);
+        return handles.withHandle(handle -> {
+            List<String> versions = handle.createQuery(sqlStatement)
+                    .bind(0, normalizeGroupId(groupId))
+                    .bind(1, artifactId)
+                    .map(StringMapper.instance)
+                    .list();
+
+            // If there aren't any versions, it might be because the artifact does not exist
+            if (versions.isEmpty()) {
+                if (!isArtifactExists(groupId, artifactId)) {
+                    throw new ArtifactNotFoundException(groupId, artifactId);
+                }
+            }
+            return versions;
+        });
     }
 
     @Override
@@ -1522,14 +1554,14 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                 limitOffset.append(" LIMIT ? OFFSET ?");
             }
 
-            // Query for the group
-            String groupsQuerySql = new StringBuilder(selectTemplate)
+            // Query for the versions
+            String versionsQuerySql = new StringBuilder(selectTemplate)
                     .append(where)
                     .append(orderByQuery)
                     .append(limitOffset)
                     .toString()
                     .replace("{{selectColumns}}", "v.*, a.type");
-            Query groupsQuery = handle.createQuery(groupsQuerySql);
+            Query versionsQuery = handle.createQuery(versionsQuerySql);
             // Query for the total row count
             String countQuerySql = new StringBuilder(selectTemplate)
                     .append(where)
@@ -1540,15 +1572,15 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             // Bind all query parameters
             int idx = 0;
             for (SqlStatementVariableBinder binder : binders) {
-                binder.bind(groupsQuery, idx);
+                binder.bind(versionsQuery, idx);
                 binder.bind(countQuery, idx);
                 idx++;
             }
-            groupsQuery.bind(idx++, limit);
-            groupsQuery.bind(idx++, offset);
+            versionsQuery.bind(idx++, limit);
+            versionsQuery.bind(idx++, offset);
 
             // Execute query
-            List<SearchedVersionDto> versions = groupsQuery.map(SearchedVersionMapper.instance).list();
+            List<SearchedVersionDto> versions = versionsQuery.map(SearchedVersionMapper.instance).list();
             // Execute count query
             Integer count = countQuery.mapTo(Integer.class).one();
 
@@ -1597,15 +1629,6 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     public void deleteArtifactVersion(String groupId, String artifactId, String version)
             throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
         log.debug("Deleting version {} of artifact {} {}", version, groupId, artifactId);
-
-        //For deleting artifact versions we need to list always every single version, including disabled ones.
-        List<String> versions = getArtifactVersions(groupId, artifactId, DEFAULT);
-
-        // If there is only one version, but it's not the version being deleted, then
-        // we can't find the version to delete!  This is an optimization.
-        if (versions.size() == 1 && !versions.iterator().next().equals(version)) {
-            throw new VersionNotFoundException(groupId, artifactId, version);
-        }
 
         handles.withHandle(handle -> {
             // Delete version
@@ -2232,6 +2255,20 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             return null;
         });
 
+        // Export all artifacts
+        /////////////////////////////////
+        handles.withHandle(handle -> {
+            Stream<ArtifactEntity> stream = handle.createQuery(sqlStatements.exportArtifacts())
+                    .setFetchSize(50)
+                    .map(ArtifactEntityMapper.instance)
+                    .stream();
+            // Process and then close the stream.
+            try (stream) {
+                stream.forEach(handler::apply);
+            }
+            return null;
+        });
+
         // Export all artifact versions
         /////////////////////////////////
         handles.withHandle(handle -> {
@@ -2260,16 +2297,19 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             return null;
         });
 
-        // Export all artifact branches
+        // Export all branches
         /////////////////////////////////
         handles.withHandle(handle -> {
-            Stream<ArtifactBranchEntity> stream = handle.createQuery(sqlStatements.exportArtifactBranches())
+            Stream<BranchEntity> stream = handle.createQuery(sqlStatements.exportBranches())
                     .setFetchSize(50)
-                    .map(ArtifactBranchEntityMapper.instance)
+                    .map(BranchEntityMapper.instance)
                     .stream();
             // Process and then close the stream.
             try (stream) {
-                stream.forEach(handler::apply);
+                stream.forEach(branch -> {
+                    branch.versions = getBranchVersionNumbersRaw(handle, branch.toGA(), branch.toBranchId());
+                    handler.apply(branch);
+                });
             }
             return null;
         });
@@ -2546,7 +2586,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             handle.createUpdate(sqlStatements.deleteAllVersionComments())
                     .execute();
 
-            handle.createUpdate(sqlStatements.deleteAllArtifactBranches())
+            handle.createUpdate(sqlStatements.deleteAllBranches())
                     .execute();
 
             handle.createUpdate(sqlStatements.deleteAllVersions())
@@ -2777,8 +2817,14 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                 binder.bind(countQuery, idx);
                 idx++;
             }
-            groupsQuery.bind(idx++, limit);
-            groupsQuery.bind(idx++, offset);
+            // TODO find a better way to swap arguments
+            if ("mssql".equals(sqlStatements.dbType())) {
+                groupsQuery.bind(idx++, offset);
+                groupsQuery.bind(idx++, limit);
+            } else {
+                groupsQuery.bind(idx++, limit);
+                groupsQuery.bind(idx++, offset);
+            }
 
             // Execute query
             List<SearchedGroupDto> groups = groupsQuery.map(SearchedGroupMapper.instance).list();
@@ -2917,10 +2963,8 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     @Override
     @Transactional
     public void importArtifactRule(ArtifactRuleEntity entity) {
-
         handles.withHandleNoException(handle -> {
             if (isArtifactExists(entity.groupId, entity.artifactId)) {
-
                 handle.createUpdate(sqlStatements.importArtifactRule())
                         .bind(0, normalizeGroupId(entity.groupId))
                         .bind(1, entity.artifactId)
@@ -2934,12 +2978,9 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         });
     }
 
-
     @Override
-    @Transactional
-    public void importArtifactVersion(ArtifactVersionEntity entity) {
+    public void importArtifact(ArtifactEntity entity) {
         handles.withHandleNoException(handle -> {
-
             if (!isArtifactExists(entity.groupId, entity.artifactId)) {
                 String labelsStr = SqlUtil.serializeLabels(entity.labels);
                 handle.createUpdate(sqlStatements.insertArtifact())
@@ -2948,16 +2989,42 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                         .bind(2, entity.artifactType)
                         .bind(3, entity.owner)
                         .bind(4, new Date(entity.createdOn))
-                        .bind(5, entity.owner) // modifiedBy
-                        .bind(6, new Date(entity.createdOn)) // modifiedOn
+                        .bind(5, entity.modifiedBy)
+                        .bind(6, new Date(entity.modifiedOn))
                         .bind(7, entity.name)
                         .bind(8, entity.description)
-                        .bind(9,  labelsStr)
+                        .bind(9, labelsStr)
                         .execute();
+
+                // Insert labels into the "artifact_labels" table
+                if (entity.labels != null && !entity.labels.isEmpty()) {
+                    entity.labels.forEach((k, v) -> {
+                        handle.createUpdate(sqlStatements.insertArtifactLabel())
+                                .bind(0, normalizeGroupId(entity.groupId))
+                                .bind(1, entity.artifactId)
+                                .bind(2, k.toLowerCase())
+                                .bind(3, v.toLowerCase())
+                                .execute();
+                    });
+                }
+            } else {
+                throw new ArtifactAlreadyExistsException(entity.groupId, entity.artifactId);
             }
+            return null;
+        });
+    }
 
+    @Override
+    @Transactional
+    public void importArtifactVersion(ArtifactVersionEntity entity) {
+        handles.withHandleNoException(handle -> {
+            if (!isArtifactExists(entity.groupId, entity.artifactId)) {
+                throw new ArtifactNotFoundException(entity.groupId, entity.artifactId);
+            }
+            if (isGlobalIdExists(entity.globalId)) {
+                throw new VersionAlreadyExistsException(entity.globalId);
+            }
             if (!isGlobalIdExists(entity.globalId)) {
-
                 handle.createUpdate(sqlStatements.importArtifactVersion())
                         .bind(0, entity.globalId)
                         .bind(1, normalizeGroupId(entity.groupId))
@@ -2969,8 +3036,10 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                         .bind(7, entity.description)
                         .bind(8, entity.owner)
                         .bind(9, new Date(entity.createdOn))
-                        .bind(10, SqlUtil.serializeLabels(entity.labels))
-                        .bind(11, entity.contentId)
+                        .bind(10, entity.modifiedBy)
+                        .bind(11, new Date(entity.modifiedOn))
+                        .bind(12, SqlUtil.serializeLabels(entity.labels))
+                        .bind(13, entity.contentId)
                         .execute();
 
                 // Insert labels into the "version_labels" table
@@ -3044,6 +3113,18 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                         .bind(6, new Date(entity.modifiedOn))
                         .bind(7, SqlUtil.serializeLabels(entity.labels))
                         .execute();
+
+                // Insert labels into the "group_labels" table
+                if (entity.labels != null && !entity.labels.isEmpty()) {
+                    entity.labels.forEach((k, v) -> {
+                        handle.createUpdate(sqlStatements.insertGroupLabel())
+                                .bind(0, normalizeGroupId(entity.groupId))
+                                .bind(1, k.toLowerCase())
+                                .bind(2, v.toLowerCase())
+                                .execute();
+                    });
+                }
+
                 return null;
             });
         } else {
@@ -3238,175 +3319,448 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
     @Override
     @Transactional
-    public Map<BranchId, List<GAV>> getArtifactBranches(GA ga) {
-
-        var data1 = handles.withHandleNoException(handle -> {
-
-            if (!isArtifactExists(ga.getRawGroupIdWithDefaultString(), ga.getRawArtifactId())) {
-                throw new ArtifactNotFoundException(ga.getRawGroupIdWithDefaultString(), ga.getRawArtifactId());
-            }
-
-            return handle.createQuery(sqlStatements.selectArtifactBranches())
-                    .bind(0, ga.getRawGroupId())
-                    .bind(1, ga.getRawArtifactId())
-                    .map(ArtifactBranchDtoMapper.instance)
-                    .list();
-        });
-
-        var data2 = new HashMap<BranchId, List<ArtifactBranchDto>>();
-        for (ArtifactBranchDto dto : data1) {
-            data2.compute(new BranchId(dto.getBranchId()), (_ignored, v) -> {
-                if (v == null) {
-                    var initial = new ArrayList<ArtifactBranchDto>();
-                    initial.add(dto);
-                    return initial;
-                } else {
-                    v.add(dto);
-                    return v;
-                }
-            });
-        }
-
-        var data3 = new HashMap<BranchId, List<GAV>>();
-        for (Entry<BranchId, List<ArtifactBranchDto>> entry : data2.entrySet()) {
-            data3.put(entry.getKey(), entry.getValue().stream()
-                    .sorted(Comparator.comparingInt(ArtifactBranchDto::getBranchOrder).reversed()) // Highest first
-                    .map(ArtifactBranchDto::toGAV)
-                    .collect(toList()));
-        }
-
-        return data3;
-    }
-
-
-    @Override
-    @Transactional
-    public List<GAV> getArtifactBranch(GA ga, BranchId branchId, ArtifactRetrievalBehavior behavior) {
-
-        String sql;
-        switch (behavior) {
-            case DEFAULT:
-                sql = sqlStatements.selectArtifactBranchOrdered();
-                break;
-            case SKIP_DISABLED_LATEST:
-                sql = sqlStatements.selectArtifactBranchOrderedNotDisabled();
-                break;
-            default:
-                throw new UnreachableCodeException();
-        }
-        var finalSql = sql;
-
-        var res = handles.withHandleNoException(handle -> {
-
-            return handle.createQuery(finalSql)
-                    .bind(0, ga.getRawGroupId())
-                    .bind(1, ga.getRawArtifactId())
-                    .bind(2, branchId.getRawBranchId())
-                    .map(ArtifactBranchDtoMapper.instance)
-                    .list()
-                    .stream()
-                    .map(ArtifactBranchDto::toGAV)
-                    .collect(toList());
-        });
-
-        if (res.isEmpty()) {
-            throw new ArtifactBranchNotFoundException(ga, branchId);
-        }
-
-        return res;
-    }
-
-
-    @Override
-    @Transactional
-    public void createOrUpdateArtifactBranch(GAV gav, BranchId branchId) {
-        if (BranchId.LATEST.equals(branchId)) {
-            throw new NotAllowedException("Artifact branch 'latest' cannot be updated.");
-        }
-        handles.withHandleNoException(handle -> {
-            createOrUpdateArtifactBranchRaw(handle, gav, branchId);
-        });
-    }
-
-
-    /**
-     * IMPORTANT: Private methods can't be @Transactional. Callers MUST have started a transaction.
-     */
-    private void createOrUpdateArtifactBranchRaw(Handle handle, GAV gav, BranchId branchId) {
+    public BranchMetaDataDto createBranch(GA ga, BranchId branchId, String description, List<String> versions) {
         try {
-            handle.createUpdate(sqlStatements.insertArtifactBranch())
-                    .bind(0, gav.getRawGroupId())
-                    .bind(1, gav.getRawArtifactId())
-                    .bind(2, branchId.getRawBranchId())
-                    .bind(3, gav.getRawVersionId())
-                    .bind(4, gav.getRawGroupId())
-                    .bind(5, gav.getRawArtifactId())
-                    .bind(6, branchId.getRawBranchId())
-                    .execute();
+            String user = securityIdentity.getPrincipal().getName();
+            Date now = new Date();
+
+            handles.withHandle(handle -> {
+                // Insert a row into the groups table
+                handle.createUpdate(sqlStatements.insertBranch())
+                        .bind(0, ga.getRawGroupId())
+                        .bind(1, ga.getRawArtifactId())
+                        .bind(2, branchId.getRawBranchId())
+                        .bind(3, description)
+                        .bind(4, false)
+                        .bind(5, user)
+                        .bind(6, now)
+                        .bind(7, user)
+                        .bind(8, now)
+                        .execute();
+
+                // Append each of the versions onto the branch
+                if (versions != null) {
+                    versions.forEach(version -> {
+                        appendVersionToBranchRaw(handle, ga, branchId, new VersionId(version));
+                    });
+                }
+
+                return null;
+            });
+
+            return BranchMetaDataDto.builder()
+                    .groupId(ga.getRawGroupId())
+                    .artifactId(ga.getRawArtifactId())
+                    .branchId(branchId.getRawBranchId())
+                    .description(description)
+                    .owner(user)
+                    .createdOn(now.getTime())
+                    .modifiedBy(user)
+                    .modifiedOn(now.getTime())
+                    .build();
         } catch (Exception ex) {
-            if (sqlStatements.isForeignKeyViolation(ex)) {
-                throw new VersionNotFoundException(gav, ex);
+            if (sqlStatements.isPrimaryKeyViolation(ex)) {
+                throw new BranchAlreadyExistsException(ga.getRawGroupIdWithDefaultString(), ga.getRawArtifactId(), branchId.getRawBranchId());
             }
             throw ex;
         }
     }
 
+    @Override
+    @Transactional
+    public void updateBranchMetaData(GA ga, BranchId branchId, EditableBranchMetaDataDto dto) {
+        String modifiedBy = securityIdentity.getPrincipal().getName();
+        Date modifiedOn = new Date();
+        log.debug("Updating metadata for branch {} of {}/{}.", branchId, ga.getRawGroupIdWithNull(), ga.getRawArtifactId());
+
+        handles.withHandleNoException(handle -> {
+            // Update the row in the groups table
+            int rows = handle.createUpdate(sqlStatements.updateBranch())
+                    .bind(0, dto.getDescription())
+                    .bind(1, modifiedBy)
+                    .bind(2, modifiedOn)
+                    .bind(3, ga.getRawGroupId())
+                    .bind(4, ga.getRawArtifactId())
+                    .bind(5, branchId.getRawBranchId())
+                    .execute();
+            if (rows == 0) {
+                throw new BranchNotFoundException(ga.getRawGroupIdWithDefaultString(), ga.getRawArtifactId(), branchId.getRawBranchId());
+            }
+
+            return null;
+        });
+    }
+
+    @Override
+    public BranchSearchResultsDto getBranches(GA ga, int offset, int limit) {
+        return handles.withHandleNoException(handle -> {
+            List<SqlStatementVariableBinder> binders = new LinkedList<>();
+
+            StringBuilder selectTemplate = new StringBuilder();
+            StringBuilder where = new StringBuilder();
+            StringBuilder orderByQuery = new StringBuilder();
+            StringBuilder limitOffset = new StringBuilder();
+
+            // Formulate the SELECT clause for the artifacts query
+            selectTemplate.append("SELECT {{selectColumns}} FROM branches b ");
+
+            // Formulate the WHERE clause for both queries
+            where.append(" WHERE b.groupId = ? AND b.artifactId = ?");
+            binders.add((query, idx) -> {
+                query.bind(idx, ga.getRawGroupId());
+            });
+            binders.add((query, idx) -> {
+                query.bind(idx, ga.getRawArtifactId());
+            });
+
+            // Add order by to artifact query
+            orderByQuery.append(" ORDER BY b.branchId ASC");
+
+            // Add limit and offset to query
+            if ("mssql".equals(sqlStatements.dbType())) {
+                limitOffset.append(" OFFSET ? ROWS FETCH NEXT ? ROWS ONLY");
+            } else {
+                limitOffset.append(" LIMIT ? OFFSET ?");
+            }
+
+            // Query for the branc
+            String branchesQuerySql = new StringBuilder(selectTemplate)
+                    .append(where)
+                    .append(orderByQuery)
+                    .append(limitOffset)
+                    .toString()
+                    .replace("{{selectColumns}}", "*");
+            Query branchesQuery = handle.createQuery(branchesQuerySql);
+            // Query for the total row count
+            String countQuerySql = new StringBuilder(selectTemplate)
+                    .append(where)
+                    .toString()
+                    .replace("{{selectColumns}}", "count(b.branchId)");
+            Query countQuery = handle.createQuery(countQuerySql);
+
+            // Bind all query parameters
+            int idx = 0;
+            for (SqlStatementVariableBinder binder : binders) {
+                binder.bind(branchesQuery, idx);
+                binder.bind(countQuery, idx);
+                idx++;
+            }
+            // TODO find a better way to swap arguments
+            if ("mssql".equals(sqlStatements.dbType())) {
+                branchesQuery.bind(idx++, offset);
+                branchesQuery.bind(idx++, limit);
+            } else {
+                branchesQuery.bind(idx++, limit);
+                branchesQuery.bind(idx++, offset);
+            }
+
+            // Execute query
+            List<SearchedBranchDto> branches = branchesQuery.map(SearchedBranchMapper.instance).list();
+            // Execute count query
+            Integer count = countQuery.mapTo(Integer.class).one();
+
+            // If no branches are found, it might be because the artifact does not exist.  We
+            // need to check for that here.
+            getArtifactMetaDataRaw(handle, ga.getRawGroupIdWithNull(), ga.getRawArtifactId());
+
+            BranchSearchResultsDto results = new BranchSearchResultsDto();
+            results.setBranches(branches);
+            results.setCount(count);
+            return results;
+        });
+    }
+
+    @Override
+    public BranchMetaDataDto getBranchMetaData(GA ga, BranchId branchId) {
+        return handles.withHandle(handle -> {
+            Optional<BranchMetaDataDto> res = handle.createQuery(sqlStatements.selectBranch())
+                    .bind(0, ga.getRawGroupId())
+                    .bind(1, ga.getRawArtifactId())
+                    .bind(2, branchId.getRawBranchId())
+                    .map(BranchMetaDataDtoMapper.instance)
+                    .findOne();
+            return res.orElseThrow(() -> new BranchNotFoundException(ga.getRawGroupIdWithDefaultString(), ga.getRawArtifactId(), branchId.getRawBranchId()));
+        });
+    }
+
+    protected List<String> getBranchVersionNumbersRaw(Handle handle, GA ga, BranchId branchId) {
+        return handle.createQuery(sqlStatements.selectBranchVersionNumbers())
+                .bind(0, ga.getRawGroupId())
+                .bind(1, ga.getRawArtifactId())
+                .bind(2, branchId.getRawBranchId())
+                .map(StringMapper.instance)
+                .list();
+    }
+
+    @Override
+    public VersionSearchResultsDto getBranchVersions(GA ga, BranchId branchId, int offset, int limit) {
+        return handles.withHandleNoException(handle -> {
+            List<SqlStatementVariableBinder> binders = new LinkedList<>();
+
+            StringBuilder selectTemplate = new StringBuilder();
+            StringBuilder where = new StringBuilder();
+            StringBuilder orderByQuery = new StringBuilder();
+            StringBuilder limitOffset = new StringBuilder();
+
+            // Formulate the SELECT clause for the artifacts query
+            selectTemplate.append("SELECT {{selectColumns}} FROM branch_versions bv " +
+                    "JOIN versions v ON bv.groupId = v.groupId AND bv.artifactId = v.artifactId AND bv.version = v.version " +
+                    "JOIN artifacts a ON a.groupId = v.groupId AND a.artifactId = v.artifactId ");
+
+            // Formulate the WHERE clause for both queries
+            where.append(" WHERE bv.groupId = ? AND bv.artifactId = ? AND bv.branchId = ?");
+            binders.add((query, idx) -> {
+                query.bind(idx, ga.getRawGroupId());
+            });
+            binders.add((query, idx) -> {
+                query.bind(idx, ga.getRawArtifactId());
+            });
+            binders.add((query, idx) -> {
+                query.bind(idx, branchId.getRawBranchId());
+            });
+
+            // Add order by to artifact query
+            orderByQuery.append(" ORDER BY bv.branchOrder DESC");
+
+            // Add limit and offset to artifact query
+            if ("mssql".equals(sqlStatements.dbType())) {
+                limitOffset.append(" OFFSET ? ROWS FETCH NEXT ? ROWS ONLY");
+            } else {
+                limitOffset.append(" LIMIT ? OFFSET ?");
+            }
+
+            // Query for the versions
+            String versionsQuerySql = new StringBuilder(selectTemplate)
+                    .append(where)
+                    .append(orderByQuery)
+                    .append(limitOffset)
+                    .toString()
+                    .replace("{{selectColumns}}", "v.*, a.type");
+            Query versionsQuery = handle.createQuery(versionsQuerySql);
+            // Query for the total row count
+            String countQuerySql = new StringBuilder(selectTemplate)
+                    .append(where)
+                    .toString()
+                    .replace("{{selectColumns}}", "count(v.globalId)");
+            Query countQuery = handle.createQuery(countQuerySql);
+
+            // Bind all query parameters
+            int idx = 0;
+            for (SqlStatementVariableBinder binder : binders) {
+                binder.bind(versionsQuery, idx);
+                binder.bind(countQuery, idx);
+                idx++;
+            }
+
+            // Bind the limit and offset
+            // TODO find a better way to swap arguments
+            if ("mssql".equals(sqlStatements.dbType())) {
+                versionsQuery.bind(idx++, offset);
+                versionsQuery.bind(idx, limit);
+            } else {
+                versionsQuery.bind(idx++, limit);
+                versionsQuery.bind(idx, offset);
+            }
+
+            // Execute query
+            List<SearchedVersionDto> versions = versionsQuery.map(SearchedVersionMapper.instance).list();
+            // Execute count query
+            Integer count = countQuery.mapTo(Integer.class).one();
+
+            VersionSearchResultsDto results = new VersionSearchResultsDto();
+            results.setVersions(versions);
+            results.setCount(count);
+            return results;
+        });
+    }
 
     @Override
     @Transactional
-    public void createOrReplaceArtifactBranch(GA ga, BranchId branchId, List<VersionId> versions) {
-        if (BranchId.LATEST.equals(branchId)) {
-            throw new NotAllowedException("Artifact branch 'latest' cannot be replaced.");
+    public void appendVersionToBranch(GA ga, BranchId branchId, VersionId version) {
+        try {
+            handles.withHandle(handle -> {
+                appendVersionToBranchRaw(handle, ga, branchId, version);
+                return null;
+            });
+        } catch (Exception ex) {
+            if (sqlStatements.isPrimaryKeyViolation(ex)) {
+                throw new VersionAlreadyExistsOnBranchException(ga.getRawGroupIdWithDefaultString(), ga.getRawArtifactId(), version.getRawVersionId(), branchId.getRawBranchId());
+            }
+            throw ex;
         }
-        if (versions.isEmpty()) {
-            throw new ValidationException("Artifact branch replace operation requires at least one version. " +
-                    "Use the delete operation instead if this is intentional.");
-        }
+    }
 
-        handles.withHandleNoException(handle -> {
-
-            // Check that the versions actually exist before deleting
-
-            for (VersionId versionId : versions) {
-                if (!isArtifactVersionExists(ga.getRawGroupIdWithNull(), ga.getRawArtifactId(), versionId.getRawVersionId())) {
-                    throw new VersionNotFoundException(ga.getRawGroupIdWithNull(), ga.getRawArtifactId(), versionId.getRawVersionId());
-                }
-            }
-
-            try {
-                deleteArtifactBranchRaw(ga, branchId);
-            } catch (ArtifactBranchNotFoundException ignored) {
-                // Branch does not exist, it will be created
-            }
-
-            var reversed = new ArrayDeque<>(versions).descendingIterator();
-            while (reversed.hasNext()) {
-                createOrUpdateArtifactBranch(new GAV(ga, reversed.next()), branchId);
-            }
-
-            // Clean versions only *after* we successfully insert
-
-            var gavs = handle.createQuery(sqlStatements.selectVersionsWithoutArtifactBranch())
+    public void appendVersionToBranchRaw(Handle handle, GA ga, BranchId branchId, VersionId version) {
+        try {
+            // Insert a row into the groups table
+            handle.createUpdate(sqlStatements.appendBranchVersion())
                     .bind(0, ga.getRawGroupId())
                     .bind(1, ga.getRawArtifactId())
-                    .map(GAVMapper.instance)
-                    .list();
-
-            for (GAV gav : gavs) {
-                deleteArtifactVersion(gav.getRawGroupIdWithNull(), gav.getRawArtifactId(), gav.getRawVersionId());
+                    .bind(2, branchId.getRawBranchId())
+                    .bind(3, version.getRawVersionId())
+                    .bind(4, ga.getRawGroupId())
+                    .bind(5, ga.getRawArtifactId())
+                    .bind(6, branchId.getRawBranchId())
+                    .execute();
+        } catch (Exception ex) {
+            if (sqlStatements.isPrimaryKeyViolation(ex)) {
+                throw new VersionAlreadyExistsOnBranchException(ga.getRawGroupIdWithDefaultString(), ga.getRawArtifactId(), version.getRawVersionId(), branchId.getRawBranchId());
             }
+            if (sqlStatements.isForeignKeyViolation(ex)) {
+                throw new VersionNotFoundException(ga.getRawGroupIdWithDefaultString(), ga.getRawArtifactId(), version.getRawVersionId());
+            }
+            throw ex;
+        }
+    }
+
+    @Override
+    @Transactional
+    public void replaceBranchVersions(GA ga, BranchId branchId, List<VersionId> versions) {
+        handles.withHandle(handle -> {
+            // Delete all previous versions.
+            handle.createUpdate(sqlStatements.deleteBranchVersions())
+                    .bind(0, ga.getRawGroupId())
+                    .bind(1, ga.getRawArtifactId())
+                    .bind(2, branchId.getRawBranchId())
+                    .execute();
+
+            // Insert each version new
+            int branchOrder = 0;
+            for (VersionId version : versions) {
+                handle.createUpdate(sqlStatements.insertBranchVersion())
+                        .bind(0, ga.getRawGroupId())
+                        .bind(1, ga.getRawArtifactId())
+                        .bind(2, branchId.getRawBranchId())
+                        .bind(3, branchOrder++)
+                        .bind(4, version.getRawVersionId())
+                        .execute();
+            }
+            return null;
         });
+    }
+//
+//    @Override
+//    @Transactional
+//    public Map<BranchId, List<GAV>> getBranches(GA ga) {
+//
+//        var data1 = handles.withHandleNoException(handle -> {
+//
+//            if (!isArtifactExists(ga.getRawGroupIdWithDefaultString(), ga.getRawArtifactId())) {
+//                throw new ArtifactNotFoundException(ga.getRawGroupIdWithDefaultString(), ga.getRawArtifactId());
+//            }
+//
+//            return handle.createQuery(sqlStatements.selectBranches())
+//                    .bind(0, ga.getRawGroupId())
+//                    .bind(1, ga.getRawArtifactId())
+//                    .map(BranchDtoMapper.instance)
+//                    .list();
+//        });
+//
+//        var data2 = new HashMap<BranchId, List<BranchDto>>();
+//        for (BranchDto dto : data1) {
+//            data2.compute(new BranchId(dto.getBranchId()), (_ignored, v) -> {
+//                if (v == null) {
+//                    var initial = new ArrayList<BranchDto>();
+//                    initial.add(dto);
+//                    return initial;
+//                } else {
+//                    v.add(dto);
+//                    return v;
+//                }
+//            });
+//        }
+//
+//        var data3 = new HashMap<BranchId, List<GAV>>();
+//        for (Entry<BranchId, List<BranchDto>> entry : data2.entrySet()) {
+//            data3.put(entry.getKey(), entry.getValue().stream()
+//                    .sorted(Comparator.comparingInt(BranchDto::getBranchOrder).reversed()) // Highest first
+//                    .map(BranchDto::toGAV)
+//                    .collect(toList()));
+//        }
+//
+//        return data3;
+//    }
+//
+//
+//    @Override
+//    @Transactional
+//    public List<GAV> getBranch(GA ga, BranchId branchId, ArtifactRetrievalBehavior behavior) {
+//
+//        String sql;
+//        switch (behavior) {
+//            case DEFAULT:
+//                sql = sqlStatements.selectBranchOrdered();
+//                break;
+//            case SKIP_DISABLED_LATEST:
+//                sql = sqlStatements.selectBranchOrderedNotDisabled();
+//                break;
+//            default:
+//                throw new UnreachableCodeException();
+//        }
+//        var finalSql = sql;
+//
+//        var res = handles.withHandleNoException(handle -> {
+//
+//            return handle.createQuery(finalSql)
+//                    .bind(0, ga.getRawGroupId())
+//                    .bind(1, ga.getRawArtifactId())
+//                    .bind(2, branchId.getRawBranchId())
+//                    .map(BranchDtoMapper.instance)
+//                    .list()
+//                    .stream()
+//                    .map(BranchDto::toGAV)
+//                    .collect(toList());
+//        });
+//
+//        if (res.isEmpty()) {
+//            throw new BranchNotFoundException(ga, branchId);
+//        }
+//
+//        return res;
+//    }
+
+
+    /**
+     * This method ensures that the named branch exists for the version *and* also adds the
+     * version to that branch.
+     *
+     * IMPORTANT: Private methods can't be @Transactional. Callers MUST have started a transaction.
+     */
+    private void createOrUpdateBranchRaw(Handle handle, GAV gav, BranchId branchId, boolean systemDefined) {
+        // First make sure the branch exists.
+        try {
+            String user = securityIdentity.getPrincipal().getName();
+            Date now = new Date();
+
+            handle.createUpdate(sqlStatements.insertBranch())
+                    .bind(0, gav.getRawGroupId())
+                    .bind(1, gav.getRawArtifactId())
+                    .bind(2, branchId.getRawBranchId())
+                    .bind(3, (String) null)
+                    .bind(4, systemDefined)
+                    .bind(5, user)
+                    .bind(6, now)
+                    .bind(7, user)
+                    .bind(8, now)
+                    .execute();
+        } catch (Exception ex) {
+            if (!sqlStatements.isPrimaryKeyViolation(ex)) {
+                throw ex;
+            }
+        }
+
+        // Now add the version to it.
+        appendVersionToBranchRaw(handle, gav, branchId, gav.getVersionId());
     }
 
 
     @Override
     @Transactional
-    public GAV getArtifactBranchTip(GA ga, BranchId branchId, ArtifactRetrievalBehavior behavior) {
+    public GAV getBranchTip(GA ga, BranchId branchId, RetrievalBehavior behavior) {
         return handles.withHandleNoException(handle -> {
             switch (behavior) {
-
                 case DEFAULT:
-                    return handle.createQuery(sqlStatements.selectArtifactBranchTip())
+                    return handle.createQuery(sqlStatements.selectBranchTip())
                             .bind(0, ga.getRawGroupId())
                             .bind(1, ga.getRawArtifactId())
                             .bind(2, branchId.getRawBranchId())
@@ -3414,16 +3768,15 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                             .findOne()
                             .orElseThrow(() -> new VersionNotFoundException(ga.getRawGroupIdWithDefaultString(), ga.getRawArtifactId(),
                                     "<tip of the branch '" + branchId.getRawBranchId() + "'>"));
-
                 case SKIP_DISABLED_LATEST:
-                    return handle.createQuery(sqlStatements.selectArtifactBranchTipNotDisabled())
+                    return handle.createQuery(sqlStatements.selectBranchTipNotDisabled())
                             .bind(0, ga.getRawGroupId())
                             .bind(1, ga.getRawArtifactId())
                             .bind(2, branchId.getRawBranchId())
                             .map(GAVMapper.instance)
                             .findOne()
                             .orElseThrow(() -> new VersionNotFoundException(ga.getRawGroupIdWithDefaultString(), ga.getRawArtifactId(),
-                                    "<tip of the branch '" + branchId.getRawBranchId() + "' that does not  have disabled status>"));
+                                    "<tip of the branch '" + branchId.getRawBranchId() + "' that does not have disabled status>"));
             }
             throw new UnreachableCodeException();
         });
@@ -3444,23 +3797,22 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     }
 
 
-    /**
-     * Delete an artifact branch without version cleanup.
-     * <p>
-     * IMPORTANT: Private methods can't be @Transactional. Callers MUST have started a transaction.
-     */
-    private void deleteArtifactBranchRaw(GA ga, BranchId branchId) {
+    @Override
+    @Transactional
+    public void deleteBranch(GA ga, BranchId branchId) {
+        if (BranchId.LATEST.equals(branchId)) {
+            throw new NotAllowedException("Artifact branch 'latest' cannot be deleted.");
+        }
 
         handles.withHandleNoException(handle -> {
-
-            var affected = handle.createUpdate(sqlStatements.deleteArtifactBranch())
+            var affected = handle.createUpdate(sqlStatements.deleteBranch())
                     .bind(0, ga.getRawGroupId())
                     .bind(1, ga.getRawArtifactId())
                     .bind(2, branchId.getRawBranchId())
                     .execute();
 
             if (affected == 0) {
-                throw new ArtifactBranchNotFoundException(ga, branchId);
+                throw new BranchNotFoundException(ga.getRawGroupIdWithDefaultString(), ga.getRawArtifactId(), branchId.getRawBranchId());
             }
         });
     }
@@ -3468,47 +3820,30 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
     @Override
     @Transactional
-    public void deleteArtifactBranch(GA ga, BranchId branchId) {
-        if (BranchId.LATEST.equals(branchId)) {
-            throw new NotAllowedException("Artifact branch 'latest' cannot be deleted.");
-        }
-
-        handles.withHandleNoException(handle -> {
-
-            deleteArtifactBranchRaw(ga, branchId);
-
-            var gavs = handle.createQuery(sqlStatements.selectVersionsWithoutArtifactBranch())
-                    .bind(0, ga.getRawGroupId())
-                    .bind(1, ga.getRawArtifactId())
-                    .map(GAVMapper.instance)
-                    .list();
-
-            for (GAV gav : gavs) {
-                deleteArtifactVersion(gav.getRawGroupIdWithNull(), gav.getRawArtifactId(), gav.getRawVersionId());
-            }
-        });
-    }
-
-
-    @Override
-    @Transactional
-    public void importArtifactBranch(ArtifactBranchEntity entity) {
-        var gav = entity.toGAV();
+    public void importBranch(BranchEntity entity) {
+        var ga = entity.toGA();
         var branchId = entity.toBranchId();
         handles.withHandleNoException(handle -> {
-            try {
-                handle.createUpdate(sqlStatements.importArtifactBranch())
-                        .bind(0, gav.getRawGroupId())
-                        .bind(1, gav.getRawArtifactId())
-                        .bind(2, branchId.getRawBranchId())
-                        .bind(3, entity.branchOrder)
-                        .bind(4, gav.getRawVersionId())
-                        .execute();
-            } catch (Exception ex) {
-                if (sqlStatements.isForeignKeyViolation(ex)) {
-                    throw new VersionNotFoundException(gav, ex);
-                }
-                throw ex;
+            if (!isArtifactExists(entity.groupId, entity.artifactId)) {
+                throw new ArtifactNotFoundException(ga.getRawGroupIdWithDefaultString(), ga.getRawArtifactId());
+            }
+            handle.createUpdate(sqlStatements.insertBranch())
+                    .bind(0, ga.getRawGroupId())
+                    .bind(1, ga.getRawArtifactId())
+                    .bind(2, branchId.getRawBranchId())
+                    .bind(3, entity.description)
+                    .bind(4, entity.systemDefined)
+                    .bind(5, entity.owner)
+                    .bind(6, new Date(entity.createdOn))
+                    .bind(7, entity.modifiedBy)
+                    .bind(8, new Date(entity.modifiedOn))
+                    .execute();
+
+            // Append each of the versions onto the branch
+            if (entity.versions != null) {
+                entity.versions.forEach(version -> {
+                    appendVersionToBranchRaw(handle, ga, branchId, new VersionId(version));
+                });
             }
         });
     }

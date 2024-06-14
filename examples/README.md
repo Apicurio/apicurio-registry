@@ -68,4 +68,4 @@ and deserialize Apache Avro messages using different schemas, even if received i
 ## Cloud Events PoC
 This is an example application that implements a REST API that consumes and produces CloudEvents.
 This example application showcases an experimental library from apicurio-registry project. This library is used to validate incoming and outgoing CloudEvents messages in the REST API.
-The validation is performed against json schemas that are stored in Apicurio Registry. For a more detailed explanation go [here](../apicurio-registry/examples/cloudevents/README.md).
+The validation is performed against json schemas that are stored in Apicurio Registry. For a more detailed explanation go [here](./cloudevents/README.md).

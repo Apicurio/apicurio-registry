@@ -3,6 +3,7 @@ package io.apicurio.tests.migration;
 import io.apicurio.registry.client.auth.VertXAuthFactory;
 import io.apicurio.registry.model.BranchId;
 import io.apicurio.registry.rest.client.RegistryClient;
+import io.apicurio.registry.rest.client.models.Error;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.types.VersionState;
@@ -69,9 +70,16 @@ public class GenerateCanonicalHashImportIT extends ApicurioRegistryBaseIT {
                   The only way is to generate canonical hash and then search artifact by it. But that needs apicurio-registry-app module as dependency.
              */
 
-            var registryContent = client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("1").content().get();
-            assertNotNull(registryContent);
-            assertEquals(content, IoUtil.toString(registryContent));
+            try {
+                var registryContent = client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("1.0").content().get();
+                assertNotNull(registryContent);
+                assertEquals(content, IoUtil.toString(registryContent));
+            } catch (Error e) {
+                System.out.println("---");
+                System.out.println("REST CLIENT ERROR>> " + e.getDetail());
+                System.out.println("---");
+                throw e;
+            }
         }
 
     }
@@ -139,7 +147,7 @@ public class GenerateCanonicalHashImportIT extends ApicurioRegistryBaseIT {
                 versionEntity.labels = null;
                 versionEntity.name = null;
                 versionEntity.state = VersionState.ENABLED;
-                versionEntity.version = "1";
+                versionEntity.version = "1.0";
                 versionEntity.versionOrder = 1;
 
                 writer.writeEntity(versionEntity);

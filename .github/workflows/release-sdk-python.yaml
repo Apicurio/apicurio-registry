@@ -1,4 +1,4 @@
-name: Release Go SDK
+name: Release Python SDK
 on:
   workflow_dispatch:
     inputs:

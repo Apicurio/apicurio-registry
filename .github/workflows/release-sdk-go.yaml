@@ -63,7 +63,6 @@ jobs:
           git push origin "v$RELEASE_VERSION"
           git push origin "go-sdk/v$RELEASE_VERSION"
           GOPROXY=proxy.golang.org go list -m "github.com/apicurio/apicurio-registry@v$RELEASE_VERSION"
-        if: github.event.inputs.skip-go-sdk == 'false'
 
 
       - name: Google Chat Notification

@@ -119,6 +119,7 @@ jobs:
 
       - name: Build and Push Multi-arch Application Images
         run: |
+          cd registry
           docker buildx build --push -f ./distro/docker/target/docker/Dockerfile.jvm \
               -t docker.io/apicurio/apicurio-registry:latest \
               -t docker.io/apicurio/apicurio-registry:latest-release \

@@ -85,13 +85,13 @@ jobs:
           # take only the major, minor and patch
           UI_VERSION=$(echo "${{ github.event.inputs.release-version}}" | awk -F '.' '{print $1"."$2"."$3}')
           cd ui
-          npm version $UI_VERSION
+          npm version $UI_VERSION --allow-same-version
           cd ui-app
-          npm version $UI_VERSION
+          npm version $UI_VERSION --allow-same-version
           cd ../ui-docs
-          npm version $UI_VERSION
+          npm version $UI_VERSION --allow-same-version
           cd ../tests
-          npm version $UI_VERSION
+          npm version $UI_VERSION --allow-same-version
 
       - name: Build Registry (All Variants)
         run: |
@@ -204,13 +204,13 @@ jobs:
           # take only the major, minor and patch
           UI_VERSION=$(echo "${{ github.event.inputs.snapshot-version}}" | awk -F '.' '{print $1"."$2"."$3}')
           cd ui
-          npm version $UI_VERSION
+          npm version $UI_VERSION --allow-same-version
           cd ui-app
-          npm version $UI_VERSION
+          npm version $UI_VERSION --allow-same-version
           cd ../ui-docs
-          npm version $UI_VERSION
+          npm version $UI_VERSION --allow-same-version
           cd ../tests
-          npm version $UI_VERSION
+          npm version $UI_VERSION --allow-same-version
 
       - name: Commit Snapshot Version ${{ github.event.inputs.snapshot-version}}
         run: |

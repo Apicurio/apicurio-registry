@@ -96,7 +96,7 @@ jobs:
       - name: Build Registry (All Variants)
         run: |
           cd registry
-          make SKIP_TESTS=true BUILD_FLAGS='-Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5' build-all
+          ./mvnw -T 1.5C clean install --no-transfer-progress -Pprod -DskipTests=true -DskipCommitIdPlugin=false -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5
 
       - name: Build Registry UI
         run: |

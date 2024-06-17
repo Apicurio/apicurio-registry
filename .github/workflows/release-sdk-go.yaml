@@ -35,9 +35,7 @@ jobs:
         run: |
           git config --global user.name "apicurio-ci"
           git config --global user.email "apicurio.ci@gmail.com"
-          git clone --branch $RELEASE_VERSION --single-branch ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}.git registry
-          cd registry
-          git remote add origin "https://apicurio-ci:${{ secrets.ACCESS_TOKEN }}@github.com/Apicurio/apicurio-registry.git"
+          git clone --branch $RELEASE_VERSION --single-branch https://apicurio-ci:${{ secrets.ACCESS_TOKEN }}@github.com/Apicurio/apicurio-registry.git registry
 
       # We have faced issues in the past where a github release was created from a wrong commit
       # This step will ensure that the release was created from the right commit  

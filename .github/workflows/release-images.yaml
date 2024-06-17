@@ -145,9 +145,10 @@ jobs:
         env:
           SKIP_TESTS: "true"
         run: |
+          cd registry
           ./mvnw -T 1.5C package --no-transfer-progress -Pnative -Dquarkus.native.container-build=true -Pprod -DskipTests=true
 
-      - name: Build and Push Temporary image for testing
+      - name: Build and Push Native image for testing
         run: |
           docker build --push -f ./distro/docker/target/docker/Dockerfile.native \
               -t docker.io/apicurio/apicurio-registry-native:latest \

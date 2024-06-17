@@ -1,4 +1,4 @@
-name: Release Python SDK
+name: Release SDK (Python)
 on:
   workflow_dispatch:
     inputs:

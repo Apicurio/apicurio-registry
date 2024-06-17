@@ -1,4 +1,4 @@
-name: Release Go SDK
+name: Release SDK (Go)
 on:
   workflow_dispatch:
     inputs:

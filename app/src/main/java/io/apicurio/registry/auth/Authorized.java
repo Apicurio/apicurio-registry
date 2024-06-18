@@ -1,13 +1,13 @@
 package io.apicurio.registry.auth;
 
+import jakarta.enterprise.util.Nonbinding;
+import jakarta.interceptor.InterceptorBinding;
+
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Inherited;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
-
-import jakarta.enterprise.util.Nonbinding;
-import jakarta.interceptor.InterceptorBinding;
 
 @InterceptorBinding
 @Inherited
@@ -20,5 +20,8 @@ public @interface Authorized {
 
     @Nonbinding
     AuthorizedLevel level() default AuthorizedLevel.Read;
+
+    @Nonbinding
+    int dryRunParam() default -1;
 
 }

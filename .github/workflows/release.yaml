@@ -47,16 +47,14 @@ jobs:
         with:
           node-version: 16
 
-      - name: Set up settings.xml
-        run: |
-          pwd
-          mkdir -p /home/runner/.m2
-          chmod 755 /home/runner/.m2
-          echo "<settings><servers><server><id>${{ secrets.OSSRH_ID }}</id><username>${{ secrets.OSSRH_USERNAME }}</username><password>${{ secrets.OSSRH_TOKEN }}</password></server></servers><profiles><profile><id>${{ secrets.OSSRH_ID }}</id><activation><activeByDefault>true</activeByDefault></activation><properties><gpg.executable>gpg</gpg.executable><gpg.passphrase>${{ secrets.GPG_PASSPHRASE}}</gpg.passphrase></properties></profile></profiles></settings>" > /home/runner/.m2/settings.xml
-          cat /home/runner/.m2/settings.xml
-
       - name: Set up Gren
         run: npm install github-release-notes -g
+
+      - name: Import GPG Key
+        uses: crazy-max/ghaction-import-gpg@f6f458f535f4ccdf100400ee0755c0e857226a66
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+          PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
 
       - name: Apicurio Registry Checkout
         run: |
@@ -109,22 +107,6 @@ jobs:
           npm run lint
           npm run build
           npm run package
-
-      - name: Import GPG Key
-        uses: crazy-max/ghaction-import-gpg@f6f458f535f4ccdf100400ee0755c0e857226a66
-        env:
-          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
-          PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
-
-      - name: Maven Deploy
-        if: github.event.inputs.skip-maven-deploy == 'false'
-        run: |
-          cd registry
-          # Retry 3 times before the steps actually fails
-          (echo "===== Maven Deploy Attempt: 1 ====" && mvn deploy --batch-mode -Pprod -Psql -Pmssql -Pkafkasql -Prelease -DskipTests --settings /home/runner/.m2/settings.xml) || \
-          (echo "===== Maven Deploy Attempt: 2 ====" && mvn deploy --batch-mode -Pprod -Psql -Pmssql -Pkafkasql -Prelease -DskipTests --settings /home/runner/.m2/settings.xml) || \
-          (echo "===== Maven Deploy Attempt: 3 ====" && mvn deploy --batch-mode -Pprod -Psql -Pmssql -Pkafkasql -Prelease -DskipTests --settings /home/runner/.m2/settings.xml) || \
-          (echo "==== Maven Deploy Step Failed ====" && exit 1)
 
       - name: Commit Release Version Change
         run: |

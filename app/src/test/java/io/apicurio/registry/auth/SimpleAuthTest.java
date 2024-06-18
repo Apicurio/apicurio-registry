@@ -105,6 +105,10 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
             client.groups().byGroupId("testReadOnly").artifacts().post(createArtifact);
         });
         assertForbidden(exception3);
+        // Try the create again but with dryRun set to true (should work)
+        client.groups().byGroupId("testReadOnly").artifacts().post(createArtifact, config -> {
+            config.queryParameters.dryRun = true;
+        });
 
         var devAdapter = new VertXRequestAdapter(buildOIDCWebClient(authServerUrlConfigured, JWKSMockServer.DEVELOPER_CLIENT_ID, "test1"));
         devAdapter.setBaseUrl(registryV3ApiUrl);

@@ -600,7 +600,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
     @Override
     @Audited(extractParameters = {"0", KEY_GROUP_ID, "1", KEY_IF_EXISTS, "2", KEY_CANONICAL, "3", "dryRun"})
-    @Authorized(style = AuthorizedStyle.GroupOnly, level = AuthorizedLevel.Write)
+    @Authorized(style = AuthorizedStyle.GroupOnly, level = AuthorizedLevel.Write, dryRunParam = 3)
     public CreateArtifactResponse createArtifact(String groupId, IfArtifactExists ifExists, Boolean canonical, Boolean dryRun, CreateArtifact data) {
         requireParameter("groupId", groupId);
         if (data.getFirstVersion() != null) {
@@ -763,7 +763,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
     @Override
     @Audited(extractParameters = {"0", KEY_GROUP_ID, "1", KEY_ARTIFACT_ID, "2", "dryRun"})
-    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
+    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write, dryRunParam = 2)
     public VersionMetaData createArtifactVersion(String groupId, String artifactId, Boolean dryRun, CreateVersion data) {
         requireParameter("content", data.getContent());
         requireParameter("groupId", groupId);

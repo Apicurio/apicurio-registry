@@ -71,27 +71,29 @@ public class AuthorizedInterceptor {
         // If the securityIdentity is not set (or is anonymous)...
         try {
             if (securityIdentity == null || securityIdentity.isAnonymous()) {
-                System.out.println("=====> Identity was null or anon: " + securityIdentity);
-    
+                log.debug("Identity was null or anonymous: " + securityIdentity);
+
                 // Anonymous users are allowed to perform "None" operations.
                 if (annotation.level() == AuthorizedLevel.None) {
                     log.trace("Anonymous user is being granted access to unprotected operation.");
                     return context.proceed();
                 }
-    
+
                 // Anonymous users are allowed to perform read-only operations, but only if
                 // apicurio.auth.anonymous-read-access.enabled is set to 'true'
                 if (authConfig.anonymousReadAccessEnabled.get() && annotation.level() == AuthorizedLevel.Read) {
                     log.trace("Anonymous user is being granted access to read-only operation.");
                     return context.proceed();
                 }
-    
+
                 // Otherwise just fail - auth was enabled but no credentials provided.
                 log.warn("Authentication credentials missing and required for protected endpoint.");
                 throw new UnauthorizedException("User is not authenticated.");
             }
+        } catch (UnauthorizedException e) {
+            throw e;
         } catch (Throwable t) {
-            t.printStackTrace();
+            log.error("Error enforcing access.", t);
             throw t;
         }
 
